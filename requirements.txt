@@ -3,3 +3,8 @@ requests
 requests-toolbelt
 tqdm
 pillow
+numpy
+xmltodict
+opencv-python
+git+https://github.com/cocodataset/panopticapi.git
+git+https://github.com/cocodataset/cocoapi.git#subdirectory=PythonAPI
