@@ -2,7 +2,7 @@
 
 ## Python SDK
 
-[Python SDK](README_SDK.md)
+[Python SDK](README_sdk.md)
 
 ## CLI tools
 
