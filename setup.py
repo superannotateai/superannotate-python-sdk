@@ -19,5 +19,8 @@ setup(
     long_description=readme,
     long_description_content_type='text/markdown',
     packages=find_packages(exclude=('tests', )),
+    entry_points={
+        'console_scripts': ['superannotate = superannotate.__main__:main']
+    },
     python_requires='>=3.5'
 )
