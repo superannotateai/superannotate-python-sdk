@@ -12,7 +12,7 @@ import boto3
 from tqdm import tqdm
 
 from ..api import API
-from ..exceptions import AOBaseException
+from ..exceptions import SABaseException
 
 logger = logging.getLogger("annotateonline-python-sdk")
 
@@ -31,7 +31,7 @@ def get_exports(project):
     params = {'team_id': team_id, 'project_id': project_id}
     response = _api.gen_request(req_type='GET', path='/exports', params=params)
     if not response.ok:
-        raise AOBaseException(
+        raise SABaseException(
             response.status_code, "Couldn't get exports. " + response.text
         )
     return response.json()
@@ -51,7 +51,7 @@ def get_export(export):
         req_type='GET', path=f'/export/{export_id}', params=params
     )
     if not response.ok:
-        raise AOBaseException(
+        raise SABaseException(
             response.status_code, "Couldn't get export. " + response.text
         )
     return response.json()
@@ -84,7 +84,7 @@ def prepare_export(
         req_type='POST', path='/export', params=params, json_req=json_req
     )
     if not response.ok:
-        raise AOBaseException(
+        raise SABaseException(
             response.status_code, "Couldn't create_export." + response.text
         )
     return response.json()
@@ -150,7 +150,7 @@ def download_export(
             time.sleep(5)
             continue
         if res["status"] == 4:
-            raise AOBaseException(0, "Couldn't download export.")
+            raise SABaseException(0, "Couldn't download export.")
         break
 
     filename = Path(res['path']).name

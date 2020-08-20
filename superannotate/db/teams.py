@@ -2,7 +2,7 @@ import logging
 
 from ..api import API
 
-from ..exceptions import AOBaseException
+from ..exceptions import SABaseException
 
 logger = logging.getLogger("annotateonline-python-sdk")
 
@@ -20,7 +20,7 @@ def delete_team(team):
     if response.ok:
         logger.info("Successfully deleted team with ID %s.", team_id)
     else:
-        raise AOBaseException(
+        raise SABaseException(
             response.status_code, "Couldn't delete team " + response.text
         )
 
@@ -48,7 +48,7 @@ def search_teams(name_prefix=None):
                 break
             params["offset"] = new_len
         else:
-            raise AOBaseException(
+            raise SABaseException(
                 response.status_code, "Couldn't search teams " + response.text
             )
 
@@ -66,7 +66,7 @@ def create_team(name: str, description: str):
     data = {"name": name, "description": description, "type": 0}
     response = _api.gen_request(req_type='POST', path='/team', json_req=data)
     if not response.ok:
-        raise AOBaseException(
+        raise SABaseException(
             response.status_code, "Couldn't create team " + response.text
         )
     return response.json()
@@ -75,7 +75,7 @@ def create_team(name: str, description: str):
 def get_default_team():
     response = _api.gen_request(req_type='GET', path='/team/DEFAULT')
     if not response.ok:
-        raise AOBaseException(
+        raise SABaseException(
             response.status_code, "Couldn't get default team " + response.text
         )
     return response.json()

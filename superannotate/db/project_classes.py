@@ -6,7 +6,7 @@ from pathlib import Path
 import boto3
 
 from ..api import API
-from ..exceptions import AOBaseException
+from ..exceptions import SABaseException
 
 logger = logging.getLogger("annotateonline-python-sdk")
 
@@ -41,7 +41,7 @@ def create_class(project, name, color, attribute_groups=None):
         req_type='POST', path='/classes', params=params, json_req=data
     )
     if not response.ok:
-        raise AOBaseException(
+        raise SABaseException(
             response.status_code, "Couldn't create class " + response.text
         )
     res = response.json()
@@ -97,7 +97,7 @@ def search_classes(project, name_prefix=None):
             req_type='GET', path='/classes', params=params
         )
         if not response.ok:
-            raise AOBaseException(
+            raise SABaseException(
                 response.status_code, "Couldn't search classes " + response.text
             )
         res = response.json()

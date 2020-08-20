@@ -3,7 +3,7 @@ import logging
 logger = logging.getLogger("annotateonline-python-sdk")
 
 
-class AOBaseException(Exception):
+class SABaseException(Exception):
     def __init__(
         self,
         status_code='Unknown Status Code',

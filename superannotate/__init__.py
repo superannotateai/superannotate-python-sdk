@@ -13,7 +13,7 @@ from .db.images import search_images, set_image_annotation_status, download_imag
 from .db.projects import search_projects, create_project, upload_images_from_folder, get_root_folder_id, upload_annotations_from_folder, get_project_type, upload_preannotations_from_folder, share_project, unshare_project, delete_project, get_project_image_count, get_project, upload_from_s3_bucket, get_upload_from_s3_bucket_status
 from .db.project_classes import search_classes, create_class, create_classes_from_classes_json, download_classes_json
 
-from .exceptions import AOBaseException
+from .exceptions import SABaseException
 
 #formatter = logging.Formatter(fmt='%(asctime)s - %(levelname)s - %(module)s - %(message)s')
 formatter = logging.Formatter(fmt='sa-PYTHON-SDK - %(levelname)s - %(message)s')

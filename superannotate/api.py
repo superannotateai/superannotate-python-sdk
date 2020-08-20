@@ -7,7 +7,7 @@ import logging
 logger = logging.getLogger("annotateonline-python-sdk")
 
 from .version import Version
-from .exceptions import AOBaseException
+from .exceptions import SABaseException
 
 
 class API:
@@ -15,7 +15,7 @@ class API:
 
     def __init__(self):
         if API.__instance is not None:
-            raise AOBaseException(0, "API class is a singleton!")
+            raise SABaseException(0, "API class is a singleton!")
         else:
             API.__instance = self
 
@@ -37,9 +37,9 @@ class API:
         response = self.gen_request(req_type='GET', path='/teams')
         if not response.ok:
             if "Not authorized" in response.text:
-                raise AOBaseException(0, "Couldn't authorize")
+                raise SABaseException(0, "Couldn't authorize")
             else:
-                raise AOBaseException(0, "Couldn't reach annotateonline")
+                raise SABaseException(0, "Couldn't reach annotateonline")
 
     @staticmethod
     def get_instance():

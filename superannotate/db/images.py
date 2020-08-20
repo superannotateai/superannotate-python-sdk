@@ -6,7 +6,7 @@ import boto3
 import requests
 
 from ..api import API
-from ..exceptions import AOBaseException
+from ..exceptions import SABaseException
 from .projects import get_project_type, get_root_folder_id
 
 logger = logging.getLogger("annotateonline-python-sdk")
@@ -55,7 +55,7 @@ def search_images(
             #     response.json()["count"], len(new_results), params['offset']
             # )
         else:
-            raise AOBaseException(
+            raise SABaseException(
                 response.status_code, "Couldn't search images " + response.text
             )
     return result_list
@@ -80,7 +80,7 @@ def set_image_annotation_status(image, status):
         params=params
     )
     if not response.ok:
-        raise AOBaseException(response.status_code, response.text)
+        raise SABaseException(response.status_code, response.text)
     return response.json()
 
 
@@ -97,7 +97,7 @@ def get_image(image):
     if response.ok:
         return response.json()
     else:
-        raise AOBaseException(response.status_code, response.text)
+        raise SABaseException(response.status_code, response.text)
 
 
 def download_image(
@@ -117,7 +117,7 @@ def download_image(
     )
 
     if not Path(local_dir_path).is_dir():
-        raise AOBaseException(
+        raise SABaseException(
             0, f"local_dir_path {local_dir_path} is not an existing directory"
         )
     img = get_image_bytes(image, variant=variant)
@@ -146,7 +146,7 @@ def get_image_bytes(image, variant='original'):
         params=params
     )
     if not response.ok:
-        raise AOBaseException(
+        raise SABaseException(
             response.status_code, "Couldn't get image " + response.text
         )
     res = response.json()
@@ -184,7 +184,7 @@ def get_image_preannotations(image):
         params=params
     )
     if not response.ok:
-        raise AOBaseException(response.status_code, response.text)
+        raise SABaseException(response.status_code, response.text)
     res = response.json()['preannotation']
     url = res["url"]
     annotation_json_filename = url.rsplit('/', 1)[-1]
@@ -226,7 +226,7 @@ def get_image_annotations(image, project_type=None):
         params=params
     )
     if not response.ok:
-        raise AOBaseException(response.status_code, response.text)
+        raise SABaseException(response.status_code, response.text)
     res = response.json()
     if project_type == 1:  # vector
         url = res["objects"]["url"]
@@ -241,7 +241,7 @@ def get_image_annotations(image, project_type=None):
                 "annotation_json": response.json()
             }
         else:
-            raise AOBaseException(response.status_code, response.text)
+            raise SABaseException(response.status_code, response.text)
     else:  # pixel
         url = res["pixelObjects"]["url"]
         annotation_json_filename = url.rsplit('/', 1)[-1]
@@ -255,14 +255,14 @@ def get_image_annotations(image, project_type=None):
                 "annotation_mask_filename": None
             }
         elif not response.ok:
-            raise AOBaseException(response.status_code, response.text)
+            raise SABaseException(response.status_code, response.text)
         res_json = response.json()
         url = res["pixelSave"]["url"]
         annotation_mask_filename = url.rsplit('/', 1)[-1]
         headers = res["pixelSave"]["headers"]
         response = requests.get(url=url, headers=headers)
         if not response.ok:
-            raise AOBaseException(response.status_code, response.text)
+            raise SABaseException(response.status_code, response.text)
         mask = io.BytesIO(response.content)
         return {
             "annotation_json": res_json,
@@ -388,7 +388,7 @@ def upload_annotations_from_file_to_image(
             )
         else:  # pixel
             if mask_path is None:
-                raise AOBaseException(0, "Pixel annotation should have mask.")
+                raise SABaseException(0, "Pixel annotation should have mask.")
             res_j = res['pixel']
             s3_session = boto3.Session(
                 aws_access_key_id=res_j['accessKeyId'],
@@ -410,6 +410,6 @@ def upload_annotations_from_file_to_image(
             bucket = s3_resource.Bucket(res_m["bucket"])
             bucket.put_object(Key=res_m['filePath'], Body=open(mask_path, 'rb'))
     else:
-        raise AOBaseException(
+        raise SABaseException(
             response.status_code, "Couldn't upload annotation. " + response.text
         )

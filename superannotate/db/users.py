@@ -1,7 +1,7 @@
 import logging
 
 from ..api import API
-from ..exceptions import AOBaseException
+from ..exceptions import SABaseException
 
 logger = logging.getLogger("annotateonline-python-sdk")
 
@@ -30,7 +30,7 @@ def search_users(team):
                 break
             params["offset"] = new_len
         else:
-            raise AOBaseException(
+            raise SABaseException(
                 response.status_code,
                 "Couldn't search projects. " + response.text
             )

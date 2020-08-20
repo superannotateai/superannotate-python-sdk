@@ -11,7 +11,7 @@ from tqdm import tqdm
 from PIL import Image
 
 from ..api import API
-from ..exceptions import AOBaseException
+from ..exceptions import SABaseException
 
 logger = logging.getLogger("annotateonline-python-sdk")
 
@@ -42,7 +42,7 @@ def search_projects(team, name_prefix=None):
                 break
             params["offset"] = len(result_list)
         else:
-            raise AOBaseException(
+            raise SABaseException(
                 response.status_code,
                 "Couldn't search projects." + response.text
             )
@@ -64,7 +64,7 @@ def get_project(project):
         res = response.json()
         return res
     else:
-        raise AOBaseException(
+        raise SABaseException(
             response.status_code, "Couldn't get project." + response.text
         )
 
@@ -78,7 +78,7 @@ def create_project(team, project_name, project_description, project_type):
         the created project representation
     """
     if project_type not in [1, 2]:
-        raise AOBaseException(
+        raise SABaseException(
             0, "project_type should be 1 (vector) or 2 (pixel)"
         )
     data = {
@@ -90,7 +90,7 @@ def create_project(team, project_name, project_description, project_type):
     }
     response = _api.gen_request(req_type='POST', path='/project', json_req=data)
     if not response.ok:
-        raise AOBaseException(
+        raise SABaseException(
             response.status_code, "Couldn't create project " + response.text
         )
     res = response.json()
@@ -115,7 +115,7 @@ def delete_project(project):
     if response.ok:
         logger.info("Successfully deleted project with ID %s.", project_id)
     else:
-        raise AOBaseException(
+        raise SABaseException(
             response.status_code, "Couldn't delete project " + response.text
         )
 
@@ -135,7 +135,7 @@ def get_project_image_count(project):
         params=params
     )
     if not response.ok:
-        raise AOBaseException(
+        raise SABaseException(
             response.status_code,
             "Couldn't get project image count " + response.text
         )
@@ -171,7 +171,7 @@ def upload_images_from_folder(
     if extensions is None:
         extensions = ["jpg", "png"]
     elif not isinstance(extensions, list):
-        raise AOBaseException(
+        raise SABaseException(
             0, "extensions should be a list in upload_images_from_folder"
         )
 
@@ -316,7 +316,7 @@ def __create_image(img_paths, project, annotation_status, remote_dir):
         req_type='POST', path='/image/ext-create', json_req=data
     )
     if not response.ok:
-        raise AOBaseException(
+        raise SABaseException(
             response.status_code, "Couldn't ext-create image " + response.text
         )
 
@@ -336,7 +336,7 @@ def upload_images(project, img_paths, annotation_status=1, from_s3_bucket=None):
     None
     """
     if annotation_status not in [1, 2, 3, 4, 5, 6]:
-        raise AOBaseException(
+        raise SABaseException(
             0, "Annotation status should be an integer in range 1-6"
         )
     project_type = get_project_type(project)
@@ -370,7 +370,7 @@ def upload_images(project, img_paths, annotation_status=1, from_s3_bucket=None):
             res = response.json()
             prefix = res['filePath']
         else:
-            raise AOBaseException(
+            raise SABaseException(
                 response.status_code,
                 "Couldn't get upload token " + response.text
             )
@@ -647,7 +647,7 @@ def get_root_folder_id(project):
         req_type='GET', path=f'/project/{project["id"]}', params=params
     )
     if not response.ok:
-        raise AOBaseException(response.status_code, response.text)
+        raise SABaseException(response.status_code, response.text)
     return response.json()['folder_id']
 
 
@@ -715,7 +715,7 @@ def upload_preannotations_from_folder(
             params=params
         )
         if not response.ok:
-            raise AOBaseException(response.status_code, response.text)
+            raise SABaseException(response.status_code, response.text)
         aws_creds = response.json()
 
         threads = []
@@ -755,7 +755,7 @@ def share_project(project, user, user_role):
         json_req=json_req
     )
     if not response.ok:
-        raise AOBaseException(response.status_code, response.text)
+        raise SABaseException(response.status_code, response.text)
     logger.info(
         "Shared project ID %s with user ID %s and role %s", project_id, user_id,
         user_role
@@ -774,7 +774,7 @@ def unshare_project(project, user):
         json_req=json_req
     )
     if not response.ok:
-        raise AOBaseException(response.status_code, response.text)
+        raise SABaseException(response.status_code, response.text)
     logger.info("Unshared project ID %s from user ID %s", project_id, user_id)
 
 
@@ -798,7 +798,7 @@ def upload_from_s3_bucket(
         json_req=data
     )
     if not response.ok:
-        raise AOBaseException(
+        raise SABaseException(
             response.status_code,
             "Couldn't upload to project from S3 " + response.text
         )
@@ -809,7 +809,7 @@ def upload_from_s3_bucket(
         if res["progress"] == '2':
             break
         if res["progress"] != "1":
-            raise AOBaseException(
+            raise SABaseException(
                 response.status_code,
                 "Couldn't upload to project from S3 " + response.text
             )
@@ -826,7 +826,7 @@ def get_upload_from_s3_bucket_status(project):
         params=params
     )
     if not response.ok:
-        raise AOBaseException(
+        raise SABaseException(
             response.status_code,
             "Couldn't get upload to project from S3 status " + response.text
         )
