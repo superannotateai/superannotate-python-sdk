@@ -4,7 +4,7 @@ import boto3
 
 import superannotate as sa
 
-sa.init(Path.home() / ".annotateonline" / "config.json")
+sa.init(Path.home() / ".superannotate" / "config.json")
 s3_client = boto3.client('s3')
 
 S3_PREFIX = 'frex9'

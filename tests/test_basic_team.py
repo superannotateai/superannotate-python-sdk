@@ -2,7 +2,7 @@ from pathlib import Path
 
 import superannotate as sa
 
-sa.init(Path.home() / ".annotateonline" / "config.json")
+sa.init(Path.home() / ".superannotate" / "config.json")
 
 
 def test_basic_team():

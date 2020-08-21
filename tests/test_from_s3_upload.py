@@ -10,7 +10,7 @@ import boto3
 
 import superannotate as sa
 
-sa.init(Path.home() / ".annotateonline" / "config.json")
+sa.init(Path.home() / ".superannotate" / "config.json")
 
 PROJECT_NAME = "test_ya90"
 s3_client = boto3.client('s3')

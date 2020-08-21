@@ -8,7 +8,7 @@ import boto3
 from ..api import API
 from ..exceptions import SABaseException
 
-logger = logging.getLogger("annotateonline-python-sdk")
+logger = logging.getLogger("superannotate-python-sdk")
 
 _api = API.get_instance()
 
@@ -52,7 +52,7 @@ def create_class(project, name, color, attribute_groups=None):
 def create_classes_from_classes_json(
     project, path_to_classes_json, from_s3_bucket=None
 ):
-    """ Create classes in project from a annotateonline classes.json
+    """ Create classes in project from a superannotate classes.json
     """
     project_id = project["id"]
     logger.info(

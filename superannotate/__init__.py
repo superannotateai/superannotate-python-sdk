@@ -21,7 +21,7 @@ formatter = logging.Formatter(fmt='sa-PYTHON-SDK - %(levelname)s - %(message)s')
 handler = logging.StreamHandler()
 handler.setFormatter(formatter)
 
-logger = logging.getLogger("annotateonline-python-sdk")
+logger = logging.getLogger("superannotate-python-sdk")
 logger.setLevel(logging.INFO)
 logger.addHandler(handler)
 

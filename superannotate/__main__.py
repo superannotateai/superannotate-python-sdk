@@ -37,7 +37,7 @@ def upload(command, args):
         '--command',
         required=True,
         help=
-        'AnnotateOnline API action command - visit https://annotate.online for more info.'
+        'superannotate API action command - visit https://annotate.online for more info.'
     )
     parser.add_argument(
         '--aws_access_key_id',
@@ -59,7 +59,7 @@ def upload(command, args):
         required=True,
         help='Find bucket for your account after login.'
     )
-    parser.add_argument('--project_type', help='AnnotateOnline project type.')
+    parser.add_argument('--project_type', help='superannotate project type.')
     parser.add_argument(
         '--origin', help='Images directory path in local machine.'
     )
@@ -68,7 +68,7 @@ def upload(command, args):
     )
     parser.add_argument('--coco_json', help='COCO annotation full path.')
     parser.add_argument(
-        '--ao_jsons', help='AnnotateOnline annotations directory path.'
+        '--ao_jsons', help='superannotate annotations directory path.'
     )
     args = parser.parse_args(args)
     if command == "preannotation-upload":

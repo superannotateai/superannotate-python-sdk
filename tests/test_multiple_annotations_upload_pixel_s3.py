@@ -4,7 +4,7 @@ from urllib.parse import urlparse
 import pytest
 
 import superannotate as sa
-sa.init(Path.home() / ".annotateonline" / "config.json")
+sa.init(Path.home() / ".superannotate" / "config.json")
 
 TEST_PROJECT_PIXEL = "sample_project_pixel"
 TEST_PROJECT_VECTOR = "sample_project_vector"

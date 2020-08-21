@@ -11,11 +11,11 @@ packages = find_packages()
 setup(
     name='superannotate',
     version='1.0.0',
-    description='Python SDK to annotate.online platform',
+    description='Python SDK to SuperAnnotate platform',
     license='GNU GPL 3',
     author='Hovnatan Karapetyan',
     author_email='hovnatan@superannotate.com',
-    url='https://github.com/superannotateai/annotateonline-python-sdk',
+    url='https://github.com/superannotateai/superannotate-python-sdk',
     long_description=readme,
     long_description_content_type='text/markdown',
     packages=find_packages(exclude=('tests', )),

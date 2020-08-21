@@ -6,7 +6,7 @@ import boto3
 
 import superannotate as sa
 
-sa.init(Path.home() / ".annotateonline" / "config.json")
+sa.init(Path.home() / ".superannotate" / "config.json")
 
 TEST_PROJET_NAME = "test_s3_upload"
 S3_BUCKET = 'hovnatan-test'

@@ -1,6 +1,6 @@
 import logging
 
-logger = logging.getLogger("annotateonline-python-sdk")
+logger = logging.getLogger("superannotate-python-sdk")
 
 
 class SABaseException(Exception):

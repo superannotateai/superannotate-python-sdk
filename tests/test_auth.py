@@ -10,4 +10,4 @@ def test_basic_auth():
         assert e.message == "Couldn't authorize"
     else:
         assert False
-    sa.init(Path.home() / ".annotateonline" / "config.json")
+    sa.init(Path.home() / ".superannotate" / "config.json")

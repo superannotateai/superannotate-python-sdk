@@ -9,7 +9,7 @@ from ..api import API
 from ..exceptions import SABaseException
 from .projects import get_project_type, get_root_folder_id
 
-logger = logging.getLogger("annotateonline-python-sdk")
+logger = logging.getLogger("superannotate-python-sdk")
 
 _api = API.get_instance()
 

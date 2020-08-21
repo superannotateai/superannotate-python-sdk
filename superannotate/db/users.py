@@ -3,7 +3,7 @@ import logging
 from ..api import API
 from ..exceptions import SABaseException
 
-logger = logging.getLogger("annotateonline-python-sdk")
+logger = logging.getLogger("superannotate-python-sdk")
 
 _api = API.get_instance()
 

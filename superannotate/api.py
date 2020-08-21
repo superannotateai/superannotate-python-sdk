@@ -4,7 +4,7 @@ import requests_toolbelt
 import urllib3
 import logging
 
-logger = logging.getLogger("annotateonline-python-sdk")
+logger = logging.getLogger("superannotate-python-sdk")
 
 from .version import Version
 from .exceptions import SABaseException
@@ -28,7 +28,7 @@ class API:
         if "authtype" in self.api_config:
             self.default_headers["authtype"] = self.api_config["authtype"]
         self.default_headers['User-Agent'] = requests_toolbelt.user_agent(
-            'annotateonline', Version
+            'superannotate', Version
         )
 
         self.main_endpoint = self.api_config["main_endpoint"]
@@ -39,7 +39,7 @@ class API:
             if "Not authorized" in response.text:
                 raise SABaseException(0, "Couldn't authorize")
             else:
-                raise SABaseException(0, "Couldn't reach annotateonline")
+                raise SABaseException(0, "Couldn't reach superannotate")
 
     @staticmethod
     def get_instance():

@@ -4,7 +4,7 @@ import pytest
 
 import superannotate as sa
 
-sa.init(Path.home() / ".annotateonline" / "config.json")
+sa.init(Path.home() / ".superannotate" / "config.json")
 
 
 @pytest.mark.parametrize(
