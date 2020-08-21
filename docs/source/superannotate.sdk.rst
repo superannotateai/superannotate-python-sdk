@@ -3,32 +3,31 @@
 SDK functions
 ===========================
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+.. contents::
+
 
 Initialization and authentication
 _________________________________
 
-.. autofunction:: superannotate.__init__.init
+.. autofunction:: superannotate.init
 
 ----------
 
 Teams
 _____
 
-.. automodule:: superannotate.db.teams
-   :members:
-   :undoc-members:
+.. autofunction:: superannotate.get_default_team
+.. autofunction:: superannotate.search_teams
+.. autofunction:: superannotate.create_team
+.. autofunction:: superannotate.delete_team
 
 ----------
 
 Projects
 ________
 
-.. automodule:: superannotate.db.projects
-   :members:
-   :undoc-members:
+.. autofunction:: superannotate.search_projects
+.. autofunction:: superannotate.create_project
 
 ----------
 
