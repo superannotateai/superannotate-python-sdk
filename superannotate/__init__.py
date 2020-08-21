@@ -28,8 +28,10 @@ logger.addHandler(handler)
 _api = API.get_instance()
 
 
-def init(config_location):
-    _api.set_auth(config_location)
-    # from .db.projects import Projects
-    # from .db.project_classes import ProjectClasses
-    # from .db.images import Images
+def init(path_to_config_json):
+    """Initializes and authenticates to Superannotate platform using the config file.
+
+    :param path_to_config_json: Location to config JSON
+    :type path_to_config_json:
+    """
+    _api.set_auth(path_to_config_json)

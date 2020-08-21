@@ -94,10 +94,9 @@ def get_image(image):
     response = _api.gen_request(
         req_type='GET', path=f'/image/{image_id}', params=params
     )
-    if response.ok:
-        return response.json()
-    else:
+    if not response.ok:
         raise SABaseException(response.status_code, response.text)
+    return response.json()
 
 
 def download_image(
@@ -108,9 +107,7 @@ def download_image(
     -------
     None
     """
-    team_id, project_id, image_id, folder_id, image_name = image[
-        "team_id"], image["project_id"], image["id"], image['folder_id'], image[
-            'name']
+    image_id, image_name = image["id"], image['name']
     logger.info(
         "Downloading image %s (ID %s) to %s", image_name, image_id,
         local_dir_path
@@ -190,15 +187,14 @@ def get_image_preannotations(image):
     annotation_json_filename = url.rsplit('/', 1)[-1]
     headers = res["headers"]
     response = requests.get(url=url, headers=headers)
-    if response.ok:
-        res_json = response.json()
-        return {
-            "preannotation_json_filename": annotation_json_filename,
-            "preannotation_json": res_json
-        }
-    else:
+    if not response.ok:
         logger.warning("No preannotation available.")
         return {"preannotation_json_filename": None, "preannotation_json": None}
+    res_json = response.json()
+    return {
+        "preannotation_json_filename": annotation_json_filename,
+        "preannotation_json": res_json
+    }
 
 
 def get_image_annotations(image, project_type=None):
@@ -233,15 +229,14 @@ def get_image_annotations(image, project_type=None):
         annotation_json_filename = url.rsplit('/', 1)[-1]
         headers = res["objects"]["headers"]
         response = requests.get(url=url, headers=headers)
-        if not response.ok and response.status_code == 403:
-            return {"annotation_json": None, "annotation_json_filename": None}
-        elif response.ok:
+        if response.ok:
             return {
                 "annotation_json_filename": annotation_json_filename,
                 "annotation_json": response.json()
             }
-        else:
-            raise SABaseException(response.status_code, response.text)
+        if not response.ok and response.status_code == 403:
+            return {"annotation_json": None, "annotation_json_filename": None}
+        raise SABaseException(response.status_code, response.text)
     else:  # pixel
         url = res["pixelObjects"]["url"]
         annotation_json_filename = url.rsplit('/', 1)[-1]

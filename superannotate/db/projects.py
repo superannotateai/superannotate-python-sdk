@@ -60,13 +60,12 @@ def get_project(project):
     response = _api.gen_request(
         req_type='GET', path=f'/project/{project_id}', params=params
     )
-    if response.ok:
-        res = response.json()
-        return res
-    else:
+    if not response.ok:
         raise SABaseException(
             response.status_code, "Couldn't get project." + response.text
         )
+    res = response.json()
+    return res
 
 
 def create_project(team, project_name, project_description, project_type):
@@ -243,39 +242,46 @@ def __upload_images_to_aws_thread(
         if already_uploaded[i]:
             continue
         path = img_paths[i]
+        key = prefix + f'{Path(path).name}'
+        if from_s3_bucket is not None:
+            file = io.BytesIO()
+            from_s3_object = from_s3.Object(from_s3_bucket, path)
+            from_s3_object.download_fileobj(file)
+            file.seek(0)
+            im = Image.open(file)
+        else:
+            im = Image.open(path)
+        width, height = im.size
+        max_size = _RESIZE_CONFIG[project_type]
+        if (width * height) > max_size:
+            max_size_root = math.sqrt(max_size)
+            nwidth = math.floor(max_size_root * math.sqrt(width / height))
+            nheight = math.floor(max_size_root * math.sqrt(height / width))
+            im = im.resize((nwidth, nheight))
+        byte_io = io.BytesIO()
+        im.convert('RGB').save(byte_io, 'JPEG')
+        byte_io.seek(0)
         try:
-            key = prefix + f'{Path(path).name}'
-            if from_s3_bucket is not None:
-                file = io.BytesIO()
-                from_s3_object = from_s3.Object(from_s3_bucket, path)
-                from_s3_object.download_fileobj(file)
-                file.seek(0)
-                im = Image.open(file)
-            else:
-                im = Image.open(path)
-            width, height = im.size
-            max_size = _RESIZE_CONFIG[project_type]
-            if (width * height) > max_size:
-                max_size_root = math.sqrt(max_size)
-                nwidth = math.floor(max_size_root * math.sqrt(width / height))
-                nheight = math.floor(max_size_root * math.sqrt(height / width))
-                im = im.resize((nwidth, nheight))
-            byte_io = io.BytesIO()
-            im.convert('RGB').save(byte_io, 'JPEG')
-            byte_io.seek(0)
             bucket.put_object(Body=byte_io, Key=key, ContentType="image/jpeg")
-            byte_io = io.BytesIO()
-            im.convert('RGB').save(byte_io, 'JPEG', dpi=(96, 96))
-            byte_io.seek(0)
+        except Exception as e:
+            logger.warning("Unable to upload to data server %s", e)
+            break
+        byte_io = io.BytesIO()
+        im.convert('RGB').save(byte_io, 'JPEG', dpi=(96, 96))
+        byte_io.seek(0)
+        try:
             bucket.put_object(
                 Body=byte_io,
                 Key=key + '___lores.jpg',
                 ContentType="image/jpeg"
             )
-            byte_io = io.BytesIO()
-            im.convert('RGB').resize((128, 96)
-                                    ).save(byte_io, 'JPEG', dpi=(96, 96))
-            byte_io.seek(0)
+        except Exception as e:
+            logger.warning("Unable to upload to data server %s", e)
+            break
+        byte_io = io.BytesIO()
+        im.convert('RGB').resize((128, 96)).save(byte_io, 'JPEG', dpi=(96, 96))
+        byte_io.seek(0)
+        try:
             bucket.put_object(
                 Body=byte_io,
                 Key=key + '___thumb.jpg',
@@ -284,15 +290,12 @@ def __upload_images_to_aws_thread(
         except Exception as e:
             logger.warning("Unable to upload to data server %s", e)
             break
-        else:
-            num_uploaded[thread_id] += 1
-            already_uploaded[i] = True
-            uploaded_imgs.append(path)
-            if len(uploaded_imgs) >= 100:
-                __create_image(
-                    uploaded_imgs, project, annotation_status, prefix
-                )
-                uploaded_imgs = []
+        num_uploaded[thread_id] += 1
+        already_uploaded[i] = True
+        uploaded_imgs.append(path)
+        if len(uploaded_imgs) >= 100:
+            __create_image(uploaded_imgs, project, annotation_status, prefix)
+            uploaded_imgs = []
     __create_image(uploaded_imgs, project, annotation_status, prefix)
 
 
@@ -339,7 +342,6 @@ def upload_images(project, img_paths, annotation_status=1, from_s3_bucket=None):
         raise SABaseException(
             0, "Annotation status should be an integer in range 1-6"
         )
-    project_type = get_project_type(project)
     team_id, project_id = project["team_id"], project["id"]
     len_img_paths = len(img_paths)
     logger.info(
