@@ -1,6 +1,6 @@
 .. _sdk:
 
-superannotate SDK functions
+SDK functions
 ===========================
 
 .. toctree::

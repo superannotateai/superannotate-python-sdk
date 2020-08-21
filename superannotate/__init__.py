@@ -29,9 +29,9 @@ _api = API.get_instance()
 
 
 def init(path_to_config_json):
-    """Authenticates to Superannotate platform using the config file.
+    """Initializes and authenticates to SuperAnnotate platform using the config file.
 
-    :param path_to_config_json: Location to config JSON
-    :type path_to_config_json:
+    :param path_to_config_json: Location to config JSON file
+    :type path_to_config_json: str or Path
     """
     _api.set_auth(path_to_config_json)
