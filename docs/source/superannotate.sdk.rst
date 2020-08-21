@@ -9,7 +9,7 @@ superannotate SDK functions
 
 Initialization and authentication
 _________________________________
-.. automodule:: superannotate.db.init
+.. automodule:: superannotate.db.auth
    :members:
    :undoc-members:
 

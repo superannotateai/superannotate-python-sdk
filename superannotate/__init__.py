@@ -6,7 +6,7 @@ from .version import Version
 
 from .common import image_path_to_annotation_paths
 
-from .db.init import init
+from .db.auth import init
 from .db.exports import get_exports, download_export, prepare_export
 from .db.users import search_users
 from .db.teams import search_teams, get_default_team, create_team, delete_team
