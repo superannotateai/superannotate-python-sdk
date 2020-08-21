@@ -12,12 +12,16 @@ _________________________________
 
 .. autofunction:: superannotate.__init__.init
 
+----------
+
 Teams
 _____
 
 .. automodule:: superannotate.db.teams
    :members:
    :undoc-members:
+
+----------
 
 Projects
 ________
@@ -26,12 +30,16 @@ ________
    :members:
    :undoc-members:
 
+----------
+
 Project Classes
 _______________
 
 .. automodule:: superannotate.db.project_classes
    :members:
    :undoc-members:
+
+----------
 
 Images
 ______
@@ -40,12 +48,16 @@ ______
    :members:
    :undoc-members:
 
+----------
+
 Exports
 _______
 
 .. automodule:: superannotate.db.exports
    :members:
    :undoc-members:
+
+----------
 
 Users
 _____
