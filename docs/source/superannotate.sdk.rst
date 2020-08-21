@@ -10,10 +10,7 @@ superannotate SDK functions
 Initialization and authentication
 _________________________________
 
-.. automodule:: superannotate.db.auth
-   :members:
-   :undoc-members:
-
+.. autofunction:: superannotate.__init__.init
 
 Teams
 _____
@@ -24,34 +21,35 @@ _____
 
 Projects
 ________
-.. automodule:: superannotate.db.projects
-   :members:
-   :undoc-members:
 
 .. automodule:: superannotate.db.projects
    :members:
    :undoc-members:
 
-Project classes
+Project Classes
 _______________
+
 .. automodule:: superannotate.db.project_classes
    :members:
    :undoc-members:
 
 Images
 ______
+
 .. automodule:: superannotate.db.images
    :members:
    :undoc-members:
 
 Exports
 _______
+
 .. automodule:: superannotate.db.exports
    :members:
    :undoc-members:
 
 Users
 _____
+
 .. automodule:: superannotate.db.users
    :members:
    :undoc-members:
