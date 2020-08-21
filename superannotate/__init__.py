@@ -6,6 +6,7 @@ from .version import Version
 
 from .common import image_path_to_annotation_paths
 
+from .db.init import init
 from .db.exports import get_exports, download_export, prepare_export
 from .db.users import search_users
 from .db.teams import search_teams, get_default_team, create_team, delete_team
@@ -24,14 +25,3 @@ handler.setFormatter(formatter)
 logger = logging.getLogger("annotateonline-python-sdk")
 logger.setLevel(logging.INFO)
 logger.addHandler(handler)
-
-_api = API.get_instance()
-
-
-def init(path_to_config_json):
-    """Initializes and authenticates to Superannotate platform using the config file.
-
-    :param path_to_config_json: Location to config JSON
-    :type path_to_config_json:
-    """
-    _api.set_auth(path_to_config_json)

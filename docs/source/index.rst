@@ -6,15 +6,9 @@
 Welcome to SuperAnnotate Python SDK and CLI tools's documentation!
 ==================================================================
 
+SDK documentation
+:ref:`sdk`.
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
-
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
