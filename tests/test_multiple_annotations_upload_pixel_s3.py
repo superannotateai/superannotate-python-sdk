@@ -26,7 +26,7 @@ def test_upload_from_s3(empty_test_project, tmpdir):
     )
 
     f = urlparse(f"s3://hovnatan-test/{TEST_PROJECT_PIXEL}")
-    sa.upload_images_from_folder(
+    sa.upload_images_from_folder_to_project(
         project, f.path[1:], annotation_status=1, from_s3_bucket=f.netloc
     )
     old_to_new_classes_conversion = sa.create_classes_from_classes_json(
@@ -55,7 +55,7 @@ def test_pixel_preannotation_upload_from_s3(empty_test_project, tmpdir):
     )
 
     f = urlparse(f"s3://hovnatan-test/{TEST_PROJECT_PIXEL}")
-    sa.upload_images_from_folder(
+    sa.upload_images_from_folder_to_project(
         project, f.path[1:], annotation_status=1, from_s3_bucket=f.netloc
     )
     old_to_new_classes_conversion = sa.create_classes_from_classes_json(
@@ -84,7 +84,7 @@ def test_vector_preannotation_upload_from_s3(empty_test_project, tmpdir):
     )
 
     f = urlparse(f"s3://hovnatan-test/{TEST_PROJECT_VECTOR}")
-    sa.upload_images_from_folder(
+    sa.upload_images_from_folder_to_project(
         project, f.path[1:], annotation_status=1, from_s3_bucket=f.netloc
     )
     old_to_new_classes_conversion = sa.create_classes_from_classes_json(

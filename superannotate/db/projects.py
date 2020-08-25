@@ -22,10 +22,16 @@ _RESIZE_CONFIG = {2: 4000000, 1: 100000000}  # 1: vector 2: pixel
 
 
 def search_projects(team, name_prefix=None):
-    """Search for name_prefix prefixed projects in the team.
-    Returns
-    -------
-    list of Project
+    """Project name based case-insensitive prefix search for projects.
+    If name_prefix is None all the projects will be returned.
+
+    :param team: team in which the projects are searched
+    :type team: dict
+    :param name_prefix: name prefix for search
+    :type name_prefix: str
+
+    :return: dict objects representing found projects
+    :rtype: list
     """
     result_list = []
     params = {'team_id': str(team['id']), 'offset': 0}
@@ -49,6 +55,66 @@ def search_projects(team, name_prefix=None):
     return result_list
 
 
+def create_project(team, project_name, project_description, project_type):
+    """Creates a new project in the team.
+
+    :param team: team in which the project is created
+    :type team: dict
+    :param project_name: the new project's name
+    :type project_name: str
+    :param project_description: the new project's description
+    :type project_description: str
+    :param project_type: the new project type.
+                         1=vector,  2=pixel.
+    :type project_type: int
+
+    :return: dict object representing the new project
+    :rtype: dict
+    """
+    if project_type not in [1, 2]:
+        raise SABaseException(
+            0, "project_type should be 1 (vector) or 2 (pixel)"
+        )
+    data = {
+        "team_id": str(team['id']),
+        "name": project_name,
+        "description": project_description,
+        "status": 0,
+        "type": project_type
+    }
+    response = _api.send_request(
+        req_type='POST', path='/project', json_req=data
+    )
+    if not response.ok:
+        raise SABaseException(
+            response.status_code, "Couldn't create project " + response.text
+        )
+    res = response.json()
+    logger.info(
+        "Created project %s (ID %s) with type %s", res["name"], res["id"],
+        res["type"]
+    )
+    return res
+
+
+def delete_project(project):
+    """Deletes project
+
+    :param project: dict object representing project to be deleted
+    :type project: dict
+    """
+    team_id, project_id = project["team_id"], project["id"]
+    params = {"team_id": team_id}
+    response = _api.send_request(
+        req_type='DELETE', path=f'/project/{project_id}', params=params
+    )
+    if not response.ok:
+        raise SABaseException(
+            response.status_code, "Couldn't delete project " + response.text
+        )
+    logger.info("Successfully deleted project with ID %s.", project_id)
+
+
 def get_project(project):
     """Returns the project with project_id in the team.
     Returns
@@ -68,63 +134,14 @@ def get_project(project):
     return res
 
 
-def create_project(team, project_name, project_description, project_type):
-    """Creates a new project in the team.
-    if project_type is 1 vector and 2 for pixel project
-    Returns
-    -------
-    dict:
-        the created project representation
-    """
-    if project_type not in [1, 2]:
-        raise SABaseException(
-            0, "project_type should be 1 (vector) or 2 (pixel)"
-        )
-    data = {
-        "team_id": str(team['id']),
-        "name": project_name,
-        "description": project_description,
-        "status": 0,
-        "type": project_type
-    }
-    response = _api.send_request(req_type='POST', path='/project', json_req=data)
-    if not response.ok:
-        raise SABaseException(
-            response.status_code, "Couldn't create project " + response.text
-        )
-    res = response.json()
-    logger.info(
-        "Created project %s (ID %s) with type %s", res["name"], res["id"],
-        res["type"]
-    )
-    return res
-
-
-def delete_project(project):
-    """Deletes project from the team
-    Returns
-    -------
-    None
-    """
-    team_id, project_id = project["team_id"], project["id"]
-    params = {"team_id": team_id}
-    response = _api.send_request(
-        req_type='DELETE', path=f'/project/{project_id}', params=params
-    )
-    if response.ok:
-        logger.info("Successfully deleted project with ID %s.", project_id)
-    else:
-        raise SABaseException(
-            response.status_code, "Couldn't delete project " + response.text
-        )
-
-
 def get_project_image_count(project):
-    """Get total image count of the project
-    Returns
-    -------
-    int
-        Number of images
+    """Returns number of images in project.
+
+    :param project: dict object representing the project
+    :type project: dict
+
+    :return: number of images in the project
+    :rtype: int
     """
     team_id, project_id = project["team_id"], project["id"]
     params = {'team_id': team_id}
@@ -152,7 +169,7 @@ def get_project_type(project):
     return get_project(project)["type"]
 
 
-def upload_images_from_folder(
+def upload_images_from_folder_to_project(
     project,
     folder_path,
     extensions=None,
@@ -160,18 +177,40 @@ def upload_images_from_folder(
     from_s3_bucket=None,
     exclude_file_pattern="___save.png"
 ):
-    """Uploads all images with extension from folder_path to the project.
+    """Uploads all images with given extensions from folder_path to the project.
     Sets status of all the uploaded images to set_status if it is not None.
-    Returns
-    -------
-    None
+
+    :param project: project to upload images
+    :type project: dict
+    :param folder_path: from which folder to upload the images
+    :type folder_path: Pathlike (str or Path)
+    :param extensions: list of filename extensions to include from folder, if None, then "jpg" and "png" are included
+    :type extensions: list of str
+    :param annotation_status: value to set the annotation statuses of the uploaded images
+
+        1: "notStarted",
+        2: "annotation",
+        3: "qualityCheck",
+        4: "issueFix",
+        5: "complete",
+        6: "skipped"
+
+    :type annotation_status: int
+    :param from_s3_bucket: AWS S3 bucket to use. If None then folder_path is in local filesystem
+    :type from_s3_bucket: str
+    :param exclude_file_pattern: filename pattern to exclude from uploading
+    :type exclude_file_pattern: str
+
+    :return: uploaded images' filepaths
+    :rtype: list
     """
     project_id = project["id"]
     if extensions is None:
         extensions = ["jpg", "png"]
     elif not isinstance(extensions, list):
         raise SABaseException(
-            0, "extensions should be a list in upload_images_from_folder"
+            0,
+            "extensions should be a list in upload_images_from_folder_to_project"
         )
 
     logger.info(
@@ -203,7 +242,10 @@ def upload_images_from_folder(
     for path in paths:
         if exclude_file_pattern not in Path(path).name:
             filtered_paths.append(path)
-    upload_images(project, filtered_paths, annotation_status, from_s3_bucket)
+
+    return upload_images_to_project(
+        project, filtered_paths, annotation_status, from_s3_bucket
+    )
 
 
 def __upload_images_to_aws_thread(
@@ -324,19 +366,31 @@ def __create_image(img_paths, project, annotation_status, remote_dir):
         )
 
 
-def upload_images(project, img_paths, annotation_status=1, from_s3_bucket=None):
+def upload_images_to_project(
+    project, img_paths, annotation_status=1, from_s3_bucket=None
+):
     """Uploads all images given in list of path objects in img_paths to the project.
     Sets status of all the uploaded images to set_status if it is not None.
-    annotation_status = {
-    1: "notStarted",
-    2: "annotation",
-    3: "qualityCheck",
-    4: "issueFix",
-    5: "complete",
-    6: "skipped"
-    Returns
-    -------
-    None
+
+    :param project: project to upload images
+    :type project: dict
+    :param img_paths: list of Pathlike (str or Path) objects to upload
+    :type img_paths: list
+    :param annotation_status: value to set the annotation statuses of the uploaded images
+
+        1: "notStarted",
+        2: "annotation",
+        3: "qualityCheck",
+        4: "issueFix",
+        5: "complete",
+        6: "skipped"
+
+    :type annotation_status: int
+    :param from_s3_bucket: AWS S3 bucket to use. If None then folder_path is in local filesystem
+    :type from_s3_bucket: str
+
+    :return: uploaded images' filepaths
+    :rtype: list of str
     """
     if annotation_status not in [1, 2, 3, 4, 5, 6]:
         raise SABaseException(
@@ -393,6 +447,9 @@ def upload_images(project, img_paths, annotation_status=1, from_s3_bucket=None):
             t.join()
     finish_event.set()
     tqdm_thread.join()
+
+    return_paths = [str(path) for path in img_paths]
+    return return_paths
 
 
 def __upload_annotations_thread(
@@ -492,8 +549,8 @@ def upload_annotations_from_folder(
     -------
     None
     """
-    project_type = get_project_type(project)
-    team_id, project_id = project["team_id"], project["id"]
+    team_id, project_id, project_type = project["team_id"], project[
+        "id"], project["type"]
     logger.info(
         "Uploading all annotations from %s to project ID %s.", folder_path,
         project_id
@@ -665,8 +722,8 @@ def upload_preannotations_from_folder(
     -------
     None
     """
-    team_id, project_id = project["team_id"], project["id"]
-    project_type = get_project_type(project)
+    team_id, project_id, project_type = project["team_id"], project[
+        "id"], project["type"]
     logger.info(
         "Uploading all preannotations from %s to project ID %s.", folder_path,
         project_id

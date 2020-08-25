@@ -30,7 +30,7 @@ def test_preannotation_folder_upload_download(
         sa.delete_project(pr)
 
     project = sa.create_project(team, name, description, project_type)
-    sa.upload_images_from_folder(project, from_folder, annotation_status=2)
+    sa.upload_images_from_folder_to_project(project, from_folder, annotation_status=2)
     sa.upload_preannotations_from_folder(project, from_folder)
     count_in = len(list(from_folder.glob("*.json")))
 

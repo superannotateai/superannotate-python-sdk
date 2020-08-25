@@ -21,7 +21,7 @@ def test_upload_stress():
         project, "tests/sample_project_vector/classes/classes.json"
     )
 
-    sa.upload_images_from_folder(
+    sa.upload_images_from_folder_to_project(
         project,
         "/media/disc_drive/datasets/COCO/test2017",
         annotation_status=3

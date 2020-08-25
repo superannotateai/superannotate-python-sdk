@@ -28,6 +28,10 @@ ________
 
 .. autofunction:: superannotate.search_projects
 .. autofunction:: superannotate.create_project
+.. autofunction:: superannotate.delete_project
+.. autofunction:: superannotate.get_project_image_count
+.. autofunction:: superannotate.upload_images_from_folder
+.. autofunction:: superannotate.upload_images
 
 ----------
 

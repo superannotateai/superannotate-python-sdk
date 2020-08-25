@@ -24,11 +24,11 @@ def get_default_team():
 
 
 def search_teams(name_prefix=None):
-    """Case-insensitive prefix search for teams with name.
+    """Team name based case-insensitive prefix search for teams.
     If name_prefix is None all the teams will be returned.
 
     :param name_prefix: name prefix for search
-    :type name: str
+    :type name_prefix: str
 
     :return: dict objects representing found teams
     :rtype: list

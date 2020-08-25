@@ -33,7 +33,7 @@ def test_from_s3_upload():
     )
 
     f = urlparse("s3://hovnatan-test/frex9")
-    sa.upload_images_from_folder(
+    sa.upload_images_from_folder_to_project(
         project,
         f.path[1:], ["jpg"],
         annotation_status=3,
