@@ -1,19 +1,30 @@
 import logging
 
 from .api import API
-
-from .version import Version
-
 from .common import image_path_to_annotation_paths
-
-from .db.exports import get_exports, download_export, prepare_export
+from .db.exports import download_export, get_exports, prepare_export
+from .db.images import (
+    download_image, download_image_annotations, download_image_preannotations,
+    get_image, get_image_annotations, get_image_bytes, get_image_preannotations,
+    search_images, set_image_annotation_status,
+    upload_annotations_from_file_to_image
+)
+from .db.project_classes import (
+    create_class, create_classes_from_classes_json, download_classes_json,
+    search_classes
+)
+from .db.projects import (
+    create_project, delete_project, get_project, get_project_image_count,
+    search_projects, share_project, unshare_project,
+    upload_annotations_from_folder_to_project,
+    upload_images_from_folder_to_project,
+    upload_images_from_s3_bucket_to_project, upload_images_to_project,
+    upload_preannotations_from_folder_to_project
+)
+from .db.teams import create_team, delete_team, get_default_team, search_teams
 from .db.users import search_users
-from .db.teams import search_teams, get_default_team, create_team, delete_team
-from .db.images import search_images, set_image_annotation_status, download_image, download_image_annotations, get_image_bytes, get_image_annotations, upload_annotations_from_file_to_image, get_image, get_image_preannotations, download_image_preannotations
-from .db.projects import get_project, search_projects, create_project, upload_images_to_project, upload_images_from_folder_to_project, upload_annotations_from_folder_to_project, upload_preannotations_from_folder_to_project, share_project, unshare_project, delete_project, get_project_image_count, upload_images_from_s3_bucket_to_project
-from .db.project_classes import search_classes, create_class, create_classes_from_classes_json, download_classes_json
-
 from .exceptions import SABaseException
+from .version import Version
 
 #formatter = logging.Formatter(fmt='%(asctime)s - %(levelname)s - %(module)s - %(message)s')
 formatter = logging.Formatter(fmt='sa-PYTHON-SDK - %(levelname)s - %(message)s')
