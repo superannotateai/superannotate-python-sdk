@@ -29,7 +29,7 @@ def get_exports(project):
     """
     team_id, project_id = project["team_id"], project["id"]
     params = {'team_id': team_id, 'project_id': project_id}
-    response = _api.gen_request(req_type='GET', path='/exports', params=params)
+    response = _api.send_request(req_type='GET', path='/exports', params=params)
     if not response.ok:
         raise SABaseException(
             response.status_code, "Couldn't get exports. " + response.text
@@ -47,7 +47,7 @@ def get_export(export):
     team_id, project_id, export_id = export["team_id"], export["project_id"
                                                               ], export["id"]
     params = {'team_id': team_id, 'project_id': project_id}
-    response = _api.gen_request(
+    response = _api.send_request(
         req_type='GET', path=f'/export/{export_id}', params=params
     )
     if not response.ok:
@@ -80,7 +80,7 @@ def prepare_export(
         "time": current_time
     }
     params = {'team_id': team_id, 'project_id': project_id}
-    response = _api.gen_request(
+    response = _api.send_request(
         req_type='POST', path='/export', params=params, json_req=json_req
     )
     if not response.ok:

@@ -38,7 +38,7 @@ def search_images(
         params['name'] = name_prefix
     total_got = 0
     while True:
-        response = _api.gen_request(
+        response = _api.send_request(
             req_type='GET', path='/images', params=params
         )
         if response.ok:
@@ -73,7 +73,7 @@ def set_image_annotation_status(image, status):
         "annotation_status": status,
     }
     params = {'team_id': team_id, 'project_id': project_id}
-    response = _api.gen_request(
+    response = _api.send_request(
         req_type='PUT',
         path=f'/image/{image_id}',
         json_req=json_req,
@@ -91,7 +91,7 @@ def get_image(image):
         'team_id': team_id,
         'project_id': project_id,
     }
-    response = _api.gen_request(
+    response = _api.send_request(
         req_type='GET', path=f'/image/{image_id}', params=params
     )
     if not response.ok:
@@ -137,7 +137,7 @@ def get_image_bytes(image, variant='original'):
         'folder_id': folder_id,
         'include_original': 1
     }
-    response = _api.gen_request(
+    response = _api.send_request(
         req_type='GET',
         path=f'/image/{image_id}/annotation/getAnnotationDownloadToken',
         params=params
@@ -175,7 +175,7 @@ def get_image_preannotations(image):
         'project_id': project_id,
         'folder_id': folder_id
     }
-    response = _api.gen_request(
+    response = _api.send_request(
         req_type='GET',
         path=f'/image/{image_id}/annotation/getAnnotationDownloadToken',
         params=params
@@ -216,7 +216,7 @@ def get_image_annotations(image, project_type=None):
         'project_id': project_id,
         'folder_id': folder_id
     }
-    response = _api.gen_request(
+    response = _api.send_request(
         req_type='GET',
         path=f'/image/{image_id}/annotation/getAnnotationDownloadToken',
         params=params
@@ -351,7 +351,7 @@ def upload_annotations_from_file_to_image(
         'project_id': project_id,
         'folder_id': folder_id
     }
-    response = _api.gen_request(
+    response = _api.send_request(
         req_type='GET',
         path=f'/image/{image_id}/annotation/getAnnotationUploadToken',
         params=params

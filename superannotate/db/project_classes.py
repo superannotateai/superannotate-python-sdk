@@ -37,7 +37,7 @@ def create_class(project, name, color, attribute_groups=None):
                 }
             ]
     }
-    response = _api.gen_request(
+    response = _api.send_request(
         req_type='POST', path='/classes', params=params, json_req=data
     )
     if not response.ok:
@@ -93,7 +93,7 @@ def search_classes(project, name_prefix=None):
     if name_prefix is not None:
         params['name'] = name_prefix
     while True:
-        response = _api.gen_request(
+        response = _api.send_request(
             req_type='GET', path='/classes', params=params
         )
         if not response.ok:

@@ -9,35 +9,36 @@ logger = logging.getLogger("superannotate-python-sdk")
 _api = API.get_instance()
 
 
-def delete_team(team):
-    """Deletes team
-    Returns
-    -------
-    None
+def get_default_team():
+    """Returns default team
+
+    :return: dict object representing the default team
+    :rtype: dict
     """
-    team_id = team["id"]
-    response = _api.gen_request(req_type='DELETE', path=f'/team/{team_id}')
-    if response.ok:
-        logger.info("Successfully deleted team with ID %s.", team_id)
-    else:
+    response = _api.send_request(req_type='GET', path='/team/DEFAULT')
+    if not response.ok:
         raise SABaseException(
-            response.status_code, "Couldn't delete team " + response.text
+            response.status_code, "Couldn't get default team " + response.text
         )
+    return response.json()
 
 
 def search_teams(name_prefix=None):
-    """Search for teams with prefix name_prefix.
-    Returns
-    -------
-    list:
-        list of of Team objects
+    """Case-insensitive prefix search for teams with name.
+    If name_prefix is None all the teams will be returned.
+
+    :param name_prefix: name prefix for search
+    :type name: str
+
+    :return: dict objects representing found teams
+    :rtype: list
     """
     result_list = []
     params = {'offset': 0}
     if name_prefix is not None:
         params['name'] = name_prefix
     while True:
-        response = _api.gen_request(
+        response = _api.send_request(
             req_type='GET', path='/teams', params=params
         )
         if response.ok:
@@ -55,16 +56,19 @@ def search_teams(name_prefix=None):
     return result_list
 
 
-def create_team(name: str, description: str):
-    """Creates a new team
-    if annotation_type is vector then a vector project else pixel project
-    Returns
-    -------
-    Team:
-        the created team
+def create_team(name, description):
+    """Create a new team
+
+    :param name: new team's name
+    :type name: str
+    :param description: new team's description
+    :type description: str
+
+    :return: dict object representing the new team
+    :rtype: dict
     """
     data = {"name": name, "description": description, "type": 0}
-    response = _api.gen_request(req_type='POST', path='/team', json_req=data)
+    response = _api.send_request(req_type='POST', path='/team', json_req=data)
     if not response.ok:
         raise SABaseException(
             response.status_code, "Couldn't create team " + response.text
@@ -72,10 +76,17 @@ def create_team(name: str, description: str):
     return response.json()
 
 
-def get_default_team():
-    response = _api.gen_request(req_type='GET', path='/team/DEFAULT')
-    if not response.ok:
+def delete_team(team):
+    """Deletes team
+
+    :param team: dict object representing team
+    :type team: dict
+    """
+    team_id = team["id"]
+    response = _api.send_request(req_type='DELETE', path=f'/team/{team_id}')
+    if response.ok:
+        logger.info("Successfully deleted team with ID %s.", team_id)
+    else:
         raise SABaseException(
-            response.status_code, "Couldn't get default team " + response.text
+            response.status_code, "Couldn't delete team " + response.text
         )
-    return response.json()

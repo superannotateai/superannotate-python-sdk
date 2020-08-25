@@ -32,7 +32,7 @@ def search_projects(team, name_prefix=None):
     if name_prefix is not None:
         params['name'] = name_prefix
     while True:
-        response = _api.gen_request(
+        response = _api.send_request(
             req_type='GET', path='/projects', params=params
         )
         if response.ok:
@@ -57,7 +57,7 @@ def get_project(project):
     """
     team_id, project_id = project["team_id"], project["id"]
     params = {'team_id': str(team_id)}
-    response = _api.gen_request(
+    response = _api.send_request(
         req_type='GET', path=f'/project/{project_id}', params=params
     )
     if not response.ok:
@@ -87,7 +87,7 @@ def create_project(team, project_name, project_description, project_type):
         "status": 0,
         "type": project_type
     }
-    response = _api.gen_request(req_type='POST', path='/project', json_req=data)
+    response = _api.send_request(req_type='POST', path='/project', json_req=data)
     if not response.ok:
         raise SABaseException(
             response.status_code, "Couldn't create project " + response.text
@@ -108,7 +108,7 @@ def delete_project(project):
     """
     team_id, project_id = project["team_id"], project["id"]
     params = {"team_id": team_id}
-    response = _api.gen_request(
+    response = _api.send_request(
         req_type='DELETE', path=f'/project/{project_id}', params=params
     )
     if response.ok:
@@ -128,7 +128,7 @@ def get_project_image_count(project):
     """
     team_id, project_id = project["team_id"], project["id"]
     params = {'team_id': team_id}
-    response = _api.gen_request(
+    response = _api.send_request(
         req_type='GET',
         path=f'/reporting/project/{project_id}/overview',
         params=params
@@ -315,7 +315,7 @@ def __create_image(img_paths, project, annotation_status, remote_dir):
         remote_path = remote_dir + f"{img_name}"
         data["images"].append({"name": img_name, "path": remote_path})
 
-    response = _api.gen_request(
+    response = _api.send_request(
         req_type='POST', path='/image/ext-create', json_req=data
     )
     if not response.ok:
@@ -363,7 +363,7 @@ def upload_images(project, img_paths, annotation_status=1, from_s3_bucket=None):
     while True:
         if sum(num_uploaded) == len_img_paths:
             break
-        response = _api.gen_request(
+        response = _api.send_request(
             req_type='GET',
             path=f'/project/{project_id}/sdkImageUploadToken',
             params=params
@@ -421,7 +421,7 @@ def __upload_annotations_thread(
                 break
             image_name = anns_filenames[j][:-len_postfix_json]
             data["names"].append(image_name)
-        response = _api.gen_request(
+        response = _api.send_request(
             req_type='POST',
             path='/images/getAnnotationsPathsAndTokens',
             json_req=data
@@ -645,7 +645,7 @@ def get_root_folder_id(project):
         Root folder ID
     """
     params = {'team_id': project['team_id']}
-    response = _api.gen_request(
+    response = _api.send_request(
         req_type='GET', path=f'/project/{project["id"]}', params=params
     )
     if not response.ok:
@@ -711,7 +711,7 @@ def upload_preannotations_from_folder(
     while True:
         if sum(num_uploaded) == len_preannotations_paths:
             break
-        response = _api.gen_request(
+        response = _api.send_request(
             req_type='GET',
             path=f'/project/{project_id}/preannotation',
             params=params
@@ -750,7 +750,7 @@ def share_project(project, user, user_role):
     user_id = user["id"]
     json_req = {"user_id": user_id, "user_role": user_role}
     params = {'team_id': team_id}
-    response = _api.gen_request(
+    response = _api.send_request(
         req_type='POST',
         path=f'/project/{project_id}/share',
         params=params,
@@ -769,7 +769,7 @@ def unshare_project(project, user):
     user_id = user["id"]
     json_req = {"user_id": user_id}
     params = {'team_id': team_id}
-    response = _api.gen_request(
+    response = _api.send_request(
         req_type='DELETE',
         path=f'/project/{project_id}/share',
         params=params,
@@ -793,7 +793,7 @@ def upload_from_s3_bucket(
         "bucketName": bucket_name,
         "folderName": folder_name
     }
-    response = _api.gen_request(
+    response = _api.send_request(
         req_type='POST',
         path=f'/project/{project_id}/get-image-s3-access-point',
         params=params,
@@ -822,7 +822,7 @@ def get_upload_from_s3_bucket_status(project):
     params = {
         "team_id": team_id,
     }
-    response = _api.gen_request(
+    response = _api.send_request(
         req_type='GET',
         path=f'/project/{project_id}/getS3UploadStatus',
         params=params

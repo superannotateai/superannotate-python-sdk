@@ -19,7 +19,7 @@ def search_users(team):
     team_id = team["id"]
     params = {'team_id': team_id, 'offset': 0}
     while True:
-        response = _api.gen_request(
+        response = _api.send_request(
             req_type='GET', path='/users', params=params
         )
         if response.ok:
