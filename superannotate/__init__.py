@@ -10,7 +10,7 @@ from .db.exports import get_exports, download_export, prepare_export
 from .db.users import search_users
 from .db.teams import search_teams, get_default_team, create_team, delete_team
 from .db.images import search_images, set_image_annotation_status, download_image, download_image_annotations, get_image_bytes, get_image_annotations, upload_annotations_from_file_to_image, get_image, get_image_preannotations, download_image_preannotations
-from .db.projects import get_project, search_projects, create_project, upload_images_from_folder_to_project, upload_annotations_from_folder_to_project, upload_preannotations_from_folder_to_project, share_project, unshare_project, delete_project, get_project_image_count, upload_images_from_s3_bucket_to_project
+from .db.projects import get_project, search_projects, create_project, upload_images_to_project, upload_images_from_folder_to_project, upload_annotations_from_folder_to_project, upload_preannotations_from_folder_to_project, share_project, unshare_project, delete_project, get_project_image_count, upload_images_from_s3_bucket_to_project
 from .db.project_classes import search_classes, create_class, create_classes_from_classes_json, download_classes_json
 
 from .exceptions import SABaseException
