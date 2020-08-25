@@ -32,6 +32,10 @@ ________
 .. autofunction:: superannotate.get_project_image_count
 .. autofunction:: superannotate.upload_images_to_project
 .. autofunction:: superannotate.upload_images_from_folder_to_project
+.. autofunction:: superannotate.upload_annotations_from_folder_to_project
+.. autofunction:: superannotate.upload_preannotations_from_folder_to_project
+.. autofunction:: superannotate.share_project
+.. autofunction:: superannotate.unshare_project
 
 ----------
 

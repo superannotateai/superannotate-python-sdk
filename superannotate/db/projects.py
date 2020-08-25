@@ -116,6 +116,11 @@ def delete_project(project):
 
 
 def get_project(project):
+    """Return up-to-date project metadata
+
+    :param project: metadata of the project to be deleted
+    :type project: dict
+    """
     team_id, project_id = project["team_id"], project["id"]
     params = {'team_id': str(team_id)}
     response = _api.send_request(
@@ -132,7 +137,7 @@ def get_project(project):
 def get_project_image_count(project):
     """Returns number of images in project.
 
-    :param project: dict object representing the project
+    :param project: project metadata
     :type project: dict
 
     :return: number of images in the project
@@ -164,7 +169,7 @@ def upload_images_from_folder_to_project(
     """Uploads all images with given extensions from folder_path to the project.
     Sets status of all the uploaded images to set_status if it is not None.
 
-    :param project: project to upload images
+    :param project: metadata of the project to upload images
     :type project: dict
     :param folder_path: from which folder to upload the images
     :type folder_path: Pathlike (str or Path)
@@ -356,7 +361,7 @@ def upload_images_to_project(
     """Uploads all images given in list of path objects in img_paths to the project.
     Sets status of all the uploaded images to set_status if it is not None.
 
-    :param project: project to upload images
+    :param project: metadata of project to upload images to
     :type project: dict
     :param img_paths: list of Pathlike (str or Path) objects to upload
     :type img_paths: list
@@ -438,8 +443,7 @@ def upload_images_to_project(
 
 def __upload_annotations_thread(
     team_id, project_id, project_type, anns_filenames, folder_path,
-    old_to_new_classes_conversion, thread_id, chunksize, num_uploaded,
-    from_s3_bucket
+    classid_conversion, thread_id, chunksize, num_uploaded, from_s3_bucket
 ):
     NUM_TO_SEND = 500
     len_anns = len(anns_filenames)
@@ -492,15 +496,15 @@ def __upload_annotations_thread(
                 file.seek(0)
                 annotation_json = json.load(file)
 
-            if old_to_new_classes_conversion is not None:
+            if classid_conversion is not None:
                 for ann in annotation_json:
                     if 'classId' not in ann:
                         continue
                     if ann['classId'] == -1:
                         continue
                     old_id = ann["classId"]
-                    if old_id in old_to_new_classes_conversion:
-                        new_id = old_to_new_classes_conversion[old_id]
+                    if old_id in classid_conversion:
+                        new_id = classid_conversion[old_id]
                         ann["classId"] = new_id
             bucket.put_object(
                 Key=image_path + postfix_json, Body=json.dumps(annotation_json)
@@ -522,16 +526,21 @@ def __upload_annotations_thread(
 
 
 def upload_annotations_from_folder_to_project(
-    project,
-    folder_path,
-    old_to_new_classes_conversion=None,
-    from_s3_bucket=None
+    project, folder_path, classid_conversion=None, from_s3_bucket=None
 ):
-    """Uploads all annotations given in list of path objects in annotations_paths to the project.
-    If classes_json_path is given
-    Returns
-    -------
-    None
+    """Finds and uploads all JSON files in the folder_path as annotations to the project.
+
+    :param project: metadata of the project to upload annotations to
+    :type project: dict
+    :param folder_path: from which folder to upload the annotations
+    :type folder_path: Pathlike (str or Path)
+    :param classid_conversion: if not None, then classIds of the annotations will be translated according to it
+    :type classid_conversion: dict
+    :param from_s3_bucket: AWS S3 bucket to use. If None then folder_path is in local filesystem
+    :type from_s3_bucket: str
+
+    :return: paths to annotations uploaded
+    :rtype: list of strs
     """
     team_id, project_id, project_type = project["team_id"], project[
         "id"], project["type"]
@@ -581,8 +590,8 @@ def upload_annotations_from_folder_to_project(
             target=__upload_annotations_thread,
             args=(
                 team_id, project_id, project_type, annotations_filenames,
-                folder_path, old_to_new_classes_conversion, thread_id,
-                chunksize, num_uploaded, from_s3_bucket
+                folder_path, classid_conversion, thread_id, chunksize,
+                num_uploaded, from_s3_bucket
             )
         )
         threads.append(t)
@@ -593,11 +602,13 @@ def upload_annotations_from_folder_to_project(
     tqdm_thread.join()
     logger.info("Number of annotations uploaded %s.", sum(num_uploaded))
 
+    return [str(p) for p in annotations_paths]
+
 
 def __upload_preannotations_thread(
     aws_creds, project_type, preannotations_filenames, folder_path,
-    old_to_new_classes_conversion, thread_id, chunksize, num_uploaded,
-    already_uploaded, from_s3_bucket
+    classid_conversion, thread_id, chunksize, num_uploaded, already_uploaded,
+    from_s3_bucket
 ):
     len_preanns = len(preannotations_filenames)
     start_index = thread_id * chunksize
@@ -634,15 +645,15 @@ def __upload_preannotations_thread(
             file.seek(0)
             annotation_json = json.load(file)
 
-        if old_to_new_classes_conversion is not None:
+        if classid_conversion is not None:
             for ann in annotation_json:
                 if 'classId' not in ann:
                     continue
                 if ann['classId'] == -1:
                     continue
                 old_id = ann["classId"]
-                if old_id in old_to_new_classes_conversion:
-                    new_id = old_to_new_classes_conversion[old_id]
+                if old_id in classid_conversion:
+                    new_id = classid_conversion[old_id]
                     ann["classId"] = new_id
         bucket.put_object(
             Key=aws_creds["filePath"] + f"/{json_filename}",
@@ -679,16 +690,21 @@ def __tqdm_thread(total_num, current_nums, finish_event):
 
 
 def upload_preannotations_from_folder_to_project(
-    project,
-    folder_path,
-    old_to_new_classes_conversion=None,
-    from_s3_bucket=None
+    project, folder_path, classid_conversion=None, from_s3_bucket=None
 ):
-    """Uploads all annotations given in list of path objects in annotations_paths to the project.
-    If classes_json_path is given
-    Returns
-    -------
-    None
+    """Finds and uploads all JSON files in the folder_path as pre-annotations to the project.
+
+    :param project: metadata of the project to upload pre-annotations to
+    :type project: dict
+    :param folder_path: from which folder to upload the pre-annotations
+    :type folder_path: Pathlike (str or Path)
+    :param classid_conversion: if not None, then classIds of the pre-annotations will be translated according to it
+    :type classid_conversion: dict
+    :param from_s3_bucket: AWS S3 bucket to use. If None then folder_path is in local filesystem
+    :type from_s3_bucket: str
+
+    :return: paths to pre-annotations uploaded
+    :rtype: list of strs
     """
     team_id, project_id, project_type = project["team_id"], project[
         "id"], project["type"]
@@ -751,8 +767,8 @@ def upload_preannotations_from_folder_to_project(
                 target=__upload_preannotations_thread,
                 args=(
                     aws_creds, project_type, preannotations_filenames,
-                    folder_path, old_to_new_classes_conversion, thread_id,
-                    chunksize, num_uploaded, already_uploaded, from_s3_bucket
+                    folder_path, classid_conversion, thread_id, chunksize,
+                    num_uploaded, already_uploaded, from_s3_bucket
                 )
             )
             threads.append(t)
@@ -762,14 +778,23 @@ def upload_preannotations_from_folder_to_project(
     finish_event.set()
     tqdm_thread.join()
     logger.info("Number of preannotations uploaded %s.", sum(num_uploaded))
+    return [str(p) for p in preannotations_paths]
 
 
 def share_project(project, user, user_role):
-    """    2: "Admin",
-    3: "Annotator",
-    4: "QA",
-    5: "Customer",
-    6: "Viewer
+    """Share project with user.
+
+    :param project: metadata of the project
+    :type project: dict
+    :param user: metadata of the user to share project with
+    :type user: dict
+    :param user_role: user role to apply:
+        2: "Admin",
+        3: "Annotator",
+        4: "QA",
+        5: "Customer",
+        6: "Viewer
+    :type user_role: int
     """
     team_id, project_id = project["team_id"], project["id"]
     user_id = user["id"]
@@ -790,6 +815,13 @@ def share_project(project, user, user_role):
 
 
 def unshare_project(project, user):
+    """Unshare (remove) user from project.
+
+    :param project: metadata of the project
+    :type project: dict
+    :param user: metadata of the user to share project with
+    :type user: dict
+    """
     team_id, project_id = project["team_id"], project["id"]
     user_id = user["id"]
     json_req = {"user_id": user_id}
@@ -805,9 +837,22 @@ def unshare_project(project, user):
     logger.info("Unshared project ID %s from user ID %s", project_id, user_id)
 
 
-def upload_from_s3_bucket_to_project(
-    project, accessKeyId, secretAccessKey, bucket_name, folder_name
+def upload_images_from_s3_bucket_to_project(
+    project, accessKeyId, secretAccessKey, bucket_name, folder_path
 ):
+    """Uploads all images from AWS S3 bucket to the project.
+
+    :param project: metadata of the project to upload images
+    :type project: dict
+    :param accessKeyId: AWS S3 access key ID
+    :type accessKeyId: str
+    :param secretAccessKey: AWS S3 secret access key
+    :type secretAccessKey: str
+    :param bucket_name: AWS S3 bucket
+    :type bucket_name: str
+    :param folder_path: from which folder to upload the images
+    :type folder_path: str
+    """
     team_id, project_id = project["team_id"], project["id"]
     params = {
         "team_id": team_id,
@@ -816,7 +861,7 @@ def upload_from_s3_bucket_to_project(
         "accessKeyID": accessKeyId,
         "secretAccessKey": secretAccessKey,
         "bucketName": bucket_name,
-        "folderName": folder_name
+        "folderName": folder_path
     }
     response = _api.send_request(
         req_type='POST',
@@ -832,7 +877,7 @@ def upload_from_s3_bucket_to_project(
     logger.info("Waiting for S3 upload to finish.")
     while True:
         time.sleep(5)
-        res = get_upload_from_s3_bucket_to_project_status(project)
+        res = _get_upload_from_s3_bucket_to_project_status(project)
         if res["progress"] == '2':
             break
         if res["progress"] != "1":
@@ -842,7 +887,7 @@ def upload_from_s3_bucket_to_project(
             )
 
 
-def get_upload_from_s3_bucket_to_project_status(project):
+def _get_upload_from_s3_bucket_to_project_status(project):
     team_id, project_id = project["team_id"], project["id"]
     params = {
         "team_id": team_id,
