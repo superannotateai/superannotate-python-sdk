@@ -116,11 +116,6 @@ def delete_project(project):
 
 
 def get_project(project):
-    """Returns the project with project_id in the team.
-    Returns
-    -------
-    Project
-    """
     team_id, project_id = project["team_id"], project["id"]
     params = {'team_id': str(team_id)}
     response = _api.send_request(
@@ -156,17 +151,6 @@ def get_project_image_count(project):
             "Couldn't get project image count " + response.text
         )
     return response.json()["total_images"]
-
-
-def get_project_type(project):
-    """Get type of project
-    Returns
-    -------
-    int
-        1 = vector
-        2 = pixel
-    """
-    return get_project(project)["type"]
 
 
 def upload_images_from_folder_to_project(
@@ -537,7 +521,7 @@ def __upload_annotations_thread(
             num_uploaded[thread_id] += 1
 
 
-def upload_annotations_from_folder(
+def upload_annotations_from_folder_to_project(
     project,
     folder_path,
     old_to_new_classes_conversion=None,
@@ -694,23 +678,7 @@ def __tqdm_thread(total_num, current_nums, finish_event):
                 break
 
 
-def get_root_folder_id(project):
-    """Get root folder ID
-    Returns
-    -------
-    int
-        Root folder ID
-    """
-    params = {'team_id': project['team_id']}
-    response = _api.send_request(
-        req_type='GET', path=f'/project/{project["id"]}', params=params
-    )
-    if not response.ok:
-        raise SABaseException(response.status_code, response.text)
-    return response.json()['folder_id']
-
-
-def upload_preannotations_from_folder(
+def upload_preannotations_from_folder_to_project(
     project,
     folder_path,
     old_to_new_classes_conversion=None,
@@ -837,7 +805,7 @@ def unshare_project(project, user):
     logger.info("Unshared project ID %s from user ID %s", project_id, user_id)
 
 
-def upload_from_s3_bucket(
+def upload_from_s3_bucket_to_project(
     project, accessKeyId, secretAccessKey, bucket_name, folder_name
 ):
     team_id, project_id = project["team_id"], project["id"]
@@ -864,7 +832,7 @@ def upload_from_s3_bucket(
     logger.info("Waiting for S3 upload to finish.")
     while True:
         time.sleep(5)
-        res = get_upload_from_s3_bucket_status(project)
+        res = get_upload_from_s3_bucket_to_project_status(project)
         if res["progress"] == '2':
             break
         if res["progress"] != "1":
@@ -874,7 +842,7 @@ def upload_from_s3_bucket(
             )
 
 
-def get_upload_from_s3_bucket_status(project):
+def get_upload_from_s3_bucket_to_project_status(project):
     team_id, project_id = project["team_id"], project["id"]
     params = {
         "team_id": team_id,

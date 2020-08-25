@@ -48,4 +48,4 @@ def test_from_s3_upload():
                 files.append(key)
 
     assert len(files) == 4
-    assert (len(sa.search_images(project)) == 1)
+    assert len(sa.search_images(project)) == 1

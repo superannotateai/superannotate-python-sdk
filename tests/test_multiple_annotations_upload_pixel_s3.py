@@ -34,7 +34,7 @@ def test_upload_from_s3(empty_test_project, tmpdir):
     )
     assert sa.get_project_image_count(project) == 6
 
-    sa.upload_annotations_from_folder(
+    sa.upload_annotations_from_folder_to_project(
         project,
         TEST_PROJECT_PIXEL,
         old_to_new_classes_conversion,
@@ -63,7 +63,7 @@ def test_pixel_preannotation_upload_from_s3(empty_test_project, tmpdir):
     )
     assert sa.get_project_image_count(project) == 6
 
-    sa.upload_preannotations_from_folder(
+    sa.upload_preannotations_from_folder_to_project(
         project,
         TEST_PROJECT_PIXEL,
         old_to_new_classes_conversion,
@@ -92,7 +92,7 @@ def test_vector_preannotation_upload_from_s3(empty_test_project, tmpdir):
     )
     assert sa.get_project_image_count(project) == 6
 
-    sa.upload_preannotations_from_folder(
+    sa.upload_preannotations_from_folder_to_project(
         project,
         TEST_PROJECT_VECTOR,
         old_to_new_classes_conversion,

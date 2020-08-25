@@ -25,7 +25,9 @@ def test_direct_s3_upload():
     csv = (Path.home() /
            "hovnatan_aws.csv").read_text().splitlines()[1].split(",")
 
-    sa.upload_from_s3_bucket(project, csv[2], csv[3], S3_BUCKET, S3_FOLDER)
+    sa.upload_from_s3_bucket_to_project(
+        project, csv[2], csv[3], S3_BUCKET, S3_FOLDER
+    )
     s3_client = boto3.client('s3')
     paginator = s3_client.get_paginator('list_objects_v2')
     response_iterator = paginator.paginate(Bucket=S3_BUCKET, Prefix=S3_FOLDER)
@@ -56,7 +58,7 @@ def test_direct_s3_upload_stress():
     csv = (Path.home() /
            "hovnatan_aws.csv").read_text().splitlines()[1].split(",")
 
-    sa.upload_from_s3_bucket(
+    sa.upload_from_s3_bucket_to_project(
         project, csv[2], csv[3], S3_BUCKET, S3_FOLDER_STRESS
     )
     s3_client = boto3.client('s3')

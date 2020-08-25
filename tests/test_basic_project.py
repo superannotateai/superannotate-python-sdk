@@ -40,7 +40,9 @@ def test_basic_project(project_type, name, description, from_folder, tmpdir):
     assert len(projects_found) == 1
     assert projects_found[0]["name"] == name
 
-    sa.upload_images_from_folder_to_project(project, from_folder, annotation_status=2)
+    sa.upload_images_from_folder_to_project(
+        project, from_folder, annotation_status=2
+    )
 
     count_in_folder = len(list(from_folder.glob("*.jpg"))
                          ) + len(list(from_folder.glob("*.png")))
@@ -64,7 +66,7 @@ def test_basic_project(project_type, name, description, from_folder, tmpdir):
                 break
         assert found
 
-    sa.upload_annotations_from_folder(
+    sa.upload_annotations_from_folder_to_project(
         project, from_folder, old_to_new_classes_conversion
     )
 

@@ -30,8 +30,8 @@ ________
 .. autofunction:: superannotate.create_project
 .. autofunction:: superannotate.delete_project
 .. autofunction:: superannotate.get_project_image_count
-.. autofunction:: superannotate.upload_images_from_folder
-.. autofunction:: superannotate.upload_images
+.. autofunction:: superannotate.upload_images_to_project
+.. autofunction:: superannotate.upload_images_from_folder_to_project
 
 ----------
 

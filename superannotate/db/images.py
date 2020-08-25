@@ -7,11 +7,38 @@ import requests
 
 from ..api import API
 from ..exceptions import SABaseException
-from .projects import get_project_type, get_root_folder_id
+from .projects import get_project
 
 logger = logging.getLogger("superannotate-python-sdk")
 
 _api = API.get_instance()
+
+
+def _get_project_type(project):
+    """Get type of project
+    Returns
+    -------
+    int
+        1 = vector
+        2 = pixel
+    """
+    return get_project(project)["type"]
+
+
+def _get_project_root_folder_id(project):
+    """Get root folder ID
+    Returns
+    -------
+    int
+        Root folder ID
+    """
+    params = {'team_id': project['team_id']}
+    response = _api.send_request(
+        req_type='GET', path=f'/project/{project["id"]}', params=params
+    )
+    if not response.ok:
+        raise SABaseException(response.status_code, response.text)
+    return response.json()['folder_id']
 
 
 def search_images(
@@ -24,7 +51,7 @@ def search_images(
     """
     team_id, project_id = project["team_id"], project["id"]
     if folder_id is None:
-        folder_id = get_root_folder_id(project)
+        folder_id = _get_project_root_folder_id(project)
 
     result_list = []
     params = {
@@ -166,7 +193,7 @@ def get_image_preannotations(image):
     """
     team_id, project_id, image_id, folder_id = image["team_id"], image[
         "project_id"], image["id"], image['folder_id']
-    project_type = get_project_type({'id': project_id, 'team_id': team_id})
+    project_type = _get_project_type({'id': project_id, 'team_id': team_id})
     if project_type == 2:  # pixel preannotation not implemented yet
         return {"preannotation_json_filename": None, "preannotation_json": None}
 
@@ -210,7 +237,7 @@ def get_image_annotations(image, project_type=None):
     team_id, project_id, image_id, folder_id = image["team_id"], image[
         "project_id"], image["id"], image['folder_id']
     if project_type is None:
-        project_type = get_project_type({'id': project_id, 'team_id': team_id})
+        project_type = _get_project_type({'id': project_id, 'team_id': team_id})
     params = {
         'team_id': team_id,
         'project_id': project_id,
@@ -274,7 +301,7 @@ def download_image_annotations(image, local_dir_path):
     None
     """
     team_id, project_id = image["team_id"], image["project_id"]
-    project_type = get_project_type({'id': project_id, 'team_id': team_id})
+    project_type = _get_project_type({'id': project_id, 'team_id': team_id})
     annotation = get_image_annotations(image, project_type)
     if annotation["annotation_json_filename"] is None:
         logger.info(
@@ -305,7 +332,7 @@ def download_image_preannotations(image, local_dir_path):
     None
     """
     team_id, project_id, = image["team_id"], image["project_id"]
-    project_type = get_project_type({'id': project_id, 'team_id': team_id})
+    project_type = _get_project_type({'id': project_id, 'team_id': team_id})
     annotation = get_image_preannotations(image)
     if annotation["preannotation_json_filename"] is None:
         return
@@ -341,7 +368,7 @@ def upload_annotations_from_file_to_image(
     team_id, project_id, image_id, folder_id, image_name = image[
         "team_id"], image["project_id"], image["id"], image['folder_id'], image[
             'name']
-    project_type = get_project_type({'id': project_id, 'team_id': team_id})
+    project_type = _get_project_type({'id': project_id, 'team_id': team_id})
     logger.info(
         "Uploading annotations from file %s for image %s in project %s.",
         json_path, image_name, project_id
