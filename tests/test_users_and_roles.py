@@ -12,7 +12,7 @@ def test_users_roles():
 
     project = sa.create_project(team, "test_56", "test_56", 1)
     sa.share_project(project, users[1], 4)
-    project_users = sa.get_project(project)["users"]
+    project_users = sa.get_project_metadata(project)["users"]
     found = False
     for u in project_users:
         if u["user_id"] == users[1]["id"]:
@@ -21,7 +21,7 @@ def test_users_roles():
     assert found, users[1]
 
     sa.unshare_project(project, users[1])
-    project_users = sa.get_project(project)["users"]
+    project_users = sa.get_project_metadata(project)["users"]
     found = False
     for u in project_users:
         if u["user_id"] == users[1]["id"]:

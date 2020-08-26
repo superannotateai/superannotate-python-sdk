@@ -28,7 +28,7 @@ def test_from_s3_upload():
         sa.delete_project(project)
 
     project = sa.create_project(team, PROJECT_NAME, "hk", 1)
-    sa.create_classes_from_classes_json(
+    sa.create_annotation_classes_from_classes_json(
         project, "frex9/classes/classes.json", S3_BUCKET
     )
 

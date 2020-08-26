@@ -115,11 +115,14 @@ def delete_project(project):
     logger.info("Successfully deleted project with ID %s.", project_id)
 
 
-def get_project(project):
+def get_project_metadata(project):
     """Return up-to-date project metadata
 
-    :param project: metadata of the project to be deleted
+    :param project: metadata of the project
     :type project: dict
+
+    :return: metadata of project
+    :rtype: dict
     """
     team_id, project_id = project["team_id"], project["id"]
     params = {'team_id': str(team_id)}

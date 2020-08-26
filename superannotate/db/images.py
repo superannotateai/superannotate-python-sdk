@@ -1,13 +1,14 @@
-import logging
 import io
 import json
+import logging
 from pathlib import Path
+
 import boto3
 import requests
 
 from ..api import API
 from ..exceptions import SABaseException
-from .projects import get_project
+from .projects import get_project_metadata
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -22,7 +23,7 @@ def _get_project_type(project):
         1 = vector
         2 = pixel
     """
-    return get_project(project)["type"]
+    return get_project_metadata(project)["type"]
 
 
 def _get_project_root_folder_id(project):
@@ -41,17 +42,26 @@ def _get_project_root_folder_id(project):
     return response.json()['folder_id']
 
 
-def search_images(
-    project, name_prefix=None, annotation_status=None, folder_id=None
-):
-    """Search images by name_prefix and annotation_status
-    Returns
-    -------
-    list of Image objects
+def search_images(project, name_prefix=None, annotation_status=None):
+    """Search images by name_prefix (case-insensitive) and annotation_status
+
+    :param project: project metadata in which the images are searched
+    :type project: dict
+    :param name_prefix: name prefix for search
+    :type name_prefix: str
+    :param annotation_status: filter by annotation_status if not None. Here:
+        1: "notStarted",
+        2: "annotation",
+        3: "qualityCheck",
+        4: "issueFix",
+        5: "complete",
+        6: "skipped"
+    :type annotation_status: int
+    :return: metadata of found images
+    :rtype: list of dicts
     """
     team_id, project_id = project["team_id"], project["id"]
-    if folder_id is None:
-        folder_id = _get_project_root_folder_id(project)
+    folder_id = _get_project_root_folder_id(project)  # maybe changed in future
 
     result_list = []
     params = {
@@ -88,16 +98,27 @@ def search_images(
     return result_list
 
 
-def set_image_annotation_status(image, status):
-    """Sets the image status to status.
-    Returns
-    -------
-    None
+def set_image_annotation_status(image, annotation_status):
+    """Sets the image annotation status.
+
+    :param image: image metadata
+    :type image: dict
+    :param annotation_status: annotation_status to set. Here:
+        1: "notStarted",
+        2: "annotation",
+        3: "qualityCheck",
+        4: "issueFix",
+        5: "complete",
+        6: "skipped"
+    :type annotation_status: int
+
+    :return: metadata of the updated image
+    :rtype: dict
     """
     team_id, project_id, image_id = image["team_id"], image["project_id"
                                                            ], image["id"]
     json_req = {
-        "annotation_status": status,
+        "annotation_status": annotation_status,
     }
     params = {'team_id': team_id, 'project_id': project_id}
     response = _api.send_request(
@@ -111,7 +132,15 @@ def set_image_annotation_status(image, status):
     return response.json()
 
 
-def get_image(image):
+def get_image_metadata(image):
+    """Return up-to-date image metadata
+
+    :param project: metadata of the image
+    :type project: dict
+
+    :return: metadata of image
+    :rtype: dict
+    """
     team_id, project_id, image_id = image["team_id"], image["project_id"
                                                            ], image["id"]
     params = {
@@ -130,9 +159,19 @@ def download_image(
     image, local_dir_path=".", include_annotations=False, variant='original'
 ):
     """Downloads the image (and annotation if not None) to local_dir_path
-    Returns
-    -------
-    None
+
+    :param image: image metadata
+    :type image: dict
+    :param local_dir_path: where to download the image
+    :type local_dir_path: Pathlike (str or Path)
+    :param include_annotations: enables annotation download with the image
+    :type include_annotations: bool
+    :param variant: which resolution to download, can be 'original' or 'lores'
+     (low resolution)
+    :type variant: str
+
+    :return: paths of downloaded image and annotations if included
+    :rtype: tuple
     """
     image_id, image_name = image["id"], image['name']
     logger.info(
@@ -145,16 +184,29 @@ def download_image(
             0, f"local_dir_path {local_dir_path} is not an existing directory"
         )
     img = get_image_bytes(image, variant=variant)
-    with open(Path(local_dir_path) / image_name, "wb") as f:
+    filepath = Path(local_dir_path) / image_name
+    with open(filepath, 'wb') as f:
         f.write(img.getbuffer())
+    annotations_filepaths = None
     if include_annotations:
-        download_image_annotations(image, local_dir_path)
+        annotations_filepaths = download_image_annotations(
+            image, local_dir_path
+        )
+    return (filepath, annotations_filepaths)
 
 
 def get_image_bytes(image, variant='original'):
     """Returns an io.BytesIO() object of the image. Suitable for creating
     PIL.Image out of it.
-    variant can be 'original' or 'lores' for low resolution
+
+    :param image: image metadata
+    :type image: dict
+    :param variant: which resolution to get, can be 'original' or 'lores'
+     (low resolution)
+    :type variant: str
+
+    :return: io.BytesIO() of the image
+    :rtype: io.BytesIO()
     """
     team_id, project_id, image_id, folder_id = image["team_id"], image[
         "project_id"], image["id"], image['folder_id']
@@ -182,20 +234,23 @@ def get_image_bytes(image, variant='original'):
 
 
 def get_image_preannotations(image):
-    """Get pre-annotations of the image
-    Returns
-    -------
-    dict:
-        "annotation_json": dict object of the annotation,
-        "annotation_json_filename": filename on server,
-        "annotation_mask": mask (for pixel),
-        "annotation_mask_filename": mask filename on server
+    """Get pre-annotations of the image. Only works for "vector" projects.
+
+    :param image: image metadata
+    :type image: dict
+
+    :return: dict object with following keys:
+        "preannotation_json": dict object of the annotation,
+        "preannotation_json_filename": filename on server,
+    :rtype: dict
     """
     team_id, project_id, image_id, folder_id = image["team_id"], image[
         "project_id"], image["id"], image['folder_id']
     project_type = _get_project_type({'id': project_id, 'team_id': team_id})
     if project_type == 2:  # pixel preannotation not implemented yet
-        return {"preannotation_json_filename": None, "preannotation_json": None}
+        raise SABaseException(
+            0, "Preannotation not available for pixel projects."
+        )
 
     params = {
         'team_id': team_id,
@@ -225,14 +280,17 @@ def get_image_preannotations(image):
 
 
 def get_image_annotations(image, project_type=None):
-    """Get annotations of the image
-    Returns
-    -------
-    dict:
+    """Get annotations of the image.
+
+    :param image: image metadata
+    :type image: dict
+
+    :return: dict object with following keys:
         "annotation_json": dict object of the annotation,
         "annotation_json_filename": filename on server,
         "annotation_mask": mask (for pixel),
         "annotation_mask_filename": mask filename on server
+    :rtype: dict
     """
     team_id, project_id, image_id, folder_id = image["team_id"], image[
         "project_id"], image["id"], image['folder_id']
@@ -295,11 +353,18 @@ def get_image_annotations(image, project_type=None):
 
 
 def download_image_annotations(image, local_dir_path):
-    """Downloads annotations (JSON and mask if pixel) to local_dir_path
-    Returns
-    -------
-    None
+    """Downloads annotations of the image (JSON and mask if pixel type project)
+    to local_dir_path.
+
+    :param image: image metadata
+    :type image: dict
+    :param local_dir_path: local directory path to download to
+    :type local_dir_path: Pathlike (str or Path)
+
+    :return: paths of downloaded annotations
+    :rtype: tuple
     """
+
     team_id, project_id = image["team_id"], image["project_id"]
     project_type = _get_project_type({'id': project_id, 'team_id': team_id})
     annotation = get_image_annotations(image, project_type)
@@ -308,51 +373,64 @@ def download_image_annotations(image, local_dir_path):
             "No annotation found for image %s (ID %s).", image["name"],
             image["id"]
         )
-        return
+        return None
+    return_filepaths = []
+    json_path = Path(local_dir_path) / annotation["annotation_json_filename"]
+    return_filepaths.append(json_path)
     if project_type == 1:
-        with open(
-            Path(local_dir_path) / annotation["annotation_json_filename"], "w"
-        ) as f:
+        with open(json_path, "w") as f:
             json.dump(annotation["annotation_json"], f)
     else:
-        with open(
-            Path(local_dir_path) / annotation["annotation_json_filename"], "w"
-        ) as f:
+        with open(json_path, "w") as f:
             json.dump(annotation["annotation_json"], f)
-        with open(
-            Path(local_dir_path) / annotation["annotation_mask_filename"], "wb"
-        ) as f:
+        mask_path = Path(local_dir_path
+                        ) / annotation["annotation_mask_filename"]
+        return_filepaths.append(mask_path)
+        with open(mask_path, "wb") as f:
             f.write(annotation["annotation_mask"].getbuffer())
+
+    return tuple(return_filepaths)
 
 
 def download_image_preannotations(image, local_dir_path):
-    """Downloads preannotations (JSON and mask if pixel) to local_dir_path
-    Returns
-    -------
-    None
+    """Downloads pre-annotations of the image to local_dir_path.
+    Only works for "vector" projects.
+
+    :param image: image metadata
+    :type image: dict
+    :param local_dir_path: local directory path to download to
+    :type local_dir_path: Pathlike (str or Path)
+
+    :return: paths of downloaded pre-annotations
+    :rtype: tuple
     """
     team_id, project_id, = image["team_id"], image["project_id"]
     project_type = _get_project_type({'id': project_id, 'team_id': team_id})
+    if project_type == 2:  # pixel preannotation not implemented yet
+        raise SABaseException(
+            0, "Preannotation not available for pixel projects."
+        )
     annotation = get_image_preannotations(image)
     if annotation["preannotation_json_filename"] is None:
-        return
+        return (None, )
+    return_filepaths = []
+    json_path = Path(local_dir_path) / annotation["preannotation_json_filename"]
+    return_filepaths.append(json_path)
     if project_type == 1:
-        with open(
-            Path(local_dir_path) / annotation["preannotation_json_filename"],
-            "w"
-        ) as f:
+        with open(json_path, "w") as f:
             json.dump(annotation["preannotation_json"], f)
-    else:
-        with open(
-            Path(local_dir_path) / annotation["preannotation_json_filename"],
-            "w"
-        ) as f:
-            json.dump(annotation["preannotation_json"], f)
-        with open(
-            Path(local_dir_path) / annotation["preannotation_mask_filename"],
-            "wb"
-        ) as f:
-            f.write(annotation["preannotation_mask"].getbuffer())
+    # else:
+    #     with open(
+    #         Path(local_dir_path) / annotation["preannotation_json_filename"],
+    #         "w"
+    #     ) as f:
+    #         json.dump(annotation["preannotation_json"], f)
+    #     with open(
+    #         Path(local_dir_path) / annotation["preannotation_mask_filename"],
+    #         "wb"
+    #     ) as f:
+    #         f.write(annotation["preannotation_mask"].getbuffer())
+    return tuple(return_filepaths)
 
 
 def upload_annotations_from_file_to_image(

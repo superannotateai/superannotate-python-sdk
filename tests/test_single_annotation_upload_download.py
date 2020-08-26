@@ -33,7 +33,7 @@ def test_annotation_download_upload(
     sa.upload_images_from_folder_to_project(
         project, from_folder, annotation_status=1
     )
-    sa.create_classes_from_classes_json(
+    sa.create_annotation_classes_from_classes_json(
         project, from_folder / "classes" / "classes.json"
     )
     sa.upload_annotations_from_folder_to_project(project, from_folder)

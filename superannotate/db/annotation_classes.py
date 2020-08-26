@@ -1,6 +1,6 @@
-import logging
-import json
 import io
+import json
+import logging
 from pathlib import Path
 
 import boto3
@@ -13,8 +13,22 @@ logger = logging.getLogger("superannotate-python-sdk")
 _api = API.get_instance()
 
 
-def create_class(project, name, color, attribute_groups=None):
-    """ Create class in project from a ProjectClass instance
+def create_annotation_class(project, name, color, attribute_groups=None):
+    """Create annotation class in project
+
+    :param project: project metadata
+    :type project: dict
+    :param name: name for the class
+    :type name: str
+    :param color: RGB hex color value, e.g, "#FFFFAA"
+    :type color: str
+    :param attribute_groups: example:
+     [ { "name": "tall", "is_multiselect": 0, "attributes": [ { "name": "yes" }, { "name": "no" } ] },
+        { "name": "age", "is_multiselect": 0, "attributes": [ { "name": "young" }, { "name": "old" } ] } ]
+    :type attribute_groups: list of dicts
+
+    :return: new class metadata
+    :rtype: dict
     """
     team_id, project_id = project["team_id"], project["id"]
     logger.info(
@@ -49,10 +63,20 @@ def create_class(project, name, color, attribute_groups=None):
     return new_class
 
 
-def create_classes_from_classes_json(
+def create_annotation_classes_from_classes_json(
     project, path_to_classes_json, from_s3_bucket=None
 ):
-    """ Create classes in project from a superannotate classes.json
+    """ Create annotation classes in project from a SuperAnnotate format classes.json
+
+    :param project: project metadata
+    :type project: dict
+    :param path_to_classes_json: path to the JSON file
+    :type path_to_classes_json: Pathlike (str or Path)
+    :param from_s3_bucket: AWS S3 bucket to use. If None then path_to_classes_json is in local filesystem
+    :type from_s3_bucket: str
+
+    :return: Old classId to new classId translation dict
+    :rtype: dict
     """
     project_id = project["id"]
     logger.info(
@@ -72,7 +96,7 @@ def create_classes_from_classes_json(
         classes = json.load(file)
 
     for cl in classes:
-        new_class = create_class(
+        new_class = create_annotation_class(
             project, cl["name"], cl["color"], cl["attribute_groups"]
         )
         old_id = cl["id"]
@@ -81,11 +105,17 @@ def create_classes_from_classes_json(
     return old_class_id_to_new_conversion
 
 
-def search_classes(project, name_prefix=None):
-    """Search for name_prefix prefixed classes in the project.
-    Returns
-    -------
-    list of Project.ProjectClass
+def search_annotation_classes(project, name_prefix=None):
+    """Search annotation classes by name_prefix (case-insensitive)
+
+    :param project: project metadata
+    :type project: dict
+    :param name_prefix: name prefix for search. If None all annotation classes
+     will be returned
+    :type name_prefix: str
+
+    :return: annotation classes of the project
+    :rtype: list of dicts
     """
     result_list = []
     team_id, project_id = project["team_id"], project["id"]
@@ -111,16 +141,23 @@ def search_classes(project, name_prefix=None):
     return result_list
 
 
-def download_classes_json(project, folder):
-    """Download classes.json to path
-    Returns
-    -------
-    None
+def download_annotation_classes_json(project, folder):
+    """Download classes.json to folder
+
+    :param project: project metadata
+    :type project: dict
+    :param folder: folder to download to
+    :type folder: Pathlike (str or Path)
+
+    :return: path of the download file
+    :rtype: str
     """
     project_id = project["id"]
     logger.info(
         "Downloading classes.json from project ID %s to folder %s.", project_id,
         folder
     )
-    clss = search_classes(project)
-    json.dump(clss, open(Path(folder) / "classes.json", "w"), indent=2)
+    clss = search_annotation_classes(project)
+    filepath = Path(folder) / "classes.json"
+    json.dump(clss, open(filepath, "w"), indent=2)
+    return str(filepath)

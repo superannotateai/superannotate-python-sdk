@@ -54,24 +54,21 @@ def _get_export(export):
 
 
 def prepare_export(
-    project,
-    include_images_with_status=None,
-    include_fuse=True,
-    only_pinned=False
+    project, annotation_status=None, include_fuse=True, only_pinned=False
 ):
     """Prepare annotations for export. Original and fused images for images with
     annotations can be included with include_fuse flag.
 
     :param project: metadata of the project to be exported
     :type project: dict
-    :param include_images_with_status: images with which status to include, if None, [2, 3, 4, 5] will be chosen. Here:
+    :param annotation_status: images with which status to include, if None, [2, 3, 4, 5] will be chosen. Here:
         1: "notStarted",
         2: "annotation",
         3: "qualityCheck",
         4: "issueFix",
         5: "complete",
         6: "skipped"
-    :type include_images_with_status: list of ints
+    :type annotation_status: list of ints
     :param include_fuse: enables fuse images in the export
     :type include_fuse: bool
     :param only_pinned: enable only pinned output in export. This option disables all other types of output.
@@ -81,13 +78,13 @@ def prepare_export(
     :rtype: dict
     """
     team_id, project_id = project["team_id"], project["id"]
-    if include_images_with_status is None:
-        include_images_with_status = [2, 3, 4, 5]
-    include_images_with_status = [str(x) for x in include_images_with_status]
-    include_images_with_status = ",".join(include_images_with_status)
+    if annotation_status is None:
+        annotation_status = [2, 3, 4, 5]
+    annotation_status = [str(x) for x in annotation_status]
+    annotation_status = ",".join(annotation_status)
     current_time = datetime.now().strftime("%b %d %Y %H:%M")
     json_req = {
-        "include": include_images_with_status,
+        "include": annotation_status,
         "fuse": int(include_fuse),
         "is_pinned": int(only_pinned),
         "coco": 0,

@@ -33,21 +33,37 @@ def test_basic_images(project_type, name, description, from_folder, tmpdir):
     sa.upload_images_from_folder_to_project(
         project, from_folder, annotation_status=1
     )
-    old_to_new_classes_conversion = sa.create_classes_from_classes_json(
+    old_to_new_classes_conversion = sa.create_annotation_classes_from_classes_json(
         project, from_folder / "classes" / "classes.json"
     )
     images = sa.search_images(project, "example_image_1")
     assert len(images) == 1
 
     sa.download_image(images[0], tmpdir, True)
-    assert sa.get_image_preannotations(images[0]
-                                      )["preannotation_json_filename"] is None
+    if project_type == 1:
+
+        assert sa.get_image_preannotations(
+            images[0]
+        )["preannotation_json_filename"] is None
+    else:
+        try:
+            sa.get_image_preannotations(images[0])
+            assert False
+        except sa.SABaseException as e:
+            assert e.message == "Preannotation not available for pixel projects."
     assert sa.get_image_annotations(images[0]
                                    )["annotation_json_filename"] is None
     sa.download_image_annotations(images[0], tmpdir)
     assert len(list(Path(tmpdir).glob("*"))) == 1
-    sa.download_image_preannotations(images[0], tmpdir)
-    assert len(list(Path(tmpdir).glob("*"))) == 1
+    if project_type == 1:
+        sa.download_image_preannotations(images[0], tmpdir)
+        assert len(list(Path(tmpdir).glob("*"))) == 1
+    else:
+        try:
+            sa.download_image_preannotations(images[0], tmpdir)
+            assert False
+        except sa.SABaseException as e:
+            assert e.message == "Preannotation not available for pixel projects."
 
     assert (Path(tmpdir) / images[0]["name"]).is_file()
 
@@ -67,7 +83,7 @@ def test_basic_images(project_type, name, description, from_folder, tmpdir):
     assert len(annotation) == 1
     annotation = json.load(open(annotation[0]))
 
-    sa.download_classes_json(project, tmpdir)
+    sa.download_annotation_classes_json(project, tmpdir)
     downloaded_classes = json.load(open(tmpdir / "classes.json"))
 
     for a in annotation:
@@ -98,5 +114,5 @@ def test_large_project_images():
     project = sa.search_projects(team, "test_ya14")[0]
     images = sa.search_images(project)
     assert len(images) == 38675
-    image_info = sa.get_image(images[0])
+    image_info = sa.get_image_metadata(images[0])
     assert image_info["name"] == images[0]["name"]

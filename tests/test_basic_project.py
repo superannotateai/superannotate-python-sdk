@@ -51,11 +51,11 @@ def test_basic_project(project_type, name, description, from_folder, tmpdir):
     images = sa.search_images(project)
     assert count_in_folder == len(images)
 
-    old_to_new_classes_conversion = sa.create_classes_from_classes_json(
+    old_to_new_classes_conversion = sa.create_annotation_classes_from_classes_json(
         project, from_folder / "classes" / "classes.json"
     )
     classes_in_file = json.load(open(from_folder / "classes" / "classes.json"))
-    classes_in_project = sa.search_classes(project)
+    classes_in_project = sa.search_annotation_classes(project)
     assert len(classes_in_file) == len(classes_in_project)
     for cl_f in classes_in_file:
         found = False

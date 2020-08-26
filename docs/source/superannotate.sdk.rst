@@ -29,7 +29,7 @@ ________
 .. autofunction:: superannotate.search_projects
 .. autofunction:: superannotate.create_project
 .. autofunction:: superannotate.delete_project
-.. autofunction:: superannotate.get_project
+.. autofunction:: superannotate.get_project_metadata
 .. autofunction:: superannotate.get_project_image_count
 .. autofunction:: superannotate.upload_images_to_project
 .. autofunction:: superannotate.upload_images_from_folder_to_project
@@ -52,24 +52,29 @@ _______
 Images
 ______
 
-.. automodule:: superannotate.db.images
-   :members:
-   :undoc-members:
+.. autofunction:: superannotate.search_images
+.. autofunction:: superannotate.get_image_metadata
+.. autofunction:: superannotate.get_image_bytes
+.. autofunction:: superannotate.download_image
+.. autofunction:: superannotate.set_image_annotation_status
+.. autofunction:: superannotate.get_image_annotations
+.. autofunction:: superannotate.get_image_preannotations
+.. autofunction:: superannotate.download_image_annotations
+.. autofunction:: superannotate.download_image_preannotations
 
 ----------
 
-Project Classes
-_______________
+Annotation Classes
+__________________
 
-.. automodule:: superannotate.db.project_classes
-   :members:
-   :undoc-members:
+.. autofunction:: superannotate.create_annotation_class
+.. autofunction:: superannotate.create_annotation_classes_from_classes_json
+.. autofunction:: superannotate.search_annotation_classes
+.. autofunction:: superannotate.download_annotation_classes_json
 
 ----------
 
 Users
 _____
 
-.. automodule:: superannotate.db.users
-   :members:
-   :undoc-members:
+.. autofunction:: superannotate.search_users

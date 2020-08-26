@@ -9,11 +9,13 @@ _api = API.get_instance()
 
 
 def search_users(team):
-    """Search for users in team
-    Returns
-    -------
-    list:
-        list of of users
+    """Search for all users in team
+
+    :param team: team metadata
+    :type team: dict
+
+    :return: all users in the team
+    :rtype: list of dicts
     """
     result_list = []
     team_id = team["id"]
