@@ -1,14 +1,14 @@
-import math
-import time
-import logging
-import threading
-from pathlib import Path
 import io
 import json
+import logging
+import math
+import threading
+import time
+from pathlib import Path
 
 import boto3
-from tqdm import tqdm
 from PIL import Image
+from tqdm import tqdm
 
 from ..api import API
 from ..exceptions import SABaseException

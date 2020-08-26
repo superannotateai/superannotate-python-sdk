@@ -1,7 +1,6 @@
 import logging
 
 from ..api import API
-
 from ..exceptions import SABaseException
 
 logger = logging.getLogger("superannotate-python-sdk")

@@ -1,14 +1,14 @@
 import logging
 import math
-from pathlib import Path
-import zipfile
-import time
-from datetime import datetime
 import tempfile
 import threading
+import time
+import zipfile
+from datetime import datetime
+from pathlib import Path
 
-import requests
 import boto3
+import requests
 from tqdm import tqdm
 
 from ..api import API
@@ -21,11 +21,13 @@ _NUM_THREADS = 10
 
 
 def get_exports(project):
-    """Get all exports of the project
-    Returns
-    -------
-    list:
-        list of dict objects representing exports
+    """Get all prepared exports of the project.
+
+    :param project: metadata of the project
+    :type project: dict
+
+    :return: metadata objects of the all prepared exports of the project
+    :rtype: list of dicts
     """
     team_id, project_id = project["team_id"], project["id"]
     params = {'team_id': team_id, 'project_id': project_id}
@@ -37,13 +39,7 @@ def get_exports(project):
     return response.json()
 
 
-def get_export(export):
-    """Get export object of the project
-    Returns
-    -------
-    dict:
-        dict object representing exports
-    """
+def _get_export(export):
     team_id, project_id, export_id = export["team_id"], export["project_id"
                                                               ], export["id"]
     params = {'team_id': team_id, 'project_id': project_id}
@@ -58,13 +54,31 @@ def get_export(export):
 
 
 def prepare_export(
-    project, include_images_with_status=None, include_fuse=1, only_pinned=0
+    project,
+    include_images_with_status=None,
+    include_fuse=True,
+    only_pinned=False
 ):
-    """Prepare export of the project
-    Returns
-    -------
-    dict:
-        dict representing the created export
+    """Prepare annotations for export. Original and fused images for images with
+    annotations can be included with include_fuse flag.
+
+    :param project: metadata of the project to be exported
+    :type project: dict
+    :param include_images_with_status: images with which status to include, if None, [2, 3, 4, 5] will be chosen. Here:
+        1: "notStarted",
+        2: "annotation",
+        3: "qualityCheck",
+        4: "issueFix",
+        5: "complete",
+        6: "skipped"
+    :type include_images_with_status: list of ints
+    :param include_fuse: enables fuse images in the export
+    :type include_fuse: bool
+    :param only_pinned: enable only pinned output in export. This option disables all other types of output.
+    :type only_pinned: bool
+
+    :return: metadata object of the prepared export
+    :rtype: dict
     """
     team_id, project_id = project["team_id"], project["id"]
     if include_images_with_status is None:
@@ -74,8 +88,8 @@ def prepare_export(
     current_time = datetime.now().strftime("%b %d %Y %H:%M")
     json_req = {
         "include": include_images_with_status,
-        "fuse": include_fuse,
-        "is_pinned": only_pinned,
+        "fuse": int(include_fuse),
+        "is_pinned": int(only_pinned),
         "coco": 0,
         "time": current_time
     }
@@ -138,13 +152,20 @@ def __upload_files_to_aws_thread(
 def download_export(
     export, folder_path, extract_zip_contents=True, to_s3_bucket=None
 ):
-    """Download export
-    Returns
-    -------
-    None
+    """Download prepared export.
+
+    :param export: metadata of the prepared export, returned from prepare_export
+    :type export: dict
+    :param folder_path: where to download the export
+    :type folder_path: Pathlike (str or Path)
+    :param extract_zip_contents: if False then a zip file will be downloaded,
+     if True the zip file will be extracted at folder_path
+    :type extract_zip_contents: bool
+    :param to_s3_bucket: AWS S3 bucket to use for download. If None then folder_path is in local filesystem.
+    :type tofrom_s3_bucket: str
     """
     while True:
-        res = get_export(export)
+        res = _get_export(export)
         if res["status"] == 1:
             logger.info("Waiting 5 seconds for export to finish on server.")
             time.sleep(5)

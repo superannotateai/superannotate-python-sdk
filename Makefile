@@ -1,4 +1,4 @@
-.PHONY: all clean tests coverage
+.PHONY: all clean tests stress-tests coverage test_coverage install lint docs
 
 PYTHON=python
 PYLINT=pylint
@@ -27,7 +27,7 @@ coverage: test_coverage
 test_coverage:
 	$(COVERAGE) run -m  --source=./superannotate/  $(PYTESTS)
 	$(COVERAGE) html
-	$(BROWSER) htmlcov/index.html
+	@echo "\033[95m\n\nCoverage successful! View the output at file://htmlcov/index.html.\n\033[0m"
 
 install:
 	pip install .
@@ -35,3 +35,7 @@ install:
 lint:
 	-$(PYLINT) superannotate/
 	-$(PYLINT) tests/*
+
+docs:
+	cd docs && make html
+	@echo "\033[95m\n\nBuild successful! View the docs homepage at file://docs/build/html/index.html.\n\033[0m"

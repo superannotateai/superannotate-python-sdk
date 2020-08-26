@@ -29,6 +29,7 @@ ________
 .. autofunction:: superannotate.search_projects
 .. autofunction:: superannotate.create_project
 .. autofunction:: superannotate.delete_project
+.. autofunction:: superannotate.get_project
 .. autofunction:: superannotate.get_project_image_count
 .. autofunction:: superannotate.upload_images_to_project
 .. autofunction:: superannotate.upload_images_from_folder_to_project
@@ -39,12 +40,12 @@ ________
 
 ----------
 
-Project Classes
-_______________
+Exports
+_______
 
-.. automodule:: superannotate.db.project_classes
-   :members:
-   :undoc-members:
+.. autofunction:: superannotate.prepare_export
+.. autofunction:: superannotate.download_export
+.. autofunction:: superannotate.get_exports
 
 ----------
 
@@ -57,10 +58,10 @@ ______
 
 ----------
 
-Exports
-_______
+Project Classes
+_______________
 
-.. automodule:: superannotate.db.exports
+.. automodule:: superannotate.db.project_classes
    :members:
    :undoc-members:
 
