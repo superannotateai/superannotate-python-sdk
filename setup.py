@@ -17,7 +17,7 @@ setup(
     author_email='hovnatan@superannotate.com',
     url='https://github.com/superannotateai/superannotate-python-sdk',
     download_url=
-    'https://github.com/superannotateai/superannotate-python-sdk/archive/v0.1.0-beta.tar.gz',
+    'https://github.com/superannotateai/superannotate-python-sdk/archive/v0.1.2-beta.tar.gz',
     long_description=readme,
     long_description_content_type='text/markdown',
     install_requires=requirements,
