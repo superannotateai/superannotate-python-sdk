@@ -10,14 +10,17 @@ packages = find_packages()
 
 setup(
     name='superannotate',
-    version='1.0.0',
-    description='Python SDK to SuperAnnotate platform',
-    license='GNU GPL 3',
+    version='0.1.0',
+    description='Python SDK and CLI tools to SuperAnnotate platform',
+    license='MIT',
     author='Hovnatan Karapetyan',
     author_email='hovnatan@superannotate.com',
     url='https://github.com/superannotateai/superannotate-python-sdk',
+    download_url=
+    'https://github.com/superannotateai/superannotate-python-sdk/archive/v0.1.0-beta.tar.gz',
     long_description=readme,
     long_description_content_type='text/markdown',
+    install_requires=requirements,
     packages=find_packages(exclude=('tests', )),
     entry_points={
         'console_scripts': ['superannotate = superannotate.__main__:main']
