@@ -10,7 +10,7 @@ packages = find_packages()
 
 setup(
     name='superannotate',
-    version='0.1.0',
+    version='0.1.3',
     description='Python SDK and CLI tools to SuperAnnotate platform',
     license='MIT',
     author='Hovnatan Karapetyan',
@@ -21,6 +21,10 @@ setup(
     long_description=readme,
     long_description_content_type='text/markdown',
     install_requires=requirements,
+    dependecy_links=[
+        'git+https://github.com/cocodataset/panopticapi.git',
+        'git+https://github.com/cocodataset/cocoapi.git#subdirectory=PythonAPI'
+    ],
     packages=find_packages(exclude=('tests', )),
     entry_points={
         'console_scripts': ['superannotate = superannotate.__main__:main']
