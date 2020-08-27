@@ -31,13 +31,16 @@ class API:
         self.token = self.api_config["token"]
 
         self.default_headers = {'Authorization': self.token}
+        self.default_headers["authtype"] = "sdk"
         if "authtype" in self.api_config:
             self.default_headers["authtype"] = self.api_config["authtype"]
         self.default_headers['User-Agent'] = requests_toolbelt.user_agent(
             'superannotate', Version
         )
 
-        self.main_endpoint = self.api_config["main_endpoint"]
+        self.main_endpoint = "https://api.annotate.online"
+        if "main_endpoint" in self.api_config:
+            self.main_endpoint = self.api_config["main_endpoint"]
         self.verify = True
         self.session = None
         response = self.send_request(req_type='GET', path='/teams')

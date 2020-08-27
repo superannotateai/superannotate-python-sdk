@@ -27,7 +27,7 @@ from .exceptions import SABaseException
 from .version import Version
 
 #formatter = logging.Formatter(fmt='%(asctime)s - %(levelname)s - %(module)s - %(message)s')
-formatter = logging.Formatter(fmt='sa-PYTHON-SDK - %(levelname)s - %(message)s')
+formatter = logging.Formatter(fmt='SA-PYTHON-SDK - %(levelname)s - %(message)s')
 
 handler = logging.StreamHandler()
 handler.setFormatter(formatter)
