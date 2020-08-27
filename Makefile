@@ -41,5 +41,6 @@ docs:
 	@echo "\033[95m\n\nBuild successful! View the docs homepage at file://docs/build/html/index.html.\n\033[0m"
 
 dist:
-	$(PYTHON) setup.py sdist bdist_wheel
+	-rm -rf dist/*
+	$(PYTHON) setup.py sdist
 	twine upload dist/*

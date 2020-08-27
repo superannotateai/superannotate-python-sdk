@@ -3,6 +3,8 @@ from setuptools import setup, find_packages
 with open('requirements.txt') as f:
     requirements = f.read()
 
+requirements = requirements.splitlines()
+
 with open('README.md') as f:
     readme = f.read()
 
@@ -10,7 +12,7 @@ packages = find_packages()
 
 setup(
     name='superannotate',
-    version='0.1.4',
+    version='0.1.11',
     description='Python SDK and CLI tools to SuperAnnotate platform',
     license='MIT',
     author='Hovnatan Karapetyan',
@@ -21,10 +23,7 @@ setup(
     long_description=readme,
     long_description_content_type='text/markdown',
     install_requires=requirements,
-    dependecy_links=[
-        'git+https://github.com/cocodataset/panopticapi.git',
-        'git+https://github.com/cocodataset/cocoapi.git#subdirectory=PythonAPI'
-    ],
+    setup_requires=['wheel'],
     packages=find_packages(exclude=('tests', )),
     entry_points={
         'console_scripts': ['superannotate = superannotate.__main__:main']
