@@ -13,16 +13,6 @@ _________________________________
 
 ----------
 
-Teams
-_____
-
-.. autofunction:: superannotate.get_default_team
-.. autofunction:: superannotate.search_teams
-.. autofunction:: superannotate.create_team
-.. autofunction:: superannotate.delete_team
-
-----------
-
 Projects
 ________
 

@@ -22,14 +22,13 @@ sa.init(Path.home() / ".superannotate" / "config.json")
 )
 def test_basic_images(project_type, name, description, from_folder, tmpdir):
     tmpdir = Path(tmpdir)
-    team = sa.get_default_team()
 
-    projects_found = sa.search_projects(team, name)
+    projects_found = sa.search_projects(name)
     for pr in projects_found:
         sa.delete_project(pr)
 
-    projects_found = sa.search_projects(team, name)
-    project = sa.create_project(team, name, description, project_type)
+    projects_found = sa.search_projects(name)
+    project = sa.create_project(name, description, project_type)
     sa.upload_images_from_folder_to_project(
         project, from_folder, annotation_status=1
     )
@@ -110,8 +109,7 @@ def test_basic_images(project_type, name, description, from_folder, tmpdir):
 
 
 def test_large_project_images():
-    team = sa.get_default_team()
-    project = sa.search_projects(team, "test_ya14")[0]
+    project = sa.search_projects("test_ya14")[0]
     images = sa.search_images(project)
     assert len(images) == 38675
     image_info = sa.get_image_metadata(images[0])

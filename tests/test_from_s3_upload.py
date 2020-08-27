@@ -21,13 +21,12 @@ S3_BUCKET = 'hovnatan-test'
 
 def test_from_s3_upload():
     paginator = s3_client.get_paginator('list_objects_v2')
-    team = sa.get_default_team()
 
-    projects = sa.search_projects(team, PROJECT_NAME)
+    projects = sa.search_projects(PROJECT_NAME)
     for project in projects:
         sa.delete_project(project)
 
-    project = sa.create_project(team, PROJECT_NAME, "hk", 1)
+    project = sa.create_project(PROJECT_NAME, "hk", 1)
     sa.create_annotation_classes_from_classes_json(
         project, "frex9/classes/classes.json", S3_BUCKET
     )

@@ -25,11 +25,10 @@ PROJECT_NAME = "testing_1419"
 def test_annotation_download_upload(
     project_type, name, description, from_folder, tmpdir
 ):
-    team = sa.get_default_team()
-    projects = sa.search_projects(team, name)
+    projects = sa.search_projects(name)
     for project in projects:
         sa.delete_project(project)
-    project = sa.create_project(team, name, description, project_type)
+    project = sa.create_project(name, description, project_type)
     sa.upload_images_from_folder_to_project(
         project, from_folder, annotation_status=1
     )
@@ -69,11 +68,10 @@ def test_annotation_download_upload(
 def test_annotation_download_upload_withclassesconversion(
     project_type, name, description, from_folder, tmpdir
 ):
-    team = sa.get_default_team()
-    projects = sa.search_projects(team, name)
+    projects = sa.search_projects(name)
     for project in projects:
         sa.delete_project(project)
-    project = sa.create_project(team, name, description, project_type)
+    project = sa.create_project(name, description, project_type)
     sa.upload_images_from_folder_to_project(
         project, from_folder, annotation_status=1
     )

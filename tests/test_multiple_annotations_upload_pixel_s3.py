@@ -12,18 +12,13 @@ TEST_PROJECT_VECTOR = "sample_project_vector"
 
 @pytest.fixture
 def empty_test_project():
-    team = sa.get_default_team()
-
-    projects_found = sa.search_projects(team, "test_upload_41")
+    projects_found = sa.search_projects("test_upload_41")
     for pr in projects_found:
         sa.delete_project(pr)
 
 
 def test_upload_from_s3(empty_test_project, tmpdir):
-    team = sa.get_default_team()
-    project = sa.create_project(
-        team, "test_upload_41", "hk_test", project_type=2
-    )
+    project = sa.create_project("test_upload_41", "hk_test", project_type=2)
 
     f = urlparse(f"s3://hovnatan-test/{TEST_PROJECT_PIXEL}")
     sa.upload_images_from_folder_to_project(
@@ -78,10 +73,7 @@ def test_upload_from_s3(empty_test_project, tmpdir):
 
 
 def test_vector_preannotation_upload_from_s3(empty_test_project, tmpdir):
-    team = sa.get_default_team()
-    project = sa.create_project(
-        team, "test_upload_41", "hk_test", project_type=1
-    )
+    project = sa.create_project("test_upload_41", "hk_test", project_type=1)
 
     f = urlparse(f"s3://hovnatan-test/{TEST_PROJECT_VECTOR}")
     sa.upload_images_from_folder_to_project(

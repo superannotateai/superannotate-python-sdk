@@ -15,12 +15,11 @@ S3_FOLDER_STRESS = 'ff'
 
 
 def test_direct_s3_upload():
-    team = sa.get_default_team()
-    projects_found = sa.search_projects(team, TEST_PROJET_NAME)
+    projects_found = sa.search_projects(TEST_PROJET_NAME)
     for pr in projects_found:
         sa.delete_project(pr)
 
-    project = sa.create_project(team, TEST_PROJET_NAME, "a", 1)
+    project = sa.create_project(TEST_PROJET_NAME, "a", 1)
 
     csv = (Path.home() /
            "hovnatan_aws.csv").read_text().splitlines()[1].split(",")
@@ -48,12 +47,11 @@ def test_direct_s3_upload():
     reason="Requires env variable to be set"
 )
 def test_direct_s3_upload_stress():
-    team = sa.get_default_team()
-    projects_found = sa.search_projects(team, TEST_PROJET_NAME)
+    projects_found = sa.search_projects(TEST_PROJET_NAME)
     for pr in projects_found:
         sa.delete_project(pr)
 
-    project = sa.create_project(team, TEST_PROJET_NAME, "a", 1)
+    project = sa.create_project(TEST_PROJET_NAME, "a", 1)
 
     csv = (Path.home() /
            "hovnatan_aws.csv").read_text().splitlines()[1].split(",")

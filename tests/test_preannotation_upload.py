@@ -22,12 +22,11 @@ sa.init(Path.home() / ".superannotate" / "config.json")
 def test_preannotation_folder_upload_download(
     project_type, name, description, from_folder, tmpdir
 ):
-    team = sa.get_default_team()
-    projects_found = sa.search_projects(team, name)
+    projects_found = sa.search_projects(name)
     for pr in projects_found:
         sa.delete_project(pr)
 
-    project = sa.create_project(team, name, description, project_type)
+    project = sa.create_project(name, description, project_type)
     sa.upload_images_from_folder_to_project(
         project, from_folder, annotation_status=2
     )

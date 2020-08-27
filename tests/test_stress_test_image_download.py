@@ -14,9 +14,7 @@ sa.init(Path.home() / ".superannotate" / "config.json")
     reason="Requires env variable to be set"
 )
 def test_download_stress(tmpdir):
-    team = sa.get_default_team()
-
-    project = sa.search_projects(team, name_prefix="test_test_15")[0]
+    project = sa.search_projects(name_prefix="test_test_15")[0]
     export = sa.prepare_export(project)
     sa.download_export(export, tmpdir)
 

@@ -21,8 +21,7 @@ from .db.projects import (
     upload_images_from_s3_bucket_to_project, upload_images_to_project,
     upload_preannotations_from_folder_to_project
 )
-from .db.teams import create_team, delete_team, get_default_team, search_teams
-from .db.users import search_users
+from .db.users import search_team_contributors
 from .exceptions import SABaseException
 from .version import Version
 

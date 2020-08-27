@@ -21,12 +21,10 @@ _NUM_THREADS = 10
 _RESIZE_CONFIG = {2: 4000000, 1: 100000000}  # 1: vector 2: pixel
 
 
-def search_projects(team, name_prefix=None):
+def search_projects(name_prefix=None):
     """Project name based case-insensitive prefix search for projects.
     If name_prefix is None all the projects will be returned.
 
-    :param team: team in which the projects are searched
-    :type team: dict
     :param name_prefix: name prefix for search
     :type name_prefix: str
 
@@ -34,7 +32,7 @@ def search_projects(team, name_prefix=None):
     :rtype: list
     """
     result_list = []
-    params = {'team_id': str(team['id']), 'offset': 0}
+    params = {'team_id': str(_api.team_id), 'offset': 0}
     if name_prefix is not None:
         params['name'] = name_prefix
     while True:
@@ -55,11 +53,9 @@ def search_projects(team, name_prefix=None):
     return result_list
 
 
-def create_project(team, project_name, project_description, project_type):
+def create_project(project_name, project_description, project_type):
     """Creates a new project in the team.
 
-    :param team: team in which the project is created
-    :type team: dict
     :param project_name: the new project's name
     :type project_name: str
     :param project_description: the new project's description
@@ -76,7 +72,7 @@ def create_project(team, project_name, project_description, project_type):
             0, "project_type should be 1 (vector) or 2 (pixel)"
         )
     data = {
-        "team_id": str(team['id']),
+        "team_id": str(_api.team_id),
         "name": project_name,
         "description": project_description,
         "status": 0,

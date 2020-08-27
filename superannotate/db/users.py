@@ -8,18 +8,28 @@ logger = logging.getLogger("superannotate-python-sdk")
 _api = API.get_instance()
 
 
-def search_users(team):
-    """Search for all users in team
+def search_team_contributors(email=None, first_name=None, last_name=None):
+    """Search for contributors in the team
 
-    :param team: team metadata
-    :type team: dict
+    :param email: filter by email
+    :type email: str
+    :param first_name: filter by first name
+    :type first_name: str
+    :param last_name: filter by last name
+    :type last_name: str
 
-    :return: all users in the team
+    :return: metadata of found users
     :rtype: list of dicts
     """
     result_list = []
-    team_id = team["id"]
-    params = {'team_id': team_id, 'offset': 0}
+    params = {'team_id': _api.team_id, 'offset': 0}
+    if email is not None:
+        params['email'] = email
+    if first_name is not None:
+        params['first_name'] = first_name
+    if last_name is not None:
+        params['last_name'] = last_name
+
     while True:
         response = _api.send_request(
             req_type='GET', path='/users', params=params

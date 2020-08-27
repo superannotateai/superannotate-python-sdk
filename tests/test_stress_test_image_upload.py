@@ -14,9 +14,7 @@ sa.init(Path.home() / ".superannotate" / "config.json")
     reason="Requires env variable to be set"
 )
 def test_upload_stress():
-    team = sa.get_default_team()
-
-    project = sa.create_project(team, "test_test_15", "hk", 1)
+    project = sa.create_project("test_test_15", "hk", 1)
     sa.create_annotation_classes_from_classes_json(
         project, "tests/sample_project_vector/classes/classes.json"
     )

@@ -22,21 +22,20 @@ sa.init(Path.home() / ".superannotate" / "config.json")
 )
 def test_basic_project(project_type, name, description, from_folder, tmpdir):
     tmpdir = Path(tmpdir)
-    team = sa.get_default_team()
 
-    projects_found = sa.search_projects(team, name)
+    projects_found = sa.search_projects(name)
     for pr in projects_found:
         sa.delete_project(pr)
 
-    projects_found = sa.search_projects(team, name)
+    projects_found = sa.search_projects(name)
     assert len(projects_found) == 0
 
-    project = sa.create_project(team, name, description, project_type)
+    project = sa.create_project(name, description, project_type)
     assert project["name"] == name
     assert project["description"] == description
     assert project["type"] == project_type
 
-    projects_found = sa.search_projects(team, name)
+    projects_found = sa.search_projects(name)
     assert len(projects_found) == 1
     assert projects_found[0]["name"] == name
 
@@ -99,5 +98,5 @@ def test_basic_project(project_type, name, description, from_folder, tmpdir):
             assert found, mask_in_folder
     sa.delete_project(project)
 
-    projects_found = sa.search_projects(team, name)
+    projects_found = sa.search_projects(name)
     assert len(projects_found) == 0

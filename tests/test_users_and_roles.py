@@ -6,11 +6,9 @@ sa.init(Path.home() / ".superannotate" / "config.json")
 
 
 def test_users_roles():
-    team = sa.get_default_team()
+    users = sa.search_users()
 
-    users = sa.search_users(team)
-
-    project = sa.create_project(team, "test_56", "test_56", 1)
+    project = sa.create_project("test_56", "test_56", 1)
     sa.share_project(project, users[1], 4)
     project_users = sa.get_project_metadata(project)["users"]
     found = False

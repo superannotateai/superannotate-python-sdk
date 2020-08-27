@@ -20,8 +20,7 @@ def test_export_s3(tmpdir):
                 key = object_data['Key']
                 s3_client.delete_object(Bucket=S3_BUCKET, Key=key)
     tmpdir = Path(tmpdir)
-    team = sa.get_default_team()
-    project = sa.search_projects(team, "Example Project 1")[0]
+    project = sa.search_projects("Example Project 1")[0]
     images = sa.search_images(project)
     for img in images:
         sa.set_image_annotation_status(img, 3)
