@@ -1,23 +1,42 @@
-# Documentation
+# SuperAnnotate Python SDK and CLI tools
+
+**SuperAnnotate Python SDK allows access to the platform without
+ web browser**
+
+```python
+import superannotate as sa
+
+sa.init(<path_to_my_config_json>)
+
+projects = sa.search_projects("Example Project 1")
+
+example_project = projects[0]
+sa.upload_images_from_folder(example_project, <path_to_my_images_folder>)
+```
 
 ## Installation
 
-    pip install --user superannotate
+SDK is available on PyPI:
+ 
+```console
+pip install superannotate
 
-    # for COCO format converters
-    pip install --user 'git+https://github.com/cocodataset/panopticapi.git'
-    pip install --user 'git+https://github.com/philferriere/cocoapi.git#egg=pycocotools&subdirectory=PythonAPI'
+# for COCO format converters support
+pip install 'git+https://github.com/cocodataset/panopticapi.git'
+pip install 'git+https://github.com/philferriere/cocoapi.git#egg=pycocotools&subdirectory=PythonAPI'
+```
 
 
-## Python SDK
+The package officially supports Python 3.5+.
 
-With Python SDK you can perform various tasks on SuperAnnotate platform, such as uploading images,
-exporting annotations, assigning image to a team contributor using locally written Python scripts.
+## Supported Features
 
-First follow the installation above. To start using Python SDK import
-superannotate module
+- Search projects
+- Create/delete a project
+- Upload images to a project from local or AWS S3 folder
+- Upload annotations/pre-annotations to a project from local or AWS S3 folder
+- Set the annotation status of the images being uploaded
+- Export annotations from a project to a local or AWS S3 folder
 
-    import superannotate as sa
-
-[Python SDK](README_sdk.md)
+## API Reference and User Guide available on [Read the Docs](https://superannotate.readthedocs.io)
 
