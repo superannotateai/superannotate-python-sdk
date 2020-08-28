@@ -24,7 +24,7 @@ def create_annotation_class(project, name, color, attribute_groups=None):
     :type color: str
     :param attribute_groups: example:
      [ { "name": "tall", "is_multiselect": 0, "attributes": [ { "name": "yes" }, { "name": "no" } ] },
-        { "name": "age", "is_multiselect": 0, "attributes": [ { "name": "young" }, { "name": "old" } ] } ]
+     { "name": "age", "is_multiselect": 0, "attributes": [ { "name": "young" }, { "name": "old" } ] } ]
     :type attribute_groups: list of dicts
 
     :return: new class metadata
@@ -66,7 +66,7 @@ def create_annotation_class(project, name, color, attribute_groups=None):
 def create_annotation_classes_from_classes_json(
     project, path_to_classes_json, from_s3_bucket=None
 ):
-    """ Create annotation classes in project from a SuperAnnotate format classes.json
+    """Create annotation classes in project from a SuperAnnotate format classes.json
 
     :param project: project metadata
     :type project: dict

@@ -1,6 +1,6 @@
-.. _sdk:
+.. _reference_sdk:
 
-SDK functions
+SDK reference
 ===========================
 
 .. contents::
@@ -67,4 +67,4 @@ __________________
 Users
 _____
 
-.. autofunction:: superannotate.search_users
+.. autofunction:: superannotate.search_team_contributors
