@@ -29,8 +29,21 @@ class API:
     def set_auth(self, config_location):
         self._api_config = json.load(open(config_location))
 
-        self._token = self._api_config["token"]
-        self.team_id = int(self._token.split("=")[1])
+        try:
+            self._token = self._api_config["token"]
+        except KeyError:
+            logger.error(
+                "'token' key is not present in the config file %s.",
+                config_location
+            )
+            raise SABaseException(0, "Incorrect config file.")
+        try:
+            self.team_id = int(self._token.split("=")[1])
+        except Exception:
+            logger.error(
+                "token key is not valid in the config file %s.", config_location
+            )
+            raise SABaseException(0, "Incorrect config file.")
 
         self._default_headers = {'Authorization': self._token}
         self._default_headers["authtype"] = "sdk"
