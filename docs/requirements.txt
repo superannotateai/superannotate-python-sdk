@@ -1,0 +1,11 @@
+boto3
+requests
+requests-toolbelt
+tqdm
+pillow
+numpy
+xmltodict
+opencv-python
+wheel
+Cython
+superannotate

@@ -11,13 +11,13 @@
 
 ## Python SDK
 
+With Python SDK you can perform various tasks on SuperAnnotate platform, such as uploading images,
+exporting annotations, assigning image to a team contributor using locally written Python scripts.
+
+First follow the installation above. To start using Python SDK import
+superannotate module
+
+    import superannotate as sa
+
 [Python SDK](README_sdk.md)
-
-## CLI tools
-
-[CLI](README_cli.md)
-
-## Input format converters
-
-[Input converters](README_converters.md)
 
