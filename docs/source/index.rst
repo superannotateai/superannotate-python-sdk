@@ -4,16 +4,21 @@
    contain the root `toctree` directive.
 
 .. image:: sa_logo.png
-  :width: 400
+  :width: 200
   :alt: SuperAnnotate AI
+
+|
 
 SuperAnnotate Python SDK documentation
 ==================================================================
 
 .. toctree::
+   :hidden:
    :maxdepth: 1
 
    tutorial.sdk.rst
    superannotate.sdk.rst
 
 
+SuperAnnotate Python SDK allows access to the platform without web browser.
+Please look at the :ref:`SDK tutorial <ref_tutorial>` or :ref:`SDK full reference <ref_sdk>`.

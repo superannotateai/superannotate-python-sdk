@@ -1,6 +1,6 @@
-.. _tutorial_sdk:
+.. _ref_tutorial:
 
-SDK user guide
+SDK Tutorial
 ===========================
 
 .. contents::

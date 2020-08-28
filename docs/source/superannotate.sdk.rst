@@ -1,6 +1,6 @@
 .. _ref_sdk:
 
-SDK reference
+SDK Reference
 ===========================
 
 .. contents::
