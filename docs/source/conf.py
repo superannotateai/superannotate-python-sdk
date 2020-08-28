@@ -18,7 +18,7 @@ import superannotate
 
 # -- Project information -----------------------------------------------------
 
-project = 'SuperAnnotate Python SDK and CLI tools'
+project = 'SuperAnnotate Python SDK'
 copyright = '2020, SuperAnnotate AI'
 author = 'Hovnatan Karapetyan, Vahagn Tumanyan, Armen Gyurjinyan, Shabin Dilanchian'
 

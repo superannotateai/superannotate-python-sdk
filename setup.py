@@ -12,8 +12,8 @@ packages = find_packages()
 
 setup(
     name='superannotate',
-    version='0.1.15',
-    description='Python SDK and CLI tools to SuperAnnotate platform',
+    version='0.1.16',
+    description='Python SDK to SuperAnnotate platform',
     license='MIT',
     author='Hovnatan Karapetyan',
     author_email='hovnatan@superannotate.com',

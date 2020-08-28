@@ -1,4 +1,4 @@
-.. _reference_sdk:
+.. _ref_sdk:
 
 SDK reference
 ===========================
@@ -13,16 +13,19 @@ _________________________________
 
 ----------
 
+.. _ref_projects:
+
 Projects
 ________
 
-.. _search_projects:
+.. _ref_search_projects:
 .. autofunction:: superannotate.search_projects
 .. autofunction:: superannotate.create_project
 .. autofunction:: superannotate.delete_project
 .. autofunction:: superannotate.get_project_metadata
 .. autofunction:: superannotate.get_project_image_count
 .. autofunction:: superannotate.upload_images_to_project
+.. _ref_upload_images_from_folder_to_project:
 .. autofunction:: superannotate.upload_images_from_folder_to_project
 .. autofunction:: superannotate.upload_annotations_from_folder_to_project
 .. autofunction:: superannotate.upload_preannotations_from_folder_to_project
