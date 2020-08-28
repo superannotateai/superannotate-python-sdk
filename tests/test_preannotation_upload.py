@@ -33,9 +33,18 @@ def test_preannotation_folder_upload_download(
     old_to_new_classid_conversion = sa.create_annotation_classes_from_classes_json(
         project, from_folder / "classes" / "classes.json"
     )
-    sa.upload_preannotations_from_folder_to_project(
-        project, from_folder, old_to_new_classid_conversion
-    )
+    if project_type == 1:
+        sa.upload_preannotations_from_folder_to_project(
+            project, from_folder, old_to_new_classid_conversion
+        )
+    else:
+        try:
+            sa.upload_preannotations_from_folder_to_project(
+                project, from_folder, old_to_new_classid_conversion
+            )
+        except sa.SABaseException as e:
+            assert e.status_code == 406
+            assert e.message == '{"error":"This feature is only for vector projects."}'
     count_in = len(list(from_folder.glob("*.json")))
 
     if project_type == 2:  # skip until implemented

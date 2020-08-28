@@ -1,3 +1,4 @@
+![sa](sa_logo.png)
 # SuperAnnotate Python SDK
 
 **SuperAnnotate Python SDK allows access to the platform without

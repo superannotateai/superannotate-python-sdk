@@ -711,6 +711,10 @@ def upload_preannotations_from_folder_to_project(
         "Uploading all preannotations from %s to project ID %s.", folder_path,
         project_id
     )
+    if project_type == 2:
+        raise SABaseException(
+            406, '{"error":"This feature is only for vector projects."}'
+        )
     if from_s3_bucket is None:
         preannotations_paths = list(Path(folder_path).glob('*.json'))
         preannotations_filenames = [x.name for x in preannotations_paths]

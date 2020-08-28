@@ -6,7 +6,7 @@ sa.init(Path.home() / ".superannotate" / "config.json")
 
 
 def test_users_roles():
-    users = sa.search_users()
+    users = sa.search_team_contributors()
 
     project = sa.create_project("test_56", "test_56", 1)
     sa.share_project(project, users[1], 4)
