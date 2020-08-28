@@ -1,4 +1,5 @@
-<img src="./docs/source/sa_logo.png" width="100">
+<img src="./docs/source/sa_logo.png" width="200">
+
 # SuperAnnotate Python SDK
 
 **SuperAnnotate Python SDK allows access to the platform without
