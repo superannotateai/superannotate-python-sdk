@@ -1,4 +1,4 @@
-# SuperAnnotate Python SDK and CLI tools
+# SuperAnnotate Python SDK
 
 **SuperAnnotate Python SDK allows access to the platform without
  web browser**
@@ -20,8 +20,11 @@ SDK is available on PyPI:
  
 ```console
 pip install superannotate
+```
 
-# for COCO format converters support
+for COCO format converters support need to install:
+
+```console
 pip install 'git+https://github.com/cocodataset/panopticapi.git'
 pip install 'git+https://github.com/philferriere/cocoapi.git#egg=pycocotools&subdirectory=PythonAPI'
 ```
@@ -37,6 +40,16 @@ The package officially supports Python 3.5+.
 - Upload annotations/pre-annotations to a project from local or AWS S3 folder
 - Set the annotation status of the images being uploaded
 - Export annotations from a project to a local or AWS S3 folder
+- Share and unshare a project with a team contributor
+- Search images in a project
+- Download a single image
+- Get image bytes (e.g., for numpy array creation)
+- Set image annotation status
+- Download image annotations/pre-annotations
+- Create/download project annotation classes
 
-## API Reference and User Guide available on [Read the Docs](https://superannotate.readthedocs.io)
+## API Reference, User Guide available on [Read the Docs](https://superannotate.readthedocs.io)
 
+## License
+
+This SDK is distributed under the MIT License, see [LICENSE](./LICENSE)

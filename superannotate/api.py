@@ -30,6 +30,7 @@ class API:
         self._api_config = json.load(open(config_location))
 
         self._token = self._api_config["token"]
+        self.team_id = int(self._token.split("=")[1])
 
         self._default_headers = {'Authorization': self._token}
         self._default_headers["authtype"] = "sdk"
@@ -44,12 +45,20 @@ class API:
             self._main_endpoint = self._api_config["main_endpoint"]
         self._verify = True
         self._session = None
-        response = self.send_request(req_type='GET', path='/teams')
+        response = self.send_request(
+            req_type='GET',
+            path='/projects',
+            params={
+                'team_id': str(self.team_id),
+                'offset': 0,
+                'limit': 1
+            }
+        )
         if not response.ok:
+            self._session = None
             if "Not authorized" in response.text:
                 raise SABaseException(0, "Couldn't authorize")
             raise SABaseException(0, "Couldn't reach superannotate")
-        self.team_id = None
 
     @staticmethod
     def get_instance():
@@ -86,5 +95,6 @@ class API:
             max_retries=retry, pool_maxsize=16, pool_connections=16
         )
         session.mount('https://', adapter)
+        session.mount('http://', adapter)
         session.headers = self._default_headers
         return session
