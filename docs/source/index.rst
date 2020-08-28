@@ -3,6 +3,10 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
+.. image:: sa_logo.png
+  :width: 400
+  :alt: SuperAnnotate AI
+
 SuperAnnotate Python SDK documentation
 ==================================================================
 
