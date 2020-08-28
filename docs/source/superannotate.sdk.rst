@@ -16,6 +16,7 @@ _________________________________
 Projects
 ________
 
+.. _search_projects:
 .. autofunction:: superannotate.search_projects
 .. autofunction:: superannotate.create_project
 .. autofunction:: superannotate.delete_project
