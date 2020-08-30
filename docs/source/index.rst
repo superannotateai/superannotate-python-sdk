@@ -10,7 +10,6 @@
 |
 
 .. toctree::
-   :caption: Quick Links
    :maxdepth: 1
 
    tutorial.sdk.rst
@@ -19,8 +18,7 @@
 SuperAnnotate Python SDK documentation
 ==================================================================
 
-**SuperAnnotate Python SDK allows access to the platform without web browser.**
-
+SuperAnnotate Python SDK allows access to the platform without web browser:
 
 .. code-block:: python
 
@@ -33,26 +31,6 @@ SuperAnnotate Python SDK documentation
    example_project = projects[0]
    sa.upload_images_from_folder(example_project, <path_to_my_images_folder>)
 
-
-Installation
-____________
-
-SDK is available on PyPI:
-
-.. code-block:: bash
-
-   pip install superannotate
-
-
-for COCO format converters support need to install:
-
-.. code-block:: bash
-
-   pip install 'git+https://github.com/cocodataset/panopticapi.git'
-   pip install 'git+https://github.com/philferriere/cocoapi.git#egg=pycocotools&subdirectory=PythonAPI'
-
-
-The package officially supports Python 3.5+.
 
 Supported Features
 __________________
@@ -79,5 +57,5 @@ This SDK is distributed under the MIT License.
 Questions and Issues
 ____________________
 
-For questions and issues please use Issue tracker on
+For questions and issues please use issue tracker on
 `Github <https://github.com/superannotateai/superannotate-python-sdk>`_.

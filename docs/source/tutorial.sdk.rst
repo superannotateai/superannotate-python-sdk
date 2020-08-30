@@ -26,8 +26,9 @@ The package officially supports Python 3.5+.
 Authentication token
 ____________________
 
-To get the authentication visit team setting for which you want to have SDK
-Copy the token to a new JSON file, under the key "token", e.g, your JSON should
+SDK authentication tokens are team specific. They are available to team admins on
+team setting page on app.superannotate.com. Generate then copy the token from
+that page to a new JSON file, under the key "token", e.g, your JSON should
 look like this:
 
 .. code-block:: json
@@ -36,6 +37,7 @@ look like this:
      "token" : "<your token from superannotate.com>"
    }
 
+This configuration file will be used in SDK authorization and initialization.
 
 Initialization
 ______________
@@ -46,7 +48,7 @@ Include the package:
 
    import superannotate as sa
 
-Then initialize it with the config file created in the previous step:
+Initialize SDK with the config file created in the previous step:
 
 .. code-block:: python
 
@@ -63,12 +65,15 @@ To search for the projects you can run:
 
    projects = sa.search_projects("Example Project 1")
 
-Here a search through all the team's projects will be performed with name 
+Here a search through all the team's projects will be performed with name
 prefix 'Example Project 1' with
 :ref:`search_projects <ref_search_projects>`. The return value: :py:obj:`projects`
-will be a python list of metadata of found projects. The metadata in
-all of SDK are python dicts. In this case project metadata has keys that
-identify the project in the platform. E.g. :py:obj:`projects[0]` can be:
+will be a python list of metadata of found projects. We can choose the first result 
+as our project :py:obj:`project = project[0]`.
+
+The metadata in all of SDK (projects, images, annotation classes, users) are python dicts.
+In this case project metadata has keys that identify the project in the
+platform. E.g. :py:obj:`project` can be:
 
 .. code-block:: json
 
@@ -79,32 +84,53 @@ identify the project in the platform. E.g. :py:obj:`projects[0]` can be:
        "....." : "......"
    }
 
-Since the :ref:`sa.search_projects <ref_search_projects>` is not exact, rather prefix
-based (this is because the platform allows identically named projects), one
-needs to examine the :py:obj:`projects` to identify the looked for project,
-e.g.,
+The metadata is used in further SDK calls relating to the project.
 
-.. code-block:: python
+.. warning::
 
-   for project in projects:
-       if project["description"] == "my desc":
-           break
+   Since the :ref:`sa.search_projects <ref_search_projects>` searches projects with prefix
+   based (this is because the platform allows identically named projects), one
+   needs to examine the :py:obj:`projects` to identify the looked for project,
+   e.g.,
 
-(it is advised to make search prefix unique in the available projects list to be
-able to choose the project with just :py:obj:`project = project[0]`)
+   .. code-block:: python
+
+      for project in projects:
+          if project["description"] == "my desc":
+              break
+
+   (it is advised to make search prefix unique in the available projects list to be
+   able to choose the project with just :py:obj:`project = project[0]`)
 
 Now that we have found the project, we can perform various tasks on it. For
 example to upload images from a local folder to the project we can do:
 
 
 .. code-block:: python
-    
+
     sa.upload_images_from_folder_to_project(project, <local_folder_path>)
 
-The first argument to :ref:`sa.upload_images_from_folder_to_project <ref_upload_images_from_folder_to_project>` is the metadata of the project which contains
-all the information to identify the project on the platform.
-
 For full list of available functions on projects, see :ref:`ref_projects`
+
+
+
+Exporting project
+_________________
+
+To export the project annotations, we need to prepare the export first:
+
+.. code-block:: python
+
+   export = sa.prepare_export(project, include_fuse=True)
+
+Then to download the export:
+
+.. code-block:: python
+
+   export = sa.download_export(export, <local_folder_path>, extract_zip_contents=True)
+
+:ref:`download_export <ref_download_export>` will wait until the export is
+finished preparing and download it to the specified folder.
 
 
 Working with images
@@ -114,7 +140,86 @@ To search for the images in the project:
 
 .. code-block:: python
 
-   images = sa.search_images("example_image1.jpg")
+   images = sa.search_images(project, "example_image1.jpg")
 
 Here again we get python list of dict metadata for the images with name prefix
-'example_image1.jpg'.
+'example_image1.jpg'. The image names in projects are unique, so if full name was 
+given to :ref:`search_images <ref_search_images>` the returned list will have a
+single item we were looking for:
+
+.. code-block:: python
+
+   image = images[0]
+
+We can now for example download the image with:
+
+.. code-block:: python
+
+   sa.download_image(image, <path_to_local_dir>)
+
+or download image annotations with:
+
+.. code-block:: python
+
+   sa.download_image_annotations(image, <path_to_local_dir>)
+
+
+Working with annotation classes
+_______________________________
+
+
+Annotation classes for a project can be created individually with:
+
+.. code-block:: python
+
+   new_class = sa.create_annotation_class(project, "Large car", color="#FFFFAA")
+
+or in bulk with SuperAnnotate export format classes.json with: 
+
+.. code-block:: python
+
+   old_to_new_classid_conversion = sa.create_annotation_classes_from_classes_json(project,
+   <path_to_classes_json>)
+
+.. warning::
+
+   The classId that identify classes on the platform will be changed to a new
+   ones even if they are presented in the classes.json. To have further access
+   to the translated classId's :ref:`create_annotation_classes_from_classes_json <ref_create_annotation_classes_from_classes_json>`
+   will return a python dict with old_class_id : new_class_id.
+   classid_conversion variable above will store this dict and used to translate
+   annotations with old class IDs to new IDs during annotation upload:
+
+   .. code-block:: python
+
+      sa.upload_annotations_from_folder_to_project(project, <path_to_local_dir>,
+                                                   classid_conversion=old_to_new_classid_conversion) 
+
+
+All of the annotation classes `classes.json` is downloaded with download_export, but
+it can also be downloaded separately with:
+
+.. code-block:: python
+
+   sa.download_annotation_classes_json(project, <path_to_local_folder>)
+
+The classes.json file will be downloaded to <path_to_local_folder> folder.
+
+
+
+Working with team contributors
+______________________________
+
+
+A team contributor can be searched and chosen with:
+
+.. code-block:: python
+
+   found_users = sa.search_team_contributors(email='hovnatan@superannotate.com')
+   hk_user = found_users[0]
+
+Now to share a project with the found user as an QA, one can use:
+
+.. code-block:: python
+
+   sa.share_project(project, hk_user, user_role=4)

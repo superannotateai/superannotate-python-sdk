@@ -38,6 +38,7 @@ Exports
 _______
 
 .. autofunction:: superannotate.prepare_export
+.. _ref_download_export:
 .. autofunction:: superannotate.download_export
 .. autofunction:: superannotate.get_exports
 
@@ -46,6 +47,7 @@ _______
 Images
 ______
 
+.. _ref_search_images:
 .. autofunction:: superannotate.search_images
 .. autofunction:: superannotate.get_image_metadata
 .. autofunction:: superannotate.get_image_bytes
@@ -62,6 +64,8 @@ Annotation Classes
 __________________
 
 .. autofunction:: superannotate.create_annotation_class
+
+.. _ref_create_annotation_classes_from_classes_json:
 .. autofunction:: superannotate.create_annotation_classes_from_classes_json
 .. autofunction:: superannotate.search_annotation_classes
 .. autofunction:: superannotate.download_annotation_classes_json

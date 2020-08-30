@@ -50,7 +50,7 @@ The package officially supports Python 3.5+.
 - Download image annotations/pre-annotations
 - Create/download project annotation classes
 
-## API Reference, User Guide available on [Read the Docs](https://superannotate.readthedocs.io)
+## Full SDK reference, tutorial available on [Read the Docs](https://superannotate.readthedocs.io)
 
 ## License
 
@@ -58,4 +58,4 @@ This SDK is distributed under the MIT License, see [LICENSE](./LICENSE)
 
 ## Questions and Issues
 
-For questions and issues please use this repo's Issue tracker on Github.
+For questions and issues please use this repo's issue tracker on Github.
