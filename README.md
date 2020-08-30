@@ -55,3 +55,7 @@ The package officially supports Python 3.5+.
 ## License
 
 This SDK is distributed under the MIT License, see [LICENSE](./LICENSE)
+
+## Questions and Issues
+
+For questions and issues please use this repo's Issue tracker on Github.
