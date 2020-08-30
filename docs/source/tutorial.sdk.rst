@@ -26,20 +26,20 @@ Authentication token
 ____________________
 
 SDK authentication tokens are team specific. They are available to team admins on
-team setting page on app.superannotate.com. Generate then copy the token from
+team setting page at https://annotate.online/team. Generate then copy the token from
 that page to a new JSON file, under the key "token", e.g., your JSON should
 look like this:
 
 .. code-block:: json
 
    {
-     "token" : "<your token from superannotate.com>"
+     "token" : "<team token>"
    }
 
 This configuration file will be used in SDK authorization and initialization.
 
-Initialization
-______________
+Authorization and initialization
+________________________________
 
 Include the package:
 
@@ -47,7 +47,7 @@ Include the package:
 
    import superannotate as sa
 
-Initialize SDK with the config file created in the previous step:
+Authenticate and initialize SDK with the config file created in the previous step:
 
 .. code-block:: python
 
@@ -65,25 +65,30 @@ To search for the projects you can run:
    projects = sa.search_projects("Example Project 1")
 
 Here a search through all the team's projects will be performed with name
-prefix 'Example Project 1' with
+prefix "Example Project 1". Full documentation of the function can be found at 
 :ref:`search_projects <ref_search_projects>`. The return value: :py:obj:`projects`
-will be a python list of metadata of found projects. We can choose the first result 
-as our project :py:obj:`project = project[0]`.
+will be a Python list of metadata of found projects. We can choose the first result 
+as our project for further work:
 
-The metadata in all of SDK (projects, images, annotation classes, users) are python dicts.
-In this case project metadata has keys that identify the project in the
-platform. E.g. :py:obj:`project` can be:
+.. code-block:: python
 
-.. code-block:: json
+   project = projects[0]
 
-   {
-       "id" : 111,
-       "team_id" : 333,
-       "name" : "Example Project 1",
-       "....." : "......"
-   }
+.. note::
 
-The metadata is used in further SDK calls relating to the project.
+   The metadata of SDK objects, i.e., projects, exports, images, annotation 
+   classes, users, are Python dicts.
+   In this case project metadata has keys that identify the project in the
+   platform. E.g. :py:obj:`project` can be:
+
+   .. code-block:: json
+
+      {
+          "id" : 111,
+          "team_id" : 333,
+          "name" : "Example Project 1",
+          "....." : "......"
+      }
 
 .. warning::
 
@@ -98,25 +103,24 @@ The metadata is used in further SDK calls relating to the project.
           if project["description"] == "my desc":
               break
 
-   (it is advised to make search prefix unique in the available projects list to be
-   able to choose the project with just :py:obj:`project = project[0]`)
+   It is advised to make search prefix unique in the available projects list to be
+   able to choose the project with just :py:obj:`project = project[0]`.
 
 Now that we have found the project, we can perform various tasks on it. For
-example to upload images from a local folder to the project we can do:
+example, to upload images from a local folder to the project:
 
 
 .. code-block:: python
 
     sa.upload_images_from_folder_to_project(project, <local_folder_path>)
 
-For full list of available functions on projects, see :ref:`ref_projects`
+For full list of available functions on projects, see :ref:`ref_projects`.
 
 
+Exporting projects
+__________________
 
-Exporting project
-_________________
-
-To export the project annotations, we need to prepare the export first:
+To export the project annotations we need to prepare the export first:
 
 .. code-block:: python
 
@@ -141,22 +145,22 @@ To search for the images in the project:
 
    images = sa.search_images(project, "example_image1.jpg")
 
-Here again we get python list of dict metadata for the images with name prefix
-'example_image1.jpg'. The image names in projects are unique, so if full name was 
-given to :ref:`search_images <ref_search_images>` the returned list will have a
-single item we were looking for:
+Here again we get a Python list of dict metadatas for the images with name prefix
+"example_image1.jpg". The image names in SuperAnnotate platform projects are 
+unique, so if full name was given to :ref:`search_images <ref_search_images>` 
+the returned list will have a single item we were looking for:
 
 .. code-block:: python
 
    image = images[0]
 
-We can now for example download the image with:
+To download the image one can use:
 
 .. code-block:: python
 
    sa.download_image(image, <path_to_local_dir>)
 
-or download image annotations with:
+or to download image annotations:
 
 .. code-block:: python
 
@@ -173,7 +177,7 @@ Annotation classes for a project can be created individually with:
 
    new_class = sa.create_annotation_class(project, "Large car", color="#FFFFAA")
 
-or in bulk with SuperAnnotate export format classes.json with: 
+or in bulk with SuperAnnotate export format :file:`classes.json` with: 
 
 .. code-block:: python
 
@@ -182,12 +186,40 @@ or in bulk with SuperAnnotate export format classes.json with:
 
 .. warning::
 
-   The classId that identify classes on the platform will be changed to a new
-   ones even if they are presented in the classes.json. To have further access
-   to the translated classId's :ref:`create_annotation_classes_from_classes_json <ref_create_annotation_classes_from_classes_json>`
-   will return a python dict with old_class_id : new_class_id.
-   classid_conversion variable above will store this dict and used to translate
-   annotations with old class IDs to new IDs during annotation upload:
+   The SuperAnnotate :file:`classes.json` file has the following format:
+
+   .. code-block:: json
+
+      [ 
+        {
+          "name": "...",
+          "color": "...",
+          "attribute_groups": [],
+          "id": 111,
+          "has_changes": false
+        },
+        {
+          "name": "...",
+          "color": "...",
+          "attribute_groups": [],
+          "id": 112,
+          "has_changes": false
+        },
+        {
+          "..." : "..."
+        }
+      ]
+
+   The "id" keys identify classes on the platform and exported annotation JSONs
+   ("classId" key in each annotation).
+   But, when creating classes using :ref:`create_annotation_classes_from_classes_json <ref_create_annotation_classes_from_classes_json>`
+   the "id" fields will be ignored and new "id"-es will be created on the
+   platform. Later if annotations with old "id"-es are uploaded their annotation classes
+   won't identify on platform. To have further access
+   to the translated "id"s :ref:`create_annotation_classes_from_classes_json <ref_create_annotation_classes_from_classes_json>`
+   will return a Python dict with :py:obj:`{ old_id : new_id }`. The above
+   :py:obj:`old_to_new_classid_conversion` variable will store this dict and can be
+   used to translate annotations with old class IDs to new IDs during annotation upload:
 
    .. code-block:: python
 
@@ -195,8 +227,9 @@ or in bulk with SuperAnnotate export format classes.json with:
                                                    classid_conversion=old_to_new_classid_conversion) 
 
 
-All of the annotation classes `classes.json` is downloaded with download_export, but
-it can also be downloaded separately with:
+All of the annotation classes are downloaded (as :file:`classes/classes.json`) with 
+:ref:`download_export <ref_download_export>` along with annotations, but they 
+can also be downloaded separately with:
 
 .. code-block:: python
 
@@ -221,4 +254,4 @@ Now to share a project with the found user as an QA, one can use:
 
 .. code-block:: python
 
-   sa.share_project(project, hk_user, user_role=4)
+   sa.share_project(project, hk_user, user_role="QA")

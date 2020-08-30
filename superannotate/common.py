@@ -1,8 +1,22 @@
 from pathlib import Path
 
+from .exceptions import SABaseException
+
+_PROJECT_TYPES = {"Vector": 1, "Pixel": 2}
+_ANNOTATION_STATUSES = {
+    "NotStarted": 1,
+    "Annotation": 2,
+    "QualityCheck": 3,
+    "IssueFix": 4,
+    "Complete": 5,
+    "Skipped": 6
+}
+_USER_ROLES = {"Admin": 2, "Annotator": 3, "QA": 4, "Customer": 5, "Viewer": 6}
+
 
 def image_path_to_annotation_paths(image_path, project_type):
     image_path = Path(image_path)
+    project_type = project_type_str_to_int(project_type)
     postfix_json = '___objects.json' if project_type == 1 else '___pixel.json'
     postfix_mask = '___save.png'
     if project_type == 1:
@@ -12,3 +26,36 @@ def image_path_to_annotation_paths(image_path, project_type):
             image_path.parent / (image_path.name + postfix_json),
             image_path.parent / (image_path.name + postfix_mask)
         )
+
+
+def project_type_str_to_int(project_type):
+    if project_type not in _PROJECT_TYPES:
+        raise SABaseException(
+            0, "Project type should be one of Vector or Pixel ."
+        )
+    return _PROJECT_TYPES[project_type]
+
+
+def project_type_int_to_str(project_type):
+    for k, v in _PROJECT_TYPES.items():
+        if v == project_type:
+            return k
+    raise SABaseException(0, "Project type should be one of 1 or 2 .")
+
+
+def user_role_str_to_int(user_role):
+    if user_role not in _USER_ROLES:
+        raise SABaseException(
+            0,
+            "User role should be one of Admin , Annotator , QA , Customer , Viewer ."
+        )
+    return _USER_ROLES[user_role]
+
+
+def annotation_status_str_to_int(annotation_status):
+    if annotation_status not in _ANNOTATION_STATUSES:
+        raise SABaseException(
+            0,
+            "Annotation status should be one of NotStarted Annotation QualityCheck IssueFix Complete Skipped"
+        )
+    return _ANNOTATION_STATUSES[annotation_status]

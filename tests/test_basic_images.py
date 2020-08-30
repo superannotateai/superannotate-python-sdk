@@ -11,11 +11,11 @@ sa.init(Path.home() / ".superannotate" / "config.json")
 @pytest.mark.parametrize(
     "project_type,name,description,from_folder", [
         (
-            1, "Example Project test", "test vector",
+            "Vector", "Example Project test", "test vector",
             Path("./tests/sample_project_vector")
         ),
         (
-            2, "Example Project test", "test pixel",
+            "Pixel", "Example Project test", "test pixel",
             Path("./tests/sample_project_pixel")
         ),
     ]
@@ -30,7 +30,7 @@ def test_basic_images(project_type, name, description, from_folder, tmpdir):
     projects_found = sa.search_projects(name)
     project = sa.create_project(name, description, project_type)
     sa.upload_images_from_folder_to_project(
-        project, from_folder, annotation_status=1
+        project, from_folder, annotation_status="Annotation"
     )
     old_to_new_classes_conversion = sa.create_annotation_classes_from_classes_json(
         project, from_folder / "classes" / "classes.json"
@@ -39,7 +39,7 @@ def test_basic_images(project_type, name, description, from_folder, tmpdir):
     assert len(images) == 1
 
     sa.download_image(images[0], tmpdir, True)
-    if project_type == 1:
+    if project_type == "Vector":
 
         assert sa.get_image_preannotations(
             images[0]
@@ -54,7 +54,7 @@ def test_basic_images(project_type, name, description, from_folder, tmpdir):
                                    )["annotation_json_filename"] is None
     sa.download_image_annotations(images[0], tmpdir)
     assert len(list(Path(tmpdir).glob("*"))) == 1
-    if project_type == 1:
+    if project_type == "Vector":
         sa.download_image_preannotations(images[0], tmpdir)
         assert len(list(Path(tmpdir).glob("*"))) == 1
     else:
@@ -70,7 +70,8 @@ def test_basic_images(project_type, name, description, from_folder, tmpdir):
         images[0],
         sa.image_path_to_annotation_paths(
             from_folder / images[0]["name"], project_type
-        )[0], None if project_type == 1 else sa.image_path_to_annotation_paths(
+        )[0],
+        None if project_type == "Vector" else sa.image_path_to_annotation_paths(
             from_folder / images[0]["name"], project_type
         )[1], old_to_new_classes_conversion
     )

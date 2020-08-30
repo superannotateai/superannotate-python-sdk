@@ -22,7 +22,7 @@ def test_upload_stress():
     sa.upload_images_from_folder_to_project(
         project,
         "/media/disc_drive/datasets/COCO/test2017",
-        annotation_status=3
+        annotation_status="QualityCheck"
     )
     count = sa.get_project_image_count(project)
     assert count == 40670

@@ -7,6 +7,7 @@ import boto3
 import requests
 
 from ..api import API
+from ..common import annotation_status_str_to_int
 from ..exceptions import SABaseException
 from .projects import get_project_metadata
 
@@ -49,19 +50,16 @@ def search_images(project, name_prefix=None, annotation_status=None):
     :type project: dict
     :param name_prefix: name prefix for search
     :type name_prefix: str
-    :param annotation_status: filter by annotation_status if not None. Here:
-        1: "notStarted",
-        2: "annotation",
-        3: "qualityCheck",
-        4: "issueFix",
-        5: "complete",
-        6: "skipped"
-    :type annotation_status: int
+    :param annotation_status: if not None, annotation statuses of images to filter,
+           should be one of NotStarted Annotation QualityCheck IssueFix Complete Skipped
+    :type annotation_status: str
     :return: metadata of found images
     :rtype: list of dicts
     """
     team_id, project_id = project["team_id"], project["id"]
     folder_id = _get_project_root_folder_id(project)  # maybe changed in future
+    if annotation_status is not None:
+        annotation_status = annotation_status_str_to_int(annotation_status)
 
     result_list = []
     params = {
@@ -103,20 +101,16 @@ def set_image_annotation_status(image, annotation_status):
 
     :param image: image metadata
     :type image: dict
-    :param annotation_status: annotation_status to set. Here:
-        1: "notStarted",
-        2: "annotation",
-        3: "qualityCheck",
-        4: "issueFix",
-        5: "complete",
-        6: "skipped"
-    :type annotation_status: int
+    :param annotation_status: annotation status to set,
+           should be one of NotStarted Annotation QualityCheck IssueFix Complete Skipped
+    :type annotation_status: str
 
     :return: metadata of the updated image
     :rtype: dict
     """
     team_id, project_id, image_id = image["team_id"], image["project_id"
                                                            ], image["id"]
+    annotation_status = annotation_status_str_to_int(annotation_status)
     json_req = {
         "annotation_status": annotation_status,
     }

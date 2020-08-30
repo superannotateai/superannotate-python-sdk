@@ -10,11 +10,11 @@ sa.init(Path.home() / ".superannotate" / "config.json")
 @pytest.mark.parametrize(
     "project_type,name,description,from_folder", [
         (
-            1, "Example Project test vector", "test vector",
+            "Vector", "Example Project test vector", "test vector",
             Path("./tests/sample_project_vector")
         ),
         (
-            2, "Example Project test pixel", "test pixel",
+            "Pixel", "Example Project test pixel", "test pixel",
             Path("./tests/sample_project_pixel")
         ),
     ]
@@ -28,12 +28,12 @@ def test_preannotation_folder_upload_download(
 
     project = sa.create_project(name, description, project_type)
     sa.upload_images_from_folder_to_project(
-        project, from_folder, annotation_status=2
+        project, from_folder, annotation_status="Annotation"
     )
     old_to_new_classid_conversion = sa.create_annotation_classes_from_classes_json(
         project, from_folder / "classes" / "classes.json"
     )
-    if project_type == 1:
+    if project_type == "Vector":
         sa.upload_preannotations_from_folder_to_project(
             project, from_folder, old_to_new_classid_conversion
         )
@@ -47,7 +47,7 @@ def test_preannotation_folder_upload_download(
             assert e.message == '{"error":"This feature is only for vector projects."}'
     count_in = len(list(from_folder.glob("*.json")))
 
-    if project_type == 2:  # skip until implemented
+    if project_type == "Pixel":  # skip until implemented
         return
     images = sa.search_images(project)
     for image in images:

@@ -11,6 +11,9 @@ from PIL import Image
 from tqdm import tqdm
 
 from ..api import API
+from ..common import (
+    annotation_status_str_to_int, project_type_str_to_int, user_role_str_to_int
+)
 from ..exceptions import SABaseException
 
 logger = logging.getLogger("superannotate-python-sdk")
@@ -60,17 +63,13 @@ def create_project(project_name, project_description, project_type):
     :type project_name: str
     :param project_description: the new project's description
     :type project_description: str
-    :param project_type: the new project type.
-                         1=vector,  2=pixel.
-    :type project_type: int
+    :param project_type: the new project type, Vector or Pixel.
+    :type project_type: str
 
     :return: dict object representing the new project
     :rtype: dict
     """
-    if project_type not in [1, 2]:
-        raise SABaseException(
-            0, "project_type should be 1 (vector) or 2 (pixel)"
-        )
+    project_type = project_type_str_to_int(project_type)
     data = {
         "team_id": str(_api.team_id),
         "name": project_name,
@@ -161,7 +160,7 @@ def upload_images_from_folder_to_project(
     project,
     folder_path,
     extensions=None,
-    annotation_status=1,
+    annotation_status="NotStarted",
     from_s3_bucket=None,
     exclude_file_pattern="___save.png"
 ):
@@ -174,16 +173,8 @@ def upload_images_from_folder_to_project(
     :type folder_path: Pathlike (str or Path)
     :param extensions: list of filename extensions to include from folder, if None, then "jpg" and "png" are included
     :type extensions: list of str
-    :param annotation_status: value to set the annotation statuses of the uploaded images
-
-        1: "notStarted",
-        2: "annotation",
-        3: "qualityCheck",
-        4: "issueFix",
-        5: "complete",
-        6: "skipped"
-
-    :type annotation_status: int
+    :param annotation_status: value to set the annotation statuses of the uploaded images NotStarted Annotation QualityCheck IssueFix Complete Skipped
+    :type annotation_status: str
     :param from_s3_bucket: AWS S3 bucket to use. If None then folder_path is in local filesystem
     :type from_s3_bucket: str
     :param exclude_file_pattern: filename pattern to exclude from uploading
@@ -355,7 +346,7 @@ def __create_image(img_paths, project, annotation_status, remote_dir):
 
 
 def upload_images_to_project(
-    project, img_paths, annotation_status=1, from_s3_bucket=None
+    project, img_paths, annotation_status="NotStarted", from_s3_bucket=None
 ):
     """Uploads all images given in list of path objects in img_paths to the project.
     Sets status of all the uploaded images to set_status if it is not None.
@@ -364,26 +355,15 @@ def upload_images_to_project(
     :type project: dict
     :param img_paths: list of Pathlike (str or Path) objects to upload
     :type img_paths: list
-    :param annotation_status: value to set the annotation statuses of the uploaded images
-
-        1: "notStarted",
-        2: "annotation",
-        3: "qualityCheck",
-        4: "issueFix",
-        5: "complete",
-        6: "skipped"
-
-    :type annotation_status: int
+    :param annotation_status: value to set the annotation statuses of the uploaded images NotStarted Annotation QualityCheck IssueFix Complete Skipped
+    :type annotation_status: str
     :param from_s3_bucket: AWS S3 bucket to use. If None then folder_path is in local filesystem
     :type from_s3_bucket: str
 
     :return: uploaded images' filepaths
     :rtype: list of str
     """
-    if annotation_status not in [1, 2, 3, 4, 5, 6]:
-        raise SABaseException(
-            0, "Annotation status should be an integer in range 1-6"
-        )
+    annotation_status = annotation_status_str_to_int(annotation_status)
     team_id, project_id = project["team_id"], project["id"]
     len_img_paths = len(img_paths)
     logger.info(
@@ -791,14 +771,10 @@ def share_project(project, user, user_role):
     :type project: dict
     :param user: metadata of the user to share project with
     :type user: dict
-    :param user_role: user role to apply:
-        2: "Admin",
-        3: "Annotator",
-        4: "QA",
-        5: "Customer",
-        6: "Viewer
-    :type user_role: int
+    :param user_role: user role to apply, one of Admin , Annotator , QA , Customer , Viewer
+    :type user_role: str
     """
+    user_role = user_role_str_to_int(user_role)
     team_id, project_id = project["team_id"], project["id"]
     user_id = user["id"]
     json_req = {"user_id": user_id, "user_role": user_role}

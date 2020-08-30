@@ -18,11 +18,16 @@ def empty_test_project():
 
 
 def test_upload_from_s3(empty_test_project, tmpdir):
-    project = sa.create_project("test_upload_41", "hk_test", project_type=2)
+    project = sa.create_project(
+        "test_upload_41", "hk_test", project_type="Pixel"
+    )
 
     f = urlparse(f"s3://hovnatan-test/{TEST_PROJECT_PIXEL}")
     sa.upload_images_from_folder_to_project(
-        project, f.path[1:], annotation_status=1, from_s3_bucket=f.netloc
+        project,
+        f.path[1:],
+        annotation_status="NotStarted",
+        from_s3_bucket=f.netloc
     )
     old_to_new_classes_conversion = sa.create_annotation_classes_from_classes_json(
         project, f.path[1:] + '/classes/classes.json', from_s3_bucket=f.netloc
@@ -46,12 +51,12 @@ def test_upload_from_s3(empty_test_project, tmpdir):
 # def test_pixel_preannotation_upload_from_s3(empty_test_project, tmpdir):
 #     team = sa.get_default_team()
 #     project = sa.create_project(
-#         team, "test_upload_41", "hk_test", project_type=2
+#         team, "test_upload_41", "hk_test", project_type="Pixel"
 #     )
 
 #     f = urlparse(f"s3://hovnatan-test/{TEST_PROJECT_PIXEL}")
 #     sa.upload_images_from_folder_to_project(
-#         project, f.path[1:], annotation_status=1, from_s3_bucket=f.netloc
+#         project, f.path[1:], annotation_status="NotStarted", from_s3_bucket=f.netloc
 #     )
 #     old_to_new_classes_conversion = sa.create_classes_from_classes_json(
 #         project, f.path[1:] + '/classes/classes.json', from_s3_bucket=f.netloc
@@ -73,11 +78,16 @@ def test_upload_from_s3(empty_test_project, tmpdir):
 
 
 def test_vector_preannotation_upload_from_s3(empty_test_project, tmpdir):
-    project = sa.create_project("test_upload_41", "hk_test", project_type=1)
+    project = sa.create_project(
+        "test_upload_41", "hk_test", project_type="Vector"
+    )
 
     f = urlparse(f"s3://hovnatan-test/{TEST_PROJECT_VECTOR}")
     sa.upload_images_from_folder_to_project(
-        project, f.path[1:], annotation_status=1, from_s3_bucket=f.netloc
+        project,
+        f.path[1:],
+        annotation_status="NotStarted",
+        from_s3_bucket=f.netloc
     )
     old_to_new_classes_conversion = sa.create_annotation_classes_from_classes_json(
         project, f.path[1:] + '/classes/classes.json', from_s3_bucket=f.netloc

@@ -11,11 +11,11 @@ sa.init(Path.home() / ".superannotate" / "config.json")
 @pytest.mark.parametrize(
     "project_type,name,description,from_folder", [
         (
-            1, "Example Project test", "test vector",
+            "Vector", "Example Project test", "test vector",
             Path("./tests/sample_project_vector")
         ),
         (
-            2, "Example Project test", "test pixel",
+            "Pixel", "Example Project test", "test pixel",
             Path("./tests/sample_project_pixel")
         ),
     ]
@@ -33,19 +33,19 @@ def test_basic_project(project_type, name, description, from_folder, tmpdir):
     project = sa.create_project(name, description, project_type)
     assert project["name"] == name
     assert project["description"] == description
-    assert project["type"] == project_type
+    assert project["type"] == sa.project_type_str_to_int(project_type)
 
     projects_found = sa.search_projects(name)
     assert len(projects_found) == 1
     assert projects_found[0]["name"] == name
 
     sa.upload_images_from_folder_to_project(
-        project, from_folder, annotation_status=2
+        project, from_folder, annotation_status="Annotation"
     )
 
     count_in_folder = len(list(from_folder.glob("*.jpg"))
                          ) + len(list(from_folder.glob("*.png")))
-    if project_type == 2:
+    if project_type == "Pixel":
         count_in_folder -= len(list(from_folder.glob("*___save.png")))
     images = sa.search_images(project)
     assert count_in_folder == len(images)
@@ -88,7 +88,7 @@ def test_basic_project(project_type, name, description, from_folder, tmpdir):
                 found = True
                 break
         assert found, json_in_folder
-    if project_type == 2:
+    if project_type == "Pixel":
         for mask_in_folder in from_folder.glob("*___save.png"):
             found = False
             for mask_in_project in tmpdir.glob("*___save.png"):

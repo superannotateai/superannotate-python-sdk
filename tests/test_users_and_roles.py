@@ -9,7 +9,7 @@ def test_users_roles():
     users = sa.search_team_contributors()
 
     project = sa.create_project("test_56", "test_56", 1)
-    sa.share_project(project, users[1], 4)
+    sa.share_project(project, users[1], "QA")
     project_users = sa.get_project_metadata(project)["users"]
     found = False
     for u in project_users:

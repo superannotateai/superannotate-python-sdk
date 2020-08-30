@@ -12,6 +12,7 @@ import requests
 from tqdm import tqdm
 
 from ..api import API
+from ..common import annotation_status_str_to_int
 from ..exceptions import SABaseException
 
 logger = logging.getLogger("superannotate-python-sdk")
@@ -54,21 +55,16 @@ def _get_export(export):
 
 
 def prepare_export(
-    project, annotation_status=None, include_fuse=True, only_pinned=False
+    project, annotation_statuses=None, include_fuse=True, only_pinned=False
 ):
     """Prepare annotations for export. Original and fused images for images with
     annotations can be included with include_fuse flag.
 
     :param project: metadata of the project to be exported
     :type project: dict
-    :param annotation_status: images with which status to include, if None, [2, 3, 4, 5] will be chosen. Here:
-        1: "notStarted",
-        2: "annotation",
-        3: "qualityCheck",
-        4: "issueFix",
-        5: "complete",
-        6: "skipped"
-    :type annotation_status: list of ints
+    :param annotation_statuses: images with which status to include, if None, [ "Annotation", "QualityCheck", "IssueFix", "Complete"] will be chose
+           list elements should be one of NotStarted Annotation QualityCheck IssueFix Complete Skipped
+    :type annotation_statuses: list of strs
     :param include_fuse: enables fuse images in the export
     :type include_fuse: bool
     :param only_pinned: enable only pinned output in export. This option disables all other types of output.
@@ -78,13 +74,16 @@ def prepare_export(
     :rtype: dict
     """
     team_id, project_id = project["team_id"], project["id"]
-    if annotation_status is None:
-        annotation_status = [2, 3, 4, 5]
-    annotation_status = [str(x) for x in annotation_status]
-    annotation_status = ",".join(annotation_status)
+    if annotation_statuses is None:
+        annotation_statuses = [2, 3, 4, 5]
+    else:
+        int_list = map(annotation_status_str_to_int, annotation_statuses)
+        annotation_statuses = int_list
+    annotation_statuses = [str(x) for x in annotation_statuses]
+    annotation_statuses = ",".join(annotation_statuses)
     current_time = datetime.now().strftime("%b %d %Y %H:%M")
     json_req = {
-        "include": annotation_status,
+        "include": annotation_statuses,
         "fuse": int(include_fuse),
         "is_pinned": int(only_pinned),
         "coco": 0,
