@@ -13,8 +13,7 @@ ____________
 
    pip install superannotate
 
-
-for COCO format converters support need to install:
+for COCO annotation format converters support also need to install:
 
 .. code-block:: bash
 
@@ -28,7 +27,7 @@ ____________________
 
 SDK authentication tokens are team specific. They are available to team admins on
 team setting page on app.superannotate.com. Generate then copy the token from
-that page to a new JSON file, under the key "token", e.g, your JSON should
+that page to a new JSON file, under the key "token", e.g., your JSON should
 look like this:
 
 .. code-block:: json
@@ -203,7 +202,7 @@ it can also be downloaded separately with:
 
    sa.download_annotation_classes_json(project, <path_to_local_folder>)
 
-The classes.json file will be downloaded to <path_to_local_folder> folder.
+The :file:`classes.json` file will be downloaded to :file:`<path_to_local_folder>` folder.
 
 
 

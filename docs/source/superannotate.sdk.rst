@@ -64,7 +64,6 @@ Annotation Classes
 __________________
 
 .. autofunction:: superannotate.create_annotation_class
-
 .. _ref_create_annotation_classes_from_classes_json:
 .. autofunction:: superannotate.create_annotation_classes_from_classes_json
 .. autofunction:: superannotate.search_annotation_classes

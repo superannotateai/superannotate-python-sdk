@@ -2,8 +2,8 @@
 
 # SuperAnnotate Python SDK
 
-**SuperAnnotate Python SDK allows access to the platform without
- web browser**
+SuperAnnotate Python SDK allows access to the platform without
+ web browser:
 
 ```python
 import superannotate as sa
@@ -24,7 +24,7 @@ SDK is available on PyPI:
 pip install superannotate
 ```
 
-for COCO format converters support need to install:
+for COCO annotation format converters support also need to install:
 
 ```console
 pip install 'git+https://github.com/cocodataset/panopticapi.git'
