@@ -59,4 +59,4 @@ Questions and Issues
 ____________________
 
 For questions and issues please use issue tracker on
-`Github <https://github.com/superannotateai/superannotate-python-sdk>`_.
+`GitHub <https://github.com/superannotateai/superannotate-python-sdk>`_.
