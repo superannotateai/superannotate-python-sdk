@@ -28,7 +28,7 @@ def test_preannotation_folder_upload_download(
 
     project = sa.create_project(name, description, project_type)
     sa.upload_images_from_folder_to_project(
-        project, from_folder, annotation_status="NotStarted"
+        project, from_folder, annotation_status="InProgress"
     )
     old_to_new_classid_conversion = sa.create_annotation_classes_from_classes_json(
         project, from_folder / "classes" / "classes.json"

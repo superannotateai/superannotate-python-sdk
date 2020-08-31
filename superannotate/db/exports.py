@@ -55,9 +55,9 @@ def _get_export(export):
 
 
 def prepare_export(
-    project, annotation_statuses=None, include_fuse=True, only_pinned=False
+    project, annotation_statuses=None, include_fuse=False, only_pinned=False
 ):
-    """Prepare annotations for export. Original and fused images for images with
+    """Prepare annotations and classes.json for export. Original and fused images for images with
     annotations can be included with include_fuse flag.
 
     :param project: metadata of the project to be exported
