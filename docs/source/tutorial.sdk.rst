@@ -119,7 +119,7 @@ To export the project annotations we need to prepare the export first:
 
    export = sa.prepare_export(project, include_fuse=True)
 
-We can to download the prepared export with:
+We can download the prepared export with:
 
 .. code-block:: python
 
