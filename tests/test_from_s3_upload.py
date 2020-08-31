@@ -35,7 +35,7 @@ def test_from_s3_upload():
     sa.upload_images_from_folder_to_project(
         project,
         f.path[1:], ["jpg"],
-        annotation_status="QA",
+        annotation_status="QualityCheck",
         from_s3_bucket=f.netloc
     )
     files = []

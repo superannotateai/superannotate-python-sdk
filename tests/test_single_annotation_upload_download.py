@@ -38,7 +38,7 @@ def test_annotation_download_upload(
     anns_json_in_folder = list(Path(tmpdir).glob("*.json"))
     anns_mask_in_folder = list(Path(tmpdir).glob("*.png"))
     assert len(anns_json_in_folder) == 1
-    assert len(anns_mask_in_folder) == 1 if project_type == "Pixel" else 0
+    assert len(anns_mask_in_folder) == (1 if project_type == "Pixel" else 0)
 
     input_annotation_paths = sa.image_path_to_annotation_paths(
         from_folder / image["name"], project_type
@@ -86,6 +86,6 @@ def test_annotation_download_upload_withclassesconversion(
     anns_json_in_folder = list(Path(tmpdir).glob("*.json"))
     anns_mask_in_folder = list(Path(tmpdir).glob("*.png"))
     assert len(anns_json_in_folder) == 1
-    assert len(anns_mask_in_folder) == 1 if project_type == "Pixel" else 0
+    assert len(anns_mask_in_folder) == (1 if project_type == "Pixel" else 0)
 
     # sa.download_image_preannotations(image, tmpdir)

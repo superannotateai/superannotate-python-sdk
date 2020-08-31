@@ -23,7 +23,7 @@ def test_export_s3(tmpdir):
     project = sa.search_projects("Example Project 1")[0]
     images = sa.search_images(project)
     for img in images:
-        sa.set_image_annotation_status(img, 3)
+        sa.set_image_annotation_status(img, 'QualityCheck')
 
     new_export = sa.get_exports(project)[-1]
     # new_export = sa.prepare_export(project)
