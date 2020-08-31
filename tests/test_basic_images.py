@@ -30,7 +30,7 @@ def test_basic_images(project_type, name, description, from_folder, tmpdir):
     projects_found = sa.search_projects(name)
     project = sa.create_project(name, description, project_type)
     sa.upload_images_from_folder_to_project(
-        project, from_folder, annotation_status="Annotation"
+        project, from_folder, annotation_status="InProgress"
     )
     old_to_new_classes_conversion = sa.create_annotation_classes_from_classes_json(
         project, from_folder / "classes" / "classes.json"

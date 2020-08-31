@@ -62,8 +62,8 @@ def prepare_export(
 
     :param project: metadata of the project to be exported
     :type project: dict
-    :param annotation_statuses: images with which status to include, if None, [ "Annotation", "QualityCheck", "IssueFix", "Complete"] will be chose
-           list elements should be one of NotStarted Annotation QualityCheck IssueFix Complete Skipped
+    :param annotation_statuses: images with which status to include, if None, [ "InProgress", "QualityCheck", "Returned", "Completed"] will be chose
+           list elements should be one of NotStarted InProgress QualityCheck Returned Completed Skipped
     :type annotation_statuses: list of strs
     :param include_fuse: enables fuse images in the export
     :type include_fuse: bool

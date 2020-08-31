@@ -40,7 +40,7 @@ def test_basic_project(project_type, name, description, from_folder, tmpdir):
     assert projects_found[0]["name"] == name
 
     sa.upload_images_from_folder_to_project(
-        project, from_folder, annotation_status="Annotation"
+        project, from_folder, annotation_status="NotStarted"
     )
 
     count_in_folder = len(list(from_folder.glob("*.jpg"))

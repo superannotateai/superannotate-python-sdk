@@ -78,8 +78,8 @@ Image metadata example:
 
 Most of the fields here are self-explanatory. "annotation_status" is an integer
 value that can be
-translated to one of "NotStarted", "Annotation", "QualityCheck", "IssueFix",
-"Complete" or "Skipped" using :ref:`annotation_status_int_to_str
+translated to one of "NotStarted", "InProgress", "QualityCheck", "Returned",
+"Completed" or "Skipped" using :ref:`annotation_status_int_to_str
 <ref_annotation_status_int_to_str>`.
 
 

@@ -173,7 +173,7 @@ def upload_images_from_folder_to_project(
     :type folder_path: Pathlike (str or Path)
     :param extensions: list of filename extensions to include from folder, if None, then "jpg" and "png" are included
     :type extensions: list of str
-    :param annotation_status: value to set the annotation statuses of the uploaded images NotStarted Annotation QualityCheck IssueFix Complete Skipped
+    :param annotation_status: value to set the annotation statuses of the uploaded images NotStarted InProgress QualityCheck Returned Completed Skipped
     :type annotation_status: str
     :param from_s3_bucket: AWS S3 bucket to use. If None then folder_path is in local filesystem
     :type from_s3_bucket: str
@@ -355,7 +355,7 @@ def upload_images_to_project(
     :type project: dict
     :param img_paths: list of Pathlike (str or Path) objects to upload
     :type img_paths: list
-    :param annotation_status: value to set the annotation statuses of the uploaded images NotStarted Annotation QualityCheck IssueFix Complete Skipped
+    :param annotation_status: value to set the annotation statuses of the uploaded images NotStarted InProgress QualityCheck Returned Completed Skipped
     :type annotation_status: str
     :param from_s3_bucket: AWS S3 bucket to use. If None then folder_path is in local filesystem
     :type from_s3_bucket: str

@@ -5,10 +5,10 @@ from .exceptions import SABaseException
 _PROJECT_TYPES = {"Vector": 1, "Pixel": 2}
 _ANNOTATION_STATUSES = {
     "NotStarted": 1,
-    "Annotation": 2,
+    "InProgress": 2,
     "QualityCheck": 3,
-    "IssueFix": 4,
-    "Complete": 5,
+    "Returned": 4,
+    "Completed": 5,
     "Skipped": 6
 }
 _USER_ROLES = {"Admin": 2, "Annotator": 3, "QA": 4, "Customer": 5, "Viewer": 6}
@@ -65,7 +65,7 @@ def annotation_status_str_to_int(annotation_status):
     if annotation_status not in _ANNOTATION_STATUSES:
         raise SABaseException(
             0,
-            "Annotation status should be one of NotStarted Annotation QualityCheck IssueFix Complete Skipped"
+            "Annotation status should be one of NotStarted InProgress QualityCheck Returned Completed Skipped"
         )
     return _ANNOTATION_STATUSES[annotation_status]
 
@@ -76,7 +76,7 @@ def annotation_status_int_to_str(annotation_status):
     :param annotation_status: int in image metadata's 'annotation_status' key
     :type annotation_status: int
 
-    :return: One of 'NotStarted' 'Annotation' 'QualityCheck' 'IssueFix' 'Complete' 'Skipped'
+    :return: One of 'NotStarted' 'InProgress' 'QualityCheck' 'Returned' 'Completed' 'Skipped'
     :rtype: str
     """
 

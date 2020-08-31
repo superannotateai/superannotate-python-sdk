@@ -51,7 +51,7 @@ def search_images(project, name_prefix=None, annotation_status=None):
     :param name_prefix: name prefix for search
     :type name_prefix: str
     :param annotation_status: if not None, annotation statuses of images to filter,
-           should be one of NotStarted Annotation QualityCheck IssueFix Complete Skipped
+                              should be one of NotStarted InProgress QualityCheck Returned Completed Skipped
     :type annotation_status: str
     :return: metadata of found images
     :rtype: list of dicts
@@ -102,7 +102,7 @@ def set_image_annotation_status(image, annotation_status):
     :param image: image metadata
     :type image: dict
     :param annotation_status: annotation status to set,
-           should be one of NotStarted Annotation QualityCheck IssueFix Complete Skipped
+           should be one of NotStarted InProgress QualityCheck Returned Completed Skipped
     :type annotation_status: str
 
     :return: metadata of the updated image
