@@ -196,14 +196,12 @@ or in bulk with SuperAnnotate export format :file:`classes.json` with:
           "color": "...",
           "attribute_groups": [],
           "id": 111,
-          "has_changes": false
         },
         {
           "name": "...",
           "color": "...",
           "attribute_groups": [],
           "id": 112,
-          "has_changes": false
         },
         {
           "..." : "..."
