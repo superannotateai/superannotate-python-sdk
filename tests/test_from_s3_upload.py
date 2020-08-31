@@ -26,7 +26,7 @@ def test_from_s3_upload():
     for project in projects:
         sa.delete_project(project)
 
-    project = sa.create_project(PROJECT_NAME, "hk", 1)
+    project = sa.create_project(PROJECT_NAME, "hk", "Vector")
     sa.create_annotation_classes_from_classes_json(
         project, "frex9/classes/classes.json", S3_BUCKET
     )

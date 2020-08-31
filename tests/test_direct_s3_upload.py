@@ -19,7 +19,7 @@ def test_direct_s3_upload():
     for pr in projects_found:
         sa.delete_project(pr)
 
-    project = sa.create_project(TEST_PROJECT_NAME, "a", 1)
+    project = sa.create_project(TEST_PROJECT_NAME, "a", "Vector")
     print(project["id"])
 
     csv = (Path.home() /
@@ -52,7 +52,7 @@ def test_direct_s3_upload_stress():
     for pr in projects_found:
         sa.delete_project(pr)
 
-    project = sa.create_project(TEST_PROJECT_NAME, "a", 1)
+    project = sa.create_project(TEST_PROJECT_NAME, "a", "Vector")
 
     csv = (Path.home() /
            "hovnatan_aws.csv").read_text().splitlines()[1].split(",")
