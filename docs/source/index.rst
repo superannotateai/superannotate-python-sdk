@@ -14,6 +14,7 @@
 
    tutorial.sdk.rst
    superannotate.sdk.rst
+   metadata_ref.rst
 
 SuperAnnotate Python SDK documentation
 ==================================================================

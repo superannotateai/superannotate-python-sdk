@@ -37,6 +37,15 @@ def project_type_str_to_int(project_type):
 
 
 def project_type_int_to_str(project_type):
+    """Converts metadata project_type int value to a string
+
+    :param project_type: int in project metadata's 'type' key
+    :type project_type: int
+
+    :return: 'Vector' or 'Pixel'
+    :rtype: str
+    """
+
     for k, v in _PROJECT_TYPES.items():
         if v == project_type:
             return k

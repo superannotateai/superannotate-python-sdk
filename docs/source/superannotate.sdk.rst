@@ -1,6 +1,6 @@
 .. _ref_sdk:
 
-SDK Reference
+SDK Functions Reference
 ===========================
 
 .. contents::
@@ -17,28 +17,6 @@ _________________________________
 
 Projects
 ________
-
-.. note::
-
-  Project metadata example:
-
-  .. code-block:: python
-
-     {
-       "name": "Example Project test",
-       "description": "test vector",
-       "creator_id": "hovnatan@superannotate.com",
-       "id": 3628,
-       "updatedAt": "2020-08-31T05:43:43.118Z",
-       "createdAt": "2020-08-31T05:43:43.118Z"
-       "team_id": 315,
-       "type": 1,
-       "attachment_name": None,
-       "attachment_path": None,
-       "entropy_status": 1,
-       "status": 0,
-     }
-
 
 .. _ref_search_projects:
 .. autofunction:: superannotate.search_projects
@@ -70,33 +48,6 @@ Images
 ______
 
 
-
-.. note::
-
-   Image metadata example:
-
-   .. code-block:: python
-
-      {
-        "name": "000000000001.jpg",
-        "annotation_status": 1,
-        "prediction_status": 1,
-        "segmentation_status": 1,
-        "annotator_id": None,
-        "annotator_name": None,
-        "qa_id": None,
-        "qa_name": None,
-        "entropy_value": None,
-        "approval_status": None,
-        "createdAt": "2020-08-18T07:30:06.000Z",
-        "updatedAt": "2020-08-18T07:30:06.000Z"
-        "project_id": 2734,
-        "id": 523862,
-        "is_pinned": 0,
-        "team_id": 315,
-        "...": "...",
-      }
-
 .. _ref_search_images:
 .. autofunction:: superannotate.search_images
 .. autofunction:: superannotate.get_image_metadata
@@ -119,9 +70,18 @@ __________________
 .. autofunction:: superannotate.search_annotation_classes
 .. autofunction:: superannotate.download_annotation_classes_json
 
+
 ----------
 
 Users
 _____
 
 .. autofunction:: superannotate.search_team_contributors
+
+----------
+
+
+Metadata helpers
+________________
+
+.. autofunction:: superannotate.project_type_int_to_str
