@@ -513,7 +513,10 @@ def upload_annotations_from_folder_to_project(
     :type project: dict
     :param folder_path: from which folder to upload the annotations
     :type folder_path: Pathlike (str or Path)
-    :param classid_conversion: if not None, then classIds of the annotations will be translated according to it
+    :param classid_conversion: if not None, then class ID-es of the annotations
+                               will be translated according to this dict during
+                               the upload. This dict can be got when uploading
+                               classes.json with create_annotation_classes_from_classes_json
     :type classid_conversion: dict
     :param from_s3_bucket: AWS S3 bucket to use. If None then folder_path is in local filesystem
     :type from_s3_bucket: str
@@ -677,7 +680,10 @@ def upload_preannotations_from_folder_to_project(
     :type project: dict
     :param folder_path: from which folder to upload the pre-annotations
     :type folder_path: Pathlike (str or Path)
-    :param classid_conversion: if not None, then classIds of the pre-annotations will be translated according to it
+    :param classid_conversion: if not None, then class ID-es of the annotations
+                               will be translated according to this dict during
+                               the upload. This dict can be got when uploading
+                               classes.json with create_annotation_classes_from_classes_json
     :type classid_conversion: dict
     :param from_s3_bucket: AWS S3 bucket to use. If None then folder_path is in local filesystem
     :type from_s3_bucket: str
