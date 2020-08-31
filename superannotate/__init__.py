@@ -2,8 +2,9 @@ import logging
 
 from .api import API
 from .common import (
-    annotation_status_str_to_int, image_path_to_annotation_paths,
-    project_type_int_to_str, project_type_str_to_int, user_role_str_to_int
+    annotation_status_str_to_int, annotation_status_int_to_str,
+    image_path_to_annotation_paths, project_type_int_to_str,
+    project_type_str_to_int, user_role_str_to_int
 )
 from .db.annotation_classes import (
     create_annotation_class, create_annotation_classes_from_classes_json,

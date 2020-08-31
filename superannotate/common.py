@@ -68,3 +68,21 @@ def annotation_status_str_to_int(annotation_status):
             "Annotation status should be one of NotStarted Annotation QualityCheck IssueFix Complete Skipped"
         )
     return _ANNOTATION_STATUSES[annotation_status]
+
+
+def annotation_status_int_to_str(annotation_status):
+    """Converts metadata annotation_status int value to a string
+
+    :param annotation_status: int in image metadata's 'annotation_status' key
+    :type annotation_status: int
+
+    :return: One of 'NotStarted' 'Annotation' 'QualityCheck' 'IssueFix' 'Complete' 'Skipped'
+    :rtype: str
+    """
+
+    for k, v in _ANNOTATION_STATUSES.items():
+        if v == annotation_status:
+            return k
+    raise SABaseException(
+        0, "Annotation status should be one of 1, 2, 3, 4, 5, 6 ."
+    )

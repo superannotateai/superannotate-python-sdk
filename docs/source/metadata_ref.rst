@@ -25,11 +25,11 @@ Project metadata example:
      "attachment_path": None,
      "entropy_status": 1,
      "status": 0,
-     "id": 1111,
-     "team_id": 2222,
      "...": "..."
    }
 
+Most of the fields here are self-explanatory. "type" is an integer value that can be
+translated to a string "Pixel" or "Vector" project types using :ref:`project_type_int_to_str <ref_project_type_int_to_str>`.
 
 ----------
 
@@ -60,24 +60,27 @@ Image metadata example:
 .. code-block:: python
 
    {
-     "name": "000000000001.jpg",
-     "annotation_status": 1,
-     "prediction_status": 1,
-     "segmentation_status": 1,
-     "annotator_id": None,
-     "annotator_name": None,
-     "qa_id": None,
-     "qa_name": None,
-     "entropy_value": None,
-     "approval_status": None,
-     "createdAt": "2020-08-18T07:30:06.000Z",
-     "updatedAt": "2020-08-18T07:30:06.000Z"
-     "project_id": 2734,
-     "id": 523862,
-     "is_pinned": 0,
-     "team_id": 315,
-     "...": "...",
- }
+      "name": "000000000001.jpg",
+      "annotation_status": 1,
+      "prediction_status": 1,
+      "segmentation_status": 1,
+      "annotator_id": None,
+      "annotator_name": None,
+      "qa_id": None,
+      "qa_name": None,
+      "entropy_value": None,
+      "approval_status": None,
+      "createdAt": "2020-08-18T07:30:06.000Z",
+      "updatedAt": "2020-08-18T07:30:06.000Z"
+      "is_pinned": 0,
+      "...": "...",
+   }
+
+Most of the fields here are self-explanatory. "annotation_status" is an integer
+value that can be
+translated to one of "NotStarted", "Annotation", "QualityCheck", "IssueFix",
+"Complete" or "Skipped" using :ref:`annotation_status_int_to_str
+<ref_annotation_status_int_to_str>`.
 
 
 ----------

@@ -9,6 +9,8 @@ Installation
 ____________
 
 
+SDK is available on PyPI:
+
 .. code-block:: bash
 
    pip install superannotate
@@ -27,7 +29,7 @@ ____________________
 
 SDK authentication tokens are team specific. They are available to team admins on
 team setting page at https://annotate.online/team. Generate then copy the token from
-that page to a new JSON file, under the key "token", e.g., your JSON should
+that page to a new JSON file, under the key "token":
 look like this:
 
 .. code-block:: json
@@ -38,7 +40,7 @@ look like this:
 
 This configuration file will be used in SDK authorization and initialization.
 
-Authorization and initialization
+Initialization and authorization
 ________________________________
 
 Include the package:
@@ -47,7 +49,7 @@ Include the package:
 
    import superannotate as sa
 
-Authenticate and initialize SDK with the config file created in the previous step:
+Initialize and authenticate SDK with the config file created in the previous step:
 
 .. code-block:: python
 
@@ -89,6 +91,8 @@ as our project for further work:
           "name" : "Example Project 1",
           "....." : "......"
       }
+
+   For more information please look at :ref:`ref_metadata`.
 
 .. warning::
 

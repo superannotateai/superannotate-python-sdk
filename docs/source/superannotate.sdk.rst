@@ -84,4 +84,7 @@ _____
 Metadata helpers
 ________________
 
+.. _ref_project_type_int_to_str:
 .. autofunction:: superannotate.project_type_int_to_str
+.. _ref_annotation_status_int_to_str:
+.. autofunction:: superannotate.annotation_status_int_to_str
