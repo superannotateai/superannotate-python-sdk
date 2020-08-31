@@ -30,7 +30,6 @@ ____________________
 SDK authentication tokens are team specific. They are available to team admins on
 team setting page at https://annotate.online/team. Generate then copy the token from
 that page to a new JSON file, under the key "token":
-look like this:
 
 .. code-block:: json
 
@@ -38,7 +37,6 @@ look like this:
      "token" : "<team token>"
    }
 
-This configuration file will be used in SDK authorization and initialization.
 
 Initialization and authorization
 ________________________________
@@ -53,7 +51,7 @@ Initialize and authenticate SDK with the config file created in the previous ste
 
 .. code-block:: python
 
-   sa.init(<path_to_config_json>)
+   sa.init("path_to_config_json")
 
 
 Working with projects
@@ -81,16 +79,7 @@ as our project for further work:
    The metadata of SDK objects, i.e., projects, exports, images, annotation 
    classes, users, are Python dicts.
    In this case project metadata has keys that identify the project in the
-   platform. E.g. :py:obj:`project` can be:
-
-   .. code-block:: json
-
-      {
-          "id" : 111,
-          "team_id" : 333,
-          "name" : "Example Project 1",
-          "....." : "......"
-      }
+   platform. 
 
    For more information please look at :ref:`ref_metadata`.
 
@@ -116,7 +105,7 @@ example, to upload images from a local folder to the project:
 
 .. code-block:: python
 
-    sa.upload_images_from_folder_to_project(project, <local_folder_path>)
+    sa.upload_images_from_folder_to_project(project, "local_folder_path")
 
 For full list of available functions on projects, see :ref:`ref_projects`.
 
@@ -130,11 +119,11 @@ To export the project annotations we need to prepare the export first:
 
    export = sa.prepare_export(project, include_fuse=True)
 
-Then to download the export:
+We can to download the prepared export with:
 
 .. code-block:: python
 
-   export = sa.download_export(export, <local_folder_path>, extract_zip_contents=True)
+   export = sa.download_export(export, "local_folder_path", extract_zip_contents=True)
 
 :ref:`download_export <ref_download_export>` will wait until the export is
 finished preparing and download it to the specified folder.
@@ -162,17 +151,17 @@ To download the image one can use:
 
 .. code-block:: python
 
-   sa.download_image(image, <path_to_local_dir>)
+   sa.download_image(image, "path_to_local_dir")
 
 or to download image annotations:
 
 .. code-block:: python
 
-   sa.download_image_annotations(image, <path_to_local_dir>)
+   sa.download_image_annotations(image, "path_to_local_dir")
 
 
-Working with annotation classes
-_______________________________
+Working with annotation classes and annotations
+_______________________________________________
 
 
 Annotation classes for a project can be created individually with:
@@ -186,7 +175,7 @@ or in bulk with SuperAnnotate export format :file:`classes.json` with:
 .. code-block:: python
 
    old_to_new_classid_conversion = sa.create_annotation_classes_from_classes_json(project,
-   <path_to_classes_json>)
+   "path_to_classes_json")
 
 .. warning::
 
@@ -212,22 +201,48 @@ or in bulk with SuperAnnotate export format :file:`classes.json` with:
         }
       ]
 
-   The "id" keys identify classes on the platform and exported annotation JSONs
+   The "id" keys identify classes on the platform annotation JSONs
    ("classId" key in each annotation).
    But, when creating classes using :ref:`create_annotation_classes_from_classes_json <ref_create_annotation_classes_from_classes_json>`
    the "id" fields will be ignored and new "id"-es will be created on the
-   platform. Later if annotations with old "id"-es are uploaded their annotation classes
-   won't identify on platform. To have further access
-   to the translated "id"s :ref:`create_annotation_classes_from_classes_json <ref_create_annotation_classes_from_classes_json>`
-   will return a Python dict with :py:obj:`{ old_id : new_id }`. The above
-   :py:obj:`old_to_new_classid_conversion` variable will store this dict and can be
-   used to translate annotations with old class IDs to new IDs during annotation upload:
+   platform.
 
-   .. code-block:: python
+To upload annotations to platform:
 
-      sa.upload_annotations_from_folder_to_project(project, <path_to_local_dir>,
-                                                   classid_conversion=old_to_new_classid_conversion) 
+.. code-block:: python
 
+    sa.upload_annotations_from_folder_to_project(project, "path_to_local_dir")
+
+In this case the 'classId'-es in the annotations should have the same 'classId'
+annotation classes on the platform. If annotation classes were created with 
+:ref:`create_annotation_classes_from_classes_json <ref_create_annotation_classes_from_classes_json>`
+then class IDs on platform will be different from the annotation class ID-es
+(see the warning above). To change annotation class ID-es in annotations during
+the upload use:
+
+.. code-block:: python
+
+    sa.upload_annotations_from_folder_to_project(project, "path_to_local_dir",
+                                                 old_to_new_classid_conversion)
+
+where variable :py:obj:`old_to_new_classid_conversion` can be the return value
+of :ref:`create_annotation_classes_from_classes_json
+<ref_create_annotation_classes_from_classes_json>`. The overall code will look
+like:
+
+.. code-block:: python
+
+    old_to_new_classid_conversion = sa.create_annotation_classes_from_classes_json(project,
+                                                                                   "path_to_classes_json")
+    sa.upload_annotations_from_folder_to_project(project, "path_to_local_dir",
+                                                 old_to_new_classid_conversion)
+
+
+
+----------
+
+Downloading annotation classes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 All of the annotation classes are downloaded (as :file:`classes/classes.json`) with 
 :ref:`download_export <ref_download_export>` along with annotations, but they 
@@ -235,9 +250,9 @@ can also be downloaded separately with:
 
 .. code-block:: python
 
-   sa.download_annotation_classes_json(project, <path_to_local_folder>)
+   sa.download_annotation_classes_json(project, "path_to_local_folder")
 
-The :file:`classes.json` file will be downloaded to :file:`<path_to_local_folder>` folder.
+The :file:`classes.json` file will be downloaded to :file:`"path_to_local_folder"` folder.
 
 
 

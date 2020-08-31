@@ -57,7 +57,7 @@ def search_projects(name_prefix=None):
 
 
 def create_project(project_name, project_description, project_type):
-    """Creates a new project in the team.
+    """Create a new project in the team.
 
     :param project_name: the new project's name
     :type project_name: str
@@ -93,7 +93,7 @@ def create_project(project_name, project_description, project_type):
 
 
 def delete_project(project):
-    """Deletes project
+    """Deletes the project
 
     :param project: dict object representing project to be deleted
     :type project: dict
@@ -111,7 +111,7 @@ def delete_project(project):
 
 
 def get_project_metadata(project):
-    """Return up-to-date project metadata
+    """Returns up-to-date project metadata
 
     :param project: metadata of the project
     :type project: dict
@@ -133,7 +133,7 @@ def get_project_metadata(project):
 
 
 def get_project_image_count(project):
-    """Returns number of images in project.
+    """Returns number of images in the project.
 
     :param project: project metadata
     :type project: dict

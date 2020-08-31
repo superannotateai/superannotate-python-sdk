@@ -66,7 +66,7 @@ def create_annotation_class(project, name, color, attribute_groups=None):
 def create_annotation_classes_from_classes_json(
     project, path_to_classes_json, from_s3_bucket=None
 ):
-    """Create annotation classes in project from a SuperAnnotate format classes.json
+    """Creates annotation classes in project from a SuperAnnotate format classes.json
 
     :param project: project metadata
     :type project: dict
@@ -106,7 +106,7 @@ def create_annotation_classes_from_classes_json(
 
 
 def search_annotation_classes(project, name_prefix=None):
-    """Search annotation classes by name_prefix (case-insensitive)
+    """Searches annotation classes by name_prefix (case-insensitive)
 
     :param project: project metadata
     :type project: dict
@@ -142,7 +142,7 @@ def search_annotation_classes(project, name_prefix=None):
 
 
 def download_annotation_classes_json(project, folder):
-    """Download classes.json to folder
+    """Downloads project classes.json to folder
 
     :param project: project metadata
     :type project: dict
