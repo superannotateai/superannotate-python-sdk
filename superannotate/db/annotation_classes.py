@@ -80,10 +80,10 @@ def create_annotation_classes_from_classes_json(
     :param from_s3_bucket: AWS S3 bucket to use. If None then path_to_classes_json is in local filesystem
     :type from_s3_bucket: str
 
-    :return: Old classId to new classId translation dict
+    :return: Old class Id to new class Id translation dict
     :rtype: dict
     """
-    project_id = project["id"]
+    team_id, project_id = project["team_id"], project["id"]
     logger.info(
         "Creating annotation classes in project ID %s from %s.", project_id,
         path_to_classes_json
@@ -92,7 +92,6 @@ def create_annotation_classes_from_classes_json(
         "Non obvious behavior. Annotation class IDs in from the file %s will be changed on platform.  The translation dict old_id -> new_id will be returned from this function.  The dict can be used in the function upload_annotations_from_folder_to_project to translate annotation class IDs to new IDs.",
         path_to_classes_json
     )
-    old_class_id_to_new_conversion = {}
     if from_s3_bucket is None:
         classes = json.load(open(path_to_classes_json))
     else:
@@ -104,13 +103,24 @@ def create_annotation_classes_from_classes_json(
         file.seek(0)
         classes = json.load(file)
 
-    for cl in classes:
-        new_class = create_annotation_class(
-            project, cl["name"], cl["color"], cl["attribute_groups"]
+    params = {
+        'team_id': team_id,
+        'project_id': project_id,
+    }
+    data = {"classes": classes}
+    response = _api.send_request(
+        req_type='POST', path='/classes', params=params, json_req=data
+    )
+    if not response.ok:
+        raise SABaseException(
+            response.status_code, "Couldn't create classes " + response.text
         )
-        old_id = cl["id"]
-        new_id = new_class["id"]
-        old_class_id_to_new_conversion[old_id] = new_id
+    res = response.json()
+    assert len(res) == len(classes)
+    old_class_id_to_new_conversion = {}
+    for old, new in zip(classes, res):
+        old_class_id_to_new_conversion[old['id']] = new['id']
+        assert old['name'] == new['name']
     return old_class_id_to_new_conversion
 
 
