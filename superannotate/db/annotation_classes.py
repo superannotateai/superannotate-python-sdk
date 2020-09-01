@@ -66,7 +66,12 @@ def create_annotation_class(project, name, color, attribute_groups=None):
 def create_annotation_classes_from_classes_json(
     project, path_to_classes_json, from_s3_bucket=None
 ):
-    """Creates annotation classes in project from a SuperAnnotate format classes.json
+    """Creates annotation classes in project from a SuperAnnotate format classes.json.
+
+    WARNING: Non obvious behavior. Annotation class IDs from the file path_to_classes_json will be changed on platform.
+    The translation dict old_id -> new_id will be returned from this function.
+    The dict can be used in the function upload_annotations_from_folder_to_project
+    to translate annotation class IDs to new IDs.
 
     :param project: project metadata
     :type project: dict
@@ -80,8 +85,14 @@ def create_annotation_classes_from_classes_json(
     """
     project_id = project["id"]
     logger.info(
-        "Creating classes in project ID %s from %s.", project_id,
+        "Creating annotation classes in project ID %s from %s.", project_id,
         path_to_classes_json
+    )
+    logger.warning(
+        """Non obvious behavior. Annotation class IDs in from the file %s will be changed on platform.
+    The translation dict old_id -> new_id will be returned from this function.
+    The dict can be used in the function upload_annotations_from_folder_to_project
+    to translate annotation class IDs to new IDs.""", path_to_classes_json
     )
     old_class_id_to_new_conversion = {}
     if from_s3_bucket is None:
