@@ -89,10 +89,8 @@ def create_annotation_classes_from_classes_json(
         path_to_classes_json
     )
     logger.warning(
-        """Non obvious behavior. Annotation class IDs in from the file %s will be changed on platform.
-    The translation dict old_id -> new_id will be returned from this function.
-    The dict can be used in the function upload_annotations_from_folder_to_project
-    to translate annotation class IDs to new IDs.""", path_to_classes_json
+        "Non obvious behavior. Annotation class IDs in from the file %s will be changed on platform.  The translation dict old_id -> new_id will be returned from this function.  The dict can be used in the function upload_annotations_from_folder_to_project to translate annotation class IDs to new IDs.",
+        path_to_classes_json
     )
     old_class_id_to_new_conversion = {}
     if from_s3_bucket is None:

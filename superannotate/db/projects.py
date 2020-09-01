@@ -12,7 +12,8 @@ from tqdm import tqdm
 
 from ..api import API
 from ..common import (
-    annotation_status_str_to_int, project_type_str_to_int, user_role_str_to_int
+    annotation_status_str_to_int, project_type_str_to_int,
+    project_type_int_to_str, user_role_str_to_int
 )
 from ..exceptions import SABaseException
 
@@ -87,7 +88,7 @@ def create_project(project_name, project_description, project_type):
     res = response.json()
     logger.info(
         "Created project %s (ID %s) with type %s", res["name"], res["id"],
-        res["type"]
+        project_type_int_to_str(res["type"])
     )
     return res
 
@@ -542,19 +543,11 @@ def upload_annotations_from_folder_to_project(
         project_id
     )
     logger.warning(
-        """Create annotation classes with create_annotation_classes_from_classes_json or
-    create_annotation_class before calling this function to have access to new
-    class IDs after calling mentioned functions. Please see
-    warning in the docstring of create_annotation_classes_from_classes_json.
-    """
+        "Create annotation classes with create_annotation_classes_from_classes_json or create_annotation_class before calling this function to have access to new class IDs after calling mentioned functions. Please see warning in the docstring of create_annotation_classes_from_classes_json."
     )
 
     logger.warning(
-        """The JSON files should follow specific naming convention. For Vector
-    projects they should be named "<image_name>___objects.json", for Pixel projects
-    JSON file should be names "<image_name>___pixel.json" and also second mask
-    image file should be present with the name "<image_name>___save.png". In both cases
-    image with <image_name> should be already present on the platform."""
+        "The JSON files should follow specific naming convention. For Vector projects they should be named '<image_name>___objects.json', for Pixel projects JSON file should be names '<image_name>___pixel.json' and also second mask image file should be present with the name '<image_name>___save.png'. In both cases image with <image_name> should be already present on the platform."
     )
 
     if from_s3_bucket is None:

@@ -114,7 +114,7 @@ which will upload all images with extensions "jpg" or "png" from the
 For full list of available functions on projects, see :ref:`ref_projects`.
 
 
-Working with annotation classes and annotations
+Working with annotation classes
 _______________________________________________
 
 General flow
@@ -152,8 +152,8 @@ And after that annotations can be uploaded. In the next subsections see how
 this can be done manually or in more automated way.
 
 
-Creating single annotation class
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Creating a single annotation class
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 An annotation class for a project can be created with SDK's:
 
@@ -243,6 +243,9 @@ can also be downloaded separately with:
 The :file:`classes.json` file will be downloaded to :file:`"path_to_local_folder"` folder.
 
 
+Working with annotations
+_______________________________________________
+
 
 Annotation upload
 ~~~~~~~~~~~~~~~~~
@@ -253,18 +256,22 @@ To upload annotations to platform:
 
     sa.upload_annotations_from_folder_to_project(project, "path_to_local_dir")
 
-In this case the 'classId's in the annotations should have their proper
-annotation classes on the platform.
+This will try uploading all the JSON files in the folder that have specific file naming convention to the project. For vector
+projects JSONs should be named :file:`"<image_name>___objects.json"`. For pixel projects
+JSON files should be named :file:`"<image_name>___pixel.json"` and also for each JSON a mask image file should be present with the name :file:`"<image_name>___save.png"`. In both cases
+image with :file:`<image_name>` should already be present in the project for
+the upload to work.
 
+Annotation upload with annotation 'classId' translation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Annotation upload with annotation class ID translation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The above method assumes the 'classId's in the annotations already have their proper
+annotation classes with the same 'id' in the project. 
 
-Assuming you had aligned (annotation class ID) annotation JSONs and :file:`classes.json` and 
+But in case that you had aligned annotation JSONs and :file:`classes.json` and 
 first uploaded annotation classes with 
 :ref:`create_annotation_classes_from_classes_json <ref_create_annotation_classes_from_classes_json>`
-then class IDs on platform will be different from the annotation class IDs
-(see the warning above). To change annotation class IDs in annotations during
+then annotation class 'id's on platform will be different from the annotations' 'classId's. To change annotations 'classId's during
 the upload use:
 
 .. code-block:: python
