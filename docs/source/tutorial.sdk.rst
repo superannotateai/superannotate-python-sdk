@@ -126,12 +126,12 @@ The SuperAnnotate format annotation JSONs have the general form:
 
   [ 
     {
-      "classId": "...",
+      "classId": 1234,
       "points" : "...",
       "..." : "..."
     },
     {
-      "classId": "...",
+      "classId": 12345,
       "points" : "...",
       "..." : "..."
     },
@@ -140,9 +140,22 @@ The SuperAnnotate format annotation JSONs have the general form:
     }
   ]
 
-the "classId" fields here will identify the annotation class.
+the "classId" fields here will identify the annotation class. The project
+you are uploading to should contain annotation class with 'id' equal to that 'classId' 
+for proper representation of the annotation.
 
-Annotation classes for a project can be created individually with SDK's:
+
+The annotation class IDs are always created by the platform and are not user 
+chooseable. So annotation classes should be created before uploading
+annotations. Then the annotations class IDs should be edited into annotations' JSONs.
+And after that annotations can be uploaded. In the next subsections see how
+this can be done manually or in more automated way.
+
+
+Creating single annotation class
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+An annotation class for a project can be created with SDK's:
 
 .. code-block:: python
 
@@ -152,16 +165,8 @@ The :py:obj:`new_class` is the annotation class :ref:`metadata <ref_class>`
 created. The newly created annotation class ID can found at
 :py:obj:`new_class['id']`.
 
-.. warning::
-
-   The annotation class IDs are always created by the platform and are not user 
-   chooseable. So annotation classes should be created before uploading
-   annotations.
-
-
-
-So to have annotations with annotation class :py:obj:`new_class` on the platform
-one needs to upload annotation JSONs in the format:
+To have annotations with annotation class :py:obj:`new_class` on the platform
+one needs to edit then upload annotation JSONs in this form:
 
 .. code-block:: json
 
@@ -185,9 +190,9 @@ one needs to upload annotation JSONs in the format:
 Bulk annotation class creation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In bulk with SuperAnnotate export format :file:`classes.json` (see full
+To create annotation classes in bulk with SuperAnnotate export format :file:`classes.json` (see full
 platform documentation at https://annotate.online/documentation Management Tools
--> Project Workflow part) with: 
+-> Project Workflow part): 
 
 .. code-block:: python
 
@@ -196,7 +201,8 @@ platform documentation at https://annotate.online/documentation Management Tools
 
 .. warning::
 
-   The SuperAnnotate :file:`classes.json` file has the following format:
+   If the source :file:`classes.json` was exported from existing project then
+   it will contain "id" keys as seen here:
 
    .. code-block:: json
 
@@ -218,11 +224,28 @@ platform documentation at https://annotate.online/documentation Management Tools
         }
       ]
 
-   The "id" keys identify classes on the platform annotation JSONs
-   ("classId" key in each annotation).
-   But, when creating classes using :ref:`create_annotation_classes_from_classes_json <ref_create_annotation_classes_from_classes_json>`
-   the "id" fields will be ignored and new "id"-es will be created on the
+   But when using :ref:`create_annotation_classes_from_classes_json <ref_create_annotation_classes_from_classes_json>`
+   the "id" fields will be ignored and new annotation classes with new "id"-es will be created on the
    platform.
+
+
+Downloading annotation classes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+All of the annotation classes are downloaded (as :file:`classes/classes.json`) with 
+:ref:`download_export <ref_download_export>` along with annotations, but they 
+can also be downloaded separately with:
+
+.. code-block:: python
+
+   sa.download_annotation_classes_json(project, "path_to_local_folder")
+
+The :file:`classes.json` file will be downloaded to :file:`"path_to_local_folder"` folder.
+
+
+
+Annotation upload
+~~~~~~~~~~~~~~~~~
 
 To upload annotations to platform:
 
@@ -230,11 +253,18 @@ To upload annotations to platform:
 
     sa.upload_annotations_from_folder_to_project(project, "path_to_local_dir")
 
-In this case the 'classId'-es in the annotations should have the same 'classId'
-annotation classes on the platform. If annotation classes were created with 
+In this case the 'classId's in the annotations should have their proper
+annotation classes on the platform.
+
+
+Annotation upload with annotation class ID translation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Assuming you had aligned (annotation class ID) annotation JSONs and :file:`classes.json` and 
+first uploaded annotation classes with 
 :ref:`create_annotation_classes_from_classes_json <ref_create_annotation_classes_from_classes_json>`
-then class IDs on platform will be different from the annotation class ID-es
-(see the warning above). To change annotation class ID-es in annotations during
+then class IDs on platform will be different from the annotation class IDs
+(see the warning above). To change annotation class IDs in annotations during
 the upload use:
 
 .. code-block:: python
@@ -242,7 +272,7 @@ the upload use:
     sa.upload_annotations_from_folder_to_project(project, "path_to_local_dir",
                                                  old_to_new_classid_conversion)
 
-where variable :py:obj:`old_to_new_classid_conversion` can be the return value
+where variable :py:obj:`old_to_new_classid_conversion` is the return value
 of :ref:`create_annotation_classes_from_classes_json
 <ref_create_annotation_classes_from_classes_json>`. The overall code will look
 like:
@@ -253,8 +283,6 @@ like:
                                                                                    "path_to_classes_json")
     sa.upload_annotations_from_folder_to_project(project, "path_to_local_dir",
                                                  old_to_new_classid_conversion)
-
-
 
 
 Exporting projects
@@ -308,20 +336,6 @@ or to download image annotations:
 
 
 ----------
-
-Downloading annotation classes
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-All of the annotation classes are downloaded (as :file:`classes/classes.json`) with 
-:ref:`download_export <ref_download_export>` along with annotations, but they 
-can also be downloaded separately with:
-
-.. code-block:: python
-
-   sa.download_annotation_classes_json(project, "path_to_local_folder")
-
-The :file:`classes.json` file will be downloaded to :file:`"path_to_local_folder"` folder.
-
 
 
 Working with team contributors
