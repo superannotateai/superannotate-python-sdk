@@ -85,6 +85,8 @@ translated to one of "NotStarted", "InProgress", "QualityCheck", "Returned",
 
 ----------
 
+.. _ref_class:
+
 Annotation class metadata
 _________________________
 
@@ -93,6 +95,7 @@ Annotation class metadata example:
 .. code-block:: python
 
   {
+    "id": 4444,
     "name": "Human",
     "color": "#e4542b",
     "attribute_groups": [
@@ -119,6 +122,7 @@ Annotation class metadata example:
          ]
        }
     ],
+
     "...": "..."
   }
 

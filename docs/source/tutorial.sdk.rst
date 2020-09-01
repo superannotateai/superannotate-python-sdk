@@ -107,70 +107,87 @@ example, to upload images from a local folder to the project:
 
     sa.upload_images_from_folder_to_project(project, "local_folder_path")
 
+which will upload all images with extensions "jpg" or "png" from the
+:file:`"local_folder_path"` to the project. See the full argument options for
+:py:func:`upload_images_from_folder_to_project` :ref:`here <ref_upload_images_from_folder_to_project>`.
+
 For full list of available functions on projects, see :ref:`ref_projects`.
-
-
-Exporting projects
-__________________
-
-To export the project annotations we need to prepare the export first:
-
-.. code-block:: python
-
-   export = sa.prepare_export(project, include_fuse=True)
-
-We can download the prepared export with:
-
-.. code-block:: python
-
-   export = sa.download_export(export, "local_folder_path", extract_zip_contents=True)
-
-:ref:`download_export <ref_download_export>` will wait until the export is
-finished preparing and download it to the specified folder.
-
-
-Working with images
-_____________________
-
-To search for the images in the project:
-
-.. code-block:: python
-
-   images = sa.search_images(project, "example_image1.jpg")
-
-Here again we get a Python list of dict metadatas for the images with name prefix
-"example_image1.jpg". The image names in SuperAnnotate platform projects are 
-unique, so if full name was given to :ref:`search_images <ref_search_images>` 
-the returned list will have a single item we were looking for:
-
-.. code-block:: python
-
-   image = images[0]
-
-To download the image one can use:
-
-.. code-block:: python
-
-   sa.download_image(image, "path_to_local_dir")
-
-or to download image annotations:
-
-.. code-block:: python
-
-   sa.download_image_annotations(image, "path_to_local_dir")
 
 
 Working with annotation classes and annotations
 _______________________________________________
 
+General flow
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Annotation classes for a project can be created individually with:
+The SuperAnnotate format annotation JSONs have the general form:
+
+.. code-block:: json
+
+  [ 
+    {
+      "classId": "...",
+      "points" : "...",
+      "..." : "..."
+    },
+    {
+      "classId": "...",
+      "points" : "...",
+      "..." : "..."
+    },
+    {
+      "..." : "..."
+    }
+  ]
+
+the "classId" fields here will identify the annotation class.
+
+Annotation classes for a project can be created individually with SDK's:
 
 .. code-block:: python
 
    new_class = sa.create_annotation_class(project, "Large car", color="#FFFFAA")
 
-or in bulk with SuperAnnotate export format :file:`classes.json` with: 
+The :py:obj:`new_class` is the annotation class :ref:`metadata <ref_class>`
+created. The newly created annotation class ID can found at
+:py:obj:`new_class['id']`.
+
+.. warning::
+
+   The annotation class IDs are always created by the platform and are not user 
+   chooseable. So annotation classes should be created before uploading
+   annotations.
+
+
+
+So to have annotations with annotation class :py:obj:`new_class` on the platform
+one needs to upload annotation JSONs in the format:
+
+.. code-block:: json
+
+  [
+    {
+      "classId": "new_class['id']",
+      "points" : "...",
+      "..." : "..."
+    },
+    {
+      "classId": "new_class['id']",
+      "points" : "...",
+      "..." : "..."
+    },
+    {
+      "..." : "..."
+    }
+  ]
+
+
+Bulk annotation class creation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In bulk with SuperAnnotate export format :file:`classes.json` (see full
+platform documentation at https://annotate.online/documentation Management Tools
+-> Project Workflow part) with: 
 
 .. code-block:: python
 
@@ -237,6 +254,57 @@ like:
     sa.upload_annotations_from_folder_to_project(project, "path_to_local_dir",
                                                  old_to_new_classid_conversion)
 
+
+
+
+Exporting projects
+__________________
+
+To export the project annotations we need to prepare the export first:
+
+.. code-block:: python
+
+   export = sa.prepare_export(project, include_fuse=True)
+
+We can download the prepared export with:
+
+.. code-block:: python
+
+   export = sa.download_export(export, "local_folder_path", extract_zip_contents=True)
+
+:ref:`download_export <ref_download_export>` will wait until the export is
+finished preparing and download it to the specified folder.
+
+
+Working with images
+_____________________
+
+To search for the images in the project:
+
+.. code-block:: python
+
+   images = sa.search_images(project, "example_image1.jpg")
+
+Here again we get a Python list of dict metadatas for the images with name prefix
+"example_image1.jpg". The image names in SuperAnnotate platform projects are 
+unique, so if full name was given to :ref:`search_images <ref_search_images>` 
+the returned list will have a single item we were looking for:
+
+.. code-block:: python
+
+   image = images[0]
+
+To download the image one can use:
+
+.. code-block:: python
+
+   sa.download_image(image, "path_to_local_dir")
+
+or to download image annotations:
+
+.. code-block:: python
+
+   sa.download_image_annotations(image, "path_to_local_dir")
 
 
 ----------
