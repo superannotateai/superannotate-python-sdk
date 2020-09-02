@@ -241,11 +241,6 @@ def get_image_preannotations(image):
     team_id, project_id, image_id, folder_id = image["team_id"], image[
         "project_id"], image["id"], image['folder_id']
     project_type = _get_project_type({'id': project_id, 'team_id': team_id})
-    if project_type == 2:  # pixel preannotation not implemented yet
-        raise SABaseException(
-            0, "Preannotation not available for pixel projects."
-        )
-
     params = {
         'team_id': team_id,
         'project_id': project_id,
@@ -258,19 +253,54 @@ def get_image_preannotations(image):
     )
     if not response.ok:
         raise SABaseException(response.status_code, response.text)
-    res = response.json()['preannotation']
-    url = res["url"]
-    annotation_json_filename = url.rsplit('/', 1)[-1]
-    headers = res["headers"]
-    response = requests.get(url=url, headers=headers)
-    if not response.ok:
-        logger.warning("No preannotation available.")
-        return {"preannotation_json_filename": None, "preannotation_json": None}
-    res_json = response.json()
-    return {
-        "preannotation_json_filename": annotation_json_filename,
-        "preannotation_json": res_json
-    }
+    res = response.json()
+
+    if project_type == 1:  # vector
+        res = res['preannotation']
+        url = res["url"]
+        annotation_json_filename = url.rsplit('/', 1)[-1]
+        headers = res["headers"]
+        response = requests.get(url=url, headers=headers)
+        if not response.ok:
+            logger.warning("No preannotation available for image %s.", image_id)
+            return {
+                "preannotation_json_filename": None,
+                "preannotation_json": None
+            }
+        res_json = response.json()
+        return {
+            "preannotation_json_filename": annotation_json_filename,
+            "preannotation_json": res_json
+        }
+    else:  # pixel
+        res_json = res['preAnnotationJson']
+        url = res_json["url"]
+        preannotation_json_filename = url.rsplit('/', 1)[-1]
+        headers = res_json["headers"]
+        response = requests.get(url=url, headers=headers)
+        if not response.ok:
+            logger.warning("No preannotation available.")
+            return {
+                "preannotation_json_filename": None,
+                "preannotation_json": None,
+                "preannotation_mask_filename": None,
+                "preannotation_mask": None,
+            }
+        preannotation_json = response.json()
+
+        res_mask = res['preAnnotationSavePng']
+        url = res_mask["url"]
+        preannotation_mask_filename = url.rsplit('/', 1)[-1]
+        annotation_json_filename = url.rsplit('/', 1)[-1]
+        headers = res_mask["headers"]
+        response = requests.get(url=url, headers=headers)
+        mask = io.BytesIO(response.content)
+        return {
+            "preannotation_json_filename": preannotation_json_filename,
+            "preannotation_json": preannotation_json,
+            "preannotation_mask_filename": preannotation_mask_filename,
+            "preannotation_mask": mask
+        }
 
 
 def get_image_annotations(image, project_type=None):
@@ -400,10 +430,6 @@ def download_image_preannotations(image, local_dir_path):
     """
     team_id, project_id, = image["team_id"], image["project_id"]
     project_type = _get_project_type({'id': project_id, 'team_id': team_id})
-    if project_type == 2:  # pixel preannotation not implemented yet
-        raise SABaseException(
-            0, "Preannotation not available for pixel projects."
-        )
     annotation = get_image_preannotations(image)
     if annotation["preannotation_json_filename"] is None:
         return (None, )
@@ -413,17 +439,17 @@ def download_image_preannotations(image, local_dir_path):
     if project_type == 1:
         with open(json_path, "w") as f:
             json.dump(annotation["preannotation_json"], f)
-    # else:
-    #     with open(
-    #         Path(local_dir_path) / annotation["preannotation_json_filename"],
-    #         "w"
-    #     ) as f:
-    #         json.dump(annotation["preannotation_json"], f)
-    #     with open(
-    #         Path(local_dir_path) / annotation["preannotation_mask_filename"],
-    #         "wb"
-    #     ) as f:
-    #         f.write(annotation["preannotation_mask"].getbuffer())
+    else:
+        with open(
+            Path(local_dir_path) / annotation["preannotation_json_filename"],
+            "w"
+        ) as f:
+            json.dump(annotation["preannotation_json"], f)
+        with open(
+            Path(local_dir_path) / annotation["preannotation_mask_filename"],
+            "wb"
+        ) as f:
+            f.write(annotation["preannotation_mask"].getbuffer())
     return tuple(return_filepaths)
 
 

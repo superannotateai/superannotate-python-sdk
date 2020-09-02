@@ -33,22 +33,11 @@ def test_preannotation_folder_upload_download(
     old_to_new_classid_conversion = sa.create_annotation_classes_from_classes_json(
         project, from_folder / "classes" / "classes.json"
     )
-    if project_type == "Vector":
-        sa.upload_preannotations_from_folder_to_project(
-            project, from_folder, old_to_new_classid_conversion
-        )
-    else:
-        try:
-            sa.upload_preannotations_from_folder_to_project(
-                project, from_folder, old_to_new_classid_conversion
-            )
-        except sa.SABaseException as e:
-            assert e.status_code == 406
-            assert e.message == '{"error":"This feature is only for vector projects."}'
+    sa.upload_preannotations_from_folder_to_project(
+        project, from_folder, old_to_new_classid_conversion
+    )
     count_in = len(list(from_folder.glob("*.json")))
 
-    if project_type == "Pixel":  # skip until implemented
-        return
     images = sa.search_images(project)
     for image in images:
         sa.download_image_preannotations(image, tmpdir)

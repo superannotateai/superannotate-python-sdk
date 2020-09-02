@@ -521,6 +521,8 @@ def upload_annotations_from_folder_to_project(
     class IDs after calling mentioned functions. Please see
     warning in the docstring of create_annotation_classes_from_classes_json.
 
+    WARNING: Existing annotations will be overwritten.
+
     :param project: metadata of the project to upload annotations to
     :type project: dict
     :param folder_path: from which folder to upload the annotations
@@ -549,6 +551,8 @@ def upload_annotations_from_folder_to_project(
     logger.warning(
         "The JSON files should follow specific naming convention. For Vector projects they should be named '<image_name>___objects.json', for Pixel projects JSON file should be names '<image_name>___pixel.json' and also second mask image file should be present with the name '<image_name>___save.png'. In both cases image with <image_name> should be already present on the platform."
     )
+
+    logger.warning("WARNING: Existing annotations will be overwritten.")
 
     if from_s3_bucket is None:
         annotations_paths = list(Path(folder_path).glob('*.json'))
@@ -696,6 +700,19 @@ def upload_preannotations_from_folder_to_project(
 ):
     """Finds and uploads all JSON files in the folder_path as pre-annotations to the project.
 
+    WARNING: The JSON files should follow specific naming convention. For Vector
+    projects they should be named "<image_name>___objects.json", for Pixel projects
+    JSON file should be named "<image_name>___pixel.json" and also second mask
+    image file should be present with the name "<image_name>___save.png". In both cases
+    image with <image_name> should be already present on the platform.
+
+    WARNING: Create annotation classes with create_annotation_classes_from_classes_json or
+    create_annotation_class before calling this function to have access to new
+    class IDs after calling mentioned functions. Please see
+    warning in the docstring of create_annotation_classes_from_classes_json.
+
+    WARNING: Existing pre-annotations will be overwritten.
+
     :param project: metadata of the project to upload pre-annotations to
     :type project: dict
     :param folder_path: from which folder to upload the pre-annotations
@@ -717,10 +734,17 @@ def upload_preannotations_from_folder_to_project(
         "Uploading all preannotations from %s to project ID %s.", folder_path,
         project_id
     )
-    if project_type == 2:
-        raise SABaseException(
-            406, '{"error":"This feature is only for vector projects."}'
-        )
+
+    logger.warning(
+        "Create annotation classes with create_annotation_classes_from_classes_json or create_annotation_class before calling this function to have access to new class IDs after calling mentioned functions. Please see warning in the docstring of create_annotation_classes_from_classes_json."
+    )
+
+    logger.warning(
+        "The JSON files should follow specific naming convention. For Vector projects they should be named '<image_name>___objects.json', for Pixel projects JSON file should be names '<image_name>___pixel.json' and also second mask image file should be present with the name '<image_name>___save.png'. In both cases image with <image_name> should be already present on the platform."
+    )
+
+    logger.warning("WARNING: Existing pre-annotations will be overwritten.")
+
     if from_s3_bucket is None:
         preannotations_paths = list(Path(folder_path).glob('*.json'))
         preannotations_filenames = [x.name for x in preannotations_paths]
