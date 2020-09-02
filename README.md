@@ -8,12 +8,12 @@ SuperAnnotate Python SDK allows access to the platform without
 ```python
 import superannotate as sa
 
-sa.init("path_to_my_config_json")
+sa.init("<path_to_my_config_json>")
 
 projects = sa.search_projects("Example Project 1")
 
 example_project = projects[0]
-sa.upload_images_from_folder_to_project(example_project, "path_to_my_images_folder")
+sa.upload_images_from_folder_to_project(example_project, "<path_to_my_images_folder>")
 ```
 
 ## Installation
