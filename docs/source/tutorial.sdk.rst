@@ -254,14 +254,14 @@ A team contributor can be invited to the team with:
    sa.invite_contributor_to_team(email="hovnatan@superannotate.com", admin=False)
 
 
-After the invitation is accepted contributor can be searched and chosen with:
+After the invitation is accepted, contributor can be searched and chosen with:
 
 .. code-block:: python
 
    found_users = sa.search_team_contributors(email="hovnatan@superannotate.com')
    hk_user = found_users[0]
 
-Now to share a project with the found user as an QA, one can use:
+Now to share a project with the found contributor as an QA:
 
 .. code-block:: python
 
