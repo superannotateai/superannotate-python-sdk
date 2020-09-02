@@ -39,30 +39,14 @@ def test_basic_images(project_type, name, description, from_folder, tmpdir):
     assert len(images) == 1
 
     sa.download_image(images[0], tmpdir, True)
-    if project_type == "Vector":
-
-        assert sa.get_image_preannotations(
-            images[0]
-        )["preannotation_json_filename"] is None
-    else:
-        try:
-            sa.get_image_preannotations(images[0])
-            assert False
-        except sa.SABaseException as e:
-            assert e.message == "Preannotation not available for pixel projects."
+    assert sa.get_image_preannotations(images[0]
+                                      )["preannotation_json_filename"] is None
     assert sa.get_image_annotations(images[0]
                                    )["annotation_json_filename"] is None
     sa.download_image_annotations(images[0], tmpdir)
     assert len(list(Path(tmpdir).glob("*"))) == 1
-    if project_type == "Vector":
-        sa.download_image_preannotations(images[0], tmpdir)
-        assert len(list(Path(tmpdir).glob("*"))) == 1
-    else:
-        try:
-            sa.download_image_preannotations(images[0], tmpdir)
-            assert False
-        except sa.SABaseException as e:
-            assert e.message == "Preannotation not available for pixel projects."
+    sa.download_image_preannotations(images[0], tmpdir)
+    assert len(list(Path(tmpdir).glob("*"))) == 1
 
     assert (Path(tmpdir) / images[0]["name"]).is_file()
 
