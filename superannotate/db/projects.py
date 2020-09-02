@@ -437,6 +437,11 @@ def __upload_annotations_thread(
     end_index = min(start_index + chunksize, len_anns)
     annotation_classes_dict = {}
     for annotation_class in annotation_classes:
+        if annotation_class["name"] in annotation_classes_dict:
+            logger.warning(
+                "Duplicate annotation class name %s. Only one of the annotation classes will be used. This will result in errors in annotation uploat",
+                annotation_class["name"]
+            )
         annotation_classes_dict[annotation_class["name"]] = annotation_class
 
     postfix_json = '___objects.json' if project_type == 1 else '___pixel.json'
@@ -633,6 +638,10 @@ def __upload_preannotations_thread(
 
     annotation_classes_dict = {}
     for annotation_class in annotation_classes:
+        logger.warning(
+            "Duplicate annotation class name %s. Only one of the annotation classes will be used. This will result in errors in annotation uploat",
+            annotation_class["name"]
+        )
         annotation_classes_dict[annotation_class["name"]] = annotation_class
     for i in range(start_index, end_index):
         if already_uploaded[i]:

@@ -69,6 +69,7 @@ __________________
 .. autofunction:: superannotate.create_annotation_classes_from_classes_json
 .. autofunction:: superannotate.search_annotation_classes
 .. autofunction:: superannotate.download_annotation_classes_json
+.. autofunction:: superannotate.delete_annotation_class
 
 
 ----------

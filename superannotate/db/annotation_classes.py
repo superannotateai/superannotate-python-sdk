@@ -63,6 +63,32 @@ def create_annotation_class(project, name, color, attribute_groups=None):
     return new_class
 
 
+def delete_annotation_class(annotation_class):
+    """Deletes annotation class from project
+
+    :param project: annotation class metadata
+    :type project: dict
+    """
+    team_id, project_id, name, class_id = _api.team_id, annotation_class[
+        "project_id"], annotation_class["name"], annotation_class["id"]
+    logger.info(
+        "Deleting annotation class from project ID %s with name %s", project_id,
+        name
+    )
+    params = {
+        'team_id': team_id,
+        'project_id': project_id,
+    }
+    response = _api.send_request(
+        req_type='DELETE', path=f'/class/{class_id}', params=params
+    )
+    if not response.ok:
+        raise SABaseException(
+            response.status_code,
+            "Couldn't delete annotation class " + response.text
+        )
+
+
 def create_annotation_classes_from_classes_json(
     project, classes_json, from_s3_bucket=None
 ):

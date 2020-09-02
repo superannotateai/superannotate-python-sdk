@@ -8,7 +8,8 @@ from .common import (
 )
 from .db.annotation_classes import (
     create_annotation_class, create_annotation_classes_from_classes_json,
-    download_annotation_classes_json, search_annotation_classes
+    delete_annotation_class, download_annotation_classes_json,
+    search_annotation_classes
 )
 from .db.exports import download_export, get_exports, prepare_export
 from .db.images import (
@@ -25,7 +26,9 @@ from .db.projects import (
     upload_images_from_s3_bucket_to_project, upload_images_to_project,
     upload_preannotations_from_folder_to_project
 )
-from .db.teams import invite_contributor_to_team, delete_team_contributor_invitation
+from .db.teams import (
+    delete_team_contributor_invitation, invite_contributor_to_team
+)
 from .db.users import search_team_contributors
 from .exceptions import SABaseException
 from .version import Version
