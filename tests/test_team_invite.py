@@ -6,7 +6,7 @@ sa.init(Path.home() / ".superannotate" / "config.json")
 
 
 def test_team_invite():
-    invite = sa.invite_contributor_to_team("hovnatan@supenotate.com", "QA")
+    invite = sa.invite_contributor_to_team("hovnatan@supenotate.com")
 
     sa.delete_team_contributor_invitation(invite)
 

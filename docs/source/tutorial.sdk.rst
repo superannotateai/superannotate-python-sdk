@@ -247,8 +247,14 @@ To download image annotations:
 Working with team contributors
 ______________________________
 
+A team contributor can be invited to the team with:
 
-A team contributor can be searched and chosen with:
+.. code-block:: python
+
+   sa.invite_contributor_to_team(email="hovnatan@superannotate.com", admin=False)
+
+
+After the invitation is accepted contributor can be searched and chosen with:
 
 .. code-block:: python
 
