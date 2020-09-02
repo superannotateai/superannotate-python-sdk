@@ -51,7 +51,7 @@ Initialize and authenticate SDK with the config file created in the previous ste
 
 .. code-block:: python
 
-   sa.init("path_to_config_json")
+   sa.init("<path_to_config_json>")
 
 
 Working with projects
@@ -105,10 +105,10 @@ example, to upload images from a local folder to the project:
 
 .. code-block:: python
 
-    sa.upload_images_from_folder_to_project(project, "local_folder_path")
+    sa.upload_images_from_folder_to_project(project, "<local_folder_path>")
 
 which will upload all images with extensions "jpg" or "png" from the
-:file:`"local_folder_path"` to the project. See the full argument options for
+:file:`"<local_folder_path>"` to the project. See the full argument options for
 :py:func:`upload_images_from_folder_to_project` :ref:`here <ref_upload_images_from_folder_to_project>`.
 
 For full list of available functions on projects, see :ref:`ref_projects`.
@@ -140,13 +140,14 @@ The SuperAnnotate format annotation JSONs have the general form:
     }
   ]
 
-the "classId" fields here will identify the annotation class. The project
-you are uploading to should contain annotation class with 'id' equal to that 'classId' 
+the "classId" fields here will identify the annotation class of an annotation
+object (polygon, points, etc.). The project
+you are uploading to should contain annotation class with "id" equal to that "classId" 
 for proper representation of the annotation.
 
 
 The annotation class IDs are always created by the platform and are not user 
-chooseable. So annotation classes should be created before uploading
+selectable. So annotation classes should be created before uploading
 annotations. Then the annotations class IDs should be edited into annotations' JSONs.
 And after that annotations can be uploaded. In the next subsections see how
 this can be done manually or in more automated way.
@@ -162,22 +163,25 @@ An annotation class for a project can be created with SDK's:
    new_class = sa.create_annotation_class(project, "Large car", color="#FFFFAA")
 
 The :py:obj:`new_class` is the annotation class :ref:`metadata <ref_class>`
-created. The newly created annotation class ID can found at
-:py:obj:`new_class['id']`.
+created. The newly created annotation class's ID can found at
+
+.. code-block:: python
+
+   new_class_id = new_class["id"]
 
 To have annotations with annotation class :py:obj:`new_class` on the platform
-one needs to edit then upload annotation JSONs in this form:
+one needs to edit annotation JSONs to the form:
 
-.. code-block:: json
+.. code-block:: python
 
   [
     {
-      "classId": "new_class['id']",
+      "classId": new_class_id,
       "points" : "...",
       "..." : "..."
     },
     {
-      "classId": "new_class['id']",
+      "classId": new_class_id,
       "points" : "...",
       "..." : "..."
     },
@@ -186,18 +190,21 @@ one needs to edit then upload annotation JSONs in this form:
     }
   ]
 
+Then annotations are valid to be uploaded to the project.
+
 
 Bulk annotation class creation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-To create annotation classes in bulk with SuperAnnotate export format :file:`classes.json` (see full
-platform documentation at https://annotate.online/documentation Management Tools
+To create annotation classes in bulk with SuperAnnotate export format 
+:file:`classes.json` (documentation at:
+https://annotate.online/documentation Management Tools
 -> Project Workflow part): 
 
 .. code-block:: python
 
    old_to_new_classid_conversion = sa.create_annotation_classes_from_classes_json(project,
-   "path_to_classes_json")
+   "<path_to_classes_json>")
 
 .. warning::
 
@@ -238,9 +245,9 @@ can also be downloaded separately with:
 
 .. code-block:: python
 
-   sa.download_annotation_classes_json(project, "path_to_local_folder")
+   sa.download_annotation_classes_json(project, "<path_to_local_folder>")
 
-The :file:`classes.json` file will be downloaded to :file:`"path_to_local_folder"` folder.
+The :file:`classes.json` file will be downloaded to :file:`"<path_to_local_folder>"` folder.
 
 
 Working with annotations
@@ -254,29 +261,33 @@ To upload annotations to platform:
 
 .. code-block:: python
 
-    sa.upload_annotations_from_folder_to_project(project, "path_to_local_dir")
+    sa.upload_annotations_from_folder_to_project(project, "<path_to_local_dir>")
 
-This will try uploading all the JSON files in the folder that have specific file naming convention to the project. For vector
+This will try uploading to the project all the JSON files in the folder that have specific 
+file naming convention. For vector
 projects JSONs should be named :file:`"<image_name>___objects.json"`. For pixel projects
-JSON files should be named :file:`"<image_name>___pixel.json"` and also for each JSON a mask image file should be present with the name :file:`"<image_name>___save.png"`. In both cases
-image with :file:`<image_name>` should already be present in the project for
-the upload to work.
+JSON files should be named :file:`"<image_name>___pixel.json"` and also for 
+each JSON a mask image file should be present with the name 
+:file:`"<image_name>___save.png"`. Image with :file:`<image_name>` should 
+already be present in the project for the upload to work.
 
-Annotation upload with annotation 'classId' translation
+Annotation upload with annotation "classId" translation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The above method assumes the 'classId's in the annotations already have their proper
-annotation classes with the same 'id' in the project. 
+The above method assumes the "classId"'s in the annotations already have their
+proper
+annotation classes with the same "id" in the project. 
 
 But in case that you had aligned annotation JSONs and :file:`classes.json` and 
 first uploaded annotation classes with 
 :ref:`create_annotation_classes_from_classes_json <ref_create_annotation_classes_from_classes_json>`
-then annotation class 'id's on platform will be different from the annotations' 'classId's. To change annotations 'classId's during
+then annotation class "id"'s on platform will be different from the 
+annotations' "classId"'s. To change annotations' "classId"'s during
 the upload use:
 
 .. code-block:: python
 
-    sa.upload_annotations_from_folder_to_project(project, "path_to_local_dir",
+    sa.upload_annotations_from_folder_to_project(project, "<path_to_local_dir>",
                                                  old_to_new_classid_conversion)
 
 where variable :py:obj:`old_to_new_classid_conversion` is the return value
@@ -287,8 +298,8 @@ like:
 .. code-block:: python
 
     old_to_new_classid_conversion = sa.create_annotation_classes_from_classes_json(project,
-                                                                                   "path_to_classes_json")
-    sa.upload_annotations_from_folder_to_project(project, "path_to_local_dir",
+                                                                                   "<path_to_classes_json>")
+    sa.upload_annotations_from_folder_to_project(project, "<path_to_local_dir>",
                                                  old_to_new_classid_conversion)
 
 
@@ -305,7 +316,7 @@ We can download the prepared export with:
 
 .. code-block:: python
 
-   export = sa.download_export(export, "local_folder_path", extract_zip_contents=True)
+   export = sa.download_export(export, "<local_folder_path>", extract_zip_contents=True)
 
 :ref:`download_export <ref_download_export>` will wait until the export is
 finished preparing and download it to the specified folder.
@@ -333,13 +344,13 @@ To download the image one can use:
 
 .. code-block:: python
 
-   sa.download_image(image, "path_to_local_dir")
+   sa.download_image(image, "<path_to_local_dir>")
 
-or to download image annotations:
+To download image annotations:
 
 .. code-block:: python
 
-   sa.download_image_annotations(image, "path_to_local_dir")
+   sa.download_image_annotations(image, "<path_to_local_dir>")
 
 
 ----------
@@ -353,7 +364,7 @@ A team contributor can be searched and chosen with:
 
 .. code-block:: python
 
-   found_users = sa.search_team_contributors(email='hovnatan@superannotate.com')
+   found_users = sa.search_team_contributors(email="hovnatan@superannotate.com')
    hk_user = found_users[0]
 
 Now to share a project with the found user as an QA, one can use:
