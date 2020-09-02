@@ -129,10 +129,10 @@ Annotation class metadata example:
 
 ----------
 
-User metadata
+Team contributor metadata
 _________________________
 
-User metadata example:
+Team contributor metadata example:
 
 .. code-block:: python
 

@@ -73,10 +73,12 @@ __________________
 
 ----------
 
-Users
-_____
+Team contributors
+_________________
 
 .. autofunction:: superannotate.search_team_contributors
+.. autofunction:: superannotate.invite_contributor_to_team
+.. autofunction:: superannotate.delete_team_contributor_invitation
 
 ----------
 
