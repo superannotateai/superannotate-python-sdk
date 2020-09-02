@@ -64,44 +64,39 @@ def create_annotation_class(project, name, color, attribute_groups=None):
 
 
 def create_annotation_classes_from_classes_json(
-    project, path_to_classes_json, from_s3_bucket=None
+    project, classes_json, from_s3_bucket=None
 ):
-    """Creates annotation classes in project from a SuperAnnotate format classes.json.
-
-    WARNING: Non obvious behavior. Annotation class IDs from the file path_to_classes_json will be changed on platform.
-    The translation dict old_id -> new_id will be returned from this function.
-    The dict can be used in the function upload_annotations_from_folder_to_project
-    to translate annotation class IDs to new IDs.
+    """Creates annotation classes in project from a SuperAnnotate format
+    annotation classes.json.
 
     :param project: project metadata
     :type project: dict
-    :param path_to_classes_json: path to the JSON file
-    :type path_to_classes_json: Pathlike (str or Path)
-    :param from_s3_bucket: AWS S3 bucket to use. If None then path_to_classes_json is in local filesystem
+    :param classes_json: JSON itself or path to the JSON file
+    :type classes_json: dict or Pathlike (str or Path)
+    :param from_s3_bucket: AWS S3 bucket to use. If None then classes_json is in local filesystem
     :type from_s3_bucket: str
 
-    :return: Old class Id to new class Id translation dict
-    :rtype: dict
+    :return: list of created annotation class metadatas
+    :rtype: list of dicts
     """
     team_id, project_id = project["team_id"], project["id"]
-    logger.info(
-        "Creating annotation classes in project ID %s from %s.", project_id,
-        path_to_classes_json
-    )
-    logger.warning(
-        "Non obvious behavior. Annotation class IDs in from the file %s will be changed on platform.  The translation dict old_id -> new_id will be returned from this function.  The dict can be used in the function upload_annotations_from_folder_to_project to translate annotation class IDs to new IDs.",
-        path_to_classes_json
-    )
-    if from_s3_bucket is None:
-        classes = json.load(open(path_to_classes_json))
+    if not isinstance(classes_json, dict):
+        logger.info(
+            "Creating annotation classes in project ID %s from %s.", project_id,
+            classes_json
+        )
+        if from_s3_bucket is None:
+            classes = json.load(open(classes_json))
+        else:
+            from_session = boto3.Session()
+            from_s3 = from_session.resource('s3')
+            file = io.BytesIO()
+            from_s3_object = from_s3.Object(from_s3_bucket, classes_json)
+            from_s3_object.download_fileobj(file)
+            file.seek(0)
+            classes = json.load(file)
     else:
-        from_session = boto3.Session()
-        from_s3 = from_session.resource('s3')
-        file = io.BytesIO()
-        from_s3_object = from_s3.Object(from_s3_bucket, path_to_classes_json)
-        from_s3_object.download_fileobj(file)
-        file.seek(0)
-        classes = json.load(file)
+        classes = classes_json
 
     params = {
         'team_id': team_id,
@@ -117,11 +112,7 @@ def create_annotation_classes_from_classes_json(
         )
     res = response.json()
     assert len(res) == len(classes)
-    old_class_id_to_new_conversion = {}
-    for old, new in zip(classes, res):
-        old_class_id_to_new_conversion[old['id']] = new['id']
-        assert old['name'] == new['name']
-    return old_class_id_to_new_conversion
+    return res
 
 
 def search_annotation_classes(project, name_prefix=None):

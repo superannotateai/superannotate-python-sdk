@@ -30,12 +30,10 @@ def test_preannotation_folder_upload_download(
     sa.upload_images_from_folder_to_project(
         project, from_folder, annotation_status="InProgress"
     )
-    old_to_new_classid_conversion = sa.create_annotation_classes_from_classes_json(
+    sa.create_annotation_classes_from_classes_json(
         project, from_folder / "classes" / "classes.json"
     )
-    sa.upload_preannotations_from_folder_to_project(
-        project, from_folder, old_to_new_classid_conversion
-    )
+    sa.upload_preannotations_from_folder_to_project(project, from_folder)
     count_in = len(list(from_folder.glob("*.json")))
 
     images = sa.search_images(project)

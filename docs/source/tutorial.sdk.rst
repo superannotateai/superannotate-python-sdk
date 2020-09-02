@@ -117,84 +117,12 @@ For full list of available functions on projects, see :ref:`ref_projects`.
 Working with annotation classes
 _______________________________________________
 
-General flow
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The SuperAnnotate format annotation JSONs have the general form:
-
-.. code-block:: json
-
-  [ 
-    {
-      "classId": 1234,
-      "points" : "...",
-      "..." : "..."
-    },
-    {
-      "classId": 12345,
-      "points" : "...",
-      "..." : "..."
-    },
-    {
-      "..." : "..."
-    }
-  ]
-
-the "classId" fields here will identify the annotation class of an annotation
-object (polygon, points, etc.). The project
-you are uploading to should contain annotation class with "id" equal to that "classId" 
-for proper representation of the annotation.
-
-
-The annotation class IDs are always created by the platform and are not user 
-selectable. So annotation classes should be created before uploading
-annotations. Then the annotations class IDs should be edited into annotations' JSONs.
-And after that annotations can be uploaded. In the next subsections see how
-this can be done manually or in more automated way.
-
-
-Creating a single annotation class
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 An annotation class for a project can be created with SDK's:
 
 .. code-block:: python
 
-   new_class = sa.create_annotation_class(project, "Large car", color="#FFFFAA")
+   sa.create_annotation_class(project, "Large car", color="#FFFFAA")
 
-The :py:obj:`new_class` is the annotation class :ref:`metadata <ref_class>`
-created. The newly created annotation class's ID can found at
-
-.. code-block:: python
-
-   new_class_id = new_class["id"]
-
-To have annotations with annotation class :py:obj:`new_class` on the platform
-one needs to edit annotation JSONs to the form:
-
-.. code-block:: python
-
-  [
-    {
-      "classId": new_class_id,
-      "points" : "...",
-      "..." : "..."
-    },
-    {
-      "classId": new_class_id,
-      "points" : "...",
-      "..." : "..."
-    },
-    {
-      "..." : "..."
-    }
-  ]
-
-Then annotations are valid to be uploaded to the project.
-
-
-Bulk annotation class creation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To create annotation classes in bulk with SuperAnnotate export format 
 :file:`classes.json` (documentation at:
@@ -203,37 +131,7 @@ https://annotate.online/documentation Management Tools
 
 .. code-block:: python
 
-   old_to_new_classid_conversion = sa.create_annotation_classes_from_classes_json(project,
-   "<path_to_classes_json>")
-
-.. warning::
-
-   If the source :file:`classes.json` was exported from existing project then
-   it will contain "id" keys as seen here:
-
-   .. code-block:: json
-
-      [ 
-        {
-          "name": "...",
-          "color": "...",
-          "attribute_groups": [],
-          "id": 111,
-        },
-        {
-          "name": "...",
-          "color": "...",
-          "attribute_groups": [],
-          "id": 112,
-        },
-        {
-          "..." : "..."
-        }
-      ]
-
-   But when using :ref:`create_annotation_classes_from_classes_json <ref_create_annotation_classes_from_classes_json>`
-   the "id" fields will be ignored and new annotation classes with new "id"-es will be created on the
-   platform.
+   sa.create_annotation_classes_from_classes_json(project, "<path_to_classes_json>")
 
 
 Downloading annotation classes
@@ -254,8 +152,29 @@ Working with annotations
 _______________________________________________
 
 
-Annotation upload
-~~~~~~~~~~~~~~~~~
+The SuperAnnotate format annotation JSONs have the general form:
+
+.. code-block:: json
+
+  [ 
+    {
+      "className": "Human",
+      "points" : "...",
+      "..." : "..."
+    },
+    {
+      "className": "Cat",
+      "points" : "...",
+      "..." : "..."
+    },
+    {
+      "..." : "..."
+    }
+  ]
+
+the "className" fields here will identify the annotation class of an annotation
+object (polygon, points, etc.). The project
+you are uploading to should contain annotation class with that name.
 
 To upload annotations to platform:
 
@@ -270,37 +189,6 @@ JSON files should be named :file:`"<image_name>___pixel.json"` and also for
 each JSON a mask image file should be present with the name 
 :file:`"<image_name>___save.png"`. Image with :file:`<image_name>` should 
 already be present in the project for the upload to work.
-
-Annotation upload with annotation "classId" translation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The above method assumes the "classId"'s in the annotations already have their
-proper
-annotation classes with the same "id" in the project. 
-
-But in case that you had aligned annotation JSONs and :file:`classes.json` and 
-first uploaded annotation classes with 
-:ref:`create_annotation_classes_from_classes_json <ref_create_annotation_classes_from_classes_json>`
-then annotation class "id"'s on platform will be different from the 
-annotations' "classId"'s. To change annotations' "classId"'s during
-the upload use:
-
-.. code-block:: python
-
-    sa.upload_annotations_from_folder_to_project(project, "<path_to_local_dir>",
-                                                 old_to_new_classid_conversion)
-
-where variable :py:obj:`old_to_new_classid_conversion` is the return value
-of :ref:`create_annotation_classes_from_classes_json
-<ref_create_annotation_classes_from_classes_json>`. The overall code will look
-like:
-
-.. code-block:: python
-
-    old_to_new_classid_conversion = sa.create_annotation_classes_from_classes_json(project,
-                                                                                   "<path_to_classes_json>")
-    sa.upload_annotations_from_folder_to_project(project, "<path_to_local_dir>",
-                                                 old_to_new_classid_conversion)
 
 
 Exporting projects

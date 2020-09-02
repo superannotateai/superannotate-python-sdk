@@ -11,11 +11,11 @@ sa.init(Path.home() / ".superannotate" / "config.json")
 @pytest.mark.parametrize(
     "project_type,name,description,from_folder", [
         (
-            "Vector", "Example Project test", "test vector",
+            "Vector", "Example Project test vector", "test vector",
             Path("./tests/sample_project_vector")
         ),
         (
-            "Pixel", "Example Project test", "test pixel",
+            "Pixel", "Example Project test pixel", "test pixel",
             Path("./tests/sample_project_pixel")
         ),
     ]
@@ -50,7 +50,7 @@ def test_basic_project(project_type, name, description, from_folder, tmpdir):
     images = sa.search_images(project)
     assert count_in_folder == len(images)
 
-    old_to_new_classes_conversion = sa.create_annotation_classes_from_classes_json(
+    sa.create_annotation_classes_from_classes_json(
         project, from_folder / "classes" / "classes.json"
     )
     classes_in_file = json.load(open(from_folder / "classes" / "classes.json"))
@@ -62,13 +62,10 @@ def test_basic_project(project_type, name, description, from_folder, tmpdir):
         for cl_c in classes_in_project:
             if cl_f["name"] == cl_c["name"]:
                 found = True
-                assert old_to_new_classes_conversion[cl_f["id"]] == cl_c["id"]
                 break
         assert found
 
-    sa.upload_annotations_from_folder_to_project(
-        project, from_folder, old_to_new_classes_conversion
-    )
+    sa.upload_annotations_from_folder_to_project(project, from_folder)
 
     export = sa.prepare_export(project)
 
@@ -96,7 +93,3 @@ def test_basic_project(project_type, name, description, from_folder, tmpdir):
                     found = True
                     break
             assert found, mask_in_folder
-    sa.delete_project(project)
-
-    projects_found = sa.search_projects(name)
-    assert len(projects_found) == 0

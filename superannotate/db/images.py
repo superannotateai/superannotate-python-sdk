@@ -9,6 +9,7 @@ import requests
 from ..api import API
 from ..common import annotation_status_str_to_int
 from ..exceptions import SABaseException
+from .annotation_classes import search_annotation_classes
 from .projects import get_project_metadata
 
 logger = logging.getLogger("superannotate-python-sdk")
@@ -240,7 +241,8 @@ def get_image_preannotations(image):
     """
     team_id, project_id, image_id, folder_id = image["team_id"], image[
         "project_id"], image["id"], image['folder_id']
-    project_type = _get_project_type({'id': project_id, 'team_id': team_id})
+    project_metadata = {'id': project_id, 'team_id': team_id}
+    project_type = _get_project_type(project_metadata)
     params = {
         'team_id': team_id,
         'project_id': project_id,
@@ -255,6 +257,10 @@ def get_image_preannotations(image):
         raise SABaseException(response.status_code, response.text)
     res = response.json()
 
+    annotation_classes = search_annotation_classes(project_metadata)
+    annotation_classes_dict = {}
+    for annotation_class in annotation_classes:
+        annotation_classes_dict[annotation_class["id"]] = annotation_class
     if project_type == 1:  # vector
         res = res['preannotation']
         url = res["url"]
@@ -268,6 +274,10 @@ def get_image_preannotations(image):
                 "preannotation_json": None
             }
         res_json = response.json()
+        for r in res_json:
+            if r["classId"] in annotation_classes_dict:
+                r["className"] = annotation_classes_dict[r["classId"]]["name"]
+
         return {
             "preannotation_json_filename": annotation_json_filename,
             "preannotation_json": res_json
@@ -287,6 +297,9 @@ def get_image_preannotations(image):
                 "preannotation_mask": None,
             }
         preannotation_json = response.json()
+        for r in preannotation_json:
+            if r["classId"] in annotation_classes_dict:
+                r["className"] = annotation_classes_dict[r["classId"]]["name"]
 
         res_mask = res['preAnnotationSavePng']
         url = res_mask["url"]
@@ -403,10 +416,10 @@ def download_image_annotations(image, local_dir_path):
     return_filepaths.append(json_path)
     if project_type == 1:
         with open(json_path, "w") as f:
-            json.dump(annotation["annotation_json"], f)
+            json.dump(annotation["annotation_json"], f, indent=4)
     else:
         with open(json_path, "w") as f:
-            json.dump(annotation["annotation_json"], f)
+            json.dump(annotation["annotation_json"], f, indent=4)
         mask_path = Path(local_dir_path
                         ) / annotation["annotation_mask_filename"]
         return_filepaths.append(mask_path)

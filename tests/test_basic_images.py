@@ -72,10 +72,8 @@ def test_basic_images(project_type, name, description, from_folder, tmpdir):
 
     for a in annotation:
         found = False
-        if a['classId'] == -1:
-            continue
         for c1 in downloaded_classes:
-            if a["classId"] == c1["id"]:
+            if a["className"] == c1["name"]:
                 found = True
                 break
         assert found

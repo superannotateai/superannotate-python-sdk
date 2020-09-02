@@ -2,6 +2,7 @@ import io
 import json
 import logging
 import math
+import sys
 import threading
 import time
 from pathlib import Path
@@ -12,10 +13,13 @@ from tqdm import tqdm
 
 from ..api import API
 from ..common import (
-    annotation_status_str_to_int, project_type_str_to_int,
-    project_type_int_to_str, user_role_str_to_int
+    annotation_status_str_to_int, project_type_int_to_str,
+    project_type_str_to_int, user_role_str_to_int
 )
 from ..exceptions import SABaseException
+from .annotation_classes import (
+    create_annotation_classes_from_classes_json, search_annotation_classes
+)
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -423,7 +427,7 @@ def upload_images_to_project(
 
 def __upload_annotations_thread(
     team_id, project_id, project_type, anns_filenames, folder_path,
-    classid_conversion, thread_id, chunksize, num_uploaded, from_s3_bucket
+    annotation_classes, thread_id, chunksize, num_uploaded, from_s3_bucket
 ):
     NUM_TO_SEND = 500
     len_anns = len(anns_filenames)
@@ -431,6 +435,9 @@ def __upload_annotations_thread(
     if start_index >= len_anns:
         return
     end_index = min(start_index + chunksize, len_anns)
+    annotation_classes_dict = {}
+    for annotation_class in annotation_classes:
+        annotation_classes_dict[annotation_class["name"]] = annotation_class
 
     postfix_json = '___objects.json' if project_type == 1 else '___pixel.json'
     len_postfix_json = len(postfix_json)
@@ -476,16 +483,16 @@ def __upload_annotations_thread(
                 file.seek(0)
                 annotation_json = json.load(file)
 
-            if classid_conversion is not None:
-                for ann in annotation_json:
-                    if 'classId' not in ann:
-                        continue
-                    if ann['classId'] == -1:
-                        continue
-                    old_id = ann["classId"]
-                    if old_id in classid_conversion:
-                        new_id = classid_conversion[old_id]
-                        ann["classId"] = new_id
+            for ann in annotation_json:
+                annotation_class_name = ann["className"]
+                if not annotation_class_name in annotation_classes_dict:
+                    logger.error(
+                        "Couldn't find annotation class %s in project's annotation classes.",
+                        annotation_class_name
+                    )
+                    sys.exit(1)
+                class_id = annotation_classes_dict[annotation_class_name]["id"]
+                ann["classId"] = class_id
             bucket.put_object(
                 Key=image_path + postfix_json, Body=json.dumps(annotation_json)
             )
@@ -506,7 +513,7 @@ def __upload_annotations_thread(
 
 
 def upload_annotations_from_folder_to_project(
-    project, folder_path, classid_conversion=None, from_s3_bucket=None
+    project, folder_path, from_s3_bucket=None
 ):
     """Finds and uploads all JSON files in the folder_path as annotations to the project.
 
@@ -516,22 +523,12 @@ def upload_annotations_from_folder_to_project(
     image file should be present with the name "<image_name>___save.png". In both cases
     image with <image_name> should be already present on the platform.
 
-    WARNING: Create annotation classes with create_annotation_classes_from_classes_json or
-    create_annotation_class before calling this function to have access to new
-    class IDs after calling mentioned functions. Please see
-    warning in the docstring of create_annotation_classes_from_classes_json.
-
     WARNING: Existing annotations will be overwritten.
 
     :param project: metadata of the project to upload annotations to
     :type project: dict
     :param folder_path: from which folder to upload the annotations
     :type folder_path: Pathlike (str or Path)
-    :param classid_conversion: if not None, then class ID-es of the annotations
-                               will be translated according to this dict during
-                               the upload. This dict can be got when uploading
-                               classes.json with create_annotation_classes_from_classes_json
-    :type classid_conversion: dict
     :param from_s3_bucket: AWS S3 bucket to use. If None then folder_path is in local filesystem
     :type from_s3_bucket: str
 
@@ -544,15 +541,12 @@ def upload_annotations_from_folder_to_project(
         "Uploading all annotations from %s to project ID %s.", folder_path,
         project_id
     )
-    logger.warning(
-        "Create annotation classes with create_annotation_classes_from_classes_json or create_annotation_class before calling this function to have access to new class IDs after calling mentioned functions. Please see warning in the docstring of create_annotation_classes_from_classes_json."
-    )
 
     logger.warning(
         "The JSON files should follow specific naming convention. For Vector projects they should be named '<image_name>___objects.json', for Pixel projects JSON file should be names '<image_name>___pixel.json' and also second mask image file should be present with the name '<image_name>___save.png'. In both cases image with <image_name> should be already present on the platform."
     )
 
-    logger.warning("WARNING: Existing annotations will be overwritten.")
+    logger.warning("Existing annotations will be overwritten.")
 
     if from_s3_bucket is None:
         annotations_paths = list(Path(folder_path).glob('*.json'))
@@ -589,6 +583,7 @@ def upload_annotations_from_folder_to_project(
     )
     tqdm_thread.start()
 
+    annotation_classes = search_annotation_classes(project)
     chunksize = int(math.ceil(len_annotations_paths / _NUM_THREADS))
     threads = []
     for thread_id in range(_NUM_THREADS):
@@ -596,7 +591,7 @@ def upload_annotations_from_folder_to_project(
             target=__upload_annotations_thread,
             args=(
                 team_id, project_id, project_type, annotations_filenames,
-                folder_path, classid_conversion, thread_id, chunksize,
+                folder_path, annotation_classes, thread_id, chunksize,
                 num_uploaded, from_s3_bucket
             )
         )
@@ -613,7 +608,7 @@ def upload_annotations_from_folder_to_project(
 
 def __upload_preannotations_thread(
     aws_creds, project_type, preannotations_filenames, folder_path,
-    classid_conversion, thread_id, chunksize, num_uploaded, already_uploaded,
+    annotation_classes, thread_id, chunksize, num_uploaded, already_uploaded,
     from_s3_bucket
 ):
     len_preanns = len(preannotations_filenames)
@@ -636,6 +631,9 @@ def __upload_preannotations_thread(
         from_session = boto3.Session()
         from_s3 = from_session.resource('s3')
 
+    annotation_classes_dict = {}
+    for annotation_class in annotation_classes:
+        annotation_classes_dict[annotation_class["name"]] = annotation_class
     for i in range(start_index, end_index):
         if already_uploaded[i]:
             continue
@@ -651,16 +649,16 @@ def __upload_preannotations_thread(
             file.seek(0)
             annotation_json = json.load(file)
 
-        if classid_conversion is not None:
-            for ann in annotation_json:
-                if 'classId' not in ann:
-                    continue
-                if ann['classId'] == -1:
-                    continue
-                old_id = ann["classId"]
-                if old_id in classid_conversion:
-                    new_id = classid_conversion[old_id]
-                    ann["classId"] = new_id
+        for ann in annotation_json:
+            annotation_class_name = ann["className"]
+            if not annotation_class_name in annotation_classes_dict:
+                logger.error(
+                    "Couldn't find annotation class %s in project's annotation classes.",
+                    annotation_class_name
+                )
+                sys.exit(1)
+            class_id = annotation_classes_dict[annotation_class_name]["id"]
+            ann["classId"] = class_id
         bucket.put_object(
             Key=aws_creds["filePath"] + f"/{json_filename}",
             Body=json.dumps(annotation_json)
@@ -696,7 +694,7 @@ def __tqdm_thread(total_num, current_nums, finish_event):
 
 
 def upload_preannotations_from_folder_to_project(
-    project, folder_path, classid_conversion=None, from_s3_bucket=None
+    project, folder_path, from_s3_bucket=None
 ):
     """Finds and uploads all JSON files in the folder_path as pre-annotations to the project.
 
@@ -706,22 +704,12 @@ def upload_preannotations_from_folder_to_project(
     image file should be present with the name "<image_name>___save.png". In both cases
     image with <image_name> should be already present on the platform.
 
-    WARNING: Create annotation classes with create_annotation_classes_from_classes_json or
-    create_annotation_class before calling this function to have access to new
-    class IDs after calling mentioned functions. Please see
-    warning in the docstring of create_annotation_classes_from_classes_json.
-
     WARNING: Existing pre-annotations will be overwritten.
 
     :param project: metadata of the project to upload pre-annotations to
     :type project: dict
     :param folder_path: from which folder to upload the pre-annotations
     :type folder_path: Pathlike (str or Path)
-    :param classid_conversion: if not None, then class ID-es of the annotations
-                               will be translated according to this dict during
-                               the upload. This dict can be got when uploading
-                               classes.json with create_annotation_classes_from_classes_json
-    :type classid_conversion: dict
     :param from_s3_bucket: AWS S3 bucket to use. If None then folder_path is in local filesystem
     :type from_s3_bucket: str
 
@@ -736,14 +724,10 @@ def upload_preannotations_from_folder_to_project(
     )
 
     logger.warning(
-        "Create annotation classes with create_annotation_classes_from_classes_json or create_annotation_class before calling this function to have access to new class IDs after calling mentioned functions. Please see warning in the docstring of create_annotation_classes_from_classes_json."
-    )
-
-    logger.warning(
         "The JSON files should follow specific naming convention. For Vector projects they should be named '<image_name>___objects.json', for Pixel projects JSON file should be names '<image_name>___pixel.json' and also second mask image file should be present with the name '<image_name>___save.png'. In both cases image with <image_name> should be already present on the platform."
     )
 
-    logger.warning("WARNING: Existing pre-annotations will be overwritten.")
+    logger.warning("Existing pre-annotations will be overwritten.")
 
     if from_s3_bucket is None:
         preannotations_paths = list(Path(folder_path).glob('*.json'))
@@ -782,6 +766,7 @@ def upload_preannotations_from_folder_to_project(
         args=(len_preannotations_paths, num_uploaded, finish_event)
     )
     tqdm_thread.start()
+    annotation_classes = search_annotation_classes(project)
     while True:
         if sum(num_uploaded) == len_preannotations_paths:
             break
@@ -800,7 +785,7 @@ def upload_preannotations_from_folder_to_project(
                 target=__upload_preannotations_thread,
                 args=(
                     aws_creds, project_type, preannotations_filenames,
-                    folder_path, classid_conversion, thread_id, chunksize,
+                    folder_path, annotation_classes, thread_id, chunksize,
                     num_uploaded, already_uploaded, from_s3_bucket
                 )
             )
