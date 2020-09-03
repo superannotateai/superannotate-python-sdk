@@ -555,18 +555,34 @@ def upload_annotations_from_folder_to_project(
     :return: paths to annotations uploaded
     :rtype: list of strs
     """
-    if from_s3_bucket is not None:
-        if not folder_path.endswith('/'):
-            folder_path = folder_path + '/'
     if recursive_subfolders:
         logger.warning(
             "When using recursive subfolder parsing same name annotations in different subfolders will overwrite each other."
         )
 
+    logger.warning(
+        "The JSON files should follow specific naming convention. For Vector projects they should be named '<image_name>___objects.json', for Pixel projects JSON file should be names '<image_name>___pixel.json' and also second mask image file should be present with the name '<image_name>___save.png'. In both cases image with <image_name> should be already present on the platform."
+    )
+
+    logger.warning("Existing annotations will be overwritten.")
+
+    return _upload_annotations_from_folder_to_project(
+        project, folder_path, from_s3_bucket, recursive_subfolders
+    )
+
+
+def _upload_annotations_from_folder_to_project(
+    project, folder_path, from_s3_bucket=None, recursive_subfolders=False
+):
+    return_result = []
+    if from_s3_bucket is not None:
+        if not folder_path.endswith('/'):
+            folder_path = folder_path + '/'
+    if recursive_subfolders:
         if from_s3_bucket is None:
             for path in Path(folder_path).glob('*'):
                 if path.is_dir():
-                    upload_annotations_from_folder_to_project(
+                    return_result += _upload_annotations_from_folder_to_project(
                         project, path, from_s3_bucket, recursive_subfolders
                     )
         else:
@@ -577,7 +593,7 @@ def upload_annotations_from_folder_to_project(
             results = result.get('CommonPrefixes')
             if results is not None:
                 for o in results:
-                    upload_annotations_from_folder_to_project(
+                    return_result += _upload_annotations_from_folder_to_project(
                         project, o.get('Prefix'), from_s3_bucket,
                         recursive_subfolders
                     )
@@ -588,12 +604,6 @@ def upload_annotations_from_folder_to_project(
         "Uploading all annotations from %s to project ID %s.", folder_path,
         project_id
     )
-
-    logger.warning(
-        "The JSON files should follow specific naming convention. For Vector projects they should be named '<image_name>___objects.json', for Pixel projects JSON file should be names '<image_name>___pixel.json' and also second mask image file should be present with the name '<image_name>___save.png'. In both cases image with <image_name> should be already present on the platform."
-    )
-
-    logger.warning("Existing annotations will be overwritten.")
 
     annotations_paths = []
     annotations_filenames = []
@@ -626,7 +636,7 @@ def upload_annotations_from_folder_to_project(
         project_id
     )
     if len_annotations_paths == 0:
-        return
+        return return_result
     num_uploaded = [0] * _NUM_THREADS
     finish_event = threading.Event()
     tqdm_thread = threading.Thread(
@@ -655,7 +665,7 @@ def upload_annotations_from_folder_to_project(
     tqdm_thread.join()
     logger.info("Number of annotations uploaded %s.", sum(num_uploaded))
 
-    return [str(p) for p in annotations_paths]
+    return return_result + [str(p) for p in annotations_paths]
 
 
 def __upload_preannotations_thread(
@@ -775,17 +785,34 @@ def upload_preannotations_from_folder_to_project(
     :return: paths to pre-annotations uploaded
     :rtype: list of strs
     """
-    if from_s3_bucket is not None:
-        if not folder_path.endswith('/'):
-            folder_path = folder_path + '/'
     if recursive_subfolders:
         logger.warning(
             "When using recursive subfolder parsing same name pre-annotations in different subfolders will overwrite each other."
         )
+    logger.warning(
+        "The JSON files should follow specific naming convention. For Vector projects they should be named '<image_name>___objects.json', for Pixel projects JSON file should be names '<image_name>___pixel.json' and also second mask image file should be present with the name '<image_name>___save.png'. In both cases image with <image_name> should be already present on the platform."
+    )
+
+    logger.warning(
+        "Identically named existing pre-annotations will be overwritten."
+    )
+    return _upload_preannotations_from_folder_to_project(
+        project, folder_path, from_s3_bucket, recursive_subfolders
+    )
+
+
+def _upload_preannotations_from_folder_to_project(
+    project, folder_path, from_s3_bucket=None, recursive_subfolders=False
+):
+    return_result = []
+    if from_s3_bucket is not None:
+        if not folder_path.endswith('/'):
+            folder_path = folder_path + '/'
+    if recursive_subfolders:
         if from_s3_bucket is None:
             for path in Path(folder_path).glob('*'):
                 if path.is_dir():
-                    upload_preannotations_from_folder_to_project(
+                    return_result += _upload_preannotations_from_folder_to_project(
                         project, path, from_s3_bucket, recursive_subfolders
                     )
         else:
@@ -796,7 +823,7 @@ def upload_preannotations_from_folder_to_project(
             results = result.get('CommonPrefixes')
             if results is not None:
                 for o in results:
-                    upload_preannotations_from_folder_to_project(
+                    return_result += _upload_preannotations_from_folder_to_project(
                         project, o.get('Prefix'), from_s3_bucket,
                         recursive_subfolders
                     )
@@ -807,12 +834,6 @@ def upload_preannotations_from_folder_to_project(
         "Uploading all preannotations from %s to project ID %s.", folder_path,
         project_id
     )
-
-    logger.warning(
-        "The JSON files should follow specific naming convention. For Vector projects they should be named '<image_name>___objects.json', for Pixel projects JSON file should be names '<image_name>___pixel.json' and also second mask image file should be present with the name '<image_name>___save.png'. In both cases image with <image_name> should be already present on the platform."
-    )
-
-    logger.warning("Existing pre-annotations will be overwritten.")
 
     preannotations_paths = []
     preannotations_filenames = []
@@ -845,7 +866,7 @@ def upload_preannotations_from_folder_to_project(
         len_preannotations_paths, project_id
     )
     if len_preannotations_paths == 0:
-        return
+        return return_result
     params = {'team_id': team_id, 'creds_only': True, 'type': project_type}
     num_uploaded = [0] * _NUM_THREADS
     already_uploaded = [False] * len_preannotations_paths
@@ -886,7 +907,7 @@ def upload_preannotations_from_folder_to_project(
     finish_event.set()
     tqdm_thread.join()
     logger.info("Number of preannotations uploaded %s.", sum(num_uploaded))
-    return [str(p) for p in preannotations_paths]
+    return return_result + [str(p) for p in preannotations_paths]
 
 
 def share_project(project, user, user_role):
