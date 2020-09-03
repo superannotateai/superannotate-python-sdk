@@ -43,6 +43,7 @@ __________________
 - Set the annotation status of the images being uploaded
 - Export annotations from a project to a local or AWS S3 folder
 - Share and unshare a project with a team contributor
+- Invite a team contributor
 - Search images in a project
 - Download a single image
 - Get image bytes (e.g., for numpy array creation)
