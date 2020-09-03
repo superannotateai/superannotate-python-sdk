@@ -12,14 +12,12 @@ packages = find_packages()
 
 setup(
     name='superannotate',
-    version='0.2.4',
+    version='1.0.0',
     description='Python SDK to SuperAnnotate platform',
     license='MIT',
     author='Hovnatan Karapetyan',
     author_email='hovnatan@superannotate.com',
     url='https://github.com/superannotateai/superannotate-python-sdk',
-    download_url=
-    'https://github.com/superannotateai/superannotate-python-sdk/archive/v0.1.4-beta.tar.gz',
     long_description=readme,
     long_description_content_type='text/markdown',
     install_requires=requirements,
