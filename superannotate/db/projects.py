@@ -228,7 +228,8 @@ def upload_images_from_folder_to_project(
         for response in response_iterator:
             for object_data in response['Contents']:
                 key = object_data['Key']
-                if not recursive_subfolders and '/' in key[len(folder_path) + 1:]:
+                if not recursive_subfolders and '/' in key[len(folder_path) +
+                                                           1:]:
                     continue
                 for extension in extensions:
                     if key.endswith(f'.{extension}'):
@@ -521,7 +522,7 @@ def __upload_annotations_thread(
                 else:
                     file = io.BytesIO()
                     from_s3_object = from_s3.Object(
-                        from_s3_bucket, folder_path + '/' + mask_filename
+                        from_s3_bucket, folder_path + mask_filename
                     )
                     from_s3_object.download_fileobj(file)
                     file.seek(0)
@@ -577,7 +578,8 @@ def upload_annotations_from_folder_to_project(
             if results is not None:
                 for o in results:
                     upload_annotations_from_folder_to_project(
-                        project, o.get('Prefix'), from_s3_bucket, recursive_subfolders
+                        project, o.get('Prefix'), from_s3_bucket,
+                        recursive_subfolders
                     )
 
     team_id, project_id, project_type = project["team_id"], project[
@@ -726,7 +728,7 @@ def __upload_preannotations_thread(
             else:
                 file = io.BytesIO()
                 from_s3_object = from_s3.Object(
-                    from_s3_bucket, folder_path + '/' + mask_filename
+                    from_s3_bucket, folder_path + mask_filename
                 )
                 from_s3_object.download_fileobj(file)
                 file.seek(0)
@@ -795,7 +797,8 @@ def upload_preannotations_from_folder_to_project(
             if results is not None:
                 for o in results:
                     upload_preannotations_from_folder_to_project(
-                        project, o.get('Prefix'), from_s3_bucket, recursive_subfolders
+                        project, o.get('Prefix'), from_s3_bucket,
+                        recursive_subfolders
                     )
 
     team_id, project_id, project_type = project["team_id"], project[
