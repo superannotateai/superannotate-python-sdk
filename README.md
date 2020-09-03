@@ -1,6 +1,6 @@
 <img src="./docs/source/sa_logo.png" width="200">
 
-# SuperAnnotate Python SDK (beta)
+# SuperAnnotate Python SDK
 
 SuperAnnotate Python SDK allows access to the platform without
  web browser:

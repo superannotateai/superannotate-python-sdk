@@ -16,7 +16,7 @@
    superannotate.sdk.rst
    metadata_ref.rst
 
-SuperAnnotate Python SDK (beta) documentation
+SuperAnnotate Python SDK documentation
 ==================================================================
 
 SuperAnnotate Python SDK allows access to the platform without web browser:
