@@ -20,13 +20,18 @@ def test_export_s3(tmpdir):
                 key = object_data['Key']
                 s3_client.delete_object(Bucket=S3_BUCKET, Key=key)
     tmpdir = Path(tmpdir)
-    project = sa.search_projects("Example Project 1")[0]
+    project = sa.create_project("Example project test", "test", "Vector")
+
+    sa.upload_images_from_folder_to_project(
+        project,
+        Path("./tests/sample_project_vector"),
+        annotation_status="InProgress"
+    )
     images = sa.search_images(project)
     for img in images:
         sa.set_image_annotation_status(img, 'QualityCheck')
 
-    new_export = sa.get_exports(project)[-1]
-    # new_export = sa.prepare_export(project)
+    new_export = sa.prepare_export(project)
     sa.download_export(new_export, S3_PREFIX, to_s3_bucket=S3_BUCKET)
 
     files = []

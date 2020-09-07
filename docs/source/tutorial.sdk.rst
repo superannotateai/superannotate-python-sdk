@@ -22,7 +22,7 @@ for COCO annotation format converters support also need to install:
    pip install 'git+https://github.com/cocodataset/panopticapi.git'
    pip install 'git+https://github.com/philferriere/cocoapi.git#egg=pycocotools&subdirectory=PythonAPI'
 
-The package officially supports Python 3.5+.
+The package officially supports Python 3.6+.
 
 Authentication token
 ____________________

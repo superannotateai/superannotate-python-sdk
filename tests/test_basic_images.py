@@ -32,7 +32,7 @@ def test_basic_images(project_type, name, description, from_folder, tmpdir):
     sa.upload_images_from_folder_to_project(
         project, from_folder, annotation_status="InProgress"
     )
-    old_to_new_classes_conversion = sa.create_annotation_classes_from_classes_json(
+    sa.create_annotation_classes_from_classes_json(
         project, from_folder / "classes" / "classes.json"
     )
     images = sa.search_images(project, "example_image_1")
@@ -57,7 +57,7 @@ def test_basic_images(project_type, name, description, from_folder, tmpdir):
         )[0],
         None if project_type == "Vector" else sa.image_path_to_annotation_paths(
             from_folder / images[0]["name"], project_type
-        )[1], old_to_new_classes_conversion
+        )[1]
     )
     assert sa.get_image_annotations(images[0]
                                    )["annotation_json_filename"] is not None
@@ -89,11 +89,3 @@ def test_basic_images(project_type, name, description, from_folder, tmpdir):
         assert found
 
     sa.delete_project(project)
-
-
-def test_large_project_images():
-    project = sa.search_projects("test_ya14")[0]
-    images = sa.search_images(project)
-    assert len(images) == 38675
-    image_info = sa.get_image_metadata(images[0])
-    assert image_info["name"] == images[0]["name"]

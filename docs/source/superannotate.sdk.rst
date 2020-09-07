@@ -58,6 +58,9 @@ ______
 .. autofunction:: superannotate.get_image_preannotations
 .. autofunction:: superannotate.download_image_annotations
 .. autofunction:: superannotate.download_image_preannotations
+.. autofunction:: superannotate.upload_annotations_from_json_to_image
+.. autofunction:: superannotate.upload_annotations_from_file_to_image
+.. autofunction:: superannotate.add_image_annotation_bbox
 
 ----------
 

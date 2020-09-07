@@ -195,5 +195,5 @@ def download_annotation_classes_json(project, folder):
     )
     clss = search_annotation_classes(project)
     filepath = Path(folder) / "classes.json"
-    json.dump(clss, open(filepath, "w"), indent=2)
+    json.dump(clss, open(filepath, "w"), indent=4)
     return str(filepath)

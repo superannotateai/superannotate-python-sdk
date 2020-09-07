@@ -32,7 +32,7 @@ pip install 'git+https://github.com/philferriere/cocoapi.git#egg=pycocotools&sub
 ```
 
 
-The package officially supports Python 3.5+.
+The package officially supports Python 3.6+.
 
 ## Supported Features
 

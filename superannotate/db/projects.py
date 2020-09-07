@@ -17,16 +17,14 @@ from ..common import (
     project_type_str_to_int, user_role_str_to_int
 )
 from ..exceptions import SABaseException
-from .annotation_classes import (
-    create_annotation_classes_from_classes_json, search_annotation_classes
-)
+from .annotation_classes import search_annotation_classes
 
 logger = logging.getLogger("superannotate-python-sdk")
 
 _api = API.get_instance()
 _NUM_THREADS = 10
 
-_RESIZE_CONFIG = {2: 4000000, 1: 100000000}  # 1: vector 2: pixel
+_RESIZE_CONFIG = {2: 4_000_000, 1: 100_000_000}  # 1: vector 2: pixel
 
 
 def search_projects(name_prefix=None):
@@ -255,7 +253,8 @@ def __upload_images_to_aws_thread(
     chunksize,
     already_uploaded,
     num_uploaded,
-    from_s3_bucket=None
+    from_s3_bucket=None,
+    image_quality=100
 ):
     project_type = project["type"]
     len_img_paths = len(img_paths)
@@ -289,45 +288,44 @@ def __upload_images_to_aws_thread(
             file.seek(0)
             im = Image.open(file)
         else:
-            im = Image.open(path)
+            with open(path, "rb") as f:
+                file = io.BytesIO(f.read())
+            file.seek(0)
+            im = Image.open(file)
         width, height = im.size
         max_size = _RESIZE_CONFIG[project_type]
+        byte_io = file
         if (width * height) > max_size:
             max_size_root = math.sqrt(max_size)
             nwidth = math.floor(max_size_root * math.sqrt(width / height))
             nheight = math.floor(max_size_root * math.sqrt(height / width))
             im = im.resize((nwidth, nheight))
-        byte_io = io.BytesIO()
-        im.convert('RGB').save(byte_io, 'JPEG')
+            im.convert('RGB').save(
+                byte_io, im.format, subsampling=0, quality=100
+            )
         byte_io.seek(0)
         try:
-            bucket.put_object(Body=byte_io, Key=key, ContentType="image/jpeg")
+            bucket.put_object(Body=byte_io, Key=key)
         except Exception as e:
             logger.warning("Unable to upload to data server %s", e)
             break
         byte_io = io.BytesIO()
-        im.convert('RGB').save(byte_io, 'JPEG', dpi=(96, 96))
+        im.convert('RGB').save(
+            byte_io, 'JPEG', subsampling=0, quality=image_quality
+        )
         byte_io.seek(0)
         try:
-            bucket.put_object(
-                Body=byte_io,
-                Key=key + '___lores.jpg',
-                ContentType="image/jpeg"
-            )
+            bucket.put_object(Body=byte_io, Key=key + '___lores.jpg')
         except Exception as e:
-            logger.warning("Unable to upload to data server %s", e)
+            logger.warning("Unable to upload to data server %s.", e)
             break
         byte_io = io.BytesIO()
-        im.convert('RGB').resize((128, 96)).save(byte_io, 'JPEG', dpi=(96, 96))
+        im.convert('RGB').resize((128, 96)).save(byte_io, 'JPEG')
         byte_io.seek(0)
         try:
-            bucket.put_object(
-                Body=byte_io,
-                Key=key + '___thumb.jpg',
-                ContentType="image/jpeg"
-            )
+            bucket.put_object(Body=byte_io, Key=key + '___thumb.jpg')
         except Exception as e:
-            logger.warning("Unable to upload to data server %s", e)
+            logger.warning("Unable to upload to data server %s.", e)
             break
         num_uploaded[thread_id] += 1
         already_uploaded[i] = True
@@ -364,7 +362,11 @@ def __create_image(img_paths, project, annotation_status, remote_dir):
 
 
 def upload_images_to_project(
-    project, img_paths, annotation_status="NotStarted", from_s3_bucket=None
+    project,
+    img_paths,
+    annotation_status="NotStarted",
+    from_s3_bucket=None,
+    image_quality=100
 ):
     """Uploads all images given in list of path objects in img_paths to the project.
     Sets status of all the uploaded images to set_status if it is not None.
@@ -377,6 +379,8 @@ def upload_images_to_project(
     :type annotation_status: str
     :param from_s3_bucket: AWS S3 bucket to use. If None then folder_path is in local filesystem
     :type from_s3_bucket: str
+    :param image_quality: image quality (in percents) to use for upload
+    :type image_quality: int
 
     :return: uploaded images' filepaths
     :rtype: list of str
@@ -424,7 +428,7 @@ def upload_images_to_project(
                 args=(
                     res, img_paths, project, annotation_status, prefix,
                     thread_id, chunksize, already_uploaded, num_uploaded,
-                    from_s3_bucket
+                    from_s3_bucket, image_quality
                 )
             )
             threads.append(t)

@@ -44,7 +44,9 @@ def test_from_s3_upload():
         if 'Contents' in response:
             for object_data in response['Contents']:
                 key = object_data['Key']
+                if '/' in key[len(S3_PREFIX) + 1:]:
+                    continue
                 files.append(key)
 
-    assert len(files) == 4
-    assert len(sa.search_images(project)) == 1
+    assert len(files) == 12
+    assert len(sa.search_images(project)) == 4

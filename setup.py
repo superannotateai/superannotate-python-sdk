@@ -26,5 +26,5 @@ setup(
     # entry_points={
     #     'console_scripts': ['superannotate = superannotate.__main__:main']
     # },
-    python_requires='>=3.5'
+    python_requires='>=3.6'
 )

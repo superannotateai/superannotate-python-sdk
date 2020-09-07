@@ -16,7 +16,8 @@ from .db.images import (
     download_image, download_image_annotations, download_image_preannotations,
     get_image_annotations, get_image_bytes, get_image_metadata,
     get_image_preannotations, search_images, set_image_annotation_status,
-    upload_annotations_from_file_to_image
+    upload_annotations_from_file_to_image,
+    upload_annotations_from_json_to_image, add_image_annotation_bbox
 )
 from .db.projects import (
     create_project, delete_project, get_project_image_count,

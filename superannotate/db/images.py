@@ -127,6 +127,34 @@ def set_image_annotation_status(image, annotation_status):
     return response.json()
 
 
+def add_image_annotation_bbox(image, bbox, annotation_class_name, error=None):
+    """Add an bounding box annotation to image annotations
+
+    :param project: metadata of the image
+    :type project: dict
+    :param bbox: 4 element list of top-left x,y and bottom-right x, y coordinates
+    :type bbox: list of floats
+    :param annotation_class_name: annotation class name
+    :type annotation_class_name: str
+    :param error: if not None, marks annotation as error (True) or no-error (False)
+    :type error: bool
+    """
+    annotation = {
+        "type": "bbox",
+        "points": {
+            "x1": bbox[0],
+            "y1": bbox[1],
+            "x2": bbox[2],
+            "y2": bbox[3]
+        },
+        "className": annotation_class_name,
+        "error": error
+    }
+    annotations = get_image_annotations(image)["annotation_json"]
+    annotations.append(annotation)
+    upload_annotations_from_json_to_image(image, annotations)
+
+
 def get_image_metadata(image):
     """Return up-to-date image metadata
 
@@ -466,24 +494,63 @@ def download_image_preannotations(image, local_dir_path):
     return tuple(return_filepaths)
 
 
-def upload_annotations_from_file_to_image(
-    image, json_path, mask_path=None, old_to_new_classes_conversion=None
-):
+def upload_annotations_from_file_to_image(image, json_path, mask_path=None):
     """Upload annotations from json_path (also mask_path for pixel annotations)
     to the image.
-    Returns
-    -------
-    None
+
+    :param image: image metadata
+    :type image: dict
+    :param json_path: annotations in SuperAnnotate format json dict
+    :type json_path: Pathlike (str or Path)
+    :param mask_path: filepath to mask annotation for pixel projects in SuperAnnotate format
+    :type mask_path: Pathlike (str or Path)
+    """
+    annotation_json = json.load(open(json_path))
+    return upload_annotations_from_json_to_image(
+        image, annotation_json, mask_path
+    )
+
+
+def upload_annotations_from_json_to_image(
+    image, annotation_json, mask_path=None
+):
+    """Upload annotations from JSON (also mask_path for pixel annotations)
+    to the image.
+
+    :param image: image metadata
+    :type image: dict
+    :param annotation_json: annotations in SuperAnnotate format JSON dict
+    :type annotation_json: dict
+    :param mask_path: filepath to mask annotation for pixel projects in SuperAnnotate format
+    :type mask_path: Pathlike (str or Path)
     """
 
     team_id, project_id, image_id, folder_id, image_name = image[
         "team_id"], image["project_id"], image["id"], image['folder_id'], image[
             'name']
-    project_type = _get_project_type({'id': project_id, 'team_id': team_id})
+    project = {'id': project_id, 'team_id': team_id}
+    project_type = _get_project_type(project)
     logger.info(
-        "Uploading annotations from file %s for image %s in project %s.",
-        json_path, image_name, project_id
+        "Uploading annotations for image %s in project %s.", image_name,
+        project_id
     )
+    annotation_classes = search_annotation_classes(project)
+    annotation_classes_dict = {}
+    for annotation_class in annotation_classes:
+        if annotation_class["name"] in annotation_classes_dict:
+            logger.warning(
+                "Duplicate annotation class name %s. Only one of the annotation classes will be used. This will result in errors in annotation upload.",
+                annotation_class["name"]
+            )
+        annotation_classes_dict[annotation_class["name"]] = annotation_class
+    for ann in annotation_json:
+        annotation_class_name = ann["className"]
+        if not annotation_class_name in annotation_classes_dict:
+            raise SABaseException(
+                0, "Couldn't find annotation class " + annotation_class_name
+            )
+        class_id = annotation_classes_dict[annotation_class_name]["id"]
+        ann["classId"] = class_id
     params = {
         'team_id': team_id,
         'project_id': project_id,
@@ -494,17 +561,6 @@ def upload_annotations_from_file_to_image(
         path=f'/image/{image_id}/annotation/getAnnotationUploadToken',
         params=params
     )
-    annotation_json = json.load(open(json_path))
-    if old_to_new_classes_conversion is not None:
-        for annotation in annotation_json:
-            if 'classId' not in annotation:
-                continue
-            if annotation['classId'] == -1:
-                continue
-            old_id = annotation["classId"]
-            if old_id in old_to_new_classes_conversion:
-                new_id = old_to_new_classes_conversion[old_id]
-                annotation["classId"] = new_id
     if response.ok:
         res = response.json()
         if project_type == 1:  # vector
