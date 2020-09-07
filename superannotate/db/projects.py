@@ -166,7 +166,8 @@ def upload_images_from_folder_to_project(
     annotation_status="NotStarted",
     from_s3_bucket=None,
     exclude_file_pattern="___save.png",
-    recursive_subfolders=False
+    recursive_subfolders=False,
+    image_quality_in_editor=60
 ):
     """Uploads all images with given extensions from folder_path to the project.
     Sets status of all the uploaded images to set_status if it is not None.
@@ -187,6 +188,8 @@ def upload_images_from_folder_to_project(
     :type exclude_file_pattern: str
     :param recursive_subfolders: enable recursive subfolder parsing
     :type recursive_subfolders: bool
+    :param image_quality_in_editor: image quality (in percents) that will be seen in SuperAnnotate web annotation editor
+    :type image_quality_in_editor: int
 
     :return: uploaded images' filepaths
     :rtype: list
@@ -239,7 +242,8 @@ def upload_images_from_folder_to_project(
             filtered_paths.append(path)
 
     return upload_images_to_project(
-        project, filtered_paths, annotation_status, from_s3_bucket
+        project, filtered_paths, annotation_status, from_s3_bucket,
+        image_quality_in_editor
     )
 
 
@@ -254,7 +258,7 @@ def __upload_images_to_aws_thread(
     already_uploaded,
     num_uploaded,
     from_s3_bucket=None,
-    image_quality=100
+    image_quality_in_editor=60
 ):
     project_type = project["type"]
     len_img_paths = len(img_paths)
@@ -311,7 +315,10 @@ def __upload_images_to_aws_thread(
             break
         byte_io = io.BytesIO()
         im.convert('RGB').save(
-            byte_io, 'JPEG', subsampling=0, quality=image_quality
+            byte_io,
+            'JPEG',
+            subsampling=0 if image_quality_in_editor > 60 else 2,
+            quality=image_quality_in_editor
         )
         byte_io.seek(0)
         try:
@@ -366,7 +373,7 @@ def upload_images_to_project(
     img_paths,
     annotation_status="NotStarted",
     from_s3_bucket=None,
-    image_quality=100
+    image_quality_in_editor=60
 ):
     """Uploads all images given in list of path objects in img_paths to the project.
     Sets status of all the uploaded images to set_status if it is not None.
@@ -379,8 +386,8 @@ def upload_images_to_project(
     :type annotation_status: str
     :param from_s3_bucket: AWS S3 bucket to use. If None then folder_path is in local filesystem
     :type from_s3_bucket: str
-    :param image_quality: image quality (in percents) to use for upload
-    :type image_quality: int
+    :param image_quality_in_editor: image quality (in percents) that will be seen in SuperAnnotate web annotation editor
+    :type image_quality_in_editor: int
 
     :return: uploaded images' filepaths
     :rtype: list of str
@@ -428,7 +435,7 @@ def upload_images_to_project(
                 args=(
                     res, img_paths, project, annotation_status, prefix,
                     thread_id, chunksize, already_uploaded, num_uploaded,
-                    from_s3_bucket, image_quality
+                    from_s3_bucket, image_quality_in_editor
                 )
             )
             threads.append(t)
