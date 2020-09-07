@@ -151,8 +151,17 @@ def add_image_annotation_bbox(image, bbox, annotation_class_name, error=None):
         "error": error
     }
     annotations = get_image_annotations(image)["annotation_json"]
+    if annotations is None:
+        annotations = [
+            {
+                "type": "meta",
+                "name": "lastAction",
+                "timestamp": 1599484630332,
+                "userId": ""
+            }
+        ]
     annotations.append(annotation)
-    upload_annotations_from_json_to_image(image, annotations)
+    upload_annotations_from_json_to_image(image, annotations, verbose=False)
 
 
 def get_image_metadata(image):
@@ -190,23 +199,20 @@ def download_image(
     :param include_annotations: enables annotation download with the image
     :type include_annotations: bool
     :param variant: which resolution to download, can be 'original' or 'lores'
-     (low resolution)
+     (low resolution used in web editor)
     :type variant: str
 
     :return: paths of downloaded image and annotations if included
     :rtype: tuple
     """
     image_id, image_name = image["id"], image['name']
-    logger.info(
-        "Downloading image %s (ID %s) to %s", image_name, image_id,
-        local_dir_path
-    )
-
     if not Path(local_dir_path).is_dir():
         raise SABaseException(
             0, f"local_dir_path {local_dir_path} is not an existing directory"
         )
     img = get_image_bytes(image, variant=variant)
+    if variant == "lores":
+        image_name += "___lores.jpg"
     filepath = Path(local_dir_path) / image_name
     with open(filepath, 'wb') as f:
         f.write(img.getbuffer())
@@ -215,7 +221,11 @@ def download_image(
         annotations_filepaths = download_image_annotations(
             image, local_dir_path
         )
-    return (filepath, annotations_filepaths)
+    logger.info(
+        "Downloaded image %s (ID %s) to %s", image_name, image_id, filepath
+    )
+
+    return (str(filepath), annotations_filepaths)
 
 
 def get_image_bytes(image, variant='original'):
@@ -441,7 +451,7 @@ def download_image_annotations(image, local_dir_path):
         return None
     return_filepaths = []
     json_path = Path(local_dir_path) / annotation["annotation_json_filename"]
-    return_filepaths.append(json_path)
+    return_filepaths.append(str(json_path))
     if project_type == 1:
         with open(json_path, "w") as f:
             json.dump(annotation["annotation_json"], f, indent=4)
@@ -450,7 +460,7 @@ def download_image_annotations(image, local_dir_path):
             json.dump(annotation["annotation_json"], f, indent=4)
         mask_path = Path(local_dir_path
                         ) / annotation["annotation_mask_filename"]
-        return_filepaths.append(mask_path)
+        return_filepaths.append(str(mask_path))
         with open(mask_path, "wb") as f:
             f.write(annotation["annotation_mask"].getbuffer())
 
@@ -494,7 +504,9 @@ def download_image_preannotations(image, local_dir_path):
     return tuple(return_filepaths)
 
 
-def upload_annotations_from_file_to_image(image, json_path, mask_path=None):
+def upload_annotations_from_file_to_image(
+    image, json_path, mask_path=None, verbose=True
+):
     """Upload annotations from json_path (also mask_path for pixel annotations)
     to the image.
 
@@ -506,13 +518,15 @@ def upload_annotations_from_file_to_image(image, json_path, mask_path=None):
     :type mask_path: Pathlike (str or Path)
     """
     annotation_json = json.load(open(json_path))
+    if verbose:
+        logger.info("Uploading annotations from %s.", json_path)
     return upload_annotations_from_json_to_image(
         image, annotation_json, mask_path
     )
 
 
 def upload_annotations_from_json_to_image(
-    image, annotation_json, mask_path=None
+    image, annotation_json, mask_path=None, verbose=True
 ):
     """Upload annotations from JSON (also mask_path for pixel annotations)
     to the image.
@@ -530,10 +544,11 @@ def upload_annotations_from_json_to_image(
             'name']
     project = {'id': project_id, 'team_id': team_id}
     project_type = _get_project_type(project)
-    logger.info(
-        "Uploading annotations for image %s in project %s.", image_name,
-        project_id
-    )
+    if verbose:
+        logger.info(
+            "Uploading annotations for image %s in project %s.", image_name,
+            project_id
+        )
     annotation_classes = search_annotation_classes(project)
     annotation_classes_dict = {}
     for annotation_class in annotation_classes:
@@ -544,6 +559,8 @@ def upload_annotations_from_json_to_image(
             )
         annotation_classes_dict[annotation_class["name"]] = annotation_class
     for ann in annotation_json:
+        if "userId" in ann and ann["type"] == "meta":
+            continue
         annotation_class_name = ann["className"]
         if not annotation_class_name in annotation_classes_dict:
             raise SABaseException(

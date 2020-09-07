@@ -513,6 +513,8 @@ def __upload_annotations_thread(
                 annotation_json = json.load(file)
 
             for ann in annotation_json:
+                if "userId" in ann and ann["type"] == "meta":
+                    continue
                 annotation_class_name = ann["className"]
                 if not annotation_class_name in annotation_classes_dict:
                     logger.error(
@@ -728,6 +730,8 @@ def __upload_preannotations_thread(
             annotation_json = json.load(file)
 
         for ann in annotation_json:
+            if "userId" in ann and ann["type"] == "meta":
+                continue
             annotation_class_name = ann["className"]
             if not annotation_class_name in annotation_classes_dict:
                 logger.error(
