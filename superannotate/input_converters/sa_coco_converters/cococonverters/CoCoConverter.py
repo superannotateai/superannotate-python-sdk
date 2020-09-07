@@ -9,13 +9,21 @@ from PIL import Image
 
 
 class CoCoConverter(object):
-    def __init__(self, dataset_name_, export_root_, project_type_, output_dir_, task_ = None):
+    def __init__(
+        self,
+        dataset_name_,
+        export_root_,
+        project_type_,
+        output_dir_,
+        task_=None
+    ):
         self.project_type = project_type_
         self.dataset_name = dataset_name_
         self.export_root = export_root_
         self.output_dir = output_dir_
         self.task = task_
         self.failed_conversion_cnt = 0
+
     def _create_single_category(self, item):
         category = {
             'id': item.id,
@@ -37,6 +45,7 @@ class CoCoConverter(object):
 
     def increase_converted_count(self):
         self.failed_conversion_cnt = self.failed_conversion_cnt + 1
+
     def set_num_converted(self, num_converted_):
         self.num_converted = num_converted_
 
@@ -138,7 +147,7 @@ class CoCoConverter(object):
         img_width, img_height = Image.open(image_path).size
         image_info = {
             'id': id_,
-            'file_name': image_path[len(self.output_dir) + 1:],
+            'file_name': image_path[len(self.output_dir):],
             'height': img_height,
             'width': img_width,
             'license': 1

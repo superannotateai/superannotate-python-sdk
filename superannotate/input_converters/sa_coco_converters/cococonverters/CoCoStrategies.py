@@ -6,23 +6,32 @@ from collections import namedtuple
 from tqdm import tqdm
 from PIL import Image
 from panopticapi.utils import IdGenerator, id2rgb
+
 from .CoCoConverter import CoCoConverter
 from .SaPixelToCoco import sa_pixel_to_coco_instance_segmentation, sa_pixel_to_coco_panoptic_segmentation, sa_pixel_to_coco_object_detection
 from .SaVectorToCoco import sa_vector_to_coco_instance_segmentation, sa_vector_to_coco_keypoint_detection, sa_vector_to_coco_object_detection
+from .CocoToSaPixel import coco_panoptic_segmentation_to_sa_pixel
+from .CocoToSaVector import coco_keypoint_detection_to_sa_vector, coco_instance_segmentation_to_sa_vector
+
 
 class PanopticConverterStrategy(CoCoConverter):
     name = "Panoptic converter"
 
-    def __init__(self, dataset_name, export_root, project_type, output_dir):
+    def __init__(
+        self, dataset_name, export_root, project_type, output_dir, direction
+    ):
         super().__init__(dataset_name, export_root, project_type, output_dir)
-        self.__set_conversion_algorithm()
+        self.direction = direction
+        self.__setup_conversion_algorithm()
 
-    def __set_conversion_algorithm(self):
-
-        if self.project_type == 'pixel':
-            self.conversion_algorithm = sa_pixel_to_coco_panoptic_segmentation
-        elif self.project_type == 'vector':
-            pass
+    def __setup_conversion_algorithm(self):
+        if self.direction == "to":
+            if self.project_type == 'pixel':
+                self.conversion_algorithm = sa_pixel_to_coco_panoptic_segmentation
+            elif self.project_type == 'vector':
+                pass
+        else:
+            self.conversion_algorithm = coco_panoptic_segmentation_to_sa_pixel
 
     def __str__(self, ):
         return '{} object'.format(self.name)
@@ -35,7 +44,6 @@ class PanopticConverterStrategy(CoCoConverter):
         return res
 
     def sa_to_output_format(self):
-
         out_json = self._create_skeleton()
         out_json['categories'] = self._create_categories(
             os.path.join(self.export_root, 'classes_mapper.json')
@@ -80,12 +88,19 @@ class PanopticConverterStrategy(CoCoConverter):
 
         self.set_num_converted(len(jsons))
 
+    def to_sa_format(self):
+        json = os.path.join(self.export_root, self.dataset_name + ".json")
+        loader = self.conversion_algorithm(json, self.output_dir)
+
+
 class ObjectDetectionStrategy(CoCoConverter):
     name = "ObjectDetection converter"
 
     def __init__(
-        self, dataset_name, export_root, project_type, output_dir, task
+        self, dataset_name, export_root, project_type, output_dir, task,
+        direction
     ):
+        self.direction = direction
         super().__init__(
             dataset_name, export_root, project_type, output_dir, task
         )
@@ -93,17 +108,20 @@ class ObjectDetectionStrategy(CoCoConverter):
 
     def __setup_conversion_algorithm(self):
 
-        if self.project_type == 'pixel':
-            if self.task == 'instance_segmentation':
-                self.conversion_algorithm = sa_pixel_to_coco_instance_segmentation
-            elif self.task == 'object_detection':
-                self.conversion_algorithm = sa_pixel_to_coco_object_detection
+        if self.direction == "to":
+            if self.project_type == 'pixel':
+                if self.task == 'instance_segmentation':
+                    self.conversion_algorithm = sa_pixel_to_coco_instance_segmentation
+                elif self.task == 'object_detection':
+                    self.conversion_algorithm = sa_pixel_to_coco_object_detection
 
-        elif self.project_type == 'vector':
-            if self.task == 'instance_segmentation':
-                self.conversion_algorithm = sa_vector_to_coco_instance_segmentation
-            elif self.task == 'object_detection':
-                self.conversion_algorithm = sa_vector_to_coco_object_detection
+            elif self.project_type == 'vector':
+                if self.task == 'instance_segmentation':
+                    self.conversion_algorithm = sa_vector_to_coco_instance_segmentation
+                elif self.task == 'object_detection':
+                    self.conversion_algorithm = sa_vector_to_coco_object_detection
+        else:
+            self.conversion_algorithm = coco_instance_segmentation_to_sa_vector
 
     def __str__(self, ):
         return '{} object'.format(self.name)
@@ -117,7 +135,13 @@ class ObjectDetectionStrategy(CoCoConverter):
             category_id, image_id, bbox, segmentation, area, anno_id
         ):
             if self.task == 'object_detection':
-                segmentation = [[bbox[0], bbox[1], bbox[0], bbox[1] + bbox[3], bbox[0] + bbox[2], bbox[1] + bbox[3], bbox[0] + bbox[2], bbox[1]]]
+                segmentation = [
+                    [
+                        bbox[0], bbox[1], bbox[0], bbox[1] + bbox[3],
+                        bbox[0] + bbox[2], bbox[1] + bbox[3], bbox[0] + bbox[2],
+                        bbox[1]
+                    ]
+                ]
             annotation = {
                 'id': anno_id,  # making sure ids are unique
                 'image_id': image_id,
@@ -151,7 +175,7 @@ class ObjectDetectionStrategy(CoCoConverter):
             except Exception as e:
                 raise
             images.append(res[0])
-            if len(res[1])<1:
+            if len(res[1]) < 1:
                 self.increase_converted_count()
             for ann in res[1]:
                 annotations.append(ann)
@@ -168,18 +192,31 @@ class ObjectDetectionStrategy(CoCoConverter):
 
         self.set_num_converted(len(jsons))
 
+    def to_sa_format(self):
+        json = os.path.join(self.export_root, self.dataset_name + ".json")
+        loader = self.conversion_algorithm(json, self.output_dir)
+
+
 class KeypointDetectionStrategy(CoCoConverter):
     name = 'Keypoint Detection Converter'
 
-    def __init__(self, dataset_name, export_root, project_type, output_dir):
-        super().__init__(dataset_name, export_root, project_type, output_dir)
+    def __init__(
+        self, dataset_name, export_root, project_type, output_dir, direction
+    ):
+        super().__init__(
+            dataset_name, export_root, project_type, output_dir, direction
+        )
+        self.direction = direction
         self.__setup_conversion_algorithm()
 
     def __str__(self):
         return '{} object'.format(self.name)
 
     def __setup_conversion_algorithm(self):
-        self.conversion_algorithm = sa_vector_to_coco_keypoint_detection
+        if self.direction == "to":
+            self.conversion_algorithm = sa_vector_to_coco_keypoint_detection
+        else:
+            self.conversion_algorithm = coco_keypoint_detection_to_sa_vector
 
     def __make_image_info(self, json_path, id_, source_type):
         if source_type == 'pixel':
@@ -192,7 +229,7 @@ class KeypointDetectionStrategy(CoCoConverter):
         img_width, img_height = Image.open(image_path).size
         image_info = {
             'id': id_,
-            'file_name': image_path[len('output') + 1:],
+            'file_name': image_path[len(self.output_dir):],
             'height': img_height,
             'width': img_width,
             'license': 1
@@ -227,3 +264,7 @@ class KeypointDetectionStrategy(CoCoConverter):
             coco_json.write(json_data)
 
         self.set_num_converted(len(out_json['images']))
+
+    def to_sa_format(self):
+        json = os.path.join(self.export_root, self.dataset_name + ".json")
+        loader = self.conversion_algorithm(json, self.output_dir)

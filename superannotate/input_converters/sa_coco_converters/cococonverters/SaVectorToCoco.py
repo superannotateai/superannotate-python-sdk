@@ -36,6 +36,7 @@ def sa_vector_to_coco_object_detection(
 
 
     return image_info, annotations_per_image
+
 def sa_vector_to_coco_instance_segmentation(
     make_annotation, image_commons, id_generator
 ):
@@ -68,7 +69,7 @@ def sa_vector_to_coco_instance_segmentation(
                 area = int(cocomask.area(mask))
                 bbox = cocomask.toBbox(mask).tolist()
                 annotation = make_annotation(
-                    category_id, image_info['id'], bbox, polygons, area, anno_id
+                    cat_id, image_info['id'], bbox, polygons, area, anno_id
                 )
                 annotations_per_image.append(annotation)
             except Exception as e:
@@ -88,16 +89,13 @@ def sa_vector_to_coco_keypoint_detection(
         return res
 
     def __make_keypoints(template):
-        print(template)
         int_dict = {
             int(key): value
             for key, value in template['pointLabels'].items()
         }
-
-        print("arinq")
-        print(int_dict)
-        res =  [int_dict[i] for i in range(1, len( int_dict) + 1)]
-        print(res)
+        
+        # print(int_dict)
+        res =  [int_dict[i] for i in range(len(int_dict))]
         return res
 
     def __make_bbox(points):
@@ -162,8 +160,8 @@ def sa_vector_to_coco_keypoint_detection(
                 skeleton = __make_skeleton(instance)
                 keypoints = __make_keypoints(instance)
                 id_ = next(id_generator)
-                supercategory = str(instance['templateId'])
-                name = str(instance['templateId'])
+                supercategory = instance["classId"]
+                name = instance["className"]
             except Exception as e:
                 logging.error(e)
             category_item = {
@@ -182,8 +180,9 @@ def sa_vector_to_coco_keypoint_detection(
             cat_id = None
             if instance['type'] == 'template':
                 for cat in categories:
-                    if cat['name'] == instance['templateId']:
-                        cat_id = cat['id']
+                    if cat["name"] == instance["className"]:
+                    # if cat['name'] == instance['templateId']:
+                        cat_id = cat['supercategory']
 
                 annotation = __make_annotations(
                     instance, id_generator_anno, cat_id, image_info['id']

@@ -1,0 +1,240 @@
+import json
+import os
+import numpy as np
+
+import superannotate as sa
+
+
+def check_img_annot(init_values, final_values, ptype):
+    image_annotations_ok = True
+    for key in init_values.keys():
+        try:
+            assert init_values[key]["size"]["height"] == final_values[key][
+                "size"]["height"]
+            assert init_values[key]["size"]["width"] == final_values[key][
+                "size"]["width"]
+
+            for init_seg, final_seg in zip(
+                init_values[key]["segments_info"],
+                final_values[key]["segments_info"]
+            ):
+                assert init_seg["category_id"] == final_seg["category_id"]
+                if ptype == "panoptic":
+                    assert init_seg["bbox"] == final_seg["bbox"]
+                    assert init_seg["area"] == final_seg["area"]
+                elif ptype == "instances":
+                    assert init_seg["category_id"] == final_seg["category_id"]
+                    assert np.all(
+                        np.abs(
+                            np.array(init_seg["bbox"]) -
+                            np.array(final_seg["bbox"]) < 3
+                        )
+                    )
+                elif ptype == "keypoints":
+                    final_bbox = np.array(final_seg["keypoints"]) 
+                    final_bbox[final_bbox<0] = 0
+                    init_bbox = np.array([v for i, v in enumerate(init_seg["keypoints"]) if (i+1)%3 != 0])
+                    final_bbox = np.array([v for i, v in enumerate(final_bbox) if (i+1)%3 != 0])
+                    assert np.all(init_bbox == final_bbox)
+                else:
+                    raise ValueError("Unknown type.")
+        except Exception as e:
+            image_annotations_ok = False
+            break
+    return image_annotations_ok
+
+
+def check_categories(initial_categories_list, final_categories_list, ptype):
+    categories_ok = True
+    for init, final in zip(initial_categories_list, final_categories_list):
+        try:
+            assert init["id"] == final["id"]
+            if ptype == "keypoints":
+                assert init["skeleton"] == final["skeleton"]
+                assert set(init["keypoints"]) == set(final["keypoints"])
+            elif ptype=="panoptic" or ptype=="instances":
+                assert init["name"] == final["name"]
+            else:
+                raise ValueError("Unknown type")
+        except Exception as e:
+            categories_ok = False
+            break
+    return categories_ok
+
+
+def create_values(json_file, ptype):
+    image_list = json_file["images"]
+    annotation_list = json_file["annotations"]
+    values = {}
+
+    if ptype == 'panoptic':
+        for img, annot in zip(image_list, annotation_list):
+            key = img["file_name"].split("/")[-1].split(".")[0]
+            if key not in values:
+                values[key] = {"size": {}, "segments_info": {}}
+            values[key]["size"] = {
+                "height": img["height"],
+                "width": img["width"]
+            }
+
+            key = annot["file_name"].split("/")[-1].split(".")[0]
+            if key not in values:
+                values[key] = {"size": {}, "segments_info": {}}
+            values[key]["segments_info"] = annot["segments_info"]
+
+    elif ptype == 'instances':
+        cat_id_map = {}
+        for img in image_list:
+            key = img["file_name"].split("/")[-1].split(".")[0]
+            if key not in values:
+                values[key] = {"size": {}, "segments_info": []}
+            values[key]["size"] = {
+                "height": img["height"],
+                "width": img["width"]
+            }
+            cat_id_map[img["id"]] = key
+
+        for annot in annotation_list:
+            key = cat_id_map[annot["image_id"]]
+            values[key]["segments_info"].append(
+                {
+                    "segmentation": annot["segmentation"],
+                    "bbox": annot["bbox"],
+                    "category_id": annot["category_id"],
+                    "area": annot["area"]
+                }
+            )
+    else:
+        cat_id_map = {}
+        for img in image_list:
+            key = img["file_name"].split("/")[-1].split(".")[0]
+            if key not in values:
+                values[key] = {"size": {}, "segments_info": []}
+
+            values[key]["size"] = {
+                "height": img["height"],
+                "width": img["width"]
+            }
+            cat_id_map[img["id"]] = key
+
+        for annot in annotation_list:
+            key = cat_id_map[annot["image_id"]]
+            values[key]["segments_info"].append(
+                {
+                    "bbox": annot["bbox"],
+                    "category_id": annot["category_id"],
+                    "keypoints": annot["keypoints"]
+                }
+            )
+
+    return values
+
+def pipeline_panoptic():
+    INITIAL_FOLDER = "converter_test/COCO/input/toSuperAnnotate/panoptic_segmentation"
+    TEMP_FOLDER = "converter_test/COCO/pipeline/panoptic/coco2sa_out/"
+    FINAL_FOLDER = "converter_test/COCO/pipeline/panoptic/sa2coco_out/"
+
+    dataset_name = "panoptic_test"
+    sa.convert_annotation_format_from(
+        INITIAL_FOLDER, TEMP_FOLDER, "COCO", dataset_name,
+        "pixel", "panoptic_segmentation"
+    )
+
+    sa.convert_annotation_format_to(
+        TEMP_FOLDER, FINAL_FOLDER, "COCO", dataset_name, "pixel",
+        "panoptic_segmentation", 100
+    )
+
+    initial_json = json.load(
+        open(os.path.join(INITIAL_FOLDER, dataset_name + ".json"))
+    )
+    final_json = json.load(
+        open(os.path.join(FINAL_FOLDER, dataset_name + "_train.json"))
+    )
+
+    ptype = "panoptic"
+    init_values = create_values(initial_json, ptype)
+    final_values = create_values(final_json, ptype)
+
+    initial_categories_list = initial_json["categories"]
+    final_categories_list = final_json["categories"]
+
+    return check_img_annot(
+        init_values, final_values, ptype
+    ) and check_categories(initial_categories_list, final_categories_list, ptype)
+
+
+def pipeline_instance():
+    INITIAL_FOLDER = "converter_test/COCO/input/toSuperAnnotate/instance_segmentation"
+    TEMP_FOLDER = "converter_test/COCO/pipeline/instances/coco2sa_out/"
+    FINAL_FOLDER = "converter_test/COCO/pipeline/instances/sa2coco_out/"
+
+    dataset_name = "instances_test"
+    sa.convert_annotation_format_from(
+        INITIAL_FOLDER, TEMP_FOLDER, "COCO", dataset_name,
+        "vector", "instance_segmentation"
+    )
+
+    sa.convert_annotation_format_to(
+        TEMP_FOLDER, FINAL_FOLDER, "COCO", dataset_name, "vector",
+        "instance_segmentation", 100
+    )
+
+    initial_json = json.load(
+        open(os.path.join(INITIAL_FOLDER, dataset_name + ".json"))
+    )
+    final_json = json.load(
+        open(os.path.join(FINAL_FOLDER, dataset_name + "_train.json"))
+    )
+
+    ptype = "instances"
+    init_values = create_values(initial_json, ptype)
+    final_values = create_values(final_json, ptype)
+
+    initial_categories_list = initial_json["categories"]
+    final_categories_list = final_json["categories"]
+
+    return check_img_annot(
+        init_values, final_values, ptype
+    ) and check_categories(initial_categories_list, final_categories_list, ptype)
+
+
+def pipeline_keypoint():
+    INITIAL_FOLDER = "converter_test/COCO/input/toSuperAnnotate/keypoint_detection"
+    TEMP_FOLDER = "converter_test/COCO/pipeline/keypoints/coco2sa_out/"
+    FINAL_FOLDER = "converter_test/COCO/pipeline/keypoints/sa2coco_out/"
+
+    dataset_name = "person_keypoints_test"
+    sa.convert_annotation_format_from(
+        INITIAL_FOLDER, TEMP_FOLDER, "COCO", dataset_name,
+        "vector", "keypoint_detection"
+    )
+    sa.convert_annotation_format_to(
+        TEMP_FOLDER, FINAL_FOLDER, "COCO", dataset_name, "vector",
+        "keypoint_detection", 100
+    )
+
+    initial_json = json.load(
+        open(os.path.join(INITIAL_FOLDER, dataset_name + ".json"))
+    )
+    final_json = json.load(
+        open(os.path.join(FINAL_FOLDER, dataset_name + "_train.json"))
+    )
+
+    ptype = "keypoints"
+    initial_values = create_values(initial_json, ptype)
+    final_values = create_values(final_json, ptype)
+
+    initial_categories_list = initial_json["categories"]
+    final_categories_list = final_json["categories"]
+
+    return check_img_annot(initial_values, final_values, ptype) and check_categories(initial_categories_list, final_categories_list, ptype)
+
+def test_pipeline():
+    assert pipeline_panoptic()
+    assert pipeline_instance()
+    assert pipeline_keypoint()
+
+# print("--> Panoptic : ",pipeline_panoptic())
+# print("--> Instances : ",pipeline_instance())
+# print("--> Keypoints : ",pipeline_keypoint())

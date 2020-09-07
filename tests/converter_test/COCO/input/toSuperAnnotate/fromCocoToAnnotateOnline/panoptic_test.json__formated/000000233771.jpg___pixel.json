@@ -1,0 +1,301 @@
+[
+  {
+    "classId": 1,
+    "probability": 100,
+    "visible": true,
+    "parts": [
+      {
+        "color": "#000000"
+      }
+    ],
+    "attributes": [],
+    "attributeNames": [],
+    "imageId": 233771
+  },
+  {
+    "classId": 1,
+    "probability": 100,
+    "visible": true,
+    "parts": [
+      {
+        "color": "#00000f"
+      }
+    ],
+    "attributes": [],
+    "attributeNames": [],
+    "imageId": 233771
+  },
+  {
+    "classId": 1,
+    "probability": 100,
+    "visible": true,
+    "parts": [
+      {
+        "color": "#00001e"
+      }
+    ],
+    "attributes": [],
+    "attributeNames": [],
+    "imageId": 233771
+  },
+  {
+    "classId": 1,
+    "probability": 100,
+    "visible": true,
+    "parts": [
+      {
+        "color": "#00002d"
+      }
+    ],
+    "attributes": [],
+    "attributeNames": [],
+    "imageId": 233771
+  },
+  {
+    "classId": 1,
+    "probability": 100,
+    "visible": true,
+    "parts": [
+      {
+        "color": "#00003c"
+      }
+    ],
+    "attributes": [],
+    "attributeNames": [],
+    "imageId": 233771
+  },
+  {
+    "classId": 1,
+    "probability": 100,
+    "visible": true,
+    "parts": [
+      {
+        "color": "#00004b"
+      }
+    ],
+    "attributes": [],
+    "attributeNames": [],
+    "imageId": 233771
+  },
+  {
+    "classId": 1,
+    "probability": 100,
+    "visible": true,
+    "parts": [
+      {
+        "color": "#00005a"
+      }
+    ],
+    "attributes": [],
+    "attributeNames": [],
+    "imageId": 233771
+  },
+  {
+    "classId": 1,
+    "probability": 100,
+    "visible": true,
+    "parts": [
+      {
+        "color": "#000069"
+      }
+    ],
+    "attributes": [],
+    "attributeNames": [],
+    "imageId": 233771
+  },
+  {
+    "classId": 1,
+    "probability": 100,
+    "visible": true,
+    "parts": [
+      {
+        "color": "#000078"
+      }
+    ],
+    "attributes": [],
+    "attributeNames": [],
+    "imageId": 233771
+  },
+  {
+    "classId": 1,
+    "probability": 100,
+    "visible": true,
+    "parts": [
+      {
+        "color": "#000087"
+      }
+    ],
+    "attributes": [],
+    "attributeNames": [],
+    "imageId": 233771
+  },
+  {
+    "classId": 6,
+    "probability": 100,
+    "visible": true,
+    "parts": [
+      {
+        "color": "#000096"
+      }
+    ],
+    "attributes": [],
+    "attributeNames": [],
+    "imageId": 233771
+  },
+  {
+    "classId": 6,
+    "probability": 100,
+    "visible": true,
+    "parts": [
+      {
+        "color": "#0000a5"
+      }
+    ],
+    "attributes": [],
+    "attributeNames": [],
+    "imageId": 233771
+  },
+  {
+    "classId": 28,
+    "probability": 100,
+    "visible": true,
+    "parts": [
+      {
+        "color": "#0000b4"
+      }
+    ],
+    "attributes": [],
+    "attributeNames": [],
+    "imageId": 233771
+  },
+  {
+    "classId": 28,
+    "probability": 100,
+    "visible": true,
+    "parts": [
+      {
+        "color": "#0000c3"
+      }
+    ],
+    "attributes": [],
+    "attributeNames": [],
+    "imageId": 233771
+  },
+  {
+    "classId": 31,
+    "probability": 100,
+    "visible": true,
+    "parts": [
+      {
+        "color": "#0000d2"
+      }
+    ],
+    "attributes": [],
+    "attributeNames": [],
+    "imageId": 233771
+  },
+  {
+    "classId": 31,
+    "probability": 100,
+    "visible": true,
+    "parts": [
+      {
+        "color": "#0000e1"
+      }
+    ],
+    "attributes": [],
+    "attributeNames": [],
+    "imageId": 233771
+  },
+  {
+    "classId": 85,
+    "probability": 100,
+    "visible": true,
+    "parts": [
+      {
+        "color": "#0000f0"
+      }
+    ],
+    "attributes": [],
+    "attributeNames": [],
+    "imageId": 233771
+  },
+  {
+    "classId": 130,
+    "probability": 100,
+    "visible": true,
+    "parts": [
+      {
+        "color": "#0000ff"
+      }
+    ],
+    "attributes": [],
+    "attributeNames": [],
+    "imageId": 233771
+  },
+  {
+    "classId": 149,
+    "probability": 100,
+    "visible": true,
+    "parts": [
+      {
+        "color": "#00010e"
+      }
+    ],
+    "attributes": [],
+    "attributeNames": [],
+    "imageId": 233771
+  },
+  {
+    "classId": 184,
+    "probability": 100,
+    "visible": true,
+    "parts": [
+      {
+        "color": "#00011d"
+      }
+    ],
+    "attributes": [],
+    "attributeNames": [],
+    "imageId": 233771
+  },
+  {
+    "classId": 187,
+    "probability": 100,
+    "visible": true,
+    "parts": [
+      {
+        "color": "#00012c"
+      }
+    ],
+    "attributes": [],
+    "attributeNames": [],
+    "imageId": 233771
+  },
+  {
+    "classId": 191,
+    "probability": 100,
+    "visible": true,
+    "parts": [
+      {
+        "color": "#00013b"
+      }
+    ],
+    "attributes": [],
+    "attributeNames": [],
+    "imageId": 233771
+  },
+  {
+    "classId": 197,
+    "probability": 100,
+    "visible": true,
+    "parts": [
+      {
+        "color": "#00014a"
+      }
+    ],
+    "attributes": [],
+    "attributeNames": [],
+    "imageId": 233771
+  }
+]

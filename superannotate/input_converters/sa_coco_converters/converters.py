@@ -17,34 +17,41 @@ This may look over-engineered at this point however the idea is the following:
 '''
 from .cococonverters.CoCoStrategies import ObjectDetectionStrategy, KeypointDetectionStrategy, PanopticConverterStrategy
 
-
 class Converter(object):
     def __init__(
-        self, project_type, task, dataset_name, export_root, output_dir
+        self, project_type, task, dataset_name, export_root, output_dir, method
     ):
         self._select_strategy(
-            project_type, task, dataset_name, export_root, output_dir
+            project_type, task, dataset_name, export_root, output_dir, method
         )
 
     def convert_from_sa(self):
         self.strategy.sa_to_output_format()
 
+    def convert_to_sa(self):
+      self.strategy.to_sa_format()
+      
     def __set_strategy(self, c_strategy):
         self.strategy = c_strategy
 
     def _select_strategy(
-        self, project_type, task, dataset_name, export_root, output_dir
+        self, project_type, task, dataset_name, export_root, output_dir, method
     ):
-        if task == 'instance_segmentation' or task == 'object_detection':
-            c_strategy = ObjectDetectionStrategy(
-                dataset_name, export_root, project_type, output_dir, task
-            )
-        if task == 'keypoint_detection':
-            c_strategy = KeypointDetectionStrategy(
-                dataset_name, export_root, project_type, output_dir
-            )
-        if task == 'panoptic_segmentation':
-            c_strategy = PanopticConverterStrategy(
-                dataset_name, export_root, project_type, output_dir
-            )
-        self.__set_strategy(c_strategy)
+        if method.dataset_format == "COCO":
+          if task == 'instance_segmentation' or task == 'object_detection':
+              c_strategy = ObjectDetectionStrategy(
+                  dataset_name, export_root, project_type, output_dir, task, method.direction
+              )
+          if task == 'keypoint_detection':
+              c_strategy = KeypointDetectionStrategy(
+                  dataset_name, export_root, project_type, output_dir, method.direction
+              )
+          if task == 'panoptic_segmentation':
+              c_strategy = PanopticConverterStrategy(
+                  dataset_name, export_root, project_type, output_dir, method.direction
+              )
+          self.__set_strategy(c_strategy)
+        elif method.dataset_format == "VOC":
+          pass
+        else:
+          pass
