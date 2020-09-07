@@ -148,18 +148,16 @@ def add_image_annotation_bbox(image, bbox, annotation_class_name, error=None):
             "y2": bbox[3]
         },
         "className": annotation_class_name,
-        "error": error
+        "error": error,
+        "groupId": 0,
+        "pointLabels": {},
+        "locked": False,
+        "visible": True,
+        "attributes": [],
     }
     annotations = get_image_annotations(image)["annotation_json"]
     if annotations is None:
-        annotations = [
-            {
-                "type": "meta",
-                "name": "lastAction",
-                "timestamp": 1599484630332,
-                "userId": ""
-            }
-        ]
+        annotations = []
     annotations.append(annotation)
     upload_annotations_from_json_to_image(image, annotations, verbose=False)
 
