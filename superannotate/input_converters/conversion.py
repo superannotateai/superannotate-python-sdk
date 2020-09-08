@@ -19,18 +19,19 @@ def export_annotation_format(
     copyQ=True
 ):
     """This is a method to convert superannotate annotation formate to the other annotation formats.
+
     :param input_dir: Path to the dataset folder that you want to convert.
-    :type input_dir: string
+    :type input_dir: str
     :param output_dir: Path to the folder, where you want to have converted dataset.
-    :type output_dir: string
-    :param dataset_format: One of the formats that are possible to convert. Choose from ["COCO",]
-    :type dataset_format: string
+    :type output_dir: str
+    :param dataset_format: One of the formats that are possible to convert. Choose from ["COCO"]
+    :type dataset_format: str
     :param dataset_name: Name of the dataset.
-    :type dataset_name: string
+    :type dataset_name: str
     :param project_type: Project type is either 'vector' or 'pixel'
-    :type project_type: string
+    :type project_type: str
     :param task: Choose one from possible candidates. ['panoptic_segmentation', 'instance_segmentation', 'keypoint_detection', 'object_detection']
-    :type task: string
+    :type task: str
     :param train_val_split_ratio: Percentage of data to split between test and train. (Default: 80)
     :type train_val_split_ratio: float, optional
     :param copyQ: Copy original images or move (Default: True, copies) 
@@ -74,18 +75,19 @@ def import_annotation_format(
     copyQ=True
 ):
     """This is a method to convert other annotation formats to superannotate annotation format.
+
     :param input_dir: Path to the dataset folder that you want to convert.
-    :type input_dir: string
+    :type input_dir: str
     :param output_dir: Path to the folder, where you want to have converted dataset.
-    :type output_dir: string
-    :param dataset_format: One of the formats that are possible to convert. Choose from ["COCO",]
-    :type dataset_format: string
+    :type output_dir: str
+    :param dataset_format: One of the formats that are possible to convert. Choose from ["COCO"]
+    :type dataset_format: str
     :param dataset_name: Name of the dataset.
-    :type dataset_name: string
+    :type dataset_name: str
     :param project_type: Project type is either 'vector' or 'pixel'
-    :type project_type: string
+    :type project_type: str
     :param task: Choose one from possible candidates. ['panoptic_segmentation', 'instance_segmentation', 'keypoint_detection', 'object_detection']
-    :type task: string
+    :type task: str
     :param copyQ: Copy original images or move (Default: True, copies) 
     :type copyQ: boolean, optional
     """
