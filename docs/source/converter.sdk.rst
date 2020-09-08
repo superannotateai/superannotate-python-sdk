@@ -1,14 +1,7 @@
 .. _ref_converter:
 
-SDK Converters Reference
-===========================
-
-.. contents::
-
-----------
-
-Annotation format converters
-_____________________________
+SDK Annotation Format Converters Reference
+==========================================
 
 .. _ref_import_annotation_format:
 .. autofunction:: superannotate.import_annotation_format
