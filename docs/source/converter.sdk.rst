@@ -1,10 +1,9 @@
-.. _ref_converters:
+.. _ref_converter:
 
 SDK Converters Reference
 ===========================
 
-
-.. content::
+.. contents::
 
 ----------
 
