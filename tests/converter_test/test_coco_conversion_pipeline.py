@@ -1,8 +1,11 @@
 import json
 import os
 import numpy as np
+import shutil
 
 import superannotate as sa
+
+import time
 
 
 def check_img_annot(init_values, final_values, ptype):
@@ -31,10 +34,20 @@ def check_img_annot(init_values, final_values, ptype):
                         )
                     )
                 elif ptype == "keypoints":
-                    final_bbox = np.array(final_seg["keypoints"]) 
-                    final_bbox[final_bbox<0] = 0
-                    init_bbox = np.array([v for i, v in enumerate(init_seg["keypoints"]) if (i+1)%3 != 0])
-                    final_bbox = np.array([v for i, v in enumerate(final_bbox) if (i+1)%3 != 0])
+                    final_bbox = np.array(final_seg["keypoints"])
+                    final_bbox[final_bbox < 0] = 0
+                    init_bbox = np.array(
+                        [
+                            v for i, v in enumerate(init_seg["keypoints"])
+                            if (i + 1) % 3 != 0
+                        ]
+                    )
+                    final_bbox = np.array(
+                        [
+                            v for i, v in enumerate(final_bbox)
+                            if (i + 1) % 3 != 0
+                        ]
+                    )
                     assert np.all(init_bbox == final_bbox)
                 else:
                     raise ValueError("Unknown type.")
@@ -52,7 +65,7 @@ def check_categories(initial_categories_list, final_categories_list, ptype):
             if ptype == "keypoints":
                 assert init["skeleton"] == final["skeleton"]
                 assert set(init["keypoints"]) == set(final["keypoints"])
-            elif ptype=="panoptic" or ptype=="instances":
+            elif ptype == "panoptic" or ptype == "instances":
                 assert init["name"] == final["name"]
             else:
                 raise ValueError("Unknown type")
@@ -129,27 +142,30 @@ def create_values(json_file, ptype):
 
     return values
 
-def pipeline_panoptic():
-    INITIAL_FOLDER = "converter_test/COCO/input/toSuperAnnotate/panoptic_segmentation"
-    TEMP_FOLDER = "converter_test/COCO/pipeline/panoptic/coco2sa_out/"
-    FINAL_FOLDER = "converter_test/COCO/pipeline/panoptic/sa2coco_out/"
+
+def pipeline_panoptic(tmpdir):
+    INITIAL_FOLDER = "COCO/input/toSuperAnnotate/panoptic_segmentation"
+
+    TEMP_FOLDER = tmpdir / "panoptic/coco2sa_out/"
+    FINAL_FOLDER = tmpdir / "panoptic/sa2coco_out/"
 
     dataset_name = "panoptic_test"
     sa.convert_annotation_format_from(
-        INITIAL_FOLDER, TEMP_FOLDER, "COCO", dataset_name,
-        "pixel", "panoptic_segmentation"
+        INITIAL_FOLDER, str(TEMP_FOLDER), "COCO", dataset_name, "pixel",
+        "panoptic_segmentation"
     )
 
     sa.convert_annotation_format_to(
-        TEMP_FOLDER, FINAL_FOLDER, "COCO", dataset_name, "pixel",
+        str(TEMP_FOLDER), str(FINAL_FOLDER), "COCO", dataset_name, "pixel",
         "panoptic_segmentation", 100
     )
 
     initial_json = json.load(
         open(os.path.join(INITIAL_FOLDER, dataset_name + ".json"))
     )
+
     final_json = json.load(
-        open(os.path.join(FINAL_FOLDER, dataset_name + "_train.json"))
+        open(os.path.join(str(FINAL_FOLDER), dataset_name + "_train.json"))
     )
 
     ptype = "panoptic"
@@ -159,24 +175,26 @@ def pipeline_panoptic():
     initial_categories_list = initial_json["categories"]
     final_categories_list = final_json["categories"]
 
-    return check_img_annot(
-        init_values, final_values, ptype
-    ) and check_categories(initial_categories_list, final_categories_list, ptype)
+    return check_img_annot(init_values, final_values,
+                           ptype) and check_categories(
+                               initial_categories_list, final_categories_list,
+                               ptype
+                           )
 
 
-def pipeline_instance():
-    INITIAL_FOLDER = "converter_test/COCO/input/toSuperAnnotate/instance_segmentation"
-    TEMP_FOLDER = "converter_test/COCO/pipeline/instances/coco2sa_out/"
-    FINAL_FOLDER = "converter_test/COCO/pipeline/instances/sa2coco_out/"
+def pipeline_instance(tmpdir):
+    INITIAL_FOLDER = "COCO/input/toSuperAnnotate/instance_segmentation"
+    TEMP_FOLDER = tmpdir / "instances/coco2sa_out/"
+    FINAL_FOLDER = tmpdir / "instances/sa2coco_out/"
 
     dataset_name = "instances_test"
     sa.convert_annotation_format_from(
-        INITIAL_FOLDER, TEMP_FOLDER, "COCO", dataset_name,
-        "vector", "instance_segmentation"
+        INITIAL_FOLDER, str(TEMP_FOLDER), "COCO", dataset_name, "vector",
+        "instance_segmentation"
     )
 
     sa.convert_annotation_format_to(
-        TEMP_FOLDER, FINAL_FOLDER, "COCO", dataset_name, "vector",
+        str(TEMP_FOLDER), str(FINAL_FOLDER), "COCO", dataset_name, "vector",
         "instance_segmentation", 100
     )
 
@@ -184,7 +202,7 @@ def pipeline_instance():
         open(os.path.join(INITIAL_FOLDER, dataset_name + ".json"))
     )
     final_json = json.load(
-        open(os.path.join(FINAL_FOLDER, dataset_name + "_train.json"))
+        open(os.path.join(str(FINAL_FOLDER), dataset_name + "_train.json"))
     )
 
     ptype = "instances"
@@ -194,23 +212,25 @@ def pipeline_instance():
     initial_categories_list = initial_json["categories"]
     final_categories_list = final_json["categories"]
 
-    return check_img_annot(
-        init_values, final_values, ptype
-    ) and check_categories(initial_categories_list, final_categories_list, ptype)
+    return check_img_annot(init_values, final_values,
+                           ptype) and check_categories(
+                               initial_categories_list, final_categories_list,
+                               ptype
+                           )
 
 
-def pipeline_keypoint():
-    INITIAL_FOLDER = "converter_test/COCO/input/toSuperAnnotate/keypoint_detection"
-    TEMP_FOLDER = "converter_test/COCO/pipeline/keypoints/coco2sa_out/"
-    FINAL_FOLDER = "converter_test/COCO/pipeline/keypoints/sa2coco_out/"
+def pipeline_keypoint(tmpdir):
+    INITIAL_FOLDER = "COCO/input/toSuperAnnotate/keypoint_detection"
+    TEMP_FOLDER = tmpdir / "keypoints/coco2sa_out/"
+    FINAL_FOLDER = tmpdir / "keypoints/sa2coco_out/"
 
     dataset_name = "person_keypoints_test"
     sa.convert_annotation_format_from(
-        INITIAL_FOLDER, TEMP_FOLDER, "COCO", dataset_name,
-        "vector", "keypoint_detection"
+        INITIAL_FOLDER, str(TEMP_FOLDER), "COCO", dataset_name, "vector",
+        "keypoint_detection"
     )
     sa.convert_annotation_format_to(
-        TEMP_FOLDER, FINAL_FOLDER, "COCO", dataset_name, "vector",
+        str(TEMP_FOLDER), str(FINAL_FOLDER), "COCO", dataset_name, "vector",
         "keypoint_detection", 100
     )
 
@@ -218,7 +238,7 @@ def pipeline_keypoint():
         open(os.path.join(INITIAL_FOLDER, dataset_name + ".json"))
     )
     final_json = json.load(
-        open(os.path.join(FINAL_FOLDER, dataset_name + "_train.json"))
+        open(os.path.join(str(FINAL_FOLDER), dataset_name + "_train.json"))
     )
 
     ptype = "keypoints"
@@ -228,13 +248,14 @@ def pipeline_keypoint():
     initial_categories_list = initial_json["categories"]
     final_categories_list = final_json["categories"]
 
-    return check_img_annot(initial_values, final_values, ptype) and check_categories(initial_categories_list, final_categories_list, ptype)
+    return check_img_annot(initial_values, final_values,
+                           ptype) and check_categories(
+                               initial_categories_list, final_categories_list,
+                               ptype
+                           )
 
-def test_pipeline():
-    assert pipeline_panoptic()
-    assert pipeline_instance()
-    assert pipeline_keypoint()
 
-# print("--> Panoptic : ",pipeline_panoptic())
-# print("--> Instances : ",pipeline_instance())
-# print("--> Keypoints : ",pipeline_keypoint())
+def test_pipeline(tmpdir):
+    assert pipeline_panoptic(tmpdir)
+    assert pipeline_instance(tmpdir)
+    assert pipeline_keypoint(tmpdir)
