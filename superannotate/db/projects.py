@@ -167,7 +167,7 @@ def upload_images_from_folder_to_project(
     from_s3_bucket=None,
     exclude_file_pattern="___save.png",
     recursive_subfolders=False,
-    image_quality_in_editor=60
+    image_quality_in_editor=None
 ):
     """Uploads all images with given extensions from folder_path to the project.
     Sets status of all the uploaded images to set_status if it is not None.
@@ -188,7 +188,7 @@ def upload_images_from_folder_to_project(
     :type exclude_file_pattern: str
     :param recursive_subfolders: enable recursive subfolder parsing
     :type recursive_subfolders: bool
-    :param image_quality_in_editor: image quality (in percents) that will be seen in SuperAnnotate web annotation editor
+    :param image_quality_in_editor: image quality (in percents) that will be seen in SuperAnnotate web annotation editor. If None default value will be used.
     :type image_quality_in_editor: int
 
     :return: uploaded images' filepaths
@@ -258,7 +258,7 @@ def __upload_images_to_aws_thread(
     already_uploaded,
     num_uploaded,
     from_s3_bucket=None,
-    image_quality_in_editor=60
+    image_quality_in_editor=None
 ):
     project_type = project["type"]
     len_img_paths = len(img_paths)
@@ -373,7 +373,7 @@ def upload_images_to_project(
     img_paths,
     annotation_status="NotStarted",
     from_s3_bucket=None,
-    image_quality_in_editor=60
+    image_quality_in_editor=None
 ):
     """Uploads all images given in list of path objects in img_paths to the project.
     Sets status of all the uploaded images to set_status if it is not None.
@@ -386,13 +386,17 @@ def upload_images_to_project(
     :type annotation_status: str
     :param from_s3_bucket: AWS S3 bucket to use. If None then folder_path is in local filesystem
     :type from_s3_bucket: str
-    :param image_quality_in_editor: image quality (in percents) that will be seen in SuperAnnotate web annotation editor
+    :param image_quality_in_editor: image quality (in percents) that will be seen in SuperAnnotate web annotation editor. If None default value will be used.
     :type image_quality_in_editor: int
 
     :return: uploaded images' filepaths
     :rtype: list of str
     """
     annotation_status = annotation_status_str_to_int(annotation_status)
+    if image_quality_in_editor is None:
+        image_quality_in_editor = _get_project_default_image_quality_in_editor(
+            project
+        )
     team_id, project_id = project["team_id"], project["id"]
     len_img_paths = len(img_paths)
     logger.info(
@@ -978,7 +982,12 @@ def unshare_project(project, user):
 
 
 def upload_images_from_s3_bucket_to_project(
-    project, accessKeyId, secretAccessKey, bucket_name, folder_path
+    project,
+    accessKeyId,
+    secretAccessKey,
+    bucket_name,
+    folder_path,
+    image_quality_in_editor=None
 ):
     """Uploads all images from AWS S3 bucket to the project.
 
@@ -992,7 +1001,14 @@ def upload_images_from_s3_bucket_to_project(
     :type bucket_name: str
     :param folder_path: from which folder to upload the images
     :type folder_path: str
+    :param image_quality_in_editor: image quality (in percents) that will be seen in SuperAnnotate web annotation editor, if None default value will be used
+    :type image_quality_in_editor: int
     """
+    if image_quality_in_editor is not None:
+        old_quality = _get_project_default_image_quality_in_editor(project)
+        _set_project_default_image_quality_in_editor(
+            project, image_quality_in_editor
+        )
     team_id, project_id = project["team_id"], project["id"]
     params = {
         "team_id": team_id,
@@ -1025,6 +1041,8 @@ def upload_images_from_s3_bucket_to_project(
                 response.status_code,
                 "Couldn't upload to project from S3 " + response.text
             )
+    if image_quality_in_editor is not None:
+        _set_project_default_image_quality_in_editor(project, old_quality)
 
 
 def _get_upload_from_s3_bucket_to_project_status(project):
@@ -1043,3 +1061,74 @@ def _get_upload_from_s3_bucket_to_project_status(project):
             "Couldn't get upload to project from S3 status " + response.text
         )
     return response.json()
+
+
+def _get_project_default_image_quality_in_editor(project):
+    team_id, project_id = project["team_id"], project["id"]
+    params = {
+        "team_id": team_id,
+    }
+    response = _api.send_request(
+        req_type='GET', path=f'/project/{project_id}/settings', params=params
+    )
+    if not response.ok:
+        raise SABaseException(
+            response.status_code,
+            "Couldn't get project default image quality " + response.text
+        )
+    for setting in response.json():
+        if setting["attribute"] == "ImageQuality":
+            return setting["value"]
+    raise SABaseException(
+        response.status_code,
+        "Couldn't get project default image quality " + response.text
+    )
+
+
+def _set_project_default_image_quality_in_editor(project, quality):
+    team_id, project_id = project["team_id"], project["id"]
+
+    params = {
+        "team_id": team_id,
+    }
+    response = _api.send_request(
+        req_type='GET', path=f'/project/{project_id}/settings', params=params
+    )
+    if not response.ok:
+        raise SABaseException(
+            response.status_code,
+            "Couldn't set project default image quality " + response.text
+        )
+
+    image_quality_id = None
+    for setting in response.json():
+        if setting["attribute"] == "ImageQuality":
+            image_quality_id = setting["id"]
+
+    if image_quality_id is None:
+        raise SABaseException(
+            response.status_code,
+            "Couldn't set project default image quality " + response.text
+        )
+
+    json_req = {
+        "settings":
+            [
+                {
+                    "id": image_quality_id,
+                    "attribute": "ImageQuality",
+                    "value": int(quality)
+                }
+            ]
+    }
+    response = _api.send_request(
+        req_type='PUT',
+        path=f'/project/{project_id}/settings',
+        params=params,
+        json_req=json_req
+    )
+    if not response.ok:
+        raise SABaseException(
+            response.status_code,
+            "Couldn't set project settings " + response.text
+        )
