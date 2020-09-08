@@ -45,7 +45,7 @@ def _get_project_root_folder_id(project):
 
 
 def search_images(project, name_prefix=None, annotation_status=None):
-    """Search images by name_prefix (case-insensitive) and annotation_status
+    """Search images by name_prefix (case-insensitive) and annotation status
 
     :param project: project metadata in which the images are searched
     :type project: dict
@@ -98,7 +98,7 @@ def search_images(project, name_prefix=None, annotation_status=None):
 
 
 def set_image_annotation_status(image, annotation_status):
-    """Sets the image annotation status.
+    """Sets the image annotation status
 
     :param image: image metadata
     :type image: dict
@@ -128,7 +128,7 @@ def set_image_annotation_status(image, annotation_status):
 
 
 def add_image_annotation_bbox(image, bbox, annotation_class_name, error=None):
-    """Add an bounding box annotation to image annotations
+    """Add a bounding box annotation to image annotations
 
     :param project: metadata of the image
     :type project: dict
