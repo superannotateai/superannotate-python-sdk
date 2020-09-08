@@ -213,18 +213,18 @@ finished preparing and download it to the specified folder.
 Converting annotation format
 ______________________________
 
-After exporting project annotations, it is possible to convert them to other annotation formats:
+After exporting project annotations, it is possible to convert them to
+other annotation formats:
 
 .. code-block:: python
 
-    sa.export_annotation_format(export, "<output_folder>", "COCO",
-                                "<dataset_name>", "<project_type>",
+    sa.export_annotation_format(export, "<output_folder>", "COCO", "<dataset_name>", "<project_type>",
                                 "<task>", "<train_val_split_ratio>")
 
 .. note::
     
   Right now we support only COCO annotation format conversion.
-  You can find more information :ref:`here <ref_converter>`
+  You can find more information :ref:`here <ref_converter>`.
 
 
 Working with images
