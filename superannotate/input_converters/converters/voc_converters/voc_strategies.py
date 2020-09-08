@@ -1,8 +1,8 @@
 import os
 
-from .vocconverter import VocConverter
-from .voctosapixel import voc_instance_segmentation_to_sa_pixel
-from .voctosavector import voc_object_detection_to_sa_vector
+from .voc_converter import VocConverter
+from .voc_to_sa_pixel import voc_instance_segmentation_to_sa_pixel
+from .voc_to_sa_vector import voc_object_detection_to_sa_vector
 
 
 class VocObjectDetectionStrategy(VocConverter):

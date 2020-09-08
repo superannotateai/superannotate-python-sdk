@@ -7,11 +7,11 @@ from tqdm import tqdm
 from PIL import Image
 from panopticapi.utils import IdGenerator, id2rgb
 
-from .cococonverter import CoCoConverter
-from .sapixeltococo import sa_pixel_to_coco_instance_segmentation, sa_pixel_to_coco_panoptic_segmentation, sa_pixel_to_coco_object_detection
-from .savectortococo import sa_vector_to_coco_instance_segmentation, sa_vector_to_coco_keypoint_detection, sa_vector_to_coco_object_detection
-from .cocotosapixel import coco_panoptic_segmentation_to_sa_pixel
-from .cocotosavector import coco_keypoint_detection_to_sa_vector, coco_instance_segmentation_to_sa_vector
+from .coco_converter import CoCoConverter
+from .sa_pixel_to_coco import sa_pixel_to_coco_instance_segmentation, sa_pixel_to_coco_panoptic_segmentation, sa_pixel_to_coco_object_detection
+from .sa_vector_to_coco import sa_vector_to_coco_instance_segmentation, sa_vector_to_coco_keypoint_detection, sa_vector_to_coco_object_detection
+from .coco_to_sa_pixel import coco_panoptic_segmentation_to_sa_pixel
+from .coco_to_sa_vector import coco_keypoint_detection_to_sa_vector, coco_instance_segmentation_to_sa_vector
 
 
 class PanopticConverterStrategy(CoCoConverter):

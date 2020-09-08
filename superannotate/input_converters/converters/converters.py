@@ -15,8 +15,8 @@ This may look over-engineered at this point however the idea is the following:
 4. This object will receive the strategy from outside and will convert according to
    said strategy.
 '''
-from .cococonverters.cocostrategies import ObjectDetectionStrategy, KeypointDetectionStrategy, PanopticConverterStrategy
-from .vocconverters.vocstrategies import VocObjectDetectionStrategy
+from .coco_converters.coco_strategies import ObjectDetectionStrategy, KeypointDetectionStrategy, PanopticConverterStrategy
+from .voc_converters.voc_strategies import VocObjectDetectionStrategy
 
 
 class Converter(object):

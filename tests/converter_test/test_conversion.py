@@ -8,7 +8,7 @@ import superannotate as sa
 def panoptic_segmentation_coco2sa(tmpdir):
     out_path = tmpdir / "toSuperAnnotate/panoptic_test"
     try:
-        sa.convert_annotation_format_from(
+        sa.import_annotation_format(
             "tests/converter_test/COCO/input/toSuperAnnotate/panoptic_segmentation",
             str(out_path), "COCO", "panoptic_test", "pixel",
             "panoptic_segmentation"
@@ -22,7 +22,7 @@ def panoptic_segmentation_coco2sa(tmpdir):
 def keypoint_detection_coco2sa(tmpdir):
     out_path = tmpdir / "toSuperAnnotate/keypoint_test"
     try:
-        sa.convert_annotation_format_from(
+        sa.import_annotation_format(
             "tests/converter_test/COCO/input/toSuperAnnotate/keypoint_detection",
             str(out_path), "COCO", "person_keypoints_test", "vector",
             "keypoint_detection"
@@ -36,7 +36,7 @@ def keypoint_detection_coco2sa(tmpdir):
 def instance_segmentation_coco2sa(tmpdir):
     out_path = tmpdir / "toSuperAnnotate/instances_test"
     try:
-        sa.convert_annotation_format_from(
+        sa.import_annotation_format(
             "tests/converter_test/COCO/input/toSuperAnnotate/instance_segmentation",
             str(out_path), "COCO", "instances_test", "vector",
             "instance_segmentation"
@@ -51,7 +51,7 @@ def instance_segmentation_coco2sa(tmpdir):
 def panoptic_segmentation_sa2coco(tmpdir):
     out_path = tmpdir / "fromSuperAnnotate/panoptic_test"
     try:
-        sa.convert_annotation_format_to(
+        sa.export_annotation_format(
             "tests/converter_test/COCO/input/fromSuperAnnotate/cats_dogs_panoptic_segm",
             str(out_path), "COCO", "panoptic_test", "pixel",
             "panoptic_segmentation"
@@ -64,7 +64,7 @@ def panoptic_segmentation_sa2coco(tmpdir):
 def keypoint_detection_sa2coco(tmpdir):
     out_path = tmpdir / "fromSuperAnnotate/keypoint_test_vector"
     try:
-        sa.convert_annotation_format_to(
+        sa.export_annotation_format(
             "tests/converter_test/COCO/input/fromSuperAnnotate/cats_dogs_vector_keypoint_det",
             str(out_path), "COCO", "keypoint_test_vector", "vector",
             "keypoint_detection"
@@ -77,7 +77,7 @@ def keypoint_detection_sa2coco(tmpdir):
 def instance_segmentation_sa2coco_pixel(tmpdir):
     out_path = tmpdir / "fromSuperAnnotate/instance_test_pixel"
     try:
-        sa.convert_annotation_format_to(
+        sa.export_annotation_format(
             "tests/converter_test/COCO/input/fromSuperAnnotate/cats_dogs_pixel_instance_segm",
             str(out_path), "COCO", "instance_test_pixel", "pixel",
             "instance_segmentation"
@@ -90,7 +90,7 @@ def instance_segmentation_sa2coco_pixel(tmpdir):
 def instance_segmentation_sa2coco_vector(tmpdir):
     out_path = tmpdir / "fromSuperAnnotate/instance_test_vector"
     try:
-        sa.convert_annotation_format_to(
+        sa.export_annotation_format(
             "tests/converter_test/COCO/input/fromSuperAnnotate/cats_dogs_vector_instance_segm",
             str(out_path), "COCO", "instance_test_vector", "vector",
             "instance_segmentation"

@@ -8,7 +8,7 @@ from .voc_conversions import voc_to_sa
 AVAILABLE_DATASET_FORMAT_CONVERTERS = ["COCO", "VOC"]
 
 
-def convert_annotation_format_to(
+def export_annotation_format(
     input_dir,
     output_dir,
     dataset_format,
@@ -64,7 +64,7 @@ def convert_annotation_format_to(
         pass
 
 
-def convert_annotation_format_from(
+def import_annotation_format(
     input_dir,
     output_dir,
     dataset_format,
