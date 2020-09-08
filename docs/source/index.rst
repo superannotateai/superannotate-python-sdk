@@ -50,6 +50,7 @@ __________________
 - Set image annotation status
 - Download image annotations/pre-annotations
 - Create/download project annotation classes
+- Convert annotation format from/to COCO
 
 License
 _______

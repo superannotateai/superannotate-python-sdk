@@ -77,7 +77,8 @@ __________________
 ----------
 
 Annotation format converters
-_________________
+_____________________________
+
 
 .. _ref_import_annotation_format:
 .. autofunction:: superannotate.import_annotation_format

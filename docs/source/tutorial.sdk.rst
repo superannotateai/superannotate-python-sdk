@@ -211,7 +211,7 @@ finished preparing and download it to the specified folder.
 
 
 Convert annotation format
-__________________
+______________________________
 
 After exporting project annotations it is possible to convert them to other annotation formats.
 
