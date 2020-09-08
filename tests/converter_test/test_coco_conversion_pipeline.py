@@ -144,7 +144,7 @@ def create_values(json_file, ptype):
 
 
 def pipeline_panoptic(tmpdir):
-    INITIAL_FOLDER = "COCO/input/toSuperAnnotate/panoptic_segmentation"
+    INITIAL_FOLDER = "tests/converter_test/COCO/input/toSuperAnnotate/panoptic_segmentation"
 
     TEMP_FOLDER = tmpdir / "panoptic/coco2sa_out/"
     FINAL_FOLDER = tmpdir / "panoptic/sa2coco_out/"
@@ -183,7 +183,7 @@ def pipeline_panoptic(tmpdir):
 
 
 def pipeline_instance(tmpdir):
-    INITIAL_FOLDER = "COCO/input/toSuperAnnotate/instance_segmentation"
+    INITIAL_FOLDER = "tests/converter_test/COCO/input/toSuperAnnotate/instance_segmentation"
     TEMP_FOLDER = tmpdir / "instances/coco2sa_out/"
     FINAL_FOLDER = tmpdir / "instances/sa2coco_out/"
 
@@ -220,7 +220,7 @@ def pipeline_instance(tmpdir):
 
 
 def pipeline_keypoint(tmpdir):
-    INITIAL_FOLDER = "COCO/input/toSuperAnnotate/keypoint_detection"
+    INITIAL_FOLDER = "tests/converter_test/COCO/input/toSuperAnnotate/keypoint_detection"
     TEMP_FOLDER = tmpdir / "keypoints/coco2sa_out/"
     FINAL_FOLDER = tmpdir / "keypoints/sa2coco_out/"
 
