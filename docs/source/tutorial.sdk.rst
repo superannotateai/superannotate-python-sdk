@@ -221,7 +221,7 @@ After exporting project annotations it is possible to convert them to other anno
 
 .. note::
     
-  Now we support only to COCO annotation format conversion. You can find more detailed information :ref:`here <_ref_import_annotation_format>`.
+  Now we support only to COCO annotation format conversion. You can find more detailed information :ref:`here <ref_import_annotation_format>`.
 
 
 Working with images
