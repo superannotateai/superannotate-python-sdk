@@ -97,7 +97,9 @@ def prepare_export(
         raise SABaseException(
             response.status_code, "Couldn't create_export." + response.text
         )
-    return response.json()
+    res = response.json()
+    logger.info("Prepared export %s for project %s.", res['id'], project_id)
+    return res
 
 
 def __tqdm_thread(total_num, current_nums, finish_event):
