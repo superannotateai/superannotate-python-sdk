@@ -34,7 +34,7 @@ from .db.users import search_team_contributors
 from .exceptions import SABaseException
 from .version import Version
 
-from .input_converters.conversion import convert_annotation_format_from, convert_annotation_format_to
+from .input_converters.conversion import import_annotation_format, export_annotation_format
 
 #formatter = logging.Formatter(fmt='%(asctime)s - %(levelname)s - %(module)s - %(message)s')
 formatter = logging.Formatter(fmt='SA-PYTHON-SDK - %(levelname)s - %(message)s')
