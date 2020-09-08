@@ -8,4 +8,5 @@ xmltodict>=0.12.0
 opencv-python>=4.4.0.42
 wheel>=0.35.1
 Cython>=0.29.21
+matplotlib>=3.3.1
 superannotate
