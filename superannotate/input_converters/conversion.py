@@ -3,8 +3,9 @@ import os
 from argparse import Namespace
 
 from .coco_conversions import coco_to_sa, sa_to_coco
+from .voc_conversions import voc_to_sa
 
-AVAILABLE_DATASET_FORMAT_CONVERTERS = ["COCO"]
+AVAILABLE_DATASET_FORMAT_CONVERTERS = ["COCO", "VOC"]
 
 
 def convert_annotation_format_to(
@@ -62,6 +63,7 @@ def convert_annotation_format_to(
     else:
         pass
 
+
 def convert_annotation_format_from(
     input_dir,
     output_dir,
@@ -108,7 +110,6 @@ def convert_annotation_format_from(
     if dataset_format == "COCO":
         coco_to_sa(args)
     elif dataset_format == "VOC":
-        pass
-        # voc_to_sa(args)
+        voc_to_sa(args)
     else:
         pass

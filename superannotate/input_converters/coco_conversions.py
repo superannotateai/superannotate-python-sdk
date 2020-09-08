@@ -8,7 +8,7 @@ import copy
 import numpy as np
 from argparse import Namespace
 
-from .sa_coco_converters.converters import Converter
+from .converters.converters import Converter
 
 ALLOWED_TASK_TYPES = [
     'panoptic_segmentation', 'instance_segmentation', 'keypoint_detection',
