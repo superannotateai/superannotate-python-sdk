@@ -74,6 +74,14 @@ __________________
 .. autofunction:: superannotate.download_annotation_classes_json
 .. autofunction:: superannotate.delete_annotation_class
 
+----------
+
+Annotation format converters
+_________________
+
+.. _ref_import_annotation_format:
+.. autofunction:: superannotate.import_annotation_format
+.. autofunction:: superannotate.export_annotation_format
 
 ----------
 

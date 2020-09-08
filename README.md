@@ -50,6 +50,7 @@ The package officially supports Python 3.6+.
 - Set image annotation status
 - Download image annotations/pre-annotations
 - Create/download project annotation classes
+- Convert annotation format from/to COCO
 
 ## Full SDK reference, tutorial available on [Read the Docs](https://superannotate.readthedocs.io)
 
