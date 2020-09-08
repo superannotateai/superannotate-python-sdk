@@ -1,3 +1,5 @@
 superannotate
+Cython
+numpy
 git+https://github.com/cocodataset/panopticapi.git
 git+https://github.com/philferriere/cocoapi.git#egg=pycocotools&subdirectory=PythonAPI
