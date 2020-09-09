@@ -13,12 +13,12 @@ def export_annotation_format(
     output_dir,
     dataset_format,
     dataset_name,
-    project_type,
-    task,
-    train_val_split_ratio=80,
+    project_type="Vector",
+    task="object_detection",
+    train_val_split_ratio=100,
     copyQ=True
 ):
-    """This is a method to convert superannotate annotation formate to the other annotation formats.
+    """Converts SuperAnnotate annotation formate to the other annotation formats.
 
     :param input_dir: Path to the dataset folder that you want to convert.
     :type input_dir: str
@@ -28,11 +28,11 @@ def export_annotation_format(
     :type dataset_format: str
     :param dataset_name: Name of the dataset.
     :type dataset_name: str
-    :param project_type: Project type is either 'vector' or 'pixel'
+    :param project_type: Project type is either 'Vector' or 'Pixel' (Default: 'Vector')
     :type project_type: str
-    :param task: Choose one from possible candidates. ['panoptic_segmentation', 'instance_segmentation', 'keypoint_detection', 'object_detection']
+    :param task: Choose one from possible candidates. ['panoptic_segmentation', 'instance_segmentation', 'keypoint_detection', 'object_detection'] (Default: "objec_detection")
     :type task: str
-    :param train_val_split_ratio: Percentage of data to split between test and train. (Default: 80)
+    :param train_val_split_ratio: Percentage of data to split between test and train. (Default: 100)
     :type train_val_split_ratio: float, optional
     :param copyQ: Copy original images or move (Default: True, copies) 
     :type copyQ: boolean, optional
@@ -60,7 +60,6 @@ def export_annotation_format(
         sa_to_coco(args)
     elif dataset_format == "VOC":
         pass
-        # sa_to_voc(args)
     else:
         pass
 
@@ -70,11 +69,11 @@ def import_annotation_format(
     output_dir,
     dataset_format,
     dataset_name,
-    project_type,
-    task,
+    project_type="Vector",
+    task="object_detection",
     copyQ=True
 ):
-    """This is a method to convert other annotation formats to superannotate annotation format.
+    """Converts other annotation formats to SuperAnnotate annotation format.
 
     :param input_dir: Path to the dataset folder that you want to convert.
     :type input_dir: str
@@ -84,9 +83,9 @@ def import_annotation_format(
     :type dataset_format: str
     :param dataset_name: Name of the dataset.
     :type dataset_name: str
-    :param project_type: Project type is either 'vector' or 'pixel'
+    :param project_type: Project type is either 'Vector' or 'Pixel'. (Default: 'Vector')
     :type project_type: str
-    :param task: Choose one from possible candidates. ['panoptic_segmentation', 'instance_segmentation', 'keypoint_detection', 'object_detection']
+    :param task: Choose one from possible candidates. ['panoptic_segmentation', 'instance_segmentation', 'keypoint_detection', 'object_detection']. (Default: 'object_detection')
     :type task: str
     :param copyQ: Copy original images or move (Default: True, copies) 
     :type copyQ: boolean, optional

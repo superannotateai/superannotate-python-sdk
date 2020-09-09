@@ -14,11 +14,11 @@ ALLOWED_TASK_TYPES = [
     'panoptic_segmentation', 'instance_segmentation', 'keypoint_detection',
     'object_detection'
 ]
-ALLOWED_PROJECT_TYPES = ['pixel', 'vector']
+ALLOWED_PROJECT_TYPES = ['Pixel', 'Vector']
 ALLOWED_CONVERSIONS = [
-    ('pixel', 'panoptic_segmentation'), ('pixel', 'instance_segmentation'),
-    ('vector', 'instance_segmentation'), ('vector', 'keypoint_detection'),
-    ('pixel', 'object_detection')
+    ('Pixel', 'panoptic_segmentation'), ('Pixel', 'instance_segmentation'),
+    ('Vector', 'instance_segmentation'), ('Vector', 'keypoint_detection'),
+    ('Pixel', 'object_detection')
 ]
 
 
@@ -32,7 +32,7 @@ def passes_sanity_checks(args):
             )
             return False
     if args.project_type not in ALLOWED_PROJECT_TYPES:
-        logging.error('Please enter valid project type: pixel or vector')
+        logging.error('Please enter valid project type: Pixel or Vector')
         return False
     if args.task not in ALLOWED_TASK_TYPES:
         logging.error(
@@ -51,7 +51,7 @@ def passes_sanity_checks(args):
 
 def load_files(path_to_imgs, ratio, task, ptype):
     suffix = None
-    if ptype == "pixel":
+    if ptype == "Pixel":
         suffix = '___pixel.json'
     else:
         suffix = '___objects.json'
@@ -65,14 +65,14 @@ def load_files(path_to_imgs, ratio, task, ptype):
     if task == 'keypoint_detection':
         all_files = np.array([(fname, fname + suffix) for fname in orig_images])
 
-    elif ptype == 'pixel':
+    elif ptype == 'Pixel':
         all_files = np.array(
             [
                 (fname, fname + suffix, fname + '___save.png')
                 for fname in orig_images
             ]
         )
-    elif ptype == 'vector':
+    elif ptype == 'Vector':
         all_files = np.array([(fname, fname + suffix) for fname in orig_images])
     num_train_vals = int(len(all_files) * (ratio / 100))
 
@@ -102,7 +102,7 @@ def load_files_sa(path_to_imgs, ptype):
     if len(images) == 0:
         logging.error("Images doesn't exist")
 
-    if ptype == "pixel":
+    if ptype == "Pixel":
         masks = glob.glob(
             os.path.join(path_to_imgs, "**", "*.png"), recursive=True
         )

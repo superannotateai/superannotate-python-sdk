@@ -26,9 +26,9 @@ class PanopticConverterStrategy(CoCoConverter):
 
     def __setup_conversion_algorithm(self):
         if self.direction == "to":
-            if self.project_type == 'pixel':
+            if self.project_type == 'Pixel':
                 self.conversion_algorithm = sa_pixel_to_coco_panoptic_segmentation
-            elif self.project_type == 'vector':
+            elif self.project_type == 'Vector':
                 pass
         else:
             self.conversion_algorithm = coco_panoptic_segmentation_to_sa_pixel
@@ -109,13 +109,13 @@ class ObjectDetectionStrategy(CoCoConverter):
     def __setup_conversion_algorithm(self):
 
         if self.direction == "to":
-            if self.project_type == 'pixel':
+            if self.project_type == 'Pixel':
                 if self.task == 'instance_segmentation':
                     self.conversion_algorithm = sa_pixel_to_coco_instance_segmentation
                 elif self.task == 'object_detection':
                     self.conversion_algorithm = sa_pixel_to_coco_object_detection
 
-            elif self.project_type == 'vector':
+            elif self.project_type == 'Vector':
                 if self.task == 'instance_segmentation':
                     self.conversion_algorithm = sa_vector_to_coco_instance_segmentation
                 elif self.task == 'object_detection':
@@ -219,9 +219,9 @@ class KeypointDetectionStrategy(CoCoConverter):
             self.conversion_algorithm = coco_keypoint_detection_to_sa_vector
 
     def __make_image_info(self, json_path, id_, source_type):
-        if source_type == 'pixel':
+        if source_type == 'Pixel':
             rm_len = len('___pixel.json')
-        elif source_type == 'vector':
+        elif source_type == 'Vector':
             rm_len = len('___objects.json')
 
         image_path = json_path[:-rm_len]

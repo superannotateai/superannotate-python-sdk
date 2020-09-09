@@ -196,7 +196,7 @@ def sa_vector_to_coco_keypoint_detection(
             }
             categories.append(category_item)
         image_id = next(id_generator_img)
-        image_info = make_image_info(path_, image_id, 'vector')
+        image_info = make_image_info(path_, image_id, 'Vector')
         images.append(image_info)
 
         for instance in json_data:

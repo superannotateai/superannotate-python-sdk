@@ -1,5 +1,3 @@
-import os
-
 from .voc_converter import VocConverter
 from .voc_to_sa_pixel import voc_instance_segmentation_to_sa_pixel
 from .voc_to_sa_vector import voc_object_detection_to_sa_vector
@@ -23,12 +21,12 @@ class VocObjectDetectionStrategy(VocConverter):
         if self.direction == "to":
             raise NotImplementedError("Doesn't support yet")
         else:
-            if self.project_type == "vector":
+            if self.project_type == "Vector":
                 if self.task == "object_detection":
                     self.conversion_algorithm = voc_object_detection_to_sa_vector
                 elif self.task == "instance_segmentation":
                     raise NotImplementedError("Doesn't support yet")
-            elif self.project_type == "pixel":
+            elif self.project_type == "Pixel":
                 if self.task == "object_detection":
                     raise NotImplementedError("Doesn't support yet")
                 elif self.task == "instance_segmentation":

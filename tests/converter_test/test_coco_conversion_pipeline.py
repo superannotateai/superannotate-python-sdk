@@ -151,12 +151,12 @@ def pipeline_panoptic(tmpdir):
 
     dataset_name = "panoptic_test"
     sa.import_annotation_format(
-        INITIAL_FOLDER, str(TEMP_FOLDER), "COCO", dataset_name, "pixel",
+        INITIAL_FOLDER, str(TEMP_FOLDER), "COCO", dataset_name, "Pixel",
         "panoptic_segmentation"
     )
 
     sa.export_annotation_format(
-        str(TEMP_FOLDER), str(FINAL_FOLDER), "COCO", dataset_name, "pixel",
+        str(TEMP_FOLDER), str(FINAL_FOLDER), "COCO", dataset_name, "Pixel",
         "panoptic_segmentation", 100
     )
 
@@ -189,12 +189,12 @@ def pipeline_instance(tmpdir):
 
     dataset_name = "instances_test"
     sa.import_annotation_format(
-        INITIAL_FOLDER, str(TEMP_FOLDER), "COCO", dataset_name, "vector",
+        INITIAL_FOLDER, str(TEMP_FOLDER), "COCO", dataset_name, "Vector",
         "instance_segmentation"
     )
 
     sa.export_annotation_format(
-        str(TEMP_FOLDER), str(FINAL_FOLDER), "COCO", dataset_name, "vector",
+        str(TEMP_FOLDER), str(FINAL_FOLDER), "COCO", dataset_name, "Vector",
         "instance_segmentation", 100
     )
 
@@ -226,11 +226,11 @@ def pipeline_keypoint(tmpdir):
 
     dataset_name = "person_keypoints_test"
     sa.import_annotation_format(
-        INITIAL_FOLDER, str(TEMP_FOLDER), "COCO", dataset_name, "vector",
+        INITIAL_FOLDER, str(TEMP_FOLDER), "COCO", dataset_name, "Vector",
         "keypoint_detection"
     )
     sa.export_annotation_format(
-        str(TEMP_FOLDER), str(FINAL_FOLDER), "COCO", dataset_name, "vector",
+        str(TEMP_FOLDER), str(FINAL_FOLDER), "COCO", dataset_name, "Vector",
         "keypoint_detection", 100
     )
 

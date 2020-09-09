@@ -11,10 +11,10 @@ from argparse import Namespace
 from .converters.converters import Converter
 
 ALLOWED_TASK_TYPES = ["instance_segmentation", "object_detection"]
-ALLOWED_PROJECT_TYPES = ["pixel", "vector"]
+ALLOWED_PROJECT_TYPES = ["Pixel", "Vector"]
 
 ALLOWED_CONVERSIONS = [
-    ("pixel", "instance_segmentation"), ("vector", "object_detection")
+    ("Pixel", "instance_segmentation"), ("Vector", "object_detection")
 ]
 
 
@@ -26,7 +26,9 @@ def voc_to_sa(args):
     try:
         os.makedirs(args.output_dir)
     except Exception as e:
-        logging.error("Could not make output directory")
+        logging.error(
+            "Could not create output folders, check if they already exist"
+        )
 
     method = Namespace(direction="from", dataset_format=args.dataset_format)
 

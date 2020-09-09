@@ -95,9 +95,9 @@ class CoCoConverter(object):
 
     def _load_sa_jsons(self):
         jsons = []
-        if self.project_type == 'pixel':
+        if self.project_type == 'Pixel':
             jsons = glob.glob(os.path.join(self.export_root, '*pixel.json'))
-        elif self.project_type == 'vector':
+        elif self.project_type == 'Vector':
             jsons = glob.glob(os.path.join(self.export_root, '*objects.json'))
 
         self.set_num_converted(len(jsons))
@@ -137,9 +137,9 @@ class CoCoConverter(object):
         return res
 
     def __make_image_info(self, json_path, id_, source_type):
-        if source_type == 'pixel':
+        if source_type == 'Pixel':
             rm_len = len('___pixel.json')
-        elif source_type == 'vector':
+        elif source_type == 'Vector':
             rm_len = len('___objects.json')
 
         image_path = json_path[:-rm_len]
@@ -167,8 +167,8 @@ class CoCoConverter(object):
 
     def _prepare_single_image_commons(self, id_, json_path):
         res = None
-        if self.project_type == 'pixel':
+        if self.project_type == 'Pixel':
             res = self._prepare_single_image_commons_pixel(id_, json_path)
-        elif self.project_type == 'vector':
+        elif self.project_type == 'Vector':
             res = self._prepare_single_image_commons_vector(id_, json_path)
         return res
