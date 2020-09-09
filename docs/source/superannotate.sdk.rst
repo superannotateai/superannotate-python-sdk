@@ -60,7 +60,13 @@ ______
 .. autofunction:: superannotate.download_image_preannotations
 .. autofunction:: superannotate.upload_annotations_from_json_to_image
 .. autofunction:: superannotate.upload_annotations_from_file_to_image
-.. autofunction:: superannotate.add_image_annotation_bbox
+.. autofunction:: superannotate.add_annotation_bbox_to_image
+.. autofunction:: superannotate.add_annotation_polygon_to_image
+.. autofunction:: superannotate.add_annotation_polyline_to_image
+.. autofunction:: superannotate.add_annotation_point_to_image
+.. autofunction:: superannotate.add_annotation_ellipse_to_image
+.. autofunction:: superannotate.add_annotation_template_to_image
+.. autofunction:: superannotate.add_annotation_cuboid_to_image
 
 ----------
 
