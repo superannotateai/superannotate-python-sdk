@@ -1,3 +1,6 @@
+from .exceptions import SABaseException
+
+
 def add_annotation_bbox_to_json(
     annotation_json, bbox, annotation_class_name, error=None
 ):
@@ -12,6 +15,9 @@ def add_annotation_bbox_to_json(
     :param error: if not None, marks annotation as error (True) or no-error (False)
     :type error: bool
     """
+
+    if len(bbox) != 4:
+        raise SABaseException(0, "Bounding boxes should have 4 float elements")
 
     annotation = {
         "type": "bbox",
@@ -49,6 +55,10 @@ def add_annotation_polygon_to_json(
     :param error: if not None, marks annotation as error (True) or no-error (False)
     :type error: bool
     """
+    if len(polygon) % 2 != 0:
+        raise SABaseException(
+            0, "Polygons should be even length lists of floats."
+        )
 
     annotation = {
         "type": "polygon",
@@ -82,6 +92,11 @@ def add_annotation_polyline_to_json(
     :type error: bool
     """
 
+    if len(polyline) % 2 != 0:
+        raise SABaseException(
+            0, "Polylines should be even length lists of floats."
+        )
+
     annotation = {
         "type": "polyline",
         "points": polyline,
@@ -113,6 +128,8 @@ def add_annotation_point_to_json(
     :param error: if not None, marks annotation as error (True) or no-error (False)
     :type error: bool
     """
+    if len(point) != 2:
+        raise SABaseException(0, "Point should be 2 element float list.")
 
     annotation = {
         "type": "point",
@@ -139,13 +156,17 @@ def add_annotation_ellipse_to_json(
 
     :param annotation_json: existing annotation JSON
     :type annotation_json: dict
-    :param ellipse: [center_x, center_y, r_x, r_y, angle] list of coordinates and angle
+    :param ellipse: [center_x, center_y, r_x, r_y, angle]
+                    list of coordinates and rotation angle in degrees around y
+                    axis
     :type ellipse: list of floats
     :param annotation_class_name: annotation class name
     :type annotation_class_name: str
     :param error: if not None, marks annotation as error (True) or no-error (False)
     :type error: bool
     """
+    if len(ellipse) != 5:
+        raise SABaseException(0, "Ellipse should be 5 element float list.")
 
     annotation = {
         "type": "ellipse",
@@ -192,6 +213,14 @@ def add_annotation_template_to_json(
     :param error: if not None, marks annotation as error (True) or no-error (False)
     :type error: bool
     """
+    if len(template_points) % 2 != 0:
+        raise SABaseException(
+            0, "template_points should be even length lists of floats."
+        )
+    if len(template_connections) % 2 != 0:
+        raise SABaseException(
+            0, "template_connections should be even length lists of ints."
+        )
 
     annotation = {
         "type": "template",
@@ -244,6 +273,8 @@ def add_annotation_cuboid_to_json(
     :param error: if not None, marks annotation as error (True) or no-error (False)
     :type error: bool
     """
+    if len(cuboid) != 8:
+        raise SABaseException(0, "cuboid should be lenght 8 list of floats.")
 
     annotation = {
         "type": "cuboid",

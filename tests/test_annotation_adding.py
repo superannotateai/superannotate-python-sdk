@@ -104,7 +104,7 @@ def test_add_bbox(tmpdir):
 
     annotations = sa.get_image_annotations(images[0])["annotation_json"]
     sa.add_annotation_ellipse_to_image(
-        images[0], [405, 405, 20, 50, 30], "test_add"
+        images[0], [405, 405, 20, 70, 15], "test_add"
     )
     annotations_new = sa.get_image_annotations(images[0])["annotation_json"]
     json.dump(annotations_new, open(tmpdir / "new_anns.json", "w"))
@@ -138,7 +138,7 @@ def test_add_bbox(tmpdir):
 
     annotations = sa.get_image_annotations(images[0])["annotation_json"]
     sa.add_annotation_cuboid_to_image(
-        images[0], [1000, 500, 1100, 600, 1050, 450, 1150, 700], "test_add"
+        images[0], [800, 500, 900, 600, 850, 450, 950, 700], "test_add"
     )
     annotations_new = sa.get_image_annotations(images[0])["annotation_json"]
     json.dump(annotations_new, open(tmpdir / "new_anns.json", "w"))
@@ -170,6 +170,7 @@ def test_add_bbox_noinit(tmpdir):
     sa.create_annotation_classes_from_classes_json(
         project, PATH_TO_SAMPLE_PROJECT / "classes" / "classes.json"
     )
+    sa.create_annotation_class(project, "test_add", "#FF0000")
     images = sa.search_images(project, "example_image_1")
 
     sa.add_annotation_bbox_to_image(images[0], [10, 10, 500, 100], "test_add")
