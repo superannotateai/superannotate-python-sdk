@@ -635,27 +635,6 @@ def download_image_preannotations(image, local_dir_path):
     return tuple(return_filepaths)
 
 
-def upload_annotations_from_file_to_image(
-    image, json_path, mask_path=None, verbose=True
-):
-    """Upload annotations from json_path (also mask_path for pixel annotations)
-    to the image.
-
-    :param image: image metadata
-    :type image: dict
-    :param json_path: annotations in SuperAnnotate format json dict
-    :type json_path: Pathlike (str or Path)
-    :param mask_path: filepath to mask annotation for pixel projects in SuperAnnotate format
-    :type mask_path: Pathlike (str or Path)
-    """
-    annotation_json = json.load(open(json_path))
-    if verbose:
-        logger.info("Uploading annotations from %s.", json_path)
-    return upload_annotations_from_json_to_image(
-        image, annotation_json, mask_path
-    )
-
-
 def upload_annotations_from_json_to_image(
     image, annotation_json, mask_path=None, verbose=True
 ):
@@ -664,12 +643,16 @@ def upload_annotations_from_json_to_image(
 
     :param image: image metadata
     :type image: dict
-    :param annotation_json: annotations in SuperAnnotate format JSON dict
-    :type annotation_json: dict
+    :param annotation_json: annotations in SuperAnnotate format JSON dict or path to JSON file
+    :type annotation_json: dict or Pathlike (str or Path)
     :param mask_path: filepath to mask annotation for pixel projects in SuperAnnotate format
     :type mask_path: Pathlike (str or Path)
     """
 
+    if not isinstance(annotation_json, list):
+        if verbose:
+            logger.info("Uploading annotations from %s.", annotation_json)
+        annotation_json = json.load(open(annotation_json))
     team_id, project_id, image_id, folder_id, image_name = image[
         "team_id"], image["project_id"], image["id"], image['folder_id'], image[
             'name']

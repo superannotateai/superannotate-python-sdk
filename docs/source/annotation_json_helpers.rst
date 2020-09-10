@@ -1,12 +1,9 @@
 .. _ref_JSON_editing:
 
-SDK Annotation JSON Editing
-===========================
+Annotation JSON Helper Functions
+================================
 
-.. contents::
-
-----------
-
+.. _ref_add_annotation_bbox_to_json:
 .. autofunction:: superannotate.add_annotation_bbox_to_json
 .. autofunction:: superannotate.add_annotation_polygon_to_json
 .. autofunction:: superannotate.add_annotation_polyline_to_json

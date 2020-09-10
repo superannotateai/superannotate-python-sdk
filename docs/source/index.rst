@@ -38,6 +38,9 @@ SuperAnnotate Python SDK allows access to the platform without web browser:
 Supported Features
 __________________
 
+Remote functions
+~~~~~~~~~~~~~~~~~
+
 - Search projects
 - Create/delete a project
 - Upload images to a project from local or AWS S3 folder
@@ -52,6 +55,8 @@ __________________
 - Set image annotation status
 - Download image annotations/pre-annotations
 - Create/download project annotation classes
+- Add annotations to images on platform
+- Add annotations to local SuperAnnotate format JSONs
 - Convert annotation format from/to COCO
 
 License

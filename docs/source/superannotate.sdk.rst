@@ -1,7 +1,7 @@
 .. _ref_sdk:
 
-SDK Functions Reference
-===========================
+Platform Access Functions Reference
+===================================
 
 .. contents::
 
@@ -27,6 +27,7 @@ ________
 .. autofunction:: superannotate.upload_images_to_project
 .. _ref_upload_images_from_folder_to_project:
 .. autofunction:: superannotate.upload_images_from_folder_to_project
+.. _ref_upload_annotations_from_folder_to_project:
 .. autofunction:: superannotate.upload_annotations_from_folder_to_project
 .. autofunction:: superannotate.upload_preannotations_from_folder_to_project
 .. autofunction:: superannotate.share_project
@@ -59,7 +60,6 @@ ______
 .. autofunction:: superannotate.download_image_annotations
 .. autofunction:: superannotate.download_image_preannotations
 .. autofunction:: superannotate.upload_annotations_from_json_to_image
-.. autofunction:: superannotate.upload_annotations_from_file_to_image
 .. autofunction:: superannotate.add_annotation_bbox_to_image
 .. autofunction:: superannotate.add_annotation_polygon_to_image
 .. autofunction:: superannotate.add_annotation_polyline_to_image

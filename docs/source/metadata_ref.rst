@@ -1,6 +1,6 @@
 .. _ref_metadata:
 
-SDK Metadata Reference
+Platform Metadata Reference
 ===========================
 
 .. contents::

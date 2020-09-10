@@ -1,6 +1,6 @@
 .. _ref_tutorial:
 
-SDK Tutorial
+Tutorial
 ===========================
 
 .. contents::
@@ -190,6 +190,14 @@ each JSON a mask image file should be present with the name
 :file:`"<image_name>___save.png"`. Image with :file:`<image_name>` should 
 already be present in the project for the upload to work.
 
+You can add an annotation to local annotations JSON with:
+
+.. code-block:: python
+
+   sa.add_annotation_bbox_to_json("<path_to_json>", [10, 10, 100, 100],
+                                  "Human")
+
+
 
 Exporting projects
 __________________
@@ -257,6 +265,32 @@ To download image annotations:
 .. code-block:: python
 
    sa.download_image_annotations(image, "<path_to_local_dir>")
+
+After the image annotations are downloaded, you can add annotations to it:
+
+.. code-block:: python
+
+   sa.add_annotation_bbox_to_json("<path_to_json>", [10, 10, 100, 100],
+                                  "Human")
+
+and upload back to the platform with:
+
+.. code-block:: python
+
+   sa.upload_annotations_from_json_to_image(image, "<path_to_json>")
+
+Last two steps can be combined into one:
+
+.. code-block:: python
+
+   sa.add_annotation_bbox_to_image(image, [10, 10, 100, 100], "Human")
+
+but if bulk changes are made to many images it is much faster to add all required
+annotations using :ref:`add_annotation_bbox_to_json
+<ref_add_annotation_bbox_to_json>` 
+then upload them using
+:ref:`upload_annotations_from_folder_to_project
+<ref_upload_images_from_folder_to_project>`.
 
 
 ----------
