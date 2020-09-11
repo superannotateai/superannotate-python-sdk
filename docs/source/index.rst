@@ -14,9 +14,6 @@
 
    tutorial.sdk.rst
    superannotate.sdk.rst
-   converter.sdk.rst
-   metadata_ref.rst
-   annotation_json_helpers.rst
 
 SuperAnnotate Python SDK documentation
 ==================================================================
