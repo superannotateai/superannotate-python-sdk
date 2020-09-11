@@ -102,9 +102,6 @@ Remote metadata reference
 Projects metadata
 _________________
 
-.. _ref_project_type_int_to_str:
-.. autofunction:: superannotate.project_type_int_to_str
-
 Project metadata example:
 
 .. code-block:: python
@@ -185,8 +182,6 @@ translated to one of "NotStarted", "InProgress", "QualityCheck", "Returned",
 Annotation class metadata
 _________________________
 
-.. _ref_annotation_status_int_to_str:
-.. autofunction:: superannotate.annotation_status_int_to_str
 
 Annotation class metadata example:
 
@@ -244,8 +239,20 @@ Team contributor metadata example:
     "...": "...",
   }
 
+----------
+
+Metadata helper functions
+_________________________
+
+.. _ref_project_type_int_to_str:
+.. autofunction:: superannotate.project_type_int_to_str
+.. _ref_annotation_status_int_to_str:
+.. autofunction:: superannotate.annotation_status_int_to_str
 
 .. _ref_converter:
+
+
+----------
 
 Annotation JSON helper functions
 --------------------------------
@@ -256,6 +263,7 @@ _____________________________________________________________
 .. autofunction:: superannotate.import_annotation_format
 .. autofunction:: superannotate.export_annotation_format
 
+----------
 
 Editing annotations
 ____________________
