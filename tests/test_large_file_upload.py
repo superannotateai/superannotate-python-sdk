@@ -28,7 +28,7 @@ def test_large_files(tmpdir):
     )
     sa.create_annotation_class(project, "tt", "#FFAAFF")
     image = sa.search_images(project, "b4.tif")[0]
-    sa.add_image_annotation_bbox(image, [10, 10, 100, 100], "tt")
+    sa.add_annotation_bbox_to_image(image, [10, 10, 100, 100], "tt")
     Path(tmpdir / "q100" / "lores").mkdir(parents=True)
     sa.download_image_annotations(image, tmpdir / "q100")
     sa.download_image(image, tmpdir / "q100", variant='original')
@@ -60,7 +60,7 @@ def test_large_files(tmpdir):
     )
     sa.create_annotation_class(project, "tt", "#FFAAFF")
     image = sa.search_images(project, "b4.tif")[0]
-    sa.add_image_annotation_bbox(image, [10, 10, 100, 100], "tt")
+    sa.add_annotation_bbox_to_image(image, [10, 10, 100, 100], "tt")
     Path(tmpdir / "q60" / "lores").mkdir(parents=True)
     sa.download_image_annotations(image, tmpdir / "q60")
     sa.download_image(image, tmpdir / "q60", variant='original')
