@@ -27,20 +27,21 @@ _NUM_THREADS = 10
 _RESIZE_CONFIG = {2: 4_000_000, 1: 100_000_000}  # 1: vector 2: pixel
 
 
-def search_projects(name_prefix=None):
-    """Project name based case-insensitive prefix search for projects.
-    If name_prefix is None all the projects will be returned.
+def search_projects(name=None):
+    """Project name based case-insensitive search for projects.
+    Any project with name that contains string from **name** will be returned.
+    If **name** is None, all the projects will be returned.
 
-    :param name_prefix: name prefix for search
-    :type name_prefix: str
+    :param name: search string
+    :type name: str
 
     :return: dict objects representing found projects
     :rtype: list
     """
     result_list = []
     params = {'team_id': str(_api.team_id), 'offset': 0}
-    if name_prefix is not None:
-        params['name'] = name_prefix
+    if name is not None:
+        params['name'] = name
     while True:
         response = _api.send_request(
             req_type='GET', path='/projects', params=params
@@ -247,6 +248,41 @@ def upload_images_from_folder_to_project(
     )
 
 
+def get_image_array_to_upload(
+    byte_io_orig, project_type, image_quality_in_editor
+):
+    im = Image.open(byte_io_orig)
+    width, height = im.size
+    max_size = _RESIZE_CONFIG[project_type]
+    if (width * height) > max_size:
+        max_size_root = math.sqrt(max_size)
+        nwidth = math.floor(max_size_root * math.sqrt(width / height))
+        nheight = math.floor(max_size_root * math.sqrt(height / width))
+        print(nwidth, nheight)
+        im = im.resize((nwidth, nheight))
+        byte_io_orig = io.BytesIO()
+        im.convert('RGB').save(
+            byte_io_orig, im.format, subsampling=0, quality=100
+        )
+
+    byte_io_lores = io.BytesIO()
+    im.convert('RGB').save(
+        byte_io_lores,
+        'JPEG',
+        subsampling=0 if image_quality_in_editor > 60 else 2,
+        quality=image_quality_in_editor
+    )
+
+    byte_io_thumbs = io.BytesIO()
+    im.convert('RGB').resize((128, 96)).save(byte_io_thumbs, 'JPEG')
+
+    byte_io_thumbs.seek(0)
+    byte_io_lores.seek(0)
+    byte_io_orig.seek(0)
+
+    return byte_io_orig, byte_io_lores, byte_io_thumbs
+
+
 def __upload_images_to_aws_thread(
     res,
     img_paths,
@@ -257,8 +293,8 @@ def __upload_images_to_aws_thread(
     chunksize,
     already_uploaded,
     num_uploaded,
+    image_quality_in_editor,
     from_s3_bucket=None,
-    image_quality_in_editor=None
 ):
     project_type = project["type"]
     len_img_paths = len(img_paths)
@@ -289,50 +325,28 @@ def __upload_images_to_aws_thread(
             file = io.BytesIO()
             from_s3_object = from_s3.Object(from_s3_bucket, path)
             from_s3_object.download_fileobj(file)
-            file.seek(0)
-            im = Image.open(file)
         else:
             with open(path, "rb") as f:
                 file = io.BytesIO(f.read())
-            file.seek(0)
-            im = Image.open(file)
-        width, height = im.size
-        max_size = _RESIZE_CONFIG[project_type]
-        byte_io = file
-        if (width * height) > max_size:
-            max_size_root = math.sqrt(max_size)
-            nwidth = math.floor(max_size_root * math.sqrt(width / height))
-            nheight = math.floor(max_size_root * math.sqrt(height / width))
-            im = im.resize((nwidth, nheight))
-            im.convert('RGB').save(
-                byte_io, im.format, subsampling=0, quality=100
-            )
-        byte_io.seek(0)
-        try:
-            bucket.put_object(Body=byte_io, Key=key)
-        except Exception as e:
-            logger.warning("Unable to upload to data server %s", e)
-            break
-        byte_io = io.BytesIO()
-        im.convert('RGB').save(
-            byte_io,
-            'JPEG',
-            subsampling=0 if image_quality_in_editor > 60 else 2,
-            quality=image_quality_in_editor
+        orig_image, lores_image, thumbnail_image = get_image_array_to_upload(
+            file, project_type, image_quality_in_editor
         )
-        byte_io.seek(0)
         try:
-            bucket.put_object(Body=byte_io, Key=key + '___lores.jpg')
+            bucket.put_object(Body=orig_image, Key=key)
         except Exception as e:
-            logger.warning("Unable to upload to data server %s.", e)
+            logger.warning("Unable to upload orig_image to data server %s", e)
             break
-        byte_io = io.BytesIO()
-        im.convert('RGB').resize((128, 96)).save(byte_io, 'JPEG')
-        byte_io.seek(0)
         try:
-            bucket.put_object(Body=byte_io, Key=key + '___thumb.jpg')
+            bucket.put_object(Body=lores_image, Key=key + '___lores.jpg')
         except Exception as e:
-            logger.warning("Unable to upload to data server %s.", e)
+            logger.warning("Unable to upload lores_image to data server %s.", e)
+            break
+        try:
+            bucket.put_object(Body=thumbnail_image, Key=key + '___thumb.jpg')
+        except Exception as e:
+            logger.warning(
+                "Unable to upload thumbnail_image to data server %s.", e
+            )
             break
         num_uploaded[thread_id] += 1
         already_uploaded[i] = True
@@ -366,6 +380,94 @@ def __create_image(img_paths, project, annotation_status, remote_dir):
         raise SABaseException(
             response.status_code, "Couldn't ext-create image " + response.text
         )
+
+
+def upload_image_to_project(
+    project,
+    img,
+    image_name=None,
+    annotation_status="NotStarted",
+    from_s3_bucket=None,
+    image_quality_in_editor=None
+):
+    """Uploads image (io.BytesIO() or filepath to image) to project.
+    Sets status of the uploaded image to set_status if it is not None.
+
+    :param project: metadata of project to upload images to
+    :type project: dict
+    :param img: image to upload
+    :type img: io.BytesIO() or Pathlike (str or Path)
+    :param annotation_status: value to set the annotation statuses of the uploaded image NotStarted InProgress QualityCheck Returned Completed Skipped
+    :type annotation_status: str
+    :param from_s3_bucket: AWS S3 bucket to use. If None then folder_path is in local filesystem
+    :type from_s3_bucket: str
+    :param image_quality_in_editor: image quality (in percents) that will be seen in SuperAnnotate web annotation editor. If None default value will be used.
+    :type image_quality_in_editor: int
+
+    :return: uploaded images' filepaths
+    :rtype: list of str
+    """
+    annotation_status = annotation_status_str_to_int(annotation_status)
+    if image_quality_in_editor is None:
+        image_quality_in_editor = _get_project_default_image_quality_in_editor(
+            project
+        )
+
+    img_name = None
+    if not isinstance(img, io.BytesIO):
+        img_name = Path(img).name
+        if from_s3_bucket is not None:
+            from_session = boto3.Session()
+            from_s3 = from_session.resource('s3')
+            from_s3_object = from_s3.Object(from_s3_bucket, img)
+            img = io.BytesIO()
+            from_s3_object.download_fileobj(img)
+        else:
+            with open(img, "rb") as f:
+                img = io.BytesIO(f.read())
+    if image_name is not None:
+        img_name = image_name
+
+    if img_name is None:
+        raise SABaseException(
+            0, "Image name img_name should be set if img is not Pathlike"
+        )
+
+    team_id, project_id = project["team_id"], project["id"]
+    params = {
+        'team_id': team_id,
+    }
+    response = _api.send_request(
+        req_type='GET',
+        path=f'/project/{project_id}/sdkImageUploadToken',
+        params=params
+    )
+    if response.ok:
+        res = response.json()
+        prefix = res['filePath']
+    else:
+        raise SABaseException(
+            response.status_code, "Couldn't get upload token " + response.text
+        )
+    s3_session = boto3.Session(
+        aws_access_key_id=res['accessKeyId'],
+        aws_secret_access_key=res['secretAccessKey'],
+        aws_session_token=res['sessionToken']
+    )
+    s3_resource = s3_session.resource('s3')
+    bucket = s3_resource.Bucket(res["bucket"])
+    orig_image, lores_image, thumbnail_image = get_image_array_to_upload(
+        img, project["type"], image_quality_in_editor
+    )
+    key = prefix + f'{img_name}'
+    try:
+        bucket.put_object(Body=orig_image, Key=key)
+        bucket.put_object(Body=lores_image, Key=key + '___lores.jpg')
+        bucket.put_object(Body=thumbnail_image, Key=key + '___thumb.jpg')
+    except Exception as e:
+        raise SABaseException(0, "Couldn't upload to data server. " + e)
+
+    __create_image([img_name], project, annotation_status, prefix)
 
 
 def upload_images_to_project(
@@ -439,7 +541,7 @@ def upload_images_to_project(
                 args=(
                     res, img_paths, project, annotation_status, prefix,
                     thread_id, chunksize, already_uploaded, num_uploaded,
-                    from_s3_bucket, image_quality_in_editor
+                    image_quality_in_editor, from_s3_bucket
                 )
             )
             threads.append(t)

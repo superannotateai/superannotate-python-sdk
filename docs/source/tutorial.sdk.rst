@@ -65,7 +65,7 @@ To search for the projects you can run:
    projects = sa.search_projects("Example Project 1")
 
 Here a search through all the team's projects will be performed with name
-prefix "Example Project 1". Full documentation of the function can be found at 
+that contains "Example Project 1". Full documentation of the function can be found at 
 :ref:`search_projects <ref_search_projects>`. The return value: :py:obj:`projects`
 will be a Python list of metadata of found projects. We can choose the first result 
 as our project for further work:
@@ -85,10 +85,9 @@ as our project for further work:
 
 .. warning::
 
-   Since the :ref:`sa.search_projects <ref_search_projects>` searches projects with prefix
-   based (this is because the platform allows identically named projects), one
+   Since the the SuperAnnotate platform allows identically named projects, one
    needs to examine the :py:obj:`projects` to identify the looked for project,
-   e.g.,
+   if identically named or identically prefix named projects exist, e.g.,
 
    .. code-block:: python
 

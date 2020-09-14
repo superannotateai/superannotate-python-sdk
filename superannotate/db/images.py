@@ -733,3 +733,21 @@ def upload_annotations_from_json_to_image(
         raise SABaseException(
             response.status_code, "Couldn't upload annotation. " + response.text
         )
+
+
+def copy_image(image, destination_project):
+    """Copy image to a project. The image's project is the same as destination
+    project then the name will be changed to <image_name>_(1).<image_ext>
+
+    :param image: image metadata
+    :type image: dict
+    :param image: destination_project metadata
+    :type image: dict
+
+    :return: metadata of new image
+    :rtype: dict
+    """
+    img_b = get_image_bytes(image)
+    upload
+
+    
