@@ -6,6 +6,12 @@ from pathlib import Path
 import boto3
 import requests
 
+from ..annotation_helpers import (
+    add_annotation_bbox_to_json, add_annotation_cuboid_to_json,
+    add_annotation_ellipse_to_json, add_annotation_point_to_json,
+    add_annotation_polygon_to_json, add_annotation_polyline_to_json,
+    add_annotation_template_to_json
+)
 from ..api import API
 from ..common import annotation_status_str_to_int
 from ..exceptions import SABaseException
@@ -127,11 +133,13 @@ def set_image_annotation_status(image, annotation_status):
     return response.json()
 
 
-def add_image_annotation_bbox(image, bbox, annotation_class_name, error=None):
+def add_annotation_bbox_to_image(
+    image, bbox, annotation_class_name, error=None
+):
     """Add a bounding box annotation to image annotations
 
-    :param project: metadata of the image
-    :type project: dict
+    :param image: metadata of the image
+    :type image: dict
     :param bbox: 4 element list of top-left x,y and bottom-right x, y coordinates
     :type bbox: list of floats
     :param annotation_class_name: annotation class name
@@ -139,26 +147,151 @@ def add_image_annotation_bbox(image, bbox, annotation_class_name, error=None):
     :param error: if not None, marks annotation as error (True) or no-error (False)
     :type error: bool
     """
-    annotation = {
-        "type": "bbox",
-        "points": {
-            "x1": bbox[0],
-            "y1": bbox[1],
-            "x2": bbox[2],
-            "y2": bbox[3]
-        },
-        "className": annotation_class_name,
-        "error": error,
-        "groupId": 0,
-        "pointLabels": {},
-        "locked": False,
-        "visible": True,
-        "attributes": [],
-    }
     annotations = get_image_annotations(image)["annotation_json"]
-    if annotations is None:
-        annotations = []
-    annotations.append(annotation)
+    annotations = add_annotation_bbox_to_json(
+        annotations, bbox, annotation_class_name, error
+    )
+    upload_annotations_from_json_to_image(image, annotations, verbose=False)
+
+
+def add_annotation_polygon_to_image(
+    image, polygon, annotation_class_name, error=None
+):
+    """Add a polygon annotation to image annotations
+
+    :param image: metadata of the image
+    :type image: dict
+    :param polygon: [x1,y1,x2,y2,...] list of coordinates
+    :type polygon: list of floats
+    :param annotation_class_name: annotation class name
+    :type annotation_class_name: str
+    :param error: if not None, marks annotation as error (True) or no-error (False)
+    :type error: bool
+    """
+
+    annotations = get_image_annotations(image)["annotation_json"]
+    annotations = add_annotation_polygon_to_json(
+        annotations, polygon, annotation_class_name, error
+    )
+    upload_annotations_from_json_to_image(image, annotations, verbose=False)
+
+
+def add_annotation_polyline_to_image(
+    image, polyline, annotation_class_name, error=None
+):
+    """Add a polyline annotation to image annotations
+
+    :param image: metadata of the image
+    :type image: dict
+    :param polyline: [x1,y1,x2,y2,...] list of coordinates
+    :type polyline: list of floats
+    :param annotation_class_name: annotation class name
+    :type annotation_class_name: str
+    :param error: if not None, marks annotation as error (True) or no-error (False)
+    :type error: bool
+    """
+    annotations = get_image_annotations(image)["annotation_json"]
+    annotations = add_annotation_polyline_to_json(
+        annotations, polyline, annotation_class_name, error
+    )
+    upload_annotations_from_json_to_image(image, annotations, verbose=False)
+
+
+def add_annotation_point_to_image(
+    image, point, annotation_class_name, error=None
+):
+    """Add a point annotation to image annotations
+
+    :param image: metadata of the image
+    :type image: dict
+    :param point: [x,y] list of coordinates
+    :type point: list of floats
+    :param annotation_class_name: annotation class name
+    :type annotation_class_name: str
+    :param error: if not None, marks annotation as error (True) or no-error (False)
+    :type error: bool
+    """
+    annotations = get_image_annotations(image)["annotation_json"]
+    annotations = add_annotation_point_to_json(
+        annotations, point, annotation_class_name, error
+    )
+    upload_annotations_from_json_to_image(image, annotations, verbose=False)
+
+
+def add_annotation_ellipse_to_image(
+    image, ellipse, annotation_class_name, error=None
+):
+    """Add an ellipse annotation to image annotations
+
+    :param image: metadata of the image
+    :type image: dict
+    :param ellipse: [center_x, center_y, r_x, r_y, angle] list of coordinates and angle
+    :type ellipse: list of floats
+    :param annotation_class_name: annotation class name
+    :type annotation_class_name: str
+    :param error: if not None, marks annotation as error (True) or no-error (False)
+    :type error: bool
+    """
+    annotations = get_image_annotations(image)["annotation_json"]
+    annotations = add_annotation_ellipse_to_json(
+        annotations, ellipse, annotation_class_name, error
+    )
+    upload_annotations_from_json_to_image(image, annotations, verbose=False)
+
+
+def add_annotation_template_to_image(
+    image,
+    template_points,
+    template_connections,
+    annotation_class_name,
+    error=None
+):
+    """Add a template annotation to image annotations
+
+    :param image: metadata of the image
+    :type image: dict
+    :param template_points: [x1,y1,x2,y2,...] list of coordinates
+    :type template_points: list of floats
+    :param template_connections: [from_id_1,to_id_1,from_id_2,to_id_2,...]
+                                 list of indexes from -> to. Indexes are based
+                                 on template_points. E.g., to have x1,y1 to connect
+                                 to x2,y2 and x1,y1 to connect to x4,y4,
+                                 need: [1,2,1,4,...]
+    :type template_connections: list of ints
+    :param annotation_class_name: annotation class name
+    :type annotation_class_name: str
+    :param error: if not None, marks annotation as error (True) or no-error (False)
+    :type error: bool
+    """
+    annotations = get_image_annotations(image)["annotation_json"]
+    annotations = add_annotation_template_to_json(
+        annotations, template_points, template_connections,
+        annotation_class_name, error
+    )
+    upload_annotations_from_json_to_image(image, annotations, verbose=False)
+
+
+def add_annotation_cuboid_to_image(
+    image, cuboid, annotation_class_name, error=None
+):
+    """Add a cuboid annotation to image annotations
+
+    :param image: metadata of the image
+    :type image: dict
+    :param cuboid: [x_front_tl,y_front_tl,x_front_br,y_front_br,
+                    x_back_tl,y_back_tl,x_back_br,y_back_br] list of coordinates
+                    of front rectangle and back rectangle, in top-left and
+                    bottom-right format
+    :type cuboid: list of floats
+    :param annotation_class_name: annotation class name
+    :type annotation_class_name: str
+    :param error: if not None, marks annotation as error (True) or no-error (False)
+    :type error: bool
+    """
+    annotations = get_image_annotations(image)["annotation_json"]
+    annotations = add_annotation_cuboid_to_json(
+        annotations, cuboid, annotation_class_name, error
+    )
     upload_annotations_from_json_to_image(image, annotations, verbose=False)
 
 
@@ -502,27 +635,6 @@ def download_image_preannotations(image, local_dir_path):
     return tuple(return_filepaths)
 
 
-def upload_annotations_from_file_to_image(
-    image, json_path, mask_path=None, verbose=True
-):
-    """Upload annotations from json_path (also mask_path for pixel annotations)
-    to the image.
-
-    :param image: image metadata
-    :type image: dict
-    :param json_path: annotations in SuperAnnotate format json dict
-    :type json_path: Pathlike (str or Path)
-    :param mask_path: filepath to mask annotation for pixel projects in SuperAnnotate format
-    :type mask_path: Pathlike (str or Path)
-    """
-    annotation_json = json.load(open(json_path))
-    if verbose:
-        logger.info("Uploading annotations from %s.", json_path)
-    return upload_annotations_from_json_to_image(
-        image, annotation_json, mask_path
-    )
-
-
 def upload_annotations_from_json_to_image(
     image, annotation_json, mask_path=None, verbose=True
 ):
@@ -531,12 +643,16 @@ def upload_annotations_from_json_to_image(
 
     :param image: image metadata
     :type image: dict
-    :param annotation_json: annotations in SuperAnnotate format JSON dict
-    :type annotation_json: dict
+    :param annotation_json: annotations in SuperAnnotate format JSON dict or path to JSON file
+    :type annotation_json: dict or Pathlike (str or Path)
     :param mask_path: filepath to mask annotation for pixel projects in SuperAnnotate format
     :type mask_path: Pathlike (str or Path)
     """
 
+    if not isinstance(annotation_json, list):
+        if verbose:
+            logger.info("Uploading annotations from %s.", annotation_json)
+        annotation_json = json.load(open(annotation_json))
     team_id, project_id, image_id, folder_id, image_name = image[
         "team_id"], image["project_id"], image["id"], image['folder_id'], image[
             'name']

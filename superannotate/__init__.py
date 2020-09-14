@@ -1,5 +1,11 @@
 import logging
 
+from .annotation_helpers import (
+    add_annotation_bbox_to_json, add_annotation_cuboid_to_json,
+    add_annotation_ellipse_to_json, add_annotation_point_to_json,
+    add_annotation_polygon_to_json, add_annotation_polyline_to_json,
+    add_annotation_template_to_json
+)
 from .api import API
 from .common import (
     annotation_status_int_to_str, annotation_status_str_to_int,
@@ -13,11 +19,13 @@ from .db.annotation_classes import (
 )
 from .db.exports import download_export, get_exports, prepare_export
 from .db.images import (
-    download_image, download_image_annotations, download_image_preannotations,
-    get_image_annotations, get_image_bytes, get_image_metadata,
-    get_image_preannotations, search_images, set_image_annotation_status,
-    upload_annotations_from_file_to_image,
-    upload_annotations_from_json_to_image, add_image_annotation_bbox
+    add_annotation_bbox_to_image, add_annotation_polygon_to_image,
+    add_annotation_polyline_to_image, add_annotation_point_to_image,
+    add_annotation_ellipse_to_image, add_annotation_template_to_image,
+    add_annotation_cuboid_to_image, download_image, download_image_annotations,
+    download_image_preannotations, get_image_annotations, get_image_bytes,
+    get_image_metadata, get_image_preannotations, search_images,
+    set_image_annotation_status, upload_annotations_from_json_to_image
 )
 from .db.projects import (
     create_project, delete_project, get_project_image_count,
@@ -32,9 +40,10 @@ from .db.teams import (
 )
 from .db.users import search_team_contributors
 from .exceptions import SABaseException
+from .input_converters.conversion import (
+    export_annotation_format, import_annotation_format
+)
 from .version import Version
-
-from .input_converters.conversion import import_annotation_format, export_annotation_format
 
 #formatter = logging.Formatter(fmt='%(asctime)s - %(levelname)s - %(module)s - %(message)s')
 formatter = logging.Formatter(fmt='SA-PYTHON-SDK - %(levelname)s - %(message)s')

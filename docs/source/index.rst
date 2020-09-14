@@ -10,12 +10,15 @@
 |
 
 .. toctree::
+   :caption: Contents
+   :name: mastertoc
    :maxdepth: 1
 
    tutorial.sdk.rst
    superannotate.sdk.rst
-   converter.sdk.rst
-   metadata_ref.rst
+   LICENSE.rst
+
+----------
 
 SuperAnnotate Python SDK documentation
 ==================================================================
@@ -32,6 +35,8 @@ SuperAnnotate Python SDK allows access to the platform without web browser:
 
    example_project = projects[0]
    sa.upload_images_from_folder_to_project(example_project, "<path_to_my_images_folder>")
+
+----------
 
 
 Supported Features
@@ -51,12 +56,18 @@ __________________
 - Set image annotation status
 - Download image annotations/pre-annotations
 - Create/download project annotation classes
+- Add annotations to images on platform
 - Convert annotation format from/to COCO
+- Add annotations to local SuperAnnotate format JSONs
+
+----------
 
 License
 _______
 
 This SDK is distributed under the MIT License.
+
+----------
 
 Questions and Issues
 ____________________
