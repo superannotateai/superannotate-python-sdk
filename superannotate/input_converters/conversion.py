@@ -129,7 +129,7 @@ def export_annotation_format(
     :param dataset_format: One of the formats that are possible to convert. Choose from
      ["COCO", "VOC", "LabelBox"]
     :type dataset_format: str
-    :param dataset_name: Will be used to create json file `<dataset_name>`_train().json.
+    :param dataset_name: Will be used to create json file in the output_dir.
     :type dataset_name: str
     :param project_type: Project type is either 'Vector' or 'Pixel' (Default: 'Vector')
     :type project_type: str
@@ -176,8 +176,7 @@ def import_annotation_format(
     :type output_dir: str
     :param dataset_format: One of the formats that are possible to convert. Choose from ["COCO"]
     :type dataset_format: str
-    :param dataset_name: Will create output folder in the output_dir and 
-    put all converted files there.
+    :param dataset_name: Name of the json file in the input_dir which should be converted.
     :type dataset_name: str
     :param project_type: Project type is either 'Vector' or 'Pixel'. (Default: 'Vector')
     :type project_type: str
