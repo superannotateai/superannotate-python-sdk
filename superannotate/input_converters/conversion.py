@@ -76,16 +76,16 @@ def _passes_sanity_checks(args):
         logging.error(log_msg)
         return False
 
-    # try:
-    #     if args.platform not in AVAILABLE_PLATFORMS:
-    #         logging.error("Please enter valid platform: 'Desktop' or 'Web'")
-    #         return False
-    # except AttributeError:
-    #     logging.error("Argument 'platform' doesn't exist for this method")
+    try:
+        if args.platform not in AVAILABLE_PLATFORMS:
+            logging.error("Please enter valid platform: 'Desktop' or 'Web'")
+            return False
+    except AttributeError:
+        logging.error("Argument 'platform' doesn't exist for this method")
 
     if args.task == "Pixel" and args.platform == "Desktop":
         logging.error(
-            "Sorry but Desktop Application doesn't support 'Pixel' projects yet."
+            "Sorry, but Desktop Application doesn't support 'Pixel' projects yet."
         )
     return True
 
@@ -126,19 +126,17 @@ def export_annotation_format(
     :type input_dir: str
     :param output_dir: Path to the folder, where you want to have converted dataset.
     :type output_dir: str
-    :param dataset_format: One of the formats that are possible to convert. Choose from
-     ["COCO", "VOC", "LabelBox"]
+    :param dataset_format: One of the formats that are possible to convert. Available candidates are: ["COCO"]
     :type dataset_format: str
     :param dataset_name: Will be used to create json file in the output_dir.
     :type dataset_name: str
-    :param project_type: Project type is either 'Vector' or 'Pixel' (Default: 'Vector')
+    :param project_type: SuperAnnotate project type is either 'Vector' or 'Pixel' (Default: 'Vector')
     :type project_type: str
-    :param task: Task can be one of the following: ['panoptic_segmentation', 
-    'instance_segmentation', 'keypoint_detection', 'object_detection'] (Default: "objec_detection").
+    :param task: Task can be one of the following: ['panoptic_segmentation', 'instance_segmentation', 'keypoint_detection', 'object_detection'] (Default: "objec_detection").
     :type task: str
-    :param platform: SuperAnnotate has both 'Web' and 'Desktop' platforms. Choose from 
-    which one you are converting.
-    :type platform: str 
+    :param platform: SuperAnnotate has both 'Web' and 'Desktop' platforms. Choose from which one you are converting.
+    :type platform: str
+
     """
 
     args = Namespace(
@@ -174,19 +172,17 @@ def import_annotation_format(
     :type input_dir: str
     :param output_dir: Path to the folder, where you want to have converted dataset.
     :type output_dir: str
-    :param dataset_format: One of the formats that are possible to convert. Choose from ["COCO"]
+    :param dataset_format: Annotation format to convert SuperAnnotate annotation format. Availabel candidates are: ["COCO", "VOC", "LabelBox"]
     :type dataset_format: str
-    :param dataset_name: Name of the json file in the input_dir which should be converted.
+    :param dataset_name: Name of the json file in the input_dir, which should be converted.
     :type dataset_name: str
-    :param project_type: Project type is either 'Vector' or 'Pixel'. (Default: 'Vector')
+    :param project_type: SuperAnnotate project type is either 'Vector' or 'Pixel'. (Default: 'Vector')
     :type project_type: str
-    :param task: Task can be one of the following: ['panoptic_segmentation', 
-    'instance_segmentation', 'keypoint_detection', 'object_detection'] 
-    (Default: "instance_segmentation").
+    :param task: Task can be one of the following: ['panoptic_segmentation', 'instance_segmentation', 'keypoint_detection', 'object_detection']  (Default: "instance_segmentation").
     :type task: str
-    :param platform: SuperAnnotate has both 'Web' and 'Desktop' platforms. Choose to
-     which platform you want convert.
+    :param platform: SuperAnnotate has both 'Web' and 'Desktop' platforms. Choose to which platform you want convert.
     :type platform: str 
+
     """
 
     args = Namespace(

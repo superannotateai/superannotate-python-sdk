@@ -64,7 +64,7 @@ def voc_instance_segmentation_to_sa_pixel(voc_root, sa_root):
         with open(
             os.path.join(
                 sa_root,
-                filename.replace('.png', '.jpg') + "___objects.json"
+                filename.replace('.png', '.jpg') + "___pixel.json"
             ), "w"
         ) as new_json:
             json.dump(sa_loader, new_json, indent=2)
