@@ -81,7 +81,6 @@ def voc_instance_segmentation_to_sa_pixel(voc_root, sa_root):
         }
         sa_classes.append(sa_class)
 
-    os.makedirs(os.path.join(sa_root, "classes"))
     with open(
         os.path.join(sa_root, "classes", "classes.json"), "w+"
     ) as classes_json:

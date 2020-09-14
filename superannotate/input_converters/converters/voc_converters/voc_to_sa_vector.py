@@ -22,6 +22,7 @@ def voc_object_detection_to_sa_vector(voc_root, sa_root):
             'attributes': [],
             'attributeNames': []
         }
+        sa_loader = []
         instances = tree.findall("object")
         for instance in instances:
             class_name = instance.find("name").text
@@ -40,12 +41,13 @@ def voc_object_detection_to_sa_vector(voc_root, sa_root):
                 "y1": bbox[1],
                 "y2": bbox[3]
             }
+            sa_loader.append(instance)
         image_id = filename.split(".")[0]
         annpath = os.path.join(
             sa_root, "{}.jpg___objects.json".format(image_id)
         )
         with open(annpath, "w") as fp:
-            json.dump(instance, fp, indent=2)
+            json.dump(sa_loader, fp, indent=2)
 
     #generate classes json
     sa_classes = []
@@ -60,7 +62,6 @@ def voc_object_detection_to_sa_vector(voc_root, sa_root):
         }
         sa_classes.append(sa_class)
 
-    os.makedirs(os.path.join(sa_root, "classes"))
     with open(
         os.path.join(sa_root, "classes", "classes.json"), "w+"
     ) as classes_json:

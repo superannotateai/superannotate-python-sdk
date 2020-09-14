@@ -1,12 +1,9 @@
 import os
 import json
 
-from collections import defaultdict
-import requests
 import cv2
 import numpy as np
 
-from pycocotools.coco import COCO
 from panopticapi.utils import id2rgb
 from tqdm import tqdm
 

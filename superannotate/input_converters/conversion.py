@@ -1,11 +1,114 @@
+"""
+Main module for input converters
+"""
 import sys
-import os
+import logging
 from argparse import Namespace
 
-from .coco_conversions import coco_to_sa, sa_to_coco
-from .voc_conversions import voc_to_sa
+from .import_to_sa_conversions import import_to_sa
+from .export_from_sa_conversions import export_from_sa
 
-AVAILABLE_DATASET_FORMAT_CONVERTERS = ["COCO", "VOC"]
+AVAILABLE_ANNOTATION_FORMATS = ["COCO", "VOC", "LabelBox"]
+
+AVAILABLE_PLATFORMS = ["Desktop", "Web"]
+
+ALLOWED_TASK_TYPES = [
+    'panoptic_segmentation', 'instance_segmentation', 'keypoint_detection',
+    'object_detection'
+]
+
+ALLOWED_PROJECT_TYPES = ['Pixel', 'Vector']
+
+ALLOWED_CONVERSIONS_SA_TO_COCO = [
+    ('Pixel', 'panoptic_segmentation'), ('Pixel', 'instance_segmentation'),
+    ('Vector', 'instance_segmentation'), ('Vector', 'keypoint_detection'),
+    ('Vector', 'object_detection')
+]
+
+ALLOWED_CONVERSIONS_COCO_TO_SA = [
+    ('Pixel', 'panoptic_segmentation'), ('Vector', 'keypoint_detection'),
+    ('Vector', 'instance_segmentation')
+]
+
+ALLOWED_CONVERSIONS_VOC_TO_SA = [
+    ('Vector', 'object_detection'), ('Pixel', 'instance_segmentation')
+]
+
+ALLOWED_CONVERSIONS_LABELBOX_TO_SA = [('Vector', 'object_detection')]
+
+
+def _passes_sanity_checks(args):
+    if not isinstance(args.input_dir, str):
+        log_msg = "'input_dir' should be 'str' type, not '%s'" % (
+            type(args.input_dir)
+        )
+        logging.error(log_msg)
+        return False
+
+    # if isinstance(args.output_dir, str):
+    #     logging.error(
+    #         "'output_dir' should be 'str' type, not {}".format(
+    #             type(args.output_dir)
+    #         )
+    #     )
+    #     return False
+
+    if args.dataset_format not in AVAILABLE_ANNOTATION_FORMATS:
+        log_msg = "'%s' converter doesn't exist. Possible candidates are '%s'"\
+         % (args.dataset_format, AVAILABLE_ANNOTATION_FORMATS)
+        logging.error(log_msg)
+        return False
+
+    # if isinstance(args.dataset_name, str):
+    #     logging.error(
+    #         "'dataset_name' should be 'str' type, not {}".format(
+    #             type(args.dataset_name)
+    #         )
+    #     )
+    #     return False
+
+    if args.project_type not in ALLOWED_PROJECT_TYPES:
+        logging.error("Please enter valid project type: 'Pixel' or 'Vector'")
+        return False
+
+    if args.task not in ALLOWED_TASK_TYPES:
+        log_msg = "Please enter valid task '%s'" % (ALLOWED_TASK_TYPES)
+        logging.error(log_msg)
+        return False
+
+    # try:
+    #     if args.platform not in AVAILABLE_PLATFORMS:
+    #         logging.error("Please enter valid platform: 'Desktop' or 'Web'")
+    #         return False
+    # except AttributeError:
+    #     logging.error("Argument 'platform' doesn't exist for this method")
+
+    if args.task == "Pixel" and args.platform == "Desktop":
+        logging.error(
+            "Sorry but Desktop Application doesn't support 'Pixel' projects yet."
+        )
+    return True
+
+
+def _passes_converter_sanity(args, direction):
+    converter_values = (args.project_type, args.task)
+    if direction == 'import':
+        if args.dataset_format == "COCO" and converter_values in ALLOWED_CONVERSIONS_COCO_TO_SA:
+            return True
+        elif args.dataset_format == "VOC" and converter_values in ALLOWED_CONVERSIONS_VOC_TO_SA:
+            return True
+        elif args.dataset_format == "LabelBox" and \
+        converter_values in ALLOWED_CONVERSIONS_LABELBOX_TO_SA:
+            return True
+    else:
+        if args.dataset_format == "COCO" and converter_values in ALLOWED_CONVERSIONS_SA_TO_COCO:
+            return True
+
+    logging.error(
+        "Please enter valid converter values. You can check available \
+        candidates in the documentation(https://superannotate.readthedocs.io/en/latest/index.html)."
+    )
+    return False
 
 
 def export_annotation_format(
@@ -15,8 +118,7 @@ def export_annotation_format(
     dataset_name,
     project_type="Vector",
     task="object_detection",
-    train_val_split_ratio=100,
-    copyQ=True
+    platform="Web",
 ):
     """Converts SuperAnnotate annotation formate to the other annotation formats.
 
@@ -24,26 +126,20 @@ def export_annotation_format(
     :type input_dir: str
     :param output_dir: Path to the folder, where you want to have converted dataset.
     :type output_dir: str
-    :param dataset_format: One of the formats that are possible to convert. Choose from ["COCO"]
+    :param dataset_format: One of the formats that are possible to convert. Choose from
+     ["COCO", "VOC", "LabelBox"]
     :type dataset_format: str
-    :param dataset_name: Name of the dataset.
+    :param dataset_name: Will be used to create json file `<dataset_name>`_train().json.
     :type dataset_name: str
     :param project_type: Project type is either 'Vector' or 'Pixel' (Default: 'Vector')
     :type project_type: str
-    :param task: Choose one from possible candidates. ['panoptic_segmentation', 'instance_segmentation', 'keypoint_detection', 'object_detection'] (Default: "objec_detection")
+    :param task: Task can be one of the following: ['panoptic_segmentation', 
+    'instance_segmentation', 'keypoint_detection', 'object_detection'] (Default: "objec_detection").
     :type task: str
-    :param train_val_split_ratio: Percentage of data to split between test and train. (Default: 100)
-    :type train_val_split_ratio: float, optional
-    :param copyQ: Copy original images or move (Default: True, copies) 
-    :type copyQ: boolean, optional
+    :param platform: SuperAnnotate has both 'Web' and 'Desktop' platforms. Choose from 
+    which one you are converting.
+    :type platform: str 
     """
-
-    if dataset_format not in AVAILABLE_DATASET_FORMAT_CONVERTERS:
-        raise ValueError(
-            "'{}' converter doesn't exist. Possible candidates are '{}'".format(
-                dataset_format, AVAILABLE_DATASET_FORMAT_CONVERTERS
-            )
-        )
 
     args = Namespace(
         input_dir=input_dir,
@@ -52,16 +148,15 @@ def export_annotation_format(
         dataset_name=dataset_name,
         project_type=project_type,
         task=task,
-        train_val_split_ratio=train_val_split_ratio,
-        copyQ=copyQ
+        platform=platform,
     )
 
-    if dataset_format == "COCO":
-        sa_to_coco(args)
-    elif dataset_format == "VOC":
-        pass
-    else:
-        pass
+    if not _passes_sanity_checks(args):
+        sys.exit()
+    if not _passes_converter_sanity(args, 'export'):
+        sys.exit()
+
+    export_from_sa(args)
 
 
 def import_annotation_format(
@@ -71,7 +166,7 @@ def import_annotation_format(
     dataset_name,
     project_type="Vector",
     task="object_detection",
-    copyQ=True
+    platform="Web",
 ):
     """Converts other annotation formats to SuperAnnotate annotation format.
 
@@ -81,22 +176,19 @@ def import_annotation_format(
     :type output_dir: str
     :param dataset_format: One of the formats that are possible to convert. Choose from ["COCO"]
     :type dataset_format: str
-    :param dataset_name: Name of the dataset.
+    :param dataset_name: Will create output folder in the output_dir and 
+    put all converted files there.
     :type dataset_name: str
     :param project_type: Project type is either 'Vector' or 'Pixel'. (Default: 'Vector')
     :type project_type: str
-    :param task: Choose one from possible candidates. ['panoptic_segmentation', 'instance_segmentation', 'keypoint_detection', 'object_detection']. (Default: 'object_detection')
+    :param task: Task can be one of the following: ['panoptic_segmentation', 
+    'instance_segmentation', 'keypoint_detection', 'object_detection'] 
+    (Default: "instance_segmentation").
     :type task: str
-    :param copyQ: Copy original images or move (Default: True, copies) 
-    :type copyQ: boolean, optional
+    :param platform: SuperAnnotate has both 'Web' and 'Desktop' platforms. Choose to
+     which platform you want convert.
+    :type platform: str 
     """
-
-    if dataset_format not in AVAILABLE_DATASET_FORMAT_CONVERTERS:
-        raise ValueError(
-            "'{}' converter doesn't exist. Possible candidates are '{}'".format(
-                dataset_format, AVAILABLE_DATASET_FORMAT_CONVERTERS
-            )
-        )
 
     args = Namespace(
         input_dir=input_dir,
@@ -105,12 +197,12 @@ def import_annotation_format(
         dataset_name=dataset_name,
         project_type=project_type,
         task=task,
-        copyQ=copyQ
+        platform=platform,
     )
 
-    if dataset_format == "COCO":
-        coco_to_sa(args)
-    elif dataset_format == "VOC":
-        voc_to_sa(args)
-    else:
-        pass
+    if not _passes_sanity_checks(args):
+        sys.exit()
+    if not _passes_converter_sanity(args, 'import'):
+        sys.exit()
+
+    import_to_sa(args)

@@ -89,8 +89,15 @@ class PanopticConverterStrategy(CoCoConverter):
         self.set_num_converted(len(jsons))
 
     def to_sa_format(self):
-        json = os.path.join(self.export_root, self.dataset_name + ".json")
-        loader = self.conversion_algorithm(json, self.output_dir)
+        json_data = os.path.join(self.export_root, self.dataset_name + ".json")
+        self._create_sa_classes(json_data)
+        loader = self.conversion_algorithm(json_data, self.output_dir)
+        # jsons = glob.glob(
+        #     os.path.join(self.export_root, '*.json'), recursive=True
+        # )
+        # for json_data in jsons:
+        #     self._create_sa_classes(json_data)
+        #     loader = self.conversion_algorithm(json_data, self.output_dir)
 
 
 class ObjectDetectionStrategy(CoCoConverter):
@@ -193,8 +200,15 @@ class ObjectDetectionStrategy(CoCoConverter):
         self.set_num_converted(len(jsons))
 
     def to_sa_format(self):
-        json = os.path.join(self.export_root, self.dataset_name + ".json")
-        loader = self.conversion_algorithm(json, self.output_dir)
+        json_data = os.path.join(self.export_root, self.dataset_name + ".json")
+        self._create_sa_classes(json_data)
+        loader = self.conversion_algorithm(json_data, self.output_dir)
+        # jsons = glob.glob(
+        #     os.path.join(self.export_root, '*.json'), recursive=True
+        # )
+        # for json_data in jsons:
+        #     self._create_sa_classes(json_data)
+        #     loader = self.conversion_algorithm(json_data, self.output_dir)
 
 
 class KeypointDetectionStrategy(CoCoConverter):
@@ -266,5 +280,12 @@ class KeypointDetectionStrategy(CoCoConverter):
         self.set_num_converted(len(out_json['images']))
 
     def to_sa_format(self):
-        json = os.path.join(self.export_root, self.dataset_name + ".json")
-        loader = self.conversion_algorithm(json, self.output_dir)
+        json_data = os.path.join(self.export_root, self.dataset_name + ".json")
+        self._create_sa_classes(json_data)
+        loader = self.conversion_algorithm(json_data, self.output_dir)
+        # jsons = glob.glob(
+        #     os.path.join(self.export_root, '*.json'), recursive=True
+        # )
+        # for json_data in jsons:
+        #     self._create_sa_classes(json_data)
+        #     loader = self.conversion_algorithm(json_data, self.output_dir)
