@@ -1079,10 +1079,11 @@ def _get_project_default_image_quality_in_editor(project):
     for setting in response.json():
         if setting["attribute"] == "ImageQuality":
             return setting["value"]
-    raise SABaseException(
-        response.status_code,
-        "Couldn't get project default image quality " + response.text
-    )
+    return 60
+    # raise SABaseException(
+    #     response.status_code,
+    #     "Couldn't get project default image quality " + response.text
+    # )
 
 
 def _set_project_default_image_quality_in_editor(project, quality):
