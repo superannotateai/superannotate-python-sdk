@@ -134,10 +134,7 @@ https://annotate.online/documentation Management Tools
    sa.create_annotation_classes_from_classes_json(project, "<path_to_classes_json>")
 
 
-Downloading annotation classes
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-All of the annotation classes are downloaded (as :file:`classes/classes.json`) with 
+All of the annotation classes of a project are downloaded (as :file:`classes/classes.json`) with
 :ref:`download_export <ref_download_export>` along with annotations, but they 
 can also be downloaded separately with:
 
