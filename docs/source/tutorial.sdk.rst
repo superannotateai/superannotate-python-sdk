@@ -225,7 +225,7 @@ to convert them to other annotation formats:
 
 .. note::
     
-  Right now we support only SuperAnnotate annotateion format to COCO annotation format conversion.
+  Right now we support only SuperAnnotate annotation format to COCO annotation format conversion, but you can convert from "COCO", "Pascal VOC" or "LabelBox" annotation formats to SuperAnnotate annotation format.
 
 .. _git_repo: https://github.com/superannotateai/superannotate-python-sdk
 
