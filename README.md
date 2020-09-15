@@ -46,6 +46,7 @@ The package officially supports Python 3.6+.
 - Invite a team contributor
 - Search images in a project
 - Download a single image
+- Copy/move image between projects
 - Get image bytes (e.g., for numpy array creation)
 - Set image annotation status
 - Download image annotations/pre-annotations

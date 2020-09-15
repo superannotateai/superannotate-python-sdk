@@ -27,6 +27,7 @@ ________
 .. autofunction:: superannotate.get_project_metadata
 .. autofunction:: superannotate.get_project_image_count
 .. autofunction:: superannotate.upload_images_to_project
+.. autofunction:: superannotate.upload_image_to_project
 .. _ref_upload_images_from_folder_to_project:
 .. autofunction:: superannotate.upload_images_from_folder_to_project
 .. _ref_upload_annotations_from_folder_to_project:
@@ -62,6 +63,9 @@ ______
 .. autofunction:: superannotate.download_image_annotations
 .. autofunction:: superannotate.download_image_preannotations
 .. autofunction:: superannotate.upload_annotations_from_json_to_image
+.. autofunction:: superannotate.copy_image
+.. autofunction:: superannotate.move_image
+.. autofunction:: superannotate.delete_image
 .. autofunction:: superannotate.add_annotation_bbox_to_image
 .. autofunction:: superannotate.add_annotation_polygon_to_image
 .. autofunction:: superannotate.add_annotation_polyline_to_image

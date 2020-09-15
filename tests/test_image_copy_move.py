@@ -10,6 +10,7 @@ import superannotate as sa
 sa.init(Path.home() / ".superannotate" / "config.json")
 
 PROJECT_NAME_CPY = "test image copy"
+PROJECT_NAME_MOVE = "test image move"
 
 
 def test_image_copy(tmpdir):
@@ -59,3 +60,53 @@ def test_image_copy(tmpdir):
     di = sa.search_images(dest_project, image)
     assert len(di) == 1
     assert di[0] == image
+
+
+def test_image_move(tmpdir):
+    tmpdir = Path(tmpdir)
+
+    projects_found = sa.search_projects(PROJECT_NAME_MOVE)
+    for pr in projects_found:
+        sa.delete_project(pr)
+
+    project = sa.create_project(PROJECT_NAME_MOVE, "test", "Vector")
+
+    sa.upload_image_to_project(
+        project,
+        "./tests/sample_project_vector/example_image_1.jpg",
+        annotation_status="InProgress"
+    )
+    sa.upload_image_to_project(
+        project,
+        "./tests/sample_project_vector/example_image_2.jpg",
+        annotation_status="InProgress"
+    )
+
+    images = sa.search_images(project)
+    assert len(images) == 2
+    image = images[0]
+    try:
+        sa.move_image(project, image, project)
+    except sa.SABaseException as e:
+        assert e.message == "Cannot move image if source_project == destination_project."
+    else:
+        assert False
+
+    projects_found = sa.search_projects(PROJECT_NAME_MOVE + "dif")
+    for pr in projects_found:
+        sa.delete_project(pr)
+
+    dest_project = sa.create_project(
+        PROJECT_NAME_MOVE + "dif", "test", "Vector"
+    )
+    sa.move_image(project, image, dest_project)
+    time.sleep(1)
+    di = sa.search_images(dest_project, image)
+    assert len(di) == 1
+    assert di[0] == image
+
+    si = sa.search_images(project, image)
+    assert len(si) == 0
+
+    si = sa.search_images(project)
+    assert len(si) == 1
