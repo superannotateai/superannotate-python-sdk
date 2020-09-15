@@ -52,14 +52,17 @@ def _get_project_root_folder_id(project):
 
 
 def search_images(
-    project, name_prefix=None, annotation_status=None, return_metadata=False
+    project,
+    image_name_prefix=None,
+    annotation_status=None,
+    return_metadata=False
 ):
     """Search images by name_prefix (case-insensitive) and annotation status
 
     :param project: project metadata in which the images are searched
     :type project: dict
-    :param name_prefix: name prefix for search
-    :type name_prefix: str
+    :param image_name_prefix: image name prefix for search
+    :type image_name_prefix: str
     :param annotation_status: if not None, annotation statuses of images to filter,
                               should be one of NotStarted InProgress QualityCheck Returned Completed Skipped
     :type annotation_status: str
@@ -82,8 +85,8 @@ def search_images(
         'annotation_status': annotation_status,
         'offset': 0
     }
-    if name_prefix is not None:
-        params['name'] = name_prefix
+    if image_name_prefix is not None:
+        params['name'] = image_name_prefix
     total_got = 0
     while True:
         response = _api.send_request(
@@ -113,6 +116,16 @@ def search_images(
 
 
 def get_image_metadata(project, image_name):
+    """Returns image metadata
+
+    :param project: project metadata
+    :type project: dict
+    :param image_name: image name
+    :type image: str
+
+    :return: metadata of image
+    :rtype: dict
+    """
     images = search_images(project, image_name, return_metadata=True)
     for image in images:
         if image["name"] == image_name:
