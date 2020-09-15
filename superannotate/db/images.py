@@ -391,6 +391,28 @@ def download_image(
     return (str(filepath), annotations_filepaths)
 
 
+def delete_image(project, image_name):
+    """Deletes image
+
+    :param project: project metadata
+    :type project: dict
+    :param image_name: image name
+    :type image: str
+    """
+    image = get_image_metadata(project, image_name)
+    team_id, project_id, image_id = image["team_id"], image["project_id"
+                                                           ], image["id"]
+    params = {"team_id": team_id, "project_id": project_id}
+    response = _api.send_request(
+        req_type='DELETE', path=f'/image/{image_id}', params=params
+    )
+    if not response.ok:
+        raise SABaseException(
+            response.status_code, "Couldn't delete image " + response.text
+        )
+    logger.info("Successfully deleted image  %s.", image_name)
+
+
 def get_image_bytes(project, image_name, variant='original'):
     """Returns an io.BytesIO() object of the image. Suitable for creating
     PIL.Image out of it.
@@ -795,25 +817,45 @@ def copy_image(source_project, image_name, destination_project):
     img_b = get_image_bytes(source_project, image_name)
     if source_project != destination_project:
         upload_image_to_project(destination_project, img_b, image_name)
+        new_name = image_name
     else:
         extension = Path(image_name).suffix
-        already_copy = False
         p = re.compile(r"\([0-9]+\)\.")
+        found_copied = False
         for m in p.finditer(image_name):
-            # print(m.start() + len(m.group()) + len(extension))
-            # print(len(image_name))
+
             if m.start() + len(m.group()
                               ) + len(extension) - 1 == len(image_name):
-                already_copy = True
+                num = int(m.group()[1:-2])
+                new_name = image_name[:m.start() +
+                                      1] + str(num + 1) + ")" + extension
+                upload_image_to_project(destination_project, img_b, new_name)
+                found_copied = True
                 break
-        if not already_copy:
-            upload_image_to_project(
-                destination_project, img_b,
-                Path(image_name).stem + " (1)" + extension
-            )
-        else:
-            num = int(m.group()[1:-2])
-            upload_image_to_project(
-                destination_project, img_b,
-                image_name[:m.start() + 1] + str(num + 1) + ")" + extension
-            )
+        if not found_copied:
+            new_name = Path(image_name).stem + " (1)" + extension
+            upload_image_to_project(destination_project, img_b, new_name)
+    logger.info(
+        "Copied image %s/%s to %s/%s.", source_project["name"], image_name,
+        destination_project["name"], new_name
+    )
+
+
+def move_image(source_project, image_name, destination_project):
+    """Move image from source_project to destination_project. source_project
+    and destination_project cannot be the same.
+
+    :param source_project: source project metadata
+    :type source_project: dict
+    :param image_name: image name
+    :type image: str
+    :param destination_project: destination project metadata
+    :type destination_project: dict
+    """
+    if source_project == destination_project:
+        raise SABaseException(
+            0, "Cannot move image if source_project == destination_project."
+        )
+    copy_image(source_project, image_name, destination_project)
+    delete_image(source_project, image_name)
+    logger.info("Deleted image %s/%s.", source_project["name"], image_name)

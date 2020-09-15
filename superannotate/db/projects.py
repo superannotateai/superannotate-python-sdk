@@ -403,9 +403,6 @@ def upload_image_to_project(
     :type from_s3_bucket: str
     :param image_quality_in_editor: image quality (in percents) that will be seen in SuperAnnotate web annotation editor. If None default value will be used.
     :type image_quality_in_editor: int
-
-    :return: uploaded images' filepaths
-    :rtype: list of str
     """
     annotation_status = annotation_status_str_to_int(annotation_status)
     if image_quality_in_editor is None:

@@ -52,6 +52,7 @@ __________________
 - Invite a team contributor
 - Search images in a project
 - Download a single image
+- Copy/move image between projects
 - Get image bytes (e.g., for numpy array creation)
 - Set image annotation status
 - Download image annotations/pre-annotations
@@ -65,7 +66,7 @@ __________________
 License
 _______
 
-This SDK is distributed under the MIT License.
+This SDK is distributed under the :ref:`MIT License <ref_license>`.
 
 ----------
 
