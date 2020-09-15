@@ -267,19 +267,18 @@ To search for the images in the project:
 
    images = sa.search_images(project, "example_image1.jpg")
 
-Return value is list of image names with prefix "example_image1.jpg". 
+Return value is list of images with names that have prefix "example_image1.jpg".
+The list is ordered ascending direction by name, so if we are looking for exact name match:
 
+.. code-block:: python
+
+   image = images[0]
 
 .. note::
 
    The image names in SuperAnnotate platform projects are 
    unique.
 
-The returned list will have a single item we were looking for:
-
-.. code-block:: python
-
-   image = images[0]
 
 To download the image one can use:
 

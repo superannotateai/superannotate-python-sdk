@@ -2,6 +2,7 @@ import io
 import json
 import logging
 from pathlib import Path
+import re
 
 import boto3
 import requests
@@ -16,7 +17,7 @@ from ..api import API
 from ..common import annotation_status_str_to_int
 from ..exceptions import SABaseException
 from .annotation_classes import search_annotation_classes
-from .projects import get_project_metadata
+from .projects import get_project_metadata, upload_image_to_project
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -780,17 +781,39 @@ def upload_annotations_from_json_to_image(
         )
 
 
-# def copy_image(image, destination_project):
-#     """Copy image to a project. The image's project is the same as destination
-#     project then the name will be changed to <image_name>_(1).<image_ext>
+def copy_image(source_project, image_name, destination_project):
+    """Copy image to a project. The image's project is the same as destination
+    project then the name will be changed to <image_name>_(1).<image_ext>
 
-#     :param image: image metadata
-#     :type image: dict
-#     :param image: destination_project metadata
-#     :type image: dict
-
-#     :return: metadata of new image
-#     :rtype: dict
-#     """
-#     img_b = get_image_bytes(image)
-#     upload
+    :param source_project: source project metadata
+    :type source_project: dict
+    :param image_name: image name
+    :type image: str
+    :param destination_project: destination project metadata
+    :type destination_project: dict
+    """
+    img_b = get_image_bytes(source_project, image_name)
+    if source_project != destination_project:
+        upload_image_to_project(destination_project, img_b, image_name)
+    else:
+        extension = Path(image_name).suffix
+        already_copy = False
+        p = re.compile(r"\([0-9]+\)\.")
+        for m in p.finditer(image_name):
+            # print(m.start() + len(m.group()) + len(extension))
+            # print(len(image_name))
+            if m.start() + len(m.group()
+                              ) + len(extension) - 1 == len(image_name):
+                already_copy = True
+                break
+        if not already_copy:
+            upload_image_to_project(
+                destination_project, img_b,
+                Path(image_name).stem + " (1)" + extension
+            )
+        else:
+            num = int(m.group()[1:-2])
+            upload_image_to_project(
+                destination_project, img_b,
+                image_name[:m.start() + 1] + str(num + 1) + ")" + extension
+            )
