@@ -69,6 +69,7 @@ def search_images(
 
     :param return_metadata: return metadata of images instead of names
     :type return_metadata: bool
+
     :return: metadata of found images or image names
     :rtype: list of dicts or strs
     """
@@ -840,14 +841,23 @@ def copy_image(source_project, image_name, destination_project):
             if m.start() + len(m.group()
                               ) + len(extension) - 1 == len(image_name):
                 num = int(m.group()[1:-2])
-                new_name = image_name[:m.start() +
-                                      1] + str(num + 1) + ")" + extension
-                upload_image_to_project(destination_project, img_b, new_name)
                 found_copied = True
                 break
         if not found_copied:
-            new_name = Path(image_name).stem + " (1)" + extension
-            upload_image_to_project(destination_project, img_b, new_name)
+            num = 1
+        while True:
+            if found_copied:
+                new_name = image_name[:m.start() +
+                                      1] + str(num + 1) + ")" + extension
+            else:
+                new_name = Path(image_name).stem + f" ({num})" + extension
+            try:
+                get_image_metadata(destination_project, new_name)
+            except SABaseException:
+                break
+            else:
+                num += 1
+        upload_image_to_project(destination_project, img_b, new_name)
     logger.info(
         "Copied image %s/%s to %s/%s.", source_project["name"], image_name,
         destination_project["name"], new_name

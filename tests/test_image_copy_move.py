@@ -10,7 +10,40 @@ import superannotate as sa
 sa.init(Path.home() / ".superannotate" / "config.json")
 
 PROJECT_NAME_CPY = "test image copy"
+PROJECT_NAME_CPY_MULT = "test image copy mult"
 PROJECT_NAME_MOVE = "test image move"
+
+
+def test_image_copy_mult(tmpdir):
+    tmpdir = Path(tmpdir)
+
+    projects_found = sa.search_projects(PROJECT_NAME_CPY_MULT)
+    for pr in projects_found:
+        sa.delete_project(pr)
+
+    project = sa.create_project(PROJECT_NAME_CPY_MULT, "test", "Vector")
+
+    sa.upload_image_to_project(
+        project,
+        "./tests/sample_project_vector/example_image_1.jpg",
+        annotation_status="InProgress"
+    )
+    sa.upload_image_to_project(
+        project,
+        "./tests/sample_project_vector/example_image_2.jpg",
+        annotation_status="InProgress"
+    )
+
+    images = sa.search_images(project)
+    assert len(images) == 2
+    image = images[0]
+
+    for _ in range(3):
+        sa.copy_image(project, image, project)
+    assert len(sa.search_images(project)) == 5
+    images = sa.search_images(project)
+    for i in range(3):
+        assert f"example_image_1 ({i+1}).jpg" in images
 
 
 def test_image_copy(tmpdir):
@@ -38,14 +71,12 @@ def test_image_copy(tmpdir):
     image = images[0]
 
     sa.copy_image(project, image, project)
-    time.sleep(1)
     images = sa.search_images(project)
     assert len(images) == 3
 
     image = "example_image_1 (1).jpg"
     assert len(sa.search_images(project, image)) == 1
     sa.copy_image(project, image, project)
-    time.sleep(1)
 
     image = "example_image_1 (2).jpg"
     assert len(sa.search_images(project, image)) == 1
@@ -56,7 +87,6 @@ def test_image_copy(tmpdir):
 
     dest_project = sa.create_project(PROJECT_NAME_CPY + "dif", "test", "Vector")
     sa.copy_image(project, image, dest_project)
-    time.sleep(1)
     di = sa.search_images(dest_project, image)
     assert len(di) == 1
     assert di[0] == image
@@ -100,7 +130,6 @@ def test_image_move(tmpdir):
         PROJECT_NAME_MOVE + "dif", "test", "Vector"
     )
     sa.move_image(project, image, dest_project)
-    time.sleep(1)
     di = sa.search_images(dest_project, image)
     assert len(di) == 1
     assert di[0] == image
