@@ -32,9 +32,9 @@ def test_single_image_upload(tmpdir):
     assert len(images) == 1
     image = images[0]
     assert sa.annotation_status_int_to_str(
-        image["annotation_status"]
+        sa.get_image_metadata(project, image)["annotation_status"]
     ) == "InProgress"
-    assert image["name"] == "example_image_1.jpg"
+    assert image == "example_image_1.jpg"
 
 
 def test_single_image_upload_s3(tmpdir):
@@ -57,7 +57,7 @@ def test_single_image_upload_s3(tmpdir):
     assert len(images) == 1
     image = images[0]
     assert sa.annotation_status_int_to_str(
-        image["annotation_status"]
+        sa.get_image_metadata(project, image)["annotation_status"]
     ) == "InProgress"
 
 
@@ -82,9 +82,9 @@ def test_single_image_upload_s3_change_name(tmpdir):
     assert len(images) == 1
     image = images[0]
     assert sa.annotation_status_int_to_str(
-        image["annotation_status"]
+        sa.get_image_metadata(project, image)["annotation_status"]
     ) == "InProgress"
-    assert image["name"] == "rr.jpg"
+    assert image == "rr.jpg"
 
 
 def test_single_image_upload_bytesio(tmpdir):
@@ -112,6 +112,6 @@ def test_single_image_upload_bytesio(tmpdir):
     assert len(images) == 1
     image = images[0]
     assert sa.annotation_status_int_to_str(
-        image["annotation_status"]
+        sa.get_image_metadata(project, image)["annotation_status"]
     ) == "InProgress"
-    assert image["name"] == "rr.jpg"
+    assert image == "rr.jpg"
