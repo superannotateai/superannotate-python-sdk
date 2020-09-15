@@ -579,15 +579,25 @@ def get_image_annotations(project, image_name, project_type=None):
     if not response.ok:
         raise SABaseException(response.status_code, response.text)
     res = response.json()
+
+    annotation_classes = search_annotation_classes(project)
+    annotation_classes_dict = {}
+    for annotation_class in annotation_classes:
+        annotation_classes_dict[annotation_class["id"]] = annotation_class
     if project_type == 1:  # vector
         url = res["objects"]["url"]
         annotation_json_filename = url.rsplit('/', 1)[-1]
         headers = res["objects"]["headers"]
         response = requests.get(url=url, headers=headers)
         if response.ok:
+            res_json = response.json()
+            for r in res_json:
+                if r["classId"] in annotation_classes_dict:
+                    r["className"] = annotation_classes_dict[r["classId"]
+                                                            ]["name"]
             return {
                 "annotation_json_filename": annotation_json_filename,
-                "annotation_json": response.json()
+                "annotation_json": res_json
             }
         if not response.ok and response.status_code == 403:
             return {"annotation_json": None, "annotation_json_filename": None}
@@ -607,6 +617,9 @@ def get_image_annotations(project, image_name, project_type=None):
         elif not response.ok:
             raise SABaseException(response.status_code, response.text)
         res_json = response.json()
+        for r in res_json:
+            if r["classId"] in annotation_classes_dict:
+                r["className"] = annotation_classes_dict[r["classId"]]["name"]
         url = res["pixelSave"]["url"]
         annotation_mask_filename = url.rsplit('/', 1)[-1]
         headers = res["pixelSave"]["headers"]
