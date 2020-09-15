@@ -22,17 +22,17 @@ from .db.images import (
     add_annotation_bbox_to_image, add_annotation_cuboid_to_image,
     add_annotation_ellipse_to_image, add_annotation_point_to_image,
     add_annotation_polygon_to_image, add_annotation_polyline_to_image,
-    add_annotation_template_to_image, copy_image, delete_image, download_image,
+    add_annotation_template_to_image, download_image,
     download_image_annotations, download_image_preannotations,
     get_image_annotations, get_image_bytes, get_image_metadata,
-    get_image_preannotations, move_image, search_images,
-    set_image_annotation_status, upload_annotations_from_json_to_image
+    get_image_preannotations, search_images, set_image_annotation_status,
+    upload_annotations_from_json_to_image
 )
 from .db.projects import (
-    create_project, delete_project, get_project_image_count,
-    get_project_metadata, search_projects, share_project, unshare_project,
-    upload_annotations_from_folder_to_project, upload_image_to_project,
-    upload_images_from_folder_to_project,
+    copy_image, create_project, delete_project, get_project_image_count,
+    get_project_metadata, move_image, search_projects, share_project,
+    unshare_project, upload_annotations_from_folder_to_project,
+    upload_image_to_project, upload_images_from_folder_to_project,
     upload_images_from_s3_bucket_to_project, upload_images_to_project,
     upload_preannotations_from_folder_to_project
 )

@@ -2,7 +2,6 @@ import io
 import json
 import logging
 from pathlib import Path
-import re
 
 import boto3
 import requests
@@ -17,22 +16,10 @@ from ..api import API
 from ..common import annotation_status_str_to_int
 from ..exceptions import SABaseException
 from .annotation_classes import search_annotation_classes
-from .projects import get_project_metadata, upload_image_to_project
 
 logger = logging.getLogger("superannotate-python-sdk")
 
 _api = API.get_instance()
-
-
-def _get_project_type(project):
-    """Get type of project
-    Returns
-    -------
-    int
-        1 = vector
-        2 = pixel
-    """
-    return get_project_metadata(project)["type"]
 
 
 def _get_project_root_folder_id(project):
@@ -484,8 +471,8 @@ def get_image_preannotations(project, image_name):
     image = get_image_metadata(project, image_name)
     team_id, project_id, image_id, folder_id = image["team_id"], image[
         "project_id"], image["id"], image['folder_id']
-    project_metadata = {'id': project_id, 'team_id': team_id}
-    project_type = _get_project_type(project_metadata)
+    project_type = project["type"]
+
     params = {
         'team_id': team_id,
         'project_id': project_id,
@@ -500,7 +487,7 @@ def get_image_preannotations(project, image_name):
         raise SABaseException(response.status_code, response.text)
     res = response.json()
 
-    annotation_classes = search_annotation_classes(project_metadata)
+    annotation_classes = search_annotation_classes(project)
     annotation_classes_dict = {}
     for annotation_class in annotation_classes:
         annotation_classes_dict[annotation_class["id"]] = annotation_class
@@ -578,7 +565,7 @@ def get_image_annotations(project, image_name, project_type=None):
     team_id, project_id, image_id, folder_id = image["team_id"], image[
         "project_id"], image["id"], image['folder_id']
     if project_type is None:
-        project_type = _get_project_type({'id': project_id, 'team_id': team_id})
+        project_type = project["type"]
     params = {
         'team_id': team_id,
         'project_id': project_id,
@@ -738,8 +725,7 @@ def upload_annotations_from_json_to_image(
     team_id, project_id, image_id, folder_id, image_name = image[
         "team_id"], image["project_id"], image["id"], image['folder_id'], image[
             'name']
-    project = {'id': project_id, 'team_id': team_id}
-    project_type = _get_project_type(project)
+    project_type = project["type"]
     if verbose:
         logger.info(
             "Uploading annotations for image %s in project %s.", image_name,
@@ -815,71 +801,3 @@ def upload_annotations_from_json_to_image(
         raise SABaseException(
             response.status_code, "Couldn't upload annotation. " + response.text
         )
-
-
-def copy_image(source_project, image_name, destination_project):
-    """Copy image to a project. The image's project is the same as destination
-    project then the name will be changed to <image_name>_(<num>).<image_ext>,
-    where <num> is the next available number deducted from project image list.
-
-    :param source_project: source project metadata
-    :type source_project: dict
-    :param image_name: image name
-    :type image: str
-    :param destination_project: destination project metadata
-    :type destination_project: dict
-    """
-    img_b = get_image_bytes(source_project, image_name)
-    if source_project != destination_project:
-        upload_image_to_project(destination_project, img_b, image_name)
-        new_name = image_name
-    else:
-        extension = Path(image_name).suffix
-        p = re.compile(r"_\([0-9]+\)\.")
-        found_copied = False
-        for m in p.finditer(image_name):
-
-            if m.start() + len(m.group()
-                              ) + len(extension) - 1 == len(image_name):
-                num = int(m.group()[2:-2])
-                found_copied = True
-                break
-        if not found_copied:
-            num = 1
-        while True:
-            if found_copied:
-                new_name = image_name[:m.start() +
-                                      2] + str(num + 1) + ")" + extension
-            else:
-                new_name = Path(image_name).stem + f"_({num})" + extension
-            try:
-                get_image_metadata(destination_project, new_name)
-            except SABaseException:
-                break
-            else:
-                num += 1
-        upload_image_to_project(destination_project, img_b, new_name)
-    logger.info(
-        "Copied image %s/%s to %s/%s.", source_project["name"], image_name,
-        destination_project["name"], new_name
-    )
-
-
-def move_image(source_project, image_name, destination_project):
-    """Move image from source_project to destination_project. source_project
-    and destination_project cannot be the same.
-
-    :param source_project: source project metadata
-    :type source_project: dict
-    :param image_name: image name
-    :type image: str
-    :param destination_project: destination project metadata
-    :type destination_project: dict
-    """
-    if source_project == destination_project:
-        raise SABaseException(
-            0, "Cannot move image if source_project == destination_project."
-        )
-    copy_image(source_project, image_name, destination_project)
-    delete_image(source_project, image_name)
-    logger.info("Deleted image %s/%s.", source_project["name"], image_name)

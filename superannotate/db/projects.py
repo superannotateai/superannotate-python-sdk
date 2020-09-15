@@ -6,6 +6,7 @@ import sys
 import threading
 import time
 from pathlib import Path
+import re
 
 import boto3
 from PIL import Image
@@ -18,6 +19,7 @@ from ..common import (
 )
 from ..exceptions import SABaseException
 from .annotation_classes import search_annotation_classes
+from .images import get_image_metadata, delete_image, get_image_bytes
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -465,6 +467,14 @@ def upload_image_to_project(
         raise SABaseException(0, "Couldn't upload to data server. " + e)
 
     __create_image([img_name], project, annotation_status, prefix)
+
+    while True:
+        try:
+            get_image_metadata(project, img_name)
+        except SABaseException:
+            time.sleep(0.2)
+        else:
+            break
 
 
 def upload_images_to_project(
@@ -1232,3 +1242,71 @@ def _set_project_default_image_quality_in_editor(project, quality):
             response.status_code,
             "Couldn't set project settings " + response.text
         )
+
+
+def copy_image(source_project, image_name, destination_project):
+    """Copy image to a project. The image's project is the same as destination
+    project then the name will be changed to <image_name>_(<num>).<image_ext>,
+    where <num> is the next available number deducted from project image list.
+
+    :param source_project: source project metadata
+    :type source_project: dict
+    :param image_name: image name
+    :type image: str
+    :param destination_project: destination project metadata
+    :type destination_project: dict
+    """
+    img_b = get_image_bytes(source_project, image_name)
+    if source_project != destination_project:
+        upload_image_to_project(destination_project, img_b, image_name)
+        new_name = image_name
+    else:
+        extension = Path(image_name).suffix
+        p = re.compile(r"_\([0-9]+\)\.")
+        found_copied = False
+        for m in p.finditer(image_name):
+
+            if m.start() + len(m.group()
+                              ) + len(extension) - 1 == len(image_name):
+                num = int(m.group()[2:-2])
+                found_copied = True
+                break
+        if not found_copied:
+            num = 1
+        while True:
+            if found_copied:
+                new_name = image_name[:m.start() +
+                                      2] + str(num + 1) + ")" + extension
+            else:
+                new_name = Path(image_name).stem + f"_({num})" + extension
+            try:
+                get_image_metadata(destination_project, new_name)
+            except SABaseException:
+                break
+            else:
+                num += 1
+        upload_image_to_project(destination_project, img_b, new_name)
+    logger.info(
+        "Copied image %s/%s to %s/%s.", source_project["name"], image_name,
+        destination_project["name"], new_name
+    )
+
+
+def move_image(source_project, image_name, destination_project):
+    """Move image from source_project to destination_project. source_project
+    and destination_project cannot be the same.
+
+    :param source_project: source project metadata
+    :type source_project: dict
+    :param image_name: image name
+    :type image: str
+    :param destination_project: destination project metadata
+    :type destination_project: dict
+    """
+    if source_project == destination_project:
+        raise SABaseException(
+            0, "Cannot move image if source_project == destination_project."
+        )
+    copy_image(source_project, image_name, destination_project)
+    delete_image(source_project, image_name)
+    logger.info("Deleted image %s/%s.", source_project["name"], image_name)
