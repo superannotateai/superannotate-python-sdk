@@ -1,5 +1,4 @@
 from pathlib import Path
-import json
 import filecmp
 
 import pytest
@@ -31,16 +30,16 @@ def test_tif_upload(tmpdir):
     )
     sa.create_annotation_class(project, "tt", "#FFAAFF")
     image = sa.search_images(project)[0]
-    sa.add_annotation_bbox_to_image(image, [10, 10, 100, 100], "tt")
+    sa.add_annotation_bbox_to_image(project, image, [10, 10, 100, 100], "tt")
     Path(tmpdir / "q100" / "lores").mkdir(parents=True)
-    sa.download_image_annotations(image, tmpdir / "q100")
-    sa.download_image(image, tmpdir / "q100", variant='original')
+    sa.download_image_annotations(project, image, tmpdir / "q100")
+    sa.download_image(project, image, tmpdir / "q100", variant='original')
     assert filecmp.cmp(
         f"sample_tif_files/{image['name']}",
         f"{tmpdir}/q100/{image['name']}",
         shallow=False
     )
-    sa.download_image(image, tmpdir / "q100/lores", variant='lores')
+    sa.download_image(project, image, tmpdir / "q100/lores", variant='lores')
     export = sa.prepare_export(project, include_fuse=True)
     (tmpdir / "q100" / "export").mkdir(parents=True)
     sa.download_export(export, tmpdir / "q100" / "export")
@@ -63,9 +62,9 @@ def test_tif_upload(tmpdir):
     )
     sa.create_annotation_class(project, "tt", "#FFAAFF")
     image = sa.search_images(project)[0]
-    sa.add_annotation_bbox_to_image(image, [10, 10, 100, 100], "tt")
+    sa.add_annotation_bbox_to_image(project, image, [10, 10, 100, 100], "tt")
     Path(tmpdir / "q60" / "lores").mkdir(parents=True)
-    sa.download_image_annotations(image, tmpdir / "q60")
+    sa.download_image_annotations(project, image, tmpdir / "q60")
     sa.download_image(image, tmpdir / "q60", variant='original')
     assert filecmp.cmp(
         f"sample_tif_files/{image['name']}",

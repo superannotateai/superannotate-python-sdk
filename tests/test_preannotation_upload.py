@@ -37,8 +37,8 @@ def test_preannotation_folder_upload_download(
     count_in = len(list(from_folder.glob("*.json")))
 
     images = sa.search_images(project)
-    for image in images:
-        sa.download_image_preannotations(image, tmpdir)
+    for image_name in images:
+        sa.download_image_preannotations(project, image_name, tmpdir)
 
     count_out = len(list(Path(tmpdir).glob("*.json")))
 

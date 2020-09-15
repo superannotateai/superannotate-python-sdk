@@ -97,7 +97,7 @@ def test_recursive_preannotations_folder(tmpdir):
     )
 
     for image in sa.search_images(project):
-        sa.download_image_preannotations(image, tmpdir)
+        sa.download_image_preannotations(project, image, tmpdir)
 
     assert len(list(tmpdir.glob("*.json"))) == 2
 
@@ -128,7 +128,7 @@ def test_nonrecursive_preannotations_folder(tmpdir):
     )
 
     for image in sa.search_images(project):
-        sa.download_image_preannotations(image, tmpdir)
+        sa.download_image_preannotations(project, image, tmpdir)
 
     assert len(list(tmpdir.glob("*.json"))) == 1
 
@@ -240,7 +240,7 @@ def test_preannotations_recursive_s3_folder(tmpdir):
     )
 
     for image in sa.search_images(project):
-        sa.download_image_preannotations(image, tmpdir)
+        sa.download_image_preannotations(project, image, tmpdir)
 
     assert len(list(tmpdir.glob("*.json"))) == 2
 
@@ -276,7 +276,7 @@ def test_preannotations_nonrecursive_s3_folder(tmpdir):
     )
 
     for image in sa.search_images(project):
-        sa.download_image_preannotations(image, tmpdir)
+        sa.download_image_preannotations(project, image, tmpdir)
 
 
 def test_images_nonrecursive_s3(tmpdir):
