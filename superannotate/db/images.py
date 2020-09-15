@@ -505,7 +505,7 @@ def get_image_preannotations(project, image_name):
             }
         res_json = response.json()
         for r in res_json:
-            if r["classId"] in annotation_classes_dict:
+            if "classId" in r and r["classId"] in annotation_classes_dict:
                 r["className"] = annotation_classes_dict[r["classId"]]["name"]
 
         return {
@@ -528,7 +528,7 @@ def get_image_preannotations(project, image_name):
             }
         preannotation_json = response.json()
         for r in preannotation_json:
-            if r["classId"] in annotation_classes_dict:
+            if "classId" in r and r["classId"] in annotation_classes_dict:
                 r["className"] = annotation_classes_dict[r["classId"]]["name"]
 
         res_mask = res['preAnnotationSavePng']
@@ -592,7 +592,7 @@ def get_image_annotations(project, image_name, project_type=None):
         if response.ok:
             res_json = response.json()
             for r in res_json:
-                if r["classId"] in annotation_classes_dict:
+                if "classId" in r and r["classId"] in annotation_classes_dict:
                     r["className"] = annotation_classes_dict[r["classId"]
                                                             ]["name"]
             return {
@@ -618,7 +618,7 @@ def get_image_annotations(project, image_name, project_type=None):
             raise SABaseException(response.status_code, response.text)
         res_json = response.json()
         for r in res_json:
-            if r["classId"] in annotation_classes_dict:
+            if "classId" in r and r["classId"] in annotation_classes_dict:
                 r["className"] = annotation_classes_dict[r["classId"]]["name"]
         url = res["pixelSave"]["url"]
         annotation_mask_filename = url.rsplit('/', 1)[-1]
