@@ -214,35 +214,50 @@ finished preparing and download it to the specified folder.
 Converting annotation format
 ______________________________
 
+
 After exporting project annotations (in SuperAnnotate format), it is possible
 to convert them to other annotation formats:
 
 .. code-block:: python
 
-    sa.export_annotation_format("<input_folder>", "<output_folder>", "COCO", "<dataset_name>", "<project_type>",
-                                "<task>", "<platform>")
+    sa.export_annotation_format("<input_folder>", "<output_folder>", "COCO", "<dataset_name>", 
+    "<project_type>", "<task>", "<platform>")
 
 .. note::
     
-  Right now we support only COCO annotation format conversion.
+  Right now we support only SuperAnnotate annotateion format to COCO annotation format conversion.
 
-You can find more information annotation format conversion :ref:`here <ref_converter>`. We provide some examples in our github repository. In the root folder of our github repository, you can run following commands to do conversions.
+.. _git_repo: https://github.com/superannotateai/superannotate-python-sdk
+
+You can find more information annotation format conversion :ref:`here <ref_converter>`. We provide some examples in our `GitHub repository <git_repo_>`_. In the root folder of our github repository, you can run following commands to do conversions.
 
 .. code-block:: python
 
    import superannotate as sa
 
     # From SA panoptic format to COCO panoptic format
-    sa.export_annotation_format("tests/converter_test/COCO/input/fromSuperAnnotate/cats_dogs_panoptic_segm", "tests/converter_test/COCO/output/panoptic","COCO","panoptic_test", "Pixel","panoptic_segmentation","Web")
+    sa.export_annotation_format(
+    "tests/converter_test/COCO/input/fromSuperAnnotate/cats_dogs_panoptic_segm", 
+    "tests/converter_test/COCO/output/panoptic",
+    "COCO", "panoptic_test", "Pixel","panoptic_segmentation","Web")
 
     # From COCO keypoints detection format to SA keypoints detection desktop application format 
-    sa.import_annotation_format("tests/converter_test/COCO/input/toSuperAnnotate/keypoint_detection", "tests/converter_test/COCO/output/keypoints", "COCO", "person_keypoints_test", "Vector", "keypoint_detection", "Desktop")
+    sa.import_annotation_format(
+    "tests/converter_test/COCO/input/toSuperAnnotate/keypoint_detection",
+    "tests/converter_test/COCO/output/keypoints",
+    "COCO", "person_keypoints_test", "Vector", "keypoint_detection", "Desktop")
 
     # Pascal VOC annotation format to SA Web platform annotation format
-    sa.import_annotation_format("tests/converter_test/VOC/input/fromPascalVOCToSuperAnnotate/VOC2012", "tests/converter_test/VOC/output/instances", "VOC", "instances_test", "Pixel", "instance_segmentation", "Web")
+    sa.import_annotation_format(
+    "tests/converter_test/VOC/input/fromPascalVOCToSuperAnnotate/VOC2012",
+    "tests/converter_test/VOC/output/instances",
+    "VOC", "instances_test", "Pixel", "instance_segmentation", "Web")
 
     # LabelBox annotation format to SA Desktop application annotation format
-    sa.import_annotation_format("tests/converter_test/LabelBox/input/toSuperAnnotate/", "tests/converter_test/LabelBox/output/objects/", "LabelBox", "labelbox_example", "Vector", "object_detection", "Desktop")
+    sa.import_annotation_format(
+    "tests/converter_test/LabelBox/input/toSuperAnnotate/",
+    "tests/converter_test/LabelBox/output/objects/",
+    "LabelBox", "labelbox_example", "Vector", "object_detection", "Desktop")
 
 
 Working with images
