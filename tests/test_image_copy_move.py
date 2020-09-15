@@ -43,7 +43,7 @@ def test_image_copy_mult(tmpdir):
     assert len(sa.search_images(project)) == 5
     images = sa.search_images(project)
     for i in range(3):
-        assert f"example_image_1 ({i+1}).jpg" in images
+        assert f"example_image_1_({i+1}).jpg" in images
 
 
 def test_image_copy(tmpdir):
@@ -74,11 +74,11 @@ def test_image_copy(tmpdir):
     images = sa.search_images(project)
     assert len(images) == 3
 
-    image = "example_image_1 (1).jpg"
+    image = "example_image_1_(1).jpg"
     assert len(sa.search_images(project, image)) == 1
     sa.copy_image(project, image, project)
 
-    image = "example_image_1 (2).jpg"
+    image = "example_image_1_(2).jpg"
     assert len(sa.search_images(project, image)) == 1
 
     projects_found = sa.search_projects(PROJECT_NAME_CPY + "dif")

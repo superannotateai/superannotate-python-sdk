@@ -819,7 +819,8 @@ def upload_annotations_from_json_to_image(
 
 def copy_image(source_project, image_name, destination_project):
     """Copy image to a project. The image's project is the same as destination
-    project then the name will be changed to <image_name>_(1).<image_ext>
+    project then the name will be changed to <image_name>_(<num>).<image_ext>,
+    where <num> is the next available number deducted from project image list.
 
     :param source_project: source project metadata
     :type source_project: dict
@@ -834,13 +835,13 @@ def copy_image(source_project, image_name, destination_project):
         new_name = image_name
     else:
         extension = Path(image_name).suffix
-        p = re.compile(r"\([0-9]+\)\.")
+        p = re.compile(r"_\([0-9]+\)\.")
         found_copied = False
         for m in p.finditer(image_name):
 
             if m.start() + len(m.group()
                               ) + len(extension) - 1 == len(image_name):
-                num = int(m.group()[1:-2])
+                num = int(m.group()[2:-2])
                 found_copied = True
                 break
         if not found_copied:
@@ -848,9 +849,9 @@ def copy_image(source_project, image_name, destination_project):
         while True:
             if found_copied:
                 new_name = image_name[:m.start() +
-                                      1] + str(num + 1) + ")" + extension
+                                      2] + str(num + 1) + ")" + extension
             else:
-                new_name = Path(image_name).stem + f" ({num})" + extension
+                new_name = Path(image_name).stem + f"_({num})" + extension
             try:
                 get_image_metadata(destination_project, new_name)
             except SABaseException:
