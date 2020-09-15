@@ -223,7 +223,7 @@ to convert them to other annotation formats:
 .. code-block:: python
 
     sa.export_annotation_format("<input_folder>", "<output_folder>", "COCO", "<dataset_name>", "<project_type>",
-                                "<task>", "<train_val_split_ratio>")
+                                "<task>", "<platform>")
 
 .. note::
     

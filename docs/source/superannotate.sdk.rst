@@ -263,6 +263,50 @@ _____________________________________________________________
 .. autofunction:: superannotate.import_annotation_format
 .. autofunction:: superannotate.export_annotation_format
 
+
+Those two arguments in the conversion functions describe the flow of converter. As some datasets don't have all possible tasks or for all possible tasks not all SuperAnnotate projects are possible, bellow we will present which (project_type, task) combinations are available: 
+
+==============  ======================
+         From SA to COCO
+--------------------------------------
+ project type           task
+==============  ======================
+Pixel           panoptic_segmentation
+Pixel           instance_segmentation
+Vector          instance_segmentation
+Vector          object_detection
+Vector          keypoint_detection
+==============  ====================== 
+
+==============  ======================
+         From COCO to SA
+--------------------------------------
+ project type           task
+==============  ======================
+Pixel           panoptic_segmentation
+Vector          instance_segmentation
+Vector          keypoint_detection
+==============  ====================== 
+
+==============  ======================
+         From VOC to SA
+--------------------------------------
+ project type           task
+==============  ======================
+Pixel           instance_segmentation
+Vector          object_detection
+==============  ====================== 
+
+==============  ======================
+       From LabelBox to SA
+--------------------------------------
+ project type           task
+==============  ======================
+Vector          object_detection
+==============  ====================== 
+
+We also provide some converters :ref:`examples <ref_examples>`.
+
 ----------
 
 Editing annotations
