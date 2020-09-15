@@ -220,7 +220,7 @@ to convert them to other annotation formats:
 
 .. code-block:: python
 
-    sa.export_annotation_format("<input_folder>", "<output_folder>", "COCO", "<dataset_name>", 
+    sa.export_annotation_format("<input_folder>", "<output_folder>", "<dataset_format>", "<dataset_name>", 
     "<project_type>", "<task>", "<platform>")
 
 .. note::
