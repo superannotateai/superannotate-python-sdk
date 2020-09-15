@@ -20,7 +20,7 @@ def create_annotation_class(project, name, color, attribute_groups=None):
     :type project: dict
     :param name: name for the class
     :type name: str
-    :param color: RGB hex color value, e.g, "#FFFFAA"
+    :param color: RGB hex color value, e.g., "#FFFFAA"
     :type color: str
     :param attribute_groups: example:
      [ { "name": "tall", "is_multiselect": 0, "attributes": [ { "name": "yes" }, { "name": "no" } ] },

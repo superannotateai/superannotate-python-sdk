@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import boto3
-from urllib.parse import urlparse
 
 import superannotate as sa
 
@@ -37,7 +36,7 @@ def test_export_s3(tmpdir):
     )
     images = sa.search_images(project)
     for img in images:
-        sa.set_image_annotation_status(img, 'QualityCheck')
+        sa.set_image_annotation_status(project, img, 'QualityCheck')
 
     new_export = sa.prepare_export(project, include_fuse=True)
     sa.download_export(new_export, S3_PREFIX, to_s3_bucket=S3_BUCKET)

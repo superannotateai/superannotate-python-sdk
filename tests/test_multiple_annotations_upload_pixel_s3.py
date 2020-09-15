@@ -39,7 +39,7 @@ def test_upload_from_s3(empty_test_project, tmpdir):
     )
 
     for image in sa.search_images(project):
-        sa.download_image_annotations(image, tmpdir)
+        sa.download_image_annotations(project, image, tmpdir)
 
     assert len(list(Path(tmpdir).glob("*.*"))) == 6
     sa.delete_project(project)
@@ -67,7 +67,7 @@ def test_pixel_preannotation_upload_from_s3(empty_test_project, tmpdir):
     )
 
     for image in sa.search_images(project):
-        sa.download_image_preannotations(image, tmpdir)
+        sa.download_image_preannotations(project, image, tmpdir)
 
     assert len(list(Path(tmpdir).glob("*.*"))) == 6
     sa.delete_project(project)
@@ -95,7 +95,7 @@ def test_vector_preannotation_upload_from_s3(empty_test_project, tmpdir):
     )
 
     for image in sa.search_images(project):
-        sa.download_image_preannotations(image, tmpdir)
+        sa.download_image_preannotations(project, image, tmpdir)
 
     assert len(list(Path(tmpdir).glob("*.*"))) == 4
     sa.delete_project(project)

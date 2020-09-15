@@ -38,31 +38,31 @@ def test_basic_images(project_type, name, description, from_folder, tmpdir):
     images = sa.search_images(project, "example_image_1")
     assert len(images) == 1
 
-    sa.download_image(images[0], tmpdir, True)
-    assert sa.get_image_preannotations(images[0]
+    image_name = images[0]
+    sa.download_image(project, image_name, tmpdir, True)
+    assert sa.get_image_preannotations(project, image_name
                                       )["preannotation_json_filename"] is None
-    assert sa.get_image_annotations(images[0]
+    assert sa.get_image_annotations(project, image_name
                                    )["annotation_json_filename"] is None
-    sa.download_image_annotations(images[0], tmpdir)
+    sa.download_image_annotations(project, image_name, tmpdir)
     assert len(list(Path(tmpdir).glob("*"))) == 1
-    sa.download_image_preannotations(images[0], tmpdir)
+    sa.download_image_preannotations(project, image_name, tmpdir)
     assert len(list(Path(tmpdir).glob("*"))) == 1
 
-    assert (Path(tmpdir) / images[0]["name"]).is_file()
+    assert (Path(tmpdir) / image_name).is_file()
 
     sa.upload_annotations_from_json_to_image(
-        images[0],
+        project, image_name,
         sa.image_path_to_annotation_paths(
-            from_folder / images[0]["name"], project_type
-        )[0],
-        None if project_type == "Vector" else sa.image_path_to_annotation_paths(
-            from_folder / images[0]["name"], project_type
-        )[1]
+            from_folder / image_name, project_type
+        )[0], None if project_type == "Vector" else sa.
+        image_path_to_annotation_paths(from_folder /
+                                       image_name, project_type)[1]
     )
-    assert sa.get_image_annotations(images[0]
+    assert sa.get_image_annotations(project, image_name
                                    )["annotation_json_filename"] is not None
 
-    sa.download_image_annotations(images[0], tmpdir)
+    sa.download_image_annotations(project, image_name, tmpdir)
     annotation = list(Path(tmpdir).glob("*.json"))
     assert len(annotation) == 1
     annotation = json.load(open(annotation[0]))
