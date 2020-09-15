@@ -61,7 +61,7 @@ For further steps please have a look at the [tutorial](https://superannotate.rea
 
 ## License
 
-This SDK is distributed under the MIT License, see [LICENSE](./LICENSE)
+This SDK is distributed under the MIT License, see [LICENSE](./LICENSE).
 
 ## Questions and Issues
 

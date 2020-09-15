@@ -13,7 +13,7 @@ packages = find_packages()
 
 setup(
     name='superannotate',
-    version='1.5.9',
+    version='1.5.10',
     description='Python SDK to SuperAnnotate platform',
     license='MIT',
     author='Hovnatan Karapetyan',
