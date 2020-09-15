@@ -34,7 +34,7 @@ pip install 'git+https://github.com/philferriere/cocoapi.git#egg=pycocotools&sub
 
 The package officially supports Python 3.6+.
 
-For further steps please have a look at the :ref:`tutorial <ref_tutorial>`.
+For further steps please have a look at the [tutorial](https://superannotate.readthedocs.io/en/latest/tutorial.sdk.html).
 
 ## Supported Features
 
