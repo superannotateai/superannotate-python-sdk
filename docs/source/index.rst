@@ -38,6 +38,28 @@ SuperAnnotate Python SDK allows access to the platform without web browser:
 
 ----------
 
+Installation
+____________
+
+
+SDK is available on PyPI:
+
+.. code-block:: bash
+
+   pip install superannotate
+
+for COCO annotation format converters support also need to install:
+
+.. code-block:: bash
+
+   pip install 'git+https://github.com/cocodataset/panopticapi.git'
+   pip install 'git+https://github.com/philferriere/cocoapi.git#egg=pycocotools&subdirectory=PythonAPI'
+
+The package officially supports Python 3.6+.
+
+For further steps please have a look at the :ref:`tutorial <ref_tutorial>`.
+
+----------
 
 Supported Features
 __________________
