@@ -243,8 +243,8 @@ Return value is list of image names with prefix "example_image1.jpg".
 
 .. note::
 
-The image names in SuperAnnotate platform projects are 
-unique.
+   The image names in SuperAnnotate platform projects are 
+   unique.
 
 The returned list will have a single item we were looking for:
 
