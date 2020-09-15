@@ -22,7 +22,7 @@ from .db.images import (
     add_annotation_bbox_to_image, add_annotation_cuboid_to_image,
     add_annotation_ellipse_to_image, add_annotation_point_to_image,
     add_annotation_polygon_to_image, add_annotation_polyline_to_image,
-    add_annotation_template_to_image, download_image,
+    add_annotation_template_to_image, copy_image, download_image,
     download_image_annotations, download_image_preannotations,
     get_image_annotations, get_image_bytes, get_image_metadata,
     get_image_preannotations, search_images, set_image_annotation_status,
