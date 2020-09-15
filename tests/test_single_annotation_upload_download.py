@@ -38,14 +38,14 @@ def test_annotation_download_upload(
     )
     sa.upload_annotations_from_folder_to_project(project, from_folder)
     image = sa.search_images(project)[2]
-    sa.download_image_annotations(image, tmpdir)
+    sa.download_image_annotations(project, image, tmpdir)
     anns_json_in_folder = list(Path(tmpdir).glob("*.json"))
     anns_mask_in_folder = list(Path(tmpdir).glob("*.png"))
     assert len(anns_json_in_folder) == 1
     assert len(anns_mask_in_folder) == (1 if project_type == "Pixel" else 0)
 
     input_annotation_paths = sa.image_path_to_annotation_paths(
-        from_folder / image["name"], project_type
+        from_folder / image, project_type
     )
 
     json1 = json.load(open(input_annotation_paths[0]))

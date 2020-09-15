@@ -33,17 +33,15 @@ def test_large_files(tmpdir):
     sa.download_image_annotations(project, image, tmpdir / "q100")
     sa.download_image(project, image, tmpdir / "q100", variant='original')
     assert filecmp.cmp(
-        f"{SAMPLE_FOLDER}/{image['name']}",
-        f"{tmpdir}/q100/{image['name']}",
-        shallow=False
+        f"{SAMPLE_FOLDER}/{image}", f"{tmpdir}/q100/{image}", shallow=False
     )
     sa.download_image(project, image, tmpdir / "q100/lores", variant='lores')
     export = sa.prepare_export(project, include_fuse=True)
     (tmpdir / "q100" / "export").mkdir(parents=True)
     sa.download_export(export, tmpdir / "q100" / "export")
     assert filecmp.cmp(
-        f"{SAMPLE_FOLDER}/{image['name']}",
-        f"{tmpdir}/q100/export/{image['name']}",
+        f"{SAMPLE_FOLDER}/{image}",
+        f"{tmpdir}/q100/export/{image}",
         shallow=False
     )
 
@@ -65,9 +63,7 @@ def test_large_files(tmpdir):
     sa.download_image_annotations(project, image, tmpdir / "q60")
     sa.download_image(project, image, tmpdir / "q60", variant='original')
     assert filecmp.cmp(
-        f"{SAMPLE_FOLDER}/{image['name']}",
-        f"{tmpdir}/q60/{image['name']}",
-        shallow=False
+        f"{SAMPLE_FOLDER}/{image}", f"{tmpdir}/q60/{image}", shallow=False
     )
 
     sa.download_image(project, image, tmpdir / "q60/lores", variant='lores')
@@ -75,7 +71,7 @@ def test_large_files(tmpdir):
     (tmpdir / "q60" / "export").mkdir(parents=True)
     sa.download_export(export, tmpdir / "q60" / "export")
     assert filecmp.cmp(
-        f"{SAMPLE_FOLDER}/{image['name']}",
-        f"{tmpdir}/q60/export/{image['name']}",
+        f"{SAMPLE_FOLDER}/{image}",
+        f"{tmpdir}/q60/export/{image}",
         shallow=False
     )

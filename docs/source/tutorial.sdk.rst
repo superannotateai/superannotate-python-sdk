@@ -95,9 +95,6 @@ as our project for further work:
           if project["description"] == "my desc":
               break
 
-   It is advised to make search prefix unique in the available projects list to be
-   able to choose the project with just :py:obj:`project = project[0]`.
-
 Now that we have found the project, we can perform various tasks on it. For
 example, to upload images from a local folder to the project:
 
@@ -241,10 +238,15 @@ To search for the images in the project:
 
    images = sa.search_images(project, "example_image1.jpg")
 
-Here again we get a Python list of dict metadatas for the images with name prefix
-"example_image1.jpg". The image names in SuperAnnotate platform projects are 
-unique, so if full name was given to :ref:`search_images <ref_search_images>` 
-the returned list will have a single item we were looking for:
+Return value is list of image names with prefix "example_image1.jpg". 
+
+
+.. note::
+
+The image names in SuperAnnotate platform projects are 
+unique.
+
+The returned list will have a single item we were looking for:
 
 .. code-block:: python
 
@@ -254,13 +256,13 @@ To download the image one can use:
 
 .. code-block:: python
 
-   sa.download_image(image, "<path_to_local_dir>")
+   sa.download_image(project, image, "<path_to_local_dir>")
 
 To download image annotations:
 
 .. code-block:: python
 
-   sa.download_image_annotations(image, "<path_to_local_dir>")
+   sa.download_image_annotations(project, image, "<path_to_local_dir>")
 
 After the image annotations are downloaded, you can add annotations to it:
 
@@ -273,13 +275,13 @@ and upload back to the platform with:
 
 .. code-block:: python
 
-   sa.upload_annotations_from_json_to_image(image, "<path_to_json>")
+   sa.upload_annotations_from_json_to_image(project, image, "<path_to_json>")
 
 Last two steps can be combined into one:
 
 .. code-block:: python
 
-   sa.add_annotation_bbox_to_image(image, [10, 10, 100, 100], "Human")
+   sa.add_annotation_bbox_to_image(project, image, [10, 10, 100, 100], "Human")
 
 but if bulk changes are made to many images it is much faster to add all required
 annotations using :ref:`add_annotation_bbox_to_json
