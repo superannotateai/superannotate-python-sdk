@@ -7,12 +7,13 @@ requirements = requirements.splitlines()
 
 with open('README.md') as f:
     readme = f.read()
+readme = "\n".join(readme.split('\n')[2:])
 
 packages = find_packages()
 
 setup(
     name='superannotate',
-    version='1.5.6',
+    version='1.5.9',
     description='Python SDK to SuperAnnotate platform',
     license='MIT',
     author='Hovnatan Karapetyan',
