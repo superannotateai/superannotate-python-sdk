@@ -16,7 +16,6 @@
 
    tutorial.sdk.rst
    superannotate.sdk.rst
-   converter_example.sdk.rst
    LICENSE.rst
 
 ----------
