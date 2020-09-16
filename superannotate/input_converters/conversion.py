@@ -120,7 +120,20 @@ def export_annotation_format(
     task="object_detection",
     platform="Web",
 ):
-    """Converts SuperAnnotate annotation formate to the other annotation formats.
+    """Converts SuperAnnotate annotation formate to the other annotation formats. Currently available (project_type, task) combinations for converter
+    presented below:
+
+    ==============  ======================
+             From SA to COCO
+    --------------------------------------
+     project_type           task
+    ==============  ======================
+    Pixel           panoptic_segmentation
+    Pixel           instance_segmentation
+    Vector          instance_segmentation
+    Vector          object_detection
+    Vector          keypoint_detection
+    ==============  ====================== 
 
     :param input_dir: Path to the dataset folder that you want to convert.
     :type input_dir: str
@@ -173,7 +186,36 @@ def import_annotation_format(
     task="object_detection",
     platform="Web",
 ):
-    """Converts other annotation formats to SuperAnnotate annotation format.
+    """Converts other annotation formats to SuperAnnotate annotation format. Currently available (project_type, task) combinations for converter
+    presented below:
+
+    ==============  ======================
+             From COCO to SA
+    --------------------------------------
+     project_type           task
+    ==============  ======================
+    Pixel           panoptic_segmentation
+    Vector          instance_segmentation
+    Vector          keypoint_detection
+    ==============  ====================== 
+
+    ==============  ======================
+             From VOC to SA
+    --------------------------------------
+     project_type           task
+    ==============  ======================
+    Pixel           instance_segmentation
+    Vector          object_detection
+    ==============  ====================== 
+
+    ==============  ======================
+           From LabelBox to SA
+    --------------------------------------
+     project_type           task
+    ==============  ======================
+    Vector          object_detection
+    ==============  ====================== 
+
 
     :param input_dir: Path to the dataset folder that you want to convert.
     :type input_dir: str
