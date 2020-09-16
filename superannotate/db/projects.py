@@ -215,8 +215,8 @@ def upload_images_from_folder_to_project(
         )
 
     logger.info(
-        "Uploading all images with extensions %s from %s to project ID %s.",
-        extensions, folder_path, project_id
+        "Uploading all images with extensions %s from %s to project ID %s. Excluded file patterns are: %s.",
+        extensions, folder_path, project_id, exclude_file_patterns
     )
     if from_s3_bucket is None:
         paths = []
@@ -571,7 +571,8 @@ def upload_images_to_project(
 
 def __upload_annotations_thread(
     team_id, project_id, project_type, anns_filenames, folder_path,
-    annotation_classes, thread_id, chunksize, num_uploaded, from_s3_bucket
+    annotation_classes, thread_id, chunksize, num_uploaded, from_s3_bucket,
+    actually_uploaded
 ):
     NUM_TO_SEND = 500
     len_anns = len(anns_filenames)
@@ -608,6 +609,8 @@ def __upload_annotations_thread(
             json_req=data
         )
         res = response.json()
+        if len(res["images"]) != len(data["names"]):
+            logger.warning("Couldn't find all the images for annotation JSONs.")
         aws_creds = res["creds"]
         s3_session = boto3.Session(
             aws_access_key_id=aws_creds['accessKeyId'],
@@ -661,6 +664,9 @@ def __upload_annotations_thread(
                     file.seek(0)
                 bucket.put_object(Key=image_path + postfix_mask, Body=file)
             num_uploaded[thread_id] += 1
+            actually_uploaded[thread_id].append(
+                Path(folder_path) / json_filename
+            )
 
 
 def upload_annotations_from_folder_to_project(
@@ -669,8 +675,9 @@ def upload_annotations_from_folder_to_project(
     """Finds and uploads all JSON files in the folder_path as annotations to the project.
 
     WARNING: The JSON files should follow specific naming convention. For Vector
-    projects they should be named "<image_name>___objects.json", for Pixel projects
-    JSON file should be named "<image_name>___pixel.json" and also second mask
+    projects they should be named "<image_filename>___objects.json" (e.g., if
+    image is cats.jpg the annotation filename should be cats.jpg___objects.json), for Pixel projects
+    JSON file should be named "<image_filename>___pixel.json" and also second mask
     image file should be present with the name "<image_name>___save.png". In both cases
     image with <image_name> should be already present on the platform.
 
@@ -771,6 +778,9 @@ def _upload_annotations_from_folder_to_project(
     if len_annotations_paths == 0:
         return return_result
     num_uploaded = [0] * _NUM_THREADS
+    actually_uploaded = []
+    for _ in range(_NUM_THREADS):
+        actually_uploaded.append([])
     finish_event = threading.Event()
     tqdm_thread = threading.Thread(
         target=__tqdm_thread,
@@ -787,7 +797,7 @@ def _upload_annotations_from_folder_to_project(
             args=(
                 team_id, project_id, project_type, annotations_filenames,
                 folder_path, annotation_classes, thread_id, chunksize,
-                num_uploaded, from_s3_bucket
+                num_uploaded, from_s3_bucket, actually_uploaded
             )
         )
         threads.append(t)
@@ -798,7 +808,9 @@ def _upload_annotations_from_folder_to_project(
     tqdm_thread.join()
     logger.info("Number of annotations uploaded %s.", sum(num_uploaded))
 
-    return return_result + [str(p) for p in annotations_paths]
+    for ac_upl in actually_uploaded:
+        return_result += [str(p) for p in ac_upl]
+    return return_result
 
 
 def __upload_preannotations_thread(
@@ -901,8 +913,9 @@ def upload_preannotations_from_folder_to_project(
     """Finds and uploads all JSON files in the folder_path as pre-annotations to the project.
 
     WARNING: The JSON files should follow specific naming convention. For Vector
-    projects they should be named "<image_name>___objects.json", for Pixel projects
-    JSON file should be named "<image_name>___pixel.json" and also second mask
+    projects they should be named "<image_filename>___objects.json" (e.g., if
+    image is cats.jpg the annotation filename should be cats.jpg___objects.json), for Pixel projects
+    JSON file should be named "<image_filename>___pixel.json" and also second mask
     image file should be present with the name "<image_name>___save.png". In both cases
     image with <image_name> should be already present on the platform.
 
