@@ -65,4 +65,4 @@ This SDK is distributed under the MIT License, see [LICENSE](./LICENSE).
 
 ## Questions and Issues
 
-For questions and issues please use this repo's issue tracker on Github.
+For questions and issues please use this repo's issue tracker on GitHub.

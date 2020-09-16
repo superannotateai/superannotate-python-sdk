@@ -168,7 +168,7 @@ def upload_images_from_folder_to_project(
     extensions=None,
     annotation_status="NotStarted",
     from_s3_bucket=None,
-    exclude_file_pattern="___save.png",
+    exclude_file_patterns=None,
     recursive_subfolders=False,
     image_quality_in_editor=None
 ):
@@ -185,10 +185,12 @@ def upload_images_from_folder_to_project(
     :type annotation_status: str
     :param from_s3_bucket: AWS S3 bucket to use. If None then folder_path is in local filesystem
     :type from_s3_bucket: str
-    :param exclude_file_pattern: filename pattern to exclude from uploading,
+    :param exclude_file_patterns: filename patterns to exclude from uploading,
                                  default value is to exclude SuperAnnotate pixel project
-                                 annotation mask output file pattern
-    :type exclude_file_pattern: str
+                                 annotation mask output file pattern. If None,
+                                 SuperAnnotate related ["___save.png", "___fuse.png"]
+                                 will bet set as default exclude_file_patterns.
+    :type exclude_file_patterns: list of strs
     :param recursive_subfolders: enable recursive subfolder parsing
     :type recursive_subfolders: bool
     :param image_quality_in_editor: image quality (in percents) that will be seen in SuperAnnotate web annotation editor. If None default value will be used.
@@ -201,6 +203,8 @@ def upload_images_from_folder_to_project(
         logger.warning(
             "When using recursive subfolder parsing same name images in different subfolders will overwrite each other."
         )
+    if exclude_file_patterns is None:
+        exclude_file_patterns = ["___save.png", "___fuse.png"]
     project_id = project["id"]
     if extensions is None:
         extensions = ["jpg", "png"]
@@ -241,7 +245,10 @@ def upload_images_from_folder_to_project(
                         break
     filtered_paths = []
     for path in paths:
-        if exclude_file_pattern not in Path(path).name:
+        not_in_exclude_list = [
+            x not in Path(path).name for x in exclude_file_patterns
+        ]
+        if all(not_in_exclude_list):
             filtered_paths.append(path)
 
     return upload_images_to_project(
@@ -1186,7 +1193,7 @@ def _get_project_default_image_quality_in_editor(project):
             "Couldn't get project default image quality " + response.text
         )
     for setting in response.json():
-        if setting["attribute"] == "ImageQuality":
+        if "attribute" in setting and setting["attribute"] == "ImageQuality":
             return setting["value"]
     return 60
     # raise SABaseException(
