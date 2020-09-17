@@ -8,7 +8,9 @@ logger = logging.getLogger("superannotate-python-sdk")
 _api = API.get_instance()
 
 
-def search_team_contributors(email=None, first_name=None, last_name=None):
+def search_team_contributors(
+    email=None, first_name=None, last_name=None, return_metadata=False
+):
     """Search for contributors in the team
 
     :param email: filter by email
@@ -47,4 +49,19 @@ def search_team_contributors(email=None, first_name=None, last_name=None):
                 "Couldn't search projects. " + response.text
             )
 
-    return result_list
+    if return_metadata:
+        return result_list
+    else:
+        return [x["email"] for x in result_list]
+
+
+def get_team_contributor_metadata(email):
+    users = search_team_contributors(email, return_metadata=True)
+    results = []
+    for user in users:
+        if user["email"] == email:
+            results.append(user)
+
+    if len(results) > 1 or len(results) == 0:
+        raise SABaseException(0, "Email " + email + " malformed.")
+    return results[0]

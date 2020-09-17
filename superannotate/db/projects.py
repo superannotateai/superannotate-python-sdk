@@ -6,7 +6,6 @@ import sys
 import threading
 import time
 from pathlib import Path
-import re
 
 import boto3
 from PIL import Image
@@ -15,11 +14,14 @@ from tqdm import tqdm
 from ..api import API
 from ..common import (
     annotation_status_str_to_int, project_type_int_to_str,
-    project_type_str_to_int, user_role_str_to_int
+    project_type_str_to_int, user_role_str_to_int, user_role_int_to_str
 )
-from ..exceptions import SABaseException
+from ..exceptions import (
+    SABaseException, SAExistingProjectNameException,
+    SANonExistingProjectNameException
+)
 from .annotation_classes import search_annotation_classes
-from .images import get_image_metadata, delete_image, get_image_bytes
+from .users import search_team_contributors, get_team_contributor_metadata
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -29,7 +31,7 @@ _NUM_THREADS = 10
 _RESIZE_CONFIG = {2: 4_000_000, 1: 100_000_000}  # 1: vector 2: pixel
 
 
-def search_projects(name=None):
+def search_projects(name=None, return_metadata=False):
     """Project name based case-insensitive search for projects.
     Any project with name that contains string from **name** will be returned.
     If **name** is None, all the projects will be returned.
@@ -59,7 +61,10 @@ def search_projects(name=None):
                 response.status_code,
                 "Couldn't search projects." + response.text
             )
-    return result_list
+    if return_metadata:
+        return result_list
+    else:
+        return [x["name"] for x in result_list]
 
 
 def create_project(project_name, project_description, project_type):
@@ -72,9 +77,18 @@ def create_project(project_name, project_description, project_type):
     :param project_type: the new project type, Vector or Pixel.
     :type project_type: str
 
-    :return: dict object representing the new project
+    :return: dict object metadata the new project
     :rtype: dict
     """
+    try:
+        get_project_metadata(project_name)
+    except SANonExistingProjectNameException:
+        pass
+    else:
+        raise SAExistingProjectNameException(
+            0, "Project with name " + project_name +
+            " already exists. Please use unique names for projects to use with SDK."
+        )
     project_type = project_type_str_to_int(project_type)
     data = {
         "team_id": str(_api.team_id),
@@ -101,9 +115,11 @@ def create_project(project_name, project_description, project_type):
 def delete_project(project):
     """Deletes the project
 
-    :param project: dict object representing project to be deleted
-    :type project: dict
+    :param project: project name or metadata of the project to be deleted
+    :type project: str or dict
     """
+    if not isinstance(project, dict):
+        project = get_project_metadata(project)
     team_id, project_id = project["team_id"], project["id"]
     params = {"team_id": team_id}
     response = _api.send_request(
@@ -113,18 +129,10 @@ def delete_project(project):
         raise SABaseException(
             response.status_code, "Couldn't delete project " + response.text
         )
-    logger.info("Successfully deleted project with ID %s.", project_id)
+    logger.info("Successfully deleted project %s.", project["name"])
 
 
-def get_project_metadata(project):
-    """Returns up-to-date project metadata
-
-    :param project: metadata of the project
-    :type project: dict
-
-    :return: metadata of project
-    :rtype: dict
-    """
+def _get_project_metadata(project):
     team_id, project_id = project["team_id"], project["id"]
     params = {'team_id': str(team_id)}
     response = _api.send_request(
@@ -141,12 +149,14 @@ def get_project_metadata(project):
 def get_project_image_count(project):
     """Returns number of images in the project.
 
-    :param project: project metadata
-    :type project: dict
+    :param project: project name or metadata of the project
+    :type project: str or dict
 
     :return: number of images in the project
     :rtype: int
     """
+    if not isinstance(project, dict):
+        project = get_project_metadata(project)
     team_id, project_id = project["team_id"], project["id"]
     params = {'team_id': team_id}
     response = _api.send_request(
@@ -175,8 +185,8 @@ def upload_images_from_folder_to_project(
     """Uploads all images with given extensions from folder_path to the project.
     Sets status of all the uploaded images to set_status if it is not None.
 
-    :param project: metadata of the project to upload images
-    :type project: dict
+    :param project: project name or metadata of the project to upload images_to
+    :type project: str or dict
     :param folder_path: from which folder to upload the images
     :type folder_path: Pathlike (str or Path)
     :param extensions: list of filename extensions to include from folder, if None, then "jpg" and "png" are included
@@ -199,6 +209,8 @@ def upload_images_from_folder_to_project(
     :return: uploaded images' filepaths
     :rtype: list
     """
+    if not isinstance(project, dict):
+        project = get_project_metadata(project)
     if recursive_subfolders:
         logger.warning(
             "When using recursive subfolder parsing same name images in different subfolders will overwrite each other."
@@ -215,8 +227,8 @@ def upload_images_from_folder_to_project(
         )
 
     logger.info(
-        "Uploading all images with extensions %s from %s to project ID %s. Excluded file patterns are: %s.",
-        extensions, folder_path, project_id, exclude_file_patterns
+        "Uploading all images with extensions %s from %s to project %s. Excluded file patterns are: %s.",
+        extensions, folder_path, project["name"], exclude_file_patterns
     )
     if from_s3_bucket is None:
         paths = []
@@ -391,99 +403,6 @@ def __create_image(img_paths, project, annotation_status, remote_dir):
         )
 
 
-def upload_image_to_project(
-    project,
-    img,
-    image_name=None,
-    annotation_status="NotStarted",
-    from_s3_bucket=None,
-    image_quality_in_editor=None
-):
-    """Uploads image (io.BytesIO() or filepath to image) to project.
-    Sets status of the uploaded image to set_status if it is not None.
-
-    :param project: metadata of project to upload images to
-    :type project: dict
-    :param img: image to upload
-    :type img: io.BytesIO() or Pathlike (str or Path)
-    :param annotation_status: value to set the annotation statuses of the uploaded image NotStarted InProgress QualityCheck Returned Completed Skipped
-    :type annotation_status: str
-    :param from_s3_bucket: AWS S3 bucket to use. If None then folder_path is in local filesystem
-    :type from_s3_bucket: str
-    :param image_quality_in_editor: image quality (in percents) that will be seen in SuperAnnotate web annotation editor. If None default value will be used.
-    :type image_quality_in_editor: int
-    """
-    annotation_status = annotation_status_str_to_int(annotation_status)
-    if image_quality_in_editor is None:
-        image_quality_in_editor = _get_project_default_image_quality_in_editor(
-            project
-        )
-
-    img_name = None
-    if not isinstance(img, io.BytesIO):
-        img_name = Path(img).name
-        if from_s3_bucket is not None:
-            from_session = boto3.Session()
-            from_s3 = from_session.resource('s3')
-            from_s3_object = from_s3.Object(from_s3_bucket, img)
-            img = io.BytesIO()
-            from_s3_object.download_fileobj(img)
-        else:
-            with open(img, "rb") as f:
-                img = io.BytesIO(f.read())
-    if image_name is not None:
-        img_name = image_name
-
-    if img_name is None:
-        raise SABaseException(
-            0, "Image name img_name should be set if img is not Pathlike"
-        )
-
-    team_id, project_id = project["team_id"], project["id"]
-    params = {
-        'team_id': team_id,
-    }
-    response = _api.send_request(
-        req_type='GET',
-        path=f'/project/{project_id}/sdkImageUploadToken',
-        params=params
-    )
-    if response.ok:
-        res = response.json()
-        prefix = res['filePath']
-    else:
-        raise SABaseException(
-            response.status_code, "Couldn't get upload token " + response.text
-        )
-    s3_session = boto3.Session(
-        aws_access_key_id=res['accessKeyId'],
-        aws_secret_access_key=res['secretAccessKey'],
-        aws_session_token=res['sessionToken']
-    )
-    s3_resource = s3_session.resource('s3')
-    bucket = s3_resource.Bucket(res["bucket"])
-    orig_image, lores_image, thumbnail_image = get_image_array_to_upload(
-        img, project["type"], image_quality_in_editor
-    )
-    key = prefix + f'{img_name}'
-    try:
-        bucket.put_object(Body=orig_image, Key=key)
-        bucket.put_object(Body=lores_image, Key=key + '___lores.jpg')
-        bucket.put_object(Body=thumbnail_image, Key=key + '___thumb.jpg')
-    except Exception as e:
-        raise SABaseException(0, "Couldn't upload to data server. " + e)
-
-    __create_image([img_name], project, annotation_status, prefix)
-
-    while True:
-        try:
-            get_image_metadata(project, img_name)
-        except SABaseException:
-            time.sleep(0.2)
-        else:
-            break
-
-
 def upload_images_to_project(
     project,
     img_paths,
@@ -494,8 +413,8 @@ def upload_images_to_project(
     """Uploads all images given in list of path objects in img_paths to the project.
     Sets status of all the uploaded images to set_status if it is not None.
 
-    :param project: metadata of project to upload images to
-    :type project: dict
+    :param project: project name or metadata of the project to upload images to
+    :type project: str or dict
     :param img_paths: list of Pathlike (str or Path) objects to upload
     :type img_paths: list
     :param annotation_status: value to set the annotation statuses of the uploaded images NotStarted InProgress QualityCheck Returned Completed Skipped
@@ -508,6 +427,8 @@ def upload_images_to_project(
     :return: uploaded images' filepaths
     :rtype: list of str
     """
+    if not isinstance(project, dict):
+        project = get_project_metadata(project)
     annotation_status = annotation_status_str_to_int(annotation_status)
     if image_quality_in_editor is None:
         image_quality_in_editor = _get_project_default_image_quality_in_editor(
@@ -516,7 +437,7 @@ def upload_images_to_project(
     team_id, project_id = project["team_id"], project["id"]
     len_img_paths = len(img_paths)
     logger.info(
-        "Uploading %s images to project ID %s.", len_img_paths, project_id
+        "Uploading %s images to project %s.", len_img_paths, project["name"]
     )
     if len_img_paths == 0:
         return
@@ -671,6 +592,34 @@ def __upload_annotations_thread(
             )
 
 
+def get_project_metadata(project_name):
+    """Returns project metadata
+
+    :param project_name: project name
+    :type project: str
+
+    :return: metadata of project
+    :rtype: dict
+    """
+    projects = search_projects(project_name, return_metadata=True)
+    results = []
+    for project in projects:
+        if project["name"] == project_name:
+            results.append(project)
+
+    if len(results) > 1:
+        raise SAExistingProjectNameException(
+            0, "Project name " + project_name +
+            " is not unique. To use SDK please make project names unique."
+        )
+    elif len(results) == 1:
+        return _get_project_metadata(results[0])
+    else:
+        raise SANonExistingProjectNameException(
+            0, "Project with name " + project_name + " doesn't exist."
+        )
+
+
 def upload_annotations_from_folder_to_project(
     project, folder_path, from_s3_bucket=None, recursive_subfolders=False
 ):
@@ -685,8 +634,8 @@ def upload_annotations_from_folder_to_project(
 
     WARNING: Existing annotations will be overwritten.
 
-    :param project: metadata of the project to upload annotations to
-    :type project: dict
+    :param project: project name or metadata of the project to upload annotations to
+    :type project: str or dict
     :param folder_path: from which folder to upload the annotations
     :type folder_path: Pathlike (str or Path)
     :param from_s3_bucket: AWS S3 bucket to use. If None then folder_path is in local filesystem
@@ -707,6 +656,8 @@ def upload_annotations_from_folder_to_project(
     )
 
     logger.warning("Existing annotations will be overwritten.")
+    if not isinstance(project, dict):
+        project = get_project_metadata(project)
 
     return _upload_annotations_from_folder_to_project(
         project, folder_path, from_s3_bucket, recursive_subfolders
@@ -743,8 +694,8 @@ def _upload_annotations_from_folder_to_project(
     team_id, project_id, project_type = project["team_id"], project[
         "id"], project["type"]
     logger.info(
-        "Uploading all annotations from %s to project ID %s.", folder_path,
-        project_id
+        "Uploading all annotations from %s to project %s.", folder_path,
+        project["name"]
     )
 
     annotations_paths = []
@@ -774,8 +725,8 @@ def _upload_annotations_from_folder_to_project(
 
     len_annotations_paths = len(annotations_paths)
     logger.info(
-        "Uploading %s annotations to project ID %s.", len_annotations_paths,
-        project_id
+        "Uploading %s annotations to project %s.", len_annotations_paths,
+        project["name"]
     )
     if len_annotations_paths == 0:
         return return_result
@@ -925,8 +876,8 @@ def upload_preannotations_from_folder_to_project(
 
     WARNING: Existing pre-annotations will be overwritten.
 
-    :param project: metadata of the project to upload pre-annotations to
-    :type project: dict
+    :param project: project name or metadata of the project to upload pre-annotations to
+    :type project: str or dict
     :param folder_path: from which folder to upload the pre-annotations
     :type folder_path: Pathlike (str or Path)
     :param from_s3_bucket: AWS S3 bucket to use. If None then folder_path is in local filesystem
@@ -948,6 +899,8 @@ def upload_preannotations_from_folder_to_project(
     logger.warning(
         "Identically named existing pre-annotations will be overwritten."
     )
+    if not isinstance(project, dict):
+        project = get_project_metadata(project)
     return _upload_preannotations_from_folder_to_project(
         project, folder_path, from_s3_bucket, recursive_subfolders
     )
@@ -983,8 +936,8 @@ def _upload_preannotations_from_folder_to_project(
     team_id, project_id, project_type = project["team_id"], project[
         "id"], project["type"]
     logger.info(
-        "Uploading all preannotations from %s to project ID %s.", folder_path,
-        project_id
+        "Uploading all preannotations from %s to project %s.", folder_path,
+        project["name"]
     )
 
     preannotations_paths = []
@@ -1014,8 +967,8 @@ def _upload_preannotations_from_folder_to_project(
 
     len_preannotations_paths = len(preannotations_paths)
     logger.info(
-        "Uploading %s preannotations to project ID %s.",
-        len_preannotations_paths, project_id
+        "Uploading %s preannotations to project %s.", len_preannotations_paths,
+        project["name"]
     )
     if len_preannotations_paths == 0:
         return return_result
@@ -1065,13 +1018,17 @@ def _upload_preannotations_from_folder_to_project(
 def share_project(project, user, user_role):
     """Share project with user.
 
-    :param project: metadata of the project
-    :type project: dict
-    :param user: metadata of the user to share project with
-    :type user: dict
+    :param project: project name or metadata of the project
+    :type project: str or dict
+    :param user: user email or metadata of the user to share project with
+    :type user: str or dict
     :param user_role: user role to apply, one of Admin , Annotator , QA , Customer , Viewer
     :type user_role: str
     """
+    if not isinstance(project, dict):
+        project = get_project_metadata(project)
+    if not isinstance(user, dict):
+        user = get_team_contributor_metadata(user)
     user_role = user_role_str_to_int(user_role)
     team_id, project_id = project["team_id"], project["id"]
     user_id = user["id"]
@@ -1086,19 +1043,23 @@ def share_project(project, user, user_role):
     if not response.ok:
         raise SABaseException(response.status_code, response.text)
     logger.info(
-        "Shared project ID %s with user ID %s and role %s", project_id, user_id,
-        user_role
+        "Shared project %s with user %s and role %s", project["name"],
+        user["email"], user_role_int_to_str(user_role)
     )
 
 
 def unshare_project(project, user):
     """Unshare (remove) user from project.
 
-    :param project: metadata of the project
-    :type project: dict
-    :param user: metadata of the user to share project with
-    :type user: dict
+    :param project: project name or metadata of the project
+    :type project: str or dict
+    :param user: user email or metadata of the user to unshare project
+    :type user: str or dict
     """
+    if not isinstance(project, dict):
+        project = get_project_metadata(project)
+    if not isinstance(user, dict):
+        user = get_team_contributor_metadata(user)
     team_id, project_id = project["team_id"], project["id"]
     user_id = user["id"]
     json_req = {"user_id": user_id}
@@ -1111,7 +1072,7 @@ def unshare_project(project, user):
     )
     if not response.ok:
         raise SABaseException(response.status_code, response.text)
-    logger.info("Unshared project ID %s from user ID %s", project_id, user_id)
+    logger.info("Unshared project %s from user ID %s", project["name"], user_id)
 
 
 def upload_images_from_s3_bucket_to_project(
@@ -1124,8 +1085,8 @@ def upload_images_from_s3_bucket_to_project(
 ):
     """Uploads all images from AWS S3 bucket to the project.
 
-    :param project: metadata of the project to upload images
-    :type project: dict
+    :param project: project name or metadata of the project to upload images to
+    :type project: str or dict
     :param accessKeyId: AWS S3 access key ID
     :type accessKeyId: str
     :param secretAccessKey: AWS S3 secret access key
@@ -1137,6 +1098,8 @@ def upload_images_from_s3_bucket_to_project(
     :param image_quality_in_editor: image quality (in percents) that will be seen in SuperAnnotate web annotation editor, if None default value will be used
     :type image_quality_in_editor: int
     """
+    if not isinstance(project, dict):
+        project = get_project_metadata(project)
     if image_quality_in_editor is not None:
         old_quality = _get_project_default_image_quality_in_editor(project)
         _set_project_default_image_quality_in_editor(
@@ -1266,71 +1229,3 @@ def _set_project_default_image_quality_in_editor(project, quality):
             response.status_code,
             "Couldn't set project settings " + response.text
         )
-
-
-def copy_image(source_project, image_name, destination_project):
-    """Copy image to a project. The image's project is the same as destination
-    project then the name will be changed to <image_name>_(<num>).<image_ext>,
-    where <num> is the next available number deducted from project image list.
-
-    :param source_project: source project metadata
-    :type source_project: dict
-    :param image_name: image name
-    :type image: str
-    :param destination_project: destination project metadata
-    :type destination_project: dict
-    """
-    img_b = get_image_bytes(source_project, image_name)
-    if source_project != destination_project:
-        upload_image_to_project(destination_project, img_b, image_name)
-        new_name = image_name
-    else:
-        extension = Path(image_name).suffix
-        p = re.compile(r"_\([0-9]+\)\.")
-        found_copied = False
-        for m in p.finditer(image_name):
-
-            if m.start() + len(m.group()
-                              ) + len(extension) - 1 == len(image_name):
-                num = int(m.group()[2:-2])
-                found_copied = True
-                break
-        if not found_copied:
-            num = 1
-        while True:
-            if found_copied:
-                new_name = image_name[:m.start() +
-                                      2] + str(num + 1) + ")" + extension
-            else:
-                new_name = Path(image_name).stem + f"_({num})" + extension
-            try:
-                get_image_metadata(destination_project, new_name)
-            except SABaseException:
-                break
-            else:
-                num += 1
-        upload_image_to_project(destination_project, img_b, new_name)
-    logger.info(
-        "Copied image %s/%s to %s/%s.", source_project["name"], image_name,
-        destination_project["name"], new_name
-    )
-
-
-def move_image(source_project, image_name, destination_project):
-    """Move image from source_project to destination_project. source_project
-    and destination_project cannot be the same.
-
-    :param source_project: source project metadata
-    :type source_project: dict
-    :param image_name: image name
-    :type image: str
-    :param destination_project: destination project metadata
-    :type destination_project: dict
-    """
-    if source_project == destination_project:
-        raise SABaseException(
-            0, "Cannot move image if source_project == destination_project."
-        )
-    copy_image(source_project, image_name, destination_project)
-    delete_image(source_project, image_name)
-    logger.info("Deleted image %s/%s.", source_project["name"], image_name)

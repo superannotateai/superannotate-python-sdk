@@ -16,14 +16,14 @@ PATH_TO_SAMPLE_PROJECT = Path("./tests/sample_project_vector")
 def test_add_bbox(tmpdir):
     tmpdir = Path(tmpdir)
 
-    projects_found = sa.search_projects(PROJECT_NAME)
+    projects_found = sa.search_projects(PROJECT_NAME, return_metadata=True)
     for pr in projects_found:
         if pr["name"] == PROJECT_NAME:
             sa.delete_project(pr)
 
     project = sa.create_project(PROJECT_NAME, PROJECT_DESCRIPTION, "Vector")
     sa.upload_images_from_folder_to_project(
-        project, PATH_TO_SAMPLE_PROJECT, annotation_status="InProgress"
+        PROJECT_NAME, PATH_TO_SAMPLE_PROJECT, annotation_status="InProgress"
     )
     sa.create_annotation_classes_from_classes_json(
         project, PATH_TO_SAMPLE_PROJECT / "classes" / "classes.json"

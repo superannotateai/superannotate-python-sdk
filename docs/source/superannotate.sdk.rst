@@ -24,6 +24,7 @@ ________
 .. autofunction:: superannotate.search_projects
 .. autofunction:: superannotate.create_project
 .. autofunction:: superannotate.delete_project
+.. _ref_get_project_metadata:
 .. autofunction:: superannotate.get_project_metadata
 .. autofunction:: superannotate.get_project_image_count
 .. autofunction:: superannotate.upload_images_to_project

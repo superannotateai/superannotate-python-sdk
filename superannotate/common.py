@@ -61,6 +61,13 @@ def user_role_str_to_int(user_role):
     return _USER_ROLES[user_role]
 
 
+def user_role_int_to_str(user_role):
+    for k, v in _USER_ROLES.items():
+        if v == user_role:
+            return k
+    raise SABaseException(0, "User role should be one of 2 3 4 5 6 .")
+
+
 def annotation_status_str_to_int(annotation_status):
     if annotation_status not in _ANNOTATION_STATUSES:
         raise SABaseException(

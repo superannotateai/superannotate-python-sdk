@@ -4,9 +4,14 @@ import superannotate as sa
 
 sa.init(Path.home() / ".superannotate" / "config.json")
 
+PROJECT_NAME = "test annotation classes"
+
 
 def test_annotation_classes():
-    project = sa.create_project("test1", "test1", "Vector")
+    projects = sa.search_projects(PROJECT_NAME, return_metadata=True)
+    for project in projects:
+        sa.delete_project(project)
+    project = sa.create_project(PROJECT_NAME, "test1", "Vector")
     clss = sa.search_annotation_classes(project)
     assert len(clss) == 0
 

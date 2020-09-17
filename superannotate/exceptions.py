@@ -12,3 +12,11 @@ class SABaseException(Exception):
         self.status_code = status_code
         self.message = message
         super().__init__(status_code, message)
+
+
+class SAExistingProjectNameException(SABaseException):
+    pass
+
+
+class SANonExistingProjectNameException(SABaseException):
+    pass
