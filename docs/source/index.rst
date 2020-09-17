@@ -6,6 +6,7 @@
 .. image:: sa_logo.png
   :width: 200
   :alt: SuperAnnotate AI
+  :target: https://app.superannotate.com
 
 |
 
