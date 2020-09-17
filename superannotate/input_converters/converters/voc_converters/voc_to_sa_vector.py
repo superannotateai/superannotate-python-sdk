@@ -1,68 +1,190 @@
 import os
+import cv2
 import json
 import numpy as np
 import xml.etree.ElementTree as ET
 from tqdm import tqdm
 
 
-def voc_object_detection_to_sa_vector(voc_root, sa_root):
-    classes = set()
-    annotation_dirname = os.path.join(os.path.join(voc_root, "Annotations/"))
-    annotation_files = np.array(os.listdir(annotation_dirname))
-    for filename in tqdm(annotation_files):
-        anno_file = os.path.join(annotation_dirname, filename)
-        with open(anno_file) as f:
-            tree = ET.parse(f)
-        sa_base_element = {
-            'type': "bbox",
-            'classId': None,
-            'className': None,
-            'probability': 100,
-            'points': [],
-            'attributes': [],
-            'attributeNames': []
-        }
-        sa_loader = []
-        instances = tree.findall("object")
-        for instance in instances:
-            class_name = instance.find("name").text
-            classes.add(class_name)
-            bbox = instance.find("bndbox")
-            bbox = [
-                float(bbox.find(x).text)
-                for x in ["xmin", "ymin", "xmax", "ymax"]
-            ]
-            instance = dict(sa_base_element)
-            instance["classId"] = list(classes).index(class_name)
-            instance["className"] = class_name
-            instance["points"] = {
-                "x1": bbox[0],
-                "x2": bbox[2],
-                "y1": bbox[1],
-                "y2": bbox[3]
-            }
-            sa_loader.append(instance)
-        image_id = filename.split(".")[0]
-        annpath = os.path.join(
-            sa_root, "{}.jpg___objects.json".format(image_id)
-        )
-        with open(annpath, "w") as fp:
-            json.dump(sa_loader, fp, indent=2)
+def _generate_polygons(object_mask_path, class_mask_path):
+    segmentation = []
 
-    #generate classes json
+    object_mask = cv2.imread(object_mask_path, cv2.IMREAD_GRAYSCALE)
+    class_mask = cv2.imread(class_mask_path, cv2.IMREAD_GRAYSCALE)
+
+    object_unique_colors = np.unique(object_mask)
+
+    for unique_color in object_unique_colors:
+        if unique_color == 0 or unique_color == 220:
+            continue
+        else:
+            class_color = class_mask[object_mask == unique_color][0]
+            mask = np.zeros_like(object_mask)
+            mask[object_mask == unique_color] = 255
+            contours, _ = cv2.findContours(
+                mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+            )
+
+            contours = sorted(contours, key=len, reverse=True)
+            segmentation.append(
+                (contours[0].flatten().tolist(), int(class_color))
+            )
+            # segment = []
+            # for contour in contours:
+            #     if len(contours) > 1 and len(contour) > 4:
+            #         print(contour)
+            #     contour = contour.flatten().tolist()
+            #     segment += contour
+            # if len(contour) > 4:
+            #     segmentation.append((segment, int(class_color)))
+            # if len(segmentation) == 0:
+            #     continue
+    return segmentation
+
+
+def _iou(bbox1, bbox2):
+    xmin1, ymin1, xmax1, ymax1 = bbox1
+    xmin2, ymin2, xmax2, ymax2 = bbox2
+
+    x = max(0, min(xmax1, xmax2) - max(xmin1, xmin2))
+    y = max(0, min(ymax1, ymax2) - max(ymin1, ymin2))
+    return x * y / float(
+        (xmax1 - xmin1) * (ymax1 - ymin1) + (xmax2 - xmin2) *
+        (ymax2 - ymin2) - x * y
+    )
+
+
+def _generate_instances(ploygon_instances, voc_instances):
+    instances = []
+    for polygon, color_id in ploygon_instances:
+        ious = []
+        bbox_poly = [
+            min(polygon[::2]),
+            min(polygon[1::2]),
+            max(polygon[::2]),
+            max(polygon[1::2])
+        ]
+        for class_name, bbox in voc_instances:
+            ious.append(_iou(bbox_poly, bbox))
+        ind = np.argmax(ious)
+        instances.append(
+            {
+                "className": voc_instances[ind][0],
+                "classId": color_id,
+                "polygon": polygon,
+                "bbox": voc_instances[ind][1]
+            }
+        )
+    return instances
+
+
+def _get_voc_instances_from_xml(file_path):
+    with open(os.path.splitext(file_path)[0] + ".xml") as f:
+        tree = ET.parse(f)
+    instances = tree.findall('object')
+    voc_instances = []
+    for instance in instances:
+        class_name = instance.find("name").text
+        bbox = instance.find("bndbox")
+        bbox = [
+            float(bbox.find(x).text) for x in ["xmin", "ymin", "xmax", "ymax"]
+        ]
+        voc_instances.append((class_name, bbox))
+    return voc_instances
+
+
+def _create_classes(classes):
     sa_classes = []
-    for idx, class_name in enumerate(classes):
+    for class_, id_ in classes.items():
         color = np.random.choice(range(256), size=3)
         hexcolor = "#%02x%02x%02x" % tuple(color)
         sa_class = {
-            "id": idx,
-            "name": class_name,
+            "id": id_,
+            "name": class_,
             "color": hexcolor,
             "attribute_groups": []
         }
         sa_classes.append(sa_class)
+    return sa_classes
 
-    with open(
-        os.path.join(sa_root, "classes", "classes.json"), "w+"
-    ) as classes_json:
-        classes_json.write(json.dumps(sa_classes, indent=2))
+
+def voc_instance_segmentation_to_sa_vector(voc_root):
+    classes = {}
+    object_masks_dir = os.path.join(voc_root, 'SegmentationObject')
+    class_masks_dir = os.path.join(voc_root, 'SegmentationClass')
+    annotation_dir = os.path.join(voc_root, "Annotations")
+
+    file_list = os.listdir(object_masks_dir)
+    sa_jsons = {}
+    for filename in tqdm(file_list):
+        polygon_instances = _generate_polygons(
+            os.path.join(object_masks_dir, filename),
+            os.path.join(class_masks_dir, filename)
+        )
+        voc_instances = _get_voc_instances_from_xml(
+            os.path.join(annotation_dir, filename)
+        )
+        maped_instances = _generate_instances(polygon_instances, voc_instances)
+        sa_loader = []
+        for instance in maped_instances:
+            sa_polygon = {
+                'type': 'polygon',
+                'points': instance["polygon"],
+                'classId': instance["classId"],
+                'className': instance["className"],
+                'attributes': [],
+                'probability': 100,
+                'locked': False,
+                'visible': True,
+                'groupId': 0
+            }
+            sa_loader.append(sa_polygon)
+
+            if instance["className"] not in classes.keys():
+                classes[instance["className"]] = instance["classId"]
+
+        sa_file_name = os.path.splitext(filename)[0] + ".jpg___objects.json"
+        sa_jsons[sa_file_name] = sa_loader
+
+    classes = _create_classes(classes)
+    return (classes, sa_jsons, None)
+
+
+def voc_object_detection_to_sa_vector(voc_root):
+    classes = {}
+    id_ = 1
+    annotation_dir = os.path.join(os.path.join(voc_root, "Annotations"))
+    files_list = os.listdir(annotation_dir)
+    sa_jsons = {}
+    for filename in tqdm(files_list):
+        voc_instances = _get_voc_instances_from_xml(
+            os.path.join(annotation_dir, filename)
+        )
+        sa_loader = []
+        for class_name, bbox in voc_instances:
+            if class_name not in classes.keys():
+                classes[class_name] = id_
+                id_ += 1
+
+            sa_bbox = {
+                'type': "bbox",
+                'classId': classes[class_name],
+                'className': class_name,
+                'probability': 100,
+                'points': [],
+                'attributes': [],
+                'points':
+                    {
+                        "x1": bbox[0],
+                        "y1": bbox[1],
+                        "x2": bbox[2],
+                        "y2": bbox[3]
+                    }
+            }
+            sa_loader.append(sa_bbox)
+
+        sa_file_name = os.path.splitext(filename)[0] + ".jpg___objects.json"
+        sa_jsons[sa_file_name] = sa_loader
+
+    classes = _create_classes(classes)
+    return (classes, sa_jsons, None)

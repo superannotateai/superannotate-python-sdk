@@ -207,25 +207,3 @@ class CoCoConverter(object):
             b = (idx % (255**2)) % 255
             color.append("#%02x%02x%02x" % (r, g, b))
         return color
-
-    def _merge_jsons(self, input_dir):
-        files = glob.glob(os.path.join(input_dir, "*.json"))
-        merged_json = {}
-        for f in tqdm.tqdm(files, "Merging files"):
-            json_data = json.load(open(f))
-            meta = {
-                "type": "meta",
-                "name": "lastAction",
-                "timestamp": int(round(time.time() * 1000))
-            }
-            # Move all class ids forward by 1, because an empty project now has 1 class.
-            for i in range(len(json_data)):
-                if "classId" in json_data[i]:
-                    json_data[i]["classId"] += 1
-            json_data.append(meta)
-            merged_json[f.replace("___objects.json", "")] = json_data
-            os.remove(f)
-        with open(
-            os.path.join(input_dir, "annotations.json"), "w"
-        ) as final_json_file:
-            json.dump(merged_json, final_json_file, indent=0)

@@ -31,7 +31,8 @@ ALLOWED_CONVERSIONS_COCO_TO_SA = [
 ]
 
 ALLOWED_CONVERSIONS_VOC_TO_SA = [
-    ('Vector', 'object_detection'), ('Pixel', 'instance_segmentation')
+    ('Vector', 'object_detection'), ('Vector', 'instance_segmentation'),
+    ('Pixel', 'instance_segmentation')
 ]
 
 ALLOWED_CONVERSIONS_LABELBOX_TO_SA = [('Vector', 'object_detection')]
@@ -204,7 +205,7 @@ def import_annotation_format(
     --------------------------------------
      project_type           task
     ==============  ======================
-    Pixel           instance_segmentation
+    Vector          instance_segmentation
     Vector          object_detection
     ==============  ====================== 
 
