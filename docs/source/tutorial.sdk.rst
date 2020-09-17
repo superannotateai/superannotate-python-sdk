@@ -241,6 +241,7 @@ To download the image one can use:
 .. code-block:: python
 
    image = "example_image1.jpg"
+
    sa.download_image(project, image, "<path_to_local_dir>")
 
 To download image annotations:
