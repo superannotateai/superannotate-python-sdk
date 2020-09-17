@@ -21,7 +21,7 @@ from ..exceptions import (
     SANonExistingProjectNameException
 )
 from .annotation_classes import search_annotation_classes
-from .users import search_team_contributors, get_team_contributor_metadata
+from .users import get_team_contributor_metadata
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -130,6 +130,43 @@ def delete_project(project):
             response.status_code, "Couldn't delete project " + response.text
         )
     logger.info("Successfully deleted project %s.", project["name"])
+
+
+def rename_project(project, new_name):
+    """Renames the project
+
+    :param project: project name or metadata of the project to be deleted
+    :type project: str or dict
+    :param new_name: project's new name
+    :type new_name: str
+    """
+    try:
+        get_project_metadata(new_name)
+    except SANonExistingProjectNameException:
+        pass
+    else:
+        raise SAExistingProjectNameException(
+            0, "Project with name " + new_name +
+            " already exists. Please use unique names for projects to use with SDK."
+        )
+    if not isinstance(project, dict):
+        project = get_project_metadata(project)
+    team_id, project_id = project["team_id"], project["id"]
+    params = {"team_id": team_id}
+    json_req = {"name": new_name}
+    response = _api.send_request(
+        req_type='PUT',
+        path=f'/project/{project_id}',
+        params=params,
+        json_req=json_req
+    )
+    if not response.ok:
+        raise SABaseException(
+            response.status_code, "Couldn't rename project " + response.text
+        )
+    logger.info(
+        "Successfully renamed project %s to %s.", project["name"], new_name
+    )
 
 
 def _get_project_metadata(project):

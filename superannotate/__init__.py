@@ -31,8 +31,8 @@ from .db.images import (
 from .db.project_images import copy_image, move_image, upload_image_to_project
 from .db.projects import (
     create_project, delete_project, get_project_image_count,
-    get_project_metadata, search_projects, share_project, unshare_project,
-    upload_annotations_from_folder_to_project,
+    get_project_metadata, rename_project, search_projects, share_project,
+    unshare_project, upload_annotations_from_folder_to_project,
     upload_images_from_folder_to_project,
     upload_images_from_s3_bucket_to_project, upload_images_to_project,
     upload_preannotations_from_folder_to_project
@@ -41,7 +41,10 @@ from .db.teams import (
     delete_team_contributor_invitation, invite_contributor_to_team
 )
 from .db.users import search_team_contributors
-from .exceptions import SABaseException
+from .exceptions import (
+    SABaseException, SAExistingProjectNameException,
+    SANonExistingProjectNameException
+)
 from .input_converters.conversion import (
     export_annotation_format, import_annotation_format
 )
