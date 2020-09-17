@@ -207,6 +207,7 @@ def import_annotation_format(
     ==============  ======================
     Vector          instance_segmentation
     Vector          object_detection
+    Pixel           instance_segmentation
     ==============  ====================== 
 
     ==============  ======================
