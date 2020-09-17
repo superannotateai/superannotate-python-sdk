@@ -28,7 +28,7 @@ Authentication token
 ____________________
 
 SDK authentication tokens are team specific. They are available to team admins on
-team setting page at https://annotate.online/team. Generate then copy the token from
+team setting page at https://app.superannotate.com/team. Generate then copy the token from
 that page to a new JSON file, under the key "token":
 
 .. code-block:: json
@@ -122,7 +122,7 @@ An annotation class for a project can be created with SDK's:
 
 To create annotation classes in bulk with SuperAnnotate export format 
 :file:`classes.json` (documentation at:
-https://annotate.online/documentation Management Tools
+https://app.superannotate.com/documentation Management Tools
 -> Project Workflow part): 
 
 .. code-block:: python
