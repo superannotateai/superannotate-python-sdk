@@ -37,7 +37,7 @@ def test_basic_project(project_type, name, description, from_folder, tmpdir):
 
     projects_found = sa.search_projects(name)
     assert len(projects_found) == 1
-    assert projects_found[0]["name"] == name
+    assert projects_found[0] == name
 
     sa.upload_images_from_folder_to_project(
         project, from_folder, annotation_status="InProgress"

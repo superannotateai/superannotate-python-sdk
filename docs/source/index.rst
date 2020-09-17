@@ -6,6 +6,7 @@
 .. image:: sa_logo.png
   :width: 200
   :alt: SuperAnnotate AI
+  :target: https://app.superannotate.com
 
 |
 
@@ -31,10 +32,7 @@ SuperAnnotate Python SDK allows access to the platform without web browser:
 
    sa.init("<path_to_my_config_json>")
 
-   projects = sa.search_projects("Example Project 1")
-
-   example_project = projects[0]
-   sa.upload_images_from_folder_to_project(example_project, "<path_to_my_images_folder>")
+   sa.upload_images_from_folder_to_project("Example Project 1", "<path_to_my_images_folder>")
 
 ----------
 

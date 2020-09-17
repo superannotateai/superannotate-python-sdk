@@ -28,7 +28,7 @@ Authentication token
 ____________________
 
 SDK authentication tokens are team specific. They are available to team admins on
-team setting page at https://annotate.online/team. Generate then copy the token from
+team setting page at https://app.superannotate.com/team. Generate then copy the token from
 that page to a new JSON file, under the key "token":
 
 .. code-block:: json
@@ -57,57 +57,29 @@ Initialize and authenticate SDK with the config file created in the previous ste
 Working with projects
 _____________________
 
-To search for the projects you can run:
 
-
-.. code-block:: python
-
-   projects = sa.search_projects("Example Project 1")
-
-Here a search through all the team's projects will be performed with name
-that contains "Example Project 1". Full documentation of the function can be found at 
-:ref:`search_projects <ref_search_projects>`. The return value: :py:obj:`projects`
-will be a Python list of metadata of found projects. We can choose the first result 
-as our project for further work:
+To upload all images with extensions "jpg" or "png" from the
+:file:`"<local_folder_path>"` to the project "Example Project 1":
 
 .. code-block:: python
 
-   project = projects[0]
-
-.. note::
-
-   The metadata of SDK objects, i.e., projects, exports, images, annotation 
-   classes, users, are Python dicts.
-   In this case project metadata has keys that identify the project in the
-   platform. 
-
-   For more information please look at :ref:`ref_metadata`.
-
-.. warning::
-
-   Since the the SuperAnnotate platform allows identically named projects, one
-   needs to examine the :py:obj:`projects` to identify the looked for project,
-   if identically named or identically prefix named projects exist, e.g.,
-
-   .. code-block:: python
-
-      for project in projects:
-          if project["description"] == "my desc":
-              break
-
-Now that we have found the project, we can perform various tasks on it. For
-example, to upload images from a local folder to the project:
-
-
-.. code-block:: python
+    project = "Example Project 1"
 
     sa.upload_images_from_folder_to_project(project, "<local_folder_path>")
 
-which will upload all images with extensions "jpg" or "png" from the
-:file:`"<local_folder_path>"` to the project. See the full argument options for
+See the full argument options for
 :py:func:`upload_images_from_folder_to_project` :ref:`here <ref_upload_images_from_folder_to_project>`.
 
 For full list of available functions on projects, see :ref:`ref_projects`.
+
+.. note::
+
+   Python SDK functions that accept project argument will accept both project
+   name or :ref:`project metadata <ref_metadata>` (returned either by 
+   :ref:`get_project_metadata <ref_get_project_metadata>` or
+   :ref:`search_projects <ref_search_projects>` with argument :py:obj:`return_metadata=True`). 
+   If project name is used it should be unique in team's project list. Using project metadata will give
+   performance improvement.
 
 
 Working with annotation classes
@@ -122,7 +94,7 @@ An annotation class for a project can be created with SDK's:
 
 To create annotation classes in bulk with SuperAnnotate export format 
 :file:`classes.json` (documentation at:
-https://annotate.online/documentation Management Tools
+https://app.superannotate.com/documentation Management Tools
 -> Project Workflow part): 
 
 .. code-block:: python
@@ -263,28 +235,12 @@ You can find more information annotation format conversion :ref:`here <ref_conve
 Working with images
 _____________________
 
-To search for the images in the project:
-
-.. code-block:: python
-
-   images = sa.search_images(project, "example_image1.jpg")
-
-Return value is list of images with names that have prefix "example_image1.jpg".
-The list is ordered ascending direction by name, so if we are looking for exact name match:
-
-.. code-block:: python
-
-   image = images[0]
-
-.. note::
-
-   The image names in SuperAnnotate platform projects are 
-   unique.
-
 
 To download the image one can use:
 
 .. code-block:: python
+
+   image = "example_image1.jpg"
 
    sa.download_image(project, image, "<path_to_local_dir>")
 
@@ -334,16 +290,9 @@ A team contributor can be invited to the team with:
    sa.invite_contributor_to_team(email="hovnatan@superannotate.com", admin=False)
 
 
-This invitation should be accepted by the contributor. After which, the
-contributor can be searched and chosen:
+This invitation should be accepted by the contributor. After which, to share the 
+project with the found contributor as an QA:
 
 .. code-block:: python
 
-   found_contributors = sa.search_team_contributors(email="hovnatan@superannotate.com')
-   hk_c = found_contributors[0]
-
-Now to share a project with the found contributor as an QA:
-
-.. code-block:: python
-
-   sa.share_project(project, hk_c, user_role="QA")
+   sa.share_project(project, "hovnatan@superannotate.com", user_role="QA")
