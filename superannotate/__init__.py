@@ -15,7 +15,7 @@ from .common import (
 from .db.annotation_classes import (
     create_annotation_class, create_annotation_classes_from_classes_json,
     delete_annotation_class, download_annotation_classes_json,
-    search_annotation_classes
+    get_annotation_class_metadata, search_annotation_classes
 )
 from .db.exports import download_export, get_exports, prepare_export
 from .db.images import (
@@ -28,11 +28,11 @@ from .db.images import (
     get_image_preannotations, search_images, set_image_annotation_status,
     upload_annotations_from_json_to_image
 )
+from .db.project import get_project_metadata, search_projects
 from .db.project_images import copy_image, move_image, upload_image_to_project
 from .db.projects import (
-    create_project, delete_project, get_project_image_count,
-    get_project_metadata, rename_project, search_projects, share_project,
-    unshare_project, upload_annotations_from_folder_to_project,
+    create_project, delete_project, get_project_image_count, rename_project,
+    share_project, unshare_project, upload_annotations_from_folder_to_project,
     upload_images_from_folder_to_project,
     upload_images_from_s3_bucket_to_project, upload_images_to_project,
     upload_preannotations_from_folder_to_project

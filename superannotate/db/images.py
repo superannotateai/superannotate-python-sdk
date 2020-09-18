@@ -16,7 +16,7 @@ from ..api import API
 from ..common import annotation_status_str_to_int
 from ..exceptions import SABaseException
 from .annotation_classes import search_annotation_classes
-from .projects import get_project_metadata
+from .project import get_project_metadata
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -492,7 +492,9 @@ def get_image_preannotations(project, image_name):
         raise SABaseException(response.status_code, response.text)
     res = response.json()
 
-    annotation_classes = search_annotation_classes(project)
+    annotation_classes = search_annotation_classes(
+        project, return_metadata=True
+    )
     annotation_classes_dict = {}
     for annotation_class in annotation_classes:
         annotation_classes_dict[annotation_class["id"]] = annotation_class
@@ -587,7 +589,9 @@ def get_image_annotations(project, image_name, project_type=None):
         raise SABaseException(response.status_code, response.text)
     res = response.json()
 
-    annotation_classes = search_annotation_classes(project)
+    annotation_classes = search_annotation_classes(
+        project, return_metadata=True
+    )
     annotation_classes_dict = {}
     for annotation_class in annotation_classes:
         annotation_classes_dict[annotation_class["id"]] = annotation_class
@@ -754,7 +758,9 @@ def upload_annotations_from_json_to_image(
             "Uploading annotations for image %s in project %s.", image_name,
             project["name"]
         )
-    annotation_classes = search_annotation_classes(project)
+    annotation_classes = search_annotation_classes(
+        project, return_metadata=True
+    )
     annotation_classes_dict = {}
     for annotation_class in annotation_classes:
         if annotation_class["name"] in annotation_classes_dict:

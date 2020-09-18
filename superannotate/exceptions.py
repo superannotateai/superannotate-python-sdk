@@ -20,3 +20,11 @@ class SAExistingProjectNameException(SABaseException):
 
 class SANonExistingProjectNameException(SABaseException):
     pass
+
+
+class SAExistingAnnotationClassNameException(SABaseException):
+    pass
+
+
+class SANonExistingAnnotationClassNameException(SABaseException):
+    pass

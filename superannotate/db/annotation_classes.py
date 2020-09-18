@@ -6,7 +6,11 @@ from pathlib import Path
 import boto3
 
 from ..api import API
-from ..exceptions import SABaseException
+from ..exceptions import (
+    SABaseException, SAExistingAnnotationClassNameException,
+    SANonExistingAnnotationClassNameException
+)
+from .project import get_project_metadata
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -16,8 +20,8 @@ _api = API.get_instance()
 def create_annotation_class(project, name, color, attribute_groups=None):
     """Create annotation class in project
 
-    :param project: project metadata
-    :type project: dict
+    :param project: project name or metadata of the project
+    :type project: str or dict
     :param name: name for the class
     :type name: str
     :param color: RGB hex color value, e.g., "#FFFFAA"
@@ -30,9 +34,11 @@ def create_annotation_class(project, name, color, attribute_groups=None):
     :return: new class metadata
     :rtype: dict
     """
+    if not isinstance(project, dict):
+        project = get_project_metadata(project)
     team_id, project_id = project["team_id"], project["id"]
     logger.info(
-        "Creating class in project ID %s with name %s", project_id, name
+        "Creating class in project %s with name %s", project["name"], name
     )
     params = {
         'team_id': team_id,
@@ -63,17 +69,25 @@ def create_annotation_class(project, name, color, attribute_groups=None):
     return new_class
 
 
-def delete_annotation_class(annotation_class):
+def delete_annotation_class(project, annotation_class):
     """Deletes annotation class from project
 
-    :param project: annotation class metadata
-    :type project: dict
+    :param project: project name or metadata of the project
+    :type project: str or dict
+    :param project: annotation class name or  metadata
+    :type project: str or dict
     """
+    if not isinstance(project, dict):
+        project = get_project_metadata(project)
+    if not isinstance(annotation_class, dict):
+        annotation_class = get_annotation_class_metadata(
+            project, annotation_class
+        )
     team_id, project_id, name, class_id = _api.team_id, annotation_class[
         "project_id"], annotation_class["name"], annotation_class["id"]
     logger.info(
-        "Deleting annotation class from project ID %s with name %s", project_id,
-        name
+        "Deleting annotation class from project %s with name %s",
+        project["name"], name
     )
     params = {
         'team_id': team_id,
@@ -95,8 +109,8 @@ def create_annotation_classes_from_classes_json(
     """Creates annotation classes in project from a SuperAnnotate format
     annotation classes.json.
 
-    :param project: project metadata
-    :type project: dict
+    :param project: project name or metadata of the project
+    :type project: str or dict
     :param classes_json: JSON itself or path to the JSON file
     :type classes_json: dict or Pathlike (str or Path)
     :param from_s3_bucket: AWS S3 bucket to use. If None then classes_json is in local filesystem
@@ -105,11 +119,13 @@ def create_annotation_classes_from_classes_json(
     :return: list of created annotation class metadatas
     :rtype: list of dicts
     """
+    if not isinstance(project, dict):
+        project = get_project_metadata(project)
     team_id, project_id = project["team_id"], project["id"]
     if not isinstance(classes_json, dict):
         logger.info(
-            "Creating annotation classes in project ID %s from %s.", project_id,
-            classes_json
+            "Creating annotation classes in project %s from %s.",
+            project["name"], classes_json
         )
         if from_s3_bucket is None:
             classes = json.load(open(classes_json))
@@ -141,11 +157,11 @@ def create_annotation_classes_from_classes_json(
     return res
 
 
-def search_annotation_classes(project, name_prefix=None):
+def search_annotation_classes(project, name_prefix=None, return_metadata=False):
     """Searches annotation classes by name_prefix (case-insensitive)
 
-    :param project: project metadata
-    :type project: dict
+    :param project: project name or metadata of the project
+    :type project: str or dict
     :param name_prefix: name prefix for search. If None all annotation classes
      will be returned
     :type name_prefix: str
@@ -153,6 +169,8 @@ def search_annotation_classes(project, name_prefix=None):
     :return: annotation classes of the project
     :rtype: list of dicts
     """
+    if not isinstance(project, dict):
+        project = get_project_metadata(project)
     result_list = []
     team_id, project_id = project["team_id"], project["id"]
     params = {'team_id': team_id, 'project_id': project_id, 'offset': 0}
@@ -174,24 +192,62 @@ def search_annotation_classes(project, name_prefix=None):
         if res["count"] <= new_len:
             break
         params["offset"] = new_len
-    return result_list
+
+    if return_metadata:
+        return result_list
+    else:
+        return [x["name"] for x in result_list]
+
+
+def get_annotation_class_metadata(project, annotation_class_name):
+    """Returns annotation class metadata
+
+    :param project: project name or metadata of the project
+    :type project: str or dict
+    :param annotation_class_name: annotation class name
+    :type annotation_class_name: str
+
+    :return: metadata of annotation class
+    :rtype: dict
+    """
+    annotation_classes = search_annotation_classes(
+        project, annotation_class_name, return_metadata=True
+    )
+    results = []
+    for annotation_class in annotation_classes:
+        if annotation_class["name"] == annotation_class_name:
+            results.append(annotation_class)
+
+    if len(results) > 1:
+        raise SAExistingAnnotationClassNameException(
+            0, "Annotation class name " + annotation_class_name +
+            " is not unique. To use SDK please make annotation class names unique."
+        )
+    elif len(results) == 1:
+        return results[0]
+    else:
+        raise SANonExistingAnnotationClassNameException(
+            0, "Annotation class with name " + annotation_class_name +
+            " doesn't exist."
+        )
 
 
 def download_annotation_classes_json(project, folder):
     """Downloads project classes.json to folder
 
-    :param project: project metadata
-    :type project: dict
+    :param project: project name or metadata of the project
+    :type project: str or dict
     :param folder: folder to download to
     :type folder: Pathlike (str or Path)
 
     :return: path of the download file
     :rtype: str
     """
-    project_id = project["id"]
+    if not isinstance(project, dict):
+        project = get_project_metadata(project)
     logger.info(
-        "Downloading classes.json from project ID %s to folder %s.", project_id,
-        folder
+        "Downloading classes.json from project %s to folder %s.",
+        project["name"], folder
     )
     clss = search_annotation_classes(project)
     filepath = Path(folder) / "classes.json"
