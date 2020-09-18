@@ -14,6 +14,7 @@ from tqdm import tqdm
 from ..api import API
 from ..common import annotation_status_str_to_int
 from ..exceptions import SABaseException
+from .projects import get_project_metadata
 
 logger = logging.getLogger("superannotate-python-sdk")
 
