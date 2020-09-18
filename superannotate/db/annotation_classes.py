@@ -155,7 +155,7 @@ def create_annotation_classes_from_classes_json(
     for cs in classes:
         if cs["name"] in existing_classes:
             logger.warning(
-                "Annotation class %s already in project. Skipping.", cs
+                "Annotation class %s already in project. Skipping.", cs["name"]
             )
         else:
             new_classes.append(cs)
