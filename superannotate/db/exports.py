@@ -24,12 +24,14 @@ _NUM_THREADS = 10
 def get_exports(project):
     """Get all prepared exports of the project.
 
-    :param project: metadata of the project
-    :type project: dict
+    :param project: project name or metadata of the project
+    :type project: str or dict
 
     :return: metadata objects of the all prepared exports of the project
     :rtype: list of dicts
     """
+    if not isinstance(project, dict):
+        project = get_project_metadata(project)
     team_id, project_id = project["team_id"], project["id"]
     params = {'team_id': team_id, 'project_id': project_id}
     response = _api.send_request(req_type='GET', path='/exports', params=params)
@@ -60,8 +62,8 @@ def prepare_export(
     """Prepare annotations and classes.json for export. Original and fused images for images with
     annotations can be included with include_fuse flag.
 
-    :param project: metadata of the project to be exported
-    :type project: dict
+    :param project: project name or metadata of the project
+    :type project: str or dict
     :param annotation_statuses: images with which status to include, if None, [ "InProgress", "QualityCheck", "Returned", "Completed"] will be chose
            list elements should be one of NotStarted InProgress QualityCheck Returned Completed Skipped
     :type annotation_statuses: list of strs
@@ -73,6 +75,8 @@ def prepare_export(
     :return: metadata object of the prepared export
     :rtype: dict
     """
+    if not isinstance(project, dict):
+        project = get_project_metadata(project)
     team_id, project_id = project["team_id"], project["id"]
     if annotation_statuses is None:
         annotation_statuses = [2, 3, 4, 5]
