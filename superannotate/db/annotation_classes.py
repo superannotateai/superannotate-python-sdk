@@ -36,9 +36,19 @@ def create_annotation_class(project, name, color, attribute_groups=None):
     """
     if not isinstance(project, dict):
         project = get_project_metadata(project)
+    try:
+        get_annotation_class_metadata(project, name)
+    except SANonExistingAnnotationClassNameException:
+        pass
+    else:
+        raise SAExistingAnnotationClassNameException(
+            0, "Annotation class iwth name " + name +
+            " already exists. Please use unique names for annotation classes to use with SDK."
+        )
     team_id, project_id = project["team_id"], project["id"]
     logger.info(
-        "Creating class in project %s with name %s", project["name"], name
+        "Creating annotation class in project %s with name %s", project["name"],
+        name
     )
     params = {
         'team_id': team_id,
@@ -249,7 +259,7 @@ def download_annotation_classes_json(project, folder):
         "Downloading classes.json from project %s to folder %s.",
         project["name"], folder
     )
-    clss = search_annotation_classes(project)
+    clss = search_annotation_classes(project, return_metadata=True)
     filepath = Path(folder) / "classes.json"
     json.dump(clss, open(filepath, "w"), indent=4)
     return str(filepath)

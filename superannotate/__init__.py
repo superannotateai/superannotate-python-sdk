@@ -42,7 +42,8 @@ from .db.teams import (
 )
 from .db.users import search_team_contributors
 from .exceptions import (
-    SABaseException, SAExistingProjectNameException,
+    SABaseException, SAExistingAnnotationClassNameException,
+    SAExistingProjectNameException, SANonExistingAnnotationClassNameException,
     SANonExistingProjectNameException
 )
 from .input_converters.conversion import (

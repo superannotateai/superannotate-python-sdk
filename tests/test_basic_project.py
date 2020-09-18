@@ -54,7 +54,9 @@ def test_basic_project(project_type, name, description, from_folder, tmpdir):
         project, from_folder / "classes" / "classes.json"
     )
     classes_in_file = json.load(open(from_folder / "classes" / "classes.json"))
-    classes_in_project = sa.search_annotation_classes(project)
+    classes_in_project = sa.search_annotation_classes(
+        project, return_metadata=True
+    )
     json.dump(classes_in_project, open(Path(tmpdir) / "tmp_c.json", 'w'))
     assert len(classes_in_file) == len(classes_in_project)
     for cl_f in classes_in_file:
