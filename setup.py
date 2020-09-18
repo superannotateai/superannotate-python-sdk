@@ -13,7 +13,7 @@ packages = find_packages()
 
 setup(
     name='superannotate',
-    version='1.6.4',
+    version='1.7.0',
     description='Python SDK to SuperAnnotate platform',
     license='MIT',
     author='Hovnatan Karapetyan',
@@ -24,8 +24,8 @@ setup(
     install_requires=requirements,
     setup_requires=['wheel'],
     packages=find_packages(exclude=('tests', )),
-    # entry_points={
-    #     'console_scripts': ['superannotate = superannotate.__main__:main']
-    # },
+    entry_points={
+        'console_scripts': ['superannotate = superannotate.__main__:main']
+    },
     python_requires='>=3.6'
 )

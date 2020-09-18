@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 
 from .annotation_helpers import (
     add_annotation_bbox_to_json, add_annotation_cuboid_to_json,
@@ -64,10 +65,23 @@ logger.addHandler(handler)
 _api = API.get_instance()
 
 
-def init(path_to_config_json):
+def init(path_to_config_json=None):
     """Initializes and authenticates to SuperAnnotate platform using the config file.
+       If no path_to_config_json is given then $HOME/.superannotate/config.json
+       will be used.
 
     :param path_to_config_json: Location to config JSON file
     :type path_to_config_json: str or Path
     """
-    _api.set_auth(path_to_config_json)
+    if path_to_config_json is None:
+        path_to_config_json = Path.home() / ".superannotate" / "config.json"
+    if not path_to_config_json.is_file():
+        logger.warning(
+            "SuperAnnotate config file %s not found. Please provide config file location to sa.init(<path>) or use CLI's superannotate init to generate default location config file.",
+            path_to_config_json
+        )
+    else:
+        _api.set_auth(path_to_config_json)
+
+
+init()

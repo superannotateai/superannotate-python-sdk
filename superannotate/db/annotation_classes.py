@@ -41,10 +41,10 @@ def create_annotation_class(project, name, color, attribute_groups=None):
     except SANonExistingAnnotationClassNameException:
         pass
     else:
-        raise SAExistingAnnotationClassNameException(
-            0, "Annotation class iwth name " + name +
-            " already exists. Please use unique names for annotation classes to use with SDK."
+        logger.warning(
+            "Annotation class %s already in project. Skipping.", name
         )
+        return None
     team_id, project_id = project["team_id"], project["id"]
     logger.info(
         "Creating annotation class in project %s with name %s", project["name"],
@@ -150,11 +150,21 @@ def create_annotation_classes_from_classes_json(
     else:
         classes = classes_json
 
+    existing_classes = search_annotation_classes(project)
+    new_classes = []
+    for cs in classes:
+        if cs["name"] in existing_classes:
+            logger.warning(
+                "Annotation class %s already in project. Skipping.", cs
+            )
+        else:
+            new_classes.append(cs)
+
     params = {
         'team_id': team_id,
         'project_id': project_id,
     }
-    data = {"classes": classes}
+    data = {"classes": new_classes}
     response = _api.send_request(
         req_type='POST', path='/classes', params=params, json_req=data
     )
@@ -163,7 +173,6 @@ def create_annotation_classes_from_classes_json(
             response.status_code, "Couldn't create classes " + response.text
         )
     res = response.json()
-    assert len(res) == len(classes)
     return res
 
 

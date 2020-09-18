@@ -28,8 +28,17 @@ Authentication token
 ____________________
 
 SDK authentication tokens are team specific. They are available to team admins on
-team setting page at https://app.superannotate.com/team. Generate then copy the token from
-that page to a new JSON file, under the key "token":
+team setting page at https://app.superannotate.com/team. The generated key
+can be used during command line command:
+
+.. code-block:: bash
+
+   superannotate init
+
+A config file :file:`~/.superannotate/config.json` will be created containing
+the token.  
+
+Or you can create a new JSON file with key "token":
 
 .. code-block:: json
 
@@ -47,7 +56,9 @@ Include the package:
 
    import superannotate as sa
 
-Initialize and authenticate SDK with the config file created in the previous step:
+SDK is ready to be used if default location config file was created using 
+the CLI tool. Otherwise to authenticate SDK with the custom config file created
+in the previous step:
 
 .. code-block:: python
 
