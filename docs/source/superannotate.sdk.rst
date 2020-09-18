@@ -84,6 +84,7 @@ __________________
 .. autofunction:: superannotate.create_annotation_class
 .. _ref_create_annotation_classes_from_classes_json:
 .. autofunction:: superannotate.create_annotation_classes_from_classes_json
+.. autofunction:: superannotate.get_annotation_class_metadata
 .. autofunction:: superannotate.search_annotation_classes
 .. autofunction:: superannotate.download_annotation_classes_json
 .. autofunction:: superannotate.delete_annotation_class
