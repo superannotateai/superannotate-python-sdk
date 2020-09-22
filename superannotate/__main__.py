@@ -1,14 +1,17 @@
-import logging
+import argparse
 import json
+import logging
 import sys
 from pathlib import Path
+
+import superannotate as sa
 
 from .exceptions import SABaseException
 
 logger = logging.getLogger("superannotate-python-sdk")
 
 
-def asktoken():
+def ask_token(args):
     config_dir = Path.home() / ".superannotate"
     config_filename = "config.json"
     config_file = config_dir / config_filename
@@ -40,60 +43,47 @@ def main():
     command = sys.argv[1]
     further_args = sys.argv[2:]
 
-    # if command in ["preannotation-upload", "image-upload"]:
-    #     upload(command, further_args)
-    # elif command == "convert":
-    #     convert(further_args)
-    if command == "init":
-        asktoken()
+    if command == "image-upload":
+        image_upload(further_args)
+    elif command == "init":
+        ask_token(further_args)
     else:
         raise SABaseException(0, "Wrong command to superannotate CLI")
 
 
-# def upload(command, args):
-#     parser = argparse.ArgumentParser()
-#     parser.add_argument(
-#         '--command',
-#         required=True,
-#         help=
-#         'superannotate API action command - visit https://annotate.online for more info.'
-#     )
-#     parser.add_argument(
-#         '--aws_access_key_id',
-#         required=False,
-#         help='Find aws_access_key_id for your account after login.'
-#     )
-#     parser.add_argument(
-#         '--aws_secret_access_key',
-#         required=False,
-#         help='Find aws_secret_access_key for your account after login.'
-#     )
-#     parser.add_argument(
-#         '--aws_session_token',
-#         required=False,
-#         help='Find aws_session_token for your account after login.'
-#     )
-#     parser.add_argument(
-#         '--bucket',
-#         required=True,
-#         help='Find bucket for your account after login.'
-#     )
-#     parser.add_argument('--project_type', help='superannotate project type.')
-#     parser.add_argument(
-#         '--origin', help='Images directory path in local machine.'
-#     )
-#     parser.add_argument(
-#         '--destination', help='Find destination for your account after login.'
-#     )
-#     parser.add_argument('--coco_json', help='COCO annotation full path.')
-#     parser.add_argument(
-#         '--ao_jsons', help='superannotate annotations directory path.'
-#     )
-#     args = parser.parse_args(args)
-#     if command == "preannotation-upload":
-#         pre_annotation_upload(args)
-#     else:
-#         image_upload(args)
+def _list_str(values):
+    return values.split(',')
+
+
+def image_upload(args):
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '--project', required=True, help='Project name to upload'
+    )
+    parser.add_argument(
+        '--folder', required=True, help='Folder from which to upload'
+    )
+    parser.add_argument(
+        '--recursive',
+        default=False,
+        action='store_true',
+        help='Enables recursive subfolder upload.'
+    )
+    parser.add_argument(
+        '--extensions',
+        default=None,
+        type=_list_str,
+        help='List of image extensions to include. Default is jpg,png'
+    )
+    args = parser.parse_args(args)
+
+    sa.upload_images_from_folder_to_project(
+        args.project,
+        args.folder,
+        args.extensions,
+        recursive_subfolders=args.recursive
+    )
+
 
 if __name__ == "__main__":
     main()
