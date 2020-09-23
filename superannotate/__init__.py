@@ -18,7 +18,7 @@ from .db.annotation_classes import (
     delete_annotation_class, download_annotation_classes_json,
     get_annotation_class_metadata, search_annotation_classes
 )
-from .db.exports import download_export, get_exports, prepare_export
+from .db.exports import get_export_metadata, download_export, get_exports, prepare_export
 from .db.images import (
     add_annotation_bbox_to_image, add_annotation_cuboid_to_image,
     add_annotation_ellipse_to_image, add_annotation_point_to_image,
@@ -39,7 +39,7 @@ from .db.projects import (
     upload_preannotations_from_folder_to_project
 )
 from .db.teams import (
-    delete_team_contributor_invitation, invite_contributor_to_team
+    invite_contributor_to_team
 )
 from .db.users import search_team_contributors
 from .exceptions import (

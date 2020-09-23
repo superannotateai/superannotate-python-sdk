@@ -39,7 +39,7 @@ def test_export_s3(tmpdir):
         sa.set_image_annotation_status(project, img, 'QualityCheck')
 
     new_export = sa.prepare_export(project, include_fuse=True)
-    sa.download_export(new_export, S3_PREFIX, to_s3_bucket=S3_BUCKET)
+    sa.download_export(project, new_export, S3_PREFIX, to_s3_bucket=S3_BUCKET)
 
     files = []
     response_iterator = paginator.paginate(Bucket=S3_BUCKET, Prefix=S3_PREFIX)
@@ -50,7 +50,7 @@ def test_export_s3(tmpdir):
                 files.append(key)
     output_path = tmpdir / S3_PREFIX
     output_path.mkdir()
-    sa.download_export(new_export, output_path)
+    sa.download_export(project, new_export, output_path)
     local_files = list(output_path.rglob("*.*"))
 
     assert len(local_files) == len(files)

@@ -29,18 +29,18 @@ def invite_contributor_to_team(email, admin=False):
     return response.json()
 
 
-def delete_team_contributor_invitation(invitation):
-    """Deletes team contributor invitation
+# def delete_team_contributor_invitation(invitation):
+#     """Deletes team contributor invitation
 
-    :param invite: invitation metadata returned from invite_contributor_to_team
-    :type project: dict
-    """
-    data = {'token': invitation["token"], 'e_mail': invitation['email']}
-    response = _api.send_request(
-        req_type='DELETE', path=f'/team/{_api.team_id}/invite', json_req=data
-    )
-    if not response.ok:
-        raise SABaseException(
-            response.status_code,
-            "Couldn't delete contributor invite. " + response.text
-        )
+#     :param invite: invitation metadata returned from invite_contributor_to_team
+#     :type project: dict
+#     """
+#     data = {'token': invitation["token"], 'e_mail': invitation['email']}
+#     response = _api.send_request(
+#         req_type='DELETE', path=f'/team/{_api.team_id}/invite', json_req=data
+#     )
+#     if not response.ok:
+#         raise SABaseException(
+#             response.status_code,
+#             "Couldn't delete contributor invite. " + response.text
+#         )

@@ -213,10 +213,15 @@ We can download the prepared export with:
 
 .. code-block:: python
 
-   export = sa.download_export(export, "<local_folder_path>", extract_zip_contents=True)
+   sa.download_export(project, export, "<local_folder_path>", extract_zip_contents=True)
 
 :ref:`download_export <ref_download_export>` will wait until the export is
 finished preparing and download it to the specified folder.
+
+.. warning::
+
+   Starting from version 1.9.0 :ref:`download_export <ref_download_export>` additionally
+   requires :py:obj:`project` as first argument.
 
 
 Converting annotation format

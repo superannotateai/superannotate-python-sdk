@@ -28,3 +28,11 @@ class SAExistingAnnotationClassNameException(SABaseException):
 
 class SANonExistingAnnotationClassNameException(SABaseException):
     pass
+
+
+class SAExistingExportNameException(SABaseException):
+    pass
+
+
+class SANonExistingExportNameException(SABaseException):
+    pass

@@ -1,5 +1,6 @@
 from pathlib import Path
 import json
+import time
 
 import pytest
 
@@ -42,120 +43,22 @@ def test_add_bbox(tmpdir):
     sa.add_annotation_bbox_to_image(
         project, image_name, [10, 10, 500, 100], "test_add"
     )
-    annotations_new = sa.get_image_annotations(project,
-                                               image_name)["annotation_json"]
-    json.dump(annotations_new, open(tmpdir / "new_anns.json", "w"))
-
-    assert len(annotations_new) == len(annotations) + 1
-
-    export = sa.prepare_export(project, include_fuse=True)
-    sa.download_export(export, tmpdir)
-
-    annotations_new_export = json.load(
-        open(tmpdir / f"{image_name}___objects.json")
-    )
-    assert len(annotations_new_export) == len(annotations) + 1
-
-    annotations = sa.get_image_annotations(project,
-                                           image_name)["annotation_json"]
-
-    sa.add_annotation_polygon_to_image(
-        project, image_name, [100, 100, 500, 500, 200, 300], "test_add"
-    )
-    annotations_new = sa.get_image_annotations(project,
-                                               image_name)["annotation_json"]
-    json.dump(annotations_new, open(tmpdir / "new_anns.json", "w"))
-
-    assert len(annotations_new) == len(annotations) + 1
-
-    export = sa.prepare_export(project, include_fuse=True)
-    sa.download_export(export, tmpdir)
-
-    annotations_new_export = json.load(
-        open(tmpdir / f"{image_name}___objects.json")
-    )
-    assert len(annotations_new_export) == len(annotations) + 1
-
-    annotations = sa.get_image_annotations(project,
-                                           image_name)["annotation_json"]
-
     sa.add_annotation_polyline_to_image(
         project, image_name, [110, 110, 510, 510, 600, 510], "test_add"
     )
-    annotations_new = sa.get_image_annotations(project,
-                                               image_name)["annotation_json"]
-    json.dump(annotations_new, open(tmpdir / "new_anns.json", "w"))
-
-    assert len(annotations_new) == len(annotations) + 1
-
-    export = sa.prepare_export(project, include_fuse=True)
-    sa.download_export(export, tmpdir)
-
-    annotations_new_export = json.load(
-        open(tmpdir / f"{image_name}___objects.json")
+    sa.add_annotation_polygon_to_image(
+        project, image_name, [100, 100, 500, 500, 200, 300], "test_add"
     )
-    assert len(annotations_new_export) == len(annotations) + 1
-
-    annotations = sa.get_image_annotations(project,
-                                           image_name)["annotation_json"]
     sa.add_annotation_point_to_image(
         project, image_name, [250, 250], "test_add"
     )
-    annotations_new = sa.get_image_annotations(project,
-                                               image_name)["annotation_json"]
-    json.dump(annotations_new, open(tmpdir / "new_anns.json", "w"))
-
-    assert len(annotations_new) == len(annotations) + 1
-
-    export = sa.prepare_export(project, include_fuse=True)
-    sa.download_export(export, tmpdir)
-
-    annotations_new_export = json.load(
-        open(tmpdir / f"{image_name}___objects.json")
-    )
-    assert len(annotations_new_export) == len(annotations) + 1
-
-    annotations = sa.get_image_annotations(project,
-                                           image_name)["annotation_json"]
     sa.add_annotation_ellipse_to_image(
         project, image_name, [405, 405, 20, 70, 15], "test_add"
     )
-    annotations_new = sa.get_image_annotations(project,
-                                               image_name)["annotation_json"]
-    json.dump(annotations_new, open(tmpdir / "new_anns.json", "w"))
-
-    assert len(annotations_new) == len(annotations) + 1
-
-    export = sa.prepare_export(project, include_fuse=True)
-    sa.download_export(export, tmpdir)
-
-    annotations_new_export = json.load(
-        open(tmpdir / f"{image_name}___objects.json")
-    )
-    assert len(annotations_new_export) == len(annotations) + 1
-
-    annotations = sa.get_image_annotations(project,
-                                           image_name)["annotation_json"]
     sa.add_annotation_template_to_image(
         project, image_name, [600, 30, 630, 30, 615, 60], [1, 3, 2, 3],
         "test_add"
     )
-    annotations_new = sa.get_image_annotations(project,
-                                               image_name)["annotation_json"]
-    json.dump(annotations_new, open(tmpdir / "new_anns.json", "w"))
-
-    assert len(annotations_new) == len(annotations) + 1
-
-    export = sa.prepare_export(project, include_fuse=True)
-    sa.download_export(export, tmpdir)
-
-    annotations_new_export = json.load(
-        open(tmpdir / f"{image_name}___objects.json")
-    )
-    assert len(annotations_new_export) == len(annotations) + 1
-
-    annotations = sa.get_image_annotations(project,
-                                           image_name)["annotation_json"]
     sa.add_annotation_cuboid_to_image(
         project, image_name, [800, 500, 900, 600, 850, 450, 950, 700],
         "test_add"
@@ -164,15 +67,15 @@ def test_add_bbox(tmpdir):
                                                image_name)["annotation_json"]
     json.dump(annotations_new, open(tmpdir / "new_anns.json", "w"))
 
-    assert len(annotations_new) == len(annotations) + 1
+    assert len(annotations_new) == len(annotations) + 7
 
     export = sa.prepare_export(project, include_fuse=True)
-    sa.download_export(export, tmpdir)
+    sa.download_export(project, export, tmpdir)
 
     annotations_new_export = json.load(
         open(tmpdir / f"{image_name}___objects.json")
     )
-    assert len(annotations_new_export) == len(annotations) + 1
+    assert len(annotations_new_export) == len(annotations) + 7
 
 
 def test_add_bbox_noinit(tmpdir):
@@ -198,18 +101,6 @@ def test_add_bbox_noinit(tmpdir):
     sa.add_annotation_bbox_to_image(
         project, image_name, [10, 10, 500, 100], "test_add"
     )
-    annotations_new = sa.get_image_annotations(project,
-                                               image_name)["annotation_json"]
-
-    assert len(annotations_new) == 1
-    export = sa.prepare_export(project, include_fuse=True)
-    sa.download_export(export, tmpdir)
-    assert len(list(Path(tmpdir).rglob("*.*"))) == 4
-    annotations_new_export = json.load(
-        open(tmpdir / f"{image_name}___objects.json")
-    )
-    assert len(annotations_new_export) == 1
-
     sa.add_annotation_polygon_to_image(
         project, image_name, [100, 100, 500, 500, 200, 300], "test_add"
     )
@@ -218,9 +109,5 @@ def test_add_bbox_noinit(tmpdir):
 
     assert len(annotations_new) == 2
     export = sa.prepare_export(project, include_fuse=True)
-    sa.download_export(export, tmpdir)
+    sa.download_export(project, export, tmpdir)
     assert len(list(Path(tmpdir).rglob("*.*"))) == 4
-    annotations_new_export = json.load(
-        open(tmpdir / f"{image_name}___objects.json")
-    )
-    assert len(annotations_new_export) == 2

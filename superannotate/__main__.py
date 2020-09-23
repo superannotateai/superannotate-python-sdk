@@ -47,6 +47,8 @@ def main():
         image_upload(further_args)
     elif command == "init":
         ask_token(further_args)
+    elif command == "export-project":
+        export_project(further_args)
     else:
         raise SABaseException(0, "Wrong command to superannotate CLI")
 
@@ -75,13 +77,58 @@ def image_upload(args):
         type=_list_str,
         help='List of image extensions to include. Default is jpg,png'
     )
+    parser.add_argument(
+        '--set-annotation-status',
+        required=False,
+        default="NotStarted",
+        help=
+        'Set images\' annotation statuses after upload. Default is NotStarted'
+    )
     args = parser.parse_args(args)
 
     sa.upload_images_from_folder_to_project(
         args.project,
         args.folder,
         args.extensions,
+        args.set_annotation_status,
         recursive_subfolders=args.recursive
+    )
+
+
+def export_project(args):
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '--project', required=True, help='Project name to export'
+    )
+    parser.add_argument(
+        '--folder', required=True, help='Folder to which export'
+    )
+    parser.add_argument(
+        '--include-fuse',
+        default=False,
+        action='store_true',
+        help='Enables fuse image export'
+    )
+    parser.add_argument(
+        '--disable-extract-zip-contents',
+        default=False,
+        action='store_true',
+        help='Disables export zip extraction'
+    )
+    parser.add_argument(
+        '--annotation-statuses',
+        default=None,
+        type=_list_str,
+        help=
+        'List of image annotation statuses to include in export. Default is InProgress,QualityCheck,Returned,Completed'
+    )
+    args = parser.parse_args(args)
+
+    export = sa.prepare_export(
+        args.project, args.annotation_statuses, args.include_fuse
+    )
+    sa.download_export(
+        args.project, export, args.folder, not args.disable_extract_zip_contents
     )
 
 

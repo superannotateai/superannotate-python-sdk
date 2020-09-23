@@ -31,7 +31,7 @@ def test_basic_export(tmpdir):
 
     export = sa.prepare_export(project, include_fuse=True)
 
-    sa.download_export(export, tmpdir)
+    sa.download_export(project, export, tmpdir)
 
     project_new = sa.create_project(PROJECT_NAME + " import", "f", "Vector")
     sa.upload_images_from_folder_to_project(

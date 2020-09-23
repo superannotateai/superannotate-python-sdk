@@ -38,7 +38,7 @@ def test_large_files(tmpdir):
     sa.download_image(project, image, tmpdir / "q100/lores", variant='lores')
     export = sa.prepare_export(project, include_fuse=True)
     (tmpdir / "q100" / "export").mkdir(parents=True)
-    sa.download_export(export, tmpdir / "q100" / "export")
+    sa.download_export(project, export, tmpdir / "q100" / "export")
     assert filecmp.cmp(
         f"{SAMPLE_FOLDER}/{image}",
         f"{tmpdir}/q100/export/{image}",
@@ -69,7 +69,7 @@ def test_large_files(tmpdir):
     sa.download_image(project, image, tmpdir / "q60/lores", variant='lores')
     export = sa.prepare_export(project, include_fuse=True)
     (tmpdir / "q60" / "export").mkdir(parents=True)
-    sa.download_export(export, tmpdir / "q60" / "export")
+    sa.download_export(project, export, tmpdir / "q60" / "export")
     assert filecmp.cmp(
         f"{SAMPLE_FOLDER}/{image}",
         f"{tmpdir}/q60/export/{image}",

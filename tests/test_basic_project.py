@@ -71,7 +71,7 @@ def test_basic_project(project_type, name, description, from_folder, tmpdir):
 
     export = sa.prepare_export(project)
 
-    sa.download_export(export, tmpdir)
+    sa.download_export(project, export, tmpdir)
     for image in from_folder.glob("*.[jpg|png]"):
         found = False
         for image_in_project in tmpdir.glob("*.jpg"):
