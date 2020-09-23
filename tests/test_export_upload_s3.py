@@ -9,7 +9,7 @@ s3_client = boto3.client('s3')
 
 S3_PREFIX = 'frex9'
 S3_BUCKET = 'hovnatan-test'
-PROJECT_NAME = "Example project test"
+PROJECT_NAME = "Example project test export upload s3"
 
 
 def test_export_s3(tmpdir):
@@ -57,7 +57,9 @@ def test_export_s3(tmpdir):
 
 
 def test_from_s3_upload():
-    projects = sa.search_projects(PROJECT_NAME)
+    projects = sa.search_projects(
+        PROJECT_NAME, exact_match=True, return_metadata=True
+    )
     for project in projects:
         sa.delete_project(project)
 

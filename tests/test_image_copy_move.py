@@ -17,7 +17,9 @@ PROJECT_NAME_MOVE = "test image move"
 def test_image_copy_mult(tmpdir):
     tmpdir = Path(tmpdir)
 
-    projects_found = sa.search_projects(PROJECT_NAME_CPY_MULT)
+    projects_found = sa.search_projects(
+        PROJECT_NAME_CPY_MULT, return_metadata=True, exact_match=True
+    )
     for pr in projects_found:
         sa.delete_project(pr)
 
@@ -49,7 +51,9 @@ def test_image_copy_mult(tmpdir):
 def test_image_copy(tmpdir):
     tmpdir = Path(tmpdir)
 
-    projects_found = sa.search_projects(PROJECT_NAME_CPY)
+    projects_found = sa.search_projects(
+        PROJECT_NAME_CPY, return_metadata=True, exact_match=True
+    )
     for pr in projects_found:
         sa.delete_project(pr)
 
@@ -81,7 +85,9 @@ def test_image_copy(tmpdir):
     image = "example_image_1_(2).jpg"
     assert len(sa.search_images(project, image)) == 1
 
-    projects_found = sa.search_projects(PROJECT_NAME_CPY + "dif")
+    projects_found = sa.search_projects(
+        PROJECT_NAME_CPY + "dif", return_metadata=True, exact_match=True
+    )
     for pr in projects_found:
         sa.delete_project(pr)
 
@@ -95,7 +101,9 @@ def test_image_copy(tmpdir):
 def test_image_move(tmpdir):
     tmpdir = Path(tmpdir)
 
-    projects_found = sa.search_projects(PROJECT_NAME_MOVE)
+    projects_found = sa.search_projects(
+        PROJECT_NAME_MOVE, return_metadata=True, exact_match=True
+    )
     for pr in projects_found:
         sa.delete_project(pr)
 
@@ -122,7 +130,9 @@ def test_image_move(tmpdir):
     else:
         assert False
 
-    projects_found = sa.search_projects(PROJECT_NAME_MOVE + "dif")
+    projects_found = sa.search_projects(
+        PROJECT_NAME_MOVE + "dif", return_metadata=True, exact_match=True
+    )
     for pr in projects_found:
         sa.delete_project(pr)
 

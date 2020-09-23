@@ -11,11 +11,11 @@ sa.init(Path.home() / ".superannotate" / "config.json")
 @pytest.mark.parametrize(
     "project_type,name,description,from_folder", [
         (
-            "Vector", "Example Project test", "test vector",
+            "Vector", "Example Project test vector basic images", "test vector",
             Path("./tests/sample_project_vector")
         ),
         (
-            "Pixel", "Example Project test", "test pixel",
+            "Pixel", "Example Project test pixel basic images", "test pixel",
             Path("./tests/sample_project_pixel")
         ),
     ]
@@ -23,11 +23,15 @@ sa.init(Path.home() / ".superannotate" / "config.json")
 def test_basic_images(project_type, name, description, from_folder, tmpdir):
     tmpdir = Path(tmpdir)
 
-    projects_found = sa.search_projects(name)
+    projects_found = sa.search_projects(
+        name, exact_match=True, return_metadata=True
+    )
     for pr in projects_found:
         sa.delete_project(pr)
 
-    projects_found = sa.search_projects(name)
+    projects_found = sa.search_projects(
+        name, exact_match=True, return_metadata=True
+    )
     project = sa.create_project(name, description, project_type)
     sa.upload_images_from_folder_to_project(
         project, from_folder, annotation_status="InProgress"

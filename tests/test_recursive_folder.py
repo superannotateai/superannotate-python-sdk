@@ -9,7 +9,9 @@ TEMP_PROJECT_NAME = "test_recursive"
 
 def test_nonrecursive_annotations_folder(tmpdir):
     tmpdir = Path(tmpdir)
-    projects_found = sa.search_projects(TEMP_PROJECT_NAME)
+    projects_found = sa.search_projects(
+        TEMP_PROJECT_NAME, exact_match=True, return_metadata=True
+    )
     for pr in projects_found:
         sa.delete_project(pr)
 
@@ -41,11 +43,13 @@ def test_nonrecursive_annotations_folder(tmpdir):
 
 def test_recursive_annotations_folder(tmpdir):
     tmpdir = Path(tmpdir)
-    projects_found = sa.search_projects(TEMP_PROJECT_NAME)
+    projects_found = sa.search_projects(
+        TEMP_PROJECT_NAME + "1", exact_match=True, return_metadata=True
+    )
     for pr in projects_found:
         sa.delete_project(pr)
 
-    project = sa.create_project(TEMP_PROJECT_NAME, "test", "Vector")
+    project = sa.create_project(TEMP_PROJECT_NAME + "1", "test", "Vector")
 
     sa.upload_images_from_folder_to_project(
         project,
@@ -73,11 +77,13 @@ def test_recursive_annotations_folder(tmpdir):
 
 def test_recursive_preannotations_folder(tmpdir):
     tmpdir = Path(tmpdir)
-    projects_found = sa.search_projects(TEMP_PROJECT_NAME)
+    projects_found = sa.search_projects(
+        TEMP_PROJECT_NAME + "2", exact_match=True, return_metadata=True
+    )
     for pr in projects_found:
         sa.delete_project(pr)
 
-    project = sa.create_project(TEMP_PROJECT_NAME, "test", "Vector")
+    project = sa.create_project(TEMP_PROJECT_NAME + "2", "test", "Vector")
 
     sa.upload_images_from_folder_to_project(
         project,
@@ -104,11 +110,13 @@ def test_recursive_preannotations_folder(tmpdir):
 
 def test_nonrecursive_preannotations_folder(tmpdir):
     tmpdir = Path(tmpdir)
-    projects_found = sa.search_projects(TEMP_PROJECT_NAME)
+    projects_found = sa.search_projects(
+        TEMP_PROJECT_NAME + "3", exact_match=True, return_metadata=True
+    )
     for pr in projects_found:
         sa.delete_project(pr)
 
-    project = sa.create_project(TEMP_PROJECT_NAME, "test", "Vector")
+    project = sa.create_project(TEMP_PROJECT_NAME + "3", "test", "Vector")
 
     sa.upload_images_from_folder_to_project(
         project,
@@ -135,11 +143,13 @@ def test_nonrecursive_preannotations_folder(tmpdir):
 
 def test_annotations_recursive_s3_folder(tmpdir):
     tmpdir = Path(tmpdir)
-    projects_found = sa.search_projects(TEMP_PROJECT_NAME)
+    projects_found = sa.search_projects(
+        TEMP_PROJECT_NAME + "4", exact_match=True, return_metadata=True
+    )
     for pr in projects_found:
         sa.delete_project(pr)
 
-    project = sa.create_project(TEMP_PROJECT_NAME, "test", "Vector")
+    project = sa.create_project(TEMP_PROJECT_NAME + "4", "test", "Vector")
 
     sa.upload_images_from_folder_to_project(
         project,
@@ -173,11 +183,13 @@ def test_annotations_recursive_s3_folder(tmpdir):
 
 def test_annotations_nonrecursive_s3_folder(tmpdir):
     tmpdir = Path(tmpdir)
-    projects_found = sa.search_projects(TEMP_PROJECT_NAME)
+    projects_found = sa.search_projects(
+        TEMP_PROJECT_NAME + "5", exact_match=True, return_metadata=True
+    )
     for pr in projects_found:
         sa.delete_project(pr)
 
-    project = sa.create_project(TEMP_PROJECT_NAME, "test", "Vector")
+    project = sa.create_project(TEMP_PROJECT_NAME + "5", "test", "Vector")
 
     sa.upload_images_from_folder_to_project(
         project,
@@ -211,11 +223,13 @@ def test_annotations_nonrecursive_s3_folder(tmpdir):
 
 def test_preannotations_recursive_s3_folder(tmpdir):
     tmpdir = Path(tmpdir)
-    projects_found = sa.search_projects(TEMP_PROJECT_NAME)
+    projects_found = sa.search_projects(
+        TEMP_PROJECT_NAME + "6", exact_match=True, return_metadata=True
+    )
     for pr in projects_found:
         sa.delete_project(pr)
 
-    project = sa.create_project(TEMP_PROJECT_NAME, "test", "Vector")
+    project = sa.create_project(TEMP_PROJECT_NAME + "6", "test", "Vector")
 
     sa.upload_images_from_folder_to_project(
         project,
@@ -247,11 +261,13 @@ def test_preannotations_recursive_s3_folder(tmpdir):
 
 def test_preannotations_nonrecursive_s3_folder(tmpdir):
     tmpdir = Path(tmpdir)
-    projects_found = sa.search_projects(TEMP_PROJECT_NAME)
+    projects_found = sa.search_projects(
+        TEMP_PROJECT_NAME + "7", exact_match=True, return_metadata=True
+    )
     for pr in projects_found:
         sa.delete_project(pr)
 
-    project = sa.create_project(TEMP_PROJECT_NAME, "test", "Vector")
+    project = sa.create_project(TEMP_PROJECT_NAME + "7", "test", "Vector")
 
     sa.upload_images_from_folder_to_project(
         project,
@@ -281,11 +297,13 @@ def test_preannotations_nonrecursive_s3_folder(tmpdir):
 
 def test_images_nonrecursive_s3(tmpdir):
     tmpdir = Path(tmpdir)
-    projects_found = sa.search_projects(TEMP_PROJECT_NAME)
+    projects_found = sa.search_projects(
+        TEMP_PROJECT_NAME + "8", exact_match=True, return_metadata=True
+    )
     for pr in projects_found:
         sa.delete_project(pr)
 
-    project = sa.create_project(TEMP_PROJECT_NAME, "test", "Vector")
+    project = sa.create_project(TEMP_PROJECT_NAME + "8", "test", "Vector")
 
     sa.upload_images_from_folder_to_project(
         project,
@@ -299,11 +317,13 @@ def test_images_nonrecursive_s3(tmpdir):
 
 def test_images_nonrecursive(tmpdir):
     tmpdir = Path(tmpdir)
-    projects_found = sa.search_projects(TEMP_PROJECT_NAME)
+    projects_found = sa.search_projects(
+        TEMP_PROJECT_NAME + "9", exact_match=True, return_metadata=True
+    )
     for pr in projects_found:
         sa.delete_project(pr)
 
-    project = sa.create_project(TEMP_PROJECT_NAME, "test", "Vector")
+    project = sa.create_project(TEMP_PROJECT_NAME + "9", "test", "Vector")
 
     sa.upload_images_from_folder_to_project(
         project, "./tests/sample_recursive_test", recursive_subfolders=False

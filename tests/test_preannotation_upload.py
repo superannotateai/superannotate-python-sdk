@@ -10,19 +10,21 @@ sa.init(Path.home() / ".superannotate" / "config.json")
 @pytest.mark.parametrize(
     "project_type,name,description,from_folder", [
         (
-            "Vector", "Example Project test vector", "test vector",
-            Path("./tests/sample_project_vector")
+            "Vector", "Example Project test vector preannotation upload",
+            "test vector", Path("./tests/sample_project_vector")
         ),
         (
-            "Pixel", "Example Project test pixel", "test pixel",
-            Path("./tests/sample_project_pixel")
+            "Pixel", "Example Project test pixel preannotation upload",
+            "test pixel", Path("./tests/sample_project_pixel")
         ),
     ]
 )
 def test_preannotation_folder_upload_download(
     project_type, name, description, from_folder, tmpdir
 ):
-    projects_found = sa.search_projects(name)
+    projects_found = sa.search_projects(
+        name, return_metadata=True, exact_match=True
+    )
     for pr in projects_found:
         sa.delete_project(pr)
 

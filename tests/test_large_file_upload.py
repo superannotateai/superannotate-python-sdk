@@ -8,14 +8,16 @@ import superannotate as sa
 
 sa.init(Path.home() / ".superannotate" / "config.json")
 
-PROJECT_NAME = "test_large_files"
-PROJECT_NAME_LOW_QUALITY = "test_large_files_loq"
+PROJECT_NAME = "test_large_files_upload"
+PROJECT_NAME_LOW_QUALITY = "test_large_files_upload_loq"
 SAMPLE_FOLDER = "./sample_large_files/b2/b3"
 
 
 def test_large_files(tmpdir):
     tmpdir = Path(tmpdir)
-    projects_found = sa.search_projects(PROJECT_NAME)
+    projects_found = sa.search_projects(
+        PROJECT_NAME, exact_match=True, return_metadata=True
+    )
     for pr in projects_found:
         sa.delete_project(pr)
     project = sa.create_project(PROJECT_NAME, "gg", "Vector")
@@ -45,7 +47,9 @@ def test_large_files(tmpdir):
         shallow=False
     )
 
-    projects_found = sa.search_projects(PROJECT_NAME_LOW_QUALITY)
+    projects_found = sa.search_projects(
+        PROJECT_NAME_LOW_QUALITY, exact_match=True, return_metadata=True
+    )
     for pr in projects_found:
         sa.delete_project(pr)
     project = sa.create_project(PROJECT_NAME_LOW_QUALITY, "gg", "Vector")

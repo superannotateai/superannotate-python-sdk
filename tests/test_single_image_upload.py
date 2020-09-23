@@ -10,13 +10,17 @@ sa.init(Path.home() / ".superannotate" / "config.json")
 
 PROJECT_NAME = "test single image upload"
 PROJECT_NAME_S3 = "test single image upload s3"
+PROJECT_NAME_S3_CHANGE_NAME = "test single image upload s3 change name"
 PROJECT_NAME_BYTES = "test single image upload bytes"
 
 
 def test_single_image_upload(tmpdir):
     tmpdir = Path(tmpdir)
 
-    projects_found = sa.search_projects(PROJECT_NAME)
+    projects_found = sa.search_projects(
+        PROJECT_NAME, return_metadata=True, exact_match=True
+    )
+    print(projects_found)
     for pr in projects_found:
         sa.delete_project(pr)
 
@@ -40,7 +44,9 @@ def test_single_image_upload(tmpdir):
 def test_single_image_upload_s3(tmpdir):
     tmpdir = Path(tmpdir)
 
-    projects_found = sa.search_projects(PROJECT_NAME_S3)
+    projects_found = sa.search_projects(
+        PROJECT_NAME_S3, return_metadata=True, exact_match=True
+    )
     for pr in projects_found:
         sa.delete_project(pr)
 
@@ -64,11 +70,13 @@ def test_single_image_upload_s3(tmpdir):
 def test_single_image_upload_s3_change_name(tmpdir):
     tmpdir = Path(tmpdir)
 
-    projects_found = sa.search_projects(PROJECT_NAME_S3)
+    projects_found = sa.search_projects(
+        PROJECT_NAME_S3_CHANGE_NAME, return_metadata=True, exact_match=True
+    )
     for pr in projects_found:
         sa.delete_project(pr)
 
-    project = sa.create_project(PROJECT_NAME_S3, "test", "Vector")
+    project = sa.create_project(PROJECT_NAME_S3_CHANGE_NAME, "test", "Vector")
 
     sa.upload_image_to_project(
         project,
@@ -90,7 +98,9 @@ def test_single_image_upload_s3_change_name(tmpdir):
 def test_single_image_upload_bytesio(tmpdir):
     tmpdir = Path(tmpdir)
 
-    projects_found = sa.search_projects(PROJECT_NAME_BYTES)
+    projects_found = sa.search_projects(
+        PROJECT_NAME_BYTES, return_metadata=True, exact_match=True
+    )
     for pr in projects_found:
         sa.delete_project(pr)
 

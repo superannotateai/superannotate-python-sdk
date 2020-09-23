@@ -9,12 +9,16 @@ PROJECT_NAME_NEW = "test rename_project new"
 
 
 def test_project_rename():
-    projects = sa.search_projects(PROJECT_NAME, return_metadata=True)
+    projects = sa.search_projects(
+        PROJECT_NAME, return_metadata=True, exact_match=True
+    )
     for project in projects:
         sa.delete_project(project)
 
     sa.create_project(PROJECT_NAME, "tt", "Vector")
-    projects = sa.search_projects(PROJECT_NAME_NEW, return_metadata=True)
+    projects = sa.search_projects(
+        PROJECT_NAME_NEW, return_metadata=True, exact_match=True
+    )
     for project in projects:
         sa.delete_project(project)
 

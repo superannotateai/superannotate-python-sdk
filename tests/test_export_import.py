@@ -14,7 +14,9 @@ PROJECT_FOLDER = Path("./tests/sample_project_vector")
 def test_basic_export(tmpdir):
     tmpdir = Path(tmpdir)
 
-    projects_found = sa.search_projects(PROJECT_NAME)
+    projects_found = sa.search_projects(
+        PROJECT_NAME, exact_match=True, return_metadata=True
+    )
     for pr in projects_found:
         sa.delete_project(pr)
 
@@ -33,6 +35,11 @@ def test_basic_export(tmpdir):
 
     sa.download_export(project, export, tmpdir)
 
+    projects_found = sa.search_projects(
+        PROJECT_NAME + " import", exact_match=True, return_metadata=True
+    )
+    for pr in projects_found:
+        sa.delete_project(pr)
     project_new = sa.create_project(PROJECT_NAME + " import", "f", "Vector")
     sa.upload_images_from_folder_to_project(
         project_new, tmpdir, annotation_status="InProgress"

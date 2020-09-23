@@ -8,14 +8,16 @@ import superannotate as sa
 
 sa.init(Path.home() / ".superannotate" / "config.json")
 
-TEST_PROJECT_NAME = "test_s3_upload"
+TEST_PROJECT_NAME = "test_direct_s3_upload"
 S3_BUCKET = 'hovnatan-test'
 S3_FOLDER = 'sample_project_vector'
 S3_FOLDER_STRESS = 'ff'
 
 
 def test_direct_s3_upload():
-    projects_found = sa.search_projects(TEST_PROJECT_NAME)
+    projects_found = sa.search_projects(
+        TEST_PROJECT_NAME, exact_match=True, return_metadata=True
+    )
     for pr in projects_found:
         sa.delete_project(pr)
 
@@ -48,11 +50,13 @@ def test_direct_s3_upload():
     reason="Requires env variable to be set"
 )
 def test_direct_s3_upload_stress():
-    projects_found = sa.search_projects(TEST_PROJECT_NAME)
+    projects_found = sa.search_projects(
+        TEST_PROJECT_NAME + " stress", exact_match=True, return_metadata=True
+    )
     for pr in projects_found:
         sa.delete_project(pr)
 
-    project = sa.create_project(TEST_PROJECT_NAME, "a", "Vector")
+    project = sa.create_project(TEST_PROJECT_NAME + " stress", "a", "Vector")
 
     csv = (Path.home() /
            "hovnatan_aws.csv").read_text().splitlines()[1].split(",")

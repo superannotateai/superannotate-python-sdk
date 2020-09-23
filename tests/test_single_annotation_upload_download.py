@@ -14,19 +14,21 @@ PROJECT_NAME = "testing_1419"
 @pytest.mark.parametrize(
     "project_type,name,description,from_folder", [
         (
-            "Vector", "Example Project test vector", "test vector",
-            Path("./tests/sample_project_vector")
+            "Vector",
+            "Example Project test vector single annotation upload download",
+            "test vector", Path("./tests/sample_project_vector")
         ),
         (
-            "Pixel", "Example Project test pixel", "test pixel",
-            Path("./tests/sample_project_pixel")
+            "Pixel",
+            "Example Project test pixel single annotation upload download",
+            "test pixel", Path("./tests/sample_project_pixel")
         )
     ]
 )
 def test_annotation_download_upload(
     project_type, name, description, from_folder, tmpdir
 ):
-    projects = sa.search_projects(name)
+    projects = sa.search_projects(name, return_metadata=True, exact_match=True)
     for project in projects:
         sa.delete_project(project)
     project = sa.create_project(name, description, project_type)

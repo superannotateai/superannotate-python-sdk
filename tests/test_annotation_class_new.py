@@ -9,7 +9,9 @@ PROJECT_NAME_JSON = "test annotation class new json"
 
 
 def test_anntotation_class_new():
-    projects = sa.search_projects(PROJECT_NAME, return_metadata=True)
+    projects = sa.search_projects(
+        PROJECT_NAME, return_metadata=True, exact_match=True
+    )
     for project in projects:
         sa.delete_project(project)
 

@@ -11,11 +11,11 @@ sa.init(Path.home() / ".superannotate" / "config.json")
 @pytest.mark.parametrize(
     "project_type,name,description,from_folder", [
         (
-            "Vector", "Example Project test vector", "test vector",
-            Path("./tests/sample_project_vector")
+            "Vector", "Example Project test vector basic project",
+            "test vector", Path("./tests/sample_project_vector")
         ),
         (
-            "Pixel", "Example Project test pixel", "test pixel",
+            "Pixel", "Example Project test pixel basic project", "test pixel",
             Path("./tests/sample_project_pixel")
         ),
     ]
@@ -23,11 +23,15 @@ sa.init(Path.home() / ".superannotate" / "config.json")
 def test_basic_project(project_type, name, description, from_folder, tmpdir):
     tmpdir = Path(tmpdir)
 
-    projects_found = sa.search_projects(name)
+    projects_found = sa.search_projects(
+        name, exact_match=True, return_metadata=True
+    )
     for pr in projects_found:
         sa.delete_project(pr)
 
-    projects_found = sa.search_projects(name)
+    projects_found = sa.search_projects(
+        name, exact_match=True, return_metadata=True
+    )
     assert len(projects_found) == 0
 
     project = sa.create_project(name, description, project_type)
@@ -35,9 +39,11 @@ def test_basic_project(project_type, name, description, from_folder, tmpdir):
     assert project["description"] == description
     assert project["type"] == sa.project_type_str_to_int(project_type)
 
-    projects_found = sa.search_projects(name)
+    projects_found = sa.search_projects(
+        name, exact_match=True, return_metadata=True
+    )
     assert len(projects_found) == 1
-    assert projects_found[0] == name
+    assert projects_found[0]["name"] == name
 
     sa.upload_images_from_folder_to_project(
         project, from_folder, annotation_status="InProgress"

@@ -13,7 +13,9 @@ PROJECT_NAME = "test_cli_image_upload"
 
 def test_cli_image_upload_project_export(tmpdir):
     tmpdir = Path(tmpdir)
-    projects_found = sa.search_projects(PROJECT_NAME)
+    projects_found = sa.search_projects(
+        PROJECT_NAME, exact_match=True, return_metadata=True
+    )
     for pr in projects_found:
         sa.delete_project(pr)
     project = sa.create_project(PROJECT_NAME, "gg", "Vector")

@@ -8,7 +8,9 @@ PROJECT_NAME = "test annotation classes"
 
 
 def test_annotation_classes():
-    projects = sa.search_projects(PROJECT_NAME, return_metadata=True)
+    projects = sa.search_projects(
+        PROJECT_NAME, exact_match=True, return_metadata=True
+    )
     for project in projects:
         sa.delete_project(project)
     project = sa.create_project(PROJECT_NAME, "test1", "Vector")
