@@ -770,7 +770,9 @@ def upload_annotations_from_json_to_image(
             )
         annotation_classes_dict[annotation_class["name"]] = annotation_class
     for ann in annotation_json:
-        if "userId" in ann and ann["type"] == "meta":
+        if (
+            "userId" in ann and "type" in ann and ann["type"] == "meta"
+        ) or "className" not in ann:
             continue
         annotation_class_name = ann["className"]
         if not annotation_class_name in annotation_classes_dict:
