@@ -9,7 +9,8 @@ s3_client = boto3.client('s3')
 
 S3_PREFIX = 'frex9'
 S3_BUCKET = 'hovnatan-test'
-PROJECT_NAME = "Example project test export upload s3"
+PROJECT_NAME_EXPORT = "Example project test export upload s3 export "
+PROJECT_NAME_UPLOAD = "Example project test export upload s3 upload"
 
 
 def test_export_s3(tmpdir):
@@ -21,7 +22,12 @@ def test_export_s3(tmpdir):
                 key = object_data['Key']
                 s3_client.delete_object(Bucket=S3_BUCKET, Key=key)
     tmpdir = Path(tmpdir)
-    project = sa.create_project(PROJECT_NAME, "test", "Vector")
+    projects = sa.search_projects(
+        PROJECT_NAME_EXPORT, exact_match=True, return_metadata=True
+    )
+    for project in projects:
+        sa.delete_project(project)
+    project = sa.create_project(PROJECT_NAME_EXPORT, "test", "Vector")
 
     sa.upload_images_from_folder_to_project(
         project,
@@ -58,12 +64,12 @@ def test_export_s3(tmpdir):
 
 def test_from_s3_upload():
     projects = sa.search_projects(
-        PROJECT_NAME, exact_match=True, return_metadata=True
+        PROJECT_NAME_UPLOAD, exact_match=True, return_metadata=True
     )
     for project in projects:
         sa.delete_project(project)
 
-    project = sa.create_project(PROJECT_NAME, "hk", "Vector")
+    project = sa.create_project(PROJECT_NAME_UPLOAD, "hk", "Vector")
     sa.create_annotation_classes_from_classes_json(
         project, "frex9/classes/classes.json", S3_BUCKET
     )

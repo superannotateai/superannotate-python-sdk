@@ -76,7 +76,7 @@ def test_pixel_preannotation_upload_from_s3(tmpdir):
     sa.delete_project(project)
 
 
-def test_vector_preannotation_upload_from_s3(empty_test_project, tmpdir):
+def test_vector_preannotation_upload_from_s3(tmpdir):
     projects_found = sa.search_projects(
         TEST_PROJECT3, exact_match=True, return_metadata=True
     )
