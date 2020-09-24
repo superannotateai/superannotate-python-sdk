@@ -18,13 +18,15 @@ This may look over-engineered at this point however the idea is the following:
 import glob
 import os
 import json
-from tqdm import tqdm
-import time
 import shutil
+import time
+
+from tqdm import tqdm
 
 from .coco_converters.coco_strategies import ObjectDetectionStrategy, KeypointDetectionStrategy, PanopticConverterStrategy
 from .voc_converters.voc_strategies import VocObjectDetectionStrategy
 from .labelbox_converters.labelbox_strategies import LabelBoxObjectDetectionStrategy
+from .dataloop_converters.dataloop_strategies import DataLoopObjectDetectionStrategy
 
 
 class Converter(object):
@@ -74,8 +76,14 @@ class Converter(object):
                     method.direction
                 )
         elif method.dataset_format == "LabelBox":
-            if task == "object_detection":
+            if task == "object_detection" or task == 'instance_segmentation' or task == 'vector_annotation':
                 c_strategy = LabelBoxObjectDetectionStrategy(
+                    dataset_name, export_root, project_type, output_dir, task,
+                    method.direction
+                )
+        elif method.dataset_format == "DataLoop":
+            if task == 'object_detection' or task == 'instance_segmentation':
+                c_strategy = DataLoopObjectDetectionStrategy(
                     dataset_name, export_root, project_type, output_dir, task,
                     method.direction
                 )
@@ -105,10 +113,9 @@ class Converter(object):
                 "name": "lastAction",
                 "timestamp": int(round(time.time() * 1000))
             }
-            for i in range(len(json_data)):
-                if "classId" in json_data[i]:
-                    json_data[i]["classId"] = cat_id_map[json_data[i]["classId"]
-                                                        ]
+            for js_data in json_data:
+                if "classId" in js_data:
+                    js_data["classId"] = cat_id_map[js_data["classId"]]
             json_data.append(meta)
             file_name = os.path.split(f)[1].replace("___objects.json", "")
             merged_json[file_name] = json_data

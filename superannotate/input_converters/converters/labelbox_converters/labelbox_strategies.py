@@ -2,7 +2,7 @@ import os
 import json
 
 from .labelbox_converter import LabelBoxConverter
-from .labelbox_to_sa_vector import labelbox_object_detection_to_sa_vector
+from .labelbox_to_sa_vector import labelbox_object_detection_to_sa_vector, labelbox_instance_segmentation_to_sa_vector, labelbox_to_sa
 
 
 class LabelBoxObjectDetectionStrategy(LabelBoxConverter):
@@ -26,8 +26,10 @@ class LabelBoxObjectDetectionStrategy(LabelBoxConverter):
             if self.project_type == "Vector":
                 if self.task == "object_detection":
                     self.converion_algorithm = labelbox_object_detection_to_sa_vector
-                else:
-                    raise NotImplementedError("Doesn't support yet")
+                elif self.task == 'instace_segmentation':
+                    self.converion_algorithm = labelbox_instance_segmentation_to_sa_vector
+                elif self.task == 'vector_annotation':
+                    self.converion_algorithm = labelbox_to_sa
             elif self.project_type == "Pixel":
                 raise NotImplementedError("Doesn't support yet")
 
@@ -42,9 +44,7 @@ class LabelBoxObjectDetectionStrategy(LabelBoxConverter):
             open(os.path.join(self.export_root, self.dataset_name + '.json'))
         )
         id_generator = self._make_id_generator()
-        loader = self.converion_algorithm(
-            json_data, self.output_dir, id_generator
-        )
+        self.converion_algorithm(json_data, self.output_dir, id_generator)
 
     def _make_id_generator(self):
         cur_id = 0

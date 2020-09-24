@@ -7,14 +7,15 @@ from argparse import Namespace
 
 from .import_to_sa_conversions import import_to_sa
 from .export_from_sa_conversions import export_from_sa
+from .sa_conversion import sa_conversion
 
-AVAILABLE_ANNOTATION_FORMATS = ["COCO", "VOC", "LabelBox"]
+AVAILABLE_ANNOTATION_FORMATS = ["COCO", "VOC", "LabelBox", "DataLoop"]
 
 AVAILABLE_PLATFORMS = ["Desktop", "Web"]
 
 ALLOWED_TASK_TYPES = [
     'panoptic_segmentation', 'instance_segmentation', 'keypoint_detection',
-    'object_detection'
+    'object_detection', 'vector_annotation', 'pixel_annotation'
 ]
 
 ALLOWED_PROJECT_TYPES = ['Pixel', 'Vector']
@@ -35,7 +36,15 @@ ALLOWED_CONVERSIONS_VOC_TO_SA = [
     ('Pixel', 'instance_segmentation')
 ]
 
-ALLOWED_CONVERSIONS_LABELBOX_TO_SA = [('Vector', 'object_detection')]
+ALLOWED_CONVERSIONS_LABELBOX_TO_SA = [
+    ('Vector', 'object_detection'), ('Vector', 'instance_segmentation'),
+    ('Vector', 'vector_annotation')
+]
+
+ALLOWED_CONVERSIONS_DATALOOP_TO_SA = [
+    ('Vector', 'object_detection'), ('Vector', 'instance_segmentation'),
+    ('Vector', 'vector_annotation')
+]
 
 
 def _passes_sanity_checks(args):
@@ -198,7 +207,7 @@ def import_annotation_format(
     Pixel           panoptic_segmentation
     Vector          instance_segmentation
     Vector          keypoint_detection
-    ==============  ====================== 
+    ==============  ======================
 
     ==============  ======================
              From VOC to SA
@@ -208,7 +217,7 @@ def import_annotation_format(
     Vector          instance_segmentation
     Vector          object_detection
     Pixel           instance_segmentation
-    ==============  ====================== 
+    ==============  ======================
 
     ==============  ======================
            From LabelBox to SA
@@ -216,8 +225,19 @@ def import_annotation_format(
      project_type           task
     ==============  ======================
     Vector          object_detection
-    ==============  ====================== 
+    Vector          instance_segmentation
+    Vector          vector_annotation
+    ==============  ======================
 
+    ==============  ======================
+           From DataLoop to SA
+    --------------------------------------
+     project_type           task
+    ==============  ======================
+    Vector          object_detection
+    Vector          instance_segmentation
+    Vector          vector_annotation
+    ==============  ====================== 
 
     :param input_dir: Path to the dataset folder that you want to convert.
     :type input_dir: str
@@ -258,3 +278,23 @@ def import_annotation_format(
         sys.exit()
 
     import_to_sa(args)
+
+
+def convert_platform(input_dir, output_dir, input_platform):
+    """ Converts SuperAnnotate input file structure from one platform too another.
+
+    :param input_dir: Path to the dataset folder that you want to convert.
+    :type input_dir: str
+    :param output_dir: Path to the folder where you want to have converted files.
+    :type output_dir: str
+    :param input_platform: Original platform format type
+    :type input_platform: str
+
+    """
+    if not isinstance(input_dir, str):
+        log_msg = "'input_dir' should be 'str' type, not '%s'" % (
+            type(input_dir)
+        )
+        logging.error(log_msg)
+
+    sa_conversion(input_dir, output_dir, input_platform)

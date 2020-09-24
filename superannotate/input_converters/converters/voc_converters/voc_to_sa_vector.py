@@ -14,6 +14,8 @@ def _generate_polygons(object_mask_path, class_mask_path):
 
     object_unique_colors = np.unique(object_mask)
 
+    index = 1
+    groupId = 0
     for unique_color in object_unique_colors:
         if unique_color == 0 or unique_color == 220:
             continue
@@ -25,20 +27,18 @@ def _generate_polygons(object_mask_path, class_mask_path):
                 mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
             )
 
-            contours = sorted(contours, key=len, reverse=True)
-            segmentation.append(
-                (contours[0].flatten().tolist(), int(class_color))
-            )
-            # segment = []
-            # for contour in contours:
-            #     if len(contours) > 1 and len(contour) > 4:
-            #         print(contour)
-            #     contour = contour.flatten().tolist()
-            #     segment += contour
-            # if len(contour) > 4:
-            #     segmentation.append((segment, int(class_color)))
-            # if len(segmentation) == 0:
-            #     continue
+            segment = []
+            if len(contours) > 1:
+                for contour in contours:
+                    segment.append(contour.flatten().tolist())
+                groupId = index
+                index += 1
+            else:
+                segment.append(contours[0].flatten().tolist())
+                groupId = 0
+
+            segmentation.append((segment, int(class_color), groupId))
+
     return segmentation
 
 
@@ -54,27 +54,35 @@ def _iou(bbox1, bbox2):
     )
 
 
-def _generate_instances(ploygon_instances, voc_instances):
+def _generate_instances(polygon_instances, voc_instances):
     instances = []
-    for polygon, color_id in ploygon_instances:
+    for polygon, color_id, group_id in polygon_instances:
         ious = []
+        if len(polygon) > 1:
+            temp = []
+            for poly in polygon:
+                temp += poly
+        else:
+            temp = polygon[0]
         bbox_poly = [
-            min(polygon[::2]),
-            min(polygon[1::2]),
-            max(polygon[::2]),
-            max(polygon[1::2])
+            min(temp[::2]),
+            min(temp[1::2]),
+            max(temp[::2]),
+            max(temp[1::2])
         ]
         for class_name, bbox in voc_instances:
             ious.append(_iou(bbox_poly, bbox))
         ind = np.argmax(ious)
-        instances.append(
-            {
-                "className": voc_instances[ind][0],
-                "classId": color_id,
-                "polygon": polygon,
-                "bbox": voc_instances[ind][1]
-            }
-        )
+        for poly in polygon:
+            instances.append(
+                {
+                    'className': voc_instances[ind][0],
+                    'classId': color_id,
+                    'polygon': poly,
+                    'bbox': voc_instances[ind][1],
+                    'groupId': group_id
+                }
+            )
     return instances
 
 
@@ -136,7 +144,7 @@ def voc_instance_segmentation_to_sa_vector(voc_root):
                 'probability': 100,
                 'locked': False,
                 'visible': True,
-                'groupId': 0
+                'groupId': instance['groupId']
             }
             sa_loader.append(sa_polygon)
 
