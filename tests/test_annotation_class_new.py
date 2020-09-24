@@ -2,16 +2,12 @@ from pathlib import Path
 import pytest
 import superannotate as sa
 
-sa.init(Path.home() / ".superannotate" / "config.json")
-
-PROJECT_NAME = "test annotation class new"
-PROJECT_NAME_JSON = "test annotation class new json"
+PROJECT_NAME = "test annotation class new 1"
+PROJECT_NAME_JSON = "test annotation class new json 2"
 
 
 def test_anntotation_class_new():
-    projects = sa.search_projects(
-        PROJECT_NAME, return_metadata=True, exact_match=True
-    )
+    projects = sa.search_projects(PROJECT_NAME, return_metadata=True)
     for project in projects:
         sa.delete_project(project)
 

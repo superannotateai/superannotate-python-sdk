@@ -14,9 +14,7 @@ TEST_PROJECT3 = "test_upload_41_multiple_annotations_upload_pixel_s3_3"
 
 
 def test_upload_from_s3(tmpdir):
-    projects_found = sa.search_projects(
-        TEST_PROJECT1, exact_match=True, return_metadata=True
-    )
+    projects_found = sa.search_projects(TEST_PROJECT1, return_metadata=True)
     for pr in projects_found:
         sa.delete_project(pr)
 
@@ -46,9 +44,7 @@ def test_upload_from_s3(tmpdir):
 
 
 def test_pixel_preannotation_upload_from_s3(tmpdir):
-    projects_found = sa.search_projects(
-        TEST_PROJECT2, exact_match=True, return_metadata=True
-    )
+    projects_found = sa.search_projects(TEST_PROJECT2, return_metadata=True)
     for pr in projects_found:
         sa.delete_project(pr)
     project = sa.create_project(TEST_PROJECT2, "hk_test", project_type="Pixel")
@@ -77,9 +73,7 @@ def test_pixel_preannotation_upload_from_s3(tmpdir):
 
 
 def test_vector_preannotation_upload_from_s3(tmpdir):
-    projects_found = sa.search_projects(
-        TEST_PROJECT3, exact_match=True, return_metadata=True
-    )
+    projects_found = sa.search_projects(TEST_PROJECT3, return_metadata=True)
     for pr in projects_found:
         sa.delete_project(pr)
     project = sa.create_project(TEST_PROJECT3, "hk_test", project_type="Vector")

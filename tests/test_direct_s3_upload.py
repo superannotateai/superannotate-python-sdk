@@ -15,9 +15,7 @@ S3_FOLDER_STRESS = 'ff'
 
 
 def test_direct_s3_upload():
-    projects_found = sa.search_projects(
-        TEST_PROJECT_NAME, exact_match=True, return_metadata=True
-    )
+    projects_found = sa.search_projects(TEST_PROJECT_NAME, return_metadata=True)
     for pr in projects_found:
         sa.delete_project(pr)
 
@@ -51,7 +49,7 @@ def test_direct_s3_upload():
 )
 def test_direct_s3_upload_stress():
     projects_found = sa.search_projects(
-        TEST_PROJECT_NAME + " stress", exact_match=True, return_metadata=True
+        TEST_PROJECT_NAME + " stress", return_metadata=True
     )
     for pr in projects_found:
         sa.delete_project(pr)

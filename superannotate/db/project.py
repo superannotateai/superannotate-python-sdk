@@ -24,17 +24,14 @@ def _get_project_metadata(project):
     return res
 
 
-def search_projects(name=None, return_metadata=False, exact_match=False):
+def search_projects(name=None, return_metadata=False):
     """Project name based case-insensitive search for projects.
-    If exact_match is False, any project with name that contains string from **name** will be returned.
     If **name** is None, all the projects will be returned.
 
     :param name: search string
     :type name: str
     :param return_metadata: return metadata of images instead of names
     :type return_metadata: bool
-    :param exact_match: enables exact name match search
-    :type exact_match: bool
 
     :return: dict objects representing found projects
     :rtype: list
@@ -58,8 +55,6 @@ def search_projects(name=None, return_metadata=False, exact_match=False):
                 response.status_code,
                 "Couldn't search projects." + response.text
             )
-    if exact_match:
-        result_list = [x for x in result_list if x["name"] == name]
     if return_metadata:
         return result_list
     else:

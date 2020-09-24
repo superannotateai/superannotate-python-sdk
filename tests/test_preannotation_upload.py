@@ -22,9 +22,7 @@ sa.init(Path.home() / ".superannotate" / "config.json")
 def test_preannotation_folder_upload_download(
     project_type, name, description, from_folder, tmpdir
 ):
-    projects_found = sa.search_projects(
-        name, return_metadata=True, exact_match=True
-    )
+    projects_found = sa.search_projects(name, return_metadata=True)
     for pr in projects_found:
         sa.delete_project(pr)
 

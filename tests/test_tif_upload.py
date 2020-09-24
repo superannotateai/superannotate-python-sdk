@@ -17,9 +17,7 @@ S3_BUCKET = "hovnatan-test"
 
 def test_tif_upload(tmpdir):
     tmpdir = Path(tmpdir)
-    projects_found = sa.search_projects(
-        PROJECT_NAME, exact_match=True, return_metadata=True
-    )
+    projects_found = sa.search_projects(PROJECT_NAME, return_metadata=True)
     for pr in projects_found:
         sa.delete_project(pr)
     project = sa.create_project(PROJECT_NAME, "gg", "Vector")
@@ -50,7 +48,7 @@ def test_tif_upload(tmpdir):
     )
 
     projects_found = sa.search_projects(
-        PROJECT_NAME_LOW_QUALITY, exact_match=True, return_metadata=True
+        PROJECT_NAME_LOW_QUALITY, return_metadata=True
     )
     for pr in projects_found:
         sa.delete_project(pr)

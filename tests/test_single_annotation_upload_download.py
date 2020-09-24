@@ -28,7 +28,7 @@ PROJECT_NAME = "testing_1419"
 def test_annotation_download_upload(
     project_type, name, description, from_folder, tmpdir
 ):
-    projects = sa.search_projects(name, return_metadata=True, exact_match=True)
+    projects = sa.search_projects(name, return_metadata=True)
     for project in projects:
         sa.delete_project(project)
     project = sa.create_project(name, description, project_type)

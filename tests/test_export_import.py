@@ -14,9 +14,7 @@ PROJECT_FOLDER = Path("./tests/sample_project_vector")
 def test_basic_export(tmpdir):
     tmpdir = Path(tmpdir)
 
-    projects_found = sa.search_projects(
-        PROJECT_NAME, exact_match=True, return_metadata=True
-    )
+    projects_found = sa.search_projects(PROJECT_NAME, return_metadata=True)
     for pr in projects_found:
         sa.delete_project(pr)
 
@@ -36,7 +34,7 @@ def test_basic_export(tmpdir):
     sa.download_export(project, export, tmpdir)
 
     projects_found = sa.search_projects(
-        PROJECT_NAME + " import", exact_match=True, return_metadata=True
+        PROJECT_NAME + " import", return_metadata=True
     )
     for pr in projects_found:
         sa.delete_project(pr)

@@ -11,9 +11,7 @@ PROJECT_NAME = "test_get_exports"
 def test_get_exports(tmpdir):
     tmpdir = Path(tmpdir)
 
-    projects_found = sa.search_projects(
-        PROJECT_NAME, return_metadata=True, exact_match=True
-    )
+    projects_found = sa.search_projects(PROJECT_NAME, return_metadata=True)
     for pr in projects_found:
         sa.delete_project(pr)
     project = sa.create_project(PROJECT_NAME, "gg", "Vector")

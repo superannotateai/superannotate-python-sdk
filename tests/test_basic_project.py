@@ -23,15 +23,11 @@ sa.init(Path.home() / ".superannotate" / "config.json")
 def test_basic_project(project_type, name, description, from_folder, tmpdir):
     tmpdir = Path(tmpdir)
 
-    projects_found = sa.search_projects(
-        name, exact_match=True, return_metadata=True
-    )
+    projects_found = sa.search_projects(name, return_metadata=True)
     for pr in projects_found:
         sa.delete_project(pr)
 
-    projects_found = sa.search_projects(
-        name, exact_match=True, return_metadata=True
-    )
+    projects_found = sa.search_projects(name, return_metadata=True)
     assert len(projects_found) == 0
 
     project = sa.create_project(name, description, project_type)
@@ -39,11 +35,9 @@ def test_basic_project(project_type, name, description, from_folder, tmpdir):
     assert project["description"] == description
     assert project["type"] == sa.project_type_str_to_int(project_type)
 
-    projects_found = sa.search_projects(
-        name, exact_match=True, return_metadata=True
-    )
+    projects_found = sa.search_projects(name)
     assert len(projects_found) == 1
-    assert projects_found[0]["name"] == name
+    assert projects_found[0] == name
 
     sa.upload_images_from_folder_to_project(
         project, from_folder, annotation_status="InProgress"

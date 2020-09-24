@@ -4,7 +4,6 @@ import boto3
 
 import superannotate as sa
 
-sa.init(Path.home() / ".superannotate" / "config.json")
 s3_client = boto3.client('s3')
 
 S3_PREFIX = 'frex9'
@@ -22,9 +21,7 @@ def test_export_s3(tmpdir):
                 key = object_data['Key']
                 s3_client.delete_object(Bucket=S3_BUCKET, Key=key)
     tmpdir = Path(tmpdir)
-    projects = sa.search_projects(
-        PROJECT_NAME_EXPORT, exact_match=True, return_metadata=True
-    )
+    projects = sa.search_projects(PROJECT_NAME_EXPORT, return_metadata=True)
     for project in projects:
         sa.delete_project(project)
     project = sa.create_project(PROJECT_NAME_EXPORT, "test", "Vector")
@@ -63,9 +60,7 @@ def test_export_s3(tmpdir):
 
 
 def test_from_s3_upload():
-    projects = sa.search_projects(
-        PROJECT_NAME_UPLOAD, exact_match=True, return_metadata=True
-    )
+    projects = sa.search_projects(PROJECT_NAME_UPLOAD, return_metadata=True)
     for project in projects:
         sa.delete_project(project)
 

@@ -8,9 +8,7 @@ PROJECT_NAME = "test users and roles"
 
 
 def test_users_roles():
-    projects = sa.search_projects(
-        PROJECT_NAME, return_metadata=True, exact_match=True
-    )
+    projects = sa.search_projects(PROJECT_NAME, return_metadata=True)
     for project in projects:
         sa.delete_project(project)
     users = sa.search_team_contributors()

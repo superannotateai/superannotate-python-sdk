@@ -17,9 +17,7 @@ PATH_TO_SAMPLE_PROJECT = Path("./tests/sample_project_vector")
 def test_add_bbox(tmpdir):
     tmpdir = Path(tmpdir)
 
-    projects_found = sa.search_projects(
-        PROJECT_NAME, return_metadata=True, exact_match=True
-    )
+    projects_found = sa.search_projects(PROJECT_NAME, return_metadata=True)
     for pr in projects_found:
         if pr["name"] == PROJECT_NAME:
             sa.delete_project(pr)
@@ -84,7 +82,7 @@ def test_add_bbox_noinit(tmpdir):
     tmpdir = Path(tmpdir)
 
     projects_found = sa.search_projects(
-        PROJECT_NAME_NOINIT, exact_match=True, return_metadata=True
+        PROJECT_NAME_NOINIT, return_metadata=True
     )
     for pr in projects_found:
         sa.delete_project(pr)

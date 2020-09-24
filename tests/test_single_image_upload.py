@@ -6,20 +6,16 @@ import pytest
 
 import superannotate as sa
 
-sa.init(Path.home() / ".superannotate" / "config.json")
-
-PROJECT_NAME = "test single image upload"
-PROJECT_NAME_S3 = "test single image upload s3"
-PROJECT_NAME_S3_CHANGE_NAME = "test single image upload s3 change name"
-PROJECT_NAME_BYTES = "test single image upload bytes"
+PROJECT_NAME = "test single image upload 1"
+PROJECT_NAME_S3 = "test single image upload s3 2"
+PROJECT_NAME_S3_CHANGE_NAME = "test single image upload s3 change name 3"
+PROJECT_NAME_BYTES = "test single image upload bytes 4"
 
 
 def test_single_image_upload(tmpdir):
     tmpdir = Path(tmpdir)
 
-    projects_found = sa.search_projects(
-        PROJECT_NAME, return_metadata=True, exact_match=True
-    )
+    projects_found = sa.search_projects(PROJECT_NAME, return_metadata=True)
     print(projects_found)
     for pr in projects_found:
         sa.delete_project(pr)
@@ -44,9 +40,7 @@ def test_single_image_upload(tmpdir):
 def test_single_image_upload_s3(tmpdir):
     tmpdir = Path(tmpdir)
 
-    projects_found = sa.search_projects(
-        PROJECT_NAME_S3, return_metadata=True, exact_match=True
-    )
+    projects_found = sa.search_projects(PROJECT_NAME_S3, return_metadata=True)
     for pr in projects_found:
         sa.delete_project(pr)
 
@@ -71,7 +65,7 @@ def test_single_image_upload_s3_change_name(tmpdir):
     tmpdir = Path(tmpdir)
 
     projects_found = sa.search_projects(
-        PROJECT_NAME_S3_CHANGE_NAME, return_metadata=True, exact_match=True
+        PROJECT_NAME_S3_CHANGE_NAME, return_metadata=True
     )
     for pr in projects_found:
         sa.delete_project(pr)
@@ -99,7 +93,7 @@ def test_single_image_upload_bytesio(tmpdir):
     tmpdir = Path(tmpdir)
 
     projects_found = sa.search_projects(
-        PROJECT_NAME_BYTES, return_metadata=True, exact_match=True
+        PROJECT_NAME_BYTES, return_metadata=True
     )
     for pr in projects_found:
         sa.delete_project(pr)
