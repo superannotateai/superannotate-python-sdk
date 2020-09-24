@@ -23,6 +23,7 @@ ________
 .. _ref_search_projects:
 .. autofunction:: superannotate.search_projects
 .. autofunction:: superannotate.create_project
+.. autofunction:: superannotate.create_project_like_project
 .. autofunction:: superannotate.delete_project
 .. autofunction:: superannotate.rename_project
 .. _ref_get_project_metadata:
@@ -37,6 +38,8 @@ ________
 .. autofunction:: superannotate.upload_preannotations_from_folder_to_project
 .. autofunction:: superannotate.share_project
 .. autofunction:: superannotate.unshare_project
+.. autofunction:: superannotate.get_project_settings
+.. autofunction:: superannotate.set_project_settings
 
 ----------
 

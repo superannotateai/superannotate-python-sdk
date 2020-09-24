@@ -122,7 +122,7 @@ def create_annotation_classes_from_classes_json(
     :param project: project name or metadata of the project
     :type project: str or dict
     :param classes_json: JSON itself or path to the JSON file
-    :type classes_json: dict or Pathlike (str or Path)
+    :type classes_json: list or Pathlike (str or Path)
     :param from_s3_bucket: AWS S3 bucket to use. If None then classes_json is in local filesystem
     :type from_s3_bucket: str
 
@@ -132,7 +132,7 @@ def create_annotation_classes_from_classes_json(
     if not isinstance(project, dict):
         project = get_project_metadata(project)
     team_id, project_id = project["team_id"], project["id"]
-    if not isinstance(classes_json, dict):
+    if not isinstance(classes_json, list):
         logger.info(
             "Creating annotation classes in project %s from %s.",
             project["name"], classes_json

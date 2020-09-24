@@ -33,8 +33,8 @@ def search_projects(name=None, return_metadata=False):
     :param return_metadata: return metadata of images instead of names
     :type return_metadata: bool
 
-    :return: dict objects representing found projects
-    :rtype: list
+    :return: project names or metadatas
+    :rtype: list of strs or dicts
     """
     result_list = []
     params = {'team_id': str(_api.team_id), 'offset': 0}

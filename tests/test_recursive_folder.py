@@ -1,4 +1,5 @@
 from pathlib import Path
+import time
 
 import superannotate as sa
 
@@ -34,6 +35,7 @@ def test_nonrecursive_annotations_folder(tmpdir):
 
     export = sa.prepare_export(project)
 
+    time.sleep(1)
     sa.download_export(project, export, tmpdir)
 
     assert len(list(tmpdir.glob("*.json"))) == 1
@@ -68,6 +70,7 @@ def test_recursive_annotations_folder(tmpdir):
 
     export = sa.prepare_export(project)
 
+    time.sleep(1)
     sa.download_export(project, export, tmpdir)
 
     assert len(list(tmpdir.glob("*.json"))) == 2
@@ -174,6 +177,7 @@ def test_annotations_recursive_s3_folder(tmpdir):
 
     export = sa.prepare_export(project)
 
+    time.sleep(1)
     sa.download_export(project, export, tmpdir)
 
     assert len(list(tmpdir.glob("*.json"))) == 2
@@ -214,6 +218,7 @@ def test_annotations_nonrecursive_s3_folder(tmpdir):
 
     export = sa.prepare_export(project)
 
+    time.sleep(1)
     sa.download_export(project, export, tmpdir)
 
     assert len(list(tmpdir.glob("*.json"))) == 1
