@@ -27,8 +27,8 @@ ALLOWED_CONVERSIONS_SA_TO_COCO = [
 ]
 
 ALLOWED_CONVERSIONS_COCO_TO_SA = [
-    ('Pixel', 'panoptic_segmentation'), ('Vector', 'keypoint_detection'),
-    ('Vector', 'instance_segmentation')
+    ('Pixel', 'panoptic_segmentation'), ('Pixel', 'instance_segmentation'),
+    ('Vector', 'keypoint_detection'), ('Vector', 'instance_segmentation')
 ]
 
 ALLOWED_CONVERSIONS_VOC_TO_SA = [
@@ -109,6 +109,8 @@ def _passes_converter_sanity(args, direction):
             return True
         elif args.dataset_format == "LabelBox" and \
         converter_values in ALLOWED_CONVERSIONS_LABELBOX_TO_SA:
+            return True
+        elif args.dataset_format == "DataLoop" and converter_values in ALLOWED_CONVERSIONS_VOC_TO_SA:
             return True
     else:
         if args.dataset_format == "COCO" and converter_values in ALLOWED_CONVERSIONS_SA_TO_COCO:

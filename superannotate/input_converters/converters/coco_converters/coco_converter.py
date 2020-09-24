@@ -179,6 +179,7 @@ class CoCoConverter(object):
         return res
 
     def _create_sa_classes(self, json_path):
+        print(json_path)
         json_data = json.load(open(json_path))
         classes_list = json_data["categories"]
 

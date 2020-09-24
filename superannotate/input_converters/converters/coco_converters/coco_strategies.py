@@ -10,7 +10,7 @@ from panopticapi.utils import IdGenerator, id2rgb
 from .coco_converter import CoCoConverter
 from .sa_pixel_to_coco import sa_pixel_to_coco_instance_segmentation, sa_pixel_to_coco_panoptic_segmentation, sa_pixel_to_coco_object_detection
 from .sa_vector_to_coco import sa_vector_to_coco_instance_segmentation, sa_vector_to_coco_keypoint_detection, sa_vector_to_coco_object_detection
-from .coco_to_sa_pixel import coco_panoptic_segmentation_to_sa_pixel
+from .coco_to_sa_pixel import coco_panoptic_segmentation_to_sa_pixel, coco_instance_segmentation_to_sa_pixel
 from .coco_to_sa_vector import coco_keypoint_detection_to_sa_vector, coco_instance_segmentation_to_sa_vector
 
 
@@ -128,7 +128,16 @@ class ObjectDetectionStrategy(CoCoConverter):
                 elif self.task == 'object_detection':
                     self.conversion_algorithm = sa_vector_to_coco_object_detection
         else:
-            self.conversion_algorithm = coco_instance_segmentation_to_sa_vector
+            if self.project_type == 'Pixel':
+                if self.task == 'instance_segmentation':
+                    self.conversion_algorithm = coco_instance_segmentation_to_sa_pixel
+                elif self.task == 'object_detection':
+                    raise ValueError('Method not implemented')
+            elif self.project_type == 'Vector':
+                if self.task == 'instance_segmentation':
+                    self.conversion_algorithm = coco_instance_segmentation_to_sa_vector
+                elif self.task == 'object_detection':
+                    raise ValueError('Method not implemented')
 
     def __str__(self, ):
         return '{} object'.format(self.name)

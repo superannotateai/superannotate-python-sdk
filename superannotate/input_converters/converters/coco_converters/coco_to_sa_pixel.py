@@ -4,6 +4,8 @@ import json
 import cv2
 import numpy as np
 
+import pycocotools.mask as maskUtils
+from pycocotools.coco import COCO
 from panopticapi.utils import id2rgb
 from tqdm import tqdm
 
@@ -17,6 +19,10 @@ def _hex_to_rgb(hex_string):
 # Converts RGB values to HEX values
 def _rgb_to_hex(rgb_tuple):
     return '#%02x%02x%02x' % rgb_tuple
+
+
+# def _rle_to_bitmask(coco_json, annotation):
+#     return coco.annToMask(annotation)
 
 
 # Generates blue colors in range(n)
@@ -91,3 +97,59 @@ def coco_panoptic_segmentation_to_sa_pixel(coco_path, images_path):
         )
 
         os.remove(os.path.join(images_path, annot_name + ".png"))
+
+
+def coco_instance_segmentation_to_sa_pixel(coco_path, images_path):
+    coco_json = json.load(open(coco_path))
+    image_id_to_annotations = {}
+    cat_id_to_cat = {}
+    for cat in coco_json['categories']:
+        cat_id_to_cat[cat['id']] = cat
+
+    print(cat_id_to_cat)
+    images_dict = {}
+    for img in coco_json['images']:
+        images_dict[img['id']] = {
+            'mask': np.zeros((img['height'], img['width'], 4)),
+            'file_name': img['file_name'],
+            'segments_num': 0
+        }
+
+    sa_json = {}
+    for annot in tqdm(coco_json['annotations'], "Convertring annotations"):
+        if str(annot['image_id']) not in images_dict:
+            continue
+        color = np.random.choice(range(256), size=3)
+        hexcolor = "#%02x%02x%02x" % tuple(color)
+
+        images_dict[str(annot['image_id']
+                       )]['mask'][maskUtils.decode(annot['segmentation']) == 1
+                                 ] = list(color)[::-1] + [255]
+
+        sa_obj = {
+            "classId": annot['category_id'],
+            "className": cat_id_to_cat[annot['category_id']]['name'],
+            'probability': 100,
+            'visible': True,
+            'parts': [{
+                'color': hexcolor
+            }],
+            "attributes": [],
+            "attributeNames": [],
+            "imageId": annot["image_id"]
+        }
+        key = images_dict[str(annot['image_id'])]['file_name']
+        if key not in sa_json.keys():
+            sa_json[key] = []
+
+        sa_json[key].append(sa_obj)
+
+    for id_, value in images_dict.items():
+        img = cv2.imwrite(
+            os.path.join(images_path, value['file_name'] + '___save.png'),
+            value['mask']
+        )
+
+    for key, sa_js in sa_json.items():
+        with open(os.path.join(images_path, key + '___pixel.json'), 'w') as fw:
+            json.dump(sa_js, fw, indent=2)
