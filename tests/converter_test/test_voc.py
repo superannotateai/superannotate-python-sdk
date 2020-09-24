@@ -12,10 +12,9 @@ def voc_vector_instance(tmpdir):
     project_name = "voc2sa_vector_instance"
 
     projects = sa.search_projects(project_name, True)
-    if not projects:
-        project = sa.create_project(project_name, "converter vector", "Vector")
-    else:
-        project = projects[0]
+    if projects:
+        sa.delete_project(projects[0])
+    project = sa.create_project(project_name, "converter vector", "Vector")
 
     sa.create_annotation_classes_from_classes_json(
         project, out_dir + "/classes/classes.json"
@@ -37,10 +36,9 @@ def voc_vector_object(tmpdir):
 
     projects = sa.search_projects(project_name, True)
 
-    if not projects:
-        project = sa.create_project(project_name, "converter vector", "Vector")
-    else:
-        project = projects[0]
+    if projects:
+        sa.delete_project(projects[0])
+    project = sa.create_project(project_name, "converter vector", "Vector")
 
     sa.create_annotation_classes_from_classes_json(
         project, out_dir + "/classes/classes.json"
@@ -62,10 +60,9 @@ def voc_pixel(tmpdir):
 
     projects = sa.search_projects(project_name, True)
 
-    if not projects:
-        project = sa.create_project(project_name, "converter pixel", "Pixel")
-    else:
-        project = projects[0]
+    if projects:
+        sa.delete_project(projects[0])
+    project = sa.create_project(project_name, "converter vector", "Vector")
 
     sa.create_annotation_classes_from_classes_json(
         project, out_dir + "/classes/classes.json"
