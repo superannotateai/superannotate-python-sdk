@@ -11,11 +11,11 @@ sa.init(Path.home() / ".superannotate" / "config.json")
 @pytest.mark.parametrize(
     "project_type,name,description,from_folder", [
         (
-            "Vector", "Example Project test vector", "test vector",
-            Path("./tests/sample_project_vector")
+            "Vector", "Example Project test vector basic project",
+            "test vector", Path("./tests/sample_project_vector")
         ),
         (
-            "Pixel", "Example Project test pixel", "test pixel",
+            "Pixel", "Example Project test pixel basic project", "test pixel",
             Path("./tests/sample_project_pixel")
         ),
     ]
@@ -23,11 +23,11 @@ sa.init(Path.home() / ".superannotate" / "config.json")
 def test_basic_project(project_type, name, description, from_folder, tmpdir):
     tmpdir = Path(tmpdir)
 
-    projects_found = sa.search_projects(name)
+    projects_found = sa.search_projects(name, return_metadata=True)
     for pr in projects_found:
         sa.delete_project(pr)
 
-    projects_found = sa.search_projects(name)
+    projects_found = sa.search_projects(name, return_metadata=True)
     assert len(projects_found) == 0
 
     project = sa.create_project(name, description, project_type)
@@ -54,7 +54,9 @@ def test_basic_project(project_type, name, description, from_folder, tmpdir):
         project, from_folder / "classes" / "classes.json"
     )
     classes_in_file = json.load(open(from_folder / "classes" / "classes.json"))
-    classes_in_project = sa.search_annotation_classes(project)
+    classes_in_project = sa.search_annotation_classes(
+        project, return_metadata=True
+    )
     json.dump(classes_in_project, open(Path(tmpdir) / "tmp_c.json", 'w'))
     assert len(classes_in_file) == len(classes_in_project)
     for cl_f in classes_in_file:
@@ -69,7 +71,7 @@ def test_basic_project(project_type, name, description, from_folder, tmpdir):
 
     export = sa.prepare_export(project)
 
-    sa.download_export(export, tmpdir)
+    sa.download_export(project, export, tmpdir)
     for image in from_folder.glob("*.[jpg|png]"):
         found = False
         for image_in_project in tmpdir.glob("*.jpg"):

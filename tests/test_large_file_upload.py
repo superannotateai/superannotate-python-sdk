@@ -8,14 +8,14 @@ import superannotate as sa
 
 sa.init(Path.home() / ".superannotate" / "config.json")
 
-PROJECT_NAME = "test_large_files"
-PROJECT_NAME_LOW_QUALITY = "test_large_files_loq"
+PROJECT_NAME = "test_large_files_upload"
+PROJECT_NAME_LOW_QUALITY = "test_large_files_upload_loq"
 SAMPLE_FOLDER = "./sample_large_files/b2/b3"
 
 
 def test_large_files(tmpdir):
     tmpdir = Path(tmpdir)
-    projects_found = sa.search_projects(PROJECT_NAME)
+    projects_found = sa.search_projects(PROJECT_NAME, return_metadata=True)
     for pr in projects_found:
         sa.delete_project(pr)
     project = sa.create_project(PROJECT_NAME, "gg", "Vector")
@@ -38,14 +38,16 @@ def test_large_files(tmpdir):
     sa.download_image(project, image, tmpdir / "q100/lores", variant='lores')
     export = sa.prepare_export(project, include_fuse=True)
     (tmpdir / "q100" / "export").mkdir(parents=True)
-    sa.download_export(export, tmpdir / "q100" / "export")
+    sa.download_export(project, export, tmpdir / "q100" / "export")
     assert filecmp.cmp(
         f"{SAMPLE_FOLDER}/{image}",
         f"{tmpdir}/q100/export/{image}",
         shallow=False
     )
 
-    projects_found = sa.search_projects(PROJECT_NAME_LOW_QUALITY)
+    projects_found = sa.search_projects(
+        PROJECT_NAME_LOW_QUALITY, return_metadata=True
+    )
     for pr in projects_found:
         sa.delete_project(pr)
     project = sa.create_project(PROJECT_NAME_LOW_QUALITY, "gg", "Vector")
@@ -69,7 +71,7 @@ def test_large_files(tmpdir):
     sa.download_image(project, image, tmpdir / "q60/lores", variant='lores')
     export = sa.prepare_export(project, include_fuse=True)
     (tmpdir / "q60" / "export").mkdir(parents=True)
-    sa.download_export(export, tmpdir / "q60" / "export")
+    sa.download_export(project, export, tmpdir / "q60" / "export")
     assert filecmp.cmp(
         f"{SAMPLE_FOLDER}/{image}",
         f"{tmpdir}/q60/export/{image}",

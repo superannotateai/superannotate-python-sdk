@@ -21,6 +21,7 @@ from ..exceptions import (
     SANonExistingProjectNameException
 )
 from .annotation_classes import search_annotation_classes
+from .project import get_project_metadata
 from .users import get_team_contributor_metadata
 
 logger = logging.getLogger("superannotate-python-sdk")
@@ -29,42 +30,6 @@ _api = API.get_instance()
 _NUM_THREADS = 10
 
 _RESIZE_CONFIG = {2: 4_000_000, 1: 100_000_000}  # 1: vector 2: pixel
-
-
-def search_projects(name=None, return_metadata=False):
-    """Project name based case-insensitive search for projects.
-    Any project with name that contains string from **name** will be returned.
-    If **name** is None, all the projects will be returned.
-
-    :param name: search string
-    :type name: str
-
-    :return: dict objects representing found projects
-    :rtype: list
-    """
-    result_list = []
-    params = {'team_id': str(_api.team_id), 'offset': 0}
-    if name is not None:
-        params['name'] = name
-    while True:
-        response = _api.send_request(
-            req_type='GET', path='/projects', params=params
-        )
-        if response.ok:
-            new_results = response.json()
-            result_list += new_results["data"]
-            if response.json()["count"] <= len(result_list):
-                break
-            params["offset"] = len(result_list)
-        else:
-            raise SABaseException(
-                response.status_code,
-                "Couldn't search projects." + response.text
-            )
-    if return_metadata:
-        return result_list
-    else:
-        return [x["name"] for x in result_list]
 
 
 def create_project(project_name, project_description, project_type):
@@ -167,20 +132,6 @@ def rename_project(project, new_name):
     logger.info(
         "Successfully renamed project %s to %s.", project["name"], new_name
     )
-
-
-def _get_project_metadata(project):
-    team_id, project_id = project["team_id"], project["id"]
-    params = {'team_id': str(team_id)}
-    response = _api.send_request(
-        req_type='GET', path=f'/project/{project_id}', params=params
-    )
-    if not response.ok:
-        raise SABaseException(
-            response.status_code, "Couldn't get project." + response.text
-        )
-    res = response.json()
-    return res
 
 
 def get_project_image_count(project):
@@ -629,34 +580,6 @@ def __upload_annotations_thread(
             )
 
 
-def get_project_metadata(project_name):
-    """Returns project metadata
-
-    :param project_name: project name
-    :type project: str
-
-    :return: metadata of project
-    :rtype: dict
-    """
-    projects = search_projects(project_name, return_metadata=True)
-    results = []
-    for project in projects:
-        if project["name"] == project_name:
-            results.append(project)
-
-    if len(results) > 1:
-        raise SAExistingProjectNameException(
-            0, "Project name " + project_name +
-            " is not unique. To use SDK please make project names unique."
-        )
-    elif len(results) == 1:
-        return _get_project_metadata(results[0])
-    else:
-        raise SANonExistingProjectNameException(
-            0, "Project with name " + project_name + " doesn't exist."
-        )
-
-
 def upload_annotations_from_folder_to_project(
     project, folder_path, from_s3_bucket=None, recursive_subfolders=False
 ):
@@ -778,7 +701,9 @@ def _upload_annotations_from_folder_to_project(
     )
     tqdm_thread.start()
 
-    annotation_classes = search_annotation_classes(project)
+    annotation_classes = search_annotation_classes(
+        project, return_metadata=True
+    )
     chunksize = int(math.ceil(len_annotations_paths / _NUM_THREADS))
     threads = []
     for thread_id in range(_NUM_THREADS):
@@ -1019,7 +944,9 @@ def _upload_preannotations_from_folder_to_project(
         args=(len_preannotations_paths, num_uploaded, finish_event)
     )
     tqdm_thread.start()
-    annotation_classes = search_annotation_classes(project)
+    annotation_classes = search_annotation_classes(
+        project, return_metadata=True
+    )
     while True:
         if sum(num_uploaded) == len_preannotations_paths:
             break

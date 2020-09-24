@@ -5,6 +5,8 @@ Tutorial
 
 .. contents::
 
+.. _ref_tutorial_installation:
+
 Installation
 ____________
 
@@ -24,12 +26,31 @@ for COCO annotation format converters support also need to install:
 
 The package officially supports Python 3.6+.
 
-Authentication token
+----------
+
+Config file
 ____________________
 
-SDK authentication tokens are team specific. They are available to team admins on
-team setting page at https://app.superannotate.com/team. Generate then copy the token from
-that page to a new JSON file, under the key "token":
+To use the SDK, a config file with team specific authentication token needs to be
+created.  The token is available to team admins on
+team setting page at https://app.superannotate.com/team.
+
+Default location config file
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To generate a default location (:file:`~/.superannotate/config.json`) config file,
+:ref:`CLI init <ref_cli_init>` can be used:
+
+.. code-block:: bash
+
+   superannotate init
+
+.. _ref_custom_config_file:
+
+Custom config file
+~~~~~~~~~~~~~~~~~~~~~~
+
+To create a custom config file a new JSON file with key "token" can be created:
 
 .. code-block:: json
 
@@ -37,33 +58,44 @@ that page to a new JSON file, under the key "token":
      "token" : "<team token>"
    }
 
+----------
 
 Initialization and authorization
 ________________________________
 
-Include the package:
+Include the package in your Python code:
 
 .. code-block:: python
 
    import superannotate as sa
 
-Initialize and authenticate SDK with the config file created in the previous step:
+SDK is ready to be used if default location config file was created using 
+the :ref:`CLI init <ref_cli_init>`. Otherwise to authenticate SDK with the :ref:`custom config file <ref_custom_config_file>`:
 
 .. code-block:: python
 
    sa.init("<path_to_config_json>")
 
+Creating a project
+____________________________
 
-Working with projects
-_____________________
+To create a new "Vector" project with name "Example Project 1" and description
+"test":
+
+.. code-block:: python
+
+    project = "Example Project 1"
+
+    sa.create_project(project, "test", "Vector")
+
+Uploading images to project
+____________________________
 
 
 To upload all images with extensions "jpg" or "png" from the
 :file:`"<local_folder_path>"` to the project "Example Project 1":
 
 .. code-block:: python
-
-    project = "Example Project 1"
 
     sa.upload_images_from_folder_to_project(project, "<local_folder_path>")
 
@@ -81,6 +113,10 @@ For full list of available functions on projects, see :ref:`ref_projects`.
    If project name is used it should be unique in team's project list. Using project metadata will give
    performance improvement.
 
+.. note::
+
+    CLI command :ref:`upload-images <ref_upload_images>` can also be used for
+    image upload.
 
 Working with annotation classes
 _______________________________________________
@@ -177,10 +213,15 @@ We can download the prepared export with:
 
 .. code-block:: python
 
-   export = sa.download_export(export, "<local_folder_path>", extract_zip_contents=True)
+   sa.download_export(project, export, "<local_folder_path>", extract_zip_contents=True)
 
 :ref:`download_export <ref_download_export>` will wait until the export is
 finished preparing and download it to the specified folder.
+
+.. warning::
+
+   Starting from version 1.9.0 :ref:`download_export <ref_download_export>` additionally
+   requires :py:obj:`project` as first argument.
 
 
 Converting annotation format
@@ -209,27 +250,31 @@ You can find more information annotation format conversion :ref:`here <ref_conve
 
     # From SA panoptic format to COCO panoptic format
     sa.export_annotation_format(
-    "tests/converter_test/COCO/input/fromSuperAnnotate/cats_dogs_panoptic_segm", 
-    "tests/converter_test/COCO/output/panoptic",
-    "COCO", "panoptic_test", "Pixel","panoptic_segmentation","Web")
+       "tests/converter_test/COCO/input/fromSuperAnnotate/cats_dogs_panoptic_segm", 
+       "tests/converter_test/COCO/output/panoptic",
+       "COCO", "panoptic_test", "Pixel","panoptic_segmentation","Web"
+    )
 
     # From COCO keypoints detection format to SA keypoints detection desktop application format 
     sa.import_annotation_format(
-    "tests/converter_test/COCO/input/toSuperAnnotate/keypoint_detection",
-    "tests/converter_test/COCO/output/keypoints",
-    "COCO", "person_keypoints_test", "Vector", "keypoint_detection", "Desktop")
+       "tests/converter_test/COCO/input/toSuperAnnotate/keypoint_detection",
+       "tests/converter_test/COCO/output/keypoints",
+       "COCO", "person_keypoints_test", "Vector", "keypoint_detection", "Desktop"
+    )
 
     # Pascal VOC annotation format to SA Web platform annotation format
     sa.import_annotation_format(
-    "tests/converter_test/VOC/input/fromPascalVOCToSuperAnnotate/VOC2012",
-    "tests/converter_test/VOC/output/instances",
-    "VOC", "instances_test", "Pixel", "instance_segmentation", "Web")
+       "tests/converter_test/VOC/input/fromPascalVOCToSuperAnnotate/VOC2012",
+       "tests/converter_test/VOC/output/instances",
+       "VOC", "instances_test", "Pixel", "instance_segmentation", "Web"
+    )
 
     # LabelBox annotation format to SA Desktop application annotation format
     sa.import_annotation_format(
-    "tests/converter_test/LabelBox/input/toSuperAnnotate/",
-    "tests/converter_test/LabelBox/output/objects/",
-    "LabelBox", "labelbox_example", "Vector", "object_detection", "Desktop")
+       "tests/converter_test/LabelBox/input/toSuperAnnotate/",
+       "tests/converter_test/LabelBox/output/objects/",
+       "LabelBox", "labelbox_example", "Vector", "object_detection", "Desktop"
+    )
 
 
 Working with images

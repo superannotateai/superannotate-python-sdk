@@ -20,7 +20,7 @@ def test_annotation_classes():
     assert len(clss) == 1
 
     ac = sa.search_annotation_classes(project, "ff")[0]
-    sa.delete_annotation_class(ac)
+    sa.delete_annotation_class(project, ac)
     clss = sa.search_annotation_classes(project)
     assert len(clss) == 0
     sa.delete_project(project)

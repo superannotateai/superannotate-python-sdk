@@ -11,12 +11,13 @@
 |
 
 .. toctree::
-   :caption: Contents
+   :caption: Table of Contents
    :name: mastertoc
    :maxdepth: 1
 
    tutorial.sdk.rst
    superannotate.sdk.rst
+   cli.rst
    LICENSE.rst
 
 ----------
@@ -80,6 +81,7 @@ __________________
 - Add annotations to images on platform
 - Convert annotation format from/to COCO
 - Add annotations to local SuperAnnotate format JSONs
+- CLI commands for simple tasks
 
 ----------
 

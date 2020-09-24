@@ -16,7 +16,7 @@ sa.init(Path.home() / ".superannotate" / "config.json")
 def test_download_stress(tmpdir):
     project = sa.search_projects(name_prefix="test_test_15")[0]
     export = sa.prepare_export(project)
-    sa.download_export(export, tmpdir)
+    sa.download_export(project, export, tmpdir)
 
     count_in_project = sa.get_project_image_count(project)
     count_in_folder = len(list(Path(tmpdir).glob("*.jpg")))

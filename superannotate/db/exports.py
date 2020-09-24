@@ -13,7 +13,7 @@ from tqdm import tqdm
 
 from ..api import API
 from ..common import annotation_status_str_to_int
-from ..exceptions import SABaseException
+from ..exceptions import SABaseException, SANonExistingExportNameException, SAExistingExportNameException
 from .projects import get_project_metadata
 
 logger = logging.getLogger("superannotate-python-sdk")
@@ -22,14 +22,46 @@ _api = API.get_instance()
 _NUM_THREADS = 10
 
 
-def get_exports(project):
+def get_export_metadata(project, export_name):
+    """Returns project metadata
+
+    :param project: project name or metadata of the project
+    :type project: str or dict
+    :param export_name: export name
+    :type project: str
+
+    :return: metadata of export
+    :rtype: dict
+    """
+    exports = get_exports(project, return_metadata=True)
+    results = []
+    for export in exports:
+        if export["name"] == export_name:
+            results.append(export)
+
+    if len(results) == 0:
+        raise SANonExistingExportNameException(
+            0, "Export with name " + export_name + " doesn't exist."
+        )
+    elif len(results) == 1:
+        return results[0]
+    else:
+        raise SAExistingExportNameException(
+            0, "Export name " + export_name +
+            " is not unique. To use SDK please use unique export names."
+        )
+
+
+def get_exports(project, return_metadata=False):
     """Get all prepared exports of the project.
 
     :param project: project name or metadata of the project
     :type project: str or dict
+    :param return_metadata: return metadata of images instead of names
+    :type return_metadata: bool
 
-    :return: metadata objects of the all prepared exports of the project
-    :rtype: list of dicts
+    :return: names or metadata objects of the all prepared exports of the project
+    :rtype: list of strs or dicts
     """
     if not isinstance(project, dict):
         project = get_project_metadata(project)
@@ -40,7 +72,11 @@ def get_exports(project):
         raise SABaseException(
             response.status_code, "Couldn't get exports. " + response.text
         )
-    return response.json()
+    res = response.json()
+    if return_metadata:
+        return res
+    else:
+        return [x["name"] for x in res]
 
 
 def _get_export(export):
@@ -103,8 +139,10 @@ def prepare_export(
             response.status_code, "Couldn't create_export." + response.text
         )
     res = response.json()
-    logger.info("Prepared export %s for project %s.", res['id'], project_id)
-    return res
+    logger.info(
+        "Prepared export %s for project %s.", res['name'], project["name"]
+    )
+    return res["name"]
 
 
 def __tqdm_thread(total_num, current_nums, finish_event):
@@ -153,12 +191,17 @@ def __upload_files_to_aws_thread(
 
 
 def download_export(
-    export, folder_path, extract_zip_contents=True, to_s3_bucket=None
+    project, export, folder_path, extract_zip_contents=True, to_s3_bucket=None
 ):
     """Download prepared export.
 
-    :param export: metadata of the prepared export, returned from prepare_export
-    :type export: dict
+    WARNING: Starting from version 1.9.0 :ref:`download_export <ref_download_export>` additionally
+    requires :py:obj:`project` as first argument.
+
+    :param project: project name or metadata of the project
+    :type project: str or dict
+    :param export: export name or metadata of the prepared export
+    :type export: str or dict
     :param folder_path: where to download the export
     :type folder_path: Pathlike (str or Path)
     :param extract_zip_contents: if False then a zip file will be downloaded,
@@ -167,6 +210,9 @@ def download_export(
     :param to_s3_bucket: AWS S3 bucket to use for download. If None then folder_path is in local filesystem.
     :type tofrom_s3_bucket: str
     """
+    if not isinstance(export, dict):
+        export = get_export_metadata(project, export)
+
     while True:
         res = _get_export(export)
         if res["status"] == 1:
