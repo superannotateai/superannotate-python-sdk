@@ -82,11 +82,11 @@ def create_project(project_name, project_description, project_type):
 def create_project_like_project(
     project_name, from_project, project_description=None
 ):
-    """Create a new project in the team using classes and settings from from_project.
+    """Create a new project in the team using annotation classes and settings from from_project.
 
-    :param project_name: the new project's name
+    :param project_name: new project's name
     :type project_name: str
-    :param from_project: the name or metadata of the project being used
+    :param from_project: the name or metadata of the project being used for duplication
     :type from_project: str or dict
     :param project_description: the new project's description. If None, from_project's
                                 description will be used
@@ -1181,13 +1181,15 @@ def _get_upload_from_s3_bucket_to_project_status(project):
 
 
 def get_project_settings(project):
-    """Gets project's settings
+    """Gets project's settings.
+
+    Return value example: [{ "attribute" : "Brightness", "value" : 10, ...},...]
 
     :param project: project name or metadata
     :type project: str or dict
 
     :return: project settings
-    :rtype: dict
+    :rtype: list of dicts
     """
     if not isinstance(project, dict):
         project = get_project_metadata(project)
@@ -1207,14 +1209,16 @@ def get_project_settings(project):
 
 
 def set_project_settings(project, new_settings):
-    """Sets project's settings
+    """Sets project's settings.
+
+    New settings format example: [{ "attribute" : "Brightness", "value" : 10, ...},...]
 
     :param project: project name or metadata
     :type project: str or dict
     :param project: new settings list of dicts
     :type project: list of dicts
 
-    :return: update part of project's settings
+    :return: updated part of project's settings
     :rtype: list of dicts
     """
     if not isinstance(project, dict):
