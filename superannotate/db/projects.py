@@ -14,13 +14,15 @@ from tqdm import tqdm
 from ..api import API
 from ..common import (
     annotation_status_str_to_int, project_type_int_to_str,
-    project_type_str_to_int, user_role_str_to_int, user_role_int_to_str
+    project_type_str_to_int, user_role_int_to_str, user_role_str_to_int
 )
 from ..exceptions import (
     SABaseException, SAExistingProjectNameException,
     SANonExistingProjectNameException
 )
-from .annotation_classes import search_annotation_classes
+from .annotation_classes import (
+    create_annotation_classes_from_classes_json, search_annotation_classes
+)
 from .project import get_project_metadata
 from .users import get_team_contributor_metadata
 
@@ -73,6 +75,61 @@ def create_project(project_name, project_description, project_type):
     logger.info(
         "Created project %s (ID %s) with type %s", res["name"], res["id"],
         project_type_int_to_str(res["type"])
+    )
+    return res
+
+
+def create_project_like_project(
+    project_name, from_project, project_description=None
+):
+    """Create a new project in the team using classes and settings from from_project.
+
+    :param project_name: the new project's name
+    :type project_name: str
+    :param from_project: the name or metadata of the project being used
+    :type from_project: str or dict
+    :param project_description: the new project's description. If None, from_project's
+                                description will be used
+    :type project_description: str
+
+    :return: dict object metadata of the new project
+    :rtype: dict
+    """
+    try:
+        get_project_metadata(project_name)
+    except SANonExistingProjectNameException:
+        pass
+    else:
+        raise SAExistingProjectNameException(
+            0, "Project with name " + project_name +
+            " already exists. Please use unique names for projects to use with SDK."
+        )
+    if not isinstance(from_project, dict):
+        from_project = get_project_metadata(from_project)
+    if project_description is None:
+        project_description = from_project["description"]
+    data = {
+        "team_id": str(_api.team_id),
+        "name": project_name,
+        "description": project_description,
+        "status": 0,
+        "type": from_project["type"]
+    }
+    response = _api.send_request(
+        req_type='POST', path='/project', json_req=data
+    )
+    if not response.ok:
+        raise SABaseException(
+            response.status_code, "Couldn't create project " + response.text
+        )
+    res = response.json()
+    logger.info(
+        "Created project %s (ID %s) with type %s", res["name"], res["id"],
+        project_type_int_to_str(res["type"])
+    )
+    set_project_settings(res, get_project_settings(from_project))
+    create_annotation_classes_from_classes_json(
+        res, search_annotation_classes(from_project, return_metadata=True)
     )
     return res
 
@@ -1123,7 +1180,17 @@ def _get_upload_from_s3_bucket_to_project_status(project):
     return response.json()
 
 
-def _get_project_default_image_quality_in_editor(project):
+def get_project_settings(project):
+    """Gets project's settings
+
+    :param project: project name or metadata
+    :type project: str or dict
+
+    :return: project settings
+    :rtype: dict
+    """
+    if not isinstance(project, dict):
+        project = get_project_metadata(project)
     team_id, project_id = project["team_id"], project["id"]
     params = {
         "team_id": team_id,
@@ -1134,54 +1201,51 @@ def _get_project_default_image_quality_in_editor(project):
     if not response.ok:
         raise SABaseException(
             response.status_code,
-            "Couldn't get project default image quality " + response.text
+            "Couldn't get project settings " + response.text
         )
-    for setting in response.json():
-        if "attribute" in setting and setting["attribute"] == "ImageQuality":
-            return setting["value"]
-    return 60
-    # raise SABaseException(
-    #     response.status_code,
-    #     "Couldn't get project default image quality " + response.text
-    # )
+    return response.json()
 
 
-def _set_project_default_image_quality_in_editor(project, quality):
+def set_project_settings(project, new_settings):
+    """Sets project's settings
+
+    :param project: project name or metadata
+    :type project: str or dict
+    :param project: new settings list of dicts
+    :type project: list of dicts
+
+    :return: update part of project's settings
+    :rtype: list of dicts
+    """
+    if not isinstance(project, dict):
+        project = get_project_metadata(project)
+    if not isinstance(new_settings, list):
+        raise SABaseException(
+            0, "Set project setting new_settings should be a list"
+        )
     team_id, project_id = project["team_id"], project["id"]
 
     params = {
         "team_id": team_id,
     }
-    response = _api.send_request(
-        req_type='GET', path=f'/project/{project_id}/settings', params=params
-    )
-    if not response.ok:
-        raise SABaseException(
-            response.status_code,
-            "Couldn't set project default image quality " + response.text
-        )
+    current_settings = get_project_settings(project)
 
-    image_quality_id = None
-    for setting in response.json():
-        if setting["attribute"] == "ImageQuality":
-            image_quality_id = setting["id"]
+    id_conv = {}
+    for setting in current_settings:
+        if "attribute" in setting:
+            id_conv[setting["attribute"]] = setting["id"]
 
-    if image_quality_id is None:
-        raise SABaseException(
-            response.status_code,
-            "Couldn't set project default image quality " + response.text
-        )
-
-    json_req = {
-        "settings":
-            [
+    new_list = []
+    for new_setting in new_settings:
+        if "attribute" in new_setting and new_setting["attribute"] in id_conv:
+            new_list.append(
                 {
-                    "id": image_quality_id,
-                    "attribute": "ImageQuality",
-                    "value": int(quality)
+                    "attribute": new_setting["attribute"],
+                    "id": id_conv[new_setting["attribute"]],
+                    "value": new_setting["value"]
                 }
-            ]
-    }
+            )
+    json_req = {"settings": new_list}
     response = _api.send_request(
         req_type='PUT',
         path=f'/project/{project_id}/settings',
@@ -1193,3 +1257,24 @@ def _set_project_default_image_quality_in_editor(project, quality):
             response.status_code,
             "Couldn't set project settings " + response.text
         )
+    return response.json()
+
+
+def _get_project_default_image_quality_in_editor(project):
+    for setting in get_project_settings(project):
+        if "attribute" in setting and setting["attribute"] == "ImageQuality":
+            return setting["value"]
+    return 60
+    # raise SABaseException(
+    #     response.status_code,
+    #     "Couldn't get project default image quality " + response.text
+    # )
+
+
+def _set_project_default_image_quality_in_editor(project, quality):
+    set_project_settings(
+        project, {
+            "attribute": "ImageQuality",
+            "value": quality
+        }
+    )
