@@ -28,12 +28,23 @@ def test_create_like_project(tmpdir):
             "value": brightness_value + 10
         }]
     )
+    sa.set_project_workflow(
+        PROJECT_NAME, [{
+            "step": 1,
+            "className": "rrr",
+            "tool": 3
+        }]
+    )
+    users = sa.search_team_contributors()
+    sa.share_project(PROJECT_NAME, users[1], "QA")
 
     projects = sa.search_projects(PROJECT_NAME2, return_metadata=True)
     for project in projects:
         sa.delete_project(project)
 
-    new_project = sa.create_project_like_project(PROJECT_NAME2, PROJECT_NAME)
+    new_project = sa.create_project_like_project(
+        PROJECT_NAME2, PROJECT_NAME, copy_project_contributors=True
+    )
     assert new_project["description"] == "tt"
     assert new_project["type"] == 1
     time.sleep(1)
@@ -51,3 +62,13 @@ def test_create_like_project(tmpdir):
             new_brightness_value = setting["value"]
 
     assert new_brightness_value == brightness_value + 10
+
+    new_workflow = sa.get_project_workflow(PROJECT_NAME2)
+    assert len(new_workflow) == 1
+    assert new_workflow[0]["className"] == "rrr"
+    assert new_workflow[0]["tool"] == 3
+
+    new_project = sa.get_project_metadata(new_project["name"])
+    assert len(new_project["users"]) == 1
+    assert new_project["users"][0]["user_id"] == users[1]
+    assert new_project["users"][0]["user_role"] == sa.user_role_str_to_int("QA")

@@ -5,6 +5,7 @@ import math
 import sys
 import threading
 import time
+import copy
 from pathlib import Path
 
 import boto3
@@ -80,7 +81,13 @@ def create_project(project_name, project_description, project_type):
 
 
 def create_project_like_project(
-    project_name, from_project, project_description=None
+    project_name,
+    from_project,
+    project_description=None,
+    copy_annotation_classes=True,
+    copy_settings=True,
+    copy_workflow=True,
+    copy_project_contributors=False
 ):
     """Create a new project in the team using annotation classes and settings from from_project.
 
@@ -91,6 +98,14 @@ def create_project_like_project(
     :param project_description: the new project's description. If None, from_project's
                                 description will be used
     :type project_description: str
+    :param copy_annotation_classes: enables copying annotation classes
+    :type copy_annotation_classes: bool
+    :param copy_settings: enables copying project settings
+    :type copy_settings: bool
+    :param copy_workflow: enables copying project workflow
+    :type copy_workflow: bool
+    :param copy_project_contributors: enables copying project contributors
+    :type copy_project_contributors: bool
 
     :return: dict object metadata of the new project
     :rtype: dict
@@ -127,10 +142,20 @@ def create_project_like_project(
         "Created project %s (ID %s) with type %s", res["name"], res["id"],
         project_type_int_to_str(res["type"])
     )
-    set_project_settings(res, get_project_settings(from_project))
-    create_annotation_classes_from_classes_json(
-        res, search_annotation_classes(from_project, return_metadata=True)
-    )
+    if copy_settings:
+        set_project_settings(res, get_project_settings(from_project))
+    if copy_annotation_classes:
+        create_annotation_classes_from_classes_json(
+            res, search_annotation_classes(from_project, return_metadata=True)
+        )
+        if copy_workflow:
+            set_project_workflow(res, get_project_workflow(from_project))
+    if copy_project_contributors:
+        for user in from_project["users"]:
+            share_project(
+                res, user["user_id"], user_role_int_to_str(user["user_role"])
+            )
+
     return res
 
 
@@ -1178,6 +1203,111 @@ def _get_upload_from_s3_bucket_to_project_status(project):
             "Couldn't get upload to project from S3 status " + response.text
         )
     return response.json()
+
+
+def get_project_workflow(project):
+    """Gets project's workflow.
+
+    Return value example: [{ "step" : <step_num>, "className" : <annotation_class>, "tool" : <tool_num>, ...},...]
+
+    :param project: project name or metadata
+    :type project: str or dict
+
+    :return: project workflow
+    :rtype: list of dicts
+    """
+    if not isinstance(project, dict):
+        project = get_project_metadata(project)
+    team_id, project_id = project["team_id"], project["id"]
+    params = {
+        "team_id": team_id,
+    }
+    response = _api.send_request(
+        req_type='GET', path=f'/project/{project_id}/workflow', params=params
+    )
+    if not response.ok:
+        raise SABaseException(
+            response.status_code,
+            "Couldn't get project workflow " + response.text
+        )
+    res = response.json()
+    annotation_classes = search_annotation_classes(
+        project, return_metadata=True
+    )
+    for r in res:
+        if "class_id" not in r:
+            continue
+        found_classid = False
+        for a_class in annotation_classes:
+            if a_class["id"] == r["class_id"]:
+                found_classid = True
+                r["className"] = a_class["name"]
+                del r["class_id"]
+                break
+        if not found_classid:
+            raise SABaseException(0, "Couldn't find class_id in workflow")
+    return res
+
+
+def set_project_workflow(project, new_workflow):
+    """Sets project's workflow.
+
+    new_workflow example: [{ "step" : <step_num>, "className" : <annotation_class>, "tool" : <tool_num>, ...},...]
+
+    :param project: project name or metadata
+    :type project: str or dict
+    :param project: new workflow list of dicts
+    :type project: list of dicts
+
+    :return: updated part of project's workflow
+    :rtype: list of dicts
+    """
+    if not isinstance(project, dict):
+        project = get_project_metadata(project)
+    if not isinstance(new_workflow, list):
+        raise SABaseException(
+            0, "Set project setting new_workflow should be a list"
+        )
+    team_id, project_id = project["team_id"], project["id"]
+
+    params = {
+        "team_id": team_id,
+    }
+    annotation_classes = search_annotation_classes(
+        project, return_metadata=True
+    )
+
+    new_list = copy.deepcopy(new_workflow)
+    for step in new_list:
+        if "id" in step:
+            del step["id"]
+        if "className" in step:
+            found = False
+            for an_class in annotation_classes:
+                if an_class["name"] == step["className"]:
+                    step["class_id"] = an_class["id"]
+                    del step["className"]
+                    found = True
+                    break
+            if not found:
+                raise SABaseException(
+                    0, "Annotation class not found in set_project_workflow."
+                )
+
+    json_req = {"steps": new_list}
+    response = _api.send_request(
+        req_type='POST',
+        path=f'/project/{project_id}/workflow',
+        params=params,
+        json_req=json_req
+    )
+    if not response.ok:
+        raise SABaseException(
+            response.status_code,
+            "Couldn't set project workflow " + response.text
+        )
+    res = response.json()
+    return res
 
 
 def get_project_settings(project):
