@@ -35,9 +35,9 @@ from .db.project import get_project_metadata, search_projects
 from .db.project_images import copy_image, move_image, upload_image_to_project
 from .db.projects import (
     create_project, create_project_like_project, delete_project,
-    get_project_image_count, get_project_settings, set_project_settings,
-    rename_project, share_project, unshare_project,
-    upload_annotations_from_folder_to_project,
+    get_project_image_count, get_project_settings, get_project_workflow,
+    rename_project, set_project_settings, set_project_workflow, share_project,
+    unshare_project, upload_annotations_from_folder_to_project,
     upload_images_from_folder_to_project,
     upload_images_from_s3_bucket_to_project, upload_images_to_project,
     upload_preannotations_from_folder_to_project
@@ -50,7 +50,7 @@ from .exceptions import (
     SANonExistingProjectNameException
 )
 from .input_converters.conversion import (
-    export_annotation_format, import_annotation_format, convert_platform
+    convert_platform, export_annotation_format, import_annotation_format
 )
 from .version import Version
 
