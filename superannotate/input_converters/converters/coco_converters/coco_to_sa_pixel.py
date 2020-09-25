@@ -106,7 +106,6 @@ def coco_instance_segmentation_to_sa_pixel(coco_path, images_path):
     for cat in coco_json['categories']:
         cat_id_to_cat[cat['id']] = cat
 
-    print(cat_id_to_cat)
     images_dict = {}
     for img in coco_json['images']:
         images_dict[img['id']] = {

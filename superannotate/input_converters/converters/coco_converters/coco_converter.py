@@ -179,7 +179,6 @@ class CoCoConverter(object):
         return res
 
     def _create_sa_classes(self, json_path):
-        print(json_path)
         json_data = json.load(open(json_path))
         classes_list = json_data["categories"]
 
@@ -199,12 +198,9 @@ class CoCoConverter(object):
             json.dump(classes, fp)
 
     def _generate_colors(self, number):
-        total = 255**3
-        color = []
+        colors = []
         for i in range(number):
-            idx = int(i * total / number)
-            r = idx // (255**2)
-            g = (idx % (255**2)) // 255
-            b = (idx % (255**2)) % 255
-            color.append("#%02x%02x%02x" % (r, g, b))
-        return color
+            color = np.random.choice(range(256), size=3)
+            hexcolor = "#%02x%02x%02x" % tuple(color)
+            colors.append(hexcolor)
+        return colors
