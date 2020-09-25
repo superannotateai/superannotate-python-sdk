@@ -1,5 +1,9 @@
+import json
 import logging
 from pathlib import Path
+
+import packaging.version
+import requests
 
 from .annotation_helpers import (
     add_annotation_bbox_to_json, add_annotation_cuboid_to_json,
@@ -54,8 +58,8 @@ from .input_converters.conversion import (
 )
 from .version import Version
 
-#formatter = logging.Formatter(fmt='%(asctime)s - %(levelname)s - %(module)s - %(message)s')
 formatter = logging.Formatter(fmt='SA-PYTHON-SDK - %(levelname)s - %(message)s')
+#formatter = logging.Formatter(fmt='%(asctime)s - %(levelname)s - %(module)s - %(message)s')
 
 handler = logging.StreamHandler()
 handler.setFormatter(formatter)
@@ -63,6 +67,25 @@ handler.setFormatter(formatter)
 logger = logging.getLogger("superannotate-python-sdk")
 logger.setLevel(logging.INFO)
 logger.addHandler(handler)
+
+
+def _check_version():
+    _req = requests.get('https://pypi.python.org/pypi/superannotate/json')
+    if _req.ok:
+        _Version = packaging.version.parse(Version)
+        _version_on_pip = packaging.version.parse('0')
+        _j = _req.json()
+        _releases = _j.get('releases', [])
+        for _release in _releases:
+            _ver = packaging.version.parse(_release)
+            if not _ver.is_prerelease:
+                _version_on_pip = max(_version_on_pip, _ver)
+        if _version_on_pip > _Version:
+            logger.info(
+                "There is newer version of SuperAnnotate Python SDK available on PyPI. Run 'pip install --upgrade superannotate' to upgrade from your version %s to %s.",
+                _Version, _version_on_pip
+            )
+
 
 _api = API.get_instance()
 
@@ -78,4 +101,5 @@ def init(path_to_config_json):
     _api.init(path_to_config_json)
 
 
+_check_version()
 init(None)
