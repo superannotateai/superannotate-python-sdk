@@ -594,7 +594,20 @@ def get_image_annotations(project, image_name, project_type=None):
     )
     annotation_classes_dict = {}
     for annotation_class in annotation_classes:
-        annotation_classes_dict[annotation_class["id"]] = annotation_class
+        class_id = annotation_class["id"]
+        class_name = annotation_class["name"]
+        class_info = {"name": class_name}
+        class_info["attribute_groups"] = {}
+        if "attribute_groups" in annotation_class:
+            for attribute_group in annotation_class["attribute_groups"]:
+                attribute_group_info = {}
+                for attribute in attribute_group["attributes"]:
+                    attribute_group_info[attribute["id"]] = attribute["name"]
+                class_info["attribute_groups"][attribute_group["id"]] = {
+                    "name": attribute_group["name"],
+                    "attributes": attribute_group_info
+                }
+        annotation_classes_dict[class_id] = class_info
     if project_type == 1:  # vector
         url = res["objects"]["url"]
         annotation_json_filename = url.rsplit('/', 1)[-1]
@@ -606,6 +619,15 @@ def get_image_annotations(project, image_name, project_type=None):
                 if "classId" in r and r["classId"] in annotation_classes_dict:
                     r["className"] = annotation_classes_dict[r["classId"]
                                                             ]["name"]
+                    if "attributes" in r:
+                        for attribute in r["attributes"]:
+                            attribute["groupName"] = annotation_classes_dict[
+                                r["classId"]]["attribute_groups"][
+                                    attribute["groupId"]]
+                            attribute["name"] = annotation_classes_dict[
+                                r["classId"]]["attribute_groups"][
+                                    attribute["groupId"]][attribute["id"]]
+
             return {
                 "annotation_json_filename": annotation_json_filename,
                 "annotation_json": res_json
