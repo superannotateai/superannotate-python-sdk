@@ -13,7 +13,7 @@ from ..annotation_helpers import (
     add_annotation_template_to_json
 )
 from ..api import API
-from ..common import annotation_status_str_to_int
+from ..common import annotation_status_str_to_int, deprecated_alias
 from ..exceptions import SABaseException
 from .annotation_classes import search_annotation_classes
 from .project import get_project_metadata
@@ -726,10 +726,11 @@ def download_image_preannotations(project, image_name, local_dir_path):
     return tuple(return_filepaths)
 
 
+@deprecated_alias(mask_path="mask")
 def upload_annotations_from_json_to_image(
-    project, image_name, annotation_json, mask_path=None, verbose=True
+    project, image_name, annotation_json, mask=None, verbose=True
 ):
-    """Upload annotations from JSON (also mask_path for pixel annotations)
+    """Upload annotations from JSON (also mask for pixel annotations)
     to the image.
 
     :param project: project name or metadata of the project
@@ -738,8 +739,8 @@ def upload_annotations_from_json_to_image(
     :type image: str
     :param annotation_json: annotations in SuperAnnotate format JSON dict or path to JSON file
     :type annotation_json: dict or Pathlike (str or Path)
-    :param mask_path: filepath to mask annotation for pixel projects in SuperAnnotate format
-    :type mask_path: Pathlike (str or Path)
+    :param mask: BytesIO object or filepath to mask annotation for pixel projects in SuperAnnotate format
+    :type mask: BytesIO or Pathlike (str or Path)
     """
 
     if not isinstance(annotation_json, list):
@@ -806,8 +807,11 @@ def upload_annotations_from_json_to_image(
                 Key=res['filePath'], Body=json.dumps(annotation_json)
             )
         else:  # pixel
-            if mask_path is None:
+            if mask is None:
                 raise SABaseException(0, "Pixel annotation should have mask.")
+            if not isinstance(mask, io.BytesIO):
+                with open(mask, "rb") as f:
+                    mask = io.BytesIO(f.read())
             res_j = res['pixel']
             s3_session = boto3.Session(
                 aws_access_key_id=res_j['accessKeyId'],
@@ -827,7 +831,7 @@ def upload_annotations_from_json_to_image(
             )
             s3_resource = s3_session.resource('s3')
             bucket = s3_resource.Bucket(res_m["bucket"])
-            bucket.put_object(Key=res_m['filePath'], Body=open(mask_path, 'rb'))
+            bucket.put_object(Key=res_m['filePath'], Body=mask)
     else:
         raise SABaseException(
             response.status_code, "Couldn't upload annotation. " + response.text

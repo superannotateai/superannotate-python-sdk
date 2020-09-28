@@ -10,11 +10,13 @@ TEMP_PROJECT_NAME = "test_recursive"
 
 def test_nonrecursive_annotations_folder(tmpdir):
     tmpdir = Path(tmpdir)
-    projects_found = sa.search_projects(TEMP_PROJECT_NAME, return_metadata=True)
+    projects_found = sa.search_projects(
+        TEMP_PROJECT_NAME + "0", return_metadata=True
+    )
     for pr in projects_found:
         sa.delete_project(pr)
 
-    project = sa.create_project(TEMP_PROJECT_NAME, "test", "Vector")
+    project = sa.create_project(TEMP_PROJECT_NAME + "0", "test", "Vector")
 
     sa.upload_images_from_folder_to_project(
         project,

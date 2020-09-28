@@ -1,17 +1,12 @@
 from pathlib import Path
-import json
-import io
-import time
 
 import pytest
 
 import superannotate as sa
 
-sa.init(Path.home() / ".superannotate" / "config.json")
-
-PROJECT_NAME_CPY = "test image copy"
-PROJECT_NAME_CPY_MULT = "test image copy mult"
-PROJECT_NAME_MOVE = "test image move"
+PROJECT_NAME_CPY = "test image copy 1"
+PROJECT_NAME_CPY_MULT = "test image copy mult 2"
+PROJECT_NAME_MOVE = "test image move 3"
 
 
 def test_image_copy_mult(tmpdir):
@@ -30,6 +25,13 @@ def test_image_copy_mult(tmpdir):
         "./tests/sample_project_vector/example_image_1.jpg",
         annotation_status="InProgress"
     )
+    sa.create_annotation_classes_from_classes_json(
+        project, "./tests/sample_project_vector/classes/classes.json"
+    )
+    sa.upload_annotations_from_json_to_image(
+        project, "example_image_1.jpg",
+        "./tests/sample_project_vector/example_image_1.jpg___objects.json"
+    )
     sa.upload_image_to_project(
         project,
         "./tests/sample_project_vector/example_image_2.jpg",
@@ -41,11 +43,19 @@ def test_image_copy_mult(tmpdir):
     image = images[0]
 
     for _ in range(3):
-        sa.copy_image(project, image, project)
+        sa.copy_image(
+            project,
+            image,
+            project,
+            include_annotations=True,
+            copy_annotation_status=True
+        )
     assert len(sa.search_images(project)) == 5
     images = sa.search_images(project)
     for i in range(3):
         assert f"example_image_1_({i+1}).jpg" in images
+    anns = sa.get_image_annotations(project, f"example_image_1_({i+1}).jpg")
+    assert anns["annotation_json"] is not None
 
 
 def test_image_copy(tmpdir):

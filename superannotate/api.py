@@ -1,3 +1,4 @@
+import os
 import json
 import logging
 from pathlib import Path
@@ -139,4 +140,21 @@ class API:
         session.mount('https://', adapter)
         session.mount('http://', adapter)
         session.headers = self._default_headers
+
+        if "SUPERANNOTATE_DEBUG" in os.environ:
+            session.hooks['response'].append(_log_requests)
+
         return session
+
+
+if "SUPERANNOTATE_DEBUG" in os.environ:
+    from requests_toolbelt.utils import dump
+
+    def _log_requests(response, *args, **kwargs):
+        data = dump.dump_all(response)
+        _log_requests.response_len += len(data)
+        logger.info(
+            'HTTP %s %s ', response.request.url, _log_requests.response_len
+        )
+
+    _log_requests.response_len = 0

@@ -1,15 +1,18 @@
 import io
-import time
-import re
 import logging
+import re
+import time
 from pathlib import Path
 
 import boto3
 
 from ..api import API
-from ..common import annotation_status_str_to_int
+from ..common import annotation_status_int_to_str, annotation_status_str_to_int
 from ..exceptions import SABaseException
-from .images import get_image_metadata, get_image_bytes, delete_image
+from .images import (
+    delete_image, get_image_annotations, get_image_bytes, get_image_metadata,
+    set_image_annotation_status, upload_annotations_from_json_to_image
+)
 from .projects import (
     __create_image, _get_project_default_image_quality_in_editor,
     get_image_array_to_upload, get_project_metadata
@@ -114,7 +117,13 @@ def upload_image_to_project(
             break
 
 
-def copy_image(source_project, image_name, destination_project):
+def copy_image(
+    source_project,
+    image_name,
+    destination_project,
+    include_annotations=False,
+    copy_annotation_status=False
+):
     """Copy image to a project. The image's project is the same as destination
     project then the name will be changed to <image_name>_(<num>).<image_ext>,
     where <num> is the next available number deducted from project image list.
@@ -125,12 +134,17 @@ def copy_image(source_project, image_name, destination_project):
     :type image: str
     :param destination_project: project name or metadata of the project of destination project
     :type destination_project: str or dict
+    :param include_annotations: enables annotations copy
+    :type include_annotations: bool
+    :param copy_annotation_status: enables annotations status copy
+    :type copy_annotation_status: bool
     """
     if not isinstance(source_project, dict):
         source_project = get_project_metadata(source_project)
     if not isinstance(destination_project, dict):
         destination_project = get_project_metadata(destination_project)
     img_b = get_image_bytes(source_project, image_name)
+    img_metadata = get_image_metadata(source_project, image_name)
     if source_project != destination_project:
         upload_image_to_project(destination_project, img_b, image_name)
         new_name = image_name
@@ -160,13 +174,39 @@ def copy_image(source_project, image_name, destination_project):
             else:
                 num += 1
         upload_image_to_project(destination_project, img_b, new_name)
+        if include_annotations:
+            annotations = get_image_annotations(source_project, image_name)
+            if annotations["annotation_json"] is not None:
+                if "annotation_mask" in annotations:
+                    upload_annotations_from_json_to_image(
+                        destination_project, new_name,
+                        annotations["annotation_json"],
+                        annotations["annotation_mask"]
+                    )
+                else:
+                    upload_annotations_from_json_to_image(
+                        destination_project, new_name,
+                        annotations["annotation_json"]
+                    )
+        if copy_annotation_status:
+            set_image_annotation_status(
+                destination_project, new_name,
+                annotation_status_int_to_str(img_metadata["annotation_status"])
+            )
+
     logger.info(
         "Copied image %s/%s to %s/%s.", source_project["name"], image_name,
         destination_project["name"], new_name
     )
 
 
-def move_image(source_project, image_name, destination_project):
+def move_image(
+    source_project,
+    image_name,
+    destination_project,
+    include_annotations=False,
+    copy_annotation_status=False
+):
     """Move image from source_project to destination_project. source_project
     and destination_project cannot be the same.
 
@@ -176,6 +216,10 @@ def move_image(source_project, image_name, destination_project):
     :type image: str
     :param destination_project: project name or metadata of the project of destination project
     :type destination_project: str or dict
+    :param include_annotations: enables annotations move
+    :type include_annotations: bool
+    :param copy_annotation_status: enables annotations status copy
+    :type copy_annotation_status: bool
     """
     if not isinstance(source_project, dict):
         source_project = get_project_metadata(source_project)
@@ -185,6 +229,9 @@ def move_image(source_project, image_name, destination_project):
         raise SABaseException(
             0, "Cannot move image if source_project == destination_project."
         )
-    copy_image(source_project, image_name, destination_project)
+    copy_image(
+        source_project, image_name, destination_project, include_annotations,
+        copy_annotation_status
+    )
     delete_image(source_project, image_name)
     logger.info("Deleted image %s/%s.", source_project["name"], image_name)
