@@ -45,6 +45,7 @@ def test_basic_project(project_type, name, description, from_folder, tmpdir):
 
     count_in_folder = len(list(from_folder.glob("*.jpg"))
                          ) + len(list(from_folder.glob("*.png")))
+    count_in_folder -= len(list(from_folder.glob("*___fuse.png")))
     if project_type == "Pixel":
         count_in_folder -= len(list(from_folder.glob("*___save.png")))
     images = sa.search_images(project)

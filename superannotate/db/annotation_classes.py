@@ -275,8 +275,11 @@ def download_annotation_classes_json(project, folder):
 
 
 def fill_class_and_attribute_names(annotations_json, annotation_classes_dict):
+    print("h2 ", annotation_classes_dict)
     for r in annotations_json:
+        print("h ", r)
         if "classId" in r and r["classId"] in annotation_classes_dict:
+            print("hello")
             r["className"] = annotation_classes_dict[r["classId"]]["name"]
             if "attributes" in r:
                 for attribute in r["attributes"]:

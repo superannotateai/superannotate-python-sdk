@@ -509,7 +509,9 @@ def get_image_preannotations(project, image_name):
         headers = res["headers"]
         response = requests.get(url=url, headers=headers)
         if not response.ok:
-            logger.warning("No preannotation available for image %s.", image_id)
+            logger.warning(
+                "No preannotation available for image %s.", image_name
+            )
             return {
                 "preannotation_json_filename": None,
                 "preannotation_json": None
