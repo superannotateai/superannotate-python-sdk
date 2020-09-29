@@ -51,3 +51,16 @@ If optional argument *recursive* is given then subfolders of :file:`<folder_path
 scanned for available images.
 
 Optional argument *extensions* accepts comma separated list of image extensions to look for. If the argument is not given then value *jpg,png* is assumed.
+
+----------
+
+.. _ref_cli_version:
+
+SDK version information
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To show the version of the current SDK installation:
+
+.. code-block:: bash
+
+   superannotate version
