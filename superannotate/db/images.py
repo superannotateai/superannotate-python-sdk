@@ -15,7 +15,11 @@ from ..annotation_helpers import (
 from ..api import API
 from ..common import annotation_status_str_to_int, deprecated_alias
 from ..exceptions import SABaseException
-from .annotation_classes import search_annotation_classes
+from .annotation_classes import (
+    fill_class_and_attribute_ids, fill_class_and_attribute_names,
+    get_annotation_classes_id_to_name, get_annotation_classes_name_to_id,
+    search_annotation_classes
+)
 from .project import get_project_metadata
 
 logger = logging.getLogger("superannotate-python-sdk")
@@ -495,7 +499,7 @@ def get_image_preannotations(project, image_name):
     annotation_classes = search_annotation_classes(
         project, return_metadata=True
     )
-    annotation_classes_dict = _get_annotation_classes_id_to_name(
+    annotation_classes_dict = get_annotation_classes_id_to_name(
         annotation_classes
     )
     if project_type == 1:  # vector
@@ -511,7 +515,7 @@ def get_image_preannotations(project, image_name):
                 "preannotation_json": None
             }
         res_json = response.json()
-        _fill_class_and_attribute_names(res_json, annotation_classes_dict)
+        fill_class_and_attribute_names(res_json, annotation_classes_dict)
         return {
             "preannotation_json_filename": annotation_json_filename,
             "preannotation_json": res_json
@@ -531,7 +535,7 @@ def get_image_preannotations(project, image_name):
                 "preannotation_mask": None,
             }
         preannotation_json = response.json()
-        _fill_class_and_attribute_names(
+        fill_class_and_attribute_names(
             preannotation_json, annotation_classes_dict
         )
 
@@ -548,94 +552,6 @@ def get_image_preannotations(project, image_name):
             "preannotation_mask_filename": preannotation_mask_filename,
             "preannotation_mask": mask
         }
-
-
-def _fill_class_and_attribute_names(annotations_json, annotation_classes_dict):
-    for r in annotations_json:
-        if "classId" in r and r["classId"] in annotation_classes_dict:
-            r["className"] = annotation_classes_dict[r["classId"]]["name"]
-            if "attributes" in r:
-                for attribute in r["attributes"]:
-                    attribute["groupName"] = annotation_classes_dict[
-                        r["classId"]]["attribute_groups"][attribute["groupId"]
-                                                         ]["name"]
-                    attribute["name"] = annotation_classes_dict[
-                        r["classId"]]["attribute_groups"][
-                            attribute["groupId"]]["attributes"][attribute["id"]]
-
-
-def _fill_class_and_attribute_ids(annotation_json, annotation_classes_dict):
-    for ann in annotation_json:
-        if (
-            "userId" in ann and "type" in ann and ann["type"] == "meta"
-        ) or "className" not in ann:
-            continue
-        annotation_class_name = ann["className"]
-        if not annotation_class_name in annotation_classes_dict:
-            raise SABaseException(
-                0, "Couldn't find annotation class " + annotation_class_name
-            )
-        class_id = annotation_classes_dict[annotation_class_name]["id"]
-        ann["classId"] = class_id
-        for attribute in annotation_json["attributes"]:
-            attribite["groupId"] = annotation_classes_dict[
-                annotation_class_name]["attribute_groups"][
-                    attribute["groupName"]]
-
-
-def _get_annotation_classes_id_to_name(annotation_classes):
-    annotation_classes_dict = {}
-    for annotation_class in annotation_classes:
-        class_id = annotation_class["id"]
-        class_name = annotation_class["name"]
-        class_info = {"name": class_name}
-        class_info["attribute_groups"] = {}
-        if "attribute_groups" in annotation_class:
-            for attribute_group in annotation_class["attribute_groups"]:
-                attribute_group_info = {}
-                for attribute in attribute_group["attributes"]:
-                    attribute_group_info[attribute["id"]] = attribute["name"]
-                class_info["attribute_groups"][attribute_group["id"]] = {
-                    "name": attribute_group["name"],
-                    "attributes": attribute_group_info
-                }
-        annotation_classes_dict[class_id] = class_info
-    return annotation_classes_dict
-
-
-def _get_annotation_classes_name_to_id(annotation_classes):
-    annotation_classes_dict = {}
-    for annotation_class in annotation_classes:
-        class_id = annotation_class["id"]
-        class_name = annotation_class["name"]
-        class_info = {"id": class_id}
-        class_info["attribute_groups"] = {}
-        if "attribute_groups" in annotation_class:
-            for attribute_group in annotation_class["attribute_groups"]:
-                attribute_group_info = {}
-                for attribute in attribute_group["attributes"]:
-                    if attribute["name"] in attribute_group_info:
-                        logger.warning(
-                            "Duplicate annotation class attribute name %s in attribute group %s. Only one of the annotation classe attributes will be used. This will result in errors in annotation upload.",
-                            attribute["name"], attribute_group["name"]
-                        )
-                    attribute_group_info[attribute["name"]] = attribute["id"]
-                if attribute_group["name"] in class_info["attribute_groups"]:
-                    logger.warning(
-                        "Duplicate annotation class attribute group name %s. Only one of the annotation classe attribute groups will be used. This will result in errors in annotation upload.",
-                        attribute_group["name"]
-                    )
-                class_info["attribute_groups"][attribute_group["name"]] = {
-                    "id": attribute_group["id"],
-                    "attributes": attribute_group_info
-                }
-        if class_name in annotation_classes_dict:
-            logger.warning(
-                "Duplicate annotation class name %s. Only one of the annotation classes will be used. This will result in errors in annotation upload.",
-                class_name
-            )
-        annotation_classes_dict[class_name] = class_info
-    return annotation_classes_dict
 
 
 def get_image_annotations(project, image_name, project_type=None):
@@ -677,7 +593,7 @@ def get_image_annotations(project, image_name, project_type=None):
     annotation_classes = search_annotation_classes(
         project, return_metadata=True
     )
-    annotation_classes_dict = _get_annotation_classes_id_to_name(
+    annotation_classes_dict = get_annotation_classes_id_to_name(
         annotation_classes
     )
     if project_type == 1:  # vector
@@ -687,7 +603,7 @@ def get_image_annotations(project, image_name, project_type=None):
         response = requests.get(url=url, headers=headers)
         if response.ok:
             res_json = response.json()
-            _fill_class_and_attribute_names(res_json, annotation_classes_dict)
+            fill_class_and_attribute_names(res_json, annotation_classes_dict)
             return {
                 "annotation_json_filename": annotation_json_filename,
                 "annotation_json": res_json
@@ -710,7 +626,7 @@ def get_image_annotations(project, image_name, project_type=None):
         elif not response.ok:
             raise SABaseException(response.status_code, response.text)
         res_json = response.json()
-        _fill_class_and_attribute_names(res_json, annotation_classes_dict)
+        fill_class_and_attribute_names(res_json, annotation_classes_dict)
         url = res["pixelSave"]["url"]
         annotation_mask_filename = url.rsplit('/', 1)[-1]
         headers = res["pixelSave"]["headers"]
@@ -842,10 +758,10 @@ def upload_annotations_from_json_to_image(
     annotation_classes = search_annotation_classes(
         project, return_metadata=True
     )
-    annotation_classes_dict = _get_annotation_classes_name_to_id(
+    annotation_classes_dict = get_annotation_classes_name_to_id(
         annotation_classes
     )
-    _fill_class_and_attribute_ids(annotation_json, annotation_classes_dict)
+    fill_class_and_attribute_ids(annotation_json, annotation_classes_dict)
     params = {
         'team_id': team_id,
         'project_id': project_id,

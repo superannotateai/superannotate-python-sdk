@@ -272,3 +272,94 @@ def download_annotation_classes_json(project, folder):
     filepath = Path(folder) / "classes.json"
     json.dump(clss, open(filepath, "w"), indent=4)
     return str(filepath)
+
+
+def fill_class_and_attribute_names(annotations_json, annotation_classes_dict):
+    for r in annotations_json:
+        if "classId" in r and r["classId"] in annotation_classes_dict:
+            r["className"] = annotation_classes_dict[r["classId"]]["name"]
+            if "attributes" in r:
+                for attribute in r["attributes"]:
+                    attribute["groupName"] = annotation_classes_dict[
+                        r["classId"]]["attribute_groups"][attribute["groupId"]
+                                                         ]["name"]
+                    attribute["name"] = annotation_classes_dict[
+                        r["classId"]]["attribute_groups"][
+                            attribute["groupId"]]["attributes"][attribute["id"]]
+
+
+def fill_class_and_attribute_ids(annotation_json, annotation_classes_dict):
+    for ann in annotation_json:
+        if (
+            "userId" in ann and "type" in ann and ann["type"] == "meta"
+        ) or "className" not in ann:
+            continue
+        annotation_class_name = ann["className"]
+        if not annotation_class_name in annotation_classes_dict:
+            logger.warning(
+                "Couldn't find annotation class %s", annotation_class_name
+            )
+        class_id = annotation_classes_dict[annotation_class_name]["id"]
+        ann["classId"] = class_id
+        for attribute in ann["attributes"]:
+            attribute["groupId"] = annotation_classes_dict[
+                annotation_class_name]["attribute_groups"][
+                    attribute["groupName"]]["id"]
+            attribute["id"] = annotation_classes_dict[annotation_class_name][
+                "attribute_groups"][attribute["groupName"]]["attributes"][
+                    attribute["name"]]
+
+
+def get_annotation_classes_id_to_name(annotation_classes):
+    annotation_classes_dict = {}
+    for annotation_class in annotation_classes:
+        class_id = annotation_class["id"]
+        class_name = annotation_class["name"]
+        class_info = {"name": class_name}
+        class_info["attribute_groups"] = {}
+        if "attribute_groups" in annotation_class:
+            for attribute_group in annotation_class["attribute_groups"]:
+                attribute_group_info = {}
+                for attribute in attribute_group["attributes"]:
+                    attribute_group_info[attribute["id"]] = attribute["name"]
+                class_info["attribute_groups"][attribute_group["id"]] = {
+                    "name": attribute_group["name"],
+                    "attributes": attribute_group_info
+                }
+        annotation_classes_dict[class_id] = class_info
+    return annotation_classes_dict
+
+
+def get_annotation_classes_name_to_id(annotation_classes):
+    annotation_classes_dict = {}
+    for annotation_class in annotation_classes:
+        class_id = annotation_class["id"]
+        class_name = annotation_class["name"]
+        class_info = {"id": class_id}
+        class_info["attribute_groups"] = {}
+        if "attribute_groups" in annotation_class:
+            for attribute_group in annotation_class["attribute_groups"]:
+                attribute_group_info = {}
+                for attribute in attribute_group["attributes"]:
+                    if attribute["name"] in attribute_group_info:
+                        logger.warning(
+                            "Duplicate annotation class attribute name %s in attribute group %s. Only one of the annotation classe attributes will be used. This will result in errors in annotation upload.",
+                            attribute["name"], attribute_group["name"]
+                        )
+                    attribute_group_info[attribute["name"]] = attribute["id"]
+                if attribute_group["name"] in class_info["attribute_groups"]:
+                    logger.warning(
+                        "Duplicate annotation class attribute group name %s. Only one of the annotation classe attribute groups will be used. This will result in errors in annotation upload.",
+                        attribute_group["name"]
+                    )
+                class_info["attribute_groups"][attribute_group["name"]] = {
+                    "id": attribute_group["id"],
+                    "attributes": attribute_group_info
+                }
+        if class_name in annotation_classes_dict:
+            logger.warning(
+                "Duplicate annotation class name %s. Only one of the annotation classes will be used. This will result in errors in annotation upload.",
+                class_name
+            )
+        annotation_classes_dict[class_name] = class_info
+    return annotation_classes_dict

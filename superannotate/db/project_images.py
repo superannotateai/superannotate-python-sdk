@@ -145,54 +145,47 @@ def copy_image(
         destination_project = get_project_metadata(destination_project)
     img_b = get_image_bytes(source_project, image_name)
     img_metadata = get_image_metadata(source_project, image_name)
-    if source_project != destination_project:
-        upload_image_to_project(destination_project, img_b, image_name)
-        new_name = image_name
-    else:
-        extension = Path(image_name).suffix
-        p = re.compile(r"_\([0-9]+\)\.")
-        found_copied = False
-        for m in p.finditer(image_name):
-
-            if m.start() + len(m.group()
-                              ) + len(extension) - 1 == len(image_name):
-                num = int(m.group()[2:-2])
-                found_copied = True
-                break
-        if not found_copied:
-            num = 1
-        while True:
-            if found_copied:
-                new_name = image_name[:m.start() +
-                                      2] + str(num + 1) + ")" + extension
+    new_name = image_name
+    extension = Path(image_name).suffix
+    p = re.compile(r"_\([0-9]+\)\.")
+    while True:
+        try:
+            get_image_metadata(destination_project, new_name)
+        except SABaseException:
+            break
+        else:
+            found_copied = False
+            for m in p.finditer(new_name):
+                if m.start() + len(m.group()
+                                  ) + len(extension) - 1 == len(new_name):
+                    num = int(m.group()[2:-2])
+                    found_copied = True
+                    break
+            if not found_copied:
+                new_name = Path(new_name).stem + "_(1)" + extension
             else:
-                new_name = Path(image_name).stem + f"_({num})" + extension
-            try:
-                get_image_metadata(destination_project, new_name)
-            except SABaseException:
-                break
+                new_name = new_name[:m.start() +
+                                    2] + str(num + 1) + ")" + extension
+    upload_image_to_project(destination_project, img_b, new_name)
+    if include_annotations:
+        annotations = get_image_annotations(source_project, image_name)
+        if annotations["annotation_json"] is not None:
+            if "annotation_mask" in annotations:
+                upload_annotations_from_json_to_image(
+                    destination_project, new_name,
+                    annotations["annotation_json"],
+                    annotations["annotation_mask"]
+                )
             else:
-                num += 1
-        upload_image_to_project(destination_project, img_b, new_name)
-        if include_annotations:
-            annotations = get_image_annotations(source_project, image_name)
-            if annotations["annotation_json"] is not None:
-                if "annotation_mask" in annotations:
-                    upload_annotations_from_json_to_image(
-                        destination_project, new_name,
-                        annotations["annotation_json"],
-                        annotations["annotation_mask"]
-                    )
-                else:
-                    upload_annotations_from_json_to_image(
-                        destination_project, new_name,
-                        annotations["annotation_json"]
-                    )
-        if copy_annotation_status:
-            set_image_annotation_status(
-                destination_project, new_name,
-                annotation_status_int_to_str(img_metadata["annotation_status"])
-            )
+                upload_annotations_from_json_to_image(
+                    destination_project, new_name,
+                    annotations["annotation_json"]
+                )
+    if copy_annotation_status:
+        set_image_annotation_status(
+            destination_project, new_name,
+            annotation_status_int_to_str(img_metadata["annotation_status"])
+        )
 
     logger.info(
         "Copied image %s/%s to %s/%s.", source_project["name"], image_name,

@@ -22,7 +22,9 @@ from ..exceptions import (
     SANonExistingProjectNameException
 )
 from .annotation_classes import (
-    create_annotation_classes_from_classes_json, search_annotation_classes
+    create_annotation_classes_from_classes_json, search_annotation_classes,
+    get_annotation_classes_id_to_name, get_annotation_classes_name_to_id,
+    fill_class_and_attribute_ids, fill_class_and_attribute_names
 )
 from .project import get_project_metadata
 from .users import get_team_contributor_metadata
@@ -562,7 +564,7 @@ def upload_images_to_project(
 
 def __upload_annotations_thread(
     team_id, project_id, project_type, anns_filenames, folder_path,
-    annotation_classes, thread_id, chunksize, num_uploaded, from_s3_bucket,
+    annotation_classes_dict, thread_id, chunksize, num_uploaded, from_s3_bucket,
     actually_uploaded
 ):
     NUM_TO_SEND = 500
@@ -571,14 +573,6 @@ def __upload_annotations_thread(
     if start_index >= len_anns:
         return
     end_index = min(start_index + chunksize, len_anns)
-    annotation_classes_dict = {}
-    for annotation_class in annotation_classes:
-        if annotation_class["name"] in annotation_classes_dict:
-            logger.warning(
-                "Duplicate annotation class name %s. Only one of the annotation classes will be used. This will result in errors in annotation upload.",
-                annotation_class["name"]
-            )
-        annotation_classes_dict[annotation_class["name"]] = annotation_class
 
     postfix_json = '___objects.json' if project_type == 1 else '___pixel.json'
     len_postfix_json = len(postfix_json)
@@ -626,20 +620,9 @@ def __upload_annotations_thread(
                 file.seek(0)
                 annotation_json = json.load(file)
 
-            for ann in annotation_json:
-                if (
-                    "userId" in ann and "type" in ann and ann["type"] == "meta"
-                ) or "className" not in ann:
-                    continue
-                annotation_class_name = ann["className"]
-                if not annotation_class_name in annotation_classes_dict:
-                    logger.error(
-                        "Couldn't find annotation class %s in project's annotation classes.",
-                        annotation_class_name
-                    )
-                    sys.exit(1)
-                class_id = annotation_classes_dict[annotation_class_name]["id"]
-                ann["classId"] = class_id
+            fill_class_and_attribute_ids(
+                annotation_json, annotation_classes_dict
+            )
             bucket.put_object(
                 Key=image_path + postfix_json, Body=json.dumps(annotation_json)
             )
@@ -786,6 +769,9 @@ def _upload_annotations_from_folder_to_project(
     annotation_classes = search_annotation_classes(
         project, return_metadata=True
     )
+    annotation_classes_dict = get_annotation_classes_name_to_id(
+        annotation_classes
+    )
     chunksize = int(math.ceil(len_annotations_paths / _NUM_THREADS))
     threads = []
     for thread_id in range(_NUM_THREADS):
@@ -793,7 +779,7 @@ def _upload_annotations_from_folder_to_project(
             target=__upload_annotations_thread,
             args=(
                 team_id, project_id, project_type, annotations_filenames,
-                folder_path, annotation_classes, thread_id, chunksize,
+                folder_path, annotation_classes_dict, thread_id, chunksize,
                 num_uploaded, from_s3_bucket, actually_uploaded
             )
         )
@@ -812,8 +798,8 @@ def _upload_annotations_from_folder_to_project(
 
 def __upload_preannotations_thread(
     aws_creds, project_type, preannotations_filenames, folder_path,
-    annotation_classes, thread_id, chunksize, num_uploaded, already_uploaded,
-    from_s3_bucket
+    annotation_classes_dict, thread_id, chunksize, num_uploaded,
+    already_uploaded, from_s3_bucket
 ):
     len_preanns = len(preannotations_filenames)
     start_index = thread_id * chunksize
@@ -835,14 +821,6 @@ def __upload_preannotations_thread(
         from_session = boto3.Session()
         from_s3 = from_session.resource('s3')
 
-    annotation_classes_dict = {}
-    for annotation_class in annotation_classes:
-        if annotation_class["name"] in annotation_classes_dict:
-            logger.warning(
-                "Duplicate annotation class name %s. Only one of the annotation classes will be used. This will result in errors in annotation upload.",
-                annotation_class["name"]
-            )
-        annotation_classes_dict[annotation_class["name"]] = annotation_class
     for i in range(start_index, end_index):
         if already_uploaded[i]:
             continue
@@ -858,20 +836,7 @@ def __upload_preannotations_thread(
             file.seek(0)
             annotation_json = json.load(file)
 
-        for ann in annotation_json:
-            if (
-                "userId" in ann and "type" in ann and ann["type"] == "meta"
-            ) or "className" not in ann:
-                continue
-            annotation_class_name = ann["className"]
-            if not annotation_class_name in annotation_classes_dict:
-                logger.error(
-                    "Couldn't find annotation class %s in project's annotation classes.",
-                    annotation_class_name
-                )
-                sys.exit(1)
-            class_id = annotation_classes_dict[annotation_class_name]["id"]
-            ann["classId"] = class_id
+        fill_class_and_attribute_ids(annotation_json, annotation_classes_dict)
         bucket.put_object(
             Key=aws_creds["filePath"] + f"/{json_filename}",
             Body=json.dumps(annotation_json)
@@ -1029,6 +994,9 @@ def _upload_preannotations_from_folder_to_project(
     annotation_classes = search_annotation_classes(
         project, return_metadata=True
     )
+    annotation_classes_dict = get_annotation_classes_name_to_id(
+        annotation_classes
+    )
     while True:
         if sum(num_uploaded) == len_preannotations_paths:
             break
@@ -1047,7 +1015,7 @@ def _upload_preannotations_from_folder_to_project(
                 target=__upload_preannotations_thread,
                 args=(
                     aws_creds, project_type, preannotations_filenames,
-                    folder_path, annotation_classes, thread_id, chunksize,
+                    folder_path, annotation_classes_dict, thread_id, chunksize,
                     num_uploaded, already_uploaded, from_s3_bucket
                 )
             )
