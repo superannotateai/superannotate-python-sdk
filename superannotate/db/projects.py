@@ -351,7 +351,6 @@ def get_image_array_to_upload(
         max_size_root = math.sqrt(max_size)
         nwidth = math.floor(max_size_root * math.sqrt(width / height))
         nheight = math.floor(max_size_root * math.sqrt(height / width))
-        print(nwidth, nheight)
         im = im.resize((nwidth, nheight))
         byte_io_orig = io.BytesIO()
         im.convert('RGB').save(

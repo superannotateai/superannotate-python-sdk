@@ -29,7 +29,18 @@ def test_add_bbox(tmpdir):
     sa.create_annotation_classes_from_classes_json(
         project, PATH_TO_SAMPLE_PROJECT / "classes" / "classes.json"
     )
-    sa.create_annotation_class(project, "test_add", "#FF0000")
+    sa.create_annotation_class(
+        project, "test_add", "#FF0000", [
+            {
+                "name": "height",
+                "attributes": [{
+                    "name": "tall"
+                }, {
+                    "name": "short"
+                }]
+            }
+        ]
+    )
     sa.upload_annotations_from_folder_to_project(
         project, PATH_TO_SAMPLE_PROJECT
     )
@@ -47,7 +58,11 @@ def test_add_bbox(tmpdir):
         project, image_name, [110, 110, 510, 510, 600, 510], "test_add"
     )
     sa.add_annotation_polygon_to_image(
-        project, image_name, [100, 100, 500, 500, 200, 300], "test_add"
+        project, image_name, [100, 100, 500, 500, 200, 300], "test_add",
+        [{
+            "name": "tall",
+            "groupName": "height"
+        }]
     )
     sa.add_annotation_point_to_image(
         project, image_name, [250, 250], "test_add"

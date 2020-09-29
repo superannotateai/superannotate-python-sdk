@@ -165,9 +165,16 @@ def set_image_annotation_status(project, image_name, annotation_status):
 
 
 def add_annotation_bbox_to_image(
-    project, image_name, bbox, annotation_class_name, error=None
+    project,
+    image_name,
+    bbox,
+    annotation_class_name,
+    annotation_class_attributes=None,
+    error=None,
 ):
     """Add a bounding box annotation to image annotations
+
+    annotation_class_attributes has the form [ {"name" : "<attribute_value>" }, "groupName" : "<attribute_group>"} ], ... ]
 
     :param project: project name or metadata of the project
     :type project: str or dict
@@ -177,12 +184,18 @@ def add_annotation_bbox_to_image(
     :type bbox: list of floats
     :param annotation_class_name: annotation class name
     :type annotation_class_name: str
+    :param annotation_class_attributes: list of annotation class attributes
+    :type annotation_class_attributes: list of 2 element dicts
     :param error: if not None, marks annotation as error (True) or no-error (False)
     :type error: bool
     """
     annotations = get_image_annotations(project, image_name)["annotation_json"]
     annotations = add_annotation_bbox_to_json(
-        annotations, bbox, annotation_class_name, error
+        annotations,
+        bbox,
+        annotation_class_name,
+        annotation_class_attributes,
+        error,
     )
     upload_annotations_from_json_to_image(
         project, image_name, annotations, verbose=False
@@ -190,9 +203,16 @@ def add_annotation_bbox_to_image(
 
 
 def add_annotation_polygon_to_image(
-    project, image_name, polygon, annotation_class_name, error=None
+    project,
+    image_name,
+    polygon,
+    annotation_class_name,
+    annotation_class_attributes=None,
+    error=None
 ):
     """Add a polygon annotation to image annotations
+
+    annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
 
     :param project: project name or metadata of the project
     :type project: str or dict
@@ -202,13 +222,16 @@ def add_annotation_polygon_to_image(
     :type polygon: list of floats
     :param annotation_class_name: annotation class name
     :type annotation_class_name: str
+    :param annotation_class_attributes: list of annotation class attributes
+    :type annotation_class_attributes: list of 2 element dicts
     :param error: if not None, marks annotation as error (True) or no-error (False)
     :type error: bool
     """
 
     annotations = get_image_annotations(project, image_name)["annotation_json"]
     annotations = add_annotation_polygon_to_json(
-        annotations, polygon, annotation_class_name, error
+        annotations, polygon, annotation_class_name,
+        annotation_class_attributes, error
     )
     upload_annotations_from_json_to_image(
         project, image_name, annotations, verbose=False
@@ -216,9 +239,16 @@ def add_annotation_polygon_to_image(
 
 
 def add_annotation_polyline_to_image(
-    project, image_name, polyline, annotation_class_name, error=None
+    project,
+    image_name,
+    polyline,
+    annotation_class_name,
+    annotation_class_attributes=None,
+    error=None
 ):
     """Add a polyline annotation to image annotations
+
+    annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
 
     :param project: project name or metadata of the project
     :type project: str or dict
@@ -228,12 +258,15 @@ def add_annotation_polyline_to_image(
     :type polyline: list of floats
     :param annotation_class_name: annotation class name
     :type annotation_class_name: str
+    :param annotation_class_attributes: list of annotation class attributes
+    :type annotation_class_attributes: list of 2 element dicts
     :param error: if not None, marks annotation as error (True) or no-error (False)
     :type error: bool
     """
     annotations = get_image_annotations(project, image_name)["annotation_json"]
     annotations = add_annotation_polyline_to_json(
-        annotations, polyline, annotation_class_name, error
+        annotations, polyline, annotation_class_name,
+        annotation_class_attributes, error
     )
     upload_annotations_from_json_to_image(
         project, image_name, annotations, verbose=False
@@ -241,9 +274,16 @@ def add_annotation_polyline_to_image(
 
 
 def add_annotation_point_to_image(
-    project, image_name, point, annotation_class_name, error=None
+    project,
+    image_name,
+    point,
+    annotation_class_name,
+    annotation_class_attributes=None,
+    error=None
 ):
     """Add a point annotation to image annotations
+
+    annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
 
     :param project: project name or metadata of the project
     :type project: str or dict
@@ -253,12 +293,15 @@ def add_annotation_point_to_image(
     :type point: list of floats
     :param annotation_class_name: annotation class name
     :type annotation_class_name: str
+    :param annotation_class_attributes: list of annotation class attributes
+    :type annotation_class_attributes: list of 2 element dicts
     :param error: if not None, marks annotation as error (True) or no-error (False)
     :type error: bool
     """
     annotations = get_image_annotations(project, image_name)["annotation_json"]
     annotations = add_annotation_point_to_json(
-        annotations, point, annotation_class_name, error
+        annotations, point, annotation_class_name, annotation_class_attributes,
+        error
     )
     upload_annotations_from_json_to_image(
         project, image_name, annotations, verbose=False
@@ -266,9 +309,16 @@ def add_annotation_point_to_image(
 
 
 def add_annotation_ellipse_to_image(
-    project, image_name, ellipse, annotation_class_name, error=None
+    project,
+    image_name,
+    ellipse,
+    annotation_class_name,
+    annotation_class_attributes=None,
+    error=None
 ):
     """Add an ellipse annotation to image annotations
+
+    annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
 
     :param project: project name or metadata of the project
     :type project: str or dict
@@ -278,12 +328,15 @@ def add_annotation_ellipse_to_image(
     :type ellipse: list of floats
     :param annotation_class_name: annotation class name
     :type annotation_class_name: str
+    :param annotation_class_attributes: list of annotation class attributes
+    :type annotation_class_attributes: list of 2 element dicts
     :param error: if not None, marks annotation as error (True) or no-error (False)
     :type error: bool
     """
     annotations = get_image_annotations(project, image_name)["annotation_json"]
     annotations = add_annotation_ellipse_to_json(
-        annotations, ellipse, annotation_class_name, error
+        annotations, ellipse, annotation_class_name,
+        annotation_class_attributes, error
     )
     upload_annotations_from_json_to_image(
         project, image_name, annotations, verbose=False
@@ -296,9 +349,12 @@ def add_annotation_template_to_image(
     template_points,
     template_connections,
     annotation_class_name,
+    annotation_class_attributes=None,
     error=None
 ):
     """Add a template annotation to image annotations
+
+    annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
 
     :param project: project name or metadata of the project
     :type project: str or dict
@@ -314,13 +370,15 @@ def add_annotation_template_to_image(
     :type template_connections: list of ints
     :param annotation_class_name: annotation class name
     :type annotation_class_name: str
+    :param annotation_class_attributes: list of annotation class attributes
+    :type annotation_class_attributes: list of 2 element dicts
     :param error: if not None, marks annotation as error (True) or no-error (False)
     :type error: bool
     """
     annotations = get_image_annotations(project, image_name)["annotation_json"]
     annotations = add_annotation_template_to_json(
         annotations, template_points, template_connections,
-        annotation_class_name, error
+        annotation_class_name, annotation_class_attributes, error
     )
     upload_annotations_from_json_to_image(
         project, image_name, annotations, verbose=False
@@ -328,9 +386,16 @@ def add_annotation_template_to_image(
 
 
 def add_annotation_cuboid_to_image(
-    project, image_name, cuboid, annotation_class_name, error=None
+    project,
+    image_name,
+    cuboid,
+    annotation_class_name,
+    annotation_class_attributes=None,
+    error=None
 ):
     """Add a cuboid annotation to image annotations
+
+    annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
 
     :param project: project name or metadata of the project
     :type project: str or dict
@@ -343,12 +408,15 @@ def add_annotation_cuboid_to_image(
     :type cuboid: list of floats
     :param annotation_class_name: annotation class name
     :type annotation_class_name: str
+    :param annotation_class_attributes: list of annotation class attributes
+    :type annotation_class_attributes: list of 2 element dicts
     :param error: if not None, marks annotation as error (True) or no-error (False)
     :type error: bool
     """
     annotations = get_image_annotations(project, image_name)["annotation_json"]
     annotations = add_annotation_cuboid_to_json(
-        annotations, cuboid, annotation_class_name, error
+        annotations, cuboid, annotation_class_name, annotation_class_attributes,
+        error
     )
     upload_annotations_from_json_to_image(
         project, image_name, annotations, verbose=False

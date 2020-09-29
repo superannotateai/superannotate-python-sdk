@@ -4,9 +4,15 @@ from .exceptions import SABaseException
 
 
 def add_annotation_bbox_to_json(
-    annotation_json, bbox, annotation_class_name, error=None
+    annotation_json,
+    bbox,
+    annotation_class_name,
+    annotation_class_attributes=None,
+    error=None
 ):
     """Add a bounding box annotation to SuperAnnotate format annotation JSON
+
+    annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
 
     :param annotation_json: annotations in SuperAnnotate format JSON or filepath to JSON
     :type annotation_json: list or Pathlike (str or Path)
@@ -14,6 +20,8 @@ def add_annotation_bbox_to_json(
     :type bbox: list of floats
     :param annotation_class_name: annotation class name
     :type annotation_class_name: str
+    :param annotation_class_attributes: list of annotation class attributes
+    :type annotation_class_attributes: list of 2 element dicts
     :param error: if not None, marks annotation as error (True) or no-error (False)
     :type error: bool
     """
@@ -27,20 +35,28 @@ def add_annotation_bbox_to_json(
         annotation_json = json.load(open(annotation_json))
 
     annotation = {
-        "type": "bbox",
+        "type":
+            "bbox",
         "points": {
             "x1": bbox[0],
             "y1": bbox[1],
             "x2": bbox[2],
             "y2": bbox[3]
         },
-        "className": annotation_class_name,
-        "error": error,
-        "groupId": 0,
+        "className":
+            annotation_class_name,
+        "error":
+            error,
+        "groupId":
+            0,
         "pointLabels": {},
-        "locked": False,
-        "visible": True,
-        "attributes": [],
+        "locked":
+            False,
+        "visible":
+            True,
+        "attributes":
+            [] if annotation_class_attributes is None else
+            annotation_class_attributes
     }
     if annotation_json is None:
         annotation_json = []
@@ -52,9 +68,15 @@ def add_annotation_bbox_to_json(
 
 
 def add_annotation_polygon_to_json(
-    annotation_json, polygon, annotation_class_name, error=None
+    annotation_json,
+    polygon,
+    annotation_class_name,
+    annotation_class_attributes=None,
+    error=None
 ):
     """Add a polygon annotation to SuperAnnotate format annotation JSON
+
+    annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
 
     :param annotation_json: annotations in SuperAnnotate format JSON or filepath to JSON
     :type annotation_json: list or Pathlike (str or Path)
@@ -62,6 +84,8 @@ def add_annotation_polygon_to_json(
     :type polygon: list of floats
     :param annotation_class_name: annotation class name
     :type annotation_class_name: str
+    :param annotation_class_attributes: list of annotation class attributes
+    :type annotation_class_attributes: list of 2 element dicts
     :param error: if not None, marks annotation as error (True) or no-error (False)
     :type error: bool
     """
@@ -76,15 +100,24 @@ def add_annotation_polygon_to_json(
         annotation_json = json.load(open(annotation_json))
 
     annotation = {
-        "type": "polygon",
-        "points": polygon,
-        "className": annotation_class_name,
-        "error": error,
-        "groupId": 0,
+        "type":
+            "polygon",
+        "points":
+            polygon,
+        "className":
+            annotation_class_name,
+        "error":
+            error,
+        "groupId":
+            0,
         "pointLabels": {},
-        "locked": False,
-        "visible": True,
-        "attributes": [],
+        "locked":
+            False,
+        "visible":
+            True,
+        "attributes":
+            [] if annotation_class_attributes is None else
+            annotation_class_attributes
     }
     if annotation_json is None:
         annotation_json = []
@@ -96,9 +129,15 @@ def add_annotation_polygon_to_json(
 
 
 def add_annotation_polyline_to_json(
-    annotation_json, polyline, annotation_class_name, error=None
+    annotation_json,
+    polyline,
+    annotation_class_name,
+    annotation_class_attributes=None,
+    error=None
 ):
     """Add a polyline annotation to SuperAnnotate format annotation JSON
+
+    annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
 
     :param annotation_json: annotations in SuperAnnotate format JSON or filepath to JSON
     :type annotation_json: list or Pathlike (str or Path)
@@ -106,6 +145,8 @@ def add_annotation_polyline_to_json(
     :type polyline: list of floats
     :param annotation_class_name: annotation class name
     :type annotation_class_name: str
+    :param annotation_class_attributes: list of annotation class attributes
+    :type annotation_class_attributes: list of 2 element dicts
     :param error: if not None, marks annotation as error (True) or no-error (False)
     :type error: bool
     """
@@ -121,15 +162,24 @@ def add_annotation_polyline_to_json(
         annotation_json = json.load(open(annotation_json))
 
     annotation = {
-        "type": "polyline",
-        "points": polyline,
-        "className": annotation_class_name,
-        "error": error,
-        "groupId": 0,
+        "type":
+            "polyline",
+        "points":
+            polyline,
+        "className":
+            annotation_class_name,
+        "error":
+            error,
+        "groupId":
+            0,
         "pointLabels": {},
-        "locked": False,
-        "visible": True,
-        "attributes": [],
+        "locked":
+            False,
+        "visible":
+            True,
+        "attributes":
+            [] if annotation_class_attributes is None else
+            annotation_class_attributes
     }
     if annotation_json is None:
         annotation_json = []
@@ -141,9 +191,15 @@ def add_annotation_polyline_to_json(
 
 
 def add_annotation_point_to_json(
-    annotation_json, point, annotation_class_name, error=None
+    annotation_json,
+    point,
+    annotation_class_name,
+    annotation_class_attributes=None,
+    error=None
 ):
     """Add a point annotation to SuperAnnotate format annotation JSON
+
+    annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
 
     :param annotation_json: annotations in SuperAnnotate format JSON or filepath to JSON
     :type annotation_json: list or Pathlike (str or Path)
@@ -151,6 +207,8 @@ def add_annotation_point_to_json(
     :type point: list of floats
     :param annotation_class_name: annotation class name
     :type annotation_class_name: str
+    :param annotation_class_attributes: list of annotation class attributes
+    :type annotation_class_attributes: list of 2 element dicts
     :param error: if not None, marks annotation as error (True) or no-error (False)
     :type error: bool
     """
@@ -163,16 +221,26 @@ def add_annotation_point_to_json(
         annotation_json = json.load(open(annotation_json))
 
     annotation = {
-        "type": "point",
-        "x": point[0],
-        "y": point[1],
-        "className": annotation_class_name,
-        "error": error,
-        "groupId": 0,
+        "type":
+            "point",
+        "x":
+            point[0],
+        "y":
+            point[1],
+        "className":
+            annotation_class_name,
+        "error":
+            error,
+        "groupId":
+            0,
         "pointLabels": {},
-        "locked": False,
-        "visible": True,
-        "attributes": [],
+        "locked":
+            False,
+        "visible":
+            True,
+        "attributes":
+            [] if annotation_class_attributes is None else
+            annotation_class_attributes
     }
     if annotation_json is None:
         annotation_json = []
@@ -184,9 +252,15 @@ def add_annotation_point_to_json(
 
 
 def add_annotation_ellipse_to_json(
-    annotation_json, ellipse, annotation_class_name, error=None
+    annotation_json,
+    ellipse,
+    annotation_class_name,
+    annotation_class_attributes=None,
+    error=None
 ):
     """Add an ellipse annotation to SuperAnnotate format annotation JSON
+
+    annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
 
     :param annotation_json: annotations in SuperAnnotate format JSON or filepath to JSON
     :type annotation_json: list or Pathlike (str or Path)
@@ -196,6 +270,8 @@ def add_annotation_ellipse_to_json(
     :type ellipse: list of floats
     :param annotation_class_name: annotation class name
     :type annotation_class_name: str
+    :param annotation_class_attributes: list of annotation class attributes
+    :type annotation_class_attributes: list of 2 element dicts
     :param error: if not None, marks annotation as error (True) or no-error (False)
     :type error: bool
     """
@@ -208,19 +284,32 @@ def add_annotation_ellipse_to_json(
         annotation_json = json.load(open(annotation_json))
 
     annotation = {
-        "type": "ellipse",
-        "cx": ellipse[0],
-        "cy": ellipse[1],
-        "rx": ellipse[2],
-        "ry": ellipse[3],
-        "angle": ellipse[4],
-        "className": annotation_class_name,
-        "error": error,
-        "groupId": 0,
+        "type":
+            "ellipse",
+        "cx":
+            ellipse[0],
+        "cy":
+            ellipse[1],
+        "rx":
+            ellipse[2],
+        "ry":
+            ellipse[3],
+        "angle":
+            ellipse[4],
+        "className":
+            annotation_class_name,
+        "error":
+            error,
+        "groupId":
+            0,
         "pointLabels": {},
-        "locked": False,
-        "visible": True,
-        "attributes": [],
+        "locked":
+            False,
+        "visible":
+            True,
+        "attributes":
+            [] if annotation_class_attributes is None else
+            annotation_class_attributes
     }
     if annotation_json is None:
         annotation_json = []
@@ -236,9 +325,12 @@ def add_annotation_template_to_json(
     template_points,
     template_connections,
     annotation_class_name,
+    annotation_class_attributes=None,
     error=None
 ):
     """Add a template annotation to SuperAnnotate format annotation JSON
+
+    annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
 
     :param annotation_json: annotations in SuperAnnotate format JSON or filepath to JSON
     :type annotation_json: list or Pathlike (str or Path)
@@ -252,6 +344,8 @@ def add_annotation_template_to_json(
     :type template_connections: list of ints
     :param annotation_class_name: annotation class name
     :type annotation_class_name: str
+    :param annotation_class_attributes: list of annotation class attributes
+    :type annotation_class_attributes: list of 2 element dicts
     :param error: if not None, marks annotation as error (True) or no-error (False)
     :type error: bool
     """
@@ -270,16 +364,24 @@ def add_annotation_template_to_json(
         annotation_json = json.load(open(annotation_json))
 
     annotation = {
-        "type": "template",
+        "type":
+            "template",
         "points": [],
         "connections": [],
-        "className": annotation_class_name,
-        "error": error,
-        "groupId": 0,
+        "className":
+            annotation_class_name,
+        "error":
+            error,
+        "groupId":
+            0,
         "pointLabels": {},
-        "locked": False,
-        "visible": True,
-        "attributes": [],
+        "locked":
+            False,
+        "visible":
+            True,
+        "attributes":
+            [] if annotation_class_attributes is None else
+            annotation_class_attributes
     }
     for i in range(0, len(template_points), 2):
         annotation["points"].append(
@@ -307,9 +409,15 @@ def add_annotation_template_to_json(
 
 
 def add_annotation_cuboid_to_json(
-    annotation_json, cuboid, annotation_class_name, error=None
+    annotation_json,
+    cuboid,
+    annotation_class_name,
+    annotation_class_attributes=None,
+    error=None
 ):
     """Add a cuboid annotation to SuperAnnotate format annotation JSON
+
+    annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
 
     :param annotation_json: annotations in SuperAnnotate format JSON or filepath to JSON
     :type annotation_json: list or Pathlike (str or Path)
@@ -320,6 +428,8 @@ def add_annotation_cuboid_to_json(
     :type cuboid: list of floats
     :param annotation_class_name: annotation class name
     :type annotation_class_name: str
+    :param annotation_class_attributes: list of attributes
+    :type error: list of 2 element dicts
     :param error: if not None, marks annotation as error (True) or no-error (False)
     :type error: bool
     """
@@ -332,7 +442,8 @@ def add_annotation_cuboid_to_json(
         annotation_json = json.load(open(annotation_json))
 
     annotation = {
-        "type": "cuboid",
+        "type":
+            "cuboid",
         "points":
             {
                 "f1": {
@@ -352,13 +463,20 @@ def add_annotation_cuboid_to_json(
                     "y": cuboid[7]
                 },
             },
-        "className": annotation_class_name,
-        "error": error,
-        "groupId": 0,
+        "className":
+            annotation_class_name,
+        "error":
+            error,
+        "groupId":
+            0,
         "pointLabels": {},
-        "locked": False,
-        "visible": True,
-        "attributes": [],
+        "locked":
+            False,
+        "visible":
+            True,
+        "attributes":
+            [] if annotation_class_attributes is None else
+            annotation_class_attributes
     }
     if annotation_json is None:
         annotation_json = []
