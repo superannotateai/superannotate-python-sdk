@@ -49,6 +49,8 @@ def main():
         ask_token(further_args)
     elif command == "export-project":
         export_project(further_args)
+    elif command == "version":
+        print(f"SuperAnnotate Python SDK version {sa.Version}")
     else:
         raise SABaseException(0, "Wrong command to superannotate CLI")
 

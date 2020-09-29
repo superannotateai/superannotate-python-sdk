@@ -89,8 +89,12 @@ class API:
                 self._authenticated = False
                 self._session = None
                 if "Not authorized" in response.text:
-                    raise SABaseException(0, "Couldn't authorize")
-                raise SABaseException(0, "Couldn't reach superannotate")
+                    raise SABaseException(
+                        0, "Couldn't authorize " + response.text
+                    )
+                raise SABaseException(
+                    0, "Couldn't reach superannotate " + response.text
+                )
         except SABaseException:
             self._authenticated = False
             self._session = None
