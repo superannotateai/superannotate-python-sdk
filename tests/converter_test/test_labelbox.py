@@ -4,9 +4,10 @@ import os
 
 def labelbox_convert(tmpdir):
     out_dir = tmpdir / "output"
+    dataset_name = 'labelbox_example'
     sa.import_annotation_format(
         'tests/converter_test/LabelBox/input/toSuperAnnotate', out_dir,
-        'LabelBox', 'labelbox_example', 'Vector', 'vector_annotation', 'Web'
+        'LabelBox', dataset_name, 'Vector', 'vector_annotation', 'Web'
     )
 
     all_files = os.listdir(out_dir)
@@ -19,6 +20,7 @@ def labelbox_convert(tmpdir):
     image_files = set(
         [file for file in all_files if os.path.splitext(file) == '.jpg']
     )
+
     if json_files != image_files:
         return 1
     return 0
