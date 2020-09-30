@@ -451,6 +451,11 @@ def download_image(
         raise SABaseException(
             0, f"local_dir_path {local_dir_path} is not an existing directory"
         )
+    if variant not in ["original", "lores"]:
+        raise SABaseException(
+            0, "Image download variant should be either original or lores"
+        )
+
     img = get_image_bytes(project, image_name, variant=variant)
     if variant == "lores":
         image_name += "___lores.jpg"
@@ -504,6 +509,10 @@ def get_image_bytes(project, image_name, variant='original'):
     :return: io.BytesIO() of the image
     :rtype: io.BytesIO()
     """
+    if variant not in ["original", "lores"]:
+        raise SABaseException(
+            0, "Image download variant should be either original or lores"
+        )
     image = get_image_metadata(project, image_name)
     team_id, project_id, image_id, folder_id = image["team_id"], image[
         "project_id"], image["id"], image['folder_id']

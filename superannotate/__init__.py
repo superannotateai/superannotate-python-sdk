@@ -80,9 +80,14 @@ def _check_version():
             _ver = packaging.version.parse(_release)
             if not _ver.is_prerelease:
                 _version_on_pip = max(_version_on_pip, _ver)
-        if _version_on_pip > _Version:
+        if _version_on_pip.major > _Version.major:
+            logger.warning(
+                "There is a major upgrade of SuperAnnotate Python SDK available on PyPI. We recommend upgrading. Run 'pip install --upgrade superannotate' to upgrade from your version %s to %s.",
+                _Version, _version_on_pip
+            )
+        elif _version_on_pip > _Version:
             logger.info(
-                "There is newer version of SuperAnnotate Python SDK available on PyPI. Run 'pip install --upgrade superannotate' to upgrade from your version %s to %s.",
+                "There is a newer version of SuperAnnotate Python SDK available on PyPI. Run 'pip install --upgrade superannotate' to upgrade from your version %s to %s.",
                 _Version, _version_on_pip
             )
 

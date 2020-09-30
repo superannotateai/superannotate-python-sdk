@@ -95,13 +95,14 @@ def upload_image_to_project(
     )
     s3_resource = s3_session.resource('s3')
     bucket = s3_resource.Bucket(res["bucket"])
-    orig_image, lores_image, thumbnail_image = get_image_array_to_upload(
+    orig_image, lores_image, huge_image, thumbnail_image = get_image_array_to_upload(
         img, project["type"], image_quality_in_editor
     )
     key = prefix + f'{img_name}'
     try:
         bucket.put_object(Body=orig_image, Key=key)
         bucket.put_object(Body=lores_image, Key=key + '___lores.jpg')
+        bucket.put_object(Body=huge_image, Key=key + '___huge.jpg')
         bucket.put_object(Body=thumbnail_image, Key=key + '___thumb.jpg')
     except Exception as e:
         raise SABaseException(0, "Couldn't upload to data server. " + e)

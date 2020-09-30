@@ -365,14 +365,20 @@ def get_image_array_to_upload(
         quality=image_quality_in_editor
     )
 
+    byte_io_huge = io.BytesIO()
+    hsize = int(height * 600.0 / width)
+    im.convert('RGB').resize((600, hsize),
+                             Image.ANTIALIAS).save(byte_io_huge, 'JPEG')
+
     byte_io_thumbs = io.BytesIO()
     im.convert('RGB').resize((128, 96)).save(byte_io_thumbs, 'JPEG')
 
     byte_io_thumbs.seek(0)
     byte_io_lores.seek(0)
+    byte_io_huge.seek(0)
     byte_io_orig.seek(0)
 
-    return byte_io_orig, byte_io_lores, byte_io_thumbs
+    return byte_io_orig, byte_io_lores, byte_io_huge, byte_io_thumbs
 
 
 def __upload_images_to_aws_thread(
@@ -420,7 +426,7 @@ def __upload_images_to_aws_thread(
         else:
             with open(path, "rb") as f:
                 file = io.BytesIO(f.read())
-        orig_image, lores_image, thumbnail_image = get_image_array_to_upload(
+        orig_image, lores_image, huge_image, thumbnail_image = get_image_array_to_upload(
             file, project_type, image_quality_in_editor
         )
         try:
@@ -432,6 +438,11 @@ def __upload_images_to_aws_thread(
             bucket.put_object(Body=lores_image, Key=key + '___lores.jpg')
         except Exception as e:
             logger.warning("Unable to upload lores_image to data server %s.", e)
+            break
+        try:
+            bucket.put_object(Body=huge_image, Key=key + '___huge.jpg')
+        except Exception as e:
+            logger.warning("Unable to upload huge_image to data server %s.", e)
             break
         try:
             bucket.put_object(Body=thumbnail_image, Key=key + '___thumb.jpg')
