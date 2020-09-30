@@ -62,7 +62,7 @@ def voc_pixel(tmpdir):
 
     if projects:
         sa.delete_project(projects[0])
-    project = sa.create_project(project_name, "converter vector", "Vector")
+    project = sa.create_project(project_name, "converter vector", "Pixel")
 
     sa.create_annotation_classes_from_classes_json(
         project, out_dir + "/classes/classes.json"

@@ -46,6 +46,8 @@ ALLOWED_CONVERSIONS_DATALOOP_TO_SA = [
     ('Vector', 'vector_annotation')
 ]
 
+ALLOWED_CONVERSIONS_SUPERVISELY_TO_SA = [('Vector', 'vector_annotation')]
+
 
 def _passes_sanity_checks(args):
     if not isinstance(args.input_dir, str):
@@ -110,7 +112,7 @@ def _passes_converter_sanity(args, direction):
         elif args.dataset_format == "LabelBox" and \
         converter_values in ALLOWED_CONVERSIONS_LABELBOX_TO_SA:
             return True
-        elif args.dataset_format == "DataLoop" and converter_values in ALLOWED_CONVERSIONS_VOC_TO_SA:
+        elif args.dataset_format == "DataLoop" and converter_values in ALLOWED_CONVERSIONS_DATALOOP_TO_SA:
             return True
     else:
         if args.dataset_format == "COCO" and converter_values in ALLOWED_CONVERSIONS_SA_TO_COCO:
@@ -207,6 +209,7 @@ def import_annotation_format(
      project_type           task
     ==============  ======================
     Pixel           panoptic_segmentation
+    Pixel           instance_segmentation
     Vector          instance_segmentation
     Vector          keypoint_detection
     ==============  ======================
@@ -238,6 +241,14 @@ def import_annotation_format(
     ==============  ======================
     Vector          object_detection
     Vector          instance_segmentation
+    Vector          vector_annotation
+    ==============  ====================== 
+
+    ==============  ======================
+           From Supervisely to SA
+    --------------------------------------
+     project_type           task
+    ==============  ======================
     Vector          vector_annotation
     ==============  ====================== 
 

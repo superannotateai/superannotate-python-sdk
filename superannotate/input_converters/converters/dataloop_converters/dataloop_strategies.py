@@ -2,7 +2,7 @@ import os
 import json
 
 from .dataloop_converter import DataLoopConverter
-from .dataloop_to_sa_vector import dataloop_object_detection_to_sa_vector, dataloop_instance_segmentation_to_sa_vector
+from .dataloop_to_sa_vector import dataloop_object_detection_to_sa_vector, dataloop_instance_segmentation_to_sa_vector, dataloop_to_sa
 
 
 class DataLoopObjectDetectionStrategy(DataLoopConverter):
@@ -25,9 +25,11 @@ class DataLoopObjectDetectionStrategy(DataLoopConverter):
         else:
             if self.project_type == "Vector":
                 if self.task == "object_detection":
-                    self.converion_algorithm = dataloop_object_detection_to_sa_vector
+                    self.conversion_algorithm = dataloop_object_detection_to_sa_vector
                 elif self.task == 'instance_segmentation':
-                    self.converion_algorithm = dataloop_instance_segmentation_to_sa_vector
+                    self.conversion_algorithm = dataloop_instance_segmentation_to_sa_vector
+                elif self.task == 'vector_annotation':
+                    self.conversion_algorithm = dataloop_to_sa
             elif self.project_type == "Pixel":
                 raise NotImplementedError("Doesn't support yet")
 
@@ -38,7 +40,22 @@ class DataLoopObjectDetectionStrategy(DataLoopConverter):
         pass
 
     def to_sa_format(self):
-        json_data = json.load(
-            open(os.path.join(self.export_root, self.dataset_name + '.json'))
+        id_generator = self._make_id_generator()
+        classes_json, sa_jsons = self.conversion_algorithm(
+            self.export_root, id_generator
         )
-        self.converion_algorithm(json_data, self.output_dir)
+
+        with open(
+            os.path.join(self.output_dir, "classes", "classes.json"), "w"
+        ) as fp:
+            json.dump(classes_json, fp, indent=2)
+
+        for sa_json_name, sa_json_value in sa_jsons.items():
+            with open(os.path.join(self.output_dir, sa_json_name), "w") as fp:
+                json.dump(sa_json_value, fp, indent=2)
+
+    def _make_id_generator(self):
+        cur_id = 0
+        while True:
+            cur_id += 1
+            yield cur_id
