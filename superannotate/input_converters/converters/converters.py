@@ -82,7 +82,7 @@ class Converter(object):
                     method.direction
                 )
         elif method.dataset_format == "DataLoop":
-            if task == 'object_detection' or task == 'instance_segmentation':
+            if task == 'object_detection' or task == 'instance_segmentation' or task == 'vector_annotation':
                 c_strategy = DataLoopObjectDetectionStrategy(
                     dataset_name, export_root, project_type, output_dir, task,
                     method.direction
