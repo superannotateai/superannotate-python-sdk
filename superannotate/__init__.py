@@ -35,6 +35,7 @@ from .version import Version
 
 from .input_converters.conversion import convert_annotation_format_from, convert_annotation_format_to
 
+from .compareutils.compare import compare
 #formatter = logging.Formatter(fmt='%(asctime)s - %(levelname)s - %(module)s - %(message)s')
 formatter = logging.Formatter(fmt='SA-PYTHON-SDK - %(levelname)s - %(message)s')
 

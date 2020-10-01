@@ -13,6 +13,8 @@ _ANNOTATION_STATUSES = {
 }
 _USER_ROLES = {"Admin": 2, "Annotator": 3, "QA": 4, "Customer": 5, "Viewer": 6}
 
+SA_CM_COMPARE_FAST = 1
+SA_CM_COMPARE_ACCURATE = 2
 
 def image_path_to_annotation_paths(image_path, project_type):
     image_path = Path(image_path)
