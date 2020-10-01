@@ -1,9 +1,10 @@
-import os
-import json
-import shutil
 import glob
-import time
+import json
 import logging
+import os
+import shutil
+import time
+
 from tqdm import tqdm
 
 

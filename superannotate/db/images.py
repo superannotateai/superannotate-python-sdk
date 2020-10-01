@@ -4,6 +4,9 @@ import logging
 from pathlib import Path
 
 import boto3
+import cv2
+import numpy as np
+import PIL
 import requests
 
 from ..annotation_helpers import (
@@ -13,7 +16,10 @@ from ..annotation_helpers import (
     add_annotation_template_to_json
 )
 from ..api import API
-from ..common import annotation_status_str_to_int, deprecated_alias
+from ..common import (
+    annotation_status_str_to_int, deprecated_alias,
+    image_path_to_annotation_paths
+)
 from ..exceptions import SABaseException
 from .annotation_classes import (
     fill_class_and_attribute_ids, fill_class_and_attribute_names,
@@ -895,3 +901,30 @@ def upload_annotations_from_json_to_image(
         raise SABaseException(
             response.status_code, "Couldn't upload annotation. " + response.text
         )
+
+
+def create_fuse_image(image, classes_json, project_type, in_memory=False):
+    annotation_path = image_path_to_annotation_paths(image, project_type)
+    annotation_json = json.load(open(annotation_path[0]))
+    if not isinstance(classes_json, list):
+        classes_json = json.load(open(classes_json))
+    class_color_dict = {}
+    for ann_class in classes_json:
+        if "name" not in ann_class:
+            continue
+        class_color_dict[ann_class["name"]] = ann_class["color"]
+    image_size = PIL.Image.open(image).size
+    fi = np.zeros((image_size[0], image_size[1], 3))
+    if project_type == "Vector":
+        for annotation in annotation_json:
+            if "className" not in annotation:
+                continue
+            color = class_color_dict[annotation["className"]]
+            if annotation["type"] == "bbox":
+                pt1 = (annotation["points"]["x1"], annotation["points"]["y1"])
+                pt2 = (annotation["points"]["x2"], annotation["points"]["y2"])
+                cv2.rectangle(fi, pt1, pt2, color, cv2.FILLED)
+    else:
+        annotation_mask = PIL.Image.open(annotation_path[1])
+
+    cv2.imwrite(str(image) + "___fuse.png"
