@@ -927,4 +927,4 @@ def create_fuse_image(image, classes_json, project_type, in_memory=False):
     else:
         annotation_mask = PIL.Image.open(annotation_path[1])
 
-    cv2.imwrite(str(image) + "___fuse.png"
+    cv2.imwrite(str(image) + "___fuse.png")
