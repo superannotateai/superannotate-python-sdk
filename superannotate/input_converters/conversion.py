@@ -4,10 +4,12 @@ Main module for input converters
 import sys
 import logging
 from argparse import Namespace
+from pathlib import Path
 
 from .import_to_sa_conversions import import_to_sa
 from .export_from_sa_conversions import export_from_sa
 from .sa_conversion import sa_conversion
+from ..exceptions import SABaseException
 
 AVAILABLE_ANNOTATION_FORMATS = ["COCO", "VOC", "LabelBox", "DataLoop"]
 
@@ -50,55 +52,46 @@ ALLOWED_CONVERSIONS_SUPERVISELY_TO_SA = [('Vector', 'vector_annotation')]
 
 
 def _passes_sanity_checks(args):
-    if not isinstance(args.input_dir, str):
-        log_msg = "'input_dir' should be 'str' type, not '%s'" % (
+    if not isinstance(args.input_dir, (str, Path)):
+        log_msg = "'input_dir' should be 'str' or 'Path' type, not '%s'" % (
             type(args.input_dir)
         )
-        logging.error(log_msg)
-        return False
+        raise SABaseException(0, log_msg)
 
-    # if isinstance(args.output_dir, str):
-    #     logging.error(
-    #         "'output_dir' should be 'str' type, not {}".format(
-    #             type(args.output_dir)
-    #         )
-    #     )
-    #     return False
+    if not isinstance(args.output_dir, (str, Path)):
+        log_msg = "'output_dir' should be 'str' or 'Path' type, not {}".format(
+            type(args.output_dir)
+        )
+        raise SABaseException(0, log_msg)
 
     if args.dataset_format not in AVAILABLE_ANNOTATION_FORMATS:
         log_msg = "'%s' converter doesn't exist. Possible candidates are '%s'"\
          % (args.dataset_format, AVAILABLE_ANNOTATION_FORMATS)
-        logging.error(log_msg)
-        return False
+        raise SABaseException(0, log_msg)
 
-    # if isinstance(args.dataset_name, str):
-    #     logging.error(
-    #         "'dataset_name' should be 'str' type, not {}".format(
-    #             type(args.dataset_name)
-    #         )
-    #     )
-    #     return False
+    if not isinstance(args.dataset_name, str):
+        log_msg = "'dataset_name' should be 'str' type, not {}".format(
+            type(args.dataset_name)
+        )
+        raise SABaseException(0, log_msg)
 
     if args.project_type not in ALLOWED_PROJECT_TYPES:
-        logging.error("Please enter valid project type: 'Pixel' or 'Vector'")
-        return False
+        log_msg = "Please enter valid project type: 'Pixel' or 'Vector'"
+        raise SABaseException(0, log_msg)
 
     if args.task not in ALLOWED_TASK_TYPES:
         log_msg = "Please enter valid task '%s'" % (ALLOWED_TASK_TYPES)
-        logging.error(log_msg)
-        return False
+        raise SABaseException(0, log_msg)
 
-    try:
+    if 'platform' in args:
         if args.platform not in AVAILABLE_PLATFORMS:
-            logging.error("Please enter valid platform: 'Desktop' or 'Web'")
-            return False
-    except AttributeError:
-        logging.error("Argument 'platform' doesn't exist for this method")
+            log_msg = "Please enter valid platform: 'Desktop' or 'Web'"
+            raise SABaseException(0, log_msg)
 
     if args.task == "Pixel" and args.platform == "Desktop":
-        logging.error(
-            "Sorry, but Desktop Application doesn't support 'Pixel' projects yet."
-        )
+        log_msg = "Sorry, but Desktop Application doesn't support 'Pixel' projects yet."
+        raise SABaseException(0, log_msg)
+
     return True
 
 
@@ -114,15 +107,16 @@ def _passes_converter_sanity(args, direction):
             return True
         elif args.dataset_format == "DataLoop" and converter_values in ALLOWED_CONVERSIONS_DATALOOP_TO_SA:
             return True
+        elif args.dataset_format == "Supervisely" and converter_values in ALLOWED_CONVERSIONS_SUPERVISELY_TO_SA:
+            return True
     else:
         if args.dataset_format == "COCO" and converter_values in ALLOWED_CONVERSIONS_SA_TO_COCO:
             return True
 
-    logging.error(
-        "Please enter valid converter values. You can check available \
+    log_msg = "Please enter valid converter values. You can check available \
         candidates in the documentation(https://superannotate.readthedocs.io/en/latest/index.html)."
-    )
-    return False
+
+    raise SABaseException(log_msg)
 
 
 def export_annotation_format(
@@ -304,10 +298,20 @@ def convert_platform(input_dir, output_dir, input_platform):
     :type input_platform: str
 
     """
-    if not isinstance(input_dir, str):
-        log_msg = "'input_dir' should be 'str' type, not '%s'" % (
+    if not isinstance(input_dir, (str, Path)):
+        log_msg = "'input_dir' should be 'str' or 'Path' type, not '%s'" % (
             type(input_dir)
         )
-        logging.error(log_msg)
+        raise SABaseException(0, log_msg)
+
+    if not isinstance(output_dir, (str, Path)):
+        log_msg = "'output_dir' should be 'str' or 'Path' type, not '%s'" % (
+            type(output_dir)
+        )
+        raise SABaseException(0, log_msg)
+
+    if input_platform not in AVAILABLE_PLATFORMS:
+        log_msg = "Please enter valid platform: 'Desktop' or 'Web'"
+        raise SABaseException(0, log_msg)
 
     sa_conversion(input_dir, output_dir, input_platform)

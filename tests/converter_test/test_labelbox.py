@@ -6,7 +6,7 @@ def labelbox_convert(tmpdir):
     out_dir = tmpdir / "output"
     dataset_name = 'labelbox_example'
     sa.import_annotation_format(
-        'tests/converter_test/LabelBox/input/toSuperAnnotate', out_dir,
+        'tests/converter_test/LabelBox/input/toSuperAnnotate', str(out_dir),
         'LabelBox', dataset_name, 'Vector', 'vector_annotation', 'Web'
     )
 
