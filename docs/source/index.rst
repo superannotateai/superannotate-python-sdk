@@ -6,15 +6,21 @@
 .. image:: sa_logo.png
   :width: 200
   :alt: SuperAnnotate AI
+  :target: https://app.superannotate.com
 
 |
 
 .. toctree::
+   :caption: Table of Contents
+   :name: mastertoc
    :maxdepth: 1
 
    tutorial.sdk.rst
    superannotate.sdk.rst
-   metadata_ref.rst
+   cli.rst
+   LICENSE.rst
+
+----------
 
 SuperAnnotate Python SDK documentation
 ==================================================================
@@ -25,13 +31,34 @@ SuperAnnotate Python SDK allows access to the platform without web browser:
 
    import superannotate as sa
 
-   sa.init("<path_to_my_config_json>")
+   sa.create_project("Example Project 1", "example", "Vector")
 
-   projects = sa.search_projects("Example Project 1")
+   sa.upload_images_from_folder_to_project("Example Project 1", "<path_to_my_images_folder>")
 
-   example_project = projects[0]
-   sa.upload_images_from_folder_to_project(example_project, "<path_to_my_images_folder>")
+----------
 
+Installation
+____________
+
+
+SDK is available on PyPI:
+
+.. code-block:: bash
+
+   pip install superannotate
+
+for COCO annotation format converters support also need to install:
+
+.. code-block:: bash
+
+   pip install 'git+https://github.com/cocodataset/panopticapi.git'
+   pip install 'git+https://github.com/philferriere/cocoapi.git#egg=pycocotools&subdirectory=PythonAPI'
+
+The package officially supports Python 3.6+.
+
+For further steps please have a look at the :ref:`tutorial <ref_tutorial>`.
+
+----------
 
 Supported Features
 __________________
@@ -46,15 +73,24 @@ __________________
 - Invite a team contributor
 - Search images in a project
 - Download a single image
+- Copy/move image between projects
 - Get image bytes (e.g., for numpy array creation)
 - Set image annotation status
 - Download image annotations/pre-annotations
 - Create/download project annotation classes
+- Add annotations to images on platform
+- Convert annotation format from/to COCO
+- Add annotations to local SuperAnnotate format JSONs
+- CLI commands for simple tasks
+
+----------
 
 License
 _______
 
-This SDK is distributed under the MIT License.
+This SDK is distributed under the :ref:`MIT License <ref_license>`.
+
+----------
 
 Questions and Issues
 ____________________

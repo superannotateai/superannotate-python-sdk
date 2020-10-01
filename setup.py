@@ -7,12 +7,19 @@ requirements = requirements.splitlines()
 
 with open('README.md') as f:
     readme = f.read()
+readme = "\n".join(readme.split('\n')[2:])
 
 packages = find_packages()
 
+with open('superannotate/version.py') as f:
+    Version = f.read()
+
+Version = Version.rstrip()
+Version = Version[11:-1]
+
 setup(
     name='superannotate',
-    version='1.0.0',
+    version=Version,
     description='Python SDK to SuperAnnotate platform',
     license='MIT',
     author='Hovnatan Karapetyan',
@@ -23,8 +30,8 @@ setup(
     install_requires=requirements,
     setup_requires=['wheel'],
     packages=find_packages(exclude=('tests', )),
-    # entry_points={
-    #     'console_scripts': ['superannotate = superannotate.__main__:main']
-    # },
-    python_requires='>=3.5'
+    entry_points={
+        'console_scripts': ['superannotate = superannotate.__main__:main']
+    },
+    python_requires='>=3.6'
 )

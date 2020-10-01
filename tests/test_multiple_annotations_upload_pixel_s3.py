@@ -8,19 +8,17 @@ sa.init(Path.home() / ".superannotate" / "config.json")
 
 TEST_PROJECT_PIXEL = "sample_project_pixel"
 TEST_PROJECT_VECTOR = "sample_project_vector"
+TEST_PROJECT1 = "test_upload_41_multiple_annotations_upload_pixel_s3_1"
+TEST_PROJECT2 = "test_upload_41_multiple_annotations_upload_pixel_s3_2"
+TEST_PROJECT3 = "test_upload_41_multiple_annotations_upload_pixel_s3_3"
 
 
-@pytest.fixture
-def empty_test_project():
-    projects_found = sa.search_projects("test_upload_41")
+def test_upload_from_s3(tmpdir):
+    projects_found = sa.search_projects(TEST_PROJECT1, return_metadata=True)
     for pr in projects_found:
         sa.delete_project(pr)
 
-
-def test_upload_from_s3(empty_test_project, tmpdir):
-    project = sa.create_project(
-        "test_upload_41", "hk_test", project_type="Pixel"
-    )
+    project = sa.create_project(TEST_PROJECT1, "hk_test", project_type="Pixel")
 
     f = urlparse(f"s3://hovnatan-test/{TEST_PROJECT_PIXEL}")
     sa.upload_images_from_folder_to_project(
@@ -39,16 +37,17 @@ def test_upload_from_s3(empty_test_project, tmpdir):
     )
 
     for image in sa.search_images(project):
-        sa.download_image_annotations(image, tmpdir)
+        sa.download_image_annotations(project, image, tmpdir)
 
     assert len(list(Path(tmpdir).glob("*.*"))) == 6
     sa.delete_project(project)
 
 
-def test_pixel_preannotation_upload_from_s3(empty_test_project, tmpdir):
-    project = sa.create_project(
-        "test_upload_41", "hk_test", project_type="Pixel"
-    )
+def test_pixel_preannotation_upload_from_s3(tmpdir):
+    projects_found = sa.search_projects(TEST_PROJECT2, return_metadata=True)
+    for pr in projects_found:
+        sa.delete_project(pr)
+    project = sa.create_project(TEST_PROJECT2, "hk_test", project_type="Pixel")
 
     f = urlparse(f"s3://hovnatan-test/{TEST_PROJECT_PIXEL}")
     sa.upload_images_from_folder_to_project(
@@ -67,16 +66,17 @@ def test_pixel_preannotation_upload_from_s3(empty_test_project, tmpdir):
     )
 
     for image in sa.search_images(project):
-        sa.download_image_preannotations(image, tmpdir)
+        sa.download_image_preannotations(project, image, tmpdir)
 
     assert len(list(Path(tmpdir).glob("*.*"))) == 6
     sa.delete_project(project)
 
 
-def test_vector_preannotation_upload_from_s3(empty_test_project, tmpdir):
-    project = sa.create_project(
-        "test_upload_41", "hk_test", project_type="Vector"
-    )
+def test_vector_preannotation_upload_from_s3(tmpdir):
+    projects_found = sa.search_projects(TEST_PROJECT3, return_metadata=True)
+    for pr in projects_found:
+        sa.delete_project(pr)
+    project = sa.create_project(TEST_PROJECT3, "hk_test", project_type="Vector")
 
     f = urlparse(f"s3://hovnatan-test/{TEST_PROJECT_VECTOR}")
     sa.upload_images_from_folder_to_project(
@@ -95,7 +95,7 @@ def test_vector_preannotation_upload_from_s3(empty_test_project, tmpdir):
     )
 
     for image in sa.search_images(project):
-        sa.download_image_preannotations(image, tmpdir)
+        sa.download_image_preannotations(project, image, tmpdir)
 
     assert len(list(Path(tmpdir).glob("*.*"))) == 4
     sa.delete_project(project)

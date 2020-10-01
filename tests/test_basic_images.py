@@ -11,11 +11,11 @@ sa.init(Path.home() / ".superannotate" / "config.json")
 @pytest.mark.parametrize(
     "project_type,name,description,from_folder", [
         (
-            "Vector", "Example Project test", "test vector",
+            "Vector", "Example Project test vector basic images", "test vector",
             Path("./tests/sample_project_vector")
         ),
         (
-            "Pixel", "Example Project test", "test pixel",
+            "Pixel", "Example Project test pixel basic images", "test pixel",
             Path("./tests/sample_project_pixel")
         ),
     ]
@@ -23,46 +23,46 @@ sa.init(Path.home() / ".superannotate" / "config.json")
 def test_basic_images(project_type, name, description, from_folder, tmpdir):
     tmpdir = Path(tmpdir)
 
-    projects_found = sa.search_projects(name)
+    projects_found = sa.search_projects(name, return_metadata=True)
     for pr in projects_found:
         sa.delete_project(pr)
 
-    projects_found = sa.search_projects(name)
+    projects_found = sa.search_projects(name, return_metadata=True)
     project = sa.create_project(name, description, project_type)
     sa.upload_images_from_folder_to_project(
         project, from_folder, annotation_status="InProgress"
     )
-    old_to_new_classes_conversion = sa.create_annotation_classes_from_classes_json(
+    sa.create_annotation_classes_from_classes_json(
         project, from_folder / "classes" / "classes.json"
     )
     images = sa.search_images(project, "example_image_1")
     assert len(images) == 1
 
-    sa.download_image(images[0], tmpdir, True)
-    assert sa.get_image_preannotations(images[0]
+    image_name = images[0]
+    sa.download_image(project, image_name, tmpdir, True)
+    assert sa.get_image_preannotations(project, image_name
                                       )["preannotation_json_filename"] is None
-    assert sa.get_image_annotations(images[0]
+    assert sa.get_image_annotations(project, image_name
                                    )["annotation_json_filename"] is None
-    sa.download_image_annotations(images[0], tmpdir)
+    sa.download_image_annotations(project, image_name, tmpdir)
     assert len(list(Path(tmpdir).glob("*"))) == 1
-    sa.download_image_preannotations(images[0], tmpdir)
+    sa.download_image_preannotations(project, image_name, tmpdir)
     assert len(list(Path(tmpdir).glob("*"))) == 1
 
-    assert (Path(tmpdir) / images[0]["name"]).is_file()
+    assert (Path(tmpdir) / image_name).is_file()
 
-    sa.upload_annotations_from_file_to_image(
-        images[0],
+    sa.upload_annotations_from_json_to_image(
+        project, image_name,
         sa.image_path_to_annotation_paths(
-            from_folder / images[0]["name"], project_type
-        )[0],
-        None if project_type == "Vector" else sa.image_path_to_annotation_paths(
-            from_folder / images[0]["name"], project_type
-        )[1], old_to_new_classes_conversion
+            from_folder / image_name, project_type
+        )[0], None if project_type == "Vector" else sa.
+        image_path_to_annotation_paths(from_folder /
+                                       image_name, project_type)[1]
     )
-    assert sa.get_image_annotations(images[0]
+    assert sa.get_image_annotations(project, image_name
                                    )["annotation_json_filename"] is not None
 
-    sa.download_image_annotations(images[0], tmpdir)
+    sa.download_image_annotations(project, image_name, tmpdir)
     annotation = list(Path(tmpdir).glob("*.json"))
     assert len(annotation) == 1
     annotation = json.load(open(annotation[0]))
@@ -89,11 +89,3 @@ def test_basic_images(project_type, name, description, from_folder, tmpdir):
         assert found
 
     sa.delete_project(project)
-
-
-def test_large_project_images():
-    project = sa.search_projects("test_ya14")[0]
-    images = sa.search_images(project)
-    assert len(images) == 38675
-    image_info = sa.get_image_metadata(images[0])
-    assert image_info["name"] == images[0]["name"]

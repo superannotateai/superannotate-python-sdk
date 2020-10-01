@@ -1,6 +1,10 @@
+import functools
+import logging
 from pathlib import Path
 
 from .exceptions import SABaseException
+
+logger = logging.getLogger("superannotate-python-sdk")
 
 _PROJECT_TYPES = {"Vector": 1, "Pixel": 2}
 _ANNOTATION_STATUSES = {
@@ -63,6 +67,13 @@ def user_role_str_to_int(user_role):
     return _USER_ROLES[user_role]
 
 
+def user_role_int_to_str(user_role):
+    for k, v in _USER_ROLES.items():
+        if v == user_role:
+            return k
+    raise SABaseException(0, "User role should be one of 2 3 4 5 6 .")
+
+
 def annotation_status_str_to_int(annotation_status):
     if annotation_status not in _ANNOTATION_STATUSES:
         raise SABaseException(
@@ -88,3 +99,31 @@ def annotation_status_int_to_str(annotation_status):
     raise SABaseException(
         0, "Annotation status should be one of 1, 2, 3, 4, 5, 6 ."
     )
+
+
+def deprecated_alias(**aliases):
+    def deco(f):
+        @functools.wraps(f)
+        def wrapper(*args, **kwargs):
+            rename_kwargs(f.__name__, kwargs, aliases)
+            return f(*args, **kwargs)
+
+        return wrapper
+
+    return deco
+
+
+def rename_kwargs(func_name, kwargs, aliases):
+    for alias, new in aliases.items():
+        if alias in kwargs:
+            if new in kwargs:
+                raise TypeError(
+                    '{} received both {} and {}'.format(func_name, alias, new)
+                )
+            logger.warning(
+                '%s is deprecated; use %s in %s', alias, new, func_name
+            )
+            kwargs[new] = kwargs.pop(alias)
+
+logger = logging.getLogger('httplogger')
+

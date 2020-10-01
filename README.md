@@ -8,12 +8,9 @@ SuperAnnotate Python SDK allows access to the platform without
 ```python
 import superannotate as sa
 
-sa.init("<path_to_my_config_json>")
+sa.create_project("Example Project 1", "example", "Vector")
 
-projects = sa.search_projects("Example Project 1")
-
-example_project = projects[0]
-sa.upload_images_from_folder_to_project(example_project, "<path_to_my_images_folder>")
+sa.upload_images_from_folder_to_project("Example Project 1", "<path_to_my_images_folder>")
 ```
 
 ## Installation
@@ -32,7 +29,9 @@ pip install 'git+https://github.com/philferriere/cocoapi.git#egg=pycocotools&sub
 ```
 
 
-The package officially supports Python 3.5+.
+The package officially supports Python 3.6+.
+
+For further steps please have a look at the [tutorial](https://superannotate.readthedocs.io/en/latest/tutorial.sdk.html).
 
 ## Supported Features
 
@@ -46,17 +45,22 @@ The package officially supports Python 3.5+.
 - Invite a team contributor
 - Search images in a project
 - Download a single image
+- Copy/move image between projects
 - Get image bytes (e.g., for numpy array creation)
 - Set image annotation status
 - Download image annotations/pre-annotations
 - Create/download project annotation classes
+- Convert annotation format from/to COCO
+- Add annotations to images on platform
+- Add annotations to local SuperAnnotate format JSONs
+- CLI commands for simple tasks
 
 ## Full SDK reference, tutorial available on [Read the Docs](https://superannotate.readthedocs.io)
 
 ## License
 
-This SDK is distributed under the MIT License, see [LICENSE](./LICENSE)
+This SDK is distributed under the MIT License, see [LICENSE](./LICENSE).
 
 ## Questions and Issues
 
-For questions and issues please use this repo's issue tracker on Github.
+For questions and issues please use this repo's issue tracker on GitHub.

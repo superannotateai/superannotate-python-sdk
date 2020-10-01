@@ -1,47 +1,177 @@
+"""
+Main module for input converters
+"""
 import sys
-import os
+import logging
 from argparse import Namespace
 
-from .coco_conversions import coco_to_sa, sa_to_coco
+from .import_to_sa_conversions import import_to_sa
+from .export_from_sa_conversions import export_from_sa
+from .sa_conversion import sa_conversion
 
-AVAILABLE_DATASET_FORMAT_CONVERTERS = ["COCO"]
+AVAILABLE_ANNOTATION_FORMATS = ["COCO", "VOC", "LabelBox", "DataLoop"]
+
+AVAILABLE_PLATFORMS = ["Desktop", "Web"]
+
+ALLOWED_TASK_TYPES = [
+    'panoptic_segmentation', 'instance_segmentation', 'keypoint_detection',
+    'object_detection', 'vector_annotation', 'pixel_annotation'
+]
+
+ALLOWED_PROJECT_TYPES = ['Pixel', 'Vector']
+
+ALLOWED_CONVERSIONS_SA_TO_COCO = [
+    ('Pixel', 'panoptic_segmentation'), ('Pixel', 'instance_segmentation'),
+    ('Vector', 'instance_segmentation'), ('Vector', 'keypoint_detection'),
+    ('Vector', 'object_detection')
+]
+
+ALLOWED_CONVERSIONS_COCO_TO_SA = [
+    ('Pixel', 'panoptic_segmentation'), ('Pixel', 'instance_segmentation'),
+    ('Vector', 'keypoint_detection'), ('Vector', 'instance_segmentation')
+]
+
+ALLOWED_CONVERSIONS_VOC_TO_SA = [
+    ('Vector', 'object_detection'), ('Vector', 'instance_segmentation'),
+    ('Pixel', 'instance_segmentation')
+]
+
+ALLOWED_CONVERSIONS_LABELBOX_TO_SA = [
+    ('Vector', 'object_detection'), ('Vector', 'instance_segmentation'),
+    ('Vector', 'vector_annotation')
+]
+
+ALLOWED_CONVERSIONS_DATALOOP_TO_SA = [
+    ('Vector', 'object_detection'), ('Vector', 'instance_segmentation'),
+    ('Vector', 'vector_annotation')
+]
+
+ALLOWED_CONVERSIONS_SUPERVISELY_TO_SA = [('Vector', 'vector_annotation')]
 
 
-def convert_annotation_format_to(
+def _passes_sanity_checks(args):
+    if not isinstance(args.input_dir, str):
+        log_msg = "'input_dir' should be 'str' type, not '%s'" % (
+            type(args.input_dir)
+        )
+        logging.error(log_msg)
+        return False
+
+    # if isinstance(args.output_dir, str):
+    #     logging.error(
+    #         "'output_dir' should be 'str' type, not {}".format(
+    #             type(args.output_dir)
+    #         )
+    #     )
+    #     return False
+
+    if args.dataset_format not in AVAILABLE_ANNOTATION_FORMATS:
+        log_msg = "'%s' converter doesn't exist. Possible candidates are '%s'"\
+         % (args.dataset_format, AVAILABLE_ANNOTATION_FORMATS)
+        logging.error(log_msg)
+        return False
+
+    # if isinstance(args.dataset_name, str):
+    #     logging.error(
+    #         "'dataset_name' should be 'str' type, not {}".format(
+    #             type(args.dataset_name)
+    #         )
+    #     )
+    #     return False
+
+    if args.project_type not in ALLOWED_PROJECT_TYPES:
+        logging.error("Please enter valid project type: 'Pixel' or 'Vector'")
+        return False
+
+    if args.task not in ALLOWED_TASK_TYPES:
+        log_msg = "Please enter valid task '%s'" % (ALLOWED_TASK_TYPES)
+        logging.error(log_msg)
+        return False
+
+    try:
+        if args.platform not in AVAILABLE_PLATFORMS:
+            logging.error("Please enter valid platform: 'Desktop' or 'Web'")
+            return False
+    except AttributeError:
+        logging.error("Argument 'platform' doesn't exist for this method")
+
+    if args.task == "Pixel" and args.platform == "Desktop":
+        logging.error(
+            "Sorry, but Desktop Application doesn't support 'Pixel' projects yet."
+        )
+    return True
+
+
+def _passes_converter_sanity(args, direction):
+    converter_values = (args.project_type, args.task)
+    if direction == 'import':
+        if args.dataset_format == "COCO" and converter_values in ALLOWED_CONVERSIONS_COCO_TO_SA:
+            return True
+        elif args.dataset_format == "VOC" and converter_values in ALLOWED_CONVERSIONS_VOC_TO_SA:
+            return True
+        elif args.dataset_format == "LabelBox" and \
+        converter_values in ALLOWED_CONVERSIONS_LABELBOX_TO_SA:
+            return True
+        elif args.dataset_format == "DataLoop" and converter_values in ALLOWED_CONVERSIONS_DATALOOP_TO_SA:
+            return True
+    else:
+        if args.dataset_format == "COCO" and converter_values in ALLOWED_CONVERSIONS_SA_TO_COCO:
+            return True
+
+    logging.error(
+        "Please enter valid converter values. You can check available \
+        candidates in the documentation(https://superannotate.readthedocs.io/en/latest/index.html)."
+    )
+    return False
+
+
+def export_annotation_format(
     input_dir,
     output_dir,
     dataset_format,
     dataset_name,
-    project_type,
-    task,
-    train_val_split_ratio=80,
-    copyQ=True
+    project_type="Vector",
+    task="object_detection",
+    platform="Web",
 ):
-    """This is a method to convert superannotate annotation formate to the other annotation formats.
-    :param input_dir: Path to the dataset folder that you want to convert.
-    :type input_dir: string
-    :param output_dir: Path to the folder, where you want to have converted dataset.
-    :type output_dir: string
-    :param dataset_format: One of the formats that are possible to convert. Choose from ["COCO",]
-    :type dataset_format: string
-    :param dataset_name: Name of the dataset.
-    :type dataset_name: string
-    :param project_type: Project type is either 'vector' or 'pixel'
-    :type project_type: string
-    :param task: Choose one from possible candidates. ['panoptic_segmentation', 'instance_segmentation', 'keypoint_detection', 'object_detection']
-    :type task: string
-    :param train_val_split_ratio: Percentage of data to split between test and train. (Default: 80)
-    :type train_val_split_ratio: float, optional
-    :param copyQ: Copy original images or move (Default: True, copies) 
-    :type copyQ: boolean, optional
-    """
+    """Converts SuperAnnotate annotation formate to the other annotation formats. Currently available (project_type, task) combinations for converter
+    presented below:
 
-    if dataset_format not in AVAILABLE_DATASET_FORMAT_CONVERTERS:
-        raise ValueError(
-            "'{}' converter doesn't exist. Possible candidates are '{}'".format(
-                dataset_format, AVAILABLE_DATASET_FORMAT_CONVERTERS
-            )
-        )
+    ==============  ======================
+             From SA to COCO
+    --------------------------------------
+     project_type           task
+    ==============  ======================
+    Pixel           panoptic_segmentation
+    Pixel           instance_segmentation
+    Vector          instance_segmentation
+    Vector          object_detection
+    Vector          keypoint_detection
+    ==============  ====================== 
+
+    :param input_dir: Path to the dataset folder that you want to convert.
+    :type input_dir: str
+    :param output_dir: Path to the folder, where you want to have converted dataset.
+    :type output_dir: str
+    :param dataset_format: One of the formats that are possible to convert. Available candidates are: ["COCO"]
+    :type dataset_format: str
+    :param dataset_name: Will be used to create json file in the output_dir.
+    :type dataset_name: str
+    :param project_type: SuperAnnotate project type is either 'Vector' or 'Pixel' (Default: 'Vector')
+                         'Vector' project creates <image_name>___objects.json for each image. 
+                         'Pixel' project creates <image_name>___pixel.jsons and <image_name>___save.png annotation mask for each image. 
+    :type project_type: str
+    :param task: Task can be one of the following: ['panoptic_segmentation', 'instance_segmentation', 
+                 'keypoint_detection', 'object_detection']. (Default: "objec_detection").
+                 'keypoint_detection' can be used to converts keypoints from/to available annotation format.
+                 'panoptic_segmentation' will use panoptic mask for each image to generate bluemask for SuperAnnotate annotation format and use bluemask to generate panoptic mask for invert conversion. Panoptic masks should be in the input folder. 
+                 'instance_segmentation' 'Pixel' project_type converts instance masks and 'Vector' project_type generates bounding boxes and polygons from instance masks. Masks should be in the input folder if it is 'Pixel' project_type. 
+                 'object_detection' converts objects from/to available annotation format
+    :type task: str
+    :param platform: SuperAnnotate has both 'Web' and 'Desktop' platforms. Choose from which one you are converting. (Default: "Web")
+    :type platform: str
+
+    """
 
     args = Namespace(
         input_dir=input_dir,
@@ -50,50 +180,100 @@ def convert_annotation_format_to(
         dataset_name=dataset_name,
         project_type=project_type,
         task=task,
-        train_val_split_ratio=train_val_split_ratio,
-        copyQ=copyQ
+        platform=platform,
     )
 
-    if dataset_format == "COCO":
-        sa_to_coco(args)
-    elif dataset_format == "VOC":
-        pass
-        # sa_to_voc(args)
-    else:
-        pass
+    if not _passes_sanity_checks(args):
+        sys.exit()
+    if not _passes_converter_sanity(args, 'export'):
+        sys.exit()
 
-def convert_annotation_format_from(
+    export_from_sa(args)
+
+
+def import_annotation_format(
     input_dir,
     output_dir,
     dataset_format,
     dataset_name,
-    project_type,
-    task,
-    copyQ=True
+    project_type="Vector",
+    task="object_detection",
+    platform="Web",
 ):
-    """This is a method to convert other annotation formats to superannotate annotation format.
-    :param input_dir: Path to the dataset folder that you want to convert.
-    :type input_dir: string
-    :param output_dir: Path to the folder, where you want to have converted dataset.
-    :type output_dir: string
-    :param dataset_format: One of the formats that are possible to convert. Choose from ["COCO",]
-    :type dataset_format: string
-    :param dataset_name: Name of the dataset.
-    :type dataset_name: string
-    :param project_type: Project type is either 'vector' or 'pixel'
-    :type project_type: string
-    :param task: Choose one from possible candidates. ['panoptic_segmentation', 'instance_segmentation', 'keypoint_detection', 'object_detection']
-    :type task: string
-    :param copyQ: Copy original images or move (Default: True, copies) 
-    :type copyQ: boolean, optional
-    """
+    """Converts other annotation formats to SuperAnnotate annotation format. Currently available (project_type, task) combinations for converter
+    presented below:
 
-    if dataset_format not in AVAILABLE_DATASET_FORMAT_CONVERTERS:
-        raise ValueError(
-            "'{}' converter doesn't exist. Possible candidates are '{}'".format(
-                dataset_format, AVAILABLE_DATASET_FORMAT_CONVERTERS
-            )
-        )
+    ==============  ======================
+             From COCO to SA
+    --------------------------------------
+     project_type           task
+    ==============  ======================
+    Pixel           panoptic_segmentation
+    Pixel           instance_segmentation
+    Vector          instance_segmentation
+    Vector          keypoint_detection
+    ==============  ======================
+
+    ==============  ======================
+             From VOC to SA
+    --------------------------------------
+     project_type           task
+    ==============  ======================
+    Vector          instance_segmentation
+    Vector          object_detection
+    Pixel           instance_segmentation
+    ==============  ======================
+
+    ==============  ======================
+           From LabelBox to SA
+    --------------------------------------
+     project_type           task
+    ==============  ======================
+    Vector          object_detection
+    Vector          instance_segmentation
+    Vector          vector_annotation
+    ==============  ======================
+
+    ==============  ======================
+           From DataLoop to SA
+    --------------------------------------
+     project_type           task
+    ==============  ======================
+    Vector          object_detection
+    Vector          instance_segmentation
+    Vector          vector_annotation
+    ==============  ====================== 
+
+    ==============  ======================
+           From Supervisely to SA
+    --------------------------------------
+     project_type           task
+    ==============  ======================
+    Vector          vector_annotation
+    ==============  ====================== 
+
+    :param input_dir: Path to the dataset folder that you want to convert.
+    :type input_dir: str
+    :param output_dir: Path to the folder, where you want to have converted dataset.
+    :type output_dir: str
+    :param dataset_format: Annotation format to convert SuperAnnotate annotation format. Available candidates are: ["COCO", "VOC", "LabelBox"]
+    :type dataset_format: str
+    :param dataset_name: Name of the json file in the input_dir, which should be converted.
+    :type dataset_name: str
+    :param project_type: SuperAnnotate project type is either 'Vector' or 'Pixel' (Default: 'Vector')
+                         'Vector' project creates <image_name>___objects.json for each image. 
+                         'Pixel' project creates <image_name>___pixel.jsons and <image_name>___save.png annotation mask for each image. 
+    :type project_type: str
+    :param task: Task can be one of the following: ['panoptic_segmentation', 'instance_segmentation', 
+                 'keypoint_detection', 'object_detection']. (Default: "objec_detection").
+                 'keypoint_detection' can be used to converts keypoints from/to available annotation format.
+                 'panoptic_segmentation' will use panoptic mask for each image to generate bluemask for SuperAnnotate annotation format and use bluemask to generate panoptic mask for invert conversion. Panoptic masks should be in the input folder. 
+                 'instance_segmentation' 'Pixel' project_type converts instance masks and 'Vector' project_type generates bounding boxes and polygons from instance masks. Masks should be in the input folder if it is 'Pixel' project_type. 
+                 'object_detection' converts objects from/to available annotation format
+    :param platform: SuperAnnotate has both 'Web' and 'Desktop' platforms. Choose to which platform you want convert. (Default: "Web")
+    :type platform: str 
+
+    """
 
     args = Namespace(
         input_dir=input_dir,
@@ -102,13 +282,32 @@ def convert_annotation_format_from(
         dataset_name=dataset_name,
         project_type=project_type,
         task=task,
-        copyQ=copyQ
+        platform=platform,
     )
 
-    if dataset_format == "COCO":
-        coco_to_sa(args)
-    elif dataset_format == "VOC":
-        pass
-        # voc_to_sa(args)
-    else:
-        pass
+    if not _passes_sanity_checks(args):
+        sys.exit()
+    if not _passes_converter_sanity(args, 'import'):
+        sys.exit()
+
+    import_to_sa(args)
+
+
+def convert_platform(input_dir, output_dir, input_platform):
+    """ Converts SuperAnnotate input file structure from one platform too another.
+
+    :param input_dir: Path to the dataset folder that you want to convert.
+    :type input_dir: str
+    :param output_dir: Path to the folder where you want to have converted files.
+    :type output_dir: str
+    :param input_platform: Original platform format type
+    :type input_platform: str
+
+    """
+    if not isinstance(input_dir, str):
+        log_msg = "'input_dir' should be 'str' type, not '%s'" % (
+            type(input_dir)
+        )
+        logging.error(log_msg)
+
+    sa_conversion(input_dir, output_dir, input_platform)
