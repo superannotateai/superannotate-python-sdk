@@ -6,7 +6,7 @@ from pathlib import Path
 import boto3
 import cv2
 import numpy as np
-import PIL
+from PIL import Image, ImageDraw
 import requests
 
 from ..annotation_helpers import (
@@ -17,8 +17,8 @@ from ..annotation_helpers import (
 )
 from ..api import API
 from ..common import (
-    annotation_status_str_to_int, deprecated_alias,
-    image_path_to_annotation_paths
+    annotation_status_str_to_int, deprecated_alias, project_type_int_to_str,
+    image_path_to_annotation_paths, hex_to_rgb
 )
 from ..exceptions import SABaseException
 from .annotation_classes import (
@@ -462,6 +462,8 @@ def download_image(
             0, "Image download variant should be either original or lores"
         )
 
+    if not isinstance(project, dict):
+        project = get_project_metadata(project)
     img = get_image_bytes(project, image_name, variant=variant)
     if variant == "lores":
         image_name += "___lores.jpg"
@@ -469,13 +471,18 @@ def download_image(
     with open(filepath, 'wb') as f:
         f.write(img.getbuffer())
     annotations_filepaths = None
+    fuse_path = None
     if include_annotations:
         annotations_filepaths = download_image_annotations(
             project, image_name, local_dir_path
         )
+        # if include_fuse:
+        # classes = search_annotation_classes(project, return_metadata=True)
+        #     project_type = project_type_int_to_str(project["type"])
+        #     fuse_path = create_fuse_image(filepath, classes, project_type)
     logger.info("Downloaded image %s to %s.", image_name, filepath)
 
-    return (str(filepath), annotations_filepaths)
+    return (str(filepath), annotations_filepaths)  # , fuse_path)
 
 
 def delete_image(project, image_name):
@@ -913,18 +920,32 @@ def create_fuse_image(image, classes_json, project_type, in_memory=False):
         if "name" not in ann_class:
             continue
         class_color_dict[ann_class["name"]] = ann_class["color"]
-    image_size = PIL.Image.open(image).size
-    fi = np.zeros((image_size[0], image_size[1], 3))
+    image_size = Image.open(image).size
+    fi = np.full((image_size[1], image_size[0], 4), [0, 0, 0, 255], np.uint8)
+    fi_pil = Image.fromarray(fi)
+    draw = ImageDraw.Draw(fi_pil)
     if project_type == "Vector":
         for annotation in annotation_json:
             if "className" not in annotation:
                 continue
             color = class_color_dict[annotation["className"]]
             if annotation["type"] == "bbox":
-                pt1 = (annotation["points"]["x1"], annotation["points"]["y1"])
-                pt2 = (annotation["points"]["x2"], annotation["points"]["y2"])
-                cv2.rectangle(fi, pt1, pt2, color, cv2.FILLED)
+                pt = (
+                    (
+                        int(annotation["points"]["x1"]),
+                        int(annotation["points"]["y1"])
+                    ), (
+                        int(annotation["points"]["x2"]),
+                        int(annotation["points"]["y2"])
+                    )
+                )
+                rgb = hex_to_rgb(color)
+                draw.rectangle(
+                    pt, (rgb[0], rgb[1], rgb[2], 255), (255, 255, 255, 255)
+                )
     else:
-        annotation_mask = PIL.Image.open(annotation_path[1])
+        annotation_mask = Image.open(annotation_path[1])
 
-    cv2.imwrite(str(image) + "___fuse.png")
+    fuse_path = str(image) + "___fuse.png"
+    fi_pil.save(fuse_path)
+    return fuse_path

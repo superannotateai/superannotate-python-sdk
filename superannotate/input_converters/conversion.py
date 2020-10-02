@@ -2,7 +2,6 @@
 Main module for input converters
 """
 import sys
-import logging
 from argparse import Namespace
 from pathlib import Path
 
@@ -244,7 +243,7 @@ def import_annotation_format(
      project_type           task
     ==============  ======================
     Vector          vector_annotation
-    ==============  ====================== 
+    ==============  ======================
 
     :param input_dir: Path to the dataset folder that you want to convert.
     :type input_dir: str
