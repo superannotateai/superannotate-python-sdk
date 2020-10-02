@@ -278,8 +278,8 @@ def upload_images_from_folder_to_project(
     :param image_quality_in_editor: image quality (in percents) that will be seen in SuperAnnotate web annotation editor. If None default value will be used.
     :type image_quality_in_editor: int
 
-    :return: uploaded images' filepaths
-    :rtype: list
+    :return: uploaded and not-uploaded images' filepaths
+    :rtype: tuple of list of strs
     """
     if not isinstance(project, dict):
         project = get_project_metadata(project)
@@ -289,7 +289,6 @@ def upload_images_from_folder_to_project(
         )
     if exclude_file_patterns is None:
         exclude_file_patterns = ["___save.png", "___fuse.png"]
-    project_id = project["id"]
     if extensions is None:
         extensions = ["jpg", "png"]
     elif not isinstance(extensions, list):
@@ -495,8 +494,8 @@ def upload_images_to_project(
     :param image_quality_in_editor: image quality (in percents) that will be seen in SuperAnnotate web annotation editor. If None default value will be used.
     :type image_quality_in_editor: int
 
-    :return: uploaded images' filepaths
-    :rtype: list of str
+    :return: uploaded and not-uploaded images' filepaths
+    :rtype: tuple of list of strs
     """
     if not isinstance(project, dict):
         project = get_project_metadata(project)
