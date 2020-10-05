@@ -29,12 +29,32 @@ def test_fuse_image_create(tmpdir):
     )
 
     sa.add_annotation_bbox_to_image(
-        project, "example_image_1.jpg", [10, 10, 20, 20], "Human"
+        project, "example_image_1.jpg", [20, 20, 40, 40], "Human"
     )
-    # sa.add_annotation_polygon_to_image(
-    #     project, "example_image_1.jpg", [30, 30, 50, 50, 40, 50],
-    #     "Personal vehicle"
-    # )
+    sa.add_annotation_polygon_to_image(
+        project, "example_image_1.jpg", [60, 60, 100, 100, 80, 100],
+        "Personal vehicle"
+    )
+    sa.add_annotation_polyline_to_image(
+        project, "example_image_1.jpg", [200, 200, 300, 200, 350, 300],
+        "Personal vehicle"
+    )
+    sa.add_annotation_point_to_image(
+        project, "example_image_1.jpg", [400, 400], "Personal vehicle"
+    )
+    sa.add_annotation_ellipse_to_image(
+        project, "example_image_1.jpg", [600, 600, 50, 100, 20],
+        "Personal vehicle"
+    )
+    sa.add_annotation_template_to_image(
+        project, "example_image_1.jpg",
+        [600, 300, 600, 350, 550, 250, 650, 250, 550, 400, 650, 400],
+        [1, 2, 3, 1, 4, 1, 5, 2, 6, 2], "Human"
+    )
+    sa.add_annotation_cuboid_to_image(
+        project, "example_image_1.jpg", [60, 300, 200, 350, 120, 325, 250, 500],
+        "Human"
+    )
 
     export = sa.prepare_export(project, include_fuse=True)
     (tmpdir / "export").mkdir()
@@ -58,7 +78,5 @@ def test_fuse_image_create(tmpdir):
     im2 = Image.open(paths[2])
     im2_array = np.array(im2)
 
-    print(im1_array.shape, im2_array.shape)
-    print(im1_array.dtype, im2_array.dtype)
-
-    assert np.array_equal(im1_array, im2_array)
+    assert im1_array.shape == im2_array.shape
+    assert im1_array.dtype == im2_array.dtype

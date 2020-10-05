@@ -434,6 +434,7 @@ def download_image(
     image_name,
     local_dir_path=".",
     include_annotations=False,
+    include_fuse=False,
     variant='original'
 ):
     """Downloads the image (and annotation if not None) to local_dir_path
@@ -446,6 +447,8 @@ def download_image(
     :type local_dir_path: Pathlike (str or Path)
     :param include_annotations: enables annotation download with the image
     :type include_annotations: bool
+    :param include_fuse: enables fuse image download with the image (Vector projects only)
+    :type include_fuse: bool
     :param variant: which resolution to download, can be 'original' or 'lores'
      (low resolution used in web editor)
     :type variant: str
@@ -476,13 +479,13 @@ def download_image(
         annotations_filepaths = download_image_annotations(
             project, image_name, local_dir_path
         )
-        # if include_fuse:
-        # classes = search_annotation_classes(project, return_metadata=True)
-        #     project_type = project_type_int_to_str(project["type"])
-        #     fuse_path = create_fuse_image(filepath, classes, project_type)
+        if include_fuse:
+            classes = search_annotation_classes(project, return_metadata=True)
+            project_type = project_type_int_to_str(project["type"])
+            fuse_path = create_fuse_image(filepath, classes, project_type)
     logger.info("Downloaded image %s to %s.", image_name, filepath)
 
-    return (str(filepath), annotations_filepaths)  # , fuse_path)
+    return (str(filepath), annotations_filepaths, fuse_path)
 
 
 def delete_image(project, image_name):
@@ -929,22 +932,70 @@ def create_fuse_image(image, classes_json, project_type, in_memory=False):
             if "className" not in annotation:
                 continue
             color = class_color_dict[annotation["className"]]
+            rgb = hex_to_rgb(color)
+            fill_color = (rgb[0], rgb[1], rgb[2], 255)
+            outline_color = (255, 255, 255, 255)
             if annotation["type"] == "bbox":
                 pt = (
-                    (
-                        int(annotation["points"]["x1"]),
-                        int(annotation["points"]["y1"])
-                    ), (
-                        int(annotation["points"]["x2"]),
-                        int(annotation["points"]["y2"])
+                    (annotation["points"]["x1"], annotation["points"]["y1"]),
+                    (annotation["points"]["x2"], annotation["points"]["y2"])
+                )
+                draw.rectangle(pt, fill_color, outline_color)
+            elif annotation["type"] == "polygon":
+                pts = annotation["points"]
+                draw.polygon(pts, fill_color, outline_color)
+            elif annotation["type"] == "polyline":
+                pts = annotation["points"]
+                draw.line(pts, fill_color, width=2)
+            elif annotation["type"] == "point":
+                pts = [
+                    annotation["x"] - 2, annotation["y"] - 2,
+                    annotation["x"] + 2, annotation["y"] + 2
+                ]
+                draw.ellipse(pts, fill_color, outline_color)
+            elif annotation["type"] == "ellipse":
+                temp = np.full(
+                    (image_size[1], image_size[0], 3), [0, 0, 0], np.uint8
+                )
+                cv2.ellipse(
+                    temp, (annotation["cx"], annotation["cy"]),
+                    (annotation["rx"], annotation["ry"]), annotation["angle"],
+                    0, 360, outline_color[:-1], 1
+                )
+                temp_mask = np.zeros(
+                    (image_size[1] + 2, image_size[0] + 2), np.uint8
+                )
+                cv2.floodFill(
+                    temp, temp_mask, (annotation["cx"], annotation["cy"]),
+                    fill_color[:-1]
+                )
+                temp_mask = (temp != [0, 0, 0])[:, :, 0].astype(np.uint8) * 255
+                # print(temp_mask.shape, temp_mask.dtype, np.max(temp_mask))
+                new_array = np.array(fi_pil)
+                new_array[:, :, :-1] += temp
+                new_array[:, :, 3] += temp_mask
+                fi_pil = Image.fromarray(new_array)
+                draw = ImageDraw.Draw(fi_pil)
+            elif annotation["type"] == "template":
+                pts = annotation["points"]
+                pt_dict = {}
+                for pt in pts:
+                    pt_e = [pt["x"] - 2, pt["y"] - 2, pt["x"] + 2, pt["y"] + 2]
+                    draw.ellipse(pt_e, fill_color, fill_color)
+                    pt_dict[pt["id"]] = [pt["x"], pt["y"]]
+                connections = annotation["connections"]
+                for connection in connections:
+                    draw.line(
+                        pt_dict[connection["from"]] + pt_dict[connection["to"]],
+                        fill_color,
+                        width=1
                     )
-                )
-                rgb = hex_to_rgb(color)
-                draw.rectangle(
-                    pt, (rgb[0], rgb[1], rgb[2], 255), (255, 255, 255, 255)
-                )
+
     else:
-        annotation_mask = Image.open(annotation_path[1])
+        raise SABaseException(
+            0, "Fuse image generation for pixel projects not implemented yet."
+        )
+        # annotation_mask = Image.open(annotation_path[1])
 
     fuse_path = str(image) + "___fuse.png"
     fi_pil.save(fuse_path)

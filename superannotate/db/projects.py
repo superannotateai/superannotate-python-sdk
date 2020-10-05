@@ -345,6 +345,7 @@ def get_image_array_to_upload(
 ):
     Image.MAX_IMAGE_PIXELS = None
     im = Image.open(byte_io_orig)
+    im = im.convert("RGB")
     width, height = im.size
     max_size = _RESIZE_CONFIG[project_type]
     if (width * height) > max_size:
@@ -355,12 +356,10 @@ def get_image_array_to_upload(
         nheight = math.floor(max_size_root * math.sqrt(height / width))
         im = im.resize((nwidth, nheight))
         byte_io_orig = io.BytesIO()
-        im.convert('RGB').save(
-            byte_io_orig, im_format, subsampling=0, quality=100
-        )
+        im.save(byte_io_orig, im_format, subsampling=0, quality=100)
 
     byte_io_lores = io.BytesIO()
-    im.convert('RGB').save(
+    im.save(
         byte_io_lores,
         'JPEG',
         subsampling=0 if image_quality_in_editor > 60 else 2,
@@ -369,11 +368,18 @@ def get_image_array_to_upload(
 
     byte_io_huge = io.BytesIO()
     hsize = int(height * 600.0 / width)
-    im.convert('RGB').resize((600, hsize),
-                             Image.ANTIALIAS).save(byte_io_huge, 'JPEG')
+    im.resize((600, hsize), Image.ANTIALIAS).save(byte_io_huge, 'JPEG')
 
     byte_io_thumbs = io.BytesIO()
-    im.convert('RGB').resize((128, 96)).save(byte_io_thumbs, 'JPEG')
+    thumbnail_size = (128, 96)
+    background = Image.new('RGB', thumbnail_size, "black")
+    im.thumbnail(thumbnail_size)
+    (w, h) = im.size
+    background.paste(
+        im, ((thumbnail_size[0] - w) // 2, (thumbnail_size[1] - h) // 2)
+    )
+    im = background
+    im.save(byte_io_thumbs, 'JPEG')
 
     byte_io_thumbs.seek(0)
     byte_io_lores.seek(0)
