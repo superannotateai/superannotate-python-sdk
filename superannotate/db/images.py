@@ -914,6 +914,20 @@ def upload_annotations_from_json_to_image(
 
 
 def create_fuse_image(image, classes_json, project_type, in_memory=False):
+    """Creates fuse for locally located image and annotations
+
+    :param image: path to image
+    :type image: str or Pathlike
+    :param image_name: annotation classes or path to their JSON
+    :type image: list or Pathlike
+    :param project_type: project type, "Vector" or "Pixel"
+    :type project_type: str
+    :param in_memory: enables pillow Image return instead of saving the image
+    :type in_memory: bool
+
+    :return: path to created fuse image or pillow Image object if in_memory enabled
+    :rtype: str of PIL.Image
+    """
     annotation_path = image_path_to_annotation_paths(image, project_type)
     annotation_json = json.load(open(annotation_path[0]))
     if not isinstance(classes_json, list):
@@ -1007,6 +1021,8 @@ def create_fuse_image(image, classes_json, project_type, in_memory=False):
                 fi[temp_mask] = fill_color
         fi_pil = Image.fromarray(fi)
 
+    if in_memory:
+        return fi_pil
     fuse_path = str(image) + "___fuse.png"
     fi_pil.save(fuse_path)
     return fuse_path
