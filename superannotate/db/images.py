@@ -447,7 +447,7 @@ def download_image(
     :type local_dir_path: Pathlike (str or Path)
     :param include_annotations: enables annotation download with the image
     :type include_annotations: bool
-    :param include_fuse: enables fuse image download with the image (Vector projects only)
+    :param include_fuse: enables fuse image download with the image
     :type include_fuse: bool
     :param variant: which resolution to download, can be 'original' or 'lores'
      (low resolution used in web editor)
@@ -925,9 +925,9 @@ def create_fuse_image(image, classes_json, project_type, in_memory=False):
         class_color_dict[ann_class["name"]] = ann_class["color"]
     image_size = Image.open(image).size
     fi = np.full((image_size[1], image_size[0], 4), [0, 0, 0, 255], np.uint8)
-    fi_pil = Image.fromarray(fi)
-    draw = ImageDraw.Draw(fi_pil)
     if project_type == "Vector":
+        fi_pil = Image.fromarray(fi)
+        draw = ImageDraw.Draw(fi_pil)
         for annotation in annotation_json:
             if "className" not in annotation:
                 continue
@@ -969,7 +969,8 @@ def create_fuse_image(image, classes_json, project_type, in_memory=False):
                     temp, temp_mask, (annotation["cx"], annotation["cy"]),
                     fill_color[:-1]
                 )
-                temp_mask = (temp != [0, 0, 0])[:, :, 0].astype(np.uint8) * 255
+                temp_mask = np.alltrue(temp != [0, 0, 0],
+                                       axis=2).astype(np.uint8) * 255
                 # print(temp_mask.shape, temp_mask.dtype, np.max(temp_mask))
                 new_array = np.array(fi_pil)
                 new_array[:, :, :-1] += temp
@@ -990,12 +991,21 @@ def create_fuse_image(image, classes_json, project_type, in_memory=False):
                         fill_color,
                         width=1
                     )
-
     else:
-        raise SABaseException(
-            0, "Fuse image generation for pixel projects not implemented yet."
-        )
-        # annotation_mask = Image.open(annotation_path[1])
+        annotation_mask = np.array(Image.open(annotation_path[1]))
+        print(annotation_mask.shape, annotation_mask.dtype)
+        for annotation in annotation_json:
+            if "className" not in annotation or "parts" not in annotation:
+                continue
+            color = class_color_dict[annotation["className"]]
+            rgb = hex_to_rgb(color)
+            fill_color = (rgb[0], rgb[1], rgb[2], 255)
+            for part in annotation["parts"]:
+                part_color = part["color"]
+                part_color = list(hex_to_rgb(part_color)) + [255]
+                temp_mask = np.alltrue(annotation_mask == part_color, axis=2)
+                fi[temp_mask] = fill_color
+        fi_pil = Image.fromarray(fi)
 
     fuse_path = str(image) + "___fuse.png"
     fi_pil.save(fuse_path)

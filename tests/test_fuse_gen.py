@@ -6,17 +6,18 @@ from PIL import Image
 
 import superannotate as sa
 
-PROJECT_NAME = "test fuse image create"
+PROJECT_NAME_VECTOR = "test fuse image create vector"
+PROJECT_NAME_PIXEL = "test fuse image create pixel"
 
 
-def test_fuse_image_create(tmpdir):
+def test_fuse_image_create_vector(tmpdir):
     tmpdir = Path(tmpdir)
 
-    projects = sa.search_projects(PROJECT_NAME, return_metadata=True)
+    projects = sa.search_projects(PROJECT_NAME_VECTOR, return_metadata=True)
     for project in projects:
         sa.delete_project(project)
 
-    project = sa.create_project(PROJECT_NAME, "test", "Vector")
+    project = sa.create_project(PROJECT_NAME_VECTOR, "test", "Vector")
 
     sa.upload_image_to_project(
         project,
@@ -80,3 +81,54 @@ def test_fuse_image_create(tmpdir):
 
     assert im1_array.shape == im2_array.shape
     assert im1_array.dtype == im2_array.dtype
+
+
+def test_fuse_image_create_pixel(tmpdir):
+    tmpdir = Path(tmpdir)
+
+    projects = sa.search_projects(PROJECT_NAME_PIXEL, return_metadata=True)
+    for project in projects:
+        sa.delete_project(project)
+
+    project = sa.create_project(PROJECT_NAME_PIXEL, "test", "Pixel")
+
+    sa.upload_image_to_project(
+        project,
+        "./tests/sample_project_pixel/example_image_1.jpg",
+        annotation_status="QualityCheck"
+    )
+
+    sa.create_annotation_classes_from_classes_json(
+        project, "./tests/sample_project_pixel/classes/classes.json"
+    )
+    sa.upload_annotations_from_json_to_image(
+        PROJECT_NAME_PIXEL, "example_image_1.jpg",
+        "./tests/sample_project_pixel/example_image_1.jpg___pixel.json",
+        "./tests/sample_project_pixel/example_image_1.jpg___save.png"
+    )
+
+    export = sa.prepare_export(project, include_fuse=True)
+    (tmpdir / "export").mkdir()
+    sa.download_export(project, export, (tmpdir / "export"))
+
+    # sa.create_fuse_image(
+    #     "./tests/sample_project_vector/example_image_1.jpg",
+    #     "./tests/sample_project_vector/classes/classes.json", "Vector"
+    # )
+
+    paths = sa.download_image(
+        project,
+        "example_image_1.jpg",
+        tmpdir,
+        include_annotations=True,
+        include_fuse=True
+    )
+    im1 = Image.open(tmpdir / "export" / "example_image_1.jpg___fuse.png")
+    im1_array = np.array(im1)
+
+    im2 = Image.open(paths[2])
+    im2_array = np.array(im2)
+
+    assert im1_array.shape == im2_array.shape
+    assert im1_array.dtype == im2_array.dtype
+    assert np.array_equal(im1_array, im2_array)
