@@ -11,3 +11,4 @@ wheel>=0.35.1
 Cython>=0.29.21
 packaging>=20.4
 pandas>=1.1.2
+plotly>=4.1.0

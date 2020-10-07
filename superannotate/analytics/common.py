@@ -1,20 +1,25 @@
-from pathlib import Path
-import pandas as pd
 import json
-
 import logging
+from pathlib import Path
+
+import pandas as pd
+
 logger = logging.getLogger("superannotate-python-sdk")
 
 
 def aggregate_annotations_as_df(project_root):
     """Aggregate annotations as pandas dataframe from project root.
+
     :param project_root: export path of the project
     :type project_root: Pathlike (str or Path)
-    :return: DataFrame on annotations with columns: ["image_name", class", "attribute_group", "attribute_name", "type", "error", "probability", "point_labels", "meta"] 
+
+    :return: DataFrame on annotations with columns: ["image_name", class", "attribute_group", "attribute_name", "type", "error", "probability", "point_labels", "meta"]
     :rtype: pandas DataFrame
     """
 
-    logger.info("Aggregating annotations as pandas dataframe")
+    logger.info(
+        "Aggregating annotations from %s as pandas dataframe", project_root
+    )
 
     annotation_data = {
         "image_name": [],
@@ -83,7 +88,7 @@ def aggregate_annotations_as_df(project_root):
             annotation_point_labels = annotation["pointLabels"
                                                 ] if vector and len(
                                                     annotation["pointLabels"]
-                                                ) else None
+                                                ) == 0 else None
 
             attributes = annotation["attributes"]
             if not attributes:

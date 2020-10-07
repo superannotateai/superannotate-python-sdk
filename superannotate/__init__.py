@@ -5,6 +5,9 @@ from pathlib import Path
 import packaging.version
 import requests
 
+from .analytics.class_analytics import (
+    attribute_distribution, class_distribution
+)
 from .analytics.common import aggregate_annotations_as_df
 from .annotation_helpers import (
     add_annotation_bbox_to_json, add_annotation_cuboid_to_json,
@@ -57,10 +60,6 @@ from .exceptions import (
 from .input_converters.conversion import (
     convert_platform, export_annotation_format, import_annotation_format
 )
-
-from .analytics.common import aggregate_annotations_as_df
-from .analytics.class_analytics import class_distribution, attribute_distribution
-
 from .version import Version
 
 formatter = logging.Formatter(fmt='SA-PYTHON-SDK - %(levelname)s - %(message)s')
