@@ -18,6 +18,7 @@ def aggregate_annotations_as_df(project_root):
 
     annotation_data = {
         "image_name": [],
+        "instance_id": [],
         "class": [],
         "attribute_group": [],
         "attribute_name": [],
@@ -27,6 +28,15 @@ def aggregate_annotations_as_df(project_root):
         "point_labels": [],
         "meta": []
     }
+
+    def __append_annotation(annotation_dict):
+        for annotation_key in annotation_data:
+            if annotation_key in annotation_dict:
+                annotation_data[annotation_key].append(
+                    annotation_dict[annotation_key]
+                )
+            else:
+                annotation_data[annotation_key].append(None)
 
     annotations_paths = []
 
@@ -39,10 +49,11 @@ def aggregate_annotations_as_df(project_root):
         annotation_json = json.load(open(annotation_path))
         vector = annotation_path.name.endswith('___objects.json')
         annotation_image_name = annotation_path.name.split("___")[0]
-
+        annotation_instance_id = 0
         for annotation in annotation_json:
             if 'className' not in annotation:
                 continue
+            annotation_instance_id += 1
 
             annotation_class_name = annotation["className"]
 
@@ -70,34 +81,87 @@ def aggregate_annotations_as_df(project_root):
             annotation_probability = annotation["probability"]
 
             annotation_point_labels = annotation["pointLabels"
-                                                ] if vector else None
+                                                ] if vector and len(
+                                                    annotation["pointLabels"]
+                                                ) else None
 
             attributes = annotation["attributes"]
             if not attributes:
-                annotation_data["image_name"].append(annotation_image_name)
-                annotation_data["class"].append(annotation_class_name)
-                annotation_data["attribute_group"].append(None)
-                annotation_data["attribute_name"].append(None)
-                annotation_data["type"].append(annotation_type)
-                annotation_data["meta"].append(annotation_meta)
-                annotation_data["error"].append(annotation_error)
-                annotation_data["probability"].append(annotation_probability)
-                annotation_data["point_labels"].append(annotation_point_labels)
+                __append_annotation(
+                    {
+                        "image_name": annotation_image_name,
+                        "instance_id": annotation_instance_id,
+                        "class": annotation_class_name,
+                        "type": annotation_type,
+                        "mets": annotation_meta,
+                        "error": annotation_error,
+                        "probability": annotation_probability,
+                        "point_labels": annotation_point_labels
+                    }
+                )
 
             for attribute in attributes:
 
                 attribute_group = attribute["groupName"]
                 attribute_name = attribute['name']
 
-                annotation_data["image_name"].append(annotation_image_name)
-                annotation_data["class"].append(annotation_class_name)
-                annotation_data["attribute_group"].append(attribute_group)
-                annotation_data["attribute_name"].append(attribute_name)
-                annotation_data["type"].append(annotation_type)
-                annotation_data["meta"].append(annotation_meta)
-                annotation_data["error"].append(annotation_error)
-                annotation_data["probability"].append(annotation_probability)
-                annotation_data["point_labels"].append(annotation_point_labels)
+                __append_annotation(
+                    {
+                        "image_name": annotation_image_name,
+                        "instance_id": annotation_instance_id,
+                        "class": annotation_class_name,
+                        "attribute_group": attribute_group,
+                        "attribute_name": attribute_name,
+                        "type": annotation_type,
+                        "mets": annotation_meta,
+                        "error": annotation_error,
+                        "probability": annotation_probability,
+                        "point_labels": annotation_point_labels
+                    }
+                )
+
+    df = pd.DataFrame(annotation_data)
+
+    #Add classes/attributes w/o annotations
+    classes_json = json.load(
+        open(Path(project_root).joinpath("classes/classes.json"))
+    )
+
+    for class_meta in classes_json:
+        annotation_class_name = class_meta["name"]
+
+        if not annotation_class_name in df["class"].unique():
+            __append_annotation({
+                "class": annotation_class_name,
+            })
+            continue
+
+        class_df = df[df["class"] == annotation_class_name][[
+            "class", "attribute_group", "attribute_name"
+        ]]
+        attribute_groups = class_meta["attribute_groups"]
+
+        for attribute_group in attribute_groups:
+
+            attribute_group_name = attribute_group["name"]
+
+            attribute_group_df = class_df[
+                class_df["attribute_group"] == attribute_group_name][[
+                    "attribute_group", "attribute_name"
+                ]]
+            attributes = attribute_group["attributes"]
+            for attribute in attributes:
+                attribute_name = attribute["name"]
+
+                if not attribute_name in attribute_group_df["attribute_name"
+                                                           ].unique():
+                    __append_annotation(
+                        {
+                            "class": annotation_class_name,
+                            "attribute_group": attribute_group_name,
+                            "attribute_name": attribute_name,
+                        }
+                    )
 
     df = pd.DataFrame(annotation_data)
 
