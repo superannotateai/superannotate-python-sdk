@@ -2,15 +2,16 @@ import json
 import tempfile
 
 from .input_converters.conversion import convert_platform
+from .analytics.common import aggregate_annotations_as_df
 
 
 def filter_annotation_instances(
     annotations_dir,
-    annotations_platform="Web",
     include_annotation_classes_and_types=None,
-    exclude_annotation_classes_and_type=None
+    exclude_annotation_classes_and_type=None,
+    annotations_platform="Web"
 ):
-    if annotations_platform == "Web":
+    if annotations_platform == "Desktop":
         tmpdir = tempfile.TemporaryDirectory()
         convert_platform(annotations_dir, tmpdir, "Web")
         annotations_dir = tmpdir

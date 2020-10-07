@@ -5,6 +5,9 @@ from pathlib import Path
 import packaging.version
 import requests
 
+from .analytics.class_analytics import (
+    attribute_distribution, class_distribution
+)
 from .analytics.common import aggregate_annotations_as_df
 from .annotation_helpers import (
     add_annotation_bbox_to_json, add_annotation_cuboid_to_json,
