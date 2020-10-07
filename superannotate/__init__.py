@@ -60,6 +60,7 @@ from .exceptions import (
 from .input_converters.conversion import (
     convert_platform, export_annotation_format, import_annotation_format
 )
+from .instance_filtering import filter_annotation_instances
 from .version import Version
 
 formatter = logging.Formatter(fmt='SA-PYTHON-SDK - %(levelname)s - %(message)s')

@@ -129,7 +129,7 @@ def aggregate_annotations_as_df(project_root):
 
     #Add classes/attributes w/o annotations
     classes_json = json.load(
-        open(Path(project_root).joinpath("classes/classes.json"))
+        open(Path(project_root) / "classes" / "classes.json")
     )
 
     for class_meta in classes_json:
