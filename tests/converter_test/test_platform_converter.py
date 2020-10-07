@@ -7,8 +7,9 @@ def test_conversion(tmpdir):
     input_dir = "tests/converter_test/COCO/input/fromSuperAnnotate/cats_dogs_vector_instance_segm"
     temp_dir = tmpdir / 'output_Desktop'
     final_dir = tmpdir / 'output_Web'
-    sa.convert_platform(input_dir, temp_dir, "Web")
-    sa.convert_platform(temp_dir, final_dir, "Desktop")
+
+    sa.convert_platform(str(input_dir), str(temp_dir), "Web")
+    sa.convert_platform(str(temp_dir), str(final_dir), "Desktop")
 
     init_jsons = [file for file in os.listdir(input_dir) if '.json' in file]
     final_jsons = [file for file in os.listdir(final_dir) if '.json' in file]

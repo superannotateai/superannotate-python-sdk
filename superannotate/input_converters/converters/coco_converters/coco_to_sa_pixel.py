@@ -1,25 +1,13 @@
-import os
 import json
+import os
 
 import cv2
 import numpy as np
-
 import pycocotools.mask as maskUtils
-from pycocotools.coco import COCO
 from panopticapi.utils import id2rgb
 from tqdm import tqdm
 
-
-# Converts HEX values to RGB values
-def _hex_to_rgb(hex_string):
-    h = hex_string.lstrip('#')
-    return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
-
-
-# Converts RGB values to HEX values
-def _rgb_to_hex(rgb_tuple):
-    return '#%02x%02x%02x' % rgb_tuple
-
+from ....common import hex_to_rgb
 
 # def _rle_to_bitmask(coco_json, annotation):
 #     return coco.annToMask(annotation)
@@ -43,7 +31,7 @@ def _blue_color_generator(n, hex_values=True):
         if hex_values:
             hex_colors.append(hex_color)
         else:
-            hex_colors.append(_hex_to_rgb(hex_color))
+            hex_colors.append(hex_to_rgb(hex_color))
     return hex_colors
 
 
@@ -72,7 +60,7 @@ def coco_panoptic_segmentation_to_sa_pixel(coco_path, images_path):
         out_json = []
         for i, seg in enumerate(segments):
             img[np.all(img == id2rgb(seg["id"]),
-                       axis=1)] = _hex_to_rgb(hex_colors[i + 1])
+                       axis=1)] = hex_to_rgb(hex_colors[i + 1])
             dd = {
                 "classId": seg["category_id"],
                 "probability": 100,

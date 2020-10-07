@@ -2,12 +2,13 @@
 Main module for input converters
 """
 import sys
-import logging
 from argparse import Namespace
+from pathlib import Path
 
 from .import_to_sa_conversions import import_to_sa
 from .export_from_sa_conversions import export_from_sa
 from .sa_conversion import sa_conversion
+from ..exceptions import SABaseException
 
 AVAILABLE_ANNOTATION_FORMATS = ["COCO", "VOC", "LabelBox", "DataLoop"]
 
@@ -50,55 +51,46 @@ ALLOWED_CONVERSIONS_SUPERVISELY_TO_SA = [('Vector', 'vector_annotation')]
 
 
 def _passes_sanity_checks(args):
-    if not isinstance(args.input_dir, str):
-        log_msg = "'input_dir' should be 'str' type, not '%s'" % (
+    if not isinstance(args.input_dir, (str, Path)):
+        log_msg = "'input_dir' should be 'str' or 'Path' type, not '%s'" % (
             type(args.input_dir)
         )
-        logging.error(log_msg)
-        return False
+        raise SABaseException(0, log_msg)
 
-    # if isinstance(args.output_dir, str):
-    #     logging.error(
-    #         "'output_dir' should be 'str' type, not {}".format(
-    #             type(args.output_dir)
-    #         )
-    #     )
-    #     return False
+    if not isinstance(args.output_dir, (str, Path)):
+        log_msg = "'output_dir' should be 'str' or 'Path' type, not {}".format(
+            type(args.output_dir)
+        )
+        raise SABaseException(0, log_msg)
 
     if args.dataset_format not in AVAILABLE_ANNOTATION_FORMATS:
         log_msg = "'%s' converter doesn't exist. Possible candidates are '%s'"\
          % (args.dataset_format, AVAILABLE_ANNOTATION_FORMATS)
-        logging.error(log_msg)
-        return False
+        raise SABaseException(0, log_msg)
 
-    # if isinstance(args.dataset_name, str):
-    #     logging.error(
-    #         "'dataset_name' should be 'str' type, not {}".format(
-    #             type(args.dataset_name)
-    #         )
-    #     )
-    #     return False
+    if not isinstance(args.dataset_name, str):
+        log_msg = "'dataset_name' should be 'str' type, not {}".format(
+            type(args.dataset_name)
+        )
+        raise SABaseException(0, log_msg)
 
     if args.project_type not in ALLOWED_PROJECT_TYPES:
-        logging.error("Please enter valid project type: 'Pixel' or 'Vector'")
-        return False
+        log_msg = "Please enter valid project type: 'Pixel' or 'Vector'"
+        raise SABaseException(0, log_msg)
 
     if args.task not in ALLOWED_TASK_TYPES:
         log_msg = "Please enter valid task '%s'" % (ALLOWED_TASK_TYPES)
-        logging.error(log_msg)
-        return False
+        raise SABaseException(0, log_msg)
 
-    try:
+    if 'platform' in args:
         if args.platform not in AVAILABLE_PLATFORMS:
-            logging.error("Please enter valid platform: 'Desktop' or 'Web'")
-            return False
-    except AttributeError:
-        logging.error("Argument 'platform' doesn't exist for this method")
+            log_msg = "Please enter valid platform: 'Desktop' or 'Web'"
+            raise SABaseException(0, log_msg)
 
     if args.task == "Pixel" and args.platform == "Desktop":
-        logging.error(
-            "Sorry, but Desktop Application doesn't support 'Pixel' projects yet."
-        )
+        log_msg = "Sorry, but Desktop Application doesn't support 'Pixel' projects yet."
+        raise SABaseException(0, log_msg)
+
     return True
 
 
@@ -114,15 +106,16 @@ def _passes_converter_sanity(args, direction):
             return True
         elif args.dataset_format == "DataLoop" and converter_values in ALLOWED_CONVERSIONS_DATALOOP_TO_SA:
             return True
+        elif args.dataset_format == "Supervisely" and converter_values in ALLOWED_CONVERSIONS_SUPERVISELY_TO_SA:
+            return True
     else:
         if args.dataset_format == "COCO" and converter_values in ALLOWED_CONVERSIONS_SA_TO_COCO:
             return True
 
-    logging.error(
-        "Please enter valid converter values. You can check available \
+    log_msg = "Please enter valid converter values. You can check available \
         candidates in the documentation(https://superannotate.readthedocs.io/en/latest/index.html)."
-    )
-    return False
+
+    raise SABaseException(log_msg)
 
 
 def export_annotation_format(
@@ -147,7 +140,7 @@ def export_annotation_format(
     Vector          instance_segmentation
     Vector          object_detection
     Vector          keypoint_detection
-    ==============  ====================== 
+    ==============  ======================
 
     :param input_dir: Path to the dataset folder that you want to convert.
     :type input_dir: str
@@ -158,14 +151,14 @@ def export_annotation_format(
     :param dataset_name: Will be used to create json file in the output_dir.
     :type dataset_name: str
     :param project_type: SuperAnnotate project type is either 'Vector' or 'Pixel' (Default: 'Vector')
-                         'Vector' project creates <image_name>___objects.json for each image. 
-                         'Pixel' project creates <image_name>___pixel.jsons and <image_name>___save.png annotation mask for each image. 
+                         'Vector' project creates <image_name>___objects.json for each image.
+                         'Pixel' project creates <image_name>___pixel.jsons and <image_name>___save.png annotation mask for each image.
     :type project_type: str
-    :param task: Task can be one of the following: ['panoptic_segmentation', 'instance_segmentation', 
+    :param task: Task can be one of the following: ['panoptic_segmentation', 'instance_segmentation',
                  'keypoint_detection', 'object_detection']. (Default: "objec_detection").
                  'keypoint_detection' can be used to converts keypoints from/to available annotation format.
-                 'panoptic_segmentation' will use panoptic mask for each image to generate bluemask for SuperAnnotate annotation format and use bluemask to generate panoptic mask for invert conversion. Panoptic masks should be in the input folder. 
-                 'instance_segmentation' 'Pixel' project_type converts instance masks and 'Vector' project_type generates bounding boxes and polygons from instance masks. Masks should be in the input folder if it is 'Pixel' project_type. 
+                 'panoptic_segmentation' will use panoptic mask for each image to generate bluemask for SuperAnnotate annotation format and use bluemask to generate panoptic mask for invert conversion. Panoptic masks should be in the input folder.
+                 'instance_segmentation' 'Pixel' project_type converts instance masks and 'Vector' project_type generates bounding boxes and polygons from instance masks. Masks should be in the input folder if it is 'Pixel' project_type.
                  'object_detection' converts objects from/to available annotation format
     :type task: str
     :param platform: SuperAnnotate has both 'Web' and 'Desktop' platforms. Choose from which one you are converting. (Default: "Web")
@@ -242,7 +235,7 @@ def import_annotation_format(
     Vector          object_detection
     Vector          instance_segmentation
     Vector          vector_annotation
-    ==============  ====================== 
+    ==============  ======================
 
     ==============  ======================
            From Supervisely to SA
@@ -250,7 +243,7 @@ def import_annotation_format(
      project_type           task
     ==============  ======================
     Vector          vector_annotation
-    ==============  ====================== 
+    ==============  ======================
 
     :param input_dir: Path to the dataset folder that you want to convert.
     :type input_dir: str
@@ -261,17 +254,17 @@ def import_annotation_format(
     :param dataset_name: Name of the json file in the input_dir, which should be converted.
     :type dataset_name: str
     :param project_type: SuperAnnotate project type is either 'Vector' or 'Pixel' (Default: 'Vector')
-                         'Vector' project creates <image_name>___objects.json for each image. 
-                         'Pixel' project creates <image_name>___pixel.jsons and <image_name>___save.png annotation mask for each image. 
+                         'Vector' project creates <image_name>___objects.json for each image.
+                         'Pixel' project creates <image_name>___pixel.jsons and <image_name>___save.png annotation mask for each image.
     :type project_type: str
-    :param task: Task can be one of the following: ['panoptic_segmentation', 'instance_segmentation', 
+    :param task: Task can be one of the following: ['panoptic_segmentation', 'instance_segmentation',
                  'keypoint_detection', 'object_detection']. (Default: "objec_detection").
                  'keypoint_detection' can be used to converts keypoints from/to available annotation format.
-                 'panoptic_segmentation' will use panoptic mask for each image to generate bluemask for SuperAnnotate annotation format and use bluemask to generate panoptic mask for invert conversion. Panoptic masks should be in the input folder. 
-                 'instance_segmentation' 'Pixel' project_type converts instance masks and 'Vector' project_type generates bounding boxes and polygons from instance masks. Masks should be in the input folder if it is 'Pixel' project_type. 
+                 'panoptic_segmentation' will use panoptic mask for each image to generate bluemask for SuperAnnotate annotation format and use bluemask to generate panoptic mask for invert conversion. Panoptic masks should be in the input folder.
+                 'instance_segmentation' 'Pixel' project_type converts instance masks and 'Vector' project_type generates bounding boxes and polygons from instance masks. Masks should be in the input folder if it is 'Pixel' project_type.
                  'object_detection' converts objects from/to available annotation format
     :param platform: SuperAnnotate has both 'Web' and 'Desktop' platforms. Choose to which platform you want convert. (Default: "Web")
-    :type platform: str 
+    :type platform: str
 
     """
 
@@ -304,10 +297,20 @@ def convert_platform(input_dir, output_dir, input_platform):
     :type input_platform: str
 
     """
-    if not isinstance(input_dir, str):
-        log_msg = "'input_dir' should be 'str' type, not '%s'" % (
+    if not isinstance(input_dir, (str, Path)):
+        log_msg = "'input_dir' should be 'str' or 'Path' type, not '%s'" % (
             type(input_dir)
         )
-        logging.error(log_msg)
+        raise SABaseException(0, log_msg)
+
+    if not isinstance(output_dir, (str, Path)):
+        log_msg = "'output_dir' should be 'str' or 'Path' type, not '%s'" % (
+            type(output_dir)
+        )
+        raise SABaseException(0, log_msg)
+
+    if input_platform not in AVAILABLE_PLATFORMS:
+        log_msg = "Please enter valid platform: 'Desktop' or 'Web'"
+        raise SABaseException(0, log_msg)
 
     sa_conversion(input_dir, output_dir, input_platform)
