@@ -8,10 +8,12 @@ from pathlib import Path
 
 from .import_to_sa_conversions import import_to_sa
 from .export_from_sa_conversions import export_from_sa
-from .sa_conversion import sa_conversion
+from .sa_conversion import sa_convert_platform, sa_convert_project_type
 from ..exceptions import SABaseException
 
-AVAILABLE_ANNOTATION_FORMATS = ["COCO", "VOC", "LabelBox", "DataLoop"]
+AVAILABLE_ANNOTATION_FORMATS = [
+    "COCO", "VOC", "LabelBox", "DataLoop", 'Supervisely'
+]
 
 AVAILABLE_PLATFORMS = ["Desktop", "Web"]
 
@@ -314,4 +316,29 @@ def convert_platform(input_dir, output_dir, input_platform):
         log_msg = "Please enter valid platform: 'Desktop' or 'Web'"
         raise SABaseException(0, log_msg)
 
-    sa_conversion(input_dir, output_dir, input_platform)
+    sa_convert_platform(input_dir, output_dir, input_platform)
+
+
+def convert_project_type(input_dir, output_dir):
+    """ Converts SuperAnnotate 'Vector' project type to 'Pixel' or reverse.
+
+    :param input_dir: Path to the dataset folder that you want to convert.
+    :type input_dir: str or PathLike
+    :param output_dir: Path to the folder where you want to have converted files.
+    :type output_dir: str or PathLike
+
+    """
+
+    if not isinstance(input_dir, (str, Path)):
+        log_msg = "'input_dir' should be 'str' or 'Path' type, not '%s'" % (
+            type(input_dir)
+        )
+        raise SABaseException(0, log_msg)
+
+    if not isinstance(output_dir, (str, Path)):
+        log_msg = "'output_dir' should be 'str' or 'Path' type, not '%s'" % (
+            type(output_dir)
+        )
+        raise SABaseException(0, log_msg)
+
+    sa_convert_project_type(input_dir, output_dir)

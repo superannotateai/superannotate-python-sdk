@@ -105,9 +105,8 @@ def export_from_sa(args):
     try:
         os.makedirs(os.path.join(args.output_dir, 'train_set'))
     except Exception as e:
-        logging.error(
-            'Could not make test and train set paths, check if they already exist'
-        )
+        log_msg = 'Could not make test and train set paths, check if they already exist'
+        logging.error(log_msg)
         sys.exit()
 
     try:
@@ -121,18 +120,17 @@ def export_from_sa(args):
     try:
         data_set = _load_files(args.input_dir, args.task, args.project_type)
     except Exception as e:
-        logging.error(
-            'Something went wrong while loading files from source \
+        log_msg = 'Something went wrong while loading files from source \
             directory, check if you have valid export'
-        )
+
+        logging.error(log_msg)
         logging.error(e)
 
     try:
         _move_files(data_set, args.output_dir, args.platform)
     except Exception as e:
-        logging.error(
-            'Something is went wrong while moving or copying files from source folder'
-        )
+        log_msg = 'Something is went wrong while moving or copying files from source folder'
+        logging.error(log_msg)
         logging.error(e)
 
     method = Namespace(direction="to", dataset_format=args.dataset_format)
@@ -147,12 +145,14 @@ def export_from_sa(args):
         try:
             converter.convert_from_sa()
         except Exception as e:
-            logging.error('Something went wrong while converting train set')
+            log_msg = 'Something went wrong while converting train set'
+            logging.error(log_msg)
             logging.error(e)
             sys.exit()
 
     if args.platform == "Desktop":
         shutil.rmtree(args.input_dir)
     train_set_failed = copy.deepcopy(converter.strategy.failed_conversion_cnt)
+
     logging.info('Conversion completed successfully')
     return train_set_failed

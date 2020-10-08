@@ -55,23 +55,22 @@ def import_to_sa(args):
     try:
         os.makedirs(os.path.join(args.output_dir, "classes"))
     except Exception as e:
-        logging.error(
-            "Could not create output folders, check if they already exist"
-        )
+        log_msg = "Could not create output folders, check if they already exist"
+        logging.error(log_msg)
         sys.exit()
 
     try:
         images, masks = _load_files(args.input_dir, args.project_type)
     except Exception as e:
-        logging.error("Can't load images or masks")
+        log_msg = "Can't load images or masks"
+        logging.error(log_msg)
         logging.error(e)
 
     try:
         _move_files(images, masks, args.output_dir, args.platform)
     except Exception as e:
-        logging.error(
-            'Something is went wrong while moving or copying files from source folder'
-        )
+        log_msg = 'Something is went wrong while moving or copying files from source folder'
+        logging.error(log_msg)
         logging.error(e)
 
     method = Namespace(
@@ -87,7 +86,8 @@ def import_to_sa(args):
     try:
         converter.convert_to_sa(args.platform)
     except Exception as e:
-        logging.error("Something went wrong while converting")
+        log_msg = "Something went wrong while converting"
+        logging.error(log_msg)
         sys.exit()
 
     logging.info('Conversion completed successfully')

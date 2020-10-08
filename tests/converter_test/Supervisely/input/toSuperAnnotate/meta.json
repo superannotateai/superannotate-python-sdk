@@ -1,0 +1,97 @@
+{
+    "classes": [
+        {
+            "title": "sf",
+            "shape": "line",
+            "color": "#3BAB4D",
+            "geometry_config": {}
+        },
+        {
+            "title": "sfd",
+            "shape": "rectangle",
+            "color": "#12E269",
+            "geometry_config": {}
+        },
+        {
+            "title": "hgf",
+            "shape": "cuboid",
+            "color": "#0320C4",
+            "geometry_config": {}
+        },
+        {
+            "title": "yyyy",
+            "shape": "graph",
+            "color": "#53F361",
+            "geometry_config": {
+                "edges": [],
+                "nodes": {
+                    "52900fe2-2801-45c2-84e7-bd9a977567d3": {
+                        "label": "1",
+                        "loc": [
+                            22.94399999999993,
+                            100.32400000000001
+                        ]
+                    },
+                    "b99ed409-cbc0-4d93-8735-62ab92acfed9": {
+                        "label": "2",
+                        "loc": [
+                            79.11899999999996,
+                            102.648
+                        ]
+                    },
+                    "24d8f001-81ee-4157-9143-e4bb8d136407": {
+                        "label": "3",
+                        "loc": [
+                            55.027999999999935,
+                            0
+                        ]
+                    },
+                    "f6834206-a35c-4d88-86ed-ec1ab6fa700d": {
+                        "label": "4",
+                        "loc": [
+                            0,
+                            45.33099999999999
+                        ]
+                    },
+                    "8d2172c8-996f-4b61-aad1-181692388d31": {
+                        "label": "5",
+                        "loc": [
+                            116.37299999999992,
+                            43.992999999999995
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "title": "#1",
+            "shape": "point",
+            "color": "#13AECD",
+            "geometry_config": {}
+        },
+        {
+            "title": "#12",
+            "shape": "polygon",
+            "color": "#27A540",
+            "geometry_config": {}
+        },
+        {
+            "title": "brush",
+            "shape": "bitmap",
+            "color": "#2A8B1D",
+            "geometry_config": {}
+        }
+    ],
+    "tags": [
+        {
+            "name": "sfsfsa",
+            "value_type": "any_string",
+            "color": "#3A8F9C"
+        },
+        {
+            "name": "safsafas",
+            "value_type": "any_number",
+            "color": "#E60A5E"
+        }
+    ]
+}

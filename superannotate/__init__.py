@@ -54,7 +54,8 @@ from .exceptions import (
     SANonExistingProjectNameException
 )
 from .input_converters.conversion import (
-    convert_platform, export_annotation_format, import_annotation_format
+    convert_platform, convert_project_type, export_annotation_format,
+    import_annotation_format
 )
 from .version import Version
 

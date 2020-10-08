@@ -27,6 +27,7 @@ from .coco_converters.coco_strategies import ObjectDetectionStrategy, KeypointDe
 from .voc_converters.voc_strategies import VocObjectDetectionStrategy
 from .labelbox_converters.labelbox_strategies import LabelBoxObjectDetectionStrategy
 from .dataloop_converters.dataloop_strategies import DataLoopObjectDetectionStrategy
+from .supervisely_converters.supervisely_strategies import SuperviselyObjectDetectionStrategy
 
 
 class Converter(object):
@@ -87,6 +88,13 @@ class Converter(object):
                     dataset_name, export_root, project_type, output_dir, task,
                     method.direction
                 )
+        elif method.dataset_format == "Supervisely":
+            if task == 'vector_annotation':
+                c_strategy = SuperviselyObjectDetectionStrategy(
+                    dataset_name, export_root, project_type, output_dir, task,
+                    method.direction
+                )
+
         else:
             pass
         self.__set_strategy(c_strategy)
