@@ -7,21 +7,20 @@ from .input_converters.conversion import convert_platform
 
 
 def filter_annotation_instances(
-    annotations_dir,
-    include_annotation_classes_and_types=None,
-    exclude_annotation_classes_and_type=None,
-    annotations_platform="Web"
+    annotations_dir, include=None, exclude=None, annotations_platform="Web"
 ):
     if annotations_platform == "Desktop":
         tmpdir = tempfile.TemporaryDirectory()
         convert_platform(annotations_dir, tmpdir, "Desktop")
         annotations_dir = tmpdir
 
-    df = aggregate_annotations_as_df(annotations_dir)
+    original_df = aggregate_annotations_as_df(annotations_dir, False, False)
 
-    if include_annotation_classes_and_types is not None:
+    df = original_df.drop(["meta", "point_labels"], axis=1)
+
+    if include is not None:
         included_dfs = []
-        for include_rule in include_annotation_classes_and_types:
+        for include_rule in include:
             df_new = df.copy()
             if "className" in include_rule:
                 df_new = df_new[df_new["class"] == include_rule["className"]]
@@ -36,9 +35,9 @@ def filter_annotation_instances(
 
         df = pd.concat(included_dfs)
 
-    if exclude_annotation_classes_and_type is not None:
+    if exclude is not None:
         excluded_dfs = []
-        for exclude_rule in exclude_annotation_classes_and_type:
+        for exclude_rule in exclude:
             df_new = df.copy()
             if "className" in exclude_rule:
                 df_new = df_new[df_new["class"] == exclude_rule["className"]]
@@ -49,5 +48,11 @@ def filter_annotation_instances(
                         df_new["attribute_name"] == attribute["name"]]
             if "type" in exclude_rule:
                 df_new = df_new[df_new["type"] == exclude_rule["type"]]
+            excluded_dfs.append(df_new)
 
         to_exclude = pd.concat(excluded_dfs)
+        df = df.merge(to_exclude, how='outer',
+                      indicator=True).loc[lambda x: x['_merge'] == 'left_only']
+        df = df.drop("_merge", axis=1)
+
+    return original_df.loc[df.index]

@@ -7,19 +7,24 @@ import pandas as pd
 logger = logging.getLogger("superannotate-python-sdk")
 
 
-def aggregate_annotations_as_df(project_root):
+def aggregate_annotations_as_df(
+    project_root, include_classes_wo_annotations=True, verbose=True
+):
     """Aggregate annotations as pandas dataframe from project root.
 
     :param project_root: export path of the project
     :type project_root: Pathlike (str or Path)
+    :param include_classes_wo_annotations: enables inclusion of classes without annotations info
+    :type include_classes_wo_annotations: bool
 
     :return: DataFrame on annotations with columns: ["image_name", class", "attribute_group", "attribute_name", "type", "error", "probability", "point_labels", "meta"]
     :rtype: pandas DataFrame
     """
 
-    logger.info(
-        "Aggregating annotations from %s as pandas dataframe", project_root
-    )
+    if verbose:
+        logger.info(
+            "Aggregating annotations from %s as pandas dataframe", project_root
+        )
 
     annotation_data = {
         "image_name": [],
@@ -98,7 +103,7 @@ def aggregate_annotations_as_df(project_root):
                         "instance_id": annotation_instance_id,
                         "class": annotation_class_name,
                         "type": annotation_type,
-                        "mets": annotation_meta,
+                        "meta": annotation_meta,
                         "error": annotation_error,
                         "probability": annotation_probability,
                         "point_labels": annotation_point_labels
@@ -118,7 +123,7 @@ def aggregate_annotations_as_df(project_root):
                         "attribute_group": attribute_group,
                         "attribute_name": attribute_name,
                         "type": annotation_type,
-                        "mets": annotation_meta,
+                        "meta": annotation_meta,
                         "error": annotation_error,
                         "probability": annotation_probability,
                         "point_labels": annotation_point_labels
@@ -128,46 +133,49 @@ def aggregate_annotations_as_df(project_root):
     df = pd.DataFrame(annotation_data)
 
     #Add classes/attributes w/o annotations
-    classes_json = json.load(
-        open(Path(project_root) / "classes" / "classes.json")
-    )
+    if include_classes_wo_annotations:
+        classes_json = json.load(
+            open(Path(project_root) / "classes" / "classes.json")
+        )
 
-    for class_meta in classes_json:
-        annotation_class_name = class_meta["name"]
+        for class_meta in classes_json:
+            annotation_class_name = class_meta["name"]
 
-        if not annotation_class_name in df["class"].unique():
-            __append_annotation({
-                "class": annotation_class_name,
-            })
-            continue
+            if not annotation_class_name in df["class"].unique():
+                __append_annotation({
+                    "class": annotation_class_name,
+                })
+                continue
 
-        class_df = df[df["class"] == annotation_class_name][[
-            "class", "attribute_group", "attribute_name"
-        ]]
-        attribute_groups = class_meta["attribute_groups"]
+            class_df = df[df["class"] == annotation_class_name][[
+                "class", "attribute_group", "attribute_name"
+            ]]
+            attribute_groups = class_meta["attribute_groups"]
 
-        for attribute_group in attribute_groups:
+            for attribute_group in attribute_groups:
 
-            attribute_group_name = attribute_group["name"]
+                attribute_group_name = attribute_group["name"]
 
-            attribute_group_df = class_df[
-                class_df["attribute_group"] == attribute_group_name][[
-                    "attribute_group", "attribute_name"
-                ]]
-            attributes = attribute_group["attributes"]
-            for attribute in attributes:
-                attribute_name = attribute["name"]
+                attribute_group_df = class_df[
+                    class_df["attribute_group"] == attribute_group_name][[
+                        "attribute_group", "attribute_name"
+                    ]]
+                attributes = attribute_group["attributes"]
+                for attribute in attributes:
+                    attribute_name = attribute["name"]
 
-                if not attribute_name in attribute_group_df["attribute_name"
-                                                           ].unique():
-                    __append_annotation(
-                        {
-                            "class": annotation_class_name,
-                            "attribute_group": attribute_group_name,
-                            "attribute_name": attribute_name,
-                        }
-                    )
+                    if not attribute_name in attribute_group_df["attribute_name"
+                                                               ].unique():
+                        __append_annotation(
+                            {
+                                "class": annotation_class_name,
+                                "attribute_group": attribute_group_name,
+                                "attribute_name": attribute_name,
+                            }
+                        )
 
-    df = pd.DataFrame(annotation_data)
+        df = pd.DataFrame(annotation_data)
+
+    df = df.astype({"probability": float})
 
     return df
