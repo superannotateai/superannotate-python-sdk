@@ -4,6 +4,9 @@ import logging
 from pathlib import Path
 
 import boto3
+import cv2
+import numpy as np
+from PIL import Image, ImageDraw
 import requests
 
 from ..annotation_helpers import (
@@ -13,7 +16,10 @@ from ..annotation_helpers import (
     add_annotation_template_to_json
 )
 from ..api import API
-from ..common import annotation_status_str_to_int, deprecated_alias
+from ..common import (
+    annotation_status_str_to_int, deprecated_alias, project_type_int_to_str,
+    image_path_to_annotation_paths, hex_to_rgb
+)
 from ..exceptions import SABaseException
 from .annotation_classes import (
     fill_class_and_attribute_ids, fill_class_and_attribute_names,
@@ -428,6 +434,7 @@ def download_image(
     image_name,
     local_dir_path=".",
     include_annotations=False,
+    include_fuse=False,
     variant='original'
 ):
     """Downloads the image (and annotation if not None) to local_dir_path
@@ -440,6 +447,8 @@ def download_image(
     :type local_dir_path: Pathlike (str or Path)
     :param include_annotations: enables annotation download with the image
     :type include_annotations: bool
+    :param include_fuse: enables fuse image download with the image
+    :type include_fuse: bool
     :param variant: which resolution to download, can be 'original' or 'lores'
      (low resolution used in web editor)
     :type variant: str
@@ -456,6 +465,8 @@ def download_image(
             0, "Image download variant should be either original or lores"
         )
 
+    if not isinstance(project, dict):
+        project = get_project_metadata(project)
     img = get_image_bytes(project, image_name, variant=variant)
     if variant == "lores":
         image_name += "___lores.jpg"
@@ -463,13 +474,18 @@ def download_image(
     with open(filepath, 'wb') as f:
         f.write(img.getbuffer())
     annotations_filepaths = None
+    fuse_path = None
     if include_annotations:
         annotations_filepaths = download_image_annotations(
             project, image_name, local_dir_path
         )
+        if include_fuse:
+            classes = search_annotation_classes(project, return_metadata=True)
+            project_type = project_type_int_to_str(project["type"])
+            fuse_path = create_fuse_image(filepath, classes, project_type)
     logger.info("Downloaded image %s to %s.", image_name, filepath)
 
-    return (str(filepath), annotations_filepaths)
+    return (str(filepath), annotations_filepaths, fuse_path)
 
 
 def delete_image(project, image_name):
@@ -783,21 +799,18 @@ def download_image_preannotations(project, image_name, local_dir_path):
         return (None, )
     return_filepaths = []
     json_path = Path(local_dir_path) / annotation["preannotation_json_filename"]
-    return_filepaths.append(json_path)
+    return_filepaths.append(str(json_path))
     if project["type"] == 1:
         with open(json_path, "w") as f:
             json.dump(annotation["preannotation_json"], f)
     else:
-        with open(
-            Path(local_dir_path) / annotation["preannotation_json_filename"],
-            "w"
-        ) as f:
+        with open(json_path, "w") as f:
             json.dump(annotation["preannotation_json"], f)
-        with open(
-            Path(local_dir_path) / annotation["preannotation_mask_filename"],
-            "wb"
-        ) as f:
+        mask_path = Path(local_dir_path
+                        ) / annotation["preannotation_mask_filename"]
+        with open(mask_path, "wb") as f:
             f.write(annotation["preannotation_mask"].getbuffer())
+        return_filepaths.append(str(mask_path))
     return tuple(return_filepaths)
 
 
@@ -895,3 +908,118 @@ def upload_annotations_from_json_to_image(
         raise SABaseException(
             response.status_code, "Couldn't upload annotation. " + response.text
         )
+
+
+def create_fuse_image(image, classes_json, project_type, in_memory=False):
+    """Creates fuse for locally located image and annotations
+
+    :param image: path to image
+    :type image: str or Pathlike
+    :param image_name: annotation classes or path to their JSON
+    :type image: list or Pathlike
+    :param project_type: project type, "Vector" or "Pixel"
+    :type project_type: str
+    :param in_memory: enables pillow Image return instead of saving the image
+    :type in_memory: bool
+
+    :return: path to created fuse image or pillow Image object if in_memory enabled
+    :rtype: str of PIL.Image
+    """
+    annotation_path = image_path_to_annotation_paths(image, project_type)
+    annotation_json = json.load(open(annotation_path[0]))
+    if not isinstance(classes_json, list):
+        classes_json = json.load(open(classes_json))
+    class_color_dict = {}
+    for ann_class in classes_json:
+        if "name" not in ann_class:
+            continue
+        class_color_dict[ann_class["name"]] = ann_class["color"]
+    image_size = Image.open(image).size
+    fi = np.full((image_size[1], image_size[0], 4), [0, 0, 0, 255], np.uint8)
+    if project_type == "Vector":
+        fi_pil = Image.fromarray(fi)
+        draw = ImageDraw.Draw(fi_pil)
+        for annotation in annotation_json:
+            if "className" not in annotation:
+                continue
+            color = class_color_dict[annotation["className"]]
+            rgb = hex_to_rgb(color)
+            fill_color = (rgb[0], rgb[1], rgb[2], 255)
+            outline_color = (255, 255, 255, 255)
+            if annotation["type"] == "bbox":
+                pt = (
+                    (annotation["points"]["x1"], annotation["points"]["y1"]),
+                    (annotation["points"]["x2"], annotation["points"]["y2"])
+                )
+                draw.rectangle(pt, fill_color, outline_color)
+            elif annotation["type"] == "polygon":
+                pts = annotation["points"]
+                draw.polygon(pts, fill_color, outline_color)
+            elif annotation["type"] == "polyline":
+                pts = annotation["points"]
+                draw.line(pts, fill_color, width=2)
+            elif annotation["type"] == "point":
+                pts = [
+                    annotation["x"] - 2, annotation["y"] - 2,
+                    annotation["x"] + 2, annotation["y"] + 2
+                ]
+                draw.ellipse(pts, fill_color, outline_color)
+            elif annotation["type"] == "ellipse":
+                temp = np.full(
+                    (image_size[1], image_size[0], 3), [0, 0, 0], np.uint8
+                )
+                cv2.ellipse(
+                    temp, (annotation["cx"], annotation["cy"]),
+                    (annotation["rx"], annotation["ry"]), annotation["angle"],
+                    0, 360, outline_color[:-1], 1
+                )
+                temp_mask = np.zeros(
+                    (image_size[1] + 2, image_size[0] + 2), np.uint8
+                )
+                cv2.floodFill(
+                    temp, temp_mask, (annotation["cx"], annotation["cy"]),
+                    fill_color[:-1]
+                )
+                temp_mask = np.alltrue(temp != [0, 0, 0],
+                                       axis=2).astype(np.uint8) * 255
+                # print(temp_mask.shape, temp_mask.dtype, np.max(temp_mask))
+                new_array = np.array(fi_pil)
+                new_array[:, :, :-1] += temp
+                new_array[:, :, 3] += temp_mask
+                fi_pil = Image.fromarray(new_array)
+                draw = ImageDraw.Draw(fi_pil)
+            elif annotation["type"] == "template":
+                pts = annotation["points"]
+                pt_dict = {}
+                for pt in pts:
+                    pt_e = [pt["x"] - 2, pt["y"] - 2, pt["x"] + 2, pt["y"] + 2]
+                    draw.ellipse(pt_e, fill_color, fill_color)
+                    pt_dict[pt["id"]] = [pt["x"], pt["y"]]
+                connections = annotation["connections"]
+                for connection in connections:
+                    draw.line(
+                        pt_dict[connection["from"]] + pt_dict[connection["to"]],
+                        fill_color,
+                        width=1
+                    )
+    else:
+        annotation_mask = np.array(Image.open(annotation_path[1]))
+        print(annotation_mask.shape, annotation_mask.dtype)
+        for annotation in annotation_json:
+            if "className" not in annotation or "parts" not in annotation:
+                continue
+            color = class_color_dict[annotation["className"]]
+            rgb = hex_to_rgb(color)
+            fill_color = (rgb[0], rgb[1], rgb[2], 255)
+            for part in annotation["parts"]:
+                part_color = part["color"]
+                part_color = list(hex_to_rgb(part_color)) + [255]
+                temp_mask = np.alltrue(annotation_mask == part_color, axis=2)
+                fi[temp_mask] = fill_color
+        fi_pil = Image.fromarray(fi)
+
+    if in_memory:
+        return fi_pil
+    fuse_path = str(image) + "___fuse.png"
+    fi_pil.save(fuse_path)
+    return fuse_path

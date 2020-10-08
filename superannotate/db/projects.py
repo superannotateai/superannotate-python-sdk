@@ -278,8 +278,8 @@ def upload_images_from_folder_to_project(
     :param image_quality_in_editor: image quality (in percents) that will be seen in SuperAnnotate web annotation editor. If None default value will be used.
     :type image_quality_in_editor: int
 
-    :return: uploaded images' filepaths
-    :rtype: list
+    :return: uploaded and not-uploaded images' filepaths
+    :rtype: tuple of list of strs
     """
     if not isinstance(project, dict):
         project = get_project_metadata(project)
@@ -289,7 +289,6 @@ def upload_images_from_folder_to_project(
         )
     if exclude_file_patterns is None:
         exclude_file_patterns = ["___save.png", "___fuse.png"]
-    project_id = project["id"]
     if extensions is None:
         extensions = ["jpg", "png"]
     elif not isinstance(extensions, list):
@@ -344,21 +343,23 @@ def upload_images_from_folder_to_project(
 def get_image_array_to_upload(
     byte_io_orig, project_type, image_quality_in_editor
 ):
+    Image.MAX_IMAGE_PIXELS = None
     im = Image.open(byte_io_orig)
+    im = im.convert("RGB")
     width, height = im.size
     max_size = _RESIZE_CONFIG[project_type]
     if (width * height) > max_size:
+        im_format = im.format
+        logger.warning("One of the images is being resized to smaller size.")
         max_size_root = math.sqrt(max_size)
         nwidth = math.floor(max_size_root * math.sqrt(width / height))
         nheight = math.floor(max_size_root * math.sqrt(height / width))
         im = im.resize((nwidth, nheight))
         byte_io_orig = io.BytesIO()
-        im.convert('RGB').save(
-            byte_io_orig, im.format, subsampling=0, quality=100
-        )
+        im.save(byte_io_orig, im_format, subsampling=0, quality=100)
 
     byte_io_lores = io.BytesIO()
-    im.convert('RGB').save(
+    im.save(
         byte_io_lores,
         'JPEG',
         subsampling=0 if image_quality_in_editor > 60 else 2,
@@ -367,11 +368,18 @@ def get_image_array_to_upload(
 
     byte_io_huge = io.BytesIO()
     hsize = int(height * 600.0 / width)
-    im.convert('RGB').resize((600, hsize),
-                             Image.ANTIALIAS).save(byte_io_huge, 'JPEG')
+    im.resize((600, hsize), Image.ANTIALIAS).save(byte_io_huge, 'JPEG')
 
     byte_io_thumbs = io.BytesIO()
-    im.convert('RGB').resize((128, 96)).save(byte_io_thumbs, 'JPEG')
+    thumbnail_size = (128, 96)
+    background = Image.new('RGB', thumbnail_size, "black")
+    im.thumbnail(thumbnail_size)
+    (w, h) = im.size
+    background.paste(
+        im, ((thumbnail_size[0] - w) // 2, (thumbnail_size[1] - h) // 2)
+    )
+    im = background
+    im.save(byte_io_thumbs, 'JPEG')
 
     byte_io_thumbs.seek(0)
     byte_io_lores.seek(0)
@@ -389,8 +397,8 @@ def __upload_images_to_aws_thread(
     prefix,
     thread_id,
     chunksize,
-    already_uploaded,
-    num_uploaded,
+    couldnt_upload,
+    uploaded,
     image_quality_in_editor,
     from_s3_bucket=None,
 ):
@@ -415,8 +423,6 @@ def __upload_images_to_aws_thread(
     for i in range(start_index, end_index):
         if i >= len_img_paths:
             break
-        if already_uploaded[i]:
-            continue
         path = img_paths[i]
         key = prefix + f'{Path(path).name}'
         if from_s3_bucket is not None:
@@ -426,37 +432,25 @@ def __upload_images_to_aws_thread(
         else:
             with open(path, "rb") as f:
                 file = io.BytesIO(f.read())
-        orig_image, lores_image, huge_image, thumbnail_image = get_image_array_to_upload(
-            file, project_type, image_quality_in_editor
-        )
         try:
+            orig_image, lores_image, huge_image, thumbnail_image = get_image_array_to_upload(
+                file, project_type, image_quality_in_editor
+            )
             bucket.put_object(Body=orig_image, Key=key)
-        except Exception as e:
-            logger.warning("Unable to upload orig_image to data server %s", e)
-            break
-        try:
             bucket.put_object(Body=lores_image, Key=key + '___lores.jpg')
-        except Exception as e:
-            logger.warning("Unable to upload lores_image to data server %s.", e)
-            break
-        try:
             bucket.put_object(Body=huge_image, Key=key + '___huge.jpg')
-        except Exception as e:
-            logger.warning("Unable to upload huge_image to data server %s.", e)
-            break
-        try:
             bucket.put_object(Body=thumbnail_image, Key=key + '___thumb.jpg')
         except Exception as e:
-            logger.warning(
-                "Unable to upload thumbnail_image to data server %s.", e
-            )
-            break
-        num_uploaded[thread_id] += 1
-        already_uploaded[i] = True
-        uploaded_imgs.append(path)
-        if len(uploaded_imgs) >= 100:
-            __create_image(uploaded_imgs, project, annotation_status, prefix)
-            uploaded_imgs = []
+            logger.warning("Unable to upload to data server %s.", e)
+            couldnt_upload[thread_id].append(path)
+        else:
+            uploaded[thread_id].append(path)
+            uploaded_imgs.append(path)
+            if len(uploaded_imgs) >= 100:
+                __create_image(
+                    uploaded_imgs, project, annotation_status, prefix
+                )
+                uploaded_imgs = []
     __create_image(uploaded_imgs, project, annotation_status, prefix)
 
 
@@ -506,8 +500,8 @@ def upload_images_to_project(
     :param image_quality_in_editor: image quality (in percents) that will be seen in SuperAnnotate web annotation editor. If None default value will be used.
     :type image_quality_in_editor: int
 
-    :return: uploaded images' filepaths
-    :rtype: list of str
+    :return: uploaded and not-uploaded images' filepaths
+    :rtype: tuple of list of strs
     """
     if not isinstance(project, dict):
         project = get_project_metadata(project)
@@ -526,50 +520,59 @@ def upload_images_to_project(
     params = {
         'team_id': team_id,
     }
-    num_uploaded = [0] * _NUM_THREADS
-    already_uploaded = [False] * len_img_paths
+    uploaded = []
+    for _ in range(_NUM_THREADS):
+        uploaded.append([])
+    couldnt_upload = []
+    for _ in range(_NUM_THREADS):
+        couldnt_upload.append([])
     finish_event = threading.Event()
     chunksize = int(math.ceil(len(img_paths) / _NUM_THREADS))
     tqdm_thread = threading.Thread(
-        target=__tqdm_thread, args=(len_img_paths, num_uploaded, finish_event)
+        target=__tqdm_thread_image_upload,
+        args=(len_img_paths, uploaded, couldnt_upload, finish_event)
     )
     tqdm_thread.start()
-    while True:
-        if sum(num_uploaded) == len_img_paths:
-            break
-        response = _api.send_request(
-            req_type='GET',
-            path=f'/project/{project_id}/sdkImageUploadToken',
-            params=params
+    response = _api.send_request(
+        req_type='GET',
+        path=f'/project/{project_id}/sdkImageUploadToken',
+        params=params
+    )
+    if response.ok:
+        res = response.json()
+        prefix = res['filePath']
+    else:
+        raise SABaseException(
+            response.status_code, "Couldn't get upload token " + response.text
         )
-        if response.ok:
-            res = response.json()
-            prefix = res['filePath']
-        else:
-            raise SABaseException(
-                response.status_code,
-                "Couldn't get upload token " + response.text
-            )
 
-        threads = []
-        for thread_id in range(_NUM_THREADS):
-            t = threading.Thread(
-                target=__upload_images_to_aws_thread,
-                args=(
-                    res, img_paths, project, annotation_status, prefix,
-                    thread_id, chunksize, already_uploaded, num_uploaded,
-                    image_quality_in_editor, from_s3_bucket
-                )
+    threads = []
+    for thread_id in range(_NUM_THREADS):
+        t = threading.Thread(
+            target=__upload_images_to_aws_thread,
+            args=(
+                res, img_paths, project, annotation_status, prefix, thread_id,
+                chunksize, couldnt_upload, uploaded, image_quality_in_editor,
+                from_s3_bucket
             )
-            threads.append(t)
-            t.start()
-        for t in threads:
-            t.join()
+        )
+        threads.append(t)
+        t.start()
+    for t in threads:
+        t.join()
     finish_event.set()
     tqdm_thread.join()
+    list_of_not_uploaded = []
+    for couldnt_upload_thread in couldnt_upload:
+        for file in couldnt_upload_thread:
+            logger.warning("Couldn't upload image %s", file)
+            list_of_not_uploaded.append(str(file))
+    list_of_uploaded = []
+    for upload_thread in uploaded:
+        for file in upload_thread:
+            list_of_uploaded.append(str(file))
 
-    return_paths = [str(path) for path in img_paths]
-    return return_paths
+    return (list_of_uploaded, list_of_not_uploaded)
 
 
 def __upload_annotations_thread(
@@ -876,6 +879,24 @@ def __tqdm_thread(total_num, current_nums, finish_event):
             finished = finish_event.wait(5)
             if not finished:
                 pbar.update(sum(current_nums) - pbar.n)
+            else:
+                pbar.update(total_num - pbar.n)
+                break
+
+
+def __tqdm_thread_image_upload(
+    total_num, uploaded, couldnt_upload, finish_event
+):
+    with tqdm(total=total_num) as pbar:
+        while True:
+            finished = finish_event.wait(5)
+            if not finished:
+                sum_all = 0
+                for i in couldnt_upload:
+                    sum_all += len(i)
+                for i in uploaded:
+                    sum_all += len(i)
+                pbar.update(sum_all - pbar.n)
             else:
                 pbar.update(total_num - pbar.n)
                 break

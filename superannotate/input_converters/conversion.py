@@ -2,7 +2,6 @@
 Main module for input converters
 """
 import sys
-import logging
 from argparse import Namespace
 from pathlib import Path
 
@@ -143,7 +142,7 @@ def export_annotation_format(
     Vector          instance_segmentation
     Vector          object_detection
     Vector          keypoint_detection
-    ==============  ====================== 
+    ==============  ======================
 
     :param input_dir: Path to the dataset folder that you want to convert.
     :type input_dir: str
@@ -154,14 +153,14 @@ def export_annotation_format(
     :param dataset_name: Will be used to create json file in the output_dir.
     :type dataset_name: str
     :param project_type: SuperAnnotate project type is either 'Vector' or 'Pixel' (Default: 'Vector')
-                         'Vector' project creates <image_name>___objects.json for each image. 
-                         'Pixel' project creates <image_name>___pixel.jsons and <image_name>___save.png annotation mask for each image. 
+                         'Vector' project creates <image_name>___objects.json for each image.
+                         'Pixel' project creates <image_name>___pixel.jsons and <image_name>___save.png annotation mask for each image.
     :type project_type: str
-    :param task: Task can be one of the following: ['panoptic_segmentation', 'instance_segmentation', 
+    :param task: Task can be one of the following: ['panoptic_segmentation', 'instance_segmentation',
                  'keypoint_detection', 'object_detection']. (Default: "objec_detection").
                  'keypoint_detection' can be used to converts keypoints from/to available annotation format.
-                 'panoptic_segmentation' will use panoptic mask for each image to generate bluemask for SuperAnnotate annotation format and use bluemask to generate panoptic mask for invert conversion. Panoptic masks should be in the input folder. 
-                 'instance_segmentation' 'Pixel' project_type converts instance masks and 'Vector' project_type generates bounding boxes and polygons from instance masks. Masks should be in the input folder if it is 'Pixel' project_type. 
+                 'panoptic_segmentation' will use panoptic mask for each image to generate bluemask for SuperAnnotate annotation format and use bluemask to generate panoptic mask for invert conversion. Panoptic masks should be in the input folder.
+                 'instance_segmentation' 'Pixel' project_type converts instance masks and 'Vector' project_type generates bounding boxes and polygons from instance masks. Masks should be in the input folder if it is 'Pixel' project_type.
                  'object_detection' converts objects from/to available annotation format
     :type task: str
     :param platform: SuperAnnotate has both 'Web' and 'Desktop' platforms. Choose from which one you are converting. (Default: "Web")
@@ -238,7 +237,7 @@ def import_annotation_format(
     Vector          object_detection
     Vector          instance_segmentation
     Vector          vector_annotation
-    ==============  ====================== 
+    ==============  ======================
 
     ==============  ======================
            From Supervisely to SA
@@ -246,7 +245,7 @@ def import_annotation_format(
      project_type           task
     ==============  ======================
     Vector          vector_annotation
-    ==============  ====================== 
+    ==============  ======================
 
     :param input_dir: Path to the dataset folder that you want to convert.
     :type input_dir: str
@@ -257,17 +256,17 @@ def import_annotation_format(
     :param dataset_name: Name of the json file in the input_dir, which should be converted.
     :type dataset_name: str
     :param project_type: SuperAnnotate project type is either 'Vector' or 'Pixel' (Default: 'Vector')
-                         'Vector' project creates <image_name>___objects.json for each image. 
-                         'Pixel' project creates <image_name>___pixel.jsons and <image_name>___save.png annotation mask for each image. 
+                         'Vector' project creates <image_name>___objects.json for each image.
+                         'Pixel' project creates <image_name>___pixel.jsons and <image_name>___save.png annotation mask for each image.
     :type project_type: str
-    :param task: Task can be one of the following: ['panoptic_segmentation', 'instance_segmentation', 
+    :param task: Task can be one of the following: ['panoptic_segmentation', 'instance_segmentation',
                  'keypoint_detection', 'object_detection']. (Default: "objec_detection").
                  'keypoint_detection' can be used to converts keypoints from/to available annotation format.
-                 'panoptic_segmentation' will use panoptic mask for each image to generate bluemask for SuperAnnotate annotation format and use bluemask to generate panoptic mask for invert conversion. Panoptic masks should be in the input folder. 
-                 'instance_segmentation' 'Pixel' project_type converts instance masks and 'Vector' project_type generates bounding boxes and polygons from instance masks. Masks should be in the input folder if it is 'Pixel' project_type. 
+                 'panoptic_segmentation' will use panoptic mask for each image to generate bluemask for SuperAnnotate annotation format and use bluemask to generate panoptic mask for invert conversion. Panoptic masks should be in the input folder.
+                 'instance_segmentation' 'Pixel' project_type converts instance masks and 'Vector' project_type generates bounding boxes and polygons from instance masks. Masks should be in the input folder if it is 'Pixel' project_type.
                  'object_detection' converts objects from/to available annotation format
     :param platform: SuperAnnotate has both 'Web' and 'Desktop' platforms. Choose to which platform you want convert. (Default: "Web")
-    :type platform: str 
+    :type platform: str
 
     """
 

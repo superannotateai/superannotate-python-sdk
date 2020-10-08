@@ -1,11 +1,12 @@
-import os
-import json
-import shutil
 import glob
-import time
+import json
 import logging
+import os
+import shutil
+import time
 import cv2
 import numpy as np
+
 from tqdm import tqdm
 from pathlib import Path
 

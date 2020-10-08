@@ -80,6 +80,7 @@ ______
 .. autofunction:: superannotate.add_annotation_ellipse_to_image
 .. autofunction:: superannotate.add_annotation_template_to_image
 .. autofunction:: superannotate.add_annotation_cuboid_to_image
+.. autofunction:: superannotate.create_fuse_image
 
 ----------
 

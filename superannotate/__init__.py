@@ -5,6 +5,10 @@ from pathlib import Path
 import packaging.version
 import requests
 
+from .analytics.class_analytics import (
+    attribute_distribution, class_distribution
+)
+from .analytics.common import aggregate_annotations_as_df
 from .annotation_helpers import (
     add_annotation_bbox_to_json, add_annotation_cuboid_to_json,
     add_annotation_ellipse_to_json, add_annotation_point_to_json,
@@ -29,8 +33,8 @@ from .db.images import (
     add_annotation_bbox_to_image, add_annotation_cuboid_to_image,
     add_annotation_ellipse_to_image, add_annotation_point_to_image,
     add_annotation_polygon_to_image, add_annotation_polyline_to_image,
-    add_annotation_template_to_image, delete_image, download_image,
-    download_image_annotations, download_image_preannotations,
+    add_annotation_template_to_image, create_fuse_image, delete_image,
+    download_image, download_image_annotations, download_image_preannotations,
     get_image_annotations, get_image_bytes, get_image_metadata,
     get_image_preannotations, search_images, set_image_annotation_status,
     upload_annotations_from_json_to_image
@@ -57,6 +61,7 @@ from .input_converters.conversion import (
     convert_platform, convert_project_type, export_annotation_format,
     import_annotation_format
 )
+from .instance_filtering import filter_annotation_instances
 from .version import Version
 
 formatter = logging.Formatter(fmt='SA-PYTHON-SDK - %(levelname)s - %(message)s')
