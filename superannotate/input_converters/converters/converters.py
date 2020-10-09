@@ -1,20 +1,10 @@
 '''
-This may look over-engineered at this point however the idea is the following:
-1. We eventually might want to convert to and from other formats than COCO
-2. For each of these formats (COCO included) there should be different strategies
-   for conversion. In COCO's case there are 5
-   1.1 Panoptic
-   1.2 Object Detection
-   1.3 Stuff Detection
-   1.4 Keypoint Detection
-   1.5 Image Captioning
-3. We will have a general Converter object will not care about the format or the
-   conversion strategy. It has to methods:
-   3.1 convert from sa format to desired format` convert_from_sa()
-   3.2 convert from some format to sa format` convert_to_sa()
-4. This object will receive the strategy from outside and will convert according to
+
+This object will receive the strategy from outside and will convert according to
    said strategy.
+
 '''
+
 import glob
 import os
 import json
@@ -23,7 +13,7 @@ import time
 
 from tqdm import tqdm
 
-from .coco_converters.coco_strategies import ObjectDetectionStrategy, KeypointDetectionStrategy, PanopticConverterStrategy
+from .coco_converters.coco_strategies import CocoObjectDetectionStrategy, CocoKeypointDetectionStrategy, CocoPanopticConverterStrategy
 from .voc_converters.voc_strategies import VocObjectDetectionStrategy
 from .labelbox_converters.labelbox_strategies import LabelBoxObjectDetectionStrategy
 from .dataloop_converters.dataloop_strategies import DataLoopObjectDetectionStrategy
@@ -31,14 +21,9 @@ from .supervisely_converters.supervisely_strategies import SuperviselyObjectDete
 
 
 class Converter(object):
-    def __init__(
-        self, project_type, task, dataset_name, export_root, output_dir, method
-    ):
-        self.export_root = export_root
-        self.output_dir = output_dir
-        self._select_strategy(
-            project_type, task, dataset_name, export_root, output_dir, method
-        )
+    def __init__(self, args):
+        self.output_dir = args.output_dir
+        self._select_strategy(args)
 
     def convert_from_sa(self):
         self.strategy.sa_to_output_format()
@@ -51,52 +36,29 @@ class Converter(object):
     def __set_strategy(self, c_strategy):
         self.strategy = c_strategy
 
-    def _select_strategy(
-        self, project_type, task, dataset_name, export_root, output_dir, method
-    ):
-        if method.dataset_format == "COCO":
-            if task == 'instance_segmentation' or task == 'object_detection':
-                c_strategy = ObjectDetectionStrategy(
-                    dataset_name, export_root, project_type, output_dir, task,
-                    method.direction
-                )
-            if task == 'keypoint_detection':
-                c_strategy = KeypointDetectionStrategy(
-                    dataset_name, export_root, project_type, output_dir,
-                    method.direction
-                )
-            if task == 'panoptic_segmentation':
-                c_strategy = PanopticConverterStrategy(
-                    dataset_name, export_root, project_type, output_dir,
-                    method.direction
-                )
-        elif method.dataset_format == "VOC":
-            if task == 'instance_segmentation' or task == 'object_detection':
-                c_strategy = VocObjectDetectionStrategy(
-                    dataset_name, export_root, project_type, output_dir, task,
-                    method.direction
-                )
-        elif method.dataset_format == "LabelBox":
-            if task == "object_detection" or task == 'instance_segmentation' or task == 'vector_annotation':
-                c_strategy = LabelBoxObjectDetectionStrategy(
-                    dataset_name, export_root, project_type, output_dir, task,
-                    method.direction
-                )
-        elif method.dataset_format == "DataLoop":
-            if task == 'object_detection' or task == 'instance_segmentation' or task == 'vector_annotation':
-                c_strategy = DataLoopObjectDetectionStrategy(
-                    dataset_name, export_root, project_type, output_dir, task,
-                    method.direction
-                )
-        elif method.dataset_format == "Supervisely":
-            if task == 'vector_annotation':
-                c_strategy = SuperviselyObjectDetectionStrategy(
-                    dataset_name, export_root, project_type, output_dir, task,
-                    method.direction
-                )
-
+    def _select_strategy(self, args):
+        if args.dataset_format == "COCO":
+            if args.task == 'instance_segmentation' or args.task == 'object_detection':
+                c_strategy = CocoObjectDetectionStrategy(args)
+            if args.task == 'keypoint_detection':
+                c_strategy = CocoKeypointDetectionStrategy(args)
+            if args.task == 'panoptic_segmentation':
+                c_strategy = CocoPanopticConverterStrategy(args)
+        elif args.dataset_format == "VOC":
+            if args.task == 'instance_segmentation' or args.task == 'object_detection':
+                c_strategy = VocObjectDetectionStrategy(args)
+        elif args.dataset_format == "LabelBox":
+            if args.task == "object_detection" or args.task == 'instance_segmentation' or args.task == 'vector_annotation':
+                c_strategy = LabelBoxObjectDetectionStrategy(args)
+        elif args.dataset_format == "DataLoop":
+            if args.task == 'object_detection' or args.task == 'instance_segmentation' or args.task == 'vector_annotation':
+                c_strategy = DataLoopObjectDetectionStrategy(args)
+        elif args.dataset_format == "Supervisely":
+            if args.task == 'vector_annotation':
+                c_strategy = SuperviselyObjectDetectionStrategy(args)
         else:
             pass
+
         self.__set_strategy(c_strategy)
 
     def _merge_jsons(self, input_dir):

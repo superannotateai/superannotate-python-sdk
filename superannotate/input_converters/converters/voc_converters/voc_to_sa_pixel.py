@@ -5,33 +5,7 @@ from tqdm import tqdm
 import numpy as np
 import xml.etree.ElementTree as ET
 
-
-# Converts HEX values to RGB values
-def _hex_to_rgb(hex_string):
-    h = hex_string.lstrip('#')
-    return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
-
-
-# Generates blue colors in range(n)
-def _blue_color_generator(n, hex_values=True):
-    hex_colors = []
-    for i in range(n):
-        int_color = i * 15
-        bgr_color = np.array(
-            [
-                int_color & 255, (int_color >> 8) & 255,
-                (int_color >> 16) & 255, 255
-            ],
-            dtype=np.uint8
-        )
-        hex_color = '#' + "{:02x}".format(
-            bgr_color[2]
-        ) + "{:02x}".format(bgr_color[1], ) + "{:02x}".format(bgr_color[0])
-        if hex_values:
-            hex_colors.append(hex_color)
-        else:
-            hex_colors.append(_hex_to_rgb(hex_color))
-    return hex_colors
+from ....common import hex_to_rgb, blue_color_generator
 
 
 # Generates polygons for each instance
@@ -44,7 +18,7 @@ def _generate_polygons(object_mask_path, class_mask_path):
     object_unique_colors = np.unique(object_mask)
 
     num_colors = len([i for i in object_unique_colors if i != 0 and i != 220])
-    bluemask_colors = _blue_color_generator(num_colors + 1)[1:]
+    bluemask_colors = blue_color_generator(num_colors)
     H, W = object_mask.shape
     sa_mask = np.zeros((H, W, 4))
     i = 0
@@ -68,7 +42,7 @@ def _generate_polygons(object_mask_path, class_mask_path):
             if len(segmentation) == 0:
                 continue
         sa_mask[object_mask == unique_color
-               ] = [255] + list(_hex_to_rgb(bluemask_colors[i]))
+               ] = [255] + list(hex_to_rgb(bluemask_colors[i]))
         i += 1
     return segmentation, sa_mask, bluemask_colors
 

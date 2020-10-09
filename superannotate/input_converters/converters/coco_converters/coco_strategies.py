@@ -14,14 +14,11 @@ from .coco_to_sa_pixel import coco_panoptic_segmentation_to_sa_pixel, coco_insta
 from .coco_to_sa_vector import coco_keypoint_detection_to_sa_vector, coco_instance_segmentation_to_sa_vector
 
 
-class PanopticConverterStrategy(CoCoConverter):
+class CocoPanopticConverterStrategy(CoCoConverter):
     name = "Panoptic converter"
 
-    def __init__(
-        self, dataset_name, export_root, project_type, output_dir, direction
-    ):
-        super().__init__(dataset_name, export_root, project_type, output_dir)
-        self.direction = direction
+    def __init__(self, args):
+        super().__init__(args)
         self.__setup_conversion_algorithm()
 
     def __setup_conversion_algorithm(self):
@@ -100,17 +97,11 @@ class PanopticConverterStrategy(CoCoConverter):
         #     loader = self.conversion_algorithm(json_data, self.output_dir)
 
 
-class ObjectDetectionStrategy(CoCoConverter):
+class CocoObjectDetectionStrategy(CoCoConverter):
     name = "ObjectDetection converter"
 
-    def __init__(
-        self, dataset_name, export_root, project_type, output_dir, task,
-        direction
-    ):
-        self.direction = direction
-        super().__init__(
-            dataset_name, export_root, project_type, output_dir, task
-        )
+    def __init__(self, args):
+        super().__init__(args)
         self.__setup_conversion_algorithm()
 
     def __setup_conversion_algorithm(self):
@@ -220,16 +211,11 @@ class ObjectDetectionStrategy(CoCoConverter):
         #     loader = self.conversion_algorithm(json_data, self.output_dir)
 
 
-class KeypointDetectionStrategy(CoCoConverter):
+class CocoKeypointDetectionStrategy(CoCoConverter):
     name = 'Keypoint Detection Converter'
 
-    def __init__(
-        self, dataset_name, export_root, project_type, output_dir, direction
-    ):
-        super().__init__(
-            dataset_name, export_root, project_type, output_dir, direction
-        )
-        self.direction = direction
+    def __init__(self, args):
+        super().__init__(args)
         self.__setup_conversion_algorithm()
 
     def __str__(self):

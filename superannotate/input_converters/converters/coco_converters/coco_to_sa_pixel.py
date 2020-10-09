@@ -7,37 +7,12 @@ import pycocotools.mask as maskUtils
 from panopticapi.utils import id2rgb
 from tqdm import tqdm
 
-from ....common import hex_to_rgb
-
-# def _rle_to_bitmask(coco_json, annotation):
-#     return coco.annToMask(annotation)
-
-
-# Generates blue colors in range(n)
-def _blue_color_generator(n, hex_values=True):
-    hex_colors = []
-    for i in range(n):
-        int_color = i * 15
-        bgr_color = np.array(
-            [
-                int_color & 255, (int_color >> 8) & 255,
-                (int_color >> 16) & 255, 255
-            ],
-            dtype=np.uint8
-        )
-        hex_color = '#' + "{:02x}".format(
-            bgr_color[2]
-        ) + "{:02x}".format(bgr_color[1], ) + "{:02x}".format(bgr_color[0])
-        if hex_values:
-            hex_colors.append(hex_color)
-        else:
-            hex_colors.append(hex_to_rgb(hex_color))
-    return hex_colors
+from ....common import hex_to_rgb, blue_color_generator
 
 
 def coco_panoptic_segmentation_to_sa_pixel(coco_path, images_path):
     coco_json = json.load(open(coco_path))
-    hex_colors = _blue_color_generator(len(coco_json["categories"]))
+    hex_colors = blue_color_generator(len(coco_json["categories"]))
     annotate_list = coco_json["annotations"]
 
     for annotate in tqdm(annotate_list, "Converting"):
@@ -55,18 +30,18 @@ def coco_panoptic_segmentation_to_sa_pixel(coco_path, images_path):
         H, W, C = img.shape
         img = img.reshape((H * W, C))
         segments = annotate["segments_info"]
-        hex_colors = _blue_color_generator(len(segments) + 1)
+        hex_colors = blue_color_generator(len(segments))
 
         out_json = []
         for i, seg in enumerate(segments):
             img[np.all(img == id2rgb(seg["id"]),
-                       axis=1)] = hex_to_rgb(hex_colors[i + 1])
+                       axis=1)] = hex_to_rgb(hex_colors[i])
             dd = {
                 "classId": seg["category_id"],
                 "probability": 100,
                 "visible": True,
                 "parts": [{
-                    "color": hex_colors[i + 1]
+                    "color": hex_colors[i]
                 }],
                 "attributes": [],
                 "attributeNames": [],
@@ -103,11 +78,15 @@ def coco_instance_segmentation_to_sa_pixel(coco_path, images_path):
         }
 
     sa_json = {}
-    for annot in tqdm(coco_json['annotations'], "Convertring annotations"):
+    hexcolors = blue_color_generator(len(coco_json['annotations']))
+    for i, annot in enumerate(coco_json['annotations']):
         if str(annot['image_id']) not in images_dict:
             continue
-        color = np.random.choice(range(256), size=3)
-        hexcolor = "#%02x%02x%02x" % tuple(color)
+
+        hexcolor = hexcolors[images_dict[str(annot['image_id'])]['segments_num']
+                            ]
+        color = hex_to_rgb(hexcolor)
+        images_dict[str(annot['image_id'])]['segments_num'] += 1
 
         images_dict[str(annot['image_id']
                        )]['mask'][maskUtils.decode(annot['segmentation']) == 1

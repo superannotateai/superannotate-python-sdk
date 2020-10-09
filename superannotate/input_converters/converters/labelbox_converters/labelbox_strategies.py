@@ -8,15 +8,8 @@ from .labelbox_to_sa_vector import labelbox_object_detection_to_sa_vector, label
 class LabelBoxObjectDetectionStrategy(LabelBoxConverter):
     name = "ObjectDetection converter"
 
-    def __init__(
-        self, dataset_name, export_root, project_type, output_dir, task,
-        direction
-    ):
-        self.direction = direction
-        super().__init__(
-            dataset_name, export_root, project_type, output_dir, task
-        )
-
+    def __init__(self, args):
+        super().__init__(args)
         self.__setup_conversion_algorithm()
 
     def __setup_conversion_algorithm(self):

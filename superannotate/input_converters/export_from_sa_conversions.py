@@ -133,12 +133,13 @@ def export_from_sa(args):
         logging.error(log_msg)
         logging.error(e)
 
-    method = Namespace(direction="to", dataset_format=args.dataset_format)
-
-    converter = Converter(
-        args.project_type, args.task, args.dataset_name,
-        os.path.join(args.output_dir, 'train_set'), args.output_dir, method
+    args.__dict__.update(
+        {
+            'direction': 'to',
+            'export_root': os.path.join(args.output_dir, 'train_set')
+        }
     )
+    converter = Converter(args)
 
     if data_set is not None:
         converter.strategy.set_dataset_name(args.dataset_name + '_train')

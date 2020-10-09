@@ -73,15 +73,8 @@ def import_to_sa(args):
         logging.error(log_msg)
         logging.error(e)
 
-    method = Namespace(
-        direction="from",
-        dataset_format=args.dataset_format,
-    )
-
-    converter = Converter(
-        args.project_type, args.task, args.dataset_name, args.input_dir,
-        args.output_dir, method
-    )
+    args.__dict__.update({'direction': 'from', 'export_root': args.input_dir})
+    converter = Converter(args)
 
     try:
         converter.convert_to_sa(args.platform)
