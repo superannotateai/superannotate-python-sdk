@@ -1,22 +1,8 @@
-import tempfile
-
 import pandas as pd
 
-from .analytics.common import aggregate_annotations_as_df
-from .input_converters.conversion import convert_platform
 
-
-def filter_annotation_instances(
-    annotations_dir, include=None, exclude=None, annotations_platform="Web"
-):
-    if annotations_platform == "Desktop":
-        tmpdir = tempfile.TemporaryDirectory()
-        convert_platform(annotations_dir, tmpdir, "Desktop")
-        annotations_dir = tmpdir
-
-    original_df = aggregate_annotations_as_df(annotations_dir, False, False)
-
-    df = original_df.drop(["meta", "point_labels"], axis=1)
+def filter_annotation_instances(annotations_df, include=None, exclude=None):
+    df = annotations_df.drop(["meta", "point_labels"], axis=1)
 
     if include is not None:
         included_dfs = []
@@ -55,4 +41,4 @@ def filter_annotation_instances(
                       indicator=True).loc[lambda x: x['_merge'] == 'left_only']
         df = df.drop("_merge", axis=1)
 
-    return original_df.loc[df.index]
+    return annotations_df.loc[df.index]

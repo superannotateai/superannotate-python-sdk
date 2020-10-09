@@ -33,10 +33,10 @@ def test_anntotation_class_new_json():
         PROJECT_NAME_JSON, "./tests/sample_project_vector/classes/classes.json"
     )
 
-    assert len(sa.search_annotation_classes(PROJECT_NAME_JSON)) == 3
+    assert len(sa.search_annotation_classes(PROJECT_NAME_JSON)) == 4
 
     sa.create_annotation_classes_from_classes_json(
         PROJECT_NAME_JSON, "./tests/sample_project_vector/classes/classes.json"
     )
 
-    assert len(sa.search_annotation_classes(PROJECT_NAME_JSON)) == 3
+    assert len(sa.search_annotation_classes(PROJECT_NAME_JSON)) == 4

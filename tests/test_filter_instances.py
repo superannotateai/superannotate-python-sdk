@@ -19,10 +19,10 @@ def test_filter_instances(tmpdir):
 
     # project = sa.create_project(PROJECT_NAME_1, "test", "Vector")
 
-    not_filtered = sa.filter_annotation_instances(PROJECT_DIR)
+    not_filtered = sa.aggregate_annotations_as_df(PROJECT_DIR)
 
     filtered_excl = sa.filter_annotation_instances(
-        PROJECT_DIR,
+        not_filtered,
         exclude=[{
             "className": "Personal vehicle"
         }, {
@@ -31,7 +31,7 @@ def test_filter_instances(tmpdir):
     )
 
     filtered_incl = sa.filter_annotation_instances(
-        PROJECT_DIR, include=[{
+        not_filtered, include=[{
             "className": "Large vehicle"
         }]
     )
@@ -39,7 +39,7 @@ def test_filter_instances(tmpdir):
     assert filtered_incl.equals(filtered_excl)
 
     all_filtered = sa.filter_annotation_instances(
-        PROJECT_DIR, include=[{
+        not_filtered, include=[{
             "className": "bogus"
         }]
     )
@@ -49,7 +49,7 @@ def test_filter_instances(tmpdir):
     vc = not_filtered["type"].value_counts()
     for i in vc.index:
         all_filtered = sa.filter_annotation_instances(
-            PROJECT_DIR, include=[{
+            not_filtered, include=[{
                 "type": i
             }]
         )
@@ -65,7 +65,7 @@ def test_filter_instances(tmpdir):
                                       ]["type"].value_counts()
 
     t_c = sa.filter_annotation_instances(
-        PROJECT_DIR,
+        not_filtered,
         include=[{
             "className": i,
             "type": vcc_different_types.index[0]
@@ -76,3 +76,23 @@ def test_filter_instances(tmpdir):
                      (not_filtered["class"] == i)]
     )
     # print(not_filtered[not_filtered["className"] == "Human
+
+
+def test_df_to_annotations(tmpdir):
+    tmpdir = Path(tmpdir)
+
+    df = sa.aggregate_annotations_as_df(PROJECT_DIR)
+    sa.df_to_annotations(
+        df,
+        Path(PROJECT_DIR) / "classes" / "classes.json", tmpdir
+    )
+    df_new = sa.aggregate_annotations_as_df(tmpdir)
+    # print(df_new["image_name"].value_counts())
+    # print(df["image_name"].value_counts())
+    for _index, row in enumerate(df.iterrows()):
+        found = False
+        for _, row_2 in enumerate(df_new.iterrows()):
+            if row_2[1].equals(row[1]):
+                found = True
+                break
+        assert found
