@@ -93,7 +93,7 @@ def aggregate_annotations_as_df(
             annotation_point_labels = annotation["pointLabels"
                                                 ] if vector and len(
                                                     annotation["pointLabels"]
-                                                ) == 0 else None
+                                                ) != 0 else None
 
             attributes = annotation["attributes"]
             if not attributes:
