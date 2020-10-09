@@ -330,3 +330,8 @@ ____________________
 .. autofunction:: superannotate.add_annotation_template_to_json
 .. autofunction:: superannotate.add_annotation_cuboid_to_json
 
+Aggregating class distribution from annotations
+_____________________________________________________________
+
+.. autofunction:: superannotate.class_distribution
+.. autofunction:: superannotate.attribute_distribution

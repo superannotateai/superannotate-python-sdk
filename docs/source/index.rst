@@ -82,6 +82,7 @@ __________________
 - Convert annotation format from/to COCO
 - Add annotations to local SuperAnnotate format JSONs
 - CLI commands for simple tasks
+- Aggregate class/attribute distribution as histogram
 
 ----------
 
