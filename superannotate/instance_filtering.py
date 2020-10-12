@@ -9,7 +9,8 @@ def filter_annotation_instances(annotations_df, include=None, exclude=None):
         for include_rule in include:
             df_new = df.copy()
             if "className" in include_rule:
-                df_new = df_new[df_new["class"] == include_rule["className"]]
+                df_new = df_new[df_new["className"] == include_rule["className"]
+                               ]
             if "attributes" in include_rule:
                 for attribute in include_rule["attributes"]:
                     df_new = df_new[
@@ -26,7 +27,8 @@ def filter_annotation_instances(annotations_df, include=None, exclude=None):
         for exclude_rule in exclude:
             df_new = df.copy()
             if "className" in exclude_rule:
-                df_new = df_new[df_new["class"] == exclude_rule["className"]]
+                df_new = df_new[df_new["className"] == exclude_rule["className"]
+                               ]
             if "attributes" in exclude_rule:
                 for attribute in exclude_rule["attributes"]:
                     df_new = df_new[

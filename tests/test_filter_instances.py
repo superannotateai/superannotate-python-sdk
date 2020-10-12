@@ -56,12 +56,14 @@ def test_filter_instances(tmpdir):
 
         assert len(all_filtered) == vc[i]
 
-    vcc = not_filtered["class"].value_counts()
+    vcc = not_filtered["className"].value_counts()
     for i in vcc.index:
-        if len(not_filtered[not_filtered["class"] == i]["type"].unique()) > 1:
+        if len(
+            not_filtered[not_filtered["className"] == i]["type"].unique()
+        ) > 1:
             break
 
-    vcc_different_types = not_filtered[not_filtered["class"] == i
+    vcc_different_types = not_filtered[not_filtered["className"] == i
                                       ]["type"].value_counts()
 
     t_c = sa.filter_annotation_instances(

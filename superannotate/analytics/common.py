@@ -133,7 +133,6 @@ def aggregate_annotations_as_df(
 
     for annotation_path in annotations_paths:
         annotation_json = json.load(open(annotation_path))
-        vector = annotation_path.name.endswith('___objects.json')
         annotation_image_name = annotation_path.name.split("___")[0]
         annotation_instance_id = 0
         for annotation in annotation_json:
