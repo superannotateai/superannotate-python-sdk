@@ -148,7 +148,8 @@ def aggregate_annotations_as_df(
 
             annotation_error = annotation['error'
                                          ] if 'error' in annotation else None
-            annotation_probability = annotation["probability"]
+            annotation_probability = annotation[
+                "probability"] if "probability" in annotation else None
 
             annotation_point_labels = annotation["pointLabels"
                                                 ] if vector and len(

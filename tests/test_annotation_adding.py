@@ -90,7 +90,12 @@ def test_add_bbox(tmpdir):
     annotations_new_export = json.load(
         open(tmpdir / f"{image_name}___objects.json")
     )
-    assert len(annotations_new_export) == len(annotations) + 7
+
+    df = sa.aggregate_annotations_as_df(tmpdir)
+
+    num = len(df[df["image_name"] == image_name]["instance_id"].value_counts())
+
+    assert num == len(annotations) + 7
 
 
 def test_add_bbox_noinit(tmpdir):
