@@ -4,7 +4,7 @@ import superannotate as sa
 
 sa.init(Path.home() / ".superannotate" / "config.json")
 
-test_root = Path().resolve().parent
+test_root = Path().resolve() / 'tests'
 
 
 @pytest.mark.parametrize(
