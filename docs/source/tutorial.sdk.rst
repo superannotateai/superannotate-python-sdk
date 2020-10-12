@@ -341,3 +341,26 @@ project with the found contributor as an QA:
 .. code-block:: python
 
    sa.share_project(project, "hovnatan@superannotate.com", user_role="QA")
+
+Aggregating class distribution across multiple projects
+______________________________
+
+After exporting annotations from multiple projects, it is possible to aggregate class distribution of annotated instances as follows
+
+.. code-block:: python
+
+   df = sa.class_distribution("<path_to_export_folder>", [project_names])
+
+Aggregated distribution is returned as pandas dataframe with columns class_name and count. Enabling visualize flag plots histogram of obtained distribution.
+
+.. code-block:: python
+
+   df = sa.class_distribution("<path_to_export_folder>", [project_names], visualize = True)
+
+Similarly aggregation of class attributes across multiple projects can be obtained with
+
+.. code-block:: python
+
+   df = sa.attribute_distribution("<path_to_export_folder>", [project_names], visualize = True)
+
+Here pandas dataframe with columns identifying attribute and corresponding instance count is returned. Within visualized histogram attributes of the same class are grouped by color and sorted accordingly.

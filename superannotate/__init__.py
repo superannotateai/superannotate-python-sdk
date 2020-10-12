@@ -8,7 +8,7 @@ import requests
 from .analytics.class_analytics import (
     attribute_distribution, class_distribution
 )
-from .analytics.common import aggregate_annotations_as_df
+from .analytics.common import (aggregate_annotations_as_df, df_to_annotations)
 from .annotation_helpers import (
     add_annotation_bbox_to_json, add_annotation_cuboid_to_json,
     add_annotation_ellipse_to_json, add_annotation_point_to_json,
@@ -58,8 +58,10 @@ from .exceptions import (
     SANonExistingProjectNameException
 )
 from .input_converters.conversion import (
-    convert_platform, export_annotation_format, import_annotation_format
+    convert_platform, convert_project_type, export_annotation_format,
+    import_annotation_format
 )
+from .instance_filtering import filter_annotation_instances
 from .version import Version
 
 

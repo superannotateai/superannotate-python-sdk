@@ -799,21 +799,18 @@ def download_image_preannotations(project, image_name, local_dir_path):
         return (None, )
     return_filepaths = []
     json_path = Path(local_dir_path) / annotation["preannotation_json_filename"]
-    return_filepaths.append(json_path)
+    return_filepaths.append(str(json_path))
     if project["type"] == 1:
         with open(json_path, "w") as f:
             json.dump(annotation["preannotation_json"], f)
     else:
-        with open(
-            Path(local_dir_path) / annotation["preannotation_json_filename"],
-            "w"
-        ) as f:
+        with open(json_path, "w") as f:
             json.dump(annotation["preannotation_json"], f)
-        with open(
-            Path(local_dir_path) / annotation["preannotation_mask_filename"],
-            "wb"
-        ) as f:
+        mask_path = Path(local_dir_path
+                        ) / annotation["preannotation_mask_filename"]
+        with open(mask_path, "wb") as f:
             f.write(annotation["preannotation_mask"].getbuffer())
+        return_filepaths.append(str(mask_path))
     return tuple(return_filepaths)
 
 

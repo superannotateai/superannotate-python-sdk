@@ -1,3 +1,4 @@
+import numpy as np
 import functools
 import logging
 from pathlib import Path
@@ -140,3 +141,26 @@ def rgb_to_hex(rgb_tuple):
     """Converts RGB values to HEX values
     """
     return '#%02x%02x%02x' % rgb_tuple
+
+
+def blue_color_generator(n, hex_values=True):
+    """ Blue colors generator for SuperAnnotate blue mask.
+    """
+    hex_colors = []
+    for i in range(n + 1):
+        int_color = i * 15
+        bgr_color = np.array(
+            [
+                int_color & 255, (int_color >> 8) & 255,
+                (int_color >> 16) & 255, 255
+            ],
+            dtype=np.uint8
+        )
+        hex_color = '#' + "{:02x}".format(
+            bgr_color[2]
+        ) + "{:02x}".format(bgr_color[1], ) + "{:02x}".format(bgr_color[0])
+        if hex_values:
+            hex_colors.append(hex_color)
+        else:
+            hex_colors.append(hex_to_rgb(hex_color))
+    return hex_colors[1:]

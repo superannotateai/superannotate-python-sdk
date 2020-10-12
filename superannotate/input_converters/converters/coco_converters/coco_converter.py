@@ -14,19 +14,14 @@ import time
 
 
 class CoCoConverter(object):
-    def __init__(
-        self,
-        dataset_name_,
-        export_root_,
-        project_type_,
-        output_dir_,
-        task_=None
-    ):
-        self.project_type = project_type_
-        self.dataset_name = dataset_name_
-        self.export_root = export_root_
-        self.output_dir = output_dir_
-        self.task = task_
+    def __init__(self, args):
+        self.project_type = args.project_type
+        self.dataset_name = args.dataset_name
+        self.export_root = args.export_root
+        self.output_dir = args.output_dir
+        self.task = args.task
+        self.direction = args.direction
+
         self.failed_conversion_cnt = 0
 
     def _create_single_category(self, item):
