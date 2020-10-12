@@ -93,7 +93,7 @@ def test_add_bbox(tmpdir):
 
     df = sa.aggregate_annotations_as_df(tmpdir)
 
-    num = len(df[df["image_name"] == image_name]["instance_id"].unique())
+    num = len(df[df["imageName"] == image_name]["instanceId"].unique())
 
     assert num == len(annotations) + 7
 

@@ -2,7 +2,7 @@ import pandas as pd
 
 
 def filter_annotation_instances(annotations_df, include=None, exclude=None):
-    df = annotations_df.drop(["meta", "point_labels"], axis=1)
+    df = annotations_df.drop(["meta", "pointLabels"], axis=1)
 
     if include is not None:
         included_dfs = []
@@ -14,8 +14,8 @@ def filter_annotation_instances(annotations_df, include=None, exclude=None):
             if "attributes" in include_rule:
                 for attribute in include_rule["attributes"]:
                     df_new = df_new[
-                        df_new["attribute_group"] == attribute["groupName"] &
-                        df_new["attribute_name"] == attribute["name"]]
+                        df_new["attributeGroupName"] == attribute["groupName"] &
+                        df_new["attributeName"] == attribute["name"]]
             if "type" in include_rule:
                 df_new = df_new[df_new["type"] == include_rule["type"]]
             included_dfs.append(df_new)
@@ -32,8 +32,8 @@ def filter_annotation_instances(annotations_df, include=None, exclude=None):
             if "attributes" in exclude_rule:
                 for attribute in exclude_rule["attributes"]:
                     df_new = df_new[
-                        df_new["attribute_group"] == attribute["groupName"] &
-                        df_new["attribute_name"] == attribute["name"]]
+                        df_new["attributeGroup"] == attribute["groupName"] &
+                        df_new["attributeName"] == attribute["name"]]
             if "type" in exclude_rule:
                 df_new = df_new[df_new["type"] == exclude_rule["type"]]
             excluded_dfs.append(df_new)

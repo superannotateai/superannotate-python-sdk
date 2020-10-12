@@ -8,14 +8,15 @@ logger = logging.getLogger("superannotate-python-sdk")
 
 
 def df_to_annotations(df, annotation_classes, output_dir):
-    """Aggregate annotations as pandas dataframe from project root.
+    """Aggregate annotations as pandas dataframe from project root. Currently
+    only works for Vector projects.
 
     :param project_root: export path of the project
     :type project_root: Pathlike (str or Path)
     :param include_classes_wo_annotations: enables inclusion of classes without annotations info
     :type include_classes_wo_annotations: bool
 
-    :return: DataFrame on annotations with columns: ["image_name", class", "attribute_group", "attribute_name", "type", "error", "probability", "point_labels", "meta"]
+    :return: DataFrame on annotations with columns: ["imageName", "classNmae", "attributeGroupName", "attributeName", "type", "error", "locked", "visible", trackingId", "probability", "pointLabels", "meta"]
     :rtype: pandas DataFrame
     """
 
@@ -23,34 +24,40 @@ def df_to_annotations(df, annotation_classes, output_dir):
         annotation_classes = json.load(open(annotation_classes))
 
     project_suffix = "___objects.json"
-    images = df["image_name"].unique()
+    images = df["imageName"].unique()
     for image in images:
-        image_df = df[df["image_name"] == image]
+        image_df = df[df["imageName"] == image]
         image_annotation = []
-        instances = image_df["instance_id"].unique()
+        instances = image_df["instanceId"].unique()
         for instance in instances:
-            instance_df = image_df[image_df["instance_id"] == instance]
+            instance_df = image_df[image_df["instanceId"] == instance]
             annotation_type = instance_df.iloc[0]["type"]
             annotation_meta = instance_df.iloc[0]["meta"]
 
             instance_annotation = {
-                "className": instance_df.iloc[0]["class"],
+                "className": instance_df.iloc[0]["className"],
                 "type": annotation_type,
                 "attributes": [],
                 "probability": instance_df.iloc[0]["probability"],
                 "error": instance_df.iloc[0]["error"]
             }
-            point_labels = instance_df.iloc[0]["point_labels"]
+            point_labels = instance_df.iloc[0]["pointLabels"]
             if point_labels is None:
                 point_labels = []
             instance_annotation["pointLabels"] = point_labels
+            instance_annotation["locked"] = bool(instance_df.iloc[0]["locked"])
+            instance_annotation["visible"] = bool(
+                instance_df.iloc[0]["visible"]
+            )
+            instance_annotation["trackingId"] = instance_df.iloc[0]["trackingId"
+                                                                   ]
             instance_annotation.update(annotation_meta)
             for _, row in instance_df.iterrows():
-                if row["attribute_group"] is not None:
+                if row["attributeGroupName"] is not None:
                     instance_annotation["attributes"].append(
                         {
-                            "groupName": row["attribute_group"],
-                            "name": row["attribute_name"]
+                            "groupName": row["attributeGroupName"],
+                            "name": row["attributeName"]
                         }
                     )
             image_annotation.append(instance_annotation)

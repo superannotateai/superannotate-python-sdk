@@ -75,7 +75,7 @@ def test_filter_instances(tmpdir):
     )
     assert len(t_c) == len(
         not_filtered[(not_filtered["type"] == vcc_different_types.index[0]) &
-                     (not_filtered["class"] == i)]
+                     (not_filtered["className"] == i)]
     )
     # print(not_filtered[not_filtered["className"] == "Human
 
