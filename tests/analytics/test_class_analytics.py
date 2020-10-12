@@ -47,7 +47,8 @@ def test_class_distribution(
     assert df["count"].sum() == total_instances
 
     for class_name, gt_instance_count in instances_per_class.items():
-        df_instance_count = df.loc[df['class_name'] == class_name, 'count'].item()
+        df_instance_count = df.loc[df['className'] == class_name,
+                                   'count'].item()
         assert df_instance_count == gt_instance_count
 
 
@@ -145,7 +146,8 @@ def test_attribute_distribution(
         for attribute_group_name, attribute_group in class_attribute_groups.items(
         ):
             for attribute_name, count in attribute_group.items():
-                assert df.loc[(df['class_name'] == class_name) &
-                              (df['attribute_group'] == attribute_group_name) &
-                              (df['attribute_name'] == attribute_name),
-                              'count'].item() == count
+                assert df.loc[
+                    (df['className'] == class_name) &
+                    (df['attributeGroupName'] == attribute_group_name) &
+                    (df['attributeName'] == attribute_name),
+                    'count'].item() == count

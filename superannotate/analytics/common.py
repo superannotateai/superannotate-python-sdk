@@ -82,7 +82,7 @@ def aggregate_annotations_as_df(
     :param include_comments: enables inclusion of comments info
     :type include_comments: bool
 
-    :return: DataFrame on annotations with columns: ["image_name", class_name", "attribute_group", "attribute_name", "type", "error", "probability", "point_labels", "meta"]
+    :return: DataFrame on annotations with columns: ["imageName", "instanceId" className", "attributeGroupName", "attributeName", "type", "error", "locked", "visible", "trackingId", "probability", "pointLabels", "meta"]
     :rtype: pandas DataFrame
     """
 
@@ -92,18 +92,18 @@ def aggregate_annotations_as_df(
         )
 
     annotation_data = {
-        "image_name": [],
-        "instance_id": [],
-        "class_name": [],
-        "attribute_group": [],
-        "attribute_name": [],
+        "imageName": [],
+        "instanceId": [],
+        "className": [],
+        "attributeGroupName": [],
+        "attributeName": [],
         "type": [],
         "error": [],
         "locked": [],
         "visible": [],
-        "tracking_id": [],
+        "trackingId": [],
         "probability": [],
-        "point_labels": [],
+        "pointLabels": [],
         "meta": []
     }
 
@@ -148,7 +148,7 @@ def aggregate_annotations_as_df(
                     comment_resolved = annotation["resolved"]
                     __append_annotation(
                         {
-                            "image_name": annotation_image_name,
+                            "imageName": annotation_image_name,
                             "type": annotation_type,
                             "resolved": comment_resolved
                         }
@@ -194,17 +194,17 @@ def aggregate_annotations_as_df(
             if not attributes:
                 __append_annotation(
                     {
-                        "image_name": annotation_image_name,
-                        "instance_id": annotation_instance_id,
-                        "class_name": annotation_class_name,
+                        "imageName": annotation_image_name,
+                        "instanceId": annotation_instance_id,
+                        "className": annotation_class_name,
                         "type": annotation_type,
                         "locked": annotation_locked,
                         "visible": annotation_visible,
-                        "tracking_id": annotation_tracking_id,
+                        "trackingId": annotation_tracking_id,
                         "meta": annotation_meta,
                         "error": annotation_error,
                         "probability": annotation_probability,
-                        "point_labels": annotation_point_labels
+                        "pointLabels": annotation_point_labels
                     }
                 )
 
@@ -215,19 +215,19 @@ def aggregate_annotations_as_df(
 
                 __append_annotation(
                     {
-                        "image_name": annotation_image_name,
-                        "instance_id": annotation_instance_id,
-                        "class_name": annotation_class_name,
-                        "attribute_group": attribute_group,
-                        "attribute_name": attribute_name,
+                        "imageName": annotation_image_name,
+                        "instanceId": annotation_instance_id,
+                        "className": annotation_class_name,
+                        "attributeGroupName": attribute_group,
+                        "attributeName": attribute_name,
                         "type": annotation_type,
                         "locked": annotation_locked,
                         "visible": annotation_visible,
-                        "tracking_id": annotation_tracking_id,
+                        "trackingId": annotation_tracking_id,
                         "meta": annotation_meta,
                         "error": annotation_error,
                         "probability": annotation_probability,
-                        "point_labels": annotation_point_labels
+                        "pointLabels": annotation_point_labels
                     }
                 )
 
@@ -247,14 +247,14 @@ def aggregate_annotations_as_df(
         for class_meta in classes_json:
             annotation_class_name = class_meta["name"]
 
-            if not annotation_class_name in df["class_name"].unique():
+            if not annotation_class_name in df["className"].unique():
                 __append_annotation({
-                    "class_name": annotation_class_name,
+                    "className": annotation_class_name,
                 })
                 continue
 
-            class_df = df[df["class_name"] == annotation_class_name][[
-                "class_name", "attribute_group", "attribute_name"
+            class_df = df[df["className"] == annotation_class_name][[
+                "className", "attributeGroupName", "attributeName"
             ]]
             attribute_groups = class_meta["attribute_groups"]
 
@@ -263,20 +263,20 @@ def aggregate_annotations_as_df(
                 attribute_group_name = attribute_group["name"]
 
                 attribute_group_df = class_df[
-                    class_df["attribute_group"] == attribute_group_name][[
-                        "attribute_group", "attribute_name"
+                    class_df["attributeGroupName"] == attribute_group_name][[
+                        "attributeGroupName", "attributeName"
                     ]]
                 attributes = attribute_group["attributes"]
                 for attribute in attributes:
                     attribute_name = attribute["name"]
 
-                    if not attribute_name in attribute_group_df["attribute_name"
+                    if not attribute_name in attribute_group_df["attributeName"
                                                                ].unique():
                         __append_annotation(
                             {
-                                "class_name": annotation_class_name,
-                                "attribute_group": attribute_group_name,
-                                "attribute_name": attribute_name,
+                                "className": annotation_class_name,
+                                "attributeGroupName": attribute_group_name,
+                                "attributeName": attribute_name,
                             }
                         )
 

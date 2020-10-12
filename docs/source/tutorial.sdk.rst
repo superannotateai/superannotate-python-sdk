@@ -351,7 +351,7 @@ After exporting annotations from multiple projects, it is possible to aggregate 
 
    df = sa.class_distribution("<path_to_export_folder>", [project_names])
 
-Aggregated distribution is returned as pandas dataframe with columns class_name and count. Enabling visualize flag plots histogram of obtained distribution.
+Aggregated distribution is returned as pandas dataframe with columns className and count. Enabling visualize flag plots histogram of obtained distribution.
 
 .. code-block:: python
 
