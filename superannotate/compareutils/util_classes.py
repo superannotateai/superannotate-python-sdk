@@ -22,11 +22,7 @@ class ConfusionMatrix(object):
         self.gt_path = gt_path
         self.target_path = target_path
 
-    def __str__(self, ):
-        return {"description":"confusion matrix objcect","num_classes" : self._N, "class_names":self.class_names}
 
-    def __repr__(self, ):
-        raise NotImplementedError
 
     def show(self, ):
         class_names = list(class_names.keys())

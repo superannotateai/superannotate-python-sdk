@@ -5,6 +5,7 @@ from PIL import Image
 from glob import glob
 from tqdm import tqdm
 from pathlib import Path
+from copy import deepcopy
 from .util_classes import *
 from datetime import datetime
 from shapely.geometry import Polygon
@@ -36,37 +37,30 @@ class Analyzer(object):
         gt_classes = None
         pred_classes = None
 
-        with open(source) as fp:
-            data = json.load(fp)
-            gt_classes = [x["name"] for x in data]
-
-        with open(target) as fp:
-            data = json.load(fp)
-            target_classes = [x["name"] for x in data]
+        gt_classes = source["class"].unique()
+        target_classes = target["class"].unique()
 
         if len(target_classes) != len(gt_classes) or set(target_classes) != set(gt_classes):
-            return False
+            logger.info('The class names present in source and target dataframes are not the same')
 
+        gt_classes = set(gt_classes).union(set(target_classes))
         self.class_names = gt_classes
 
         return True
+
     def __init__(self, gt_df, target_df):
         if gt_df is None or target_df is None:
             raise SABaseException('the source path {} or target path {} are not provided'.format(gt_df, target_df))
 
         self.class_names = []
-        self.gt_df = gt_df
-        self.target_df = target_df
 
-        gt_classes_path = Path(self.gt_classes,'classes', 'classes.json')
-        target_classes_path = Path(self.target_df,'classes', 'classes.json')
+        # Deepcopy the dataframes to change them as we like
+        self.gt_df = deepcopy(gt_df)
+        self.target_df = deepcopy(target_df)
 
-        if not gt_classes_path.is_file() or not target_classes_path.is_file():
-            raise SABaseException('The classes json of either source or target object does not exist')
-
-        if not self.__check_and_set_class_names(gt_classes_path, target_classes_path):
+        if not self.__check_and_set_class_names(self.gt_df, self.target_df):
             raise SABaseException('The classes of the two projects are not the same')
-
+        self.class_names = list(self.class_names)
         self.class_names = {self.class_names[i] : i for i in range(len(self.class_names))}
 
         self.confusion_matrix = ConfusionMatrix(self.class_names, self.gt_df, self.target_df)
@@ -77,6 +71,7 @@ class Analyzer(object):
             'bbox': self.__from_bbox_to_shapely,
             'polygon': self.__from_sa_polygon_to_shapely
         }
+
     def __repr__(self, ):
         res = 'ass_name: {}\n area_threshold: {}\n source path: {}\n target path: {}\n confusion matrix {}\n'.format(self.class_names, self._area_threshold, self.gt_df, self.target_df, self.confusion_matrix)
         res = None
@@ -86,42 +81,62 @@ class Analyzer(object):
        'Analyzer object with {} classes and area threshold {}'.format(len(self.class_names), self._area_threshold)
 
     def compare_all(self ):
-        gt_df = Path(self.gt_df)
 
-        files = gt_df.glob('*___objects.json')
+        src_bboxes = self.__transform_annotations(self.gt_df, 'bbox')
+        target_bboxes = self.__transform_annotations(self.target_df, 'bbox')
 
-        for file_ in files:
-            target_file = Path(self.target_df, file_.parts[-1])
-            source = json.load(open(file_))
-            target = json.load(open(target_file))
-            self.__compare_single(source, target, file_, method)
-        return self.confusion_matrix
+        target_polygons = self.__transform_annotations(self.target_df, 'polygon')
+        src_polygons = self.__transform_annotations(self.gt_df, 'polygon')
+
+        src_bboxes.apply(lambda x: self.__compare_single_row(x, target_bboxes), axis = 1,)# args = target_bboxes)
+        src_polygons.apply(lambda x: self.__compare_single_row(x, target_polygons), axis = 1)
+
 
     def __from_bbox_to_shapely(self, bbox):
+        bbox.meta["points"] = Polygon([(bbox.meta["points"]["x1"], bbox.meta["points"]["y1"]), (bbox.meta["points"]["x2"], bbox.meta["points"]["y1"]), (bbox.meta["points"]["x2"], bbox.meta["points"]["y2"]), (bbox.meta["points"]["x1"], bbox.meta["points"]["y2"])])
 
-        raise NotImplementedError()
+    def __append_fname_to_image_list(self, src_class, target_class, fname):
 
-    def __from_sa_polygon_to_shapely(self, bbox):
-        raise NotImplementedError()
+        if src_class not in self.confusion_matrix.confusion_image_map:
+            self.confusion_matrix.confusion_image_map[src_class] = {}
 
-    def __gather_annotations(self, source, type_):
+        if target_class not in self.confusion_matrix.confusion_image_map[src_class]:
+             self.confusion_matrix.confusion_image_map[src_class][target_class] = set()
+        self.confusion_matrix.confusion_image_map[src_class][target_class].add](fname)
 
-        arr =[self.anno_to_polygon[type_](item) for item in source if type_ in ['bbox', 'polygon']]
+    def __from_sa_polygon_to_shapely(self, polygon):
+        x = polygon.meta["points"][0::2]
+        y = polygon.meta["points"][1::2]
 
-        return arr
+        polygon.meta["points"] = Polygon(list(zip(x,y)))
 
-    def __compare_annotations(self, source, target):
-        raise NotImplementedError
+    def __transform_annotations(self, source, type_):
+        rows = source[source["type"] == type_]
+        rows.apply(self.anno_to_polygon[type_], axis = 1)
 
-    def compare_single(source, target, file_):
+        return rows
 
-        source_bboxes = self.__gather_annotations(source, 'bbox')
-        target_bboxes = self.__gather_bboxes(target, 'bbox')
+    def __compare_single_row(self, source_row, target_df):
 
-        source_polygons = self.__gather_annotations(source, 'polygon')
-        target_polygons = self.__gather_annotations(target, 'polygon')
+        src_poly = source_row.meta["points"]
+        backgroundQ = None
+        for item in target_df.itertuples():
 
-        self.__compare_annotations(source_bboxes, source_bboxes)
-        self.__compare_annotations(source_polygons, target_polygons)
+            backgroundQ = True
+            union_area = src_poly.union(item.meta["points"]).area
+            intersection_area = src_poly.intersection(item.meta["points"]).area
+
+            IoU = intersection_area / union_area
+
+            i = self.class_names[source_row["class"]]
+            if IoU >= self.area_threshold:
+                j = self.class_names[item[3]]
+                self.confusion_matrix.confusion_matrix[i][j] += 1
+                self.__append_fname_to_image_list(source_row['class'], item[3], item[1])
+                backgroundQ = False
+
+        if backgroundQ:
+            self.confusion_matrix.confusion_matrix[i][-1] += 1
+
 
 
