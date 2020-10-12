@@ -62,7 +62,6 @@ from .input_converters.conversion import (
 )
 from .version import Version
 
-from .input_converters.conversion import convert_annotation_format_from, convert_annotation_format_to
 
 from .compareutils.compare import compare
 #formatter = logging.Formatter(fmt='%(asctime)s - %(levelname)s - %(module)s - %(message)s')
