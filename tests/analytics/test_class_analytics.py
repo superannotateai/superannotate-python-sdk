@@ -10,8 +10,8 @@ test_root = Path().resolve().parent
 @pytest.mark.parametrize(
     "export_root, project_names, total_instances, instances_per_class", [
         (
-            test_root, ["sample_project_vector"], 72, {
-                "Human": 9,
+            test_root, ["sample_project_vector"], 73, {
+                "Human": 10,
                 "Personal vehicle": 56,
                 "Large vehicle": 7,
                 "Plant": 0
@@ -27,10 +27,10 @@ test_root = Path().resolve().parent
             }
         ),
         (
-            test_root, ["sample_project_vector", "sample_project_pixel"], 157, {
+            test_root, ["sample_project_vector", "sample_project_pixel"], 158, {
                 "Personal vehicle": 121,
                 "Large vehicle": 10,
-                "Human": 9,
+                "Human": 10,
                 "Pedestrian": 3,
                 "Traffic sign": 13,
                 "Two wheeled vehicle": 1,
