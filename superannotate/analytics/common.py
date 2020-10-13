@@ -22,7 +22,7 @@ def df_to_annotations(df, output_dir):
     :rtype: pandas DataFrame
     """
 
-    project_suffix = "___objects.json"
+    project_suffix = "objects.json"
     images = df["imageName"].unique()
     for image in images:
         image_df = df[df["imageName"] == image]
@@ -100,11 +100,11 @@ def df_to_annotations(df, output_dir):
         else:
             attribute_group["attributes"].append({"name": row["attributeName"]})
 
-    Path(output_dir / "classes").mkdir()
+    Path(output_dir / "classes").mkdir(exist_ok=True)
     json.dump(
         annotation_classes,
         open(output_dir / "classes" / "classes.json", "w"),
-        indent=2
+        indent=4
     )
 
 
@@ -123,13 +123,13 @@ def aggregate_annotations_as_df(
     :param include_comments: enables inclusion of comments info as commentResolved column
     :type include_comments: bool
 
-    :return: DataFrame on annotations with columns: "imageName", "instanceId" className", "attributeGroupName", "attributeName", "type", "error", "locked", "visible", "trackingId", "probability", "pointLabels", "meta" (geometry infomation as string), "commentResolved"
+    :return: DataFrame on annotations with columns: "imageName", "instanceId" className", "attributeGroupName", "attributeName", "type", "error", "locked", "visible", "trackingId", "probability", "pointLabels", "meta" (geometry information as string), "commentResolved"
     :rtype: pandas DataFrame
     """
 
     if verbose:
         logger.info(
-            "Aggregating annotations from %s as pandas dataframe", project_root
+            "Aggregating annotations from %s as pandas DataFrame", project_root
         )
 
     annotation_data = {
@@ -177,6 +177,19 @@ def aggregate_annotations_as_df(
         annotation_image_name = annotation_path.name.split("___")[0]
         annotation_instance_id = 0
         for annotation in annotation_json:
+            annotation_class_name = None
+            attribute_group = None
+            attribute_name = None
+            annotation_type = None
+            annotation_locked = None
+            annotation_visible = None
+            annotation_tracking_id = None
+            annotation_meta = None
+            annotation_error = None
+            annotation_probability = None
+            annotation_point_labels = None
+            comment_meta = None
+            comment_resolved = None
 
             annotation_type = annotation.get("type", "mask")
 
@@ -213,10 +226,9 @@ def aggregate_annotations_as_df(
 
             if annotation_type in ["bbox", "polygon", "polyline", "cuboid"]:
                 annotation_meta = {"points": annotation["points"]}
-
-            if annotation_type == "point":
+            elif annotation_type == "point":
                 annotation_meta = {"x": annotation["x"], "y": annotation["y"]}
-            if annotation_type == "ellipse":
+            elif annotation_type == "ellipse":
                 annotation_meta = {
                     "cx": annotation["cx"],
                     "cy": annotation["cy"],
@@ -224,16 +236,19 @@ def aggregate_annotations_as_df(
                     "ry": annotation["ry"],
                     "angle": annotation["angle"]
                 }
-
-            if annotation_type == "mask":
+            elif annotation_type == "mask":
                 annotation_meta = {"parts": annotation["parts"]}
+            elif annotation_type == "template":
+                annotation_meta = {
+                    "connections": annotation["connections"],
+                    "points": annotation["points"]
+                }
 
             annotation_error = annotation.get('error')
 
             annotation_probability = annotation.get("probability")
 
-            annotation_point_labels = annotation[
-                "pointLabels"] if annotation.get("pointLabels") else None
+            annotation_point_labels = annotation.get("pointLabels")
 
             attributes = annotation.get("attributes")
 

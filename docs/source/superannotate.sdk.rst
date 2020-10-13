@@ -331,6 +331,8 @@ ________________________
 .. autofunction:: superannotate.add_annotation_cuboid_to_json
 .. autofunction:: superannotate.aggregate_annotations_as_df
 .. autofunction:: superannotate.df_to_annotations
+.. _ref_filter_annotation_instances:
+.. autofunction:: superannotate.filter_annotation_instances
 
 Aggregating class distribution from annotations
 _____________________________________________________________

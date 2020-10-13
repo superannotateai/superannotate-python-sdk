@@ -342,6 +342,52 @@ project with the found contributor as an QA:
 
    sa.share_project(project, "hovnatan@superannotate.com", user_role="QA")
 
+
+
+----------
+
+
+pandas DataFrame out of project annotations and annotation instance filtering
+_____________________________________________________________________________
+
+
+To create a `pandas DataFrame <https://pandas.pydata.org/>`_ from project
+SuperAnnotate format annotations:
+
+.. code-block:: python
+
+   df = sa.aggregate_annotations_as_df("<path_to_project_folder>")
+
+The created DataFrame will have columns :code:`imageName`, :code:`instanceId`,
+:code:`className`, :code:`attributeGroupName`, :code:`attributeName`, :code:`type`, :code:`error`, :code:`locked`, :code:`visible`, :code:`trackingId`, :code:`probability`, :code:`pointLabels`, :code:`meta` (geometry information as string), :code:`commentResolved`.
+
+Example of created DataFrame:
+
+.. image:: pandas_df.png
+
+Each row represents annotation information. One full annotation with multiple
+attribute groups can be grouped under :code:`instanceId` field.
+
+A helper function :ref:`filter_annotation_instances <ref_filter_annotation_instances>` to annotation instances by their class or attribute from the DataFrame is available. E.g., to get annotations that have annotation class :code:`Human` and attribute  :code:`"height" : "tall"`  that are **not** of type :code:`polygon`:
+
+.. code-block:: python
+
+   filtered_df = sa.filter_annotation_instances(df, include=[{"className" : "Human",
+                                                              "attributes" : [{"groupName" : "height",
+                                                                              "name" : "tall"}]
+                                                            }],
+                                                    exclude=[{"type" : "polygon"}])
+
+To transform back pandas DataFrame annotations to SuperAnnotate format annotation:
+
+.. code-block:: python
+
+   sa.df_to_annotations(filtered_df, "<path_to_output_folder>")
+
+
+----------
+
+
 Aggregating class distribution across multiple projects
 _______________________________________________________
 

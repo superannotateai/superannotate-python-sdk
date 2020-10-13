@@ -1,8 +1,5 @@
 from pathlib import Path
 
-import numpy as np
-import pytest
-
 import superannotate as sa
 
 PROJECT_NAME_1 = "test filter instances"
@@ -31,8 +28,11 @@ def test_filter_instances(tmpdir):
     )
 
     filtered_incl = sa.filter_annotation_instances(
-        not_filtered, include=[{
+        not_filtered,
+        include=[{
             "className": "Large vehicle"
+        }, {
+            "className": "Plant"
         }]
     )
 
@@ -122,21 +122,35 @@ def test_df_to_annotations_full(tmpdir):
     # print(df_new["image_name"].value_counts())
     # print(df["image_name"].value_counts())
     for _index, row in enumerate(df.iterrows()):
-        found = False
         for _, row_2 in enumerate(df_new.iterrows()):
             if row_2[1].equals(row[1]):
-                found = True
                 break
-        assert found
+        else:
+            assert False
+
+    fil1 = sa.filter_annotation_instances(
+        df_new,
+        include=[
+            {
+                "className": "Personal vehicle",
+                "attributes": [{
+                    "name": "4",
+                    "groupName": "Num doors"
+                }]
+            }
+        ],
+        exclude=[{
+            "type": "polygon"
+        }]
+    )
+    filtered_export = (tmpdir / "filtered")
+    filtered_export.mkdir()
+    sa.df_to_annotations(fil1, filtered_export)
     for project in sa.search_projects("test df to annotations 3"):
         sa.delete_project(project)
     project = sa.create_project("test df to annotations 3", "test", "Vector")
-    sa.upload_images_from_folder_to_project(
-        project, "./tests/sample_project_vector"
-    )
+    sa.upload_images_from_folder_to_project(project, PROJECT_DIR)
     sa.create_annotation_classes_from_classes_json(
-        project, "./tests/sample_project_vector/classes/classes.json"
+        project, filtered_export / "classes" / "classes.json"
     )
-    sa.upload_annotations_from_folder_to_project(
-        project, "./tests/sample_project_vector"
-    )
+    sa.upload_annotations_from_folder_to_project(project, filtered_export)
