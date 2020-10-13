@@ -357,6 +357,9 @@ Aggregated distribution is returned as pandas dataframe with columns className a
 
    df = sa.class_distribution("<path_to_export_folder>", [project_names], visualize = True)
 
+.. image:: class_distribution.png
+
+
 Similarly aggregation of class attributes across multiple projects can be obtained with
 
 .. code-block:: python
@@ -364,3 +367,5 @@ Similarly aggregation of class attributes across multiple projects can be obtain
    df = sa.attribute_distribution("<path_to_export_folder>", [project_names], visualize = True)
 
 Here pandas dataframe with columns identifying attribute and corresponding instance count is returned. Within visualized histogram attributes of the same class are grouped by color and sorted accordingly.
+
+.. image:: attribute_distribution.png
