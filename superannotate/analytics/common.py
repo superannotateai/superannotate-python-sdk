@@ -320,11 +320,15 @@ def aggregate_annotations_as_df(
     if include_classes_wo_annotations:
         for class_meta in classes_json:
             annotation_class_name = class_meta["name"]
+            annotation_class_color = class_meta["color"]
 
             if not annotation_class_name in df["className"].unique():
-                __append_annotation({
-                    "className": annotation_class_name,
-                })
+                __append_annotation(
+                    {
+                        "className": annotation_class_name,
+                        "classColor": annotation_class_color
+                    }
+                )
                 continue
 
             class_df = df[df["className"] == annotation_class_name][[
@@ -349,6 +353,7 @@ def aggregate_annotations_as_df(
                         __append_annotation(
                             {
                                 "className": annotation_class_name,
+                                "classColor": annotation_class_color,
                                 "attributeGroupName": attribute_group_name,
                                 "attributeName": attribute_name,
                             }
