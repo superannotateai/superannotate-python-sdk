@@ -343,7 +343,7 @@ project with the found contributor as an QA:
    sa.share_project(project, "hovnatan@superannotate.com", user_role="QA")
 
 Aggregating class distribution across multiple projects
-______________________________
+_______________________________________________________
 
 After exporting annotations from multiple projects, it is possible to aggregate class distribution of annotated instances as follows
 
