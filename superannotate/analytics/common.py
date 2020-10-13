@@ -115,7 +115,7 @@ def aggregate_annotations_as_df(
     }
 
     if include_comments:
-        annotation_data["resolved"] = []
+        annotation_data["commentResolved"] = []
 
     def __append_annotation(annotation_dict):
         for annotation_key in annotation_data:
@@ -152,11 +152,17 @@ def aggregate_annotations_as_df(
             if annotation_type == "comment":
                 if include_comments:
                     comment_resolved = annotation["resolved"]
+                    comment_meta = {
+                        "x": annotation["x"],
+                        "y": annotation["y"],
+                        "comments": annotation["comments"]
+                    }
                     __append_annotation(
                         {
                             "imageName": annotation_image_name,
                             "type": annotation_type,
-                            "resolved": comment_resolved
+                            "meta": comment_meta,
+                            "commentResolved": comment_resolved,
                         }
                     )
                 continue

@@ -14,13 +14,14 @@ logger = logging.getLogger("superannotate-python-sdk")
 
 def class_distribution(export_root, project_names, visualize=False):
     """Aggregate distribution of classes across multiple projects.
+
     :param export_root: root export path of the projects
     :type export_root: Pathlike (str or Path)
     :param project_names: list of project names to aggregate through
     :type project_names: list of str
     :param visulaize: enables class histogram plot
     :type visualize: bool
-    :return: DataFrame on class distribution with ["className", "count"] columns 
+    :return: DataFrame on class distribution with columns ["className", "count"]
     :rtype: pandas DataFrame
     """
 
@@ -64,13 +65,14 @@ def class_distribution(export_root, project_names, visualize=False):
 
 def attribute_distribution(export_root, project_names, visualize=False):
     """Aggregate distribution of attributes across multiple projects.
+
     :param export_root: root export path of the projects
     :type export_root: Pathlike (str or Path)
     :param project_names: list of project names to aggregate through
     :type project_names: list of str
     :param visulaize: enables attribute histogram plot
     :type visualize: bool
-    :return: DataFrame on attribute distribution with ["className", "attributeGroupName", "attributeName", "count"] columns 
+    :return: DataFrame on attribute distribution with columns ["className", "attributeGroupName", "attributeName", "count"] 
     :rtype: pandas DataFrame
     """
 
