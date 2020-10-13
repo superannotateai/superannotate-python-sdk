@@ -84,10 +84,7 @@ def test_df_to_annotations(tmpdir):
     tmpdir = Path(tmpdir)
 
     df = sa.aggregate_annotations_as_df(PROJECT_DIR)
-    sa.df_to_annotations(
-        df,
-        Path(PROJECT_DIR) / "classes" / "classes.json", tmpdir
-    )
+    sa.df_to_annotations(df, tmpdir)
     df_new = sa.aggregate_annotations_as_df(tmpdir)
     # print(df_new["image_name"].value_counts())
     # print(df["image_name"].value_counts())
@@ -98,3 +95,48 @@ def test_df_to_annotations(tmpdir):
                 found = True
                 break
         assert found
+    for project in sa.search_projects("test df to annotations 2"):
+        sa.delete_project(project)
+    project = sa.create_project("test df to annotations 2", "test", "Vector")
+    sa.upload_images_from_folder_to_project(
+        project, "./tests/sample_project_vector"
+    )
+    sa.create_annotation_classes_from_classes_json(
+        project, "./tests/sample_project_vector/classes/classes.json"
+    )
+    sa.upload_annotations_from_folder_to_project(
+        project, "./tests/sample_project_vector"
+    )
+
+
+def test_df_to_annotations_full(tmpdir):
+    tmpdir = Path(tmpdir)
+
+    df = sa.aggregate_annotations_as_df(
+        PROJECT_DIR, include_classes_wo_annotations=True
+    )
+    sa.df_to_annotations(df, tmpdir)
+    df_new = sa.aggregate_annotations_as_df(
+        tmpdir, include_classes_wo_annotations=True
+    )
+    # print(df_new["image_name"].value_counts())
+    # print(df["image_name"].value_counts())
+    for _index, row in enumerate(df.iterrows()):
+        found = False
+        for _, row_2 in enumerate(df_new.iterrows()):
+            if row_2[1].equals(row[1]):
+                found = True
+                break
+        assert found
+    for project in sa.search_projects("test df to annotations 3"):
+        sa.delete_project(project)
+    project = sa.create_project("test df to annotations 3", "test", "Vector")
+    sa.upload_images_from_folder_to_project(
+        project, "./tests/sample_project_vector"
+    )
+    sa.create_annotation_classes_from_classes_json(
+        project, "./tests/sample_project_vector/classes/classes.json"
+    )
+    sa.upload_annotations_from_folder_to_project(
+        project, "./tests/sample_project_vector"
+    )

@@ -7,21 +7,20 @@ from ..exceptions import SABaseException
 logger = logging.getLogger("superannotate-python-sdk")
 
 
-def df_to_annotations(df, annotation_classes, output_dir):
-    """Aggregate annotations as pandas dataframe from project root. Currently
-    only works for Vector projects.
+def df_to_annotations(df, output_dir):
+    """Converts and saves pandas DataFrame annotation info (see aggregate_annotations_as_df) in output_dir
+    The DataFrame should have columns: "imageName", "classNmae", "attributeGroupName", "attributeName", "type", "error", "locked", "visible", trackingId", "probability", "pointLabels", "meta", "commentResolved"
 
-    :param project_root: export path of the project
-    :type project_root: Pathlike (str or Path)
+    Currently only works for Vector projects.
+
+    :param df: pandas DataFrame
+    :type df: pandas.DataFrame
     :param include_classes_wo_annotations: enables inclusion of classes without annotations info
     :type include_classes_wo_annotations: bool
 
-    :return: DataFrame on annotations with columns: ["imageName", "classNmae", "attributeGroupName", "attributeName", "type", "error", "locked", "visible", trackingId", "probability", "pointLabels", "meta"]
+    :return: DataFrame on annotations with columns: ["imageName", "classNmae", "attributeGroupName", "attributeName", "type", "error", "locked", "visible", trackingId", "probability", "pointLabels", "meta", "commentResolved"]
     :rtype: pandas DataFrame
     """
-
-    if not isinstance(annotation_classes, list):
-        annotation_classes = json.load(open(annotation_classes))
 
     project_suffix = "___objects.json"
     images = df["imageName"].unique()
@@ -66,6 +65,41 @@ def df_to_annotations(df, annotation_classes, output_dir):
             open(output_dir / f"{image}___{project_suffix}", "w"),
             indent=4
         )
+
+    annotation_classes = []
+    for _, row in df.iterrows():
+        if row["className"] is None:
+            continue
+        for annotation_class in annotation_classes:
+            if annotation_class["name"] == row["className"]:
+                break
+        else:
+            annotation_classes.append(
+                {
+                    "name": row["className"],
+                    "attribute_groups": []
+                }
+            )
+            annotation_class = annotation_classes[-1]
+        if row["attributeGroupName"] is None or row["attributeName"] is None:
+            continue
+        for attribute_group in annotation_class["attribute_groups"]:
+            if attribute_group["name"] == row["attributeGroupName"]:
+                break
+        else:
+            annotation_class["attribute_groups"].append(
+                {
+                    "name": row["attributeGroupName"],
+                    "attributes": []
+                }
+            )
+            attribute_group = annotation_class["attribute_groups"][-1]
+        for attribute in attribute_group["attributes"]:
+            if attribute["name"] == row["attributeName"]:
+                break
+        else:
+            attribute_group["attributes"].append({"name": row["attributeName"]})
+
     Path(output_dir / "classes").mkdir()
     json.dump(
         annotation_classes,
@@ -84,12 +118,12 @@ def aggregate_annotations_as_df(
 
     :param project_root: export path of the project
     :type project_root: Pathlike (str or Path)
-    :param include_classes_wo_annotations: enables inclusion of classes without annotations info
+    :param include_classes_wo_annotations: enables inclusion of classes info that have no instances in annotations
     :type include_classes_wo_annotations: bool
-    :param include_comments: enables inclusion of comments info
+    :param include_comments: enables inclusion of comments info as commentResolved column
     :type include_comments: bool
 
-    :return: DataFrame on annotations with columns: ["imageName", "instanceId" className", "attributeGroupName", "attributeName", "type", "error", "locked", "visible", "trackingId", "probability", "pointLabels", "meta"]
+    :return: DataFrame on annotations with columns: "imageName", "instanceId" className", "attributeGroupName", "attributeName", "type", "error", "locked", "visible", "trackingId", "probability", "pointLabels", "meta" (geometry infomation as string), "commentResolved"
     :rtype: pandas DataFrame
     """
 
