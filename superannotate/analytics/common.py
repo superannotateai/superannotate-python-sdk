@@ -9,7 +9,7 @@ logger = logging.getLogger("superannotate-python-sdk")
 
 def df_to_annotations(df, output_dir):
     """Converts and saves pandas DataFrame annotation info (see aggregate_annotations_as_df) in output_dir
-    The DataFrame should have columns: "imageName", "classNmae", "attributeGroupName", "attributeName", "type", "error", "locked", "visible", trackingId", "probability", "pointLabels", "meta", "commentResolved"
+    The DataFrame should have columns: "imageName", "classNmae", "attributeGroupName", "attributeName", "type", "error", "locked", "visible", trackingId", "probability", "pointLabels", "meta", "commentResolved", "classColor"
 
     Currently only works for Vector projects.
 
@@ -77,6 +77,7 @@ def df_to_annotations(df, output_dir):
             annotation_classes.append(
                 {
                     "name": row["className"],
+                    "color": row["classColor"],
                     "attribute_groups": []
                 }
             )
@@ -123,7 +124,7 @@ def aggregate_annotations_as_df(
     :param include_comments: enables inclusion of comments info as commentResolved column
     :type include_comments: bool
 
-    :return: DataFrame on annotations with columns: "imageName", "instanceId" className", "attributeGroupName", "attributeName", "type", "error", "locked", "visible", "trackingId", "probability", "pointLabels", "meta" (geometry information as string), "commentResolved"
+    :return: DataFrame on annotations with columns: "imageName", "instanceId" className", "attributeGroupName", "attributeName", "type", "error", "locked", "visible", "trackingId", "probability", "pointLabels", "meta" (geometry information as string), "commentResolved", "classColor"
     :rtype: pandas DataFrame
     """
 
@@ -145,11 +146,20 @@ def aggregate_annotations_as_df(
         "trackingId": [],
         "probability": [],
         "pointLabels": [],
-        "meta": []
+        "meta": [],
+        "classColor": [],
     }
 
     if include_comments:
         annotation_data["commentResolved"] = []
+
+    classes_path = Path(project_root) / "classes" / "classes.json"
+    if not classes_path.is_file():
+        raise SABaseException(
+            0, "SuperAnnotate classes file " + str(classes_path) +
+            " not found. Please provide correct project export root"
+        )
+    classes_json = json.load(open(classes_path))
 
     def __append_annotation(annotation_dict):
         for annotation_key in annotation_data:
@@ -178,6 +188,7 @@ def aggregate_annotations_as_df(
         annotation_instance_id = 0
         for annotation in annotation_json:
             annotation_class_name = None
+            annotation_class_color = None
             attribute_group = None
             attribute_name = None
             annotation_type = None
@@ -217,6 +228,15 @@ def aggregate_annotations_as_df(
             annotation_instance_id += 1
 
             annotation_class_name = annotation.get("className")
+            if annotation_class_name is not None:
+                for annotation_class in classes_json:
+                    if annotation_class["name"] == annotation_class_name:
+                        annotation_class_color = annotation_class["color"]
+                        break
+                else:
+                    raise SABaseException(
+                        0, "Annotation class not found in classes.json"
+                    )
 
             annotation_locked = annotation.get("locked")
 
@@ -265,7 +285,8 @@ def aggregate_annotations_as_df(
                         "meta": annotation_meta,
                         "error": annotation_error,
                         "probability": annotation_probability,
-                        "pointLabels": annotation_point_labels
+                        "pointLabels": annotation_point_labels,
+                        "classColor": annotation_class_color
                     }
                 )
 
@@ -288,7 +309,8 @@ def aggregate_annotations_as_df(
                         "meta": annotation_meta,
                         "error": annotation_error,
                         "probability": annotation_probability,
-                        "pointLabels": annotation_point_labels
+                        "pointLabels": annotation_point_labels,
+                        "classColor": annotation_class_color
                     }
                 )
 
@@ -296,15 +318,6 @@ def aggregate_annotations_as_df(
 
     #Add classes/attributes w/o annotations
     if include_classes_wo_annotations:
-
-        classes_path = Path(project_root) / "classes" / "classes.json"
-        if not classes_path.is_file():
-            raise SABaseException(
-                0, "SuperAnnotate classes file " + str(classes_path) +
-                " not found. Please provide correct project export root"
-            )
-        classes_json = json.load(open(classes_path))
-
         for class_meta in classes_json:
             annotation_class_name = class_meta["name"]
 
