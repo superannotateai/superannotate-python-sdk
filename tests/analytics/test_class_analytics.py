@@ -55,11 +55,11 @@ def test_class_distribution(
 @pytest.mark.parametrize(
     "export_root, project_names, total_attributes, attributes_per_class", [
         (
-            test_root, ["sample_project_vector"], 3, {
+            test_root, ["sample_project_vector"], 4, {
                 "Personal vehicle": {
                     "Num doors": {
                         "2": 1,
-                        "4": 0
+                        "4": 1
                     }
                 },
                 "Large vehicle":
@@ -98,12 +98,12 @@ def test_class_distribution(
             }
         ),
         (
-            test_root, ["sample_project_vector", "sample_project_pixel"], 5, {
+            test_root, ["sample_project_vector", "sample_project_pixel"], 6, {
                 "Personal vehicle":
                     {
                         "Num doors": {
                             "2": 1,
-                            "4": 0
+                            "4": 1
                         },
                         "Large": {
                             "no": 0,
