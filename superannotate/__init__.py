@@ -8,7 +8,7 @@ import requests
 from .analytics.class_analytics import (
     attribute_distribution, class_distribution
 )
-from .analytics.common import (aggregate_annotations_as_df, df_to_annotations)
+from .analytics.common import aggregate_annotations_as_df, df_to_annotations
 from .annotation_helpers import (
     add_annotation_bbox_to_json, add_annotation_cuboid_to_json,
     add_annotation_ellipse_to_json, add_annotation_point_to_json,
@@ -52,6 +52,7 @@ from .db.projects import (
 )
 from .db.teams import invite_contributor_to_team
 from .db.users import search_team_contributors
+from .dicom_converter import dicom_to_rgb_sequence
 from .exceptions import (
     SABaseException, SAExistingAnnotationClassNameException,
     SAExistingProjectNameException, SANonExistingAnnotationClassNameException,
