@@ -160,6 +160,11 @@ def aggregate_annotations_as_df(
             " not found. Please provide correct project export root"
         )
     classes_json = json.load(open(classes_path))
+    class_name_to_color = {}
+    for annotation_class in classes_json:
+        name = annotation_class["name"]
+        color = annotation_class["color"]
+        class_name_to_color[name] = color
 
     def __append_annotation(annotation_dict):
         for annotation_key in annotation_data:
@@ -187,20 +192,6 @@ def aggregate_annotations_as_df(
         annotation_image_name = annotation_path.name.split("___")[0]
         annotation_instance_id = 0
         for annotation in annotation_json:
-            annotation_class_name = None
-            annotation_class_color = None
-            attribute_group = None
-            attribute_name = None
-            annotation_type = None
-            annotation_locked = None
-            annotation_visible = None
-            annotation_tracking_id = None
-            annotation_meta = None
-            annotation_error = None
-            annotation_probability = None
-            annotation_point_labels = None
-            comment_meta = None
-            comment_resolved = None
 
             annotation_type = annotation.get("type", "mask")
 
@@ -228,21 +219,21 @@ def aggregate_annotations_as_df(
             annotation_instance_id += 1
 
             annotation_class_name = annotation.get("className")
-            if annotation_class_name is not None:
-                for annotation_class in classes_json:
-                    if annotation_class["name"] == annotation_class_name:
-                        annotation_class_color = annotation_class["color"]
-                        break
-                else:
-                    raise SABaseException(
-                        0, "Annotation class not found in classes.json"
-                    )
+            
+            if annotation_class_name:
+                annotation_class_color = class_name_to_color[annotation_class_name]
+            else:
+                raise SABaseException(
+                    0, "Annotation class not found in classes.json"
+                )
 
             annotation_locked = annotation.get("locked")
 
             annotation_visible = annotation.get("visible")
 
             annotation_tracking_id = annotation.get("trackingId")
+
+            annotation_meta = None
 
             if annotation_type in ["bbox", "polygon", "polyline", "cuboid"]:
                 annotation_meta = {"points": annotation["points"]}
