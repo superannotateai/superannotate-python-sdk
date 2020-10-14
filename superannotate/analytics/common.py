@@ -23,11 +23,11 @@ def df_to_annotations(df, output_dir):
     """
 
     project_suffix = "objects.json"
-    images = df["imageName"].unique()
+    images = df["imageName"].dropna().unique()
     for image in images:
         image_df = df[df["imageName"] == image]
         image_annotation = []
-        instances = image_df["instanceId"].unique()
+        instances = image_df["instanceId"].dropna().unique()
         for instance in instances:
             instance_df = image_df[image_df["instanceId"] == instance]
             annotation_type = instance_df.iloc[0]["type"]
