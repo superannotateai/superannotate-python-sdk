@@ -50,7 +50,7 @@ def main():
     elif command == "export-project":
         export_project(further_args)
     elif command == "version":
-        print(f"SuperAnnotate Python SDK version {sa.Version}")
+        print(f"SuperAnnotate Python SDK version {sa.__version__}")
     else:
         raise SABaseException(0, "Wrong command to superannotate CLI")
 

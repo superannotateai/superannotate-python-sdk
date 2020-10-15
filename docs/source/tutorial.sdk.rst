@@ -415,3 +415,36 @@ Similarly aggregation of class attributes across multiple projects can be obtain
 Here pandas DataFrame with columns identifying attribute and corresponding instance count is returned. Within visualized histogram attributes of the same class are grouped by color and sorted accordingly.
 
 .. image:: attribute_distribution.png
+
+----------
+
+
+Working with DICOM files
+_______________________________________________________
+
+
+To convert DICOM file images to JPEG images:
+
+
+.. code-block:: python
+
+   df = sa.dicom_to_rgb_sequence("<path_to_dicom_file>", "<path_to_output_dir>")
+
+JPEG images with names :file:`<dicom_file_name>_<frame_num>.jpg` will be created
+in :file:`<path_to_output_dir>`. Those JPEG images can be uploaded to
+SuperAnnotate platform using the regular:
+
+.. code-block:: python
+
+   sa.upload_images_from_folder_to_project(project, "<path_to_output_dir>")
+
+Some DICOM files can have image frames that are compressed. To load them, `GDCM :
+Grassroots DICOM library <http://gdcm.sourceforge.net/wiki/index.php/Main_Page>`_ needs to be installed:
+
+.. code-block:: bash
+
+   # using conda
+   conda install -c conda-forge gdcm
+
+   # or on Ubuntu with versions above 19.04
+   sudo apt install python3-gdcm

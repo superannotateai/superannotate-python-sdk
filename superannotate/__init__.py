@@ -63,7 +63,7 @@ from .input_converters.conversion import (
     import_annotation_format
 )
 from .instance_filtering import filter_annotation_instances
-from .version import Version
+from .version import __version__
 
 formatter = logging.Formatter(fmt='SA-PYTHON-SDK - %(levelname)s - %(message)s')
 #formatter = logging.Formatter(fmt='%(asctime)s - %(levelname)s - %(module)s - %(message)s')
@@ -79,7 +79,7 @@ logger.addHandler(handler)
 def _check_version():
     _req = requests.get('https://pypi.python.org/pypi/superannotate/json')
     if _req.ok:
-        _Version = packaging.version.parse(Version)
+        _version = packaging.version.parse(__version__)
         _version_on_pip = packaging.version.parse('0')
         _j = _req.json()
         _releases = _j.get('releases', [])
@@ -87,15 +87,15 @@ def _check_version():
             _ver = packaging.version.parse(_release)
             if not _ver.is_prerelease:
                 _version_on_pip = max(_version_on_pip, _ver)
-        if _version_on_pip.major > _Version.major:
+        if _version_on_pip.major > _version.major:
             logger.warning(
                 "There is a major upgrade of SuperAnnotate Python SDK available on PyPI. We recommend upgrading. Run 'pip install --upgrade superannotate' to upgrade from your version %s to %s.",
-                _Version, _version_on_pip
+                _version, _version_on_pip
             )
-        elif _version_on_pip > _Version:
+        elif _version_on_pip > _version:
             logger.info(
                 "There is a newer version of SuperAnnotate Python SDK available on PyPI. Run 'pip install --upgrade superannotate' to upgrade from your version %s to %s.",
-                _Version, _version_on_pip
+                _version, _version_on_pip
             )
 
 

@@ -334,8 +334,17 @@ ________________________
 .. _ref_filter_annotation_instances:
 .. autofunction:: superannotate.filter_annotation_instances
 
+----------
+
 Aggregating class distribution from annotations
 _____________________________________________________________
 
 .. autofunction:: superannotate.class_distribution
 .. autofunction:: superannotate.attribute_distribution
+
+----------
+
+Utility functions
+--------------------------------
+
+.. autofunction:: superannotate.dicom_to_rgb_sequence
