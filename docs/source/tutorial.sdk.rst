@@ -359,7 +359,7 @@ SuperAnnotate format annotations:
    df = sa.aggregate_annotations_as_df("<path_to_project_folder>")
 
 The created DataFrame will have columns :code:`imageName`, :code:`instanceId`,
-:code:`className`, :code:`attributeGroupName`, :code:`attributeName`, :code:`type`, :code:`error`, :code:`locked`, :code:`visible`, :code:`trackingId`, :code:`probability`, :code:`pointLabels`, :code:`meta` (geometry information as string), :code:`commentResolved`, :code:`classColor`.
+:code:`className`, :code:`attributeGroupName`, :code:`attributeName`, :code:`type`, :code:`error`, :code:`locked`, :code:`visible`, :code:`trackingId`, :code:`probability`, :code:`pointLabels`, :code:`meta` (geometry information as string), :code:`commentResolved`, :code:`classColor`, :code:`groupId`.
 
 Example of created DataFrame:
 

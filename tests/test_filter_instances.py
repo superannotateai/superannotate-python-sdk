@@ -7,6 +7,23 @@ PROJECT_NAME_1 = "test filter instances"
 PROJECT_DIR = "./tests/sample_project_vector"
 
 
+def test_filter_comments(tmpdir):
+    tmpdir = Path(tmpdir)
+
+    # projects = sa.search_projects(PROJECT_NAME_1, return_metadata=True)
+    # for project in projects:
+    #     sa.delete_project(project)
+
+    # project = sa.create_project(PROJECT_NAME_1, "test", "Vector")
+
+    not_filtered = sa.aggregate_annotations_as_df(
+        PROJECT_DIR, include_comments=True
+    )
+
+    filtered_excl = sa.filter_comments(not_filtered, True)
+    print(str(filtered_excl["meta"].iloc[0]))
+
+
 def test_filter_instances(tmpdir):
     tmpdir = Path(tmpdir)
 
@@ -89,12 +106,11 @@ def test_df_to_annotations(tmpdir):
     # print(df_new["image_name"].value_counts())
     # print(df["image_name"].value_counts())
     for _index, row in enumerate(df.iterrows()):
-        found = False
         for _, row_2 in enumerate(df_new.iterrows()):
             if row_2[1].equals(row[1]):
-                found = True
                 break
-        assert found
+        else:
+            assert False
     for project in sa.search_projects("test df to annotations 2"):
         sa.delete_project(project)
     project = sa.create_project("test df to annotations 2", "test", "Vector")
@@ -113,12 +129,20 @@ def test_df_to_annotations_full(tmpdir):
     tmpdir = Path(tmpdir)
 
     df = sa.aggregate_annotations_as_df(
-        PROJECT_DIR, include_classes_wo_annotations=True
+        PROJECT_DIR, include_classes_wo_annotations=True, include_comments=True
     )
     sa.df_to_annotations(df, tmpdir)
     df_new = sa.aggregate_annotations_as_df(
-        tmpdir, include_classes_wo_annotations=True
+        tmpdir, include_classes_wo_annotations=True, include_comments=True
     )
+    for project in sa.search_projects("test df to annotations 4"):
+        sa.delete_project(project)
+    project = sa.create_project("test df to annotations 4", "test", "Vector")
+    sa.upload_images_from_folder_to_project(project, PROJECT_DIR)
+    sa.create_annotation_classes_from_classes_json(
+        project, tmpdir / "classes" / "classes.json"
+    )
+    sa.upload_annotations_from_folder_to_project(project, tmpdir)
     # print(df_new["image_name"].value_counts())
     # print(df["image_name"].value_counts())
     for _index, row in enumerate(df.iterrows()):

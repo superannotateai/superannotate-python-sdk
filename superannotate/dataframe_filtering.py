@@ -1,6 +1,24 @@
 import pandas as pd
 
 
+def filter_comments(annotations_df, resolved=False):
+    """Filter comments on resolve status
+
+    :param annotations_df: pandas DataFrame of project annotations
+    :type annotations_df: pandas.DataFrame
+    :param resolved: resolved criterion
+    :type resolved: bool
+
+    :return: filtered DataFrame
+    :rtype: pandas.DataFrame
+
+    """
+    df = annotations_df[annotations_df["type"] == "comment"]
+    df = df[df["commentResolved"] == resolved]
+
+    return df
+
+
 def filter_annotation_instances(annotations_df, include=None, exclude=None):
     """Filter annotation instances from project annotations pandas DataFrame.
 

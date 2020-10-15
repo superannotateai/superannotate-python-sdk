@@ -87,11 +87,7 @@ def test_add_bbox(tmpdir):
     export = sa.prepare_export(project, include_fuse=True)
     sa.download_export(project, export, tmpdir)
 
-    annotations_new_export = json.load(
-        open(tmpdir / f"{image_name}___objects.json")
-    )
-
-    df = sa.aggregate_annotations_as_df(tmpdir)
+    df = sa.aggregate_annotations_as_df(tmpdir, include_comments=True)
 
     num = len(df[df["imageName"] == image_name]["instanceId"].unique())
 

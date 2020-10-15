@@ -9,17 +9,15 @@ logger = logging.getLogger("superannotate-python-sdk")
 
 def df_to_annotations(df, output_dir):
     """Converts and saves pandas DataFrame annotation info (see aggregate_annotations_as_df) in output_dir
-    The DataFrame should have columns: "imageName", "classNmae", "attributeGroupName", "attributeName", "type", "error", "locked", "visible", trackingId", "probability", "pointLabels", "meta", "commentResolved", "classColor"
+    The DataFrame should have columns: "imageName", "classNmae", "attributeGroupName", "attributeName", "type", "error", "locked", "visible", trackingId", "probability", "pointLabels", "meta", "commentResolved", "classColor", "groupId"
 
     Currently only works for Vector projects.
 
-    :param df: pandas DataFrame
+    :param df: pandas DataFrame of annotations possibly created by aggregate_annotations_as_df
     :type df: pandas.DataFrame
-    :param include_classes_wo_annotations: enables inclusion of classes without annotations info
-    :type include_classes_wo_annotations: bool
+    :param output_dir: output dir for annotations and classes.json
+    :type output_dir: str or Pathlike
 
-    :return: DataFrame on annotations with columns: ["imageName", "classNmae", "attributeGroupName", "attributeName", "type", "error", "locked", "visible", trackingId", "probability", "pointLabels", "meta", "commentResolved"]
-    :rtype: pandas DataFrame
     """
 
     project_suffix = "objects.json"
@@ -50,6 +48,7 @@ def df_to_annotations(df, output_dir):
             )
             instance_annotation["trackingId"] = instance_df.iloc[0]["trackingId"
                                                                    ]
+            instance_annotation["groupId"] = int(instance_df.iloc[0]["groupId"])
             instance_annotation.update(annotation_meta)
             for _, row in instance_df.iterrows():
                 if row["attributeGroupName"] is not None:
@@ -60,6 +59,14 @@ def df_to_annotations(df, output_dir):
                         }
                     )
             image_annotation.append(instance_annotation)
+
+        comments = image_df[image_df["type"] == "comment"]
+        for _, comment in comments.iterrows():
+            comment_json = {"type": "comment"}
+            comment_json.update(comment["meta"])
+            comment_json["resolved"] = comment["commentResolved"]
+            image_annotation.append(comment_json)
+
         json.dump(
             image_annotation,
             open(output_dir / f"{image}___{project_suffix}", "w"),
@@ -124,7 +131,7 @@ def aggregate_annotations_as_df(
     :param include_comments: enables inclusion of comments info as commentResolved column
     :type include_comments: bool
 
-    :return: DataFrame on annotations with columns: "imageName", "instanceId" className", "attributeGroupName", "attributeName", "type", "error", "locked", "visible", "trackingId", "probability", "pointLabels", "meta" (geometry information as string), "commentResolved", "classColor"
+    :return: DataFrame on annotations with columns: "imageName", "instanceId" className", "attributeGroupName", "attributeName", "type", "error", "locked", "visible", "trackingId", "probability", "pointLabels", "meta" (geometry information as string), "commentResolved", "classColor", "groupId"
     :rtype: pandas DataFrame
     """
 
@@ -148,6 +155,7 @@ def aggregate_annotations_as_df(
         "pointLabels": [],
         "meta": [],
         "classColor": [],
+        "groupId": []
     }
 
     if include_comments:
@@ -192,12 +200,9 @@ def aggregate_annotations_as_df(
         annotation_image_name = annotation_path.name.split("___")[0]
         annotation_instance_id = 0
         for annotation in annotation_json:
-
             annotation_type = annotation.get("type", "mask")
-
             if annotation_type in ['meta', 'tag']:
                 continue
-
             if annotation_type == "comment":
                 if include_comments:
                     comment_resolved = annotation["resolved"]
@@ -215,26 +220,18 @@ def aggregate_annotations_as_df(
                         }
                     )
                 continue
-
             annotation_instance_id += 1
-
             annotation_class_name = annotation.get("className")
-            
-            if annotation_class_name:
-                annotation_class_color = class_name_to_color[annotation_class_name]
-            else:
+            if annotation_class_name is None:
                 raise SABaseException(
                     0, "Annotation class not found in classes.json"
                 )
-
+            annotation_class_color = class_name_to_color[annotation_class_name]
+            annotation_group_id = annotation.get("groupId")
             annotation_locked = annotation.get("locked")
-
             annotation_visible = annotation.get("visible")
-
             annotation_tracking_id = annotation.get("trackingId")
-
             annotation_meta = None
-
             if annotation_type in ["bbox", "polygon", "polyline", "cuboid"]:
                 annotation_meta = {"points": annotation["points"]}
             elif annotation_type == "point":
@@ -254,13 +251,9 @@ def aggregate_annotations_as_df(
                     "connections": annotation["connections"],
                     "points": annotation["points"]
                 }
-
             annotation_error = annotation.get('error')
-
             annotation_probability = annotation.get("probability")
-
             annotation_point_labels = annotation.get("pointLabels")
-
             attributes = annotation.get("attributes")
 
             if not attributes:
@@ -277,7 +270,8 @@ def aggregate_annotations_as_df(
                         "error": annotation_error,
                         "probability": annotation_probability,
                         "pointLabels": annotation_point_labels,
-                        "classColor": annotation_class_color
+                        "classColor": annotation_class_color,
+                        "groupId": annotation_group_id
                     }
                 )
 
@@ -301,7 +295,8 @@ def aggregate_annotations_as_df(
                         "error": annotation_error,
                         "probability": annotation_probability,
                         "pointLabels": annotation_point_labels,
-                        "classColor": annotation_class_color
+                        "classColor": annotation_class_color,
+                        "groupId": annotation_group_id
                     }
                 )
 

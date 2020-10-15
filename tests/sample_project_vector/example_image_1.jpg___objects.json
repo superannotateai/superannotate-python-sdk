@@ -1,5 +1,17 @@
 [
     {
+        "type": "comment",
+        "x": 621.4069213867188,
+        "y": 631.5987548828125,
+        "comments": [
+            {
+                "text": "Bordyuri mi mas@ petqa lini parking class-i mej myus mas@ Terrian class-i",
+                "id": "hovnatan@superannotate.com"
+            }
+        ],
+        "resolved": true
+    },
+    {
         "type": "bbox",
         "classId": 55917,
         "probability": 100,
