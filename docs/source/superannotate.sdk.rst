@@ -333,6 +333,7 @@ ________________________
 .. autofunction:: superannotate.df_to_annotations
 .. _ref_filter_annotation_instances:
 .. autofunction:: superannotate.filter_annotation_instances
+.. autofunction:: superannotate.filter_images_by_comments
 
 ----------
 

@@ -368,7 +368,7 @@ Example of created DataFrame:
 Each row represents annotation information. One full annotation with multiple
 attribute groups can be grouped under :code:`instanceId` field.
 
-A helper function :ref:`filter_annotation_instances <ref_filter_annotation_instances>` to annotation instances by their class or attribute from the DataFrame is available. E.g., to get annotations that have annotation class :code:`Human` and attribute  :code:`"height" : "tall"`  that are **not** of type :code:`polygon`:
+A helper function :ref:`filter_annotation_instances <ref_filter_annotation_instances>` is available to filter annotation instances by their class, attribute, type or error fields from the DataFrame. E.g., to get annotations that have annotation class :code:`Human` and attribute  :code:`"height" : "tall"`  that are **not** of type :code:`polygon`:
 
 .. code-block:: python
 

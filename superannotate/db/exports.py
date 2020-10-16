@@ -141,7 +141,7 @@ def prepare_export(
         )
     res = response.json()
     logger.info(
-        "Prepared export %s for project %s.", res['name'], project["name"]
+        "Prepared export %s for project %s (ID %s).", res['name'], project["name"], project["id"]
     )
     return res["name"]
 
