@@ -18,6 +18,10 @@ from .voc_converters.voc_strategies import VocObjectDetectionStrategy
 from .labelbox_converters.labelbox_strategies import LabelBoxObjectDetectionStrategy
 from .dataloop_converters.dataloop_strategies import DataLoopObjectDetectionStrategy
 from .supervisely_converters.supervisely_strategies import SuperviselyObjectDetectionStrategy
+from .vott_converters.vott_strategies import VoTTObjectDetectionStrategy
+from .sagemaker_converters.sagemaker_strategies import SageMakerObjectDetectionStrategy
+from .vgg_converters.vgg_strategies import VGGObjectDetectionStrategy
+from .googlecloud_converters.googlecloud_strategies import GoogleCloudObjectDetectionStrategy
 
 
 class Converter(object):
@@ -56,6 +60,18 @@ class Converter(object):
         elif args.dataset_format == "Supervisely":
             if args.task == 'vector_annotation':
                 c_strategy = SuperviselyObjectDetectionStrategy(args)
+        elif args.dataset_format == "VoTT":
+            if args.task == 'object_detection' or args.task == 'instance_segmentation' or args.task == 'vector_annotation':
+                c_strategy = VoTTObjectDetectionStrategy(args)
+        elif args.dataset_format == "SageMaker":
+            if args.task == 'object_detection' or args.task == 'instance_segmentation' or args.task == 'vector_annotation':
+                c_strategy = SageMakerObjectDetectionStrategy(args)
+        elif args.dataset_format == "VGG":
+            if args.task == 'object_detection' or args.task == 'instance_segmentation' or args.task == 'vector_annotation':
+                c_strategy = VGGObjectDetectionStrategy(args)
+        elif args.dataset_format == "GoogleCloud":
+            if args.task == 'object_detection':
+                c_strategy = GoogleCloudObjectDetectionStrategy(args)
         else:
             pass
 

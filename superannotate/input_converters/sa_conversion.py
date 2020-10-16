@@ -10,38 +10,7 @@ import numpy as np
 from tqdm import tqdm
 from pathlib import Path
 
-
-# Converts HEX values to RGB values
-def _hex_to_rgb(hex_string):
-    h = hex_string.lstrip('#')
-    return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
-
-
-# Converts RGB values to HEX values
-def _rgb_to_hex(rgb_tuple):
-    return '#%02x%02x%02x' % rgb_tuple
-
-
-# Generates blue colors in range(n)
-def _blue_color_generator(n, hex_values=True):
-    hex_colors = []
-    for i in range(n + 1):
-        int_color = i * 15
-        bgr_color = np.array(
-            [
-                int_color & 255, (int_color >> 8) & 255,
-                (int_color >> 16) & 255, 255
-            ],
-            dtype=np.uint8
-        )
-        hex_color = '#' + "{:02x}".format(
-            bgr_color[2]
-        ) + "{:02x}".format(bgr_color[1], ) + "{:02x}".format(bgr_color[0])
-        if hex_values:
-            hex_colors.append(hex_color)
-        else:
-            hex_colors.append(_hex_to_rgb(hex_color))
-    return hex_colors[1:]
+from ..common import hex_to_rgb, rgb_to_hex, blue_color_generator
 
 
 def _merge_jsons(input_dir, output_dir):
@@ -142,7 +111,7 @@ def from_pixel_to_vector(json_paths):
                 group_id_map[group_id] = []
 
             for part in parts:
-                color = list(_hex_to_rgb(part['color']))
+                color = list(hex_to_rgb(part['color']))
                 mask[np.all((img == color[::-1]), axis=2)] = 255
                 contours, _ = cv2.findContours(
                     mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
@@ -195,7 +164,7 @@ def from_vector_to_pixel(json_paths):
         sa_loader = []
 
         instances = json.load(open(json_path))
-        blue_colors = _blue_color_generator(len(instances))
+        blue_colors = blue_color_generator(len(instances))
         group_id_map = {}
         for idx, instance in enumerate(instances):
             if instance['type'] == 'polygon':
@@ -226,7 +195,7 @@ def from_vector_to_pixel(json_paths):
                     bitmask = np.zeros((H, W))
                     cv2.fillPoly(bitmask, [polygon], 1)
                     mask[bitmask == 1
-                        ] = list(_hex_to_rgb(blue_colors[idx]))[::-1] + [255]
+                        ] = list(hex_to_rgb(blue_colors[idx]))[::-1] + [255]
                     temp['parts'].append({'color': blue_colors[idx]})
                     sa_loader.append(temp.copy())
                     idx += 1
@@ -235,7 +204,7 @@ def from_vector_to_pixel(json_paths):
                     bitmask = np.zeros((H, W))
                     cv2.fillPoly(bitmask, [polygon], 1)
                     mask[bitmask == 1
-                        ] = list(_hex_to_rgb(blue_colors[idx]))[::-1] + [255]
+                        ] = list(hex_to_rgb(blue_colors[idx]))[::-1] + [255]
                     temp['parts'].append({'color': blue_colors[idx]})
                     idx += 1
                 sa_loader.append(temp.copy())

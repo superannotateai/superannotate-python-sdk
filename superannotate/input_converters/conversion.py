@@ -11,7 +11,8 @@ from .sa_conversion import sa_convert_platform, sa_convert_project_type
 from ..exceptions import SABaseException
 
 AVAILABLE_ANNOTATION_FORMATS = [
-    "COCO", "VOC", "LabelBox", "DataLoop", 'Supervisely'
+    "COCO", "VOC", "LabelBox", "DataLoop", 'Supervisely', 'VoTT', 'SageMaker',
+    'VGG', 'GoogleCloud'
 ]
 
 AVAILABLE_PLATFORMS = ["Desktop", "Web"]
@@ -50,6 +51,20 @@ ALLOWED_CONVERSIONS_DATALOOP_TO_SA = [
 ]
 
 ALLOWED_CONVERSIONS_SUPERVISELY_TO_SA = [('Vector', 'vector_annotation')]
+
+ALLOWED_CONVERSIONS_VOTT_TO_SA = [
+    ('Vector', 'object_detection'), ('Vector', 'instance_segmentation'),
+    ('Vector', 'vector_annotation')
+]
+
+ALLOWED_CONVERSIONS_SAGEMAKER_TO_SA = [('Vector', 'object_detection')]
+
+ALLOWED_CONVERSIONS_VGG_TO_SA = [
+    ('Vector', 'object_detection'), ('Vector', 'instance_segmentation'),
+    ('Vector', 'vector_annotation')
+]
+
+ALLOWED_CONVERSIONS_GOOGLECLOUD_TO_SA = [('Vector', 'object_detection')]
 
 
 def _passes_sanity_checks(args):
@@ -109,6 +124,14 @@ def _passes_converter_sanity(args, direction):
         elif args.dataset_format == "DataLoop" and converter_values in ALLOWED_CONVERSIONS_DATALOOP_TO_SA:
             return True
         elif args.dataset_format == "Supervisely" and converter_values in ALLOWED_CONVERSIONS_SUPERVISELY_TO_SA:
+            return True
+        elif args.dataset_format == 'VoTT' and converter_values in ALLOWED_CONVERSIONS_VOTT_TO_SA:
+            return True
+        elif args.dataset_format == 'SageMaker' and converter_values in ALLOWED_CONVERSIONS_SAGEMAKER_TO_SA:
+            return True
+        elif args.dataset_format == 'VGG' and converter_values in ALLOWED_CONVERSIONS_VGG_TO_SA:
+            return True
+        elif args.dataset_format == 'GoogleCloud' and converter_values in ALLOWED_CONVERSIONS_GOOGLECLOUD_TO_SA:
             return True
     else:
         if args.dataset_format == "COCO" and converter_values in ALLOWED_CONVERSIONS_SA_TO_COCO:
@@ -251,7 +274,7 @@ def import_annotation_format(
     :type input_dir: str
     :param output_dir: Path to the folder, where you want to have converted dataset.
     :type output_dir: str
-    :param dataset_format: Annotation format to convert SuperAnnotate annotation format. Available candidates are: ["COCO", "VOC", "LabelBox"]
+    :param dataset_format: Annotation format to convert SuperAnnotate annotation format. Available candidates are: ["COCO", "VOC", "LabelBox", "DataLoop", "Supervisely"]
     :type dataset_format: str
     :param dataset_name: Name of the json file in the input_dir, which should be converted.
     :type dataset_name: str
