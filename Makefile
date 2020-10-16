@@ -10,11 +10,11 @@ all: coverage tests
 	$(PYTHON) setup.py build_ext --inplace
 
 tests:
-	$(PYTESTS)
+	$(PYTESTS) -n 8
 
 stress-tests: AO_TEST_LEVEL=stress
 stress-tests: tests
-	$(PYTESTS)
+	$(PYTESTS) -n 8
 
 clean:
 	rm -rf superannotate.egg-info

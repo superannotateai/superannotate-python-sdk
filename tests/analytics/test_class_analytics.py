@@ -4,14 +4,14 @@ import superannotate as sa
 
 sa.init(Path.home() / ".superannotate" / "config.json")
 
-test_root = Path().resolve().parent
+test_root = Path().resolve() / 'tests'
 
 
 @pytest.mark.parametrize(
     "export_root, project_names, total_instances, instances_per_class", [
         (
-            test_root, ["sample_project_vector"], 72, {
-                "Human": 9,
+            test_root, ["sample_project_vector"], 73, {
+                "Human": 10,
                 "Personal vehicle": 56,
                 "Large vehicle": 7,
                 "Plant": 0
@@ -27,10 +27,10 @@ test_root = Path().resolve().parent
             }
         ),
         (
-            test_root, ["sample_project_vector", "sample_project_pixel"], 157, {
+            test_root, ["sample_project_vector", "sample_project_pixel"], 158, {
                 "Personal vehicle": 121,
                 "Large vehicle": 10,
-                "Human": 9,
+                "Human": 10,
                 "Pedestrian": 3,
                 "Traffic sign": 13,
                 "Two wheeled vehicle": 1,
@@ -47,18 +47,19 @@ def test_class_distribution(
     assert df["count"].sum() == total_instances
 
     for class_name, gt_instance_count in instances_per_class.items():
-        df_instance_count = df.loc[df['class'] == class_name, 'count'].item()
+        df_instance_count = df.loc[df['className'] == class_name,
+                                   'count'].item()
         assert df_instance_count == gt_instance_count
 
 
 @pytest.mark.parametrize(
     "export_root, project_names, total_attributes, attributes_per_class", [
         (
-            test_root, ["sample_project_vector"], 3, {
+            test_root, ["sample_project_vector"], 4, {
                 "Personal vehicle": {
                     "Num doors": {
                         "2": 1,
-                        "4": 0
+                        "4": 1
                     }
                 },
                 "Large vehicle":
@@ -97,12 +98,12 @@ def test_class_distribution(
             }
         ),
         (
-            test_root, ["sample_project_vector", "sample_project_pixel"], 5, {
+            test_root, ["sample_project_vector", "sample_project_pixel"], 6, {
                 "Personal vehicle":
                     {
                         "Num doors": {
                             "2": 1,
-                            "4": 0
+                            "4": 1
                         },
                         "Large": {
                             "no": 0,
@@ -145,7 +146,8 @@ def test_attribute_distribution(
         for attribute_group_name, attribute_group in class_attribute_groups.items(
         ):
             for attribute_name, count in attribute_group.items():
-                assert df.loc[(df['class'] == class_name) &
-                              (df['attribute_group'] == attribute_group_name) &
-                              (df['attribute_name'] == attribute_name),
-                              'count'].item() == count
+                assert df.loc[
+                    (df['className'] == class_name) &
+                    (df['attributeGroupName'] == attribute_group_name) &
+                    (df['attributeName'] == attribute_name),
+                    'count'].item() == count

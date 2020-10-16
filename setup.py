@@ -15,7 +15,7 @@ with open('superannotate/version.py') as f:
     Version = f.read()
 
 Version = Version.rstrip()
-Version = Version[11:-1]
+Version = Version[15:-1]
 
 setup(
     name='superannotate',

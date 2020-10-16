@@ -8,7 +8,7 @@ import requests
 from .analytics.class_analytics import (
     attribute_distribution, class_distribution
 )
-from .analytics.common import aggregate_annotations_as_df
+from .analytics.common import aggregate_annotations_as_df, df_to_annotations
 from .annotation_helpers import (
     add_annotation_bbox_to_json, add_annotation_cuboid_to_json,
     add_annotation_ellipse_to_json, add_annotation_point_to_json,
@@ -21,6 +21,7 @@ from .common import (
     image_path_to_annotation_paths, project_type_int_to_str,
     project_type_str_to_int, user_role_str_to_int
 )
+from .dataframe_filtering import filter_annotation_instances, filter_comments
 from .db.annotation_classes import (
     create_annotation_class, create_annotation_classes_from_classes_json,
     delete_annotation_class, download_annotation_classes_json,
@@ -52,6 +53,7 @@ from .db.projects import (
 )
 from .db.teams import invite_contributor_to_team
 from .db.users import search_team_contributors
+from .dicom_converter import dicom_to_rgb_sequence
 from .exceptions import (
     SABaseException, SAExistingAnnotationClassNameException,
     SAExistingProjectNameException, SANonExistingAnnotationClassNameException,
@@ -61,8 +63,7 @@ from .input_converters.conversion import (
     convert_platform, convert_project_type, export_annotation_format,
     import_annotation_format
 )
-from .instance_filtering import filter_annotation_instances
-from .version import Version
+from .version import __version__
 
 formatter = logging.Formatter(fmt='SA-PYTHON-SDK - %(levelname)s - %(message)s')
 #formatter = logging.Formatter(fmt='%(asctime)s - %(levelname)s - %(module)s - %(message)s')
@@ -78,7 +79,7 @@ logger.addHandler(handler)
 def _check_version():
     _req = requests.get('https://pypi.python.org/pypi/superannotate/json')
     if _req.ok:
-        _Version = packaging.version.parse(Version)
+        _version = packaging.version.parse(__version__)
         _version_on_pip = packaging.version.parse('0')
         _j = _req.json()
         _releases = _j.get('releases', [])
@@ -86,15 +87,15 @@ def _check_version():
             _ver = packaging.version.parse(_release)
             if not _ver.is_prerelease:
                 _version_on_pip = max(_version_on_pip, _ver)
-        if _version_on_pip.major > _Version.major:
+        if _version_on_pip.major > _version.major:
             logger.warning(
                 "There is a major upgrade of SuperAnnotate Python SDK available on PyPI. We recommend upgrading. Run 'pip install --upgrade superannotate' to upgrade from your version %s to %s.",
-                _Version, _version_on_pip
+                _version, _version_on_pip
             )
-        elif _version_on_pip > _Version:
+        elif _version_on_pip > _version:
             logger.info(
                 "There is a newer version of SuperAnnotate Python SDK available on PyPI. Run 'pip install --upgrade superannotate' to upgrade from your version %s to %s.",
-                _Version, _version_on_pip
+                _version, _version_on_pip
             )
 
 

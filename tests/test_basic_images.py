@@ -71,12 +71,13 @@ def test_basic_images(project_type, name, description, from_folder, tmpdir):
     downloaded_classes = json.load(open(tmpdir / "classes.json"))
 
     for a in annotation:
-        found = False
+        if "className" not in a:
+            continue
         for c1 in downloaded_classes:
             if a["className"] == c1["name"]:
-                found = True
                 break
-        assert found
+        else:
+            assert False
 
     input_classes = json.load(open(from_folder / "classes" / "classes.json"))
     assert len(downloaded_classes) == len(input_classes)

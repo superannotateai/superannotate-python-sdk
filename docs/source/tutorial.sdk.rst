@@ -342,8 +342,54 @@ project with the found contributor as an QA:
 
    sa.share_project(project, "hovnatan@superannotate.com", user_role="QA")
 
+
+
+----------
+
+
+pandas DataFrame out of project annotations and annotation instance filtering
+_____________________________________________________________________________
+
+
+To create a `pandas DataFrame <https://pandas.pydata.org/>`_ from project
+SuperAnnotate format annotations:
+
+.. code-block:: python
+
+   df = sa.aggregate_annotations_as_df("<path_to_project_folder>")
+
+The created DataFrame will have columns :code:`imageName`, :code:`instanceId`,
+:code:`className`, :code:`attributeGroupName`, :code:`attributeName`, :code:`type`, :code:`error`, :code:`locked`, :code:`visible`, :code:`trackingId`, :code:`probability`, :code:`pointLabels`, :code:`meta` (geometry information as string), :code:`commentResolved`, :code:`classColor`, :code:`groupId`.
+
+Example of created DataFrame:
+
+.. image:: pandas_df.png
+
+Each row represents annotation information. One full annotation with multiple
+attribute groups can be grouped under :code:`instanceId` field.
+
+A helper function :ref:`filter_annotation_instances <ref_filter_annotation_instances>` to annotation instances by their class or attribute from the DataFrame is available. E.g., to get annotations that have annotation class :code:`Human` and attribute  :code:`"height" : "tall"`  that are **not** of type :code:`polygon`:
+
+.. code-block:: python
+
+   filtered_df = sa.filter_annotation_instances(df, include=[{"className" : "Human",
+                                                              "attributes" : [{"groupName" : "height",
+                                                                              "name" : "tall"}]
+                                                            }],
+                                                    exclude=[{"type" : "polygon"}])
+
+To transform back pandas DataFrame annotations to SuperAnnotate format annotation:
+
+.. code-block:: python
+
+   sa.df_to_annotations(filtered_df, "<path_to_output_folder>")
+
+
+----------
+
+
 Aggregating class distribution across multiple projects
-______________________________
+_______________________________________________________
 
 After exporting annotations from multiple projects, it is possible to aggregate class distribution of annotated instances as follows
 
@@ -351,11 +397,14 @@ After exporting annotations from multiple projects, it is possible to aggregate 
 
    df = sa.class_distribution("<path_to_export_folder>", [project_names])
 
-Aggregated distribution is returned as pandas dataframe with columns class_name and count. Enabling visualize flag plots histogram of obtained distribution.
+Aggregated distribution is returned as pandas dataframe with columns className and count. Enabling visualize flag plots histogram of obtained distribution.
 
 .. code-block:: python
 
    df = sa.class_distribution("<path_to_export_folder>", [project_names], visualize = True)
+
+.. image:: class_distribution.png
+
 
 Similarly aggregation of class attributes across multiple projects can be obtained with
 
@@ -363,4 +412,39 @@ Similarly aggregation of class attributes across multiple projects can be obtain
 
    df = sa.attribute_distribution("<path_to_export_folder>", [project_names], visualize = True)
 
-Here pandas dataframe with columns identifying attribute and corresponding instance count is returned. Within visualized histogram attributes of the same class are grouped by color and sorted accordingly.
+Here pandas DataFrame with columns identifying attribute and corresponding instance count is returned. Within visualized histogram attributes of the same class are grouped by color and sorted accordingly.
+
+.. image:: attribute_distribution.png
+
+----------
+
+
+Working with DICOM files
+_______________________________________________________
+
+
+To convert DICOM file images to JPEG images:
+
+
+.. code-block:: python
+
+   df = sa.dicom_to_rgb_sequence("<path_to_dicom_file>", "<path_to_output_dir>")
+
+JPEG images with names :file:`<dicom_file_name>_<frame_num>.jpg` will be created
+in :file:`<path_to_output_dir>`. Those JPEG images can be uploaded to
+SuperAnnotate platform using the regular:
+
+.. code-block:: python
+
+   sa.upload_images_from_folder_to_project(project, "<path_to_output_dir>")
+
+Some DICOM files can have image frames that are compressed. To load them, `GDCM :
+Grassroots DICOM library <http://gdcm.sourceforge.net/wiki/index.php/Main_Page>`_ needs to be installed:
+
+.. code-block:: bash
+
+   # using conda
+   conda install -c conda-forge gdcm
+
+   # or on Ubuntu with versions above 19.04
+   sudo apt install python3-gdcm
