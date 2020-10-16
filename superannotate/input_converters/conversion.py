@@ -57,7 +57,7 @@ ALLOWED_CONVERSIONS_VOTT_TO_SA = [
     ('Vector', 'vector_annotation')
 ]
 
-ALLOWED_CONVERSIONS_SAGEMAKER_TO_SA = [('Vector', 'object_detection')]
+# ALLOWED_CONVERSIONS_SAGEMAKER_TO_SA = [('Vector', 'object_detection')]
 
 ALLOWED_CONVERSIONS_VGG_TO_SA = [
     ('Vector', 'object_detection'), ('Vector', 'instance_segmentation'),
@@ -127,8 +127,8 @@ def _passes_converter_sanity(args, direction):
             return True
         elif args.dataset_format == 'VoTT' and converter_values in ALLOWED_CONVERSIONS_VOTT_TO_SA:
             return True
-        elif args.dataset_format == 'SageMaker' and converter_values in ALLOWED_CONVERSIONS_SAGEMAKER_TO_SA:
-            return True
+        # elif args.dataset_format == 'SageMaker' and converter_values in ALLOWED_CONVERSIONS_SAGEMAKER_TO_SA:
+        #     return True
         elif args.dataset_format == 'VGG' and converter_values in ALLOWED_CONVERSIONS_VGG_TO_SA:
             return True
         elif args.dataset_format == 'GoogleCloud' and converter_values in ALLOWED_CONVERSIONS_GOOGLECLOUD_TO_SA:
