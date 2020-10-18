@@ -163,51 +163,60 @@ def from_vector_to_pixel(json_paths):
 
         instances = json.load(open(json_path))
         blue_colors = blue_color_generator(len(instances))
-        group_id_map = {}
+        instances_group = {}
         for idx, instance in enumerate(instances):
             if instance['type'] == 'polygon':
-                temp = instance.copy()
-                pts = np.array(
-                    [
-                        instance['points'][2 * i:2 * (i + 1)]
-                        for i in range(len(instance['points']) // 2)
-                    ],
-                    dtype=np.int32
-                )
-
-                if instance['groupId'] in group_id_map.keys():
-                    group_id_map[instance['groupId']].append(pts)
+                if instance['groupId'] in instances_group.keys():
+                    instances_group[instance['groupId']].append(instance)
                 else:
-                    group_id_map[instance['groupId']] = [pts]
+                    instances_group[instance['groupId']] = [instance]
             elif instance['type'] == 'meta':
                 sa_loader.append(instance)
 
-        del temp['type']
-        del temp['points']
-        del temp['pointLabels']
-        del temp['groupId']
-
         idx = 0
-        for key, values in group_id_map.items():
-            temp['parts'] = []
+        for key, instances in instances_group.items():
             if key == 0:
-                for polygon in values:
+                for instance in instances:
+                    pts = np.array(
+                        [
+                            instance['points'][2 * i:2 * (i + 1)]
+                            for i in range(len(instance['points']) // 2)
+                        ],
+                        dtype=np.int32
+                    )
                     bitmask = np.zeros((H, W))
-                    cv2.fillPoly(bitmask, [polygon], 1)
+                    cv2.fillPoly(bitmask, [pts], 1)
                     mask[bitmask == 1
                         ] = list(hex_to_rgb(blue_colors[idx]))[::-1] + [255]
-                    temp['parts'].append({'color': blue_colors[idx]})
-                    sa_loader.append(temp.copy())
+                    del instance['type']
+                    del instance['points']
+                    del instance['pointLabels']
+                    del instance['groupId']
+                    instance['parts'] = [{'color': blue_colors[idx]}]
+                    sa_loader.append(instance.copy())
                     idx += 1
             else:
-                for polygon in values:
+                parts = []
+                for instance in instances:
+                    pts = np.array(
+                        [
+                            instance['points'][2 * i:2 * (i + 1)]
+                            for i in range(len(instance['points']) // 2)
+                        ],
+                        dtype=np.int32
+                    )
                     bitmask = np.zeros((H, W))
-                    cv2.fillPoly(bitmask, [polygon], 1)
+                    cv2.fillPoly(bitmask, [pts], 1)
                     mask[bitmask == 1
                         ] = list(hex_to_rgb(blue_colors[idx]))[::-1] + [255]
-                    temp['parts'].append({'color': blue_colors[idx]})
+                    parts.append({'color': blue_colors[idx]})
                     idx += 1
-                sa_loader.append(temp.copy())
+                del instance['type']
+                del instance['points']
+                del instance['pointLabels']
+                del instance['groupId']
+                instance['parts'] = parts
+                sa_loader.append(instance.copy())
 
         sa_jsons[file_name] = {'json': sa_loader, 'mask': mask}
 
