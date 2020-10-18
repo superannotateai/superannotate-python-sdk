@@ -93,58 +93,56 @@ def from_pixel_to_vector(json_paths):
         mask_name = str(json_path).replace('___pixel.json', '___save.png')
         img = cv2.imread(mask_name)
         H, W, C = img.shape
-        mask = np.zeros((H, W), dtype=np.uint8)
 
         sa_loader = []
         instances = json.load(open(json_path))
         idx = 0
-        group_id_map = {}
         for instance in instances:
+            if 'parts' not in instance.keys():
+                if 'type' in instance.keys() and instance['type'] == 'meta':
+                    sa_loader.append(instance)
+                continue
+
             parts = instance['parts']
-            if len(parts) > 1:
-                idx += 1
-                group_id = idx
-            else:
-                group_id = 0
 
-            if group_id not in group_id_map.keys():
-                group_id_map[group_id] = []
-
+            polygons = []
             for part in parts:
                 color = list(hex_to_rgb(part['color']))
+                mask = np.zeros((H, W), dtype=np.uint8)
                 mask[np.all((img == color[::-1]), axis=2)] = 255
                 contours, _ = cv2.findContours(
                     mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
                 )
-                if len(contours) > 0:
-                    idx += 1
-                    group_id = idx
-
-                if group_id not in group_id_map.keys():
-                    group_id_map[group_id] = []
-
+                part_polygons = []
                 for contour in contours:
                     segment = contour.flatten().tolist()
-                    group_id_map[group_id].append(segment)
+                    if len(segment) > 6:
+                        part_polygons.append(segment)
+                polygons.append(part_polygons)
 
-        temp = instance.copy()
-        del temp['parts']
-        temp['pointLabels'] = {}
+            for part_polygons in polygons:
+                if len(part_polygons) > 1:
+                    idx += 1
+                    group_id = idx
+                else:
+                    group_id = 0
 
-        for key, value in group_id_map.items():
-            for polygon in value:
-                temp['groupId'] = key
-                temp['type'] = 'polygon'
-                temp['points'] = polygon
-                sa_loader.append(temp.copy())
-                temp['type'] = 'bbox'
-                temp['points'] = {
-                    'x1': min(polygon[::2]),
-                    'x2': max(polygon[::2]),
-                    'y1': min(polygon[1::2]),
-                    'y2': max(polygon[1::2])
-                }
-                sa_loader.append(temp.copy())
+                for polygon in part_polygons:
+                    temp = instance.copy()
+                    del temp['parts']
+                    temp['pointLabels'] = {}
+                    temp['groupId'] = group_id
+                    temp['type'] = 'polygon'
+                    temp['points'] = polygon
+                    sa_loader.append(temp.copy())
+                    temp['type'] = 'bbox'
+                    temp['points'] = {
+                        'x1': min(polygon[::2]),
+                        'x2': max(polygon[::2]),
+                        'y1': min(polygon[1::2]),
+                        'y2': max(polygon[1::2])
+                    }
+                    sa_loader.append(temp.copy())
 
         sa_jsons[file_name] = {'json': sa_loader, 'mask': None}
     return sa_jsons
@@ -168,6 +166,7 @@ def from_vector_to_pixel(json_paths):
         group_id_map = {}
         for idx, instance in enumerate(instances):
             if instance['type'] == 'polygon':
+                temp = instance.copy()
                 pts = np.array(
                     [
                         instance['points'][2 * i:2 * (i + 1)]
@@ -180,16 +179,17 @@ def from_vector_to_pixel(json_paths):
                     group_id_map[instance['groupId']].append(pts)
                 else:
                     group_id_map[instance['groupId']] = [pts]
+            elif instance['type'] == 'meta':
+                sa_loader.append(instance)
 
-        temp = instance.copy()
         del temp['type']
         del temp['points']
         del temp['pointLabels']
         del temp['groupId']
 
-        temp['parts'] = []
         idx = 0
         for key, values in group_id_map.items():
+            temp['parts'] = []
             if key == 0:
                 for polygon in values:
                     bitmask = np.zeros((H, W))
