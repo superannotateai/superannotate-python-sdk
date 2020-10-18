@@ -21,7 +21,9 @@ from .common import (
     image_path_to_annotation_paths, project_type_int_to_str,
     project_type_str_to_int, user_role_str_to_int
 )
-from .dataframe_filtering import filter_annotation_instances, filter_comments
+from .dataframe_filtering import (
+    filter_annotation_instances, filter_images_by_comments
+)
 from .db.annotation_classes import (
     create_annotation_class, create_annotation_classes_from_classes_json,
     delete_annotation_class, download_annotation_classes_json,

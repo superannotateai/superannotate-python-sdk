@@ -20,8 +20,47 @@ def test_filter_comments(tmpdir):
         PROJECT_DIR, include_comments=True
     )
 
-    filtered_excl = sa.filter_comments(not_filtered, True)
-    print(str(filtered_excl["meta"].iloc[0]))
+    filtered_excl = sa.filter_images_by_comments(
+        not_filtered, include_unresolved_comments=True
+    )
+
+    assert sorted(filtered_excl) == [
+        "example_image_1.jpg", "example_image_2.jpg"
+    ]
+
+    filtered_excl = sa.filter_images_by_comments(not_filtered, False)
+
+    assert filtered_excl == []
+
+    filtered_excl = sa.filter_images_by_comments(
+        not_filtered,
+        include_unresolved_comments=False,
+        include_resolved_comments=True
+    )
+
+    assert filtered_excl == ["example_image_1.jpg"]
+
+    filtered_excl = sa.filter_images_by_comments(
+        not_filtered,
+        include_unresolved_comments=False,
+        include_resolved_comments=True,
+        include_without_comments=True
+    )
+
+    assert sorted(filtered_excl) == [
+        "example_image_1.jpg", "example_image_3.jpg", "example_image_4.jpg"
+    ]
+
+    filtered_excl = sa.filter_images_by_comments(
+        not_filtered,
+        include_unresolved_comments=False,
+        include_resolved_comments=False,
+        include_without_comments=True
+    )
+
+    assert sorted(filtered_excl) == [
+        "example_image_3.jpg", "example_image_4.jpg"
+    ]
 
 
 def test_filter_instances(tmpdir):

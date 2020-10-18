@@ -87,11 +87,11 @@ def test_add_bbox(tmpdir):
     export = sa.prepare_export(project, include_fuse=True)
     sa.download_export(project, export, tmpdir)
 
-    df = sa.aggregate_annotations_as_df(tmpdir, include_comments=True)
+    df = sa.aggregate_annotations_as_df(tmpdir)
 
     num = len(df[df["imageName"] == image_name]["instanceId"].unique())
 
-    assert num == len(annotations) + 7
+    assert num == len(annotations) - 2 + 7  # 2 comments
 
 
 def test_add_bbox_noinit(tmpdir):

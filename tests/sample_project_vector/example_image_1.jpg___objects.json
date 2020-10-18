@@ -12,6 +12,18 @@
         "resolved": true
     },
     {
+        "type": "comment",
+        "x": 521.4069213867188,
+        "y": 531.5987548828125,
+        "comments": [
+            {
+                "text": "dd",
+                "id": "hovnatan@superannotate.com"
+            }
+        ],
+        "resolved": false
+    },
+    {
         "type": "bbox",
         "classId": 55917,
         "probability": 100,
