@@ -3,6 +3,55 @@ import json
 from .exceptions import SABaseException
 
 
+def add_annotation_comment_to_json(
+    annotation_json,
+    comment_text,
+    comment_coords,
+    comment_author,
+    resolved=False
+):
+    """Add a comment to SuperAnnotate format annotation JSON
+
+
+    :param annotation_json: annotations in SuperAnnotate format JSON or filepath to JSON
+    :type annotation_json: list or Pathlike (str or Path)
+    :param comment_text: comment text
+    :type comment_text: str
+    :param comment_coords: [x, y] coords
+    :type comment_coords: list
+    :param comment_author: comment author email
+    :type comment_author: str
+    :param resolved: comment resolve status
+    :type resolved: bool
+    """
+
+    if len(comment_coords) != 2:
+        raise SABaseException(0, "Comment should have two values")
+
+    path = None
+    if not isinstance(annotation_json, list) and annotation_json is not None:
+        path = annotation_json
+        annotation_json = json.load(open(annotation_json))
+
+    annotation = {
+        "type": "comment",
+        "x": comment_coords[0],
+        "y": comment_coords[1],
+        "comments": [{
+            "text": comment_text,
+            "id": comment_author
+        }],
+        "resolved": resolved
+    }
+    if annotation_json is None:
+        annotation_json = []
+    annotation_json.append(annotation)
+
+    if path is not None:
+        json.dump(annotation_json, open(path, "w"))
+    return annotation_json
+
+
 def add_annotation_bbox_to_json(
     annotation_json,
     bbox,

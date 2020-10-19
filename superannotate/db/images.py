@@ -6,19 +6,19 @@ from pathlib import Path
 import boto3
 import cv2
 import numpy as np
-from PIL import Image, ImageDraw
 import requests
+from PIL import Image, ImageDraw
 
 from ..annotation_helpers import (
-    add_annotation_bbox_to_json, add_annotation_cuboid_to_json,
-    add_annotation_ellipse_to_json, add_annotation_point_to_json,
-    add_annotation_polygon_to_json, add_annotation_polyline_to_json,
-    add_annotation_template_to_json
+    add_annotation_bbox_to_json, add_annotation_comment_to_json,
+    add_annotation_cuboid_to_json, add_annotation_ellipse_to_json,
+    add_annotation_point_to_json, add_annotation_polygon_to_json,
+    add_annotation_polyline_to_json, add_annotation_template_to_json
 )
 from ..api import API
 from ..common import (
-    annotation_status_str_to_int, deprecated_alias, project_type_int_to_str,
-    image_path_to_annotation_paths, hex_to_rgb
+    annotation_status_str_to_int, deprecated_alias, hex_to_rgb,
+    image_path_to_annotation_paths, project_type_int_to_str
 )
 from ..exceptions import SABaseException
 from .annotation_classes import (
@@ -168,6 +168,42 @@ def set_image_annotation_status(project, image_name, annotation_status):
     if not response.ok:
         raise SABaseException(response.status_code, response.text)
     return response.json()
+
+
+def add_annotation_comment_to_image(
+    project,
+    image_name,
+    comment_text,
+    comment_coords,
+    comment_author,
+    resolved=False
+):
+    """Add a comment to SuperAnnotate format annotation JSON
+
+    :param project: project name or metadata of the project
+    :type project: str or dict
+    :param image_name: image name
+    :type image: str
+    :param comment_text: comment text
+    :type comment_text: str
+    :param comment_coords: [x, y] coords
+    :type comment_coords: list
+    :param comment_author: comment author email
+    :type comment_author: str
+    :param resolved: comment resolve status
+    :type resolved: bool
+    """
+    annotations = get_image_annotations(project, image_name)["annotation_json"]
+    annotations = add_annotation_comment_to_json(
+        annotations,
+        comment_text,
+        comment_coords,
+        comment_author,
+        resolved=resolved
+    )
+    upload_annotations_from_json_to_image(
+        project, image_name, annotations, verbose=False
+    )
 
 
 def add_annotation_bbox_to_image(

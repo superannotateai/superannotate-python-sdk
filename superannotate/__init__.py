@@ -10,10 +10,10 @@ from .analytics.class_analytics import (
 )
 from .analytics.common import aggregate_annotations_as_df, df_to_annotations
 from .annotation_helpers import (
-    add_annotation_bbox_to_json, add_annotation_cuboid_to_json,
-    add_annotation_ellipse_to_json, add_annotation_point_to_json,
-    add_annotation_polygon_to_json, add_annotation_polyline_to_json,
-    add_annotation_template_to_json
+    add_annotation_bbox_to_json, add_annotation_comment_to_json,
+    add_annotation_cuboid_to_json, add_annotation_ellipse_to_json,
+    add_annotation_point_to_json, add_annotation_polygon_to_json,
+    add_annotation_polyline_to_json, add_annotation_template_to_json
 )
 from .api import API
 from .common import (
@@ -33,14 +33,14 @@ from .db.exports import (
     download_export, get_export_metadata, get_exports, prepare_export
 )
 from .db.images import (
-    add_annotation_bbox_to_image, add_annotation_cuboid_to_image,
-    add_annotation_ellipse_to_image, add_annotation_point_to_image,
-    add_annotation_polygon_to_image, add_annotation_polyline_to_image,
-    add_annotation_template_to_image, create_fuse_image, delete_image,
-    download_image, download_image_annotations, download_image_preannotations,
-    get_image_annotations, get_image_bytes, get_image_metadata,
-    get_image_preannotations, search_images, set_image_annotation_status,
-    upload_annotations_from_json_to_image
+    add_annotation_bbox_to_image, add_annotation_comment_to_image,
+    add_annotation_cuboid_to_image, add_annotation_ellipse_to_image,
+    add_annotation_point_to_image, add_annotation_polygon_to_image,
+    add_annotation_polyline_to_image, add_annotation_template_to_image,
+    create_fuse_image, delete_image, download_image, download_image_annotations,
+    download_image_preannotations, get_image_annotations, get_image_bytes,
+    get_image_metadata, get_image_preannotations, search_images,
+    set_image_annotation_status, upload_annotations_from_json_to_image
 )
 from .db.project import get_project_metadata, search_projects
 from .db.project_images import copy_image, move_image, upload_image_to_project
