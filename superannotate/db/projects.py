@@ -345,11 +345,11 @@ def get_image_array_to_upload(
 ):
     Image.MAX_IMAGE_PIXELS = None
     im = Image.open(byte_io_orig)
+    im_format = im.format
     im = im.convert("RGB")
     width, height = im.size
     max_size = _RESIZE_CONFIG[project_type]
     if (width * height) > max_size:
-        im_format = im.format
         logger.warning("One of the images is being resized to smaller size.")
         max_size_root = math.sqrt(max_size)
         nwidth = math.floor(max_size_root * math.sqrt(width / height))
