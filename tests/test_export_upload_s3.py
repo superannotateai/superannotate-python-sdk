@@ -7,7 +7,7 @@ import superannotate as sa
 s3_client = boto3.client('s3')
 
 S3_PREFIX = 'frex9'
-S3_BUCKET = 'hovnatan-test'
+S3_BUCKET = 'superannotate-python-sdk-test'
 PROJECT_NAME_EXPORT = "Example project test export upload s3 export "
 PROJECT_NAME_UPLOAD = "Example project test export upload s3 upload"
 

@@ -50,7 +50,7 @@ def test_single_image_upload_s3(tmpdir):
         project,
         "sample_project_vector/example_image_1.jpg",
         annotation_status="InProgress",
-        from_s3_bucket="hovnatan-test"
+        from_s3_bucket="superannotate-python-sdk-test"
     )
 
     images = sa.search_images(project)
@@ -77,7 +77,7 @@ def test_single_image_upload_s3_change_name(tmpdir):
         "sample_project_vector/example_image_1.jpg",
         image_name="rr.jpg",
         annotation_status="InProgress",
-        from_s3_bucket="hovnatan-test"
+        from_s3_bucket="superannotate-python-sdk-test"
     )
 
     images = sa.search_images(project)
