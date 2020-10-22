@@ -1,11 +1,14 @@
 #!/bin/bash
 
+PYTHON_VER="3.6"
+
+# ubuntu install dependencies
 # sudo add-apt-repository ppa:deadsnakes/ppa
 # sudo apt update
-# sudo apt install python3.6 python3.6-venv
+# sudo apt install python${PYTHON_VER} python${PYTHON_VER}-venv python${PYTHON_VER}-dev
 
 rm -rf venv_sa_conv
-python3.6 -m venv venv_sa_conv
+python${PYTHON_VER} -m venv venv_sa_conv
 source venv_sa_conv/bin/activate
 
 pip install -r requirements.txt
