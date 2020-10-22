@@ -53,7 +53,7 @@ from .db.projects import (
     upload_images_from_s3_bucket_to_project, upload_images_to_project,
     upload_preannotations_from_folder_to_project
 )
-from .db.teams import invite_contributor_to_team
+from .db.teams import get_team_metadata, invite_contributor_to_team
 from .db.users import search_team_contributors
 from .dicom_converter import dicom_to_rgb_sequence
 from .exceptions import (

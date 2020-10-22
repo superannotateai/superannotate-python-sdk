@@ -1,6 +1,7 @@
 import logging
 
 from ..api import API
+from ..common import user_role_int_to_str
 from ..exceptions import SABaseException
 
 logger = logging.getLogger("superannotate-python-sdk")
@@ -12,7 +13,7 @@ def invite_contributor_to_team(email, admin=False):
     """Invites a contributor to team
 
     :param email: email of the contributor
-    :type project: str
+    :type email: str
     :param admin: enables admin priviledges for the contributor
     :type admin: bool
     """
@@ -27,6 +28,28 @@ def invite_contributor_to_team(email, admin=False):
         )
 
     return response.json()
+
+
+def get_team_metadata(convert_users_role_to_string=False):
+    """Returns team metadata
+
+    :param convert_users_role_to_string: convert integer team users' roles to human comprehensible strings
+    :type convert_users_role_to_string: bool
+    :return: team metadata
+    :rtype: dict
+    """
+    response = _api.send_request(req_type='GET', path=f'/team/{_api.team_id}')
+    if not response.ok:
+        raise SABaseException(
+            response.status_code, "Couldn't get team metadata. " + response.text
+        )
+
+    res = response.json()
+    if convert_users_role_to_string:
+        for user in res["users"]:
+            user["user_role"] = user_role_int_to_str(user["user_role"])
+
+    return res
 
 
 # def delete_team_contributor_invitation(invitation):

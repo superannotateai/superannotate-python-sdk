@@ -101,6 +101,7 @@ __________________
 Team contributors
 _________________
 
+.. autofunction:: superannotate.get_team_metadata
 .. autofunction:: superannotate.invite_contributor_to_team
 
 ----------
