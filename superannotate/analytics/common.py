@@ -142,6 +142,10 @@ def aggregate_annotations_as_df(
 
     annotation_data = {
         "imageName": [],
+        "imageHeight": [],
+        "imageWidth": [],
+        "imageStatus": [],
+        "imagePinned": [],
         "instanceId": [],
         "className": [],
         "attributeGroupName": [],
@@ -155,7 +159,14 @@ def aggregate_annotations_as_df(
         "pointLabels": [],
         "meta": [],
         "classColor": [],
-        "groupId": []
+        "groupId": [],
+        "createdAt": [],
+        "creatorRole": [],
+        "creationType": [],
+        "creatorEmail": [],
+        "updatedAt": [],
+        "updatorRole": [],
+        "updatorEmail": []
     }
 
     if include_comments:
@@ -183,6 +194,17 @@ def aggregate_annotations_as_df(
             else:
                 annotation_data[annotation_key].append(None)
 
+    def __get_image_metadata(image_name, annotations):
+        image_metadata = {"imageName": image_name}
+        for annotation in annotations:
+            if "type" in annotation and annotation["type"] == "meta":
+                image_metadata["imageHeight"] = annotation["height"]
+                image_metadata["imageWidth"] = annotation["width"]
+                image_metadata["imageStatus"] = annotation["status"]
+                image_metadata["imagePinned"] = annotation["pinned"]
+                break
+        return image_metadata
+
     annotations_paths = []
 
     for path in Path(project_root).glob('*.json'):
@@ -197,11 +219,12 @@ def aggregate_annotations_as_df(
 
     for annotation_path in annotations_paths:
         annotation_json = json.load(open(annotation_path))
-        annotation_image_name = annotation_path.name.split("___")[0]
+        image_name = annotation_path.name.split("___objects.json")[0]
+        image_metadata = __get_image_metadata(image_name, annotation_json)
         annotation_instance_id = 0
         for annotation in annotation_json:
             annotation_type = annotation.get("type", "mask")
-            if annotation_type in ['meta', 'tag']:
+            if annotation_type in ['tag', 'meta']:
                 continue
             if annotation_type == "comment":
                 if include_comments:
@@ -211,14 +234,14 @@ def aggregate_annotations_as_df(
                         "y": annotation["y"],
                         "comments": annotation["comments"]
                     }
-                    __append_annotation(
-                        {
-                            "imageName": annotation_image_name,
-                            "type": annotation_type,
-                            "meta": comment_meta,
-                            "commentResolved": comment_resolved,
-                        }
-                    )
+                    annotation_dict = {
+                        "type": annotation_type,
+                        "meta": comment_meta,
+                        "commentResolved": comment_resolved,
+                    }
+                    annotation_dict.update(image_metadata)
+
+                    __append_annotation(annotation_dict)
                 continue
             annotation_instance_id += 1
             annotation_class_name = annotation.get("className")
@@ -231,6 +254,21 @@ def aggregate_annotations_as_df(
             annotation_locked = annotation.get("locked")
             annotation_visible = annotation.get("visible")
             annotation_tracking_id = annotation.get("trackingId")
+            annotation_created_at = annotation.get("createdAt")
+            annotation_created_by = annotation.get("createdBy")
+            annotation_creator_email = None
+            annotation_creator_role = None
+            if annotation_created_by:
+                annotation_creator_email = annotation_created_by.get("email")
+                annotation_creator_role = annotation_created_by.get("role")
+            annotation_creation_type = annotation.get("creationType")
+            annotation_updated_at = annotation.get("updatedAt")
+            annotation_updated_by = annotation.get("updatedBy")
+            annotation_updator_email = None
+            annotation_updator_role = None
+            if annotation_updated_by:
+                annotation_updator_email = annotation_updated_by.get("email")
+                annotation_updator_role = annotation_updated_by.get("role")
             annotation_meta = None
             if annotation_type in ["bbox", "polygon", "polyline", "cuboid"]:
                 annotation_meta = {"points": annotation["points"]}
@@ -257,48 +295,61 @@ def aggregate_annotations_as_df(
             attributes = annotation.get("attributes")
 
             if not attributes:
-                __append_annotation(
-                    {
-                        "imageName": annotation_image_name,
-                        "instanceId": annotation_instance_id,
-                        "className": annotation_class_name,
-                        "type": annotation_type,
-                        "locked": annotation_locked,
-                        "visible": annotation_visible,
-                        "trackingId": annotation_tracking_id,
-                        "meta": annotation_meta,
-                        "error": annotation_error,
-                        "probability": annotation_probability,
-                        "pointLabels": annotation_point_labels,
-                        "classColor": annotation_class_color,
-                        "groupId": annotation_group_id
-                    }
-                )
+                annotation_dict = {
+                    "imageName": image_name,
+                    "instanceId": annotation_instance_id,
+                    "className": annotation_class_name,
+                    "type": annotation_type,
+                    "locked": annotation_locked,
+                    "visible": annotation_visible,
+                    "trackingId": annotation_tracking_id,
+                    "meta": annotation_meta,
+                    "error": annotation_error,
+                    "probability": annotation_probability,
+                    "pointLabels": annotation_point_labels,
+                    "classColor": annotation_class_color,
+                    "groupId": annotation_group_id,
+                    "createdAt": annotation_created_at,
+                    "creatorRole": annotation_creator_role,
+                    "creatorEmail": annotation_creator_email,
+                    "creationType": annotation_creation_type,
+                    "updatedAt": annotation_updated_at,
+                    "updatorRole": annotation_updator_role,
+                    "updatorEmail": annotation_updator_email
+                }
+                annotation_dict.update(image_metadata)
+                __append_annotation(annotation_dict)
 
             for attribute in attributes:
 
                 attribute_group = attribute["groupName"]
                 attribute_name = attribute['name']
-
-                __append_annotation(
-                    {
-                        "imageName": annotation_image_name,
-                        "instanceId": annotation_instance_id,
-                        "className": annotation_class_name,
-                        "attributeGroupName": attribute_group,
-                        "attributeName": attribute_name,
-                        "type": annotation_type,
-                        "locked": annotation_locked,
-                        "visible": annotation_visible,
-                        "trackingId": annotation_tracking_id,
-                        "meta": annotation_meta,
-                        "error": annotation_error,
-                        "probability": annotation_probability,
-                        "pointLabels": annotation_point_labels,
-                        "classColor": annotation_class_color,
-                        "groupId": annotation_group_id
-                    }
-                )
+                annotation_dict = {
+                    "imageName": image_name,
+                    "instanceId": annotation_instance_id,
+                    "className": annotation_class_name,
+                    "attributeGroupName": attribute_group,
+                    "attributeName": attribute_name,
+                    "type": annotation_type,
+                    "locked": annotation_locked,
+                    "visible": annotation_visible,
+                    "trackingId": annotation_tracking_id,
+                    "meta": annotation_meta,
+                    "error": annotation_error,
+                    "probability": annotation_probability,
+                    "pointLabels": annotation_point_labels,
+                    "classColor": annotation_class_color,
+                    "groupId": annotation_group_id,
+                    "createdAt": annotation_created_at,
+                    "creatorRole": annotation_creator_role,
+                    "creatorEmail": annotation_creator_email,
+                    "creationType": annotation_creation_type,
+                    "updatedAt": annotation_updated_at,
+                    "updatorRole": annotation_updator_role,
+                    "updatorEmail": annotation_updator_email
+                }
+                annotation_dict.update(image_metadata)
+                __append_annotation(annotation_dict)
 
     df = pd.DataFrame(annotation_data)
 
