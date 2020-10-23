@@ -471,6 +471,7 @@ def download_image(
     local_dir_path=".",
     include_annotations=False,
     include_fuse=False,
+    include_overlay=False,
     variant='original'
 ):
     """Downloads the image (and annotation if not None) to local_dir_path
@@ -515,10 +516,12 @@ def download_image(
         annotations_filepaths = download_image_annotations(
             project, image_name, local_dir_path
         )
-        if include_fuse:
+        if include_fuse or include_overlay:
             classes = search_annotation_classes(project, return_metadata=True)
             project_type = project_type_int_to_str(project["type"])
-            fuse_path = create_fuse_image(filepath, classes, project_type)
+            fuse_path = create_fuse_image(
+                filepath, classes, project_type, output_overlay=include_overlay
+            )
     logger.info("Downloaded image %s to %s.", image_name, filepath)
 
     return (str(filepath), annotations_filepaths, fuse_path)
@@ -1034,7 +1037,6 @@ def create_fuse_image(
                     )
                     new_array_ovl = np.array(fi_pil_ovl)
                     new_array_ovl[:, :, :-1] += temp_ovl
-                    new_array_ovl[:, :, 3] += temp_mask
                     fi_pil_ovl = Image.fromarray(new_array_ovl)
                     draw_ovl = ImageDraw.Draw(fi_pil_ovl)
                 cv2.ellipse(
@@ -1105,7 +1107,7 @@ def create_fuse_image(
     fi_pil.save(fuse_path)
     if output_overlay:
         overlay_path = str(image) + "___overlay.jpg"
-        fi_pil_ovl.save(overlay_path)
+        fi_pil_ovl.convert("RGB").save(overlay_path, subsampling=0, quality=100)
         return (fuse_path, overlay_path)
     else:
-        return (fuse_path)
+        return (fuse_path, )
