@@ -61,6 +61,7 @@ from .exceptions import (
     SAExistingProjectNameException, SANonExistingAnnotationClassNameException,
     SANonExistingProjectNameException
 )
+from .consensus_benchmark.consensus import consensus
 from .input_converters.conversion import (
     convert_platform, convert_project_type, export_annotation_format,
     import_annotation_format
