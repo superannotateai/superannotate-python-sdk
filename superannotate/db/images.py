@@ -1036,7 +1036,11 @@ def create_fuse_image(
                         annotation["angle"], 0, 360, fill_color[:-1], 1
                     )
                     new_array_ovl = np.array(fi_pil_ovl)
-                    new_array_ovl[:, :, :-1] += temp_ovl
+                    temp_mask = np.alltrue(temp_ovl != [0, 0, 0], axis=2)
+                    new_array_ovl[:, :, :-1] = np.where(
+                        temp_mask[:, :, np.newaxis], temp_ovl,
+                        new_array_ovl[:, :, :-1]
+                    )
                     fi_pil_ovl = Image.fromarray(new_array_ovl)
                     draw_ovl = ImageDraw.Draw(fi_pil_ovl)
                 cv2.ellipse(
