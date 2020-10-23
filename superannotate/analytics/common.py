@@ -198,10 +198,10 @@ def aggregate_annotations_as_df(
         image_metadata = {"imageName": image_name}
         for annotation in annotations:
             if "type" in annotation and annotation["type"] == "meta":
-                image_metadata["imageHeight"] = annotation["height"]
-                image_metadata["imageWidth"] = annotation["width"]
-                image_metadata["imageStatus"] = annotation["status"]
-                image_metadata["imagePinned"] = annotation["pinned"]
+                image_metadata["imageHeight"] = annotation.get("height")
+                image_metadata["imageWidth"] = annotation.get("width")
+                image_metadata["imageStatus"] = annotation.get("status")
+                image_metadata["imagePinned"] = annotation.get("pinned")
                 break
         return image_metadata
 
