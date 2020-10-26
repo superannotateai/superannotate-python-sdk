@@ -33,6 +33,7 @@ ________
 .. autofunction:: superannotate.upload_image_to_project
 .. _ref_upload_images_from_folder_to_project:
 .. autofunction:: superannotate.upload_images_from_folder_to_project
+.. autofunction:: superannotate.upload_video_to_project
 .. _ref_upload_annotations_from_folder_to_project:
 .. autofunction:: superannotate.upload_annotations_from_folder_to_project
 .. autofunction:: superannotate.upload_preannotations_from_folder_to_project

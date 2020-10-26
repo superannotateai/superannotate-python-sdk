@@ -255,26 +255,30 @@ def upload_video_to_project(
     annotation_status="NotStarted",
     image_quality_in_editor=None
 ):
-    """Uploads image frames from video to platform
+    """Uploads image frames from video to platform. Uploaded images will have
+    names "<video_name>_<frame_no>.jpg".
 
-    :param project: project name or metadata of the project to upload images_to
+    :param project: project name or metadata of the project to upload video frames to
     :type project: str or dict
     :param video_path: video to upload
     :type video_path: Pathlike (str or Path)
-    :param target_fps: how many frames per second need to extract from the video (approximate)
+    :param target_fps: how many frames per second need to extract from the video (approximate).
                        If None, all frames will be uploaded
     :type target_fps: float
     :param start_time: Time (in seconds) from which to start extracting frames
     :type start_time: float
     :param end_time: Time (in seconds) up to which to extract frames. If None up to end
     :type end_time: float
-    :param annotation_status: value to set the annotation statuses of the uploaded images NotStarted InProgress QualityCheck Returned Completed Skipped
+    :param annotation_status: value to set the annotation statuses of the uploaded
+                              video frames NotStarted InProgress QualityCheck Returned Completed Skipped
     :type annotation_status: str
-    :param image_quality_in_editor: image quality (in percents) that will be seen in SuperAnnotate web annotation editor. If None default value will be used.
+    :param image_quality_in_editor: image quality (in percents) that will be
+                                    seen in SuperAnnotate web annotation editor.
+                                    If None default value will be used
     :type image_quality_in_editor: int
 
     :return: filenames of uploaded images
-    :rtype: list of str
+    :rtype: list of strs
     """
     rotate_code = None
     try:
@@ -327,6 +331,11 @@ def upload_video_to_project(
         if not success:
             break
         if target_fps is not None and my_random.random() < percent_to_drop:
+            continue
+        frame_time = video.get(cv2.CAP_PROP_POS_MSEC) / 1000.0
+        if frame_time < start_time:
+            continue
+        if end_time is not None and frame_time > end_time:
             continue
         if rotate_code is not None:
             frame = cv2.rotate(frame, rotate_code)
