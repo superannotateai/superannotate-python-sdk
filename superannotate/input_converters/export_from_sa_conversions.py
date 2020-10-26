@@ -1,18 +1,20 @@
 """
-Module which will run converters and convert from 
+Module which will run converters and convert from
 superannotate annotation format to other annotation formats
 """
-import sys
-import os
+import copy
 import glob
-import shutil
 import json
 import logging
-import copy
-from argparse import Namespace
+import os
+import shutil
+import sys
+
 import numpy as np
 
 from .converters.converters import Converter
+
+from ..exceptions import SABaseException
 
 
 def _split_json(input_dir):
@@ -102,12 +104,7 @@ def export_from_sa(args):
 
     data_set = None
 
-    try:
-        os.makedirs(os.path.join(args.output_dir, 'train_set'))
-    except Exception as e:
-        log_msg = 'Could not make test and train set paths, check if they already exist'
-        logging.error(log_msg)
-        sys.exit()
+    os.makedirs(os.path.join(args.output_dir, 'train_set'))
 
     try:
         _create_classes_mapper(
