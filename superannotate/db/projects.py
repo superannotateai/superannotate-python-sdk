@@ -1,14 +1,17 @@
+import copy
 import io
 import json
 import logging
 import math
-import sys
+import random
 import threading
+import tempfile
 import time
-import copy
 from pathlib import Path
 
 import boto3
+import cv2
+import ffmpeg
 from PIL import Image
 from tqdm import tqdm
 
@@ -22,9 +25,8 @@ from ..exceptions import (
     SANonExistingProjectNameException
 )
 from .annotation_classes import (
-    create_annotation_classes_from_classes_json, search_annotation_classes,
-    get_annotation_classes_id_to_name, get_annotation_classes_name_to_id,
-    fill_class_and_attribute_ids, fill_class_and_attribute_names
+    create_annotation_classes_from_classes_json, fill_class_and_attribute_ids,
+    get_annotation_classes_name_to_id, search_annotation_classes
 )
 from .project import get_project_metadata
 from .users import get_team_contributor_metadata
@@ -242,6 +244,122 @@ def get_project_image_count(project):
             "Couldn't get project image count " + response.text
         )
     return response.json()["total_images"]
+
+
+def upload_video_to_project(
+    project,
+    video_path,
+    target_fps=None,
+    start_time=0.0,
+    end_time=None,
+    annotation_status="NotStarted",
+    image_quality_in_editor=None
+):
+    """Uploads image frames from video to platform
+
+    :param project: project name or metadata of the project to upload images_to
+    :type project: str or dict
+    :param video_path: video to upload
+    :type video_path: Pathlike (str or Path)
+    :param target_fps: how many frames per second need to extract from the video (approximate)
+                       If None, all frames will be uploaded
+    :type target_fps: float
+    :param start_time: Time (in seconds) from which to start extracting frames
+    :type start_time: float
+    :param end_time: Time (in seconds) up to which to extract frames. If None up to end
+    :type end_time: float
+    :param annotation_status: value to set the annotation statuses of the uploaded images NotStarted InProgress QualityCheck Returned Completed Skipped
+    :type annotation_status: str
+    :param image_quality_in_editor: image quality (in percents) that will be seen in SuperAnnotate web annotation editor. If None default value will be used.
+    :type image_quality_in_editor: int
+
+    :return: filenames of uploaded images
+    :rtype: list of str
+    """
+    rotate_code = None
+    try:
+        meta_dict = ffmpeg.probe(str(video_path))
+        rot = int(meta_dict['streams'][0]['tags']['rotate'])
+        if rot == 90:
+            rotate_code = cv2.ROTATE_90_CLOCKWISE
+        elif rot == 180:
+            rotate_code = cv2.ROTATE_180
+        elif rot == 270:
+            rotate_code = cv2.ROTATE_90_COUNTERCLOCKWISE
+        if rot != 0:
+            logger.info(
+                "Frame rotation of %s found. Output images will be rotated accordingly.",
+                rot
+            )
+    except:
+        logger.warning("Couldn't read video metadata.")
+
+    video = cv2.VideoCapture(str(video_path), cv2.CAP_FFMPEG)
+    if not video.isOpened():
+        raise SABaseException(0, "Couldn't open video file " + str(video_path))
+
+    total_num_of_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
+    logger.info("Video frame count is %s.", total_num_of_frames)
+
+    if target_fps is not None:
+        video_fps = video.get(cv2.CAP_PROP_FPS)
+        logger.info(
+            "Video frame rate is %s. Target frame rate is %s.", video_fps,
+            target_fps
+        )
+        if target_fps > video_fps:
+            target_fps = None
+        else:
+            r = video_fps / target_fps
+            frames_count_to_drop = total_num_of_frames - (
+                total_num_of_frames / r
+            )
+            percent_to_drop = frames_count_to_drop / total_num_of_frames
+            my_random = random.Random(122222)
+
+    zero_fill_count = len(str(total_num_of_frames))
+    tempdir = tempfile.TemporaryDirectory()
+
+    video_name = Path(video_path).name
+    frame_no = 1
+    while True:
+        success, frame = video.read()
+        if not success:
+            break
+        if target_fps is not None and my_random.random() < percent_to_drop:
+            continue
+        if rotate_code is not None:
+            frame = cv2.rotate(frame, rotate_code)
+        cv2.imwrite(
+            str(
+                Path(tempdir.name) / (
+                    video_name + "_" + str(frame_no).zfill(zero_fill_count) +
+                    ".jpg"
+                )
+            ), frame
+        )
+        frame_no += 1
+
+    logger.info(
+        "Extracted %s frames from video. Now uploading to platform.",
+        frame_no - 1
+    )
+
+    filenames = upload_images_from_folder_to_project(
+        project,
+        tempdir.name,
+        extensions=["jpg"],
+        annotation_status=annotation_status,
+        image_quality_in_editor=image_quality_in_editor
+    )
+
+    assert len(filenames[1]) == 0
+
+    filenames_base = []
+    for file in filenames[0]:
+        filenames_base.append(Path(file).name)
+
+    return filenames_base
 
 
 def upload_images_from_folder_to_project(
