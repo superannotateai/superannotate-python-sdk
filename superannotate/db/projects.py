@@ -371,6 +371,99 @@ def upload_video_to_project(
     return filenames_base
 
 
+def upload_videos_from_folder_to_project(
+    project,
+    folder_path,
+    extensions=None,
+    exclude_file_patterns=None,
+    recursive_subfolders=False,
+    target_fps=None,
+    start_time=0.0,
+    end_time=None,
+    annotation_status="NotStarted",
+    image_quality_in_editor=None
+):
+    """Uploads image frames from all videos with given extensions from folder_path to the project.
+    Sets status of all the uploaded images to set_status if it is not None.
+
+    :param project: project name or metadata of the project to upload images_to
+    :type project: str or dict
+    :param folder_path: from which folder to upload the images
+    :type folder_path: Pathlike (str or Path)
+    :param extensions: list of filename extensions to include from folder, if None, then "mp4" and "avi" are included
+    :type extensions: list of str
+    :param exclude_file_patterns: filename patterns to exclude from uploading,
+                                 default value is to exclude SuperAnnotate pixel project
+                                 annotation mask output file pattern. If None,
+                                 SuperAnnotate related ["___save.png", "___fuse.png"]
+                                 will bet set as default exclude_file_patterns.
+    :type exclude_file_patterns: list of strs
+    :param recursive_subfolders: enable recursive subfolder parsing
+    :type recursive_subfolders: bool
+    :param target_fps: how many frames per second need to extract from the video (approximate).
+                       If None, all frames will be uploaded
+    :type target_fps: float
+    :param start_time: Time (in seconds) from which to start extracting frames
+    :type start_time: float
+    :param end_time: Time (in seconds) up to which to extract frames. If None up to end
+    :type end_time: float
+    :param annotation_status: value to set the annotation statuses of the uploaded images NotStarted InProgress QualityCheck Returned Completed Skipped
+    :type annotation_status: str
+    :param image_quality_in_editor: image quality (in percents) that will be seen in SuperAnnotate web annotation editor. If None default value will be used.
+    :type image_quality_in_editor: int
+
+    :return: uploaded and not-uploaded video frame images' filenames
+    :rtype: tuple of list of strs
+    """
+    if not isinstance(project, dict):
+        project = get_project_metadata(project)
+    if recursive_subfolders:
+        logger.warning(
+            "When using recursive subfolder parsing same name videos in different subfolders will overwrite each other."
+        )
+    if exclude_file_patterns is None:
+        exclude_file_patterns = []
+    if extensions is None:
+        extensions = ["mp4", "avi"]
+    elif not isinstance(extensions, list):
+        raise SABaseException(
+            0,
+            "extensions should be a list in upload_images_from_folder_to_project"
+        )
+
+    logger.info(
+        "Uploading all videos with extensions %s from %s to project %s. Excluded file patterns are: %s.",
+        extensions, folder_path, project["name"], exclude_file_patterns
+    )
+    paths = []
+    for extension in extensions:
+        if not recursive_subfolders:
+            paths += list(Path(folder_path).glob(f'*.{extension}'))
+        else:
+            paths += list(Path(folder_path).rglob(f'*.{extension}'))
+    filtered_paths = []
+    for path in paths:
+        not_in_exclude_list = [
+            x not in Path(path).name for x in exclude_file_patterns
+        ]
+        if all(not_in_exclude_list):
+            filtered_paths.append(path)
+
+    filenames = []
+    for path in filtered_paths:
+        filenames += upload_video_to_project(
+            project,
+            path,
+            target_fps=target_fps,
+            start_time=start_time,
+            end_time=end_time,
+            annotation_status=annotation_status,
+            image_quality_in_editor=image_quality_in_editor
+        )
+
+    return filenames
+
+
 def upload_images_from_folder_to_project(
     project,
     folder_path,
