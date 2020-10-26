@@ -318,6 +318,8 @@ _____________________________________________________________
 
 .. autofunction:: superannotate.import_annotation_format
 .. autofunction:: superannotate.export_annotation_format
+.. autofunction:: superannotate.convert_project_type
+.. autofunction:: superannotate.convert_platform
 
 ----------
 
