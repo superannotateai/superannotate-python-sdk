@@ -154,36 +154,20 @@ def consensus_plot(consensus_df, projects):
     )
     project_box_fig.show()
 
-    #instance areas histogram colored by class
-    fig = make_subplots(rows=1, cols=len(projects), subplot_titles=projects)
-    for i, project in enumerate(projects):
-        project_df = plot_data[plot_data["projectName"] == project]
-        classes = list(set(project_df["className"]))
-        class_colors = col.n_colors(
-            (255, 0, 0), (0, 0, 255), len(classes), colortype='tuple'
-        )
-        class_colors = [col.label_rgb(color) for color in class_colors]
-        colorIdx = dict(zip(classes, class_colors))
-        cols = project_df["className"].map(colorIdx)
-        fig.add_trace(
-            go.Scatter(
-                x=project_df["area"],
-                y=project_df["score"],
-                mode='markers',
-                marker={
-                    'symbol':
-                        project_df["creatorEmail"].astype('category').cat.codes,
-                    'color':
-                        cols
-                },
-                customdata=np.dstack(
-                    (project_df["creatorEmail"], project_df["imageName"])
-                ),
-                hovertemplate=
-                'annotator:%{customdata[0]}<br>image name: %{customdata[1]}'
-            ),
-            row=1,
-            col=i + 1
-        )
-
+    #scatter plot of score vs area
+    fig = px.scatter(
+        plot_data,
+        x="area",
+        y="score",
+        color="className",
+        symbol="creatorEmail",
+        facet_col="projectName",
+        hover_data={
+            "className": False,
+            "imageName": True,
+            "projectName": False,
+            "area": False,
+            "score": False
+        }
+    )
     fig.show()
