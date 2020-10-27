@@ -280,6 +280,7 @@ def upload_video_to_project(
     :return: filenames of uploaded images
     :rtype: list of strs
     """
+    logger.info("Uploading from video %s.", str(video_path))
     rotate_code = None
     try:
         meta_dict = ffmpeg.probe(str(video_path))
@@ -303,7 +304,14 @@ def upload_video_to_project(
         raise SABaseException(0, "Couldn't open video file " + str(video_path))
 
     total_num_of_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
-    logger.info("Video frame count is %s.", total_num_of_frames)
+    if total_num_of_frames < 0:
+        if target_fps is not None:
+            logger.warning(
+                "Number of frames indicated in the video is negative number. Disabling FPS change."
+            )
+            target_fps = None
+    else:
+        logger.info("Video frame count is %s.", total_num_of_frames)
 
     if target_fps is not None:
         video_fps = video.get(cv2.CAP_PROP_FPS)
@@ -386,17 +394,14 @@ def upload_videos_from_folder_to_project(
     """Uploads image frames from all videos with given extensions from folder_path to the project.
     Sets status of all the uploaded images to set_status if it is not None.
 
-    :param project: project name or metadata of the project to upload images_to
+    :param project: project name or metadata of the project to upload videos to
     :type project: str or dict
-    :param folder_path: from which folder to upload the images
+    :param folder_path: from which folder to upload the videos
     :type folder_path: Pathlike (str or Path)
-    :param extensions: list of filename extensions to include from folder, if None, then "mp4" and "avi" are included
+    :param extensions: list of filename extensions to include from folder, if None, then
+                       extensions = ["mp4", "avi", "mov", "webm", "flv", "mpg", "ogg"]
     :type extensions: list of str
-    :param exclude_file_patterns: filename patterns to exclude from uploading,
-                                 default value is to exclude SuperAnnotate pixel project
-                                 annotation mask output file pattern. If None,
-                                 SuperAnnotate related ["___save.png", "___fuse.png"]
-                                 will bet set as default exclude_file_patterns.
+    :param exclude_file_patterns: filename patterns to exclude from uploading
     :type exclude_file_patterns: list of strs
     :param recursive_subfolders: enable recursive subfolder parsing
     :type recursive_subfolders: bool
@@ -424,7 +429,7 @@ def upload_videos_from_folder_to_project(
     if exclude_file_patterns is None:
         exclude_file_patterns = []
     if extensions is None:
-        extensions = ["mp4", "avi"]
+        extensions = ["mp4", "avi", "mov", "webm", "flv", "mpg", "ogg"]
     elif not isinstance(extensions, list):
         raise SABaseException(
             0,
@@ -438,9 +443,11 @@ def upload_videos_from_folder_to_project(
     paths = []
     for extension in extensions:
         if not recursive_subfolders:
-            paths += list(Path(folder_path).glob(f'*.{extension}'))
+            paths += list(Path(folder_path).glob(f'*.{extension.lower()}'))
+            paths += list(Path(folder_path).glob(f'*.{extension.upper()}'))
         else:
-            paths += list(Path(folder_path).rglob(f'*.{extension}'))
+            paths += list(Path(folder_path).rglob(f'*.{extension.lower()}'))
+            paths += list(Path(folder_path).rglob(f'*.{extension.upper()}'))
     filtered_paths = []
     for path in paths:
         not_in_exclude_list = [
@@ -525,9 +532,11 @@ def upload_images_from_folder_to_project(
         paths = []
         for extension in extensions:
             if not recursive_subfolders:
-                paths += list(Path(folder_path).glob(f'*.{extension}'))
+                paths += list(Path(folder_path).glob(f'*.{extension.lower()}'))
+                paths += list(Path(folder_path).glob(f'*.{extension.upper()}'))
             else:
-                paths += list(Path(folder_path).rglob(f'*.{extension}'))
+                paths += list(Path(folder_path).rglob(f'*.{extension.lower()}'))
+                paths += list(Path(folder_path).rglob(f'*.{extension.upper()}'))
     else:
         s3_client = boto3.client('s3')
         paginator = s3_client.get_paginator('list_objects_v2')
@@ -543,7 +552,8 @@ def upload_images_from_folder_to_project(
                                                            1:]:
                     continue
                 for extension in extensions:
-                    if key.endswith(f'.{extension}'):
+                    if key.endswith(f'.{extension.lower()}'
+                                   ) or key.endswith(f'.{extension.upper()}'):
                         paths.append(key)
                         break
     filtered_paths = []
@@ -736,7 +746,7 @@ def upload_images_to_project(
         "Uploading %s images to project %s.", len_img_paths, project["name"]
     )
     if len_img_paths == 0:
-        return
+        return ([], [])
     params = {
         'team_id': team_id,
     }
