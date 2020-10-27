@@ -1,7 +1,10 @@
 from shapely.geometry import Polygon, box, Point
 import plotly.express as px
+from plotly.subplots import make_subplots
+import plotly.graph_objects as go
+import plotly.colors as col
 import logging
-
+import numpy as np
 logger = logging.getLogger("superannotate-python-sdk")
 
 
@@ -41,9 +44,8 @@ def image_consensus(df, image_name, annot_type):
     all_projects = list(set(df["project"]))
     column_names = [
         "creatorEmail", "imageName", "instanceId", "area", "className",
-        "attributeGroupName", "attributeName"
+        "attributes", "projectName", "score"
     ]
-    column_names.extend(all_projects)
     instance_id = 0
     image_data = {}
     for column_name in column_names:
@@ -72,7 +74,7 @@ def image_consensus(df, image_name, annot_type):
             projects_shaply_objs[row["project"]].append(
                 (
                     inst, row["className"], row["creatorEmail"],
-                    row["attributeGroupName"], row["attributeName"]
+                    row["attributes"]
                 )
             )
         else:
@@ -84,7 +86,7 @@ def image_consensus(df, image_name, annot_type):
     # match instances
     for curr_proj, curr_proj_instances in projects_shaply_objs.items():
         for curr_inst_data in curr_proj_instances:
-            curr_inst, curr_class, _, _, _ = curr_inst_data
+            curr_inst, curr_class, _, _ = curr_inst_data
             max_instances = []
             for other_proj, other_proj_instances in projects_shaply_objs.items(
             ):
@@ -92,10 +94,13 @@ def image_consensus(df, image_name, annot_type):
                     max_instances.append((curr_proj, *curr_inst_data))
                     projects_shaply_objs[curr_proj].remove(curr_inst_data)
                 else:
-                    max_score = float('-inf')
+                    if annot_type in ['polygon', 'bbox']:
+                        max_score = 0
+                    else:
+                        max_score = float('-inf')
                     max_inst_data = None
                     for other_inst_data in other_proj_instances:
-                        other_inst, other_class, _, _, _ = other_inst_data
+                        other_inst, other_class, _, _ = other_inst_data
                         score = instance_consensus(curr_inst, other_inst)
                         if score > max_score and other_class == curr_class:
                             max_score = score
@@ -105,17 +110,13 @@ def image_consensus(df, image_name, annot_type):
                         projects_shaply_objs[other_proj].remove(max_inst_data)
             if len(max_instances) == 1:
                 image_data["creatorEmail"].append(max_instances[0][3])
-                image_data["attributeGroupName"].append(max_instances[0][4])
-                image_data["attributeName"].append(max_instances[0][5])
+                image_data["attributes"].append(max_instances[0][4])
                 image_data["area"].append(max_instances[0][1].area)
                 image_data["imageName"].append(image_name)
                 image_data["instanceId"].append(instance_id)
                 image_data["className"].append(max_instances[0][2])
-                for project in all_projects:
-                    if project == max_instances[0][0]:
-                        image_data[project].append(0)
-                    else:
-                        image_data[project].append(None)
+                image_data["projectName"].append(max_instances[0][0])
+                image_data["score"].append(0)
             else:
                 for curr_match_data in max_instances:
                     proj_cons = 0
@@ -124,21 +125,17 @@ def image_consensus(df, image_name, annot_type):
                             score = instance_consensus(
                                 curr_match_data[1], other_match_data[1]
                             )
-                            proj_cons += (1. if score < 0 else score)
+                            proj_cons += (1. if score <= 0 else score)
                     image_data["creatorEmail"].append(curr_match_data[3])
-                    image_data["attributeGroupName"].append(curr_match_data[4])
-                    image_data["attributeName"].append(curr_match_data[5])
+                    image_data["attributes"].append(curr_match_data[4])
                     image_data["area"].append(curr_match_data[1].area)
                     image_data["imageName"].append(image_name)
                     image_data["instanceId"].append(instance_id)
                     image_data["className"].append(curr_match_data[2])
-                    for project in all_projects:
-                        if project == curr_match_data[0]:
-                            image_data[project].append(
-                                proj_cons / (len(all_projects) - 1)
-                            )
-                        else:
-                            image_data[project].append(None)
+                    image_data["projectName"].append(curr_match_data[0])
+                    image_data["score"].append(
+                        proj_cons / (len(all_projects) - 1)
+                    )
             instance_id += 1
 
     return image_data
@@ -148,21 +145,45 @@ def consensus_plot(consensus_df, projects):
     plot_data = consensus_df.copy()
 
     #annotator-wise boxplot
-    plot_data["instance_score"] = plot_data[projects].mean(axis=1)
-    annot_box_fig = px.box(
-        plot_data, x="creatorEmail", y="instance_score", points="all"
-    )
+    annot_box_fig = px.box(plot_data, x="creatorEmail", y="score", points="all")
     annot_box_fig.show()
 
     #project-wise boxplot
-    plot_data["instance_project"] = (
-        plot_data[projects].notna().astype('int') == 1
-    ).idxmax(1)
     project_box_fig = px.box(
-        plot_data, x="instance_project", y="instance_score", points="all"
+        plot_data, x="projectName", y="score", points="all"
     )
     project_box_fig.show()
 
     #instance areas histogram colored by class
-    area_hist = px.histogram(plot_data, x="area", color="className")
-    area_hist.show()
+    fig = make_subplots(rows=1, cols=len(projects), subplot_titles=projects)
+    for i, project in enumerate(projects):
+        project_df = plot_data[plot_data["projectName"] == project]
+        classes = list(set(project_df["className"]))
+        class_colors = col.n_colors(
+            (255, 0, 0), (0, 0, 255), len(classes), colortype='tuple'
+        )
+        class_colors = [col.label_rgb(color) for color in class_colors]
+        colorIdx = dict(zip(classes, class_colors))
+        cols = project_df["className"].map(colorIdx)
+        fig.add_trace(
+            go.Scatter(
+                x=project_df["area"],
+                y=project_df["score"],
+                mode='markers',
+                marker={
+                    'symbol':
+                        project_df["creatorEmail"].astype('category').cat.codes,
+                    'color':
+                        cols
+                },
+                customdata=np.dstack(
+                    (project_df["creatorEmail"], project_df["imageName"])
+                ),
+                hovertemplate=
+                'annotator:%{customdata[0]}<br>image name: %{customdata[1]}'
+            ),
+            row=1,
+            col=i + 1
+        )
+
+    fig.show()
