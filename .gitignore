@@ -130,3 +130,6 @@ dmypy.json
 
 sample_large_files
 sample_tif_files
+
+# Vscode settings folder
+.vscode/
