@@ -65,7 +65,8 @@ __________________
 
 - Search projects
 - Create/delete a project
-- Upload images to a project from local or AWS S3 folder
+- Upload images to a project from a local or AWS S3 folder
+- Upload videos to a project from a local folder
 - Upload annotations/pre-annotations to a project from local or AWS S3 folder
 - Set the annotation status of the images being uploaded
 - Export annotations from a project to a local or AWS S3 folder

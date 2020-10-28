@@ -21,6 +21,12 @@ def test_filter_comments(tmpdir):
     )
 
     filtered_excl = sa.filter_images_by_comments(
+        not_filtered, False, False, False
+    )
+
+    assert sorted(filtered_excl) == []
+
+    filtered_excl = sa.filter_images_by_comments(
         not_filtered, include_unresolved_comments=True
     )
 

@@ -71,12 +71,13 @@ def test_fuse_image_create_vector(tmpdir):
         "example_image_1.jpg",
         tmpdir,
         include_annotations=True,
-        include_fuse=True
+        include_fuse=True,
+        include_overlay=True
     )
     im1 = Image.open(tmpdir / "export" / "example_image_1.jpg___fuse.png")
     im1_array = np.array(im1)
 
-    im2 = Image.open(paths[2])
+    im2 = Image.open(paths[2][0])
     im2_array = np.array(im2)
 
     assert im1_array.shape == im2_array.shape
@@ -123,10 +124,11 @@ def test_fuse_image_create_pixel(tmpdir):
         include_annotations=True,
         include_fuse=True
     )
+    print(paths, paths[2])
     im1 = Image.open(tmpdir / "export" / "example_image_1.jpg___fuse.png")
     im1_array = np.array(im1)
 
-    im2 = Image.open(paths[2])
+    im2 = Image.open(paths[2][0])
     im2_array = np.array(im2)
 
     assert im1_array.shape == im2_array.shape

@@ -471,6 +471,7 @@ def download_image(
     local_dir_path=".",
     include_annotations=False,
     include_fuse=False,
+    include_overlay=False,
     variant='original'
 ):
     """Downloads the image (and annotation if not None) to local_dir_path
@@ -515,10 +516,12 @@ def download_image(
         annotations_filepaths = download_image_annotations(
             project, image_name, local_dir_path
         )
-        if include_fuse:
+        if include_fuse or include_overlay:
             classes = search_annotation_classes(project, return_metadata=True)
             project_type = project_type_int_to_str(project["type"])
-            fuse_path = create_fuse_image(filepath, classes, project_type)
+            fuse_path = create_fuse_image(
+                filepath, classes, project_type, output_overlay=include_overlay
+            )
     logger.info("Downloaded image %s to %s.", image_name, filepath)
 
     return (str(filepath), annotations_filepaths, fuse_path)
@@ -946,7 +949,9 @@ def upload_annotations_from_json_to_image(
         )
 
 
-def create_fuse_image(image, classes_json, project_type, in_memory=False):
+def create_fuse_image(
+    image, classes_json, project_type, in_memory=False, output_overlay=False
+):
     """Creates fuse for locally located image and annotations
 
     :param image: path to image
@@ -970,11 +975,20 @@ def create_fuse_image(image, classes_json, project_type, in_memory=False):
         if "name" not in ann_class:
             continue
         class_color_dict[ann_class["name"]] = ann_class["color"]
-    image_size = Image.open(image).size
+    pil_image = Image.open(image)
+    image_size = pil_image.size
     fi = np.full((image_size[1], image_size[0], 4), [0, 0, 0, 255], np.uint8)
+    if output_overlay:
+        fi_ovl = np.full(
+            (image_size[1], image_size[0], 4), [0, 0, 0, 255], np.uint8
+        )
+        fi_ovl[:, :, :3] = np.array(pil_image)
     if project_type == "Vector":
         fi_pil = Image.fromarray(fi)
         draw = ImageDraw.Draw(fi_pil)
+        if output_overlay:
+            fi_pil_ovl = Image.fromarray(fi_ovl)
+            draw_ovl = ImageDraw.Draw(fi_pil_ovl)
         for annotation in annotation_json:
             if "className" not in annotation:
                 continue
@@ -988,22 +1002,47 @@ def create_fuse_image(image, classes_json, project_type, in_memory=False):
                     (annotation["points"]["x2"], annotation["points"]["y2"])
                 )
                 draw.rectangle(pt, fill_color, outline_color)
+                if output_overlay:
+                    draw_ovl.rectangle(pt, None, fill_color)
             elif annotation["type"] == "polygon":
                 pts = annotation["points"]
                 draw.polygon(pts, fill_color, outline_color)
+                if output_overlay:
+                    draw_ovl.polygon(pts, None, fill_color)
             elif annotation["type"] == "polyline":
                 pts = annotation["points"]
                 draw.line(pts, fill_color, width=2)
+                if output_overlay:
+                    draw_ovl.line(pts, fill_color, width=2)
             elif annotation["type"] == "point":
                 pts = [
                     annotation["x"] - 2, annotation["y"] - 2,
                     annotation["x"] + 2, annotation["y"] + 2
                 ]
                 draw.ellipse(pts, fill_color, outline_color)
+                if output_overlay:
+                    draw_ovl.ellipse(pts, None, fill_color)
             elif annotation["type"] == "ellipse":
                 temp = np.full(
                     (image_size[1], image_size[0], 3), [0, 0, 0], np.uint8
                 )
+                if output_overlay:
+                    temp_ovl = np.full(
+                        (image_size[1], image_size[0], 3), [0, 0, 0], np.uint8
+                    )
+                    cv2.ellipse(
+                        temp_ovl, (annotation["cx"], annotation["cy"]),
+                        (annotation["rx"], annotation["ry"]),
+                        annotation["angle"], 0, 360, fill_color[:-1], 1
+                    )
+                    new_array_ovl = np.array(fi_pil_ovl)
+                    temp_mask = np.alltrue(temp_ovl != [0, 0, 0], axis=2)
+                    new_array_ovl[:, :, :-1] = np.where(
+                        temp_mask[:, :, np.newaxis], temp_ovl,
+                        new_array_ovl[:, :, :-1]
+                    )
+                    fi_pil_ovl = Image.fromarray(new_array_ovl)
+                    draw_ovl = ImageDraw.Draw(fi_pil_ovl)
                 cv2.ellipse(
                     temp, (annotation["cx"], annotation["cy"]),
                     (annotation["rx"], annotation["ry"]), annotation["angle"],
@@ -1030,6 +1069,8 @@ def create_fuse_image(image, classes_json, project_type, in_memory=False):
                 for pt in pts:
                     pt_e = [pt["x"] - 2, pt["y"] - 2, pt["x"] + 2, pt["y"] + 2]
                     draw.ellipse(pt_e, fill_color, fill_color)
+                    if output_overlay:
+                        draw_ovl.ellipse(pt_e, fill_color, fill_color)
                     pt_dict[pt["id"]] = [pt["x"], pt["y"]]
                 connections = annotation["connections"]
                 for connection in connections:
@@ -1038,9 +1079,16 @@ def create_fuse_image(image, classes_json, project_type, in_memory=False):
                         fill_color,
                         width=1
                     )
+                    if output_overlay:
+                        draw_ovl.line(
+                            pt_dict[connection["from"]] +
+                            pt_dict[connection["to"]],
+                            fill_color,
+                            width=1
+                        )
     else:
         annotation_mask = np.array(Image.open(annotation_path[1]))
-        print(annotation_mask.shape, annotation_mask.dtype)
+        # print(annotation_mask.shape, annotation_mask.dtype)
         for annotation in annotation_json:
             if "className" not in annotation or "parts" not in annotation:
                 continue
@@ -1055,7 +1103,15 @@ def create_fuse_image(image, classes_json, project_type, in_memory=False):
         fi_pil = Image.fromarray(fi)
 
     if in_memory:
-        return fi_pil
+        if output_overlay:
+            return (fi_pil, fi_pil_ovl)
+        else:
+            return (fi_pil, )
     fuse_path = str(image) + "___fuse.png"
     fi_pil.save(fuse_path)
-    return fuse_path
+    if output_overlay:
+        overlay_path = str(image) + "___overlay.jpg"
+        fi_pil_ovl.convert("RGB").save(overlay_path, subsampling=0, quality=100)
+        return (fuse_path, overlay_path)
+    else:
+        return (fuse_path, )

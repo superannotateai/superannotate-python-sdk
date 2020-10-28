@@ -1,17 +1,30 @@
-from datetime import datetime
-import os
 import glob
 import json
+import os
 from collections import namedtuple
-from tqdm import tqdm
-from PIL import Image
+from datetime import datetime
+
 from panopticapi.utils import IdGenerator, id2rgb
+from PIL import Image
+from tqdm import tqdm
 
 from .coco_converter import CoCoConverter
-from .sa_pixel_to_coco import sa_pixel_to_coco_instance_segmentation, sa_pixel_to_coco_panoptic_segmentation, sa_pixel_to_coco_object_detection
-from .sa_vector_to_coco import sa_vector_to_coco_instance_segmentation, sa_vector_to_coco_keypoint_detection, sa_vector_to_coco_object_detection
-from .coco_to_sa_pixel import coco_panoptic_segmentation_to_sa_pixel, coco_instance_segmentation_to_sa_pixel
-from .coco_to_sa_vector import coco_keypoint_detection_to_sa_vector, coco_instance_segmentation_to_sa_vector
+from .coco_to_sa_pixel import (
+    coco_instance_segmentation_to_sa_pixel,
+    coco_panoptic_segmentation_to_sa_pixel
+)
+from .coco_to_sa_vector import (
+    coco_instance_segmentation_to_sa_vector,
+    coco_keypoint_detection_to_sa_vector
+)
+from .sa_pixel_to_coco import (
+    sa_pixel_to_coco_instance_segmentation, sa_pixel_to_coco_object_detection,
+    sa_pixel_to_coco_panoptic_segmentation
+)
+from .sa_vector_to_coco import (
+    sa_vector_to_coco_instance_segmentation,
+    sa_vector_to_coco_keypoint_detection, sa_vector_to_coco_object_detection
+)
 
 
 class CocoPanopticConverterStrategy(CoCoConverter):
