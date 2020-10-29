@@ -341,6 +341,7 @@ ________________________
 .. _ref_filter_annotation_instances:
 .. autofunction:: superannotate.filter_annotation_instances
 .. autofunction:: superannotate.filter_images_by_comments
+.. autofunction:: superannotate.filter_images_by_tags
 
 ----------
 

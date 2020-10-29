@@ -9,7 +9,7 @@ logger = logging.getLogger("superannotate-python-sdk")
 
 def df_to_annotations(df, output_dir):
     """Converts and saves pandas DataFrame annotation info (see aggregate_annotations_as_df) in output_dir
-    The DataFrame should have columns: "imageName", "classNmae", "attributeGroupName", "attributeName", "type", "error", "locked", "visible", trackingId", "probability", "pointLabels", "meta", "commentResolved", "classColor", "groupId"
+    The DataFrame should have columns: "imageName", "className", "attributeGroupName", "attributeName", "type", "error", "locked", "visible", trackingId", "probability", "pointLabels", "meta", "commentResolved", "classColor", "groupId"
 
     Currently only works for Vector projects.
 
@@ -120,6 +120,7 @@ def aggregate_annotations_as_df(
     project_root,
     include_classes_wo_annotations=False,
     include_comments=False,
+    include_tags=False,
     verbose=True
 ):
     """Aggregate annotations as pandas dataframe from project root.
@@ -154,7 +155,6 @@ def aggregate_annotations_as_df(
         "error": [],
         "locked": [],
         "visible": [],
-        "tag": [],
         "trackingId": [],
         "probability": [],
         "pointLabels": [],
@@ -172,6 +172,8 @@ def aggregate_annotations_as_df(
 
     if include_comments:
         annotation_data["commentResolved"] = []
+    if include_tags:
+        annotation_data["tag"] = []
 
     classes_path = Path(project_root) / "classes" / "classes.json"
     if not classes_path.is_file():
@@ -245,13 +247,14 @@ def aggregate_annotations_as_df(
                     __append_annotation(annotation_dict)
                 continue
             if annotation_type == "tag":
-                annotation_tag = annotation["name"]
-                annotation_dict = {
-                    "type": annotation_type,
-                    "tag": annotation_tag
-                }
-                annotation_dict.update(image_metadata)
-                __append_annotation(annotation_dict)
+                if include_tags:
+                    annotation_tag = annotation["name"]
+                    annotation_dict = {
+                        "type": annotation_type,
+                        "tag": annotation_tag
+                    }
+                    annotation_dict.update(image_metadata)
+                    __append_annotation(annotation_dict)
                 continue
             annotation_instance_id += 1
             annotation_class_name = annotation.get("className")
