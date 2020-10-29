@@ -154,6 +154,7 @@ def aggregate_annotations_as_df(
         "error": [],
         "locked": [],
         "visible": [],
+        "tag": [],
         "trackingId": [],
         "probability": [],
         "pointLabels": [],
@@ -224,7 +225,7 @@ def aggregate_annotations_as_df(
         annotation_instance_id = 0
         for annotation in annotation_json:
             annotation_type = annotation.get("type", "mask")
-            if annotation_type in ['tag', 'meta']:
+            if annotation_type == "meta":
                 continue
             if annotation_type == "comment":
                 if include_comments:
@@ -242,6 +243,15 @@ def aggregate_annotations_as_df(
                     annotation_dict.update(image_metadata)
 
                     __append_annotation(annotation_dict)
+                continue
+            if annotation_type == "tag":
+                annotation_tag = annotation["name"]
+                annotation_dict = {
+                    "type": annotation_type,
+                    "tag": annotation_tag
+                }
+                annotation_dict.update(image_metadata)
+                __append_annotation(annotation_dict)
                 continue
             annotation_instance_id += 1
             annotation_class_name = annotation.get("className")
@@ -322,8 +332,8 @@ def aggregate_annotations_as_df(
 
             for attribute in attributes:
 
-                attribute_group = attribute["groupName"]
-                attribute_name = attribute['name']
+                attribute_group = attribute.get("groupName")
+                attribute_name = attribute.get('name')
                 annotation_dict = {
                     "imageName": image_name,
                     "instanceId": annotation_instance_id,
