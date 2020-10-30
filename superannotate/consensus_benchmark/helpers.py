@@ -145,12 +145,24 @@ def consensus_plot(consensus_df, projects):
     plot_data = consensus_df.copy()
 
     #annotator-wise boxplot
-    annot_box_fig = px.box(plot_data, x="creatorEmail", y="score", points="all")
+    annot_box_fig = px.box(
+        plot_data,
+        x="creatorEmail",
+        y="score",
+        points="all",
+        color="creatorEmail",
+        color_discrete_sequence=px.colors.qualitative.Dark24
+    )
     annot_box_fig.show()
 
     #project-wise boxplot
     project_box_fig = px.box(
-        plot_data, x="projectName", y="score", points="all"
+        plot_data,
+        x="projectName",
+        y="score",
+        points="all",
+        color="projectName",
+        color_discrete_sequence=px.colors.qualitative.Dark24
     )
     project_box_fig.show()
 
@@ -162,7 +174,7 @@ def consensus_plot(consensus_df, projects):
         color="className",
         symbol="creatorEmail",
         facet_col="projectName",
-        color_discrete_sequence=px.colors.qualitative.Alphabet,
+        color_discrete_sequence=px.colors.qualitative.Dark24,
         hover_data={
             "className": False,
             "imageName": True,
