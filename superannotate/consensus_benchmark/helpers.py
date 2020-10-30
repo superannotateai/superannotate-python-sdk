@@ -162,12 +162,15 @@ def consensus_plot(consensus_df, projects):
         color="className",
         symbol="creatorEmail",
         facet_col="projectName",
+        color_discrete_sequence=px.colors.qualitative.Alphabet,
         hover_data={
             "className": False,
             "imageName": True,
             "projectName": False,
             "area": False,
             "score": False
-        }
+        },
     )
+    fig.for_each_annotation(lambda a: a.update(text=a.text.split("=")[-1]))
+    fig.for_each_trace(lambda t: t.update(name=t.name.split("=")[-1]))
     fig.show()
