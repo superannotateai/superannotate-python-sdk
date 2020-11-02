@@ -3,7 +3,7 @@ import json
 import time
 
 
-class GoogleCloudConverter(object):
+class YOLOConverter(object):
     def __init__(self, args):
         self.dataset_name = args.dataset_name
         self.project_type = args.project_type

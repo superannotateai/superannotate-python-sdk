@@ -119,7 +119,7 @@ def dataloop_object_detection_to_sa_vector(input_dir, id_generator):
         sa_jsons[file_name] = sa_loader
 
     classes = _create_classes(classes)
-    return classes, sa_jsons
+    return sa_jsons, classes
 
 
 def dataloop_instance_segmentation_to_sa_vector(input_dir, id_generator):
@@ -202,7 +202,7 @@ def dataloop_instance_segmentation_to_sa_vector(input_dir, id_generator):
         sa_jsons[file_name] = sa_loader
 
     classes = _create_classes(classes)
-    return classes, sa_jsons
+    return sa_jsons, classes
 
 
 def dataloop_to_sa(input_dir, id_generator):
@@ -336,4 +336,4 @@ def dataloop_to_sa(input_dir, id_generator):
         sa_jsons[file_name] = sa_loader
 
     classes = _create_classes(classes)
-    return classes, sa_jsons
+    return sa_jsons, classes

@@ -37,8 +37,7 @@ class VGGObjectDetectionStrategy(VGGConverter):
         sa_jsons, sa_classes = self.conversion_algorithm(
             json_data, id_generator
         )
-        self.save_objects(sa_jsons)
-        self.save_classes(sa_classes)
+        self.dump_output(sa_classes, sa_jsons)
 
     def _make_id_generator(self):
         cur_id = 0

@@ -34,8 +34,7 @@ class GoogleCloudObjectDetectionStrategy(GoogleCloudConverter):
         path = Path(self.export_root).joinpath(self.dataset_name + '.csv')
         id_generator = self._make_id_generator()
         sa_jsons, sa_classes = self.converion_algorithm(path, id_generator)
-        self.save_objects(sa_jsons)
-        self.save_classes(sa_classes)
+        self.dump_output(sa_classes, sa_jsons)
 
     def _make_id_generator(self):
         cur_id = 0

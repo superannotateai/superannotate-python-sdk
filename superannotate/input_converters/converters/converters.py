@@ -19,9 +19,10 @@ from .labelbox_converters.labelbox_strategies import LabelBoxObjectDetectionStra
 from .dataloop_converters.dataloop_strategies import DataLoopObjectDetectionStrategy
 from .supervisely_converters.supervisely_strategies import SuperviselyObjectDetectionStrategy
 from .vott_converters.vott_strategies import VoTTObjectDetectionStrategy
-# from .sagemaker_converters.sagemaker_strategies import SageMakerObjectDetectionStrategy
+from .sagemaker_converters.sagemaker_strategies import SageMakerObjectDetectionStrategy
 from .vgg_converters.vgg_strategies import VGGObjectDetectionStrategy
 from .googlecloud_converters.googlecloud_strategies import GoogleCloudObjectDetectionStrategy
+from .yolo_converters.yolo_strategies import YoloObjectDetectionStrategy
 
 
 class Converter(object):
@@ -34,8 +35,6 @@ class Converter(object):
 
     def convert_to_sa(self, platform):
         self.strategy.to_sa_format()
-        if platform == "Desktop":
-            self._merge_jsons(self.output_dir)
 
     def __set_strategy(self, c_strategy):
         self.strategy = c_strategy
@@ -63,53 +62,19 @@ class Converter(object):
         elif args.dataset_format == "VoTT":
             if args.task == 'object_detection' or args.task == 'instance_segmentation' or args.task == 'vector_annotation':
                 c_strategy = VoTTObjectDetectionStrategy(args)
-        # elif args.dataset_format == "SageMaker":
-        #     if args.task == 'object_detection' or args.task == 'instance_segmentation' or args.task == 'vector_annotation':
-        #         c_strategy = SageMakerObjectDetectionStrategy(args)
+        elif args.dataset_format == "SageMaker":
+            if args.task == 'object_detection' or args.task == 'instance_segmentation':
+                c_strategy = SageMakerObjectDetectionStrategy(args)
         elif args.dataset_format == "VGG":
             if args.task == 'object_detection' or args.task == 'instance_segmentation' or args.task == 'vector_annotation':
                 c_strategy = VGGObjectDetectionStrategy(args)
         elif args.dataset_format == "GoogleCloud":
             if args.task == 'object_detection':
                 c_strategy = GoogleCloudObjectDetectionStrategy(args)
+        elif args.dataset_format == "YOLO":
+            if args.task == 'object_detection':
+                c_strategy = YoloObjectDetectionStrategy(args)
         else:
             pass
 
         self.__set_strategy(c_strategy)
-
-    def _merge_jsons(self, input_dir):
-        cat_id_map = {}
-        classes_json = json.load(
-            open(os.path.join(input_dir, "classes", "classes.json"))
-        )
-
-        new_classes = []
-        for idx, class_ in enumerate(classes_json):
-            cat_id_map[class_["id"]] = idx + 2
-            class_["id"] = idx + 2
-            new_classes.append(class_)
-
-        files = glob.glob(os.path.join(input_dir, "*.json"))
-        merged_json = {}
-        shutil.rmtree(os.path.join(input_dir, "classes"))
-        for f in tqdm(files, "Merging files"):
-            json_data = json.load(open(f))
-            meta = {
-                "type": "meta",
-                "name": "lastAction",
-                "timestamp": int(round(time.time() * 1000))
-            }
-            for js_data in json_data:
-                if "classId" in js_data:
-                    js_data["classId"] = cat_id_map[js_data["classId"]]
-            json_data.append(meta)
-            file_name = os.path.split(f)[1].replace("___objects.json", "")
-            merged_json[file_name] = json_data
-            os.remove(f)
-        with open(
-            os.path.join(input_dir, "annotations.json"), "w"
-        ) as final_json_file:
-            json.dump(merged_json, final_json_file, indent=2)
-
-        with open(os.path.join(input_dir, "classes.json"), "w") as fw:
-            json.dump(classes_json, fw, indent=2)

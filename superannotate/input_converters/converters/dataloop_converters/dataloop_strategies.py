@@ -34,18 +34,10 @@ class DataLoopObjectDetectionStrategy(DataLoopConverter):
 
     def to_sa_format(self):
         id_generator = self._make_id_generator()
-        classes_json, sa_jsons = self.conversion_algorithm(
+        sa_jsons, classes_json = self.conversion_algorithm(
             self.export_root, id_generator
         )
-
-        with open(
-            os.path.join(self.output_dir, "classes", "classes.json"), "w"
-        ) as fp:
-            json.dump(classes_json, fp, indent=2)
-
-        for sa_json_name, sa_json_value in sa_jsons.items():
-            with open(os.path.join(self.output_dir, sa_json_name), "w") as fp:
-                json.dump(sa_json_value, fp, indent=2)
+        self.dump_output(classes_json, sa_jsons)
 
     def _make_id_generator(self):
         cur_id = 0

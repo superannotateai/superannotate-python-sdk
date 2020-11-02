@@ -11,6 +11,7 @@ from PIL import Image
 
 import tqdm
 import time
+from pathlib import Path
 
 
 class CoCoConverter(object):
@@ -21,6 +22,7 @@ class CoCoConverter(object):
         self.output_dir = args.output_dir
         self.task = args.task
         self.direction = args.direction
+        self.platform = args.platform
 
         self.failed_conversion_cnt = 0
 
@@ -187,10 +189,8 @@ class CoCoConverter(object):
                 'attribute_groups': []
             }
             classes.append(classes_dict)
-        with open(
-            os.path.join(self.output_dir, "classes", "classes.json"), "w"
-        ) as fp:
-            json.dump(classes, fp)
+
+        return classes
 
     def _generate_colors(self, number):
         colors = []
@@ -199,3 +199,48 @@ class CoCoConverter(object):
             hexcolor = "#%02x%02x%02x" % tuple(color)
             colors.append(hexcolor)
         return colors
+
+    def save_desktop_format(self, classes, files_dict):
+        path = Path(self.output_dir)
+        cat_id_map = {}
+        new_classes = []
+        for idx, class_ in enumerate(classes):
+            cat_id_map[class_['id']] = idx + 2
+            class_['id'] = idx + 2
+            new_classes.append(class_)
+        with open(path.joinpath('classes.json'), 'w') as fw:
+            json.dump(new_classes, fw)
+
+        meta = {
+            "type": "meta",
+            "name": "lastAction",
+            "timestamp": int(round(time.time() * 1000))
+        }
+        new_json = {}
+        for file_name, json_data in files_dict.items():
+            file_name = file_name.replace('___objects.json', '')
+            new_json_data = []
+            for js_data in json_data:
+                if 'classId' in js_data:
+                    new_js_data = js_data.copy()
+                    new_js_data['classId'] = cat_id_map[js_data['classId']]
+                    new_json_data.append(new_js_data)
+            new_json_data.append(meta)
+            new_json[file_name] = new_json_data
+        with open(path.joinpath('annotations.json'), 'w') as fw:
+            json.dump(new_json, fw)
+
+    def save_web_format(self, classes, files_dict):
+        path = Path(self.output_dir)
+        for key, value in files_dict.items():
+            with open(path.joinpath(key), 'w') as fw:
+                json.dump(value, fw, indent=2)
+
+        with open(path.joinpath('classes', 'classes.json'), 'w') as fw:
+            json.dump(classes, fw)
+
+    def dump_output(self, classes, files_dict):
+        if self.platform == 'Web':
+            self.save_web_format(classes, files_dict)
+        else:
+            self.save_desktop_format(classes, files_dict)

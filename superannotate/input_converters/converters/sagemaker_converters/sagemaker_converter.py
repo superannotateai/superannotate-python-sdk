@@ -1,9 +1,8 @@
 from pathlib import Path
 import json
-import time
 
 
-class GoogleCloudConverter(object):
+class SageMakerConverter(object):
     def __init__(self, args):
         self.dataset_name = args.dataset_name
         self.project_type = args.project_type

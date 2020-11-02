@@ -2,7 +2,7 @@ import json
 import os
 
 
-def _create_classes_json(classes, output_dir):
+def _create_classes_json(classes):
     sa_classes_loader = []
     for key, value in classes.items():
         sa_classes = {
@@ -32,8 +32,8 @@ def _create_classes_json(classes, output_dir):
         sa_classes['attribute_groups'] = attribute_groups
 
         sa_classes_loader.append(sa_classes)
-    with open(os.path.join(output_dir, 'classes', 'classes.json'), 'w') as fw:
-        json.dump(sa_classes_loader, fw, indent=2)
+
+    return sa_classes_loader
 
 
 def _create_classes_id_map(json_data, id_generator):
@@ -117,8 +117,9 @@ def _create_classes_id_map(json_data, id_generator):
     return classes
 
 
-def labelbox_object_detection_to_sa_vector(json_data, output_dir, id_generator):
+def labelbox_object_detection_to_sa_vector(json_data, id_generator):
     classes = _create_classes_id_map(json_data, id_generator)
+    sa_jsons = {}
     for d in json_data:
         if 'objects' not in d['Label'].keys():
             continue
@@ -184,16 +185,15 @@ def labelbox_object_detection_to_sa_vector(json_data, output_dir, id_generator):
                 sa_loader.append(sa_obj)
 
         file_name = d['External ID'] + '___objects.json'
-        with open(os.path.join(output_dir, file_name), "w") as fw:
-            json.dump(sa_loader, fw, indent=2)
+        sa_jsons[file_name] = sa_loader
 
-    _create_classes_json(classes, output_dir)
+    sa_classes = _create_classes_json(classes)
+    return sa_jsons, sa_classes
 
 
-def labelbox_instance_segmentation_to_sa_vector(
-    json_data, output_dir, id_generator
-):
+def labelbox_instance_segmentation_to_sa_vector(json_data, id_generator):
     classes = _create_classes_id_map()
+    sa_jsons = {}
     for d in json_data:
         if 'objects' not in d['Label'].keys():
             continue
@@ -260,14 +260,15 @@ def labelbox_instance_segmentation_to_sa_vector(
                 sa_loader.append(sa_obj)
 
         file_name = d['External ID'] + '___objects.json'
-        with open(os.path.join(output_dir, file_name), "w") as fw:
-            json.dump(sa_loader, fw, indent=2)
+        sa_jsons[file_name] = sa_loader
 
-    _create_classes_json(classes, output_dir)
+    sa_classes = _create_classes_json(classes)
+    return sa_jsons, sa_classes
 
 
-def labelbox_to_sa(json_data, output_dir, id_generator):
+def labelbox_to_sa(json_data, id_generator):
     classes = _create_classes_id_map(json_data, id_generator)
+    sa_jsons = {}
     for d in json_data:
         if 'objects' not in d['Label'].keys():
             continue
@@ -357,7 +358,7 @@ def labelbox_to_sa(json_data, output_dir, id_generator):
                 sa_loader.append(sa_obj)
 
         file_name = d['External ID'] + '___objects.json'
-        with open(os.path.join(output_dir, file_name), "w") as fw:
-            json.dump(sa_loader, fw, indent=2)
+        sa_jsons[file_name] = sa_loader
 
-    _create_classes_json(classes, output_dir)
+    sa_classes = _create_classes_json(classes)
+    return sa_jsons, sa_classes

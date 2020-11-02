@@ -87,14 +87,9 @@ class CocoPanopticConverterStrategy(CoCoConverter):
 
     def to_sa_format(self):
         json_data = os.path.join(self.export_root, self.dataset_name + ".json")
-        self._create_sa_classes(json_data)
-        loader = self.conversion_algorithm(json_data, self.output_dir)
-        # jsons = glob.glob(
-        #     os.path.join(self.export_root, '*.json'), recursive=True
-        # )
-        # for json_data in jsons:
-        #     self._create_sa_classes(json_data)
-        #     loader = self.conversion_algorithm(json_data, self.output_dir)
+        sa_classes = self._create_sa_classes(json_data)
+        sa_jsons = self.conversion_algorithm(json_data, self.output_dir)
+        self.dump_output(sa_classes, sa_jsons)
 
 
 class CocoObjectDetectionStrategy(CoCoConverter):
@@ -201,14 +196,9 @@ class CocoObjectDetectionStrategy(CoCoConverter):
 
     def to_sa_format(self):
         json_data = os.path.join(self.export_root, self.dataset_name + ".json")
-        self._create_sa_classes(json_data)
-        loader = self.conversion_algorithm(json_data, self.output_dir)
-        # jsons = glob.glob(
-        #     os.path.join(self.export_root, '*.json'), recursive=True
-        # )
-        # for json_data in jsons:
-        #     self._create_sa_classes(json_data)
-        #     loader = self.conversion_algorithm(json_data, self.output_dir)
+        sa_classes = self._create_sa_classes(json_data)
+        sa_jsons = self.conversion_algorithm(json_data, self.output_dir)
+        self.dump_output(sa_classes, sa_jsons)
 
 
 class CocoKeypointDetectionStrategy(CoCoConverter):
@@ -276,11 +266,6 @@ class CocoKeypointDetectionStrategy(CoCoConverter):
 
     def to_sa_format(self):
         json_data = os.path.join(self.export_root, self.dataset_name + ".json")
-        self._create_sa_classes(json_data)
-        loader = self.conversion_algorithm(json_data, self.output_dir)
-        # jsons = glob.glob(
-        #     os.path.join(self.export_root, '*.json'), recursive=True
-        # )
-        # for json_data in jsons:
-        #     self._create_sa_classes(json_data)
-        #     loader = self.conversion_algorithm(json_data, self.output_dir)
+        sa_classes = self._create_sa_classes(json_data)
+        sa_jsons = self.conversion_algorithm(json_data, self.output_dir)
+        self.dump_output(sa_classes, sa_jsons)

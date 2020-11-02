@@ -39,14 +39,7 @@ class VocObjectDetectionStrategy(VocConverter):
         sa_classes, sa_jsons, sa_masks = self.conversion_algorithm(
             self.export_root
         )
-        with open(
-            os.path.join(self.output_dir, "classes", "classes.json"), "w"
-        ) as fp:
-            json.dump(sa_classes, fp, indent=2)
-
-        for sa_json_name, sa_json_value in sa_jsons.items():
-            with open(os.path.join(self.output_dir, sa_json_name), "w") as fp:
-                json.dump(sa_json_value, fp, indent=2)
+        self.dump_output(sa_classes, sa_jsons)
 
         if self.project_type == 'Pixel':
             all_files = os.listdir(self.output_dir)

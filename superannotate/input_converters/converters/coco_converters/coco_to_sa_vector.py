@@ -99,6 +99,7 @@ def coco_instance_segmentation_to_sa_vector(coco_path, images_path):
                 image_id_to_annotations[sa_dict_bbox['imageId']
                                        ].append(sa_dict_bbox)
 
+    sa_jsons = {}
     for img in tqdm(coco_json['images'], "Writing annotations to disk"):
         if img['id'] not in image_id_to_annotations:
             continue
@@ -107,10 +108,9 @@ def coco_instance_segmentation_to_sa_vector(coco_path, images_path):
             image_path = img['file_name']
         else:
             image_path = img['coco_url'].split('/')[-1]
-        with open(
-            os.path.join(images_path, image_path + "___objects.json"), "w"
-        ) as new_json:
-            json.dump(f_loader, new_json, indent=2)
+        file_name = image_path + "___objects.json"
+        sa_jsons[file_name] = f_loader
+    return sa_jsons
 
 
 def coco_keypoint_detection_to_sa_vector(coco_path, images_path):
@@ -249,13 +249,12 @@ def coco_keypoint_detection_to_sa_vector(coco_path, images_path):
                         if sa_template['imageId'] == img['id']:
                             loader.append((img['id'], sa_template))
 
+        sa_jsons = {}
         for img in coco_json['images']:
             f_loader = []
             for img_id, img_data in loader:
                 if img['id'] == img_id:
                     f_loader.append(img_data)
-            with open(
-                os.path.join(images_path, img['file_name'] + "___objects.json"),
-                "w"
-            ) as new_json:
-                json.dump(f_loader, new_json, indent=2)
+            file_name = img['file_name'] + "___objects.json"
+            sa_jsons[file_name] = f_loader
+    return sa_jsons

@@ -37,7 +37,8 @@ class LabelBoxObjectDetectionStrategy(LabelBoxConverter):
             open(os.path.join(self.export_root, self.dataset_name + '.json'))
         )
         id_generator = self._make_id_generator()
-        self.converion_algorithm(json_data, self.output_dir, id_generator)
+        sa_jsons, sa_classes = self.converion_algorithm(json_data, id_generator)
+        self.dump_output(sa_classes, sa_jsons)
 
     def _make_id_generator(self):
         cur_id = 0

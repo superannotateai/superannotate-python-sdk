@@ -15,6 +15,7 @@ def coco_panoptic_segmentation_to_sa_pixel(coco_path, images_path):
     hex_colors = blue_color_generator(len(coco_json["categories"]))
     annotate_list = coco_json["annotations"]
 
+    sa_jsons = {}
     for annotate in tqdm(annotate_list, "Converting"):
         annot_name = os.path.splitext(annotate["file_name"])[0]
         img_cv = cv2.imread(os.path.join(images_path, annot_name + ".png"))
@@ -49,17 +50,15 @@ def coco_panoptic_segmentation_to_sa_pixel(coco_path, images_path):
             }
             out_json.append(dd)
 
-        with open(
-            os.path.join(images_path, annot_name + ".jpg___pixel.json"), "w"
-        ) as writer:
-            json.dump(out_json, writer, indent=2)
-
         img = cv2.cvtColor(img.reshape((H, W, C)), cv2.COLOR_RGB2BGR)
         cv2.imwrite(
             os.path.join(images_path, annot_name + ".jpg___save.png"), img
         )
 
+        file_name = annot_name + ".jpg___pixel.json"
+        sa_jsons[file_name] = out_json
         os.remove(os.path.join(images_path, annot_name + ".png"))
+    return sa_jsons
 
 
 def coco_instance_segmentation_to_sa_pixel(coco_path, images_path):
@@ -116,6 +115,8 @@ def coco_instance_segmentation_to_sa_pixel(coco_path, images_path):
             value['mask']
         )
 
+    sa_jsons = {}
     for key, sa_js in sa_json.items():
-        with open(os.path.join(images_path, key + '___pixel.json'), 'w') as fw:
-            json.dump(sa_js, fw, indent=2)
+        file_name = key + '___pixel.json'
+        sa_jsons[file_name] = sa_js
+    return sa_jsons

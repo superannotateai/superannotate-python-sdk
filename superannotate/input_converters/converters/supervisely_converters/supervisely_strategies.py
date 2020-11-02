@@ -30,7 +30,9 @@ class SuperviselyObjectDetectionStrategy(SuperviselyConverter):
 
     def to_sa_format(self):
         id_generator = self._make_id_generator()
-        classes_id_map = self._create_sa_classes(self.export_root, id_generator)
+        sa_classes, classes_id_map = self._create_sa_classes(
+            self.export_root, id_generator
+        )
         json_files = []
         if self.dataset_name != '':
             json_files.append(
@@ -45,9 +47,7 @@ class SuperviselyObjectDetectionStrategy(SuperviselyConverter):
                 for file in files
             ]
         sa_jsons = self.converion_algorithm(json_files, classes_id_map)
-        for key, value in sa_jsons.items():
-            with open(os.path.join(self.output_dir, key), 'w') as fw:
-                json.dump(value, fw, indent=2)
+        self.dump_output(sa_classes, sa_jsons)
 
     def _make_id_generator(self):
         cur_id = 0
@@ -105,10 +105,4 @@ class SuperviselyObjectDetectionStrategy(SuperviselyConverter):
                     ]
             }
             classes_loader.append(attr_group)
-
-        with open(
-            os.path.join(self.output_dir, 'classes', 'classes.json'), 'w'
-        ) as fw:
-            json.dump(classes_loader, fw, indent=2)
-
-        return classes_id_map
+        return classes_loader, classes_id_map

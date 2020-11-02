@@ -36,6 +36,7 @@ def _move_files(imgs, masks, output_dir, platforom):
         output_path = os.path.join(output_dir, "images")
         os.makedirs(output_path)
     else:
+        os.makedirs(os.path.join(output_dir, 'classes'))
         output_path = output_dir
 
     if imgs is not None:
@@ -52,12 +53,12 @@ def import_to_sa(args):
     :param args: All arguments that will be used during convertion.
     :type args: Namespace
     """
-    try:
-        os.makedirs(os.path.join(args.output_dir, "classes"))
-    except Exception as e:
-        log_msg = "Could not create output folders, check if they already exist"
-        logging.error(log_msg)
-        sys.exit()
+    # try:
+    #     os.makedirs(os.path.join(args.output_dir, "classes"))
+    # except Exception as e:
+    #     log_msg = "Could not create output folders, check if they already exist"
+    #     logging.error(log_msg)
+    #     sys.exit()
 
     try:
         images, masks = _load_files(args.input_dir, args.project_type)
@@ -69,7 +70,7 @@ def import_to_sa(args):
     try:
         _move_files(images, masks, args.output_dir, args.platform)
     except Exception as e:
-        log_msg = 'Something is went wrong while moving or copying files from source folder'
+        log_msg = 'Something went wrong while moving or copying files from source folder'
         logging.error(log_msg)
         logging.error(e)
 

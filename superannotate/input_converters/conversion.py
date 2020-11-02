@@ -10,61 +10,64 @@ from .export_from_sa_conversions import export_from_sa
 from .sa_conversion import sa_convert_platform, sa_convert_project_type
 from ..exceptions import SABaseException
 
-AVAILABLE_ANNOTATION_FORMATS = [
-    "COCO", "VOC", "LabelBox", "DataLoop", 'Supervisely', 'VoTT', 'SageMaker',
-    'VGG', 'GoogleCloud'
-]
-
 AVAILABLE_PLATFORMS = ["Desktop", "Web"]
 
 ALLOWED_TASK_TYPES = [
     'panoptic_segmentation', 'instance_segmentation', 'keypoint_detection',
-    'object_detection', 'vector_annotation', 'pixel_annotation'
+    'object_detection', 'vector_annotation'
 ]
 
 ALLOWED_PROJECT_TYPES = ['Pixel', 'Vector']
 
-ALLOWED_CONVERSIONS_SA_TO_COCO = [
-    ('Pixel', 'panoptic_segmentation'), ('Pixel', 'instance_segmentation'),
-    ('Vector', 'instance_segmentation'), ('Vector', 'keypoint_detection'),
-    ('Vector', 'object_detection')
-]
+ALLOWED_ANNOTATION_IMPORT_FORMATS = {
+    'COCO':
+        [
+            ('Pixel', 'panoptic_segmentation'),
+            ('Pixel', 'instance_segmentation'),
+            ('Vector', 'keypoint_detection'),
+            ('Vector', 'instance_segmentation')
+        ],
+    'VOC':
+        [
+            ('Vector', 'object_detection'), ('Vector', 'instance_segmentation'),
+            ('Pixel', 'instance_segmentation')
+        ],
+    'LabelBox':
+        [
+            ('Vector', 'object_detection'), ('Vector', 'instance_segmentation'),
+            ('Vector', 'vector_annotation')
+        ],
+    'DataLoop':
+        [
+            ('Vector', 'object_detection'), ('Vector', 'instance_segmentation'),
+            ('Vector', 'vector_annotation')
+        ],
+    'Supervisely': [('Vector', 'vector_annotation')],
+    'VoTT':
+        [
+            ('Vector', 'object_detection'), ('Vector', 'instance_segmentation'),
+            ('Vector', 'vector_annotation')
+        ],
+    'SageMaker':
+        [('Pixel', 'instance_segmentation'), ('Vector', 'object_detection')],
+    'VGG':
+        [
+            ('Vector', 'object_detection'), ('Vector', 'instance_segmentation'),
+            ('Vector', 'vector_annotation')
+        ],
+    'GoogleCloud': [('Vector', 'object_detection')],
+    'YOLO': [('Vector', 'object_detection')]
+}
 
-ALLOWED_CONVERSIONS_COCO_TO_SA = [
-    ('Pixel', 'panoptic_segmentation'), ('Pixel', 'instance_segmentation'),
-    ('Vector', 'keypoint_detection'), ('Vector', 'instance_segmentation')
-]
-
-ALLOWED_CONVERSIONS_VOC_TO_SA = [
-    ('Vector', 'object_detection'), ('Vector', 'instance_segmentation'),
-    ('Pixel', 'instance_segmentation')
-]
-
-ALLOWED_CONVERSIONS_LABELBOX_TO_SA = [
-    ('Vector', 'object_detection'), ('Vector', 'instance_segmentation'),
-    ('Vector', 'vector_annotation')
-]
-
-ALLOWED_CONVERSIONS_DATALOOP_TO_SA = [
-    ('Vector', 'object_detection'), ('Vector', 'instance_segmentation'),
-    ('Vector', 'vector_annotation')
-]
-
-ALLOWED_CONVERSIONS_SUPERVISELY_TO_SA = [('Vector', 'vector_annotation')]
-
-ALLOWED_CONVERSIONS_VOTT_TO_SA = [
-    ('Vector', 'object_detection'), ('Vector', 'instance_segmentation'),
-    ('Vector', 'vector_annotation')
-]
-
-# ALLOWED_CONVERSIONS_SAGEMAKER_TO_SA = [('Vector', 'object_detection')]
-
-ALLOWED_CONVERSIONS_VGG_TO_SA = [
-    ('Vector', 'object_detection'), ('Vector', 'instance_segmentation'),
-    ('Vector', 'vector_annotation')
-]
-
-ALLOWED_CONVERSIONS_GOOGLECLOUD_TO_SA = [('Vector', 'object_detection')]
+ALLOWED_ANNOTATION_EXPORT_FORMATS = {
+    'COCO':
+        [
+            ('Pixel', 'panoptic_segmentation'),
+            ('Pixel', 'instance_segmentation'),
+            ('Vector', 'instance_segmentation'),
+            ('Vector', 'keypoint_detection'), ('Vector', 'object_detection')
+        ]
+}
 
 
 def _passes_sanity_checks(args):
@@ -80,9 +83,9 @@ def _passes_sanity_checks(args):
         )
         raise SABaseException(0, log_msg)
 
-    if args.dataset_format not in AVAILABLE_ANNOTATION_FORMATS:
+    if args.dataset_format not in ALLOWED_ANNOTATION_IMPORT_FORMATS.keys():
         log_msg = "'%s' converter doesn't exist. Possible candidates are '%s'"\
-         % (args.dataset_format, AVAILABLE_ANNOTATION_FORMATS)
+         % (args.dataset_format, ALLOWED_ANNOTATION_IMPORT_FORMATS.keys())
         raise SABaseException(0, log_msg)
 
     if not isinstance(args.dataset_name, str):
@@ -114,27 +117,12 @@ def _passes_sanity_checks(args):
 def _passes_converter_sanity(args, direction):
     converter_values = (args.project_type, args.task)
     if direction == 'import':
-        if args.dataset_format == "COCO" and converter_values in ALLOWED_CONVERSIONS_COCO_TO_SA:
-            return True
-        elif args.dataset_format == "VOC" and converter_values in ALLOWED_CONVERSIONS_VOC_TO_SA:
-            return True
-        elif args.dataset_format == "LabelBox" and \
-        converter_values in ALLOWED_CONVERSIONS_LABELBOX_TO_SA:
-            return True
-        elif args.dataset_format == "DataLoop" and converter_values in ALLOWED_CONVERSIONS_DATALOOP_TO_SA:
-            return True
-        elif args.dataset_format == "Supervisely" and converter_values in ALLOWED_CONVERSIONS_SUPERVISELY_TO_SA:
-            return True
-        elif args.dataset_format == 'VoTT' and converter_values in ALLOWED_CONVERSIONS_VOTT_TO_SA:
-            return True
-        # elif args.dataset_format == 'SageMaker' and converter_values in ALLOWED_CONVERSIONS_SAGEMAKER_TO_SA:
-        #     return True
-        elif args.dataset_format == 'VGG' and converter_values in ALLOWED_CONVERSIONS_VGG_TO_SA:
-            return True
-        elif args.dataset_format == 'GoogleCloud' and converter_values in ALLOWED_CONVERSIONS_GOOGLECLOUD_TO_SA:
+        if converter_values in ALLOWED_ANNOTATION_IMPORT_FORMATS[
+            args.dataset_format]:
             return True
     else:
-        if args.dataset_format == "COCO" and converter_values in ALLOWED_CONVERSIONS_SA_TO_COCO:
+        if converter_values in ALLOWED_ANNOTATION_EXPORT_FORMATS[
+            args.dataset_format]:
             return True
 
     log_msg = "Please enter valid converter values. You can check available \
