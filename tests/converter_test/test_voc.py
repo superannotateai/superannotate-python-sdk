@@ -74,9 +74,6 @@ def voc_pixel(tmpdir):
 
 
 def test_voc(tmpdir):
-
-    sa.init(Path.home() / ".superannotate" / "config.json")
-
     assert voc_vector_object(tmpdir) == 0
     assert voc_pixel(tmpdir) == 0
     assert voc_vector_instance(tmpdir) == 0

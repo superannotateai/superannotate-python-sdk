@@ -1,14 +1,15 @@
+from pathlib import Path
 import superannotate as sa
 
 
-def supervisely_convert(tmpdir):
-    out_dir = tmpdir / 'output'
+def vott_convert(tmpdir):
+    out_dir = tmpdir / "vector_annotation"
     sa.import_annotation_format(
-        'tests/converter_test/Supervisely/input/toSuperAnnotate', str(out_dir),
-        'Supervisely', '', 'Vector', 'vector_annotation', 'Web'
+        "tests/converter_test/VoTT/input/toSuperAnnotate", str(out_dir), "VoTT",
+        "", "Vector", "vector_annotation", "Web"
     )
 
-    project_name = "supervisely_test"
+    project_name = "vott_vector"
 
     projects = sa.search_projects(project_name, True)
     if projects:
@@ -24,5 +25,5 @@ def supervisely_convert(tmpdir):
     return 0
 
 
-def test_supervisely(tmpdir):
-    assert supervisely_convert(tmpdir) == 0
+def test_vott(tmpdir):
+    assert vott_convert(tmpdir) == 0

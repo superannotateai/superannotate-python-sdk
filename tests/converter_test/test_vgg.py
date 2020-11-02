@@ -1,14 +1,15 @@
+from pathlib import Path
 import superannotate as sa
 
 
-def supervisely_convert(tmpdir):
-    out_dir = tmpdir / 'output'
+def googlecloud_convert(tmpdir):
+    out_dir = tmpdir / "output"
     sa.import_annotation_format(
-        'tests/converter_test/Supervisely/input/toSuperAnnotate', str(out_dir),
-        'Supervisely', '', 'Vector', 'vector_annotation', 'Web'
+        "tests/converter_test/VGG/input/toSuperAnnotate", str(out_dir), "VGG",
+        "vgg_test", "Vector", "object_detection", "Web"
     )
 
-    project_name = "supervisely_test"
+    project_name = "vgg_test"
 
     projects = sa.search_projects(project_name, True)
     if projects:
@@ -24,5 +25,5 @@ def supervisely_convert(tmpdir):
     return 0
 
 
-def test_supervisely(tmpdir):
-    assert supervisely_convert(tmpdir) == 0
+def test_googlecloud(tmpdir):
+    assert googlecloud_convert(tmpdir) == 0
