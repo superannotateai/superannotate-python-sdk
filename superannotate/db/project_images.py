@@ -37,6 +37,9 @@ def upload_image_to_project(
     :type project: str or dict
     :param img: image to upload
     :type img: io.BytesIO() or Pathlike (str or Path)
+    :param image_name: image name to set on platform. If None and img is filepath,
+                       image name will be set to filename of the path
+    :type image_name: str
     :param annotation_status: value to set the annotation statuses of the uploaded image NotStarted InProgress QualityCheck Returned Completed Skipped
     :type annotation_status: str
     :param from_s3_bucket: AWS S3 bucket to use. If None then folder_path is in local filesystem

@@ -78,20 +78,24 @@ def test_add_bbox(tmpdir):
         project, image_name, [800, 500, 900, 600, 850, 450, 950, 700],
         "test_add"
     )
+    sa.add_annotation_comment_to_image(
+        project, image_name, "hey", [100, 100], "hovnatan@superannotate.com",
+        True
+    )
     annotations_new = sa.get_image_annotations(project,
                                                image_name)["annotation_json"]
     json.dump(annotations_new, open(tmpdir / "new_anns.json", "w"))
 
-    assert len(annotations_new) == len(annotations) + 7
+    assert len(annotations_new) == len(annotations) + 8
 
     export = sa.prepare_export(project, include_fuse=True)
     sa.download_export(project, export, tmpdir)
 
     df = sa.aggregate_annotations_as_df(tmpdir)
 
-    num = len(df[df["imageName"] == image_name]["instanceId"].unique())
+    num = len(df[df["imageName"] == image_name]["instanceId"].dropna().unique())
 
-    assert num == len(annotations) - 2 + 7  # 2 comments
+    assert num == len(annotations) - 3 + 7
 
 
 def test_add_bbox_noinit(tmpdir):

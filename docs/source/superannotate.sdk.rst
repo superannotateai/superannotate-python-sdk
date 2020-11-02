@@ -33,6 +33,8 @@ ________
 .. autofunction:: superannotate.upload_image_to_project
 .. _ref_upload_images_from_folder_to_project:
 .. autofunction:: superannotate.upload_images_from_folder_to_project
+.. autofunction:: superannotate.upload_video_to_project
+.. autofunction:: superannotate.upload_videos_from_folder_to_project
 .. _ref_upload_annotations_from_folder_to_project:
 .. autofunction:: superannotate.upload_annotations_from_folder_to_project
 .. autofunction:: superannotate.upload_preannotations_from_folder_to_project
@@ -80,6 +82,7 @@ ______
 .. autofunction:: superannotate.add_annotation_ellipse_to_image
 .. autofunction:: superannotate.add_annotation_template_to_image
 .. autofunction:: superannotate.add_annotation_cuboid_to_image
+.. autofunction:: superannotate.add_annotation_comment_to_image
 .. autofunction:: superannotate.create_fuse_image
 
 ----------
@@ -100,6 +103,7 @@ __________________
 Team contributors
 _________________
 
+.. autofunction:: superannotate.get_team_metadata
 .. autofunction:: superannotate.invite_contributor_to_team
 
 ----------
@@ -275,8 +279,9 @@ _____________________________________________________________
 
 .. autofunction:: superannotate.import_annotation_format
 .. autofunction:: superannotate.export_annotation_format
-.. autofunction:: superannotate.convert_platform
 .. autofunction:: superannotate.convert_project_type
+.. autofunction:: superannotate.convert_platform
+
 ----------
 
 Working with annotations
@@ -290,15 +295,18 @@ ________________________
 .. autofunction:: superannotate.add_annotation_ellipse_to_json
 .. autofunction:: superannotate.add_annotation_template_to_json
 .. autofunction:: superannotate.add_annotation_cuboid_to_json
+.. autofunction:: superannotate.add_annotation_comment_to_json
 .. autofunction:: superannotate.aggregate_annotations_as_df
+.. autofunction:: superannotate.consensus
 .. autofunction:: superannotate.df_to_annotations
 .. _ref_filter_annotation_instances:
 .. autofunction:: superannotate.filter_annotation_instances
 .. autofunction:: superannotate.filter_images_by_comments
+.. autofunction:: superannotate.filter_images_by_tags
 
 ----------
 
-Aggregating class distribution from annotations
+Aggregating class/attribute distribution from annotations
 _____________________________________________________________
 
 .. autofunction:: superannotate.class_distribution

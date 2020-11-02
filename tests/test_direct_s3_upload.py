@@ -9,7 +9,7 @@ import superannotate as sa
 sa.init(Path.home() / ".superannotate" / "config.json")
 
 TEST_PROJECT_NAME = "test_direct_s3_upload"
-S3_BUCKET = 'hovnatan-test'
+S3_BUCKET = 'superannotate-python-sdk-test'
 S3_FOLDER = 'sample_project_vector'
 S3_FOLDER_STRESS = 'ff'
 
@@ -22,11 +22,13 @@ def test_direct_s3_upload():
     project = sa.create_project(TEST_PROJECT_NAME, "a", "Vector")
     print(project["id"])
 
-    csv = (Path.home() /
-           "hovnatan_aws.csv").read_text().splitlines()[1].split(",")
+    csv = (Path.home() / ".aws" / "credentials").read_text().splitlines()
+
+    access_key_id = csv[1].split(" = ")[1]
+    access_secret = csv[2].split(" = ")[1]
 
     sa.upload_images_from_s3_bucket_to_project(
-        project, csv[2], csv[3], S3_BUCKET, S3_FOLDER
+        project, access_key_id, access_secret, S3_BUCKET, S3_FOLDER
     )
     s3_client = boto3.client('s3')
     paginator = s3_client.get_paginator('list_objects_v2')

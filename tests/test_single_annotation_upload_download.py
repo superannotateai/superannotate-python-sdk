@@ -53,9 +53,9 @@ def test_annotation_download_upload(
     json1 = json.load(open(input_annotation_paths[0]))
     json2 = json.load(open(anns_json_in_folder[0]))
     for i in json1:
-        del i["classId"]
+        i.pop("classId", None)
     for i in json2:
-        del i["classId"]
+        i.pop("classId", None)
     assert json1 == json2
     if project_type == "Pixel":
         assert filecmp.cmp(

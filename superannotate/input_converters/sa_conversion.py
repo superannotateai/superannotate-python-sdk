@@ -4,13 +4,15 @@ import logging
 import os
 import shutil
 import time
-import cv2
-import numpy as np
-
-from tqdm import tqdm
 from pathlib import Path
 
-from ..common import hex_to_rgb, rgb_to_hex, blue_color_generator
+import cv2
+import numpy as np
+from tqdm import tqdm
+
+from ..common import blue_color_generator, hex_to_rgb, rgb_to_hex
+
+logger = logging.getLogger("superannotate-python-sdk")
 
 
 def _merge_jsons(input_dir, output_dir):
@@ -53,12 +55,10 @@ def _merge_jsons(input_dir, output_dir):
 def _split_json(input_dir, output_dir):
     os.makedirs(output_dir)
     json_data = json.load(open(os.path.join(input_dir, "annotations.json")))
-    images = json_data.keys()
-    for img in images:
-        annotations = json_data[img]
+    for img, annotations in tqdm(json_data.items()):
         objects = []
         for annot in annotations:
-            objects.append(annot)
+            objects += annot
 
         with open(os.path.join(output_dir, img + "___objects.json"), "w") as fw:
             json.dump(objects, fw, indent=2)

@@ -1,14 +1,17 @@
+import copy
 import io
 import json
 import logging
 import math
-import sys
+import random
 import threading
+import tempfile
 import time
-import copy
 from pathlib import Path
 
 import boto3
+import cv2
+import ffmpeg
 from PIL import Image
 from tqdm import tqdm
 
@@ -22,9 +25,8 @@ from ..exceptions import (
     SANonExistingProjectNameException
 )
 from .annotation_classes import (
-    create_annotation_classes_from_classes_json, search_annotation_classes,
-    get_annotation_classes_id_to_name, get_annotation_classes_name_to_id,
-    fill_class_and_attribute_ids, fill_class_and_attribute_names
+    create_annotation_classes_from_classes_json, fill_class_and_attribute_ids,
+    get_annotation_classes_name_to_id, search_annotation_classes
 )
 from .project import get_project_metadata
 from .users import get_team_contributor_metadata
@@ -244,6 +246,231 @@ def get_project_image_count(project):
     return response.json()["total_images"]
 
 
+def upload_video_to_project(
+    project,
+    video_path,
+    target_fps=None,
+    start_time=0.0,
+    end_time=None,
+    annotation_status="NotStarted",
+    image_quality_in_editor=None
+):
+    """Uploads image frames from video to platform. Uploaded images will have
+    names "<video_name>_<frame_no>.jpg".
+
+    :param project: project name or metadata of the project to upload video frames to
+    :type project: str or dict
+    :param video_path: video to upload
+    :type video_path: Pathlike (str or Path)
+    :param target_fps: how many frames per second need to extract from the video (approximate).
+                       If None, all frames will be uploaded
+    :type target_fps: float
+    :param start_time: Time (in seconds) from which to start extracting frames
+    :type start_time: float
+    :param end_time: Time (in seconds) up to which to extract frames. If None up to end
+    :type end_time: float
+    :param annotation_status: value to set the annotation statuses of the uploaded
+                              video frames NotStarted InProgress QualityCheck Returned Completed Skipped
+    :type annotation_status: str
+    :param image_quality_in_editor: image quality (in percents) that will be
+                                    seen in SuperAnnotate web annotation editor.
+                                    If None default value will be used
+    :type image_quality_in_editor: int
+
+    :return: filenames of uploaded images
+    :rtype: list of strs
+    """
+    logger.info("Uploading from video %s.", str(video_path))
+    rotate_code = None
+    try:
+        meta_dict = ffmpeg.probe(str(video_path))
+        rot = int(meta_dict['streams'][0]['tags']['rotate'])
+        if rot == 90:
+            rotate_code = cv2.ROTATE_90_CLOCKWISE
+        elif rot == 180:
+            rotate_code = cv2.ROTATE_180
+        elif rot == 270:
+            rotate_code = cv2.ROTATE_90_COUNTERCLOCKWISE
+        if rot != 0:
+            logger.info(
+                "Frame rotation of %s found. Output images will be rotated accordingly.",
+                rot
+            )
+    except:
+        logger.warning("Couldn't read video metadata.")
+
+    video = cv2.VideoCapture(str(video_path), cv2.CAP_FFMPEG)
+    if not video.isOpened():
+        raise SABaseException(0, "Couldn't open video file " + str(video_path))
+
+    total_num_of_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
+    if total_num_of_frames < 0:
+        if target_fps is not None:
+            logger.warning(
+                "Number of frames indicated in the video is negative number. Disabling FPS change."
+            )
+            target_fps = None
+    else:
+        logger.info("Video frame count is %s.", total_num_of_frames)
+
+    if target_fps is not None:
+        video_fps = video.get(cv2.CAP_PROP_FPS)
+        logger.info(
+            "Video frame rate is %s. Target frame rate is %s.", video_fps,
+            target_fps
+        )
+        if target_fps > video_fps:
+            target_fps = None
+        else:
+            r = video_fps / target_fps
+            frames_count_to_drop = total_num_of_frames - (
+                total_num_of_frames / r
+            )
+            percent_to_drop = frames_count_to_drop / total_num_of_frames
+            my_random = random.Random(122222)
+
+    zero_fill_count = len(str(total_num_of_frames))
+    tempdir = tempfile.TemporaryDirectory()
+
+    video_name = Path(video_path).name
+    frame_no = 1
+    while True:
+        success, frame = video.read()
+        if not success:
+            break
+        if target_fps is not None and my_random.random() < percent_to_drop:
+            continue
+        frame_time = video.get(cv2.CAP_PROP_POS_MSEC) / 1000.0
+        if frame_time < start_time:
+            continue
+        if end_time is not None and frame_time > end_time:
+            continue
+        if rotate_code is not None:
+            frame = cv2.rotate(frame, rotate_code)
+        cv2.imwrite(
+            str(
+                Path(tempdir.name) / (
+                    video_name + "_" + str(frame_no).zfill(zero_fill_count) +
+                    ".jpg"
+                )
+            ), frame
+        )
+        frame_no += 1
+
+    logger.info(
+        "Extracted %s frames from video. Now uploading to platform.",
+        frame_no - 1
+    )
+
+    filenames = upload_images_from_folder_to_project(
+        project,
+        tempdir.name,
+        extensions=["jpg"],
+        annotation_status=annotation_status,
+        image_quality_in_editor=image_quality_in_editor
+    )
+
+    assert len(filenames[1]) == 0
+
+    filenames_base = []
+    for file in filenames[0]:
+        filenames_base.append(Path(file).name)
+
+    return filenames_base
+
+
+def upload_videos_from_folder_to_project(
+    project,
+    folder_path,
+    extensions=None,
+    exclude_file_patterns=None,
+    recursive_subfolders=False,
+    target_fps=None,
+    start_time=0.0,
+    end_time=None,
+    annotation_status="NotStarted",
+    image_quality_in_editor=None
+):
+    """Uploads image frames from all videos with given extensions from folder_path to the project.
+    Sets status of all the uploaded images to set_status if it is not None.
+
+    :param project: project name or metadata of the project to upload videos to
+    :type project: str or dict
+    :param folder_path: from which folder to upload the videos
+    :type folder_path: Pathlike (str or Path)
+    :param extensions: list of filename extensions to include from folder, if None, then
+                       extensions = ["mp4", "avi", "mov", "webm", "flv", "mpg", "ogg"]
+    :type extensions: list of str
+    :param exclude_file_patterns: filename patterns to exclude from uploading
+    :type exclude_file_patterns: list of strs
+    :param recursive_subfolders: enable recursive subfolder parsing
+    :type recursive_subfolders: bool
+    :param target_fps: how many frames per second need to extract from the video (approximate).
+                       If None, all frames will be uploaded
+    :type target_fps: float
+    :param start_time: Time (in seconds) from which to start extracting frames
+    :type start_time: float
+    :param end_time: Time (in seconds) up to which to extract frames. If None up to end
+    :type end_time: float
+    :param annotation_status: value to set the annotation statuses of the uploaded images NotStarted InProgress QualityCheck Returned Completed Skipped
+    :type annotation_status: str
+    :param image_quality_in_editor: image quality (in percents) that will be seen in SuperAnnotate web annotation editor. If None default value will be used.
+    :type image_quality_in_editor: int
+
+    :return: uploaded and not-uploaded video frame images' filenames
+    :rtype: tuple of list of strs
+    """
+    if not isinstance(project, dict):
+        project = get_project_metadata(project)
+    if recursive_subfolders:
+        logger.warning(
+            "When using recursive subfolder parsing same name videos in different subfolders will overwrite each other."
+        )
+    if exclude_file_patterns is None:
+        exclude_file_patterns = []
+    if extensions is None:
+        extensions = ["mp4", "avi", "mov", "webm", "flv", "mpg", "ogg"]
+    elif not isinstance(extensions, list):
+        raise SABaseException(
+            0,
+            "extensions should be a list in upload_images_from_folder_to_project"
+        )
+
+    logger.info(
+        "Uploading all videos with extensions %s from %s to project %s. Excluded file patterns are: %s.",
+        extensions, folder_path, project["name"], exclude_file_patterns
+    )
+    paths = []
+    for extension in extensions:
+        if not recursive_subfolders:
+            paths += list(Path(folder_path).glob(f'*.{extension.lower()}'))
+            paths += list(Path(folder_path).glob(f'*.{extension.upper()}'))
+        else:
+            paths += list(Path(folder_path).rglob(f'*.{extension.lower()}'))
+            paths += list(Path(folder_path).rglob(f'*.{extension.upper()}'))
+    filtered_paths = []
+    for path in paths:
+        not_in_exclude_list = [
+            x not in Path(path).name for x in exclude_file_patterns
+        ]
+        if all(not_in_exclude_list):
+            filtered_paths.append(path)
+
+    filenames = []
+    for path in filtered_paths:
+        filenames += upload_video_to_project(
+            project,
+            path,
+            target_fps=target_fps,
+            start_time=start_time,
+            end_time=end_time,
+            annotation_status=annotation_status,
+            image_quality_in_editor=image_quality_in_editor
+        )
+
+    return filenames
+
+
 def upload_images_from_folder_to_project(
     project,
     folder_path,
@@ -305,9 +532,11 @@ def upload_images_from_folder_to_project(
         paths = []
         for extension in extensions:
             if not recursive_subfolders:
-                paths += list(Path(folder_path).glob(f'*.{extension}'))
+                paths += list(Path(folder_path).glob(f'*.{extension.lower()}'))
+                paths += list(Path(folder_path).glob(f'*.{extension.upper()}'))
             else:
-                paths += list(Path(folder_path).rglob(f'*.{extension}'))
+                paths += list(Path(folder_path).rglob(f'*.{extension.lower()}'))
+                paths += list(Path(folder_path).rglob(f'*.{extension.upper()}'))
     else:
         s3_client = boto3.client('s3')
         paginator = s3_client.get_paginator('list_objects_v2')
@@ -323,7 +552,8 @@ def upload_images_from_folder_to_project(
                                                            1:]:
                     continue
                 for extension in extensions:
-                    if key.endswith(f'.{extension}'):
+                    if key.endswith(f'.{extension.lower()}'
+                                   ) or key.endswith(f'.{extension.upper()}'):
                         paths.append(key)
                         break
     filtered_paths = []
@@ -345,11 +575,11 @@ def get_image_array_to_upload(
 ):
     Image.MAX_IMAGE_PIXELS = None
     im = Image.open(byte_io_orig)
+    im_format = im.format
     im = im.convert("RGB")
     width, height = im.size
     max_size = _RESIZE_CONFIG[project_type]
     if (width * height) > max_size:
-        im_format = im.format
         logger.warning("One of the images is being resized to smaller size.")
         max_size_root = math.sqrt(max_size)
         nwidth = math.floor(max_size_root * math.sqrt(width / height))
@@ -516,7 +746,7 @@ def upload_images_to_project(
         "Uploading %s images to project %s.", len_img_paths, project["name"]
     )
     if len_img_paths == 0:
-        return
+        return ([], [])
     params = {
         'team_id': team_id,
     }
@@ -806,6 +1036,7 @@ def _upload_annotations_from_folder_to_project(
 
     for ac_upl in actually_uploaded:
         return_result += [str(p) for p in ac_upl]
+    print(return_result)
     return return_result
 
 

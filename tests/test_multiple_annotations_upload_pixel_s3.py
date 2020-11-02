@@ -20,7 +20,7 @@ def test_upload_from_s3(tmpdir):
 
     project = sa.create_project(TEST_PROJECT1, "hk_test", project_type="Pixel")
 
-    f = urlparse(f"s3://hovnatan-test/{TEST_PROJECT_PIXEL}")
+    f = urlparse(f"s3://superannotate-python-sdk-test/{TEST_PROJECT_PIXEL}")
     sa.upload_images_from_folder_to_project(
         project,
         f.path[1:],
@@ -49,7 +49,7 @@ def test_pixel_preannotation_upload_from_s3(tmpdir):
         sa.delete_project(pr)
     project = sa.create_project(TEST_PROJECT2, "hk_test", project_type="Pixel")
 
-    f = urlparse(f"s3://hovnatan-test/{TEST_PROJECT_PIXEL}")
+    f = urlparse(f"s3://superannotate-python-sdk-test/{TEST_PROJECT_PIXEL}")
     sa.upload_images_from_folder_to_project(
         project,
         f.path[1:],
@@ -78,7 +78,7 @@ def test_vector_preannotation_upload_from_s3(tmpdir):
         sa.delete_project(pr)
     project = sa.create_project(TEST_PROJECT3, "hk_test", project_type="Vector")
 
-    f = urlparse(f"s3://hovnatan-test/{TEST_PROJECT_VECTOR}")
+    f = urlparse(f"s3://superannotate-python-sdk-test/{TEST_PROJECT_VECTOR}")
     sa.upload_images_from_folder_to_project(
         project,
         f.path[1:],

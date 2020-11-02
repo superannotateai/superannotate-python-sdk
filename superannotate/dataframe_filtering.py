@@ -42,6 +42,40 @@ def filter_images_by_comments(
     return list(images)
 
 
+def filter_images_by_tags(annotations_df, include=None, exclude=None):
+    """Filter images on tags
+
+    :param annotations_df: pandas DataFrame of project annotations
+    :type annotations_df: pandas.DataFrame
+    :param include: include images with given tags
+    :type include: list of strs
+    :param exclude: exclude images with given tags
+    :type exclude: list of strs
+
+    :return: filtered image names
+    :rtype: list of strs
+
+    """
+
+    df = annotations_df[annotations_df["type"] == "tag"]
+    images = set(df["imageName"].dropna().unique())
+
+    if include:
+        include_images = set(
+            df[df["tag"].isin(include)]["imageName"].dropna().unique()
+        )
+        images = images.intersection(include_images)
+
+    if exclude:
+        exclude_images = set(
+            df[df["tag"].isin(exclude)]["imageName"].dropna().unique()
+        )
+
+        images = images.difference(exclude_images)
+
+    return list(images)
+
+
 def filter_annotation_instances(annotations_df, include=None, exclude=None):
     """Filter annotation instances from project annotations pandas DataFrame.
 
