@@ -272,50 +272,11 @@ Annotation JSON helper functions
 Converting annotation format to and from SuperAnnotate format
 _____________________________________________________________
 
-.. Two important arguments for conversion are <project_type> and <task>. Their combination is important for conversion flow. Tables below present all possible combinations for each conversion method:
-
-.. ==============  ======================
-..          From SA to COCO
-.. --------------------------------------
-..  project_type           task
-.. ==============  ======================
-.. Pixel           panoptic_segmentation
-.. Pixel           instance_segmentation
-.. Vector          instance_segmentation
-.. Vector          object_detection
-.. Vector          keypoint_detection
-.. ==============  ====================== 
-
-.. ==============  ======================
-..          From COCO to SA
-.. --------------------------------------
-..  project_type           task
-.. ==============  ======================
-.. Pixel           panoptic_segmentation
-.. Vector          instance_segmentation
-.. Vector          keypoint_detection
-.. ==============  ====================== 
-
-.. ==============  ======================
-..          From VOC to SA
-.. --------------------------------------
-..  project_type           task
-.. ==============  ======================
-.. Pixel           instance_segmentation
-.. Vector          object_detection
-.. ==============  ====================== 
-
-.. ==============  ======================
-..        From LabelBox to SA
-.. --------------------------------------
-..  project_type           task
-.. ==============  ======================
-.. Vector          object_detection
-.. ==============  ====================== 
 
 .. autofunction:: superannotate.import_annotation_format
 .. autofunction:: superannotate.export_annotation_format
-
+.. autofunction:: superannotate.convert_platform
+.. autofunction:: superannotate.convert_project_type
 ----------
 
 Working with annotations
