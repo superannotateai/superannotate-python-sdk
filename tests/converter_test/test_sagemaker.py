@@ -1,13 +1,30 @@
+from pathlib import Path
 import superannotate as sa
 
-print('one')
-sa.import_annotation_format(
-    'SageMaker/input/toSuperAnnotate/object_detection', 'output', 'SageMaker',
-    'test-obj-detect', 'Vector', 'object_detection', 'Web'
-)
 
-print('two')
-sa.import_annotation_format(
-    'SageMaker/input/toSuperAnnotate/instance_segmentation', 'output2',
-    'SageMaker', 'test-obj-detect', 'Pixel', 'instance_segmentation', 'Web'
-)
+def sagemaker_object_detection(tmpdir):
+    out_dir = tmpdir / "object_detection"
+    sa.import_annotation_format(
+        'tests/converter_test/SageMaker/input/toSuperAnnotate/object_detection',
+        str(out_dir), 'SageMaker', 'test-obj-detect', 'Vector',
+        'object_detection', 'Web'
+    )
+
+    project_name = "sagemaker_object_detection"
+
+    projects = sa.search_projects(project_name, True)
+    if projects:
+        sa.delete_project(projects[0])
+    project = sa.create_project(project_name, "converter vector", "Vector")
+
+    sa.create_annotation_classes_from_classes_json(
+        project, out_dir + "/classes/classes.json"
+    )
+    sa.upload_images_from_folder_to_project(project, out_dir)
+    sa.upload_annotations_from_folder_to_project(project, out_dir)
+
+    return 0
+
+
+def test_sagemaker(tmpdir):
+    assert sagemaker_object_detection(tmpdir) == 0

@@ -5,8 +5,8 @@ import superannotate as sa
 def yolo_object_detection(tmpdir):
     out_dir = tmpdir / "vector_annotation"
     sa.import_annotation_format(
-        'YOLO/input/toSuperAnnotate', str(out_dir), 'YOLO', '', 'Vector',
-        'object_detection', 'Web'
+        'tests/converter_test/YOLO/input/toSuperAnnotate', str(out_dir), 'YOLO',
+        '', 'Vector', 'object_detection', 'Web'
     )
 
     project_name = "yolo_object_detection"
