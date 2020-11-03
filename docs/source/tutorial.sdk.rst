@@ -498,3 +498,44 @@ Grassroots DICOM library <http://gdcm.sourceforge.net/wiki/index.php/Main_Page>`
 
    # or on Ubuntu with versions above 19.04
    sudo apt install python3-gdcm
+
+----------
+
+
+Computing consensus scores for instancec between several projects
+_______________________________________________________
+
+
+Consensus is a tool to compare the quallity of the annotations of the same image that is present in several projects.
+To compute the consensus scores:
+
+.. code-block:: python
+
+   res_df = sa.consensus([project_names], "<path_to_export_folder>", [image_list], "<annotation_type>")
+
+Here pandas DataFrame with following columns is returned: creatorEmail, imageName, instanceId, className, area, attribute, projectName, score
+
+.. image:: consensus_dataframe.png
+
+Besides the pandas DataFrame there is an option to get the following plots by setting the show_plots flag to True:
+
+* Box plot of consensus scores for each annotators
+* Box plot of consensus scores for each project
+* Scatter plots of consensus score vs instance area for each project
+
+.. code-block:: python
+
+   sa.consensus([project_names], "<path_to_export_folder>", [image_list], "<annotation_type>", show_plots=True)
+
+To the left of each box plot the original score points of that annotator is depicted, the box plots are colored by annotator.
+
+.. image:: consensus_annotators_box.png
+
+Analogically the box plots of consensus scores for each project are colored according to project name.
+
+.. image:: consensus_projects_box.png
+
+Scatter plot of consensus score vs instance area is separated by projects. Hovering on a point reveals its annotator and image name. 
+The points are colored according to class name. Each annotator is represented with separate symbol.
+
+.. image:: consensus_scatter.png
