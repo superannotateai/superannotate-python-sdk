@@ -64,6 +64,7 @@ from .exceptions import (
     SANonExistingProjectNameException
 )
 from .consensus_benchmark.consensus import consensus
+from .consensus_benchmark.benchmark import benchmark
 from .input_converters.conversion import (
     convert_platform, convert_project_type, export_annotation_format,
     import_annotation_format
