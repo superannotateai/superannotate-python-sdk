@@ -588,13 +588,16 @@ def get_image_array_to_upload(
         byte_io_orig = io.BytesIO()
         im.save(byte_io_orig, im_format, subsampling=0, quality=100)
 
-    byte_io_lores = io.BytesIO()
-    im.save(
-        byte_io_lores,
-        'JPEG',
-        subsampling=0 if image_quality_in_editor > 60 else 2,
-        quality=image_quality_in_editor
-    )
+    if not image_quality_in_editor == 100 or im_format != "JPEG":
+        byte_io_lores = io.BytesIO()
+        im.save(
+            byte_io_lores,
+            'JPEG',
+            subsampling=0 if image_quality_in_editor > 60 else 2,
+            quality=image_quality_in_editor
+        )
+    else:
+        byte_io_lores = io.BytesIO(byte_io_orig.getbuffer())
 
     byte_io_huge = io.BytesIO()
     hsize = int(height * 600.0 / width)
@@ -1646,10 +1649,10 @@ def _get_project_image_quality_in_editor(project, image_quality_in_editor):
 
 def _set_project_default_image_quality_in_editor(project, quality):
     set_project_settings(
-        project, {
+        project, [{
             "attribute": "ImageQuality",
             "value": quality
-        }
+        }]
     )
 
 
