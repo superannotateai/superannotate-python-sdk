@@ -1579,8 +1579,8 @@ def set_project_settings(project, new_settings):
 
     :param project: project name or metadata
     :type project: str or dict
-    :param project: new settings list of dicts
-    :type project: list of dicts
+    :param new_settings: new settings list of dicts
+    :type new_settings: list of dicts
 
     :return: updated part of project's settings
     :rtype: list of dicts
@@ -1656,6 +1656,13 @@ def _set_project_default_image_quality_in_editor(project, quality):
 def set_project_default_image_quality_in_editor(
     project, image_quality_in_editor
 ):
+    """Sets project's default image quality in editor setting.
+
+    :param project: project name or metadata
+    :type project: str or dict
+    :param image_quality_in_editor: new setting value, should be "original" or "compressed"
+    :type image_quality_in_editor: str
+    """
     if image_quality_in_editor == "compressed":
         image_quality_in_editor = 60
     elif image_quality_in_editor == "original":
@@ -1670,6 +1677,14 @@ def set_project_default_image_quality_in_editor(
 
 
 def get_project_default_image_quality_in_editor(project):
+    """Gets project's default image quality in editor setting.
+
+    :param project: project name or metadata
+    :type project: str or dict
+
+    :return: "original" or "compressed" setting value
+    :rtype: str
+    """
     image_quality_in_editor = _get_project_image_quality_in_editor(
         project, None
     )
