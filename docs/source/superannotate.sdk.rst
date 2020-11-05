@@ -42,8 +42,9 @@ ________
 .. autofunction:: superannotate.unshare_project
 .. autofunction:: superannotate.get_project_settings
 .. autofunction:: superannotate.set_project_settings
-.. autofunction:: superannotate.get_project_default_image_quality_in_editor
-.. autofunction:: superannotate.set_project_default_image_quality_in_editor
+.. 
+  ## .. autofunction:: superannotate.get_project_default_image_quality_in_editor
+  ## .. autofunction:: superannotate.set_project_default_image_quality_in_editor
 .. autofunction:: superannotate.get_project_workflow
 .. autofunction:: superannotate.set_project_workflow
 
