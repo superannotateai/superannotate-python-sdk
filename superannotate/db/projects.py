@@ -1651,3 +1651,34 @@ def _set_project_default_image_quality_in_editor(project, quality):
             "value": quality
         }
     )
+
+
+def set_project_default_image_quality_in_editor(
+    project, image_quality_in_editor
+):
+    if image_quality_in_editor == "compressed":
+        image_quality_in_editor = 60
+    elif image_quality_in_editor == "original":
+        image_quality_in_editor = 100
+    else:
+        raise SABaseException(
+            0, "Image quality in editor should be 'compressed', 'original'"
+        )
+    _set_project_default_image_quality_in_editor(
+        project, image_quality_in_editor
+    )
+
+
+def get_project_default_image_quality_in_editor(project):
+    image_quality_in_editor = _get_project_image_quality_in_editor(
+        project, None
+    )
+    if image_quality_in_editor == 60:
+        image_quality_in_editor = "compressed"
+    elif image_quality_in_editor == 100:
+        image_quality_in_editor = "original"
+    else:
+        raise SABaseException(
+            0, "Image quality in editor should be '60', '100'"
+        )
+    return image_quality_in_editor

@@ -21,6 +21,7 @@ from .common import (
     image_path_to_annotation_paths, project_type_int_to_str,
     project_type_str_to_int, user_role_str_to_int
 )
+from .consensus_benchmark.consensus import consensus
 from .dataframe_filtering import (
     filter_annotation_instances, filter_images_by_comments,
     filter_images_by_tags
@@ -47,9 +48,11 @@ from .db.project import get_project_metadata, search_projects
 from .db.project_images import copy_image, move_image, upload_image_to_project
 from .db.projects import (
     create_project, create_project_like_project, delete_project,
-    get_project_image_count, get_project_settings, get_project_workflow,
-    rename_project, set_project_settings, set_project_workflow, share_project,
-    unshare_project, upload_annotations_from_folder_to_project,
+    get_project_default_image_quality_in_editor, get_project_image_count,
+    get_project_settings, get_project_workflow, rename_project,
+    set_project_default_image_quality_in_editor, set_project_settings,
+    set_project_workflow, share_project, unshare_project,
+    upload_annotations_from_folder_to_project,
     upload_images_from_folder_to_project,
     upload_images_from_s3_bucket_to_project, upload_images_to_project,
     upload_preannotations_from_folder_to_project, upload_video_to_project,
@@ -63,7 +66,6 @@ from .exceptions import (
     SAExistingProjectNameException, SANonExistingAnnotationClassNameException,
     SANonExistingProjectNameException
 )
-from .consensus_benchmark.consensus import consensus
 from .input_converters.conversion import (
     convert_platform, convert_project_type, export_annotation_format,
     import_annotation_format
