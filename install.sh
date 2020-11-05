@@ -1,11 +1,11 @@
 #!/bin/bash
 
-PYTHON_VER="3.6"
+PYTHON_VER="3.7"
 
 # ubuntu install dependencies
-# sudo add-apt-repository ppa:deadsnakes/ppa
-# sudo apt update
-# sudo apt install python${PYTHON_VER} python${PYTHON_VER}-venv python${PYTHON_VER}-dev
+sudo add-apt-repository ppa:deadsnakes/ppa
+sudo apt update
+sudo apt install python${PYTHON_VER} python${PYTHON_VER}-venv python${PYTHON_VER}-dev
 
 rm -rf venv_sa_conv
 python${PYTHON_VER} -m venv venv_sa_conv
@@ -16,3 +16,6 @@ pip install 'git+https://github.com/cocodataset/panopticapi.git'
 pip install 'git+https://github.com/philferriere/cocoapi.git#egg=pycocotools&subdirectory=PythonAPI'
 
 pip install -e .
+
+# for testing
+pip install pytest pytest-xdist

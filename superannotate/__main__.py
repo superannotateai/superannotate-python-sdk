@@ -89,10 +89,10 @@ def image_upload(args):
     args = parser.parse_args(args)
 
     sa.upload_images_from_folder_to_project(
-        args.project,
-        args.folder,
-        args.extensions,
-        args.set_annotation_status,
+        project=args.project,
+        folder_path=args.folder,
+        extensions=args.extensions,
+        annotation_status=args.set_annotation_status,
         recursive_subfolders=args.recursive
     )
 

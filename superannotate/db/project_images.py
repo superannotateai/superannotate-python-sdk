@@ -14,7 +14,7 @@ from .images import (
     set_image_annotation_status, upload_annotations_from_json_to_image
 )
 from .projects import (
-    __create_image, _get_project_default_image_quality_in_editor,
+    __create_image, _get_project_image_quality_in_editor,
     get_image_array_to_upload, get_project_metadata
 )
 
@@ -44,16 +44,16 @@ def upload_image_to_project(
     :type annotation_status: str
     :param from_s3_bucket: AWS S3 bucket to use. If None then folder_path is in local filesystem
     :type from_s3_bucket: str
-    :param image_quality_in_editor: image quality (in percents) that will be seen in SuperAnnotate web annotation editor. If None default value will be used.
-    :type image_quality_in_editor: int
+    :param image_quality_in_editor: image quality be seen in SuperAnnotate web annotation editor.
+           Can be either "compressed" or "original".  If None then the default value in project settings will be used.
+    :type image_quality_in_editor: str
     """
     if not isinstance(project, dict):
         project = get_project_metadata(project)
     annotation_status = annotation_status_str_to_int(annotation_status)
-    if image_quality_in_editor is None:
-        image_quality_in_editor = _get_project_default_image_quality_in_editor(
-            project
-        )
+    image_quality_in_editor = _get_project_image_quality_in_editor(
+        project, image_quality_in_editor
+    )
 
     img_name = None
     if not isinstance(img, io.BytesIO):
