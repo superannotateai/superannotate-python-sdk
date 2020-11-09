@@ -413,8 +413,9 @@ def upload_videos_from_folder_to_project(
     :type end_time: float
     :param annotation_status: value to set the annotation statuses of the uploaded images NotStarted InProgress QualityCheck Returned Completed Skipped
     :type annotation_status: str
-    :param image_quality_in_editor: image quality (in percents) that will be seen in SuperAnnotate web annotation editor. If None default value will be used.
-    :type image_quality_in_editor: int
+    :param image_quality_in_editor: image quality be seen in SuperAnnotate web annotation editor.
+           Can be either "compressed" or "original".  If None then the default value in project settings will be used.
+    :type image_quality_in_editor: str
 
     :return: uploaded and not-uploaded video frame images' filenames
     :rtype: tuple of list of strs
