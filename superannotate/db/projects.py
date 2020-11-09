@@ -36,8 +36,6 @@ logger = logging.getLogger("superannotate-python-sdk")
 _api = API.get_instance()
 _NUM_THREADS = 10
 
-_RESIZE_CONFIG = {2: 4_000_000, 1: 100_000_000}  # 1: vector 2: pixel
-
 
 def create_project(project_name, project_description, project_type):
     """Create a new project in the team.
@@ -579,15 +577,6 @@ def get_image_array_to_upload(
     im_format = im.format
     im = im.convert("RGB")
     width, height = im.size
-    max_size = _RESIZE_CONFIG[project_type]
-    if (width * height) > max_size:
-        logger.warning("One of the images is being resized to smaller size.")
-        max_size_root = math.sqrt(max_size)
-        nwidth = math.floor(max_size_root * math.sqrt(width / height))
-        nheight = math.floor(max_size_root * math.sqrt(height / width))
-        im = im.resize((nwidth, nheight))
-        byte_io_orig = io.BytesIO()
-        im.save(byte_io_orig, im_format, subsampling=0, quality=100)
 
     if not image_quality_in_editor == 100 or im_format != "JPEG":
         byte_io_lores = io.BytesIO()
@@ -1637,10 +1626,11 @@ def _get_project_image_quality_in_editor(project, image_quality_in_editor):
         for setting in get_project_settings(project):
             if "attribute" in setting and setting["attribute"] == "ImageQuality":
                 return setting["value"]
+        return 60
     elif image_quality_in_editor == "compressed":
-        image_quality_in_editor = 60
+        return 60
     elif image_quality_in_editor == "original":
-        image_quality_in_editor = 100
+        return 100
     else:
         raise SABaseException(
             0,

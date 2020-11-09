@@ -50,7 +50,8 @@ To upload images from folder to project use:
 If optional argument *recursive* is given then subfolders of :file:`<folder_path>` are also recursively
 scanned for available images.
 
-Optional argument *extensions* accepts comma separated list of image extensions to look for. If the argument is not given then value *jpg,png* is assumed.
+Optional argument *extensions* accepts comma separated list of image extensions
+to look for. If the argument is not given then value *jpg,png* is assumed.
 
 ----------
 
@@ -69,7 +70,7 @@ To upload videos from folder to project use:
                                [--end-time <float>]
 
 If optional argument *recursive* is given then subfolders of :file:`<folder_path>` are also recursively
-scanned for available images.
+scanned for available videos.
 
 Optional argument *extensions* accepts comma separated list of image extensions
 to look for. If the argument is not given then value *mp4,avi,mov,webm,flv,mpg,ogg* is assumed.

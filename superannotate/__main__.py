@@ -94,6 +94,7 @@ def video_upload(args):
         '--target-fps',
         required=False,
         default=None,
+        type=float,
         help=
         'How many frames per second need to extract from the videos (approximate).  If not specified all frames will be uploaded'
     )
@@ -101,6 +102,7 @@ def video_upload(args):
         '--start-time',
         required=False,
         default=0.0,
+        type=float,
         help=
         'Time (in seconds) from which to start extracting frames. Default is 0.0'
     )
@@ -108,6 +110,7 @@ def video_upload(args):
         '--end-time',
         required=False,
         default=None,
+        type=float,
         help=
         'Time (in seconds) up to which to extract frames. If it is not specified, then up to end'
     )
