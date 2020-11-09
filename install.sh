@@ -16,6 +16,7 @@ pip install 'git+https://github.com/cocodataset/panopticapi.git'
 pip install 'git+https://github.com/philferriere/cocoapi.git#egg=pycocotools&subdirectory=PythonAPI'
 
 pip install -e .
+# pip install superannotate
 
 # for testing
 pip install pytest pytest-xdist
