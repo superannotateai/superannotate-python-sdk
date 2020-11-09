@@ -19,3 +19,6 @@ pip install -e .
 
 # for testing
 pip install pytest pytest-xdist
+
+# for docs
+pip install sphinx sphinx_rtd_theme

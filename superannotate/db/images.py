@@ -903,50 +903,49 @@ def upload_annotations_from_json_to_image(
         path=f'/image/{image_id}/annotation/getAnnotationUploadToken',
         params=params
     )
-    if response.ok:
-        res = response.json()
-        if project_type == 1:  # vector
-            res = res['objects']
-            s3_session = boto3.Session(
-                aws_access_key_id=res['accessKeyId'],
-                aws_secret_access_key=res['secretAccessKey'],
-                aws_session_token=res['sessionToken']
-            )
-            s3_resource = s3_session.resource('s3')
-            bucket = s3_resource.Bucket(res["bucket"])
-            bucket.put_object(
-                Key=res['filePath'], Body=json.dumps(annotation_json)
-            )
-        else:  # pixel
-            if mask is None:
-                raise SABaseException(0, "Pixel annotation should have mask.")
-            if not isinstance(mask, io.BytesIO):
-                with open(mask, "rb") as f:
-                    mask = io.BytesIO(f.read())
-            res_j = res['pixel']
-            s3_session = boto3.Session(
-                aws_access_key_id=res_j['accessKeyId'],
-                aws_secret_access_key=res_j['secretAccessKey'],
-                aws_session_token=res_j['sessionToken']
-            )
-            s3_resource = s3_session.resource('s3')
-            bucket = s3_resource.Bucket(res_j["bucket"])
-            bucket.put_object(
-                Key=res_j['filePath'], Body=json.dumps(annotation_json)
-            )
-            res_m = res['save']
-            s3_session = boto3.Session(
-                aws_access_key_id=res_m['accessKeyId'],
-                aws_secret_access_key=res_m['secretAccessKey'],
-                aws_session_token=res_m['sessionToken']
-            )
-            s3_resource = s3_session.resource('s3')
-            bucket = s3_resource.Bucket(res_m["bucket"])
-            bucket.put_object(Key=res_m['filePath'], Body=mask)
-    else:
+    if not response.ok:
         raise SABaseException(
             response.status_code, "Couldn't upload annotation. " + response.text
         )
+    res = response.json()
+    if project_type == 1:  # vector
+        res = res['objects']
+        s3_session = boto3.Session(
+            aws_access_key_id=res['accessKeyId'],
+            aws_secret_access_key=res['secretAccessKey'],
+            aws_session_token=res['sessionToken']
+        )
+        s3_resource = s3_session.resource('s3')
+        bucket = s3_resource.Bucket(res["bucket"])
+        bucket.put_object(
+            Key=res['filePath'], Body=json.dumps(annotation_json)
+        )
+    else:  # pixel
+        if mask is None:
+            raise SABaseException(0, "Pixel annotation should have mask.")
+        if not isinstance(mask, io.BytesIO):
+            with open(mask, "rb") as f:
+                mask = io.BytesIO(f.read())
+        res_j = res['pixel']
+        s3_session = boto3.Session(
+            aws_access_key_id=res_j['accessKeyId'],
+            aws_secret_access_key=res_j['secretAccessKey'],
+            aws_session_token=res_j['sessionToken']
+        )
+        s3_resource = s3_session.resource('s3')
+        bucket = s3_resource.Bucket(res_j["bucket"])
+        bucket.put_object(
+            Key=res_j['filePath'], Body=json.dumps(annotation_json)
+        )
+        res_m = res['save']
+        s3_session = boto3.Session(
+            aws_access_key_id=res_m['accessKeyId'],
+            aws_secret_access_key=res_m['secretAccessKey'],
+            aws_session_token=res_m['sessionToken']
+        )
+        s3_resource = s3_session.resource('s3')
+        bucket = s3_resource.Bucket(res_m["bucket"])
+        bucket.put_object(Key=res_m['filePath'], Body=mask)
 
 
 def create_fuse_image(

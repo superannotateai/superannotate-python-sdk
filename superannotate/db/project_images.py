@@ -11,7 +11,8 @@ from ..common import annotation_status_int_to_str, annotation_status_str_to_int
 from ..exceptions import SABaseException
 from .images import (
     delete_image, get_image_annotations, get_image_bytes, get_image_metadata,
-    set_image_annotation_status, upload_annotations_from_json_to_image
+    search_images, set_image_annotation_status,
+    upload_annotations_from_json_to_image
 )
 from .projects import (
     __create_image, _get_project_image_quality_in_editor,
@@ -126,7 +127,8 @@ def copy_image(
     image_name,
     destination_project,
     include_annotations=False,
-    copy_annotation_status=False
+    copy_annotation_status=False,
+    copy_pin=False
 ):
     """Copy image to a project. The image's project is the same as destination
     project then the name will be changed to <image_name>_(<num>).<image_ext>,
@@ -142,6 +144,8 @@ def copy_image(
     :type include_annotations: bool
     :param copy_annotation_status: enables annotations status copy
     :type copy_annotation_status: bool
+    :param copy_pin: enables image pin status copy
+    :type copy_pin: bool
     """
     if not isinstance(source_project, dict):
         source_project = get_project_metadata(source_project)
@@ -190,6 +194,8 @@ def copy_image(
             destination_project, new_name,
             annotation_status_int_to_str(img_metadata["annotation_status"])
         )
+    if copy_pin:
+        pin_image(destination_project, new_name, img_metadata["is_pinned"])
 
     logger.info(
         "Copied image %s/%s to %s/%s.", source_project["name"], image_name,
@@ -201,8 +207,9 @@ def move_image(
     source_project,
     image_name,
     destination_project,
-    include_annotations=False,
-    copy_annotation_status=False
+    include_annotations=True,
+    copy_annotation_status=True,
+    copy_pin=True
 ):
     """Move image from source_project to destination_project. source_project
     and destination_project cannot be the same.
@@ -217,6 +224,8 @@ def move_image(
     :type include_annotations: bool
     :param copy_annotation_status: enables annotations status copy
     :type copy_annotation_status: bool
+    :param copy_pin: enables image pin status copy
+    :type copy_pin: bool
     """
     if not isinstance(source_project, dict):
         source_project = get_project_metadata(source_project)
@@ -228,7 +237,86 @@ def move_image(
         )
     copy_image(
         source_project, image_name, destination_project, include_annotations,
-        copy_annotation_status
+        copy_annotation_status, copy_pin
     )
     delete_image(source_project, image_name)
     logger.info("Deleted image %s/%s.", source_project["name"], image_name)
+
+
+def pin_image(project, image_name, pin=True):
+    """Pins (or unpins) image
+
+    :param project: project name or metadata of the project
+    :type project: str or dict
+    :param image_name: image name
+    :type image: str
+    :param pin: sets to pin if True, else unpins image
+    :type pin: bool
+    """
+    if not isinstance(project, dict):
+        project = get_project_metadata(project)
+    img_metadata = get_image_metadata(project, image_name)
+    team_id, project_id, image_id = project["team_id"], project[
+        "id"], img_metadata["id"]
+    params = {"team_id": team_id, "project_id": project_id}
+    json_req = {"is_pinned": int(pin)}
+    response = _api.send_request(
+        req_type='PUT',
+        path=f'/image/{image_id}',
+        params=params,
+        json_req=json_req
+    )
+    if not response.ok:
+        raise SABaseException(
+            response.status_code, "Couldn't pin image " + response.text
+        )
+
+
+def assign_images(project, image_names, user):
+    """Assigns images to a user. The assignment role, QA or Annotator, will
+    be deduced from the user's role in the project. With SDK, the user can be
+    assigned to a role in the project with the share_project function.
+
+    :param project: project name or metadata of the project
+    :type project: str or dict
+    :param image_names: list of image names to assign
+    :type image_names: list of str
+    :param user: user email
+    :type user: str
+    """
+    logger.info("Assign %s images to user %s", len(image_names), user)
+    if len(image_names) == 0:
+        return
+    if not isinstance(project, dict):
+        project = get_project_metadata(project)
+    folder_id = None
+    images = search_images(project, return_metadata=True)
+    image_dict = {}
+    for image in images:
+        image_dict[image["name"]] = image["id"]
+        if folder_id is None:
+            folder_id = image["folder_id"]
+        elif folder_id != image["folder_id"]:
+            raise SABaseException(0, "Folders not implemented yet")
+
+    image_ids = []
+    for image_name in image_names:
+        image_ids.append(image_dict[image_name])
+    team_id, project_id = project["team_id"], project["id"]
+    params = {
+        "team_id": team_id,
+        "project_id": project_id,
+        "folder_id": folder_id
+    }
+    json_req = {"user_id": user, "image_ids": image_ids}
+    response = _api.send_request(
+        req_type='POST',
+        path='/images/assign',
+        params=params,
+        json_req=json_req
+    )
+    if not response.ok:
+        raise SABaseException(
+            response.status_code, "Couldn't assign images " + response.text
+        )
+    # print(response.json())
