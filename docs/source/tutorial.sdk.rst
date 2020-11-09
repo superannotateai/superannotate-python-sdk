@@ -502,8 +502,8 @@ Grassroots DICOM library <http://gdcm.sourceforge.net/wiki/index.php/Main_Page>`
 ----------
 
 
-Computing consensus scores for instancec between several projects
-_______________________________________________________
+Computing consensus scores for instances between several projects
+_________________________________________________________________
 
 
 Consensus is a tool to compare the quallity of the annotations of the same image that is present in several projects.

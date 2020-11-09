@@ -43,8 +43,10 @@ def main():
     command = sys.argv[1]
     further_args = sys.argv[2:]
 
-    if command == "image-upload":
+    if command == "upload-images":
         image_upload(further_args)
+    elif command == "upload-videos":
+        video_upload(further_args)
     elif command == "init":
         ask_token(further_args)
     elif command == "export-project":
@@ -57,6 +59,70 @@ def main():
 
 def _list_str(values):
     return values.split(',')
+
+
+def video_upload(args):
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '--project', required=True, help='Project name to upload'
+    )
+    parser.add_argument(
+        '--folder', required=True, help='Folder from which to upload'
+    )
+    parser.add_argument(
+        '--recursive',
+        default=False,
+        action='store_true',
+        help='Enables recursive subfolder upload.'
+    )
+    parser.add_argument(
+        '--extensions',
+        required=False,
+        default=None,
+        type=_list_str,
+        help=
+        'List of video extensions to include. Default is mp4,avi,mov,webm,flv,mpg,ogg'
+    )
+    parser.add_argument(
+        '--set-annotation-status',
+        required=False,
+        default="NotStarted",
+        help=
+        'Set images\' annotation statuses after upload. Default is NotStarted'
+    )
+    parser.add_argument(
+        '--target-fps',
+        required=False,
+        default=None,
+        help=
+        'How many frames per second need to extract from the videos (approximate).  If not specified all frames will be uploaded'
+    )
+    parser.add_argument(
+        '--start-time',
+        required=False,
+        default=0.0,
+        help=
+        'Time (in seconds) from which to start extracting frames. Default is 0.0'
+    )
+    parser.add_argument(
+        '--end-time',
+        required=False,
+        default=None,
+        help=
+        'Time (in seconds) up to which to extract frames. If it is not specified, then up to end'
+    )
+    args = parser.parse_args(args)
+
+    sa.upload_videos_from_folder_to_project(
+        project=args.project,
+        folder_path=args.folder,
+        extensions=args.extensions,
+        annotation_status=args.set_annotation_status,
+        recursive_subfolders=args.recursive,
+        target_fps=args.target_fps,
+        start_time=args.start_time,
+        end_time=args.end_time
+    )
 
 
 def image_upload(args):
@@ -89,10 +155,10 @@ def image_upload(args):
     args = parser.parse_args(args)
 
     sa.upload_images_from_folder_to_project(
-        args.project,
-        args.folder,
-        args.extensions,
-        args.set_annotation_status,
+        project=args.project,
+        folder_path=args.folder,
+        extensions=args.extensions,
+        annotation_status=args.set_annotation_status,
         recursive_subfolders=args.recursive
     )
 

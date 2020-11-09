@@ -42,6 +42,8 @@ ________
 .. autofunction:: superannotate.unshare_project
 .. autofunction:: superannotate.get_project_settings
 .. autofunction:: superannotate.set_project_settings
+.. autofunction:: superannotate.get_project_default_image_quality_in_editor
+.. autofunction:: superannotate.set_project_default_image_quality_in_editor
 .. autofunction:: superannotate.get_project_workflow
 .. autofunction:: superannotate.set_project_workflow
 
@@ -74,6 +76,8 @@ ______
 .. autofunction:: superannotate.upload_annotations_from_json_to_image
 .. autofunction:: superannotate.copy_image
 .. autofunction:: superannotate.move_image
+.. autofunction:: superannotate.pin_image
+.. autofunction:: superannotate.assign_images
 .. autofunction:: superannotate.delete_image
 .. autofunction:: superannotate.add_annotation_bbox_to_image
 .. autofunction:: superannotate.add_annotation_polygon_to_image

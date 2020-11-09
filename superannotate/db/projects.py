@@ -272,10 +272,9 @@ def upload_video_to_project(
     :param annotation_status: value to set the annotation statuses of the uploaded
                               video frames NotStarted InProgress QualityCheck Returned Completed Skipped
     :type annotation_status: str
-    :param image_quality_in_editor: image quality (in percents) that will be
-                                    seen in SuperAnnotate web annotation editor.
-                                    If None default value will be used
-    :type image_quality_in_editor: int
+    :param image_quality_in_editor: image quality be seen in SuperAnnotate web annotation editor.
+           Can be either "compressed" or "original".  If None then the default value in project settings will be used.
+    :type image_quality_in_editor: str
 
     :return: filenames of uploaded images
     :rtype: list of strs
@@ -414,8 +413,9 @@ def upload_videos_from_folder_to_project(
     :type end_time: float
     :param annotation_status: value to set the annotation statuses of the uploaded images NotStarted InProgress QualityCheck Returned Completed Skipped
     :type annotation_status: str
-    :param image_quality_in_editor: image quality (in percents) that will be seen in SuperAnnotate web annotation editor. If None default value will be used.
-    :type image_quality_in_editor: int
+    :param image_quality_in_editor: image quality be seen in SuperAnnotate web annotation editor.
+           Can be either "compressed" or "original".  If None then the default value in project settings will be used.
+    :type image_quality_in_editor: str
 
     :return: uploaded and not-uploaded video frame images' filenames
     :rtype: tuple of list of strs
@@ -502,8 +502,9 @@ def upload_images_from_folder_to_project(
     :type exclude_file_patterns: list of strs
     :param recursive_subfolders: enable recursive subfolder parsing
     :type recursive_subfolders: bool
-    :param image_quality_in_editor: image quality (in percents) that will be seen in SuperAnnotate web annotation editor. If None default value will be used.
-    :type image_quality_in_editor: int
+    :param image_quality_in_editor: image quality be seen in SuperAnnotate web annotation editor.
+           Can be either "compressed" or "original".  If None then the default value in project settings will be used.
+    :type image_quality_in_editor: str
 
     :return: uploaded and not-uploaded images' filepaths
     :rtype: tuple of list of strs
@@ -588,13 +589,16 @@ def get_image_array_to_upload(
         byte_io_orig = io.BytesIO()
         im.save(byte_io_orig, im_format, subsampling=0, quality=100)
 
-    byte_io_lores = io.BytesIO()
-    im.save(
-        byte_io_lores,
-        'JPEG',
-        subsampling=0 if image_quality_in_editor > 60 else 2,
-        quality=image_quality_in_editor
-    )
+    if not image_quality_in_editor == 100 or im_format != "JPEG":
+        byte_io_lores = io.BytesIO()
+        im.save(
+            byte_io_lores,
+            'JPEG',
+            subsampling=0 if image_quality_in_editor > 60 else 2,
+            quality=image_quality_in_editor
+        )
+    else:
+        byte_io_lores = io.BytesIO(byte_io_orig.getbuffer())
 
     byte_io_huge = io.BytesIO()
     hsize = int(height * 600.0 / width)
@@ -727,8 +731,9 @@ def upload_images_to_project(
     :type annotation_status: str
     :param from_s3_bucket: AWS S3 bucket to use. If None then folder_path is in local filesystem
     :type from_s3_bucket: str
-    :param image_quality_in_editor: image quality (in percents) that will be seen in SuperAnnotate web annotation editor. If None default value will be used.
-    :type image_quality_in_editor: int
+    :param image_quality_in_editor: image quality be seen in SuperAnnotate web annotation editor.
+           Can be either "compressed" or "original".  If None then the default value in project settings will be used.
+    :type image_quality_in_editor: str
 
     :return: uploaded and not-uploaded images' filepaths
     :rtype: tuple of list of strs
@@ -736,10 +741,9 @@ def upload_images_to_project(
     if not isinstance(project, dict):
         project = get_project_metadata(project)
     annotation_status = annotation_status_str_to_int(annotation_status)
-    if image_quality_in_editor is None:
-        image_quality_in_editor = _get_project_default_image_quality_in_editor(
-            project
-        )
+    image_quality_in_editor = _get_project_image_quality_in_editor(
+        project, image_quality_in_editor
+    )
     team_id, project_id = project["team_id"], project["id"]
     len_img_paths = len(img_paths)
     logger.info(
@@ -1371,15 +1375,19 @@ def upload_images_from_s3_bucket_to_project(
     :type bucket_name: str
     :param folder_path: from which folder to upload the images
     :type folder_path: str
-    :param image_quality_in_editor: image quality (in percents) that will be seen in SuperAnnotate web annotation editor, if None default value will be used
-    :type image_quality_in_editor: int
+    :param image_quality_in_editor: image quality be seen in SuperAnnotate web annotation editor.
+           Can be either "compressed" or "original".  If None then the default value in project settings will be used.
+    :type image_quality_in_editor: str
     """
     if not isinstance(project, dict):
         project = get_project_metadata(project)
     if image_quality_in_editor is not None:
-        old_quality = _get_project_default_image_quality_in_editor(project)
+        old_quality = _get_project_image_quality_in_editor(project, None)
         _set_project_default_image_quality_in_editor(
-            project, image_quality_in_editor
+            project,
+            _get_project_image_quality_in_editor(
+                project, image_quality_in_editor
+            )
         )
     team_id, project_id = project["team_id"], project["id"]
     params = {
@@ -1575,8 +1583,8 @@ def set_project_settings(project, new_settings):
 
     :param project: project name or metadata
     :type project: str or dict
-    :param project: new settings list of dicts
-    :type project: list of dicts
+    :param new_settings: new settings list of dicts
+    :type new_settings: list of dicts
 
     :return: updated part of project's settings
     :rtype: list of dicts
@@ -1624,21 +1632,72 @@ def set_project_settings(project, new_settings):
     return response.json()
 
 
-def _get_project_default_image_quality_in_editor(project):
-    for setting in get_project_settings(project):
-        if "attribute" in setting and setting["attribute"] == "ImageQuality":
-            return setting["value"]
-    return 60
-    # raise SABaseException(
-    #     response.status_code,
-    #     "Couldn't get project default image quality " + response.text
-    # )
+def _get_project_image_quality_in_editor(project, image_quality_in_editor):
+    if image_quality_in_editor is None:
+        for setting in get_project_settings(project):
+            if "attribute" in setting and setting["attribute"] == "ImageQuality":
+                return setting["value"]
+    elif image_quality_in_editor == "compressed":
+        image_quality_in_editor = 60
+    elif image_quality_in_editor == "original":
+        image_quality_in_editor = 100
+    else:
+        raise SABaseException(
+            0,
+            "Image quality in editor should be 'compressed', 'original' or None for project settings value"
+        )
 
 
 def _set_project_default_image_quality_in_editor(project, quality):
     set_project_settings(
-        project, {
+        project, [{
             "attribute": "ImageQuality",
             "value": quality
-        }
+        }]
     )
+
+
+def set_project_default_image_quality_in_editor(
+    project, image_quality_in_editor
+):
+    """Sets project's default image quality in editor setting.
+
+    :param project: project name or metadata
+    :type project: str or dict
+    :param image_quality_in_editor: new setting value, should be "original" or "compressed"
+    :type image_quality_in_editor: str
+    """
+    if image_quality_in_editor == "compressed":
+        image_quality_in_editor = 60
+    elif image_quality_in_editor == "original":
+        image_quality_in_editor = 100
+    else:
+        raise SABaseException(
+            0, "Image quality in editor should be 'compressed', 'original'"
+        )
+    _set_project_default_image_quality_in_editor(
+        project, image_quality_in_editor
+    )
+
+
+def get_project_default_image_quality_in_editor(project):
+    """Gets project's default image quality in editor setting.
+
+    :param project: project name or metadata
+    :type project: str or dict
+
+    :return: "original" or "compressed" setting value
+    :rtype: str
+    """
+    image_quality_in_editor = _get_project_image_quality_in_editor(
+        project, None
+    )
+    if image_quality_in_editor == 60:
+        image_quality_in_editor = "compressed"
+    elif image_quality_in_editor == 100:
+        image_quality_in_editor = "original"
+    else:
+        raise SABaseException(
+            0, "Image quality in editor should be '60', '100'"
+        )
+    return image_quality_in_editor
