@@ -34,7 +34,8 @@ For Windows based Anaconda distribution
 you might also need to install *shapely* package separately:
 
 ```console
-   conda install shapely
+conda install shapely
+```
 
 For further steps please have a look at the [tutorial](https://superannotate.readthedocs.io/en/latest/tutorial.sdk.html).
 
