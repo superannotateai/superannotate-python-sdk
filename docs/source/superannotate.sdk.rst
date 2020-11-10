@@ -322,3 +322,5 @@ Utility functions
 --------------------------------
 
 .. autofunction:: superannotate.dicom_to_rgb_sequence
+.. autofunction:: superannotate.consensus
+.. autofunction:: superannotate.benchmark
