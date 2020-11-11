@@ -42,7 +42,7 @@ def test_create_like_project(tmpdir):
     for project in projects:
         sa.delete_project(project)
 
-    new_project = sa.create_project_like_project(
+    new_project = sa.clone_project(
         PROJECT_NAME2, PROJECT_NAME, copy_project_contributors=True
     )
     assert new_project["description"] == "tt"

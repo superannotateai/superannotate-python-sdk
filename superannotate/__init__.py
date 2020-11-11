@@ -21,8 +21,8 @@ from .common import (
     image_path_to_annotation_paths, project_type_int_to_str,
     project_type_str_to_int, user_role_str_to_int
 )
-from .consensus_benchmark.consensus import consensus
 from .consensus_benchmark.benchmark import benchmark
+from .consensus_benchmark.consensus import consensus
 from .dataframe_filtering import (
     filter_annotation_instances, filter_images_by_comments,
     filter_images_by_tags
@@ -50,7 +50,7 @@ from .db.project_images import (
     assign_images, copy_image, move_image, pin_image, upload_image_to_project
 )
 from .db.projects import (
-    create_project, create_project_like_project, delete_project,
+    clone_project, create_project, create_project_like_project, delete_project,
     get_project_default_image_quality_in_editor, get_project_image_count,
     get_project_settings, get_project_workflow, rename_project,
     set_project_default_image_quality_in_editor, set_project_settings,

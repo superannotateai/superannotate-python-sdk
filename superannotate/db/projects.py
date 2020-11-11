@@ -81,8 +81,23 @@ def create_project(project_name, project_description, project_type):
     )
     return res
 
-
 def create_project_like_project(
+    project_name,
+    from_project,
+    project_description=None,
+    copy_annotation_classes=True,
+    copy_settings=True,
+    copy_workflow=True,
+    copy_project_contributors=False
+):
+    """Deprecated. Function name changed to clone_project.
+    """
+    logger.warning("Deprecated. Function name changed to clone_project.")
+    clone_project(project_name, from_project, project_description,
+                  copy_annotation_classes, copy_settings,
+                  copy_workflow, copy_project_contributors)
+
+def clone_project(
     project_name,
     from_project,
     project_description=None,
