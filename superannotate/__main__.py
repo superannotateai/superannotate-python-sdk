@@ -12,7 +12,7 @@ from .exceptions import SABaseException
 logger = logging.getLogger("superannotate-python-sdk")
 
 
-def ask_token(args):
+def ask_token():
     config_dir = Path.home() / ".superannotate"
     config_filename = "config.json"
     config_file = config_dir / config_filename
@@ -50,8 +50,10 @@ def main():
         video_upload(further_args)
     elif command == "upload-preannotations":
         preannotations_upload(further_args)
+    elif command == "upload-annotations":
+        preannotations_upload(further_args, annotations=True)
     elif command == "init":
-        ask_token(further_args)
+        ask_token()
     elif command == "export-project":
         export_project(further_args)
     elif command == "version":
@@ -64,7 +66,7 @@ def _list_str(values):
     return values.split(',')
 
 
-def preannotations_upload(args):
+def preannotations_upload(args, annotations=False):
     parser = argparse.ArgumentParser()
     parser.add_argument(
         '--project', required=True, help='Project name to upload'
@@ -84,7 +86,7 @@ def preannotations_upload(args):
     parser.add_argument(
         '--dataset-name',
         required=False,
-        help='Input preannotations dataset name for COCO projects'
+        help='Input annotations dataset name for COCO projects'
     )
     parser.add_argument(
         '--task',
@@ -97,7 +99,7 @@ def preannotations_upload(args):
     if args.format != "SuperAnnotate":
         if args.format != "COCO":
             raise sa.SABaseException(
-                0, "Not supported preannotations format " + args.format
+                0, "Not supported annotations format " + args.format
             )
         if args.dataset_name is None:
             raise sa.SABaseException(
@@ -107,7 +109,7 @@ def preannotations_upload(args):
             raise sa.SABaseException(
                 0, "Task name should be present for COCO format upload."
             )
-        logger.info("Preannotations in format %s.", args.format)
+        logger.info("Annotations in format %s.", args.format)
         project_type = sa.project_type_int_to_str(
             sa.get_project_metadata(args.project)["type"]
         )
@@ -123,9 +125,14 @@ def preannotations_upload(args):
         )
         args.folder = tempdir_path
 
-    sa.upload_preannotations_from_folder_to_project(
-        project=args.project, folder_path=args.folder
-    )
+    if annotations:
+        sa.upload_annotations_from_folder_to_project(
+            project=args.project, folder_path=args.folder
+        )
+    else:
+        sa.upload_preannotations_from_folder_to_project(
+            project=args.project, folder_path=args.folder
+        )
 
 
 def video_upload(args):

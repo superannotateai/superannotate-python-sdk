@@ -96,7 +96,8 @@ To upload preannotations from folder to project use:
 .. code-block:: bash
 
    superannotate upload-preannotations --project <project_name> --folder <folder_path> 
-                                       [--format "COCO" or "SA"]
+                                       [--format "COCO" or "SA"] [--dataset-name "<dataset_name_for_COCO_projects>"]
+                                       [--task "<task_type_for_COCO_projects>]
 
 
 Optional argument *format* accepts input preannotation format. It can have COCO or SuperAnnotate values.
@@ -113,12 +114,12 @@ To upload annotations from folder to project use:
 
 .. code-block:: bash
 
-   superannotate upload-preannotations --project <project_name> --folder <folder_path> 
-                                       [--recursive]
+   superannotate upload-annotations --project <project_name> --folder <folder_path> 
+                                    [--format "COCO" or "SA"] [--dataset-name "<dataset_name_for_COCO_projects>"]
+                                    [--task "<task_type_for_COCO_projects>]
 
-If optional argument *recursive* is given then subfolders of :file:`<folder_path>` are also recursively
-scanned for available preannotations.
-
+Optional argument *format* accepts input preannotation format. It can have COCO or SuperAnnotate values.
+If the argument is not given then SuperAnnotate (the native preannotation format) assumed.
 
 ----------
 

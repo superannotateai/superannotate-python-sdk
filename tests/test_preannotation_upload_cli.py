@@ -10,11 +10,11 @@ import superannotate as sa
 @pytest.mark.parametrize(
     "project_type,name,description,from_folder", [
         (
-            "Vector", "Example Project test vector preannotation cli upload",
+            "Vector", "Example Project test0 vector preannotation cli upload",
             "test vector", Path("./tests/sample_project_vector")
         ),
         (
-            "Pixel", "Example Project test pixel preannotation cli upload",
+            "Pixel", "Example Project test0 pixel preannotation cli upload",
             "test pixel", Path("./tests/sample_project_pixel")
         )
     ]
@@ -54,7 +54,7 @@ def test_preannotation_folder_upload_download_cli(
 
 def test_preannotation_folder_upload_download_cli_vector_COCO(tmpdir):
     project_type = "Vector"
-    name = "Example Project test vector preannotation cli upload coco vector"
+    name = "Example Project test vector2 preannotation cli upload coco vector"
     description = "test"
     from_folder = "./tests/converter_test/COCO/input/toSuperAnnotate/keypoint_detection"
     task = "keypoint_detection"
@@ -92,7 +92,7 @@ def test_preannotation_folder_upload_download_cli_vector_COCO(tmpdir):
 
 def test_preannotation_folder_upload_download_cli_vector_object_COCO(tmpdir):
     project_type = "Vector"
-    name = "Example Project test vector preannotation cli upload coco object vector"
+    name = "Example Project test vector1 preannotation cli upload coco object vector"
     description = "test"
     from_folder = "./tests/converter_test/COCO/input/toSuperAnnotate/instance_segmentation"
     task = "instance_segmentation"
@@ -120,7 +120,7 @@ def test_preannotation_folder_upload_download_cli_vector_object_COCO(tmpdir):
 
 def test_preannotation_folder_upload_download_cli_pixel_object_COCO(tmpdir):
     project_type = "Pixel"
-    name = "Example Project test pixel preannotation cli upload coco object pixel"
+    name = "Example Project test pixel1 preannotation cli upload coco object pixel"
     description = "test"
     from_folder = "./tests/converter_test/COCO/input/toSuperAnnotate/panoptic_segmentation"
     task = "panoptic_segmentation"

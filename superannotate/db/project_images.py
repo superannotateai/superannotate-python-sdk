@@ -100,7 +100,7 @@ def upload_image_to_project(
     s3_resource = s3_session.resource('s3')
     bucket = s3_resource.Bucket(res["bucket"])
     orig_image, lores_image, huge_image, thumbnail_image = get_image_array_to_upload(
-        img, project["type"], image_quality_in_editor
+        img, image_quality_in_editor
     )
     key = prefix + f'{img_name}'
     try:
