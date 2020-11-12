@@ -1,10 +1,11 @@
 from pathlib import Path
+import subprocess
+import time
 
 import pytest
 
 import superannotate as sa
 
-sa.init(Path.home() / ".superannotate" / "config.json")
 
 
 @pytest.mark.parametrize(
@@ -16,7 +17,7 @@ sa.init(Path.home() / ".superannotate" / "config.json")
         (
             "Pixel", "Example Project test pixel preannotation upload",
             "test pixel", Path("./tests/sample_project_pixel")
-        ),
+        )
     ]
 )
 def test_preannotation_folder_upload_download(

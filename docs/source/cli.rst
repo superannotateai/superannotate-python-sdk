@@ -84,6 +84,41 @@ default is 0.0.
 *end-time* specifies time (in seconds) up to which to extract frames. 
 If it is not specified, then up to end is assumed.
 
+----------
+
+.. _ref_upload_preannotations:
+
+Uploading preannotations
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+To upload preannotations from folder to project use:
+
+.. code-block:: bash
+
+   superannotate upload-preannotations --project <project_name> --folder <folder_path> 
+                                       [--format "COCO" or "SA"]
+
+
+Optional argument *format* accepts input preannotation format. It can have COCO or SuperAnnotate values.
+If the argument is not given then SuperAnnotate (the native preannotation format) assumed.
+
+----------
+
+.. _ref_upload_annotations:
+
+Uploading annotations
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+To upload annotations from folder to project use:
+
+.. code-block:: bash
+
+   superannotate upload-preannotations --project <project_name> --folder <folder_path> 
+                                       [--recursive]
+
+If optional argument *recursive* is given then subfolders of :file:`<folder_path>` are also recursively
+scanned for available preannotations.
+
 
 ----------
 
