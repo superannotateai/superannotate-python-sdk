@@ -15,6 +15,10 @@ def coco_panoptic_segmentation_to_sa_pixel(coco_path, images_path):
     hex_colors = blue_color_generator(len(coco_json["categories"]))
     annotate_list = coco_json["annotations"]
 
+    cat_id_to_cat = {}
+    for cat in coco_json['categories']:
+        cat_id_to_cat[cat['id']] = cat['name']
+
     sa_jsons = {}
     for annotate in tqdm(annotate_list, "Converting"):
         annot_name = os.path.splitext(annotate["file_name"])[0]
@@ -39,6 +43,7 @@ def coco_panoptic_segmentation_to_sa_pixel(coco_path, images_path):
                        axis=1)] = hex_to_rgb(hex_colors[i])
             dd = {
                 "classId": seg["category_id"],
+                'className': cat_id_to_cat[seg["category_id"]],
                 "probability": 100,
                 "visible": True,
                 "parts": [{

@@ -230,13 +230,19 @@ def coco_keypoint_detection_to_sa_vector(coco_path, images_path):
                         }
                     )
 
-                for point in sa_points:
-                    point_index = sa_points.index(point)
+                for point_index, point in enumerate(sa_points):
+                    if sa_points[point_index] == (-17, -17):
+                        x = 5
+                        y = 5
+                    else:
+                        x = sa_points[point_index][0],
+                        y = sa_points[point_index][1]
+
                     sa_template['points'].append(
                         {
                             'id': point_index + 1,
-                            'x': sa_points[point_index][0],
-                            'y': sa_points[point_index][1]
+                            'x': x,
+                            'y': y
                         }
                     )
 
