@@ -282,6 +282,7 @@ Converting annotation format to and from SuperAnnotate format
 _____________________________________________________________
 
 
+.. _ref_import_annotation_format:
 .. autofunction:: superannotate.import_annotation_format
 .. autofunction:: superannotate.export_annotation_format
 .. autofunction:: superannotate.convert_project_type
