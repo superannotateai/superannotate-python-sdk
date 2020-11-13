@@ -120,10 +120,10 @@ def preannotations_upload(args, annotations=False):
             args.folder, tempdir_path, "COCO", args.dataset_name, project_type,
             args.task
         )
-        sa.create_annotation_classes_from_classes_json(
-            args.project, tempdir_path / "classes" / "classes.json"
-        )
         args.folder = tempdir_path
+    sa.create_annotation_classes_from_classes_json(
+        args.project, Path(args.folder) / "classes" / "classes.json"
+    )
 
     if annotations:
         sa.upload_annotations_from_folder_to_project(
