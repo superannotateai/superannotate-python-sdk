@@ -19,7 +19,7 @@ pip install -e .
 # pip install superannotate
 
 # for testing
-pip install pytest pytest-xdist coverage pytest-cov
+pip install pytest pytest-xdist coverage pytest-cov pylint pylint-json2html
 
 # for docs
 pip install sphinx sphinx_rtd_theme

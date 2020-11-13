@@ -4,7 +4,6 @@ PYTHON=python3
 PYLINT=pylint
 PYTESTS=pytest
 COVERAGE=coverage
-BROWSER=google-chrome
 
 all: coverage tests
 	$(PYTHON) setup.py build_ext --inplace
@@ -33,7 +32,9 @@ install:
 	pip install .
 
 lint:
-	-$(PYLINT) superannotate/
+	-$(PYLINT) --output-format=json superannotate/ | pylint-json2html -o pylint.html
+
+lint_tests:
 	-$(PYLINT) tests/*
 
 docs:
