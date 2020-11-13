@@ -24,7 +24,13 @@ for COCO annotation format converters support also need to install:
    pip install 'git+https://github.com/cocodataset/panopticapi.git'
    pip install 'git+https://github.com/philferriere/cocoapi.git#egg=pycocotools&subdirectory=PythonAPI'
 
-The package officially supports Python 3.6+.
+The package officially supports Python 3.6+ and was tested under Linux platform.
+For Windows based Anaconda distribution 
+you might also need to install :py:obj:`shapely` package separately:
+
+.. code-block:: bash
+
+   conda install shapely
 
 ----------
 
@@ -539,3 +545,44 @@ Scatter plot of consensus score vs instance area is separated by projects. Hover
 The points are colored according to class name. Each annotator is represented with separate symbol.
 
 .. image:: consensus_scatter.png
+
+----------
+
+
+Computing benchmark scores for instances between ground truth project and given project list
+____________________________________________________________________________________________
+
+
+Benchmark is a tool to compare the quallity of the annotations of the same image that is present in several projects with 
+the ground truth annotation of the same image that is in a separate project.
+
+To compute the benchmark scores:
+
+.. code-block:: python
+
+   res_df = sa.benchmark("<ground_truth_project_name>",[project_names], "<path_to_export_folder>", [image_list], "<annotation_type>")
+
+Here pandas DataFrame with exactly same structure as in case of consensus computation is returned.
+
+Besides the pandas DataFrame there is an option to get the following plots by setting the show_plots flag to True:
+
+* Box plot of benchmark scores for each annotators
+* Box plot of benchmark scores for each project
+* Scatter plots of benchmark score vs instance area for each project
+
+.. code-block:: python
+
+   sa.benchmark("<ground_truth_project_name>", [project_names], "<path_to_export_folder>", [image_list], "<annotation_type>", show_plots=True)
+
+To the left of each box plot the original score points of that annotator is depicted, the box plots are colored by annotator.
+
+.. image:: benchmark_annotators_box.png
+
+Analogically the box plots of benchmark scores for each project are colored according to project name.
+
+.. image:: benchmark_projects_box.png
+
+Scatter plot of benchmark score vs instance area is separated by projects. Hovering on a point reveals its annotator and image name. 
+The points are colored according to class name. Each annotator is represented with separate symbol.
+
+.. image:: benchmark_scatter.png

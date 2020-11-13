@@ -3,6 +3,7 @@ import json
 import logging
 import sys
 from pathlib import Path
+import tempfile
 
 import superannotate as sa
 
@@ -11,7 +12,7 @@ from .exceptions import SABaseException
 logger = logging.getLogger("superannotate-python-sdk")
 
 
-def ask_token(args):
+def ask_token():
     config_dir = Path.home() / ".superannotate"
     config_filename = "config.json"
     config_file = config_dir / config_filename
@@ -47,8 +48,12 @@ def main():
         image_upload(further_args)
     elif command == "upload-videos":
         video_upload(further_args)
+    elif command == "upload-preannotations":
+        preannotations_upload(further_args)
+    elif command == "upload-annotations":
+        preannotations_upload(further_args, annotations=True)
     elif command == "init":
-        ask_token(further_args)
+        ask_token()
     elif command == "export-project":
         export_project(further_args)
     elif command == "version":
@@ -59,6 +64,75 @@ def main():
 
 def _list_str(values):
     return values.split(',')
+
+
+def preannotations_upload(args, annotations=False):
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '--project', required=True, help='Project name to upload'
+    )
+    parser.add_argument(
+        '--folder',
+        required=True,
+        help=
+        'Folder (SuperAnnotate format) or JSON path (COCO format) from which to upload'
+    )
+    parser.add_argument(
+        '--format',
+        required=False,
+        default="SuperAnnotate",
+        help='Input preannotations format.'
+    )
+    parser.add_argument(
+        '--dataset-name',
+        required=False,
+        help='Input annotations dataset name for COCO projects'
+    )
+    parser.add_argument(
+        '--task',
+        required=False,
+        help=
+        'Task type for COCO projects can be panoptic_segmentation (Pixel), instance_segmentation (Pixel), instance_segmentation (Vector), keypoint_detection (Vector)'
+    )
+    args = parser.parse_args(args)
+
+    if args.format != "SuperAnnotate":
+        if args.format != "COCO":
+            raise sa.SABaseException(
+                0, "Not supported annotations format " + args.format
+            )
+        if args.dataset_name is None:
+            raise sa.SABaseException(
+                0, "Dataset name should be present for COCO format upload."
+            )
+        if args.task is None:
+            raise sa.SABaseException(
+                0, "Task name should be present for COCO format upload."
+            )
+        logger.info("Annotations in format %s.", args.format)
+        project_type = sa.project_type_int_to_str(
+            sa.get_project_metadata(args.project)["type"]
+        )
+
+        tempdir = tempfile.TemporaryDirectory()
+        tempdir_path = Path(tempdir.name)
+        sa.import_annotation_format(
+            args.folder, tempdir_path, "COCO", args.dataset_name, project_type,
+            args.task
+        )
+        args.folder = tempdir_path
+    sa.create_annotation_classes_from_classes_json(
+        args.project, Path(args.folder) / "classes" / "classes.json"
+    )
+
+    if annotations:
+        sa.upload_annotations_from_folder_to_project(
+            project=args.project, folder_path=args.folder
+        )
+    else:
+        sa.upload_preannotations_from_folder_to_project(
+            project=args.project, folder_path=args.folder
+        )
 
 
 def video_upload(args):
@@ -94,6 +168,7 @@ def video_upload(args):
         '--target-fps',
         required=False,
         default=None,
+        type=float,
         help=
         'How many frames per second need to extract from the videos (approximate).  If not specified all frames will be uploaded'
     )
@@ -101,6 +176,7 @@ def video_upload(args):
         '--start-time',
         required=False,
         default=0.0,
+        type=float,
         help=
         'Time (in seconds) from which to start extracting frames. Default is 0.0'
     )
@@ -108,6 +184,7 @@ def video_upload(args):
         '--end-time',
         required=False,
         default=None,
+        type=float,
         help=
         'Time (in seconds) up to which to extract frames. If it is not specified, then up to end'
     )

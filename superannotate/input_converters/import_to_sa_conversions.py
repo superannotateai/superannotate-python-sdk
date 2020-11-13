@@ -60,28 +60,12 @@ def import_to_sa(args):
     #     logging.error(log_msg)
     #     sys.exit()
 
-    try:
-        images, masks = _load_files(args.input_dir, args.project_type)
-    except Exception as e:
-        log_msg = "Can't load images or masks"
-        logging.error(log_msg)
-        logging.error(e)
-
-    try:
-        _move_files(images, masks, args.output_dir, args.platform)
-    except Exception as e:
-        log_msg = 'Something went wrong while moving or copying files from source folder'
-        logging.error(log_msg)
-        logging.error(e)
+    images, masks = _load_files(args.input_dir, args.project_type)
+    _move_files(images, masks, args.output_dir, args.platform)
 
     args.__dict__.update({'direction': 'from', 'export_root': args.input_dir})
     converter = Converter(args)
 
-    try:
-        converter.convert_to_sa(args.platform)
-    except Exception as e:
-        log_msg = "Something went wrong while converting"
-        logging.error(log_msg)
-        sys.exit()
+    converter.convert_to_sa(args.platform)
 
     logging.info('Conversion completed successfully')

@@ -36,8 +36,6 @@ logger = logging.getLogger("superannotate-python-sdk")
 _api = API.get_instance()
 _NUM_THREADS = 10
 
-_RESIZE_CONFIG = {2: 4_000_000, 1: 100_000_000}  # 1: vector 2: pixel
-
 
 def create_project(project_name, project_description, project_type):
     """Create a new project in the team.
@@ -85,6 +83,25 @@ def create_project(project_name, project_description, project_type):
 
 
 def create_project_like_project(
+    project_name,
+    from_project,
+    project_description=None,
+    copy_annotation_classes=True,
+    copy_settings=True,
+    copy_workflow=True,
+    copy_project_contributors=False
+):
+    """Deprecated. Function name changed to clone_project.
+    """
+    logger.warning("Deprecated. Function name changed to clone_project.")
+    clone_project(
+        project_name, from_project, project_description,
+        copy_annotation_classes, copy_settings, copy_workflow,
+        copy_project_contributors
+    )
+
+
+def clone_project(
     project_name,
     from_project,
     project_description=None,
@@ -571,34 +588,30 @@ def upload_images_from_folder_to_project(
     )
 
 
-def get_image_array_to_upload(
-    byte_io_orig, project_type, image_quality_in_editor
-):
+def get_image_array_to_upload(byte_io_orig, image_quality_in_editor):
     Image.MAX_IMAGE_PIXELS = None
     im = Image.open(byte_io_orig)
     im_format = im.format
-    im = im.convert("RGB")
     width, height = im.size
-    max_size = _RESIZE_CONFIG[project_type]
-    if (width * height) > max_size:
-        logger.warning("One of the images is being resized to smaller size.")
-        max_size_root = math.sqrt(max_size)
-        nwidth = math.floor(max_size_root * math.sqrt(width / height))
-        nheight = math.floor(max_size_root * math.sqrt(height / width))
-        im = im.resize((nwidth, nheight))
-        byte_io_orig = io.BytesIO()
-        im.save(byte_io_orig, im_format, subsampling=0, quality=100)
 
-    if not image_quality_in_editor == 100 or im_format != "JPEG":
-        byte_io_lores = io.BytesIO()
-        im.save(
-            byte_io_lores,
-            'JPEG',
-            subsampling=0 if image_quality_in_editor > 60 else 2,
-            quality=image_quality_in_editor
-        )
-    else:
+    if image_quality_in_editor == 100 and im_format in ['JPEG', 'JPG']:
         byte_io_lores = io.BytesIO(byte_io_orig.getbuffer())
+    else:
+        byte_io_lores = io.BytesIO()
+        bg = Image.new('RGBA', im.size, (255, 255, 255))
+        im = im.convert("RGBA")
+        bg.paste(im, mask=im)
+        bg = bg.convert('RGB')
+        if image_quality_in_editor == 100:
+            bg.save(
+                byte_io_lores,
+                'JPEG',
+                quality=image_quality_in_editor,
+                subsampling=0
+            )
+        else:
+            bg.save(byte_io_lores, 'JPEG', quality=image_quality_in_editor)
+        im = bg
 
     byte_io_huge = io.BytesIO()
     hsize = int(height * 600.0 / width)
@@ -607,7 +620,7 @@ def get_image_array_to_upload(
     byte_io_thumbs = io.BytesIO()
     thumbnail_size = (128, 96)
     background = Image.new('RGB', thumbnail_size, "black")
-    im.thumbnail(thumbnail_size)
+    im.thumbnail(thumbnail_size, Image.ANTIALIAS)
     (w, h) = im.size
     background.paste(
         im, ((thumbnail_size[0] - w) // 2, (thumbnail_size[1] - h) // 2)
@@ -668,7 +681,7 @@ def __upload_images_to_aws_thread(
                 file = io.BytesIO(f.read())
         try:
             orig_image, lores_image, huge_image, thumbnail_image = get_image_array_to_upload(
-                file, project_type, image_quality_in_editor
+                file, image_quality_in_editor
             )
             bucket.put_object(Body=orig_image, Key=key)
             bucket.put_object(Body=lores_image, Key=key + '___lores.jpg')
@@ -1637,10 +1650,11 @@ def _get_project_image_quality_in_editor(project, image_quality_in_editor):
         for setting in get_project_settings(project):
             if "attribute" in setting and setting["attribute"] == "ImageQuality":
                 return setting["value"]
+        return 60
     elif image_quality_in_editor == "compressed":
-        image_quality_in_editor = 60
+        return 60
     elif image_quality_in_editor == "original":
-        image_quality_in_editor = 100
+        return 100
     else:
         raise SABaseException(
             0,

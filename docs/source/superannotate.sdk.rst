@@ -23,6 +23,7 @@ ________
 .. _ref_search_projects:
 .. autofunction:: superannotate.search_projects
 .. autofunction:: superannotate.create_project
+.. autofunction:: superannotate.clone_project
 .. autofunction:: superannotate.create_project_like_project
 .. autofunction:: superannotate.delete_project
 .. autofunction:: superannotate.rename_project
@@ -322,3 +323,5 @@ Utility functions
 --------------------------------
 
 .. autofunction:: superannotate.dicom_to_rgb_sequence
+.. autofunction:: superannotate.consensus
+.. autofunction:: superannotate.benchmark

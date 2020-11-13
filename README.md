@@ -29,7 +29,13 @@ pip install 'git+https://github.com/philferriere/cocoapi.git#egg=pycocotools&sub
 ```
 
 
-The package officially supports Python 3.6+.
+The package officially supports Python 3.6+ and was tested under Linux platform.
+For Windows based Anaconda distribution 
+you might also need to install *shapely* package separately:
+
+```console
+conda install shapely
+```
 
 For further steps please have a look at the [tutorial](https://superannotate.readthedocs.io/en/latest/tutorial.sdk.html).
 

@@ -50,7 +50,8 @@ To upload images from folder to project use:
 If optional argument *recursive* is given then subfolders of :file:`<folder_path>` are also recursively
 scanned for available images.
 
-Optional argument *extensions* accepts comma separated list of image extensions to look for. If the argument is not given then value *jpg,png* is assumed.
+Optional argument *extensions* accepts comma separated list of image extensions
+to look for. If the argument is not given then value *jpg,png* is assumed.
 
 ----------
 
@@ -69,7 +70,7 @@ To upload videos from folder to project use:
                                [--end-time <float>]
 
 If optional argument *recursive* is given then subfolders of :file:`<folder_path>` are also recursively
-scanned for available images.
+scanned for available videos.
 
 Optional argument *extensions* accepts comma separated list of image extensions
 to look for. If the argument is not given then value *mp4,avi,mov,webm,flv,mpg,ogg* is assumed.
@@ -83,6 +84,42 @@ default is 0.0.
 *end-time* specifies time (in seconds) up to which to extract frames. 
 If it is not specified, then up to end is assumed.
 
+----------
+
+.. _ref_upload_preannotations:
+
+Uploading preannotations
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+To upload preannotations from folder to project use:
+
+.. code-block:: bash
+
+   superannotate upload-preannotations --project <project_name> --folder <folder_path> 
+                                       [--format "COCO" or "SA"] [--dataset-name "<dataset_name_for_COCO_projects>"]
+                                       [--task "<task_type_for_COCO_projects>]
+
+
+Optional argument *format* accepts input preannotation format. It can have COCO or SuperAnnotate values.
+If the argument is not given then SuperAnnotate (the native preannotation format) assumed.
+
+----------
+
+.. _ref_upload_annotations:
+
+Uploading annotations
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+To upload annotations from folder to project use:
+
+.. code-block:: bash
+
+   superannotate upload-annotations --project <project_name> --folder <folder_path> 
+                                    [--format "COCO" or "SA"] [--dataset-name "<dataset_name_for_COCO_projects>"]
+                                    [--task "<task_type_for_COCO_projects>]
+
+Optional argument *format* accepts input preannotation format. It can have COCO or SuperAnnotate values.
+If the argument is not given then SuperAnnotate (the native preannotation format) assumed.
 
 ----------
 
