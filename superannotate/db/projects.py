@@ -9,6 +9,9 @@ import tempfile
 import threading
 import time
 from pathlib import Path
+from os.path import basename
+from urllib.request import urlretrieve
+from urllib.parse import urlparse
 
 import boto3
 import cv2
@@ -792,6 +795,60 @@ def upload_images_to_project(
             list_of_uploaded.append(str(file))
 
     return (list_of_uploaded, list_of_not_uploaded, duplicate_images)
+
+
+def upload_images_from_public_urls_to_project(
+    project,
+    img_urls,
+    annotation_status='NotStarted',
+    image_quality_in_editor=None
+):
+    """Uploads all images given in the list of URL strings in img_urls to the project.
+    Sets status of all the uploaded images to set_status if it is not None.
+
+    :param project: project name or metadata of the project to upload images to
+    :type project: str or dict
+    :param img_urls: list of str objects to upload
+    :type img_urls: list
+    :param annotation_status: value to set the annotation statuses of the uploaded images NotStarted InProgress QualityCheck Returned Completed Skipped
+    :type annotation_status: str
+    :param image_quality_in_editor: image quality be seen in SuperAnnotate web annotation editor.
+           Can be either "compressed" or "original".  If None then the default value in project settings will be used.
+    :type image_quality_in_editor: str
+
+    :return: uploaded and not-uploaded images' filepaths
+    :rtype: tuple of list of strs
+    """
+    images_not_uploaded = []
+    images_to_upload = []
+    path_to_url = {}
+    with tempfile.TemporaryDirectory() as save_dir_name:
+        save_dir = Path(save_dir_name)
+        for img_url in img_urls:
+            img_path = save_dir / basename(urlparse(img_url).path)
+            path_to_url[str(img_path)] = img_url
+            try:
+                write_path, _ = urlretrieve(img_url, img_path)
+                images_to_upload.append(write_path)
+            except Exception as e:
+                logger.warning(
+                    "Couldn't download image %s, %s", img_url, str(e)
+                )
+                images_not_uploaded.append(img_url)
+        images_uploaded_paths, images_not_uploaded_paths = upload_images_to_project(
+            project,
+            images_to_upload,
+            annotation_status=annotation_status,
+            image_quality_in_editor=image_quality_in_editor
+        )
+        images_not_uploaded.extend(
+            [path_to_url[str(path)] for path in images_not_uploaded_paths]
+        )
+        images_uploaded = [
+            path_to_url[str(path)] for path in images_uploaded_paths
+        ]
+
+    return (images_uploaded, images_not_uploaded)
 
 
 def __upload_annotations_thread(
