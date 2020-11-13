@@ -25,7 +25,7 @@ clean:
 coverage: test_coverage
 
 test_coverage:
-	$(COVERAGE) run -m  --source=./superannotate/  $(PYTESTS) -n 8
+	$(PYTEST) --cov=superannotate -n 8
 	$(COVERAGE) html
 	@echo "\033[95m\n\nCoverage successful! View the output at file://htmlcov/index.html.\n\033[0m"
 
