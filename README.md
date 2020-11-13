@@ -52,6 +52,7 @@ For further steps please have a look at the [tutorial](https://superannotate.rea
 - Download image annotations/pre-annotations
 - Create/download project annotation classes
 - Convert annotation format from/to COCO
+- Convert annotation format from VOC, SuperVisely, LabelBox, DataLoop, VGG, VoTT, SageMaker, GoogleCloud, YOLO
 - Add annotations to images on platform
 - Add annotations to local SuperAnnotate format JSONs
 - CLI commands for simple tasks
