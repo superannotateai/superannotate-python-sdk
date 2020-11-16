@@ -6,8 +6,26 @@ import numpy as np
 import pycocotools.mask as maskUtils
 from panopticapi.utils import id2rgb
 from tqdm import tqdm
+from pycocotools.coco import COCO
 
 from ....common import hex_to_rgb, blue_color_generator
+
+
+def _rle_to_polygon(coco_json, annotation):
+    coco = COCO(coco_json)
+    binary_mask = coco.annToMask(annotation)
+    contours, hierarchy = cv2.findContours(
+        binary_mask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+    )
+    segmentation = []
+
+    for contour in contours:
+        contour = contour.flatten().tolist()
+        if len(contour) > 4:
+            segmentation.append(contour)
+        if len(segmentation) == 0:
+            continue
+    return segmentation
 
 
 def coco_panoptic_segmentation_to_sa_pixel(coco_path, images_path):
@@ -75,7 +93,7 @@ def coco_instance_segmentation_to_sa_pixel(coco_path, images_path):
 
     images_dict = {}
     for img in coco_json['images']:
-        images_dict[img['id']] = {
+        images_dict[str(img['id'])] = {
             'mask': np.zeros((img['height'], img['width'], 4)),
             'file_name': img['file_name'],
             'segments_num': 0
@@ -85,6 +103,7 @@ def coco_instance_segmentation_to_sa_pixel(coco_path, images_path):
     hexcolors = blue_color_generator(len(coco_json['annotations']))
     for i, annot in enumerate(coco_json['annotations']):
         if str(annot['image_id']) not in images_dict:
+            print('check')
             continue
 
         hexcolor = hexcolors[images_dict[str(annot['image_id'])]['segments_num']
@@ -92,9 +111,20 @@ def coco_instance_segmentation_to_sa_pixel(coco_path, images_path):
         color = hex_to_rgb(hexcolor)
         images_dict[str(annot['image_id'])]['segments_num'] += 1
 
+        if isinstance(annot['segmentation'], dict):
+            annot['segmentation'] = _rle_to_polygon(coco_path, annot)
+
+        segment = annot['segmentation'][0]
+        H, W, C = images_dict[str(annot['image_id'])]['mask'].shape
+        bitmask = np.zeros((H, W)).astype(np.uint8)
+        pts = np.array(
+            [segment[2 * i:2 * (i + 1)] for i in range(len(segment) // 2)],
+            dtype=np.int32
+        )
+
+        cv2.fillPoly(bitmask, [pts], 1)
         images_dict[str(annot['image_id']
-                       )]['mask'][maskUtils.decode(annot['segmentation']) == 1
-                                 ] = list(color)[::-1] + [255]
+                       )]['mask'][bitmask == 1] = list(color)[::-1] + [255]
 
         sa_obj = {
             "classId": annot['category_id'],
@@ -108,6 +138,7 @@ def coco_instance_segmentation_to_sa_pixel(coco_path, images_path):
             "attributeNames": [],
             "imageId": annot["image_id"]
         }
+
         key = images_dict[str(annot['image_id'])]['file_name']
         if key not in sa_json.keys():
             sa_json[key] = []

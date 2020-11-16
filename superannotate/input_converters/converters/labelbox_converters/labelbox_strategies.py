@@ -19,7 +19,7 @@ class LabelBoxObjectDetectionStrategy(LabelBoxConverter):
             if self.project_type == "Vector":
                 if self.task == "object_detection":
                     self.converion_algorithm = labelbox_object_detection_to_sa_vector
-                elif self.task == 'instace_segmentation':
+                elif self.task == 'instance_segmentation':
                     self.converion_algorithm = labelbox_instance_segmentation_to_sa_vector
                 elif self.task == 'vector_annotation':
                     self.converion_algorithm = labelbox_to_sa

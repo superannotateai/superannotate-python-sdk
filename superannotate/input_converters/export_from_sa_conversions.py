@@ -126,7 +126,7 @@ def export_from_sa(args):
     try:
         _move_files(data_set, args.output_dir, args.platform)
     except Exception as e:
-        log_msg = 'Something is went wrong while moving or copying files from source folder'
+        log_msg = 'Something went wrong while moving or copying files from source folder'
         logging.error(log_msg)
         logging.error(e)
 

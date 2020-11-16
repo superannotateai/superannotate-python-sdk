@@ -25,7 +25,7 @@ ALLOWED_ANNOTATION_IMPORT_FORMATS = {
             ('Pixel', 'panoptic_segmentation'),
             ('Pixel', 'instance_segmentation'),
             ('Vector', 'keypoint_detection'),
-            ('Vector', 'instance_segmentation')
+            ('Vector', 'instance_segmentation'), ('Vector', 'object_detection')
         ],
     'VOC':
         [
@@ -168,7 +168,7 @@ def export_annotation_format(
                          'Pixel' project creates <image_name>___pixel.jsons and <image_name>___save.png annotation mask for each image.
     :type project_type: str
     :param task: Task can be one of the following: ['panoptic_segmentation', 'instance_segmentation',
-                 'keypoint_detection', 'object_detection']. (Default: "objec_detection").
+                 'keypoint_detection', 'object_detection']. (Default: "object_detection").
                  'keypoint_detection' can be used to converts keypoints from/to available annotation format.
                  'panoptic_segmentation' will use panoptic mask for each image to generate bluemask for SuperAnnotate annotation format and use bluemask to generate panoptic mask for invert conversion. Panoptic masks should be in the input folder.
                  'instance_segmentation' 'Pixel' project_type converts instance masks and 'Vector' project_type generates bounding boxes and polygons from instance masks. Masks should be in the input folder if it is 'Pixel' project_type.
@@ -258,11 +258,57 @@ def import_annotation_format(
     Vector          vector_annotation
     ==============  ======================
 
+    ==============  ======================
+           From VoTT to SA
+    --------------------------------------
+     project_type           task
+    ==============  ======================
+    Vector          instance_segmentation
+    Vector          object_detection
+    Vector          vector_annotation
+    ==============  ======================
+
+    ==============  ======================
+           From SageMaker to SA
+    --------------------------------------
+     project_type           task
+    ==============  ======================
+    Pixel           instance_segmentation
+    Vector          objcet_detection
+    ==============  ======================
+
+    ==============  ======================
+           From VGG to SA
+    --------------------------------------
+     project_type           task
+    ==============  ======================
+    Vector          instance_segmentation
+    Vector          object_detection
+    Vector          vector_annotation
+    ==============  ======================
+
+    ==============  ======================
+           From GoogleCloud to SA
+    --------------------------------------
+     project_type           task
+    ==============  ======================
+    Vector          object_detection
+    ==============  ======================
+
+    ==============  ======================
+           From YOLO to SA
+    --------------------------------------
+     project_type           task
+    ==============  ======================
+    Vector          object_detection
+    ==============  ======================
+
     :param input_dir: Path to the dataset folder that you want to convert.
     :type input_dir: str
     :param output_dir: Path to the folder, where you want to have converted dataset.
     :type output_dir: str
-    :param dataset_format: Annotation format to convert SuperAnnotate annotation format. Available candidates are: ["COCO", "VOC", "LabelBox", "DataLoop", "Supervisely"]
+    :param dataset_format: Annotation format to convert SuperAnnotate annotation format. Available candidates are: ["COCO", "VOC", "LabelBox", "DataLoop", 
+                        "Supervisely", 'VGG', 'YOLO', 'SageMake', 'VoTT', 'GoogleCloud']
     :type dataset_format: str
     :param dataset_name: Name of the json file in the input_dir, which should be converted.
     :type dataset_name: str
@@ -271,7 +317,7 @@ def import_annotation_format(
                          'Pixel' project creates <image_name>___pixel.jsons and <image_name>___save.png annotation mask for each image.
     :type project_type: str
     :param task: Task can be one of the following: ['panoptic_segmentation', 'instance_segmentation',
-                 'keypoint_detection', 'object_detection']. (Default: "objec_detection").
+                 'keypoint_detection', 'object_detection']. (Default: "object_detection").
                  'keypoint_detection' can be used to converts keypoints from/to available annotation format.
                  'panoptic_segmentation' will use panoptic mask for each image to generate bluemask for SuperAnnotate annotation format and use bluemask to generate panoptic mask for invert conversion. Panoptic masks should be in the input folder.
                  'instance_segmentation' 'Pixel' project_type converts instance masks and 'Vector' project_type generates bounding boxes and polygons from instance masks. Masks should be in the input folder if it is 'Pixel' project_type.

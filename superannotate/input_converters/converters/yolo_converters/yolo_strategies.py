@@ -21,12 +21,6 @@ class YoloObjectDetectionStrategy(YOLOConverter):
             elif self.project_type == "Pixel":
                 raise NotImplementedError("Doesn't support yet")
 
-    def __str__(self):
-        return '{} object'.format(self.name)
-
-    def from_sa_format(self):
-        pass
-
     def to_sa_format(self):
         sa_jsons, sa_classes = self.converion_algorithm(self.export_root)
         self.dump_output(sa_classes, sa_jsons)

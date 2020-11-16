@@ -15,7 +15,7 @@ from .coco_to_sa_pixel import (
 )
 from .coco_to_sa_vector import (
     coco_instance_segmentation_to_sa_vector,
-    coco_keypoint_detection_to_sa_vector
+    coco_keypoint_detection_to_sa_vector, coco_object_detection_to_sa_vector
 )
 from .sa_pixel_to_coco import (
     sa_pixel_to_coco_instance_segmentation, sa_pixel_to_coco_object_detection,
@@ -136,7 +136,7 @@ class CocoObjectDetectionStrategy(CoCoConverter):
                 if self.task == 'instance_segmentation':
                     self.conversion_algorithm = coco_instance_segmentation_to_sa_vector
                 elif self.task == 'object_detection':
-                    raise ValueError('Method not implemented')
+                    self.conversion_algorithm = coco_object_detection_to_sa_vector
 
     def __str__(self, ):
         return '{} object'.format(self.name)

@@ -17,7 +17,7 @@ def _create_classes(classes_map):
     return classes_loader
 
 
-def vott_object_detection_to_sa_vector():
+def vott_object_detection_to_sa_vector(file_list, id_generator):
     sa_jsons = {}
     classes = {}
     for json_file in file_list:
@@ -62,7 +62,7 @@ def vott_object_detection_to_sa_vector():
     return sa_jsons, sa_classes
 
 
-def vott_instance_segmentation_to_sa_vector():
+def vott_instance_segmentation_to_sa_vector(file_list, id_generator):
     sa_jsons = {}
     classes = {}
     for json_file in file_list:

@@ -192,7 +192,7 @@ def labelbox_object_detection_to_sa_vector(json_data, id_generator):
 
 
 def labelbox_instance_segmentation_to_sa_vector(json_data, id_generator):
-    classes = _create_classes_id_map()
+    classes = _create_classes_id_map(json_data, id_generator)
     sa_jsons = {}
     for d in json_data:
         if 'objects' not in d['Label'].keys():

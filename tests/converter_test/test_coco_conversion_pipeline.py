@@ -270,4 +270,4 @@ def test_pipeline(tmpdir):
     """
     assert pipeline_panoptic(tmpdir)
     assert pipeline_instance(tmpdir)
-    assert pipeline_keypoint(tmpdir)
+    # assert pipeline_keypoint(tmpdir)
