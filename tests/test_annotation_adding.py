@@ -1,6 +1,5 @@
 from pathlib import Path
 import json
-import time
 
 import pytest
 
@@ -133,3 +132,39 @@ def test_add_bbox_noinit(tmpdir):
     export = sa.prepare_export(project, include_fuse=True)
     sa.download_export(project, export, tmpdir)
     assert len(list(Path(tmpdir).rglob("*.*"))) == 4
+
+
+def test_add_bbox_json(tmpdir):
+    tmpdir = Path(tmpdir)
+
+    dest = tmpdir / "test.json"
+    src = Path(
+        "./tests/sample_project_vector/example_image_1.jpg___objects.json"
+    )
+    dest.write_text(src.read_text())
+    annotations = json.load(open(dest))
+    sa.add_annotation_bbox_to_json(dest, [10, 10, 500, 100], "test_add")
+    sa.add_annotation_polyline_to_json(
+        dest, [110, 110, 510, 510, 600, 510], "test_add"
+    )
+    sa.add_annotation_polygon_to_json(
+        dest, [100, 100, 500, 500, 200, 300], "test_add",
+        [{
+            "name": "tall",
+            "groupName": "height"
+        }]
+    )
+    sa.add_annotation_point_to_json(dest, [250, 250], "test_add")
+    sa.add_annotation_ellipse_to_json(dest, [405, 405, 20, 70, 15], "test_add")
+    sa.add_annotation_template_to_json(
+        dest, [600, 30, 630, 30, 615, 60], [1, 3, 2, 3], "test_add"
+    )
+    sa.add_annotation_cuboid_to_json(
+        dest, [800, 500, 900, 600, 850, 450, 950, 700], "test_add"
+    )
+    sa.add_annotation_comment_to_json(
+        dest, "hey", [100, 100], "hovnatan@superannotate.com", True
+    )
+    annotations_new = json.load(open(dest))
+
+    assert len(annotations_new) == len(annotations) + 8

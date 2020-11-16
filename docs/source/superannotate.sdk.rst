@@ -282,6 +282,7 @@ Converting annotation format to and from SuperAnnotate format
 _____________________________________________________________
 
 
+.. _ref_import_annotation_format:
 .. autofunction:: superannotate.import_annotation_format
 .. autofunction:: superannotate.export_annotation_format
 .. autofunction:: superannotate.convert_project_type
@@ -302,7 +303,6 @@ ________________________
 .. autofunction:: superannotate.add_annotation_cuboid_to_json
 .. autofunction:: superannotate.add_annotation_comment_to_json
 .. autofunction:: superannotate.aggregate_annotations_as_df
-.. autofunction:: superannotate.consensus
 .. autofunction:: superannotate.df_to_annotations
 .. _ref_filter_annotation_instances:
 .. autofunction:: superannotate.filter_annotation_instances

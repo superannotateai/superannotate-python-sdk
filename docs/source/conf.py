@@ -20,10 +20,10 @@ import superannotate
 
 project = 'SuperAnnotate Python SDK'
 copyright = '2020, SuperAnnotate AI'
-author = 'Hovnatan Karapetyan, Vahagn Tumanyan, Armen Gyurjinyan, Shabin Dilanchian'
+author = 'Hovnatan Karapetyan, Vahagn Tumanyan, Armen Gyurjinyan, Shabin Dilanchian, Erik Harutyunyan, Arsine Mangasaryan'
 
 # The full version, including alpha/beta/rc tags
-release = '1.0'
+release = superannotate.__version__
 
 # -- General configuration ---------------------------------------------------
 master_doc = 'index'

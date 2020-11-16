@@ -96,12 +96,22 @@ To upload preannotations from folder to project use:
 .. code-block:: bash
 
    superannotate upload-preannotations --project <project_name> --folder <folder_path> 
-                                       [--format "COCO" or "SA"] [--dataset-name "<dataset_name_for_COCO_projects>"]
+                                       [--format "COCO" or "SuperAnnotate"] 
+                                       [--dataset-name "<dataset_name_for_COCO_projects>"]
                                        [--task "<task_type_for_COCO_projects>]
 
 
-Optional argument *format* accepts input preannotation format. It can have COCO or SuperAnnotate values.
-If the argument is not given then SuperAnnotate (the native preannotation format) assumed.
+Optional argument *format* accepts input annotation format. It can have COCO or SuperAnnotate values.
+If the argument is not given then SuperAnnotate (the native annotation format) is assumed.
+
+Only when COCO format is specified *dataset-name* and *task* arguments are required.
+
+*dataset-name* specifies JSON filename (without extension) in <folder_path>.
+
+*task* specifies the COCO task for conversion. Please see 
+:ref:`import_annotation_format <ref_import_annotation_format>` for more details.
+
+The annotation classes will be created during the execution of this command.
 
 ----------
 
@@ -115,11 +125,22 @@ To upload annotations from folder to project use:
 .. code-block:: bash
 
    superannotate upload-annotations --project <project_name> --folder <folder_path> 
-                                    [--format "COCO" or "SA"] [--dataset-name "<dataset_name_for_COCO_projects>"]
+                                    [--format "COCO" or "SuperAnnotate"] 
+                                    [--dataset-name "<dataset_name_for_COCO_projects>"]
                                     [--task "<task_type_for_COCO_projects>]
 
-Optional argument *format* accepts input preannotation format. It can have COCO or SuperAnnotate values.
-If the argument is not given then SuperAnnotate (the native preannotation format) assumed.
+Optional argument *format* accepts input annotation format. It can have COCO or SuperAnnotate values.
+If the argument is not given then SuperAnnotate (the native annotation format) is assumed.
+
+Only when COCO format is specified *dataset-name* and *task* arguments are required.
+
+*dataset-name* specifies JSON filename (without extension) in <folder_path>.
+
+*task* specifies the COCO task for conversion. Please see 
+:ref:`import_annotation_format <ref_import_annotation_format>` for more details.
+
+The annotation classes will be created during the execution of this command.
+
 
 ----------
 
