@@ -94,7 +94,9 @@ def test_add_bbox(tmpdir):
 
     num = len(df[df["imageName"] == image_name]["instanceId"].dropna().unique())
 
-    assert num == len(annotations) - 3 + 7
+    assert num == len(
+        annotations
+    ) - 6 + 7  # -6 for 3 comments and 3 invalid annotations, className or attributes
 
 
 def test_add_bbox_noinit(tmpdir):

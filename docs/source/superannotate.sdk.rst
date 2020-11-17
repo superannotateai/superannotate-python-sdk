@@ -110,6 +110,7 @@ _________________
 
 .. autofunction:: superannotate.get_team_metadata
 .. autofunction:: superannotate.invite_contributor_to_team
+.. autofunction:: superannotate.delete_contributor_to_team_invitation
 
 ----------
 

@@ -36,6 +36,19 @@ To initialize CLI (and SDK) with team token:
 
 ----------
 
+.. _ref_create_project:
+
+Creating a project
+~~~~~~~~~~~~~~~~~~
+
+To create a new project:
+
+.. code-block:: bash
+
+   superannotate create-project --name <project_name> --description <project_description> --type <project_type Vector or Pixel>
+
+----------
+
 .. _ref_upload_images:
 
 Uploading images
