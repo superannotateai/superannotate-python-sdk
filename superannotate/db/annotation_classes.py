@@ -299,6 +299,7 @@ def fill_class_and_attribute_ids(annotation_json, annotation_classes_dict):
             logger.warning(
                 "Couldn't find annotation class %s", annotation_class_name
             )
+            continue
         class_id = annotation_classes_dict[annotation_class_name]["id"]
         ann["classId"] = class_id
         for attribute in ann["attributes"]:
