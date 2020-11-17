@@ -61,7 +61,10 @@ from .db.projects import (
     upload_preannotations_from_folder_to_project, upload_video_to_project,
     upload_videos_from_folder_to_project
 )
-from .db.teams import get_team_metadata, invite_contributor_to_team
+from .db.teams import (
+    delete_contributor_to_team_invitation, get_team_metadata,
+    invite_contributor_to_team
+)
 from .db.users import search_team_contributors
 from .dicom_converter import dicom_to_rgb_sequence
 from .exceptions import (
