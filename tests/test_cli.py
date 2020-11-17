@@ -16,7 +16,14 @@ def test_cli_image_upload_project_export(tmpdir):
     projects_found = sa.search_projects(PROJECT_NAME, return_metadata=True)
     for pr in projects_found:
         sa.delete_project(pr)
-    project = sa.create_project(PROJECT_NAME, "gg", "Vector")
+    subprocess.run(
+        [
+            f"superannotate create-project --name '{PROJECT_NAME}' --description gg --type Vector "
+        ],
+        check=True,
+        shell=True
+    )
+    project = PROJECT_NAME
     sa.create_annotation_classes_from_classes_json(
         PROJECT_NAME, "./tests/sample_recursive_test/classes/classes.json"
     )

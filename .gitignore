@@ -133,3 +133,6 @@ sample_tif_files
 
 # Vscode settings folder
 .vscode/
+
+# python virtual env for SDK testing
+venv_sa_conv

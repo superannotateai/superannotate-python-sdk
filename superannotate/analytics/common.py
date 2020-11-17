@@ -183,10 +183,17 @@ def aggregate_annotations_as_df(
         )
     classes_json = json.load(open(classes_path))
     class_name_to_color = {}
+    class_group_name_to_values = {}
     for annotation_class in classes_json:
         name = annotation_class["name"]
         color = annotation_class["color"]
         class_name_to_color[name] = color
+        class_group_name_to_values[name] = {}
+        for attribute_group in annotation_class["attribute_groups"]:
+            class_group_name_to_values[name][attribute_group["name"]] = []
+            for attribute in attribute_group["attributes"]:
+                class_group_name_to_values[name][attribute_group["name"]
+                                                ].append(attribute["name"])
 
     def __append_annotation(annotation_dict):
         for annotation_key in annotation_data:
@@ -258,10 +265,12 @@ def aggregate_annotations_as_df(
                 continue
             annotation_instance_id += 1
             annotation_class_name = annotation.get("className")
-            if annotation_class_name is None:
-                raise SABaseException(
-                    0, "Annotation class not found in classes.json"
+            if annotation_class_name is None or annotation_class_name not in class_name_to_color:
+                logger.warning(
+                    "Annotation class %s not found in classes json. Skipping.",
+                    annotation_class_name
                 )
+                continue
             annotation_class_color = class_name_to_color[annotation_class_name]
             annotation_group_id = annotation.get("groupId")
             annotation_locked = annotation.get("locked")
@@ -332,37 +341,50 @@ def aggregate_annotations_as_df(
                 }
                 annotation_dict.update(image_metadata)
                 __append_annotation(annotation_dict)
-
-            for attribute in attributes:
-
-                attribute_group = attribute.get("groupName")
-                attribute_name = attribute.get('name')
-                annotation_dict = {
-                    "imageName": image_name,
-                    "instanceId": annotation_instance_id,
-                    "className": annotation_class_name,
-                    "attributeGroupName": attribute_group,
-                    "attributeName": attribute_name,
-                    "type": annotation_type,
-                    "locked": annotation_locked,
-                    "visible": annotation_visible,
-                    "trackingId": annotation_tracking_id,
-                    "meta": annotation_meta,
-                    "error": annotation_error,
-                    "probability": annotation_probability,
-                    "pointLabels": annotation_point_labels,
-                    "classColor": annotation_class_color,
-                    "groupId": annotation_group_id,
-                    "createdAt": annotation_created_at,
-                    "creatorRole": annotation_creator_role,
-                    "creatorEmail": annotation_creator_email,
-                    "creationType": annotation_creation_type,
-                    "updatedAt": annotation_updated_at,
-                    "updatorRole": annotation_updator_role,
-                    "updatorEmail": annotation_updator_email
-                }
-                annotation_dict.update(image_metadata)
-                __append_annotation(annotation_dict)
+            else:
+                for attribute in attributes:
+                    attribute_group = attribute.get("groupName")
+                    attribute_name = attribute.get('name')
+                    if attribute_group not in class_group_name_to_values[
+                        annotation_class_name]:
+                        logger.warning(
+                            "Annotation class group %s not in classes json. Skipping.",
+                            attribute_group
+                        )
+                        continue
+                    if attribute_name not in class_group_name_to_values[
+                        annotation_class_name][attribute_group]:
+                        logger.warning(
+                            "Annotation class group value %s not in classes json. Skipping.",
+                            attribute_name
+                        )
+                        continue
+                    annotation_dict = {
+                        "imageName": image_name,
+                        "instanceId": annotation_instance_id,
+                        "className": annotation_class_name,
+                        "attributeGroupName": attribute_group,
+                        "attributeName": attribute_name,
+                        "type": annotation_type,
+                        "locked": annotation_locked,
+                        "visible": annotation_visible,
+                        "trackingId": annotation_tracking_id,
+                        "meta": annotation_meta,
+                        "error": annotation_error,
+                        "probability": annotation_probability,
+                        "pointLabels": annotation_point_labels,
+                        "classColor": annotation_class_color,
+                        "groupId": annotation_group_id,
+                        "createdAt": annotation_created_at,
+                        "creatorRole": annotation_creator_role,
+                        "creatorEmail": annotation_creator_email,
+                        "creationType": annotation_creation_type,
+                        "updatedAt": annotation_updated_at,
+                        "updatorRole": annotation_updator_role,
+                        "updatorEmail": annotation_updator_email
+                    }
+                    annotation_dict.update(image_metadata)
+                    __append_annotation(annotation_dict)
 
     df = pd.DataFrame(annotation_data)
 

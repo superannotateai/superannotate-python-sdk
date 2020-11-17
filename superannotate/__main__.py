@@ -44,7 +44,9 @@ def main():
     command = sys.argv[1]
     further_args = sys.argv[2:]
 
-    if command == "upload-images":
+    if command == "create-project":
+        create_project(further_args)
+    elif command == "upload-images":
         image_upload(further_args)
     elif command == "upload-videos":
         video_upload(further_args)
@@ -122,7 +124,8 @@ def preannotations_upload(args, annotations=False):
         )
         args.folder = tempdir_path
     sa.create_annotation_classes_from_classes_json(
-        args.project, Path(args.folder) / "classes" / "classes.json"
+        args.project,
+        Path(args.folder) / "classes" / "classes.json"
     )
 
     if annotations:
@@ -133,6 +136,20 @@ def preannotations_upload(args, annotations=False):
         sa.upload_preannotations_from_folder_to_project(
             project=args.project, folder_path=args.folder
         )
+
+
+def create_project(args):
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--name', required=True, help='Project name to create')
+    parser.add_argument(
+        '--description', required=True, help='Project description'
+    )
+    parser.add_argument(
+        '--type', required=True, help='Project type Vector or Pixel'
+    )
+    args = parser.parse_args(args)
+
+    sa.create_project(args.name, args.description, args.type)
 
 
 def video_upload(args):
