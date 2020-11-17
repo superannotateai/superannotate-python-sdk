@@ -42,7 +42,13 @@ ALLOWED_ANNOTATION_IMPORT_FORMATS = {
             ('Vector', 'object_detection'), ('Vector', 'instance_segmentation'),
             ('Vector', 'vector_annotation')
         ],
-    'Supervisely': [('Vector', 'vector_annotation')],
+    'Supervisely':
+        [
+            ('Vector', 'vector_annotation'), ('Vector', 'object_detection'),
+            ('Vector', 'instance_segmentation'),
+            ('Pixel', 'instance_segmentation'),
+            ('Vector', 'keypoint_detection')
+        ],
     'VoTT':
         [
             ('Vector', 'object_detection'), ('Vector', 'instance_segmentation'),
