@@ -3,6 +3,7 @@ import io
 import json
 import logging
 import math
+import os
 import random
 import threading
 import tempfile
@@ -462,10 +463,12 @@ def upload_videos_from_folder_to_project(
     for extension in extensions:
         if not recursive_subfolders:
             paths += list(Path(folder_path).glob(f'*.{extension.lower()}'))
-            paths += list(Path(folder_path).glob(f'*.{extension.upper()}'))
+            if os.name != "nt":
+                paths += list(Path(folder_path).glob(f'*.{extension.upper()}'))
         else:
             paths += list(Path(folder_path).rglob(f'*.{extension.lower()}'))
-            paths += list(Path(folder_path).rglob(f'*.{extension.upper()}'))
+            if os.name != "nt":
+                paths += list(Path(folder_path).rglob(f'*.{extension.upper()}'))
     filtered_paths = []
     for path in paths:
         not_in_exclude_list = [
@@ -552,10 +555,16 @@ def upload_images_from_folder_to_project(
         for extension in extensions:
             if not recursive_subfolders:
                 paths += list(Path(folder_path).glob(f'*.{extension.lower()}'))
-                paths += list(Path(folder_path).glob(f'*.{extension.upper()}'))
+                if os.name != "nt":
+                    paths += list(
+                        Path(folder_path).glob(f'*.{extension.upper()}')
+                    )
             else:
                 paths += list(Path(folder_path).rglob(f'*.{extension.lower()}'))
-                paths += list(Path(folder_path).rglob(f'*.{extension.upper()}'))
+                if os.name != "nt":
+                    paths += list(
+                        Path(folder_path).rglob(f'*.{extension.upper()}')
+                    )
     else:
         s3_client = boto3.client('s3')
         paginator = s3_client.get_paginator('list_objects_v2')
@@ -571,8 +580,10 @@ def upload_images_from_folder_to_project(
                                                            1:]:
                     continue
                 for extension in extensions:
-                    if key.endswith(f'.{extension.lower()}'
-                                   ) or key.endswith(f'.{extension.upper()}'):
+                    if key.endswith(f'.{extension.lower()}') or (
+                        os.name != "nt" and
+                        key.endswith(f'.{extension.upper()}')
+                    ):
                         paths.append(key)
                         break
     filtered_paths = []
