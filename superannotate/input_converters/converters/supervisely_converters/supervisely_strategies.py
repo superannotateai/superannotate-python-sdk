@@ -33,14 +33,9 @@ class SuperviselyObjectDetectionStrategy(SuperviselyConverter):
             elif self.project_type == "Pixel":
                 if self.task == 'instance_segmentation':
                     self.conversion_algorithm = supervisely_instance_segmentation_to_sa_pixel
-                else:
-                    raise NotImplementedError("Doesn't support yet")
 
     def __str__(self):
         return '{} object'.format(self.name)
-
-    def from_sa_format(self):
-        pass
 
     def to_sa_format(self):
         id_generator = self._make_id_generator()

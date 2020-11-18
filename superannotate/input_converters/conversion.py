@@ -78,63 +78,73 @@ ALLOWED_ANNOTATION_EXPORT_FORMATS = {
 
 def _passes_sanity_checks(args):
     if not isinstance(args.input_dir, (str, Path)):
-        log_msg = "'input_dir' should be 'str' or 'Path' type, not '%s'" % (
-            type(args.input_dir)
+        raise SABaseException(
+            0, "'input_dir' should be 'str' or 'Path' type, not '%s'" %
+            (type(args.input_dir))
         )
-        raise SABaseException(0, log_msg)
 
     if not isinstance(args.output_dir, (str, Path)):
-        log_msg = "'output_dir' should be 'str' or 'Path' type, not {}".format(
-            type(args.output_dir)
+        raise SABaseException(
+            0, "'output_dir' should be 'str' or 'Path' type, not {}".format(
+                type(args.output_dir)
+            )
         )
-        raise SABaseException(0, log_msg)
 
     if args.dataset_format not in ALLOWED_ANNOTATION_IMPORT_FORMATS.keys():
-        log_msg = "'%s' converter doesn't exist. Possible candidates are '%s'"\
-         % (args.dataset_format, ALLOWED_ANNOTATION_IMPORT_FORMATS.keys())
-        raise SABaseException(0, log_msg)
+        raise SABaseException(
+            0, "'%s' converter doesn't exist. Possible candidates are '%s'" %
+            (args.dataset_format, ALLOWED_ANNOTATION_IMPORT_FORMATS.keys())
+        )
 
     if not isinstance(args.dataset_name, str):
-        log_msg = "'dataset_name' should be 'str' type, not {}".format(
-            type(args.dataset_name)
+        raise SABaseException(
+            0, "'dataset_name' should be 'str' type, not {}".format(
+                type(args.dataset_name)
+            )
         )
-        raise SABaseException(0, log_msg)
 
     if args.project_type not in ALLOWED_PROJECT_TYPES:
-        log_msg = "Please enter valid project type: 'Pixel' or 'Vector'"
-        raise SABaseException(0, log_msg)
+        raise SABaseException(
+            0, "Please enter valid project type: 'Pixel' or 'Vector'"
+        )
 
     if args.task not in ALLOWED_TASK_TYPES:
-        log_msg = "Please enter valid task '%s'" % (ALLOWED_TASK_TYPES)
-        raise SABaseException(0, log_msg)
+        raise SABaseException(
+            0, "Please enter valid task '%s'" % (ALLOWED_TASK_TYPES)
+        )
 
     if 'platform' in args:
         if args.platform not in AVAILABLE_PLATFORMS:
-            log_msg = "Please enter valid platform: 'Desktop' or 'Web'"
-            raise SABaseException(0, log_msg)
+            raise SABaseException(
+                0, "Please enter valid platform: 'Desktop' or 'Web'"
+            )
 
     if args.task == "Pixel" and args.platform == "Desktop":
-        log_msg = "Sorry, but Desktop Application doesn't support 'Pixel' projects yet."
-        raise SABaseException(0, log_msg)
+        raise SABaseException(
+            0,
+            "Sorry, but Desktop Application doesn't support 'Pixel' projects."
+        )
 
-    return True
+    # return True
 
 
 def _passes_converter_sanity(args, direction):
     converter_values = (args.project_type, args.task)
+    test_passed = False
     if direction == 'import':
         if converter_values in ALLOWED_ANNOTATION_IMPORT_FORMATS[
             args.dataset_format]:
-            return True
+            test_passed = True
     else:
         if converter_values in ALLOWED_ANNOTATION_EXPORT_FORMATS[
             args.dataset_format]:
-            return True
+            test_passed = True
 
-    log_msg = "Please enter valid converter values. You can check available \
-        candidates in the documentation(https://superannotate.readthedocs.io/en/latest/index.html)."
-
-    raise SABaseException(log_msg)
+    if not test_passed:
+        raise SABaseException(
+            0,
+            "Please enter valid converter values. You can check available candidates in the documentation(https://superannotate.readthedocs.io/en/latest/index.html)."
+        )
 
 
 def export_annotation_format(
@@ -195,10 +205,8 @@ def export_annotation_format(
         platform=platform,
     )
 
-    if not _passes_sanity_checks(args):
-        sys.exit()
-    if not _passes_converter_sanity(args, 'export'):
-        sys.exit()
+    _passes_sanity_checks(args)
+    _passes_converter_sanity(args, 'export')
 
     export_from_sa(args)
 
@@ -343,10 +351,8 @@ def import_annotation_format(
         platform=platform,
     )
 
-    if not _passes_sanity_checks(args):
-        sys.exit()
-    if not _passes_converter_sanity(args, 'import'):
-        sys.exit()
+    _passes_sanity_checks(args)
+    _passes_converter_sanity(args, 'import')
 
     import_to_sa(args)
 
@@ -363,20 +369,21 @@ def convert_platform(input_dir, output_dir, input_platform):
 
     """
     if not isinstance(input_dir, (str, Path)):
-        log_msg = "'input_dir' should be 'str' or 'Path' type, not '%s'" % (
-            type(input_dir)
+        raise SABaseException(
+            0, "'input_dir' should be 'str' or 'Path' type, not '%s'" %
+            (type(input_dir))
         )
-        raise SABaseException(0, log_msg)
 
     if not isinstance(output_dir, (str, Path)):
-        log_msg = "'output_dir' should be 'str' or 'Path' type, not '%s'" % (
-            type(output_dir)
+        raise SABaseException(
+            0, "'output_dir' should be 'str' or 'Path' type, not '%s'" %
+            (type(output_dir))
         )
-        raise SABaseException(0, log_msg)
 
     if input_platform not in AVAILABLE_PLATFORMS:
-        log_msg = "Please enter valid platform: 'Desktop' or 'Web'"
-        raise SABaseException(0, log_msg)
+        raise SABaseException(
+            0, "Please enter valid platform: 'Desktop' or 'Web'"
+        )
 
     sa_convert_platform(input_dir, output_dir, input_platform)
 
@@ -392,15 +399,15 @@ def convert_project_type(input_dir, output_dir):
     """
 
     if not isinstance(input_dir, (str, Path)):
-        log_msg = "'input_dir' should be 'str' or 'Path' type, not '%s'" % (
-            type(input_dir)
+        raise SABaseException(
+            0, "'input_dir' should be 'str' or 'Path' type, not '%s'" %
+            (type(input_dir))
         )
-        raise SABaseException(0, log_msg)
 
     if not isinstance(output_dir, (str, Path)):
-        log_msg = "'output_dir' should be 'str' or 'Path' type, not '%s'" % (
-            type(output_dir)
+        raise SABaseException(
+            0, "'output_dir' should be 'str' or 'Path' type, not '%s'" %
+            (type(output_dir))
         )
-        raise SABaseException(0, log_msg)
 
     sa_convert_project_type(input_dir, output_dir)

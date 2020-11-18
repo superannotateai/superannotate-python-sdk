@@ -18,22 +18,15 @@ class GoogleCloudObjectDetectionStrategy(GoogleCloudConverter):
         else:
             if self.project_type == "Vector":
                 if self.task == "object_detection":
-                    self.converion_algorithm = googlecloud_object_detection_to_sa_vector
-                else:
-                    raise NotImplementedError("Doesn't support yet")
-            elif self.project_type == "Pixel":
-                raise NotImplementedError("Doesn't support yet")
+                    self.conversion_algorithm = googlecloud_object_detection_to_sa_vector
 
     def __str__(self):
         return '{} object'.format(self.name)
 
-    def from_sa_format(self):
-        pass
-
     def to_sa_format(self):
         path = Path(self.export_root).joinpath(self.dataset_name + '.csv')
         id_generator = self._make_id_generator()
-        sa_jsons, sa_classes = self.converion_algorithm(path, id_generator)
+        sa_jsons, sa_classes = self.conversion_algorithm(path, id_generator)
         self.dump_output(sa_classes, sa_jsons)
 
     def _make_id_generator(self):

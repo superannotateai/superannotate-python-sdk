@@ -24,16 +24,11 @@ class VocObjectDetectionStrategy(VocConverter):
                 elif self.task == "instance_segmentation":
                     self.conversion_algorithm = voc_instance_segmentation_to_sa_vector
             elif self.project_type == "Pixel":
-                if self.task == "object_detection":
-                    raise NotImplementedError("Doesn't support yet")
-                elif self.task == "instance_segmentation":
+                if self.task == "instance_segmentation":
                     self.conversion_algorithm = voc_instance_segmentation_to_sa_pixel
 
     def __str__(self):
         return '{} object'.format(self.name)
-
-    def from_sa_format(self):
-        pass
 
     def to_sa_format(self):
         sa_classes, sa_jsons, sa_masks = self.conversion_algorithm(

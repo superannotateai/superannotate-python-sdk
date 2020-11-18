@@ -11,6 +11,7 @@ import numpy as np
 from tqdm import tqdm
 
 from ..common import blue_color_generator, hex_to_rgb, rgb_to_hex
+from ..exceptions import SABaseException
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -73,15 +74,12 @@ def sa_convert_platform(input_dir, output_dir, input_platform):
     if input_platform == "Web":
         for file_name in os.listdir(input_dir):
             if '___pixel.json' in file_name:
-                logging.error(
-                    "Desktop platform doesn't support 'Pixel' projects"
+                raise SABaseException(
+                    0, "Desktop platform doesn't support 'Pixel' projects"
                 )
-                break
         _merge_jsons(input_dir, output_dir)
     elif input_platform == 'Desktop':
         _split_json(input_dir, output_dir)
-    else:
-        logging.error("Please enter valid platform: 'Desktop' or 'Web'")
 
 
 def from_pixel_to_vector(json_paths):
@@ -240,8 +238,10 @@ def sa_convert_project_type(input_dir, output_dir):
         sa_jsons = from_vector_to_pixel(json_paths)
         extension = '___pixel.json'
     else:
-        log_msg = "'input_dir' should contain JSON files with '[IMAGE_NAME]___objects.json'  or '[IMAGE_NAME]___pixel.json' names structure."
-        raise SABaseException(0, log_msg)
+        raise SABaseException(
+            0,
+            "'input_dir' should contain JSON files with '[IMAGE_NAME]___objects.json'  or '[IMAGE_NAME]___pixel.json' names structure."
+        )
 
     os.makedirs(output_dir.joinpath('classes'))
     shutil.copy(

@@ -22,14 +22,9 @@ class VoTTObjectDetectionStrategy(VoTTConverter):
                     self.conversion_algorithm = vott_instance_segmentation_to_sa_vector
                 elif self.task == 'vector_annotation':
                     self.conversion_algorithm = vott_to_sa
-            elif self.project_type == "Pixel":
-                raise NotImplementedError("Doesn't support yet")
 
     def __str__(self):
         return '{} object'.format(self.name)
-
-    def from_sa_format(self):
-        pass
 
     def to_sa_format(self):
         json_data = self.get_file_list()
