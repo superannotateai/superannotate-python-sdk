@@ -239,7 +239,7 @@ to convert them to other annotation formats:
 
 .. code-block:: python
 
-    sa.export_annotation_format("<input_folder>", "<output_folder>", "<dataset_format>", "<dataset_name>", 
+    sa.export_annotation_format("<input_folder>", "<output_folder>", "<dataset_format>", "<dataset_name>",
     "<project_type>", "<task>", "<platform>")
 
 .. note::
@@ -256,7 +256,7 @@ You can find more information annotation format conversion :ref:`here <ref_conve
 
     # From SA panoptic format to COCO panoptic format
     sa.export_annotation_format(
-       "tests/converter_test/COCO/input/fromSuperAnnotate/cats_dogs_panoptic_segm", 
+       "tests/converter_test/COCO/input/fromSuperAnnotate/cats_dogs_panoptic_segm",
        "tests/converter_test/COCO/output/panoptic",
        "COCO", "panoptic_test", "Pixel","panoptic_segmentation","Web"
     )
@@ -277,8 +277,8 @@ You can find more information annotation format conversion :ref:`here <ref_conve
 
     # YOLO annotation format to SA Web platform annotation format
     sa.import_annotation_format(
-      'tests/converter_test/YOLO/input/toSuperAnnotate', 
-      'tests/converter_test/YOLO/output', 
+      'tests/converter_test/YOLO/input/toSuperAnnotate',
+      'tests/converter_test/YOLO/output',
       'YOLO', '', 'Vector', 'object_detection', 'Web'
       )
 

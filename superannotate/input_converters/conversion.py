@@ -321,7 +321,7 @@ def import_annotation_format(
     :type input_dir: str
     :param output_dir: Path to the folder, where you want to have converted dataset.
     :type output_dir: str
-    :param dataset_format: Annotation format to convert SuperAnnotate annotation format. Available candidates are: ["COCO", "VOC", "LabelBox", "DataLoop", 
+    :param dataset_format: Annotation format to convert SuperAnnotate annotation format. Available candidates are: ["COCO", "VOC", "LabelBox", "DataLoop",
                         "Supervisely", 'VGG', 'YOLO', 'SageMake', 'VoTT', 'GoogleCloud']
     :type dataset_format: str
     :param dataset_name: Name of the json file in the input_dir, which should be converted.

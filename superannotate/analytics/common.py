@@ -1,6 +1,7 @@
 import json
 import logging
 from pathlib import Path
+import glob
 
 import pandas as pd
 from ..exceptions import SABaseException
@@ -215,21 +216,46 @@ def aggregate_annotations_as_df(
                 break
         return image_metadata
 
+    def __get_user_metadata(annotation):
+        annotation_created_at = pd.to_datetime(annotation.get("createdAt"))
+        annotation_created_by = annotation.get("createdBy")
+        annotation_creator_email = None
+        annotation_creator_role = None
+        if annotation_created_by:
+            annotation_creator_email = annotation_created_by.get("email")
+            annotation_creator_role = annotation_created_by.get("role")
+        annotation_creation_type = annotation.get("creationType")
+        annotation_updated_at = pd.to_datetime(annotation.get("updatedAt"))
+        annotation_updated_by = annotation.get("updatedBy")
+        annotation_updator_email = None
+        annotation_updator_role = None
+        if annotation_updated_by:
+            annotation_updator_email = annotation_updated_by.get("email")
+            annotation_updator_role = annotation_updated_by.get("role")
+        user_metadata = {                   
+            "createdAt": annotation_created_at,
+            "creatorRole": annotation_creator_role,
+            "creatorEmail": annotation_creator_email,
+            "creationType": annotation_creation_type,
+            "updatedAt": annotation_updated_at,
+            "updatorRole": annotation_updator_role,
+            "updatorEmail": annotation_updator_email
+        }
+        return user_metadata
+    
     annotations_paths = []
-
+    
     for path in Path(project_root).glob('*.json'):
-        if path.name.endswith('___objects.json'
-                             ) or path.name.endswith('___pixel.json'):
-            annotations_paths.append(path)
+        annotations_paths.append(path)
 
     if not annotations_paths:
         logger.warning(
             "No annotations found in project export root %s", project_root
         )
-
+    type_postfix = "___objects.json" if glob.glob("{}/*___objects.json".format(project_root)) else "___pixel.json"
     for annotation_path in annotations_paths:
         annotation_json = json.load(open(annotation_path))
-        image_name = annotation_path.name.split("___objects.json")[0]
+        image_name = annotation_path.name.split(type_postfix)[0]
         image_metadata = __get_image_metadata(image_name, annotation_json)
         annotation_instance_id = 0
         for annotation in annotation_json:
@@ -249,8 +275,9 @@ def aggregate_annotations_as_df(
                         "meta": comment_meta,
                         "commentResolved": comment_resolved,
                     }
+                    user_metadata = __get_user_metadata(annotation)
+                    annotation_dict.update(user_metadata)
                     annotation_dict.update(image_metadata)
-
                     __append_annotation(annotation_dict)
                 continue
             if annotation_type == "tag":
@@ -276,21 +303,6 @@ def aggregate_annotations_as_df(
             annotation_locked = annotation.get("locked")
             annotation_visible = annotation.get("visible")
             annotation_tracking_id = annotation.get("trackingId")
-            annotation_created_at = annotation.get("createdAt")
-            annotation_created_by = annotation.get("createdBy")
-            annotation_creator_email = None
-            annotation_creator_role = None
-            if annotation_created_by:
-                annotation_creator_email = annotation_created_by.get("email")
-                annotation_creator_role = annotation_created_by.get("role")
-            annotation_creation_type = annotation.get("creationType")
-            annotation_updated_at = annotation.get("updatedAt")
-            annotation_updated_by = annotation.get("updatedBy")
-            annotation_updator_email = None
-            annotation_updator_role = None
-            if annotation_updated_by:
-                annotation_updator_email = annotation_updated_by.get("email")
-                annotation_updator_role = annotation_updated_by.get("role")
             annotation_meta = None
             if annotation_type in ["bbox", "polygon", "polyline", "cuboid"]:
                 annotation_meta = {"points": annotation["points"]}
@@ -315,7 +327,7 @@ def aggregate_annotations_as_df(
             annotation_probability = annotation.get("probability")
             annotation_point_labels = annotation.get("pointLabels")
             attributes = annotation.get("attributes")
-
+            user_metadata = __get_user_metadata(annotation)
             if not attributes:
                 annotation_dict = {
                     "imageName": image_name,
@@ -331,14 +343,8 @@ def aggregate_annotations_as_df(
                     "pointLabels": annotation_point_labels,
                     "classColor": annotation_class_color,
                     "groupId": annotation_group_id,
-                    "createdAt": annotation_created_at,
-                    "creatorRole": annotation_creator_role,
-                    "creatorEmail": annotation_creator_email,
-                    "creationType": annotation_creation_type,
-                    "updatedAt": annotation_updated_at,
-                    "updatorRole": annotation_updator_role,
-                    "updatorEmail": annotation_updator_email
                 }
+                annotation_dict.update(user_metadata)
                 annotation_dict.update(image_metadata)
                 __append_annotation(annotation_dict)
             else:
@@ -375,14 +381,8 @@ def aggregate_annotations_as_df(
                         "pointLabels": annotation_point_labels,
                         "classColor": annotation_class_color,
                         "groupId": annotation_group_id,
-                        "createdAt": annotation_created_at,
-                        "creatorRole": annotation_creator_role,
-                        "creatorEmail": annotation_creator_email,
-                        "creationType": annotation_creation_type,
-                        "updatedAt": annotation_updated_at,
-                        "updatorRole": annotation_updator_role,
-                        "updatorEmail": annotation_updator_email
                     }
+                    annotation_dict.update(user_metadata)
                     annotation_dict.update(image_metadata)
                     __append_annotation(annotation_dict)
 
