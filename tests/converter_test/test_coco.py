@@ -1,4 +1,7 @@
 from pathlib import Path
+from glob import glob
+import shutil
+
 import superannotate as sa
 
 
@@ -97,8 +100,46 @@ def coco_vector_keypoint(tmpdir):
     return 0
 
 
+def coco_desktop_object(tmpdir):
+    out_dir = tmpdir / "coco_from_desktop"
+    final_dir = tmpdir / "coco_to_Web"
+
+    sa.export_annotation_format(
+        "tests/converter_test/COCO/input/fromSuperAnnotate/cats_dogs_desktop",
+        str(out_dir), "COCO", "object_test", "Vector", "object_detection",
+        "Desktop"
+    )
+
+    image_list = glob(str(out_dir / 'train_set' / '*.jpg'))
+
+    for image in image_list:
+        shutil.copy(image, out_dir / Path(image).name)
+    shutil.rmtree(out_dir / 'train_set')
+
+    sa.import_annotation_format(
+        str(out_dir), str(final_dir), "COCO", "object_test_train", "Vector",
+        "object_detection", "Web"
+    )
+
+    project_name = "coco2sa_object_pipline"
+
+    projects = sa.search_projects(project_name, True)
+    if projects:
+        sa.delete_project(projects[0])
+    project = sa.create_project(project_name, "converter vector", "Vector")
+
+    sa.create_annotation_classes_from_classes_json(
+        project, final_dir / "classes" / "classes.json"
+    )
+    sa.upload_images_from_folder_to_project(project, final_dir)
+    sa.upload_annotations_from_folder_to_project(project, final_dir)
+
+    return 0
+
+
 def test_coco(tmpdir):
     assert coco_vector_instance(tmpdir) == 0
     assert coco_vector_object(tmpdir) == 0
     assert coco_pixel_instance(tmpdir) == 0
     assert coco_vector_keypoint(tmpdir) == 0
+    assert coco_desktop_object(tmpdir) == 0

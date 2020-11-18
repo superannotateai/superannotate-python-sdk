@@ -103,7 +103,6 @@ def coco_instance_segmentation_to_sa_pixel(coco_path, images_path):
     hexcolors = blue_color_generator(len(coco_json['annotations']))
     for i, annot in enumerate(coco_json['annotations']):
         if str(annot['image_id']) not in images_dict:
-            print('check')
             continue
 
         hexcolor = hexcolors[images_dict[str(annot['image_id'])]['segments_num']
@@ -111,20 +110,44 @@ def coco_instance_segmentation_to_sa_pixel(coco_path, images_path):
         color = hex_to_rgb(hexcolor)
         images_dict[str(annot['image_id'])]['segments_num'] += 1
 
-        if isinstance(annot['segmentation'], dict):
-            annot['segmentation'] = _rle_to_polygon(coco_path, annot)
-
-        segment = annot['segmentation'][0]
         H, W, C = images_dict[str(annot['image_id'])]['mask'].shape
-        bitmask = np.zeros((H, W)).astype(np.uint8)
-        pts = np.array(
-            [segment[2 * i:2 * (i + 1)] for i in range(len(segment) // 2)],
-            dtype=np.int32
-        )
+        if isinstance(annot['segmentation'], dict):
+            if isinstance(annot['segmentation']['counts'], list):
+                annot['segmentation'] = _rle_to_polygon(coco_path, annot)
+                for segment in annot['segmentation']:
+                    bitmask = np.zeros((H, W)).astype(np.uint8)
+                    pts = np.array(
+                        [
+                            segment[2 * i:2 * (i + 1)]
+                            for i in range(len(segment) // 2)
+                        ],
+                        dtype=np.int32
+                    )
 
-        cv2.fillPoly(bitmask, [pts], 1)
-        images_dict[str(annot['image_id']
-                       )]['mask'][bitmask == 1] = list(color)[::-1] + [255]
+                    cv2.fillPoly(bitmask, [pts], 1)
+                    images_dict[str(
+                        annot['image_id']
+                    )]['mask'][bitmask == 1] = list(color)[::-1] + [255]
+            else:
+                images_dict[str(
+                    annot['image_id']
+                )]['mask'][maskUtils.decode(annot['segmentation']) == 1
+                          ] = list(color)[::-1] + [255]
+        else:
+            for segment in annot['segmentation']:
+                bitmask = np.zeros((H, W)).astype(np.uint8)
+                pts = np.array(
+                    [
+                        segment[2 * i:2 * (i + 1)]
+                        for i in range(len(segment) // 2)
+                    ],
+                    dtype=np.int32
+                )
+
+                cv2.fillPoly(bitmask, [pts], 1)
+                images_dict[str(
+                    annot['image_id']
+                )]['mask'][bitmask == 1] = list(color)[::-1] + [255]
 
         sa_obj = {
             "classId": annot['category_id'],
