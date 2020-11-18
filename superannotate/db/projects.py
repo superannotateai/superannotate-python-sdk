@@ -580,10 +580,8 @@ def upload_images_from_folder_to_project(
                                                            1:]:
                     continue
                 for extension in extensions:
-                    if key.endswith(f'.{extension.lower()}') or (
-                        os.name != "nt" and
-                        key.endswith(f'.{extension.upper()}')
-                    ):
+                    if key.endswith(f'.{extension.lower()}'
+                                   ) or key.endswith(f'.{extension.upper()}'):
                         paths.append(key)
                         break
     filtered_paths = []
