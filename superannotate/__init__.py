@@ -57,6 +57,7 @@ from .db.projects import (
     set_project_workflow, share_project, unshare_project,
     upload_annotations_from_folder_to_project,
     upload_images_from_folder_to_project,
+    upload_images_from_public_urls_to_project,
     upload_images_from_s3_bucket_to_project, upload_images_to_project,
     upload_preannotations_from_folder_to_project, upload_video_to_project,
     upload_videos_from_folder_to_project

@@ -9,8 +9,9 @@ import threading
 import tempfile
 import time
 from pathlib import Path
+import requests
+import cgi
 from os.path import basename
-from urllib.request import urlretrieve
 from urllib.parse import urlparse
 
 import boto3
@@ -870,7 +871,7 @@ def upload_images_from_public_urls_to_project(
     image_quality_in_editor=None
 ):
     """Uploads all images given in the list of URL strings in img_urls to the project.
-    Sets status of all the uploaded images to set_status if it is not None.
+    Sets status of all the uploaded images to annotation_status if it is not None.
 
     :param project: project name or metadata of the project to upload images to
     :type project: str or dict
@@ -882,7 +883,7 @@ def upload_images_from_public_urls_to_project(
            Can be either "compressed" or "original".  If None then the default value in project settings will be used.
     :type image_quality_in_editor: str
 
-    :return: uploaded and not-uploaded images' filepaths
+    :return: uploaded images' urls, uploaded images' filepaths and not-uploaded images' urls
     :rtype: tuple of list of strs
     """
     images_not_uploaded = []
@@ -891,16 +892,27 @@ def upload_images_from_public_urls_to_project(
     with tempfile.TemporaryDirectory() as save_dir_name:
         save_dir = Path(save_dir_name)
         for img_url in img_urls:
-            img_path = save_dir / basename(urlparse(img_url).path)
-            path_to_url[str(img_path)] = img_url
             try:
-                write_path, _ = urlretrieve(img_url, img_path)
-                images_to_upload.append(write_path)
+                response = requests.get(img_url)
+                response.raise_for_status()
             except Exception as e:
                 logger.warning(
                     "Couldn't download image %s, %s", img_url, str(e)
                 )
                 images_not_uploaded.append(img_url)
+            else:
+                if response.headers.get('Content-Disposition') is not None:
+                    img_path = save_dir / cgi.parse_header(
+                        response.headers['Content-Disposition']
+                    )[1]['filename']
+                else:
+                    img_path = save_dir / basename(urlparse(img_url).path)
+
+                with open(img_path, 'wb') as f:
+                    f.write(response.content)
+
+                path_to_url[str(img_path)] = img_url
+                images_to_upload.append(img_path)
         images_uploaded_paths, images_not_uploaded_paths = upload_images_to_project(
             project,
             images_to_upload,
@@ -913,8 +925,10 @@ def upload_images_from_public_urls_to_project(
         images_uploaded = [
             path_to_url[str(path)] for path in images_uploaded_paths
         ]
-
-    return (images_uploaded, images_not_uploaded)
+        images_uploaded_filenames = [
+            basename(path) for path in images_uploaded_paths
+        ]
+    return (images_uploaded, images_uploaded_filenames, images_not_uploaded)
 
 
 def __upload_annotations_thread(
