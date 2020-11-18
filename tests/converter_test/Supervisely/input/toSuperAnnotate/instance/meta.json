@@ -1,0 +1,20 @@
+{
+    "classes": [
+        {
+            "id": 2707718,
+            "title": "cat",
+            "shape": "bitmap",
+            "hotkey": "",
+            "color": "#5EFD49"
+        },
+        {
+            "id": 2707719,
+            "title": "dog",
+            "shape": "bitmap",
+            "hotkey": "",
+            "color": "#38FFF5"
+        }
+    ],
+    "tags": [],
+    "projectType": "images"
+}

@@ -38,9 +38,9 @@ def test_pin_image(tmpdir):
     assert img_metadata["is_pinned"] == 1
 
     sa.pin_image(project, "example_image_1.jpg", False)
+    time.sleep(1)
 
     img_metadata = sa.get_image_metadata(project, "example_image_1.jpg")
-    time.sleep(1)
     assert img_metadata["is_pinned"] == 0
 
     del img_metadata["updatedAt"]

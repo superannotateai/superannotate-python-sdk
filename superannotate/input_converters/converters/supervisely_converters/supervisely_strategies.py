@@ -2,7 +2,12 @@ import os
 import json
 
 from .supervisely_converter import SuperviselyConverter
-from .supervisely_to_sa_vector import supervisely_to_sa
+from .supervisely_to_sa_vector import (
+    supervisely_to_sa, supervisely_instance_segmentation_to_sa_vector,
+    supervisely_object_detection_to_sa_vector,
+    supervisely_keypoint_detection_to_sa_vector
+)
+from .supervisely_to_sa_pixel import supervisely_instance_segmentation_to_sa_pixel
 
 
 class SuperviselyObjectDetectionStrategy(SuperviselyConverter):
@@ -18,15 +23,19 @@ class SuperviselyObjectDetectionStrategy(SuperviselyConverter):
         else:
             if self.project_type == "Vector":
                 if self.task == 'vector_annotation':
-                    self.converion_algorithm = supervisely_to_sa
+                    self.conversion_algorithm = supervisely_to_sa
+                elif self.task == 'object_detection':
+                    self.conversion_algorithm = supervisely_object_detection_to_sa_vector
+                elif self.task == 'instance_segmentation':
+                    self.conversion_algorithm = supervisely_instance_segmentation_to_sa_vector
+                elif self.task == 'keypoint_detection':
+                    self.conversion_algorithm = supervisely_keypoint_detection_to_sa_vector
             elif self.project_type == "Pixel":
-                raise NotImplementedError("Doesn't support yet")
+                if self.task == 'instance_segmentation':
+                    self.conversion_algorithm = supervisely_instance_segmentation_to_sa_pixel
 
     def __str__(self):
         return '{} object'.format(self.name)
-
-    def from_sa_format(self):
-        pass
 
     def to_sa_format(self):
         id_generator = self._make_id_generator()
@@ -46,7 +55,19 @@ class SuperviselyObjectDetectionStrategy(SuperviselyConverter):
                 os.path.join(self.export_root, 'ds', 'ann', file)
                 for file in files
             ]
-        sa_jsons = self.converion_algorithm(json_files, classes_id_map)
+        if self.conversion_algorithm.__name__ == 'supervisely_keypoint_detection_to_sa_vector':
+            meta_json = json.load(
+                open(os.path.join(self.export_root, 'meta.json'))
+            )
+            sa_jsons = self.conversion_algorithm(
+                json_files, classes_id_map, meta_json
+            )
+        elif self.conversion_algorithm.__name__ == 'supervisely_instance_segmentation_to_sa_pixel':
+            sa_jsons = self.conversion_algorithm(
+                json_files, classes_id_map, self.output_dir
+            )
+        else:
+            sa_jsons = self.conversion_algorithm(json_files, classes_id_map)
         self.dump_output(sa_classes, sa_jsons)
 
     def _make_id_generator(self):

@@ -2,8 +2,8 @@ from pathlib import Path
 import superannotate as sa
 
 
-def yolo_object_detection(tmpdir):
-    out_dir = tmpdir / "vector_annotation"
+def yolo_object_detection_web(tmpdir):
+    out_dir = tmpdir / "vector_annotation_web"
     sa.import_annotation_format(
         'tests/converter_test/YOLO/input/toSuperAnnotate', str(out_dir), 'YOLO',
         '', 'Vector', 'object_detection', 'Web'
@@ -25,5 +25,16 @@ def yolo_object_detection(tmpdir):
     return 0
 
 
+def yolo_object_detection_desktop(tmpdir):
+    out_dir = tmpdir / "vector_annotation_desktop"
+    sa.import_annotation_format(
+        'tests/converter_test/YOLO/input/toSuperAnnotate', str(out_dir), 'YOLO',
+        '', 'Vector', 'object_detection', 'Desktop'
+    )
+
+    return 0
+
+
 def test_yolo(tmpdir):
-    assert yolo_object_detection(tmpdir) == 0
+    assert yolo_object_detection_web(tmpdir) == 0
+    assert yolo_object_detection_desktop(tmpdir) == 0

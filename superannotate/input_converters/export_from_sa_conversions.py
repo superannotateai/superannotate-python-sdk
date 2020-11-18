@@ -16,6 +16,8 @@ from .converters.converters import Converter
 
 from ..exceptions import SABaseException
 
+logger = logging.getLogger("superannotate-python-sdk")
+
 
 def _split_json(input_dir):
     temp_path = os.path.join(input_dir, "WebApp")
@@ -114,21 +116,8 @@ def export_from_sa(args):
     except Exception as e:
         _create_classes_mapper(args.input_dir, args.output_dir)
 
-    try:
-        data_set = _load_files(args.input_dir, args.task, args.project_type)
-    except Exception as e:
-        log_msg = 'Something went wrong while loading files from source \
-            directory, check if you have valid export'
-
-        logging.error(log_msg)
-        logging.error(e)
-
-    try:
-        _move_files(data_set, args.output_dir, args.platform)
-    except Exception as e:
-        log_msg = 'Something is went wrong while moving or copying files from source folder'
-        logging.error(log_msg)
-        logging.error(e)
+    data_set = _load_files(args.input_dir, args.task, args.project_type)
+    _move_files(data_set, args.output_dir, args.platform)
 
     args.__dict__.update(
         {
@@ -140,17 +129,11 @@ def export_from_sa(args):
 
     if data_set is not None:
         converter.strategy.set_dataset_name(args.dataset_name + '_train')
-        try:
-            converter.convert_from_sa()
-        except Exception as e:
-            log_msg = 'Something went wrong while converting train set'
-            logging.error(log_msg)
-            logging.error(e)
-            sys.exit()
+        converter.convert_from_sa()
 
     if args.platform == "Desktop":
         shutil.rmtree(args.input_dir)
     train_set_failed = copy.deepcopy(converter.strategy.failed_conversion_cnt)
 
-    logging.info('Conversion completed successfully')
+    logger.info('Conversion completed successfully')
     return train_set_failed

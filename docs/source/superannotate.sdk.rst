@@ -110,6 +110,7 @@ _________________
 
 .. autofunction:: superannotate.get_team_metadata
 .. autofunction:: superannotate.invite_contributor_to_team
+.. autofunction:: superannotate.delete_contributor_to_team_invitation
 
 ----------
 
@@ -282,6 +283,7 @@ Converting annotation format to and from SuperAnnotate format
 _____________________________________________________________
 
 
+.. _ref_import_annotation_format:
 .. autofunction:: superannotate.import_annotation_format
 .. autofunction:: superannotate.export_annotation_format
 .. autofunction:: superannotate.convert_project_type

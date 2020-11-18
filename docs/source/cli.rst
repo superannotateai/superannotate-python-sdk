@@ -36,6 +36,19 @@ To initialize CLI (and SDK) with team token:
 
 ----------
 
+.. _ref_create_project:
+
+Creating a project
+~~~~~~~~~~~~~~~~~~
+
+To create a new project:
+
+.. code-block:: bash
+
+   superannotate create-project --name <project_name> --description <project_description> --type <project_type Vector or Pixel>
+
+----------
+
 .. _ref_upload_images:
 
 Uploading images
@@ -101,8 +114,17 @@ To upload preannotations from folder to project use:
                                        [--task "<task_type_for_COCO_projects>]
 
 
-Optional argument *format* accepts input preannotation format. It can have COCO or SuperAnnotate values.
-If the argument is not given then SuperAnnotate (the native preannotation format) assumed.
+Optional argument *format* accepts input annotation format. It can have COCO or SuperAnnotate values.
+If the argument is not given then SuperAnnotate (the native annotation format) is assumed.
+
+Only when COCO format is specified *dataset-name* and *task* arguments are required.
+
+*dataset-name* specifies JSON filename (without extension) in <folder_path>.
+
+*task* specifies the COCO task for conversion. Please see 
+:ref:`import_annotation_format <ref_import_annotation_format>` for more details.
+
+The annotation classes will be created during the execution of this command.
 
 ----------
 
@@ -121,7 +143,17 @@ To upload annotations from folder to project use:
                                     [--task "<task_type_for_COCO_projects>]
 
 Optional argument *format* accepts input annotation format. It can have COCO or SuperAnnotate values.
-If the argument is not given then SuperAnnotate (the native annotation format) assumed.
+If the argument is not given then SuperAnnotate (the native annotation format) is assumed.
+
+Only when COCO format is specified *dataset-name* and *task* arguments are required.
+
+*dataset-name* specifies JSON filename (without extension) in <folder_path>.
+
+*task* specifies the COCO task for conversion. Please see 
+:ref:`import_annotation_format <ref_import_annotation_format>` for more details.
+
+The annotation classes will be created during the execution of this command.
+
 
 ----------
 

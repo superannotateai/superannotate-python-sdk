@@ -1,7 +1,8 @@
-import numpy as np
 import functools
 import logging
 from pathlib import Path
+
+import numpy as np
 
 from .exceptions import SABaseException
 

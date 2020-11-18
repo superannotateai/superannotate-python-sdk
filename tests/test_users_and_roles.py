@@ -2,8 +2,6 @@ from pathlib import Path
 
 import superannotate as sa
 
-sa.init(Path.home() / ".superannotate" / "config.json")
-
 PROJECT_NAME = "test users and roles"
 
 

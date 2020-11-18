@@ -1,0 +1,88 @@
+{
+    "description": "",
+    "tags": [
+        {
+            "id": 91882791,
+            "tagId": 28789216,
+            "name": "dog",
+            "value": null,
+            "labelerLogin": "Armen",
+            "createdAt": "2020-11-17T10:48:38.208Z",
+            "updatedAt": "2020-11-17T10:48:38.208Z"
+        }
+    ],
+    "size": {
+        "height": 681,
+        "width": 968
+    },
+    "objects": [
+        {
+            "id": 556892534,
+            "classId": 2707431,
+            "description": "",
+            "geometryType": "polygon",
+            "labelerLogin": "Armen",
+            "createdAt": "2020-11-17T10:48:17.697Z",
+            "updatedAt": "2020-11-17T10:48:26.539Z",
+            "tags": [],
+            "classTitle": "dog2",
+            "points": {
+                "exterior": [
+                    [
+                        174,
+                        297
+                    ],
+                    [
+                        237,
+                        150
+                    ],
+                    [
+                        388,
+                        77
+                    ],
+                    [
+                        470,
+                        100
+                    ],
+                    [
+                        518,
+                        188
+                    ],
+                    [
+                        545,
+                        299
+                    ],
+                    [
+                        573,
+                        386
+                    ],
+                    [
+                        577,
+                        513
+                    ],
+                    [
+                        549,
+                        673
+                    ],
+                    [
+                        231,
+                        678
+                    ],
+                    [
+                        209,
+                        500
+                    ],
+                    [
+                        235,
+                        417
+                    ],
+                    [
+                        181,
+                        342
+                    ]
+                ],
+                "interior": []
+            }
+        }
+    ]
+}
