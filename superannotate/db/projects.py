@@ -30,6 +30,7 @@ from .annotation_classes import (
 )
 from .project import get_project_metadata
 from .users import get_team_contributor_metadata
+from .images import search_images
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -649,7 +650,6 @@ def __upload_images_to_aws_thread(
     image_quality_in_editor,
     from_s3_bucket=None,
 ):
-    project_type = project["type"]
     len_img_paths = len(img_paths)
     start_index = thread_id * chunksize
     end_index = start_index + chunksize
@@ -672,13 +672,18 @@ def __upload_images_to_aws_thread(
             break
         path = img_paths[i]
         key = prefix + f'{Path(path).name}'
-        if from_s3_bucket is not None:
-            file = io.BytesIO()
-            from_s3_object = from_s3.Object(from_s3_bucket, path)
-            from_s3_object.download_fileobj(file)
-        else:
-            with open(path, "rb") as f:
-                file = io.BytesIO(f.read())
+        try:
+            if from_s3_bucket is not None:
+                file = io.BytesIO()
+                from_s3_object = from_s3.Object(from_s3_bucket, path)
+                from_s3_object.download_fileobj(file)
+            else:
+                with open(path, "rb") as f:
+                    file = io.BytesIO(f.read())
+        except Exception as e:
+            logger.warning("Unable to open image %s.", e)
+            couldnt_upload[thread_id].append(path)
+            continue
         try:
             orig_image, lores_image, huge_image, thumbnail_image = get_image_array_to_upload(
                 file, image_quality_in_editor
@@ -736,6 +741,10 @@ def upload_images_to_project(
     """Uploads all images given in list of path objects in img_paths to the project.
     Sets status of all the uploaded images to set_status if it is not None.
 
+    If an image with existing name already exists in the project it won't be uploaded,
+    and its path will be appended to the third member of return value of this
+    function.
+
     :param project: project name or metadata of the project to upload images to
     :type project: str or dict
     :param img_paths: list of Pathlike (str or Path) objects to upload
@@ -748,22 +757,42 @@ def upload_images_to_project(
            Can be either "compressed" or "original".  If None then the default value in project settings will be used.
     :type image_quality_in_editor: str
 
-    :return: uploaded and not-uploaded images' filepaths
-    :rtype: tuple of list of strs
+    :return: uploaded, could-not-upload, existing-images filepaths
+    :rtype: tuple (3 members) of list of strs
     """
     if not isinstance(project, dict):
         project = get_project_metadata(project)
+    if not isinstance(img_paths, list):
+        raise SABaseException(
+            0, "img_paths argument to upload_images_to_project should be a list"
+        )
     annotation_status = annotation_status_str_to_int(annotation_status)
     image_quality_in_editor = _get_project_image_quality_in_editor(
         project, image_quality_in_editor
     )
     team_id, project_id = project["team_id"], project["id"]
+    existing_images = search_images(project)
+    duplicate_images = []
+    for existing_image in existing_images:
+        i = -1
+        for j, img_path in enumerate(img_paths):
+            if str(img_path).endswith(existing_image):
+                i = j
+                break
+        if i != -1:
+            duplicate_images.append(img_paths[i])
+            del img_paths[i]
+    if len(duplicate_images) != 0:
+        logger.warning(
+            "%s already existing images found that won't be uploaded.",
+            len(duplicate_images)
+        )
     len_img_paths = len(img_paths)
     logger.info(
         "Uploading %s images to project %s.", len_img_paths, project["name"]
     )
     if len_img_paths == 0:
-        return ([], [])
+        return ([], [], duplicate_images)
     params = {
         'team_id': team_id,
     }
@@ -819,7 +848,7 @@ def upload_images_to_project(
         for file in upload_thread:
             list_of_uploaded.append(str(file))
 
-    return (list_of_uploaded, list_of_not_uploaded)
+    return (list_of_uploaded, list_of_not_uploaded, duplicate_images)
 
 
 def __upload_annotations_thread(
