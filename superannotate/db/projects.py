@@ -529,7 +529,7 @@ def upload_images_from_folder_to_project(
     if not isinstance(project, dict):
         project = get_project_metadata(project)
     if recursive_subfolders:
-        logger.warning(
+        logger.info(
             "When using recursive subfolder parsing same name images in different subfolders will overwrite each other."
         )
     if exclude_file_patterns is None:
@@ -910,14 +910,14 @@ def upload_annotations_from_folder_to_project(
 ):
     """Finds and uploads all JSON files in the folder_path as annotations to the project.
 
-    WARNING: The JSON files should follow specific naming convention. For Vector
+    The JSON files should follow specific naming convention. For Vector
     projects they should be named "<image_filename>___objects.json" (e.g., if
     image is cats.jpg the annotation filename should be cats.jpg___objects.json), for Pixel projects
     JSON file should be named "<image_filename>___pixel.json" and also second mask
     image file should be present with the name "<image_name>___save.png". In both cases
     image with <image_name> should be already present on the platform.
 
-    WARNING: Existing annotations will be overwritten.
+    Existing annotations will be overwritten.
 
     :param project: project name or metadata of the project to upload annotations to
     :type project: str or dict
@@ -932,15 +932,15 @@ def upload_annotations_from_folder_to_project(
     :rtype: list of strs
     """
     if recursive_subfolders:
-        logger.warning(
+        logger.info(
             "When using recursive subfolder parsing same name annotations in different subfolders will overwrite each other."
         )
 
-    logger.warning(
+    logger.info(
         "The JSON files should follow specific naming convention. For Vector projects they should be named '<image_name>___objects.json', for Pixel projects JSON file should be names '<image_name>___pixel.json' and also second mask image file should be present with the name '<image_name>___save.png'. In both cases image with <image_name> should be already present on the platform."
     )
 
-    logger.warning("Existing annotations will be overwritten.")
+    logger.info("Existing annotations will be overwritten.")
     if not isinstance(project, dict):
         project = get_project_metadata(project)
 
@@ -1155,14 +1155,14 @@ def upload_preannotations_from_folder_to_project(
 ):
     """Finds and uploads all JSON files in the folder_path as pre-annotations to the project.
 
-    WARNING: The JSON files should follow specific naming convention. For Vector
+    The JSON files should follow specific naming convention. For Vector
     projects they should be named "<image_filename>___objects.json" (e.g., if
     image is cats.jpg the annotation filename should be cats.jpg___objects.json), for Pixel projects
     JSON file should be named "<image_filename>___pixel.json" and also second mask
     image file should be present with the name "<image_name>___save.png". In both cases
     image with <image_name> should be already present on the platform.
 
-    WARNING: Existing pre-annotations will be overwritten.
+    Existing pre-annotations will be overwritten.
 
     :param project: project name or metadata of the project to upload pre-annotations to
     :type project: str or dict
@@ -1177,14 +1177,14 @@ def upload_preannotations_from_folder_to_project(
     :rtype: list of strs
     """
     if recursive_subfolders:
-        logger.warning(
+        logger.info(
             "When using recursive subfolder parsing same name pre-annotations in different subfolders will overwrite each other."
         )
-    logger.warning(
+    logger.info(
         "The JSON files should follow specific naming convention. For Vector projects they should be named '<image_name>___objects.json', for Pixel projects JSON file should be names '<image_name>___pixel.json' and also second mask image file should be present with the name '<image_name>___save.png'. In both cases image with <image_name> should be already present on the platform."
     )
 
-    logger.warning(
+    logger.info(
         "Identically named existing pre-annotations will be overwritten."
     )
     if not isinstance(project, dict):

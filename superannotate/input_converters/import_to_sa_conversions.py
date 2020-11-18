@@ -1,13 +1,11 @@
 """
-Module which will run converters and convert from other 
+Module which will run converters and convert from other
 annotation formats to superannotate annotation format
 """
-import sys
-import os
 import glob
-import shutil
 import logging
-from argparse import Namespace
+import os
+import shutil
 
 from .converters.converters import Converter
 
