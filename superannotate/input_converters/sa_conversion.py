@@ -40,7 +40,8 @@ def _merge_jsons(input_dir, output_dir):
             if "classId" in js_data:
                 js_data["classId"] = cat_id_map[js_data["classId"]]
         json_data.append(meta)
-        file_name = os.path.split(f)[1].replace("___objects.json", "")
+        # file_name = os.path.split(f)[1].replace("___objects.json", "")
+        file_name = os.path.basename(f).replace("___objects.json", "")
         merged_json[file_name] = json_data
     with open(output_dir / "annotations.json", "w") as final_json_file:
         json.dump(merged_json, final_json_file, indent=2)

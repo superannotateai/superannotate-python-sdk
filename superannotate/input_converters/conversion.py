@@ -347,6 +347,11 @@ def import_annotation_format(
 
     """
 
+    if isinstance(input_dir, str):
+        input_dir = Path(input_dir)
+    if isinstance(output_dir, str):
+        output_dir = Path(output_dir)
+
     args = Namespace(
         input_dir=input_dir,
         output_dir=output_dir,

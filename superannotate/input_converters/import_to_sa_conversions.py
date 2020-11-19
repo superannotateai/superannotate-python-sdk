@@ -34,19 +34,18 @@ def _load_files(path_to_imgs, ptype):
 
 def _move_files(imgs, masks, output_dir, platforom):
     if platforom == "Desktop":
-        output_path = os.path.join(output_dir, "images")
+        output_path = output_dir / "images"
         os.makedirs(output_path)
     else:
-        os.makedirs(os.path.join(output_dir, 'classes'))
+        os.makedirs(output_dir / 'classes')
         output_path = output_dir
-
     if imgs is not None:
         for im in imgs:
-            shutil.copy(im, os.path.join(output_path, os.path.basename(im)))
+            shutil.copy(im, output_path / os.path.basename(im))
 
     if masks is not None:
         for mask in masks:
-            shutil.copy(mask, os.path.join(output_path, os.path.basename(mask)))
+            shutil.copy(mask, output_path / os.path.basename(mask))
 
 
 def import_to_sa(args):
