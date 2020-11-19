@@ -75,7 +75,7 @@ def _load_files(path_to_imgs, task, ptype):
 
 
 def _move_files(data_set, src, platform):
-    train_path = os.path.join(src, 'train_set')
+    train_path = os.path.join(src, 'image_set')
     if data_set is not None:
         for tup in data_set:
             for i in tup:
@@ -91,7 +91,7 @@ def _create_classes_mapper(imgs, classes_json):
         classes[instance['name']] = instance['id']
 
     with open(
-        os.path.join(imgs, 'train_set', 'classes_mapper.json'), 'w'
+        os.path.join(imgs, 'image_set', 'classes_mapper.json'), 'w'
     ) as fp:
         json.dump(classes, fp)
 
@@ -106,12 +106,12 @@ def export_from_sa(args):
 
     data_set = None
 
-    os.makedirs(os.path.join(args.output_dir, 'train_set'))
+    os.makedirs(os.path.join(args.output_dir, 'image_set'))
 
     try:
         _create_classes_mapper(
             args.output_dir,
-            os.path.join(args.input_dir, 'classes/classes.json')
+            os.path.join(args.input_dir, 'classes', 'classes.json')
         )
     except Exception as e:
         _create_classes_mapper(args.input_dir, args.output_dir)
@@ -122,18 +122,18 @@ def export_from_sa(args):
     args.__dict__.update(
         {
             'direction': 'to',
-            'export_root': os.path.join(args.output_dir, 'train_set')
+            'export_root': os.path.join(args.output_dir, 'image_set')
         }
     )
     converter = Converter(args)
 
     if data_set is not None:
-        converter.strategy.set_dataset_name(args.dataset_name + '_train')
+        converter.strategy.set_dataset_name(args.dataset_name)
         converter.convert_from_sa()
 
     if args.platform == "Desktop":
         shutil.rmtree(args.input_dir)
-    train_set_failed = copy.deepcopy(converter.strategy.failed_conversion_cnt)
+    image_set_failed = copy.deepcopy(converter.strategy.failed_conversion_cnt)
 
     logger.info('Conversion completed successfully')
-    return train_set_failed
+    return image_set_failed

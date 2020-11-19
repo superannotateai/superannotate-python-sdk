@@ -372,9 +372,9 @@ def convert_platform(input_dir, output_dir, input_platform):
     """ Converts SuperAnnotate input file structure from one platform too another.
 
     :param input_dir: Path to the dataset folder that you want to convert.
-    :type input_dir: str
+    :type input_dir: str or PathLike
     :param output_dir: Path to the folder where you want to have converted files.
-    :type output_dir: str
+    :type output_dir: str or PathLike
     :param input_platform: Original platform format type
     :type input_platform: str
 

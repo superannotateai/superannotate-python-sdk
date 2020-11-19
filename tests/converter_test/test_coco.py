@@ -103,14 +103,14 @@ def coco_desktop_object(tmpdir):
         "Desktop"
     )
 
-    image_list = glob(str(out_dir / 'train_set' / '*.jpg'))
+    image_list = glob(str(out_dir / 'image_set' / '*.jpg'))
 
     for image in image_list:
         shutil.copy(image, out_dir / Path(image).name)
-    shutil.rmtree(out_dir / 'train_set')
+    shutil.rmtree(out_dir / 'image_set')
 
     sa.import_annotation_format(
-        str(out_dir), str(final_dir), "COCO", "object_test_train", "Vector",
+        str(out_dir), str(final_dir), "COCO", "object_test", "Vector",
         "object_detection", "Web"
     )
 
