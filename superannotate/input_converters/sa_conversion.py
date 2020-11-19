@@ -18,9 +18,7 @@ logger = logging.getLogger("superannotate-python-sdk")
 
 def _merge_jsons(input_dir, output_dir):
     cat_id_map = {}
-    classes_json = json.load(
-        open(os.path.join(input_dir, "classes", "classes.json"))
-    )
+    classes_json = json.load(open(input_dir / "classes" / "classes.json"))
 
     new_classes = []
     for idx, class_ in enumerate(classes_json):
@@ -28,7 +26,7 @@ def _merge_jsons(input_dir, output_dir):
         class_["id"] = idx + 2
         new_classes.append(class_)
 
-    files = glob.glob(os.path.join(input_dir, "*.json"))
+    files = glob.glob(str(input_dir / "*.json"))
     merged_json = {}
     os.makedirs(output_dir)
     for f in tqdm(files, "Merging files"):
@@ -44,29 +42,26 @@ def _merge_jsons(input_dir, output_dir):
         json_data.append(meta)
         file_name = os.path.split(f)[1].replace("___objects.json", "")
         merged_json[file_name] = json_data
-    with open(
-        os.path.join(output_dir, "annotations.json"), "w"
-    ) as final_json_file:
+    with open(output_dir / "annotations.json", "w") as final_json_file:
         json.dump(merged_json, final_json_file, indent=2)
 
-    with open(os.path.join(output_dir, "classes.json"), "w") as fw:
+    with open(output_dir / "classes.json", "w") as fw:
         json.dump(classes_json, fw, indent=2)
 
 
 def _split_json(input_dir, output_dir):
     os.makedirs(output_dir)
-    json_data = json.load(open(os.path.join(input_dir, "annotations.json")))
-    for img, annotations in tqdm(json_data.items()):
+    json_data = json.load(open(input_dir / "annotations.json"))
+    for img, annotations in tqdm(json_data.items(), 'Splitting files'):
         objects = []
         for annot in annotations:
-            objects += annot
-
-        with open(os.path.join(output_dir, img + "___objects.json"), "w") as fw:
+            if 'type' in annot.keys() and annot['type'] != 'meta':
+                objects.append(annot)
+        with open(output_dir / (img + "___objects.json"), "w") as fw:
             json.dump(objects, fw, indent=2)
-    os.makedirs(os.path.join(output_dir, "classes"))
+    os.makedirs(output_dir / "classes")
     shutil.copy(
-        os.path.join(input_dir, "classes.json"),
-        os.path.join(output_dir, "classes", "classes.json")
+        input_dir / "classes.json", output_dir / "classes" / "classes.json"
     )
 
 
@@ -222,11 +217,6 @@ def from_vector_to_pixel(json_paths):
 
 
 def sa_convert_project_type(input_dir, output_dir):
-    if type(input_dir) is str:
-        input_dir = Path(input_dir)
-    if type(output_dir) is str:
-        output_dir = Path(output_dir)
-
     json_generator = input_dir.glob('*.json')
     json_paths = [file for file in json_generator]
 

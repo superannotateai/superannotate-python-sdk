@@ -231,6 +231,7 @@ def import_annotation_format(
     Pixel           panoptic_segmentation
     Pixel           instance_segmentation
     Vector          instance_segmentation
+    Vector          object_detection
     Vector          keypoint_detection
     ==============  ======================
 
@@ -239,9 +240,9 @@ def import_annotation_format(
     --------------------------------------
      project_type           task
     ==============  ======================
+    Pixel           instance_segmentation
     Vector          instance_segmentation
     Vector          object_detection
-    Pixel           instance_segmentation
     ==============  ======================
 
     ==============  ======================
@@ -269,7 +270,11 @@ def import_annotation_format(
     --------------------------------------
      project_type           task
     ==============  ======================
+    Vector          object_detection
+    Vector          keypoint_detection
     Vector          vector_annotation
+    Vector          instance_segmentation
+    Pixel           instance_segmentation
     ==============  ======================
 
     ==============  ======================
@@ -331,11 +336,12 @@ def import_annotation_format(
                          'Pixel' project creates <image_name>___pixel.jsons and <image_name>___save.png annotation mask for each image.
     :type project_type: str
     :param task: Task can be one of the following: ['panoptic_segmentation', 'instance_segmentation',
-                 'keypoint_detection', 'object_detection']. (Default: "object_detection").
+                 'keypoint_detection', 'object_detection', 'vector_annotation']. (Default: "object_detection").
                  'keypoint_detection' can be used to converts keypoints from/to available annotation format.
                  'panoptic_segmentation' will use panoptic mask for each image to generate bluemask for SuperAnnotate annotation format and use bluemask to generate panoptic mask for invert conversion. Panoptic masks should be in the input folder.
                  'instance_segmentation' 'Pixel' project_type converts instance masks and 'Vector' project_type generates bounding boxes and polygons from instance masks. Masks should be in the input folder if it is 'Pixel' project_type.
                  'object_detection' converts objects from/to available annotation format
+                 'vector_annotation' can be used to convert all annotations (point, ellipse, circule, cuboid and etc) to SuperAnnotate vector project.
     :param platform: SuperAnnotate has both 'Web' and 'Desktop' platforms. Choose to which platform you want convert. (Default: "Web")
     :type platform: str
 
@@ -385,6 +391,11 @@ def convert_platform(input_dir, output_dir, input_platform):
             0, "Please enter valid platform: 'Desktop' or 'Web'"
         )
 
+    if isinstance(input_dir, str):
+        input_dir = Path(input_dir)
+    if isinstance(output_dir, str):
+        output_dir = Path(output_dir)
+
     sa_convert_platform(input_dir, output_dir, input_platform)
 
 
@@ -409,5 +420,10 @@ def convert_project_type(input_dir, output_dir):
             0, "'output_dir' should be 'str' or 'Path' type, not '%s'" %
             (type(output_dir))
         )
+
+    if isinstance(input_dir, str):
+        input_dir = Path(input_dir)
+    if isinstance(output_dir, str):
+        output_dir = Path(output_dir)
 
     sa_convert_project_type(input_dir, output_dir)

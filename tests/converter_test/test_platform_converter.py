@@ -27,3 +27,16 @@ def test_conversion(tmpdir):
 
     assert init_file_names == temp_file_names
     assert init_file_names == final_file_names
+
+    project_name = "platform_conversion"
+
+    projects = sa.search_projects(project_name, True)
+    if projects:
+        sa.delete_project(projects[0])
+    project = sa.create_project(project_name, "converter vector", "Vector")
+
+    sa.create_annotation_classes_from_classes_json(
+        project, final_dir / "classes" / "classes.json"
+    )
+    sa.upload_images_from_folder_to_project(project, input_dir)
+    sa.upload_annotations_from_folder_to_project(project, final_dir)
