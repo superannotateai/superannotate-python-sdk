@@ -79,7 +79,7 @@ def _move_files(data_set, src, platform):
     if data_set is not None:
         for tup in data_set:
             for i in tup:
-                shutil.copy(i, os.path.join(train_path, i.split('/')[-1]))
+                shutil.copy(i, os.path.join(train_path, os.path.basename(i)))
 
 
 def _create_classes_mapper(imgs, classes_json):
