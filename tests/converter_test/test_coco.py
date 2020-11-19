@@ -26,8 +26,6 @@ def coco_vector_instance(tmpdir):
     sa.upload_images_from_folder_to_project(project, out_dir)
     sa.upload_annotations_from_folder_to_project(project, out_dir)
 
-    return 0
-
 
 def coco_vector_object(tmpdir):
     out_dir = tmpdir / "object_vector"
@@ -49,7 +47,6 @@ def coco_vector_object(tmpdir):
     # )
     # sa.upload_images_from_folder_to_project(project, out_dir)
     # sa.upload_annotations_from_folder_to_project(project, out_dir)
-    return 0
 
 
 def coco_pixel_instance(tmpdir):
@@ -73,8 +70,6 @@ def coco_pixel_instance(tmpdir):
     sa.upload_images_from_folder_to_project(project, out_dir)
     sa.upload_annotations_from_folder_to_project(project, out_dir)
 
-    return 0
-
 
 def coco_vector_keypoint(tmpdir):
     out_dir = tmpdir / "vector_keypoint"
@@ -96,8 +91,6 @@ def coco_vector_keypoint(tmpdir):
     )
     sa.upload_images_from_folder_to_project(project, out_dir)
     sa.upload_annotations_from_folder_to_project(project, out_dir)
-
-    return 0
 
 
 def coco_desktop_object(tmpdir):
@@ -134,12 +127,10 @@ def coco_desktop_object(tmpdir):
     sa.upload_images_from_folder_to_project(project, final_dir)
     sa.upload_annotations_from_folder_to_project(project, final_dir)
 
-    return 0
-
 
 def test_coco(tmpdir):
-    assert coco_vector_instance(tmpdir) == 0
-    assert coco_vector_object(tmpdir) == 0
-    assert coco_pixel_instance(tmpdir) == 0
-    assert coco_vector_keypoint(tmpdir) == 0
-    assert coco_desktop_object(tmpdir) == 0
+    coco_vector_instance(tmpdir)
+    coco_vector_object(tmpdir)
+    coco_pixel_instance(tmpdir)
+    coco_vector_keypoint(tmpdir)
+    coco_desktop_object(tmpdir)
