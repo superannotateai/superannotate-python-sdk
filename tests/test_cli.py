@@ -17,9 +17,7 @@ def test_cli_image_upload_project_export(tmpdir):
     for pr in projects_found:
         sa.delete_project(pr)
     subprocess.run(
-        [
-            f'superannotate create-project --name "{PROJECT_NAME}" --description gg --type Vector '
-        ],
+        f'superannotate create-project --name "{PROJECT_NAME}" --description gg --type Vector',
         check=True,
         shell=True
     )
@@ -28,18 +26,16 @@ def test_cli_image_upload_project_export(tmpdir):
         PROJECT_NAME, "./tests/sample_recursive_test/classes/classes.json"
     )
     subprocess.run(
-        [
-            f'superannotate upload-images --project "{PROJECT_NAME}" --folder ./tests/sample_recursive_test --extensions=jpg --set-annotation-status QualityCheck'
-        ],
+        f'superannotate upload-images --project "{PROJECT_NAME}" --folder ./tests/sample_recursive_test --extensions=jpg --set-annotation-status QualityCheck'
+        ,
         check=True,
         shell=True
     )
     time.sleep(1)
     assert len(sa.search_images(project)) == 1
     subprocess.run(
-        [
-            f'superannotate upload-images --project "{PROJECT_NAME}" --folder ./tests/sample_recursive_test --extensions=jpg --recursive'
-        ],
+        f'superannotate upload-images --project "{PROJECT_NAME}" --folder ./tests/sample_recursive_test --extensions=jpg --recursive'
+        ,
         check=True,
         shell=True
     )
@@ -50,9 +46,8 @@ def test_cli_image_upload_project_export(tmpdir):
         project, "./tests/sample_recursive_test"
     )
     subprocess.run(
-        [
-            f'superannotate export-project --project "{PROJECT_NAME}" --folder {tmpdir}'
-        ],
+        f'superannotate export-project --project "{PROJECT_NAME}" --folder {tmpdir}'
+        ,
         check=True,
         shell=True
     )
@@ -63,9 +58,8 @@ def test_cli_image_upload_project_export(tmpdir):
     time.sleep(60)
 
     subprocess.run(
-        [
-            f'superannotate export-project --project "{PROJECT_NAME}" --folder {tmpdir} --include-fuse'
-        ],
+        f'superannotate export-project --project "{PROJECT_NAME}" --folder {tmpdir} --include-fuse'
+        ,
         check=True,
         shell=True
     )

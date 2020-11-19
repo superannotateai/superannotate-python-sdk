@@ -34,9 +34,7 @@ def test_preannotation_folder_upload_download_cli(
         project, from_folder / "classes" / "classes.json"
     )
     subprocess.run(
-        [
-            f'superannotate upload-preannotations --project "{name}" --folder "{from_folder}"'
-        ],
+        f'superannotate upload-preannotations --project "{name}" --folder "{from_folder}"',
         check=True,
         shell=True
     )
@@ -72,9 +70,7 @@ def test_annotation_folder_upload_download_cli_vector_COCO(tmpdir):
     #     project, from_folder / "classes" / "classes.json"
     # )
     subprocess.run(
-        [
-            f'superannotate upload-annotations --project "{name}" --folder "{from_folder}" --format COCO --task {task} --dataset-name {dataset_name}'
-        ],
+        f'superannotate upload-annotations --project "{name}" --folder "{from_folder}" --format COCO --task {task} --dataset-name {dataset_name}',
         check=True,
         shell=True
     )
@@ -110,9 +106,7 @@ def test_preannotation_folder_upload_download_cli_vector_COCO(tmpdir):
     #     project, from_folder / "classes" / "classes.json"
     # )
     subprocess.run(
-        [
-            f'superannotate upload-preannotations --project "{name}" --folder "{from_folder}" --format COCO --task {task} --dataset-name {dataset_name}'
-        ],
+        f'superannotate upload-preannotations --project "{name}" --folder "{from_folder}" --format COCO --task {task} --dataset-name {dataset_name}',
         check=True,
         shell=True
     )
@@ -148,9 +142,7 @@ def test_preannotation_folder_upload_download_cli_vector_object_COCO(tmpdir):
     #     project, from_folder / "classes" / "classes.json"
     # )
     subprocess.run(
-        [
-            f'superannotate upload-preannotations --project "{name}" --folder "{from_folder}" --format COCO --task {task} --dataset-name {dataset_name}'
-        ],
+        f'superannotate upload-preannotations --project "{name}" --folder "{from_folder}" --format COCO --task {task} --dataset-name {dataset_name}',
         check=True,
         shell=True
     )
@@ -176,9 +168,7 @@ def test_preannotation_folder_upload_download_cli_pixel_object_COCO(tmpdir):
     #     project, from_folder / "classes" / "classes.json"
     # )
     subprocess.run(
-        [
-            f'superannotate upload-preannotations --project "{name}" --folder "{from_folder}" --format COCO --task {task} --dataset-name {dataset_name}'
-        ],
+        f'superannotate upload-preannotations --project "{name}" --folder "{from_folder}" --format COCO --task {task} --dataset-name {dataset_name}',
         check=True,
         shell=True
     )
