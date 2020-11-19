@@ -13,8 +13,10 @@ from tqdm import tqdm
 
 from ..api import API
 from ..common import annotation_status_str_to_int
-from ..exceptions import (SABaseException, SAExistingExportNameException,
-                          SANonExistingExportNameException)
+from ..exceptions import (
+    SABaseException, SAExistingExportNameException,
+    SANonExistingExportNameException
+)
 from .projects import get_project_metadata
 
 logger = logging.getLogger("superannotate-python-sdk")
@@ -141,7 +143,8 @@ def prepare_export(
         )
     res = response.json()
     logger.info(
-        "Prepared export %s for project %s (ID %s).", res['name'], project["name"], project["id"]
+        "Prepared export %s for project %s (ID %s).", res['name'],
+        project["name"], project["id"]
     )
     return res["name"]
 
@@ -181,7 +184,7 @@ def __upload_files_to_aws_thread(
         file = filepaths[i]
         try:
             relative_filename = file.relative_to(tmpdirname)
-            s3_key = f'{folder_path}/{relative_filename}'
+            s3_key = f'{folder_path}/{relative_filename.as_posix()}'
             to_s3.upload_file(str(file), s3_key)
         except Exception as e:
             logger.warning("Unable to upload to data server %s", e)
@@ -245,7 +248,7 @@ def download_export(
                     f.extractall(tmpdirname)
                 Path.unlink(filepath)
             files_to_upload = []
-            for file in Path(tmpdirname).rglob("*"):
+            for file in Path(tmpdirname).rglob("*.*"):
                 if not file.is_file():
                     continue
                 files_to_upload.append(file)
