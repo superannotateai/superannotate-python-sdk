@@ -24,16 +24,17 @@ for COCO annotation format converters support also need to install:
    pip install "git+https://github.com/cocodataset/panopticapi.git"
    pip install "git+https://github.com/philferriere/cocoapi.git#egg=pycocotools&subdirectory=PythonAPI"
 
-The package officially supports Python 3.6+ and was tested under Linux platform.
+The package officially supports Python 3.6+ and was tested under Linux and
+Windows (`Anaconda <https://www.anaconda.com/products/individual#windows>`_) platforms.
 
 For Windows based Anaconda distribution 
-you might also need to install :py:obj:`shapely` package separately:
+you might also need to install beforehand :py:obj:`shapely` package:
 
 .. code-block:: bash
 
    conda install shapely
 
-and also need to install C++ build tools from `Microsoft Visual Studio Tools
+and C++ build tools from `Microsoft Visual Studio Tools
 <https://visualstudio.microsoft.com/visual-cpp-build-tools/>`_.
 
 ----------
