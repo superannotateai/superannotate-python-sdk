@@ -31,7 +31,7 @@ def test_image_quality_setting1(tmpdir):
     sa.create_project(PROJECT_NAME2, "test", "Vector")
 
     subprocess.run(
-        f'superannotate upload-videos --project "{PROJECT_NAME2}" --folder ./tests/sample_videos --target-fps 2',
+        f'superannotatecli upload-videos --project "{PROJECT_NAME2}" --folder ./tests/sample_videos --target-fps 2',
         check=True,
         shell=True
     )

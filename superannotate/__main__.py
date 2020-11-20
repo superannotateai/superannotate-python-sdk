@@ -37,10 +37,11 @@ def ask_token():
 
 
 def main():
+    available_commands = "Available commands to superannotate CLI are: init version create-project upload-images upload-videos upload-preannotations upload-annotations export-project"
     if len(sys.argv) == 1:
-        print("No command given to superannotate CLI")
-        print("Available commands to superannotate CLI are: init")
-        return
+        raise SABaseException(
+            0, "No command given to superannotate CLI. " + available_commands
+        )
     command = sys.argv[1]
     further_args = sys.argv[2:]
 
@@ -61,7 +62,10 @@ def main():
     elif command == "version":
         print(f"SuperAnnotate Python SDK version {sa.__version__}")
     else:
-        raise SABaseException(0, "Wrong command to superannotate CLI")
+        raise SABaseException(
+            0, "Wrong command " + command + " to superannotate CLI. " +
+            available_commands
+        )
 
 
 def _list_str(values):

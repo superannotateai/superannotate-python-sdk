@@ -53,7 +53,7 @@ To generate a default location (:file:`~/.superannotate/config.json`) config fil
 
 .. code-block:: bash
 
-   superannotate init
+   superannotatecli init
 
 .. _ref_custom_config_file:
 

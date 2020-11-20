@@ -7,14 +7,14 @@ With SuperAnnotate CLI, basic tasks can be accomplished using shell commands:
 
 .. code-block:: bash
 
-   superannotate <command> <--arg1 val1> <--arg2 val2> [--optional_arg3 val3] [--optional_arg4] ...
+   superannotatecli <command> <--arg1 val1> <--arg2 val2> [--optional_arg3 val3] [--optional_arg4] ...
 
 To use the CLI a command line initialization step should be performed after the
 :ref:`installation <ref_tutorial_installation>`:
 
 .. code-block:: bash
 
-   superannotate init
+   superannotatecli init
 
 ----------
 
@@ -32,7 +32,7 @@ To initialize CLI (and SDK) with team token:
 
 .. code-block:: bash
 
-   superannotate init
+   superannotatecli init
 
 ----------
 
@@ -45,7 +45,7 @@ To create a new project:
 
 .. code-block:: bash
 
-   superannotate create-project --name <project_name> --description <project_description> --type <project_type Vector or Pixel>
+   superannotatecli create-project --name <project_name> --description <project_description> --type <project_type Vector or Pixel>
 
 ----------
 
@@ -58,7 +58,7 @@ To upload images from folder to project use:
 
 .. code-block:: bash
 
-   superannotate upload-images --project <project_name> --folder <folder_path> [--recursive] [--extensions jpg,png]
+   superannotatecli upload-images --project <project_name> --folder <folder_path> [--recursive] [--extensions jpg,png]
 
 If optional argument *recursive* is given then subfolders of :file:`<folder_path>` are also recursively
 scanned for available images.
@@ -77,10 +77,10 @@ To upload videos from folder to project use:
 
 .. code-block:: bash
 
-   superannotate upload-videos --project <project_name> --folder <folder_path> 
-                               [--recursive] [--extensions mp4,avi,mov,webm,flv,mpg,ogg]
-                               [--target-fps <float>] [--start-time <float>]
-                               [--end-time <float>]
+   superannotatecli upload-videos --project <project_name> --folder <folder_path> 
+                                  [--recursive] [--extensions mp4,avi,mov,webm,flv,mpg,ogg]
+                                  [--target-fps <float>] [--start-time <float>]
+                                  [--end-time <float>]
 
 If optional argument *recursive* is given then subfolders of :file:`<folder_path>` are also recursively
 scanned for available videos.
@@ -108,10 +108,10 @@ To upload preannotations from folder to project use:
 
 .. code-block:: bash
 
-   superannotate upload-preannotations --project <project_name> --folder <folder_path> 
-                                       [--format "COCO" or "SuperAnnotate"] 
-                                       [--dataset-name "<dataset_name_for_COCO_projects>"]
-                                       [--task "<task_type_for_COCO_projects>]
+   superannotatecli upload-preannotations --project <project_name> --folder <folder_path> 
+                                          [--format "COCO" or "SuperAnnotate"] 
+                                          [--dataset-name "<dataset_name_for_COCO_projects>"]
+                                          [--task "<task_type_for_COCO_projects>]
 
 
 Optional argument *format* accepts input annotation format. It can have COCO or SuperAnnotate values.
@@ -137,10 +137,10 @@ To upload annotations from folder to project use:
 
 .. code-block:: bash
 
-   superannotate upload-annotations --project <project_name> --folder <folder_path> 
-                                    [--format "COCO" or "SuperAnnotate"] 
-                                    [--dataset-name "<dataset_name_for_COCO_projects>"]
-                                    [--task "<task_type_for_COCO_projects>]
+   superannotatecli upload-annotations --project <project_name> --folder <folder_path> 
+                                       [--format "COCO" or "SuperAnnotate"] 
+                                       [--dataset-name "<dataset_name_for_COCO_projects>"]
+                                       [--task "<task_type_for_COCO_projects>]
 
 Optional argument *format* accepts input annotation format. It can have COCO or SuperAnnotate values.
 If the argument is not given then SuperAnnotate (the native annotation format) is assumed.
@@ -166,4 +166,4 @@ To show the version of the current SDK installation:
 
 .. code-block:: bash
 
-   superannotate version
+   superannotatecli version
