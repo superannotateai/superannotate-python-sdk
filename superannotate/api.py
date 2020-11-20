@@ -74,6 +74,8 @@ class API:
             if "main_endpoint" in self._api_config:
                 self._main_endpoint = self._api_config["main_endpoint"]
             self._verify = True
+            if "ssl_verify" in self._api_config:
+                self._verify = self._api_config["ssl_verify"]
             self._session = None
             self._authenticated = True
             response = self.send_request(
