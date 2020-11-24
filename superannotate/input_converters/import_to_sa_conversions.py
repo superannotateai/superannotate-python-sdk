@@ -17,7 +17,7 @@ def _load_files(path_to_imgs, ptype):
     rec_search = str(Path('**') / '*.jpg')
     images_gen = Path(path_to_imgs).glob(rec_search)
     images = [path for path in images_gen]
-    # )
+
     if not images:
         logger.warning("Images doesn't exist")
 
@@ -25,11 +25,10 @@ def _load_files(path_to_imgs, ptype):
         rec_search = str(Path('**') / '*.png')
         masks_gen = Path(path_to_imgs).glob(rec_search)
         masks = [path for path in masks_gen]
+        # if not masks:
+        #     logger.warning("Masks doesn't exist")
     else:
         masks = []
-
-    if not masks:
-        logger.warning("Masks doesn't exist")
 
     return images, masks
 

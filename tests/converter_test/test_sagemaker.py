@@ -34,19 +34,6 @@ def sagemaker_instance_segmentation(tmpdir):
         'instance_segmentation', 'Desktop'
     )
 
-    # project_name = "sagemaker_object_detection"
-
-    # projects = sa.search_projects(project_name, True)
-    # if projects:
-    #     sa.delete_project(projects[0])
-    # project = sa.create_project(project_name, "converter vector", "Vector")
-
-    # sa.create_annotation_classes_from_classes_json(
-    #     project, out_dir + "/classes/classes.json"
-    # )
-    # sa.upload_images_from_folder_to_project(project, out_dir)
-    # sa.upload_annotations_from_folder_to_project(project, out_dir)
-
     return 0
 
 

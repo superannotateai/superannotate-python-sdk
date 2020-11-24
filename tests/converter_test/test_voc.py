@@ -32,20 +32,6 @@ def voc_vector_object(tmpdir):
         str(out_dir), "VOC", "", "Vector", "object_detection", "Desktop"
     )
 
-    # project_name = "voc2sa_vector_object"
-
-    # projects = sa.search_projects(project_name, True)
-
-    # if projects:
-    #     sa.delete_project(projects[0])
-    # project = sa.create_project(project_name, "converter vector", "Vector")
-
-    # sa.create_annotation_classes_from_classes_json(
-    #     project, out_dir + "/classes/classes.json"
-    # )
-    # sa.upload_images_from_folder_to_project(project, out_dir)
-    # sa.upload_annotations_from_folder_to_project(project, out_dir)
-
     return 0
 
 
