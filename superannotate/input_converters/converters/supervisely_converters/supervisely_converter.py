@@ -1,10 +1,16 @@
-from pathlib import Path
 import json
+import logging
 import time
+from pathlib import Path
+
+logger = logging.getLogger("superannotate-python-sdk")
 
 
-class SuperviselyConverter(object):
+class SuperviselyConverter():
     def __init__(self, args):
+        logger.warning(
+            "Beta feature. Supervisely to SuperAnnotate annotation format converter is in BETA state."
+        )
 
         self.dataset_name = args.dataset_name
         self.project_type = args.project_type
