@@ -12,6 +12,8 @@ from .ml_models import _get_model_id_if_exists
 from ..common import _AVAILABLE_SEGMENTATION_MODELS
 from .decorators import project_metadata, model_metadata
 from ..db.images import search_images
+import boto3
+import os
 logger = logging.getLogger("superannotate-python-sdk")
 _api = API.get_instance()
 
@@ -102,7 +104,7 @@ def run_segmentation(project, images_list, model):
         params = params,
         json_req = json_req
     )
-
+    print(response.json(), "ACTUAL PROOOF")
     if not response.ok:
         logger.error("Could not start segmentation")
     else:
@@ -117,7 +119,7 @@ def run_training(project, model, name, description, task, hyperparameters):
         project_ids = [project["id"]]
         project_type = project["type"]
     else:
-        project_ids = [x["id"] for in project]
+        project_ids = [x["id"] for x in project]
         types = (x["type"] for x in project)
 
         if len(types) != 1:
@@ -162,4 +164,46 @@ def run_training(project, model, name, description, task, hyperparameters):
 
 @model_metadata
 def download_model(model, output_dir):
-    pass
+    weights_path = model["path"]
+    weights_name = weights_path.split('/')[-1]
+    config_path = model["config_path"]
+    mapper_path = config_path.split("/")
+    mapper_path[-1] = "classes_mapper.json"
+    mapper_path = "/".join(mapper_path)
+
+    params = {
+        "team_id": _api.team_id,
+    }
+
+    response = _api.send_request(
+        req_type = "GET",
+        path = f"/ml_model/getMyModelDownloadToken/{model['id']}",
+        params = params
+    )
+    if response.ok:
+        response = response.json()
+    else:
+        raise SABaseException(
+            0, "Could not get model info "
+        )
+
+    tokens = response["tokens"]
+    s3_session = boto3.Session(
+        aws_access_key_id = tokens["accessKeyId"],
+        aws_secret_access_key = tokens["secretAccessKey"],
+        aws_session_token = tokens["sessionToken"]
+    )
+    s3_resource = s3_session.resource('s3')
+
+    bucket = s3_resource.Bucket(tokens["bucket"] )
+
+    bucket.download_file(config_path, os.path.join(output_dir, 'config.yaml'))
+    bucket.download_file(model_path, os.path.join(output_dir , weights_name))
+    try:
+        bucket.download_file(mapper_path, os.path.join(output_dir, mapper_path))
+    except Exception as e:
+        logger.info("the specified model does not contain a classes_mapper file")
+
+    logger.info("Downloaded model related files")
+
+

@@ -36,7 +36,12 @@ def project_metadata(func):
 def model_metadata(func):
     def inner(**kwargs):
         if isinstance(kwargs["model"], str):
-            all_models = search_models(type_ = kwargs['project']['type'], include_global = True)
+            type_ = None
+
+            if 'project' in kwargs:
+                type_ =  kwargs['project']['type']
+
+            all_models = search_models(type_ = type_, include_global = True)
             all_models_name_map = {x['name'] : x for x in all_models}
             if kwargs["model"] not in all_models_name_map:
                 raise SABaseException(
