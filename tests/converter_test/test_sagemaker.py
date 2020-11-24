@@ -2,20 +2,20 @@ from pathlib import Path
 import superannotate as sa
 
 
-def sagemaker_object_detection(tmpdir):
-    out_dir = tmpdir / "object_detection"
+def sagemaker_instance_segmentation(tmpdir):
+    out_dir = tmpdir / "instance_segmentation"
     sa.import_annotation_format(
-        'tests/converter_test/SageMaker/input/toSuperAnnotate/object_detection',
-        str(out_dir), 'SageMaker', 'test-obj-detect', 'Vector',
-        'object_detection', 'Web'
+        'tests/converter_test/SageMaker/input/toSuperAnnotate/instance_segmentation',
+        str(out_dir), 'SageMaker', 'test-obj-detect', 'Pixel',
+        'instance_segmentation', 'Web'
     )
 
-    project_name = "sagemaker_object_detection"
+    project_name = "sagemaker_instance_segmentation"
 
     projects = sa.search_projects(project_name, True)
     if projects:
         sa.delete_project(projects[0])
-    project = sa.create_project(project_name, "converter vector", "Vector")
+    project = sa.create_project(project_name, "converter vector", "Pixel")
 
     sa.create_annotation_classes_from_classes_json(
         project, out_dir + "/classes/classes.json"
@@ -26,12 +26,12 @@ def sagemaker_object_detection(tmpdir):
     return 0
 
 
-def sagemaker_instance_segmentation(tmpdir):
-    out_dir = tmpdir / "instance_segmentation"
+def sagemaker_object_detection(tmpdir):
+    out_dir = tmpdir / "object_detection"
     sa.import_annotation_format(
-        'tests/converter_test/SageMaker/input/toSuperAnnotate/instance_segmentation',
-        str(out_dir), 'SageMaker', 'test-obj-detect', 'Pixel',
-        'instance_segmentation', 'Desktop'
+        'tests/converter_test/SageMaker/input/toSuperAnnotate/object_detection',
+        str(out_dir), 'SageMaker', 'test-obj-detect', 'Vector',
+        'object_detection', 'Desktop'
     )
 
     return 0
