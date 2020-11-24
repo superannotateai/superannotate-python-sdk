@@ -21,8 +21,6 @@ def supervisely_convert_vector(tmpdir):
     sa.upload_images_from_folder_to_project(project, out_dir)
     sa.upload_annotations_from_folder_to_project(project, out_dir)
 
-    return 0
-
 
 def supervisely_convert_object(tmpdir):
     out_dir = tmpdir / 'object_detection'
@@ -65,8 +63,6 @@ def supervisely_convert_keypoint(tmpdir):
     sa.upload_images_from_folder_to_project(project, out_dir)
     sa.upload_annotations_from_folder_to_project(project, out_dir)
 
-    return 0
-
 
 def supervisely_convert_instance_pixel(tmpdir):
     out_dir = tmpdir / 'instance_segmentation_pixel'
@@ -88,12 +84,10 @@ def supervisely_convert_instance_pixel(tmpdir):
     sa.upload_images_from_folder_to_project(project, out_dir)
     sa.upload_annotations_from_folder_to_project(project, out_dir)
 
-    return 0
-
 
 def test_supervisely(tmpdir):
-    assert supervisely_convert_keypoint(tmpdir) == 0
-    assert supervisely_convert_instance(tmpdir) == 0
-    assert supervisely_convert_object(tmpdir) == 0
-    assert supervisely_convert_vector(tmpdir) == 0
-    assert supervisely_convert_instance_pixel(tmpdir) == 0
+    supervisely_convert_keypoint(tmpdir)
+    supervisely_convert_instance(tmpdir)
+    supervisely_convert_object(tmpdir)
+    supervisely_convert_vector(tmpdir)
+    supervisely_convert_instance_pixel(tmpdir)
