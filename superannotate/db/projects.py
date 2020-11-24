@@ -13,7 +13,7 @@ from pathlib import Path
 import boto3
 import cv2
 import ffmpeg
-from PIL import Image
+from PIL import Image, ImageOps, ImageChops
 from tqdm import tqdm
 
 from ..api import API
@@ -600,11 +600,14 @@ def upload_images_from_folder_to_project(
 
 def get_image_array_to_upload(byte_io_orig, image_quality_in_editor):
     Image.MAX_IMAGE_PIXELS = None
-    im = Image.open(byte_io_orig)
-    im_format = im.format
+    im_original = Image.open(byte_io_orig)
+    im_format = im_original.format
+    im = ImageOps.exif_transpose(im_original)
     width, height = im.size
 
-    if image_quality_in_editor == 100 and im_format in ['JPEG', 'JPG']:
+    if image_quality_in_editor == 100 and im_format in [
+        'JPEG', 'JPG'
+    ] and not ImageChops.difference(im, im_original).getbbox():
         byte_io_lores = io.BytesIO(byte_io_orig.getbuffer())
     else:
         byte_io_lores = io.BytesIO()
