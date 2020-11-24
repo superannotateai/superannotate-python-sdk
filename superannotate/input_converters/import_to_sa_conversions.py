@@ -2,13 +2,11 @@
 Module which will run converters and convert from other
 annotation formats to superannotate annotation format
 """
-import glob
 import logging
-import os
 import shutil
 from pathlib import Path
+
 from .converters.converters import Converter
-from ..exceptions import SABaseException
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -16,7 +14,7 @@ logger = logging.getLogger("superannotate-python-sdk")
 def _load_files(path_to_imgs, ptype):
     rec_search = str(Path('**') / '*.jpg')
     images_gen = Path(path_to_imgs).glob(rec_search)
-    images = [path for path in images_gen]
+    images = list(images_gen)
 
     if not images:
         logger.warning("Images doesn't exist")
@@ -24,7 +22,7 @@ def _load_files(path_to_imgs, ptype):
     if ptype == 'Pixel':
         rec_search = str(Path('**') / '*.png')
         masks_gen = Path(path_to_imgs).glob(rec_search)
-        masks = [path for path in masks_gen]
+        masks = list(masks_gen)
         # if not masks:
         #     logger.warning("Masks doesn't exist")
     else:
