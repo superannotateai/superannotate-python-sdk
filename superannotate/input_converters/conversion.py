@@ -143,7 +143,7 @@ def _passes_converter_sanity(args, direction):
     if not test_passed:
         raise SABaseException(
             0,
-            "Please enter valid converter values. You can check available candidates in the documentation(https://superannotate.readthedocs.io/en/latest/index.html)."
+            "Please enter valid converter values. You can check available candidates in the documentation (https://superannotate.readthedocs.io/en/stable/index.html)."
         )
 
 
