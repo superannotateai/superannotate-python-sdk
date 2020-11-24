@@ -98,7 +98,7 @@ def sagemaker_instance_segmentation_to_sa_pixel(data_path, main_key):
                     'attributes': [],
                     'locked': False,
                     'visible': True,
-                    'groupId': 0
+                    'parts': []
                 }
                 for contour in contours:
                     bitmask = np.zeros((H, W))
@@ -113,7 +113,7 @@ def sagemaker_instance_segmentation_to_sa_pixel(data_path, main_key):
                     cv2.fillPoly(bitmask, [pts], 1)
                     sa_mask[bitmask == 1
                            ] = list(hex_to_rgb(blue_colors[idx]))[::-1] + [255]
-                    sa_obj['parts'] = {'color': blue_colors[idx]}
+                    sa_obj['parts'].append({'color': blue_colors[idx]})
                     idx += 1
                     sa_loader.append(sa_obj.copy())
             sa_jsons[sa_name] = sa_loader
