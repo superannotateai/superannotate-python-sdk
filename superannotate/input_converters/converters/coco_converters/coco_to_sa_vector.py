@@ -7,6 +7,7 @@ import requests
 import cv2
 import numpy as np
 
+from pathlib import Path
 from collections import defaultdict
 from pycocotools.coco import COCO
 from panopticapi.utils import id2rgb
@@ -104,7 +105,7 @@ def coco_instance_segmentation_to_sa_vector(coco_path, images_path):
             continue
         f_loader = image_id_to_annotations[img['id']]
         if 'file_name' in img:
-            image_path = os.path.basename(img['file_name'])
+            image_path = Path(img['file_name']).name
         else:
             image_path = img['coco_url'].split('/')[-1]
         file_name = image_path + "___objects.json"
@@ -119,14 +120,39 @@ def coco_object_detection_to_sa_vector(coco_path, images_path):
     for cat in coco_json['categories']:
         cat_id_to_cat[cat['id']] = cat
 
+    instance_groups = {}
+    for annot in coco_json['annotations']:
+        if 'id' in annot:
+            if annot['id'] in instance_groups:
+                instance_groups[annot['id']] += 1
+            else:
+                instance_groups[annot['id']] = 1
+
     for annot in tqdm(coco_json['annotations'], "Converting annotations"):
-        if 'iscrowd' in annot and annot['iscrowd'] == 1:
-            try:
+        if isinstance(annot['segmentation'], dict):
+            if isinstance(annot['segmentation']['counts'], list):
                 annot['segmentation'] = _rle_to_polygon(coco_path, annot)
-            except IndexError:
-                print("List index out of range")
+            else:
+                binary_mask = maskUtils.decode(annot['segmentation'])
+                contours, _ = cv2.findContours(
+                    binary_mask.astype(np.uint8), cv2.RETR_EXTERNAL,
+                    cv2.CHAIN_APPROX_SIMPLE
+                )
+                segments = []
+                for contour in contours:
+                    contour = contour.flatten().tolist()
+                    if len(contour) > 4:
+                        segments.append(contour)
+                annot['segmentation'] = segments
 
         cat = cat_id_to_cat[annot['category_id']]
+        groupid = 0
+        for polygon in annot['segmentation']:
+            if 'id' in annot:
+                if annot['id'] in instance_groups and instance_groups[
+                    annot['id']] > 1:
+                    groupid = annot['id']
+
         sa_dict_bbox = {
             'type': 'bbox',
             'points':
@@ -142,7 +168,7 @@ def coco_object_detection_to_sa_vector(coco_path, images_path):
             'probability': 100,
             'locked': False,
             'visible': True,
-            'groupId': annot['id'],
+            'groupId': groupid,
             'imageId': annot['image_id']
         }
 
@@ -158,7 +184,7 @@ def coco_object_detection_to_sa_vector(coco_path, images_path):
             continue
         f_loader = image_id_to_annotations[img['id']]
         if 'file_name' in img:
-            image_path = os.path.basename(img['file_name'])
+            image_path = Path(img['file_name']).name
         else:
             image_path = img['coco_url'].split('/')[-1]
         file_name = image_path + "___objects.json"
@@ -264,6 +290,6 @@ def coco_keypoint_detection_to_sa_vector(coco_path, images_path):
             for img_id, img_data in loader:
                 if img['id'] == img_id:
                     f_loader.append(img_data)
-            file_name = os.path.basename(img['file_name']) + "___objects.json"
+            file_name = str(Path(img['file_name']).name) + "___objects.json"
             sa_jsons[file_name] = f_loader
     return sa_jsons

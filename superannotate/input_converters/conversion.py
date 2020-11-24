@@ -195,6 +195,11 @@ def export_annotation_format(
 
     """
 
+    if isinstance(input_dir, str):
+        input_dir = Path(input_dir)
+    if isinstance(output_dir, str):
+        output_dir = Path(output_dir)
+
     args = Namespace(
         input_dir=input_dir,
         output_dir=output_dir,
@@ -219,6 +224,7 @@ def import_annotation_format(
     project_type="Vector",
     task="object_detection",
     platform="Web",
+    images_root=''
 ):
     """Converts other annotation formats to SuperAnnotate annotation format. Currently available (project_type, task) combinations for converter
     presented below:
@@ -344,6 +350,8 @@ def import_annotation_format(
                  'vector_annotation' can be used to convert all annotations (point, ellipse, circule, cuboid and etc) to SuperAnnotate vector project.
     :param platform: SuperAnnotate has both 'Web' and 'Desktop' platforms. Choose to which platform you want convert. (Default: "Web")
     :type platform: str
+    :param images_root: Additonal path to images directory in input_dir
+    :type platform: str
 
     """
 
@@ -360,6 +368,7 @@ def import_annotation_format(
         project_type=project_type,
         task=task,
         platform=platform,
+        images_root=images_root
     )
 
     _passes_sanity_checks(args)

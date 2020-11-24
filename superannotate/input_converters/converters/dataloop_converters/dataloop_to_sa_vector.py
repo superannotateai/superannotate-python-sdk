@@ -1,6 +1,7 @@
 import json
-import os
 import numpy as np
+
+from pathlib import Path
 
 
 def _create_classes(classes):
@@ -41,9 +42,10 @@ def _create_classes(classes):
 def dataloop_object_detection_to_sa_vector(input_dir, id_generator):
     classes = {}
     sa_jsons = {}
-    for json_file in os.listdir(input_dir):
+    json_data = Path(input_dir).glob('*.json')
+    for json_file in json_data:
         sa_loader = []
-        dl_data = json.load(open(os.path.join(input_dir, json_file)))
+        dl_data = json.load(open(json_file))
 
         for ann in dl_data['annotations']:
             if ann['label'] not in classes.keys():
@@ -125,9 +127,10 @@ def dataloop_object_detection_to_sa_vector(input_dir, id_generator):
 def dataloop_instance_segmentation_to_sa_vector(input_dir, id_generator):
     classes = {}
     sa_jsons = {}
-    for json_file in os.listdir(input_dir):
+    json_data = Path(input_dir).glob('*.json')
+    for json_file in json_data:
         sa_loader = []
-        dl_data = json.load(open(os.path.join(input_dir, json_file)))
+        dl_data = json.load(open(json_file))
 
         for ann in dl_data['annotations']:
             if ann['label'] not in classes.keys():
@@ -208,9 +211,10 @@ def dataloop_instance_segmentation_to_sa_vector(input_dir, id_generator):
 def dataloop_to_sa(input_dir, id_generator):
     classes = {}
     sa_jsons = {}
-    for json_file in os.listdir(input_dir):
+    json_data = Path(input_dir).glob('*.json')
+    for json_file in json_data:
         sa_loader = []
-        dl_data = json.load(open(os.path.join(input_dir, json_file)))
+        dl_data = json.load(open(json_file))
 
         for ann in dl_data['annotations']:
             if ann['label'] not in classes.keys():

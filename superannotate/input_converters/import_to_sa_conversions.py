@@ -6,7 +6,7 @@ import glob
 import logging
 import os
 import shutil
-
+from pathlib import Path
 from .converters.converters import Converter
 from ..exceptions import SABaseException
 
@@ -14,20 +14,22 @@ logger = logging.getLogger("superannotate-python-sdk")
 
 
 def _load_files(path_to_imgs, ptype):
-    images = glob.glob(
-        os.path.join(path_to_imgs, "**", "*.jpg"), recursive=True
-    )
+    rec_search = str(Path('**') / '*.jpg')
+    images_gen = Path(path_to_imgs).glob(rec_search)
+    images = [path for path in images_gen]
+    # )
     if not images:
         logger.warning("Images doesn't exist")
 
-    if ptype == "Pixel":
-        masks = glob.glob(
-            os.path.join(path_to_imgs, "**", "*.png"), recursive=True
-        )
-        if not masks:
-            logger.warning("Masks doesn't exist")
+    if ptype == 'Pixel':
+        rec_search = str(Path('**') / '*.png')
+        masks_gen = Path(path_to_imgs).glob(rec_search)
+        masks = [path for path in masks_gen]
     else:
-        masks = None
+        masks = []
+
+    if not masks:
+        logger.warning("Masks doesn't exist")
 
     return images, masks
 
@@ -35,17 +37,15 @@ def _load_files(path_to_imgs, ptype):
 def _move_files(imgs, masks, output_dir, platforom):
     if platforom == "Desktop":
         output_path = output_dir / "images"
-        os.makedirs(output_path)
+        output_path.mkdir(parents=True)
     else:
-        os.makedirs(output_dir / 'classes')
+        (output_dir / 'classes').mkdir(parents=True)
         output_path = output_dir
-    if imgs is not None:
-        for im in imgs:
-            shutil.copy(im, output_path / os.path.basename(im))
+    for im in imgs:
+        shutil.copy(im, output_path / Path(im).name)
 
-    if masks is not None:
-        for mask in masks:
-            shutil.copy(mask, output_path / os.path.basename(mask))
+    for mask in masks:
+        shutil.copy(mask, output_path / Path(mask).name)
 
 
 def import_to_sa(args):
@@ -54,7 +54,9 @@ def import_to_sa(args):
     :type args: Namespace
     """
 
-    images, masks = _load_files(args.input_dir, args.project_type)
+    images, masks = _load_files(
+        args.input_dir / args.images_root, args.project_type
+    )
     _move_files(images, masks, args.output_dir, args.platform)
 
     args.__dict__.update({'direction': 'from', 'export_root': args.input_dir})

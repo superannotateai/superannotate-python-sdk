@@ -3,6 +3,7 @@ import os
 
 import cv2
 import numpy as np
+from pathlib import Path
 import pycocotools.mask as maskUtils
 from panopticapi.utils import id2rgb
 from tqdm import tqdm
@@ -39,12 +40,12 @@ def coco_panoptic_segmentation_to_sa_pixel(coco_path, images_path):
 
     sa_jsons = {}
     for annotate in tqdm(annotate_list, "Converting"):
-        annot_name = os.path.splitext(annotate["file_name"])[0]
-        img_cv = cv2.imread(os.path.join(images_path, annot_name + ".png"))
+        annot_name = Path(annotate["file_name"]).stem
+        img_cv = cv2.imread(str(images_path / (annot_name + ".png")))
         if img_cv is None:
             print(
                 "'{}' file dosen't exist!".format(
-                    os.path.join(images_path, annot_name + ".png")
+                    images_path / (annot_name + ".png")
                 )
             )
             continue
@@ -74,13 +75,11 @@ def coco_panoptic_segmentation_to_sa_pixel(coco_path, images_path):
             out_json.append(dd)
 
         img = cv2.cvtColor(img.reshape((H, W, C)), cv2.COLOR_RGB2BGR)
-        cv2.imwrite(
-            os.path.join(images_path, annot_name + ".jpg___save.png"), img
-        )
+        cv2.imwrite(str(images_path / (annot_name + ".jpg___save.png")), img)
 
         file_name = annot_name + ".jpg___pixel.json"
         sa_jsons[file_name] = out_json
-        os.remove(os.path.join(images_path, annot_name + ".png"))
+        (images_path / (annot_name + ".png")).unlink()
     return sa_jsons
 
 
@@ -170,7 +169,7 @@ def coco_instance_segmentation_to_sa_pixel(coco_path, images_path):
 
     for id_, value in images_dict.items():
         img = cv2.imwrite(
-            os.path.join(images_path, value['file_name'] + '___save.png'),
+            str(images_path / (value['file_name'] + '___save.png')),
             value['mask']
         )
 

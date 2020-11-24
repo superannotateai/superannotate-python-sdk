@@ -4,14 +4,17 @@ import numpy as np
 
 
 def __instance_object_commons_per_instance(
-    instance, id_generator, image_commons
+    instance, id_generator, image_commons, cat_id_map
 ):
     if "parts" not in instance:
         return None
     anno_id = next(id_generator)
     parts = [int(part["color"][1:], 16) for part in instance["parts"]]
 
-    category_id = instance['classId']
+    if instance['className'] in cat_id_map:
+        category_id = cat_id_map[instance['className']]
+    else:
+        category_id = instance['classId']
     instance_bitmask = np.isin(image_commons.flat_mask, parts)
     size = instance_bitmask.shape[::-1]
 
@@ -26,44 +29,22 @@ def __instance_object_commons_per_instance(
     return (bbox, area, contours, category_id, anno_id)
 
 
-def instance_object_commons(image_commons, id_generator):
+def instance_object_commons(image_commons, id_generator, cat_id_map):
     sa_ann_json = image_commons.sa_ann_json
     commons_lst = [
-        __instance_object_commons_per_instance(x, id_generator, image_commons)
-        for x in sa_ann_json
+        __instance_object_commons_per_instance(
+            x, id_generator, image_commons, cat_id_map
+        ) for x in sa_ann_json
     ]
     return commons_lst
 
 
-def sa_pixel_to_coco_object_detection(
-    make_annotation, image_commons, id_generator
-):
-    commons_lst = instance_object_commons(image_commons, id_generator)
-    annotations_per_image = []
-    image_info = image_commons.image_info
-    for common in commons_lst:
-
-        bbox, area, contours, category_id, anno_id = common
-        segmentation = [
-            [
-                bbox[0], bbox[1], bbox[0], bbox[1] + bbox[3], bbox[0] + bbox[2],
-                bbox[1] + bbox[3], bbox[0] + bbox[2], bbox[1]
-            ]
-        ]
-
-        annotations_per_image.append(
-            make_annotation(
-                category_id, image_info['id'], bbox, segmentation, area, anno_id
-            )
-        )
-
-    return (image_info, annotations_per_image)
-
-
 def sa_pixel_to_coco_instance_segmentation(
-    make_annotation, image_commons, id_generator
+    make_annotation, image_commons, id_generator, cat_id_map
 ):
-    commons_lst = instance_object_commons(image_commons, id_generator)
+    commons_lst = instance_object_commons(
+        image_commons, id_generator, cat_id_map
+    )
     image_info = image_commons.image_info
     annotations_per_image = []
     for common in commons_lst:
@@ -86,7 +67,9 @@ def sa_pixel_to_coco_instance_segmentation(
     return (image_info, annotations_per_image)
 
 
-def sa_pixel_to_coco_panoptic_segmentation(image_commons, id_generator):
+def sa_pixel_to_coco_panoptic_segmentation(
+    image_commons, id_generator, cat_id_map
+):
 
     sa_ann_json = image_commons.sa_ann_json
     flat_mask = image_commons.flat_mask
@@ -100,9 +83,13 @@ def sa_pixel_to_coco_panoptic_segmentation(image_commons, id_generator):
             continue
 
         parts = [int(part['color'][1:], 16) for part in instance['parts']]
-        if instance['classId'] <0:
+        if instance['classId'] < 0:
             continue
-        category_id = instance['classId']
+
+        if instance['className'] in cat_id_map:
+            category_id = cat_id_map[instance['className']]
+        else:
+            category_id = instance['classId']
         instance_bitmask = np.isin(flat_mask, parts)
         segment_id = next(id_generator)
         ann_mask[instance_bitmask] = segment_id

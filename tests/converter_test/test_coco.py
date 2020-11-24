@@ -35,19 +35,6 @@ def coco_vector_object(tmpdir):
         "Desktop"
     )
 
-    # project_name = "coco2sa_vector_object"
-
-    # projects = sa.search_projects(project_name, True)
-    # if projects:
-    #     sa.delete_project(projects[0])
-    # project = sa.create_project(project_name, "converter vector", "Vector")
-
-    # sa.create_annotation_classes_from_classes_json(
-    #     project, out_dir / "classes" / "classes.json"
-    # )
-    # sa.upload_images_from_folder_to_project(project, out_dir)
-    # sa.upload_annotations_from_folder_to_project(project, out_dir)
-
 
 def coco_pixel_instance(tmpdir):
     out_dir = tmpdir / "instance_pixel"
@@ -103,29 +90,50 @@ def coco_desktop_object(tmpdir):
         "Desktop"
     )
 
-    image_list = glob(str(out_dir / 'image_set' / '*.jpg'))
+    # sa.import_annotation_format(
+    #     str(out_dir), str(final_dir), "COCO", "object_test", "Vector",
+    #     "object_detection", "Web", 'image_set'
+    # )
 
-    for image in image_list:
-        shutil.copy(image, out_dir / Path(image).name)
-    shutil.rmtree(out_dir / 'image_set')
+    # project_name = "coco2sa_object_pipline"
+
+    # projects = sa.search_projects(project_name, True)
+    # if projects:
+    #     sa.delete_project(projects[0])
+    # project = sa.create_project(project_name, "converter vector", "Vector")
+
+    # sa.create_annotation_classes_from_classes_json(
+    #     project, final_dir / "classes" / "classes.json"
+    # )
+    # sa.upload_images_from_folder_to_project(project, final_dir)
+    # sa.upload_annotations_from_folder_to_project(project, final_dir)
+
+
+def sa_to_coco_to_sa(tmpdir):
+    output1 = tmpdir / 'to_coco'
+    output2 = tmpdir / 'to_sa'
+
+    sa.export_annotation_format(
+        "tests/sample_project_pixel", str(output1), "COCO", "object_test",
+        "Pixel", "instance_segmentation", "Web"
+    )
 
     sa.import_annotation_format(
-        str(out_dir), str(final_dir), "COCO", "object_test", "Vector",
-        "object_detection", "Web"
+        str(output1), str(output2), "COCO", "object_test", "Pixel",
+        "instance_segmentation", "Web", 'image_set'
     )
 
-    project_name = "coco2sa_object_pipline"
+    project_name = 'coco_pipeline_new'
+    project = sa.search_projects(project_name, return_metadata=True)
+    for pr in project:
+        sa.delete_project(pr)
 
-    projects = sa.search_projects(project_name, True)
-    if projects:
-        sa.delete_project(projects[0])
-    project = sa.create_project(project_name, "converter vector", "Vector")
-
+    project = sa.create_project(project_name, 'test_instane', 'Pixel')
+    sa.upload_images_from_folder_to_project(project, output2)
     sa.create_annotation_classes_from_classes_json(
-        project, final_dir / "classes" / "classes.json"
+        project, output2 / "classes" / "classes.json"
     )
-    sa.upload_images_from_folder_to_project(project, final_dir)
-    sa.upload_annotations_from_folder_to_project(project, final_dir)
+    sa.upload_annotations_from_folder_to_project(project, output2)
 
 
 def test_coco(tmpdir):
@@ -134,3 +142,4 @@ def test_coco(tmpdir):
     coco_pixel_instance(tmpdir)
     coco_vector_keypoint(tmpdir)
     coco_desktop_object(tmpdir)
+    sa_to_coco_to_sa(tmpdir)

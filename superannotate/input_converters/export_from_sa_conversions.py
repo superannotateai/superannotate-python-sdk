@@ -11,7 +11,7 @@ import shutil
 import sys
 
 import numpy as np
-
+from pathlib import Path
 from .converters.converters import Converter
 
 from ..exceptions import SABaseException
@@ -20,26 +20,22 @@ logger = logging.getLogger("superannotate-python-sdk")
 
 
 def _split_json(input_dir):
-    temp_path = os.path.join(input_dir, "WebApp")
-    os.makedirs(temp_path)
-    json_data = json.load(open(os.path.join(input_dir, "annotations.json")))
+    temp_path = input_dir / "WebApp"
+    temp_path.mkdir()
+    json_data = json.load(open(input_dir / "annotations.json"))
     images = json_data.keys()
     for img in images:
         annotations = json_data[img]
         objects = []
         for annot in annotations:
-            if annot["type"] == "bbox" or annot["type"] == "polygon":
+            if annot["type"] != "meta":
                 objects.append(annot)
-        with open(os.path.join(temp_path, img + "___objects.json"), "w") as fw:
+        with open(temp_path / (img + "___objects.json"), "w") as fw:
             json.dump(objects, fw, indent=2)
-        shutil.copy(
-            os.path.join(input_dir, "images", img),
-            os.path.join(temp_path, img)
-        )
-    os.makedirs(os.path.join(temp_path, "classes"))
+        shutil.copy(input_dir / "images" / img, temp_path / img)
+    (temp_path / "classes").mkdir()
     shutil.copy(
-        os.path.join(input_dir, "classes.json"),
-        os.path.join(temp_path, "classes", "classes.json")
+        input_dir / "classes.json", temp_path / "classes" / "classes.json"
     )
 
     return temp_path
@@ -74,12 +70,12 @@ def _load_files(path_to_imgs, task, ptype):
     return all_files
 
 
-def _move_files(data_set, src, platform):
-    train_path = os.path.join(src, 'image_set')
+def _move_files(data_set, src):
+    train_path = src / 'image_set'
     if data_set is not None:
         for tup in data_set:
             for i in tup:
-                shutil.copy(i, os.path.join(train_path, os.path.basename(i)))
+                shutil.copy(i, train_path / Path(i).name)
 
 
 def _create_classes_mapper(imgs, classes_json):
@@ -90,9 +86,7 @@ def _create_classes_mapper(imgs, classes_json):
             continue
         classes[instance['name']] = instance['id']
 
-    with open(
-        os.path.join(imgs, 'image_set', 'classes_mapper.json'), 'w'
-    ) as fp:
+    with open(imgs / 'image_set' / 'classes_mapper.json', 'w') as fp:
         json.dump(classes, fp)
 
 
@@ -106,23 +100,22 @@ def export_from_sa(args):
 
     data_set = None
 
-    os.makedirs(os.path.join(args.output_dir, 'image_set'))
+    (args.output_dir / "image_set").mkdir(parents=True)
 
     try:
         _create_classes_mapper(
-            args.output_dir,
-            os.path.join(args.input_dir, 'classes', 'classes.json')
+            args.output_dir, args.input_dir / 'classes' / 'classes.json'
         )
     except Exception as e:
         _create_classes_mapper(args.input_dir, args.output_dir)
 
     data_set = _load_files(args.input_dir, args.task, args.project_type)
-    _move_files(data_set, args.output_dir, args.platform)
+    _move_files(data_set, args.output_dir)
 
     args.__dict__.update(
         {
             'direction': 'to',
-            'export_root': os.path.join(args.output_dir, 'image_set')
+            'export_root': args.output_dir / 'image_set'
         }
     )
     converter = Converter(args)

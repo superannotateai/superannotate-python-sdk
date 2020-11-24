@@ -28,7 +28,7 @@ def _merge_jsons(input_dir, output_dir):
 
     files = glob.glob(str(input_dir / "*.json"))
     merged_json = {}
-    os.makedirs(output_dir)
+    output_dir.mkdir(parents=True)
     for f in tqdm(files, "Merging files"):
         json_data = json.load(open(f))
         meta = {
@@ -40,7 +40,6 @@ def _merge_jsons(input_dir, output_dir):
             if "classId" in js_data:
                 js_data["classId"] = cat_id_map[js_data["classId"]]
         json_data.append(meta)
-        # file_name = os.path.split(f)[1].replace("___objects.json", "")
         file_name = os.path.basename(f).replace("___objects.json", "")
         merged_json[file_name] = json_data
     with open(output_dir / "annotations.json", "w") as final_json_file:
@@ -51,7 +50,7 @@ def _merge_jsons(input_dir, output_dir):
 
 
 def _split_json(input_dir, output_dir):
-    os.makedirs(output_dir)
+    output_dir.mkdir(parents=True)
     json_data = json.load(open(input_dir / "annotations.json"))
     for img, annotations in tqdm(json_data.items(), 'Splitting files'):
         objects = []
@@ -60,7 +59,7 @@ def _split_json(input_dir, output_dir):
                 objects.append(annot)
         with open(output_dir / (img + "___objects.json"), "w") as fw:
             json.dump(objects, fw, indent=2)
-    os.makedirs(output_dir / "classes")
+    (output_dir / "classes").mkdir(parents=True)
     shutil.copy(
         input_dir / "classes.json", output_dir / "classes" / "classes.json"
     )
@@ -234,7 +233,7 @@ def sa_convert_project_type(input_dir, output_dir):
             "'input_dir' should contain JSON files with '[IMAGE_NAME]___objects.json'  or '[IMAGE_NAME]___pixel.json' names structure."
         )
 
-    os.makedirs(output_dir.joinpath('classes'))
+    output_dir.joinpath('classes').mkdir(parents=True)
     shutil.copy(
         input_dir.joinpath('classes', 'classes.json'),
         output_dir.joinpath('classes', 'classes.json')
