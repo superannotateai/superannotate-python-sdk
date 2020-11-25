@@ -1094,7 +1094,7 @@ def _upload_annotations_from_folder_to_project(
 
     for ac_upl in actually_uploaded:
         return_result += [str(p) for p in ac_upl]
-    print(return_result)
+    # print(return_result)
     return return_result
 
 
