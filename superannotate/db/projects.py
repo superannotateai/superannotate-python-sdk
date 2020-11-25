@@ -607,7 +607,7 @@ def get_image_array_to_upload(byte_io_orig, image_quality_in_editor):
 
     if image_quality_in_editor == 100 and im_format in [
         'JPEG', 'JPG'
-    ] and not ImageChops.difference(im, im_original).getbbox():
+    ] and im.size == im_original.size and not ImageChops.difference(im, im_original).getbbox():
         byte_io_lores = io.BytesIO(byte_io_orig.getbuffer())
     else:
         byte_io_lores = io.BytesIO()
