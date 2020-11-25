@@ -208,7 +208,7 @@ def create_project_from_full_info(
         project_metadata["name"], project_metadata["description"],
         project_type_int_to_str(project_metadata["type"])
     )
-    print(users)
+    # print(users)
     if users is not None:
         for user in users:
             share_project(
