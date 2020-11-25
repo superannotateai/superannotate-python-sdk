@@ -13,7 +13,7 @@ from pathlib import Path
 import boto3
 import cv2
 import ffmpeg
-from PIL import Image, ImageOps, ImageChops
+from PIL import Image, ImageOps
 from tqdm import tqdm
 
 from ..api import API
@@ -180,6 +180,49 @@ def clone_project(
             )
 
     return res
+
+
+def get_project_full_info(project):
+    if not isinstance(project, dict):
+        project = get_project_metadata(project)
+    else:
+        project = get_project_metadata(project["name"])
+    annotation_classes = search_annotation_classes(
+        project, return_metadata=True
+    )
+    settings = get_project_settings(project)
+    workflow = get_project_workflow(project)
+    project_users = project["users"]
+    del project["users"]
+    return project, annotation_classes, project_users, settings, workflow
+
+
+def create_project_from_full_info(
+    project_metadata,
+    annotation_classes=None,
+    users=None,
+    settings=None,
+    workflow=None
+):
+    new_project_metadata = create_project(
+        project_metadata["name"], project_metadata["description"],
+        project_type_int_to_str(project_metadata["type"])
+    )
+    print(users)
+    if users is not None:
+        for user in users:
+            share_project(
+                new_project_metadata, user["user_id"],
+                user_role_int_to_str(user["user_role"])
+            )
+    if settings is not None:
+        set_project_settings(new_project_metadata, settings)
+    if annotation_classes is not None:
+        create_annotation_classes_from_classes_json(
+            new_project_metadata, annotation_classes
+        )
+    if workflow is not None:
+        set_project_workflow(new_project_metadata, workflow)
 
 
 def delete_project(project):
