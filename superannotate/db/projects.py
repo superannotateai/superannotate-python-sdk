@@ -602,12 +602,29 @@ def get_image_array_to_upload(byte_io_orig, image_quality_in_editor):
     Image.MAX_IMAGE_PIXELS = None
     im_original = Image.open(byte_io_orig)
     im_format = im_original.format
-    im = ImageOps.exif_transpose(im_original)
+
+    # check if rotated or transposed, see ImageOps.exif_transpose
+    exif = im_original.getexif()
+    orientation = exif.get(0x0112)
+    method = {
+        2: Image.FLIP_LEFT_RIGHT,
+        3: Image.ROTATE_180,
+        4: Image.FLIP_TOP_BOTTOM,
+        5: Image.TRANSPOSE,
+        6: Image.ROTATE_270,
+        7: Image.TRANSVERSE,
+        8: Image.ROTATE_90,
+    }.get(orientation)
+    if method is not None:
+        im = ImageOps.exif_transpose(im_original)
+    else:
+        im = im_original
+
     width, height = im.size
 
     if image_quality_in_editor == 100 and im_format in [
         'JPEG', 'JPG'
-    ] and im.size == im_original.size and not ImageChops.difference(im, im_original).getbbox():
+    ] and im is im_original:
         byte_io_lores = io.BytesIO(byte_io_orig.getbuffer())
     else:
         byte_io_lores = io.BytesIO()
