@@ -16,8 +16,8 @@ def test_supervisely_convert_vector(tmpdir):
     project_name = "supervisely_test_vector"
 
     projects = sa.search_projects(project_name, True)
-    if projects:
-        sa.delete_project(projects[0])
+    for project in projects:
+        sa.delete_project(project)
     project = sa.create_project(project_name, "converter vector", "Vector")
 
     sa.create_annotation_classes_from_classes_json(
