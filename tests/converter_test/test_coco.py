@@ -1,11 +1,9 @@
 from pathlib import Path
-from glob import glob
-import shutil
 
 import superannotate as sa
 
 
-def coco_vector_instance(tmpdir):
+def test_coco_vector_instance(tmpdir):
     out_dir = tmpdir / "instance_vector"
     sa.import_annotation_format(
         "tests/converter_test/COCO/input/toSuperAnnotate/instance_segmentation/",
@@ -27,8 +25,8 @@ def coco_vector_instance(tmpdir):
     sa.upload_annotations_from_folder_to_project(project, out_dir)
 
 
-def coco_vector_object(tmpdir):
-    out_dir = tmpdir / "object_vector"
+def test_coco_vector_object(tmpdir):
+    out_dir = tmpdir / "object_vector_desktop"
     sa.import_annotation_format(
         "tests/converter_test/COCO/input/toSuperAnnotate/instance_segmentation/",
         str(out_dir), "COCO", "instances_test", "Vector", "object_detection",
@@ -36,7 +34,25 @@ def coco_vector_object(tmpdir):
     )
 
 
-def coco_pixel_instance(tmpdir):
+def test_coco_vector_object_instance(tmpdir):
+    out_dir = Path(tmpdir) / "object_vector_instance_desktop"
+    sa.import_annotation_format(
+        "tests/converter_test/COCO/input/toSuperAnnotate/instance_segmentation/",
+        out_dir, "COCO", "instances_test", "Vector", "instance_segmentation",
+        "Desktop"
+    )
+
+
+def test_coco_pixel_instance_desktop(tmpdir):
+    out_dir = Path(tmpdir) / "instance_pixel_desktop"
+    sa.import_annotation_format(
+        "tests/converter_test/COCO/input/toSuperAnnotate/instance_segmentation/",
+        out_dir, "COCO", "instances_test", "Pixel", "instance_segmentation",
+        "Desktop"
+    )
+
+
+def test_coco_pixel_instance(tmpdir):
     out_dir = tmpdir / "instance_pixel"
     sa.import_annotation_format(
         "tests/converter_test/COCO/input/toSuperAnnotate/instance_segmentation/",
@@ -58,7 +74,7 @@ def coco_pixel_instance(tmpdir):
     sa.upload_annotations_from_folder_to_project(project, out_dir)
 
 
-def coco_vector_keypoint(tmpdir):
+def test_coco_vector_keypoint(tmpdir):
     out_dir = tmpdir / "vector_keypoint"
     sa.import_annotation_format(
         "tests/converter_test/COCO/input/toSuperAnnotate/keypoint_detection/",
@@ -80,9 +96,8 @@ def coco_vector_keypoint(tmpdir):
     sa.upload_annotations_from_folder_to_project(project, out_dir)
 
 
-def coco_desktop_object(tmpdir):
+def test_coco_desktop_object(tmpdir):
     out_dir = tmpdir / "coco_from_desktop"
-    final_dir = tmpdir / "coco_to_Web"
 
     sa.export_annotation_format(
         "tests/converter_test/COCO/input/fromSuperAnnotate/cats_dogs_desktop",
@@ -91,7 +106,7 @@ def coco_desktop_object(tmpdir):
     )
 
 
-def sa_to_coco_to_sa(tmpdir):
+def test_sa_to_coco_to_sa(tmpdir):
     output1 = tmpdir / 'to_coco'
     output2 = tmpdir / 'to_sa'
 
@@ -116,12 +131,3 @@ def sa_to_coco_to_sa(tmpdir):
         project, output2 / "classes" / "classes.json"
     )
     sa.upload_annotations_from_folder_to_project(project, output2)
-
-
-def test_coco(tmpdir):
-    coco_vector_instance(tmpdir)
-    coco_vector_object(tmpdir)
-    coco_pixel_instance(tmpdir)
-    coco_vector_keypoint(tmpdir)
-    coco_desktop_object(tmpdir)
-    sa_to_coco_to_sa(tmpdir)

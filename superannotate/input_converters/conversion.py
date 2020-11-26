@@ -1,14 +1,15 @@
 """
 Main module for input converters
 """
-import sys
 from argparse import Namespace
 from pathlib import Path
 
-from .import_to_sa_conversions import import_to_sa
-from .export_from_sa_conversions import export_from_sa
-from .sa_conversion import sa_convert_platform, sa_convert_project_type, split_coco
 from ..exceptions import SABaseException
+from .export_from_sa_conversions import export_from_sa
+from .import_to_sa_conversions import import_to_sa
+from .sa_conversion import (
+    sa_convert_platform, sa_convert_project_type, split_coco
+)
 
 AVAILABLE_PLATFORMS = ["Desktop", "Web"]
 
