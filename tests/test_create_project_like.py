@@ -68,7 +68,9 @@ def test_create_like_project(tmpdir):
     assert new_workflow[0]["className"] == "rrr"
     assert new_workflow[0]["tool"] == 3
 
-    new_project = sa.get_project_metadata(new_project["name"])
+    new_project = sa.get_project_metadata(
+        new_project["name"], include_users=True
+    )
     assert len(new_project["users"]) == 1
     assert new_project["users"][0]["user_id"] == users[1]
     assert new_project["users"][0]["user_role"] == sa.user_role_str_to_int("QA")

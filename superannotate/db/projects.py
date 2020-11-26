@@ -5,8 +5,8 @@ import logging
 import math
 import os
 import random
-import threading
 import tempfile
+import threading
 import time
 from pathlib import Path
 
@@ -29,9 +29,9 @@ from .annotation_classes import (
     create_annotation_classes_from_classes_json, fill_class_and_attribute_ids,
     get_annotation_classes_name_to_id, search_annotation_classes
 )
-from .project import get_project_metadata
-from .users import get_team_contributor_metadata
 from .images import search_images
+from .project_api import get_project_metadata_bare
+from .users import get_team_contributor_metadata
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -53,7 +53,7 @@ def create_project(project_name, project_description, project_type):
     :rtype: dict
     """
     try:
-        get_project_metadata(project_name)
+        get_project_metadata_bare(project_name)
     except SANonExistingProjectNameException:
         pass
     else:
@@ -84,145 +84,25 @@ def create_project(project_name, project_description, project_type):
     return res
 
 
-def create_project_like_project(
-    project_name,
-    from_project,
-    project_description=None,
-    copy_annotation_classes=True,
-    copy_settings=True,
-    copy_workflow=True,
-    copy_project_contributors=False
-):
-    """Deprecated. Function name changed to clone_project.
-    """
-    logger.warning("Deprecated. Function name changed to clone_project.")
-    clone_project(
-        project_name, from_project, project_description,
-        copy_annotation_classes, copy_settings, copy_workflow,
-        copy_project_contributors
-    )
-
-
-def clone_project(
-    project_name,
-    from_project,
-    project_description=None,
-    copy_annotation_classes=True,
-    copy_settings=True,
-    copy_workflow=True,
-    copy_project_contributors=False
-):
-    """Create a new project in the team using annotation classes and settings from from_project.
-
-    :param project_name: new project's name
-    :type project_name: str
-    :param from_project: the name or metadata of the project being used for duplication
-    :type from_project: str or dict
-    :param project_description: the new project's description. If None, from_project's
-                                description will be used
-    :type project_description: str
-    :param copy_annotation_classes: enables copying annotation classes
-    :type copy_annotation_classes: bool
-    :param copy_settings: enables copying project settings
-    :type copy_settings: bool
-    :param copy_workflow: enables copying project workflow
-    :type copy_workflow: bool
-    :param copy_project_contributors: enables copying project contributors
-    :type copy_project_contributors: bool
-
-    :return: dict object metadata of the new project
-    :rtype: dict
-    """
-    try:
-        get_project_metadata(project_name)
-    except SANonExistingProjectNameException:
-        pass
-    else:
-        raise SAExistingProjectNameException(
-            0, "Project with name " + project_name +
-            " already exists. Please use unique names for projects to use with SDK."
-        )
-    if not isinstance(from_project, dict):
-        from_project = get_project_metadata(from_project)
-    if project_description is None:
-        project_description = from_project["description"]
-    data = {
-        "team_id": str(_api.team_id),
-        "name": project_name,
-        "description": project_description,
-        "status": 0,
-        "type": from_project["type"]
-    }
-    response = _api.send_request(
-        req_type='POST', path='/project', json_req=data
-    )
-    if not response.ok:
-        raise SABaseException(
-            response.status_code, "Couldn't create project " + response.text
-        )
-    res = response.json()
-    logger.info(
-        "Created project %s (ID %s) with type %s", res["name"], res["id"],
-        project_type_int_to_str(res["type"])
-    )
-    if copy_settings:
-        set_project_settings(res, get_project_settings(from_project))
-    if copy_annotation_classes:
-        create_annotation_classes_from_classes_json(
-            res, search_annotation_classes(from_project, return_metadata=True)
-        )
-        if copy_workflow:
-            set_project_workflow(res, get_project_workflow(from_project))
-    if copy_project_contributors:
-        for user in from_project["users"]:
-            share_project(
-                res, user["user_id"], user_role_int_to_str(user["user_role"])
-            )
-
-    return res
-
-
-def get_project_full_info(project):
-    if not isinstance(project, dict):
-        project = get_project_metadata(project)
-    else:
-        project = get_project_metadata(project["name"])
-    annotation_classes = search_annotation_classes(
-        project, return_metadata=True
-    )
-    settings = get_project_settings(project)
-    workflow = get_project_workflow(project)
-    project_users = project["users"]
-    del project["users"]
-    return project, annotation_classes, project_users, settings, workflow
-
-
-def create_project_from_full_info(
-    project_metadata,
-    annotation_classes=None,
-    users=None,
-    settings=None,
-    workflow=None
-):
+def create_project_from_metadata(project_metadata):
     new_project_metadata = create_project(
         project_metadata["name"], project_metadata["description"],
         project_type_int_to_str(project_metadata["type"])
     )
-    # print(users)
-    if users is not None:
-        for user in users:
+    if "users" in project_metadata:
+        for user in project_metadata["users"]:
             share_project(
                 new_project_metadata, user["user_id"],
                 user_role_int_to_str(user["user_role"])
             )
-    if settings is not None:
-        set_project_settings(new_project_metadata, settings)
-    if annotation_classes is not None:
+    if "settings" in project_metadata:
+        set_project_settings(new_project_metadata, project_metadata["settings"])
+    if "annotation_classes" in project_metadata:
         create_annotation_classes_from_classes_json(
-            new_project_metadata, annotation_classes
+            new_project_metadata, project_metadata["annotation_classes"]
         )
-    if workflow is not None:
-        set_project_workflow(new_project_metadata, workflow)
+    if "workflow" in project_metadata:
+        set_project_workflow(new_project_metadata, project_metadata["workflow"])
 
 
 def delete_project(project):
@@ -232,7 +112,7 @@ def delete_project(project):
     :type project: str or dict
     """
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     team_id, project_id = project["team_id"], project["id"]
     params = {"team_id": team_id}
     response = _api.send_request(
@@ -254,7 +134,7 @@ def rename_project(project, new_name):
     :type new_name: str
     """
     try:
-        get_project_metadata(new_name)
+        get_project_metadata_bare(new_name)
     except SANonExistingProjectNameException:
         pass
     else:
@@ -263,7 +143,7 @@ def rename_project(project, new_name):
             " already exists. Please use unique names for projects to use with SDK."
         )
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     team_id, project_id = project["team_id"], project["id"]
     params = {"team_id": team_id}
     json_req = {"name": new_name}
@@ -292,7 +172,7 @@ def get_project_image_count(project):
     :rtype: int
     """
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     team_id, project_id = project["team_id"], project["id"]
     params = {'team_id': team_id}
     response = _api.send_request(
@@ -483,7 +363,7 @@ def upload_videos_from_folder_to_project(
     :rtype: tuple of list of strs
     """
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     if recursive_subfolders:
         logger.warning(
             "When using recursive subfolder parsing same name videos in different subfolders will overwrite each other."
@@ -574,7 +454,7 @@ def upload_images_from_folder_to_project(
     :rtype: tuple of list of strs
     """
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     if recursive_subfolders:
         logger.info(
             "When using recursive subfolder parsing same name images in different subfolders will overwrite each other."
@@ -833,7 +713,7 @@ def upload_images_to_project(
     :rtype: tuple (3 members) of list of strs
     """
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     if not isinstance(img_paths, list):
         raise SABaseException(
             0, "img_paths argument to upload_images_to_project should be a list"
@@ -1043,7 +923,7 @@ def upload_annotations_from_folder_to_project(
 
     logger.info("Existing annotations will be overwritten.")
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
 
     return _upload_annotations_from_folder_to_project(
         project, folder_path, from_s3_bucket, recursive_subfolders
@@ -1289,7 +1169,7 @@ def upload_preannotations_from_folder_to_project(
         "Identically named existing pre-annotations will be overwritten."
     )
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     return _upload_preannotations_from_folder_to_project(
         project, folder_path, from_s3_bucket, recursive_subfolders
     )
@@ -1420,7 +1300,7 @@ def share_project(project, user, user_role):
     :type user_role: str
     """
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     if not isinstance(user, dict):
         user = get_team_contributor_metadata(user)
     user_role = user_role_str_to_int(user_role)
@@ -1451,7 +1331,7 @@ def unshare_project(project, user):
     :type user: str or dict
     """
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     if not isinstance(user, dict):
         user = get_team_contributor_metadata(user)
     team_id, project_id = project["team_id"], project["id"]
@@ -1494,7 +1374,7 @@ def upload_images_from_s3_bucket_to_project(
     :type image_quality_in_editor: str
     """
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     if image_quality_in_editor is not None:
         old_quality = _get_project_image_quality_in_editor(project, None)
         _set_project_default_image_quality_in_editor(
@@ -1569,7 +1449,7 @@ def get_project_workflow(project):
     :rtype: list of dicts
     """
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     team_id, project_id = project["team_id"], project["id"]
     params = {
         "team_id": team_id,
@@ -1615,7 +1495,7 @@ def set_project_workflow(project, new_workflow):
     :rtype: list of dicts
     """
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     if not isinstance(new_workflow, list):
         raise SABaseException(
             0, "Set project setting new_workflow should be a list"
@@ -1674,7 +1554,7 @@ def get_project_settings(project):
     :rtype: list of dicts
     """
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     team_id, project_id = project["team_id"], project["id"]
     params = {
         "team_id": team_id,
@@ -1704,7 +1584,7 @@ def set_project_settings(project, new_settings):
     :rtype: list of dicts
     """
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     if not isinstance(new_settings, list):
         raise SABaseException(
             0, "Set project setting new_settings should be a list"

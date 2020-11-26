@@ -8,8 +8,8 @@ import requests
 from .analytics.class_analytics import (
     attribute_distribution, class_distribution
 )
-from .analytics.user_analytics import image_analytics
 from .analytics.common import aggregate_annotations_as_df, df_to_annotations
+from .analytics.user_analytics import image_analytics
 from .annotation_helpers import (
     add_annotation_bbox_to_json, add_annotation_comment_to_json,
     add_annotation_cuboid_to_json, add_annotation_ellipse_to_json,
@@ -33,6 +33,7 @@ from .db.annotation_classes import (
     delete_annotation_class, download_annotation_classes_json,
     get_annotation_class_metadata, search_annotation_classes
 )
+from .db.clone_project import clone_project, create_project_like_project
 from .db.exports import (
     download_export, get_export_metadata, get_exports, prepare_export
 )
@@ -46,13 +47,12 @@ from .db.images import (
     get_image_metadata, get_image_preannotations, search_images,
     set_image_annotation_status, upload_annotations_from_json_to_image
 )
-from .db.project import get_project_metadata, search_projects
 from .db.project_images import (
     assign_images, copy_image, move_image, pin_image, upload_image_to_project
 )
+from .db.project_metadata import get_project_metadata
 from .db.projects import (
-    clone_project, get_project_full_info, create_project_from_full_info,
-    create_project, create_project_like_project, delete_project,
+    create_project, create_project_from_metadata, delete_project,
     get_project_default_image_quality_in_editor, get_project_image_count,
     get_project_settings, get_project_workflow, rename_project,
     set_project_default_image_quality_in_editor, set_project_settings,
@@ -63,6 +63,7 @@ from .db.projects import (
     upload_preannotations_from_folder_to_project, upload_video_to_project,
     upload_videos_from_folder_to_project
 )
+from .db.search_projects import search_projects
 from .db.teams import (
     delete_contributor_to_team_invitation, get_team_metadata,
     invite_contributor_to_team
@@ -75,8 +76,8 @@ from .exceptions import (
     SANonExistingProjectNameException
 )
 from .input_converters.conversion import (
-    convert_platform, convert_project_type, export_annotation_format,
-    import_annotation_format, coco_split_dataset
+    coco_split_dataset, convert_platform, convert_project_type,
+    export_annotation_format, import_annotation_format
 )
 from .version import __version__
 

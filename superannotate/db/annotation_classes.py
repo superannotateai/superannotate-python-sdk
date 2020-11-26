@@ -10,7 +10,7 @@ from ..exceptions import (
     SABaseException, SAExistingAnnotationClassNameException,
     SANonExistingAnnotationClassNameException
 )
-from .project import get_project_metadata
+from .project_api import get_project_metadata_bare
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -35,7 +35,7 @@ def create_annotation_class(project, name, color, attribute_groups=None):
     :rtype: dict
     """
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     try:
         get_annotation_class_metadata(project, name)
     except SANonExistingAnnotationClassNameException:
@@ -88,7 +88,7 @@ def delete_annotation_class(project, annotation_class):
     :type project: str or dict
     """
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     if not isinstance(annotation_class, dict):
         annotation_class = get_annotation_class_metadata(
             project, annotation_class
@@ -130,7 +130,7 @@ def create_annotation_classes_from_classes_json(
     :rtype: list of dicts
     """
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     team_id, project_id = project["team_id"], project["id"]
     if not isinstance(classes_json, list):
         logger.info(
@@ -210,7 +210,7 @@ def search_annotation_classes(project, name_prefix=None, return_metadata=False):
     :rtype: list of dicts
     """
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     result_list = []
     team_id, project_id = project["team_id"], project["id"]
     params = {'team_id': team_id, 'project_id': project_id, 'offset': 0}
@@ -284,7 +284,7 @@ def download_annotation_classes_json(project, folder):
     :rtype: str
     """
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     logger.info(
         "Downloading classes.json from project %s to folder %s.",
         project["name"], folder
