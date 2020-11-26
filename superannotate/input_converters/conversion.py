@@ -1,14 +1,15 @@
 """
 Main module for input converters
 """
-import sys
 from argparse import Namespace
 from pathlib import Path
 
-from .import_to_sa_conversions import import_to_sa
-from .export_from_sa_conversions import export_from_sa
-from .sa_conversion import sa_convert_platform, sa_convert_project_type, split_coco
 from ..exceptions import SABaseException
+from .export_from_sa_conversions import export_from_sa
+from .import_to_sa_conversions import import_to_sa
+from .sa_conversion import (
+    sa_convert_platform, sa_convert_project_type, split_coco
+)
 
 AVAILABLE_PLATFORMS = ["Desktop", "Web"]
 
@@ -119,13 +120,11 @@ def _passes_sanity_checks(args):
                 0, "Please enter valid platform: 'Desktop' or 'Web'"
             )
 
-    if args.task == "Pixel" and args.platform == "Desktop":
+    if args.project_type == "Pixel" and args.platform == "Desktop":
         raise SABaseException(
             0,
             "Sorry, but Desktop Application doesn't support 'Pixel' projects."
         )
-
-    # return True
 
 
 def _passes_converter_sanity(args, direction):
@@ -388,17 +387,13 @@ def convert_platform(input_dir, output_dir, input_platform):
     :type input_platform: str
 
     """
-    if not isinstance(input_dir, (str, Path)):
-        raise SABaseException(
-            0, "'input_dir' should be 'str' or 'Path' type, not '%s'" %
-            (type(input_dir))
-        )
-
-    if not isinstance(output_dir, (str, Path)):
-        raise SABaseException(
-            0, "'output_dir' should be 'str' or 'Path' type, not '%s'" %
-            (type(output_dir))
-        )
+    param_info = [
+        (input_dir, 'input_dir', (str, Path)),
+        (output_dir, 'output_dir', (str, Path)),
+        (input_platform, 'input_platform', str),
+    ]
+    for param in param_info:
+        type_sanity(param[0], param[1], param[2])
 
     if input_platform not in AVAILABLE_PLATFORMS:
         raise SABaseException(
@@ -428,18 +423,6 @@ def convert_project_type(input_dir, output_dir):
     ]
     for param in param_info:
         type_sanity(param[0], param[1], param[2])
-
-    # if not isinstance(input_dir, (str, Path)):
-    #     raise SABaseException(
-    #         0, "'input_dir' should be 'str' or 'Path' type, not '%s'" %
-    #         (type(input_dir))
-    #     )
-
-    # if not isinstance(output_dir, (str, Path)):
-    #     raise SABaseException(
-    #         0, "'output_dir' should be 'str' or 'Path' type, not '%s'" %
-    #         (type(output_dir))
-    #     )
 
     if isinstance(input_dir, str):
         input_dir = Path(input_dir)
@@ -474,35 +457,6 @@ def coco_split_dataset(
     ]
     for param in param_info:
         type_sanity(param[0], param[1], param[2])
-    # if not isinstance(coco_json_path, (str, Path)):
-    #     raise SABaseException(
-    #         0, "'coco_json_path' should be 'str' or 'Path' type, not '%s'" %
-    #         (type(coco_json_path))
-    #     )
-
-    # if not isinstance(image_dir, (str, Path)):
-    #     raise SABaseException(
-    #         0, "'image_dir' should be 'str' or 'Path' type, not '%s'" %
-    #         (type(image_dir))
-    #     )
-
-    # if not isinstance(output_dir, (str, Path)):
-    #     raise SABaseException(
-    #         0, "'output_dir' should be 'str' or 'Path' type, not '%s'" %
-    #         (type(output_dir))
-    #     )
-
-    # if not isinstance(dataset_list_name, list):
-    #     raise SABaseException(
-    #         0, "'dataset_list_name' should be 'list'type, not '%s'" %
-    #         (type(dataset_list_name))
-    #     )
-
-    # if not isinstance(ratio_list, list):
-    #     raise SABaseException(
-    #         0,
-    #         "'ratio_list' should be 'list' type, not '%s'" % (type(ratio_list))
-    #     )
 
     for dataset_name in dataset_list_name:
         if not isinstance(dataset_name, (str, Path)):
