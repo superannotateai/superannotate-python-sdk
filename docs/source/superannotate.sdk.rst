@@ -23,6 +23,7 @@ ________
 .. _ref_search_projects:
 .. autofunction:: superannotate.search_projects
 .. autofunction:: superannotate.create_project
+.. autofunction:: superannotate.create_project_from_metadata
 .. autofunction:: superannotate.clone_project
 .. autofunction:: superannotate.create_project_like_project
 .. autofunction:: superannotate.delete_project
