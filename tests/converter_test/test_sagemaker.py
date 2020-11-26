@@ -2,7 +2,7 @@ from pathlib import Path
 import superannotate as sa
 
 
-def sagemaker_instance_segmentation(tmpdir):
+def test_sagemaker_instance_segmentation(tmpdir):
     input_dir = Path(
         'tests'
     ) / 'converter_test' / 'SageMaker' / 'input' / 'toSuperAnnotate' / 'instance_segmentation'
@@ -26,7 +26,7 @@ def sagemaker_instance_segmentation(tmpdir):
     sa.upload_annotations_from_folder_to_project(project, out_dir)
 
 
-def sagemaker_object_detection(tmpdir):
+def test_sagemaker_object_detection(tmpdir):
     input_dir = Path(
         'tests'
     ) / 'converter_test' / 'SageMaker' / 'input' / 'toSuperAnnotate' / 'object_detection'
