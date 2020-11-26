@@ -24,31 +24,25 @@ def test_pixel_vector_pixel(tmpdir):
         'tests', 'converter_test', 'COCO', 'input', 'fromSuperAnnotate',
         'cats_dogs_pixel_instance_segm'
     )
-    temp_path = tmpdir / 'output'
-    temp_dir1 = Path(temp_path)
-    final_path = tmpdir / 'output2'
-    final_dir = Path(final_path)
+    temp_dir = Path(tmpdir) / 'output'
+    final_dir = Path(tmpdir) / 'output2'
 
-    sa.convert_project_type(input_dir, temp_dir1)
-    sa.convert_project_type(temp_dir1, final_dir)
+    sa.convert_project_type(input_dir, temp_dir)
+    sa.convert_project_type(temp_dir, final_dir)
 
     gen = final_dir.glob('*.json')
     compare_jsons(gen, input_dir)
 
 
 def test_vector_pixel_vector(tmpdir):
-    input_dir = Path()
-    input_dir = input_dir.joinpath(
-        'tests', 'converter_test', 'COCO', 'input', 'fromSuperAnnotate',
-        'cats_dogs_vector_instance_segm'
-    )
-    temp_path = tmpdir / 'output'
-    temp_dir1 = Path(temp_path)
-    final_path = tmpdir / 'output2'
-    final_dir = Path(final_path)
+    input_dir = Path(
+        'tests'
+    ) / 'converter_test' / 'COCO' / 'input' / 'fromSuperAnnotate' / 'cats_dogs_vector_instance_segm'
+    temp_dir = Path(tmpdir) / 'output'
+    final_dir = Path(tmpdir) / 'output2'
 
-    sa.convert_project_type(input_dir, temp_dir1)
-    sa.convert_project_type(temp_dir1, final_dir)
+    sa.convert_project_type(input_dir, temp_dir)
+    sa.convert_project_type(temp_dir, final_dir)
 
     gen = input_dir.glob('*.json')
     compare_jsons(gen, input_dir)

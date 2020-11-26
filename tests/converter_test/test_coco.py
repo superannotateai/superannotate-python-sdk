@@ -4,10 +4,12 @@ import superannotate as sa
 
 
 def test_coco_vector_instance(tmpdir):
-    out_dir = tmpdir / "instance_vector"
+    input_dir = Path(
+        "tests"
+    ) / "converter_test" / "COCO" / "input" / "toSuperAnnotate" / "instance_segmentation"
+    out_dir = Path(tmpdir) / "instance_vector"
     sa.import_annotation_format(
-        "tests/converter_test/COCO/input/toSuperAnnotate/instance_segmentation/",
-        str(out_dir), "COCO", "instances_test", "Vector",
+        input_dir, out_dir, "COCO", "instances_test", "Vector",
         "instance_segmentation", "Web"
     )
 
@@ -26,37 +28,45 @@ def test_coco_vector_instance(tmpdir):
 
 
 def test_coco_vector_object(tmpdir):
-    out_dir = tmpdir / "object_vector_desktop"
+    input_dir = Path(
+        "tests"
+    ) / "converter_test" / "COCO" / "input" / "toSuperAnnotate" / "instance_segmentation"
+    out_dir = Path(tmpdir) / "object_vector_desktop"
     sa.import_annotation_format(
-        "tests/converter_test/COCO/input/toSuperAnnotate/instance_segmentation/",
-        str(out_dir), "COCO", "instances_test", "Vector", "object_detection",
-        "Desktop"
+        input_dir, out_dir, "COCO", "instances_test", "Vector",
+        "object_detection", "Desktop"
     )
 
 
 def test_coco_vector_object_instance(tmpdir):
+    input_dir = Path(
+        "tests"
+    ) / "converter_test" / "COCO" / "input" / "toSuperAnnotate" / "instance_segmentation"
     out_dir = Path(tmpdir) / "object_vector_instance_desktop"
     sa.import_annotation_format(
-        "tests/converter_test/COCO/input/toSuperAnnotate/instance_segmentation/",
-        out_dir, "COCO", "instances_test", "Vector", "instance_segmentation",
-        "Desktop"
+        input_dir, out_dir, "COCO", "instances_test", "Vector",
+        "instance_segmentation", "Desktop"
     )
 
 
 def test_coco_pixel_instance_desktop(tmpdir):
+    input_dir = Path(
+        "tests"
+    ) / "converter_test" / "COCO" / "input" / "toSuperAnnotate" / "instance_segmentation"
     out_dir = Path(tmpdir) / "instance_pixel_desktop"
     sa.import_annotation_format(
-        "tests/converter_test/COCO/input/toSuperAnnotate/instance_segmentation/",
-        out_dir, "COCO", "instances_test", "Pixel", "instance_segmentation",
-        "Desktop"
+        input_dir, out_dir, "COCO", "instances_test", "Pixel",
+        "instance_segmentation", "Desktop"
     )
 
 
 def test_coco_pixel_instance(tmpdir):
-    out_dir = tmpdir / "instance_pixel"
+    input_dir = Path(
+        "tests"
+    ) / "converter_test" / "COCO" / "input" / "toSuperAnnotate" / "instance_segmentation"
+    out_dir = Path(tmpdir) / "instance_pixel"
     sa.import_annotation_format(
-        "tests/converter_test/COCO/input/toSuperAnnotate/instance_segmentation/",
-        str(out_dir), "COCO", "instances_test", "Pixel",
+        input_dir, out_dir, "COCO", "instances_test", "Pixel",
         "instance_segmentation", "Web"
     )
 
@@ -75,10 +85,12 @@ def test_coco_pixel_instance(tmpdir):
 
 
 def test_coco_vector_keypoint(tmpdir):
-    out_dir = tmpdir / "vector_keypoint"
+    input_dir = Path(
+        "tests"
+    ) / "converter_test" / "COCO" / "input" / "toSuperAnnotate" / "keypoint_detection/"
+    out_dir = Path(tmpdir) / "vector_keypoint"
     sa.import_annotation_format(
-        "tests/converter_test/COCO/input/toSuperAnnotate/keypoint_detection/",
-        str(out_dir), "COCO", "person_keypoints_test", "Vector",
+        input_dir, out_dir, "COCO", "person_keypoints_test", "Vector",
         "keypoint_detection", "Web"
     )
 
@@ -97,26 +109,28 @@ def test_coco_vector_keypoint(tmpdir):
 
 
 def test_coco_desktop_object(tmpdir):
-    out_dir = tmpdir / "coco_from_desktop"
-
+    input_dir = Path(
+        "tests"
+    ) / "converter_test" / "COCO" / "input" / "fromSuperAnnotate" / "cats_dogs_desktop"
+    out_dir = Path(tmpdir) / "coco_from_desktop"
     sa.export_annotation_format(
-        "tests/converter_test/COCO/input/fromSuperAnnotate/cats_dogs_desktop",
-        str(out_dir), "COCO", "object_test", "Vector", "object_detection",
+        input_dir, out_dir, "COCO", "object_test", "Vector", "object_detection",
         "Desktop"
     )
 
 
 def test_sa_to_coco_to_sa(tmpdir):
-    output1 = tmpdir / 'to_coco'
-    output2 = tmpdir / 'to_sa'
+    input_dir = Path("tests") / "sample_project_pixel"
+    output1 = Path(tmpdir) / 'to_coco'
+    output2 = Path(tmpdir) / 'to_sa'
 
     sa.export_annotation_format(
-        "tests/sample_project_pixel", str(output1), "COCO", "object_test",
-        "Pixel", "instance_segmentation", "Web"
+        input_dir, output1, "COCO", "object_test", "Pixel",
+        "instance_segmentation", "Web"
     )
 
     sa.import_annotation_format(
-        str(output1), str(output2), "COCO", "object_test", "Pixel",
+        output1, output2, "COCO", "object_test", "Pixel",
         "instance_segmentation", "Web", 'image_set'
     )
 

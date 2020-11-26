@@ -16,11 +16,13 @@ from .converters.converters import Converter
 
 from ..exceptions import SABaseException
 
+import tempfile
+
 logger = logging.getLogger("superannotate-python-sdk")
 
 
 def _split_json(input_dir):
-    temp_path = input_dir / "WebApp"
+    temp_path = Path(tempfile.mkdtemp()) / 'WebApp'
     temp_path.mkdir()
     json_data = json.load(open(input_dir / "annotations.json"))
     images = json_data.keys()

@@ -1,11 +1,15 @@
+from pathlib import Path
+
 import superannotate as sa
 
 
-def dataloop_convert_vector(tmpdir):
-    out_dir = tmpdir / 'output_vector'
+def test_dataloop_convert_vector(tmpdir):
+    input_dir = Path(
+        'tests'
+    ) / 'converter_test' / 'DataLoop' / 'input' / 'toSuperAnnotate'
+    out_dir = Path(tmpdir) / 'output_vector'
     sa.import_annotation_format(
-        'tests/converter_test/DataLoop/input/toSuperAnnotate', str(out_dir),
-        'DataLoop', '', 'Vector', 'vector_annotation', 'Web'
+        input_dir, out_dir, 'DataLoop', '', 'Vector', 'vector_annotation', 'Web'
     )
     project_name = "dataloop_test_vector"
 
@@ -15,27 +19,31 @@ def dataloop_convert_vector(tmpdir):
     project = sa.create_project(project_name, "converter vector", "Vector")
 
     sa.create_annotation_classes_from_classes_json(
-        project, out_dir + "/classes/classes.json"
+        project, out_dir / "classes" / "classes.json"
     )
     sa.upload_images_from_folder_to_project(project, out_dir)
     sa.upload_annotations_from_folder_to_project(project, out_dir)
-    return 0
 
 
-def dataloop_convert_object(tmpdir):
-    out_dir = tmpdir / 'output_object'
+def test_dataloop_convert_object(tmpdir):
+    input_dir = Path(
+        'tests'
+    ) / 'converter_test' / 'DataLoop' / 'input' / 'toSuperAnnotate'
+    out_dir = Path(tmpdir) / 'output_object'
     sa.import_annotation_format(
-        'tests/converter_test/DataLoop/input/toSuperAnnotate', str(out_dir),
-        'DataLoop', '', 'Vector', 'object_detection', 'Desktop'
+        input_dir, out_dir, 'DataLoop', '', 'Vector', 'object_detection',
+        'Desktop'
     )
-    return 0
 
 
-def dataloop_convert_instance(tmpdir):
-    out_dir = tmpdir / 'output_instance'
+def test_dataloop_convert_instance(tmpdir):
+    input_dir = Path(
+        'tests'
+    ) / 'converter_test' / 'DataLoop' / 'input' / 'toSuperAnnotate'
+    out_dir = Path(tmpdir) / 'output_instance'
     sa.import_annotation_format(
-        'tests/converter_test/DataLoop/input/toSuperAnnotate', str(out_dir),
-        'DataLoop', '', 'Vector', 'instance_segmentation', 'Web'
+        input_dir, out_dir, 'DataLoop', '', 'Vector', 'instance_segmentation',
+        'Web'
     )
     project_name = "dataloop_test_instance"
 
@@ -45,14 +53,7 @@ def dataloop_convert_instance(tmpdir):
     project = sa.create_project(project_name, "converter vector", "Vector")
 
     sa.create_annotation_classes_from_classes_json(
-        project, out_dir + "/classes/classes.json"
+        project, out_dir / "classes" / "classes.json"
     )
     sa.upload_images_from_folder_to_project(project, out_dir)
     sa.upload_annotations_from_folder_to_project(project, out_dir)
-    return 0
-
-
-def test_dataloop(tmpdir):
-    assert dataloop_convert_vector(tmpdir) == 0
-    assert dataloop_convert_object(tmpdir) == 0
-    assert dataloop_convert_instance(tmpdir) == 0

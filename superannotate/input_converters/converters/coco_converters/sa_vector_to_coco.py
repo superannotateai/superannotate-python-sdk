@@ -25,7 +25,7 @@ def sa_vector_to_coco_object_detection(
 
         anno_id = next(id_generator)
         try:
-            if instance['className'] in cat_id_map:
+            if 'className' in instance and instance['className'] in cat_id_map:
                 category_id = cat_id_map[instance['className']]
             else:
                 category_id = instance['classId']
@@ -72,7 +72,7 @@ def sa_vector_to_coco_instance_segmentation(
             continue
 
         group_id = instance['groupId']
-        if instance['className'] in cat_id_map:
+        if 'className' in instance and instance['className'] in cat_id_map:
             category_id = cat_id_map[instance['className']]
         else:
             category_id = instance['classId']

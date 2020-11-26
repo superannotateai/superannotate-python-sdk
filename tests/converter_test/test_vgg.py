@@ -2,11 +2,14 @@ from pathlib import Path
 import superannotate as sa
 
 
-def vgg_convert_object(tmpdir):
-    out_dir = tmpdir / "object_detection"
+def test_vgg_convert_object(tmpdir):
+    input_dir = Path(
+        "tests"
+    ) / "converter_test" / "VGG" / "input" / "toSuperAnnotate"
+    out_dir = Path(tmpdir) / "object_detection"
     sa.import_annotation_format(
-        "tests/converter_test/VGG/input/toSuperAnnotate", str(out_dir), "VGG",
-        "vgg_test", "Vector", "object_detection", "Web"
+        input_dir, out_dir, "VGG", "vgg_test", "Vector", "object_detection",
+        "Web"
     )
 
     project_name = "vgg_test_object"
@@ -22,24 +25,26 @@ def vgg_convert_object(tmpdir):
     sa.upload_images_from_folder_to_project(project, out_dir)
     sa.upload_annotations_from_folder_to_project(project, out_dir)
 
-    return 0
 
-
-def vgg_convert_instance(tmpdir):
-    out_dir = tmpdir / "instance_segmentation"
+def test_vgg_convert_instance(tmpdir):
+    input_dir = Path(
+        "tests"
+    ) / "converter_test" / "VGG" / "input" / "toSuperAnnotate"
+    out_dir = Path(tmpdir) / "instance_segmentation"
     sa.import_annotation_format(
-        "tests/converter_test/VGG/input/toSuperAnnotate", str(out_dir), "VGG",
-        "vgg_test", "Vector", "instance_segmentation", "Desktop"
+        input_dir, out_dir, "VGG", "vgg_test", "Vector",
+        "instance_segmentation", "Desktop"
     )
 
-    return 0
 
-
-def vgg_convert_vector(tmpdir):
-    out_dir = tmpdir / "vector_annotation"
+def test_vgg_convert_vector(tmpdir):
+    input_dir = Path(
+        "tests"
+    ) / "converter_test" / "VGG" / "input" / "toSuperAnnotate"
+    out_dir = Path(tmpdir) / "vector_annotation"
     sa.import_annotation_format(
-        "tests/converter_test/VGG/input/toSuperAnnotate", str(out_dir), "VGG",
-        "vgg_test", "Vector", "vector_annotation", "Web"
+        input_dir, out_dir, "VGG", "vgg_test", "Vector", "vector_annotation",
+        "Web"
     )
 
     project_name = "vgg_test_vector"
@@ -54,11 +59,3 @@ def vgg_convert_vector(tmpdir):
     )
     sa.upload_images_from_folder_to_project(project, out_dir)
     sa.upload_annotations_from_folder_to_project(project, out_dir)
-
-    return 0
-
-
-def test_vgg(tmpdir):
-    assert vgg_convert_vector(tmpdir) == 0
-    assert vgg_convert_object(tmpdir) == 0
-    assert vgg_convert_instance(tmpdir) == 0

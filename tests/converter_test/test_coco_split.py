@@ -1,6 +1,7 @@
+from pathlib import Path
+
 import superannotate as sa
 import json
-from pathlib import Path
 
 
 def test_coco_split(tmpdir):

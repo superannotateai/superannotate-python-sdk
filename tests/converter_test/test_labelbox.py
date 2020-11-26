@@ -1,13 +1,18 @@
+from pathlib import Path
+
 import superannotate as sa
 import os
 
 
-def labelbox_convert_vector(tmpdir):
-    out_dir = tmpdir / "output_vector"
+def test_labelbox_convert_vector(tmpdir):
+    input_dir = Path(
+        'tests'
+    ) / 'converter_test' / 'LabelBox' / 'input' / 'toSuperAnnotate'
+    out_dir = Path(tmpdir) / "output_vector"
     dataset_name = 'labelbox_example'
     sa.import_annotation_format(
-        'tests/converter_test/LabelBox/input/toSuperAnnotate', str(out_dir),
-        'LabelBox', dataset_name, 'Vector', 'vector_annotation', 'Web'
+        input_dir, out_dir, 'LabelBox', dataset_name, 'Vector',
+        'vector_annotation', 'Web'
     )
 
     all_files = os.listdir(out_dir)
@@ -21,17 +26,18 @@ def labelbox_convert_vector(tmpdir):
         [file for file in all_files if os.path.splitext(file) == '.jpg']
     )
 
-    if json_files != image_files:
-        return 1
-    return 0
+    assert json_files == image_files
 
 
-def labelbox_convert_object(tmpdir):
-    out_dir = tmpdir / "output_object"
+def test_labelbox_convert_object(tmpdir):
+    input_dir = Path(
+        'tests'
+    ) / 'converter_test' / 'LabelBox' / 'input' / 'toSuperAnnotate'
+    out_dir = Path(tmpdir) / "output_object"
     dataset_name = 'labelbox_example'
     sa.import_annotation_format(
-        'tests/converter_test/LabelBox/input/toSuperAnnotate', str(out_dir),
-        'LabelBox', dataset_name, 'Vector', 'object_detection', 'Web'
+        input_dir, out_dir, 'LabelBox', dataset_name, 'Vector',
+        'object_detection', 'Web'
     )
 
     all_files = os.listdir(out_dir)
@@ -45,17 +51,18 @@ def labelbox_convert_object(tmpdir):
         [file for file in all_files if os.path.splitext(file) == '.jpg']
     )
 
-    if json_files != image_files:
-        return 1
-    return 0
+    assert json_files == image_files
 
 
-def labelbox_convert_instance(tmpdir):
-    out_dir = tmpdir / "output_insance"
+def test_labelbox_convert_instance(tmpdir):
+    input_dir = Path(
+        'tests'
+    ) / 'converter_test' / 'LabelBox' / 'input' / 'toSuperAnnotate'
+    out_dir = Path(tmpdir) / "output_insance"
     dataset_name = 'labelbox_example'
     sa.import_annotation_format(
-        'tests/converter_test/LabelBox/input/toSuperAnnotate', str(out_dir),
-        'LabelBox', dataset_name, 'Vector', 'instance_segmentation', 'Desktop'
+        input_dir, out_dir, 'LabelBox', dataset_name, 'Vector',
+        'instance_segmentation', 'Desktop'
     )
 
     all_files = os.listdir(out_dir)
@@ -69,12 +76,4 @@ def labelbox_convert_instance(tmpdir):
         [file for file in all_files if os.path.splitext(file) == '.jpg']
     )
 
-    if json_files != image_files:
-        return 1
-    return 0
-
-
-def test_labelbox(tmpdir):
-    assert labelbox_convert_vector(tmpdir) == 0
-    assert labelbox_convert_instance(tmpdir) == 0
-    assert labelbox_convert_object(tmpdir) == 0
+    assert json_files == image_files
