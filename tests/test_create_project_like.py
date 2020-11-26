@@ -43,7 +43,7 @@ def test_create_like_project(tmpdir):
         sa.delete_project(project)
 
     new_project = sa.clone_project(
-        PROJECT_NAME2, PROJECT_NAME, copy_project_contributors=True
+        PROJECT_NAME2, PROJECT_NAME, copy_contributors=True
     )
     assert new_project["description"] == "tt"
     assert new_project["type"] == 1
@@ -69,8 +69,9 @@ def test_create_like_project(tmpdir):
     assert new_workflow[0]["tool"] == 3
 
     new_project = sa.get_project_metadata(
-        new_project["name"], include_users=True
+        new_project["name"], include_contributors=True
     )
-    assert len(new_project["users"]) == 1
-    assert new_project["users"][0]["user_id"] == users[1]
-    assert new_project["users"][0]["user_role"] == sa.user_role_str_to_int("QA")
+    assert len(new_project["contributors"]) == 1
+    assert new_project["contributors"][0]["user_id"] == users[1]
+    assert new_project["contributors"][0]["user_role"
+                                         ] == sa.user_role_str_to_int("QA")

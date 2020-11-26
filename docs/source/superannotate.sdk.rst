@@ -25,7 +25,6 @@ ________
 .. autofunction:: superannotate.create_project
 .. autofunction:: superannotate.create_project_from_metadata
 .. autofunction:: superannotate.clone_project
-.. autofunction:: superannotate.create_project_like_project
 .. autofunction:: superannotate.delete_project
 .. autofunction:: superannotate.rename_project
 .. _ref_get_project_metadata:

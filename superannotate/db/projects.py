@@ -89,8 +89,8 @@ def create_project_from_metadata(project_metadata):
         project_metadata["name"], project_metadata["description"],
         project_type_int_to_str(project_metadata["type"])
     )
-    if "users" in project_metadata:
-        for user in project_metadata["users"]:
+    if "contributors" in project_metadata:
+        for user in project_metadata["contributors"]:
             share_project(
                 new_project_metadata, user["user_id"],
                 user_role_int_to_str(user["user_role"])
@@ -103,6 +103,7 @@ def create_project_from_metadata(project_metadata):
         )
     if "workflow" in project_metadata:
         set_project_workflow(new_project_metadata, project_metadata["workflow"])
+    return new_project_metadata
 
 
 def delete_project(project):

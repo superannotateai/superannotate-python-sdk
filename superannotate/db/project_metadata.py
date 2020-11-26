@@ -13,9 +13,9 @@ logger = logging.getLogger("superannotate-python-sdk")
 def get_project_metadata(
     project,
     include_annotation_classes=False,
-    include_users=False,
     include_settings=False,
-    include_workflow=False
+    include_workflow=False,
+    include_contributors=False
 ):
     """Returns project metadata
 
@@ -32,8 +32,9 @@ def get_project_metadata(
         result["annotation_classes"] = search_annotation_classes(
             project, return_metadata=True
         )
-    if include_users:
-        result["users"] = get_project_metadata_with_users(project)["users"]
+    if include_contributors:
+        result["contributors"] = get_project_metadata_with_users(project
+                                                                )["users"]
     if include_settings:
         result["settings"] = get_project_settings(project)
     if include_workflow:

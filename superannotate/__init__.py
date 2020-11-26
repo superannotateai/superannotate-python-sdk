@@ -33,7 +33,7 @@ from .db.annotation_classes import (
     delete_annotation_class, download_annotation_classes_json,
     get_annotation_class_metadata, search_annotation_classes
 )
-from .db.clone_project import clone_project, create_project_like_project
+from .db.clone_project import clone_project
 from .db.exports import (
     download_export, get_export_metadata, get_exports, prepare_export
 )

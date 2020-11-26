@@ -41,9 +41,9 @@ def test_create_from_full_info(tmpdir):
     project_metadata = sa.get_project_metadata(
         project,
         include_annotation_classes=True,
-        include_users=True,
         include_settings=True,
-        include_workflow=True
+        include_workflow=True,
+        include_contributors=True
     )
 
     project_metadata["name"] = PROJECT_NAME2
@@ -56,12 +56,12 @@ def test_create_from_full_info(tmpdir):
     new_project_metadata = sa.get_project_metadata(
         PROJECT_NAME2,
         include_annotation_classes=True,
-        include_users=True,
         include_settings=True,
-        include_workflow=True
+        include_workflow=True,
+        include_contributors=True
     )
 
-    for u in new_project_metadata["users"]:
+    for u in new_project_metadata["contributors"]:
         if u["user_id"] == team_users[1]:
             break
     else:
