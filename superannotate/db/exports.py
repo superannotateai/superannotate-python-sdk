@@ -17,7 +17,7 @@ from ..exceptions import (
     SABaseException, SAExistingExportNameException,
     SANonExistingExportNameException
 )
-from .projects import get_project_metadata
+from .project_api import get_project_metadata_bare
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -67,7 +67,7 @@ def get_exports(project, return_metadata=False):
     :rtype: list of strs or dicts
     """
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     team_id, project_id = project["team_id"], project["id"]
     params = {'team_id': team_id, 'project_id': project_id}
     response = _api.send_request(req_type='GET', path='/exports', params=params)
@@ -116,7 +116,7 @@ def prepare_export(
     :rtype: dict
     """
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     team_id, project_id = project["team_id"], project["id"]
     if annotation_statuses is None:
         annotation_statuses = [2, 3, 4, 5]

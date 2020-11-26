@@ -16,8 +16,9 @@ from .images import (
 )
 from .projects import (
     __create_image, _get_project_image_quality_in_editor,
-    get_image_array_to_upload, get_project_metadata
+    get_image_array_to_upload
 )
+from .project_api import get_project_metadata_bare
 
 logger = logging.getLogger("superannotate-python-sdk")
 _api = API.get_instance()
@@ -50,7 +51,7 @@ def upload_image_to_project(
     :type image_quality_in_editor: str
     """
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     annotation_status = annotation_status_str_to_int(annotation_status)
     image_quality_in_editor = _get_project_image_quality_in_editor(
         project, image_quality_in_editor
@@ -148,9 +149,9 @@ def copy_image(
     :type copy_pin: bool
     """
     if not isinstance(source_project, dict):
-        source_project = get_project_metadata(source_project)
+        source_project = get_project_metadata_bare(source_project)
     if not isinstance(destination_project, dict):
-        destination_project = get_project_metadata(destination_project)
+        destination_project = get_project_metadata_bare(destination_project)
     img_b = get_image_bytes(source_project, image_name)
     img_metadata = get_image_metadata(source_project, image_name)
     new_name = image_name
@@ -228,9 +229,9 @@ def move_image(
     :type copy_pin: bool
     """
     if not isinstance(source_project, dict):
-        source_project = get_project_metadata(source_project)
+        source_project = get_project_metadata_bare(source_project)
     if not isinstance(destination_project, dict):
-        destination_project = get_project_metadata(destination_project)
+        destination_project = get_project_metadata_bare(destination_project)
     if source_project == destination_project:
         raise SABaseException(
             0, "Cannot move image if source_project == destination_project."
@@ -254,7 +255,7 @@ def pin_image(project, image_name, pin=True):
     :type pin: bool
     """
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     img_metadata = get_image_metadata(project, image_name)
     team_id, project_id, image_id = project["team_id"], project[
         "id"], img_metadata["id"]
@@ -288,7 +289,7 @@ def assign_images(project, image_names, user):
     if len(image_names) == 0:
         return
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     folder_id = None
     images = search_images(project, return_metadata=True)
     image_dict = {}

@@ -26,7 +26,7 @@ from .annotation_classes import (
     get_annotation_classes_id_to_name, get_annotation_classes_name_to_id,
     search_annotation_classes
 )
-from .project import get_project_metadata
+from .project_api import get_project_metadata_bare
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -72,7 +72,7 @@ def search_images(
     :rtype: list of dicts or strs
     """
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     team_id, project_id = project["team_id"], project["id"]
     folder_id = _get_project_root_folder_id(project)  # maybe changed in future
     if annotation_status is not None:
@@ -503,7 +503,7 @@ def download_image(
         )
 
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     img = get_image_bytes(project, image_name, variant=variant)
     if variant == "lores":
         image_name += "___lores.jpg"
@@ -611,7 +611,7 @@ def get_image_preannotations(project, image_name):
     team_id, project_id, image_id, folder_id = image["team_id"], image[
         "project_id"], image["id"], image['folder_id']
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     project_type = project["type"]
 
     params = {
@@ -708,7 +708,7 @@ def get_image_annotations(project, image_name, project_type=None):
         "project_id"], image["id"], image['folder_id']
     if project_type is None:
         if not isinstance(project, dict):
-            project = get_project_metadata(project)
+            project = get_project_metadata_bare(project)
         project_type = project["type"]
     params = {
         'team_id': team_id,
@@ -791,7 +791,7 @@ def download_image_annotations(project, image_name, local_dir_path):
     :rtype: tuple
     """
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
 
     annotation = get_image_annotations(project, image_name)
 
@@ -832,7 +832,7 @@ def download_image_preannotations(project, image_name, local_dir_path):
     :rtype: tuple
     """
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     annotation = get_image_preannotations(project, image_name)
     if annotation["preannotation_json_filename"] is None:
         return (None, )
@@ -875,7 +875,7 @@ def upload_annotations_from_json_to_image(
             logger.info("Uploading annotations from %s.", annotation_json)
         annotation_json = json.load(open(annotation_json))
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     image = get_image_metadata(project, image_name)
     team_id, project_id, image_id, folder_id, image_name = image[
         "team_id"], image["project_id"], image["id"], image['folder_id'], image[
@@ -917,9 +917,7 @@ def upload_annotations_from_json_to_image(
         )
         s3_resource = s3_session.resource('s3')
         bucket = s3_resource.Bucket(res["bucket"])
-        bucket.put_object(
-            Key=res['filePath'], Body=json.dumps(annotation_json)
-        )
+        bucket.put_object(Key=res['filePath'], Body=json.dumps(annotation_json))
     else:  # pixel
         if mask is None:
             raise SABaseException(0, "Pixel annotation should have mask.")
