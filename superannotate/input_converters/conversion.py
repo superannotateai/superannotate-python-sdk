@@ -422,18 +422,24 @@ def convert_project_type(input_dir, output_dir):
     :type output_dir: str or PathLike
 
     """
+    param_info = [
+        (input_dir, 'input_dir', (str, Path)),
+        (output_dir, 'output_dir', (str, Path)),
+    ]
+    for param in param_info:
+        type_sanity(param[0], param[1], param[2])
 
-    if not isinstance(input_dir, (str, Path)):
-        raise SABaseException(
-            0, "'input_dir' should be 'str' or 'Path' type, not '%s'" %
-            (type(input_dir))
-        )
+    # if not isinstance(input_dir, (str, Path)):
+    #     raise SABaseException(
+    #         0, "'input_dir' should be 'str' or 'Path' type, not '%s'" %
+    #         (type(input_dir))
+    #     )
 
-    if not isinstance(output_dir, (str, Path)):
-        raise SABaseException(
-            0, "'output_dir' should be 'str' or 'Path' type, not '%s'" %
-            (type(output_dir))
-        )
+    # if not isinstance(output_dir, (str, Path)):
+    #     raise SABaseException(
+    #         0, "'output_dir' should be 'str' or 'Path' type, not '%s'" %
+    #         (type(output_dir))
+    #     )
 
     if isinstance(input_dir, str):
         input_dir = Path(input_dir)
@@ -459,36 +465,44 @@ def coco_split_dataset(
     :param ratio_list: List of ratios for each splitted dataset.
     :type ratio_list: List
     """
+    param_info = [
+        (coco_json_path, 'coco_json_path', (str, Path)),
+        (image_dir, 'image_dir', (str, Path)),
+        (output_dir, 'output_dir', (str, Path)),
+        (dataset_list_name, 'dataset_list_name', list),
+        (ratio_list, 'ratio_list', list)
+    ]
+    for param in param_info:
+        type_sanity(param[0], param[1], param[2])
+    # if not isinstance(coco_json_path, (str, Path)):
+    #     raise SABaseException(
+    #         0, "'coco_json_path' should be 'str' or 'Path' type, not '%s'" %
+    #         (type(coco_json_path))
+    #     )
 
-    if not isinstance(coco_json_path, (str, Path)):
-        raise SABaseException(
-            0, "'coco_json_path' should be 'str' or 'Path' type, not '%s'" %
-            (type(coco_json_path))
-        )
+    # if not isinstance(image_dir, (str, Path)):
+    #     raise SABaseException(
+    #         0, "'image_dir' should be 'str' or 'Path' type, not '%s'" %
+    #         (type(image_dir))
+    #     )
 
-    if not isinstance(image_dir, (str, Path)):
-        raise SABaseException(
-            0, "'image_dir' should be 'str' or 'Path' type, not '%s'" %
-            (type(image_dir))
-        )
+    # if not isinstance(output_dir, (str, Path)):
+    #     raise SABaseException(
+    #         0, "'output_dir' should be 'str' or 'Path' type, not '%s'" %
+    #         (type(output_dir))
+    #     )
 
-    if not isinstance(output_dir, (str, Path)):
-        raise SABaseException(
-            0, "'output_dir' should be 'str' or 'Path' type, not '%s'" %
-            (type(output_dir))
-        )
+    # if not isinstance(dataset_list_name, list):
+    #     raise SABaseException(
+    #         0, "'dataset_list_name' should be 'list'type, not '%s'" %
+    #         (type(dataset_list_name))
+    #     )
 
-    if not isinstance(dataset_list_name, list):
-        raise SABaseException(
-            0, "'dataset_list_name' should be 'list'type, not '%s'" %
-            (type(dataset_list_name))
-        )
-
-    if not isinstance(ratio_list, list):
-        raise SABaseException(
-            0,
-            "'ratio_list' should be 'list' type, not '%s'" % (type(ratio_list))
-        )
+    # if not isinstance(ratio_list, list):
+    #     raise SABaseException(
+    #         0,
+    #         "'ratio_list' should be 'list' type, not '%s'" % (type(ratio_list))
+    #     )
 
     for dataset_name in dataset_list_name:
         if not isinstance(dataset_name, (str, Path)):
@@ -522,3 +536,12 @@ def coco_split_dataset(
     split_coco(
         coco_json_path, image_dir, output_dir, dataset_list_name, ratio_list
     )
+
+
+def type_sanity(var, var_name, var_type):
+    if not isinstance(var, var_type):
+        raise SABaseException(
+            0, "'{}' should be '{}' type, not '{}'".format(
+                var_name, var_type, type(var)
+            )
+        )
