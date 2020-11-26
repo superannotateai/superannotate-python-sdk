@@ -102,7 +102,7 @@ def export_from_sa(args):
 
     data_set = None
 
-    (args.output_dir / "image_set").mkdir(parents=True)
+    (args.output_dir / "image_set").mkdir(parents=True, exist_ok=True)
 
     try:
         _create_classes_mapper(

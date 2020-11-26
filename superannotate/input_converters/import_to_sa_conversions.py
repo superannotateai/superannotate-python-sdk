@@ -36,8 +36,9 @@ def _move_files(imgs, masks, output_dir, platforom):
         output_path = output_dir / "images"
         output_path.mkdir(parents=True)
     else:
-        (output_dir / 'classes').mkdir(parents=True)
+        (output_dir / 'classes').mkdir(parents=True, exist_ok=True)
         output_path = output_dir
+
     for im in imgs:
         shutil.copy(im, output_path / Path(im).name)
 
