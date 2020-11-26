@@ -24,5 +24,5 @@ pip install pytest pytest-xdist coverage pytest-cov pylint pylint-json2html
 # for docs
 pip install sphinx sphinx_rtd_theme
 
-# for pip
+# for on PyPI distribution
 pip install twine
