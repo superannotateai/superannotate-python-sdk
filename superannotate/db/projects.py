@@ -13,7 +13,7 @@ from pathlib import Path
 import boto3
 import cv2
 import ffmpeg
-from PIL import Image, ImageOps, ImageChops
+from PIL import Image, ImageOps
 from tqdm import tqdm
 
 from ..api import API
@@ -180,6 +180,49 @@ def clone_project(
             )
 
     return res
+
+
+def get_project_full_info(project):
+    if not isinstance(project, dict):
+        project = get_project_metadata(project)
+    else:
+        project = get_project_metadata(project["name"])
+    annotation_classes = search_annotation_classes(
+        project, return_metadata=True
+    )
+    settings = get_project_settings(project)
+    workflow = get_project_workflow(project)
+    project_users = project["users"]
+    del project["users"]
+    return project, annotation_classes, project_users, settings, workflow
+
+
+def create_project_from_full_info(
+    project_metadata,
+    annotation_classes=None,
+    users=None,
+    settings=None,
+    workflow=None
+):
+    new_project_metadata = create_project(
+        project_metadata["name"], project_metadata["description"],
+        project_type_int_to_str(project_metadata["type"])
+    )
+    # print(users)
+    if users is not None:
+        for user in users:
+            share_project(
+                new_project_metadata, user["user_id"],
+                user_role_int_to_str(user["user_role"])
+            )
+    if settings is not None:
+        set_project_settings(new_project_metadata, settings)
+    if annotation_classes is not None:
+        create_annotation_classes_from_classes_json(
+            new_project_metadata, annotation_classes
+        )
+    if workflow is not None:
+        set_project_workflow(new_project_metadata, workflow)
 
 
 def delete_project(project):
@@ -602,12 +645,29 @@ def get_image_array_to_upload(byte_io_orig, image_quality_in_editor):
     Image.MAX_IMAGE_PIXELS = None
     im_original = Image.open(byte_io_orig)
     im_format = im_original.format
-    im = ImageOps.exif_transpose(im_original)
+
+    # check if rotated or transposed, see ImageOps.exif_transpose
+    exif = im_original.getexif()
+    orientation = exif.get(0x0112)
+    method = {
+        2: Image.FLIP_LEFT_RIGHT,
+        3: Image.ROTATE_180,
+        4: Image.FLIP_TOP_BOTTOM,
+        5: Image.TRANSPOSE,
+        6: Image.ROTATE_270,
+        7: Image.TRANSVERSE,
+        8: Image.ROTATE_90,
+    }.get(orientation)
+    if method is not None:
+        im = ImageOps.exif_transpose(im_original)
+    else:
+        im = im_original
+
     width, height = im.size
 
     if image_quality_in_editor == 100 and im_format in [
         'JPEG', 'JPG'
-    ] and not ImageChops.difference(im, im_original).getbbox():
+    ] and im is im_original:
         byte_io_lores = io.BytesIO(byte_io_orig.getbuffer())
     else:
         byte_io_lores = io.BytesIO()
@@ -1094,7 +1154,7 @@ def _upload_annotations_from_folder_to_project(
 
     for ac_upl in actually_uploaded:
         return_result += [str(p) for p in ac_upl]
-    print(return_result)
+    # print(return_result)
     return return_result
 
 

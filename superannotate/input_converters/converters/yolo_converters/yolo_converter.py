@@ -1,12 +1,18 @@
 import json
+import logging
 import time
 import os
 from PIL import Image
 from pathlib import Path
 
+logger = logging.getLogger("superannotate-python-sdk")
 
-class YOLOConverter(object):
+
+class YOLOConverter():
     def __init__(self, args):
+        logger.warning(
+            "Beta feature. YOLO to SuperAnnotate annotation format converter is in BETA state."
+        )
         self.dataset_name = args.dataset_name
         self.project_type = args.project_type
         self.task = args.task

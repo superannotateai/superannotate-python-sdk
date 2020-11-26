@@ -23,13 +23,11 @@ def supervisely_convert_vector(tmpdir):
 
 
 def supervisely_convert_object(tmpdir):
-    out_dir = tmpdir / 'object_detection'
+    out_dir = tmpdir / 'object_detection_desktop'
     sa.import_annotation_format(
         'tests/converter_test/Supervisely/input/toSuperAnnotate/vector',
         str(out_dir), 'Supervisely', '', 'Vector', 'object_detection', 'Desktop'
     )
-
-    return 0
 
 
 def supervisely_convert_instance(tmpdir):
@@ -39,8 +37,18 @@ def supervisely_convert_instance(tmpdir):
         str(out_dir), 'Supervisely', '', 'Vector', 'instance_segmentation',
         'Web'
     )
+    project_name = "supervisely_test_vector_convert_instance"
 
-    return 0
+    projects = sa.search_projects(project_name, True)
+    if projects:
+        sa.delete_project(projects[0])
+    project = sa.create_project(project_name, "converter vector", "Vector")
+
+    sa.create_annotation_classes_from_classes_json(
+        project, out_dir / "classes" / "classes.json"
+    )
+    sa.upload_images_from_folder_to_project(project, out_dir)
+    sa.upload_annotations_from_folder_to_project(project, out_dir)
 
 
 def supervisely_convert_keypoint(tmpdir):
