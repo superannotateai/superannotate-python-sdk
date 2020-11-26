@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 import superannotate as sa
 
 
@@ -45,11 +47,13 @@ def test_coco_vector_object_instance(tmpdir):
 
 def test_coco_pixel_instance_desktop(tmpdir):
     out_dir = Path(tmpdir) / "instance_pixel_desktop"
-    sa.import_annotation_format(
-        "tests/converter_test/COCO/input/toSuperAnnotate/instance_segmentation/",
-        out_dir, "COCO", "instances_test", "Pixel", "instance_segmentation",
-        "Desktop"
-    )
+    with pytest.raises(sa.SABaseException) as e:
+        sa.import_annotation_format(
+            "tests/converter_test/COCO/input/toSuperAnnotate/instance_segmentation/",
+            out_dir, "COCO", "instances_test", "Pixel", "instance_segmentation",
+            "Desktop"
+        )
+    assert e.value.message == "Sorry, but Desktop Application doesn't support 'Pixel' projects."
 
 
 def test_coco_pixel_instance(tmpdir):

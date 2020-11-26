@@ -38,8 +38,12 @@ def test_create_from_full_info(tmpdir):
 
     sa.share_project(PROJECT_NAME1, team_users[1], "QA")
 
-    project_metadata, annotation_classes, users, settings, workflow = sa.get_project_full_info(
-        project
+    project_metadata = sa.get_project_metadata(
+        project,
+        include_annotation_classes=True,
+        include_users=True,
+        include_settings=True,
+        include_workflow=True
     )
 
     project_metadata["name"] = PROJECT_NAME2
@@ -48,26 +52,34 @@ def test_create_from_full_info(tmpdir):
     projects = sa.search_projects(PROJECT_NAME2, return_metadata=True)
     for project in projects:
         sa.delete_project(project)
-    sa.create_project_from_full_info(
-        project_metadata, annotation_classes, users, settings, workflow
-    )
-    new_project_metadata, new_annotation_classes, new_users, new_settings, new_workflow = sa.get_project_full_info(
-        PROJECT_NAME2
+    sa.create_project_from_metadata(project_metadata)
+    new_project_metadata = sa.get_project_metadata(
+        PROJECT_NAME2,
+        include_annotation_classes=True,
+        include_users=True,
+        include_settings=True,
+        include_workflow=True
     )
 
-    for u in new_users:
+    for u in new_project_metadata["users"]:
         if u["user_id"] == team_users[1]:
             break
     else:
         assert False
 
-    assert len(new_annotation_classes) == len(annotation_classes)
+    assert len(new_project_metadata["annotation_classes"]) == len(
+        project_metadata["annotation_classes"]
+    )
 
-    assert len(new_settings) == len(settings)
-    for new_setting in new_settings:
+    assert len(new_project_metadata["settings"]) == len(
+        project_metadata["settings"]
+    )
+    for new_setting in new_project_metadata["settings"]:
         if "attribute" in new_setting and new_setting["attribute"
                                                      ] == "Brightness":
             new_brightness_value = new_setting["value"]
     assert new_brightness_value == brightness_value + 10
 
-    assert len(new_workflow) == len(workflow)
+    assert len(new_project_metadata['workflow']) == len(
+        project_metadata["workflow"]
+    )
