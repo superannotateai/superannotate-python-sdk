@@ -22,18 +22,18 @@ def _create_classes(classes):
 def yolo_object_detection_to_sa_vector(data_path):
     classes = {}
     id_ = 0
-    classes_file = open(os.path.join(data_path, 'classes.txt'))
+    classes_file = open(data_path / 'classes.txt')
     for line in classes_file:
         key = line.rstrip()
         if key not in classes.keys():
             classes[id_] = key
             id_ += 1
 
-    annotations = glob(os.path.join(data_path, '*.txt'))
+    annotations = data_path.glob('*.txt')
 
     sa_jsons = {}
     for annotation in annotations:
-        base_name = os.path.basename(annotation)
+        base_name = annotation.name
         if base_name == 'classes.txt':
             continue
 

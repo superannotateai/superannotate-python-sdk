@@ -45,20 +45,14 @@ class SuperviselyObjectDetectionStrategy(SuperviselyConverter):
         json_files = []
         if self.dataset_name != '':
             json_files.append(
-                os.path.join(
-                    self.export_root, 'ds', 'ann', self.dataset_name + '.json'
-                )
+                self.export_root / 'ds' / 'ann' / (self.dataset_name + '.json')
             )
         else:
-            files = os.listdir(os.path.join(self.export_root, 'ds', 'ann'))
-            json_files = [
-                os.path.join(self.export_root, 'ds', 'ann', file)
-                for file in files
-            ]
+            files_gen = (self.export_root / 'ds' / 'ann').glob('*')
+            json_files = [file for file in files_gen]
+
         if self.conversion_algorithm.__name__ == 'supervisely_keypoint_detection_to_sa_vector':
-            meta_json = json.load(
-                open(os.path.join(self.export_root, 'meta.json'))
-            )
+            meta_json = json.load(open(self.export_root / 'meta.json'))
             sa_jsons = self.conversion_algorithm(
                 json_files, classes_id_map, meta_json
             )
@@ -77,9 +71,7 @@ class SuperviselyObjectDetectionStrategy(SuperviselyConverter):
             yield cur_id
 
     def _create_sa_classes(self, input_dir, id_generator):
-        classes_json = json.load(
-            open(os.path.join(self.export_root, 'meta.json'))
-        )
+        classes_json = json.load(open(self.export_root / 'meta.json'))
 
         attributes = []
         for tag in classes_json['tags']:

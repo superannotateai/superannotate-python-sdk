@@ -217,18 +217,46 @@ class CoCoConverter(object):
             "timestamp": int(round(time.time() * 1000))
         }
         new_json = {}
+        files_path = []
+        (path / 'images' / 'thumb').mkdir()
         for file_name, json_data in files_dict.items():
             file_name = file_name.replace('___objects.json', '')
-            new_json_data = []
             for js_data in json_data:
                 if 'classId' in js_data:
-                    new_js_data = js_data.copy()
-                    new_js_data['classId'] = cat_id_map[js_data['classId']]
-                    new_json_data.append(new_js_data)
-            new_json_data.append(meta)
-            new_json[file_name] = new_json_data
+                    js_data['classId'] = cat_id_map[js_data['classId']]
+            json_data.append(meta)
+            new_json[file_name] = json_data
+
+            files_path.append(
+                {
+                    'srcPath':
+                        str(path.resolve() / file_name),
+                    'name':
+                        file_name,
+                    'imagePath':
+                        str(path.resolve() / file_name),
+                    'thumbPath':
+                        str(
+                            path.resolve() / 'images' / 'thumb' /
+                            ('thmb_' + file_name + '.jpg')
+                        ),
+                    'valid':
+                        True
+                }
+            )
+
+            img = Image.open(path / 'images' / file_name)
+            img.thumbnail((168, 120), Image.ANTIALIAS)
+            img.save(path / 'images' / 'thumb' / ('thmb_' + file_name + '.jpg'))
+
+        with open(path / 'images' / 'images.sa', 'w') as fw:
+            fw.write(json.dumps(files_path))
+
         with open(path.joinpath('annotations.json'), 'w') as fw:
             json.dump(new_json, fw)
+
+        with open(path / 'config.json', 'w') as fw:
+            json.dump({"pathSeparator": os.sep, "os": os.uname().sysname}, fw)
 
     def save_web_format(self, classes, files_dict):
         path = Path(self.output_dir)

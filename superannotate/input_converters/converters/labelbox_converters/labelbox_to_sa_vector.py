@@ -1,5 +1,4 @@
 import json
-import os
 
 
 def _create_classes_json(classes):

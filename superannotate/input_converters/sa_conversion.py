@@ -9,6 +9,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 from tqdm import tqdm
+from PIL import Image
 
 from ..common import blue_color_generator, hex_to_rgb, rgb_to_hex
 from ..exceptions import SABaseException
@@ -26,9 +27,10 @@ def _merge_jsons(input_dir, output_dir):
         class_["id"] = idx + 2
         new_classes.append(class_)
 
-    files = glob.glob(str(input_dir / "*.json"))
+    files = input_dir.glob("*.json")
     merged_json = {}
-    output_dir.mkdir(parents=True)
+    files_path = []
+    (output_dir / 'images' / 'thumb').mkdir(parents=True)
     for f in tqdm(files, "Merging files"):
         json_data = json.load(open(f))
         meta = {
@@ -40,8 +42,40 @@ def _merge_jsons(input_dir, output_dir):
             if "classId" in js_data:
                 js_data["classId"] = cat_id_map[js_data["classId"]]
         json_data.append(meta)
-        file_name = os.path.basename(f).replace("___objects.json", "")
+        file_name = str(f.name).replace("___objects.json", "")
         merged_json[file_name] = json_data
+
+        files_path.append(
+            {
+                'srcPath':
+                    str(output_dir.resolve() / file_name),
+                'name':
+                    file_name,
+                'imagePath':
+                    str(output_dir.resolve() / file_name),
+                'thumbPath':
+                    str(
+                        output_dir.resolve() / 'images' / 'thumb' /
+                        ('thmb_' + file_name + '.jpg')
+                    ),
+                'valid':
+                    True
+            }
+        )
+        copy_file(input_dir / file_name, output_dir / 'images' / file_name)
+
+        img = Image.open(output_dir / 'images' / file_name)
+        img.thumbnail((168, 120), Image.ANTIALIAS)
+        img.save(
+            output_dir / 'images' / 'thumb' / ('thmb_' + file_name + '.jpg')
+        )
+
+    with open(output_dir / 'images' / 'images.sa', 'w') as fw:
+        fw.write(json.dumps(files_path))
+
+    with open(output_dir / 'config.json', 'w') as fw:
+        json.dump({"pathSeparator": os.sep, "os": os.uname().sysname}, fw)
+
     with open(output_dir / "annotations.json", "w") as final_json_file:
         json.dump(merged_json, final_json_file, indent=2)
 
@@ -57,12 +91,18 @@ def _split_json(input_dir, output_dir):
         for annot in annotations:
             if 'type' in annot.keys() and annot['type'] != 'meta':
                 objects.append(annot)
+        copy_file(input_dir / 'images' / img, output_dir / img)
         with open(output_dir / (img + "___objects.json"), "w") as fw:
             json.dump(objects, fw, indent=2)
+
     (output_dir / "classes").mkdir(parents=True)
-    shutil.copy(
+    copy_file(
         input_dir / "classes.json", output_dir / "classes" / "classes.json"
     )
+
+
+def copy_file(src_path, dst_path):
+    shutil.copy(src_path, dst_path)
 
 
 def sa_convert_platform(input_dir, output_dir, input_platform):
@@ -250,3 +290,57 @@ def sa_convert_project_type(input_dir, output_dir):
         if value['mask'] is not None:
             mask_name = key.replace(extension, '___save.png')
             cv2.imwrite(str(output_dir.joinpath(mask_name)), value['mask'])
+
+
+def split_coco(
+    coco_json_path, image_dir, output_dir, dataset_list_name, ratio_list
+):
+    coco_json = json.load(open(coco_json_path))
+    split_parts_number = len(dataset_list_name)
+
+    groups = {}
+    for dataset_name in dataset_list_name:
+        groups[dataset_name] = {
+            'info': coco_json['info'],
+            'licenses': coco_json['licenses'],
+            'images': [],
+            'annotations': [],
+            'categories': coco_json['categories']
+        }
+
+    images = coco_json['images']
+    np.random.shuffle(images)
+    num_of_images = len(images)
+    points = []
+    total = 0
+    for ratio in ratio_list:
+        total += ratio
+        point = total / 100 * num_of_images
+        points.append(int(point))
+
+    image_id_to_group_map = {}
+    group_id = 0
+    dataset_name = dataset_list_name[group_id]
+    (output_dir / dataset_name).mkdir(parents=True)
+    for i, image in enumerate(images):
+        if i in points:
+            group_id += 1
+            dataset_name = dataset_list_name[group_id]
+            (output_dir / dataset_name).mkdir()
+
+        image_name = Path(image['file_name']).name
+        copy_file(
+            image_dir / image_name, output_dir / dataset_name / image_name
+        )
+
+        image_id_to_group_map[image['id']] = group_id
+        groups[dataset_name]['images'].append(image)
+
+    for annotation in coco_json['annotations']:
+        dataset_name = dataset_list_name[image_id_to_group_map[
+            annotation['image_id']]]
+        groups[dataset_name]['annotations'].append(annotation)
+
+    for file_name, value in groups.items():
+        with open(output_dir / (file_name + '.json'), 'w') as fw:
+            json.dump(value, fw, indent=2)

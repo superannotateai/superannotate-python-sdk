@@ -23,7 +23,7 @@ def create_classes(classes):
 def sagemaker_instance_segmentation_to_sa_pixel(data_path, main_key):
     img_mapping = {}
     try:
-        img_map_file = open(os.path.join(data_path, 'output.manifest'))
+        img_map_file = open(data_path / 'output.manifest')
     except Exception as e:
         raise Exception("'output.manifest' file doesn't exist")
 
@@ -32,7 +32,7 @@ def sagemaker_instance_segmentation_to_sa_pixel(data_path, main_key):
         img_mapping[os.path.basename(dd['attribute-name-ref'])
                    ] = os.path.basename(dd['source-ref'])
 
-    json_list = glob(os.path.join(data_path, '*.json'))
+    json_list = data_path.glob('*.json')
     classes_ids = {}
     idx = 1
     sa_jsons = {}
@@ -52,9 +52,7 @@ def sagemaker_instance_segmentation_to_sa_pixel(data_path, main_key):
             classes_dict = annotataion['consolidatedAnnotation']['content'][
                 'attribute-name-ref-metadata']['internal-color-map']
 
-            img = cv2.imread(
-                os.path.join(data_path, mask_name.replace(':', '_'))
-            )
+            img = cv2.imread(str(data_path / mask_name.replace(':', '_')))
             H, W, C = img.shape
 
             class_contours = {}

@@ -43,12 +43,14 @@ def dataloop_object_detection_to_sa_vector(input_dir, id_generator):
     classes = {}
     sa_jsons = {}
     json_data = Path(input_dir).glob('*.json')
+    sa_classes_labels = ['point', 'box', 'ellipse', 'segment', 'binary']
     for json_file in json_data:
         sa_loader = []
         dl_data = json.load(open(json_file))
 
         for ann in dl_data['annotations']:
-            if ann['label'] not in classes.keys():
+            if ann['label'] not in classes.keys(
+            ) and ann['type'] in sa_classes_labels:
                 classes[ann['label']] = {}
                 classes[ann['label']]['id'] = next(id_generator)
                 classes[ann['label']]['attribute_group'] = {}
@@ -101,11 +103,11 @@ def dataloop_object_detection_to_sa_vector(input_dir, id_generator):
                     'groupId': 0
                 }
                 sa_loader.append(sa_bbox)
-            elif ann['type'] == 'comment':
+            elif ann['type'] == 'note':
                 sa_comment = {
                     'type': 'comment',
-                    'x': ann['coordinates']['bbox'][0]['x'],
-                    'y': ann['coordinates']['bbox'][0]['y'],
+                    'x': ann['coordinates']['box'][0]['x'],
+                    'y': ann['coordinates']['box'][0]['y'],
                     'comments': []
                 }
                 for note in ann['coordinates']['note']['messages']:
@@ -116,6 +118,9 @@ def dataloop_object_detection_to_sa_vector(input_dir, id_generator):
                         }
                     )
                 sa_loader.append(sa_comment)
+            elif ann['type'] == 'class':
+                sa_tags = {'type': 'tag', 'name': ann['label']}
+                sa_loader.append(sa_tags)
 
         file_name = dl_data['filename'][1:] + '___objects.json'
         sa_jsons[file_name] = sa_loader
@@ -128,12 +133,14 @@ def dataloop_instance_segmentation_to_sa_vector(input_dir, id_generator):
     classes = {}
     sa_jsons = {}
     json_data = Path(input_dir).glob('*.json')
+    sa_classes_labels = ['point', 'box', 'ellipse', 'segment', 'binary']
     for json_file in json_data:
         sa_loader = []
         dl_data = json.load(open(json_file))
 
         for ann in dl_data['annotations']:
-            if ann['label'] not in classes.keys():
+            if ann['label'] not in classes.keys(
+            ) and ann['type'] in sa_classes_labels:
                 classes[ann['label']] = {}
                 classes[ann['label']]['id'] = next(id_generator)
                 classes[ann['label']]['attribute_group'] = {}
@@ -185,11 +192,11 @@ def dataloop_instance_segmentation_to_sa_vector(input_dir, id_generator):
                         sa_polygon['points'].append(sub_dict['y'])
 
                 sa_loader.append(sa_polygon)
-            elif ann['type'] == 'comment':
+            elif ann['type'] == 'note':
                 sa_comment = {
                     'type': 'comment',
-                    'x': ann['coordinates']['bbox'][0]['x'],
-                    'y': ann['coordinates']['bbox'][0]['y'],
+                    'x': ann['coordinates']['box'][0]['x'],
+                    'y': ann['coordinates']['box'][0]['y'],
                     'comments': []
                 }
                 for note in ann['coordinates']['note']['messages']:
@@ -200,6 +207,9 @@ def dataloop_instance_segmentation_to_sa_vector(input_dir, id_generator):
                         }
                     )
                 sa_loader.append(sa_comment)
+            elif ann['type'] == 'class':
+                sa_tags = {'type': 'tag', 'name': ann['label']}
+                sa_loader.append(sa_tags)
 
         file_name = dl_data['filename'][1:] + '___objects.json'
         sa_jsons[file_name] = sa_loader
@@ -212,12 +222,14 @@ def dataloop_to_sa(input_dir, id_generator):
     classes = {}
     sa_jsons = {}
     json_data = Path(input_dir).glob('*.json')
+    sa_classes_labels = ['point', 'box', 'ellipse', 'segment', 'binary']
     for json_file in json_data:
         sa_loader = []
         dl_data = json.load(open(json_file))
 
         for ann in dl_data['annotations']:
-            if ann['label'] not in classes.keys():
+            if ann['label'] not in classes.keys(
+            ) and ann['type'] in sa_classes_labels:
                 classes[ann['label']] = {}
                 classes[ann['label']]['id'] = next(id_generator)
                 classes[ann['label']]['attribute_group'] = {}
@@ -320,11 +332,11 @@ def dataloop_to_sa(input_dir, id_generator):
                     'attributes': []
                 }
                 sa_loader.append(sa_point)
-            elif ann['type'] == 'comment':
+            elif ann['type'] == 'note':
                 sa_comment = {
                     'type': 'comment',
-                    'x': ann['coordinates']['bbox'][0]['x'],
-                    'y': ann['coordinates']['bbox'][0]['y'],
+                    'x': ann['coordinates']['box'][0]['x'],
+                    'y': ann['coordinates']['box'][0]['y'],
                     'comments': []
                 }
                 for note in ann['coordinates']['note']['messages']:
@@ -335,6 +347,9 @@ def dataloop_to_sa(input_dir, id_generator):
                         }
                     )
                 sa_loader.append(sa_comment)
+            elif ann['type'] == 'class':
+                sa_tags = {'type': 'tag', 'name': ann['label']}
+                sa_loader.append(sa_tags)
 
         file_name = dl_data['filename'][1:] + '___objects.json'
         sa_jsons[file_name] = sa_loader

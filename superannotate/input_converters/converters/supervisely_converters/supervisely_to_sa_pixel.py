@@ -96,11 +96,9 @@ def supervisely_instance_segmentation_to_sa_pixel(
                             sa_obj['parts'].append({'color': hex_colors[index]})
                             index += 1
                         cv2.imwrite(
-                            os.path.join(
-                                output_path,
-                                file_name.replace(
-                                    '___pixel.json', '___save.png'
-                                )
+                            str(
+                                output_path / file_name.
+                                replace('___pixel.json', '___save.png')
                             ), mask
                         )
                         sa_loader.append(sa_obj)

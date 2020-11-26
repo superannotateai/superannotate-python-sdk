@@ -23,14 +23,14 @@ def sagemaker_object_detection_to_sa_vector(data_path, main_key):
     sa_jsons = {}
     dataset_manifest = []
     try:
-        img_map_file = open(os.path.join(data_path, 'output.manifest'))
+        img_map_file = open(data_path / 'output.manifest')
     except Exception as e:
         raise Exception("'output.manifest' file doesn't exist")
 
     for line in img_map_file:
         dataset_manifest.append(json.loads(line))
 
-    json_list = glob(os.path.join(data_path, '*.json'))
+    json_list = data_path.glob('*.json')
     classes_ids = {}
     for json_file in json_list:
         data_json = json.load(open(json_file))

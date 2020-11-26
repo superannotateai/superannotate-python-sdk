@@ -1,4 +1,3 @@
-import os
 import json
 
 from .labelbox_converter import LabelBoxConverter
@@ -29,7 +28,7 @@ class LabelBoxObjectDetectionStrategy(LabelBoxConverter):
 
     def to_sa_format(self):
         json_data = json.load(
-            open(os.path.join(self.export_root, self.dataset_name + '.json'))
+            open(self.export_root / (self.dataset_name + '.json'))
         )
         id_generator = self._make_id_generator()
         sa_jsons, sa_classes = self.conversion_algorithm(

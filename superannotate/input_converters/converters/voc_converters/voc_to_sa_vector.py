@@ -9,8 +9,8 @@ from tqdm import tqdm
 def _generate_polygons(object_mask_path, class_mask_path):
     segmentation = []
 
-    object_mask = cv2.imread(object_mask_path, cv2.IMREAD_GRAYSCALE)
-    class_mask = cv2.imread(class_mask_path, cv2.IMREAD_GRAYSCALE)
+    object_mask = cv2.imread(str(object_mask_path), cv2.IMREAD_GRAYSCALE)
+    class_mask = cv2.imread(str(class_mask_path), cv2.IMREAD_GRAYSCALE)
 
     object_unique_colors = np.unique(object_mask)
 
@@ -118,19 +118,22 @@ def _create_classes(classes):
 
 def voc_instance_segmentation_to_sa_vector(voc_root):
     classes = {}
-    object_masks_dir = os.path.join(voc_root, 'SegmentationObject')
-    class_masks_dir = os.path.join(voc_root, 'SegmentationClass')
-    annotation_dir = os.path.join(voc_root, "Annotations")
+    object_masks_dir = voc_root / 'SegmentationObject'
+    class_masks_dir = voc_root / 'SegmentationClass'
+    annotation_dir = voc_root / "Annotations"
 
-    file_list = os.listdir(object_masks_dir)
+    file_list = object_masks_dir.glob('*')
     sa_jsons = {}
     for filename in tqdm(file_list):
         polygon_instances = _generate_polygons(
-            os.path.join(object_masks_dir, filename),
-            os.path.join(class_masks_dir, filename)
+            # os.path.join(object_masks_dir, filename),
+            # os.path.join(class_masks_dir, filename)
+            object_masks_dir / filename.name,
+            class_masks_dir / filename.name
         )
         voc_instances = _get_voc_instances_from_xml(
-            os.path.join(annotation_dir, filename)
+            # os.path.join(annotation_dir, filename)
+            annotation_dir / filename.name
         )
         maped_instances = _generate_instances(polygon_instances, voc_instances)
         sa_loader = []
@@ -151,7 +154,8 @@ def voc_instance_segmentation_to_sa_vector(voc_root):
             if instance["className"] not in classes.keys():
                 classes[instance["className"]] = instance["classId"]
 
-        sa_file_name = os.path.splitext(filename)[0] + ".jpg___objects.json"
+        sa_file_name = os.path.splitext(filename.name
+                                       )[0] + ".jpg___objects.json"
         sa_jsons[sa_file_name] = sa_loader
 
     classes = _create_classes(classes)
@@ -161,12 +165,12 @@ def voc_instance_segmentation_to_sa_vector(voc_root):
 def voc_object_detection_to_sa_vector(voc_root):
     classes = {}
     id_ = 1
-    annotation_dir = os.path.join(os.path.join(voc_root, "Annotations"))
-    files_list = os.listdir(annotation_dir)
+    annotation_dir = voc_root / "Annotations"
+    files_list = annotation_dir.glob('*')
     sa_jsons = {}
     for filename in tqdm(files_list):
         voc_instances = _get_voc_instances_from_xml(
-            os.path.join(annotation_dir, filename)
+            annotation_dir / filename.name
         )
         sa_loader = []
         for class_name, bbox in voc_instances:
@@ -191,7 +195,8 @@ def voc_object_detection_to_sa_vector(voc_root):
             }
             sa_loader.append(sa_bbox)
 
-        sa_file_name = os.path.splitext(filename)[0] + ".jpg___objects.json"
+        sa_file_name = os.path.splitext(filename.name
+                                       )[0] + ".jpg___objects.json"
         sa_jsons[sa_file_name] = sa_loader
 
     classes = _create_classes(classes)

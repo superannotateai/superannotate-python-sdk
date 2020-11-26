@@ -75,7 +75,7 @@ from .exceptions import (
 )
 from .input_converters.conversion import (
     convert_platform, convert_project_type, export_annotation_format,
-    import_annotation_format
+    import_annotation_format, coco_split_dataset
 )
 from .version import __version__
 

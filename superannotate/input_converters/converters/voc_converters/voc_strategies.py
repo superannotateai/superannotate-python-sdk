@@ -37,13 +37,10 @@ class VocObjectDetectionStrategy(VocConverter):
         self.dump_output(sa_classes, sa_jsons)
 
         if self.project_type == 'Pixel':
-            all_files = os.listdir(self.output_dir)
+            all_files = self.output_dir.glob('*.png')
             for file in all_files:
-                if os.path.splitext(file)[1] == '.png':
-                    os.remove(os.path.join(self.output_dir, file))
+                (self.output_dir / file).unlink()
 
             for sa_mask_name, sa_mask_value in sa_masks.items():
                 sa_mask_value = sa_mask_value[:, :, ::-1]
-                cv2.imwrite(
-                    os.path.join(self.output_dir, sa_mask_name), sa_mask_value
-                )
+                cv2.imwrite(str(self.output_dir / sa_mask_name), sa_mask_value)

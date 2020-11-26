@@ -7,7 +7,7 @@ from pathlib import Path
 
 from .import_to_sa_conversions import import_to_sa
 from .export_from_sa_conversions import export_from_sa
-from .sa_conversion import sa_convert_platform, sa_convert_project_type
+from .sa_conversion import sa_convert_platform, sa_convert_project_type, split_coco
 from ..exceptions import SABaseException
 
 AVAILABLE_PLATFORMS = ["Desktop", "Web"]
@@ -441,3 +441,84 @@ def convert_project_type(input_dir, output_dir):
         output_dir = Path(output_dir)
 
     sa_convert_project_type(input_dir, output_dir)
+
+
+def coco_split_dataset(
+    coco_json_path, image_dir, output_dir, dataset_list_name, ratio_list
+):
+    """ Splits COCO dataset to few datsets.
+
+    :param coco_json_path: Path to main COCO JSON dataset, which should be splitted.
+    :type coco_json_path: str or PathLike
+    :param image_dir: Path to all images in the original dataset.
+    :type coco_json_path: str or PathLike
+    :param coco_json_path: Path to the folder where you want to output splitted COCO JSON files.
+    :type coco_json_path: str or PathLike
+    :param dataset_list_name: List of dataset names.
+    :type dataset_list_name: List
+    :param ratio_list: List of ratios for each splitted dataset.
+    :type ratio_list: List
+    """
+
+    if not isinstance(coco_json_path, (str, Path)):
+        raise SABaseException(
+            0, "'coco_json_path' should be 'str' or 'Path' type, not '%s'" %
+            (type(coco_json_path))
+        )
+
+    if not isinstance(image_dir, (str, Path)):
+        raise SABaseException(
+            0, "'image_dir' should be 'str' or 'Path' type, not '%s'" %
+            (type(image_dir))
+        )
+
+    if not isinstance(output_dir, (str, Path)):
+        raise SABaseException(
+            0, "'output_dir' should be 'str' or 'Path' type, not '%s'" %
+            (type(output_dir))
+        )
+
+    if not isinstance(dataset_list_name, list):
+        raise SABaseException(
+            0, "'dataset_list_name' should be 'list'type, not '%s'" %
+            (type(dataset_list_name))
+        )
+
+    if not isinstance(ratio_list, list):
+        raise SABaseException(
+            0,
+            "'ratio_list' should be 'list' type, not '%s'" % (type(ratio_list))
+        )
+
+    for dataset_name in dataset_list_name:
+        if not isinstance(dataset_name, (str, Path)):
+            raise SABaseException(
+                0,
+                "'dataset_list_name' member should be 'str' or 'Path' type, not '%s'"
+                % (type(dataset_name))
+            )
+
+    for ratio in ratio_list:
+        if not isinstance(ratio, (int, float)):
+            raise SABaseException(
+                0,
+                "'ratio_list' member should be 'int' or 'float' type, not '%s'"
+                % (type(ratio))
+            )
+
+    if sum(ratio_list) != 100:
+        raise SABaseException(0, "Sum of 'ratio_list' members must be '100'")
+
+    if len(dataset_list_name) != len(ratio_list):
+        raise SABaseException(
+            0, "'dataset_list_name' and 'ratio_list' should have same lenght"
+        )
+
+    if isinstance(image_dir, str):
+        image_dir = Path(image_dir)
+    if isinstance(output_dir, str):
+        output_dir = Path(output_dir)
+
+    split_coco(
+        coco_json_path, image_dir, output_dir, dataset_list_name, ratio_list
+    )

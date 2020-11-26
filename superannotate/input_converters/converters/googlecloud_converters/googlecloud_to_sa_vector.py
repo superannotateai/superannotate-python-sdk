@@ -21,7 +21,7 @@ def _create_classes(classes):
 
 def googlecloud_object_detection_to_sa_vector(path, id_generator):
     df = pd.read_csv(path, header=None)
-    dir_name = os.path.dirname(path)
+    dir_name = path.parent
 
     sa_jsons = {}
     classes = {}
@@ -30,7 +30,7 @@ def googlecloud_object_detection_to_sa_vector(path, id_generator):
             classes[row[2]] = next(id_generator)
 
         file_name = row[1].split('/')[-1]
-        img = cv2.imread(os.path.join(dir_name, file_name))
+        img = cv2.imread(str(dir_name / file_name))
         H, W, C = img.shape
         sa_file_name = os.path.basename(file_name) + '___objects.json'
         xmin = row[3] * W

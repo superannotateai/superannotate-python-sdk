@@ -288,6 +288,7 @@ _____________________________________________________________
 .. autofunction:: superannotate.export_annotation_format
 .. autofunction:: superannotate.convert_project_type
 .. autofunction:: superannotate.convert_platform
+.. autofunction:: superannotate.coco_split_dataset
 
 ----------
 

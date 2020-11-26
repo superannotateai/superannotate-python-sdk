@@ -26,18 +26,18 @@ class SageMakerObjectDetectionStrategy(SageMakerConverter):
                 if self.task == "instance_segmentation":
                     self.conversion_algorithm = sagemaker_instance_segmentation_to_sa_pixel
 
-    # def __str__(self):
-    #     return '{} object'.format(self.name)
+    def __str__(self):
+        return '{} object'.format(self.name)
 
     def to_sa_format(self):
         sa_jsons, sa_classes, sa_masks = self.conversion_algorithm(
             self.export_root, self.dataset_name
         )
-        old_masks = glob(os.path.join(self.output_dir, '*.png'))
+        old_masks = self.output_dir.glob('*.png')
         for mask in old_masks:
             os.remove(mask)
         if self.project_type == 'Pixel':
             for name, mask in sa_masks.items():
-                cv2.imwrite(os.path.join(self.output_dir, name), mask)
+                cv2.imwrite(str(self.output_dir / name), mask)
 
         self.dump_output(sa_classes, sa_jsons)
