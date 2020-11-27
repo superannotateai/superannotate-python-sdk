@@ -1,6 +1,7 @@
 import copy
 import logging
 
+from ..common import project_type_int_to_str
 from .annotation_classes import search_annotation_classes
 from .project_api import (
     get_project_metadata_bare, get_project_metadata_with_users
@@ -19,8 +20,20 @@ def get_project_metadata(
 ):
     """Returns project metadata
 
-    :param project_name: project name
-    :type project: str
+    :param project: project name or project metadata from previous calls
+    :type project: str or dict
+    :param include_annotation_classes: enables project annotation classes output under
+                                       the key "annotation_classes"
+    :type include_annotation_classes: bool
+    :param include_settings: enables project settings output under
+                             the key "settings"
+    :type include_settings: bool
+    :param include_workflow: enables project workflow output under
+                             the key "workflow"
+    :type include_workflow: bool
+    :param include_contributors: enables project contributors output under
+                             the key "contributors"
+    :type include_contributors: bool
 
     :return: metadata of project
     :rtype: dict
@@ -28,10 +41,9 @@ def get_project_metadata(
     if not isinstance(project, dict):
         project = get_project_metadata_bare(project)
     result = copy.deepcopy(project)
+    result["type"] = project_type_int_to_str(result["type"])
     if include_annotation_classes:
-        result["annotation_classes"] = search_annotation_classes(
-            project, return_metadata=True
-        )
+        result["annotation_classes"] = search_annotation_classes(project)
     if include_contributors:
         result["contributors"] = get_project_metadata_with_users(project
                                                                 )["users"]

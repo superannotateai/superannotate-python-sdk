@@ -50,7 +50,7 @@ def test_create_like_project(tmpdir):
     time.sleep(1)
 
     ann_classes = sa.search_annotation_classes(
-        PROJECT_NAME2, return_metadata=True
+        PROJECT_NAME2
     )
     assert len(ann_classes) == 1
     assert ann_classes[0]["name"] == "rrr"

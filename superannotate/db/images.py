@@ -517,7 +517,7 @@ def download_image(
             project, image_name, local_dir_path
         )
         if include_fuse or include_overlay:
-            classes = search_annotation_classes(project, return_metadata=True)
+            classes = search_annotation_classes(project)
             project_type = project_type_int_to_str(project["type"])
             fuse_path = create_fuse_image(
                 filepath, classes, project_type, output_overlay=include_overlay
@@ -629,7 +629,7 @@ def get_image_preannotations(project, image_name):
     res = response.json()
 
     annotation_classes = search_annotation_classes(
-        project, return_metadata=True
+        project
     )
     annotation_classes_dict = get_annotation_classes_id_to_name(
         annotation_classes
@@ -725,7 +725,7 @@ def get_image_annotations(project, image_name, project_type=None):
     res = response.json()
 
     annotation_classes = search_annotation_classes(
-        project, return_metadata=True
+        project
     )
     annotation_classes_dict = get_annotation_classes_id_to_name(
         annotation_classes
@@ -887,7 +887,7 @@ def upload_annotations_from_json_to_image(
             project["name"]
         )
     annotation_classes = search_annotation_classes(
-        project, return_metadata=True
+        project
     )
     annotation_classes_dict = get_annotation_classes_name_to_id(
         annotation_classes

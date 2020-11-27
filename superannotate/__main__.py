@@ -112,9 +112,7 @@ def preannotations_upload(args, annotations=False):
                 0, "Task name should be present for COCO format upload."
             )
         logger.info("Annotations in format %s.", args.format)
-        project_type = sa.project_type_int_to_str(
-            sa.get_project_metadata(args.project)["type"]
-        )
+        project_type = sa.get_project_metadata(args.project)["type"]
 
         tempdir = tempfile.TemporaryDirectory()
         tempdir_path = Path(tempdir.name)

@@ -85,9 +85,16 @@ def create_project(project_name, project_description, project_type):
 
 
 def create_project_from_metadata(project_metadata):
+    """Create a new project in the team using project metadata object dict.
+    Mandatory keys in project_metadata are "name", "description" and "type" (Vector or Pixel)
+    Non-mandatory keys: "workflow", "contributors", "settings" and "annotation_classes".
+
+    :return: dict object metadata the new project
+    :rtype: dict
+    """
     new_project_metadata = create_project(
         project_metadata["name"], project_metadata["description"],
-        project_type_int_to_str(project_metadata["type"])
+        project_metadata["type"]
     )
     if "contributors" in project_metadata:
         for user in project_metadata["contributors"]:
@@ -991,9 +998,7 @@ def _upload_annotations_from_folder_to_project(
     )
     tqdm_thread.start()
 
-    annotation_classes = search_annotation_classes(
-        project, return_metadata=True
-    )
+    annotation_classes = search_annotation_classes(project)
     annotation_classes_dict = get_annotation_classes_name_to_id(
         annotation_classes
     )
@@ -1235,9 +1240,7 @@ def _upload_preannotations_from_folder_to_project(
         args=(len_preannotations_paths, num_uploaded, finish_event)
     )
     tqdm_thread.start()
-    annotation_classes = search_annotation_classes(
-        project, return_metadata=True
-    )
+    annotation_classes = search_annotation_classes(project)
     annotation_classes_dict = get_annotation_classes_name_to_id(
         annotation_classes
     )
@@ -1447,9 +1450,7 @@ def get_project_workflow(project):
             "Couldn't get project workflow " + response.text
         )
     res = response.json()
-    annotation_classes = search_annotation_classes(
-        project, return_metadata=True
-    )
+    annotation_classes = search_annotation_classes(project)
     for r in res:
         if "class_id" not in r:
             continue
@@ -1489,9 +1490,7 @@ def set_project_workflow(project, new_workflow):
     params = {
         "team_id": team_id,
     }
-    annotation_classes = search_annotation_classes(
-        project, return_metadata=True
-    )
+    annotation_classes = search_annotation_classes(project)
 
     new_list = copy.deepcopy(new_workflow)
     for step in new_list:

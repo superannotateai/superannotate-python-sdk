@@ -153,10 +153,13 @@ def create_annotation_classes_from_classes_json(
     existing_classes = search_annotation_classes(project)
     new_classes = []
     for cs in classes:
-        if cs["name"] in existing_classes:
-            logger.warning(
-                "Annotation class %s already in project. Skipping.", cs["name"]
-            )
+        for e_cs in existing_classes:
+            if cs["name"] == e_cs["name"]:
+                logger.warning(
+                    "Annotation class %s already in project. Skipping.",
+                    cs["name"]
+                )
+                break
         else:
             new_classes.append(cs)
 
@@ -197,7 +200,7 @@ def create_annotation_classes_from_classes_json(
     return res
 
 
-def search_annotation_classes(project, name_prefix=None, return_metadata=False):
+def search_annotation_classes(project, name_prefix=None):
     """Searches annotation classes by name_prefix (case-insensitive)
 
     :param project: project name or metadata of the project
@@ -233,10 +236,7 @@ def search_annotation_classes(project, name_prefix=None, return_metadata=False):
             break
         params["offset"] = new_len
 
-    if return_metadata:
-        return result_list
-    else:
-        return [x["name"] for x in result_list]
+    return result_list
 
 
 def get_annotation_class_metadata(project, annotation_class_name):
@@ -251,7 +251,7 @@ def get_annotation_class_metadata(project, annotation_class_name):
     :rtype: dict
     """
     annotation_classes = search_annotation_classes(
-        project, annotation_class_name, return_metadata=True
+        project, annotation_class_name
     )
     results = []
     for annotation_class in annotation_classes:
@@ -289,7 +289,7 @@ def download_annotation_classes_json(project, folder):
         "Downloading classes.json from project %s to folder %s.",
         project["name"], folder
     )
-    clss = search_annotation_classes(project, return_metadata=True)
+    clss = search_annotation_classes(project)
     filepath = Path(folder) / "classes.json"
     json.dump(clss, open(filepath, "w"), indent=4)
     return str(filepath)
