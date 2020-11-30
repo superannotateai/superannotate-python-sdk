@@ -31,7 +31,7 @@ setup(
     setup_requires=['wheel'],
     packages=find_packages(exclude=('tests', )),
     entry_points={
-        'console_scripts': ['superannotate = superannotate.__main__:main']
+        'console_scripts': ['superannotatecli = superannotate.__main__:main']
     },
     python_requires='>=3.6'
 )
