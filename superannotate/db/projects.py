@@ -17,6 +17,7 @@ from urllib.parse import urlparse
 import boto3
 import cv2
 import ffmpeg
+from google.cloud import storage
 from PIL import Image, ImageOps
 from tqdm import tqdm
 
@@ -847,6 +848,81 @@ def upload_images_from_public_urls_to_project(
 
                 path_to_url[str(img_path)] = img_url
                 images_to_upload.append(img_path)
+        images_uploaded_paths, images_not_uploaded_paths, duplicate_images_paths = upload_images_to_project(
+            project,
+            images_to_upload,
+            annotation_status=annotation_status,
+            image_quality_in_editor=image_quality_in_editor
+        )
+        images_not_uploaded.extend(
+            [path_to_url[str(path)] for path in images_not_uploaded_paths]
+        )
+        images_uploaded = [
+            path_to_url[str(path)] for path in images_uploaded_paths
+        ]
+        images_uploaded_filenames = [
+            basename(path) for path in images_uploaded_paths
+        ]
+        duplicate_images_filenames = [
+            basename(path) for path in duplicate_images_paths
+        ]
+    return (
+        images_uploaded, images_uploaded_filenames, duplicate_images_filenames,
+        images_not_uploaded
+    )
+
+
+def upload_images_from_google_cloud_to_project(
+    project,
+    google_project,
+    bucket_name,
+    folder_path,
+    annotation_status='NotStarted',
+    image_quality_in_editor=None
+):
+    """Uploads all images present in folder_path at bucket_name in google_project to the project.
+    Sets status of all the uploaded images to set_status if it is not None.
+
+    :param project: project name or metadata of the project to upload images to
+    :type project: str or dict
+    :param google_project: the project name on google cloud, where the bucket resides
+    :type google_project: str
+    :param bucket_name: the name of the bucket where the images are stored
+    :type bucket_name: str
+    :param folder_path: path of the folder on the bucket where the images are stored
+    :type folder_path: str
+    :param annotation_status: value to set the annotation statuses of the uploaded images NotStarted InProgress QualityCheck Returned Completed Skipped
+    :type annotation_status: str
+    :param image_quality_in_editor: image quality be seen in SuperAnnotate web annotation editor.
+           Can be either "compressed" or "original".  If None then the default value in project settings will be used.
+    :type image_quality_in_editor: str
+
+    :return: uploaded images' urls, uploaded images' filenames, duplicate images' filenames and not-uploaded images' urls
+    :rtype: tuple of list of strs
+    """
+    images_not_uploaded = []
+    images_to_upload = []
+    path_to_url = {}
+    cloud_client = storage.Client(project=google_project)
+    bucket = cloud_client.get_bucket(bucket_name)
+    image_blobs = bucket.list_blobs(prefix=folder_path)
+    with tempfile.TemporaryDirectory() as save_dir_name:
+        save_dir = Path(save_dir_name)
+        for image_blob in image_blobs:
+            if image_blob.content_type.split('/')[0] != 'image':
+                continue
+            image_name = basename(image_blob.name)
+            image_save_pth = save_dir / image_name
+            try:
+                image_blob.download_to_filename(image_save_pth)
+            except Exception as e:
+                logger.warning(
+                    "Couldn't download image %s, %s", image_blob.name, str(e)
+                )
+                images_not_uploaded.append(image_blob.name)
+            else:
+                path_to_url[str(image_save_pth)] = image_blob.name
+                images_to_upload.append(image_save_pth)
         images_uploaded_paths, images_not_uploaded_paths, duplicate_images_paths = upload_images_to_project(
             project,
             images_to_upload,
