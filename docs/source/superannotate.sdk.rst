@@ -31,6 +31,8 @@ ________
 .. autofunction:: superannotate.get_project_metadata
 .. autofunction:: superannotate.get_project_image_count
 .. autofunction:: superannotate.upload_images_to_project
+.. autofunction:: superannotate.upload_images_from_public_urls_to_project
+.. autofunction:: superannotate.upload_images_from_google_cloud_to_project
 .. autofunction:: superannotate.upload_image_to_project
 .. _ref_upload_images_from_folder_to_project:
 .. autofunction:: superannotate.upload_images_from_folder_to_project
