@@ -17,11 +17,7 @@ def test_upload_images_from_public_urls_to_project():
     ]
 
     proj_data = sa.create_project(PROJECT_NAME, "test", "Vector")
-<<<<<<< HEAD
     uploaded_urls, uploaded_filenames, duplicate_filenames, not_uploaded_urls = sa.upload_images_from_public_urls_to_project(
-=======
-    uploaded_urls, uploaded_filenames, not_uploaded_urls = sa.upload_images_from_public_urls_to_project(
->>>>>>> cb70103bc78da61ef8b315f8021fcffa4e22767c
         proj_data,
         test_img_list,
         annotation_status='InProgress',
@@ -33,10 +29,7 @@ def test_upload_images_from_public_urls_to_project():
     sa.delete_project(proj_data)
     # check how many images were uploaded and how many were not
     assert len(uploaded_urls) == 3
-<<<<<<< HEAD
     assert len(duplicate_filenames) == 0
-=======
->>>>>>> cb70103bc78da61ef8b315f8021fcffa4e22767c
     assert len(uploaded_filenames) == 3
     assert len(not_uploaded_urls) == 3
 
