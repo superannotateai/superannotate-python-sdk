@@ -7,7 +7,7 @@ def test_sagemaker_instance_segmentation(tmpdir):
         'tests'
     ) / 'converter_test' / 'SageMaker' / 'input' / 'toSuperAnnotate' / 'instance_segmentation'
     out_dir = Path(tmpdir) / "instance_segmentation"
-    sa.import_annotation_format(
+    sa.import_annotation(
         input_dir, out_dir, 'SageMaker', 'test-obj-detect', 'Pixel',
         'instance_segmentation', 'Web'
     )
@@ -31,7 +31,7 @@ def test_sagemaker_object_detection(tmpdir):
         'tests'
     ) / 'converter_test' / 'SageMaker' / 'input' / 'toSuperAnnotate' / 'object_detection'
     out_dir = Path(tmpdir) / "object_detection"
-    sa.import_annotation_format(
+    sa.import_annotation(
         input_dir, out_dir, 'SageMaker', 'test-obj-detect', 'Vector',
         'object_detection', 'Desktop'
     )

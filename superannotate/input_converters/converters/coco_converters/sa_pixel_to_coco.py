@@ -16,10 +16,9 @@ def __instance_object_commons_per_instance(
     else:
         category_id = instance['classId']
     instance_bitmask = np.isin(image_commons.flat_mask, parts)
-    size = instance_bitmask.shape[::-1]
 
     databytes = instance_bitmask * np.uint8(255)
-    contours, hierarchy = cv.findContours(
+    contours, _ = cv.findContours(
         databytes, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE
     )
     coco_instance_mask = cocomask.encode(np.asfortranarray(instance_bitmask))
@@ -83,13 +82,12 @@ def sa_pixel_to_coco_panoptic_segmentation(
             continue
 
         parts = [int(part['color'][1:], 16) for part in instance['parts']]
-        if instance['classId'] < 0:
-            continue
 
         if instance['className'] in cat_id_map:
             category_id = cat_id_map[instance['className']]
         else:
             category_id = instance['classId']
+
         instance_bitmask = np.isin(flat_mask, parts)
         segment_id = next(id_generator)
         ann_mask[instance_bitmask] = segment_id

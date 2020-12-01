@@ -8,15 +8,13 @@ import json
 import logging
 import os
 import shutil
-import sys
 
-import numpy as np
 from pathlib import Path
-from .converters.converters import Converter
-
-from ..exceptions import SABaseException
 
 import tempfile
+import numpy as np
+
+from .converters.converters import Converter
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -83,10 +81,8 @@ def _move_files(data_set, src):
 def _create_classes_mapper(imgs, classes_json):
     classes = {}
     j_data = json.load(open(classes_json))
-    for instance in j_data:
-        if 'id' not in instance:
-            continue
-        classes[instance['name']] = instance['id']
+    for i, instance in enumerate(j_data):
+        classes[instance['name']] = i + 1
 
     with open(imgs / 'image_set' / 'classes_mapper.json', 'w') as fp:
         json.dump(classes, fp)

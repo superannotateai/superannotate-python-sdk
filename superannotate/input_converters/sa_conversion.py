@@ -1,4 +1,3 @@
-import glob
 import json
 import logging
 import os
@@ -6,12 +5,12 @@ import shutil
 import time
 from pathlib import Path
 
+from PIL import Image
+from tqdm import tqdm
 import cv2
 import numpy as np
-from tqdm import tqdm
-from PIL import Image
 
-from ..common import blue_color_generator, hex_to_rgb, rgb_to_hex
+from ..common import blue_color_generator, hex_to_rgb
 from ..exceptions import SABaseException
 
 logger = logging.getLogger("superannotate-python-sdk")
@@ -125,7 +124,7 @@ def from_pixel_to_vector(json_paths):
 
         mask_name = str(json_path).replace('___pixel.json', '___save.png')
         img = cv2.imread(mask_name)
-        H, W, C = img.shape
+        H, W, _ = img.shape
 
         sa_loader = []
         instances = json.load(open(json_path))
@@ -189,7 +188,7 @@ def from_vector_to_pixel(json_paths):
 
         img_name = str(json_path).replace('___objects.json', '')
         img = cv2.imread(img_name)
-        H, W, C = img.shape
+        H, W, _ = img.shape
 
         mask = np.zeros((H, W, 4))
         sa_loader = []
@@ -258,7 +257,7 @@ def from_vector_to_pixel(json_paths):
 
 def sa_convert_project_type(input_dir, output_dir):
     json_generator = input_dir.glob('*.json')
-    json_paths = [file for file in json_generator]
+    json_paths = list(json_generator)
 
     extension = ''
     if '___pixel.json' in json_paths[0].name:
@@ -296,7 +295,6 @@ def split_coco(
     coco_json_path, image_dir, output_dir, dataset_list_name, ratio_list
 ):
     coco_json = json.load(open(coco_json_path))
-    split_parts_number = len(dataset_list_name)
 
     groups = {}
     for dataset_name in dataset_list_name:

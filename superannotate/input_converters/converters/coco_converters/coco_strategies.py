@@ -1,11 +1,7 @@
-import glob
 import json
-import os
-from collections import namedtuple
-from datetime import datetime
 
 from pathlib import Path
-from panopticapi.utils import IdGenerator, id2rgb
+from panopticapi.utils import id2rgb
 from PIL import Image
 from tqdm import tqdm
 
@@ -114,8 +110,6 @@ class CocoObjectDetectionStrategy(CoCoConverter):
             if self.project_type == 'Pixel':
                 if self.task == 'instance_segmentation':
                     self.conversion_algorithm = sa_pixel_to_coco_instance_segmentation
-                elif self.task == 'object_detection':
-                    self.conversion_algorithm = sa_pixel_to_coco_object_detection
 
             elif self.project_type == 'Vector':
                 if self.task == 'instance_segmentation':
@@ -138,7 +132,6 @@ class CocoObjectDetectionStrategy(CoCoConverter):
     def _sa_to_coco_single(self, id_, json_path, id_generator, cat_id_map):
 
         image_commons = self._prepare_single_image_commons(id_, json_path)
-        annotations_per_image = []
 
         def make_annotation(
             category_id, image_id, bbox, segmentation, area, anno_id
@@ -259,9 +252,6 @@ class CocoKeypointDetectionStrategy(CoCoConverter):
     def sa_to_output_format(self):
         out_json = self._create_skeleton()
         jsons = self._load_sa_jsons()
-
-        images = []
-        annotations = []
 
         id_generator = self._make_id_generator()
         id_generator_anno = self._make_id_generator()

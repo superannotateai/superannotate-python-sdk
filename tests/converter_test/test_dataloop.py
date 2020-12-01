@@ -8,7 +8,7 @@ def test_dataloop_convert_vector(tmpdir):
         'tests'
     ) / 'converter_test' / 'DataLoop' / 'input' / 'toSuperAnnotate'
     out_dir = Path(tmpdir) / 'output_vector'
-    sa.import_annotation_format(
+    sa.import_annotation(
         input_dir, out_dir, 'DataLoop', '', 'Vector', 'vector_annotation', 'Web'
     )
     project_name = "dataloop_test_vector"
@@ -30,7 +30,7 @@ def test_dataloop_convert_object(tmpdir):
         'tests'
     ) / 'converter_test' / 'DataLoop' / 'input' / 'toSuperAnnotate'
     out_dir = Path(tmpdir) / 'output_object'
-    sa.import_annotation_format(
+    sa.import_annotation(
         input_dir, out_dir, 'DataLoop', '', 'Vector', 'object_detection',
         'Desktop'
     )
@@ -41,7 +41,7 @@ def test_dataloop_convert_instance(tmpdir):
         'tests'
     ) / 'converter_test' / 'DataLoop' / 'input' / 'toSuperAnnotate'
     out_dir = Path(tmpdir) / 'output_instance'
-    sa.import_annotation_format(
+    sa.import_annotation(
         input_dir, out_dir, 'DataLoop', '', 'Vector', 'instance_segmentation',
         'Web'
     )

@@ -1,4 +1,3 @@
-import json
 import cv2
 import os
 from glob import glob
@@ -16,9 +15,7 @@ class SageMakerObjectDetectionStrategy(SageMakerConverter):
         self.__setup_conversion_algorithm()
 
     def __setup_conversion_algorithm(self):
-        if self.direction == "to":
-            raise NotImplementedError("Doesn't support yet")
-        else:
+        if self.direction == "from":
             if self.project_type == "Vector":
                 if self.task == "object_detection":
                     self.conversion_algorithm = sagemaker_object_detection_to_sa_vector
@@ -30,12 +27,18 @@ class SageMakerObjectDetectionStrategy(SageMakerConverter):
         return '{} object'.format(self.name)
 
     def to_sa_format(self):
-        sa_jsons, sa_classes, sa_masks = self.conversion_algorithm(
-            self.export_root, self.dataset_name
-        )
+        if self.conversion_algorithm.__name__ == 'sagemaker_object_detection_to_sa_vector':
+            sa_jsons, sa_classes, sa_masks = self.conversion_algorithm(
+                self.export_root, self.dataset_name
+            )
+        else:
+            sa_jsons, sa_classes, sa_masks = self.conversion_algorithm(
+                self.export_root
+            )
+
         old_masks = self.output_dir.glob('*.png')
         for mask in old_masks:
-            os.remove(mask)
+            mask.unlink()
         if self.project_type == 'Pixel':
             for name, mask in sa_masks.items():
                 cv2.imwrite(str(self.output_dir / name), mask)

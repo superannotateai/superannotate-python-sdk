@@ -3,6 +3,10 @@ import os
 import cv2
 import numpy as np
 
+import logging
+
+logger = logging.getLogger("superannotate-python-sdk")
+
 
 def _create_classes(classes):
     classes_loader = []
@@ -41,10 +45,14 @@ def yolo_object_detection_to_sa_vector(data_path):
         file_name = os.path.splitext(base_name)[0] + '.*'
         files_list = glob(os.path.join(data_path, file_name))
         if len(files_list) == 1:
-            print("'{}' image for annotation doesn't exist".format(annotation))
+            logger.warning(
+                "'{}' image for annotation doesn't exist".format(annotation)
+            )
             continue
         elif len(files_list) > 2:
-            print("'{}' multiple file for this annotation".format(annotation))
+            logger.warning(
+                "'{}' multiple file for this annotation".format(annotation)
+            )
             continue
         else:
             if os.path.splitext(files_list[0])[1] == '.txt':
@@ -52,7 +60,7 @@ def yolo_object_detection_to_sa_vector(data_path):
             else:
                 file_name = files_list[0]
         img = cv2.imread(file_name)
-        H, W, C = img.shape
+        H, W, _ = img.shape
 
         sa_loader = []
         for line in file:
@@ -72,7 +80,6 @@ def yolo_object_detection_to_sa_vector(data_path):
                 'type': 'bbox',
                 'points': bbox,
                 'className': classes[class_id],
-                'classId': class_id + 1,
                 'attributes': [],
                 'probability': 100,
                 'locked': False,

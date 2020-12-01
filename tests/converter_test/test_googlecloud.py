@@ -7,7 +7,7 @@ def test_googlecloud_convert_web(tmpdir):
         "tests"
     ) / "converter_test" / "GoogleCloud" / "input" / "toSuperAnnotate"
     out_dir = Path(tmpdir) / "output_web"
-    sa.import_annotation_format(
+    sa.import_annotation(
         input_dir, out_dir, "GoogleCloud", "image_object_detection", "Vector",
         "object_detection", "Web"
     )
@@ -31,7 +31,7 @@ def test_googlecloud_convert_desktop(tmpdir):
         "tests"
     ) / "converter_test" / "GoogleCloud" / "input" / "toSuperAnnotate"
     out_dir = Path(tmpdir) / "output_desktop"
-    sa.import_annotation_format(
+    sa.import_annotation(
         input_dir, out_dir, "GoogleCloud", "image_object_detection", "Vector",
         "object_detection", "Desktop"
     )

@@ -7,7 +7,7 @@ def test_voc_vector_instance(tmpdir):
         "tests"
     ) / "converter_test" / "VOC" / "input" / "fromPascalVOCToSuperAnnotate" / "VOC2012"
     out_dir = Path(tmpdir) / "instance_vector"
-    sa.import_annotation_format(
+    sa.import_annotation(
         input_dir, out_dir, "VOC", "", "Vector", "instance_segmentation", "Web"
     )
 
@@ -30,7 +30,7 @@ def test_voc_vector_object(tmpdir):
         "tests"
     ) / "converter_test" / "VOC" / "input" / "fromPascalVOCToSuperAnnotate" / "VOC2012"
     out_dir = Path(tmpdir) / "object_vector"
-    sa.import_annotation_format(
+    sa.import_annotation(
         input_dir, out_dir, "VOC", "", "Vector", "object_detection", "Desktop"
     )
 
@@ -40,7 +40,7 @@ def test_voc_pixel(tmpdir):
         "tests"
     ) / "converter_test" / "VOC" / "input" / "fromPascalVOCToSuperAnnotate" / "VOC2012"
     out_dir = Path(tmpdir) / "instance_pixel"
-    sa.import_annotation_format(
+    sa.import_annotation(
         input_dir, out_dir, "VOC", "", "Pixel", "instance_segmentation", "Web"
     )
 

@@ -1,5 +1,4 @@
 import json
-import os
 
 import cv2
 import numpy as np
@@ -11,11 +10,15 @@ from pycocotools.coco import COCO
 
 from ....common import hex_to_rgb, blue_color_generator
 
+import logging
+
+logger = logging.getLogger("superannotate-python-sdk")
+
 
 def _rle_to_polygon(coco_json, annotation):
     coco = COCO(coco_json)
     binary_mask = coco.annToMask(annotation)
-    contours, hierarchy = cv2.findContours(
+    contours, _ = cv2.findContours(
         binary_mask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
     )
     segmentation = []
@@ -39,11 +42,11 @@ def coco_panoptic_segmentation_to_sa_pixel(coco_path, images_path):
         cat_id_to_cat[cat['id']] = cat['name']
 
     sa_jsons = {}
-    for annotate in tqdm(annotate_list, "Converting"):
+    for annotate in tqdm(annotate_list, "Converting annotations"):
         annot_name = Path(annotate["file_name"]).stem
         img_cv = cv2.imread(str(images_path / (annot_name + ".png")))
         if img_cv is None:
-            print(
+            logger.warning(
                 "'{}' file dosen't exist!".format(
                     images_path / (annot_name + ".png")
                 )
@@ -85,7 +88,6 @@ def coco_panoptic_segmentation_to_sa_pixel(coco_path, images_path):
 
 def coco_instance_segmentation_to_sa_pixel(coco_path, images_path):
     coco_json = json.load(open(coco_path))
-    image_id_to_annotations = {}
     cat_id_to_cat = {}
     for cat in coco_json['categories']:
         cat_id_to_cat[cat['id']] = cat
@@ -109,7 +111,7 @@ def coco_instance_segmentation_to_sa_pixel(coco_path, images_path):
         color = hex_to_rgb(hexcolor)
         images_dict[str(annot['image_id'])]['segments_num'] += 1
 
-        H, W, C = images_dict[str(annot['image_id'])]['mask'].shape
+        H, W, _ = images_dict[str(annot['image_id'])]['mask'].shape
         if isinstance(annot['segmentation'], dict):
             if isinstance(annot['segmentation']['counts'], list):
                 annot['segmentation'] = _rle_to_polygon(coco_path, annot)
@@ -167,7 +169,7 @@ def coco_instance_segmentation_to_sa_pixel(coco_path, images_path):
 
         sa_json[key].append(sa_obj)
 
-    for id_, value in images_dict.items():
+    for _, value in images_dict.items():
         img = cv2.imwrite(
             str(images_path / (value['file_name'] + '___save.png')),
             value['mask']

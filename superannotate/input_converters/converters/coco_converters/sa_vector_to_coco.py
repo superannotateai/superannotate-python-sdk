@@ -1,8 +1,8 @@
-import numpy as np
-import cv2 as cv
 import json
 from pycocotools import mask as cocomask
 import logging
+
+logger = logging.getLogger("superannotate-python-sdk")
 
 
 def sa_vector_to_coco_object_detection(
@@ -14,13 +14,10 @@ def sa_vector_to_coco_object_detection(
 
     for instance in sa_ann_json:
         if instance['type'] != 'bbox':
-            print(
+            logger.warning(
                 "Skipping '{}' type convertion during object_detection task".
                 format(instance['type'])
             )
-            continue
-
-        if 'classId' in instance and instance['classId'] < 0:
             continue
 
         anno_id = next(id_generator)
@@ -62,13 +59,10 @@ def sa_vector_to_coco_instance_segmentation(
     sa_ann_json = image_commons.sa_ann_json
     for instance in sa_ann_json:
         if instance['type'] != 'polygon':
-            print(
-                "Skipping '{}' type convertion during instance segmentation task"
-                .format(instance['type'])
+            logger.warning(
+                "Skipping '{}' type convertion during object_detection task".
+                format(instance['type'])
             )
-            continue
-
-        if 'classId' in instance and instance['classId'] < 0:
             continue
 
         group_id = instance['groupId']
@@ -159,14 +153,13 @@ def sa_vector_to_coco_keypoint_detection(
     categories = []
     annotations = []
     images = []
-    cnt = 0
 
     for path_ in json_paths:
         json_data = __load_one_json(path_)
 
         for instance in json_data:
             if instance['type'] == 'template' and 'templateId' not in instance:
-                logging.warning(
+                logger.warning(
                     'There was a template with no "templateName". \
                                 This can happen if the template was deleted from annotate.online. Ignoring this annotation'
                 )

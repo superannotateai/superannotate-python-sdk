@@ -1,16 +1,12 @@
-import argparse
-import os
 import json
-import shutil
 
-import requests
 import cv2
 import numpy as np
 
 from pathlib import Path
 from collections import defaultdict
 from pycocotools.coco import COCO
-from panopticapi.utils import id2rgb
+# from panopticapi.utils import id2rgb
 from tqdm import tqdm
 import pycocotools.mask as maskUtils
 
@@ -25,7 +21,7 @@ def dict_setter(list_of_dicts):
 def _rle_to_polygon(coco_json, annotation):
     coco = COCO(coco_json)
     binary_mask = coco.annToMask(annotation)
-    contours, hierarchy = cv2.findContours(
+    contours, _ = cv2.findContours(
         binary_mask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
     )
     segmentation = []
@@ -101,13 +97,16 @@ def coco_instance_segmentation_to_sa_vector(coco_path, images_path):
 
     sa_jsons = {}
     for img in tqdm(coco_json['images'], "Writing annotations to disk"):
-        if img['id'] not in image_id_to_annotations:
-            continue
-        f_loader = image_id_to_annotations[img['id']]
         if 'file_name' in img:
             image_path = Path(img['file_name']).name
         else:
             image_path = img['coco_url'].split('/')[-1]
+
+        if img['id'] not in image_id_to_annotations:
+            f_loader = []
+            # continue
+        else:
+            f_loader = image_id_to_annotations[img['id']]
         file_name = image_path + "___objects.json"
         sa_jsons[file_name] = f_loader
     return sa_jsons
@@ -180,13 +179,16 @@ def coco_object_detection_to_sa_vector(coco_path, images_path):
 
     sa_jsons = {}
     for img in tqdm(coco_json['images'], "Writing annotations to disk"):
-        if img['id'] not in image_id_to_annotations:
-            continue
-        f_loader = image_id_to_annotations[img['id']]
         if 'file_name' in img:
             image_path = Path(img['file_name']).name
         else:
             image_path = img['coco_url'].split('/')[-1]
+
+        if img['id'] not in image_id_to_annotations:
+            f_loader = []
+            # continue
+        else:
+            f_loader = image_id_to_annotations[img['id']]
         file_name = image_path + "___objects.json"
         sa_jsons[file_name] = f_loader
     return sa_jsons
@@ -204,7 +206,7 @@ def coco_keypoint_detection_to_sa_vector(coco_path, images_path):
             "skeleton": cat["skeleton"]
         }
 
-    for annot in coco_json['annotations']:
+    for annot in tqdm(coco_json['annotations'], 'Converting annotations'):
         if annot['num_keypoints'] > 0:
             sa_points = [
                 item for index, item in enumerate(annot['keypoints'])

@@ -1,6 +1,5 @@
 import os
 import json
-from glob import glob
 import numpy as np
 
 
@@ -9,12 +8,7 @@ def _create_classes(classes_map):
     for key, value in classes_map.items():
         color = np.random.choice(range(256), size=3)
         hexcolor = "#%02x%02x%02x" % tuple(color)
-        sa_classes = {
-            'id': int(key),
-            'name': value,
-            'color': hexcolor,
-            'attribute_groups': []
-        }
+        sa_classes = {'name': value, 'color': hexcolor, 'attribute_groups': []}
         classes_loader.append(sa_classes)
     return classes_loader
 
@@ -64,7 +58,6 @@ def sagemaker_object_detection_to_sa_vector(data_path, main_key):
                     'type': 'bbox',
                     'points': points,
                     'className': classes[str(annotation['class_id'])],
-                    'classId': int(annotation['class_id']),
                     'attributes': [],
                     'probability': 100,
                     'locked': False,

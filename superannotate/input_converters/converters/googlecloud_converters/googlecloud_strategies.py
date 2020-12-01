@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 
 from .googlecloud_converter import GoogleCloudConverter
@@ -13,9 +12,7 @@ class GoogleCloudObjectDetectionStrategy(GoogleCloudConverter):
         self.__setup_conversion_algorithm()
 
     def __setup_conversion_algorithm(self):
-        if self.direction == "to":
-            raise NotImplementedError("Doesn't support yet")
-        else:
+        if self.direction == "from":
             if self.project_type == "Vector":
                 if self.task == "object_detection":
                     self.conversion_algorithm = googlecloud_object_detection_to_sa_vector
@@ -25,12 +22,5 @@ class GoogleCloudObjectDetectionStrategy(GoogleCloudConverter):
 
     def to_sa_format(self):
         path = Path(self.export_root).joinpath(self.dataset_name + '.csv')
-        id_generator = self._make_id_generator()
-        sa_jsons, sa_classes = self.conversion_algorithm(path, id_generator)
+        sa_jsons, sa_classes = self.conversion_algorithm(path)
         self.dump_output(sa_classes, sa_jsons)
-
-    def _make_id_generator(self):
-        cur_id = 0
-        while True:
-            cur_id += 1
-            yield cur_id

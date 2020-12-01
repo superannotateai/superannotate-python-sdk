@@ -3,6 +3,9 @@ import time
 import os
 from PIL import Image
 from pathlib import Path
+import logging
+
+logger = logging.getLogger("superannotate-python-sdk")
 
 
 class LabelBoxConverter(object):
@@ -20,7 +23,7 @@ class LabelBoxConverter(object):
         cat_id_map = {}
         new_classes = []
         for idx, class_ in enumerate(classes):
-            cat_id_map[class_['id']] = idx + 2
+            cat_id_map[class_['name']] = idx + 2
             class_['id'] = idx + 2
             new_classes.append(class_)
         with open(path.joinpath('classes.json'), 'w') as fw:
@@ -36,9 +39,12 @@ class LabelBoxConverter(object):
         (path / 'images' / 'thumb').mkdir()
         for file_name, json_data in files_dict.items():
             file_name = file_name.replace('___objects.json', '')
+            if not (path / 'images' / file_name).exists():
+                continue
+
             for js_data in json_data:
-                if 'classId' in js_data:
-                    js_data['classId'] = cat_id_map[js_data['classId']]
+                if 'className' in js_data:
+                    js_data['classId'] = cat_id_map[js_data['className']]
             json_data.append(meta)
             new_json[file_name] = json_data
 

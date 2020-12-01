@@ -3,13 +3,11 @@
 from datetime import datetime
 from collections import namedtuple
 import json
-import glob
 import os
 import numpy as np
 from panopticapi.utils import id2rgb
 from PIL import Image
 
-import tqdm
 import time
 from pathlib import Path
 
@@ -100,7 +98,7 @@ class CoCoConverter(object):
             jsons_gen = self.export_root.glob('*pixel.json')
         elif self.project_type == 'Vector':
             jsons_gen = self.export_root.glob('*objects.json')
-        jsons = [path for path in jsons_gen]
+        jsons = list(jsons_gen)
         self.set_num_converted(len(jsons))
         return jsons
 
@@ -112,9 +110,6 @@ class CoCoConverter(object):
             ]
         )
         rm_len = len('___pixel.json')
-        image_path = str(
-            json_path
-        )[:-rm_len] + '___lores.jpg'  # maybe not use low res files?
 
         sa_ann_json = json.load(open(json_path))
         sa_bluemask_path = str(json_path)[:-rm_len] + '___save.png'
@@ -194,7 +189,7 @@ class CoCoConverter(object):
 
     def _generate_colors(self, number):
         colors = []
-        for i in range(number):
+        for _ in range(number):
             color = np.random.choice(range(256), size=3)
             hexcolor = "#%02x%02x%02x" % tuple(color)
             colors.append(hexcolor)
@@ -205,7 +200,7 @@ class CoCoConverter(object):
         cat_id_map = {}
         new_classes = []
         for idx, class_ in enumerate(classes):
-            cat_id_map[class_['id']] = idx + 2
+            cat_id_map[class_['name']] = idx + 2
             class_['id'] = idx + 2
             new_classes.append(class_)
         with open(path.joinpath('classes.json'), 'w') as fw:
@@ -221,9 +216,12 @@ class CoCoConverter(object):
         (path / 'images' / 'thumb').mkdir()
         for file_name, json_data in files_dict.items():
             file_name = file_name.replace('___objects.json', '')
+            if not (path / 'images' / file_name).exists():
+                continue
+
             for js_data in json_data:
-                if 'classId' in js_data:
-                    js_data['classId'] = cat_id_map[js_data['classId']]
+                if 'className' in js_data:
+                    js_data['classId'] = cat_id_map[js_data['className']]
             json_data.append(meta)
             new_json[file_name] = json_data
 

@@ -11,10 +11,12 @@ from .converters.converters import Converter
 logger = logging.getLogger("superannotate-python-sdk")
 
 
-def _load_files(path_to_imgs, ptype):
-    rec_search = str(Path('**') / '*.jpg')
-    images_gen = Path(path_to_imgs).glob(rec_search)
-    images = list(images_gen)
+def _load_files(path_to_imgs, ptype, extensions):
+    images = []
+    for extension in extensions:
+        rec_search = str(Path('**') / ('*.' + extension))
+        images_gen = Path(path_to_imgs).glob(rec_search)
+        images.extend(list(images_gen))
 
     if not images:
         logger.warning("Images doesn't exist")
@@ -23,8 +25,6 @@ def _load_files(path_to_imgs, ptype):
         rec_search = str(Path('**') / '*.png')
         masks_gen = Path(path_to_imgs).glob(rec_search)
         masks = list(masks_gen)
-        # if not masks:
-        #     logger.warning("Masks doesn't exist")
     else:
         masks = []
 
@@ -53,7 +53,8 @@ def import_to_sa(args):
     """
 
     images, masks = _load_files(
-        args.input_dir / args.images_root, args.project_type
+        args.input_dir / args.images_root, args.project_type,
+        args.images_extensions
     )
     _move_files(images, masks, args.output_dir, args.platform)
 

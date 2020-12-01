@@ -28,14 +28,5 @@ class VoTTObjectDetectionStrategy(VoTTConverter):
 
     def to_sa_format(self):
         json_data = self.get_file_list()
-        id_generator = self._make_id_generator()
-        sa_jsons, sa_classes = self.conversion_algorithm(
-            json_data, id_generator
-        )
+        sa_jsons, sa_classes = self.conversion_algorithm(json_data)
         self.dump_output(sa_classes, sa_jsons)
-
-    def _make_id_generator(self):
-        cur_id = 0
-        while True:
-            cur_id += 1
-            yield cur_id

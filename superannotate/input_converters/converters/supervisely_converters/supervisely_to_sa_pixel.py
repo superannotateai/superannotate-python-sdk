@@ -13,7 +13,7 @@ def _base64_to_polygon(bitmap):
     z = zlib.decompress(base64.b64decode(bitmap))
     n = np.frombuffer(z, np.uint8)
     mask = cv2.imdecode(n, cv2.IMREAD_UNCHANGED)[:, :, 3].astype(bool)
-    contours, hierarchy = cv2.findContours(
+    contours, _ = cv2.findContours(
         mask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
     )
     segmentation = []
@@ -48,25 +48,18 @@ def supervisely_instance_segmentation_to_sa_pixel(
                 attributes = []
                 if 'tags' in obj.keys():
                     for tag in obj['tags']:
-                        group_id = class_id_map[obj['classTitle']
-                                               ]['attr_group']['id']
                         group_name = class_id_map[obj['classTitle']
                                                  ]['attr_group']['group_name']
-                        attr_id = class_id_map[obj['classTitle']]['attr_group'][
-                            'attributes'][tag['name']]
                         attr_name = tag['name']
                         attributes.append(
                             {
-                                'id': attr_id,
                                 'name': attr_name,
-                                'groupId': group_id,
                                 'groupName': group_name
                             }
                         )
 
                     sa_obj = {
                         'className': obj['classTitle'],
-                        'classId': class_id_map[obj['classTitle']]['id'],
                         'attributes': attributes,
                         'probability': 100,
                         'locked': False,

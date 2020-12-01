@@ -146,7 +146,7 @@ def _passes_converter_sanity(args, direction):
         )
 
 
-def export_annotation_format(
+def export_annotation(
     input_dir,
     output_dir,
     dataset_format,
@@ -215,7 +215,7 @@ def export_annotation_format(
     export_from_sa(args)
 
 
-def import_annotation_format(
+def import_annotation(
     input_dir,
     output_dir,
     dataset_format,
@@ -223,7 +223,8 @@ def import_annotation_format(
     project_type="Vector",
     task="object_detection",
     platform="Web",
-    images_root=''
+    images_root='',
+    images_extensions=['jpg']
 ):
     """Converts other annotation formats to SuperAnnotate annotation format. Currently available (project_type, task) combinations for converter
     presented below:
@@ -351,6 +352,10 @@ def import_annotation_format(
     :type platform: str
     :param images_root: Additonal path to images directory in input_dir
     :type platform: str
+    :param images_root: Additonal path to images directory in input_dir
+    :type platform: str
+    :param image_extensions: List of image files xtensions in the images_root folder
+    :type platform: list
 
     """
 
@@ -367,7 +372,8 @@ def import_annotation_format(
         project_type=project_type,
         task=task,
         platform=platform,
-        images_root=images_root
+        images_root=images_root,
+        images_extensions=images_extensions
     )
 
     _passes_sanity_checks(args)
@@ -393,7 +399,7 @@ def convert_platform(input_dir, output_dir, input_platform):
         (input_platform, 'input_platform', str),
     ]
     for param in param_info:
-        type_sanity(param[0], param[1], param[2])
+        _type_sanity(param[0], param[1], param[2])
 
     if input_platform not in AVAILABLE_PLATFORMS:
         raise SABaseException(
@@ -422,7 +428,7 @@ def convert_project_type(input_dir, output_dir):
         (output_dir, 'output_dir', (str, Path)),
     ]
     for param in param_info:
-        type_sanity(param[0], param[1], param[2])
+        _type_sanity(param[0], param[1], param[2])
 
     if isinstance(input_dir, str):
         input_dir = Path(input_dir)
@@ -444,9 +450,9 @@ def coco_split_dataset(
     :param coco_json_path: Path to the folder where you want to output splitted COCO JSON files.
     :type coco_json_path: str or PathLike
     :param dataset_list_name: List of dataset names.
-    :type dataset_list_name: List
+    :type dataset_list_name: list
     :param ratio_list: List of ratios for each splitted dataset.
-    :type ratio_list: List
+    :type ratio_list: list
     """
     param_info = [
         (coco_json_path, 'coco_json_path', (str, Path)),
@@ -456,7 +462,7 @@ def coco_split_dataset(
         (ratio_list, 'ratio_list', list)
     ]
     for param in param_info:
-        type_sanity(param[0], param[1], param[2])
+        _type_sanity(param[0], param[1], param[2])
 
     for dataset_name in dataset_list_name:
         if not isinstance(dataset_name, (str, Path)):
@@ -492,7 +498,7 @@ def coco_split_dataset(
     )
 
 
-def type_sanity(var, var_name, var_type):
+def _type_sanity(var, var_name, var_type):
     if not isinstance(var, var_type):
         raise SABaseException(
             0, "'{}' should be '{}' type, not '{}'".format(

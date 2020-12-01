@@ -11,7 +11,6 @@ def create_classes(classes):
     classes_loader = []
     for name, class_ in classes.items():
         cls_obj = {
-            "id": class_['id'],
             "name": name,
             "color": class_['color'],
             "attribute_groups": []
@@ -20,7 +19,7 @@ def create_classes(classes):
     return classes_loader
 
 
-def sagemaker_instance_segmentation_to_sa_pixel(data_path, main_key):
+def sagemaker_instance_segmentation_to_sa_pixel(data_path):
     img_mapping = {}
     try:
         img_map_file = open(data_path / 'output.manifest')
@@ -34,7 +33,6 @@ def sagemaker_instance_segmentation_to_sa_pixel(data_path, main_key):
 
     json_list = data_path.glob('*.json')
     classes_ids = {}
-    idx = 1
     sa_jsons = {}
     sa_masks = {}
     for json_file in json_list:
@@ -48,7 +46,6 @@ def sagemaker_instance_segmentation_to_sa_pixel(data_path, main_key):
                 ['attribute-name-ref']
             )
 
-            classes = {}
             classes_dict = annotataion['consolidatedAnnotation']['content'][
                 'attribute-name-ref-metadata']['internal-color-map']
 
@@ -63,10 +60,8 @@ def sagemaker_instance_segmentation_to_sa_pixel(data_path, main_key):
 
                 if classes_dict[key]['class-name'] not in classes_ids:
                     classes_ids[classes_dict[key]['class-name']] = {
-                        'id': idx,
                         'color': classes_dict[key]['hex-color']
                     }
-                    idx += 1
 
                 bitmask = np.zeros((H, W), dtype=np.int8)
                 bitmask[np.all(
@@ -90,7 +85,6 @@ def sagemaker_instance_segmentation_to_sa_pixel(data_path, main_key):
 
             for name, contours in class_contours.items():
                 sa_obj = {
-                    'classId': classes_ids[name]['id'],
                     'className': name,
                     'probability': 100,
                     'attributes': [],

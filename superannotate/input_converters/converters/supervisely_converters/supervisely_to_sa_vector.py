@@ -1,5 +1,9 @@
+import numpy as np
 import os
 import json
+import zlib
+import base64
+import cv2
 
 
 # Converts bitmaps to polygon
@@ -7,7 +11,7 @@ def _base64_to_polygon(bitmap):
     z = zlib.decompress(base64.b64decode(bitmap))
     n = np.frombuffer(z, np.uint8)
     mask = cv2.imdecode(n, cv2.IMREAD_UNCHANGED)[:, :, 3].astype(bool)
-    contours, hierarchy = cv2.findContours(
+    contours, _ = cv2.findContours(
         mask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
     )
     segmentation = []
@@ -35,18 +39,12 @@ def supervisely_to_sa(json_files, class_id_map):
                 attributes = []
                 if 'tags' in obj.keys():
                     for tag in obj['tags']:
-                        group_id = class_id_map[obj['classTitle']
-                                               ]['attr_group']['id']
                         group_name = class_id_map[obj['classTitle']
                                                  ]['attr_group']['group_name']
-                        attr_id = class_id_map[obj['classTitle']]['attr_group'][
-                            'attributes'][tag['name']]
                         attr_name = tag['name']
                         attributes.append(
                             {
-                                'id': attr_id,
                                 'name': attr_name,
-                                'groupId': group_id,
                                 'groupName': group_name
                             }
                         )
@@ -55,7 +53,6 @@ def supervisely_to_sa(json_files, class_id_map):
                         'type': '',
                         'points': [],
                         'className': obj['classTitle'],
-                        'classId': class_id_map[obj['classTitle']]['id'],
                         'pointLabels': {},
                         'attributes': attributes,
                         'probability': 100,
@@ -117,17 +114,17 @@ def supervisely_to_sa(json_files, class_id_map):
                                     'y': obj['points'][6][1],
                                 }
                         }
-                    # elif obj['geometryType'] == 'bitmap':
-                    #     for ppoints in _base64_to_polygon(
-                    #         obj['bitmap']['data']
-                    #     ):
-                    #         sa_ppoints = [
-                    #             x + obj['bitmap']['origin'][0] if i %
-                    #             2 == 0 else x + obj['bitmap']['origin'][1]
-                    #             for i, x in enumerate(ppoints)
-                    #         ]
-                    #         sa_obj['type'] = 'polygon'
-                    #         sa_obj['points'] = sa_ppoints
+                    elif obj['geometryType'] == 'bitmap':
+                        for ppoints in _base64_to_polygon(
+                            obj['bitmap']['data']
+                        ):
+                            sa_ppoints = [
+                                x + obj['bitmap']['origin'][0] if i %
+                                2 == 0 else x + obj['bitmap']['origin'][1]
+                                for i, x in enumerate(ppoints)
+                            ]
+                            sa_obj['type'] = 'polygon'
+                            sa_obj['points'] = sa_ppoints
 
                     sa_loader.append(sa_obj)
         sa_jsons[file_name] = sa_loader
@@ -148,18 +145,12 @@ def supervisely_instance_segmentation_to_sa_vector(json_files, class_id_map):
                 attributes = []
                 if 'tags' in obj.keys():
                     for tag in obj['tags']:
-                        group_id = class_id_map[obj['classTitle']
-                                               ]['attr_group']['id']
                         group_name = class_id_map[obj['classTitle']
                                                  ]['attr_group']['group_name']
-                        attr_id = class_id_map[obj['classTitle']]['attr_group'][
-                            'attributes'][tag['name']]
                         attr_name = tag['name']
                         attributes.append(
                             {
-                                'id': attr_id,
                                 'name': attr_name,
-                                'groupId': group_id,
                                 'groupName': group_name
                             }
                         )
@@ -168,7 +159,6 @@ def supervisely_instance_segmentation_to_sa_vector(json_files, class_id_map):
                         'type': '',
                         'points': [],
                         'className': obj['classTitle'],
-                        'classId': class_id_map[obj['classTitle']]['id'],
                         'pointLabels': {},
                         'attributes': attributes,
                         'probability': 100,
@@ -202,18 +192,12 @@ def supervisely_object_detection_to_sa_vector(json_files, class_id_map):
                 attributes = []
                 if 'tags' in obj.keys():
                     for tag in obj['tags']:
-                        group_id = class_id_map[obj['classTitle']
-                                               ]['attr_group']['id']
                         group_name = class_id_map[obj['classTitle']
                                                  ]['attr_group']['group_name']
-                        attr_id = class_id_map[obj['classTitle']]['attr_group'][
-                            'attributes'][tag['name']]
                         attr_name = tag['name']
                         attributes.append(
                             {
-                                'id': attr_id,
                                 'name': attr_name,
-                                'groupId': group_id,
                                 'groupName': group_name
                             }
                         )
@@ -222,7 +206,6 @@ def supervisely_object_detection_to_sa_vector(json_files, class_id_map):
                         'type': '',
                         'points': [],
                         'className': obj['classTitle'],
-                        'classId': class_id_map[obj['classTitle']]['id'],
                         'pointLabels': {},
                         'attributes': attributes,
                         'probability': 100,
@@ -288,18 +271,12 @@ def supervisely_keypoint_detection_to_sa_vector(
                 attributes = []
                 if 'tags' in obj.keys():
                     for tag in obj['tags']:
-                        group_id = class_id_map[obj['classTitle']
-                                               ]['attr_group']['id']
                         group_name = class_id_map[obj['classTitle']
                                                  ]['attr_group']['group_name']
-                        attr_id = class_id_map[obj['classTitle']]['attr_group'][
-                            'attributes'][tag['name']]
                         attr_name = tag['name']
                         attributes.append(
                             {
-                                'id': attr_id,
                                 'name': attr_name,
-                                'groupId': group_id,
                                 'groupName': group_name
                             }
                         )
@@ -308,7 +285,6 @@ def supervisely_keypoint_detection_to_sa_vector(
                         'type': '',
                         'points': [],
                         'className': obj['classTitle'],
-                        'classId': class_id_map[obj['classTitle']]['id'],
                         'pointLabels': {},
                         'attributes': attributes,
                         'probability': 100,
