@@ -818,7 +818,11 @@ def upload_images_from_public_urls_to_project(
            Can be either "compressed" or "original".  If None then the default value in project settings will be used.
     :type image_quality_in_editor: str
 
+<<<<<<< HEAD
     :return: uploaded images' urls, uploaded images' filenames, duplicate images' filenames and not-uploaded images' urls
+=======
+    :return: uploaded images' urls, uploaded images' filepaths and not-uploaded images' urls
+>>>>>>> cb70103bc78da61ef8b315f8021fcffa4e22767c
     :rtype: tuple of list of strs
     """
     images_not_uploaded = []
@@ -848,7 +852,11 @@ def upload_images_from_public_urls_to_project(
 
                 path_to_url[str(img_path)] = img_url
                 images_to_upload.append(img_path)
+<<<<<<< HEAD
         images_uploaded_paths, images_not_uploaded_paths, duplicate_images_paths = upload_images_to_project(
+=======
+        images_uploaded_paths, images_not_uploaded_paths = upload_images_to_project(
+>>>>>>> cb70103bc78da61ef8b315f8021fcffa4e22767c
             project,
             images_to_upload,
             annotation_status=annotation_status,
@@ -863,6 +871,7 @@ def upload_images_from_public_urls_to_project(
         images_uploaded_filenames = [
             basename(path) for path in images_uploaded_paths
         ]
+<<<<<<< HEAD
         duplicate_images_filenames = [
             basename(path) for path in duplicate_images_paths
         ]
@@ -945,6 +954,9 @@ def upload_images_from_google_cloud_to_project(
         images_uploaded, images_uploaded_filenames, duplicate_images_filenames,
         images_not_uploaded
     )
+=======
+    return (images_uploaded, images_uploaded_filenames, images_not_uploaded)
+>>>>>>> cb70103bc78da61ef8b315f8021fcffa4e22767c
 
 
 def __upload_annotations_thread(
