@@ -120,7 +120,7 @@ def preannotations_upload(command_name, args):
 
         tempdir = tempfile.TemporaryDirectory()
         tempdir_path = Path(tempdir.name)
-        sa.import_annotation_format(
+        sa.import_annotation(
             args.folder, tempdir_path, "COCO", args.dataset_name, project_type,
             args.task
         )
