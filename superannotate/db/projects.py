@@ -286,7 +286,7 @@ def upload_video_to_project(
     zero_fill_count = len(str(total_num_of_frames))
     tempdir = tempfile.TemporaryDirectory()
 
-    video_name = Path(video_path).name
+    video_name = Path(video_path).stem
     frame_no = 1
     while True:
         success, frame = video.read()
