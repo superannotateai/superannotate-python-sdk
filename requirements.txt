@@ -16,3 +16,4 @@ plotly>=4.1.0
 ffmpeg-python>=0.2.0
 Shapely>=1.7.1
 google-cloud-storage>=1.33.0
+azure-storage-blob>=12.6.0

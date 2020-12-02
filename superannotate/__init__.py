@@ -61,6 +61,7 @@ from .db.projects import (
     upload_images_from_folder_to_project,
     upload_images_from_public_urls_to_project,
     upload_images_from_google_cloud_to_project,
+    upload_images_from_azure_blob_to_project,
     upload_images_from_s3_bucket_to_project, upload_images_to_project,
     upload_preannotations_from_folder_to_project, upload_video_to_project,
     upload_videos_from_folder_to_project
