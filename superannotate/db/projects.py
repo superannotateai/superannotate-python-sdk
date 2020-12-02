@@ -752,11 +752,6 @@ def upload_images_to_project(
         couldnt_upload.append([])
     finish_event = threading.Event()
     chunksize = int(math.ceil(len(img_paths) / _NUM_THREADS))
-    tqdm_thread = threading.Thread(
-        target=__tqdm_thread_image_upload,
-        args=(len_img_paths, uploaded, couldnt_upload, finish_event)
-    )
-    tqdm_thread.start()
     response = _api.send_request(
         req_type='GET',
         path=f'/project/{project_id}/sdkImageUploadToken',
@@ -769,6 +764,12 @@ def upload_images_to_project(
         raise SABaseException(
             response.status_code, "Couldn't get upload token " + response.text
         )
+    tqdm_thread = threading.Thread(
+        target=__tqdm_thread_image_upload,
+        args=(len_img_paths, uploaded, couldnt_upload, finish_event),
+        daemon=True
+    )
+    tqdm_thread.start()
 
     threads = []
     for thread_id in range(_NUM_THREADS):
@@ -778,7 +779,8 @@ def upload_images_to_project(
                 res, img_paths, project, annotation_status, prefix, thread_id,
                 chunksize, couldnt_upload, uploaded, image_quality_in_editor,
                 from_s3_bucket
-            )
+            ),
+            daemon=True
         )
         threads.append(t)
         t.start()
@@ -945,6 +947,7 @@ def upload_images_from_google_cloud_to_project(
         images_uploaded, images_uploaded_filenames, duplicate_images_filenames,
         images_not_uploaded
     )
+
 
 def __upload_annotations_thread(
     team_id, project_id, project_type, anns_filenames, folder_path,
@@ -1146,7 +1149,8 @@ def _upload_annotations_from_folder_to_project(
     finish_event = threading.Event()
     tqdm_thread = threading.Thread(
         target=__tqdm_thread,
-        args=(len_annotations_paths, num_uploaded, finish_event)
+        args=(len_annotations_paths, num_uploaded, finish_event),
+        daemon=True
     )
     tqdm_thread.start()
 
@@ -1163,7 +1167,8 @@ def _upload_annotations_from_folder_to_project(
                 team_id, project_id, project_type, annotations_filenames,
                 folder_path, annotation_classes_dict, thread_id, chunksize,
                 num_uploaded, from_s3_bucket, actually_uploaded
-            )
+            ),
+            daemon=True
         )
         threads.append(t)
         t.start()
@@ -1389,7 +1394,8 @@ def _upload_preannotations_from_folder_to_project(
     finish_event = threading.Event()
     tqdm_thread = threading.Thread(
         target=__tqdm_thread,
-        args=(len_preannotations_paths, num_uploaded, finish_event)
+        args=(len_preannotations_paths, num_uploaded, finish_event),
+        daemon=True
     )
     tqdm_thread.start()
     annotation_classes = search_annotation_classes(project)
@@ -1416,7 +1422,8 @@ def _upload_preannotations_from_folder_to_project(
                     aws_creds, project_type, preannotations_filenames,
                     folder_path, annotation_classes_dict, thread_id, chunksize,
                     num_uploaded, already_uploaded, from_s3_bucket
-                )
+                ),
+                daemon=True
             )
             threads.append(t)
             t.start()
