@@ -11,6 +11,8 @@ from .exceptions import SABaseException
 
 logger = logging.getLogger("superannotate-python-sdk")
 
+_CLI_COMMAND = Path(sys.argv[0]).name
+
 
 def ask_token():
     config_dir = Path.home() / ".superannotate"
@@ -46,19 +48,17 @@ def main():
     further_args = sys.argv[2:]
 
     if command == "create-project":
-        create_project(further_args)
+        create_project(command, further_args)
     elif command == "upload-images":
-        image_upload(further_args)
+        image_upload(command, further_args)
     elif command == "upload-videos":
-        video_upload(further_args)
-    elif command == "upload-preannotations":
-        preannotations_upload(further_args)
-    elif command == "upload-annotations":
-        preannotations_upload(further_args, annotations=True)
+        video_upload(command, further_args)
+    elif command in ["upload-preannotations", "upload-annotations"]:
+        preannotations_upload(command, further_args)
     elif command == "init":
         ask_token()
     elif command == "export-project":
-        export_project(further_args)
+        export_project(command, further_args)
     elif command == "version":
         print(f"SuperAnnotate Python SDK version {sa.__version__}")
     else:
@@ -72,8 +72,8 @@ def _list_str(values):
     return values.split(',')
 
 
-def preannotations_upload(args, annotations=False):
-    parser = argparse.ArgumentParser()
+def preannotations_upload(command_name, args):
+    parser = argparse.ArgumentParser(prog=_CLI_COMMAND + " " + command_name)
     parser.add_argument(
         '--project', required=True, help='Project name to upload'
     )
@@ -130,7 +130,7 @@ def preannotations_upload(args, annotations=False):
         Path(args.folder) / "classes" / "classes.json"
     )
 
-    if annotations:
+    if "pre" not in command_name:
         sa.upload_annotations_from_folder_to_project(
             project=args.project, folder_path=args.folder
         )
@@ -140,8 +140,8 @@ def preannotations_upload(args, annotations=False):
         )
 
 
-def create_project(args):
-    parser = argparse.ArgumentParser()
+def create_project(command_name, args):
+    parser = argparse.ArgumentParser(prog=_CLI_COMMAND + " " + command_name)
     parser.add_argument('--name', required=True, help='Project name to create')
     parser.add_argument(
         '--description', required=True, help='Project description'
@@ -154,8 +154,8 @@ def create_project(args):
     sa.create_project(args.name, args.description, args.type)
 
 
-def video_upload(args):
-    parser = argparse.ArgumentParser()
+def video_upload(command_name, args):
+    parser = argparse.ArgumentParser(prog=_CLI_COMMAND + " " + command_name)
     parser.add_argument(
         '--project', required=True, help='Project name to upload'
     )
@@ -221,8 +221,8 @@ def video_upload(args):
     )
 
 
-def image_upload(args):
-    parser = argparse.ArgumentParser()
+def image_upload(command_name, args):
+    parser = argparse.ArgumentParser(prog=_CLI_COMMAND + " " + command_name)
     parser.add_argument(
         '--project', required=True, help='Project name to upload'
     )
@@ -259,8 +259,8 @@ def image_upload(args):
     )
 
 
-def export_project(args):
-    parser = argparse.ArgumentParser()
+def export_project(command_name, args):
+    parser = argparse.ArgumentParser(prog=_CLI_COMMAND + " " + command_name)
     parser.add_argument(
         '--project', required=True, help='Project name to export'
     )
