@@ -10,6 +10,9 @@ logger = logging.getLogger("superannotate-python-sdk")
 
 class LabelBoxConverter(object):
     def __init__(self, args):
+        logger.warning(
+            "Beta feature. LabelBox to SuperAnnotate annotation format converter is in BETA state."
+        )
         self.dataset_name = args.dataset_name
         self.project_type = args.project_type
         self.task = args.task

@@ -1,12 +1,18 @@
 import json
 import time
+import logging
 import os
-from PIL import Image
 from pathlib import Path
+from PIL import Image
+
+logger = logging.getLogger("superannotate-python-sdk")
 
 
 class SageMakerConverter(object):
     def __init__(self, args):
+        logger.warning(
+            "Beta feature. SageMaker to SuperAnnotate annotation format converter is in BETA state."
+        )
         self.dataset_name = args.dataset_name
         self.project_type = args.project_type
         self.task = args.task
