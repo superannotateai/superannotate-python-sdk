@@ -154,6 +154,21 @@ Only when COCO format is specified *dataset-name* and *task* arguments are requi
 
 The annotation classes will be created during the execution of this command.
 
+----------
+
+.. _ref_export_project:
+
+Exporting projects
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+To export project
+
+.. code-block:: bash
+
+   superannotatecli export-project --project <project_name> --folder <folder_path> 
+                                   [--include-fuse]
+                                   [--disable_extract_zip_contents] 
+                                   [--annotation-statuses <comma separated list of annotation statuses to export>]
 
 ----------
 
