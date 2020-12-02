@@ -16,6 +16,8 @@ def test_upload_images_from_public_urls_to_project():
         'https://www.pexels.com/photo/3702354/dwnload/', '', 'test_non_url'
     ]
 
+    if sa.search_projects(PROJECT_NAME) != []:
+        sa.delete_project(PROJECT_NAME)
     proj_data = sa.create_project(PROJECT_NAME, "test", "Vector")
     uploaded_urls, uploaded_filenames, duplicate_filenames, not_uploaded_urls = sa.upload_images_from_public_urls_to_project(
         proj_data,
@@ -26,7 +28,6 @@ def test_upload_images_from_public_urls_to_project():
     images_in_project = sa.search_images(
         proj_data, annotation_status='InProgress'
     )
-    sa.delete_project(proj_data)
     # check how many images were uploaded and how many were not
     assert len(uploaded_urls) == 3
     assert len(duplicate_filenames) == 0

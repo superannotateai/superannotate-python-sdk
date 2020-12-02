@@ -19,6 +19,8 @@ def test_upload_images_from_google_cloud_to_project():
         (folder_path_empty, [0, 0, 0, 0]),
         (folder_path_non_existent, [0, 0, 0, 0])
     ]
+    if sa.search_projects(PROJECT_NAME) != []:
+        sa.delete_project(PROJECT_NAME)
     proj_data = sa.create_project(PROJECT_NAME, "test", "Vector")
     for folder_path, true_res in test_folders:
         uploaded_urls, uploaded_filenames, duplicate_filenames, not_uploaded_urls = sa.upload_images_from_google_cloud_to_project(
@@ -33,5 +35,3 @@ def test_upload_images_from_google_cloud_to_project():
         assert len(duplicate_filenames) == true_res[1]
         assert len(uploaded_filenames) == true_res[2]
         assert len(not_uploaded_urls) == true_res[3]
-
-    sa.delete_project(proj_data)
