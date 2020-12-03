@@ -95,26 +95,33 @@ logger.addHandler(handler)
 
 
 def _check_version():
-    _req = requests.get('https://pypi.python.org/pypi/superannotate/json')
-    if _req.ok:
-        _version = packaging.version.parse(__version__)
-        _version_on_pip = packaging.version.parse('0')
-        _j = _req.json()
-        _releases = _j.get('releases', [])
-        for _release in _releases:
-            _ver = packaging.version.parse(_release)
-            if not _ver.is_prerelease:
-                _version_on_pip = max(_version_on_pip, _ver)
-        if _version_on_pip.major > _version.major:
-            logger.warning(
-                "There is a major upgrade of SuperAnnotate Python SDK available on PyPI. We recommend upgrading. Run 'pip install --upgrade superannotate' to upgrade from your version %s to %s.",
-                _version, _version_on_pip
-            )
-        elif _version_on_pip > _version:
-            logger.info(
-                "There is a newer version of SuperAnnotate Python SDK available on PyPI. Run 'pip install --upgrade superannotate' to upgrade from your version %s to %s.",
-                _version, _version_on_pip
-            )
+    local_version = packaging.version.parse(__version__)
+    if local_version.is_prerelease:
+        logger.warning(
+            "Beta version %s of SuperAnnotate SDK is being used.", __version__
+        )
+    req = requests.get('https://pypi.python.org/pypi/superannotate/json')
+    if not req.ok:
+        return
+
+    # find max version on PyPI
+    releases = req.json().get('releases', [])
+    pip_version = packaging.version.parse('0')
+    for release in releases:
+        ver = packaging.version.parse(release)
+        if not ver.is_prerelease or local_version.is_prerelease:
+            pip_version = max(pip_version, ver)
+
+    if pip_version.major > local_version.major:
+        logger.warning(
+            "There is a major upgrade of SuperAnnotate Python SDK available on PyPI. We recommend upgrading. Run 'pip install --upgrade superannotate' to upgrade from your version %s to %s.",
+            local_version, pip_version
+        )
+    elif pip_version > local_version:
+        logger.info(
+            "There is a newer version of SuperAnnotate Python SDK available on PyPI. Run 'pip install --upgrade superannotate' to upgrade from your version %s to %s.",
+            local_version, pip_version
+        )
 
 
 _api = API.get_instance()
