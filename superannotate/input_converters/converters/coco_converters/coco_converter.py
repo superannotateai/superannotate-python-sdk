@@ -1,18 +1,19 @@
 """
 """
-from datetime import datetime
-from collections import namedtuple
 import json
 import os
+import sys
+import time
+from collections import namedtuple
+from datetime import datetime
+from pathlib import Path
+
 import numpy as np
 from panopticapi.utils import id2rgb
 from PIL import Image
 
-import time
-from pathlib import Path
 
-
-class CoCoConverter(object):
+class CoCoConverter():
     def __init__(self, args):
         self.project_type = args.project_type
         self.dataset_name = args.dataset_name
@@ -254,7 +255,7 @@ class CoCoConverter(object):
             json.dump(new_json, fw)
 
         with open(path / 'config.json', 'w') as fw:
-            json.dump({"pathSeparator": os.sep, "os": os.uname().sysname}, fw)
+            json.dump({"pathSeparator": os.sep, "os": sys.platform}, fw)
 
     def save_web_format(self, classes, files_dict):
         path = Path(self.output_dir)

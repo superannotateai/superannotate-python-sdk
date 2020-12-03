@@ -1,9 +1,11 @@
 import json
 import logging
-import time
 import os
-from PIL import Image
+import sys
+import time
 from pathlib import Path
+
+from PIL import Image
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -80,7 +82,7 @@ class YOLOConverter():
             json.dump(new_json, fw)
 
         with open(path / 'config.json', 'w') as fw:
-            json.dump({"pathSeparator": os.sep, "os": os.uname().sysname}, fw)
+            json.dump({"pathSeparator": os.sep, "os": sys.platform}, fw)
 
     def save_web_format(self, classes, files_dict):
         path = Path(self.output_dir)
