@@ -73,12 +73,18 @@ class CoCoConverter():
         out_json = {
             'info':
                 {
-                    'description': 'This is dataset.'.format(self.dataset_name),
-                    'url': 'https://superannotate.ai',
-                    'version': '1.0',
-                    'year': 2020,
-                    'contributor': 'Superannotate AI',
-                    'date_created': datetime.now().strftime("%d/%m/%Y")
+                    'description':
+                        'This is {} dataset.'.format(self.dataset_name),
+                    'url':
+                        'https://superannotate.ai',
+                    'version':
+                        '1.0',
+                    'year':
+                        2020,
+                    'contributor':
+                        'Superannotate AI',
+                    'date_created':
+                        datetime.now().strftime("%d/%m/%Y")
                 },
             'licenses':
                 [
