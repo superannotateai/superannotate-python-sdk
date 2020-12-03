@@ -98,7 +98,8 @@ def _check_version():
     local_version = packaging.version.parse(__version__)
     if local_version.is_prerelease:
         logger.warning(
-            "Beta version %s of SuperAnnotate SDK is being used.", __version__
+            "Development version %s of SuperAnnotate SDK is being used",
+            __version__
         )
     req = requests.get('https://pypi.python.org/pypi/superannotate/json')
     if not req.ok:
