@@ -2,13 +2,14 @@ import json
 import logging
 import os
 import shutil
+import sys
 import time
 from pathlib import Path
 
-from PIL import Image
-from tqdm import tqdm
 import cv2
 import numpy as np
+from PIL import Image
+from tqdm import tqdm
 
 from ..common import blue_color_generator, hex_to_rgb
 from ..exceptions import SABaseException
@@ -73,7 +74,7 @@ def _merge_jsons(input_dir, output_dir):
         fw.write(json.dumps(files_path))
 
     with open(output_dir / 'config.json', 'w') as fw:
-        json.dump({"pathSeparator": os.sep, "os": os.uname().sysname}, fw)
+        json.dump({"pathSeparator": os.sep, "os": sys.platform}, fw)
 
     with open(output_dir / "annotations.json", "w") as final_json_file:
         json.dump(merged_json, final_json_file, indent=2)

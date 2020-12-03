@@ -1,14 +1,16 @@
 import json
-import time
-import os
 import logging
+import os
+import sys
+import time
 from pathlib import Path
+
 from PIL import Image
 
 logger = logging.getLogger("superannotate-python-sdk")
 
 
-class GoogleCloudConverter(object):
+class GoogleCloudConverter():
     def __init__(self, args):
         logger.warning(
             "Beta feature. GoogleCloud to SuperAnnotate annotation format converter is in BETA state."
@@ -80,7 +82,7 @@ class GoogleCloudConverter(object):
             json.dump(new_json, fw)
 
         with open(path / 'config.json', 'w') as fw:
-            json.dump({"pathSeparator": os.sep, "os": os.uname().sysname}, fw)
+            json.dump({"pathSeparator": os.sep, "os": sys.platform}, fw)
 
     def save_web_format(self, classes, files_dict):
         path = Path(self.output_dir)
