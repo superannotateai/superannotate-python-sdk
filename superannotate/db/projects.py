@@ -18,6 +18,7 @@ import boto3
 import cv2
 import ffmpeg
 from google.cloud import storage
+from azure.storage.blob import BlobServiceClient
 from PIL import Image, ImageOps
 from tqdm import tqdm
 
@@ -952,6 +953,180 @@ def upload_images_from_google_cloud_to_project(
         duplicate_images_filenames.extend(
             [basename(path) for path in duplicate_images_paths]
         )
+    return (
+        images_uploaded, images_uploaded_filenames, duplicate_images_filenames,
+        images_not_uploaded
+    )
+
+
+def upload_images_from_azure_blob_to_project(
+    project,
+    container_name,
+    folder_path,
+    annotation_status='NotStarted',
+    image_quality_in_editor=None
+):
+    """Uploads all images present in folder_path at container_name Azure blob storage to the project.
+    Sets status of all the uploaded images to set_status if it is not None.
+
+    :param project: project name or metadata of the project to upload images to
+    :type project: str or dict
+    :param container_name: container name of the Azure blob storage
+    :type container_name: str
+    :param folder_path: path of the folder on the bucket where the images are stored
+    :type folder_path: str
+    :param annotation_status: value to set the annotation statuses of the uploaded images NotStarted InProgress QualityCheck Returned Completed Skipped
+    :type annotation_status: str
+    :param image_quality_in_editor: image quality be seen in SuperAnnotate web annotation editor.
+           Can be either "compressed" or "original".  If None then the default value in project settings will be used.
+    :type image_quality_in_editor: str
+
+    :return: uploaded images' urls, uploaded images' filenames, duplicate images' filenames and not-uploaded images' urls
+    :rtype: tuple of list of strs
+    """
+    images_not_uploaded = []
+    images_to_upload = []
+    duplicate_images_filenames = []
+    path_to_url = {}
+    connect_key = os.getenv('AZURE_STORAGE_CONNECTION_STRING')
+    blob_service_client = BlobServiceClient.from_connection_string(connect_key)
+    container_client = blob_service_client.get_container_client(container_name)
+    image_blobs = container_client.list_blobs(name_starts_with=folder_path)
+    with tempfile.TemporaryDirectory() as save_dir_name:
+        save_dir = Path(save_dir_name)
+        for image_blob in image_blobs:
+            content_type = image_blob.content_settings.get('content_type')
+            if content_type is None:
+                logger.warning(
+                    "Couldn't download image %s, content type could not be verified",
+                    image_blob.name
+                )
+                continue
+            if content_type.split('/')[0] != 'image':
+                continue
+            image_name = basename(image_blob.name)
+            image_save_pth = save_dir / image_name
+            if image_save_pth in path_to_url.keys():
+                duplicate_images_filenames.append(basename(image_save_pth))
+                continue
+            try:
+                image_blob_client = blob_service_client.get_blob_client(
+                    container=container_name, blob=image_blob
+                )
+                image_stream = image_blob_client.download_blob()
+            except Exception as e:
+                logger.warning(
+                    "Couldn't download image %s, %s", image_blob.name, str(e)
+                )
+                images_not_uploaded.append(image_blob.name)
+            else:
+                with open(image_save_pth, 'wb') as image_file:
+                    image_file.write(image_stream.readall())
+                path_to_url[str(image_save_pth)] = image_blob.name
+                images_to_upload.append(image_save_pth)
+        images_uploaded_paths, images_not_uploaded_paths, duplicate_images_paths = upload_images_to_project(
+            project,
+            images_to_upload,
+            annotation_status=annotation_status,
+            image_quality_in_editor=image_quality_in_editor
+        )
+        images_not_uploaded.extend(
+            [path_to_url[str(path)] for path in images_not_uploaded_paths]
+        )
+        images_uploaded = [
+            path_to_url[str(path)] for path in images_uploaded_paths
+        ]
+        images_uploaded_filenames = [
+            basename(path) for path in images_uploaded_paths
+        ]
+        duplicate_images_filenames.extend(
+            [basename(path) for path in duplicate_images_paths]
+        )
+    return (
+        images_uploaded, images_uploaded_filenames, duplicate_images_filenames,
+        images_not_uploaded
+    )
+
+
+def upload_images_from_azure_blob_to_project(
+    project,
+    container_name,
+    folder_path,
+    annotation_status='NotStarted',
+    image_quality_in_editor=None
+):
+    """Uploads all images present in folder_path at container_name Azure blob storage to the project.
+    Sets status of all the uploaded images to set_status if it is not None.
+
+    :param project: project name or metadata of the project to upload images to
+    :type project: str or dict
+    :param container_name: container name of the Azure blob storage
+    :type container_name: str
+    :param folder_path: path of the folder on the bucket where the images are stored
+    :type folder_path: str
+    :param annotation_status: value to set the annotation statuses of the uploaded images NotStarted InProgress QualityCheck Returned Completed Skipped
+    :type annotation_status: str
+    :param image_quality_in_editor: image quality be seen in SuperAnnotate web annotation editor.
+           Can be either "compressed" or "original".  If None then the default value in project settings will be used.
+    :type image_quality_in_editor: str
+
+    :return: uploaded images' urls, uploaded images' filenames, duplicate images' filenames and not-uploaded images' urls
+    :rtype: tuple of list of strs
+    """
+    images_not_uploaded = []
+    images_to_upload = []
+    path_to_url = {}
+    connect_key = os.getenv('AZURE_STORAGE_CONNECTION_STRING')
+    blob_service_client = BlobServiceClient.from_connection_string(connect_key)
+    container_client = blob_service_client.get_container_client(container_name)
+    image_blobs = container_client.list_blobs(name_starts_with=folder_path)
+    with tempfile.TemporaryDirectory() as save_dir_name:
+        save_dir = Path(save_dir_name)
+        for image_blob in image_blobs:
+            content_type = image_blob.content_settings.get('content_type')
+            if content_type is None:
+                logger.warning(
+                    "Couldn't download image %s, content type could not be verified",
+                    image_blob.name
+                )
+                continue
+            if content_type.split('/')[0] != 'image':
+                continue
+            image_name = basename(image_blob.name)
+            image_save_pth = save_dir / image_name
+            try:
+                image_blob_client = blob_service_client.get_blob_client(
+                    container=container_name, blob=image_blob
+                )
+                image_stream = image_blob_client.download_blob()
+            except Exception as e:
+                logger.warning(
+                    "Couldn't download image %s, %s", image_blob.name, str(e)
+                )
+                images_not_uploaded.append(image_blob.name)
+            else:
+                with open(image_save_pth, 'wb') as image_file:
+                    image_file.write(image_stream.readall())
+                path_to_url[str(image_save_pth)] = image_blob.name
+                images_to_upload.append(image_save_pth)
+        images_uploaded_paths, images_not_uploaded_paths, duplicate_images_paths = upload_images_to_project(
+            project,
+            images_to_upload,
+            annotation_status=annotation_status,
+            image_quality_in_editor=image_quality_in_editor
+        )
+        images_not_uploaded.extend(
+            [path_to_url[str(path)] for path in images_not_uploaded_paths]
+        )
+        images_uploaded = [
+            path_to_url[str(path)] for path in images_uploaded_paths
+        ]
+        images_uploaded_filenames = [
+            basename(path) for path in images_uploaded_paths
+        ]
+        duplicate_images_filenames = [
+            basename(path) for path in duplicate_images_paths
+        ]
     return (
         images_uploaded, images_uploaded_filenames, duplicate_images_filenames,
         images_not_uploaded
