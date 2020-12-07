@@ -146,7 +146,7 @@ def prepare_export(
         "Prepared export %s for project %s (ID %s).", res['name'],
         project["name"], project["id"]
     )
-    return res["name"]
+    return res
 
 
 def __tqdm_thread(total_num, current_nums, finish_event):
