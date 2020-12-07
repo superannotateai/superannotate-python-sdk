@@ -13,6 +13,7 @@ def test_upload_images_from_public_urls_to_project():
         'https://images.pexels.com/photos/3702354/pexels-photo-3702354.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940',
         'https://www.pexels.com/photo/5450829/download/',
         'https://www.pexels.com/photo/3702354/download/',
+        'https://www.pexels.com/photo/3702354/download/',
         'https://www.pexels.com/photo/3702354/dwnload/', '', 'test_non_url'
     ]
 
@@ -30,7 +31,7 @@ def test_upload_images_from_public_urls_to_project():
     )
     # check how many images were uploaded and how many were not
     assert len(uploaded_urls) == 3
-    assert len(duplicate_filenames) == 0
+    assert len(duplicate_filenames) == 1
     assert len(uploaded_filenames) == 3
     assert len(not_uploaded_urls) == 3
 

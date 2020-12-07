@@ -825,6 +825,7 @@ def upload_images_from_public_urls_to_project(
     """
     images_not_uploaded = []
     images_to_upload = []
+    duplicate_images_filenames = []
     path_to_url = {}
     with tempfile.TemporaryDirectory() as save_dir_name:
         save_dir = Path(save_dir_name)
@@ -844,6 +845,10 @@ def upload_images_from_public_urls_to_project(
                     )[1]['filename']
                 else:
                     img_path = save_dir / basename(urlparse(img_url).path)
+
+                if str(img_path) in path_to_url.keys():
+                    duplicate_images_filenames.append(basename(img_path))
+                    continue
 
                 with open(img_path, 'wb') as f:
                     f.write(response.content)
@@ -865,9 +870,9 @@ def upload_images_from_public_urls_to_project(
         images_uploaded_filenames = [
             basename(path) for path in images_uploaded_paths
         ]
-        duplicate_images_filenames = [
-            basename(path) for path in duplicate_images_paths
-        ]
+        duplicate_images_filenames.extend(
+            [basename(path) for path in duplicate_images_paths]
+        )
     return (
         images_uploaded, images_uploaded_filenames, duplicate_images_filenames,
         images_not_uploaded
@@ -904,6 +909,7 @@ def upload_images_from_google_cloud_to_project(
     """
     images_not_uploaded = []
     images_to_upload = []
+    duplicate_images_filenames = []
     path_to_url = {}
     cloud_client = storage.Client(project=google_project)
     bucket = cloud_client.get_bucket(bucket_name)
@@ -915,6 +921,9 @@ def upload_images_from_google_cloud_to_project(
                 continue
             image_name = basename(image_blob.name)
             image_save_pth = save_dir / image_name
+            if image_save_pth in path_to_url.keys():
+                duplicate_images_filenames.append(basename(image_save_pth))
+                continue
             try:
                 image_blob.download_to_filename(image_save_pth)
             except Exception as e:
@@ -940,9 +949,9 @@ def upload_images_from_google_cloud_to_project(
         images_uploaded_filenames = [
             basename(path) for path in images_uploaded_paths
         ]
-        duplicate_images_filenames = [
-            basename(path) for path in duplicate_images_paths
-        ]
+        duplicate_images_filenames.extend(
+            [basename(path) for path in duplicate_images_paths]
+        )
     return (
         images_uploaded, images_uploaded_filenames, duplicate_images_filenames,
         images_not_uploaded

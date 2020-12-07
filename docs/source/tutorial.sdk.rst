@@ -34,8 +34,8 @@ you might also need to install beforehand :py:obj:`shapely` package:
 
    conda install shapely
 
-and C++ build tools from `Microsoft Visual Studio Tools
-<https://visualstudio.microsoft.com/visual-cpp-build-tools/>`_.
+and `C++ build tools from Microsoft
+<https://go.microsoft.com/fwlink/?LinkId=691126>`_.
 
 ----------
 
