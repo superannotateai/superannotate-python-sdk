@@ -286,8 +286,8 @@ _____________________________________________________________
 
 
 .. _ref_import_annotation_format:
-.. autofunction:: superannotate.import_annotation_format
-.. autofunction:: superannotate.export_annotation_format
+.. autofunction:: superannotate.import_annotation
+.. autofunction:: superannotate.export_annotation
 .. autofunction:: superannotate.convert_project_type
 .. autofunction:: superannotate.convert_platform
 .. autofunction:: superannotate.coco_split_dataset
