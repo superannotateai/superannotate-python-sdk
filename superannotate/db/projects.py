@@ -986,6 +986,7 @@ def upload_images_from_azure_blob_to_project(
     """
     images_not_uploaded = []
     images_to_upload = []
+    duplicate_images_filenames = []
     path_to_url = {}
     connect_key = os.getenv('AZURE_STORAGE_CONNECTION_STRING')
     blob_service_client = BlobServiceClient.from_connection_string(connect_key)
@@ -1005,6 +1006,9 @@ def upload_images_from_azure_blob_to_project(
                 continue
             image_name = basename(image_blob.name)
             image_save_pth = save_dir / image_name
+            if image_save_pth in path_to_url.keys():
+                duplicate_images_filenames.append(basename(image_save_pth))
+                continue
             try:
                 image_blob_client = blob_service_client.get_blob_client(
                     container=container_name, blob=image_blob
@@ -1035,9 +1039,9 @@ def upload_images_from_azure_blob_to_project(
         images_uploaded_filenames = [
             basename(path) for path in images_uploaded_paths
         ]
-        duplicate_images_filenames = [
-            basename(path) for path in duplicate_images_paths
-        ]
+        duplicate_images_filenames.extend(
+            [basename(path) for path in duplicate_images_paths]
+        )
     return (
         images_uploaded, images_uploaded_filenames, duplicate_images_filenames,
         images_not_uploaded
