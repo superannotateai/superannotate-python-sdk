@@ -219,7 +219,7 @@ def import_annotation(
     input_dir,
     output_dir,
     dataset_format,
-    dataset_name,
+    dataset_name='',
     project_type="Vector",
     task="object_detection",
     platform="Web",

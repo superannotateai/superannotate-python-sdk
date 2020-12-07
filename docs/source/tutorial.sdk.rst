@@ -244,7 +244,7 @@ to convert them to other annotation formats:
 
 .. code-block:: python
 
-    sa.export_annotation_format("<input_folder>", "<output_folder>", "<dataset_format>", "<dataset_name>",
+    sa.export_annotation("<input_folder>", "<output_folder>", "<dataset_format>", "<dataset_name>",
     "<project_type>", "<task>", "<platform>")
 
 .. note::
@@ -260,77 +260,77 @@ You can find more information annotation format conversion :ref:`here <ref_conve
    import superannotate as sa
 
     # From SA panoptic format to COCO panoptic format
-    sa.export_annotation_format(
+    sa.export_annotation(
        "tests/converter_test/COCO/input/fromSuperAnnotate/cats_dogs_panoptic_segm",
        "tests/converter_test/COCO/output/panoptic",
        "COCO", "panoptic_test", "Pixel","panoptic_segmentation","Web"
     )
 
     # From COCO keypoints detection format to SA keypoints detection desktop application format 
-    sa.import_annotation_format(
+    sa.import_annotation(
        "tests/converter_test/COCO/input/toSuperAnnotate/keypoint_detection",
        "tests/converter_test/COCO/output/keypoints",
        "COCO", "person_keypoints_test", "Vector", "keypoint_detection", "Desktop"
     )
 
     # Pascal VOC annotation format to SA Web platform annotation format
-    sa.import_annotation_format(
+    sa.import_annotation(
        "tests/converter_test/VOC/input/fromPascalVOCToSuperAnnotate/VOC2012",
        "tests/converter_test/VOC/output/instances",
        "VOC", "instances_test", "Pixel", "instance_segmentation", "Web"
     )
 
     # YOLO annotation format to SA Web platform annotation format
-    sa.import_annotation_format(
+    sa.import_annotation(
       'tests/converter_test/YOLO/input/toSuperAnnotate',
       'tests/converter_test/YOLO/output',
       'YOLO', '', 'Vector', 'object_detection', 'Web'
       )
 
     # LabelBox annotation format to SA Desktop application annotation format
-    sa.import_annotation_format(
+    sa.import_annotation(
        "tests/converter_test/LabelBox/input/toSuperAnnotate/",
        "tests/converter_test/LabelBox/output/objects/",
        "LabelBox", "labelbox_example", "Vector", "object_detection", "Desktop"
     )
 
     # Supervisely annotation format to SA Web platform annotation format
-    sa.import_annotation_format(
+    sa.import_annotation(
        "tests/converter_test/Supervisely/input/toSuperAnnotate",
        "tests/converter_test/Supervisely/output",
        "Supervisely", "", "Vector", "vector_annotation", "Web"
     )
 
     # DataLoop annotation format to SA Web platform annotation format
-    sa.import_annotation_format(
+    sa.import_annotation(
        "tests/converter_test/DataLoop/input/toSuperAnnotate",
        "tests/converter_test/DataLoop/output",
        "DataLoop", "", "Vector", "vector_annotation", "Web"
     )
 
     # VGG annotation format to SA Web platform annotation format
-    sa.import_annotation_format(
+    sa.import_annotation(
        "tests/converter_test/VGG/input/toSuperAnnotate",
        "tests/converter_test/VGG/output",
        "VGG", "vgg_test", "Vector", "instance_segmentation", "Web"
     )
 
     # VoTT annotation format to SA Web platform annotation format
-    sa.import_annotation_format(
+    sa.import_annotation(
        "tests/converter_test/VoTT/input/toSuperAnnotate",
        "tests/converter_test/VoTT/output",
        "VoTT", "", "Vector", "vector_annotation", "Web"
     )
 
     # GoogleCloud annotation format to SA Web platform annotation format
-    sa.import_annotation_format(
+    sa.import_annotation(
        "tests/converter_test/GoogleCloud/input/toSuperAnnotate",
        "tests/converter_test/GoogleCloud/output",
        "GoogleCloud", "image_object_detection", "Vector", "object_detection", "Web"
     )
 
     # GoogleCloud annotation format to SA desktop application annotation format
-    sa.import_annotation_format(
+    sa.import_annotation(
        "tests/converter_test/SageMaker/input/toSuperAnnotate",
        "tests/converter_test/SageMaker/output",
        "SageMaker", "test-obj-detect", "Vector", "object_detection", "Desktop"
