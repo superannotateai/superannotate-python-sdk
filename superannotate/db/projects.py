@@ -442,6 +442,10 @@ def upload_images_from_folder_to_project(
     """Uploads all images with given extensions from folder_path to the project.
     Sets status of all the uploaded images to set_status if it is not None.
 
+    If an image with existing name already exists in the project it won't be uploaded,
+    and its path will be appended to the third member of return value of this
+    function.
+
     :param project: project name or metadata of the project to upload images_to
     :type project: str or dict
     :param folder_path: from which folder to upload the images
@@ -464,8 +468,8 @@ def upload_images_from_folder_to_project(
            Can be either "compressed" or "original".  If None then the default value in project settings will be used.
     :type image_quality_in_editor: str
 
-    :return: uploaded and not-uploaded images' filepaths
-    :rtype: tuple of list of strs
+    :return: uploaded, could-not-upload, existing-images filepaths
+    :rtype: tuple (3 members) of list of strs
     """
     if not isinstance(project, dict):
         project = get_project_metadata_bare(project)
