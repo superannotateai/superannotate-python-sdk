@@ -1,13 +1,13 @@
-from .common import aggregate_annotations_as_df
-
-from pathlib import Path
-import plotly.express as px
-from plotly.subplots import make_subplots
-import plotly.graph_objects as go
-import pandas as pd
-
 import json
 import logging
+from pathlib import Path
+
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+
+from .common import aggregate_annotations_as_df
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -19,7 +19,7 @@ def class_distribution(export_root, project_names, visualize=False):
     :type export_root: Pathlike (str or Path)
     :param project_names: list of project names to aggregate through
     :type project_names: list of str
-    :param visulaize: enables class histogram plot
+    :param visualize: enables class histogram plot
     :type visualize: bool
     :return: DataFrame on class distribution with columns ["className", "count"]
     :rtype: pandas DataFrame
@@ -72,7 +72,7 @@ def attribute_distribution(export_root, project_names, visualize=False):
     :type project_names: list of str
     :param visulaize: enables attribute histogram plot
     :type visualize: bool
-    :return: DataFrame on attribute distribution with columns ["className", "attributeGroupName", "attributeName", "count"] 
+    :return: DataFrame on attribute distribution with columns ["className", "attributeGroupName", "attributeName", "count"]
     :rtype: pandas DataFrame
     """
 
