@@ -1,9 +1,9 @@
-from glob import glob
+import logging
 import os
+from glob import glob
+
 import cv2
 import numpy as np
-
-import logging
 
 logger = logging.getLogger("superannotate-python-sdk")
 

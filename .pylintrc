@@ -4,13 +4,6 @@ good-names=df,f,e
 [MASTER]
 load-plugins=pylint_pytest
 
-[TYPECHECK]
-generated-members=
-  numpy.* ,torch.* ,cv2.* , cv.*, sh.*
-
-[MESSAGES CONTROL]
-# disable= C0103,C0111,C0301,C0330,R0902,R0903,R0912,R0913,R0914,R0915,W1510"],
-
 [SPELLING]
 
 max-spelling-suggestions=50
