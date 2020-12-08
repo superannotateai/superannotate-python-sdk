@@ -1,14 +1,10 @@
-from pathlib import Path
 import filecmp
 import json
+from pathlib import Path
 
 import pytest
 
 import superannotate as sa
-
-sa.init(Path.home() / ".superannotate" / "config.json")
-
-PROJECT_NAME = "testing_1419"
 
 
 @pytest.mark.parametrize(
@@ -31,7 +27,9 @@ def test_annotation_download_upload(
     projects = sa.search_projects(name, return_metadata=True)
     for project in projects:
         sa.delete_project(project)
+
     project = sa.create_project(name, description, project_type)
+
     sa.upload_images_from_folder_to_project(
         project, from_folder, annotation_status="NotStarted"
     )
@@ -39,8 +37,20 @@ def test_annotation_download_upload(
         project, from_folder / "classes" / "classes.json"
     )
     sa.upload_annotations_from_folder_to_project(project, from_folder)
+
     image = sa.search_images(project)[2]
-    sa.download_image_annotations(project, image, tmpdir)
+    paths = sa.download_image_annotations(project, image, tmpdir)
+
+    input_annotation_paths_after = sa.image_path_to_annotation_paths(
+        tmpdir / image, project_type
+    )
+
+    assert paths[0] == str(input_annotation_paths_after[0])
+    if project_type == "Pixel":
+        assert paths[1] == str(input_annotation_paths_after[1])
+    else:
+        assert len(paths) == 1
+
     anns_json_in_folder = list(Path(tmpdir).glob("*.json"))
     anns_mask_in_folder = list(Path(tmpdir).glob("*.png"))
     assert len(anns_json_in_folder) == 1
@@ -61,4 +71,3 @@ def test_annotation_download_upload(
         assert filecmp.cmp(
             input_annotation_paths[1], anns_mask_in_folder[0], shallow=False
         )
-    # sa.download_image_preannotations(image, tmpdir)
