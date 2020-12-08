@@ -52,7 +52,6 @@ def test_cli_image_upload_project_export(tmpdir):
     assert len(list(tmpdir.glob("*.json"))) == 1
     assert len(list(tmpdir.glob("*.jpg"))) == 0
     assert len(list(tmpdir.glob("*.png"))) == 0
-    time.sleep(60)
 
     subprocess.run(
         f'superannotatecli export-project --project "{PROJECT_NAME}" --folder {tmpdir} --include-fuse',
