@@ -1,5 +1,6 @@
-from pathlib import Path
 import os
+import time
+from pathlib import Path
 
 import pytest
 
@@ -19,7 +20,7 @@ def test_upload_stress(tmpdir):
     projects = sa.search_projects(PROJECT_NAME, return_metadata=True)
     for project in projects:
         sa.delete_project(project)
-    project = sa.create_project(PROJECT_NAME, "hk", 1)
+    project = sa.create_project(PROJECT_NAME, "hk", "Vector")
 
     sa.create_annotation_classes_from_classes_json(
         project, "tests/sample_project_vector/classes/classes.json"
@@ -30,5 +31,6 @@ def test_upload_stress(tmpdir):
         "/media/disc_drive/datasets/COCO/test2017",
         annotation_status="QualityCheck"
     )
+    time.sleep(60)
     count = sa.get_project_image_count(project)
     assert count == 40670
