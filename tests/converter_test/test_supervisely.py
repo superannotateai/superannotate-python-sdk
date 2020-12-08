@@ -13,7 +13,7 @@ def test_supervisely_convert_vector(tmpdir):
         'Web'
     )
 
-    project_name = "supervisely_test_vector"
+    project_name = "supervisely_test_vector_basic"
 
     projects = sa.search_projects(project_name, True)
     for project in projects:
