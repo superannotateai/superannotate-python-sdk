@@ -34,3 +34,11 @@ def test_upload_stress(tmpdir):
     time.sleep(60)
     count = sa.get_project_image_count(project)
     assert count == 40670
+
+    export = sa.prepare_export(project)
+    sa.download_export(project, export, tmpdir)
+
+    count_in_project = sa.get_project_image_count(project)
+    count_in_folder = len(list(Path(tmpdir).glob("*.jpg")))
+
+    assert count_in_project == count_in_folder
