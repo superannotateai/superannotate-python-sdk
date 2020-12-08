@@ -1,3 +1,6 @@
+[MASTER]
+load-plugins=pylint_pytest
+
 [TYPECHECK]
 generated-members=
   numpy.* ,torch.* ,cv2.* , cv.*, sh.*
