@@ -1,3 +1,6 @@
+[BASIC]
+good-names=df,f,e
+
 [MASTER]
 load-plugins=pylint_pytest
 

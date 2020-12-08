@@ -28,7 +28,7 @@ def test_image_copy_mult(tmpdir):
     sa.create_annotation_classes_from_classes_json(
         project, "./tests/sample_project_vector/classes/classes.json"
     )
-    sa.upload_annotations_from_json_to_image(
+    sa.upload_image_annotations(
         project, "example_image_1.jpg",
         "./tests/sample_project_vector/example_image_1.jpg___objects.json"
     )

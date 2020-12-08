@@ -12,13 +12,13 @@ from ..exceptions import SABaseException
 from .images import (
     delete_image, get_image_annotations, get_image_bytes, get_image_metadata,
     search_images, set_image_annotation_status,
-    upload_annotations_from_json_to_image
-)
-from .projects import (
-    __create_image, _get_project_image_quality_in_editor,
-    get_image_array_to_upload
+    upload_image_annotations
 )
 from .project_api import get_project_metadata_bare
+from .projects import (
+    __create_image, _get_project_image_quality_in_editor,
+    get_image_array_to_upload, upload_image_array_to_s3
+)
 
 logger = logging.getLogger("superannotate-python-sdk")
 _api = API.get_instance()
@@ -100,15 +100,10 @@ def upload_image_to_project(
     )
     s3_resource = s3_session.resource('s3')
     bucket = s3_resource.Bucket(res["bucket"])
-    orig_image, lores_image, huge_image, thumbnail_image = get_image_array_to_upload(
-        img, image_quality_in_editor
-    )
+    images = get_image_array_to_upload(img, image_quality_in_editor)
     key = prefix + f'{img_name}'
     try:
-        bucket.put_object(Body=orig_image, Key=key)
-        bucket.put_object(Body=lores_image, Key=key + '___lores.jpg')
-        bucket.put_object(Body=huge_image, Key=key + '___huge.jpg')
-        bucket.put_object(Body=thumbnail_image, Key=key + '___thumb.jpg')
+        upload_image_array_to_s3(bucket, *images, key)
     except Exception as e:
         raise SABaseException(0, "Couldn't upload to data server. " + e)
 
@@ -180,13 +175,13 @@ def copy_image(
         annotations = get_image_annotations(source_project, image_name)
         if annotations["annotation_json"] is not None:
             if "annotation_mask" in annotations:
-                upload_annotations_from_json_to_image(
+                upload_image_annotations(
                     destination_project, new_name,
                     annotations["annotation_json"],
                     annotations["annotation_mask"]
                 )
             else:
-                upload_annotations_from_json_to_image(
+                upload_image_annotations(
                     destination_project, new_name,
                     annotations["annotation_json"]
                 )

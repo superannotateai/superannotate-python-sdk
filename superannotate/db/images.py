@@ -17,8 +17,8 @@ from ..annotation_helpers import (
 )
 from ..api import API
 from ..common import (
-    annotation_status_str_to_int, deprecated_alias, hex_to_rgb,
-    image_path_to_annotation_paths, project_type_int_to_str
+    annotation_status_str_to_int, hex_to_rgb, image_path_to_annotation_paths,
+    project_type_int_to_str
 )
 from ..exceptions import SABaseException
 from .annotation_classes import (
@@ -201,9 +201,7 @@ def add_annotation_comment_to_image(
         comment_author,
         resolved=resolved
     )
-    upload_annotations_from_json_to_image(
-        project, image_name, annotations, verbose=False
-    )
+    upload_image_annotations(project, image_name, annotations, verbose=False)
 
 
 def add_annotation_bbox_to_image(
@@ -239,9 +237,7 @@ def add_annotation_bbox_to_image(
         annotation_class_attributes,
         error,
     )
-    upload_annotations_from_json_to_image(
-        project, image_name, annotations, verbose=False
-    )
+    upload_image_annotations(project, image_name, annotations, verbose=False)
 
 
 def add_annotation_polygon_to_image(
@@ -275,9 +271,7 @@ def add_annotation_polygon_to_image(
         annotations, polygon, annotation_class_name,
         annotation_class_attributes, error
     )
-    upload_annotations_from_json_to_image(
-        project, image_name, annotations, verbose=False
-    )
+    upload_image_annotations(project, image_name, annotations, verbose=False)
 
 
 def add_annotation_polyline_to_image(
@@ -310,9 +304,7 @@ def add_annotation_polyline_to_image(
         annotations, polyline, annotation_class_name,
         annotation_class_attributes, error
     )
-    upload_annotations_from_json_to_image(
-        project, image_name, annotations, verbose=False
-    )
+    upload_image_annotations(project, image_name, annotations, verbose=False)
 
 
 def add_annotation_point_to_image(
@@ -345,9 +337,7 @@ def add_annotation_point_to_image(
         annotations, point, annotation_class_name, annotation_class_attributes,
         error
     )
-    upload_annotations_from_json_to_image(
-        project, image_name, annotations, verbose=False
-    )
+    upload_image_annotations(project, image_name, annotations, verbose=False)
 
 
 def add_annotation_ellipse_to_image(
@@ -380,9 +370,7 @@ def add_annotation_ellipse_to_image(
         annotations, ellipse, annotation_class_name,
         annotation_class_attributes, error
     )
-    upload_annotations_from_json_to_image(
-        project, image_name, annotations, verbose=False
-    )
+    upload_image_annotations(project, image_name, annotations, verbose=False)
 
 
 def add_annotation_template_to_image(
@@ -422,9 +410,7 @@ def add_annotation_template_to_image(
         annotations, template_points, template_connections,
         annotation_class_name, annotation_class_attributes, error
     )
-    upload_annotations_from_json_to_image(
-        project, image_name, annotations, verbose=False
-    )
+    upload_image_annotations(project, image_name, annotations, verbose=False)
 
 
 def add_annotation_cuboid_to_image(
@@ -460,9 +446,7 @@ def add_annotation_cuboid_to_image(
         annotations, cuboid, annotation_class_name, annotation_class_attributes,
         error
     )
-    upload_annotations_from_json_to_image(
-        project, image_name, annotations, verbose=False
-    )
+    upload_image_annotations(project, image_name, annotations, verbose=False)
 
 
 def download_image(
@@ -628,9 +612,7 @@ def get_image_preannotations(project, image_name):
         raise SABaseException(response.status_code, response.text)
     res = response.json()
 
-    annotation_classes = search_annotation_classes(
-        project
-    )
+    annotation_classes = search_annotation_classes(project)
     annotation_classes_dict = get_annotation_classes_id_to_name(
         annotation_classes
     )
@@ -724,9 +706,7 @@ def get_image_annotations(project, image_name, project_type=None):
         raise SABaseException(response.status_code, response.text)
     res = response.json()
 
-    annotation_classes = search_annotation_classes(
-        project
-    )
+    annotation_classes = search_annotation_classes(project)
     annotation_classes_dict = get_annotation_classes_id_to_name(
         annotation_classes
     )
@@ -853,8 +833,7 @@ def download_image_preannotations(project, image_name, local_dir_path):
     return tuple(return_filepaths)
 
 
-@deprecated_alias(mask_path="mask")
-def upload_annotations_from_json_to_image(
+def upload_image_annotations(
     project, image_name, annotation_json, mask=None, verbose=True
 ):
     """Upload annotations from JSON (also mask for pixel annotations)
@@ -886,9 +865,7 @@ def upload_annotations_from_json_to_image(
             "Uploading annotations for image %s in project %s.", image_name,
             project["name"]
         )
-    annotation_classes = search_annotation_classes(
-        project
-    )
+    annotation_classes = search_annotation_classes(project)
     annotation_classes_dict = get_annotation_classes_name_to_id(
         annotation_classes
     )

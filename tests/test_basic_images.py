@@ -51,7 +51,7 @@ def test_basic_images(project_type, name, description, from_folder, tmpdir):
 
     assert (Path(tmpdir) / image_name).is_file()
 
-    sa.upload_annotations_from_json_to_image(
+    sa.upload_image_annotations(
         project, image_name,
         sa.image_path_to_annotation_paths(
             from_folder / image_name, project_type

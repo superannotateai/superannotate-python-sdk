@@ -45,7 +45,7 @@ from .db.images import (
     create_fuse_image, delete_image, download_image, download_image_annotations,
     download_image_preannotations, get_image_annotations, get_image_bytes,
     get_image_metadata, get_image_preannotations, search_images,
-    set_image_annotation_status, upload_annotations_from_json_to_image
+    set_image_annotation_status, upload_image_annotations
 )
 from .db.project_images import (
     assign_images, copy_image, move_image, pin_image, upload_image_to_project

@@ -1,3 +1,4 @@
+import cgi
 import copy
 import io
 import json
@@ -8,17 +9,16 @@ import random
 import tempfile
 import threading
 import time
-from pathlib import Path
-import requests
-import cgi
 from os.path import basename
+from pathlib import Path
 from urllib.parse import urlparse
 
 import boto3
 import cv2
 import ffmpeg
-from google.cloud import storage
+import requests
 from azure.storage.blob import BlobServiceClient
+from google.cloud import storage
 from PIL import Image, ImageOps
 from tqdm import tqdm
 
@@ -539,6 +539,15 @@ def upload_images_from_folder_to_project(
     )
 
 
+def upload_image_array_to_s3(
+    bucket, orig_image, lores_image, huge_image, thumbnail_image, key
+):
+    bucket.put_object(Body=orig_image, Key=key)
+    bucket.put_object(Body=lores_image, Key=key + '___lores.jpg')
+    bucket.put_object(Body=huge_image, Key=key + '___huge.jpg')
+    bucket.put_object(Body=thumbnail_image, Key=key + '___thumb.jpg')
+
+
 def get_image_array_to_upload(byte_io_orig, image_quality_in_editor):
     Image.MAX_IMAGE_PIXELS = None
     im = Image.open(byte_io_orig)
@@ -638,13 +647,8 @@ def __upload_images_to_aws_thread(
             couldnt_upload[thread_id].append(path)
             continue
         try:
-            orig_image, lores_image, huge_image, thumbnail_image = get_image_array_to_upload(
-                file, image_quality_in_editor
-            )
-            bucket.put_object(Body=orig_image, Key=key)
-            bucket.put_object(Body=lores_image, Key=key + '___lores.jpg')
-            bucket.put_object(Body=huge_image, Key=key + '___huge.jpg')
-            bucket.put_object(Body=thumbnail_image, Key=key + '___thumb.jpg')
+            images = get_image_array_to_upload(file, image_quality_in_editor)
+            upload_image_array_to_s3(bucket, *images, key)
         except Exception as e:
             logger.warning("Unable to upload to data server %s.", e)
             couldnt_upload[thread_id].append(path)

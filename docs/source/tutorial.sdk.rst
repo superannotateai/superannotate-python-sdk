@@ -367,7 +367,7 @@ and upload back to the platform with:
 
 .. code-block:: python
 
-   sa.upload_annotations_from_json_to_image(project, image, "<path_to_json>")
+   sa.upload_image_annotations(project, image, "<path_to_json>")
 
 Last two steps can be combined into one:
 
