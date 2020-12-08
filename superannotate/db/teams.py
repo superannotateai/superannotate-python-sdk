@@ -30,7 +30,7 @@ def invite_contributor_to_team(email, admin=False):
     return response.json()
 
 
-def get_team_metadata(convert_users_role_to_string=False):
+def get_team_metadata():
     """Returns team metadata
 
     :param convert_users_role_to_string: convert integer team users' roles to human comprehensible strings
@@ -45,9 +45,8 @@ def get_team_metadata(convert_users_role_to_string=False):
         )
 
     res = response.json()
-    if convert_users_role_to_string:
-        for user in res["users"]:
-            user["user_role"] = user_role_int_to_str(user["user_role"])
+    for user in res["users"]:
+        user["user_role"] = user_role_int_to_str(user["user_role"])
 
     return res
 
