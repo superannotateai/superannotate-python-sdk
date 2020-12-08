@@ -9,7 +9,7 @@ PROJECT_NAME = 'test_azure_blob_upload'
 CONTAINER_NAME = 'superannotate-python-sdk-tests'
 
 
-def test_upload_images_from_google_cloud_to_project():
+def test_upload_images_from_azure_storage_to_project():
     folder_path_with_test_imgs = 'cat_pics_sdk_test'
     folder_path_nested = 'cat_pics_nested_test'
     folder_path_non_existent = 'nonex'
