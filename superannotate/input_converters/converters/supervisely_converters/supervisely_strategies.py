@@ -8,6 +8,8 @@ from .supervisely_to_sa_vector import (
 )
 from .supervisely_to_sa_pixel import supervisely_instance_segmentation_to_sa_pixel
 
+from ....common import dump_output
+
 
 class SuperviselyObjectDetectionStrategy(SuperviselyConverter):
     name = "ObjectDetection converter"
@@ -56,7 +58,7 @@ class SuperviselyObjectDetectionStrategy(SuperviselyConverter):
             )
         else:
             sa_jsons = self.conversion_algorithm(json_files, classes_id_map)
-        self.dump_output(sa_classes, sa_jsons)
+        dump_output(self.output_dir, self.platform, sa_classes, sa_jsons)
 
     def _create_sa_classes(self):
         classes_json = json.load(open(self.export_root / 'meta.json'))

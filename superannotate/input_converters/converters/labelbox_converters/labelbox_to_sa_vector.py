@@ -137,7 +137,7 @@ def labelbox_object_detection_to_sa_vector(json_data):
         sa_jsons[file_name] = sa_loader
 
     sa_classes = _create_classes_json(classes)
-    return sa_jsons, sa_classes
+    return sa_jsons, sa_classes, None
 
 
 def labelbox_instance_segmentation_to_sa_vector(json_data):
@@ -197,7 +197,7 @@ def labelbox_instance_segmentation_to_sa_vector(json_data):
         sa_jsons[file_name] = sa_loader
 
     sa_classes = _create_classes_json(classes)
-    return sa_jsons, sa_classes
+    return sa_jsons, sa_classes, None
 
 
 def labelbox_to_sa(json_data):
@@ -279,4 +279,4 @@ def labelbox_to_sa(json_data):
         sa_jsons[file_name] = sa_loader
 
     sa_classes = _create_classes_json(classes)
-    return sa_jsons, sa_classes
+    return sa_jsons, sa_classes, None

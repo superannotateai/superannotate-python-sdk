@@ -6,6 +6,8 @@ from .voc_converter import VocConverter
 from .voc_to_sa_pixel import voc_instance_segmentation_to_sa_pixel
 from .voc_to_sa_vector import voc_object_detection_to_sa_vector, voc_instance_segmentation_to_sa_vector
 
+from ....common import dump_output
+
 
 class VocObjectDetectionStrategy(VocConverter):
     name = "ObjectDetection converter"
@@ -34,7 +36,7 @@ class VocObjectDetectionStrategy(VocConverter):
         sa_classes, sa_jsons, sa_masks = self.conversion_algorithm(
             self.export_root
         )
-        self.dump_output(sa_classes, sa_jsons)
+        dump_output(self.output_dir, self.platform, sa_classes, sa_jsons)
 
         if self.project_type == 'Pixel':
             all_files = self.output_dir.glob('*.png')

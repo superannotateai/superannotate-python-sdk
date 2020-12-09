@@ -4,6 +4,8 @@ from .dataloop_to_sa_vector import (
     dataloop_instance_segmentation_to_sa_vector, dataloop_to_sa
 )
 
+from ....common import dump_output
+
 
 class DataLoopObjectDetectionStrategy(DataLoopConverter):
     name = "Object Detection converter"
@@ -26,5 +28,5 @@ class DataLoopObjectDetectionStrategy(DataLoopConverter):
         return '{} object'.format(self.name)
 
     def to_sa_format(self):
-        sa_jsons, classes_json = self.conversion_algorithm(self.export_root)
-        self.dump_output(classes_json, sa_jsons)
+        sa_jsons, sa_classes = self.conversion_algorithm(self.export_root)
+        dump_output(self.output_dir, self.platform, sa_classes, sa_jsons)

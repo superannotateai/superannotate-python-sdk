@@ -3,6 +3,8 @@ import json
 from .vott_converter import VoTTConverter
 from .vott_to_sa_vector import vott_object_detection_to_sa_vector, vott_instance_segmentation_to_sa_vector, vott_to_sa
 
+from ....common import dump_output
+
 
 class VoTTObjectDetectionStrategy(VoTTConverter):
     name = "ObjectDetection converter"
@@ -12,9 +14,7 @@ class VoTTObjectDetectionStrategy(VoTTConverter):
         self.__setup_conversion_algorithm()
 
     def __setup_conversion_algorithm(self):
-        if self.direction == "to":
-            raise NotImplementedError("Doesn't support yet")
-        else:
+        if self.direction == "from":
             if self.project_type == "Vector":
                 if self.task == "object_detection":
                     self.conversion_algorithm = vott_object_detection_to_sa_vector
@@ -29,4 +29,4 @@ class VoTTObjectDetectionStrategy(VoTTConverter):
     def to_sa_format(self):
         json_data = self.get_file_list()
         sa_jsons, sa_classes = self.conversion_algorithm(json_data)
-        self.dump_output(sa_classes, sa_jsons)
+        dump_output(self.output_dir, self.platform, sa_classes, sa_jsons)

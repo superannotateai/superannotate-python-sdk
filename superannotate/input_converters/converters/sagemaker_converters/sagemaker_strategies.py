@@ -6,6 +6,8 @@ from .sagemaker_converter import SageMakerConverter
 from .sagemaker_to_sa_vector import sagemaker_object_detection_to_sa_vector
 from .sagemaker_to_sa_pixel import sagemaker_instance_segmentation_to_sa_pixel
 
+from ....common import dump_output
+
 
 class SageMakerObjectDetectionStrategy(SageMakerConverter):
     name = "ObjectDetection converter"
@@ -43,4 +45,4 @@ class SageMakerObjectDetectionStrategy(SageMakerConverter):
             for name, mask in sa_masks.items():
                 cv2.imwrite(str(self.output_dir / name), mask)
 
-        self.dump_output(sa_classes, sa_jsons)
+        dump_output(self.output_dir, self.platform, sa_classes, sa_jsons)

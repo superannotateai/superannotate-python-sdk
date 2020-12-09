@@ -36,7 +36,7 @@ ALLOWED_ANNOTATION_IMPORT_FORMATS = {
     'LabelBox':
         [
             ('Vector', 'object_detection'), ('Vector', 'instance_segmentation'),
-            ('Vector', 'vector_annotation')
+            ('Vector', 'vector_annotation'), ('Pixel', 'instance_segmentation')
         ],
     'DataLoop':
         [

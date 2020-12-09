@@ -5,17 +5,12 @@ import numpy as np
 
 from pathlib import Path
 from collections import defaultdict
-from pycocotools.coco import COCO
-# from panopticapi.utils import id2rgb
 from tqdm import tqdm
+
+from pycocotools.coco import COCO
 import pycocotools.mask as maskUtils
 
-
-# Returns unique values of list. Values can be dicts or lists!
-def dict_setter(list_of_dicts):
-    return [
-        d for n, d in enumerate(list_of_dicts) if d not in list_of_dicts[n + 1:]
-    ]
+from ....common import id2rgb
 
 
 def _rle_to_polygon(coco_json, annotation):

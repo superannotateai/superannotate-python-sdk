@@ -1,9 +1,12 @@
 import functools
 import logging
 from pathlib import Path
-
+import json
+from PIL import Image
+import time
 import numpy as np
-
+import os
+import sys
 from .exceptions import SABaseException
 
 logger = logging.getLogger("superannotate-python-sdk")
@@ -163,3 +166,98 @@ def blue_color_generator(n, hex_values=True):
         else:
             hex_colors.append(hex_to_rgb(hex_color))
     return hex_colors[1:]
+
+
+def id2rgb(id_map):
+    if isinstance(id_map, np.ndarray):
+        id_map_copy = id_map.copy()
+        rgb_shape = tuple(list(id_map.shape) + [3])
+        rgb_map = np.zeros(rgb_shape, dtype=np.uint8)
+        for i in range(3):
+            rgb_map[..., i] = id_map_copy % 256
+            id_map_copy //= 256
+        return rgb_map
+    color = []
+    for _ in range(3):
+        color.append(id_map % 256)
+        id_map //= 256
+    return color
+
+
+def save_desktop_format(output_dir, classes, files_dict):
+    cat_id_map = {}
+    new_classes = []
+    for idx, class_ in enumerate(classes):
+        cat_id_map[class_['name']] = idx + 2
+        class_['id'] = idx + 2
+        new_classes.append(class_)
+    with open(output_dir.joinpath('classes.json'), 'w') as fw:
+        json.dump(new_classes, fw)
+
+    meta = {
+        "type": "meta",
+        "name": "lastAction",
+        "timestamp": int(round(time.time() * 1000))
+    }
+    new_json = {}
+    files_path = []
+    (output_dir / 'images' / 'thumb').mkdir()
+    for file_name, json_data in files_dict.items():
+        file_name = file_name.replace('___objects.json', '')
+        if not (output_dir / 'images' / file_name).exists():
+            continue
+
+        for js_data in json_data:
+            if 'className' in js_data:
+                js_data['classId'] = cat_id_map[js_data['className']]
+        json_data.append(meta)
+        new_json[file_name] = json_data
+
+        files_path.append(
+            {
+                'srcPath':
+                    str(output_dir.resolve() / file_name),
+                'name':
+                    file_name,
+                'imagePath':
+                    str(output_dir.resolve() / file_name),
+                'thumbPath':
+                    str(
+                        output_dir.resolve() / 'images' / 'thumb' /
+                        ('thmb_' + file_name + '.jpg')
+                    ),
+                'valid':
+                    True
+            }
+        )
+
+        img = Image.open(output_dir / 'images' / file_name)
+        img.thumbnail((168, 120), Image.ANTIALIAS)
+        img.save(
+            output_dir / 'images' / 'thumb' / ('thmb_' + file_name + '.jpg')
+        )
+
+    with open(output_dir / 'images' / 'images.sa', 'w') as fw:
+        fw.write(json.dumps(files_path))
+
+    with open(output_dir.joinpath('annotations.json'), 'w') as fw:
+        json.dump(new_json, fw)
+
+    with open(output_dir / 'config.json', 'w') as fw:
+        json.dump({"pathSeparator": os.sep, "os": sys.platform}, fw)
+
+
+def save_web_format(output_dir, classes, files_dict):
+    for key, value in files_dict.items():
+        with open(output_dir.joinpath(key), 'w') as fw:
+            json.dump(value, fw, indent=2)
+
+    with open(output_dir.joinpath('classes', 'classes.json'), 'w') as fw:
+        json.dump(classes, fw)
+
+
+def dump_output(output_dir, platform, classes, files_dict):
+    if platform == 'Web':
+        save_web_format(output_dir, classes, files_dict)
+    else:
+        save_desktop_format(output_dir, classes, files_dict)

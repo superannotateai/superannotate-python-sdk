@@ -1,7 +1,6 @@
 import json
 
 from pathlib import Path
-from panopticapi.utils import id2rgb
 from PIL import Image
 from tqdm import tqdm
 
@@ -22,6 +21,8 @@ from .sa_vector_to_coco import (
     sa_vector_to_coco_instance_segmentation,
     sa_vector_to_coco_keypoint_detection, sa_vector_to_coco_object_detection
 )
+
+from ....common import id2rgb, dump_output
 
 
 class CocoPanopticConverterStrategy(CoCoConverter):
@@ -94,7 +95,7 @@ class CocoPanopticConverterStrategy(CoCoConverter):
         json_data = self.export_root / (self.dataset_name + ".json")
         sa_classes = self._create_sa_classes(json_data)
         sa_jsons = self.conversion_algorithm(json_data, self.output_dir)
-        self.dump_output(sa_classes, sa_jsons)
+        dump_output(self.output_dir, self.platform, sa_classes, sa_jsons)
 
 
 class CocoObjectDetectionStrategy(CoCoConverter):
@@ -202,7 +203,7 @@ class CocoObjectDetectionStrategy(CoCoConverter):
         json_data = self.export_root / (self.dataset_name + ".json")
         sa_classes = self._create_sa_classes(json_data)
         sa_jsons = self.conversion_algorithm(json_data, self.output_dir)
-        self.dump_output(sa_classes, sa_jsons)
+        dump_output(self.output_dir, self.platform, sa_classes, sa_jsons)
 
 
 class CocoKeypointDetectionStrategy(CoCoConverter):
@@ -277,4 +278,4 @@ class CocoKeypointDetectionStrategy(CoCoConverter):
         json_data = self.export_root / (self.dataset_name + ".json")
         sa_classes = self._create_sa_classes(json_data)
         sa_jsons = self.conversion_algorithm(json_data, self.output_dir)
-        self.dump_output(sa_classes, sa_jsons)
+        dump_output(self.output_dir, self.platform, sa_classes, sa_jsons)

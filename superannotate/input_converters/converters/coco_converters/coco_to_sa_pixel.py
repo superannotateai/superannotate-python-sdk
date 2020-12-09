@@ -4,12 +4,10 @@ import cv2
 import numpy as np
 from pathlib import Path
 import pycocotools.mask as maskUtils
-from panopticapi.utils import id2rgb
 from tqdm import tqdm
 from pycocotools.coco import COCO
 
-from ....common import hex_to_rgb, blue_color_generator
-
+from ....common import hex_to_rgb, blue_color_generator, id2rgb
 import logging
 
 logger = logging.getLogger("superannotate-python-sdk")

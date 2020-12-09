@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import superannotate as sa
-import os
 
 
 def test_labelbox_convert_vector(tmpdir):
@@ -65,15 +64,27 @@ def test_labelbox_convert_instance(tmpdir):
         'instance_segmentation', 'Desktop'
     )
 
-    all_files = os.listdir(out_dir)
-    json_files = set(
-        [
-            file.replace('___objects.json', '')
-            for file in all_files if os.path.splitext(file) == '.json'
-        ]
-    )
-    image_files = set(
-        [file for file in all_files if os.path.splitext(file) == '.jpg']
+
+def test_labelbox_convert_instance_pixel(tmpdir):
+    input_dir = Path(
+        'tests'
+    ) / 'converter_test' / 'LabelBox' / 'instance_segmentation' / 'toSuperAnnotate'
+    out_dir = Path(tmpdir) / "output_insance_pixel"
+    dataset_name = 'labelbox_example'
+    sa.import_annotation(
+        input_dir, out_dir, 'LabelBox', dataset_name, 'Pixel',
+        'instance_segmentation', 'Web'
     )
 
-    assert json_files == image_files
+    project_name = "labelbox_instance"
+
+    projects = sa.search_projects(project_name, True)
+    if projects:
+        sa.delete_project(projects[0])
+    project = sa.create_project(project_name, "converter vector", "Pixel")
+
+    sa.create_annotation_classes_from_classes_json(
+        project, out_dir / "classes" / "classes.json"
+    )
+    sa.upload_images_from_folder_to_project(project, out_dir)
+    sa.upload_annotations_from_folder_to_project(project, out_dir)

@@ -3,6 +3,8 @@ from pathlib import Path
 from .googlecloud_converter import GoogleCloudConverter
 from .googlecloud_to_sa_vector import googlecloud_object_detection_to_sa_vector
 
+from ....common import dump_output
+
 
 class GoogleCloudObjectDetectionStrategy(GoogleCloudConverter):
     name = "ObjectDetection converter"
@@ -23,4 +25,4 @@ class GoogleCloudObjectDetectionStrategy(GoogleCloudConverter):
     def to_sa_format(self):
         path = Path(self.export_root).joinpath(self.dataset_name + '.csv')
         sa_jsons, sa_classes = self.conversion_algorithm(path)
-        self.dump_output(sa_classes, sa_jsons)
+        dump_output(self.output_dir, self.platform, sa_classes, sa_jsons)
