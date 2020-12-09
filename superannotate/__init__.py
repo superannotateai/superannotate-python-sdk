@@ -9,7 +9,6 @@ from .analytics.class_analytics import (
     attribute_distribution, class_distribution
 )
 from .analytics.common import aggregate_annotations_as_df, df_to_annotations
-from .analytics.user_analytics import image_analytics
 from .annotation_helpers import (
     add_annotation_bbox_to_json, add_annotation_comment_to_json,
     add_annotation_cuboid_to_json, add_annotation_ellipse_to_json,
