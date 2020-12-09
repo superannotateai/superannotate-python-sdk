@@ -137,3 +137,4 @@ sample_tif_files
 # python virtual env for SDK testing
 venv_sa_conv
 pylint.html
+_mask.c

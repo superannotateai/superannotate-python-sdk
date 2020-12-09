@@ -11,8 +11,6 @@ rm -rf venv_sa_conv
 python${PYTHON_VER} -m venv venv_sa_conv
 source venv_sa_conv/bin/activate
 
-pip install -r requirements.txt
-
 pip install -e .
 # pip install superannotate
 

@@ -23,10 +23,10 @@ ext_modules = [
     Extension(
         'superannotate.pycocotools_sa._mask',
         sources=[
-            'superannotate/pycocotools_sa/maskApi.c',
-            'superannotate/pycocotools_sa/_mask.pyx'
+            'superannotate/pycocotools_sa/_mask.pyx',
+            'superannotate/pycocotools_sa/maskApi.c'
         ],
-        include_dirs=[np.get_include(), './superannotate/pycocotools_sa'],
+        include_dirs=[np.get_include(), 'superannotate/pycocotools_sa'],
         extra_compile_args=[],
     )
 ]
