@@ -12,8 +12,6 @@ python${PYTHON_VER} -m venv venv_sa_conv
 source venv_sa_conv/bin/activate
 
 pip install -r requirements.txt
-pip install 'git+https://github.com/cocodataset/panopticapi.git'
-pip install 'git+https://github.com/philferriere/cocoapi.git#egg=pycocotools&subdirectory=PythonAPI'
 
 pip install -e .
 # pip install superannotate

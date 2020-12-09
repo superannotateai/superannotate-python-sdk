@@ -1,6 +1,7 @@
 import cv2 as cv
-from pycocotools import mask as cocomask
 import numpy as np
+
+from ....pycocotools_sa import mask as cocomask
 
 
 def __instance_object_commons_per_instance(

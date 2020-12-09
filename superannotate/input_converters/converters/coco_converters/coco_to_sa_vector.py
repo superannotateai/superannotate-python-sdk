@@ -7,8 +7,8 @@ from pathlib import Path
 from collections import defaultdict
 from tqdm import tqdm
 
-from pycocotools.coco import COCO
-import pycocotools.mask as maskUtils
+from superannotate.pycocotools_sa.coco import COCO
+from superannotate.pycocotools_sa import mask as maskUtils
 
 from ....common import id2rgb
 

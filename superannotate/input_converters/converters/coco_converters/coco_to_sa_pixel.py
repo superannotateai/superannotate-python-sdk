@@ -1,14 +1,14 @@
 import json
+import logging
+from pathlib import Path
 
 import cv2
 import numpy as np
-from pathlib import Path
-import pycocotools.mask as maskUtils
 from tqdm import tqdm
-from pycocotools.coco import COCO
 
-from ....common import hex_to_rgb, blue_color_generator, id2rgb
-import logging
+from ....common import blue_color_generator, hex_to_rgb, id2rgb
+from ....pycocotools_sa.coco import COCO
+from ....pycocotools_sa import mask as maskUtils
 
 logger = logging.getLogger("superannotate-python-sdk")
 

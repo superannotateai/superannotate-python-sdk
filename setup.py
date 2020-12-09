@@ -1,15 +1,5 @@
-from setuptools import setup, find_packages
-
-import site
-import shutil
-from pathlib import Path
-
-site_packages = site.getsitepackages()
-coco_folders = Path('cocoapi_compiled').iterdir()
-for folder in coco_folders:
-    if (Path(site_packages[0]) / folder.name).exists():
-        shutil.rmtree(Path(site_packages[0]) / folder.name)
-    shutil.copytree(folder, Path(site_packages[0]) / folder.name)
+import numpy as np
+from setuptools import Extension, find_packages, setup
 
 with open('requirements.txt') as f:
     requirements = f.read()
@@ -28,6 +18,18 @@ with open('superannotate/version.py') as f:
 Version = Version.rstrip()
 Version = Version[15:-1]
 
+ext_modules = [
+    Extension(
+        'superannotate.pycocotools_sa._mask',
+        sources=[
+            'superannotate/pycocotools_sa/maskApi.c',
+            'superannotate/pycocotools_sa/_mask.pyx'
+        ],
+        include_dirs=[np.get_include(), 'superannotate/pycocotools_sa/'],
+        extra_compile_args=['-Wno-cpp', '-Wno-unused-function', '-std=c99'],
+    )
+]
+
 setup(
     name='superannotate',
     version=Version,
@@ -44,5 +46,15 @@ setup(
     entry_points={
         'console_scripts': ['superannotatecli = superannotate.__main__:main']
     },
-    python_requires='>=3.6'
+    python_requires='>=3.6',
+    package_data={
+        'pycocotools_sa':
+            [
+                'superannotate/pycocotools_sa/_mask.pyx',
+                'superannotate/pycocotools_sa/maskApi.c',
+                'superannotate/pycocotools_sa/maskApi.h'
+            ]
+    },
+    include_package_data=True,
+    ext_modules=ext_modules
 )

@@ -1,6 +1,7 @@
 import json
-from pycocotools import mask as cocomask
 import logging
+
+from ....pycocotools_sa import mask as cocomask
 
 logger = logging.getLogger("superannotate-python-sdk")
 
