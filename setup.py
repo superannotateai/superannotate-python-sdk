@@ -1,4 +1,5 @@
 import numpy as np
+from Cython.Build import cythonize
 from setuptools import Extension, find_packages, setup
 
 with open('requirements.txt') as f:
@@ -26,7 +27,7 @@ ext_modules = [
             'superannotate/pycocotools_sa/_mask.pyx'
         ],
         include_dirs=[np.get_include(), 'superannotate/pycocotools_sa/'],
-        extra_compile_args=['-Wno-cpp', '-Wno-unused-function', '-std=c99'],
+        extra_compile_args=[],
     )
 ]
 
@@ -56,5 +57,5 @@ setup(
             ]
     },
     include_package_data=True,
-    ext_modules=ext_modules
+    ext_modules=cythonize(ext_modules)
 )
