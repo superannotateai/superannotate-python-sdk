@@ -48,14 +48,5 @@ setup(
         'console_scripts': ['superannotatecli = superannotate.__main__:main']
     },
     python_requires='>=3.6',
-    package_data={
-        'pycocotools_sa':
-            [
-                'superannotate/pycocotools_sa/_mask.pyx',
-                'superannotate/pycocotools_sa/maskApi.c',
-                'superannotate/pycocotools_sa/maskApi.h'
-            ]
-    },
-    include_package_data=True,
     ext_modules=cythonize(ext_modules)
 )
