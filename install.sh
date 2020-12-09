@@ -13,8 +13,8 @@ source venv_sa_conv/bin/activate
 
 pip install -r requirements.txt
 
-# pip install -e .
-pip install --pre superannotate
+pip install -e .
+# pip install --pre superannotate
 
 # for testing
 pip install pytest pytest-xdist coverage pytest-cov pylint pylint-json2html pylint-pytest

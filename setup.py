@@ -1,5 +1,4 @@
 import numpy as np
-from Cython.Build import cythonize
 from setuptools import Extension, find_packages, setup
 
 with open('requirements.txt') as f:
@@ -48,5 +47,5 @@ setup(
         'console_scripts': ['superannotatecli = superannotate.__main__:main']
     },
     python_requires='>=3.6',
-    ext_modules=cythonize(ext_modules)
+    ext_modules=ext_modules
 )
