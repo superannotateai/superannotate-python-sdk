@@ -1,0 +1,16 @@
+pycocotools-2.0.dist-info/INSTALLER,sha256=zuuue4knoyJ-UwPPXg8fezS7VCrXJQrAP7zeNuwvFQg,4
+pycocotools-2.0.dist-info/METADATA,sha256=cQA7BGzN6Rv_GkgrEnufCEumFjIMfZST0hw68gS0HyM,173
+pycocotools-2.0.dist-info/RECORD,,
+pycocotools-2.0.dist-info/REQUESTED,sha256=47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU,0
+pycocotools-2.0.dist-info/WHEEL,sha256=rjs0dbLt66v8mjOfCbR-uj5Usgl2OLAlmRdCEyNo0L4,104
+pycocotools-2.0.dist-info/direct_url.json,sha256=OA6jjaQJqIDezGN0NwCkfqDNycyvaeekbURk-1Ckpds,168
+pycocotools-2.0.dist-info/top_level.txt,sha256=kySwJ77O9VF1E0aiCb621tEfHF9AUYDMhf2L7FYJnVM,12
+pycocotools/__init__.py,sha256=0C6R_hJbgubl8GQriX90OQlFBtBvMncbQNABcN646uE,21
+pycocotools/__pycache__/__init__.cpython-37.pyc,,
+pycocotools/__pycache__/coco.cpython-37.pyc,,
+pycocotools/__pycache__/cocoeval.cpython-37.pyc,,
+pycocotools/__pycache__/mask.cpython-37.pyc,,
+pycocotools/_mask.cpython-37m-x86_64-linux-gnu.so,sha256=8SO2HmvcFXUjLzFwPj3OXJfJPqr0MnoCm54zrbjOOp0,1160048
+pycocotools/coco.py,sha256=oczA3hLVZvSPNpwW4CnExaYgaPzHcXdCmoY7kgj8bgI,18655
+pycocotools/cocoeval.py,sha256=XXR7KiZ1r9uR8eq3Zy7vYGQIo5Ny3UEcFxDy4NQPt3w,24143
+pycocotools/mask.py,sha256=TUeI-ZWXHJfFVI8L0ZlB9uwfqvXQ1_tuxIklb_hyxhc,4591

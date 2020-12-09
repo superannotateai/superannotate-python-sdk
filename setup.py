@@ -1,5 +1,16 @@
 from setuptools import setup, find_packages
 
+import site
+import shutil
+from pathlib import Path
+
+site_packages = site.getsitepackages()
+coco_folders = Path('cocoapi_compiled').iterdir()
+for folder in coco_folders:
+    if (Path(site_packages[0]) / folder.name).exists():
+        shutil.rmtree(Path(site_packages[0]) / folder.name)
+    shutil.copytree(folder, Path(site_packages[0]) / folder.name)
+
 with open('requirements.txt') as f:
     requirements = f.read()
 
