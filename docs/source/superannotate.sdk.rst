@@ -307,6 +307,7 @@ ________________________
 .. autofunction:: superannotate.add_annotation_template_to_json
 .. autofunction:: superannotate.add_annotation_cuboid_to_json
 .. autofunction:: superannotate.add_annotation_comment_to_json
+.. _ref_aggregate_annotations_as_df:
 .. autofunction:: superannotate.aggregate_annotations_as_df
 .. autofunction:: superannotate.df_to_annotations
 .. _ref_filter_annotation_instances:

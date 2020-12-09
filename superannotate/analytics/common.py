@@ -150,7 +150,7 @@ def aggregate_annotations_as_df(
     :param include_comments: enables inclusion of comments info as commentResolved column
     :type include_comments: bool
 
-    :return: DataFrame on annotations with columns: "imageName", "instanceId" className", "attributeGroupName", "attributeName", "type", "error", "locked", "visible", "trackingId", "probability", "pointLabels", "meta" (geometry information as string), "commentResolved", "classColor", "groupId"
+    :return: DataFrame on annotations with columns: "imageName", "instanceId" className", "attributeGroupName", "attributeName", "type", "error", "locked", "visible", "trackingId", "probability", "pointLabels", "meta" (geometry information as string), "commentResolved", "classColor", "groupId", "imageWidth", "imageHeight", "imageStatus", "imagePinned", "createdAt", "creatorRole", "creationType", "creatorEmail", "updatedAt", "updatorRole", "updatorEmail"
     :rtype: pandas DataFrame
     """
 
