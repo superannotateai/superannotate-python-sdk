@@ -1,16 +1,10 @@
-from pathlib import Path
-
 import superannotate as sa
-
-import pytest
 
 PROJECT_NAME1 = "test create from full info1"
 PROJECT_NAME2 = "test create from full info2"
 
 
-def test_create_from_full_info(tmpdir):
-    tmpdir = Path(tmpdir)
-
+def test_create_from_full_info():
     projects = sa.search_projects(PROJECT_NAME1, return_metadata=True)
     for project in projects:
         sa.delete_project(project)
@@ -27,7 +21,7 @@ def test_create_from_full_info(tmpdir):
     for setting in old_settings:
         if "attribute" in setting and setting["attribute"] == "Brightness":
             brightness_value = setting["value"]
-    new_settings = sa.set_project_settings(
+    sa.set_project_settings(
         PROJECT_NAME1,
         [{
             "attribute": "Brightness",

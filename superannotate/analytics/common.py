@@ -24,11 +24,16 @@ def df_to_annotations(df, output_dir):
     project_suffix = "objects.json"
     images = df["imageName"].dropna().unique()
     for image in images:
+        image_status = None
+        image_pinned = None
+        image_height = None
+        image_width = None
         image_df = df[df["imageName"] == image]
         image_annotation = []
         instances = image_df["instanceId"].dropna().unique()
         for instance in instances:
             instance_df = image_df[image_df["instanceId"] == instance]
+            # print(instance_df["instanceId"])
             annotation_type = instance_df.iloc[0]["type"]
             annotation_meta = instance_df.iloc[0]["meta"]
 
@@ -60,6 +65,10 @@ def df_to_annotations(df, output_dir):
                         }
                     )
             image_annotation.append(instance_annotation)
+            image_width = image_width or instance_df.iloc[0]["imageWidth"]
+            image_height = image_height or instance_df.iloc[0]["imageHeight"]
+            image_pinned = image_pinned or instance_df.iloc[0]["imagePinned"]
+            image_status = image_status or instance_df.iloc[0]["imageStatus"]
 
         comments = image_df[image_df["type"] == "comment"]
         for _, comment in comments.iterrows():
@@ -68,6 +77,14 @@ def df_to_annotations(df, output_dir):
             comment_json["resolved"] = comment["commentResolved"]
             image_annotation.append(comment_json)
 
+        meta = {
+            "type": "meta",
+            "width": int(image_width),
+            "height": int(image_height),
+            "status": image_status,
+            "pinned": bool(image_pinned)
+        }
+        image_annotation.append(meta)
         json.dump(
             image_annotation,
             open(output_dir / f"{image}___{project_suffix}", "w"),
@@ -232,7 +249,7 @@ def aggregate_annotations_as_df(
         if annotation_updated_by:
             annotation_updator_email = annotation_updated_by.get("email")
             annotation_updator_role = annotation_updated_by.get("role")
-        user_metadata = {                   
+        user_metadata = {
             "createdAt": annotation_created_at,
             "creatorRole": annotation_creator_role,
             "creatorEmail": annotation_creator_email,
@@ -242,9 +259,9 @@ def aggregate_annotations_as_df(
             "updatorEmail": annotation_updator_email
         }
         return user_metadata
-    
+
     annotations_paths = []
-    
+
     for path in Path(project_root).glob('*.json'):
         annotations_paths.append(path)
 
@@ -252,7 +269,9 @@ def aggregate_annotations_as_df(
         logger.warning(
             "No annotations found in project export root %s", project_root
         )
-    type_postfix = "___objects.json" if glob.glob("{}/*___objects.json".format(project_root)) else "___pixel.json"
+    type_postfix = "___objects.json" if glob.glob(
+        "{}/*___objects.json".format(project_root)
+    ) else "___pixel.json"
     for annotation_path in annotations_paths:
         annotation_json = json.load(open(annotation_path))
         image_name = annotation_path.name.split(type_postfix)[0]
@@ -290,7 +309,6 @@ def aggregate_annotations_as_df(
                     annotation_dict.update(image_metadata)
                     __append_annotation(annotation_dict)
                 continue
-            annotation_instance_id += 1
             annotation_class_name = annotation.get("className")
             if annotation_class_name is None or annotation_class_name not in class_name_to_color:
                 logger.warning(
@@ -328,6 +346,7 @@ def aggregate_annotations_as_df(
             annotation_point_labels = annotation.get("pointLabels")
             attributes = annotation.get("attributes")
             user_metadata = __get_user_metadata(annotation)
+            num_added = 0
             if not attributes:
                 annotation_dict = {
                     "imageName": image_name,
@@ -347,6 +366,7 @@ def aggregate_annotations_as_df(
                 annotation_dict.update(user_metadata)
                 annotation_dict.update(image_metadata)
                 __append_annotation(annotation_dict)
+                num_added = 1
             else:
                 for attribute in attributes:
                     attribute_group = attribute.get("groupName")
@@ -385,6 +405,10 @@ def aggregate_annotations_as_df(
                     annotation_dict.update(user_metadata)
                     annotation_dict.update(image_metadata)
                     __append_annotation(annotation_dict)
+                    num_added += 1
+
+            if num_added > 0:
+                annotation_instance_id += 1
 
     df = pd.DataFrame(annotation_data)
 
