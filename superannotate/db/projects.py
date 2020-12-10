@@ -22,13 +22,10 @@ from google.cloud import storage
 from PIL import Image, ImageOps
 from tqdm import tqdm
 
+from .. import common
 from ..api import API
-from ..common import (
-    annotation_status_str_to_int, project_type_int_to_str,
-    project_type_str_to_int, user_role_int_to_str, user_role_str_to_int
-)
 from ..exceptions import (
-    SABaseException, SAExistingProjectNameException,
+    SABaseException, SAExistingProjectNameException, SAImageSizeTooLarge,
     SANonExistingProjectNameException
 )
 from .annotation_classes import (
@@ -67,7 +64,7 @@ def create_project(project_name, project_description, project_type):
             0, "Project with name " + project_name +
             " already exists. Please use unique names for projects to use with SDK."
         )
-    project_type = project_type_str_to_int(project_type)
+    project_type = common.project_type_str_to_int(project_type)
     data = {
         "team_id": str(_api.team_id),
         "name": project_name,
@@ -85,7 +82,7 @@ def create_project(project_name, project_description, project_type):
     res = response.json()
     logger.info(
         "Created project %s (ID %s) with type %s", res["name"], res["id"],
-        project_type_int_to_str(res["type"])
+        common.project_type_int_to_str(res["type"])
     )
     return res
 
@@ -106,7 +103,7 @@ def create_project_from_metadata(project_metadata):
         for user in project_metadata["contributors"]:
             share_project(
                 new_project_metadata, user["user_id"],
-                user_role_int_to_str(user["user_role"])
+                common.user_role_int_to_str(user["user_role"])
             )
     if "settings" in project_metadata:
         set_project_settings(new_project_metadata, project_metadata["settings"])
@@ -251,8 +248,8 @@ def upload_video_to_project(
                 "Frame rotation of %s found. Output images will be rotated accordingly.",
                 rot
             )
-    except:
-        logger.warning("Couldn't read video metadata.")
+    except Exception as e:
+        logger.warning("Couldn't read video metadata. %s", e)
 
     video = cv2.VideoCapture(str(video_path), cv2.CAP_FFMPEG)
     if not video.isOpened():
@@ -450,7 +447,7 @@ def upload_images_from_folder_to_project(
     :type project: str or dict
     :param folder_path: from which folder to upload the images
     :type folder_path: Pathlike (str or Path)
-    :param extensions: list of filename extensions to include from folder, if None, then "jpg" and "png" are included
+    :param extensions: list of filename extensions to include from folder, if None, then "jpg", "jpeg", "png", "tif", "tiff", "webp", "bmp" are included
     :type extensions: list of str
     :param annotation_status: value to set the annotation statuses of the uploaded images NotStarted InProgress QualityCheck Returned Completed Skipped
     :type annotation_status: str
@@ -480,7 +477,7 @@ def upload_images_from_folder_to_project(
     if exclude_file_patterns is None:
         exclude_file_patterns = ["___save.png", "___fuse.png"]
     if extensions is None:
-        extensions = ["jpg", "png"]
+        extensions = ["jpg", "jpeg", "png", "tif", "tiff", "webp", "bmp"]
     elif not isinstance(extensions, list):
         raise SABaseException(
             0,
@@ -548,7 +545,9 @@ def upload_image_array_to_s3(
     bucket.put_object(Body=thumbnail_image, Key=key + '___thumb.jpg')
 
 
-def get_image_array_to_upload(byte_io_orig, image_quality_in_editor):
+def get_image_array_to_upload(
+    byte_io_orig, image_quality_in_editor, project_type
+):
     Image.MAX_IMAGE_PIXELS = None
     im = Image.open(byte_io_orig)
     im_format = im.format
@@ -556,6 +555,15 @@ def get_image_array_to_upload(byte_io_orig, image_quality_in_editor):
     im = ImageOps.exif_transpose(im)
 
     width, height = im.size
+
+    project_type = common.project_type_int_to_str(project_type)
+    resolution = width * height
+    if resolution > common.MAX_IMAGE_RESOLUTION[project_type]:
+        raise SABaseException(
+            0, "Image resolution " + str(resolution) +
+            " too large. Max supported for " + project_type + " projects is " +
+            str(common.MAX_IMAGE_RESOLUTION[project_type])
+        )
 
     if image_quality_in_editor == 100 and im_format in ['JPEG', 'JPG']:
         byte_io_lores = io.BytesIO(byte_io_orig.getbuffer())
@@ -600,17 +608,8 @@ def get_image_array_to_upload(byte_io_orig, image_quality_in_editor):
 
 
 def __upload_images_to_aws_thread(
-    res,
-    img_paths,
-    project,
-    annotation_status,
-    prefix,
-    thread_id,
-    chunksize,
-    couldnt_upload,
-    uploaded,
-    image_quality_in_editor,
-    from_s3_bucket=None,
+    res, img_paths, project, annotation_status, prefix, thread_id, chunksize,
+    couldnt_upload, uploaded, image_quality_in_editor, from_s3_bucket
 ):
     len_img_paths = len(img_paths)
     start_index = thread_id * chunksize
@@ -638,20 +637,25 @@ def __upload_images_to_aws_thread(
             if from_s3_bucket is not None:
                 file = io.BytesIO()
                 from_s3_object = from_s3.Object(from_s3_bucket, path)
+                file_size = from_s3_object.content_length
+                if file_size > common.MAX_IMAGE_SIZE:
+                    raise SAImageSizeTooLarge(file_size)
                 from_s3_object.download_fileobj(file)
             else:
+                file_size = Path(path).stat().st_size
+                if file_size > common.MAX_IMAGE_SIZE:
+                    raise SAImageSizeTooLarge(file_size)
                 with open(path, "rb") as f:
                     file = io.BytesIO(f.read())
-        except Exception as e:
-            logger.warning("Unable to open image %s.", e)
-            couldnt_upload[thread_id].append(path)
-            continue
-        try:
-            images = get_image_array_to_upload(file, image_quality_in_editor)
+            images = get_image_array_to_upload(
+                file, image_quality_in_editor,
+                common.project_type_int_to_str(project["type"])
+            )
             upload_image_array_to_s3(bucket, *images, key)
         except Exception as e:
-            logger.warning("Unable to upload to data server %s.", e)
+            logger.warning("Unable to upload image %s. %s", path, e)
             couldnt_upload[thread_id].append(path)
+            continue
         else:
             uploaded[thread_id].append(path)
             uploaded_imgs.append(path)
@@ -723,7 +727,7 @@ def upload_images_to_project(
         raise SABaseException(
             0, "img_paths argument to upload_images_to_project should be a list"
         )
-    annotation_status = annotation_status_str_to_int(annotation_status)
+    annotation_status = common.annotation_status_str_to_int(annotation_status)
     image_quality_in_editor = _get_project_image_quality_in_editor(
         project, image_quality_in_editor
     )
@@ -800,7 +804,6 @@ def upload_images_to_project(
     list_of_not_uploaded = []
     for couldnt_upload_thread in couldnt_upload:
         for file in couldnt_upload_thread:
-            logger.warning("Couldn't upload image %s", file)
             list_of_not_uploaded.append(str(file))
     list_of_uploaded = []
     for upload_thread in uploaded:
@@ -1556,7 +1559,7 @@ def share_project(project, user, user_role):
         project = get_project_metadata_bare(project)
     if not isinstance(user, dict):
         user = get_team_contributor_metadata(user)
-    user_role = user_role_str_to_int(user_role)
+    user_role = common.user_role_str_to_int(user_role)
     team_id, project_id = project["team_id"], project["id"]
     user_id = user["id"]
     json_req = {"user_id": user_id, "user_role": user_role}
@@ -1571,7 +1574,7 @@ def share_project(project, user, user_role):
         raise SABaseException(response.status_code, response.text)
     logger.info(
         "Shared project %s with user %s and role %s", project["name"],
-        user["email"], user_role_int_to_str(user_role)
+        user["email"], common.user_role_int_to_str(user_role)
     )
 
 

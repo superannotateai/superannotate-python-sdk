@@ -239,7 +239,8 @@ def image_upload(command_name, args):
         '--extensions',
         default=None,
         type=_list_str,
-        help='List of image extensions to include. Default is jpg,png'
+        help=
+        'List of image extensions to include. Default is jpg,jpeg,png,tif,tiff,webp,bmp'
     )
     parser.add_argument(
         '--set-annotation-status',

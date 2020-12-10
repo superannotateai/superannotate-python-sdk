@@ -1,13 +1,13 @@
 import functools
-import logging
-from pathlib import Path
 import json
-from PIL import Image
-import time
-import numpy as np
+import logging
 import os
 import sys
-from .exceptions import SABaseException
+import time
+from pathlib import Path
+
+import numpy as np
+from PIL import Image
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -30,18 +30,13 @@ def image_path_to_annotation_paths(image_path, project_type):
     postfix_mask = '___save.png'
     if project_type == 1:
         return (image_path.parent / (image_path.name + postfix_json), )
-    else:
-        return (
-            image_path.parent / (image_path.name + postfix_json),
-            image_path.parent / (image_path.name + postfix_mask)
-        )
+    return (
+        image_path.parent / (image_path.name + postfix_json),
+        image_path.parent / (image_path.name + postfix_mask)
+    )
 
 
 def project_type_str_to_int(project_type):
-    if project_type not in _PROJECT_TYPES:
-        raise SABaseException(
-            0, "Project type should be one of Vector or Pixel ."
-        )
     return _PROJECT_TYPES[project_type]
 
 
@@ -54,19 +49,16 @@ def project_type_int_to_str(project_type):
     :return: 'Vector' or 'Pixel'
     :rtype: str
     """
+    if not isinstance(project_type, int):
+        return project_type
 
     for k, v in _PROJECT_TYPES.items():
         if v == project_type:
             return k
-    raise SABaseException(0, "Project type should be one of 1 or 2 .")
+    return None
 
 
 def user_role_str_to_int(user_role):
-    if user_role not in _USER_ROLES:
-        raise SABaseException(
-            0,
-            "User role should be one of Admin , Annotator , QA , Customer , Viewer ."
-        )
     return _USER_ROLES[user_role]
 
 
@@ -74,15 +66,10 @@ def user_role_int_to_str(user_role):
     for k, v in _USER_ROLES.items():
         if v == user_role:
             return k
-    raise SABaseException(0, "User role should be one of 2 3 4 5 6 .")
+    return None
 
 
 def annotation_status_str_to_int(annotation_status):
-    if annotation_status not in _ANNOTATION_STATUSES:
-        raise SABaseException(
-            0,
-            "Annotation status should be one of NotStarted InProgress QualityCheck Returned Completed Skipped"
-        )
     return _ANNOTATION_STATUSES[annotation_status]
 
 
@@ -99,9 +86,7 @@ def annotation_status_int_to_str(annotation_status):
     for k, v in _ANNOTATION_STATUSES.items():
         if v == annotation_status:
             return k
-    raise SABaseException(
-        0, "Annotation status should be one of 1, 2, 3, 4, 5, 6 ."
-    )
+    return None
 
 
 def deprecated_alias(**aliases):
@@ -261,3 +246,10 @@ def dump_output(output_dir, platform, classes, files_dict):
         save_web_format(output_dir, classes, files_dict)
     else:
         save_desktop_format(output_dir, classes, files_dict)
+
+
+MAX_IMAGE_SIZE = 100 * 1024 * 1024  # 100 MB limit
+MAX_IMAGE_RESOLUTION = {
+    "Vector": 100_000_000,
+    "Pixel": 4_000_000
+}  # Resolution limit

@@ -58,13 +58,13 @@ To upload images from folder to project use:
 
 .. code-block:: bash
 
-   superannotatecli upload-images --project <project_name> --folder <folder_path> [--recursive] [--extensions jpg,png]
+   superannotatecli upload-images --project <project_name> --folder <folder_path> [--recursive] [--extensions <extension1>,<extension2>,...]
 
 If optional argument *recursive* is given then subfolders of :file:`<folder_path>` are also recursively
 scanned for available images.
 
 Optional argument *extensions* accepts comma separated list of image extensions
-to look for. If the argument is not given then value *jpg,png* is assumed.
+to look for. If the argument is not given then value *jpg,jpeg,png,tif,tiff,webp,bmp* is assumed.
 
 ----------
 

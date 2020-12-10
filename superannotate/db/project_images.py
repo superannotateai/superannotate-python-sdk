@@ -6,13 +6,12 @@ from pathlib import Path
 
 import boto3
 
+from .. import common
 from ..api import API
-from ..common import annotation_status_int_to_str, annotation_status_str_to_int
-from ..exceptions import SABaseException
+from ..exceptions import SABaseException, SAImageSizeTooLarge
 from .images import (
     delete_image, get_image_annotations, get_image_bytes, get_image_metadata,
-    search_images, set_image_annotation_status,
-    upload_image_annotations
+    search_images, set_image_annotation_status, upload_image_annotations
 )
 from .project_api import get_project_metadata_bare
 from .projects import (
@@ -52,7 +51,7 @@ def upload_image_to_project(
     """
     if not isinstance(project, dict):
         project = get_project_metadata_bare(project)
-    annotation_status = annotation_status_str_to_int(annotation_status)
+    annotation_status = common.annotation_status_str_to_int(annotation_status)
     image_quality_in_editor = _get_project_image_quality_in_editor(
         project, image_quality_in_editor
     )
@@ -64,11 +63,20 @@ def upload_image_to_project(
             from_session = boto3.Session()
             from_s3 = from_session.resource('s3')
             from_s3_object = from_s3.Object(from_s3_bucket, img)
+            file_size = from_s3_object.content_length
+            if file_size > common.MAX_IMAGE_SIZE:
+                raise SAImageSizeTooLarge(file_size, img)
             img = io.BytesIO()
             from_s3_object.download_fileobj(img)
         else:
+            file_size = Path(img).stat().st_size
+            if file_size > common.MAX_IMAGE_SIZE:
+                raise SAImageSizeTooLarge(file_size, img)
             with open(img, "rb") as f:
                 img = io.BytesIO(f.read())
+    elif img.getbuffer().nbytes > common.MAX_IMAGE_SIZE:
+        raise SAImageSizeTooLarge(file_size)
+
     if image_name is not None:
         img_name = image_name
 
@@ -100,9 +108,12 @@ def upload_image_to_project(
     )
     s3_resource = s3_session.resource('s3')
     bucket = s3_resource.Bucket(res["bucket"])
-    images = get_image_array_to_upload(img, image_quality_in_editor)
     key = prefix + f'{img_name}'
     try:
+        print(project["type"])
+        images = get_image_array_to_upload(
+            img, image_quality_in_editor, project["type"]
+        )
         upload_image_array_to_s3(bucket, *images, key)
     except Exception as e:
         raise SABaseException(0, "Couldn't upload to data server. " + e)
@@ -188,7 +199,9 @@ def copy_image(
     if copy_annotation_status:
         set_image_annotation_status(
             destination_project, new_name,
-            annotation_status_int_to_str(img_metadata["annotation_status"])
+            common.annotation_status_int_to_str(
+                img_metadata["annotation_status"]
+            )
         )
     if copy_pin:
         pin_image(destination_project, new_name, img_metadata["is_pinned"])
