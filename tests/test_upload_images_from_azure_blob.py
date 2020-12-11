@@ -14,7 +14,7 @@ CONTAINER_NAME = 'superannotate-python-sdk-tests'
 
 
 @pytest.mark.skipif(
-    "SA_CLOUD_TESTS" not in os.environ or os.environ["SA_CLOUD_TESTS"] != "1",
+    "SA_CLOUD_TESTS" not in os.environ,
     reason="Requires env variable to be set"
 )
 def test_upload_images_from_azure_storage_to_project():

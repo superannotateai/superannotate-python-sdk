@@ -1,3 +1,9 @@
+[run]
+branch = True
+
+
 [report]
 exclude_lines =
     raise SABaseException\(
+
+fail_under = 90

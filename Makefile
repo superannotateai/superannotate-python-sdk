@@ -11,7 +11,7 @@ all: coverage tests
 tests:
 	$(PYTESTS) -n 8
 
-stress-tests: AO_TEST_LEVEL=stress
+stress-tests: SA_STRESS_TESTS=1
 stress-tests: tests
 	$(PYTESTS) -n 8
 
