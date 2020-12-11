@@ -198,10 +198,7 @@ def copy_image(
                 )
     if copy_annotation_status:
         set_image_annotation_status(
-            destination_project, new_name,
-            common.annotation_status_int_to_str(
-                img_metadata["annotation_status"]
-            )
+            destination_project, new_name, img_metadata["annotation_status"]
         )
     if copy_pin:
         pin_image(destination_project, new_name, img_metadata["is_pinned"])

@@ -33,7 +33,7 @@ def test_basic_project(project_type, name, description, from_folder, tmpdir):
     project = sa.create_project(name, description, project_type)
     assert project["name"] == name
     assert project["description"] == description
-    assert project["type"] == sa.project_type_str_to_int(project_type)
+    assert project["type"] == project_type
 
     projects_found = sa.search_projects(name)
     assert len(projects_found) == 1
@@ -55,9 +55,7 @@ def test_basic_project(project_type, name, description, from_folder, tmpdir):
         project, from_folder / "classes" / "classes.json"
     )
     classes_in_file = json.load(open(from_folder / "classes" / "classes.json"))
-    classes_in_project = sa.search_annotation_classes(
-        project
-    )
+    classes_in_project = sa.search_annotation_classes(project)
     json.dump(classes_in_project, open(Path(tmpdir) / "tmp_c.json", 'w'))
     assert len(classes_in_file) == len(classes_in_project)
     for cl_f in classes_in_file:

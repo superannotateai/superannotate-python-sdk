@@ -9,6 +9,7 @@ import numpy as np
 import requests
 from PIL import Image, ImageDraw
 
+from .. import common
 from ..annotation_helpers import (
     add_annotation_bbox_to_json, add_annotation_comment_to_json,
     add_annotation_cuboid_to_json, add_annotation_ellipse_to_json,
@@ -113,7 +114,18 @@ def search_images(
             raise SABaseException(
                 response.status_code, "Couldn't search images " + response.text
             )
-    return result_list
+
+    if return_metadata:
+
+        def process_result(x):
+            x["annotation_status"] = common.annotation_status_int_to_str(
+                x["annotation_status"]
+            )
+            return x
+
+        return list(map(process_result, result_list))
+    else:
+        return result_list
 
 
 def get_image_metadata(project, image_name):
@@ -616,7 +628,7 @@ def get_image_preannotations(project, image_name):
     annotation_classes_dict = get_annotation_classes_id_to_name(
         annotation_classes
     )
-    if project_type == 1:  # vector
+    if project_type == "Vector":
         res = res['preannotation']
         url = res["url"]
         annotation_json_filename = url.rsplit('/', 1)[-1]
@@ -710,7 +722,7 @@ def get_image_annotations(project, image_name, project_type=None):
     annotation_classes_dict = get_annotation_classes_id_to_name(
         annotation_classes
     )
-    if project_type == 1:  # vector
+    if project_type == "Vector":
         url = res["objects"]["url"]
         annotation_json_filename = url.rsplit('/', 1)[-1]
         headers = res["objects"]["headers"]
@@ -782,7 +794,7 @@ def download_image_annotations(project, image_name, local_dir_path):
     return_filepaths = []
     json_path = Path(local_dir_path) / annotation["annotation_json_filename"]
     return_filepaths.append(str(json_path))
-    if project["type"] == 1:
+    if project["type"] == "Vector":
         with open(json_path, "w") as f:
             json.dump(annotation["annotation_json"], f, indent=4)
     else:
@@ -819,7 +831,7 @@ def download_image_preannotations(project, image_name, local_dir_path):
     return_filepaths = []
     json_path = Path(local_dir_path) / annotation["preannotation_json_filename"]
     return_filepaths.append(str(json_path))
-    if project["type"] == 1:
+    if project["type"] == "Vector":
         with open(json_path, "w") as f:
             json.dump(annotation["preannotation_json"], f)
     else:
@@ -885,7 +897,7 @@ def upload_image_annotations(
             response.status_code, "Couldn't upload annotation. " + response.text
         )
     res = response.json()
-    if project_type == 1:  # vector
+    if project_type == "Vector":
         res = res['objects']
         s3_session = boto3.Session(
             aws_access_key_id=res['accessKeyId'],

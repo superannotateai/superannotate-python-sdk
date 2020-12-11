@@ -1,8 +1,5 @@
 from pathlib import Path
-import json
 import io
-
-import pytest
 
 import superannotate as sa
 
@@ -31,9 +28,8 @@ def test_single_image_upload(tmpdir):
     images = sa.search_images(project)
     assert len(images) == 1
     image = images[0]
-    assert sa.annotation_status_int_to_str(
-        sa.get_image_metadata(project, image)["annotation_status"]
-    ) == "InProgress"
+    assert sa.get_image_metadata(project,
+                                 image)["annotation_status"] == "InProgress"
     assert image == "example_image_1.jpg"
 
 
@@ -56,9 +52,8 @@ def test_single_image_upload_s3(tmpdir):
     images = sa.search_images(project)
     assert len(images) == 1
     image = images[0]
-    assert sa.annotation_status_int_to_str(
-        sa.get_image_metadata(project, image)["annotation_status"]
-    ) == "InProgress"
+    assert sa.get_image_metadata(project,
+                                 image)["annotation_status"] == "InProgress"
 
 
 def test_single_image_upload_s3_change_name(tmpdir):
@@ -83,9 +78,8 @@ def test_single_image_upload_s3_change_name(tmpdir):
     images = sa.search_images(project)
     assert len(images) == 1
     image = images[0]
-    assert sa.annotation_status_int_to_str(
-        sa.get_image_metadata(project, image)["annotation_status"]
-    ) == "InProgress"
+    assert sa.get_image_metadata(project,
+                                 image)["annotation_status"] == "InProgress"
     assert image == "rr.jpg"
 
 
@@ -115,7 +109,6 @@ def test_single_image_upload_bytesio(tmpdir):
     images = sa.search_images(project)
     assert len(images) == 1
     image = images[0]
-    assert sa.annotation_status_int_to_str(
-        sa.get_image_metadata(project, image)["annotation_status"]
-    ) == "InProgress"
+    assert sa.get_image_metadata(project,
+                                 image)["annotation_status"] == "InProgress"
     assert image == "rr.jpg"

@@ -1,5 +1,6 @@
 import logging
 
+from .. import common
 from ..api import API
 from ..exceptions import (
     SABaseException, SAExistingProjectNameException,
@@ -32,7 +33,9 @@ def get_project_metadata_bare(project_name):
             " is not unique. To use SDK please make project names unique."
         )
     elif len(results) == 1:
-        return results[0]
+        res = results[0]
+        res["type"] = common.project_type_int_to_str(res["type"])
+        return res
     else:
         raise SANonExistingProjectNameException(
             0, "Project with name " + project_name + " doesn't exist."
@@ -50,4 +53,8 @@ def get_project_metadata_with_users(project_metadata):
             response.status_code, "Couldn't get project." + response.text
         )
     res = response.json()
+    for contributor in res["users"]:
+        contributor["user_role"] = common.user_role_int_to_str(
+            contributor["user_role"]
+        )
     return res

@@ -46,12 +46,10 @@ def test_create_like_project(tmpdir):
         PROJECT_NAME2, PROJECT_NAME, copy_contributors=True
     )
     assert new_project["description"] == "tt"
-    assert new_project["type"] == 1
+    assert new_project["type"] == "Vector"
     time.sleep(1)
 
-    ann_classes = sa.search_annotation_classes(
-        PROJECT_NAME2
-    )
+    ann_classes = sa.search_annotation_classes(PROJECT_NAME2)
     assert len(ann_classes) == 1
     assert ann_classes[0]["name"] == "rrr"
     assert ann_classes[0]["color"] == "#FFAAFF"
@@ -73,5 +71,4 @@ def test_create_like_project(tmpdir):
     )
     assert len(new_project["contributors"]) == 1
     assert new_project["contributors"][0]["user_id"] == users[1]
-    assert new_project["contributors"][0]["user_role"
-                                         ] == sa.user_role_str_to_int("QA")
+    assert new_project["contributors"][0]["user_role"] == "QA"
