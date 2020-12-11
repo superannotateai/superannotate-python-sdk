@@ -1,7 +1,9 @@
+import os
 from pathlib import Path
-import superannotate as sa
 
-sa.init(Path.home() / ".superannotate" / "config.json")
+import pytest
+
+import superannotate as sa
 
 test_root = Path().resolve() / 'tests'
 
@@ -10,6 +12,10 @@ GOOGLE_PROJECT = 'siam'
 BUCKET_NAME = 'superannotate-python-sdk-tests'
 
 
+@pytest.mark.skipif(
+    "SA_CLOUD_TESTS" not in os.environ or os.environ["SA_CLOUD_TESTS"] != "1",
+    reason="Requires env variable to be set"
+)
 def test_upload_images_from_google_cloud_to_project():
     folder_path_with_test_imgs = 'cat_pics_sdk_test'
     folder_path_empty = 'empty_folder'

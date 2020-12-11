@@ -549,7 +549,7 @@ def get_image_array_to_upload(
     byte_io_orig, image_quality_in_editor, project_type
 ):
     if image_quality_in_editor not in ["original", "compressed"]:
-        raise SABaseException(0, "NA ImageQuality")
+        raise SABaseException(0, "NA ImageQuality in get_image_array_to_upload")
     Image.MAX_IMAGE_PIXELS = None
     im = Image.open(byte_io_orig)
     im_format = im.format
@@ -644,8 +644,7 @@ def __upload_images_to_aws_thread(
                 with open(path, "rb") as f:
                     file = io.BytesIO(f.read())
             images = get_image_array_to_upload(
-                file, image_quality_in_editor,
-                common.project_type_int_to_str(project["type"])
+                file, image_quality_in_editor, project["type"]
             )
             upload_image_array_to_s3(bucket, *images, key)
         except Exception as e:
@@ -724,9 +723,10 @@ def upload_images_to_project(
             0, "img_paths argument to upload_images_to_project should be a list"
         )
     annotation_status = common.annotation_status_str_to_int(annotation_status)
-    image_quality_in_editor = _get_project_image_quality_in_editor(
-        project, image_quality_in_editor
-    )
+    if image_quality_in_editor is None:
+        image_quality_in_editor = get_project_default_image_quality_in_editor(
+            project
+        )
     team_id, project_id = project["team_id"], project["id"]
     existing_images = search_images(project)
     duplicate_images = []
@@ -1632,12 +1632,9 @@ def upload_images_from_s3_bucket_to_project(
     if not isinstance(project, dict):
         project = get_project_metadata_bare(project)
     if image_quality_in_editor is not None:
-        old_quality = _get_project_image_quality_in_editor(project, None)
-        _set_project_default_image_quality_in_editor(
-            project,
-            _get_project_image_quality_in_editor(
-                project, image_quality_in_editor
-            )
+        old_quality = get_project_default_image_quality_in_editor(project)
+        set_project_default_image_quality_in_editor(
+            project, image_quality_in_editor
         )
     team_id, project_id = project["team_id"], project["id"]
     params = {
@@ -1672,7 +1669,7 @@ def upload_images_from_s3_bucket_to_project(
                 "Couldn't upload to project from S3 " + response.text
             )
     if image_quality_in_editor is not None:
-        _set_project_default_image_quality_in_editor(project, old_quality)
+        set_project_default_image_quality_in_editor(project, old_quality)
 
 
 def _get_upload_from_s3_bucket_to_project_status(project):
@@ -1893,21 +1890,6 @@ def set_project_settings(project, new_settings):
             "Couldn't set project settings " + response.text
         )
     return response.json()
-
-
-def _get_project_image_quality_in_editor(project, image_quality_in_editor):
-    if image_quality_in_editor is None:
-        for setting in get_project_settings(project):
-            if "attribute" in setting and setting["attribute"] == "ImageQuality":
-                return setting["value"]
-        return 60
-    elif image_quality_in_editor in ["compressed", "original"]:
-        return image_quality_in_editor
-    else:
-        raise SABaseException(
-            0,
-            "Image quality in editor should be 'compressed', 'original' or None for project settings value"
-        )
 
 
 def set_project_default_image_quality_in_editor(

@@ -1,7 +1,6 @@
 import copy
 import logging
 
-from ..common import project_type_int_to_str
 from .annotation_classes import search_annotation_classes
 from .project_api import (
     get_project_metadata_bare, get_project_metadata_with_users
@@ -41,7 +40,6 @@ def get_project_metadata(
     if not isinstance(project, dict):
         project = get_project_metadata_bare(project)
     result = copy.deepcopy(project)
-    result["type"] = project_type_int_to_str(result["type"])
     if include_annotation_classes:
         result["annotation_classes"] = search_annotation_classes(project)
     if include_contributors:

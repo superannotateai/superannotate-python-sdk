@@ -17,10 +17,6 @@ from ..annotation_helpers import (
     add_annotation_polyline_to_json, add_annotation_template_to_json
 )
 from ..api import API
-from ..common import (
-    annotation_status_str_to_int, hex_to_rgb, image_path_to_annotation_paths,
-    project_type_int_to_str
-)
 from ..exceptions import SABaseException
 from .annotation_classes import (
     fill_class_and_attribute_ids, fill_class_and_attribute_names,
@@ -77,7 +73,9 @@ def search_images(
     team_id, project_id = project["team_id"], project["id"]
     folder_id = _get_project_root_folder_id(project)  # maybe changed in future
     if annotation_status is not None:
-        annotation_status = annotation_status_str_to_int(annotation_status)
+        annotation_status = common.annotation_status_str_to_int(
+            annotation_status
+        )
 
     result_list = []
     params = {
@@ -166,7 +164,7 @@ def set_image_annotation_status(project, image_name, annotation_status):
     image = get_image_metadata(project, image_name)
     team_id, project_id, image_id = image["team_id"], image["project_id"
                                                            ], image["id"]
-    annotation_status = annotation_status_str_to_int(annotation_status)
+    annotation_status = common.annotation_status_str_to_int(annotation_status)
     json_req = {
         "annotation_status": annotation_status,
     }
@@ -514,9 +512,11 @@ def download_image(
         )
         if include_fuse or include_overlay:
             classes = search_annotation_classes(project)
-            project_type = project_type_int_to_str(project["type"])
             fuse_path = create_fuse_image(
-                filepath, classes, project_type, output_overlay=include_overlay
+                filepath,
+                classes,
+                project["type"],
+                output_overlay=include_overlay
             )
     logger.info("Downloaded image %s to %s.", image_name, filepath)
 
@@ -952,7 +952,7 @@ def create_fuse_image(
     :return: path to created fuse image or pillow Image object if in_memory enabled
     :rtype: str of PIL.Image
     """
-    annotation_path = image_path_to_annotation_paths(image, project_type)
+    annotation_path = common.image_path_to_annotation_paths(image, project_type)
     annotation_json = json.load(open(annotation_path[0]))
     if not isinstance(classes_json, list):
         classes_json = json.load(open(classes_json))
@@ -979,7 +979,7 @@ def create_fuse_image(
             if "className" not in annotation:
                 continue
             color = class_color_dict[annotation["className"]]
-            rgb = hex_to_rgb(color)
+            rgb = common.hex_to_rgb(color)
             fill_color = (rgb[0], rgb[1], rgb[2], 255)
             outline_color = (255, 255, 255, 255)
             if annotation["type"] == "bbox":
@@ -1079,11 +1079,11 @@ def create_fuse_image(
             if "className" not in annotation or "parts" not in annotation:
                 continue
             color = class_color_dict[annotation["className"]]
-            rgb = hex_to_rgb(color)
+            rgb = common.hex_to_rgb(color)
             fill_color = (rgb[0], rgb[1], rgb[2], 255)
             for part in annotation["parts"]:
                 part_color = part["color"]
-                part_color = list(hex_to_rgb(part_color)) + [255]
+                part_color = list(common.hex_to_rgb(part_color)) + [255]
                 temp_mask = np.alltrue(annotation_mask == part_color, axis=2)
                 fi[temp_mask] = fill_color
         fi_pil = Image.fromarray(fi)

@@ -15,7 +15,7 @@ from .images import (
 )
 from .project_api import get_project_metadata_bare
 from .projects import (
-    __create_image, _get_project_image_quality_in_editor,
+    __create_image, get_project_default_image_quality_in_editor,
     get_image_array_to_upload, upload_image_array_to_s3
 )
 
@@ -52,9 +52,10 @@ def upload_image_to_project(
     if not isinstance(project, dict):
         project = get_project_metadata_bare(project)
     annotation_status = common.annotation_status_str_to_int(annotation_status)
-    image_quality_in_editor = _get_project_image_quality_in_editor(
-        project, image_quality_in_editor
-    )
+    if image_quality_in_editor is None:
+        image_quality_in_editor = get_project_default_image_quality_in_editor(
+            project
+        )
 
     img_name = None
     if not isinstance(img, io.BytesIO):
