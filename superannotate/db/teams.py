@@ -30,7 +30,7 @@ def invite_contributor_to_team(email, admin=False):
     return response.json()
 
 
-def get_team_metadata(convert_users_role_to_string=False):
+def get_team_metadata():
     """Returns team metadata
 
     :param convert_users_role_to_string: convert integer team users' roles to human comprehensible strings
@@ -45,25 +45,31 @@ def get_team_metadata(convert_users_role_to_string=False):
         )
 
     res = response.json()
-    if convert_users_role_to_string:
-        for user in res["users"]:
-            user["user_role"] = user_role_int_to_str(user["user_role"])
+    for user in res["users"]:
+        user["user_role"] = user_role_int_to_str(user["user_role"])
 
     return res
 
 
-# def delete_team_contributor_invitation(invitation):
-#     """Deletes team contributor invitation
+def delete_contributor_to_team_invitation(email):
+    """Deletes team contributor invitation
 
-#     :param invite: invitation metadata returned from invite_contributor_to_team
-#     :type project: dict
-#     """
-#     data = {'token': invitation["token"], 'e_mail': invitation['email']}
-#     response = _api.send_request(
-#         req_type='DELETE', path=f'/team/{_api.team_id}/invite', json_req=data
-#     )
-#     if not response.ok:
-#         raise SABaseException(
-#             response.status_code,
-#             "Couldn't delete contributor invite. " + response.text
-#         )
+    :param email: invitation email
+    :type email: str
+    """
+    team_metadata = get_team_metadata()
+    for invite in team_metadata["pending_invitations"]:
+        if invite["email"] == email:
+            break
+    else:
+        raise SABaseException(0, "Couldn't find user " + email + " invitation")
+
+    data = {'token': invite["token"], 'e_mail': invite['email']}  # pylint: disable=undefined-loop-variable
+    response = _api.send_request(
+        req_type='DELETE', path=f'/team/{_api.team_id}/invite', json_req=data
+    )
+    if not response.ok:
+        raise SABaseException(
+            response.status_code,
+            "Couldn't delete contributor invite. " + response.text
+        )

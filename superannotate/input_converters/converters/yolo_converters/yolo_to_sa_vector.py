@@ -1,7 +1,11 @@
-from glob import glob
+import logging
 import os
+from glob import glob
+
 import cv2
 import numpy as np
+
+logger = logging.getLogger("superannotate-python-sdk")
 
 
 def _create_classes(classes):
@@ -22,18 +26,18 @@ def _create_classes(classes):
 def yolo_object_detection_to_sa_vector(data_path):
     classes = {}
     id_ = 0
-    classes_file = open(os.path.join(data_path, 'classes.txt'))
+    classes_file = open(data_path / 'classes.txt')
     for line in classes_file:
         key = line.rstrip()
         if key not in classes.keys():
             classes[id_] = key
             id_ += 1
 
-    annotations = glob(os.path.join(data_path, '*.txt'))
+    annotations = data_path.glob('*.txt')
 
     sa_jsons = {}
     for annotation in annotations:
-        base_name = os.path.basename(annotation)
+        base_name = annotation.name
         if base_name == 'classes.txt':
             continue
 
@@ -41,10 +45,14 @@ def yolo_object_detection_to_sa_vector(data_path):
         file_name = os.path.splitext(base_name)[0] + '.*'
         files_list = glob(os.path.join(data_path, file_name))
         if len(files_list) == 1:
-            print("'{}' image for annotation doesn't exist".format(annotation))
+            logger.warning(
+                "'{}' image for annotation doesn't exist".format(annotation)
+            )
             continue
         elif len(files_list) > 2:
-            print("'{}' multiple file for this annotation".format(annotation))
+            logger.warning(
+                "'{}' multiple file for this annotation".format(annotation)
+            )
             continue
         else:
             if os.path.splitext(files_list[0])[1] == '.txt':
@@ -52,7 +60,7 @@ def yolo_object_detection_to_sa_vector(data_path):
             else:
                 file_name = files_list[0]
         img = cv2.imread(file_name)
-        H, W, C = img.shape
+        H, W, _ = img.shape
 
         sa_loader = []
         for line in file:
@@ -72,7 +80,6 @@ def yolo_object_detection_to_sa_vector(data_path):
                 'type': 'bbox',
                 'points': bbox,
                 'className': classes[class_id],
-                'classId': class_id + 1,
                 'attributes': [],
                 'probability': 100,
                 'locked': False,

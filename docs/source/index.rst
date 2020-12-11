@@ -47,16 +47,12 @@ SDK is available on PyPI:
 
    pip install superannotate
 
-for COCO annotation format converters support also need to install:
 
-.. code-block:: bash
+The package officially supports Python 3.6+ and was tested under Linux and
+Windows (`Anaconda <https://www.anaconda.com/products/individual#windows>`_) platforms.
 
-   pip install 'git+https://github.com/cocodataset/panopticapi.git'
-   pip install 'git+https://github.com/philferriere/cocoapi.git#egg=pycocotools&subdirectory=PythonAPI'
-
-The package officially supports Python 3.6+.
-
-For further steps please have a look at the :ref:`tutorial <ref_tutorial>`.
+For more detailed installation steps and package usage please have a look at 
+the :ref:`tutorial <ref_tutorial>`.
 
 ----------
 

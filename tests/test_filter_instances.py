@@ -173,85 +173,94 @@ def test_filter_instances(tmpdir):
     # print(not_filtered[not_filtered["className"] == "Human
 
 
-# def test_df_to_annotations(tmpdir):
-#     tmpdir = Path(tmpdir)
+def test_df_to_annotations(tmpdir):
+    tmpdir = Path(tmpdir)
 
-#     df = sa.aggregate_annotations_as_df(PROJECT_DIR)
-#     sa.df_to_annotations(df, tmpdir)
-#     df_new = sa.aggregate_annotations_as_df(tmpdir)
+    df = sa.aggregate_annotations_as_df(PROJECT_DIR)
+    sa.df_to_annotations(df, tmpdir)
+    df_new = sa.aggregate_annotations_as_df(tmpdir)
 
-#     print(df_new["imageName"].value_counts())
-#     print(df["imageName"].value_counts())
+    assert len(df) == len(df_new)
+    # print(df_new["imageName"].value_counts())
+    # print(df["imageName"].value_counts())
+    # print(len(df.columns))
+    # print(len(df_new.columns))
 
-#     for _index, row in enumerate(df.iterrows()):
-#         for _, row_2 in enumerate(df_new.iterrows()):
-#             if row_2[1].equals(row[1]):
-#                 break
-#         else:
-#             assert False
-#     for project in sa.search_projects("test df to annotations 2"):
-#         sa.delete_project(project)
-#     project = sa.create_project("test df to annotations 2", "test", "Vector")
-#     sa.upload_images_from_folder_to_project(
-#         project, "./tests/sample_project_vector"
-#     )
-#     sa.create_annotation_classes_from_classes_json(
-#         project, "./tests/sample_project_vector/classes/classes.json"
-#     )
-#     sa.upload_annotations_from_folder_to_project(
-#         project, "./tests/sample_project_vector"
-#     )
+    # print(df[df["imageName"] == "example_image_1.jpg"]["instanceId"])
+    # print(df_new[(df_new["imageName"] == "example_image_1.jpg")]["instanceId"])
+    for _index, row in enumerate(df.iterrows()):
+        for _, row_2 in enumerate(df_new.iterrows()):
+            if row_2[1].equals(row[1]):
+                break
+            # if row_2[1]["imageName"] == "example_image_1.jpg":
+            #     print(row_2[1])
+        else:
+            assert False, print("Error on ", row[1])
 
-# def test_df_to_annotations_full(tmpdir):
-#     tmpdir = Path(tmpdir)
+    for project in sa.search_projects("test df to annotations 2"):
+        sa.delete_project(project)
+    project = sa.create_project("test df to annotations 2", "test", "Vector")
+    sa.upload_images_from_folder_to_project(
+        project, "./tests/sample_project_vector"
+    )
+    sa.create_annotation_classes_from_classes_json(
+        project, "./tests/sample_project_vector/classes/classes.json"
+    )
+    sa.upload_annotations_from_folder_to_project(
+        project, "./tests/sample_project_vector"
+    )
 
-#     df = sa.aggregate_annotations_as_df(
-#         PROJECT_DIR, include_classes_wo_annotations=True, include_comments=True
-#     )
-#     sa.df_to_annotations(df, tmpdir)
-#     df_new = sa.aggregate_annotations_as_df(
-#         tmpdir, include_classes_wo_annotations=True, include_comments=True
-#     )
-#     for project in sa.search_projects("test df to annotations 4"):
-#         sa.delete_project(project)
-#     project = sa.create_project("test df to annotations 4", "test", "Vector")
-#     sa.upload_images_from_folder_to_project(project, PROJECT_DIR)
-#     sa.create_annotation_classes_from_classes_json(
-#         project, tmpdir / "classes" / "classes.json"
-#     )
-#     sa.upload_annotations_from_folder_to_project(project, tmpdir)
-#     # print(df_new["image_name"].value_counts())
-#     # print(df["image_name"].value_counts())
-#     for _index, row in enumerate(df.iterrows()):
-#         for _, row_2 in enumerate(df_new.iterrows()):
-#             if row_2[1].equals(row[1]):
-#                 break
-#         else:
-#             assert False
 
-#     fil1 = sa.filter_annotation_instances(
-#         df_new,
-#         include=[
-#             {
-#                 "className": "Personal vehicle",
-#                 "attributes": [{
-#                     "name": "4",
-#                     "groupName": "Num doors"
-#                 }]
-#             }
-#         ],
-#         exclude=[{
-#             "type": "polygon"
-#         }]
-#     )
-#     filtered_export = (tmpdir / "filtered")
-#     filtered_export.mkdir()
-#     sa.df_to_annotations(fil1, filtered_export)
-#     for project in sa.search_projects("test df to annotations 3"):
-#         sa.delete_project(project)
-#     project = sa.create_project("test df to annotations 3", "test", "Vector")
-#     sa.upload_images_from_folder_to_project(project, PROJECT_DIR)
-#     sa.create_annotation_classes_from_classes_json(
-#         project, filtered_export / "classes" / "classes.json"
-#     )
-#     sa.upload_annotations_from_folder_to_project(project, filtered_export)
+def test_df_to_annotations_full(tmpdir):
+    tmpdir = Path(tmpdir)
+
+    df = sa.aggregate_annotations_as_df(
+        PROJECT_DIR, include_classes_wo_annotations=True, include_comments=True
+    )
+    sa.df_to_annotations(df, tmpdir)
+    df_new = sa.aggregate_annotations_as_df(
+        tmpdir, include_classes_wo_annotations=True, include_comments=True
+    )
+    for project in sa.search_projects("test df to annotations 4"):
+        sa.delete_project(project)
+    project = sa.create_project("test df to annotations 4", "test", "Vector")
+    sa.upload_images_from_folder_to_project(project, PROJECT_DIR)
+    sa.create_annotation_classes_from_classes_json(
+        project, tmpdir / "classes" / "classes.json"
+    )
+    sa.upload_annotations_from_folder_to_project(project, tmpdir)
+    # print(df_new["image_name"].value_counts())
+    # print(df["image_name"].value_counts())
+    for _index, row in enumerate(df.iterrows()):
+        for _, row_2 in enumerate(df_new.iterrows()):
+            if row_2[1].equals(row[1]):
+                break
+        else:
+            assert False
+
+    fil1 = sa.filter_annotation_instances(
+        df_new,
+        include=[
+            {
+                "className": "Personal vehicle",
+                "attributes": [{
+                    "name": "4",
+                    "groupName": "Num doors"
+                }]
+            }
+        ],
+        exclude=[{
+            "type": "polygon"
+        }]
+    )
+    filtered_export = (tmpdir / "filtered")
+    filtered_export.mkdir()
+    sa.df_to_annotations(fil1, filtered_export)
+    for project in sa.search_projects("test df to annotations 3"):
+        sa.delete_project(project)
+    project = sa.create_project("test df to annotations 3", "test", "Vector")
+    sa.upload_images_from_folder_to_project(project, PROJECT_DIR)
+    sa.create_annotation_classes_from_classes_json(
+        project, filtered_export / "classes" / "classes.json"
+    )
+    sa.upload_annotations_from_folder_to_project(project, filtered_export)

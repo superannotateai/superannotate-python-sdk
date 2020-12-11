@@ -17,8 +17,8 @@ from ..annotation_helpers import (
 )
 from ..api import API
 from ..common import (
-    annotation_status_str_to_int, deprecated_alias, hex_to_rgb,
-    image_path_to_annotation_paths, project_type_int_to_str
+    annotation_status_str_to_int, hex_to_rgb, image_path_to_annotation_paths,
+    project_type_int_to_str
 )
 from ..exceptions import SABaseException
 from .annotation_classes import (
@@ -26,7 +26,7 @@ from .annotation_classes import (
     get_annotation_classes_id_to_name, get_annotation_classes_name_to_id,
     search_annotation_classes
 )
-from .project import get_project_metadata
+from .project_api import get_project_metadata_bare
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -72,7 +72,7 @@ def search_images(
     :rtype: list of dicts or strs
     """
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     team_id, project_id = project["team_id"], project["id"]
     folder_id = _get_project_root_folder_id(project)  # maybe changed in future
     if annotation_status is not None:
@@ -201,9 +201,7 @@ def add_annotation_comment_to_image(
         comment_author,
         resolved=resolved
     )
-    upload_annotations_from_json_to_image(
-        project, image_name, annotations, verbose=False
-    )
+    upload_image_annotations(project, image_name, annotations, verbose=False)
 
 
 def add_annotation_bbox_to_image(
@@ -239,9 +237,7 @@ def add_annotation_bbox_to_image(
         annotation_class_attributes,
         error,
     )
-    upload_annotations_from_json_to_image(
-        project, image_name, annotations, verbose=False
-    )
+    upload_image_annotations(project, image_name, annotations, verbose=False)
 
 
 def add_annotation_polygon_to_image(
@@ -275,9 +271,7 @@ def add_annotation_polygon_to_image(
         annotations, polygon, annotation_class_name,
         annotation_class_attributes, error
     )
-    upload_annotations_from_json_to_image(
-        project, image_name, annotations, verbose=False
-    )
+    upload_image_annotations(project, image_name, annotations, verbose=False)
 
 
 def add_annotation_polyline_to_image(
@@ -310,9 +304,7 @@ def add_annotation_polyline_to_image(
         annotations, polyline, annotation_class_name,
         annotation_class_attributes, error
     )
-    upload_annotations_from_json_to_image(
-        project, image_name, annotations, verbose=False
-    )
+    upload_image_annotations(project, image_name, annotations, verbose=False)
 
 
 def add_annotation_point_to_image(
@@ -345,9 +337,7 @@ def add_annotation_point_to_image(
         annotations, point, annotation_class_name, annotation_class_attributes,
         error
     )
-    upload_annotations_from_json_to_image(
-        project, image_name, annotations, verbose=False
-    )
+    upload_image_annotations(project, image_name, annotations, verbose=False)
 
 
 def add_annotation_ellipse_to_image(
@@ -380,9 +370,7 @@ def add_annotation_ellipse_to_image(
         annotations, ellipse, annotation_class_name,
         annotation_class_attributes, error
     )
-    upload_annotations_from_json_to_image(
-        project, image_name, annotations, verbose=False
-    )
+    upload_image_annotations(project, image_name, annotations, verbose=False)
 
 
 def add_annotation_template_to_image(
@@ -422,9 +410,7 @@ def add_annotation_template_to_image(
         annotations, template_points, template_connections,
         annotation_class_name, annotation_class_attributes, error
     )
-    upload_annotations_from_json_to_image(
-        project, image_name, annotations, verbose=False
-    )
+    upload_image_annotations(project, image_name, annotations, verbose=False)
 
 
 def add_annotation_cuboid_to_image(
@@ -460,9 +446,7 @@ def add_annotation_cuboid_to_image(
         annotations, cuboid, annotation_class_name, annotation_class_attributes,
         error
     )
-    upload_annotations_from_json_to_image(
-        project, image_name, annotations, verbose=False
-    )
+    upload_image_annotations(project, image_name, annotations, verbose=False)
 
 
 def download_image(
@@ -503,7 +487,7 @@ def download_image(
         )
 
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     img = get_image_bytes(project, image_name, variant=variant)
     if variant == "lores":
         image_name += "___lores.jpg"
@@ -517,7 +501,7 @@ def download_image(
             project, image_name, local_dir_path
         )
         if include_fuse or include_overlay:
-            classes = search_annotation_classes(project, return_metadata=True)
+            classes = search_annotation_classes(project)
             project_type = project_type_int_to_str(project["type"])
             fuse_path = create_fuse_image(
                 filepath, classes, project_type, output_overlay=include_overlay
@@ -611,7 +595,7 @@ def get_image_preannotations(project, image_name):
     team_id, project_id, image_id, folder_id = image["team_id"], image[
         "project_id"], image["id"], image['folder_id']
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     project_type = project["type"]
 
     params = {
@@ -628,9 +612,7 @@ def get_image_preannotations(project, image_name):
         raise SABaseException(response.status_code, response.text)
     res = response.json()
 
-    annotation_classes = search_annotation_classes(
-        project, return_metadata=True
-    )
+    annotation_classes = search_annotation_classes(project)
     annotation_classes_dict = get_annotation_classes_id_to_name(
         annotation_classes
     )
@@ -708,7 +690,7 @@ def get_image_annotations(project, image_name, project_type=None):
         "project_id"], image["id"], image['folder_id']
     if project_type is None:
         if not isinstance(project, dict):
-            project = get_project_metadata(project)
+            project = get_project_metadata_bare(project)
         project_type = project["type"]
     params = {
         'team_id': team_id,
@@ -724,9 +706,7 @@ def get_image_annotations(project, image_name, project_type=None):
         raise SABaseException(response.status_code, response.text)
     res = response.json()
 
-    annotation_classes = search_annotation_classes(
-        project, return_metadata=True
-    )
+    annotation_classes = search_annotation_classes(project)
     annotation_classes_dict = get_annotation_classes_id_to_name(
         annotation_classes
     )
@@ -791,7 +771,7 @@ def download_image_annotations(project, image_name, local_dir_path):
     :rtype: tuple
     """
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
 
     annotation = get_image_annotations(project, image_name)
 
@@ -832,7 +812,7 @@ def download_image_preannotations(project, image_name, local_dir_path):
     :rtype: tuple
     """
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     annotation = get_image_preannotations(project, image_name)
     if annotation["preannotation_json_filename"] is None:
         return (None, )
@@ -853,8 +833,7 @@ def download_image_preannotations(project, image_name, local_dir_path):
     return tuple(return_filepaths)
 
 
-@deprecated_alias(mask_path="mask")
-def upload_annotations_from_json_to_image(
+def upload_image_annotations(
     project, image_name, annotation_json, mask=None, verbose=True
 ):
     """Upload annotations from JSON (also mask for pixel annotations)
@@ -875,7 +854,7 @@ def upload_annotations_from_json_to_image(
             logger.info("Uploading annotations from %s.", annotation_json)
         annotation_json = json.load(open(annotation_json))
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     image = get_image_metadata(project, image_name)
     team_id, project_id, image_id, folder_id, image_name = image[
         "team_id"], image["project_id"], image["id"], image['folder_id'], image[
@@ -886,9 +865,7 @@ def upload_annotations_from_json_to_image(
             "Uploading annotations for image %s in project %s.", image_name,
             project["name"]
         )
-    annotation_classes = search_annotation_classes(
-        project, return_metadata=True
-    )
+    annotation_classes = search_annotation_classes(project)
     annotation_classes_dict = get_annotation_classes_name_to_id(
         annotation_classes
     )
@@ -903,50 +880,47 @@ def upload_annotations_from_json_to_image(
         path=f'/image/{image_id}/annotation/getAnnotationUploadToken',
         params=params
     )
-    if response.ok:
-        res = response.json()
-        if project_type == 1:  # vector
-            res = res['objects']
-            s3_session = boto3.Session(
-                aws_access_key_id=res['accessKeyId'],
-                aws_secret_access_key=res['secretAccessKey'],
-                aws_session_token=res['sessionToken']
-            )
-            s3_resource = s3_session.resource('s3')
-            bucket = s3_resource.Bucket(res["bucket"])
-            bucket.put_object(
-                Key=res['filePath'], Body=json.dumps(annotation_json)
-            )
-        else:  # pixel
-            if mask is None:
-                raise SABaseException(0, "Pixel annotation should have mask.")
-            if not isinstance(mask, io.BytesIO):
-                with open(mask, "rb") as f:
-                    mask = io.BytesIO(f.read())
-            res_j = res['pixel']
-            s3_session = boto3.Session(
-                aws_access_key_id=res_j['accessKeyId'],
-                aws_secret_access_key=res_j['secretAccessKey'],
-                aws_session_token=res_j['sessionToken']
-            )
-            s3_resource = s3_session.resource('s3')
-            bucket = s3_resource.Bucket(res_j["bucket"])
-            bucket.put_object(
-                Key=res_j['filePath'], Body=json.dumps(annotation_json)
-            )
-            res_m = res['save']
-            s3_session = boto3.Session(
-                aws_access_key_id=res_m['accessKeyId'],
-                aws_secret_access_key=res_m['secretAccessKey'],
-                aws_session_token=res_m['sessionToken']
-            )
-            s3_resource = s3_session.resource('s3')
-            bucket = s3_resource.Bucket(res_m["bucket"])
-            bucket.put_object(Key=res_m['filePath'], Body=mask)
-    else:
+    if not response.ok:
         raise SABaseException(
             response.status_code, "Couldn't upload annotation. " + response.text
         )
+    res = response.json()
+    if project_type == 1:  # vector
+        res = res['objects']
+        s3_session = boto3.Session(
+            aws_access_key_id=res['accessKeyId'],
+            aws_secret_access_key=res['secretAccessKey'],
+            aws_session_token=res['sessionToken']
+        )
+        s3_resource = s3_session.resource('s3')
+        bucket = s3_resource.Bucket(res["bucket"])
+        bucket.put_object(Key=res['filePath'], Body=json.dumps(annotation_json))
+    else:  # pixel
+        if mask is None:
+            raise SABaseException(0, "Pixel annotation should have mask.")
+        if not isinstance(mask, io.BytesIO):
+            with open(mask, "rb") as f:
+                mask = io.BytesIO(f.read())
+        res_j = res['pixel']
+        s3_session = boto3.Session(
+            aws_access_key_id=res_j['accessKeyId'],
+            aws_secret_access_key=res_j['secretAccessKey'],
+            aws_session_token=res_j['sessionToken']
+        )
+        s3_resource = s3_session.resource('s3')
+        bucket = s3_resource.Bucket(res_j["bucket"])
+        bucket.put_object(
+            Key=res_j['filePath'], Body=json.dumps(annotation_json)
+        )
+        res_m = res['save']
+        s3_session = boto3.Session(
+            aws_access_key_id=res_m['accessKeyId'],
+            aws_secret_access_key=res_m['secretAccessKey'],
+            aws_session_token=res_m['sessionToken']
+        )
+        s3_resource = s3_session.resource('s3')
+        bucket = s3_resource.Bucket(res_m["bucket"])
+        bucket.put_object(Key=res_m['filePath'], Body=mask)
 
 
 def create_fuse_image(

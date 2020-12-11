@@ -23,13 +23,17 @@ ________
 .. _ref_search_projects:
 .. autofunction:: superannotate.search_projects
 .. autofunction:: superannotate.create_project
-.. autofunction:: superannotate.create_project_like_project
+.. autofunction:: superannotate.create_project_from_metadata
+.. autofunction:: superannotate.clone_project
 .. autofunction:: superannotate.delete_project
 .. autofunction:: superannotate.rename_project
 .. _ref_get_project_metadata:
 .. autofunction:: superannotate.get_project_metadata
 .. autofunction:: superannotate.get_project_image_count
 .. autofunction:: superannotate.upload_images_to_project
+.. autofunction:: superannotate.upload_images_from_public_urls_to_project
+.. autofunction:: superannotate.upload_images_from_google_cloud_to_project
+.. autofunction:: superannotate.upload_images_from_azure_blob_to_project
 .. autofunction:: superannotate.upload_image_to_project
 .. _ref_upload_images_from_folder_to_project:
 .. autofunction:: superannotate.upload_images_from_folder_to_project
@@ -42,9 +46,8 @@ ________
 .. autofunction:: superannotate.unshare_project
 .. autofunction:: superannotate.get_project_settings
 .. autofunction:: superannotate.set_project_settings
-.. 
-  ## .. autofunction:: superannotate.get_project_default_image_quality_in_editor
-  ## .. autofunction:: superannotate.set_project_default_image_quality_in_editor
+.. autofunction:: superannotate.get_project_default_image_quality_in_editor
+.. autofunction:: superannotate.set_project_default_image_quality_in_editor
 .. autofunction:: superannotate.get_project_workflow
 .. autofunction:: superannotate.set_project_workflow
 
@@ -74,9 +77,11 @@ ______
 .. autofunction:: superannotate.get_image_preannotations
 .. autofunction:: superannotate.download_image_annotations
 .. autofunction:: superannotate.download_image_preannotations
-.. autofunction:: superannotate.upload_annotations_from_json_to_image
+.. autofunction:: superannotate.upload_image_annotations
 .. autofunction:: superannotate.copy_image
 .. autofunction:: superannotate.move_image
+.. autofunction:: superannotate.pin_image
+.. autofunction:: superannotate.assign_images
 .. autofunction:: superannotate.delete_image
 .. autofunction:: superannotate.add_annotation_bbox_to_image
 .. autofunction:: superannotate.add_annotation_polygon_to_image
@@ -108,6 +113,7 @@ _________________
 
 .. autofunction:: superannotate.get_team_metadata
 .. autofunction:: superannotate.invite_contributor_to_team
+.. autofunction:: superannotate.delete_contributor_to_team_invitation
 
 ----------
 
@@ -280,10 +286,12 @@ Converting annotation format to and from SuperAnnotate format
 _____________________________________________________________
 
 
-.. autofunction:: superannotate.import_annotation_format
-.. autofunction:: superannotate.export_annotation_format
+.. _ref_import_annotation_format:
+.. autofunction:: superannotate.import_annotation
+.. autofunction:: superannotate.export_annotation
 .. autofunction:: superannotate.convert_project_type
 .. autofunction:: superannotate.convert_platform
+.. autofunction:: superannotate.coco_split_dataset
 
 ----------
 
@@ -299,8 +307,8 @@ ________________________
 .. autofunction:: superannotate.add_annotation_template_to_json
 .. autofunction:: superannotate.add_annotation_cuboid_to_json
 .. autofunction:: superannotate.add_annotation_comment_to_json
+.. _ref_aggregate_annotations_as_df:
 .. autofunction:: superannotate.aggregate_annotations_as_df
-.. autofunction:: superannotate.consensus
 .. autofunction:: superannotate.df_to_annotations
 .. _ref_filter_annotation_instances:
 .. autofunction:: superannotate.filter_annotation_instances
@@ -321,3 +329,5 @@ Utility functions
 --------------------------------
 
 .. autofunction:: superannotate.dicom_to_rgb_sequence
+.. autofunction:: superannotate.consensus
+.. autofunction:: superannotate.benchmark

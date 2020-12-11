@@ -10,7 +10,7 @@ from ..exceptions import (
     SABaseException, SAExistingAnnotationClassNameException,
     SANonExistingAnnotationClassNameException
 )
-from .project import get_project_metadata
+from .project_api import get_project_metadata_bare
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -35,7 +35,7 @@ def create_annotation_class(project, name, color, attribute_groups=None):
     :rtype: dict
     """
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     try:
         get_annotation_class_metadata(project, name)
     except SANonExistingAnnotationClassNameException:
@@ -88,7 +88,7 @@ def delete_annotation_class(project, annotation_class):
     :type project: str or dict
     """
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     if not isinstance(annotation_class, dict):
         annotation_class = get_annotation_class_metadata(
             project, annotation_class
@@ -130,7 +130,7 @@ def create_annotation_classes_from_classes_json(
     :rtype: list of dicts
     """
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     team_id, project_id = project["team_id"], project["id"]
     if not isinstance(classes_json, list):
         logger.info(
@@ -153,30 +153,54 @@ def create_annotation_classes_from_classes_json(
     existing_classes = search_annotation_classes(project)
     new_classes = []
     for cs in classes:
-        if cs["name"] in existing_classes:
-            logger.warning(
-                "Annotation class %s already in project. Skipping.", cs["name"]
-            )
+        for e_cs in existing_classes:
+            if cs["name"] == e_cs["name"]:
+                logger.warning(
+                    "Annotation class %s already in project. Skipping.",
+                    cs["name"]
+                )
+                break
         else:
             new_classes.append(cs)
 
-    params = {
-        'team_id': team_id,
-        'project_id': project_id,
-    }
-    data = {"classes": new_classes}
-    response = _api.send_request(
-        req_type='POST', path='/classes', params=params, json_req=data
-    )
-    if not response.ok:
-        raise SABaseException(
-            response.status_code, "Couldn't create classes " + response.text
+    res = []
+
+    def del_unn(d):
+        for s in [
+            "updatedAt", "createdAt", "id", "project_id", "group_id",
+            "class_id", "count"
+        ]:
+            if s in d:
+                del d[s]
+
+    for annotation_class in new_classes:
+        del_unn(annotation_class)
+        for attribute_group in annotation_class["attribute_groups"]:
+            del_unn(attribute_group)
+            for attribute in attribute_group["attributes"]:
+                del_unn(attribute)
+
+    CHUNK_SIZE = 2000
+    for i in range(0, len(new_classes), CHUNK_SIZE):
+        params = {
+            'team_id': team_id,
+            'project_id': project_id,
+        }
+        data = {"classes": new_classes[i:i + CHUNK_SIZE]}
+        response = _api.send_request(
+            req_type='POST', path='/classes', params=params, json_req=data
         )
-    res = response.json()
+        if not response.ok:
+            raise SABaseException(
+                response.status_code, "Couldn't create classes " + response.text
+            )
+        res += response.json()
+
+    assert len(res) == len(new_classes)
     return res
 
 
-def search_annotation_classes(project, name_prefix=None, return_metadata=False):
+def search_annotation_classes(project, name_prefix=None):
     """Searches annotation classes by name_prefix (case-insensitive)
 
     :param project: project name or metadata of the project
@@ -189,7 +213,7 @@ def search_annotation_classes(project, name_prefix=None, return_metadata=False):
     :rtype: list of dicts
     """
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     result_list = []
     team_id, project_id = project["team_id"], project["id"]
     params = {'team_id': team_id, 'project_id': project_id, 'offset': 0}
@@ -212,10 +236,7 @@ def search_annotation_classes(project, name_prefix=None, return_metadata=False):
             break
         params["offset"] = new_len
 
-    if return_metadata:
-        return result_list
-    else:
-        return [x["name"] for x in result_list]
+    return result_list
 
 
 def get_annotation_class_metadata(project, annotation_class_name):
@@ -230,7 +251,7 @@ def get_annotation_class_metadata(project, annotation_class_name):
     :rtype: dict
     """
     annotation_classes = search_annotation_classes(
-        project, annotation_class_name, return_metadata=True
+        project, annotation_class_name
     )
     results = []
     for annotation_class in annotation_classes:
@@ -263,12 +284,12 @@ def download_annotation_classes_json(project, folder):
     :rtype: str
     """
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     logger.info(
         "Downloading classes.json from project %s to folder %s.",
         project["name"], folder
     )
-    clss = search_annotation_classes(project, return_metadata=True)
+    clss = search_annotation_classes(project)
     filepath = Path(folder) / "classes.json"
     json.dump(clss, open(filepath, "w"), indent=4)
     return str(filepath)
@@ -280,12 +301,13 @@ def fill_class_and_attribute_names(annotations_json, annotation_classes_dict):
             r["className"] = annotation_classes_dict[r["classId"]]["name"]
             if "attributes" in r:
                 for attribute in r["attributes"]:
-                    attribute["groupName"] = annotation_classes_dict[
-                        r["classId"]]["attribute_groups"][attribute["groupId"]
-                                                         ]["name"]
-                    attribute["name"] = annotation_classes_dict[
-                        r["classId"]]["attribute_groups"][
-                            attribute["groupId"]]["attributes"][attribute["id"]]
+                    if "groupId" in attribute and "id" in "attribute":
+                        attribute["groupName"] = annotation_classes_dict[
+                            r["classId"]]["attribute_groups"][
+                                attribute["groupId"]]["name"]
+                        attribute["name"] = annotation_classes_dict[
+                            r["classId"]]["attribute_groups"][attribute[
+                                "groupId"]]["attributes"][attribute["id"]]
 
 
 def fill_class_and_attribute_ids(annotation_json, annotation_classes_dict):
@@ -299,15 +321,32 @@ def fill_class_and_attribute_ids(annotation_json, annotation_classes_dict):
             logger.warning(
                 "Couldn't find annotation class %s", annotation_class_name
             )
+            continue
         class_id = annotation_classes_dict[annotation_class_name]["id"]
         ann["classId"] = class_id
         for attribute in ann["attributes"]:
-            attribute["groupId"] = annotation_classes_dict[
+            if attribute["groupName"] in annotation_classes_dict[
+                annotation_class_name]["attribute_groups"]:
+                attribute["groupId"] = annotation_classes_dict[
+                    annotation_class_name]["attribute_groups"][
+                        attribute["groupName"]]["id"]
+            else:
+                logger.warning(
+                    "Couldn't find annotation group %s", attribute["groupName"]
+                )
+                continue
+            if attribute["name"] in annotation_classes_dict[
                 annotation_class_name]["attribute_groups"][
-                    attribute["groupName"]]["id"]
-            attribute["id"] = annotation_classes_dict[annotation_class_name][
-                "attribute_groups"][attribute["groupName"]]["attributes"][
-                    attribute["name"]]
+                    attribute["groupName"]]["attributes"]:
+                attribute["id"] = annotation_classes_dict[
+                    annotation_class_name]["attribute_groups"][
+                        attribute["groupName"]]["attributes"][attribute["name"]]
+            else:
+                logger.warning(
+                    "Couldn't find annotation name %s in annotation group %s",
+                    attribute["name"], attribute["groupName"]
+                )
+                del attribute["groupId"]
 
 
 def get_annotation_classes_id_to_name(annotation_classes):

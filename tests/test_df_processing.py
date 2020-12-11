@@ -22,5 +22,6 @@ def test_filter_instances(tmpdir):
     df = df[~(df.duplicated(["instanceId", "imageName"]))]
     df = df[df.duplicated(["trackingId"], False) & df["trackingId"].notnull()]
     assert len(df) == 2
-    assert df.iloc[0]["imageName"] == "example_image_1.jpg"
-    assert df.iloc[1]["imageName"] == "example_image_2.jpg"
+    assert set([df.iloc[0]["imageName"], df.iloc[1]["imageName"]]) == set(
+        ["example_image_1.jpg", "example_image_2.jpg"]
+    )

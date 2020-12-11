@@ -1,51 +1,49 @@
 """
-Module which will run converters and convert from other 
+Module which will run converters and convert from other
 annotation formats to superannotate annotation format
 """
-import sys
-import os
-import glob
-import shutil
 import logging
-from argparse import Namespace
+import shutil
+from pathlib import Path
 
 from .converters.converters import Converter
 
+logger = logging.getLogger("superannotate-python-sdk")
 
-def _load_files(path_to_imgs, ptype):
-    images = glob.glob(
-        os.path.join(path_to_imgs, "**", "*.jpg"), recursive=True
-    )
+
+def _load_files(path_to_imgs, ptype, extensions):
+    images = []
+    for extension in extensions:
+        rec_search = str(Path('**') / ('*.' + extension))
+        images_gen = Path(path_to_imgs).glob(rec_search)
+        images.extend(list(images_gen))
+
     if not images:
-        logging.warning("Images doesn't exist")
+        logger.warning("Images doesn't exist")
 
-    if ptype == "Pixel":
-        masks = glob.glob(
-            os.path.join(path_to_imgs, "**", "*.png"), recursive=True
-        )
-        if not masks:
-            logging.warning("Masks doesn't exist")
+    if ptype == 'Pixel':
+        rec_search = str(Path('**') / '*.png')
+        masks_gen = Path(path_to_imgs).glob(rec_search)
+        masks = list(masks_gen)
     else:
-        masks = None
+        masks = []
 
     return images, masks
 
 
 def _move_files(imgs, masks, output_dir, platforom):
     if platforom == "Desktop":
-        output_path = os.path.join(output_dir, "images")
-        os.makedirs(output_path)
+        output_path = output_dir / "images"
+        output_path.mkdir(parents=True)
     else:
-        os.makedirs(os.path.join(output_dir, 'classes'))
+        (output_dir / 'classes').mkdir(parents=True, exist_ok=True)
         output_path = output_dir
 
-    if imgs is not None:
-        for im in imgs:
-            shutil.copy(im, os.path.join(output_path, os.path.basename(im)))
+    for im in imgs:
+        shutil.copy(im, output_path / Path(im).name)
 
-    if masks is not None:
-        for mask in masks:
-            shutil.copy(mask, os.path.join(output_path, os.path.basename(mask)))
+    for mask in masks:
+        shutil.copy(mask, output_path / Path(mask).name)
 
 
 def import_to_sa(args):
@@ -53,35 +51,16 @@ def import_to_sa(args):
     :param args: All arguments that will be used during convertion.
     :type args: Namespace
     """
-    # try:
-    #     os.makedirs(os.path.join(args.output_dir, "classes"))
-    # except Exception as e:
-    #     log_msg = "Could not create output folders, check if they already exist"
-    #     logging.error(log_msg)
-    #     sys.exit()
 
-    try:
-        images, masks = _load_files(args.input_dir, args.project_type)
-    except Exception as e:
-        log_msg = "Can't load images or masks"
-        logging.error(log_msg)
-        logging.error(e)
-
-    try:
-        _move_files(images, masks, args.output_dir, args.platform)
-    except Exception as e:
-        log_msg = 'Something went wrong while moving or copying files from source folder'
-        logging.error(log_msg)
-        logging.error(e)
+    images, masks = _load_files(
+        args.input_dir / args.images_root, args.project_type,
+        args.images_extensions
+    )
+    _move_files(images, masks, args.output_dir, args.platform)
 
     args.__dict__.update({'direction': 'from', 'export_root': args.input_dir})
     converter = Converter(args)
 
-    try:
-        converter.convert_to_sa(args.platform)
-    except Exception as e:
-        log_msg = "Something went wrong while converting"
-        logging.error(log_msg)
-        sys.exit()
+    converter.convert_to_sa(args.platform)
 
-    logging.info('Conversion completed successfully')
+    logger.info('Conversion completed successfully')

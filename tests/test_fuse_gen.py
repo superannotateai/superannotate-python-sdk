@@ -102,7 +102,7 @@ def test_fuse_image_create_pixel(tmpdir):
     sa.create_annotation_classes_from_classes_json(
         project, "./tests/sample_project_pixel/classes/classes.json"
     )
-    sa.upload_annotations_from_json_to_image(
+    sa.upload_image_annotations(
         PROJECT_NAME_PIXEL, "example_image_1.jpg",
         "./tests/sample_project_pixel/example_image_1.jpg___pixel.json",
         "./tests/sample_project_pixel/example_image_1.jpg___save.png"

@@ -4,7 +4,6 @@ PYTHON=python3
 PYLINT=pylint
 PYTESTS=pytest
 COVERAGE=coverage
-BROWSER=google-chrome
 
 all: coverage tests
 	$(PYTHON) setup.py build_ext --inplace
@@ -25,7 +24,7 @@ clean:
 coverage: test_coverage
 
 test_coverage:
-	$(COVERAGE) run -m  --source=./superannotate/  $(PYTESTS)
+	-$(PYTESTS) --cov=superannotate -n 8
 	$(COVERAGE) html
 	@echo "\033[95m\n\nCoverage successful! View the output at file://htmlcov/index.html.\n\033[0m"
 
@@ -33,7 +32,9 @@ install:
 	pip install .
 
 lint:
-	-$(PYLINT) superannotate/
+	-$(PYLINT) --output-format=json superannotate/ | pylint-json2html -o pylint.html
+
+lint_tests:
 	-$(PYLINT) tests/*
 
 docs:

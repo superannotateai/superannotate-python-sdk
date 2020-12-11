@@ -57,7 +57,7 @@ class Converter(object):
             if args.task == 'object_detection' or args.task == 'instance_segmentation' or args.task == 'vector_annotation':
                 c_strategy = DataLoopObjectDetectionStrategy(args)
         elif args.dataset_format == "Supervisely":
-            if args.task == 'vector_annotation':
+            if args.task == 'vector_annotation' or args.task == 'instance_segmentation' or args.task == 'object_detection' or args.task == 'keypoint_detection':
                 c_strategy = SuperviselyObjectDetectionStrategy(args)
         elif args.dataset_format == "VoTT":
             if args.task == 'object_detection' or args.task == 'instance_segmentation' or args.task == 'vector_annotation':

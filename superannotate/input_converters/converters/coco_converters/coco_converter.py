@@ -1,20 +1,17 @@
 """
 """
-from datetime import datetime
-from collections import namedtuple
 import json
-import glob
-import os
-import numpy as np
-from panopticapi.utils import id2rgb
-from PIL import Image
-
-import tqdm
-import time
+from collections import namedtuple
+from datetime import datetime
 from pathlib import Path
 
+import numpy as np
+from PIL import Image
 
-class CoCoConverter(object):
+from ....common import id2rgb
+
+
+class CoCoConverter():
     def __init__(self, args):
         self.project_type = args.project_type
         self.dataset_name = args.dataset_name
@@ -74,12 +71,18 @@ class CoCoConverter(object):
         out_json = {
             'info':
                 {
-                    'description': 'This is dataset.'.format(self.dataset_name),
-                    'url': 'https://superannotate.ai',
-                    'version': '1.0',
-                    'year': 2020,
-                    'contributor': 'Superannotate AI',
-                    'date_created': datetime.now().strftime("%d/%m/%Y")
+                    'description':
+                        'This is {} dataset.'.format(self.dataset_name),
+                    'url':
+                        'https://superannotate.ai',
+                    'version':
+                        '1.0',
+                    'year':
+                        2020,
+                    'contributor':
+                        'Superannotate AI',
+                    'date_created':
+                        datetime.now().strftime("%d/%m/%Y")
                 },
             'licenses':
                 [
@@ -96,12 +99,11 @@ class CoCoConverter(object):
         return out_json
 
     def _load_sa_jsons(self):
-        jsons = []
         if self.project_type == 'Pixel':
-            jsons = glob.glob(os.path.join(self.export_root, '*pixel.json'))
+            jsons_gen = self.export_root.glob('*pixel.json')
         elif self.project_type == 'Vector':
-            jsons = glob.glob(os.path.join(self.export_root, '*objects.json'))
-
+            jsons_gen = self.export_root.glob('*objects.json')
+        jsons = list(jsons_gen)
         self.set_num_converted(len(jsons))
         return jsons
 
@@ -113,11 +115,9 @@ class CoCoConverter(object):
             ]
         )
         rm_len = len('___pixel.json')
-        image_path = json_path[:-rm_len
-                              ] + '___lores.jpg'  # maybe not use low res files?
 
-        sa_ann_json = json.load(open(os.path.join(json_path)))
-        sa_bluemask_path = os.path.join(json_path[:-rm_len] + '___save.png')
+        sa_ann_json = json.load(open(json_path))
+        sa_bluemask_path = str(json_path)[:-rm_len] + '___save.png'
 
         image_info = self.__make_image_info(json_path, id_, self.project_type)
 
@@ -144,12 +144,12 @@ class CoCoConverter(object):
         elif source_type == 'Vector':
             rm_len = len('___objects.json')
 
-        image_path = json_path[:-rm_len]
+        image_path = str(json_path)[:-rm_len]
 
         img_width, img_height = Image.open(image_path).size
         image_info = {
             'id': id_,
-            'file_name': image_path[len(self.output_dir):],
+            'file_name': Path(image_path).name,
             'height': img_height,
             'width': img_width,
             'license': 1
@@ -194,53 +194,8 @@ class CoCoConverter(object):
 
     def _generate_colors(self, number):
         colors = []
-        for i in range(number):
+        for _ in range(number):
             color = np.random.choice(range(256), size=3)
             hexcolor = "#%02x%02x%02x" % tuple(color)
             colors.append(hexcolor)
         return colors
-
-    def save_desktop_format(self, classes, files_dict):
-        path = Path(self.output_dir)
-        cat_id_map = {}
-        new_classes = []
-        for idx, class_ in enumerate(classes):
-            cat_id_map[class_['id']] = idx + 2
-            class_['id'] = idx + 2
-            new_classes.append(class_)
-        with open(path.joinpath('classes.json'), 'w') as fw:
-            json.dump(new_classes, fw)
-
-        meta = {
-            "type": "meta",
-            "name": "lastAction",
-            "timestamp": int(round(time.time() * 1000))
-        }
-        new_json = {}
-        for file_name, json_data in files_dict.items():
-            file_name = file_name.replace('___objects.json', '')
-            new_json_data = []
-            for js_data in json_data:
-                if 'classId' in js_data:
-                    new_js_data = js_data.copy()
-                    new_js_data['classId'] = cat_id_map[js_data['classId']]
-                    new_json_data.append(new_js_data)
-            new_json_data.append(meta)
-            new_json[file_name] = new_json_data
-        with open(path.joinpath('annotations.json'), 'w') as fw:
-            json.dump(new_json, fw)
-
-    def save_web_format(self, classes, files_dict):
-        path = Path(self.output_dir)
-        for key, value in files_dict.items():
-            with open(path.joinpath(key), 'w') as fw:
-                json.dump(value, fw, indent=2)
-
-        with open(path.joinpath('classes', 'classes.json'), 'w') as fw:
-            json.dump(classes, fw)
-
-    def dump_output(self, classes, files_dict):
-        if self.platform == 'Web':
-            self.save_web_format(classes, files_dict)
-        else:
-            self.save_desktop_format(classes, files_dict)

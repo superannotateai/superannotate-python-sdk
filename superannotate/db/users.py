@@ -62,6 +62,8 @@ def get_team_contributor_metadata(email):
         if user["email"] == email:
             results.append(user)
 
-    if len(results) > 1 or len(results) == 0:
+    if len(results) == 0:
+        raise SABaseException(0, "No user with email " + email + " found.")
+    if len(results) > 1:
         raise SABaseException(0, "Email " + email + " malformed.")
     return results[0]

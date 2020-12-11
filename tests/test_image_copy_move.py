@@ -28,7 +28,7 @@ def test_image_copy_mult(tmpdir):
     sa.create_annotation_classes_from_classes_json(
         project, "./tests/sample_project_vector/classes/classes.json"
     )
-    sa.upload_annotations_from_json_to_image(
+    sa.upload_image_annotations(
         project, "example_image_1.jpg",
         "./tests/sample_project_vector/example_image_1.jpg___objects.json"
     )
@@ -37,6 +37,7 @@ def test_image_copy_mult(tmpdir):
         "./tests/sample_project_vector/example_image_2.jpg",
         annotation_status="InProgress"
     )
+    sa.pin_image(project, "example_image_1.jpg")
 
     images = sa.search_images(project)
     assert len(images) == 2
@@ -48,7 +49,8 @@ def test_image_copy_mult(tmpdir):
             image,
             project,
             include_annotations=True,
-            copy_annotation_status=True
+            copy_annotation_status=True,
+            copy_pin=True
         )
     assert len(sa.search_images(project)) == 5
     images = sa.search_images(project)
@@ -56,6 +58,9 @@ def test_image_copy_mult(tmpdir):
         assert f"example_image_1_({i+1}).jpg" in images
     anns = sa.get_image_annotations(project, f"example_image_1_({i+1}).jpg")
     assert anns["annotation_json"] is not None
+
+    metadata = sa.get_image_metadata(project, f"example_image_1_({i+1}).jpg")
+    assert metadata["is_pinned"] == 1
 
 
 def test_image_copy(tmpdir):

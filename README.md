@@ -21,17 +21,11 @@ SDK is available on PyPI:
 pip install superannotate
 ```
 
-for COCO annotation format converters support also need to install:
+The package officially supports Python 3.6+ and was tested under Linux and
+Windows ([Anaconda](https://www.anaconda.com/products/individual#windows)) platforms.
 
-```console
-pip install 'git+https://github.com/cocodataset/panopticapi.git'
-pip install 'git+https://github.com/philferriere/cocoapi.git#egg=pycocotools&subdirectory=PythonAPI'
-```
-
-
-The package officially supports Python 3.6+.
-
-For further steps please have a look at the [tutorial](https://superannotate.readthedocs.io/en/latest/tutorial.sdk.html).
+For more detailed installation steps and package usage please have a look at the 
+[tutorial](https://superannotate.readthedocs.io/en/stable/tutorial.sdk.html).
 
 ## Supported Features
 
@@ -52,6 +46,7 @@ For further steps please have a look at the [tutorial](https://superannotate.rea
 - Download image annotations/pre-annotations
 - Create/download project annotation classes
 - Convert annotation format from/to COCO
+- Convert annotation format from VOC, SuperVisely, LabelBox, DataLoop, VGG, VoTT, SageMaker, GoogleCloud, YOLO
 - Add annotations to images on platform
 - Add annotations to local SuperAnnotate format JSONs
 - CLI commands for simple tasks

@@ -6,32 +6,26 @@ import cv2
 
 def _create_classes(classes):
     classes_loader = []
-    for class_, id_ in classes.items():
+    for class_ in set(classes):
         color = np.random.choice(range(256), size=3)
         hexcolor = "#%02x%02x%02x" % tuple(color)
-        sa_classes = {
-            'id': id_,
-            'name': class_,
-            'color': hexcolor,
-            'attribute_groups': []
-        }
+        sa_classes = {'name': class_, 'color': hexcolor, 'attribute_groups': []}
         classes_loader.append(sa_classes)
     return classes_loader
 
 
-def googlecloud_object_detection_to_sa_vector(path, id_generator):
+def googlecloud_object_detection_to_sa_vector(path):
     df = pd.read_csv(path, header=None)
-    dir_name = os.path.dirname(path)
+    dir_name = path.parent
 
     sa_jsons = {}
-    classes = {}
-    for idx, row in df.iterrows():
-        if row[2] not in classes.keys():
-            classes[row[2]] = next(id_generator)
+    classes = []
+    for _, row in df.iterrows():
+        classes.append(row[2])
 
         file_name = row[1].split('/')[-1]
-        img = cv2.imread(os.path.join(dir_name, file_name))
-        H, W, C = img.shape
+        img = cv2.imread(str(dir_name / file_name))
+        H, W, _ = img.shape
         sa_file_name = os.path.basename(file_name) + '___objects.json'
         xmin = row[3] * W
         xmax = row[5] * W
@@ -47,7 +41,6 @@ def googlecloud_object_detection_to_sa_vector(path, id_generator):
                 'y2': ymax
             },
             'className': row[2],
-            'classId': classes[row[2]],
             'attributes': [],
             'probability': 100,
             'locked': False,

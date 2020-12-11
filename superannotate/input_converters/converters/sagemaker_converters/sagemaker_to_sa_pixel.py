@@ -11,7 +11,6 @@ def create_classes(classes):
     classes_loader = []
     for name, class_ in classes.items():
         cls_obj = {
-            "id": class_['id'],
             "name": name,
             "color": class_['color'],
             "attribute_groups": []
@@ -20,10 +19,10 @@ def create_classes(classes):
     return classes_loader
 
 
-def sagemaker_instance_segmentation_to_sa_pixel(data_path, main_key):
+def sagemaker_instance_segmentation_to_sa_pixel(data_path):
     img_mapping = {}
     try:
-        img_map_file = open(os.path.join(data_path, 'output.manifest'))
+        img_map_file = open(data_path / 'output.manifest')
     except Exception as e:
         raise Exception("'output.manifest' file doesn't exist")
 
@@ -32,9 +31,8 @@ def sagemaker_instance_segmentation_to_sa_pixel(data_path, main_key):
         img_mapping[os.path.basename(dd['attribute-name-ref'])
                    ] = os.path.basename(dd['source-ref'])
 
-    json_list = glob(os.path.join(data_path, '*.json'))
+    json_list = data_path.glob('*.json')
     classes_ids = {}
-    idx = 1
     sa_jsons = {}
     sa_masks = {}
     for json_file in json_list:
@@ -48,13 +46,10 @@ def sagemaker_instance_segmentation_to_sa_pixel(data_path, main_key):
                 ['attribute-name-ref']
             )
 
-            classes = {}
             classes_dict = annotataion['consolidatedAnnotation']['content'][
                 'attribute-name-ref-metadata']['internal-color-map']
 
-            img = cv2.imread(
-                os.path.join(data_path, mask_name.replace(':', '_'))
-            )
+            img = cv2.imread(str(data_path / mask_name.replace(':', '_')))
             H, W, C = img.shape
 
             class_contours = {}
@@ -65,10 +60,8 @@ def sagemaker_instance_segmentation_to_sa_pixel(data_path, main_key):
 
                 if classes_dict[key]['class-name'] not in classes_ids:
                     classes_ids[classes_dict[key]['class-name']] = {
-                        'id': idx,
                         'color': classes_dict[key]['hex-color']
                     }
-                    idx += 1
 
                 bitmask = np.zeros((H, W), dtype=np.int8)
                 bitmask[np.all(
@@ -92,13 +85,12 @@ def sagemaker_instance_segmentation_to_sa_pixel(data_path, main_key):
 
             for name, contours in class_contours.items():
                 sa_obj = {
-                    'classId': classes_ids[name]['id'],
                     'className': name,
                     'probability': 100,
                     'attributes': [],
                     'locked': False,
                     'visible': True,
-                    'groupId': 0
+                    'parts': []
                 }
                 for contour in contours:
                     bitmask = np.zeros((H, W))
@@ -113,7 +105,7 @@ def sagemaker_instance_segmentation_to_sa_pixel(data_path, main_key):
                     cv2.fillPoly(bitmask, [pts], 1)
                     sa_mask[bitmask == 1
                            ] = list(hex_to_rgb(blue_colors[idx]))[::-1] + [255]
-                    sa_obj['parts'] = {'color': blue_colors[idx]}
+                    sa_obj['parts'].append({'color': blue_colors[idx]})
                     idx += 1
                     sa_loader.append(sa_obj.copy())
             sa_jsons[sa_name] = sa_loader

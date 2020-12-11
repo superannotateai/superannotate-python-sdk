@@ -1,42 +1,45 @@
+import cgi
 import copy
 import io
 import json
 import logging
 import math
+import os
 import random
-import threading
 import tempfile
+import threading
 import time
+from os.path import basename
 from pathlib import Path
+from urllib.parse import urlparse
 
 import boto3
 import cv2
 import ffmpeg
-from PIL import Image
+import requests
+from azure.storage.blob import BlobServiceClient
+from google.cloud import storage
+from PIL import Image, ImageOps
 from tqdm import tqdm
 
+from .. import common
 from ..api import API
-from ..common import (
-    annotation_status_str_to_int, project_type_int_to_str,
-    project_type_str_to_int, user_role_int_to_str, user_role_str_to_int
-)
 from ..exceptions import (
-    SABaseException, SAExistingProjectNameException,
+    SABaseException, SAExistingProjectNameException, SAImageSizeTooLarge,
     SANonExistingProjectNameException
 )
 from .annotation_classes import (
     create_annotation_classes_from_classes_json, fill_class_and_attribute_ids,
     get_annotation_classes_name_to_id, search_annotation_classes
 )
-from .project import get_project_metadata
+from .images import search_images
+from .project_api import get_project_metadata_bare
 from .users import get_team_contributor_metadata
 
 logger = logging.getLogger("superannotate-python-sdk")
 
 _api = API.get_instance()
 _NUM_THREADS = 10
-
-_RESIZE_CONFIG = {2: 4_000_000, 1: 100_000_000}  # 1: vector 2: pixel
 
 
 def create_project(project_name, project_description, project_type):
@@ -53,7 +56,7 @@ def create_project(project_name, project_description, project_type):
     :rtype: dict
     """
     try:
-        get_project_metadata(project_name)
+        get_project_metadata_bare(project_name)
     except SANonExistingProjectNameException:
         pass
     else:
@@ -61,7 +64,7 @@ def create_project(project_name, project_description, project_type):
             0, "Project with name " + project_name +
             " already exists. Please use unique names for projects to use with SDK."
         )
-    project_type = project_type_str_to_int(project_type)
+    project_type = common.project_type_str_to_int(project_type)
     data = {
         "team_id": str(_api.team_id),
         "name": project_name,
@@ -79,88 +82,38 @@ def create_project(project_name, project_description, project_type):
     res = response.json()
     logger.info(
         "Created project %s (ID %s) with type %s", res["name"], res["id"],
-        project_type_int_to_str(res["type"])
+        common.project_type_int_to_str(res["type"])
     )
     return res
 
 
-def create_project_like_project(
-    project_name,
-    from_project,
-    project_description=None,
-    copy_annotation_classes=True,
-    copy_settings=True,
-    copy_workflow=True,
-    copy_project_contributors=False
-):
-    """Create a new project in the team using annotation classes and settings from from_project.
+def create_project_from_metadata(project_metadata):
+    """Create a new project in the team using project metadata object dict.
+    Mandatory keys in project_metadata are "name", "description" and "type" (Vector or Pixel)
+    Non-mandatory keys: "workflow", "contributors", "settings" and "annotation_classes".
 
-    :param project_name: new project's name
-    :type project_name: str
-    :param from_project: the name or metadata of the project being used for duplication
-    :type from_project: str or dict
-    :param project_description: the new project's description. If None, from_project's
-                                description will be used
-    :type project_description: str
-    :param copy_annotation_classes: enables copying annotation classes
-    :type copy_annotation_classes: bool
-    :param copy_settings: enables copying project settings
-    :type copy_settings: bool
-    :param copy_workflow: enables copying project workflow
-    :type copy_workflow: bool
-    :param copy_project_contributors: enables copying project contributors
-    :type copy_project_contributors: bool
-
-    :return: dict object metadata of the new project
+    :return: dict object metadata the new project
     :rtype: dict
     """
-    try:
-        get_project_metadata(project_name)
-    except SANonExistingProjectNameException:
-        pass
-    else:
-        raise SAExistingProjectNameException(
-            0, "Project with name " + project_name +
-            " already exists. Please use unique names for projects to use with SDK."
-        )
-    if not isinstance(from_project, dict):
-        from_project = get_project_metadata(from_project)
-    if project_description is None:
-        project_description = from_project["description"]
-    data = {
-        "team_id": str(_api.team_id),
-        "name": project_name,
-        "description": project_description,
-        "status": 0,
-        "type": from_project["type"]
-    }
-    response = _api.send_request(
-        req_type='POST', path='/project', json_req=data
+    new_project_metadata = create_project(
+        project_metadata["name"], project_metadata["description"],
+        project_metadata["type"]
     )
-    if not response.ok:
-        raise SABaseException(
-            response.status_code, "Couldn't create project " + response.text
-        )
-    res = response.json()
-    logger.info(
-        "Created project %s (ID %s) with type %s", res["name"], res["id"],
-        project_type_int_to_str(res["type"])
-    )
-    if copy_settings:
-        set_project_settings(res, get_project_settings(from_project))
-    if copy_annotation_classes:
-        create_annotation_classes_from_classes_json(
-            res, search_annotation_classes(from_project, return_metadata=True)
-        )
-        if copy_workflow:
-            set_project_workflow(res, get_project_workflow(from_project))
-    if copy_project_contributors:
-        for user in from_project["users"]:
+    if "contributors" in project_metadata:
+        for user in project_metadata["contributors"]:
             share_project(
-                res, user["user_id"], user_role_int_to_str(user["user_role"])
+                new_project_metadata, user["user_id"],
+                common.user_role_int_to_str(user["user_role"])
             )
-
-    return res
+    if "settings" in project_metadata:
+        set_project_settings(new_project_metadata, project_metadata["settings"])
+    if "annotation_classes" in project_metadata:
+        create_annotation_classes_from_classes_json(
+            new_project_metadata, project_metadata["annotation_classes"]
+        )
+    if "workflow" in project_metadata:
+        set_project_workflow(new_project_metadata, project_metadata["workflow"])
+    return new_project_metadata
 
 
 def delete_project(project):
@@ -170,7 +123,7 @@ def delete_project(project):
     :type project: str or dict
     """
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     team_id, project_id = project["team_id"], project["id"]
     params = {"team_id": team_id}
     response = _api.send_request(
@@ -192,7 +145,7 @@ def rename_project(project, new_name):
     :type new_name: str
     """
     try:
-        get_project_metadata(new_name)
+        get_project_metadata_bare(new_name)
     except SANonExistingProjectNameException:
         pass
     else:
@@ -201,7 +154,7 @@ def rename_project(project, new_name):
             " already exists. Please use unique names for projects to use with SDK."
         )
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     team_id, project_id = project["team_id"], project["id"]
     params = {"team_id": team_id}
     json_req = {"name": new_name}
@@ -230,7 +183,7 @@ def get_project_image_count(project):
     :rtype: int
     """
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     team_id, project_id = project["team_id"], project["id"]
     params = {'team_id': team_id}
     response = _api.send_request(
@@ -295,8 +248,8 @@ def upload_video_to_project(
                 "Frame rotation of %s found. Output images will be rotated accordingly.",
                 rot
             )
-    except:
-        logger.warning("Couldn't read video metadata.")
+    except Exception as e:
+        logger.warning("Couldn't read video metadata. %s", e)
 
     video = cv2.VideoCapture(str(video_path), cv2.CAP_FFMPEG)
     if not video.isOpened():
@@ -331,7 +284,7 @@ def upload_video_to_project(
     zero_fill_count = len(str(total_num_of_frames))
     tempdir = tempfile.TemporaryDirectory()
 
-    video_name = Path(video_path).name
+    video_name = Path(video_path).stem
     frame_no = 1
     while True:
         success, frame = video.read()
@@ -413,14 +366,15 @@ def upload_videos_from_folder_to_project(
     :type end_time: float
     :param annotation_status: value to set the annotation statuses of the uploaded images NotStarted InProgress QualityCheck Returned Completed Skipped
     :type annotation_status: str
-    :param image_quality_in_editor: image quality (in percents) that will be seen in SuperAnnotate web annotation editor. If None default value will be used.
-    :type image_quality_in_editor: int
+    :param image_quality_in_editor: image quality be seen in SuperAnnotate web annotation editor.
+           Can be either "compressed" or "original".  If None then the default value in project settings will be used.
+    :type image_quality_in_editor: str
 
     :return: uploaded and not-uploaded video frame images' filenames
     :rtype: tuple of list of strs
     """
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     if recursive_subfolders:
         logger.warning(
             "When using recursive subfolder parsing same name videos in different subfolders will overwrite each other."
@@ -443,10 +397,12 @@ def upload_videos_from_folder_to_project(
     for extension in extensions:
         if not recursive_subfolders:
             paths += list(Path(folder_path).glob(f'*.{extension.lower()}'))
-            paths += list(Path(folder_path).glob(f'*.{extension.upper()}'))
+            if os.name != "nt":
+                paths += list(Path(folder_path).glob(f'*.{extension.upper()}'))
         else:
             paths += list(Path(folder_path).rglob(f'*.{extension.lower()}'))
-            paths += list(Path(folder_path).rglob(f'*.{extension.upper()}'))
+            if os.name != "nt":
+                paths += list(Path(folder_path).rglob(f'*.{extension.upper()}'))
     filtered_paths = []
     for path in paths:
         not_in_exclude_list = [
@@ -483,11 +439,15 @@ def upload_images_from_folder_to_project(
     """Uploads all images with given extensions from folder_path to the project.
     Sets status of all the uploaded images to set_status if it is not None.
 
+    If an image with existing name already exists in the project it won't be uploaded,
+    and its path will be appended to the third member of return value of this
+    function.
+
     :param project: project name or metadata of the project to upload images_to
     :type project: str or dict
     :param folder_path: from which folder to upload the images
     :type folder_path: Pathlike (str or Path)
-    :param extensions: list of filename extensions to include from folder, if None, then "jpg" and "png" are included
+    :param extensions: list of filename extensions to include from folder, if None, then "jpg", "jpeg", "png", "tif", "tiff", "webp", "bmp" are included
     :type extensions: list of str
     :param annotation_status: value to set the annotation statuses of the uploaded images NotStarted InProgress QualityCheck Returned Completed Skipped
     :type annotation_status: str
@@ -505,19 +465,19 @@ def upload_images_from_folder_to_project(
            Can be either "compressed" or "original".  If None then the default value in project settings will be used.
     :type image_quality_in_editor: str
 
-    :return: uploaded and not-uploaded images' filepaths
-    :rtype: tuple of list of strs
+    :return: uploaded, could-not-upload, existing-images filepaths
+    :rtype: tuple (3 members) of list of strs
     """
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     if recursive_subfolders:
-        logger.warning(
+        logger.info(
             "When using recursive subfolder parsing same name images in different subfolders will overwrite each other."
         )
     if exclude_file_patterns is None:
         exclude_file_patterns = ["___save.png", "___fuse.png"]
     if extensions is None:
-        extensions = ["jpg", "png"]
+        extensions = ["jpg", "jpeg", "png", "tif", "tiff", "webp", "bmp"]
     elif not isinstance(extensions, list):
         raise SABaseException(
             0,
@@ -533,10 +493,16 @@ def upload_images_from_folder_to_project(
         for extension in extensions:
             if not recursive_subfolders:
                 paths += list(Path(folder_path).glob(f'*.{extension.lower()}'))
-                paths += list(Path(folder_path).glob(f'*.{extension.upper()}'))
+                if os.name != "nt":
+                    paths += list(
+                        Path(folder_path).glob(f'*.{extension.upper()}')
+                    )
             else:
                 paths += list(Path(folder_path).rglob(f'*.{extension.lower()}'))
-                paths += list(Path(folder_path).rglob(f'*.{extension.upper()}'))
+                if os.name != "nt":
+                    paths += list(
+                        Path(folder_path).rglob(f'*.{extension.upper()}')
+                    )
     else:
         s3_client = boto3.client('s3')
         paginator = s3_client.get_paginator('list_objects_v2')
@@ -570,34 +536,53 @@ def upload_images_from_folder_to_project(
     )
 
 
+def upload_image_array_to_s3(
+    bucket, orig_image, lores_image, huge_image, thumbnail_image, key
+):
+    bucket.put_object(Body=orig_image, Key=key)
+    bucket.put_object(Body=lores_image, Key=key + '___lores.jpg')
+    bucket.put_object(Body=huge_image, Key=key + '___huge.jpg')
+    bucket.put_object(Body=thumbnail_image, Key=key + '___thumb.jpg')
+
+
 def get_image_array_to_upload(
-    byte_io_orig, project_type, image_quality_in_editor
+    byte_io_orig, image_quality_in_editor, project_type
 ):
     Image.MAX_IMAGE_PIXELS = None
     im = Image.open(byte_io_orig)
     im_format = im.format
-    im = im.convert("RGB")
-    width, height = im.size
-    max_size = _RESIZE_CONFIG[project_type]
-    if (width * height) > max_size:
-        logger.warning("One of the images is being resized to smaller size.")
-        max_size_root = math.sqrt(max_size)
-        nwidth = math.floor(max_size_root * math.sqrt(width / height))
-        nheight = math.floor(max_size_root * math.sqrt(height / width))
-        im = im.resize((nwidth, nheight))
-        byte_io_orig = io.BytesIO()
-        im.save(byte_io_orig, im_format, subsampling=0, quality=100)
 
-    if not image_quality_in_editor == 100 or im_format != "JPEG":
-        byte_io_lores = io.BytesIO()
-        im.save(
-            byte_io_lores,
-            'JPEG',
-            subsampling=0 if image_quality_in_editor > 60 else 2,
-            quality=image_quality_in_editor
+    im = ImageOps.exif_transpose(im)
+
+    width, height = im.size
+
+    project_type = common.project_type_int_to_str(project_type)
+    resolution = width * height
+    if resolution > common.MAX_IMAGE_RESOLUTION[project_type]:
+        raise SABaseException(
+            0, "Image resolution " + str(resolution) +
+            " too large. Max supported for " + project_type + " projects is " +
+            str(common.MAX_IMAGE_RESOLUTION[project_type])
         )
-    else:
+
+    if image_quality_in_editor == 100 and im_format in ['JPEG', 'JPG']:
         byte_io_lores = io.BytesIO(byte_io_orig.getbuffer())
+    else:
+        byte_io_lores = io.BytesIO()
+        bg = Image.new('RGBA', im.size, (255, 255, 255))
+        im = im.convert("RGBA")
+        bg.paste(im, mask=im)
+        bg = bg.convert('RGB')
+        if image_quality_in_editor == 100:
+            bg.save(
+                byte_io_lores,
+                'JPEG',
+                quality=image_quality_in_editor,
+                subsampling=0
+            )
+        else:
+            bg.save(byte_io_lores, 'JPEG', quality=image_quality_in_editor)
+        im = bg
 
     byte_io_huge = io.BytesIO()
     hsize = int(height * 600.0 / width)
@@ -606,7 +591,7 @@ def get_image_array_to_upload(
     byte_io_thumbs = io.BytesIO()
     thumbnail_size = (128, 96)
     background = Image.new('RGB', thumbnail_size, "black")
-    im.thumbnail(thumbnail_size)
+    im.thumbnail(thumbnail_size, Image.ANTIALIAS)
     (w, h) = im.size
     background.paste(
         im, ((thumbnail_size[0] - w) // 2, (thumbnail_size[1] - h) // 2)
@@ -623,19 +608,9 @@ def get_image_array_to_upload(
 
 
 def __upload_images_to_aws_thread(
-    res,
-    img_paths,
-    project,
-    annotation_status,
-    prefix,
-    thread_id,
-    chunksize,
-    couldnt_upload,
-    uploaded,
-    image_quality_in_editor,
-    from_s3_bucket=None,
+    res, img_paths, project, annotation_status, prefix, thread_id, chunksize,
+    couldnt_upload, uploaded, image_quality_in_editor, from_s3_bucket
 ):
-    project_type = project["type"]
     len_img_paths = len(img_paths)
     start_index = thread_id * chunksize
     end_index = start_index + chunksize
@@ -658,24 +633,29 @@ def __upload_images_to_aws_thread(
             break
         path = img_paths[i]
         key = prefix + f'{Path(path).name}'
-        if from_s3_bucket is not None:
-            file = io.BytesIO()
-            from_s3_object = from_s3.Object(from_s3_bucket, path)
-            from_s3_object.download_fileobj(file)
-        else:
-            with open(path, "rb") as f:
-                file = io.BytesIO(f.read())
         try:
-            orig_image, lores_image, huge_image, thumbnail_image = get_image_array_to_upload(
-                file, project_type, image_quality_in_editor
+            if from_s3_bucket is not None:
+                file = io.BytesIO()
+                from_s3_object = from_s3.Object(from_s3_bucket, path)
+                file_size = from_s3_object.content_length
+                if file_size > common.MAX_IMAGE_SIZE:
+                    raise SAImageSizeTooLarge(file_size)
+                from_s3_object.download_fileobj(file)
+            else:
+                file_size = Path(path).stat().st_size
+                if file_size > common.MAX_IMAGE_SIZE:
+                    raise SAImageSizeTooLarge(file_size)
+                with open(path, "rb") as f:
+                    file = io.BytesIO(f.read())
+            images = get_image_array_to_upload(
+                file, image_quality_in_editor,
+                common.project_type_int_to_str(project["type"])
             )
-            bucket.put_object(Body=orig_image, Key=key)
-            bucket.put_object(Body=lores_image, Key=key + '___lores.jpg')
-            bucket.put_object(Body=huge_image, Key=key + '___huge.jpg')
-            bucket.put_object(Body=thumbnail_image, Key=key + '___thumb.jpg')
+            upload_image_array_to_s3(bucket, *images, key)
         except Exception as e:
-            logger.warning("Unable to upload to data server %s.", e)
+            logger.warning("Unable to upload image %s. %s", path, e)
             couldnt_upload[thread_id].append(path)
+            continue
         else:
             uploaded[thread_id].append(path)
             uploaded_imgs.append(path)
@@ -722,6 +702,10 @@ def upload_images_to_project(
     """Uploads all images given in list of path objects in img_paths to the project.
     Sets status of all the uploaded images to set_status if it is not None.
 
+    If an image with existing name already exists in the project it won't be uploaded,
+    and its path will be appended to the third member of return value of this
+    function.
+
     :param project: project name or metadata of the project to upload images to
     :type project: str or dict
     :param img_paths: list of Pathlike (str or Path) objects to upload
@@ -734,22 +718,42 @@ def upload_images_to_project(
            Can be either "compressed" or "original".  If None then the default value in project settings will be used.
     :type image_quality_in_editor: str
 
-    :return: uploaded and not-uploaded images' filepaths
-    :rtype: tuple of list of strs
+    :return: uploaded, could-not-upload, existing-images filepaths
+    :rtype: tuple (3 members) of list of strs
     """
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
-    annotation_status = annotation_status_str_to_int(annotation_status)
+        project = get_project_metadata_bare(project)
+    if not isinstance(img_paths, list):
+        raise SABaseException(
+            0, "img_paths argument to upload_images_to_project should be a list"
+        )
+    annotation_status = common.annotation_status_str_to_int(annotation_status)
     image_quality_in_editor = _get_project_image_quality_in_editor(
         project, image_quality_in_editor
     )
     team_id, project_id = project["team_id"], project["id"]
+    existing_images = search_images(project)
+    duplicate_images = []
+    for existing_image in existing_images:
+        i = -1
+        for j, img_path in enumerate(img_paths):
+            if str(img_path).endswith(existing_image):
+                i = j
+                break
+        if i != -1:
+            duplicate_images.append(img_paths[i])
+            del img_paths[i]
+    if len(duplicate_images) != 0:
+        logger.warning(
+            "%s already existing images found that won't be uploaded.",
+            len(duplicate_images)
+        )
     len_img_paths = len(img_paths)
     logger.info(
         "Uploading %s images to project %s.", len_img_paths, project["name"]
     )
     if len_img_paths == 0:
-        return ([], [])
+        return ([], [], duplicate_images)
     params = {
         'team_id': team_id,
     }
@@ -761,11 +765,6 @@ def upload_images_to_project(
         couldnt_upload.append([])
     finish_event = threading.Event()
     chunksize = int(math.ceil(len(img_paths) / _NUM_THREADS))
-    tqdm_thread = threading.Thread(
-        target=__tqdm_thread_image_upload,
-        args=(len_img_paths, uploaded, couldnt_upload, finish_event)
-    )
-    tqdm_thread.start()
     response = _api.send_request(
         req_type='GET',
         path=f'/project/{project_id}/sdkImageUploadToken',
@@ -778,6 +777,12 @@ def upload_images_to_project(
         raise SABaseException(
             response.status_code, "Couldn't get upload token " + response.text
         )
+    tqdm_thread = threading.Thread(
+        target=__tqdm_thread_image_upload,
+        args=(len_img_paths, uploaded, couldnt_upload, finish_event),
+        daemon=True
+    )
+    tqdm_thread.start()
 
     threads = []
     for thread_id in range(_NUM_THREADS):
@@ -787,7 +792,8 @@ def upload_images_to_project(
                 res, img_paths, project, annotation_status, prefix, thread_id,
                 chunksize, couldnt_upload, uploaded, image_quality_in_editor,
                 from_s3_bucket
-            )
+            ),
+            daemon=True
         )
         threads.append(t)
         t.start()
@@ -798,14 +804,259 @@ def upload_images_to_project(
     list_of_not_uploaded = []
     for couldnt_upload_thread in couldnt_upload:
         for file in couldnt_upload_thread:
-            logger.warning("Couldn't upload image %s", file)
             list_of_not_uploaded.append(str(file))
     list_of_uploaded = []
     for upload_thread in uploaded:
         for file in upload_thread:
             list_of_uploaded.append(str(file))
 
-    return (list_of_uploaded, list_of_not_uploaded)
+    return (list_of_uploaded, list_of_not_uploaded, duplicate_images)
+
+
+def upload_images_from_public_urls_to_project(
+    project,
+    img_urls,
+    annotation_status='NotStarted',
+    image_quality_in_editor=None
+):
+    """Uploads all images given in the list of URL strings in img_urls to the project.
+    Sets status of all the uploaded images to annotation_status if it is not None.
+
+    :param project: project name or metadata of the project to upload images to
+    :type project: str or dict
+    :param img_urls: list of str objects to upload
+    :type img_urls: list
+    :param annotation_status: value to set the annotation statuses of the uploaded images NotStarted InProgress QualityCheck Returned Completed Skipped
+    :type annotation_status: str
+    :param image_quality_in_editor: image quality be seen in SuperAnnotate web annotation editor.
+           Can be either "compressed" or "original".  If None then the default value in project settings will be used.
+    :type image_quality_in_editor: str
+
+    :return: uploaded images' urls, uploaded images' filenames, duplicate images' filenames and not-uploaded images' urls
+    :rtype: tuple of list of strs
+    """
+    images_not_uploaded = []
+    images_to_upload = []
+    duplicate_images_filenames = []
+    path_to_url = {}
+    with tempfile.TemporaryDirectory() as save_dir_name:
+        save_dir = Path(save_dir_name)
+        for img_url in img_urls:
+            try:
+                response = requests.get(img_url)
+                response.raise_for_status()
+            except Exception as e:
+                logger.warning(
+                    "Couldn't download image %s, %s", img_url, str(e)
+                )
+                images_not_uploaded.append(img_url)
+            else:
+                if response.headers.get('Content-Disposition') is not None:
+                    img_path = save_dir / cgi.parse_header(
+                        response.headers['Content-Disposition']
+                    )[1]['filename']
+                else:
+                    img_path = save_dir / basename(urlparse(img_url).path)
+
+                if str(img_path) in path_to_url.keys():
+                    duplicate_images_filenames.append(basename(img_path))
+                    continue
+
+                with open(img_path, 'wb') as f:
+                    f.write(response.content)
+
+                path_to_url[str(img_path)] = img_url
+                images_to_upload.append(img_path)
+        images_uploaded_paths, images_not_uploaded_paths, duplicate_images_paths = upload_images_to_project(
+            project,
+            images_to_upload,
+            annotation_status=annotation_status,
+            image_quality_in_editor=image_quality_in_editor
+        )
+        images_not_uploaded.extend(
+            [path_to_url[str(path)] for path in images_not_uploaded_paths]
+        )
+        images_uploaded = [
+            path_to_url[str(path)] for path in images_uploaded_paths
+        ]
+        images_uploaded_filenames = [
+            basename(path) for path in images_uploaded_paths
+        ]
+        duplicate_images_filenames.extend(
+            [basename(path) for path in duplicate_images_paths]
+        )
+    return (
+        images_uploaded, images_uploaded_filenames, duplicate_images_filenames,
+        images_not_uploaded
+    )
+
+
+def upload_images_from_google_cloud_to_project(
+    project,
+    google_project,
+    bucket_name,
+    folder_path,
+    annotation_status='NotStarted',
+    image_quality_in_editor=None
+):
+    """Uploads all images present in folder_path at bucket_name in google_project to the project.
+    Sets status of all the uploaded images to set_status if it is not None.
+
+    :param project: project name or metadata of the project to upload images to
+    :type project: str or dict
+    :param google_project: the project name on google cloud, where the bucket resides
+    :type google_project: str
+    :param bucket_name: the name of the bucket where the images are stored
+    :type bucket_name: str
+    :param folder_path: path of the folder on the bucket where the images are stored
+    :type folder_path: str
+    :param annotation_status: value to set the annotation statuses of the uploaded images NotStarted InProgress QualityCheck Returned Completed Skipped
+    :type annotation_status: str
+    :param image_quality_in_editor: image quality be seen in SuperAnnotate web annotation editor.
+           Can be either "compressed" or "original".  If None then the default value in project settings will be used.
+    :type image_quality_in_editor: str
+
+    :return: uploaded images' urls, uploaded images' filenames, duplicate images' filenames and not-uploaded images' urls
+    :rtype: tuple of list of strs
+    """
+    images_not_uploaded = []
+    images_to_upload = []
+    duplicate_images_filenames = []
+    path_to_url = {}
+    cloud_client = storage.Client(project=google_project)
+    bucket = cloud_client.get_bucket(bucket_name)
+    image_blobs = bucket.list_blobs(prefix=folder_path)
+    with tempfile.TemporaryDirectory() as save_dir_name:
+        save_dir = Path(save_dir_name)
+        for image_blob in image_blobs:
+            if image_blob.content_type.split('/')[0] != 'image':
+                continue
+            image_name = basename(image_blob.name)
+            image_save_pth = save_dir / image_name
+            if image_save_pth in path_to_url.keys():
+                duplicate_images_filenames.append(basename(image_save_pth))
+                continue
+            try:
+                image_blob.download_to_filename(image_save_pth)
+            except Exception as e:
+                logger.warning(
+                    "Couldn't download image %s, %s", image_blob.name, str(e)
+                )
+                images_not_uploaded.append(image_blob.name)
+            else:
+                path_to_url[str(image_save_pth)] = image_blob.name
+                images_to_upload.append(image_save_pth)
+        images_uploaded_paths, images_not_uploaded_paths, duplicate_images_paths = upload_images_to_project(
+            project,
+            images_to_upload,
+            annotation_status=annotation_status,
+            image_quality_in_editor=image_quality_in_editor
+        )
+        images_not_uploaded.extend(
+            [path_to_url[str(path)] for path in images_not_uploaded_paths]
+        )
+        images_uploaded = [
+            path_to_url[str(path)] for path in images_uploaded_paths
+        ]
+        images_uploaded_filenames = [
+            basename(path) for path in images_uploaded_paths
+        ]
+        duplicate_images_filenames.extend(
+            [basename(path) for path in duplicate_images_paths]
+        )
+    return (
+        images_uploaded, images_uploaded_filenames, duplicate_images_filenames,
+        images_not_uploaded
+    )
+
+
+def upload_images_from_azure_blob_to_project(
+    project,
+    container_name,
+    folder_path,
+    annotation_status='NotStarted',
+    image_quality_in_editor=None
+):
+    """Uploads all images present in folder_path at container_name Azure blob storage to the project.
+    Sets status of all the uploaded images to set_status if it is not None.
+
+    :param project: project name or metadata of the project to upload images to
+    :type project: str or dict
+    :param container_name: container name of the Azure blob storage
+    :type container_name: str
+    :param folder_path: path of the folder on the bucket where the images are stored
+    :type folder_path: str
+    :param annotation_status: value to set the annotation statuses of the uploaded images NotStarted InProgress QualityCheck Returned Completed Skipped
+    :type annotation_status: str
+    :param image_quality_in_editor: image quality be seen in SuperAnnotate web annotation editor.
+           Can be either "compressed" or "original".  If None then the default value in project settings will be used.
+    :type image_quality_in_editor: str
+
+    :return: uploaded images' urls, uploaded images' filenames, duplicate images' filenames and not-uploaded images' urls
+    :rtype: tuple of list of strs
+    """
+    images_not_uploaded = []
+    images_to_upload = []
+    duplicate_images_filenames = []
+    path_to_url = {}
+    connect_key = os.getenv('AZURE_STORAGE_CONNECTION_STRING')
+    blob_service_client = BlobServiceClient.from_connection_string(connect_key)
+    container_client = blob_service_client.get_container_client(container_name)
+    image_blobs = container_client.list_blobs(name_starts_with=folder_path)
+    with tempfile.TemporaryDirectory() as save_dir_name:
+        save_dir = Path(save_dir_name)
+        for image_blob in image_blobs:
+            content_type = image_blob.content_settings.get('content_type')
+            if content_type is None:
+                logger.warning(
+                    "Couldn't download image %s, content type could not be verified",
+                    image_blob.name
+                )
+                continue
+            if content_type.split('/')[0] != 'image':
+                continue
+            image_name = basename(image_blob.name)
+            image_save_pth = save_dir / image_name
+            if image_save_pth in path_to_url.keys():
+                duplicate_images_filenames.append(basename(image_save_pth))
+                continue
+            try:
+                image_blob_client = blob_service_client.get_blob_client(
+                    container=container_name, blob=image_blob
+                )
+                image_stream = image_blob_client.download_blob()
+            except Exception as e:
+                logger.warning(
+                    "Couldn't download image %s, %s", image_blob.name, str(e)
+                )
+                images_not_uploaded.append(image_blob.name)
+            else:
+                with open(image_save_pth, 'wb') as image_file:
+                    image_file.write(image_stream.readall())
+                path_to_url[str(image_save_pth)] = image_blob.name
+                images_to_upload.append(image_save_pth)
+        images_uploaded_paths, images_not_uploaded_paths, duplicate_images_paths = upload_images_to_project(
+            project,
+            images_to_upload,
+            annotation_status=annotation_status,
+            image_quality_in_editor=image_quality_in_editor
+        )
+        images_not_uploaded.extend(
+            [path_to_url[str(path)] for path in images_not_uploaded_paths]
+        )
+        images_uploaded = [
+            path_to_url[str(path)] for path in images_uploaded_paths
+        ]
+        images_uploaded_filenames = [
+            basename(path) for path in images_uploaded_paths
+        ]
+        duplicate_images_filenames.extend(
+            [basename(path) for path in duplicate_images_paths]
+        )
+    return (
+        images_uploaded, images_uploaded_filenames, duplicate_images_filenames,
+        images_not_uploaded
+    )
 
 
 def __upload_annotations_thread(
@@ -896,14 +1147,14 @@ def upload_annotations_from_folder_to_project(
 ):
     """Finds and uploads all JSON files in the folder_path as annotations to the project.
 
-    WARNING: The JSON files should follow specific naming convention. For Vector
+    The JSON files should follow specific naming convention. For Vector
     projects they should be named "<image_filename>___objects.json" (e.g., if
     image is cats.jpg the annotation filename should be cats.jpg___objects.json), for Pixel projects
     JSON file should be named "<image_filename>___pixel.json" and also second mask
     image file should be present with the name "<image_name>___save.png". In both cases
     image with <image_name> should be already present on the platform.
 
-    WARNING: Existing annotations will be overwritten.
+    Existing annotations will be overwritten.
 
     :param project: project name or metadata of the project to upload annotations to
     :type project: str or dict
@@ -918,17 +1169,17 @@ def upload_annotations_from_folder_to_project(
     :rtype: list of strs
     """
     if recursive_subfolders:
-        logger.warning(
+        logger.info(
             "When using recursive subfolder parsing same name annotations in different subfolders will overwrite each other."
         )
 
-    logger.warning(
+    logger.info(
         "The JSON files should follow specific naming convention. For Vector projects they should be named '<image_name>___objects.json', for Pixel projects JSON file should be names '<image_name>___pixel.json' and also second mask image file should be present with the name '<image_name>___save.png'. In both cases image with <image_name> should be already present on the platform."
     )
 
-    logger.warning("Existing annotations will be overwritten.")
+    logger.info("Existing annotations will be overwritten.")
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
 
     return _upload_annotations_from_folder_to_project(
         project, folder_path, from_s3_bucket, recursive_subfolders
@@ -1008,13 +1259,12 @@ def _upload_annotations_from_folder_to_project(
     finish_event = threading.Event()
     tqdm_thread = threading.Thread(
         target=__tqdm_thread,
-        args=(len_annotations_paths, num_uploaded, finish_event)
+        args=(len_annotations_paths, num_uploaded, finish_event),
+        daemon=True
     )
     tqdm_thread.start()
 
-    annotation_classes = search_annotation_classes(
-        project, return_metadata=True
-    )
+    annotation_classes = search_annotation_classes(project)
     annotation_classes_dict = get_annotation_classes_name_to_id(
         annotation_classes
     )
@@ -1027,7 +1277,8 @@ def _upload_annotations_from_folder_to_project(
                 team_id, project_id, project_type, annotations_filenames,
                 folder_path, annotation_classes_dict, thread_id, chunksize,
                 num_uploaded, from_s3_bucket, actually_uploaded
-            )
+            ),
+            daemon=True
         )
         threads.append(t)
         t.start()
@@ -1039,7 +1290,7 @@ def _upload_annotations_from_folder_to_project(
 
     for ac_upl in actually_uploaded:
         return_result += [str(p) for p in ac_upl]
-    print(return_result)
+    # print(return_result)
     return return_result
 
 
@@ -1141,14 +1392,14 @@ def upload_preannotations_from_folder_to_project(
 ):
     """Finds and uploads all JSON files in the folder_path as pre-annotations to the project.
 
-    WARNING: The JSON files should follow specific naming convention. For Vector
+    The JSON files should follow specific naming convention. For Vector
     projects they should be named "<image_filename>___objects.json" (e.g., if
     image is cats.jpg the annotation filename should be cats.jpg___objects.json), for Pixel projects
     JSON file should be named "<image_filename>___pixel.json" and also second mask
     image file should be present with the name "<image_name>___save.png". In both cases
     image with <image_name> should be already present on the platform.
 
-    WARNING: Existing pre-annotations will be overwritten.
+    Existing pre-annotations will be overwritten.
 
     :param project: project name or metadata of the project to upload pre-annotations to
     :type project: str or dict
@@ -1163,18 +1414,18 @@ def upload_preannotations_from_folder_to_project(
     :rtype: list of strs
     """
     if recursive_subfolders:
-        logger.warning(
+        logger.info(
             "When using recursive subfolder parsing same name pre-annotations in different subfolders will overwrite each other."
         )
-    logger.warning(
+    logger.info(
         "The JSON files should follow specific naming convention. For Vector projects they should be named '<image_name>___objects.json', for Pixel projects JSON file should be names '<image_name>___pixel.json' and also second mask image file should be present with the name '<image_name>___save.png'. In both cases image with <image_name> should be already present on the platform."
     )
 
-    logger.warning(
+    logger.info(
         "Identically named existing pre-annotations will be overwritten."
     )
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     return _upload_preannotations_from_folder_to_project(
         project, folder_path, from_s3_bucket, recursive_subfolders
     )
@@ -1253,12 +1504,11 @@ def _upload_preannotations_from_folder_to_project(
     finish_event = threading.Event()
     tqdm_thread = threading.Thread(
         target=__tqdm_thread,
-        args=(len_preannotations_paths, num_uploaded, finish_event)
+        args=(len_preannotations_paths, num_uploaded, finish_event),
+        daemon=True
     )
     tqdm_thread.start()
-    annotation_classes = search_annotation_classes(
-        project, return_metadata=True
-    )
+    annotation_classes = search_annotation_classes(project)
     annotation_classes_dict = get_annotation_classes_name_to_id(
         annotation_classes
     )
@@ -1282,7 +1532,8 @@ def _upload_preannotations_from_folder_to_project(
                     aws_creds, project_type, preannotations_filenames,
                     folder_path, annotation_classes_dict, thread_id, chunksize,
                     num_uploaded, already_uploaded, from_s3_bucket
-                )
+                ),
+                daemon=True
             )
             threads.append(t)
             t.start()
@@ -1305,10 +1556,10 @@ def share_project(project, user, user_role):
     :type user_role: str
     """
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     if not isinstance(user, dict):
         user = get_team_contributor_metadata(user)
-    user_role = user_role_str_to_int(user_role)
+    user_role = common.user_role_str_to_int(user_role)
     team_id, project_id = project["team_id"], project["id"]
     user_id = user["id"]
     json_req = {"user_id": user_id, "user_role": user_role}
@@ -1323,7 +1574,7 @@ def share_project(project, user, user_role):
         raise SABaseException(response.status_code, response.text)
     logger.info(
         "Shared project %s with user %s and role %s", project["name"],
-        user["email"], user_role_int_to_str(user_role)
+        user["email"], common.user_role_int_to_str(user_role)
     )
 
 
@@ -1336,7 +1587,7 @@ def unshare_project(project, user):
     :type user: str or dict
     """
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     if not isinstance(user, dict):
         user = get_team_contributor_metadata(user)
     team_id, project_id = project["team_id"], project["id"]
@@ -1379,7 +1630,7 @@ def upload_images_from_s3_bucket_to_project(
     :type image_quality_in_editor: str
     """
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     if image_quality_in_editor is not None:
         old_quality = _get_project_image_quality_in_editor(project, None)
         _set_project_default_image_quality_in_editor(
@@ -1454,7 +1705,7 @@ def get_project_workflow(project):
     :rtype: list of dicts
     """
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     team_id, project_id = project["team_id"], project["id"]
     params = {
         "team_id": team_id,
@@ -1468,9 +1719,7 @@ def get_project_workflow(project):
             "Couldn't get project workflow " + response.text
         )
     res = response.json()
-    annotation_classes = search_annotation_classes(
-        project, return_metadata=True
-    )
+    annotation_classes = search_annotation_classes(project)
     for r in res:
         if "class_id" not in r:
             continue
@@ -1500,7 +1749,7 @@ def set_project_workflow(project, new_workflow):
     :rtype: list of dicts
     """
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     if not isinstance(new_workflow, list):
         raise SABaseException(
             0, "Set project setting new_workflow should be a list"
@@ -1510,9 +1759,7 @@ def set_project_workflow(project, new_workflow):
     params = {
         "team_id": team_id,
     }
-    annotation_classes = search_annotation_classes(
-        project, return_metadata=True
-    )
+    annotation_classes = search_annotation_classes(project)
 
     new_list = copy.deepcopy(new_workflow)
     for step in new_list:
@@ -1559,7 +1806,7 @@ def get_project_settings(project):
     :rtype: list of dicts
     """
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     team_id, project_id = project["team_id"], project["id"]
     params = {
         "team_id": team_id,
@@ -1589,7 +1836,7 @@ def set_project_settings(project, new_settings):
     :rtype: list of dicts
     """
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     if not isinstance(new_settings, list):
         raise SABaseException(
             0, "Set project setting new_settings should be a list"
@@ -1636,10 +1883,11 @@ def _get_project_image_quality_in_editor(project, image_quality_in_editor):
         for setting in get_project_settings(project):
             if "attribute" in setting and setting["attribute"] == "ImageQuality":
                 return setting["value"]
+        return 60
     elif image_quality_in_editor == "compressed":
-        image_quality_in_editor = 60
+        return 60
     elif image_quality_in_editor == "original":
-        image_quality_in_editor = 100
+        return 100
     else:
         raise SABaseException(
             0,
