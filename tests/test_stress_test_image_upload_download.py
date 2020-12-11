@@ -10,8 +10,7 @@ PROJECT_NAME = "test stress upload"
 
 
 @pytest.mark.skipif(
-    "AO_TEST_LEVEL" not in os.environ or
-    os.environ["AO_TEST_LEVEL"] != "stress",
+    "SA_STRESS_TESTS" not in os.environ,
     reason="Requires env variable to be set"
 )
 def test_upload_stress(tmpdir):
