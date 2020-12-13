@@ -102,15 +102,6 @@ def preannotations_upload(command_name, args):
         help=
         'Task type for COCO projects can be panoptic_segmentation (Pixel), instance_segmentation (Pixel), instance_segmentation (Vector), keypoint_detection (Vector)'
     )
-    parser.add_argument(
-        '--extensions', required=False, help='List of image file extensions'
-    )
-
-    parser.add_argument(
-        '--image-dir',
-        required=False,
-        help='Path to images directory in input folder'
-    )
 
     args = parser.parse_args(args)
 
@@ -128,21 +119,6 @@ def preannotations_upload(command_name, args):
                 0, "Task name should be present for COCO format upload."
             )
 
-        extensions = []
-        if args.extensions is None:
-            extensions.append('jpg')
-        else:
-            exts = args.extensions.split(',')
-            for ext in exts:
-                extensions.append(ext)
-        logger.info(
-            "Images with the following will be used extension : %s. ",
-            extensions
-        )
-
-        if args.image_dir is None:
-            args.image_dir = ''
-
         logger.info("Annotations in format %s.", args.format)
         project_type = sa.get_project_metadata(args.project)["type"]
 
@@ -150,7 +126,7 @@ def preannotations_upload(command_name, args):
         tempdir_path = Path(tempdir.name)
         sa.import_annotation(
             args.folder, tempdir_path, "COCO", args.dataset_name, project_type,
-            args.task, 'Web', args.image_dir, extensions
+            args.task
         )
         args.folder = tempdir_path
 
