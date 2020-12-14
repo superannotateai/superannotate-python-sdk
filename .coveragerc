@@ -1,6 +1,8 @@
 [run]
 branch = True
-omit = superannotate/pycocotools_sa/*
+omit =
+    # copied pycocotools module from github
+    superannotate/pycocotools_sa/*
 
 
 [report]
