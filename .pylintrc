@@ -6,8 +6,8 @@ load-plugins=pylint_pytest
 
 [SPELLING]
 
-max-spelling-suggestions=50
-spelling-dict=en_US
-spelling-ignore-words=
+max-spelling-suggestions=5
+spelling-dict=
+spelling-ignore-words=bool,str,strs
 spelling-private-dict-file=
 spelling-store-unknown-words=no
