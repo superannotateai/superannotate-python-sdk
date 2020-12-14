@@ -77,7 +77,7 @@ def filter_images_by_tags(annotations_df, include=None, exclude=None):
 def filter_annotation_instances(annotations_df, include=None, exclude=None):
     """Filter annotation instances from project annotations pandas DataFrame.
 
-    include and exclude rulses should be a list of rules of following type:
+    include and exclude rules should be a list of rules of the following type:
     [{"className": "<className>", "type" : "<bbox, polygon,...>",
     "error": <True or False>, "attributes" : [{"name" : "<attribute_value>",
     "groupName" : "<attribute_group_name>"},...]},...]

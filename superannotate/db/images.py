@@ -141,10 +141,7 @@ def get_image_metadata(project, image_name):
     for image in images:
         if image["name"] == image_name:
             return image
-    raise SABaseException(
-        0, "Image " + image_name + " doesn't exist in the project " +
-        project["name"]
-    )
+    raise SABaseException(0, "Image " + image_name + " doesn't exist.")
 
 
 def set_image_annotation_status(project, image_name, annotation_status):
@@ -499,10 +496,11 @@ def download_image(
     if not isinstance(project, dict):
         project = get_project_metadata_bare(project)
     img = get_image_bytes(project, image_name, variant=variant)
+    filepath_save = image_name
     if variant == "lores":
-        image_name += "___lores.jpg"
-    filepath = Path(local_dir_path) / image_name
-    with open(filepath, 'wb') as f:
+        filepath_save += "___lores.jpg"
+    filepath_save = Path(local_dir_path) / filepath_save
+    with open(filepath_save, 'wb') as f:
         f.write(img.getbuffer())
     annotations_filepaths = None
     fuse_path = None
@@ -510,17 +508,19 @@ def download_image(
         annotations_filepaths = download_image_annotations(
             project, image_name, local_dir_path
         )
-        if include_fuse or include_overlay:
+        if annotations_filepaths is not None and (
+            include_fuse or include_overlay
+        ):
             classes = search_annotation_classes(project)
             fuse_path = create_fuse_image(
-                filepath,
+                filepath_save,
                 classes,
                 project["type"],
                 output_overlay=include_overlay
             )
-    logger.info("Downloaded image %s to %s.", image_name, filepath)
+    logger.info("Downloaded image %s to %s.", image_name, filepath_save)
 
-    return (str(filepath), annotations_filepaths, fuse_path)
+    return (str(filepath_save), annotations_filepaths, fuse_path)
 
 
 def delete_image(project, image_name):
@@ -789,7 +789,7 @@ def download_image_annotations(project, image_name, local_dir_path):
 
     if annotation["annotation_json_filename"] is None:
         image = get_image_metadata(project, image_name)
-        logger.info("No annotation found for image %s.", image["name"])
+        logger.warning("No annotation found for image %s.", image["name"])
         return None
     return_filepaths = []
     json_path = Path(local_dir_path) / annotation["annotation_json_filename"]
