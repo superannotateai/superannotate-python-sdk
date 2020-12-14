@@ -35,6 +35,7 @@ def get_project_metadata_bare(project_name):
     elif len(results) == 1:
         res = results[0]
         res["type"] = common.project_type_int_to_str(res["type"])
+        res["user_role"] = common.user_role_int_to_str(res["user_role"])
         return res
     else:
         raise SANonExistingProjectNameException(

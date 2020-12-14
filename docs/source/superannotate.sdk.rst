@@ -137,7 +137,7 @@ Project metadata example:
      "creator_id": "hovnatan@superannotate.com",
      "updatedAt": "2020-08-31T05:43:43.118Z",
      "createdAt": "2020-08-31T05:43:43.118Z"
-     "type": 1,
+     "type": "Vector",
      "attachment_name": None,
      "attachment_path": None,
      "entropy_status": 1,
@@ -145,8 +145,6 @@ Project metadata example:
      "...": "..."
    }
 
-Most of the fields here are self-explanatory. "type" is an integer value that can be
-translated to a string "Pixel" or "Vector" project types using :ref:`project_type_int_to_str <ref_project_type_int_to_str>`.
 
 ----------
 
@@ -178,7 +176,7 @@ Image metadata example:
 
    {
       "name": "000000000001.jpg",
-      "annotation_status": 1,
+      "annotation_status": "Completed",
       "prediction_status": 1,
       "segmentation_status": 1,
       "annotator_id": None,
@@ -192,12 +190,6 @@ Image metadata example:
       "is_pinned": 0,
       "...": "...",
    }
-
-Most of the fields here are self-explanatory. "annotation_status" is an integer
-value that can be
-translated to one of "NotStarted", "InProgress", "QualityCheck", "Returned",
-"Completed" or "Skipped" using :ref:`annotation_status_int_to_str
-<ref_annotation_status_int_to_str>`.
 
 
 ----------
@@ -264,23 +256,14 @@ Team contributor metadata example:
     "...": "...",
   }
 
-----------
-
-Metadata helper functions
-_________________________
-
-.. _ref_project_type_int_to_str:
-.. autofunction:: superannotate.project_type_int_to_str
-.. _ref_annotation_status_int_to_str:
-.. autofunction:: superannotate.annotation_status_int_to_str
-
-.. _ref_converter:
 
 
 ----------
 
 Annotation JSON helper functions
 --------------------------------
+
+.. _ref_converter:
 
 Converting annotation format to and from SuperAnnotate format
 _____________________________________________________________
