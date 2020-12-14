@@ -36,7 +36,15 @@ def ask_token():
         json.dump(existing_config, open(config_file, "w"), indent=4)
         logger.info("Configuration file %s successfully updated.", config_file)
     else:
-        json.dump({"token": token}, open(config_file, "w"), indent=4)
+        json.dump(
+            {
+                "token": token,
+                "main_endpoint": "https://api.annotate.online",
+                "ssl_verify": True
+            },
+            open(config_file, "w"),
+            indent=4
+        )
         logger.info("Configuration file %s successfully created.", config_file)
 
 
