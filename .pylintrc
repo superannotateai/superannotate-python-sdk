@@ -1,8 +1,26 @@
 [BASIC]
-good-names=df,f,e
+good-names=df,f,e,i,j,k
+
+bad-functions=
+  apply,
+  exit,
+  input,
+  quit
+
+[ELIF]
+max-nested-blocks=5
 
 [MASTER]
 load-plugins=pylint_pytest
+persistent=yes
+ignore=pycocotools_sa
+
+[MESSAGE_CONTROL]
+disable=
+    no-else-return,
+    too-many-lines,
+    too-many-arguments,
+    too-many-instance-attributes
 
 [SPELLING]
 

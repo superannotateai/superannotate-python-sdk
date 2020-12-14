@@ -9,8 +9,6 @@ import superannotate as sa
 
 from .exceptions import SABaseException
 
-import os
-
 logger = logging.getLogger("superannotate-python-sdk")
 
 _CLI_COMMAND = Path(sys.argv[0]).name
