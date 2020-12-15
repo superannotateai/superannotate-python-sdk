@@ -38,34 +38,3 @@ def search_models(
         )
     return result['data']
 
-def _get_model_id_if_exists(model, prohect_type):
-
-    model_name = None
-    model_id = None
-
-    if isinstance(model, dict):
-        model_name = model["name"]
-    elif isinstance(model, str):
-        params = {
-            "type" : project_type,
-            "include_global": True,
-            "team_id": _api.team_id
-        }
-
-        response = _api.send_request(
-            req_type = "GET",
-            path = f"/ml_models",
-            params = params
-        )
-
-        if not response.ok:
-            raise SABaseException(
-                0, "Could not fetch information about available models, please try again"
-            )
-
-        data = response.json()
-        data= {x['name'] : x['id'] for x in data}
-
-
-    raise NotImplementedError
-
