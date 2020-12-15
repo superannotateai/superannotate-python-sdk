@@ -34,7 +34,15 @@ def ask_token():
         json.dump(existing_config, open(config_file, "w"), indent=4)
         logger.info("Configuration file %s successfully updated.", config_file)
     else:
-        json.dump({"token": token}, open(config_file, "w"), indent=4)
+        json.dump(
+            {
+                "token": token,
+                "main_endpoint": "https://api.annotate.online",
+                "ssl_verify": True
+            },
+            open(config_file, "w"),
+            indent=4
+        )
         logger.info("Configuration file %s successfully created.", config_file)
 
 
@@ -100,6 +108,7 @@ def preannotations_upload(command_name, args):
         help=
         'Task type for COCO projects can be panoptic_segmentation (Pixel), instance_segmentation (Pixel), instance_segmentation (Vector), keypoint_detection (Vector)'
     )
+
     args = parser.parse_args(args)
 
     if args.format != "SuperAnnotate":
@@ -115,6 +124,7 @@ def preannotations_upload(command_name, args):
             raise sa.SABaseException(
                 0, "Task name should be present for COCO format upload."
             )
+
         logger.info("Annotations in format %s.", args.format)
         project_type = sa.get_project_metadata(args.project)["type"]
 
@@ -125,6 +135,7 @@ def preannotations_upload(command_name, args):
             args.task
         )
         args.folder = tempdir_path
+
     sa.create_annotation_classes_from_classes_json(
         args.project,
         Path(args.folder) / "classes" / "classes.json"

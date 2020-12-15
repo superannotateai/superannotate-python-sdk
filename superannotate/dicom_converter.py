@@ -35,6 +35,9 @@ def dicom_to_rgb_sequence(
     else:
         number_of_frames = 1
         arr = arr[np.newaxis, :]
+        if arr.dtype != np.uint8:
+            arr = (arr - arr.min()) / arr.max() * 255
+            arr = arr.astype(np.uint8)
     output_dir = Path(output_dir)
     output_paths = []
     for i in range(number_of_frames):

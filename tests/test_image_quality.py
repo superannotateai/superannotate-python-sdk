@@ -3,8 +3,6 @@ import filecmp
 
 import superannotate as sa
 
-import pytest
-
 PROJECT_NAME1 = "test image qual setting1"
 PROJECT_NAME2 = "test image qual setting2"
 

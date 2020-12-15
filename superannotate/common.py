@@ -25,10 +25,9 @@ _AVAILABLE_SEGMENTATION_MODELS = ['autonomous', 'generic']
 
 def image_path_to_annotation_paths(image_path, project_type):
     image_path = Path(image_path)
-    project_type = project_type_str_to_int(project_type)
-    postfix_json = '___objects.json' if project_type == 1 else '___pixel.json'
+    postfix_json = '___objects.json' if project_type == "Vector" else '___pixel.json'
     postfix_mask = '___save.png'
-    if project_type == 1:
+    if project_type == "Vector":
         return (image_path.parent / (image_path.name + postfix_json), )
     return (
         image_path.parent / (image_path.name + postfix_json),
@@ -49,13 +48,10 @@ def project_type_int_to_str(project_type):
     :return: 'Vector' or 'Pixel'
     :rtype: str
     """
-    if not isinstance(project_type, int):
-        return project_type
-
     for k, v in _PROJECT_TYPES.items():
         if v == project_type:
             return k
-    return None
+    raise RuntimeError("NA Project type")
 
 
 def user_role_str_to_int(user_role):

@@ -84,6 +84,7 @@ def create_project(project_name, project_description, project_type):
         "Created project %s (ID %s) with type %s", res["name"], res["id"],
         common.project_type_int_to_str(res["type"])
     )
+    res["type"] = common.project_type_int_to_str(res["type"])
     return res
 
 
@@ -102,8 +103,7 @@ def create_project_from_metadata(project_metadata):
     if "contributors" in project_metadata:
         for user in project_metadata["contributors"]:
             share_project(
-                new_project_metadata, user["user_id"],
-                common.user_role_int_to_str(user["user_role"])
+                new_project_metadata, user["user_id"], user["user_role"]
             )
     if "settings" in project_metadata:
         set_project_settings(new_project_metadata, project_metadata["settings"])
@@ -548,6 +548,8 @@ def upload_image_array_to_s3(
 def get_image_array_to_upload(
     byte_io_orig, image_quality_in_editor, project_type
 ):
+    if image_quality_in_editor not in ["original", "compressed"]:
+        raise SABaseException(0, "NA ImageQuality in get_image_array_to_upload")
     Image.MAX_IMAGE_PIXELS = None
     im = Image.open(byte_io_orig)
     im_format = im.format
@@ -556,7 +558,6 @@ def get_image_array_to_upload(
 
     width, height = im.size
 
-    project_type = common.project_type_int_to_str(project_type)
     resolution = width * height
     if resolution > common.MAX_IMAGE_RESOLUTION[project_type]:
         raise SABaseException(
@@ -565,7 +566,7 @@ def get_image_array_to_upload(
             str(common.MAX_IMAGE_RESOLUTION[project_type])
         )
 
-    if image_quality_in_editor == 100 and im_format in ['JPEG', 'JPG']:
+    if image_quality_in_editor == "original" and im_format in ['JPEG', 'JPG']:
         byte_io_lores = io.BytesIO(byte_io_orig.getbuffer())
     else:
         byte_io_lores = io.BytesIO()
@@ -573,15 +574,10 @@ def get_image_array_to_upload(
         im = im.convert("RGBA")
         bg.paste(im, mask=im)
         bg = bg.convert('RGB')
-        if image_quality_in_editor == 100:
-            bg.save(
-                byte_io_lores,
-                'JPEG',
-                quality=image_quality_in_editor,
-                subsampling=0
-            )
+        if image_quality_in_editor == "original":
+            bg.save(byte_io_lores, 'JPEG', quality=100, subsampling=0)
         else:
-            bg.save(byte_io_lores, 'JPEG', quality=image_quality_in_editor)
+            bg.save(byte_io_lores, 'JPEG', quality=60)
         im = bg
 
     byte_io_huge = io.BytesIO()
@@ -648,8 +644,7 @@ def __upload_images_to_aws_thread(
                 with open(path, "rb") as f:
                     file = io.BytesIO(f.read())
             images = get_image_array_to_upload(
-                file, image_quality_in_editor,
-                common.project_type_int_to_str(project["type"])
+                file, image_quality_in_editor, project["type"]
             )
             upload_image_array_to_s3(bucket, *images, key)
         except Exception as e:
@@ -728,9 +723,10 @@ def upload_images_to_project(
             0, "img_paths argument to upload_images_to_project should be a list"
         )
     annotation_status = common.annotation_status_str_to_int(annotation_status)
-    image_quality_in_editor = _get_project_image_quality_in_editor(
-        project, image_quality_in_editor
-    )
+    if image_quality_in_editor is None:
+        image_quality_in_editor = get_project_default_image_quality_in_editor(
+            project
+        )
     team_id, project_id = project["team_id"], project["id"]
     existing_images = search_images(project)
     duplicate_images = []
@@ -1071,7 +1067,7 @@ def __upload_annotations_thread(
         return
     end_index = min(start_index + chunksize, len_anns)
 
-    postfix_json = '___objects.json' if project_type == 1 else '___pixel.json'
+    postfix_json = '___objects.json' if project_type == "Vector" else '___pixel.json'
     len_postfix_json = len(postfix_json)
     postfix_mask = '___save.png'
     if from_s3_bucket is not None:
@@ -1123,7 +1119,7 @@ def __upload_annotations_thread(
             bucket.put_object(
                 Key=image_path + postfix_json, Body=json.dumps(annotation_json)
             )
-            if project_type != 1:
+            if project_type != "Vector":
                 mask_filename = image_name + postfix_mask
                 if from_s3_bucket is None:
                     with open(Path(folder_path) / mask_filename, 'rb') as fin:
@@ -1312,7 +1308,7 @@ def __upload_preannotations_thread(
     s3_resource = s3_session.resource('s3')
     bucket = s3_resource.Bucket(aws_creds["bucket"])
 
-    postfix_json = '___objects.json' if project_type == 1 else '___pixel.json'
+    postfix_json = '___objects.json' if project_type == "Vector" else '___pixel.json'
     len_postfix_json = len(postfix_json)
     postfix_mask = '___save.png'
     if from_s3_bucket is not None:
@@ -1339,7 +1335,7 @@ def __upload_preannotations_thread(
             Key=aws_creds["filePath"] + f"/{json_filename}",
             Body=json.dumps(annotation_json)
         )
-        if project_type != 1:
+        if project_type != "Vector":
             mask_filename = json_filename[:-len_postfix_json] + postfix_mask
             if from_s3_bucket is None:
                 with open(Path(folder_path) / mask_filename, 'rb') as fin:
@@ -1497,7 +1493,11 @@ def _upload_preannotations_from_folder_to_project(
     )
     if len_preannotations_paths == 0:
         return return_result
-    params = {'team_id': team_id, 'creds_only': True, 'type': project_type}
+    params = {
+        'team_id': team_id,
+        'creds_only': True,
+        'type': common.project_type_str_to_int(project_type)
+    }
     num_uploaded = [0] * _NUM_THREADS
     already_uploaded = [False] * len_preannotations_paths
     chunksize = int(math.ceil(len_preannotations_paths / _NUM_THREADS))
@@ -1632,12 +1632,9 @@ def upload_images_from_s3_bucket_to_project(
     if not isinstance(project, dict):
         project = get_project_metadata_bare(project)
     if image_quality_in_editor is not None:
-        old_quality = _get_project_image_quality_in_editor(project, None)
-        _set_project_default_image_quality_in_editor(
-            project,
-            _get_project_image_quality_in_editor(
-                project, image_quality_in_editor
-            )
+        old_quality = get_project_default_image_quality_in_editor(project)
+        set_project_default_image_quality_in_editor(
+            project, image_quality_in_editor
         )
     team_id, project_id = project["team_id"], project["id"]
     params = {
@@ -1672,7 +1669,7 @@ def upload_images_from_s3_bucket_to_project(
                 "Couldn't upload to project from S3 " + response.text
             )
     if image_quality_in_editor is not None:
-        _set_project_default_image_quality_in_editor(project, old_quality)
+        set_project_default_image_quality_in_editor(project, old_quality)
 
 
 def _get_upload_from_s3_bucket_to_project_status(project):
@@ -1819,7 +1816,16 @@ def get_project_settings(project):
             response.status_code,
             "Couldn't get project settings " + response.text
         )
-    return response.json()
+    res = response.json()
+    for val in res:
+        if val['attribute'] == 'ImageQuality':
+            if val['value'] == 60:
+                val['value'] = 'compressed'
+            elif val['value'] == 100:
+                val['value'] = 'original'
+            else:
+                raise SABaseException(0, "NA ImageQuality value")
+    return res
 
 
 def set_project_settings(project, new_settings):
@@ -1863,6 +1869,14 @@ def set_project_settings(project, new_settings):
                     "value": new_setting["value"]
                 }
             )
+    for val in new_list:
+        if val['attribute'] == 'ImageQuality':
+            if val['value'] == 'compressed':
+                val['value'] = 60
+            elif val['value'] == 'original':
+                val['value'] = 100
+            else:
+                raise SABaseException(0, "NA ImageQuality value")
     json_req = {"settings": new_list}
     response = _api.send_request(
         req_type='PUT',
@@ -1878,32 +1892,6 @@ def set_project_settings(project, new_settings):
     return response.json()
 
 
-def _get_project_image_quality_in_editor(project, image_quality_in_editor):
-    if image_quality_in_editor is None:
-        for setting in get_project_settings(project):
-            if "attribute" in setting and setting["attribute"] == "ImageQuality":
-                return setting["value"]
-        return 60
-    elif image_quality_in_editor == "compressed":
-        return 60
-    elif image_quality_in_editor == "original":
-        return 100
-    else:
-        raise SABaseException(
-            0,
-            "Image quality in editor should be 'compressed', 'original' or None for project settings value"
-        )
-
-
-def _set_project_default_image_quality_in_editor(project, quality):
-    set_project_settings(
-        project, [{
-            "attribute": "ImageQuality",
-            "value": quality
-        }]
-    )
-
-
 def set_project_default_image_quality_in_editor(
     project, image_quality_in_editor
 ):
@@ -1914,16 +1902,12 @@ def set_project_default_image_quality_in_editor(
     :param image_quality_in_editor: new setting value, should be "original" or "compressed"
     :type image_quality_in_editor: str
     """
-    if image_quality_in_editor == "compressed":
-        image_quality_in_editor = 60
-    elif image_quality_in_editor == "original":
-        image_quality_in_editor = 100
-    else:
-        raise SABaseException(
-            0, "Image quality in editor should be 'compressed', 'original'"
-        )
-    _set_project_default_image_quality_in_editor(
-        project, image_quality_in_editor
+    set_project_settings(
+        project,
+        [{
+            "attribute": "ImageQuality",
+            "value": image_quality_in_editor
+        }]
     )
 
 
@@ -1936,15 +1920,11 @@ def get_project_default_image_quality_in_editor(project):
     :return: "original" or "compressed" setting value
     :rtype: str
     """
-    image_quality_in_editor = _get_project_image_quality_in_editor(
-        project, None
-    )
-    if image_quality_in_editor == 60:
-        image_quality_in_editor = "compressed"
-    elif image_quality_in_editor == 100:
-        image_quality_in_editor = "original"
+    for setting in get_project_settings(project):
+        if "attribute" in setting and setting["attribute"] == "ImageQuality":
+            return setting["value"]
     else:
         raise SABaseException(
-            0, "Image quality in editor should be '60', '100'"
+            0,
+            "Image quality in editor should be 'compressed', 'original' or None for project settings value"
         )
-    return image_quality_in_editor

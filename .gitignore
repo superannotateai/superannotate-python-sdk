@@ -135,6 +135,7 @@ sample_tif_files
 .vscode/
 
 # python virtual env for SDK testing
-venv_sa_conv
+venv_*
 pylint.html
 _mask.c
+tags

@@ -15,12 +15,8 @@ from .annotation_helpers import (
     add_annotation_point_to_json, add_annotation_polygon_to_json,
     add_annotation_polyline_to_json, add_annotation_template_to_json
 )
-from .api import API
-from .common import (
-    annotation_status_int_to_str, annotation_status_str_to_int,
-    image_path_to_annotation_paths, project_type_int_to_str,
-    project_type_str_to_int, user_role_str_to_int
-)
+from .api import API as _API
+from .common import image_path_to_annotation_paths
 from .consensus_benchmark.benchmark import benchmark
 from .consensus_benchmark.consensus import consensus
 from .dataframe_filtering import (
@@ -57,10 +53,10 @@ from .db.projects import (
     set_project_default_image_quality_in_editor, set_project_settings,
     set_project_workflow, share_project, unshare_project,
     upload_annotations_from_folder_to_project,
-    upload_images_from_folder_to_project,
-    upload_images_from_public_urls_to_project,
-    upload_images_from_google_cloud_to_project,
     upload_images_from_azure_blob_to_project,
+    upload_images_from_folder_to_project,
+    upload_images_from_google_cloud_to_project,
+    upload_images_from_public_urls_to_project,
     upload_images_from_s3_bucket_to_project, upload_images_to_project,
     upload_preannotations_from_folder_to_project, upload_video_to_project,
     upload_videos_from_folder_to_project
@@ -125,7 +121,7 @@ def _check_version():
         )
 
 
-_api = API.get_instance()
+_api = _API.get_instance()
 
 
 def init(path_to_config_json):

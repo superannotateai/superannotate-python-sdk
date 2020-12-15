@@ -7,14 +7,12 @@ def filter_images_by_comments(
     include_resolved_comments=False,
     include_without_comments=False
 ):
-    """Filter images on comment resolve status and comment resolve status
+    """Filter images on comment resolve status and comment existence
 
     :param annotations_df: pandas DataFrame of project annotations
     :type annotations_df: pandas.DataFrame
     :param include_unresolved_comments: include images with unresolved state
     :type include_unresolved_comments: bool
-    :param include_resolved_comments: include images with resolved state
-    :type include_resolved_comments: bool
     :param include_resolved_comments: include images with resolved state
     :type include_resolved_comments: bool
     :param include_without_comments: include images without any comments
@@ -79,7 +77,10 @@ def filter_images_by_tags(annotations_df, include=None, exclude=None):
 def filter_annotation_instances(annotations_df, include=None, exclude=None):
     """Filter annotation instances from project annotations pandas DataFrame.
 
-    include and exclude rulses should be a list of rules of following type: [{"className": "<className>", "type" : "<bbox, polygon,...>", "error": <True or False>, "attributes" : [{"name" : "<attribute_value>", "groupName" : "<attribute_group_name>"},...]},...]
+    include and exclude rules should be a list of rules of the following type:
+    [{"className": "<className>", "type" : "<bbox, polygon,...>",
+    "error": <True or False>, "attributes" : [{"name" : "<attribute_value>",
+    "groupName" : "<attribute_group_name>"},...]},...]
 
 
     :param annotations_df: pandas DataFrame of project annotations

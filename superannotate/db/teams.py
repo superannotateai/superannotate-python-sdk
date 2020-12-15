@@ -45,7 +45,10 @@ def get_team_metadata():
         )
 
     res = response.json()
+    res["user_role"] = user_role_int_to_str(res["user_role"])
     for user in res["users"]:
+        user["user_role"] = user_role_int_to_str(user["user_role"])
+    for user in res["pending_invitations"]:
         user["user_role"] = user_role_int_to_str(user["user_role"])
 
     return res

@@ -9,6 +9,7 @@ import numpy as np
 import requests
 from PIL import Image, ImageDraw
 
+from .. import common
 from ..annotation_helpers import (
     add_annotation_bbox_to_json, add_annotation_comment_to_json,
     add_annotation_cuboid_to_json, add_annotation_ellipse_to_json,
@@ -16,10 +17,6 @@ from ..annotation_helpers import (
     add_annotation_polyline_to_json, add_annotation_template_to_json
 )
 from ..api import API
-from ..common import (
-    annotation_status_str_to_int, hex_to_rgb, image_path_to_annotation_paths,
-    project_type_int_to_str
-)
 from ..exceptions import SABaseException
 from .annotation_classes import (
     fill_class_and_attribute_ids, fill_class_and_attribute_names,
@@ -76,7 +73,9 @@ def search_images(
     team_id, project_id = project["team_id"], project["id"]
     folder_id = _get_project_root_folder_id(project)  # maybe changed in future
     if annotation_status is not None:
-        annotation_status = annotation_status_str_to_int(annotation_status)
+        annotation_status = common.annotation_status_str_to_int(
+            annotation_status
+        )
 
     result_list = []
     params = {
@@ -113,7 +112,18 @@ def search_images(
             raise SABaseException(
                 response.status_code, "Couldn't search images " + response.text
             )
-    return result_list
+
+    if return_metadata:
+
+        def process_result(x):
+            x["annotation_status"] = common.annotation_status_int_to_str(
+                x["annotation_status"]
+            )
+            return x
+
+        return list(map(process_result, result_list))
+    else:
+        return result_list
 
 
 def get_image_metadata(project, image_name):
@@ -131,10 +141,7 @@ def get_image_metadata(project, image_name):
     for image in images:
         if image["name"] == image_name:
             return image
-    raise SABaseException(
-        0, "Image " + image_name + " doesn't exist in the project " +
-        project["name"]
-    )
+    raise SABaseException(0, "Image " + image_name + " doesn't exist.")
 
 
 def set_image_annotation_status(project, image_name, annotation_status):
@@ -154,7 +161,7 @@ def set_image_annotation_status(project, image_name, annotation_status):
     image = get_image_metadata(project, image_name)
     team_id, project_id, image_id = image["team_id"], image["project_id"
                                                            ], image["id"]
-    annotation_status = annotation_status_str_to_int(annotation_status)
+    annotation_status = common.annotation_status_str_to_int(annotation_status)
     json_req = {
         "annotation_status": annotation_status,
     }
@@ -489,10 +496,11 @@ def download_image(
     if not isinstance(project, dict):
         project = get_project_metadata_bare(project)
     img = get_image_bytes(project, image_name, variant=variant)
+    filepath_save = image_name
     if variant == "lores":
-        image_name += "___lores.jpg"
-    filepath = Path(local_dir_path) / image_name
-    with open(filepath, 'wb') as f:
+        filepath_save += "___lores.jpg"
+    filepath_save = Path(local_dir_path) / filepath_save
+    with open(filepath_save, 'wb') as f:
         f.write(img.getbuffer())
     annotations_filepaths = None
     fuse_path = None
@@ -500,15 +508,19 @@ def download_image(
         annotations_filepaths = download_image_annotations(
             project, image_name, local_dir_path
         )
-        if include_fuse or include_overlay:
+        if annotations_filepaths is not None and (
+            include_fuse or include_overlay
+        ):
             classes = search_annotation_classes(project)
-            project_type = project_type_int_to_str(project["type"])
             fuse_path = create_fuse_image(
-                filepath, classes, project_type, output_overlay=include_overlay
+                filepath_save,
+                classes,
+                project["type"],
+                output_overlay=include_overlay
             )
-    logger.info("Downloaded image %s to %s.", image_name, filepath)
+    logger.info("Downloaded image %s to %s.", image_name, filepath_save)
 
-    return (str(filepath), annotations_filepaths, fuse_path)
+    return (str(filepath_save), annotations_filepaths, fuse_path)
 
 
 def delete_image(project, image_name):
@@ -616,7 +628,7 @@ def get_image_preannotations(project, image_name):
     annotation_classes_dict = get_annotation_classes_id_to_name(
         annotation_classes
     )
-    if project_type == 1:  # vector
+    if project_type == "Vector":
         res = res['preannotation']
         url = res["url"]
         annotation_json_filename = url.rsplit('/', 1)[-1]
@@ -710,7 +722,7 @@ def get_image_annotations(project, image_name, project_type=None):
     annotation_classes_dict = get_annotation_classes_id_to_name(
         annotation_classes
     )
-    if project_type == 1:  # vector
+    if project_type == "Vector":
         url = res["objects"]["url"]
         annotation_json_filename = url.rsplit('/', 1)[-1]
         headers = res["objects"]["headers"]
@@ -777,12 +789,12 @@ def download_image_annotations(project, image_name, local_dir_path):
 
     if annotation["annotation_json_filename"] is None:
         image = get_image_metadata(project, image_name)
-        logger.info("No annotation found for image %s.", image["name"])
+        logger.warning("No annotation found for image %s.", image["name"])
         return None
     return_filepaths = []
     json_path = Path(local_dir_path) / annotation["annotation_json_filename"]
     return_filepaths.append(str(json_path))
-    if project["type"] == 1:
+    if project["type"] == "Vector":
         with open(json_path, "w") as f:
             json.dump(annotation["annotation_json"], f, indent=4)
     else:
@@ -819,7 +831,7 @@ def download_image_preannotations(project, image_name, local_dir_path):
     return_filepaths = []
     json_path = Path(local_dir_path) / annotation["preannotation_json_filename"]
     return_filepaths.append(str(json_path))
-    if project["type"] == 1:
+    if project["type"] == "Vector":
         with open(json_path, "w") as f:
             json.dump(annotation["preannotation_json"], f)
     else:
@@ -885,7 +897,7 @@ def upload_image_annotations(
             response.status_code, "Couldn't upload annotation. " + response.text
         )
     res = response.json()
-    if project_type == 1:  # vector
+    if project_type == "Vector":
         res = res['objects']
         s3_session = boto3.Session(
             aws_access_key_id=res['accessKeyId'],
@@ -940,7 +952,7 @@ def create_fuse_image(
     :return: path to created fuse image or pillow Image object if in_memory enabled
     :rtype: str of PIL.Image
     """
-    annotation_path = image_path_to_annotation_paths(image, project_type)
+    annotation_path = common.image_path_to_annotation_paths(image, project_type)
     annotation_json = json.load(open(annotation_path[0]))
     if not isinstance(classes_json, list):
         classes_json = json.load(open(classes_json))
@@ -967,7 +979,7 @@ def create_fuse_image(
             if "className" not in annotation:
                 continue
             color = class_color_dict[annotation["className"]]
-            rgb = hex_to_rgb(color)
+            rgb = common.hex_to_rgb(color)
             fill_color = (rgb[0], rgb[1], rgb[2], 255)
             outline_color = (255, 255, 255, 255)
             if annotation["type"] == "bbox":
@@ -1067,11 +1079,11 @@ def create_fuse_image(
             if "className" not in annotation or "parts" not in annotation:
                 continue
             color = class_color_dict[annotation["className"]]
-            rgb = hex_to_rgb(color)
+            rgb = common.hex_to_rgb(color)
             fill_color = (rgb[0], rgb[1], rgb[2], 255)
             for part in annotation["parts"]:
                 part_color = part["color"]
-                part_color = list(hex_to_rgb(part_color)) + [255]
+                part_color = list(common.hex_to_rgb(part_color)) + [255]
                 temp_mask = np.alltrue(annotation_mask == part_color, axis=2)
                 fi[temp_mask] = fill_color
         fi_pil = Image.fromarray(fi)

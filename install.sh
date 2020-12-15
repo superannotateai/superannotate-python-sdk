@@ -13,6 +13,7 @@ source venv_sa_conv/bin/activate
 
 pip install -e .
 # pip install --pre superannotate
+# pip install superannotate
 
 # for testing
 pip install pytest pytest-xdist
