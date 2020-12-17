@@ -9,8 +9,7 @@ import json
 from ..api import API
 from .defaults import DEFAULT_HYPERPARAMETERS
 from ..exceptions import SABaseException
-from .ml_models import _get_model_id_if_exists
-from ..common import _AVAILABLE_SEGMENTATION_MODELS
+from ..common import _AVAILABLE_SEGMENTATION_MODELS, process_api_response
 from ..parameter_decorators import project_metadata, model_metadata
 from ..db.images import search_images
 import boto3
@@ -20,15 +19,7 @@ import plotly.express as px
 from .defaults import NON_PLOTABLE_KEYS
 import pandas as pd
 from plotly.subplots import make_subplots
-import dash
-import dash_core_components as dcc
-import dash_html_components as html
 import os
-
-
-external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
-
-app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 
 logger = logging.getLogger("superannotate-python-sdk")
 _api = API.get_instance()
@@ -58,6 +49,7 @@ def run_prediction(project, images_list, model):
     images_name_id_map = {x['name']:x['id'] for x in images_metadata}
     images_id_list = [_heto_kjogem(x, images_name_id_map) for x in images_list]
     images_id_list = [x for x in images_id_list if x is not None]
+
     if len(images_id_list) == 0:
         raise SABaseException(
             0, "No valid image names were provided"
@@ -161,14 +153,13 @@ def run_training(project, model, name, description, task, hyperparameters):
     else:
         project_ids = [x["id"] for x in project]
         types = (x["type"] for x in project)
-
+        types = set(types)
         if len(types) != 1:
             logger.error("All projects have to be of the same type. Either vector or pixel")
             raise SABaseException(
                 0, "Invalid project types"
             )
         project_type = types.pop()
-
     if project_type != model["type"]:
         logger.error("The base model has to be of the same type (vector or pixel) as the projects")
         raise SABaseException(
@@ -193,15 +184,16 @@ def run_training(project, model, name, description, task, hyperparameters):
     response =_api.send_request(
         req_type = "POST",
         path = "/ml_model",
-        json_req = hyperparameters
+        json_req = hyperparameters,
+        params = params
     )
 
     if response.ok:
         logger.info("Started model training")
     else:
-        res = response.json()
-        logger.error(res["error"])
-
+        print(response.url)
+        print(response)
+        logger.error("Could not start training")
 @model_metadata
 def download_model(model, output_dir):
     """Downloads the neural network and related files
@@ -235,7 +227,7 @@ def download_model(model, output_dir):
         params = params
     )
     if response.ok:
-        response = response.json()
+        response = process_api_response(response.json())
     else:
         raise SABaseException(
             0, "Could not get model info "

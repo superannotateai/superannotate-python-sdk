@@ -1,6 +1,7 @@
 import logging
 from ..api import API
 from ..exceptions import SABaseException
+from ..common import process_api_response
 logger = logging.getLogger("superannotate-python-sdk")
 _api = API.get_instance()
 
@@ -18,7 +19,7 @@ def search_models(
         "project_id": project_id,
         "task": task,
         "type": type_,
-        "includ_global":include_global
+        "include_global":include_global
     }
 
     response = _api.send_request(
@@ -31,7 +32,8 @@ def search_models(
         raise SABaseException(
             0, "could not search models"
         )
-    result = response.json()
+    result = process_api_response(response.json())
+
     if not result['data']:
         raise SABaseException(
             0, "Model with such a name does not exist"

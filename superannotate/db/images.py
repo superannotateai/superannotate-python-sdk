@@ -24,7 +24,7 @@ from .annotation_classes import (
     search_annotation_classes
 )
 from .project_api import get_project_metadata_bare
-
+from ..common import process_api_response
 logger = logging.getLogger("superannotate-python-sdk")
 
 _api = API.get_instance()
@@ -43,7 +43,10 @@ def _get_project_root_folder_id(project):
     )
     if not response.ok:
         raise SABaseException(response.status_code, response.text)
-    return response.json()['folder_id']
+
+    response = process_api_response(response.json())
+
+    return response['folder_id']
 
 
 def search_images(
@@ -94,14 +97,16 @@ def search_images(
         )
         if response.ok:
             # print(response.json())
-            results = response.json()["data"]
+            response = process_api_response(response.json())
+            results = response["data"]
             total_got += len(results)
             for r in results:
                 if return_metadata:
                     result_list.append(r)
                 else:
                     result_list.append(r["name"])
-            if response.json()["count"] <= total_got:
+
+            if response["count"] <= total_got:
                 break
             params["offset"] = total_got
             # print(
@@ -174,7 +179,10 @@ def set_image_annotation_status(project, image_name, annotation_status):
     )
     if not response.ok:
         raise SABaseException(response.status_code, response.text)
-    return response.json()
+
+    response = process_api_response(response.json())
+
+    return response
 
 
 def add_annotation_comment_to_image(

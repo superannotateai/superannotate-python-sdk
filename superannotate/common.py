@@ -12,6 +12,7 @@ from PIL import Image
 logger = logging.getLogger("superannotate-python-sdk")
 
 _PROJECT_TYPES = {"Vector": 1, "Pixel": 2}
+
 _ANNOTATION_STATUSES = {
     "NotStarted": 1,
     "InProgress": 2,
@@ -249,3 +250,11 @@ MAX_IMAGE_RESOLUTION = {
     "Vector": 100_000_000,
     "Pixel": 4_000_000
 }  # Resolution limit
+
+
+def process_api_response(data):
+    logger.info("Maintenance operations are being performed")
+    if 'metadata' not in data:
+        return data
+
+    return data['data']
