@@ -1,13 +1,33 @@
 import json
-import os
+import logging
+from pathlib import Path
 
 import cv2
 import numpy as np
-import pycocotools.mask as maskUtils
-from panopticapi.utils import id2rgb
 from tqdm import tqdm
 
-from ....common import hex_to_rgb, blue_color_generator
+from ....common import blue_color_generator, hex_to_rgb, id2rgb
+from ....pycocotools_sa.coco import COCO
+from ....pycocotools_sa import mask as maskUtils
+
+logger = logging.getLogger("superannotate-python-sdk")
+
+
+def _rle_to_polygon(coco_json, annotation):
+    coco = COCO(coco_json)
+    binary_mask = coco.annToMask(annotation)
+    contours, _ = cv2.findContours(
+        binary_mask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+    )
+    segmentation = []
+
+    for contour in contours:
+        contour = contour.flatten().tolist()
+        if len(contour) > 4:
+            segmentation.append(contour)
+        if len(segmentation) == 0:
+            continue
+    return segmentation
 
 
 def coco_panoptic_segmentation_to_sa_pixel(coco_path, images_path):
@@ -15,13 +35,18 @@ def coco_panoptic_segmentation_to_sa_pixel(coco_path, images_path):
     hex_colors = blue_color_generator(len(coco_json["categories"]))
     annotate_list = coco_json["annotations"]
 
-    for annotate in tqdm(annotate_list, "Converting"):
-        annot_name = os.path.splitext(annotate["file_name"])[0]
-        img_cv = cv2.imread(os.path.join(images_path, annot_name + ".png"))
+    cat_id_to_cat = {}
+    for cat in coco_json['categories']:
+        cat_id_to_cat[cat['id']] = cat['name']
+
+    sa_jsons = {}
+    for annotate in tqdm(annotate_list, "Converting annotations"):
+        annot_name = Path(annotate["file_name"]).stem
+        img_cv = cv2.imread(str(images_path / (annot_name + ".png")))
         if img_cv is None:
-            print(
+            logger.warning(
                 "'{}' file dosen't exist!".format(
-                    os.path.join(images_path, annot_name + ".png")
+                    images_path / (annot_name + ".png")
                 )
             )
             continue
@@ -38,6 +63,7 @@ def coco_panoptic_segmentation_to_sa_pixel(coco_path, images_path):
                        axis=1)] = hex_to_rgb(hex_colors[i])
             dd = {
                 "classId": seg["category_id"],
+                'className': cat_id_to_cat[seg["category_id"]],
                 "probability": 100,
                 "visible": True,
                 "parts": [{
@@ -49,22 +75,17 @@ def coco_panoptic_segmentation_to_sa_pixel(coco_path, images_path):
             }
             out_json.append(dd)
 
-        with open(
-            os.path.join(images_path, annot_name + ".jpg___pixel.json"), "w"
-        ) as writer:
-            json.dump(out_json, writer, indent=2)
-
         img = cv2.cvtColor(img.reshape((H, W, C)), cv2.COLOR_RGB2BGR)
-        cv2.imwrite(
-            os.path.join(images_path, annot_name + ".jpg___save.png"), img
-        )
+        cv2.imwrite(str(images_path / (annot_name + ".jpg___save.png")), img)
 
-        os.remove(os.path.join(images_path, annot_name + ".png"))
+        file_name = annot_name + ".jpg___pixel.json"
+        sa_jsons[file_name] = out_json
+        (images_path / (annot_name + ".png")).unlink()
+    return sa_jsons
 
 
 def coco_instance_segmentation_to_sa_pixel(coco_path, images_path):
     coco_json = json.load(open(coco_path))
-    image_id_to_annotations = {}
     cat_id_to_cat = {}
     for cat in coco_json['categories']:
         cat_id_to_cat[cat['id']] = cat
@@ -72,50 +93,72 @@ def coco_instance_segmentation_to_sa_pixel(coco_path, images_path):
     images_dict = {}
     for img in coco_json['images']:
         images_dict[img['id']] = {
-            'mask': np.zeros((img['height'], img['width'], 4)),
+            'shape': (img['height'], img['width'], 4),
             'file_name': img['file_name'],
-            'segments_num': 0
+            'annotations': []
         }
 
-    sa_json = {}
-    hexcolors = blue_color_generator(len(coco_json['annotations']))
-    for i, annot in enumerate(coco_json['annotations']):
-        if str(annot['image_id']) not in images_dict:
+    for annot in coco_json['annotations']:
+        if annot['image_id'] not in images_dict:
             continue
+        images_dict[annot['image_id']]['annotations'].append(annot)
 
-        hexcolor = hexcolors[images_dict[str(annot['image_id'])]['segments_num']
-                            ]
-        color = hex_to_rgb(hexcolor)
-        images_dict[str(annot['image_id'])]['segments_num'] += 1
+    sa_jsons = {}
+    for id_, annotations in images_dict.items():
+        file_name = annotations['file_name'] + '___pixel.json'
+        hexcolors = blue_color_generator(len(annotations['annotations']))
+        mask = np.zeros(annotations['shape'])
+        H, W, _ = mask.shape
 
-        images_dict[str(annot['image_id']
-                       )]['mask'][maskUtils.decode(annot['segmentation']) == 1
-                                 ] = list(color)[::-1] + [255]
+        sa_loader = []
+        for i, annot in enumerate(annotations['annotations']):
+            hexcolor = hexcolors[i]
+            color = hex_to_rgb(hexcolor)
+            if isinstance(annot['segmentation'], dict):
+                if isinstance(annot['segmentation']['counts'], list):
+                    annot['segmentation'] = _rle_to_polygon(coco_path, annot)
+                    for segment in annot['segmentation']:
+                        bitmask = np.zeros((H, W)).astype(np.uint8)
+                        pts = np.array(
+                            [
+                                segment[2 * i:2 * (i + 1)]
+                                for i in range(len(segment) // 2)
+                            ],
+                            dtype=np.int32
+                        )
 
-        sa_obj = {
-            "classId": annot['category_id'],
-            "className": cat_id_to_cat[annot['category_id']]['name'],
-            'probability': 100,
-            'visible': True,
-            'parts': [{
-                'color': hexcolor
-            }],
-            "attributes": [],
-            "attributeNames": [],
-            "imageId": annot["image_id"]
-        }
-        key = images_dict[str(annot['image_id'])]['file_name']
-        if key not in sa_json.keys():
-            sa_json[key] = []
+                        cv2.fillPoly(bitmask, [pts], 1)
+                        mask[bitmask == 1] = list(color)[::-1] + [255]
+                else:
+                    mask[maskUtils.decode(annot['segmentation']) == 1
+                        ] = list(color)[::-1] + [255]
+            else:
+                for segment in annot['segmentation']:
+                    bitmask = np.zeros((H, W)).astype(np.uint8)
+                    pts = np.array(
+                        [
+                            segment[2 * i:2 * (i + 1)]
+                            for i in range(len(segment) // 2)
+                        ],
+                        dtype=np.int32
+                    )
+                    cv2.fillPoly(bitmask, [pts], 1)
+                    mask[bitmask == 1] = list(color)[::-1] + [255]
 
-        sa_json[key].append(sa_obj)
-
-    for id_, value in images_dict.items():
-        img = cv2.imwrite(
-            os.path.join(images_path, value['file_name'] + '___save.png'),
-            value['mask']
+            sa_obj = {
+                "className": cat_id_to_cat[annot['category_id']]['name'],
+                'probability': 100,
+                'visible': True,
+                'parts': [{
+                    'color': hexcolor
+                }],
+                "attributes": [],
+                "attributeNames": [],
+            }
+            sa_loader.append(sa_obj.copy())
+        sa_jsons[file_name] = sa_loader
+        cv2.imwrite(
+            str(images_path / (annotations['file_name'] + '___save.png')), mask
         )
 
-    for key, sa_js in sa_json.items():
-        with open(os.path.join(images_path, key + '___pixel.json'), 'w') as fw:
-            json.dump(sa_js, fw, indent=2)
+    return sa_jsons

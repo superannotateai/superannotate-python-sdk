@@ -1,9 +1,13 @@
-import numpy as np
 import functools
+import json
 import logging
+import os
+import sys
+import time
 from pathlib import Path
 
-from .exceptions import SABaseException
+import numpy as np
+from PIL import Image
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -23,23 +27,17 @@ SA_CM_COMPARE_ACCURATE = 2
 
 def image_path_to_annotation_paths(image_path, project_type):
     image_path = Path(image_path)
-    project_type = project_type_str_to_int(project_type)
-    postfix_json = '___objects.json' if project_type == 1 else '___pixel.json'
+    postfix_json = '___objects.json' if project_type == "Vector" else '___pixel.json'
     postfix_mask = '___save.png'
-    if project_type == 1:
+    if project_type == "Vector":
         return (image_path.parent / (image_path.name + postfix_json), )
-    else:
-        return (
-            image_path.parent / (image_path.name + postfix_json),
-            image_path.parent / (image_path.name + postfix_mask)
-        )
+    return (
+        image_path.parent / (image_path.name + postfix_json),
+        image_path.parent / (image_path.name + postfix_mask)
+    )
 
 
 def project_type_str_to_int(project_type):
-    if project_type not in _PROJECT_TYPES:
-        raise SABaseException(
-            0, "Project type should be one of Vector or Pixel ."
-        )
     return _PROJECT_TYPES[project_type]
 
 
@@ -52,19 +50,13 @@ def project_type_int_to_str(project_type):
     :return: 'Vector' or 'Pixel'
     :rtype: str
     """
-
     for k, v in _PROJECT_TYPES.items():
         if v == project_type:
             return k
-    raise SABaseException(0, "Project type should be one of 1 or 2 .")
+    raise RuntimeError("NA Project type")
 
 
 def user_role_str_to_int(user_role):
-    if user_role not in _USER_ROLES:
-        raise SABaseException(
-            0,
-            "User role should be one of Admin , Annotator , QA , Customer , Viewer ."
-        )
     return _USER_ROLES[user_role]
 
 
@@ -72,15 +64,10 @@ def user_role_int_to_str(user_role):
     for k, v in _USER_ROLES.items():
         if v == user_role:
             return k
-    raise SABaseException(0, "User role should be one of 2 3 4 5 6 .")
+    return None
 
 
 def annotation_status_str_to_int(annotation_status):
-    if annotation_status not in _ANNOTATION_STATUSES:
-        raise SABaseException(
-            0,
-            "Annotation status should be one of NotStarted InProgress QualityCheck Returned Completed Skipped"
-        )
     return _ANNOTATION_STATUSES[annotation_status]
 
 
@@ -97,9 +84,7 @@ def annotation_status_int_to_str(annotation_status):
     for k, v in _ANNOTATION_STATUSES.items():
         if v == annotation_status:
             return k
-    raise SABaseException(
-        0, "Annotation status should be one of 1, 2, 3, 4, 5, 6 ."
-    )
+    return None
 
 
 def deprecated_alias(**aliases):
@@ -164,3 +149,105 @@ def blue_color_generator(n, hex_values=True):
         else:
             hex_colors.append(hex_to_rgb(hex_color))
     return hex_colors[1:]
+
+
+def id2rgb(id_map):
+    if isinstance(id_map, np.ndarray):
+        id_map_copy = id_map.copy()
+        rgb_shape = tuple(list(id_map.shape) + [3])
+        rgb_map = np.zeros(rgb_shape, dtype=np.uint8)
+        for i in range(3):
+            rgb_map[..., i] = id_map_copy % 256
+            id_map_copy //= 256
+        return rgb_map
+    color = []
+    for _ in range(3):
+        color.append(id_map % 256)
+        id_map //= 256
+    return color
+
+
+def save_desktop_format(output_dir, classes, files_dict):
+    cat_id_map = {}
+    new_classes = []
+    for idx, class_ in enumerate(classes):
+        cat_id_map[class_['name']] = idx + 2
+        class_['id'] = idx + 2
+        new_classes.append(class_)
+    with open(output_dir.joinpath('classes.json'), 'w') as fw:
+        json.dump(new_classes, fw)
+
+    meta = {
+        "type": "meta",
+        "name": "lastAction",
+        "timestamp": int(round(time.time() * 1000))
+    }
+    new_json = {}
+    files_path = []
+    (output_dir / 'images' / 'thumb').mkdir()
+    for file_name, json_data in files_dict.items():
+        file_name = file_name.replace('___objects.json', '')
+        if not (output_dir / 'images' / file_name).exists():
+            continue
+
+        for js_data in json_data:
+            if 'className' in js_data:
+                js_data['classId'] = cat_id_map[js_data['className']]
+        json_data.append(meta)
+        new_json[file_name] = json_data
+
+        files_path.append(
+            {
+                'srcPath':
+                    str(output_dir.resolve() / file_name),
+                'name':
+                    file_name,
+                'imagePath':
+                    str(output_dir.resolve() / file_name),
+                'thumbPath':
+                    str(
+                        output_dir.resolve() / 'images' / 'thumb' /
+                        ('thmb_' + file_name + '.jpg')
+                    ),
+                'valid':
+                    True
+            }
+        )
+
+        img = Image.open(output_dir / 'images' / file_name)
+        img.thumbnail((168, 120), Image.ANTIALIAS)
+        img.save(
+            output_dir / 'images' / 'thumb' / ('thmb_' + file_name + '.jpg')
+        )
+
+    with open(output_dir / 'images' / 'images.sa', 'w') as fw:
+        fw.write(json.dumps(files_path))
+
+    with open(output_dir.joinpath('annotations.json'), 'w') as fw:
+        json.dump(new_json, fw)
+
+    with open(output_dir / 'config.json', 'w') as fw:
+        json.dump({"pathSeparator": os.sep, "os": sys.platform}, fw)
+
+
+def save_web_format(output_dir, classes, files_dict):
+    for key, value in files_dict.items():
+        with open(output_dir.joinpath(key), 'w') as fw:
+            json.dump(value, fw, indent=2)
+
+    with open(output_dir.joinpath('classes', 'classes.json'), 'w') as fw:
+        json.dump(classes, fw)
+
+
+def dump_output(output_dir, platform, classes, files_dict):
+    if platform == 'Web':
+        save_web_format(output_dir, classes, files_dict)
+    else:
+        save_desktop_format(output_dir, classes, files_dict)
+
+
+MAX_IMAGE_SIZE = 100 * 1024 * 1024  # 100 MB limit
+MAX_IMAGE_RESOLUTION = {
+    "Vector": 100_000_000,
+    "Pixel": 4_000_000
+}  # Resolution limit

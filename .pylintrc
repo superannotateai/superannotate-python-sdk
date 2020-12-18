@@ -1,14 +1,31 @@
-[TYPECHECK]
-generated-members=
-  numpy.* ,torch.* ,cv2.* , cv.*, sh.*
+[BASIC]
+good-names=df,f,e,i,j,k
 
-[MESSAGES CONTROL]
-# disable= C0103,C0111,C0301,C0330,R0902,R0903,R0912,R0913,R0914,R0915,W1510"],
+bad-functions=
+  apply,
+  exit,
+  input,
+  quit
+
+[ELIF]
+max-nested-blocks=5
+
+[MASTER]
+load-plugins=pylint_pytest
+persistent=yes
+ignore=pycocotools_sa
+
+[MESSAGE_CONTROL]
+disable=
+    no-else-return,
+    too-many-lines,
+    too-many-arguments,
+    too-many-instance-attributes
 
 [SPELLING]
 
-max-spelling-suggestions=50
+max-spelling-suggestions=5
 spelling-dict=
-spelling-ignore-words=
+spelling-ignore-words=bool,str,strs
 spelling-private-dict-file=
 spelling-store-unknown-words=no

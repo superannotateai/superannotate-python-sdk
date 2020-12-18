@@ -13,9 +13,11 @@ from tqdm import tqdm
 
 from ..api import API
 from ..common import annotation_status_str_to_int
-from ..exceptions import (SABaseException, SAExistingExportNameException,
-                          SANonExistingExportNameException)
-from .projects import get_project_metadata
+from ..exceptions import (
+    SABaseException, SAExistingExportNameException,
+    SANonExistingExportNameException
+)
+from .project_api import get_project_metadata_bare
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -65,7 +67,7 @@ def get_exports(project, return_metadata=False):
     :rtype: list of strs or dicts
     """
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     team_id, project_id = project["team_id"], project["id"]
     params = {'team_id': team_id, 'project_id': project_id}
     response = _api.send_request(req_type='GET', path='/exports', params=params)
@@ -114,7 +116,7 @@ def prepare_export(
     :rtype: dict
     """
     if not isinstance(project, dict):
-        project = get_project_metadata(project)
+        project = get_project_metadata_bare(project)
     team_id, project_id = project["team_id"], project["id"]
     if annotation_statuses is None:
         annotation_statuses = [2, 3, 4, 5]
@@ -141,9 +143,10 @@ def prepare_export(
         )
     res = response.json()
     logger.info(
-        "Prepared export %s for project %s.", res['name'], project["name"]
+        "Prepared export %s for project %s (ID %s).", res['name'],
+        project["name"], project["id"]
     )
-    return res["name"]
+    return res
 
 
 def __tqdm_thread(total_num, current_nums, finish_event):
@@ -181,7 +184,7 @@ def __upload_files_to_aws_thread(
         file = filepaths[i]
         try:
             relative_filename = file.relative_to(tmpdirname)
-            s3_key = f'{folder_path}/{relative_filename}'
+            s3_key = f'{folder_path}/{relative_filename.as_posix()}'
             to_s3.upload_file(str(file), s3_key)
         except Exception as e:
             logger.warning("Unable to upload to data server %s", e)
@@ -245,7 +248,7 @@ def download_export(
                     f.extractall(tmpdirname)
                 Path.unlink(filepath)
             files_to_upload = []
-            for file in Path(tmpdirname).rglob("*"):
+            for file in Path(tmpdirname).rglob("*.*"):
                 if not file.is_file():
                     continue
                 files_to_upload.append(file)

@@ -23,16 +23,22 @@ ________
 .. _ref_search_projects:
 .. autofunction:: superannotate.search_projects
 .. autofunction:: superannotate.create_project
-.. autofunction:: superannotate.create_project_like_project
+.. autofunction:: superannotate.create_project_from_metadata
+.. autofunction:: superannotate.clone_project
 .. autofunction:: superannotate.delete_project
 .. autofunction:: superannotate.rename_project
 .. _ref_get_project_metadata:
 .. autofunction:: superannotate.get_project_metadata
 .. autofunction:: superannotate.get_project_image_count
 .. autofunction:: superannotate.upload_images_to_project
+.. autofunction:: superannotate.upload_images_from_public_urls_to_project
+.. autofunction:: superannotate.upload_images_from_google_cloud_to_project
+.. autofunction:: superannotate.upload_images_from_azure_blob_to_project
 .. autofunction:: superannotate.upload_image_to_project
 .. _ref_upload_images_from_folder_to_project:
 .. autofunction:: superannotate.upload_images_from_folder_to_project
+.. autofunction:: superannotate.upload_video_to_project
+.. autofunction:: superannotate.upload_videos_from_folder_to_project
 .. _ref_upload_annotations_from_folder_to_project:
 .. autofunction:: superannotate.upload_annotations_from_folder_to_project
 .. autofunction:: superannotate.upload_preannotations_from_folder_to_project
@@ -40,6 +46,8 @@ ________
 .. autofunction:: superannotate.unshare_project
 .. autofunction:: superannotate.get_project_settings
 .. autofunction:: superannotate.set_project_settings
+.. autofunction:: superannotate.get_project_default_image_quality_in_editor
+.. autofunction:: superannotate.set_project_default_image_quality_in_editor
 .. autofunction:: superannotate.get_project_workflow
 .. autofunction:: superannotate.set_project_workflow
 
@@ -69,9 +77,11 @@ ______
 .. autofunction:: superannotate.get_image_preannotations
 .. autofunction:: superannotate.download_image_annotations
 .. autofunction:: superannotate.download_image_preannotations
-.. autofunction:: superannotate.upload_annotations_from_json_to_image
+.. autofunction:: superannotate.upload_image_annotations
 .. autofunction:: superannotate.copy_image
 .. autofunction:: superannotate.move_image
+.. autofunction:: superannotate.pin_image
+.. autofunction:: superannotate.assign_images
 .. autofunction:: superannotate.delete_image
 .. autofunction:: superannotate.add_annotation_bbox_to_image
 .. autofunction:: superannotate.add_annotation_polygon_to_image
@@ -80,6 +90,7 @@ ______
 .. autofunction:: superannotate.add_annotation_ellipse_to_image
 .. autofunction:: superannotate.add_annotation_template_to_image
 .. autofunction:: superannotate.add_annotation_cuboid_to_image
+.. autofunction:: superannotate.add_annotation_comment_to_image
 .. autofunction:: superannotate.create_fuse_image
 
 ----------
@@ -100,7 +111,9 @@ __________________
 Team contributors
 _________________
 
+.. autofunction:: superannotate.get_team_metadata
 .. autofunction:: superannotate.invite_contributor_to_team
+.. autofunction:: superannotate.delete_contributor_to_team_invitation
 
 ----------
 
@@ -124,7 +137,7 @@ Project metadata example:
      "creator_id": "hovnatan@superannotate.com",
      "updatedAt": "2020-08-31T05:43:43.118Z",
      "createdAt": "2020-08-31T05:43:43.118Z"
-     "type": 1,
+     "type": "Vector",
      "attachment_name": None,
      "attachment_path": None,
      "entropy_status": 1,
@@ -132,8 +145,6 @@ Project metadata example:
      "...": "..."
    }
 
-Most of the fields here are self-explanatory. "type" is an integer value that can be
-translated to a string "Pixel" or "Vector" project types using :ref:`project_type_int_to_str <ref_project_type_int_to_str>`.
 
 ----------
 
@@ -165,7 +176,7 @@ Image metadata example:
 
    {
       "name": "000000000001.jpg",
-      "annotation_status": 1,
+      "annotation_status": "Completed",
       "prediction_status": 1,
       "segmentation_status": 1,
       "annotator_id": None,
@@ -179,12 +190,6 @@ Image metadata example:
       "is_pinned": 0,
       "...": "...",
    }
-
-Most of the fields here are self-explanatory. "annotation_status" is an integer
-value that can be
-translated to one of "NotStarted", "InProgress", "QualityCheck", "Returned",
-"Completed" or "Skipped" using :ref:`annotation_status_int_to_str
-<ref_annotation_status_int_to_str>`.
 
 
 ----------
@@ -251,17 +256,6 @@ Team contributor metadata example:
     "...": "...",
   }
 
-----------
-
-Metadata helper functions
-_________________________
-
-.. _ref_project_type_int_to_str:
-.. autofunction:: superannotate.project_type_int_to_str
-.. _ref_annotation_status_int_to_str:
-.. autofunction:: superannotate.annotation_status_int_to_str
-
-.. _ref_converter:
 
 
 ----------
@@ -269,57 +263,23 @@ _________________________
 Annotation JSON helper functions
 --------------------------------
 
+.. _ref_converter:
+
 Converting annotation format to and from SuperAnnotate format
 _____________________________________________________________
 
-.. Two important arguments for conversion are <project_type> and <task>. Their combination is important for conversion flow. Tables below present all possible combinations for each conversion method:
 
-.. ==============  ======================
-..          From SA to COCO
-.. --------------------------------------
-..  project_type           task
-.. ==============  ======================
-.. Pixel           panoptic_segmentation
-.. Pixel           instance_segmentation
-.. Vector          instance_segmentation
-.. Vector          object_detection
-.. Vector          keypoint_detection
-.. ==============  ====================== 
-
-.. ==============  ======================
-..          From COCO to SA
-.. --------------------------------------
-..  project_type           task
-.. ==============  ======================
-.. Pixel           panoptic_segmentation
-.. Vector          instance_segmentation
-.. Vector          keypoint_detection
-.. ==============  ====================== 
-
-.. ==============  ======================
-..          From VOC to SA
-.. --------------------------------------
-..  project_type           task
-.. ==============  ======================
-.. Pixel           instance_segmentation
-.. Vector          object_detection
-.. ==============  ====================== 
-
-.. ==============  ======================
-..        From LabelBox to SA
-.. --------------------------------------
-..  project_type           task
-.. ==============  ======================
-.. Vector          object_detection
-.. ==============  ====================== 
-
-.. autofunction:: superannotate.import_annotation_format
-.. autofunction:: superannotate.export_annotation_format
+.. _ref_import_annotation_format:
+.. autofunction:: superannotate.import_annotation
+.. autofunction:: superannotate.export_annotation
+.. autofunction:: superannotate.convert_project_type
+.. autofunction:: superannotate.convert_platform
+.. autofunction:: superannotate.coco_split_dataset
 
 ----------
 
-Editing annotations
-____________________
+Working with annotations
+________________________
 
 .. _ref_add_annotation_bbox_to_json:
 .. autofunction:: superannotate.add_annotation_bbox_to_json
@@ -329,9 +289,28 @@ ____________________
 .. autofunction:: superannotate.add_annotation_ellipse_to_json
 .. autofunction:: superannotate.add_annotation_template_to_json
 .. autofunction:: superannotate.add_annotation_cuboid_to_json
+.. autofunction:: superannotate.add_annotation_comment_to_json
+.. _ref_aggregate_annotations_as_df:
+.. autofunction:: superannotate.aggregate_annotations_as_df
+.. autofunction:: superannotate.df_to_annotations
+.. _ref_filter_annotation_instances:
+.. autofunction:: superannotate.filter_annotation_instances
+.. autofunction:: superannotate.filter_images_by_comments
+.. autofunction:: superannotate.filter_images_by_tags
 
-Aggregating class distribution from annotations
+----------
+
+Aggregating class/attribute distribution from annotations
 _____________________________________________________________
 
 .. autofunction:: superannotate.class_distribution
 .. autofunction:: superannotate.attribute_distribution
+
+----------
+
+Utility functions
+--------------------------------
+
+.. autofunction:: superannotate.dicom_to_rgb_sequence
+.. autofunction:: superannotate.consensus
+.. autofunction:: superannotate.benchmark

@@ -2,8 +2,6 @@ from pathlib import Path
 
 import superannotate as sa
 
-sa.init(Path.home() / ".superannotate" / "config.json")
-
 PROJECT_NAME = "test users and roles"
 
 
@@ -15,7 +13,9 @@ def test_users_roles():
 
     project = sa.create_project(PROJECT_NAME, "test_56", "Vector")
     sa.share_project(PROJECT_NAME, users[1], "QA")
-    project_users = sa.get_project_metadata(PROJECT_NAME)["users"]
+    project_users = sa.get_project_metadata(
+        PROJECT_NAME, include_contributors=True
+    )["contributors"]
     print(project_users)
     found = False
     for u in project_users:
@@ -25,7 +25,9 @@ def test_users_roles():
     assert found, users[1]
 
     sa.unshare_project(PROJECT_NAME, users[1])
-    project_users = sa.get_project_metadata(PROJECT_NAME)["users"]
+    project_users = sa.get_project_metadata(
+        PROJECT_NAME, include_contributors=True
+    )["contributors"]
     found = False
     for u in project_users:
         if u["user_id"] == users[1]:

@@ -1,54 +1,25 @@
-import glob
 import json
 import logging
 import os
 import shutil
+import sys
 import time
-import cv2
-import numpy as np
-
-from tqdm import tqdm
 from pathlib import Path
 
+import cv2
+import numpy as np
+from PIL import Image
+from tqdm import tqdm
 
-# Converts HEX values to RGB values
-def _hex_to_rgb(hex_string):
-    h = hex_string.lstrip('#')
-    return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
+from ..common import blue_color_generator, hex_to_rgb
+from ..exceptions import SABaseException
 
-
-# Converts RGB values to HEX values
-def _rgb_to_hex(rgb_tuple):
-    return '#%02x%02x%02x' % rgb_tuple
-
-
-# Generates blue colors in range(n)
-def _blue_color_generator(n, hex_values=True):
-    hex_colors = []
-    for i in range(n + 1):
-        int_color = i * 15
-        bgr_color = np.array(
-            [
-                int_color & 255, (int_color >> 8) & 255,
-                (int_color >> 16) & 255, 255
-            ],
-            dtype=np.uint8
-        )
-        hex_color = '#' + "{:02x}".format(
-            bgr_color[2]
-        ) + "{:02x}".format(bgr_color[1], ) + "{:02x}".format(bgr_color[0])
-        if hex_values:
-            hex_colors.append(hex_color)
-        else:
-            hex_colors.append(_hex_to_rgb(hex_color))
-    return hex_colors[1:]
+logger = logging.getLogger("superannotate-python-sdk")
 
 
 def _merge_jsons(input_dir, output_dir):
     cat_id_map = {}
-    classes_json = json.load(
-        open(os.path.join(input_dir, "classes", "classes.json"))
-    )
+    classes_json = json.load(open(input_dir / "classes" / "classes.json"))
 
     new_classes = []
     for idx, class_ in enumerate(classes_json):
@@ -56,9 +27,10 @@ def _merge_jsons(input_dir, output_dir):
         class_["id"] = idx + 2
         new_classes.append(class_)
 
-    files = glob.glob(os.path.join(input_dir, "*.json"))
+    files = input_dir.glob("*.json")
     merged_json = {}
-    os.makedirs(output_dir)
+    files_path = []
+    (output_dir / 'images' / 'thumb').mkdir(parents=True)
     for f in tqdm(files, "Merging files"):
         json_data = json.load(open(f))
         meta = {
@@ -70,49 +42,79 @@ def _merge_jsons(input_dir, output_dir):
             if "classId" in js_data:
                 js_data["classId"] = cat_id_map[js_data["classId"]]
         json_data.append(meta)
-        file_name = os.path.split(f)[1].replace("___objects.json", "")
+        file_name = str(f.name).replace("___objects.json", "")
         merged_json[file_name] = json_data
-    with open(
-        os.path.join(output_dir, "annotations.json"), "w"
-    ) as final_json_file:
+
+        files_path.append(
+            {
+                'srcPath':
+                    str(output_dir.resolve() / file_name),
+                'name':
+                    file_name,
+                'imagePath':
+                    str(output_dir.resolve() / file_name),
+                'thumbPath':
+                    str(
+                        output_dir.resolve() / 'images' / 'thumb' /
+                        ('thmb_' + file_name + '.jpg')
+                    ),
+                'valid':
+                    True
+            }
+        )
+        copy_file(input_dir / file_name, output_dir / 'images' / file_name)
+
+        img = Image.open(output_dir / 'images' / file_name)
+        img.thumbnail((168, 120), Image.ANTIALIAS)
+        img.save(
+            output_dir / 'images' / 'thumb' / ('thmb_' + file_name + '.jpg')
+        )
+
+    with open(output_dir / 'images' / 'images.sa', 'w') as fw:
+        fw.write(json.dumps(files_path))
+
+    with open(output_dir / 'config.json', 'w') as fw:
+        json.dump({"pathSeparator": os.sep, "os": sys.platform}, fw)
+
+    with open(output_dir / "annotations.json", "w") as final_json_file:
         json.dump(merged_json, final_json_file, indent=2)
 
-    with open(os.path.join(output_dir, "classes.json"), "w") as fw:
+    with open(output_dir / "classes.json", "w") as fw:
         json.dump(classes_json, fw, indent=2)
 
 
 def _split_json(input_dir, output_dir):
-    os.makedirs(output_dir)
-    json_data = json.load(open(os.path.join(input_dir, "annotations.json")))
-    images = json_data.keys()
-    for img in images:
-        annotations = json_data[img]
+    output_dir.mkdir(parents=True)
+    json_data = json.load(open(input_dir / "annotations.json"))
+    for img, annotations in tqdm(json_data.items(), 'Splitting files'):
         objects = []
         for annot in annotations:
-            objects.append(annot)
-
-        with open(os.path.join(output_dir, img + "___objects.json"), "w") as fw:
+            if 'type' in annot.keys() and annot['type'] != 'meta':
+                objects.append(annot)
+        copy_file(input_dir / 'images' / img, output_dir / img)
+        with open(output_dir / (img + "___objects.json"), "w") as fw:
             json.dump(objects, fw, indent=2)
-    os.makedirs(os.path.join(output_dir, "classes"))
-    shutil.copy(
-        os.path.join(input_dir, "classes.json"),
-        os.path.join(output_dir, "classes", "classes.json")
+
+    (output_dir / "classes").mkdir(parents=True)
+    copy_file(
+        input_dir / "classes.json", output_dir / "classes" / "classes.json"
     )
+
+
+def copy_file(src_path, dst_path):
+    shutil.copy(src_path, dst_path)
 
 
 def sa_convert_platform(input_dir, output_dir, input_platform):
     if input_platform == "Web":
         for file_name in os.listdir(input_dir):
             if '___pixel.json' in file_name:
-                logging.error(
-                    "Desktop platform doesn't support 'Pixel' projects"
+                raise SABaseException(
+                    0, "Desktop platform doesn't support 'Pixel' projects"
                 )
-                break
         _merge_jsons(input_dir, output_dir)
     elif input_platform == 'Desktop':
         _split_json(input_dir, output_dir)
-    else:
-        logging.error("Please enter valid platform: 'Desktop' or 'Web'")
 
 
 def from_pixel_to_vector(json_paths):
@@ -123,59 +125,57 @@ def from_pixel_to_vector(json_paths):
 
         mask_name = str(json_path).replace('___pixel.json', '___save.png')
         img = cv2.imread(mask_name)
-        H, W, C = img.shape
-        mask = np.zeros((H, W), dtype=np.uint8)
+        H, W, _ = img.shape
 
         sa_loader = []
         instances = json.load(open(json_path))
         idx = 0
-        group_id_map = {}
         for instance in instances:
+            if 'parts' not in instance.keys():
+                if 'type' in instance.keys() and instance['type'] == 'meta':
+                    sa_loader.append(instance)
+                continue
+
             parts = instance['parts']
-            if len(parts) > 1:
-                idx += 1
-                group_id = idx
-            else:
-                group_id = 0
 
-            if group_id not in group_id_map.keys():
-                group_id_map[group_id] = []
-
+            polygons = []
             for part in parts:
-                color = list(_hex_to_rgb(part['color']))
+                color = list(hex_to_rgb(part['color']))
+                mask = np.zeros((H, W), dtype=np.uint8)
                 mask[np.all((img == color[::-1]), axis=2)] = 255
                 contours, _ = cv2.findContours(
                     mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
                 )
-                if len(contours) > 0:
-                    idx += 1
-                    group_id = idx
-
-                if group_id not in group_id_map.keys():
-                    group_id_map[group_id] = []
-
+                part_polygons = []
                 for contour in contours:
                     segment = contour.flatten().tolist()
-                    group_id_map[group_id].append(segment)
+                    if len(segment) > 6:
+                        part_polygons.append(segment)
+                polygons.append(part_polygons)
 
-        temp = instance.copy()
-        del temp['parts']
-        temp['pointLabels'] = {}
+            for part_polygons in polygons:
+                if len(part_polygons) > 1:
+                    idx += 1
+                    group_id = idx
+                else:
+                    group_id = 0
 
-        for key, value in group_id_map.items():
-            for polygon in value:
-                temp['groupId'] = key
-                temp['type'] = 'polygon'
-                temp['points'] = polygon
-                sa_loader.append(temp.copy())
-                temp['type'] = 'bbox'
-                temp['points'] = {
-                    'x1': min(polygon[::2]),
-                    'x2': max(polygon[::2]),
-                    'y1': min(polygon[1::2]),
-                    'y2': max(polygon[1::2])
-                }
-                sa_loader.append(temp.copy())
+                for polygon in part_polygons:
+                    temp = instance.copy()
+                    del temp['parts']
+                    temp['pointLabels'] = {}
+                    temp['groupId'] = group_id
+                    temp['type'] = 'polygon'
+                    temp['points'] = polygon
+                    sa_loader.append(temp.copy())
+                    temp['type'] = 'bbox'
+                    temp['points'] = {
+                        'x1': min(polygon[::2]),
+                        'x2': max(polygon[::2]),
+                        'y1': min(polygon[1::2]),
+                        'y2': max(polygon[1::2])
+                    }
+                    sa_loader.append(temp.copy())
 
         sa_jsons[file_name] = {'json': sa_loader, 'mask': None}
     return sa_jsons
@@ -189,56 +189,67 @@ def from_vector_to_pixel(json_paths):
 
         img_name = str(json_path).replace('___objects.json', '')
         img = cv2.imread(img_name)
-        H, W, C = img.shape
+        H, W, _ = img.shape
 
         mask = np.zeros((H, W, 4))
         sa_loader = []
 
         instances = json.load(open(json_path))
-        blue_colors = _blue_color_generator(len(instances))
-        group_id_map = {}
+        blue_colors = blue_color_generator(len(instances))
+        instances_group = {}
         for idx, instance in enumerate(instances):
             if instance['type'] == 'polygon':
-                pts = np.array(
-                    [
-                        instance['points'][2 * i:2 * (i + 1)]
-                        for i in range(len(instance['points']) // 2)
-                    ],
-                    dtype=np.int32
-                )
-
-                if instance['groupId'] in group_id_map.keys():
-                    group_id_map[instance['groupId']].append(pts)
+                if instance['groupId'] in instances_group.keys():
+                    instances_group[instance['groupId']].append(instance)
                 else:
-                    group_id_map[instance['groupId']] = [pts]
+                    instances_group[instance['groupId']] = [instance]
+            elif instance['type'] == 'meta':
+                sa_loader.append(instance)
 
-        temp = instance.copy()
-        del temp['type']
-        del temp['points']
-        del temp['pointLabels']
-        del temp['groupId']
-
-        temp['parts'] = []
         idx = 0
-        for key, values in group_id_map.items():
+        for key, instances in instances_group.items():
             if key == 0:
-                for polygon in values:
+                for instance in instances:
+                    pts = np.array(
+                        [
+                            instance['points'][2 * i:2 * (i + 1)]
+                            for i in range(len(instance['points']) // 2)
+                        ],
+                        dtype=np.int32
+                    )
                     bitmask = np.zeros((H, W))
-                    cv2.fillPoly(bitmask, [polygon], 1)
+                    cv2.fillPoly(bitmask, [pts], 1)
                     mask[bitmask == 1
-                        ] = list(_hex_to_rgb(blue_colors[idx]))[::-1] + [255]
-                    temp['parts'].append({'color': blue_colors[idx]})
-                    sa_loader.append(temp.copy())
+                        ] = list(hex_to_rgb(blue_colors[idx]))[::-1] + [255]
+                    del instance['type']
+                    del instance['points']
+                    del instance['pointLabels']
+                    del instance['groupId']
+                    instance['parts'] = [{'color': blue_colors[idx]}]
+                    sa_loader.append(instance.copy())
                     idx += 1
             else:
-                for polygon in values:
+                parts = []
+                for instance in instances:
+                    pts = np.array(
+                        [
+                            instance['points'][2 * i:2 * (i + 1)]
+                            for i in range(len(instance['points']) // 2)
+                        ],
+                        dtype=np.int32
+                    )
                     bitmask = np.zeros((H, W))
-                    cv2.fillPoly(bitmask, [polygon], 1)
+                    cv2.fillPoly(bitmask, [pts], 1)
                     mask[bitmask == 1
-                        ] = list(_hex_to_rgb(blue_colors[idx]))[::-1] + [255]
-                    temp['parts'].append({'color': blue_colors[idx]})
+                        ] = list(hex_to_rgb(blue_colors[idx]))[::-1] + [255]
+                    parts.append({'color': blue_colors[idx]})
                     idx += 1
-                sa_loader.append(temp.copy())
+                del instance['type']
+                del instance['points']
+                del instance['pointLabels']
+                del instance['groupId']
+                instance['parts'] = parts
+                sa_loader.append(instance.copy())
 
         sa_jsons[file_name] = {'json': sa_loader, 'mask': mask}
 
@@ -246,13 +257,8 @@ def from_vector_to_pixel(json_paths):
 
 
 def sa_convert_project_type(input_dir, output_dir):
-    if type(input_dir) is str:
-        input_dir = Path(input_dir)
-    if type(output_dir) is str:
-        output_dir = Path(output_dir)
-
     json_generator = input_dir.glob('*.json')
-    json_paths = [file for file in json_generator]
+    json_paths = list(json_generator)
 
     extension = ''
     if '___pixel.json' in json_paths[0].name:
@@ -262,10 +268,12 @@ def sa_convert_project_type(input_dir, output_dir):
         sa_jsons = from_vector_to_pixel(json_paths)
         extension = '___pixel.json'
     else:
-        log_msg = "'input_dir' should contain JSON files with '[IMAGE_NAME]___objects.json'  or '[IMAGE_NAME]___pixel.json' names structure."
-        raise SABaseException(0, log_msg)
+        raise SABaseException(
+            0,
+            "'input_dir' should contain JSON files with '[IMAGE_NAME]___objects.json'  or '[IMAGE_NAME]___pixel.json' names structure."
+        )
 
-    os.makedirs(output_dir.joinpath('classes'))
+    output_dir.joinpath('classes').mkdir(parents=True)
     shutil.copy(
         input_dir.joinpath('classes', 'classes.json'),
         output_dir.joinpath('classes', 'classes.json')
@@ -282,3 +290,56 @@ def sa_convert_project_type(input_dir, output_dir):
         if value['mask'] is not None:
             mask_name = key.replace(extension, '___save.png')
             cv2.imwrite(str(output_dir.joinpath(mask_name)), value['mask'])
+
+
+def split_coco(
+    coco_json_path, image_dir, output_dir, dataset_list_name, ratio_list
+):
+    coco_json = json.load(open(coco_json_path))
+
+    groups = {}
+    for dataset_name in dataset_list_name:
+        groups[dataset_name] = {
+            'info': coco_json['info'],
+            'licenses': coco_json['licenses'],
+            'images': [],
+            'annotations': [],
+            'categories': coco_json['categories']
+        }
+
+    images = coco_json['images']
+    np.random.shuffle(images)
+    num_of_images = len(images)
+    points = []
+    total = 0
+    for ratio in ratio_list:
+        total += ratio
+        point = total / 100 * num_of_images
+        points.append(int(point))
+
+    image_id_to_group_map = {}
+    group_id = 0
+    dataset_name = dataset_list_name[group_id]
+    (output_dir / dataset_name).mkdir(parents=True)
+    for i, image in enumerate(images):
+        if i in points:
+            group_id += 1
+            dataset_name = dataset_list_name[group_id]
+            (output_dir / dataset_name).mkdir()
+
+        image_name = Path(image['file_name']).name
+        copy_file(
+            image_dir / image_name, output_dir / dataset_name / image_name
+        )
+
+        image_id_to_group_map[image['id']] = group_id
+        groups[dataset_name]['images'].append(image)
+
+    for annotation in coco_json['annotations']:
+        dataset_name = dataset_list_name[image_id_to_group_map[
+            annotation['image_id']]]
+        groups[dataset_name]['annotations'].append(annotation)
+
+    for file_name, value in groups.items():
+        with open(output_dir / (file_name + '.json'), 'w') as fw:
+            json.dump(value, fw, indent=2)

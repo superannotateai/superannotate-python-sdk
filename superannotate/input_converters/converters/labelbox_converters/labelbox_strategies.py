@@ -1,8 +1,14 @@
-import os
 import json
+import cv2
 
 from .labelbox_converter import LabelBoxConverter
-from .labelbox_to_sa_vector import labelbox_object_detection_to_sa_vector, labelbox_instance_segmentation_to_sa_vector, labelbox_to_sa
+from .labelbox_to_sa_vector import (
+    labelbox_object_detection_to_sa_vector,
+    labelbox_instance_segmentation_to_sa_vector, labelbox_to_sa
+)
+from .labelbox_to_sa_pixel import labelbox_instance_segmentation_to_sa_pixel
+
+from ....common import dump_output
 
 
 class LabelBoxObjectDetectionStrategy(LabelBoxConverter):
@@ -13,34 +19,28 @@ class LabelBoxObjectDetectionStrategy(LabelBoxConverter):
         self.__setup_conversion_algorithm()
 
     def __setup_conversion_algorithm(self):
-        if self.direction == "to":
-            raise NotImplementedError("Doesn't support yet")
-        else:
+        if self.direction == "from":
             if self.project_type == "Vector":
                 if self.task == "object_detection":
-                    self.converion_algorithm = labelbox_object_detection_to_sa_vector
-                elif self.task == 'instace_segmentation':
-                    self.converion_algorithm = labelbox_instance_segmentation_to_sa_vector
+                    self.conversion_algorithm = labelbox_object_detection_to_sa_vector
+                elif self.task == 'instance_segmentation':
+                    self.conversion_algorithm = labelbox_instance_segmentation_to_sa_vector
                 elif self.task == 'vector_annotation':
-                    self.converion_algorithm = labelbox_to_sa
-            elif self.project_type == "Pixel":
-                raise NotImplementedError("Doesn't support yet")
+                    self.conversion_algorithm = labelbox_to_sa
+            else:
+                if self.task == 'instance_segmentation':
+                    self.conversion_algorithm = labelbox_instance_segmentation_to_sa_pixel
 
     def __str__(self):
         return '{} object'.format(self.name)
 
-    def from_sa_format(self):
-        pass
-
     def to_sa_format(self):
         json_data = json.load(
-            open(os.path.join(self.export_root, self.dataset_name + '.json'))
+            open(self.export_root / (self.dataset_name + '.json'))
         )
-        id_generator = self._make_id_generator()
-        self.converion_algorithm(json_data, self.output_dir, id_generator)
+        sa_jsons, sa_classes, sa_masks = self.conversion_algorithm(json_data)
+        dump_output(self.output_dir, self.platform, sa_classes, sa_jsons)
 
-    def _make_id_generator(self):
-        cur_id = 0
-        while True:
-            cur_id += 1
-            yield cur_id
+        if self.project_type == 'Pixel':
+            for name, mask in sa_masks.items():
+                cv2.imwrite(str(self.output_dir / name), mask)

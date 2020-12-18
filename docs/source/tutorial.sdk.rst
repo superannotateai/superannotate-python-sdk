@@ -17,14 +17,18 @@ SDK is available on PyPI:
 
    pip install superannotate
 
-for COCO annotation format converters support also need to install:
+The package officially supports Python 3.6+ and was tested under Linux and
+Windows (`Anaconda <https://www.anaconda.com/products/individual#windows>`_) platforms.
+
+For Windows based Anaconda distribution 
+you might also need to install beforehand :py:obj:`shapely` package:
 
 .. code-block:: bash
 
-   pip install 'git+https://github.com/cocodataset/panopticapi.git'
-   pip install 'git+https://github.com/philferriere/cocoapi.git#egg=pycocotools&subdirectory=PythonAPI'
+   conda install shapely
 
-The package officially supports Python 3.6+.
+and `C++ build tools from Microsoft
+<https://go.microsoft.com/fwlink/?LinkId=691126>`_.
 
 ----------
 
@@ -43,7 +47,7 @@ To generate a default location (:file:`~/.superannotate/config.json`) config fil
 
 .. code-block:: bash
 
-   superannotate init
+   superannotatecli init
 
 .. _ref_custom_config_file:
 
@@ -233,7 +237,7 @@ to convert them to other annotation formats:
 
 .. code-block:: python
 
-    sa.export_annotation_format("<input_folder>", "<output_folder>", "<dataset_format>", "<dataset_name>", 
+    sa.export_annotation("<input_folder>", "<output_folder>", "<dataset_format>", "<dataset_name>",
     "<project_type>", "<task>", "<platform>")
 
 .. note::
@@ -249,32 +253,82 @@ You can find more information annotation format conversion :ref:`here <ref_conve
    import superannotate as sa
 
     # From SA panoptic format to COCO panoptic format
-    sa.export_annotation_format(
-       "tests/converter_test/COCO/input/fromSuperAnnotate/cats_dogs_panoptic_segm", 
+    sa.export_annotation(
+       "tests/converter_test/COCO/input/fromSuperAnnotate/cats_dogs_panoptic_segm",
        "tests/converter_test/COCO/output/panoptic",
        "COCO", "panoptic_test", "Pixel","panoptic_segmentation","Web"
     )
 
     # From COCO keypoints detection format to SA keypoints detection desktop application format 
-    sa.import_annotation_format(
+    sa.import_annotation(
        "tests/converter_test/COCO/input/toSuperAnnotate/keypoint_detection",
        "tests/converter_test/COCO/output/keypoints",
        "COCO", "person_keypoints_test", "Vector", "keypoint_detection", "Desktop"
     )
 
     # Pascal VOC annotation format to SA Web platform annotation format
-    sa.import_annotation_format(
+    sa.import_annotation(
        "tests/converter_test/VOC/input/fromPascalVOCToSuperAnnotate/VOC2012",
        "tests/converter_test/VOC/output/instances",
        "VOC", "instances_test", "Pixel", "instance_segmentation", "Web"
     )
 
+    # YOLO annotation format to SA Web platform annotation format
+    sa.import_annotation(
+      'tests/converter_test/YOLO/input/toSuperAnnotate',
+      'tests/converter_test/YOLO/output',
+      'YOLO', '', 'Vector', 'object_detection', 'Web'
+      )
+
     # LabelBox annotation format to SA Desktop application annotation format
-    sa.import_annotation_format(
+    sa.import_annotation(
        "tests/converter_test/LabelBox/input/toSuperAnnotate/",
        "tests/converter_test/LabelBox/output/objects/",
        "LabelBox", "labelbox_example", "Vector", "object_detection", "Desktop"
     )
+
+    # Supervisely annotation format to SA Web platform annotation format
+    sa.import_annotation(
+       "tests/converter_test/Supervisely/input/toSuperAnnotate",
+       "tests/converter_test/Supervisely/output",
+       "Supervisely", "", "Vector", "vector_annotation", "Web"
+    )
+
+    # DataLoop annotation format to SA Web platform annotation format
+    sa.import_annotation(
+       "tests/converter_test/DataLoop/input/toSuperAnnotate",
+       "tests/converter_test/DataLoop/output",
+       "DataLoop", "", "Vector", "vector_annotation", "Web"
+    )
+
+    # VGG annotation format to SA Web platform annotation format
+    sa.import_annotation(
+       "tests/converter_test/VGG/input/toSuperAnnotate",
+       "tests/converter_test/VGG/output",
+       "VGG", "vgg_test", "Vector", "instance_segmentation", "Web"
+    )
+
+    # VoTT annotation format to SA Web platform annotation format
+    sa.import_annotation(
+       "tests/converter_test/VoTT/input/toSuperAnnotate",
+       "tests/converter_test/VoTT/output",
+       "VoTT", "", "Vector", "vector_annotation", "Web"
+    )
+
+    # GoogleCloud annotation format to SA Web platform annotation format
+    sa.import_annotation(
+       "tests/converter_test/GoogleCloud/input/toSuperAnnotate",
+       "tests/converter_test/GoogleCloud/output",
+       "GoogleCloud", "image_object_detection", "Vector", "object_detection", "Web"
+    )
+
+    # GoogleCloud annotation format to SA desktop application annotation format
+    sa.import_annotation(
+       "tests/converter_test/SageMaker/input/toSuperAnnotate",
+       "tests/converter_test/SageMaker/output",
+       "SageMaker", "test-obj-detect", "Vector", "object_detection", "Desktop"
+    )
+
 
 
 Working with images
@@ -306,7 +360,7 @@ and upload back to the platform with:
 
 .. code-block:: python
 
-   sa.upload_annotations_from_json_to_image(project, image, "<path_to_json>")
+   sa.upload_image_annotations(project, image, "<path_to_json>")
 
 Last two steps can be combined into one:
 
@@ -342,8 +396,54 @@ project with the found contributor as an QA:
 
    sa.share_project(project, "hovnatan@superannotate.com", user_role="QA")
 
+
+
+----------
+
+
+pandas DataFrame out of project annotations and annotation instance filtering
+_____________________________________________________________________________
+
+
+To create a `pandas DataFrame <https://pandas.pydata.org/>`_ from project
+SuperAnnotate format annotations:
+
+.. code-block:: python
+
+   df = sa.aggregate_annotations_as_df("<path_to_project_folder>")
+
+The created DataFrame will have columns specified at
+:ref:`aggregate_annotations_as_df <ref_aggregate_annotations_as_df>`.
+
+Example of created DataFrame:
+
+.. image:: pandas_df.png
+
+Each row represents annotation information. One full annotation with multiple
+attribute groups can be grouped under :code:`instanceId` field.
+
+A helper function :ref:`filter_annotation_instances <ref_filter_annotation_instances>` is available to filter annotation instances by their class, attribute, type or error fields from the DataFrame. E.g., to get annotations that have annotation class :code:`Human` and attribute  :code:`"height" : "tall"`  that are **not** of type :code:`polygon`:
+
+.. code-block:: python
+
+   filtered_df = sa.filter_annotation_instances(df, include=[{"className" : "Human",
+                                                              "attributes" : [{"groupName" : "height",
+                                                                              "name" : "tall"}]
+                                                            }],
+                                                    exclude=[{"type" : "polygon"}])
+
+To transform back pandas DataFrame annotations to SuperAnnotate format annotation:
+
+.. code-block:: python
+
+   sa.df_to_annotations(filtered_df, "<path_to_output_folder>")
+
+
+----------
+
+
 Aggregating class distribution across multiple projects
-______________________________
+_______________________________________________________
 
 After exporting annotations from multiple projects, it is possible to aggregate class distribution of annotated instances as follows
 
@@ -351,11 +451,14 @@ After exporting annotations from multiple projects, it is possible to aggregate 
 
    df = sa.class_distribution("<path_to_export_folder>", [project_names])
 
-Aggregated distribution is returned as pandas dataframe with columns class_name and count. Enabling visualize flag plots histogram of obtained distribution.
+Aggregated distribution is returned as pandas dataframe with columns className and count. Enabling visualize flag plots histogram of obtained distribution.
 
 .. code-block:: python
 
    df = sa.class_distribution("<path_to_export_folder>", [project_names], visualize = True)
+
+.. image:: class_distribution.png
+
 
 Similarly aggregation of class attributes across multiple projects can be obtained with
 
@@ -363,4 +466,121 @@ Similarly aggregation of class attributes across multiple projects can be obtain
 
    df = sa.attribute_distribution("<path_to_export_folder>", [project_names], visualize = True)
 
-Here pandas dataframe with columns identifying attribute and corresponding instance count is returned. Within visualized histogram attributes of the same class are grouped by color and sorted accordingly.
+Here pandas DataFrame with columns identifying attribute and corresponding instance count is returned. Within visualized histogram attributes of the same class are grouped by color and sorted accordingly.
+
+.. image:: attribute_distribution.png
+
+----------
+
+
+Working with DICOM files
+_______________________________________________________
+
+
+To convert DICOM file images to JPEG images:
+
+
+.. code-block:: python
+
+   df = sa.dicom_to_rgb_sequence("<path_to_dicom_file>", "<path_to_output_dir>")
+
+JPEG images with names :file:`<dicom_file_name>_<frame_num>.jpg` will be created
+in :file:`<path_to_output_dir>`. Those JPEG images can be uploaded to
+SuperAnnotate platform using the regular:
+
+.. code-block:: python
+
+   sa.upload_images_from_folder_to_project(project, "<path_to_output_dir>")
+
+Some DICOM files can have image frames that are compressed. To load them, `GDCM :
+Grassroots DICOM library <http://gdcm.sourceforge.net/wiki/index.php/Main_Page>`_ needs to be installed:
+
+.. code-block:: bash
+
+   # using conda
+   conda install -c conda-forge gdcm
+
+   # or on Ubuntu with versions above 19.04
+   sudo apt install python3-gdcm
+
+----------
+
+
+Computing consensus scores for instances between several projects
+_________________________________________________________________
+
+
+Consensus is a tool to compare the quallity of the annotations of the same image that is present in several projects.
+To compute the consensus scores:
+
+.. code-block:: python
+
+   res_df = sa.consensus([project_names], "<path_to_export_folder>", [image_list], "<annotation_type>")
+
+Here pandas DataFrame with following columns is returned: creatorEmail, imageName, instanceId, className, area, attribute, projectName, score
+
+.. image:: consensus_dataframe.png
+
+Besides the pandas DataFrame there is an option to get the following plots by setting the show_plots flag to True:
+
+* Box plot of consensus scores for each annotators
+* Box plot of consensus scores for each project
+* Scatter plots of consensus score vs instance area for each project
+
+.. code-block:: python
+
+   sa.consensus([project_names], "<path_to_export_folder>", [image_list], "<annotation_type>", show_plots=True)
+
+To the left of each box plot the original score points of that annotator is depicted, the box plots are colored by annotator.
+
+.. image:: consensus_annotators_box.png
+
+Analogically the box plots of consensus scores for each project are colored according to project name.
+
+.. image:: consensus_projects_box.png
+
+Scatter plot of consensus score vs instance area is separated by projects. Hovering on a point reveals its annotator and image name. 
+The points are colored according to class name. Each annotator is represented with separate symbol.
+
+.. image:: consensus_scatter.png
+
+----------
+
+
+Computing benchmark scores for instances between ground truth project and given project list
+____________________________________________________________________________________________
+
+
+Benchmark is a tool to compare the quallity of the annotations of the same image that is present in several projects with 
+the ground truth annotation of the same image that is in a separate project.
+
+To compute the benchmark scores:
+
+.. code-block:: python
+
+   res_df = sa.benchmark("<ground_truth_project_name>",[project_names], "<path_to_export_folder>", [image_list], "<annotation_type>")
+
+Here pandas DataFrame with exactly same structure as in case of consensus computation is returned.
+
+Besides the pandas DataFrame there is an option to get the following plots by setting the show_plots flag to True:
+
+* Box plot of benchmark scores for each annotators
+* Box plot of benchmark scores for each project
+* Scatter plots of benchmark score vs instance area for each project
+
+.. code-block:: python
+
+   sa.benchmark("<ground_truth_project_name>", [project_names], "<path_to_export_folder>", [image_list], "<annotation_type>", show_plots=True)
+
+To the left of each box plot the original score points of that annotator is depicted, the box plots are colored by annotator.
+
+.. image:: benchmark_annotators_box.png
+
+Analogically the box plots of benchmark scores for each project are colored according to project name.
+
+.. image:: benchmark_projects_box.png
+
+Scatter plot of benchmark score vs instance area is separated by projects. Hovering on a point reveals its annotator and image name. 
+The points are colored according to class name. Each annotator is represented with separate symbol.
+
+.. image:: benchmark_scatter.png

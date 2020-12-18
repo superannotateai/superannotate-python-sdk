@@ -1,17 +1,28 @@
-from datetime import datetime
-import os
-import glob
 import json
-from collections import namedtuple
-from tqdm import tqdm
+
+from pathlib import Path
 from PIL import Image
-from panopticapi.utils import IdGenerator, id2rgb
+from tqdm import tqdm
 
 from .coco_converter import CoCoConverter
-from .sa_pixel_to_coco import sa_pixel_to_coco_instance_segmentation, sa_pixel_to_coco_panoptic_segmentation, sa_pixel_to_coco_object_detection
-from .sa_vector_to_coco import sa_vector_to_coco_instance_segmentation, sa_vector_to_coco_keypoint_detection, sa_vector_to_coco_object_detection
-from .coco_to_sa_pixel import coco_panoptic_segmentation_to_sa_pixel, coco_instance_segmentation_to_sa_pixel
-from .coco_to_sa_vector import coco_keypoint_detection_to_sa_vector, coco_instance_segmentation_to_sa_vector
+from .coco_to_sa_pixel import (
+    coco_instance_segmentation_to_sa_pixel,
+    coco_panoptic_segmentation_to_sa_pixel
+)
+from .coco_to_sa_vector import (
+    coco_instance_segmentation_to_sa_vector,
+    coco_keypoint_detection_to_sa_vector, coco_object_detection_to_sa_vector
+)
+from .sa_pixel_to_coco import (
+    sa_pixel_to_coco_instance_segmentation,
+    sa_pixel_to_coco_panoptic_segmentation
+)
+from .sa_vector_to_coco import (
+    sa_vector_to_coco_instance_segmentation,
+    sa_vector_to_coco_keypoint_detection, sa_vector_to_coco_object_detection
+)
+
+from ....common import id2rgb, dump_output
 
 
 class CocoPanopticConverterStrategy(CoCoConverter):
@@ -25,42 +36,38 @@ class CocoPanopticConverterStrategy(CoCoConverter):
         if self.direction == "to":
             if self.project_type == 'Pixel':
                 self.conversion_algorithm = sa_pixel_to_coco_panoptic_segmentation
-            elif self.project_type == 'Vector':
-                pass
         else:
             self.conversion_algorithm = coco_panoptic_segmentation_to_sa_pixel
 
     def __str__(self, ):
         return '{} object'.format(self.name)
 
-    def _sa_to_coco_single(self, id_, json_path, id_generator):
+    def _sa_to_coco_single(self, id_, json_path, id_generator, cat_id_map):
 
         image_commons = self._prepare_single_image_commons(id_, json_path)
-        res = self.conversion_algorithm(image_commons, id_generator)
+        res = self.conversion_algorithm(image_commons, id_generator, cat_id_map)
 
         return res
 
     def sa_to_output_format(self):
         out_json = self._create_skeleton()
         out_json['categories'] = self._create_categories(
-            os.path.join(self.export_root, 'classes_mapper.json')
+            self.export_root / 'classes_mapper.json'
         )
 
-        panoptic_root = os.path.join(
-            self.dataset_name, "panoptic_{}".format(self.dataset_name)
-        )
+        cat_id_map = json.load(open(self.export_root / 'classes_mapper.json'))
 
         images = []
         annotations = []
         id_generator = self._make_id_generator()
-        jsons = glob.glob(
-            os.path.join(self.export_root, '*pixel.json'), recursive=True
-        )
+
+        jsons_gen = self.export_root.glob('*pixel.json')
+        jsons = [path for path in jsons_gen]
 
         for id_, json_ in tqdm(enumerate(jsons, 1)):
-            res = self._sa_to_coco_single(id_, json_, id_generator)
+            res = self._sa_to_coco_single(id_, json_, id_generator, cat_id_map)
 
-            panoptic_mask = json_[:-len('___pixel.json')] + '.png'
+            panoptic_mask = str(json_)[:-len('___pixel.json')] + '.png'
 
             Image.fromarray(id2rgb(res[2])).save(panoptic_mask)
 
@@ -77,8 +84,7 @@ class CocoPanopticConverterStrategy(CoCoConverter):
         out_json['images'] = images
         json_data = json.dumps(out_json, indent=4)
         with open(
-            os.path.join(self.output_dir, '{}.json'.format(self.dataset_name)),
-            'w+'
+            self.output_dir / '{}.json'.format(self.dataset_name), 'w+'
         ) as coco_json:
 
             coco_json.write(json_data)
@@ -86,15 +92,10 @@ class CocoPanopticConverterStrategy(CoCoConverter):
         self.set_num_converted(len(jsons))
 
     def to_sa_format(self):
-        json_data = os.path.join(self.export_root, self.dataset_name + ".json")
-        self._create_sa_classes(json_data)
-        loader = self.conversion_algorithm(json_data, self.output_dir)
-        # jsons = glob.glob(
-        #     os.path.join(self.export_root, '*.json'), recursive=True
-        # )
-        # for json_data in jsons:
-        #     self._create_sa_classes(json_data)
-        #     loader = self.conversion_algorithm(json_data, self.output_dir)
+        json_data = self.export_root / (self.dataset_name + ".json")
+        sa_classes = self._create_sa_classes(json_data)
+        sa_jsons = self.conversion_algorithm(json_data, self.output_dir)
+        dump_output(self.output_dir, self.platform, sa_classes, sa_jsons)
 
 
 class CocoObjectDetectionStrategy(CoCoConverter):
@@ -110,8 +111,6 @@ class CocoObjectDetectionStrategy(CoCoConverter):
             if self.project_type == 'Pixel':
                 if self.task == 'instance_segmentation':
                     self.conversion_algorithm = sa_pixel_to_coco_instance_segmentation
-                elif self.task == 'object_detection':
-                    self.conversion_algorithm = sa_pixel_to_coco_object_detection
 
             elif self.project_type == 'Vector':
                 if self.task == 'instance_segmentation':
@@ -122,21 +121,18 @@ class CocoObjectDetectionStrategy(CoCoConverter):
             if self.project_type == 'Pixel':
                 if self.task == 'instance_segmentation':
                     self.conversion_algorithm = coco_instance_segmentation_to_sa_pixel
-                elif self.task == 'object_detection':
-                    raise ValueError('Method not implemented')
             elif self.project_type == 'Vector':
                 if self.task == 'instance_segmentation':
                     self.conversion_algorithm = coco_instance_segmentation_to_sa_vector
                 elif self.task == 'object_detection':
-                    raise ValueError('Method not implemented')
+                    self.conversion_algorithm = coco_object_detection_to_sa_vector
 
     def __str__(self, ):
         return '{} object'.format(self.name)
 
-    def _sa_to_coco_single(self, id_, json_path, id_generator):
+    def _sa_to_coco_single(self, id_, json_path, id_generator, cat_id_map):
 
         image_commons = self._prepare_single_image_commons(id_, json_path)
-        annotations_per_image = []
 
         def make_annotation(
             category_id, image_id, bbox, segmentation, area, anno_id
@@ -162,7 +158,7 @@ class CocoObjectDetectionStrategy(CoCoConverter):
             return annotation
 
         res = self.conversion_algorithm(
-            make_annotation, image_commons, id_generator
+            make_annotation, image_commons, id_generator, cat_id_map
         )
         return res
 
@@ -170,15 +166,20 @@ class CocoObjectDetectionStrategy(CoCoConverter):
 
         out_json = self._create_skeleton()
         out_json['categories'] = self._create_categories(
-            os.path.join(self.export_root, 'classes_mapper.json')
+            self.export_root / 'classes_mapper.json'
         )
+
+        cat_id_map = json.load(open(self.export_root / 'classes_mapper.json'))
+
         jsons = self._load_sa_jsons()
         images = []
         annotations = []
         id_generator = self._make_id_generator()
         for id_, json_ in tqdm(enumerate(jsons)):
             try:
-                res = self._sa_to_coco_single(id_, json_, id_generator)
+                res = self._sa_to_coco_single(
+                    id_, json_, id_generator, cat_id_map
+                )
             except Exception as e:
                 raise
             images.append(res[0])
@@ -191,8 +192,7 @@ class CocoObjectDetectionStrategy(CoCoConverter):
 
         json_data = json.dumps(out_json, indent=4)
         with open(
-            os.path.join(self.output_dir, '{}.json'.format(self.dataset_name)),
-            'w+'
+            self.output_dir / '{}.json'.format(self.dataset_name), 'w+'
         ) as coco_json:
             coco_json.write(json_data)
         print("NUMBER OF IMAGES FAILED TO CONVERT", self.failed_conversion_cnt)
@@ -200,15 +200,10 @@ class CocoObjectDetectionStrategy(CoCoConverter):
         self.set_num_converted(len(jsons))
 
     def to_sa_format(self):
-        json_data = os.path.join(self.export_root, self.dataset_name + ".json")
-        self._create_sa_classes(json_data)
-        loader = self.conversion_algorithm(json_data, self.output_dir)
-        # jsons = glob.glob(
-        #     os.path.join(self.export_root, '*.json'), recursive=True
-        # )
-        # for json_data in jsons:
-        #     self._create_sa_classes(json_data)
-        #     loader = self.conversion_algorithm(json_data, self.output_dir)
+        json_data = self.export_root / (self.dataset_name + ".json")
+        sa_classes = self._create_sa_classes(json_data)
+        sa_jsons = self.conversion_algorithm(json_data, self.output_dir)
+        dump_output(self.output_dir, self.platform, sa_classes, sa_jsons)
 
 
 class CocoKeypointDetectionStrategy(CoCoConverter):
@@ -233,12 +228,21 @@ class CocoKeypointDetectionStrategy(CoCoConverter):
         elif source_type == 'Vector':
             rm_len = len('___objects.json')
 
-        image_path = json_path[:-rm_len]
+        img_width, img_height = 0, 0
+        json_data = json.load(open(json_path))
+        for annot in json_data:
+            if 'type' in annot and annot['type'] == 'meta':
+                img_height = annot['height']
+                img_width = annot['width']
 
-        img_width, img_height = Image.open(image_path).size
+        image_path = str(json_path)[:-rm_len]
+
+        if img_width == 0 and img_height == 0:
+            img_width, img_height = Image.open(image_path).size
+
         image_info = {
             'id': id_,
-            'file_name': image_path[len(self.output_dir):],
+            'file_name': Path(image_path).name,
             'height': img_height,
             'width': img_width,
             'license': 1
@@ -249,9 +253,6 @@ class CocoKeypointDetectionStrategy(CoCoConverter):
     def sa_to_output_format(self):
         out_json = self._create_skeleton()
         jsons = self._load_sa_jsons()
-
-        images = []
-        annotations = []
 
         id_generator = self._make_id_generator()
         id_generator_anno = self._make_id_generator()
@@ -267,20 +268,14 @@ class CocoKeypointDetectionStrategy(CoCoConverter):
         json_data = json.dumps(out_json, indent=4)
 
         with open(
-            os.path.join(self.output_dir, '{}.json'.format(self.dataset_name)),
-            'w+'
+            self.output_dir / '{}.json'.format(self.dataset_name), 'w+'
         ) as coco_json:
             coco_json.write(json_data)
 
         self.set_num_converted(len(out_json['images']))
 
     def to_sa_format(self):
-        json_data = os.path.join(self.export_root, self.dataset_name + ".json")
-        self._create_sa_classes(json_data)
-        loader = self.conversion_algorithm(json_data, self.output_dir)
-        # jsons = glob.glob(
-        #     os.path.join(self.export_root, '*.json'), recursive=True
-        # )
-        # for json_data in jsons:
-        #     self._create_sa_classes(json_data)
-        #     loader = self.conversion_algorithm(json_data, self.output_dir)
+        json_data = self.export_root / (self.dataset_name + ".json")
+        sa_classes = self._create_sa_classes(json_data)
+        sa_jsons = self.conversion_algorithm(json_data, self.output_dir)
+        dump_output(self.output_dir, self.platform, sa_classes, sa_jsons)

@@ -1,28 +1,33 @@
-import numpy as np
-import cv2 as cv
 import json
-from pycocotools import mask as cocomask
 import logging
+
+from ....pycocotools_sa import mask as cocomask
+
+logger = logging.getLogger("superannotate-python-sdk")
 
 
 def sa_vector_to_coco_object_detection(
-    make_annotation, image_commons, id_generator
+    make_annotation, image_commons, id_generator, cat_id_map
 ):
-    print("converting to coco, vector object detection")
     annotations_per_image = []
     image_info = image_commons.image_info
     sa_ann_json = image_commons.sa_ann_json
 
     for instance in sa_ann_json:
         if instance['type'] != 'bbox':
-            continue
-
-        if 'classId' in instance and instance['classId'] < 0:
+            logger.warning(
+                "Skipping '{}' type convertion during object_detection task".
+                format(instance['type'])
+            )
             continue
 
         anno_id = next(id_generator)
         try:
-            category_id = instance['classId']
+            if 'className' in instance and instance['className'] in cat_id_map:
+                category_id = cat_id_map[instance['className']]
+            else:
+                category_id = instance['classId']
+
             points = instance['points']
             for key in points:
                 points[key] = round(points[key], 2)
@@ -46,7 +51,7 @@ def sa_vector_to_coco_object_detection(
 
 
 def sa_vector_to_coco_instance_segmentation(
-    make_annotation, image_commons, id_generator
+    make_annotation, image_commons, id_generator, cat_id_map
 ):
     annotations_per_image = []
     grouped_polygons = {}
@@ -55,13 +60,18 @@ def sa_vector_to_coco_instance_segmentation(
     sa_ann_json = image_commons.sa_ann_json
     for instance in sa_ann_json:
         if instance['type'] != 'polygon':
-            continue
-
-        if 'classId' in instance and instance['classId'] < 0:
+            logger.warning(
+                "Skipping '{}' type convertion during object_detection task".
+                format(instance['type'])
+            )
             continue
 
         group_id = instance['groupId']
-        category_id = instance['classId']
+        if 'className' in instance and instance['className'] in cat_id_map:
+            category_id = cat_id_map[instance['className']]
+        else:
+            category_id = instance['classId']
+
         points = [round(point, 2) for point in instance['points']]
         grouped_polygons.setdefault(group_id, {}).setdefault(category_id,
                                                              []).append(points)
@@ -102,7 +112,6 @@ def sa_vector_to_coco_keypoint_detection(
             for key, value in template['pointLabels'].items()
         }
 
-        # print(int_dict)
         res = [int_dict[i] for i in range(len(int_dict))]
         return res
 
@@ -145,14 +154,13 @@ def sa_vector_to_coco_keypoint_detection(
     categories = []
     annotations = []
     images = []
-    cnt = 0
 
     for path_ in json_paths:
         json_data = __load_one_json(path_)
 
         for instance in json_data:
             if instance['type'] == 'template' and 'templateId' not in instance:
-                logging.warning(
+                logger.warning(
                     'There was a template with no "templateName". \
                                 This can happen if the template was deleted from annotate.online. Ignoring this annotation'
                 )

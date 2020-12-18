@@ -130,3 +130,12 @@ dmypy.json
 
 sample_large_files
 sample_tif_files
+
+# Vscode settings folder
+.vscode/
+
+# python virtual env for SDK testing
+venv_*
+pylint.html
+_mask.c
+tags

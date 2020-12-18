@@ -1,41 +1,41 @@
 """
-Module which will run converters and convert from 
+Module which will run converters and convert from
 superannotate annotation format to other annotation formats
 """
-import sys
-import os
+import copy
 import glob
-import shutil
 import json
 import logging
-import copy
-from argparse import Namespace
+import os
+import shutil
+
+from pathlib import Path
+
+import tempfile
 import numpy as np
 
 from .converters.converters import Converter
 
+logger = logging.getLogger("superannotate-python-sdk")
+
 
 def _split_json(input_dir):
-    temp_path = os.path.join(input_dir, "WebApp")
-    os.makedirs(temp_path)
-    json_data = json.load(open(os.path.join(input_dir, "annotations.json")))
+    temp_path = Path(tempfile.mkdtemp()) / 'WebApp'
+    temp_path.mkdir()
+    json_data = json.load(open(input_dir / "annotations.json"))
     images = json_data.keys()
     for img in images:
         annotations = json_data[img]
         objects = []
         for annot in annotations:
-            if annot["type"] == "bbox" or annot["type"] == "polygon":
+            if annot["type"] != "meta":
                 objects.append(annot)
-        with open(os.path.join(temp_path, img + "___objects.json"), "w") as fw:
+        with open(temp_path / (img + "___objects.json"), "w") as fw:
             json.dump(objects, fw, indent=2)
-        shutil.copy(
-            os.path.join(input_dir, "images", img),
-            os.path.join(temp_path, img)
-        )
-    os.makedirs(os.path.join(temp_path, "classes"))
+        shutil.copy(input_dir / "images" / img, temp_path / img)
+    (temp_path / "classes").mkdir()
     shutil.copy(
-        os.path.join(input_dir, "classes.json"),
-        os.path.join(temp_path, "classes", "classes.json")
+        input_dir / "classes.json", temp_path / "classes" / "classes.json"
     )
 
     return temp_path
@@ -70,25 +70,21 @@ def _load_files(path_to_imgs, task, ptype):
     return all_files
 
 
-def _move_files(data_set, src, platform):
-    train_path = os.path.join(src, 'train_set')
+def _move_files(data_set, src):
+    train_path = src / 'image_set'
     if data_set is not None:
         for tup in data_set:
             for i in tup:
-                shutil.copy(i, os.path.join(train_path, i.split('/')[-1]))
+                shutil.copy(i, train_path / Path(i).name)
 
 
 def _create_classes_mapper(imgs, classes_json):
     classes = {}
     j_data = json.load(open(classes_json))
-    for instance in j_data:
-        if 'id' not in instance:
-            continue
-        classes[instance['name']] = instance['id']
+    for i, instance in enumerate(j_data):
+        classes[instance['name']] = i + 1
 
-    with open(
-        os.path.join(imgs, 'train_set', 'classes_mapper.json'), 'w'
-    ) as fp:
+    with open(imgs / 'image_set' / 'classes_mapper.json', 'w') as fp:
         json.dump(classes, fp)
 
 
@@ -102,58 +98,33 @@ def export_from_sa(args):
 
     data_set = None
 
-    try:
-        os.makedirs(os.path.join(args.output_dir, 'train_set'))
-    except Exception as e:
-        log_msg = 'Could not make test and train set paths, check if they already exist'
-        logging.error(log_msg)
-        sys.exit()
+    (args.output_dir / "image_set").mkdir(parents=True, exist_ok=True)
 
     try:
         _create_classes_mapper(
-            args.output_dir,
-            os.path.join(args.input_dir, 'classes/classes.json')
+            args.output_dir, args.input_dir / 'classes' / 'classes.json'
         )
     except Exception as e:
         _create_classes_mapper(args.input_dir, args.output_dir)
 
-    try:
-        data_set = _load_files(args.input_dir, args.task, args.project_type)
-    except Exception as e:
-        log_msg = 'Something went wrong while loading files from source \
-            directory, check if you have valid export'
-
-        logging.error(log_msg)
-        logging.error(e)
-
-    try:
-        _move_files(data_set, args.output_dir, args.platform)
-    except Exception as e:
-        log_msg = 'Something is went wrong while moving or copying files from source folder'
-        logging.error(log_msg)
-        logging.error(e)
+    data_set = _load_files(args.input_dir, args.task, args.project_type)
+    _move_files(data_set, args.output_dir)
 
     args.__dict__.update(
         {
             'direction': 'to',
-            'export_root': os.path.join(args.output_dir, 'train_set')
+            'export_root': args.output_dir / 'image_set'
         }
     )
     converter = Converter(args)
 
     if data_set is not None:
-        converter.strategy.set_dataset_name(args.dataset_name + '_train')
-        try:
-            converter.convert_from_sa()
-        except Exception as e:
-            log_msg = 'Something went wrong while converting train set'
-            logging.error(log_msg)
-            logging.error(e)
-            sys.exit()
+        converter.strategy.set_dataset_name(args.dataset_name)
+        converter.convert_from_sa()
 
     if args.platform == "Desktop":
         shutil.rmtree(args.input_dir)
-    train_set_failed = copy.deepcopy(converter.strategy.failed_conversion_cnt)
+    image_set_failed = copy.deepcopy(converter.strategy.failed_conversion_cnt)
 
-    logging.info('Conversion completed successfully')
-    return train_set_failed
+    logger.info('Conversion completed successfully')
+    return image_set_failed

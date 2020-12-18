@@ -1,8 +1,5 @@
 from pathlib import Path
-import json
 import io
-
-import pytest
 
 import superannotate as sa
 
@@ -31,9 +28,8 @@ def test_single_image_upload(tmpdir):
     images = sa.search_images(project)
     assert len(images) == 1
     image = images[0]
-    assert sa.annotation_status_int_to_str(
-        sa.get_image_metadata(project, image)["annotation_status"]
-    ) == "InProgress"
+    assert sa.get_image_metadata(project,
+                                 image)["annotation_status"] == "InProgress"
     assert image == "example_image_1.jpg"
 
 
@@ -50,15 +46,14 @@ def test_single_image_upload_s3(tmpdir):
         project,
         "sample_project_vector/example_image_1.jpg",
         annotation_status="InProgress",
-        from_s3_bucket="hovnatan-test"
+        from_s3_bucket="superannotate-python-sdk-test"
     )
 
     images = sa.search_images(project)
     assert len(images) == 1
     image = images[0]
-    assert sa.annotation_status_int_to_str(
-        sa.get_image_metadata(project, image)["annotation_status"]
-    ) == "InProgress"
+    assert sa.get_image_metadata(project,
+                                 image)["annotation_status"] == "InProgress"
 
 
 def test_single_image_upload_s3_change_name(tmpdir):
@@ -77,15 +72,14 @@ def test_single_image_upload_s3_change_name(tmpdir):
         "sample_project_vector/example_image_1.jpg",
         image_name="rr.jpg",
         annotation_status="InProgress",
-        from_s3_bucket="hovnatan-test"
+        from_s3_bucket="superannotate-python-sdk-test"
     )
 
     images = sa.search_images(project)
     assert len(images) == 1
     image = images[0]
-    assert sa.annotation_status_int_to_str(
-        sa.get_image_metadata(project, image)["annotation_status"]
-    ) == "InProgress"
+    assert sa.get_image_metadata(project,
+                                 image)["annotation_status"] == "InProgress"
     assert image == "rr.jpg"
 
 
@@ -115,7 +109,6 @@ def test_single_image_upload_bytesio(tmpdir):
     images = sa.search_images(project)
     assert len(images) == 1
     image = images[0]
-    assert sa.annotation_status_int_to_str(
-        sa.get_image_metadata(project, image)["annotation_status"]
-    ) == "InProgress"
+    assert sa.get_image_metadata(project,
+                                 image)["annotation_status"] == "InProgress"
     assert image == "rr.jpg"

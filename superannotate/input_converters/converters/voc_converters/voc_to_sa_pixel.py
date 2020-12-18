@@ -12,35 +12,36 @@ from ....common import hex_to_rgb, blue_color_generator
 def _generate_polygons(object_mask_path, class_mask_path):
     segmentation = []
 
-    object_mask = cv2.imread(object_mask_path, cv2.IMREAD_GRAYSCALE)
-    class_mask = cv2.imread(class_mask_path, cv2.IMREAD_GRAYSCALE)
+    object_mask = cv2.imread(str(object_mask_path), cv2.IMREAD_GRAYSCALE)
+    class_mask = cv2.imread(str(class_mask_path), cv2.IMREAD_GRAYSCALE)
 
     object_unique_colors = np.unique(object_mask)
 
-    num_colors = len([i for i in object_unique_colors if i != 0 and i != 220])
+    num_colors = len([i for i in object_unique_colors if i not in (0, 220)])
     bluemask_colors = blue_color_generator(num_colors)
     H, W = object_mask.shape
     sa_mask = np.zeros((H, W, 4))
     i = 0
     for unique_color in object_unique_colors:
-        if unique_color == 0 or unique_color == 220:
+        if unique_color in (0, 220):
             continue
-        else:
-            class_color = class_mask[object_mask == unique_color][0]
-            mask = np.zeros_like(object_mask)
-            mask[object_mask == unique_color] = 255
-            contours, _ = cv2.findContours(
-                mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-            )
 
-            segment = []
-            for contour in contours:
-                contour = contour.flatten().tolist()
-                segment += contour
-            if len(contour) > 4:
-                segmentation.append((segment, int(class_color)))
-            if len(segmentation) == 0:
-                continue
+        # class_color = class_mask[object_mask == unique_color][0]
+        mask = np.zeros_like(object_mask)
+        mask[object_mask == unique_color] = 255
+        contours, _ = cv2.findContours(
+            mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+        )
+
+        segment = []
+        for contour in contours:
+            contour = contour.flatten().tolist()
+            segment += contour
+        if len(contour) > 4:
+            segmentation.append(segment)
+        if len(segmentation) == 0:
+            continue
+
         sa_mask[object_mask == unique_color
                ] = [255] + list(hex_to_rgb(bluemask_colors[i]))
         i += 1
@@ -59,10 +60,11 @@ def _iou(bbox1, bbox2):
     )
 
 
-def _generate_instances(ploygon_instances, voc_instances, bluemask_colors):
+def _generate_instances(polygon_instances, voc_instances, bluemask_colors):
     instances = []
     i = 0
-    for polygon, color_id in ploygon_instances:
+    # for polygon, color_id in polygon_instances:
+    for polygon in polygon_instances:
         ious = []
         bbox_poly = [
             min(polygon[::2]),
@@ -76,7 +78,7 @@ def _generate_instances(ploygon_instances, voc_instances, bluemask_colors):
         instances.append(
             {
                 "className": voc_instances[ind][0],
-                "classId": color_id,
+                # "classId": color_id,
                 "polygon": polygon,
                 "bbox": voc_instances[ind][1],
                 "blue_color": bluemask_colors[i]
@@ -103,11 +105,12 @@ def _get_voc_instances_from_xml(file_path):
 
 def _create_classes(classes):
     sa_classes = []
-    for class_, id_ in classes.items():
+    # for class_, id_ in classes.items():
+    for class_ in set(classes):
         color = np.random.choice(range(256), size=3)
         hexcolor = "#%02x%02x%02x" % tuple(color)
         sa_class = {
-            "id": id_,
+            # "id": id_,
             "name": class_,
             "color": hexcolor,
             "attribute_groups": []
@@ -117,20 +120,20 @@ def _create_classes(classes):
 
 
 def voc_instance_segmentation_to_sa_pixel(voc_root):
-    classes = {}
-    object_masks_dir = os.path.join(voc_root, 'SegmentationObject')
-    class_masks_dir = os.path.join(voc_root, 'SegmentationClass')
-    annotation_dir = os.path.join(os.path.join(voc_root, "Annotations"))
+    classes = []
+    object_masks_dir = voc_root / 'SegmentationObject'
+    class_masks_dir = voc_root / 'SegmentationClass'
+    annotation_dir = voc_root / "Annotations"
 
     sa_jsons = {}
     sa_masks = {}
-    for filename in tqdm(os.listdir(object_masks_dir)):
+    for filename in object_masks_dir.glob('*'):
         polygon_instances, sa_mask, bluemask_colors = _generate_polygons(
-            os.path.join(object_masks_dir, filename),
-            os.path.join(class_masks_dir, filename)
+            object_masks_dir / filename.name,
+            class_masks_dir / filename.name,
         )
         voc_instances = _get_voc_instances_from_xml(
-            os.path.join(annotation_dir, filename)
+            annotation_dir / filename.name
         )
         maped_instances = _generate_instances(
             polygon_instances, voc_instances, bluemask_colors
@@ -139,7 +142,6 @@ def voc_instance_segmentation_to_sa_pixel(voc_root):
         sa_loader = []
         for instance in maped_instances:
             sa_polygon = {
-                'classId': instance["classId"],
                 'className': instance["className"],
                 'parts': [{
                     "color": instance["blue_color"]
@@ -150,13 +152,12 @@ def voc_instance_segmentation_to_sa_pixel(voc_root):
                 'visible': True,
             }
             sa_loader.append(sa_polygon)
-            if instance["className"] not in classes.keys():
-                classes[instance["className"]] = instance["classId"]
+            classes.append(instance['className'])
 
-        sa_file_name = os.path.splitext(filename)[0] + ".jpg___pixel.json"
+        sa_file_name = os.path.splitext(filename.name)[0] + ".jpg___pixel.json"
         sa_jsons[sa_file_name] = sa_loader
 
-        sa_mask_name = os.path.splitext(filename)[0] + ".jpg___save.png"
+        sa_mask_name = os.path.splitext(filename.name)[0] + ".jpg___save.png"
         sa_masks[sa_mask_name] = sa_mask
 
     classes = _create_classes(classes)

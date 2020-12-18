@@ -16,6 +16,7 @@ def test_get_set_settings(tmpdir):
     sa.create_project(PROJECT_NAME, "tt", "Vector")
 
     old_settings = sa.get_project_settings(PROJECT_NAME)
+    print(old_settings)
     for setting in old_settings:
         if "attribute" in setting and setting["attribute"] == "Brightness":
             brightness_value = setting["value"]

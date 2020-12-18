@@ -9,8 +9,8 @@ from tqdm import tqdm
 def _generate_polygons(object_mask_path, class_mask_path):
     segmentation = []
 
-    object_mask = cv2.imread(object_mask_path, cv2.IMREAD_GRAYSCALE)
-    class_mask = cv2.imread(class_mask_path, cv2.IMREAD_GRAYSCALE)
+    object_mask = cv2.imread(str(object_mask_path), cv2.IMREAD_GRAYSCALE)
+    class_mask = cv2.imread(str(class_mask_path), cv2.IMREAD_GRAYSCALE)
 
     object_unique_colors = np.unique(object_mask)
 
@@ -20,7 +20,6 @@ def _generate_polygons(object_mask_path, class_mask_path):
         if unique_color == 0 or unique_color == 220:
             continue
         else:
-            class_color = class_mask[object_mask == unique_color][0]
             mask = np.zeros_like(object_mask)
             mask[object_mask == unique_color] = 255
             contours, _ = cv2.findContours(
@@ -37,7 +36,7 @@ def _generate_polygons(object_mask_path, class_mask_path):
                 segment.append(contours[0].flatten().tolist())
                 groupId = 0
 
-            segmentation.append((segment, int(class_color), groupId))
+            segmentation.append((segment, groupId))
 
     return segmentation
 
@@ -56,7 +55,7 @@ def _iou(bbox1, bbox2):
 
 def _generate_instances(polygon_instances, voc_instances):
     instances = []
-    for polygon, color_id, group_id in polygon_instances:
+    for polygon, group_id in polygon_instances:
         ious = []
         if len(polygon) > 1:
             temp = []
@@ -77,7 +76,6 @@ def _generate_instances(polygon_instances, voc_instances):
             instances.append(
                 {
                     'className': voc_instances[ind][0],
-                    'classId': color_id,
                     'polygon': poly,
                     'bbox': voc_instances[ind][1],
                     'groupId': group_id
@@ -103,34 +101,29 @@ def _get_voc_instances_from_xml(file_path):
 
 def _create_classes(classes):
     sa_classes = []
-    for class_, id_ in classes.items():
+    for class_ in set(classes):
         color = np.random.choice(range(256), size=3)
         hexcolor = "#%02x%02x%02x" % tuple(color)
-        sa_class = {
-            "id": id_,
-            "name": class_,
-            "color": hexcolor,
-            "attribute_groups": []
-        }
+        sa_class = {"name": class_, "color": hexcolor, "attribute_groups": []}
         sa_classes.append(sa_class)
     return sa_classes
 
 
 def voc_instance_segmentation_to_sa_vector(voc_root):
-    classes = {}
-    object_masks_dir = os.path.join(voc_root, 'SegmentationObject')
-    class_masks_dir = os.path.join(voc_root, 'SegmentationClass')
-    annotation_dir = os.path.join(voc_root, "Annotations")
+    # classes = {}
+    classes = []
+    object_masks_dir = voc_root / 'SegmentationObject'
+    class_masks_dir = voc_root / 'SegmentationClass'
+    annotation_dir = voc_root / "Annotations"
 
-    file_list = os.listdir(object_masks_dir)
+    file_list = object_masks_dir.glob('*')
     sa_jsons = {}
     for filename in tqdm(file_list):
         polygon_instances = _generate_polygons(
-            os.path.join(object_masks_dir, filename),
-            os.path.join(class_masks_dir, filename)
+            object_masks_dir / filename.name, class_masks_dir / filename.name
         )
         voc_instances = _get_voc_instances_from_xml(
-            os.path.join(annotation_dir, filename)
+            annotation_dir / filename.name
         )
         maped_instances = _generate_instances(polygon_instances, voc_instances)
         sa_loader = []
@@ -138,7 +131,6 @@ def voc_instance_segmentation_to_sa_vector(voc_root):
             sa_polygon = {
                 'type': 'polygon',
                 'points': instance["polygon"],
-                'classId': instance["classId"],
                 'className': instance["className"],
                 'attributes': [],
                 'probability': 100,
@@ -148,10 +140,10 @@ def voc_instance_segmentation_to_sa_vector(voc_root):
             }
             sa_loader.append(sa_polygon)
 
-            if instance["className"] not in classes.keys():
-                classes[instance["className"]] = instance["classId"]
+            classes.append(instance["className"])
 
-        sa_file_name = os.path.splitext(filename)[0] + ".jpg___objects.json"
+        sa_file_name = os.path.splitext(filename.name
+                                       )[0] + ".jpg___objects.json"
         sa_jsons[sa_file_name] = sa_loader
 
     classes = _create_classes(classes)
@@ -159,24 +151,20 @@ def voc_instance_segmentation_to_sa_vector(voc_root):
 
 
 def voc_object_detection_to_sa_vector(voc_root):
-    classes = {}
-    id_ = 1
-    annotation_dir = os.path.join(os.path.join(voc_root, "Annotations"))
-    files_list = os.listdir(annotation_dir)
+    classes = []
+    annotation_dir = voc_root / "Annotations"
+    files_list = annotation_dir.glob('*')
     sa_jsons = {}
     for filename in tqdm(files_list):
         voc_instances = _get_voc_instances_from_xml(
-            os.path.join(annotation_dir, filename)
+            annotation_dir / filename.name
         )
         sa_loader = []
         for class_name, bbox in voc_instances:
-            if class_name not in classes.keys():
-                classes[class_name] = id_
-                id_ += 1
+            classes.append(class_name)
 
             sa_bbox = {
                 'type': "bbox",
-                'classId': classes[class_name],
                 'className': class_name,
                 'probability': 100,
                 'points': [],
@@ -191,7 +179,8 @@ def voc_object_detection_to_sa_vector(voc_root):
             }
             sa_loader.append(sa_bbox)
 
-        sa_file_name = os.path.splitext(filename)[0] + ".jpg___objects.json"
+        sa_file_name = os.path.splitext(filename.name
+                                       )[0] + ".jpg___objects.json"
         sa_jsons[sa_file_name] = sa_loader
 
     classes = _create_classes(classes)

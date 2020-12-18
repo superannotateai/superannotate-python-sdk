@@ -1,19 +1,17 @@
 """
 """
-from datetime import datetime
-from collections import namedtuple
 import json
-import glob
-import os
+from collections import namedtuple
+from datetime import datetime
+from pathlib import Path
+
 import numpy as np
-from panopticapi.utils import id2rgb
 from PIL import Image
 
-import tqdm
-import time
+from ....common import id2rgb
 
 
-class CoCoConverter(object):
+class CoCoConverter():
     def __init__(self, args):
         self.project_type = args.project_type
         self.dataset_name = args.dataset_name
@@ -21,6 +19,7 @@ class CoCoConverter(object):
         self.output_dir = args.output_dir
         self.task = args.task
         self.direction = args.direction
+        self.platform = args.platform
 
         self.failed_conversion_cnt = 0
 
@@ -72,12 +71,18 @@ class CoCoConverter(object):
         out_json = {
             'info':
                 {
-                    'description': 'This is dataset.'.format(self.dataset_name),
-                    'url': 'https://superannotate.ai',
-                    'version': '1.0',
-                    'year': 2020,
-                    'contributor': 'Superannotate AI',
-                    'date_created': datetime.now().strftime("%d/%m/%Y")
+                    'description':
+                        'This is {} dataset.'.format(self.dataset_name),
+                    'url':
+                        'https://superannotate.ai',
+                    'version':
+                        '1.0',
+                    'year':
+                        2020,
+                    'contributor':
+                        'Superannotate AI',
+                    'date_created':
+                        datetime.now().strftime("%d/%m/%Y")
                 },
             'licenses':
                 [
@@ -94,12 +99,11 @@ class CoCoConverter(object):
         return out_json
 
     def _load_sa_jsons(self):
-        jsons = []
         if self.project_type == 'Pixel':
-            jsons = glob.glob(os.path.join(self.export_root, '*pixel.json'))
+            jsons_gen = self.export_root.glob('*pixel.json')
         elif self.project_type == 'Vector':
-            jsons = glob.glob(os.path.join(self.export_root, '*objects.json'))
-
+            jsons_gen = self.export_root.glob('*objects.json')
+        jsons = list(jsons_gen)
         self.set_num_converted(len(jsons))
         return jsons
 
@@ -111,11 +115,9 @@ class CoCoConverter(object):
             ]
         )
         rm_len = len('___pixel.json')
-        image_path = json_path[:-rm_len
-                              ] + '___lores.jpg'  # maybe not use low res files?
 
-        sa_ann_json = json.load(open(os.path.join(json_path)))
-        sa_bluemask_path = os.path.join(json_path[:-rm_len] + '___save.png')
+        sa_ann_json = json.load(open(json_path))
+        sa_bluemask_path = str(json_path)[:-rm_len] + '___save.png'
 
         image_info = self.__make_image_info(json_path, id_, self.project_type)
 
@@ -142,12 +144,12 @@ class CoCoConverter(object):
         elif source_type == 'Vector':
             rm_len = len('___objects.json')
 
-        image_path = json_path[:-rm_len]
+        image_path = str(json_path)[:-rm_len]
 
         img_width, img_height = Image.open(image_path).size
         image_info = {
             'id': id_,
-            'file_name': image_path[len(self.output_dir):],
+            'file_name': Path(image_path).name,
             'height': img_height,
             'width': img_width,
             'license': 1
@@ -187,14 +189,12 @@ class CoCoConverter(object):
                 'attribute_groups': []
             }
             classes.append(classes_dict)
-        with open(
-            os.path.join(self.output_dir, "classes", "classes.json"), "w"
-        ) as fp:
-            json.dump(classes, fp)
+
+        return classes
 
     def _generate_colors(self, number):
         colors = []
-        for i in range(number):
+        for _ in range(number):
             color = np.random.choice(range(256), size=3)
             hexcolor = "#%02x%02x%02x" % tuple(color)
             colors.append(hexcolor)

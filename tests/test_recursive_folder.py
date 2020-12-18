@@ -158,7 +158,7 @@ def test_annotations_recursive_s3_folder(tmpdir):
         project,
         "sample_recursive_test",
         annotation_status="QualityCheck",
-        from_s3_bucket="hovnatan-test",
+        from_s3_bucket="superannotate-python-sdk-test",
         recursive_subfolders=True
     )
 
@@ -167,14 +167,14 @@ def test_annotations_recursive_s3_folder(tmpdir):
     sa.create_annotation_classes_from_classes_json(
         project,
         "sample_recursive_test/classes/classes.json",
-        from_s3_bucket="hovnatan-test"
+        from_s3_bucket="superannotate-python-sdk-test"
     )
 
     sa.upload_annotations_from_folder_to_project(
         project,
         "sample_recursive_test",
         recursive_subfolders=True,
-        from_s3_bucket="hovnatan-test"
+        from_s3_bucket="superannotate-python-sdk-test"
     )
 
     export = sa.prepare_export(project)
@@ -199,7 +199,7 @@ def test_annotations_nonrecursive_s3_folder(tmpdir):
         project,
         "sample_recursive_test",
         annotation_status="QualityCheck",
-        from_s3_bucket="hovnatan-test",
+        from_s3_bucket="superannotate-python-sdk-test",
         recursive_subfolders=True
     )
 
@@ -208,14 +208,14 @@ def test_annotations_nonrecursive_s3_folder(tmpdir):
     sa.create_annotation_classes_from_classes_json(
         project,
         "sample_recursive_test/classes/classes.json",
-        from_s3_bucket="hovnatan-test"
+        from_s3_bucket="superannotate-python-sdk-test"
     )
 
     sa.upload_annotations_from_folder_to_project(
         project,
         "sample_recursive_test",
         recursive_subfolders=False,
-        from_s3_bucket="hovnatan-test"
+        from_s3_bucket="superannotate-python-sdk-test"
     )
 
     export = sa.prepare_export(project)
@@ -239,7 +239,7 @@ def test_preannotations_recursive_s3_folder(tmpdir):
     sa.upload_images_from_folder_to_project(
         project,
         "sample_recursive_test",
-        from_s3_bucket="hovnatan-test",
+        from_s3_bucket="superannotate-python-sdk-test",
         recursive_subfolders=True
     )
 
@@ -248,14 +248,14 @@ def test_preannotations_recursive_s3_folder(tmpdir):
     sa.create_annotation_classes_from_classes_json(
         project,
         "sample_recursive_test/classes/classes.json",
-        from_s3_bucket="hovnatan-test"
+        from_s3_bucket="superannotate-python-sdk-test"
     )
 
     sa.upload_preannotations_from_folder_to_project(
         project,
         "sample_recursive_test",
         recursive_subfolders=True,
-        from_s3_bucket="hovnatan-test"
+        from_s3_bucket="superannotate-python-sdk-test"
     )
 
     for image in sa.search_images(project):
@@ -277,7 +277,7 @@ def test_preannotations_nonrecursive_s3_folder(tmpdir):
     sa.upload_images_from_folder_to_project(
         project,
         "sample_recursive_test",
-        from_s3_bucket="hovnatan-test",
+        from_s3_bucket="superannotate-python-sdk-test",
         recursive_subfolders=True
     )
 
@@ -286,14 +286,14 @@ def test_preannotations_nonrecursive_s3_folder(tmpdir):
     sa.create_annotation_classes_from_classes_json(
         project,
         "sample_recursive_test/classes/classes.json",
-        from_s3_bucket="hovnatan-test"
+        from_s3_bucket="superannotate-python-sdk-test"
     )
 
     sa.upload_preannotations_from_folder_to_project(
         project,
         "sample_recursive_test",
         recursive_subfolders=False,
-        from_s3_bucket="hovnatan-test"
+        from_s3_bucket="superannotate-python-sdk-test"
     )
 
     for image in sa.search_images(project):
@@ -313,7 +313,7 @@ def test_images_nonrecursive_s3(tmpdir):
     sa.upload_images_from_folder_to_project(
         project,
         "sample_recursive_test",
-        from_s3_bucket="hovnatan-test",
+        from_s3_bucket="superannotate-python-sdk-test",
         recursive_subfolders=False
     )
 

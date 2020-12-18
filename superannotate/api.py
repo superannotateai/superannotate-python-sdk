@@ -8,7 +8,7 @@ import requests_toolbelt
 import urllib3
 
 from .exceptions import SABaseException
-from .version import Version
+from .version import __version__
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -48,32 +48,34 @@ class API:
             try:
                 self._token = self._api_config["token"]
             except KeyError:
-                logger.error(
-                    "'token' key is not present in the config file %s.",
-                    str(config_location)
+                raise SABaseException(
+                    0,
+                    "Incorrect config file: 'token' key is not present in the config file "
+                    + str(config_location)
                 )
-                raise SABaseException(0, "Incorrect config file.")
             try:
                 self.team_id = int(self._token.split("=")[1])
             except Exception:
-                logger.error(
-                    "token key is not valid in the config file %s.",
-                    str(config_location)
+                raise SABaseException(
+                    0,
+                    "Incorrect config file: 'token' key is not valid in the config file "
+                    + str(config_location)
                 )
-                raise SABaseException(0, "Incorrect config file.")
 
             self._default_headers = {'Authorization': self._token}
             self._default_headers["authtype"] = "sdk"
             if "authtype" in self._api_config:
                 self._default_headers["authtype"] = self._api_config["authtype"]
             self._default_headers['User-Agent'] = requests_toolbelt.user_agent(
-                'superannotate', Version
+                'superannotate', __version__
             )
 
             self._main_endpoint = "https://api.annotate.online"
             if "main_endpoint" in self._api_config:
                 self._main_endpoint = self._api_config["main_endpoint"]
             self._verify = True
+            if "ssl_verify" in self._api_config:
+                self._verify = self._api_config["ssl_verify"]
             self._session = None
             self._authenticated = True
             response = self.send_request(
