@@ -5,6 +5,7 @@ from PIL import Image, ImageDraw
 from tqdm import tqdm
 from pathlib import Path
 import plotly.figure_factory as ff
+import pandas as pd
 
 class ConfusionMatrix(object):
     """
@@ -21,11 +22,10 @@ class ConfusionMatrix(object):
         self.confusion_image_map = {}
         self.gt_path = gt_path
         self.target_path = target_path
-
-
+        self.df = pd.DataFrame(columns = ["ImageName", "GTInstanceId", "TargetInstanceId", "GTClass", "TargetClass"])
 
     def show(self, ):
-        class_names = list(class_names.keys())
+        class_names = list(self.class_names.keys())
         class_names.append("NoClass")
         z_text = [[str(y) for y in x] for x in self.confusion_matrix]
         fig = ff.create_annotated_heatmap(self.confusion_matrix, x=class_names, y=class_names, annotation_text=z_text, colorscale='Viridis')
@@ -90,28 +90,6 @@ class ConfusionMatrix(object):
             except Exception as e:
                 print(e)
                 pass
-
-
-class BBox(object):
-
-    def __init__(self, bbox, category_name):
-        bbox = bbox[0]
-        if bbox[2] > bbox[0]:
-            self._R = [bbox[2], bbox[3]]
-            self._L = [bbox[0], bbox[1]]
-        else:
-            self._R = [bbox[0], bbox[1]]
-            self._L = [bbox[2], bbox[3]]
-
-        self.width = abs(self._R[0] - self._L[0])
-        self.height = abs(self._L[1] - self._R[1])
-        self.category_name = category_name
-
-class Mask(object):
-    def __init__(self, mask, category_name):
-        self.mask = mask
-        self.category_name = category_name
-
 
 
 class Drawer(object):

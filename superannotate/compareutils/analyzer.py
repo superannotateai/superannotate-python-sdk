@@ -80,7 +80,7 @@ class Analyzer(object):
     def __str__(self,):
        'Analyzer object with {} classes and area threshold {}'.format(len(self.class_names), self._area_threshold)
 
-    def compare_all(self ):
+    def compare_all(self, method):
 
         src_bboxes = self.__transform_annotations(self.gt_df, 'bbox')
         target_bboxes = self.__transform_annotations(self.target_df, 'bbox')
@@ -89,8 +89,8 @@ class Analyzer(object):
         src_polygons = self.__transform_annotations(self.gt_df, 'polygon')
 
         src_bboxes.apply(lambda x: self.__compare_single_row(x, target_bboxes), axis = 1,)# args = target_bboxes)
-        src_polygons.apply(lambda x: self.__compare_single_row(x, target_polygons), axis = 1)
-
+        #src_polygons.apply(lambda x: self.__compare_single_row(x, target_polygons), axis = 1)
+        return self.confusion_matrix
 
     def __from_bbox_to_shapely(self, bbox):
         bbox.meta["points"] = Polygon([(bbox.meta["points"]["x1"], bbox.meta["points"]["y1"]), (bbox.meta["points"]["x2"], bbox.meta["points"]["y1"]), (bbox.meta["points"]["x2"], bbox.meta["points"]["y2"]), (bbox.meta["points"]["x1"], bbox.meta["points"]["y2"])])
@@ -102,7 +102,7 @@ class Analyzer(object):
 
         if target_class not in self.confusion_matrix.confusion_image_map[src_class]:
              self.confusion_matrix.confusion_image_map[src_class][target_class] = set()
-        self.confusion_matrix.confusion_image_map[src_class][target_class].add](fname)
+        self.confusion_matrix.confusion_image_map[src_class][target_class].add(fname)
 
     def __from_sa_polygon_to_shapely(self, polygon):
         x = polygon.meta["points"][0::2]
@@ -120,16 +120,19 @@ class Analyzer(object):
 
         src_poly = source_row.meta["points"]
         backgroundQ = None
-        for item in target_df.itertuples():
+        i = self.class_names[source_row["class"]]
+        target_df_roi = target_df[target_df["image_name"] == source_row['image_name']]
+        for item in target_df_roi.itertuples():
 
             backgroundQ = True
             union_area = src_poly.union(item.meta["points"]).area
             intersection_area = src_poly.intersection(item.meta["points"]).area
-
             IoU = intersection_area / union_area
 
-            i = self.class_names[source_row["class"]]
             if IoU >= self.area_threshold:
+                new_row = {"ImageName":source_row["image_name"] ,"GTInstanceId":source_row["instance_id"], "TargetInstanceId": item.instance_id, "GTClass":source_row["class"], "TargetClass": item[2]}
+                print(new_row)
+                self.confusion_matrix.df = self.confusion_matrix.df.append(new_row, ignore_index = True)
                 j = self.class_names[item[3]]
                 self.confusion_matrix.confusion_matrix[i][j] += 1
                 self.__append_fname_to_image_list(source_row['class'], item[3], item[1])
