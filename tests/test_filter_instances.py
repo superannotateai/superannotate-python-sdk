@@ -110,6 +110,7 @@ def test_filter_instances(tmpdir):
     # project = sa.create_project(PROJECT_NAME_1, "test", "Vector")
 
     not_filtered = sa.aggregate_annotations_as_df(PROJECT_DIR)
+    print(not_filtered["className"].unique())
 
     filtered_excl = sa.filter_annotation_instances(
         not_filtered,
@@ -119,6 +120,7 @@ def test_filter_instances(tmpdir):
             "className": "Human"
         }]
     )
+    print(filtered_excl["className"].unique())
 
     filtered_incl = sa.filter_annotation_instances(
         not_filtered,
@@ -128,6 +130,7 @@ def test_filter_instances(tmpdir):
             "className": "Plant"
         }]
     )
+    print(filtered_incl["className"].unique())
 
     assert filtered_incl.equals(filtered_excl)
 

@@ -9,11 +9,11 @@ all: coverage tests
 	$(PYTHON) setup.py build_ext --inplace
 
 tests:
-	$(PYTESTS) -n 8
+	$(PYTESTS) -n auto
 
 stress-tests: SA_STRESS_TESTS=1
 stress-tests: tests
-	$(PYTESTS) -n 8
+	$(PYTESTS) -n auto
 
 clean:
 	rm -rf superannotate.egg-info
@@ -24,7 +24,7 @@ clean:
 coverage: test_coverage
 
 test_coverage:
-	-$(PYTESTS) --cov=superannotate -n 8
+	-$(PYTESTS) --cov=superannotate -n auto
 	$(COVERAGE) html
 	@echo "\033[95m\n\nCoverage successful! View the output at file://htmlcov/index.html.\n\033[0m"
 
