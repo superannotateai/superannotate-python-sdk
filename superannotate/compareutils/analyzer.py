@@ -49,9 +49,11 @@ class Analyzer(object):
         return True
 
     def __init__(self, gt_df, target_df):
+
         if gt_df is None or target_df is None:
             raise SABaseException('the source path {} or target path {} are not provided'.format(gt_df, target_df))
-
+        if type(gt_df) != type(target_df) or type(gt_df) is not pd.core.frame.DataFrame:
+            raise SABaseException('Both inputs have to be pandas dataframes')
         self.class_names = []
 
         # Deepcopy the dataframes to change them as we like

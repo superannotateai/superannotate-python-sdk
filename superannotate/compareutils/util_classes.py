@@ -10,7 +10,7 @@ import logging
 import cv2
 import os
 
-logger = logging.getLogger('superannotate')
+logger = logging.getLogger('superannotate-python-sdk')
 class ConfusionMatrix(object):
     """
     A class that describes the confusion matrix.
