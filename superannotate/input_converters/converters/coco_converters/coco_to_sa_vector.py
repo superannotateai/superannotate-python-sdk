@@ -79,7 +79,7 @@ def coco_instance_segmentation_to_sa_vector(coco_path, images_path):
                 'probability': 100,
                 'locked': False,
                 'visible': True,
-                'groupId': groupid,
+                # 'groupId': groupid,
                 'imageId': annot['image_id']
             }
             sa_polygon_loader.append(sa_obj)
@@ -162,7 +162,7 @@ def coco_object_detection_to_sa_vector(coco_path, images_path):
             'probability': 100,
             'locked': False,
             'visible': True,
-            'groupId': groupid,
+            # 'groupId': groupid,
             'imageId': annot['image_id']
         }
 
@@ -224,7 +224,7 @@ def coco_keypoint_detection_to_sa_vector(coco_path, images_path):
                     'connections': [],
                     'attributes': [],
                     'attributeNames': [],
-                    'groupId': annot['id'],
+                    # 'groupId': annot['id'],
                     'pointLabels': {},
                     'locked': False,
                     'visible': True,

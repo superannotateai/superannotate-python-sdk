@@ -9,8 +9,11 @@ logger = logging.getLogger("superannotate-python-sdk")
 
 
 def df_to_annotations(df, output_dir):
-    """Converts and saves pandas DataFrame annotation info (see aggregate_annotations_as_df) in output_dir
-    The DataFrame should have columns: "imageName", "className", "attributeGroupName", "attributeName", "type", "error", "locked", "visible", trackingId", "probability", "pointLabels", "meta", "commentResolved", "classColor", "groupId"
+    """Converts and saves pandas DataFrame annotation info (see aggregate_annotations_as_df)
+    in output_dir.
+    The DataFrame should have columns: "imageName", "className", "attributeGroupName",
+    "attributeName", "type", "error", "locked", "visible", trackingId", "probability",
+    "pointLabels", "meta", "commentResolved", "classColor", "groupId"
 
     Currently only works for Vector projects.
 
@@ -145,12 +148,21 @@ def aggregate_annotations_as_df(
 
     :param project_root: export path of the project
     :type project_root: Pathlike (str or Path)
-    :param include_classes_wo_annotations: enables inclusion of classes info that have no instances in annotations
+    :param include_classes_wo_annotations: enables inclusion of classes info
+                                           that have no instances in annotations
     :type include_classes_wo_annotations: bool
     :param include_comments: enables inclusion of comments info as commentResolved column
     :type include_comments: bool
+    :param include_tags: enables inclusion of tags info as tag column
+    :type include_tags: bool
 
-    :return: DataFrame on annotations with columns: "imageName", "instanceId" className", "attributeGroupName", "attributeName", "type", "error", "locked", "visible", "trackingId", "probability", "pointLabels", "meta" (geometry information as string), "commentResolved", "classColor", "groupId", "imageWidth", "imageHeight", "imageStatus", "imagePinned", "createdAt", "creatorRole", "creationType", "creatorEmail", "updatedAt", "updatorRole", "updatorEmail"
+    :return: DataFrame on annotations with columns: "imageName", "instanceId",
+                                                    "className", "attributeGroupName", "attributeName", "type", "error", "locked",
+                                                    "visible", "trackingId", "probability", "pointLabels",
+                                                    "meta" (geometry information as string), "commentResolved", "classColor",
+                                                    "groupId", "imageWidth", "imageHeight", "imageStatus", "imagePinned",
+                                                    "createdAt", "creatorRole", "creationType", "creatorEmail", "updatedAt",
+                                                    "updatorRole", "updatorEmail", "tag"
     :rtype: pandas DataFrame
     """
 
