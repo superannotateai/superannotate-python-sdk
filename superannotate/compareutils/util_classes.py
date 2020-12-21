@@ -6,7 +6,11 @@ from tqdm import tqdm
 from pathlib import Path
 import plotly.figure_factory as ff
 import pandas as pd
+import logging
+import cv2
+import os
 
+logger = logging.getLogger('superannotate')
 class ConfusionMatrix(object):
     """
     A class that describes the confusion matrix.
@@ -14,93 +18,58 @@ class ConfusionMatrix(object):
     and show the confusion matrix using plotly
     """
 
-    def __init__(self, class_names, gt_path, target_path):
+    def __init__(self, class_names ):
 
         self._N = len(class_names) + 1
         self.class_names = class_names
-        self.confusion_matrix = np.zeros([self._N, self._N], dtype = np.uint8)
-        self.confusion_image_map = {}
-        self.gt_path = gt_path
-        self.target_path = target_path
-        self.df = pd.DataFrame(columns = ["ImageName", "GTInstanceId", "TargetInstanceId", "GTClass", "TargetClass"])
-
+        self.confusion_matrix = None
+        self.df = pd.DataFrame(columns = ["ImageName", "GTInstanceId", "TargetInstanceId", "GTClass", "TargetClass", "TargetGeometry", "GTGeometry"])
+        self.class_names['SA_Background'] = len(self.class_names)
     def show(self, ):
+
+        if self.confusion_matrix is None:
+            logger.warning("Confusion matrix does not yet exist. Please run create_confusion_matrix function of this object")
+            return
+
         class_names = list(self.class_names.keys())
-        class_names.append("NoClass")
         z_text = [[str(y) for y in x] for x in self.confusion_matrix]
         fig = ff.create_annotated_heatmap(self.confusion_matrix, x=class_names, y=class_names, annotation_text=z_text, colorscale='Viridis')
 
         fig.show()
 
-    def __draw_from_one(self, img, json_data, name_pairs, color):
-
-        for anno in json_data:
-            if anno['type'] not in ['bbox', 'polygon'] or anno['className'] not in name_pairs:
-                continue
-
-            if anno['type'] == 'bbox':
-                img =  Drawer.draw_bbox(img, anno['points'], color, anno['className'])
-            else:
-                img = Drawer.draw_poly(img, anno['points'], color,anno['className'])
-
-        return img
-    def draw(self, j_name, img_name, name_pairs):
-        src_anno_data = json.load(open(j_name))
-
-        img_name = Path(self.gt_path, img_name)
-        img = Image.open(img_name)
-        name_pairs = set(np.array([list(x) for x in name_pairs]).flatten())
-
-        target_anno_path = Path(self.target_path, j_name.parts[-1])
-        target_anno_data = json.load(open(target_anno_path))
-        draw = ImageDraw.Draw(img)
-        draw = self.__draw_from_one(draw, src_anno_data, name_pairs, (255,0,0))
-        draw = self.__draw_from_one(draw, target_anno_data, name_pairs, (0,255,0))
-
-        return img
-    def export(self, name_pairs, export_dir, drawQ):
-        fnames = []
-        for pair in name_pairs:
-            idx_1 = self.class_names[pair[0]]
-            idx_2 = self.class_names[pair[1]]
-            if idx_1 in self.confusion_image_map and idx_2 in self.confusion_image_map[idx_1]:
-                fnames += list(self.confusion_image_map[idx_1][idx_2])
-            elif idx_2 in self.confusion_image_map and idx_1 in self.confusion_image_map[idx_2]:
-                fnames += list(self.confusion_image_map[idx_2][idx_1])
-        export_dir = Path(export_dir)
-
-        if not export_dir.is_dir():
-            export_dir.mkdir(parents = True, exist_ok = True)
-
-        for fname in fnames:
-            img_name = fname.parts[-1][:-len("___objects.json")]
-            try:
-                target = Path(export_dir, fname.parts[-1])
-                shutil.copy(fname, target)
-                target = Path(export_dir, img_name)
-                shutil.copy(fname, target)
-
-                if not drawQ:
-                    continue
-                img = self.draw(fname,img_name, name_pairs)
-
-                draw_dir = Path(export_dir, 'draw')
-                draw_dir.mkdir(parents = True, exist_ok = True)
-                img.save(Path(draw_dir, img_name + '___draw.jpg'))
-            except Exception as e:
-                print(e)
-                pass
+    def create_confusion_matrix(self):
+        self.confusion_matrix = np.zeros([self._N, self._N], dtype = np.uint8)
+        for row in self.df.itertuples():
+            i = self.class_names[row.GTClass]
+            j = self.class_names[row.TargetClass]
+            self.confusion_matrix[i][j] += 1
+            if i != j:
+                self.confusion_matrix[j][i] += 1
 
 
-class Drawer(object):
-    @classmethod
-    def draw_bbox(cls, img, bbox, color, class_name):
-        img.rectangle([bbox['x1'], bbox['y1'], bbox['x2'], bbox['y2']], outline = color )
-        fnt = ImageDraw.getfont()
-        img.text([bbox['x1'], bbox['y1']], class_name, color)
-        return img
-    @classmethod
-    def draw_poly(cls, img, poly, color, class_name):
-        img.polygon(poly, color)
-        return img
+    def __reshape_poly_to_cv_format(self, geometry):
+
+        def reshape_lst(lst):
+            new_lst = [[geometry[i], geometry[i+1]] for i in range(0, len(lst) - 1, 2)]
+            return new_lst
+
+        if type(geometry) is dict:
+            geometry = [geometry["x1"], geometry["y1"], geometry["x1"], geometry["y2"], geometry["x2"], geometry["y2"], geometry["x2"], geometry["y1"]]
+        geometry = [int(max(0, x)) for x in geometry]
+        geometry = np.array(reshape_lst(geometry))
+        return geometry
+
+    def export(self, dataframe, image_src_folder, output_folder,thickness = 2, annotation_type = None):
+        os.makedirs(output_folder, exist_ok = True)
+        for item in dataframe.itertuples():
+            image = cv2.imread(os.path.join(image_src_folder, item.ImageName), cv2.IMREAD_UNCHANGED)
+            source_poly_points = self.__reshape_poly_to_cv_format(item.GTGeometry)
+            target_poly_points = self.__reshape_poly_to_cv_format(item.TargetGeometry)
+            image = cv2.polylines(image, [source_poly_points], False,  (0,255,0), thickness = thickness)
+            image = cv2.putText(image, item.GTClass, tuple(source_poly_points[0]), fontFace = 2, fontScale = 0.5, color = (0,255,0 ))
+            image = cv2.polylines(image, [target_poly_points], True, (255,0,0), thickness = thickness)
+            image = cv2.putText(image, item.TargetClass, tuple(target_poly_points[0]), fontFace = 2,fontScale = 0.5, color =(255,0,0))
+
+
+            cv2.imwrite(os.path.join(output_folder, item.ImageName), image)
 

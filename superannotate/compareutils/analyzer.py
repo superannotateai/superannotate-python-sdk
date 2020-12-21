@@ -12,6 +12,7 @@ from shapely.geometry import Polygon
 from ..exceptions import SABaseException
 
 logger = logging.getLogger('superannotate')
+
 class Analyzer(object):
     """This class is used to compare predictions to ground truth annotations in superannotate vector format"""
 
@@ -36,9 +37,8 @@ class Analyzer(object):
     def __check_and_set_class_names(self, source, target):
         gt_classes = None
         pred_classes = None
-
-        gt_classes = source["class"].unique()
-        target_classes = target["class"].unique()
+        gt_classes = source["className"].unique()
+        target_classes = target["className"].unique()
 
         if len(target_classes) != len(gt_classes) or set(target_classes) != set(gt_classes):
             logger.info('The class names present in source and target dataframes are not the same')
@@ -63,7 +63,7 @@ class Analyzer(object):
         self.class_names = list(self.class_names)
         self.class_names = {self.class_names[i] : i for i in range(len(self.class_names))}
 
-        self.confusion_matrix = ConfusionMatrix(self.class_names, self.gt_df, self.target_df)
+        self.confusion_matrix = ConfusionMatrix(self.class_names)
 
         self._area_threshold = 0.6
 
@@ -80,8 +80,7 @@ class Analyzer(object):
     def __str__(self,):
        'Analyzer object with {} classes and area threshold {}'.format(len(self.class_names), self._area_threshold)
 
-    def compare_all(self, method):
-
+    def compare_all(self ):
         src_bboxes = self.__transform_annotations(self.gt_df, 'bbox')
         target_bboxes = self.__transform_annotations(self.target_df, 'bbox')
 
@@ -89,11 +88,11 @@ class Analyzer(object):
         src_polygons = self.__transform_annotations(self.gt_df, 'polygon')
 
         src_bboxes.apply(lambda x: self.__compare_single_row(x, target_bboxes), axis = 1,)# args = target_bboxes)
-        #src_polygons.apply(lambda x: self.__compare_single_row(x, target_polygons), axis = 1)
+        src_polygons.apply(lambda x: self.__compare_single_row(x, target_polygons), axis = 1)
         return self.confusion_matrix
 
     def __from_bbox_to_shapely(self, bbox):
-        bbox.meta["points"] = Polygon([(bbox.meta["points"]["x1"], bbox.meta["points"]["y1"]), (bbox.meta["points"]["x2"], bbox.meta["points"]["y1"]), (bbox.meta["points"]["x2"], bbox.meta["points"]["y2"]), (bbox.meta["points"]["x1"], bbox.meta["points"]["y2"])])
+        bbox.meta["shapely_poly"] = Polygon([(bbox.meta["points"]["x1"], bbox.meta["points"]["y1"]), (bbox.meta["points"]["x2"], bbox.meta["points"]["y1"]), (bbox.meta["points"]["x2"], bbox.meta["points"]["y2"]), (bbox.meta["points"]["x1"], bbox.meta["points"]["y2"])])
 
     def __append_fname_to_image_list(self, src_class, target_class, fname):
 
@@ -108,9 +107,13 @@ class Analyzer(object):
         x = polygon.meta["points"][0::2]
         y = polygon.meta["points"][1::2]
 
-        polygon.meta["points"] = Polygon(list(zip(x,y)))
-
+        try:
+            polygon.meta["shapely_poly"] = Polygon(list(zip(x,y)))
+        except Exception as e:
+            logger.warning("Could not convert to shapely polygon")
+        return polygon
     def __transform_annotations(self, source, type_):
+
         rows = source[source["type"] == type_]
         rows.apply(self.anno_to_polygon[type_], axis = 1)
 
@@ -118,28 +121,47 @@ class Analyzer(object):
 
     def __compare_single_row(self, source_row, target_df):
 
-        src_poly = source_row.meta["points"]
+        IoU = None
+        if source_row.meta['shapely_poly'] is None:
+            logger.info(f'Annotation with id {source_row["instanceId"]}, could not be converted into a polygon in image {source_row["imageName"]}')
+            return
+        src_poly = source_row.meta["shapely_poly"]
         backgroundQ = None
-        i = self.class_names[source_row["class"]]
-        target_df_roi = target_df[target_df["image_name"] == source_row['image_name']]
+        target_df_roi = target_df[target_df["imageName"] == source_row['imageName']]
         for item in target_df_roi.itertuples():
+            if item.meta["shapely_poly"] is None:
+                logger.info(f'Annotation with id {item.instanceId}, could not be converted into a polygon in image {item.imageName}')
+                continue
 
             backgroundQ = True
-            union_area = src_poly.union(item.meta["points"]).area
-            intersection_area = src_poly.intersection(item.meta["points"]).area
-            IoU = intersection_area / union_area
-
+            try:
+                union_area = src_poly.union(item.meta["shapely_poly"]).area
+                intersection_area = src_poly.intersection(item.meta["shapely_poly"]).area
+                IoU = intersection_area / union_area
+            except Exception as e:
+                logger.error(f"could not compare instances in image {source_row['imageName']} with an instance in image {item.imageName}")
+                continue
             if IoU >= self.area_threshold:
-                new_row = {"ImageName":source_row["image_name"] ,"GTInstanceId":source_row["instance_id"], "TargetInstanceId": item.instance_id, "GTClass":source_row["class"], "TargetClass": item[2]}
-                print(new_row)
+                new_row = {
+                    "ImageName":source_row["imageName"] ,
+                    "GTInstanceId":source_row["instanceId"],
+                    "TargetInstanceId": item.instanceId,
+                    "GTClass":source_row["className"],
+                    "TargetClass": item.className,
+                    "GTGeometry": source_row['meta']["points"],
+                    'TargetGeometry': item.meta['points']
+                }
+
                 self.confusion_matrix.df = self.confusion_matrix.df.append(new_row, ignore_index = True)
-                j = self.class_names[item[3]]
-                self.confusion_matrix.confusion_matrix[i][j] += 1
-                self.__append_fname_to_image_list(source_row['class'], item[3], item[1])
                 backgroundQ = False
 
         if backgroundQ:
-            self.confusion_matrix.confusion_matrix[i][-1] += 1
-
-
-
+            new_row = {
+                "ImageName":source_row["imageName"] ,
+                "GTInstanceId":source_row["instanceId"],
+                "TargetInstanceId": -1,
+                "GTClass":source_row["className"],
+                "TargetClass": "SA_Background",
+                "TargetGeometry": None,
+                "GTGeometry": source_row["meta"]["points"]
+            }
