@@ -11,6 +11,7 @@ import cv2
 import os
 
 logger = logging.getLogger('superannotate-python-sdk')
+
 class ConfusionMatrix(object):
     """
     A class that describes the confusion matrix.
@@ -59,15 +60,15 @@ class ConfusionMatrix(object):
         geometry = np.array(reshape_lst(geometry))
         return geometry
 
-    def export(self, dataframe, image_src_folder, output_folder,thickness = 2, annotation_type = None):
+    def export(self, dataframe, image_src_folder, output_folder,thickness = 2, annotation_type = None, gt_color = (0,255,0), target_color = (0,0,255)):
         os.makedirs(output_folder, exist_ok = True)
         for item in dataframe.itertuples():
             image = cv2.imread(os.path.join(image_src_folder, item.ImageName), cv2.IMREAD_UNCHANGED)
             source_poly_points = self.__reshape_poly_to_cv_format(item.GTGeometry)
             target_poly_points = self.__reshape_poly_to_cv_format(item.TargetGeometry)
-            image = cv2.polylines(image, [source_poly_points], False,  (0,255,0), thickness = thickness)
+            image = cv2.polylines(image, [source_poly_points], False,  gt_color, thickness = thickness)
             image = cv2.putText(image, item.GTClass, tuple(source_poly_points[0]), fontFace = 2, fontScale = 0.5, color = (0,255,0 ))
-            image = cv2.polylines(image, [target_poly_points], True, (255,0,0), thickness = thickness)
+            image = cv2.polylines(image, [target_poly_points], True, target_color, thickness = thickness)
             image = cv2.putText(image, item.TargetClass, tuple(target_poly_points[0]), fontFace = 2,fontScale = 0.5, color =(255,0,0))
 
 
