@@ -25,18 +25,17 @@ class Analyzer(object):
     def area_threshold(self, value):
         if value <= 0:
             self._area_threshold = 0
-            logger.warning('The area threshold should be a number between 0 and one. For meaningful results it should be larger than 0.5, it will now be set to 0')
+            logger.warning('The area threshold should be a number between 0 and 1. For meaningful results it should be larger than 0.5, it will now be set to 0')
             return
 
         if value >=1:
             self._area_threshold = 1
-            logger.warning('The area threshold should be a number betwqeen 0 and one. For meaningful results it should be larger than 0.5, it will now be set to 1')
+            logger.warning('The area threshold should be a number betwqeen 0 and 1. For meaningful results it should be larger than 0.5, it will now be set to 1')
 
         self._area_theshold = value
 
-    def __check_and_set_class_names(self, source, target):
-        gt_classes = None
-        pred_classes = None
+    def __set_class_names(self, source, target):
+
         gt_classes = source["className"].unique()
         target_classes = target["className"].unique()
 
@@ -52,16 +51,17 @@ class Analyzer(object):
 
         if gt_df is None or target_df is None:
             raise SABaseException('the source path {} or target path {} are not provided'.format(gt_df, target_df))
+
         if type(gt_df) != type(target_df) or type(gt_df) is not pd.core.frame.DataFrame:
             raise SABaseException('Both inputs have to be pandas dataframes')
+
         self.class_names = []
+        self.__set_class_names(gt_df, target_df)
 
         # Deepcopy the dataframes to change them as we like
         self.gt_df = deepcopy(gt_df)
         self.target_df = deepcopy(target_df)
 
-        if not self.__check_and_set_class_names(self.gt_df, self.target_df):
-            raise SABaseException('The classes of the two projects are not the same')
         self.class_names = list(self.class_names)
         self.class_names = {self.class_names[i] : i for i in range(len(self.class_names))}
 
