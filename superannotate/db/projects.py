@@ -537,11 +537,18 @@ def upload_images_from_folder_to_project(
 
 
 def upload_image_array_to_s3(
-    bucket, orig_image, lores_image, huge_image, thumbnail_image, key
+    bucket, size, orig_image, lores_image, huge_image, thumbnail_image, key
 ):
     bucket.put_object(Body=orig_image, Key=key)
     bucket.put_object(Body=lores_image, Key=key + '___lores.jpg')
-    bucket.put_object(Body=huge_image, Key=key + '___huge.jpg')
+    bucket.put_object(
+        Body=huge_image,
+        Key=key + '___huge.jpg',
+        Metadata={
+            'height': str(size[1]),
+            'width': str(size[0])
+        }
+    )
     bucket.put_object(Body=thumbnail_image, Key=key + '___thumb.jpg')
 
 
@@ -600,7 +607,9 @@ def get_image_array_to_upload(
     byte_io_huge.seek(0)
     byte_io_orig.seek(0)
 
-    return byte_io_orig, byte_io_lores, byte_io_huge, byte_io_thumbs
+    return (
+        width, height
+    ), byte_io_orig, byte_io_lores, byte_io_huge, byte_io_thumbs
 
 
 def __upload_images_to_aws_thread(
@@ -643,10 +652,10 @@ def __upload_images_to_aws_thread(
                     raise SAImageSizeTooLarge(file_size)
                 with open(path, "rb") as f:
                     file = io.BytesIO(f.read())
-            images = get_image_array_to_upload(
+            images_array = get_image_array_to_upload(
                 file, image_quality_in_editor, project["type"]
             )
-            upload_image_array_to_s3(bucket, *images, key)
+            upload_image_array_to_s3(bucket, *images_array, key)
         except Exception as e:
             logger.warning("Unable to upload image %s. %s", path, e)
             couldnt_upload[thread_id].append(path)
