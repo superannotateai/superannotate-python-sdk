@@ -1,17 +1,17 @@
 import json
 
-from .supervisely_converter import SuperviselyConverter
 from .supervisely_to_sa_vector import (
     supervisely_to_sa, supervisely_instance_segmentation_to_sa_vector,
     supervisely_object_detection_to_sa_vector,
     supervisely_keypoint_detection_to_sa_vector
 )
 from .supervisely_to_sa_pixel import supervisely_instance_segmentation_to_sa_pixel
+from ..baseStrategy import baseStrategy
 
 from ....common import dump_output
 
 
-class SuperviselyObjectDetectionStrategy(SuperviselyConverter):
+class SuperviselyObjectDetectionStrategy(baseStrategy):
     name = "ObjectDetection converter"
 
     def __init__(self, args):

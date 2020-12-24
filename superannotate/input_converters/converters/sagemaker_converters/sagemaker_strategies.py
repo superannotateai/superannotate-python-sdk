@@ -2,14 +2,15 @@ import cv2
 import os
 from glob import glob
 
-from .sagemaker_converter import SageMakerConverter
 from .sagemaker_to_sa_vector import sagemaker_object_detection_to_sa_vector
 from .sagemaker_to_sa_pixel import sagemaker_instance_segmentation_to_sa_pixel
+
+from ..baseStrategy import baseStrategy
 
 from ....common import dump_output
 
 
-class SageMakerObjectDetectionStrategy(SageMakerConverter):
+class SageMakerObjectDetectionStrategy(baseStrategy):
     name = "ObjectDetection converter"
 
     def __init__(self, args):

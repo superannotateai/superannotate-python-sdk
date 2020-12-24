@@ -1,17 +1,18 @@
 import json
 import cv2
 
-from .labelbox_converter import LabelBoxConverter
 from .labelbox_to_sa_vector import (
     labelbox_object_detection_to_sa_vector,
     labelbox_instance_segmentation_to_sa_vector, labelbox_to_sa
 )
 from .labelbox_to_sa_pixel import labelbox_instance_segmentation_to_sa_pixel
 
+from ..baseStrategy import baseStrategy
+
 from ....common import dump_output
 
 
-class LabelBoxObjectDetectionStrategy(LabelBoxConverter):
+class LabelBoxObjectDetectionStrategy(baseStrategy):
     name = "ObjectDetection converter"
 
     def __init__(self, args):

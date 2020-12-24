@@ -1,12 +1,12 @@
 from pathlib import Path
 
-from .googlecloud_converter import GoogleCloudConverter
+from ..baseStrategy import baseStrategy
 from .googlecloud_to_sa_vector import googlecloud_object_detection_to_sa_vector
 
 from ....common import dump_output
 
 
-class GoogleCloudObjectDetectionStrategy(GoogleCloudConverter):
+class GoogleCloudObjectDetectionStrategy(baseStrategy):
     name = "ObjectDetection converter"
 
     def __init__(self, args):

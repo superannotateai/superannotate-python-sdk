@@ -3,6 +3,8 @@ import pandas as pd
 import numpy as np
 import cv2
 
+from ..sa_json_helper import _create_vector_instance
+
 
 def _create_classes(classes):
     classes_loader = []
@@ -27,26 +29,14 @@ def googlecloud_object_detection_to_sa_vector(path):
         img = cv2.imread(str(dir_name / file_name))
         H, W, _ = img.shape
         sa_file_name = os.path.basename(file_name) + '___objects.json'
-        xmin = row[3] * W
-        xmax = row[5] * W
-        ymin = row[4] * H
-        ymax = row[8] * H
 
-        sa_obj = {
-            'type': 'bbox',
-            'points': {
-                'x1': xmin,
-                'y1': ymin,
-                'x2': xmax,
-                'y2': ymax
-            },
-            'className': row[2],
-            'attributes': [],
-            'probability': 100,
-            'locked': False,
-            'visible': True,
-            'groupId': 0
+        points = {
+            'x1': row[3] * W,
+            'y1': row[4] * H,
+            'x2': row[5] * W,
+            'y2': row[8] * H
         }
+        sa_obj = _create_vector_instance('bbox', points, {}, [], row[2])
 
         if sa_file_name in sa_jsons.keys():
             sa_jsons[sa_file_name].append(sa_obj)

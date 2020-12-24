@@ -1,102 +1,15 @@
-import requests
-import logging
 from pathlib import Path
 import cv2
 import numpy as np
 
+from .labelbox_helper import (
+    image_downloader, _create_classes_json, _create_classes_id_map,
+    _create_attributes_list
+)
+
+from ..sa_json_helper import _create_pixel_instance
+
 from ....common import hex_to_rgb, blue_color_generator
-
-logger = logging.getLogger("superannotate-python-sdk")
-
-
-def image_downloader(url, file_name):
-    logger.info("Downloading mask for {}".format(file_name))
-    r = requests.get(url, stream=True)
-    with open(file_name, 'wb') as f:
-        f.write(r.content)
-
-
-def _create_classes_json(classes):
-    sa_classes_loader = []
-    for key, value in classes.items():
-        sa_classes = {
-            'name': key,
-            'color': value['color'],
-            'attribute_groups': []
-        }
-        attribute_groups = []
-        for attr_group_key, attr_group in value['attribute_groups'].items():
-            attr_loader = {
-                'name': attr_group_key,
-                'is_multiselect': attr_group['is_multiselect'],
-                'attributes': []
-            }
-            for attr in attr_group['attributes']:
-                attr_loader['attributes'].append({'name': attr})
-            if attr_loader:
-                attribute_groups.append(attr_loader)
-        sa_classes['attribute_groups'] = attribute_groups
-
-        sa_classes_loader.append(sa_classes)
-
-    return sa_classes_loader
-
-
-def _create_classes_id_map(json_data):
-    classes = {}
-    for d in json_data:
-        if 'objects' not in d['Label'].keys():
-            continue
-
-        instances = d["Label"]["objects"]
-        for instance in instances:
-            class_name = instance["value"]
-            if class_name not in classes.keys():
-                color = instance["color"]
-                classes[class_name] = {"color": color, 'attribute_groups': {}}
-
-            if 'classifications' in instance.keys():
-                classifications = instance['classifications']
-                for classification in classifications:
-                    if classification['value'] not in classes[class_name][
-                        'attribute_groups']:
-                        if 'answer' in classification.keys():
-                            if isinstance(classification['answer'], str):
-                                continue
-
-                            classes[class_name]['attribute_groups'][
-                                classification['value']] = {
-                                    'is_multiselect': 0,
-                                    'attributes': []
-                                }
-                            classes[class_name]['attribute_groups'][
-                                classification['value']]['attributes'].append(
-                                    classification['answer']['value']
-                                )
-
-                        elif 'answers' in classification.keys():
-                            classes[class_name]['attribute_groups'][
-                                classification['value']] = {
-                                    'is_multiselect': 1,
-                                    'attributes': []
-                                }
-                            for attr in classification['answers']:
-                                classes[class_name]['attribute_groups'][
-                                    classification['value']
-                                ]['attributes'].append(attr['value'])
-
-                    else:
-                        if 'answer' in classification.keys():
-                            classes[class_name]['attribute_groups'][
-                                classification['value']]['attributes'].append(
-                                    classification['answer']['value']
-                                )
-                        elif 'answers' in classification.keys():
-                            for attr in classification['answers']:
-                                classes[class_name]['attribute_groups'][
-                                    classification['value']
-                                ]['attributes'].append(attr['value'])
-    return classes
 
 
 def labelbox_instance_segmentation_to_sa_pixel(json_data):
@@ -118,34 +31,9 @@ def labelbox_instance_segmentation_to_sa_pixel(json_data):
             class_name = instance["value"]
             attributes = []
             if 'classifications' in instance.keys():
-                classifications = instance['classifications']
-                for classification in classifications:
-                    group_name = classification['value']
-                    if 'answer' in classification.keys(
-                    ) and isinstance(classification['answer'], dict):
-                        attribute_name = classification['answer']['value']
-                        attr_dict = {
-                            'name': attribute_name,
-                            'groupName': group_name
-                        }
-                        attributes.append(attr_dict)
-                    elif 'answers' in classification.keys():
-                        for attr in classification['answers']:
-                            attribute_name = attr['value']
-                            attr_dict = {
-                                'name': attribute_name,
-                                'groupName': group_name
-                            }
-                            attributes.append(attr_dict)
-
-            sa_obj = {
-                'className': class_name,
-                'attributes': attributes,
-                'probability': 100,
-                'locked': False,
-                'visible': True,
-                'parts': []
-            }
+                attributes = _create_attributes_list(
+                    instance['classifications']
+                )
 
             if 'bbox' in instance.keys() or 'polygon' in instance.keys(
             ) or 'line' in instance.keys() or 'point' in instance.keys():
@@ -159,7 +47,9 @@ def labelbox_instance_segmentation_to_sa_pixel(json_data):
             sa_mask[np.all(mask == [255, 255, 255], axis=2)
                    ] = list(hex_to_rgb(blue_colors[i]))[::-1] + [255]
 
-            sa_obj['parts'].append({'color': blue_colors[i]})
+            parts = [{'color': blue_colors[i]}]
+            sa_obj = _create_pixel_instance(parts, attributes, class_name)
+
             sa_loader.append(sa_obj.copy())
             Path(mask_name).unlink()
 

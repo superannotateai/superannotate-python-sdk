@@ -1,12 +1,16 @@
 import json
+from pathlib import Path
 
-from .vott_converter import VoTTConverter
-from .vott_to_sa_vector import vott_object_detection_to_sa_vector, vott_instance_segmentation_to_sa_vector, vott_to_sa
+from .vott_to_sa_vector import (
+    vott_object_detection_to_sa_vector, vott_instance_segmentation_to_sa_vector,
+    vott_to_sa
+)
 
+from ..baseStrategy import baseStrategy
 from ....common import dump_output
 
 
-class VoTTObjectDetectionStrategy(VoTTConverter):
+class VoTTObjectDetectionStrategy(baseStrategy):
     name = "ObjectDetection converter"
 
     def __init__(self, args):
@@ -30,3 +34,15 @@ class VoTTObjectDetectionStrategy(VoTTConverter):
         json_data = self.get_file_list()
         sa_jsons, sa_classes = self.conversion_algorithm(json_data)
         dump_output(self.output_dir, self.platform, sa_classes, sa_jsons)
+
+    def get_file_list(self):
+        json_file_list = []
+        path = Path(self.export_root)
+        if self.dataset_name != '':
+            json_file_list.append(path.joinpath(self.dataset_name + '.json'))
+        else:
+            file_generator = path.glob('*.json')
+            for gen in file_generator:
+                json_file_list.append(gen)
+
+        return json_file_list

@@ -4,7 +4,7 @@ from pathlib import Path
 from PIL import Image
 from tqdm import tqdm
 
-from .coco_converter import CoCoConverter
+# from .coco_converter import CoCoConverter
 from .coco_to_sa_pixel import (
     coco_instance_segmentation_to_sa_pixel,
     coco_panoptic_segmentation_to_sa_pixel
@@ -22,10 +22,12 @@ from .sa_vector_to_coco import (
     sa_vector_to_coco_keypoint_detection, sa_vector_to_coco_object_detection
 )
 
+from ..baseStrategy import baseStrategy
+
 from ....common import id2rgb, dump_output
 
 
-class CocoPanopticConverterStrategy(CoCoConverter):
+class CocoPanopticConverterStrategy(baseStrategy):
     name = "Panoptic converter"
 
     def __init__(self, args):
@@ -98,7 +100,7 @@ class CocoPanopticConverterStrategy(CoCoConverter):
         dump_output(self.output_dir, self.platform, sa_classes, sa_jsons)
 
 
-class CocoObjectDetectionStrategy(CoCoConverter):
+class CocoObjectDetectionStrategy(baseStrategy):
     name = "ObjectDetection converter"
 
     def __init__(self, args):
@@ -206,7 +208,7 @@ class CocoObjectDetectionStrategy(CoCoConverter):
         dump_output(self.output_dir, self.platform, sa_classes, sa_jsons)
 
 
-class CocoKeypointDetectionStrategy(CoCoConverter):
+class CocoKeypointDetectionStrategy(baseStrategy):
     name = 'Keypoint Detection Converter'
 
     def __init__(self, args):

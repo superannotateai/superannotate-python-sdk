@@ -2,15 +2,8 @@ import os
 import json
 import numpy as np
 
-
-def _create_classes(classes_map):
-    classes_loader = []
-    for key, value in classes_map.items():
-        color = np.random.choice(range(256), size=3)
-        hexcolor = "#%02x%02x%02x" % tuple(color)
-        sa_classes = {'name': value, 'color': hexcolor, 'attribute_groups': []}
-        classes_loader.append(sa_classes)
-    return classes_loader
+from .sagemaker_helper import _create_classes
+from ..sa_json_helper import _create_vector_instance
 
 
 def sagemaker_object_detection_to_sa_vector(data_path, main_key):
@@ -54,16 +47,9 @@ def sagemaker_object_detection_to_sa_vector(data_path, main_key):
                     'x2': annotation['left'] + annotation['width'],
                     'y2': annotation['top'] + annotation['height']
                 }
-                sa_obj = {
-                    'type': 'bbox',
-                    'points': points,
-                    'className': classes[str(annotation['class_id'])],
-                    'attributes': [],
-                    'probability': 100,
-                    'locked': False,
-                    'visible': True,
-                    'groupId': 0
-                }
+                sa_obj = _create_vector_instance(
+                    'bbox', points, {}, [], classes[str(annotation['class_id'])]
+                )
                 sa_loader.append(sa_obj.copy())
             sa_jsons[file_name] = sa_loader
 

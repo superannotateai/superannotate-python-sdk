@@ -4,19 +4,11 @@ import json
 from glob import glob
 import numpy as np
 
+from .sagemaker_helper import _create_classes
+
+from ..sa_json_helper import _create_pixel_instance
+
 from ....common import hex_to_rgb, blue_color_generator
-
-
-def create_classes(classes):
-    classes_loader = []
-    for name, class_ in classes.items():
-        cls_obj = {
-            "name": name,
-            "color": class_['color'],
-            "attribute_groups": []
-        }
-        classes_loader.append(cls_obj.copy())
-    return classes_loader
 
 
 def sagemaker_instance_segmentation_to_sa_pixel(data_path):
@@ -54,14 +46,12 @@ def sagemaker_instance_segmentation_to_sa_pixel(data_path):
 
             class_contours = {}
             num_of_contours = 0
-            for key in classes_dict.keys():
+            for key, value in classes_dict.items():
                 if classes_dict[key]['class-name'] == 'BACKGROUND':
                     continue
 
-                if classes_dict[key]['class-name'] not in classes_ids:
-                    classes_ids[classes_dict[key]['class-name']] = {
-                        'color': classes_dict[key]['hex-color']
-                    }
+                if key not in classes_ids.keys():
+                    classes_ids[key] = classes_dict[key]['class-name']
 
                 bitmask = np.zeros((H, W), dtype=np.int8)
                 bitmask[np.all(
@@ -82,16 +72,8 @@ def sagemaker_instance_segmentation_to_sa_pixel(data_path):
             sa_name = img_mapping[mask_name] + '___pixel.json'
             sa_loader = []
             sa_mask = np.zeros((H, W, C + 1))
-
             for name, contours in class_contours.items():
-                sa_obj = {
-                    'className': name,
-                    'probability': 100,
-                    'attributes': [],
-                    'locked': False,
-                    'visible': True,
-                    'parts': []
-                }
+                parts = []
                 for contour in contours:
                     bitmask = np.zeros((H, W))
                     contour = contour.flatten().tolist()
@@ -105,9 +87,10 @@ def sagemaker_instance_segmentation_to_sa_pixel(data_path):
                     cv2.fillPoly(bitmask, [pts], 1)
                     sa_mask[bitmask == 1
                            ] = list(hex_to_rgb(blue_colors[idx]))[::-1] + [255]
-                    sa_obj['parts'].append({'color': blue_colors[idx]})
+                    parts.append({'color': blue_colors[idx]})
                     idx += 1
-                    sa_loader.append(sa_obj.copy())
+                    sa_obj = _create_pixel_instance(parts, [], name)
+                    sa_loader.append(sa_obj)
             sa_jsons[sa_name] = sa_loader
             sa_masks[img_mapping[mask_name] + '___save.png'] = sa_mask
-    return sa_jsons, create_classes(classes_ids), sa_masks
+    return sa_jsons, _create_classes(classes_ids), sa_masks

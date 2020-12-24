@@ -2,14 +2,17 @@ import json
 import os
 import cv2
 
-from .voc_converter import VocConverter
 from .voc_to_sa_pixel import voc_instance_segmentation_to_sa_pixel
-from .voc_to_sa_vector import voc_object_detection_to_sa_vector, voc_instance_segmentation_to_sa_vector
+from .voc_to_sa_vector import (
+    voc_object_detection_to_sa_vector, voc_instance_segmentation_to_sa_vector
+)
+
+from ..baseStrategy import baseStrategy
 
 from ....common import dump_output
 
 
-class VocObjectDetectionStrategy(VocConverter):
+class VocObjectDetectionStrategy(baseStrategy):
     name = "ObjectDetection converter"
 
     def __init__(self, args):

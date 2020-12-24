@@ -1,12 +1,17 @@
 import json
+from pathlib import Path
 
-from .vgg_converter import VGGConverter
-from .vgg_to_sa_vector import vgg_object_detection_to_sa_vector, vgg_instance_segmentation_to_sa_vector, vgg_to_sa
+from .vgg_to_sa_vector import (
+    vgg_object_detection_to_sa_vector, vgg_instance_segmentation_to_sa_vector,
+    vgg_to_sa
+)
+
+from ..baseStrategy import baseStrategy
 
 from ....common import dump_output
 
 
-class VGGObjectDetectionStrategy(VGGConverter):
+class VGGObjectDetectionStrategy(baseStrategy):
     name = "ObjectDetection converter"
 
     def __init__(self, args):
@@ -14,9 +19,7 @@ class VGGObjectDetectionStrategy(VGGConverter):
         self.__setup_conversion_algorithm()
 
     def __setup_conversion_algorithm(self):
-        if self.direction == "to":
-            raise NotImplementedError("Doesn't support yet")
-        else:
+        if self.direction == "from":
             if self.project_type == "Vector":
                 if self.task == "object_detection":
                     self.conversion_algorithm = vgg_object_detection_to_sa_vector
@@ -30,14 +33,17 @@ class VGGObjectDetectionStrategy(VGGConverter):
 
     def to_sa_format(self):
         json_data = self.get_file_list()
-        id_generator = self._make_id_generator()
-        sa_jsons, sa_classes = self.conversion_algorithm(
-            json_data, id_generator
-        )
+        sa_jsons, sa_classes = self.conversion_algorithm(json_data)
         dump_output(self.output_dir, self.platform, sa_classes, sa_jsons)
 
-    def _make_id_generator(self):
-        cur_id = 0
-        while True:
-            cur_id += 1
-            yield cur_id
+    def get_file_list(self):
+        json_file_list = []
+        path = Path(self.export_root)
+        if self.dataset_name != '':
+            json_file_list.append(path.joinpath(self.dataset_name + '.json'))
+        else:
+            file_generator = path.glob('*.json')
+            for gen in file_generator:
+                json_file_list.append(gen)
+
+        return json_file_list

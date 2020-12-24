@@ -5,24 +5,9 @@ import zlib
 import base64
 import cv2
 
+from .supervisely_helper import _base64_to_polygon, _create_attribute_list
 
-# Converts bitmaps to polygon
-def _base64_to_polygon(bitmap):
-    z = zlib.decompress(base64.b64decode(bitmap))
-    n = np.frombuffer(z, np.uint8)
-    mask = cv2.imdecode(n, cv2.IMREAD_UNCHANGED)[:, :, 3].astype(bool)
-    contours, _ = cv2.findContours(
-        mask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-    )
-    segmentation = []
-
-    for contour in contours:
-        contour = contour.flatten().tolist()
-        if len(contour) > 4:
-            segmentation.append(contour)
-        if len(segmentation) == 0:
-            continue
-    return segmentation
+from ..sa_json_helper import _create_vector_instance
 
 
 def supervisely_to_sa(json_files, class_id_map):
@@ -38,61 +23,38 @@ def supervisely_to_sa(json_files, class_id_map):
             if 'classTitle' in obj and obj['classTitle'] in class_id_map.keys():
                 attributes = []
                 if 'tags' in obj.keys():
-                    for tag in obj['tags']:
-                        group_name = class_id_map[obj['classTitle']
-                                                 ]['attr_group']['group_name']
-                        attr_name = tag['name']
-                        attributes.append(
-                            {
-                                'name': attr_name,
-                                'groupName': group_name
-                            }
-                        )
-
-                    sa_obj = {
-                        'type': '',
-                        'points': [],
-                        'className': obj['classTitle'],
-                        'pointLabels': {},
-                        'attributes': attributes,
-                        'probability': 100,
-                        'locked': False,
-                        'visible': True,
-                        'groupId': 0
-                    }
-
+                    attributes = _create_attribute_list(
+                        obj['tags'], obj['classTitle'], class_id_map
+                    )
                     if obj['geometryType'] == 'point':
-                        del sa_obj['points']
-                        sa_obj['type'] = 'point'
-                        sa_obj['x'] = obj['points']['exterior'][0][0]
-                        sa_obj['y'] = obj['points']['exterior'][0][1]
-
+                        points = (
+                            obj['points']['exterior'][0][0],
+                            obj['points']['exterior'][0][1]
+                        )
+                        instance_type = 'point'
                     elif obj['geometryType'] == 'line':
-                        sa_obj['type'] = 'polyline'
-                        sa_obj['points'] = [
+                        instance_type = 'polyline'
+                        points = [
                             item for el in obj['points']['exterior']
                             for item in el
                         ]
-
                     elif obj['geometryType'] == 'rectangle':
-                        sa_obj['type'] = 'bbox'
-                        sa_obj['points'] = {
+                        instance_type = 'bbox'
+                        points = {
                             'x1': obj['points']['exterior'][0][0],
                             'y1': obj['points']['exterior'][0][1],
                             'x2': obj['points']['exterior'][1][0],
                             'y2': obj['points']['exterior'][1][1]
                         }
-
                     elif obj['geometryType'] == 'polygon':
-                        sa_obj['type'] = 'polygon'
-                        sa_obj['points'] = [
+                        instance_type = 'polygon'
+                        points = [
                             item for el in obj['points']['exterior']
                             for item in el
                         ]
-
                     elif obj['geometryType'] == 'cuboid':
-                        sa_obj['type'] = 'cuboid'
-                        sa_obj['points'] = {
+                        instance_type = 'cuboid'
+                        points = {
                             'f1':
                                 {
                                     'x': obj['points'][0][0],
@@ -118,14 +80,16 @@ def supervisely_to_sa(json_files, class_id_map):
                         for ppoints in _base64_to_polygon(
                             obj['bitmap']['data']
                         ):
-                            sa_ppoints = [
+                            points = [
                                 x + obj['bitmap']['origin'][0] if i %
                                 2 == 0 else x + obj['bitmap']['origin'][1]
                                 for i, x in enumerate(ppoints)
                             ]
-                            sa_obj['type'] = 'polygon'
-                            sa_obj['points'] = sa_ppoints
+                        instance_type = 'polygon'
 
+                    sa_obj = _create_vector_instance(
+                        instance_type, points, {}, attributes, obj['classTitle']
+                    )
                     sa_loader.append(sa_obj)
         sa_jsons[file_name] = sa_loader
     return sa_jsons
@@ -144,36 +108,20 @@ def supervisely_instance_segmentation_to_sa_vector(json_files, class_id_map):
             if 'classTitle' in obj and obj['classTitle'] in class_id_map.keys():
                 attributes = []
                 if 'tags' in obj.keys():
-                    for tag in obj['tags']:
-                        group_name = class_id_map[obj['classTitle']
-                                                 ]['attr_group']['group_name']
-                        attr_name = tag['name']
-                        attributes.append(
-                            {
-                                'name': attr_name,
-                                'groupName': group_name
-                            }
-                        )
-
-                    sa_obj = {
-                        'type': '',
-                        'points': [],
-                        'className': obj['classTitle'],
-                        'pointLabels': {},
-                        'attributes': attributes,
-                        'probability': 100,
-                        'locked': False,
-                        'visible': True,
-                        'groupId': 0
-                    }
-
+                    attributes = _create_attribute_list(
+                        obj['tags'], obj['classTitle'], class_id_map
+                    )
                     if obj['geometryType'] == 'polygon':
-                        sa_obj['type'] = 'polygon'
-                        sa_obj['points'] = [
+                        instance_type = 'polygon'
+                        points = [
                             item for el in obj['points']['exterior']
                             for item in el
                         ]
-                    sa_loader.append(sa_obj)
+                        sa_obj = _create_vector_instance(
+                            instance_type, points, {}, attributes,
+                            obj['classTitle']
+                        )
+
         sa_jsons[file_name] = sa_loader
     return sa_jsons
 
@@ -191,50 +139,23 @@ def supervisely_object_detection_to_sa_vector(json_files, class_id_map):
             if 'classTitle' in obj and obj['classTitle'] in class_id_map.keys():
                 attributes = []
                 if 'tags' in obj.keys():
-                    for tag in obj['tags']:
-                        group_name = class_id_map[obj['classTitle']
-                                                 ]['attr_group']['group_name']
-                        attr_name = tag['name']
-                        attributes.append(
-                            {
-                                'name': attr_name,
-                                'groupName': group_name
-                            }
-                        )
-
-                    sa_obj = {
-                        'type': '',
-                        'points': [],
-                        'className': obj['classTitle'],
-                        'pointLabels': {},
-                        'attributes': attributes,
-                        'probability': 100,
-                        'locked': False,
-                        'visible': True,
-                        'groupId': 0
-                    }
+                    attributes = _create_attribute_list(
+                        obj['tags'], obj['classTitle'], class_id_map
+                    )
 
                     if obj['geometryType'] == 'rectangle':
-                        sa_obj['type'] = 'bbox'
-                        sa_obj['points'] = {
+                        instance_type = 'bbox'
+                        points = {
                             'x1': obj['points']['exterior'][0][0],
                             'y1': obj['points']['exterior'][0][1],
                             'x2': obj['points']['exterior'][1][0],
                             'y2': obj['points']['exterior'][1][1]
                         }
-                    elif obj['geometryType'] == 'polygon':
-                        sa_obj['type'] = 'bbox'
-                        segment = [
-                            item for el in obj['points']['exterior']
-                            for item in el
-                        ]
-                        sa_obj['points'] = {
-                            'x1': min(segment[::2]),
-                            'y1': min(segment[1::2]),
-                            'x2': max(segment[::2]),
-                            'y2': max(segment[1::2])
-                        }
-                    sa_loader.append(sa_obj)
+                        sa_obj = _create_vector_instance(
+                            instance_type, points, {}, attributes,
+                            obj['classTitle']
+                        )
+                        sa_loader.append(sa_obj)
         sa_jsons[file_name] = sa_loader
     return sa_jsons
 
@@ -270,16 +191,9 @@ def supervisely_keypoint_detection_to_sa_vector(
             if 'classTitle' in obj and obj['classTitle'] in class_id_map.keys():
                 attributes = []
                 if 'tags' in obj.keys():
-                    for tag in obj['tags']:
-                        group_name = class_id_map[obj['classTitle']
-                                                 ]['attr_group']['group_name']
-                        attr_name = tag['name']
-                        attributes.append(
-                            {
-                                'name': attr_name,
-                                'groupName': group_name
-                            }
-                        )
+                    attributes = _create_attribute_list(
+                        obj['tags'], obj['classTitle'], class_id_map
+                    )
 
                     sa_obj = {
                         'type': '',

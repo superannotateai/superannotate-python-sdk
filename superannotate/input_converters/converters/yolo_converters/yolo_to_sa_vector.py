@@ -5,6 +5,8 @@ from glob import glob
 import cv2
 import numpy as np
 
+from ..sa_json_helper import _create_vector_instance
+
 logger = logging.getLogger("superannotate-python-sdk")
 
 
@@ -13,12 +15,7 @@ def _create_classes(classes):
     for id_, name in classes.items():
         color = np.random.choice(range(256), size=3)
         hexcolor = "#%02x%02x%02x" % tuple(color)
-        sa_classes = {
-            'id': id_ + 1,
-            'name': name,
-            'color': hexcolor,
-            'attribute_groups': []
-        }
+        sa_classes = {'name': name, 'color': hexcolor, 'attribute_groups': []}
         classes_loader.append(sa_classes)
     return classes_loader
 
@@ -66,26 +63,15 @@ def yolo_object_detection_to_sa_vector(data_path):
         for line in file:
             values = line.split()
             class_id = int(values[0])
-            x_center = float(values[1]) * W
-            y_center = float(values[2]) * H
-            width = float(values[3]) * W
-            height = float(values[4]) * H
-            bbox = {
-                'x1': x_center - width / 2,
-                'y1': y_center - height / 2,
-                'x2': x_center + width / 2,
-                'y2': y_center + height / 2
+            points = {
+                'x1': float(values[1]) * W - float(values[3]) * W / 2,
+                'y1': float(values[2]) * H - float(values[4]) * H / 2,
+                'x2': float(values[1]) * W + float(values[3]) * W / 2,
+                'y2': float(values[2]) * H + float(values[4]) * H / 2
             }
-            sa_obj = {
-                'type': 'bbox',
-                'points': bbox,
-                'className': classes[class_id],
-                'attributes': [],
-                'probability': 100,
-                'locked': False,
-                'visible': True,
-                'groupId': 0
-            }
+            sa_obj = _create_vector_instance(
+                'bbox', points, {}, [], classes[class_id]
+            )
             sa_loader.append(sa_obj.copy())
 
         file_name = os.path.basename(file_name) + '___objects.json'

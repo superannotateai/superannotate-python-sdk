@@ -1,13 +1,14 @@
-from .dataloop_converter import DataLoopConverter
 from .dataloop_to_sa_vector import (
     dataloop_object_detection_to_sa_vector,
     dataloop_instance_segmentation_to_sa_vector, dataloop_to_sa
 )
 
+from ..baseStrategy import baseStrategy
+
 from ....common import dump_output
 
 
-class DataLoopObjectDetectionStrategy(DataLoopConverter):
+class DataLoopObjectDetectionStrategy(baseStrategy):
     name = "Object Detection converter"
 
     def __init__(self, args):

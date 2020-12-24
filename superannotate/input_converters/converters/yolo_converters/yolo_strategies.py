@@ -1,12 +1,12 @@
 import json
 
-from .yolo_converter import YOLOConverter
+from ..baseStrategy import baseStrategy
 from .yolo_to_sa_vector import yolo_object_detection_to_sa_vector
 
 from ....common import dump_output
 
 
-class YoloObjectDetectionStrategy(YOLOConverter):
+class YoloObjectDetectionStrategy(baseStrategy):
     name = "ObjectDetection converter"
 
     def __init__(self, args):

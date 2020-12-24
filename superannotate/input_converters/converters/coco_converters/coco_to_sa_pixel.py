@@ -6,16 +6,23 @@ import cv2
 import numpy as np
 from tqdm import tqdm
 
+import time
+
 from ....common import blue_color_generator, hex_to_rgb, id2rgb
 from ....pycocotools_sa.coco import COCO
 from ....pycocotools_sa import mask as maskUtils
 
 logger = logging.getLogger("superannotate-python-sdk")
 
+intervals = []
+
 
 def _rle_to_polygon(coco_json, annotation):
     coco = COCO(coco_json)
+    start = time.time()
     binary_mask = coco.annToMask(annotation)
+    stop = time.time()
+    intervals.append(stop - start)
     contours, _ = cv2.findContours(
         binary_mask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
     )
