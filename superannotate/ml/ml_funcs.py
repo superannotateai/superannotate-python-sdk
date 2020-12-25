@@ -9,7 +9,7 @@ import json
 from ..api import API
 from .defaults import DEFAULT_HYPERPARAMETERS
 from ..exceptions import SABaseException
-from ..common import _AVAILABLE_SEGMENTATION_MODELS, process_api_response
+from ..common import _AVAILABLE_SEGMENTATION_MODELS, process_api_response, project_type_str_to_int
 from ..parameter_decorators import project_metadata, model_metadata
 from ..db.images import search_images
 import boto3
@@ -150,6 +150,7 @@ def run_training(project, model, name, description, task, hyperparameters):
     if isinstance(project, dict):
         project_ids = [project["id"]]
         project_type = project["type"]
+        project = [project]
     else:
         project_ids = [x["id"] for x in project]
         types = (x["type"] for x in project)
@@ -165,17 +166,20 @@ def run_training(project, model, name, description, task, hyperparameters):
         raise SABaseException(
             0, "Invalid project and model types"
         )
-
     for item in DEFAULT_HYPERPARAMETERS:
         if item not in hyperparameters:
             hyperparameters[item] = DEFAULT_HYPERPARAMETERS[item]
+    complete_image_count = 0
+    for proj in project:
+        complete_image_count += proj['completedImagesCount']
 
     hyperparameters["name"] = name
     hyperparameters["description"] = description
     hyperparameters["task"] = task
-    hyperparameters["base_ml_model"] = model["id"]
+    hyperparameters["base_model_id"] = model["id"]
     hyperparameters["project_ids"] = project_ids
-
+    hyperparameters["image_count"] = complete_image_count
+    hyperparameters["project_type"] = project_type_str_to_int(project_type)
     params = {
         "team_id" : _api.team_id,
     }
@@ -183,7 +187,7 @@ def run_training(project, model, name, description, task, hyperparameters):
 
     response =_api.send_request(
         req_type = "POST",
-        path = "/ml_model",
+        path = "/ml_models",
         json_req = hyperparameters,
         params = params
     )
@@ -191,8 +195,6 @@ def run_training(project, model, name, description, task, hyperparameters):
     if response.ok:
         logger.info("Started model training")
     else:
-        print(response.url)
-        print(response)
         logger.error("Could not start training")
 @model_metadata
 def download_model(model, output_dir):

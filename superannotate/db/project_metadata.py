@@ -15,7 +15,8 @@ def get_project_metadata(
     include_annotation_classes=False,
     include_settings=False,
     include_workflow=False,
-    include_contributors=False
+    include_contributors=False,
+    include_complete_image_count = False
 ):
     """Returns project metadata
 
@@ -38,7 +39,7 @@ def get_project_metadata(
     :rtype: dict
     """
     if not isinstance(project, dict):
-        project = get_project_metadata_bare(project)
+        project = get_project_metadata_bare(project, include_complete_image_count)
     result = copy.deepcopy(project)
     if include_annotation_classes:
         result["annotation_classes"] = search_annotation_classes(project)
