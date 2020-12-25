@@ -1,9 +1,7 @@
 import json
 
 from .supervisely_to_sa_vector import (
-    supervisely_to_sa, supervisely_instance_segmentation_to_sa_vector,
-    supervisely_object_detection_to_sa_vector,
-    supervisely_keypoint_detection_to_sa_vector
+    supervisely_to_sa, supervisely_keypoint_detection_to_sa_vector
 )
 from .supervisely_to_sa_pixel import supervisely_instance_segmentation_to_sa_pixel
 from ..baseStrategy import baseStrategy
@@ -11,8 +9,8 @@ from ..baseStrategy import baseStrategy
 from ....common import dump_output
 
 
-class SuperviselyObjectDetectionStrategy(baseStrategy):
-    name = "ObjectDetection converter"
+class SuperviselyStrategy(baseStrategy):
+    name = "Supervisely converter"
 
     def __init__(self, args):
         super().__init__(args)
@@ -21,12 +19,8 @@ class SuperviselyObjectDetectionStrategy(baseStrategy):
     def __setup_conversion_algorithm(self):
         if self.direction == "from":
             if self.project_type == "Vector":
-                if self.task == 'vector_annotation':
+                if self.task == 'vector_annotation' or self.task == 'object_detection' or self.task == 'instance_segmentation':
                     self.conversion_algorithm = supervisely_to_sa
-                elif self.task == 'object_detection':
-                    self.conversion_algorithm = supervisely_object_detection_to_sa_vector
-                elif self.task == 'instance_segmentation':
-                    self.conversion_algorithm = supervisely_instance_segmentation_to_sa_vector
                 elif self.task == 'keypoint_detection':
                     self.conversion_algorithm = supervisely_keypoint_detection_to_sa_vector
             elif self.project_type == "Pixel":
@@ -57,7 +51,9 @@ class SuperviselyObjectDetectionStrategy(baseStrategy):
                 json_files, classes_id_map, self.output_dir
             )
         else:
-            sa_jsons = self.conversion_algorithm(json_files, classes_id_map)
+            sa_jsons = self.conversion_algorithm(
+                json_files, classes_id_map, self.task
+            )
         dump_output(self.output_dir, self.platform, sa_classes, sa_jsons)
 
     def _create_sa_classes(self):

@@ -27,9 +27,9 @@ def sagemaker_object_detection_to_sa_vector(data_path, main_key):
                 raise Exception
 
             manifest = dataset_manifest[int(img['datasetObjectId'])]
-            file_name = os.path.basename(
+            file_name = '%s___objects.json' % os.path.basename(
                 manifest['source-ref']
-            ) + '___objects.json'
+            )
 
             classes = img['consolidatedAnnotation']['content'][
                 main_key + '-metadata']['class-map']
@@ -41,12 +41,11 @@ def sagemaker_object_detection_to_sa_vector(data_path, main_key):
                 'annotations']
             sa_loader = []
             for annotation in annotations:
-                points = {
-                    'x1': annotation['left'],
-                    'y1': annotation['top'],
-                    'x2': annotation['left'] + annotation['width'],
-                    'y2': annotation['top'] + annotation['height']
-                }
+                points = (
+                    annotation['left'], annotation['top'],
+                    annotation['left'] + annotation['width'],
+                    annotation['top'] + annotation['height']
+                )
                 sa_obj = _create_vector_instance(
                     'bbox', points, {}, [], classes[str(annotation['class_id'])]
                 )

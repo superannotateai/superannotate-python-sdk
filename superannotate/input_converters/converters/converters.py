@@ -4,25 +4,16 @@ This object will receive the strategy from outside and will convert according to
    said strategy.
 
 '''
-
-import glob
-import os
-import json
-import shutil
-import time
-
-from tqdm import tqdm
-
 from .coco_converters.coco_strategies import CocoObjectDetectionStrategy, CocoKeypointDetectionStrategy, CocoPanopticConverterStrategy
+from .dataloop_converters.dataloop_strategies import DataLoopStrategy
+from .googlecloud_converters.googlecloud_strategies import GoogleCloudStrategy
+from .labelbox_converters.labelbox_strategies import LabelBoxStrategy
+from .sagemaker_converters.sagemaker_strategies import SageMakerStrategy
+from .supervisely_converters.supervisely_strategies import SuperviselyStrategy
+from .vgg_converters.vgg_strategies import VGGStrategy
 from .voc_converters.voc_strategies import VocObjectDetectionStrategy
-from .labelbox_converters.labelbox_strategies import LabelBoxObjectDetectionStrategy
-from .dataloop_converters.dataloop_strategies import DataLoopObjectDetectionStrategy
-from .supervisely_converters.supervisely_strategies import SuperviselyObjectDetectionStrategy
-from .vott_converters.vott_strategies import VoTTObjectDetectionStrategy
-from .sagemaker_converters.sagemaker_strategies import SageMakerObjectDetectionStrategy
-from .vgg_converters.vgg_strategies import VGGObjectDetectionStrategy
-from .googlecloud_converters.googlecloud_strategies import GoogleCloudObjectDetectionStrategy
-from .yolo_converters.yolo_strategies import YoloObjectDetectionStrategy
+from .vott_converters.vott_strategies import VoTTStrategy
+from .yolo_converters.yolo_strategies import YoloStrategy
 
 
 class Converter(object):
@@ -47,33 +38,26 @@ class Converter(object):
                 c_strategy = CocoKeypointDetectionStrategy(args)
             if args.task == 'panoptic_segmentation':
                 c_strategy = CocoPanopticConverterStrategy(args)
+        elif args.dataset_format == "DataLoop":
+            c_strategy = DataLoopStrategy(args)
+        elif args.dataset_format == "GoogleCloud":
+            c_strategy = GoogleCloudStrategy(args)
+        elif args.dataset_format == "LabelBox":
+            c_strategy = LabelBoxStrategy(args)
+        elif args.dataset_format == "SageMaker":
+            c_strategy = SageMakerStrategy(args)
+        elif args.dataset_format == "Supervisely":
+            c_strategy = SuperviselyStrategy(args)
+        elif args.dataset_format == "VGG":
+            c_strategy = VGGStrategy(args)
         elif args.dataset_format == "VOC":
             if args.task == 'instance_segmentation' or args.task == 'object_detection':
                 c_strategy = VocObjectDetectionStrategy(args)
-        elif args.dataset_format == "LabelBox":
-            if args.task == "object_detection" or args.task == 'instance_segmentation' or args.task == 'vector_annotation':
-                c_strategy = LabelBoxObjectDetectionStrategy(args)
-        elif args.dataset_format == "DataLoop":
-            if args.task == 'object_detection' or args.task == 'instance_segmentation' or args.task == 'vector_annotation':
-                c_strategy = DataLoopObjectDetectionStrategy(args)
-        elif args.dataset_format == "Supervisely":
-            if args.task == 'vector_annotation' or args.task == 'instance_segmentation' or args.task == 'object_detection' or args.task == 'keypoint_detection':
-                c_strategy = SuperviselyObjectDetectionStrategy(args)
         elif args.dataset_format == "VoTT":
-            if args.task == 'object_detection' or args.task == 'instance_segmentation' or args.task == 'vector_annotation':
-                c_strategy = VoTTObjectDetectionStrategy(args)
-        elif args.dataset_format == "SageMaker":
-            if args.task == 'object_detection' or args.task == 'instance_segmentation':
-                c_strategy = SageMakerObjectDetectionStrategy(args)
-        elif args.dataset_format == "VGG":
-            if args.task == 'object_detection' or args.task == 'instance_segmentation' or args.task == 'vector_annotation':
-                c_strategy = VGGObjectDetectionStrategy(args)
-        elif args.dataset_format == "GoogleCloud":
-            if args.task == 'object_detection':
-                c_strategy = GoogleCloudObjectDetectionStrategy(args)
+            c_strategy = VoTTStrategy(args)
         elif args.dataset_format == "YOLO":
             if args.task == 'object_detection':
-                c_strategy = YoloObjectDetectionStrategy(args)
+                c_strategy = YoloStrategy(args)
         else:
             pass
 

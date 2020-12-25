@@ -1,20 +1,26 @@
-import numpy as np
 import os
 import json
-import zlib
-import base64
-import cv2
 
 from .supervisely_helper import _base64_to_polygon, _create_attribute_list
 
 from ..sa_json_helper import _create_vector_instance
 
 
-def supervisely_to_sa(json_files, class_id_map):
+def supervisely_to_sa(json_files, class_id_map, task):
     sa_jsons = {}
+    if task == 'object_detection':
+        instance_types = ['rectangle']
+    elif task == 'instance_segmentation':
+        instance_types = ['bitmap', 'polygon']
+    elif task == 'vector_annotation':
+        instance_types = [
+            'point', 'rectangle', 'line', 'polygon', 'cuboid', 'bitmap'
+        ]
+
     for json_file in json_files:
-        file_name = os.path.splitext(os.path.basename(json_file)
-                                    )[0] + '___objects.json'
+        file_name = '%s___objects.json' % os.path.splitext(
+            os.path.basename(json_file)
+        )[0]
 
         json_data = json.load(open(json_file))
         sa_loader = []
@@ -26,6 +32,8 @@ def supervisely_to_sa(json_files, class_id_map):
                     attributes = _create_attribute_list(
                         obj['tags'], obj['classTitle'], class_id_map
                     )
+
+                if obj['geometryType'] in instance_types:
                     if obj['geometryType'] == 'point':
                         points = (
                             obj['points']['exterior'][0][0],
@@ -40,12 +48,12 @@ def supervisely_to_sa(json_files, class_id_map):
                         ]
                     elif obj['geometryType'] == 'rectangle':
                         instance_type = 'bbox'
-                        points = {
-                            'x1': obj['points']['exterior'][0][0],
-                            'y1': obj['points']['exterior'][0][1],
-                            'x2': obj['points']['exterior'][1][0],
-                            'y2': obj['points']['exterior'][1][1]
-                        }
+                        points = (
+                            obj['points']['exterior'][0][0],
+                            obj['points']['exterior'][0][1],
+                            obj['points']['exterior'][1][0],
+                            obj['points']['exterior'][1][1]
+                        )
                     elif obj['geometryType'] == 'polygon':
                         instance_type = 'polygon'
                         points = [
@@ -54,28 +62,12 @@ def supervisely_to_sa(json_files, class_id_map):
                         ]
                     elif obj['geometryType'] == 'cuboid':
                         instance_type = 'cuboid'
-                        points = {
-                            'f1':
-                                {
-                                    'x': obj['points'][0][0],
-                                    'y': obj['points'][0][1]
-                                },
-                            'f2':
-                                {
-                                    'x': obj['points'][2][0],
-                                    'y': obj['points'][2][1],
-                                },
-                            'r1':
-                                {
-                                    'x': obj['points'][4][0],
-                                    'y': obj['points'][4][1]
-                                },
-                            'r2':
-                                {
-                                    'x': obj['points'][5][0],
-                                    'y': obj['points'][6][1],
-                                }
-                        }
+                        points = (
+                            obj['points'][0][0], obj['points'][0][1],
+                            obj['points'][2][0], obj['points'][2][1],
+                            obj['points'][4][0], obj['points'][4][1],
+                            obj['points'][5][0], obj['points'][6][1]
+                        )
                     elif obj['geometryType'] == 'bitmap':
                         for ppoints in _base64_to_polygon(
                             obj['bitmap']['data']
@@ -91,71 +83,6 @@ def supervisely_to_sa(json_files, class_id_map):
                         instance_type, points, {}, attributes, obj['classTitle']
                     )
                     sa_loader.append(sa_obj)
-        sa_jsons[file_name] = sa_loader
-    return sa_jsons
-
-
-def supervisely_instance_segmentation_to_sa_vector(json_files, class_id_map):
-    sa_jsons = {}
-    for json_file in json_files:
-        file_name = os.path.splitext(os.path.basename(json_file)
-                                    )[0] + '___objects.json'
-
-        json_data = json.load(open(json_file))
-        sa_loader = []
-
-        for obj in json_data['objects']:
-            if 'classTitle' in obj and obj['classTitle'] in class_id_map.keys():
-                attributes = []
-                if 'tags' in obj.keys():
-                    attributes = _create_attribute_list(
-                        obj['tags'], obj['classTitle'], class_id_map
-                    )
-                    if obj['geometryType'] == 'polygon':
-                        instance_type = 'polygon'
-                        points = [
-                            item for el in obj['points']['exterior']
-                            for item in el
-                        ]
-                        sa_obj = _create_vector_instance(
-                            instance_type, points, {}, attributes,
-                            obj['classTitle']
-                        )
-
-        sa_jsons[file_name] = sa_loader
-    return sa_jsons
-
-
-def supervisely_object_detection_to_sa_vector(json_files, class_id_map):
-    sa_jsons = {}
-    for json_file in json_files:
-        file_name = os.path.splitext(os.path.basename(json_file)
-                                    )[0] + '___objects.json'
-
-        json_data = json.load(open(json_file))
-        sa_loader = []
-
-        for obj in json_data['objects']:
-            if 'classTitle' in obj and obj['classTitle'] in class_id_map.keys():
-                attributes = []
-                if 'tags' in obj.keys():
-                    attributes = _create_attribute_list(
-                        obj['tags'], obj['classTitle'], class_id_map
-                    )
-
-                    if obj['geometryType'] == 'rectangle':
-                        instance_type = 'bbox'
-                        points = {
-                            'x1': obj['points']['exterior'][0][0],
-                            'y1': obj['points']['exterior'][0][1],
-                            'x2': obj['points']['exterior'][1][0],
-                            'y2': obj['points']['exterior'][1][1]
-                        }
-                        sa_obj = _create_vector_instance(
-                            instance_type, points, {}, attributes,
-                            obj['classTitle']
-                        )
-                        sa_loader.append(sa_obj)
         sa_jsons[file_name] = sa_loader
     return sa_jsons
 

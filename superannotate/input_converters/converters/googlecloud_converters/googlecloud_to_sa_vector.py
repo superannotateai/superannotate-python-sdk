@@ -16,7 +16,7 @@ def _create_classes(classes):
     return classes_loader
 
 
-def googlecloud_object_detection_to_sa_vector(path):
+def googlecloud_to_sa_vector(path):
     df = pd.read_csv(path, header=None)
     dir_name = path.parent
 
@@ -28,14 +28,9 @@ def googlecloud_object_detection_to_sa_vector(path):
         file_name = row[1].split('/')[-1]
         img = cv2.imread(str(dir_name / file_name))
         H, W, _ = img.shape
-        sa_file_name = os.path.basename(file_name) + '___objects.json'
+        sa_file_name = '%s___objects.json' % os.path.basename(file_name)
 
-        points = {
-            'x1': row[3] * W,
-            'y1': row[4] * H,
-            'x2': row[5] * W,
-            'y2': row[8] * H
-        }
+        points = (row[3] * W, row[4] * H, row[5] * W, row[8] * H)
         sa_obj = _create_vector_instance('bbox', points, {}, [], row[2])
 
         if sa_file_name in sa_jsons.keys():

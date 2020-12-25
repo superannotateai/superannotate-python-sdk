@@ -130,12 +130,11 @@ def coco_object_detection_to_sa_vector(coco_path, images_path):
 
         cat = cat_id_to_cat[annot['category_id']]
 
-        points = {
-            'x1': annot['bbox'][0],
-            'y1': annot['bbox'][1],
-            'x2': annot['bbox'][0] + annot['bbox'][2],
-            'y2': annot['bbox'][1] + annot['bbox'][3]
-        }
+        points = (
+            annot['bbox'][0], annot['bbox'][1],
+            annot['bbox'][0] + annot['bbox'][2],
+            annot['bbox'][1] + annot['bbox'][3]
+        )
 
         sa_obj = _create_vector_instance('bbox', points, {}, [], cat['name'])
 

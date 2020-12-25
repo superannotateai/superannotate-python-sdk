@@ -6,8 +6,8 @@ from .yolo_to_sa_vector import yolo_object_detection_to_sa_vector
 from ....common import dump_output
 
 
-class YoloObjectDetectionStrategy(baseStrategy):
-    name = "ObjectDetection converter"
+class YoloStrategy(baseStrategy):
+    name = "Yolo converter"
 
     def __init__(self, args):
         super().__init__(args)

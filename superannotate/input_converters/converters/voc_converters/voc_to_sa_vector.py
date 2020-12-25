@@ -118,16 +118,11 @@ def voc_object_detection_to_sa_vector(voc_root):
         for class_name, bbox in voc_instances:
             classes.append(class_name)
 
-            points = {
-                "x1": bbox[0],
-                "y1": bbox[1],
-                "x2": bbox[2],
-                "y2": bbox[3]
-            }
+            points = (bbox[0], bbox[1], bbox[2], bbox[3])
             sa_obj = _create_vector_instance('bbox', points, {}, [], class_name)
             sa_loader.append(sa_obj)
 
-        sa_file_name = filename.stem + ".jpg___objects.json"
+        sa_file_name = "%s.jpg___objects.json" % filename.stem
         sa_jsons[sa_file_name] = sa_loader
 
     classes = _create_classes(classes)

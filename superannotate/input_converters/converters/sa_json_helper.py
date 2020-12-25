@@ -29,9 +29,34 @@ def _create_vector_instance(
         sa_instance['rx'] = points[2]
         sa_instance['ry'] = points[3]
         sa_instance['angle'] = points[4]
-    else:
+    elif instance_type == 'bbox':
+        sa_instance['points'] = {
+            'x1': points[0],
+            'y1': points[1],
+            'x2': points[2],
+            'y2': points[3]
+        }
+    elif instance_type in ('polygon', 'polyline'):
         sa_instance['points'] = points
-
+    elif instance_type == 'cuboid':
+        sa_instance['points'] = {
+            'f1': {
+                'x': points[0],
+                'y': points[1]
+            },
+            'f2': {
+                'x': points[2],
+                'y': points[3],
+            },
+            'r1': {
+                'x': points[4],
+                'y': points[5]
+            },
+            'r2': {
+                'x': points[6],
+                'y': points[7]
+            }
+        }
     if class_name:
         sa_instance['className'] = class_name
 
@@ -49,8 +74,14 @@ def _create_pixel_instance(parts, attributes, class_name=''):
     return sa_instance
 
 
-def _create_comment():
-    pass
+def _create_comment(points, comments):
+    sa_comment = {
+        'type': 'comment',
+        'x': points[0],
+        'y': points[1],
+        'comments': comments
+    }
+    return sa_comment
 
 
 def _create_empty_sa_json():

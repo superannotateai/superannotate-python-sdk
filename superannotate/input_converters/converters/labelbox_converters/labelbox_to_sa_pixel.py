@@ -12,7 +12,7 @@ from ..sa_json_helper import _create_pixel_instance
 from ....common import hex_to_rgb, blue_color_generator
 
 
-def labelbox_instance_segmentation_to_sa_pixel(json_data):
+def labelbox_instance_segmentation_to_sa_pixel(json_data, task):
     classes = _create_classes_id_map(json_data)
     sa_jsons = {}
     sa_masks = {}

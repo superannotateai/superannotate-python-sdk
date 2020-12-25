@@ -14,12 +14,19 @@ def _create_classes(classes_map):
     return classes_loader
 
 
-def vott_object_detection_to_sa_vector(file_list):
+def vott_to_sa(file_list, task):
     sa_jsons = {}
     classes = []
+    if task == 'object_detection':
+        instance_types = ['RECTANGLE']
+    elif task == 'instance_segmentation':
+        instance_types = ['POLYGON']
+    elif task == 'vector_annotation':
+        instance_types = ['RECTANGLE', 'POLYGON']
+
     for json_file in file_list:
         json_data = json.load(open(json_file))
-        file_name = json_data['asset']['name'] + '___objects.json'
+        file_name = '%s___objects.json' % json_data['asset']['name']
 
         instances = json_data['regions']
         sa_loader = []
@@ -27,99 +34,28 @@ def vott_object_detection_to_sa_vector(file_list):
             for tag in instance['tags']:
                 classes.append(tag)
 
-            if instance['type'] == 'RECTANGLE' or instance['type'] == 'POLYGON':
-                points = {
-                    'x1':
+            if instance['type'] in instance_types:
+                if instance['type'] == 'RECTANGLE':
+                    instance_type = 'bbox'
+                    points = (
                         instance['boundingBox']['left'],
-                    'y1':
                         instance['boundingBox']['top'],
-                    'x2':
                         instance['boundingBox']['left'] +
                         instance['boundingBox']['width'],
-                    'y2':
                         instance['boundingBox']['top'] +
-                        instance['boundingBox']['height'],
-                }
+                        instance['boundingBox']['height']
+                    )
+                elif instance['type'] == 'POLYGON':
+                    instance_type = 'polygon'
+                    points = []
+                    for point in instance['points']:
+                        points.append(point['x'])
+                        points.append(point['y'])
+
                 sa_obj = _create_vector_instance(
-                    'bbox', points, {}, [], instance['tags'][0]
+                    instance_type, points, {}, [], instance['tags'][0]
                 )
                 sa_loader.append(sa_obj.copy())
-
-        sa_jsons[file_name] = sa_loader
-
-    sa_classes = _create_classes(set(classes))
-    return sa_jsons, sa_classes
-
-
-def vott_instance_segmentation_to_sa_vector(file_list):
-    sa_jsons = {}
-    classes = []
-    for json_file in file_list:
-        json_data = json.load(open(json_file))
-        file_name = json_data['asset']['name'] + '___objects.json'
-
-        instances = json_data['regions']
-        sa_loader = []
-        for instance in instances:
-            classes.append(instance['tags'][0])
-            for tag in instance['tags']:
-                classes.append(tag)
-
-            if instance['type'] == 'POLYGON':
-                points = []
-                for point in instance['points']:
-                    points.append(point['x'])
-                    points.append(point['y'])
-                sa_obj = _create_vector_instance(
-                    'polygon', points, {}, [], instance['tags'][0]
-                )
-                sa_loader.append(sa_obj.copy())
-
-        sa_jsons[file_name] = sa_loader
-
-    sa_classes = _create_classes(set(classes))
-    return sa_jsons, sa_classes
-
-
-def vott_to_sa(file_list):
-    sa_jsons = {}
-    classes = []
-    for json_file in file_list:
-        json_data = json.load(open(json_file))
-        file_name = json_data['asset']['name'] + '___objects.json'
-
-        instances = json_data['regions']
-        sa_loader = []
-        for instance in instances:
-            classes.append(instance['tags'][0])
-            for tag in instance['tags']:
-                classes.append(tag)
-
-            if instance['type'] == 'RECTANGLE':
-                instance_type = 'bbox'
-                points = {
-                    'x1':
-                        instance['boundingBox']['left'],
-                    'y1':
-                        instance['boundingBox']['top'],
-                    'x2':
-                        instance['boundingBox']['left'] +
-                        instance['boundingBox']['width'],
-                    'y2':
-                        instance['boundingBox']['top'] +
-                        instance['boundingBox']['height'],
-                }
-            elif instance['type'] == 'POLYGON':
-                instance_type = 'polygon'
-                points = []
-                for point in instance['points']:
-                    points.append(point['x'])
-                    points.append(point['y'])
-
-            sa_obj = _create_vector_instance(
-                instance_type, points, {}, [], instance['tags'][0]
-            )
-            sa_loader.append(sa_obj.copy())
 
         sa_jsons[file_name] = sa_loader
 

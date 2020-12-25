@@ -63,18 +63,18 @@ def yolo_object_detection_to_sa_vector(data_path):
         for line in file:
             values = line.split()
             class_id = int(values[0])
-            points = {
-                'x1': float(values[1]) * W - float(values[3]) * W / 2,
-                'y1': float(values[2]) * H - float(values[4]) * H / 2,
-                'x2': float(values[1]) * W + float(values[3]) * W / 2,
-                'y2': float(values[2]) * H + float(values[4]) * H / 2
-            }
+            points = (
+                float(values[1]) * W - float(values[3]) * W / 2,
+                float(values[2]) * H - float(values[4]) * H / 2,
+                float(values[1]) * W + float(values[3]) * W / 2,
+                float(values[2]) * H + float(values[4]) * H / 2
+            )
             sa_obj = _create_vector_instance(
                 'bbox', points, {}, [], classes[class_id]
             )
             sa_loader.append(sa_obj.copy())
 
-        file_name = os.path.basename(file_name) + '___objects.json'
+        file_name = '%s___objects.json' % os.path.basename(file_name)
         sa_jsons[file_name] = sa_loader
 
     return sa_jsons, _create_classes(classes)

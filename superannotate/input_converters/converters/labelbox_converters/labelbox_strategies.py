@@ -1,10 +1,7 @@
 import json
 import cv2
 
-from .labelbox_to_sa_vector import (
-    labelbox_object_detection_to_sa_vector,
-    labelbox_instance_segmentation_to_sa_vector, labelbox_to_sa
-)
+from .labelbox_to_sa_vector import labelbox_to_sa
 from .labelbox_to_sa_pixel import labelbox_instance_segmentation_to_sa_pixel
 
 from ..baseStrategy import baseStrategy
@@ -12,8 +9,8 @@ from ..baseStrategy import baseStrategy
 from ....common import dump_output
 
 
-class LabelBoxObjectDetectionStrategy(baseStrategy):
-    name = "ObjectDetection converter"
+class LabelBoxStrategy(baseStrategy):
+    name = "LabelBox converter"
 
     def __init__(self, args):
         super().__init__(args)
@@ -22,12 +19,7 @@ class LabelBoxObjectDetectionStrategy(baseStrategy):
     def __setup_conversion_algorithm(self):
         if self.direction == "from":
             if self.project_type == "Vector":
-                if self.task == "object_detection":
-                    self.conversion_algorithm = labelbox_object_detection_to_sa_vector
-                elif self.task == 'instance_segmentation':
-                    self.conversion_algorithm = labelbox_instance_segmentation_to_sa_vector
-                elif self.task == 'vector_annotation':
-                    self.conversion_algorithm = labelbox_to_sa
+                self.conversion_algorithm = labelbox_to_sa
             else:
                 if self.task == 'instance_segmentation':
                     self.conversion_algorithm = labelbox_instance_segmentation_to_sa_pixel
@@ -39,7 +31,9 @@ class LabelBoxObjectDetectionStrategy(baseStrategy):
         json_data = json.load(
             open(self.export_root / (self.dataset_name + '.json'))
         )
-        sa_jsons, sa_classes, sa_masks = self.conversion_algorithm(json_data)
+        sa_jsons, sa_classes, sa_masks = self.conversion_algorithm(
+            json_data, self.task
+        )
         dump_output(self.output_dir, self.platform, sa_classes, sa_jsons)
 
         if self.project_type == 'Pixel':

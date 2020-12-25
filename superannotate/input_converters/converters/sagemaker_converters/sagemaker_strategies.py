@@ -10,8 +10,8 @@ from ..baseStrategy import baseStrategy
 from ....common import dump_output
 
 
-class SageMakerObjectDetectionStrategy(baseStrategy):
-    name = "ObjectDetection converter"
+class SageMakerStrategy(baseStrategy):
+    name = "SageMaker converter"
 
     def __init__(self, args):
         super().__init__(args)

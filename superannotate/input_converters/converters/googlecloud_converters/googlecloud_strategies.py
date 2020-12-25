@@ -1,23 +1,18 @@
 from pathlib import Path
 
+from .googlecloud_to_sa_vector import googlecloud_to_sa_vector
+
 from ..baseStrategy import baseStrategy
-from .googlecloud_to_sa_vector import googlecloud_object_detection_to_sa_vector
 
 from ....common import dump_output
 
 
-class GoogleCloudObjectDetectionStrategy(baseStrategy):
-    name = "ObjectDetection converter"
+class GoogleCloudStrategy(baseStrategy):
+    name = "GoogleCloud converter"
 
     def __init__(self, args):
         super().__init__(args)
-        self.__setup_conversion_algorithm()
-
-    def __setup_conversion_algorithm(self):
-        if self.direction == "from":
-            if self.project_type == "Vector":
-                if self.task == "object_detection":
-                    self.conversion_algorithm = googlecloud_object_detection_to_sa_vector
+        self.conversion_algorithm = googlecloud_to_sa_vector
 
     def __str__(self):
         return '{} object'.format(self.name)
