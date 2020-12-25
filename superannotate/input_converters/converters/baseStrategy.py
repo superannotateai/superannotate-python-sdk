@@ -1,24 +1,216 @@
+'''
+'''
 import logging
 
-import json
-from collections import namedtuple
-from datetime import datetime
-from pathlib import Path
+from .coco_converters.coco_to_sa_pixel import (
+    coco_instance_segmentation_to_sa_pixel,
+    coco_panoptic_segmentation_to_sa_pixel
+)
+from .coco_converters.coco_to_sa_vector import (
+    coco_instance_segmentation_to_sa_vector,
+    coco_keypoint_detection_to_sa_vector, coco_object_detection_to_sa_vector
+)
+from .coco_converters.sa_pixel_to_coco import (
+    sa_pixel_to_coco_instance_segmentation,
+    sa_pixel_to_coco_panoptic_segmentation
+)
+from .coco_converters.sa_vector_to_coco import (
+    sa_vector_to_coco_instance_segmentation,
+    sa_vector_to_coco_keypoint_detection, sa_vector_to_coco_object_detection
+)
 
-import numpy as np
-from PIL import Image
+from .voc_converters.voc_to_sa_pixel import voc_instance_segmentation_to_sa_pixel
+from .voc_converters.voc_to_sa_vector import (
+    voc_object_detection_to_sa_vector, voc_instance_segmentation_to_sa_vector
+)
 
-from ...common import id2rgb
+from .dataloop_converters.dataloop_to_sa_vector import dataloop_to_sa
+
+from .labelbox_converters.labelbox_to_sa_vector import labelbox_to_sa
+from .labelbox_converters.labelbox_to_sa_pixel import labelbox_instance_segmentation_to_sa_pixel
+
+from .sagemaker_converters.sagemaker_to_sa_vector import sagemaker_object_detection_to_sa_vector
+from .sagemaker_converters.sagemaker_to_sa_pixel import sagemaker_instance_segmentation_to_sa_pixel
+
+from .supervisely_converters.supervisely_to_sa_vector import (
+    supervisely_to_sa, supervisely_keypoint_detection_to_sa_vector
+)
+
+from .supervisely_converters.supervisely_to_sa_pixel import (
+    supervisely_instance_segmentation_to_sa_pixel
+)
+
+from .vgg_converters.vgg_to_sa_vector import vgg_to_sa
+
+from .vott_converters.vott_to_sa_vector import vott_to_sa
+
+from .googlecloud_converters.googlecloud_to_sa_vector import googlecloud_to_sa_vector
+
+from .yolo_converters.yolo_to_sa_vector import yolo_object_detection_to_sa_vector
 
 logger = logging.getLogger("superannotate-python-sdk")
+
+CONVERSION_ALGORITHMS = {
+    'from':
+        {
+            'COCO':
+                {
+                    'Vector':
+                        {
+                            'keypoint_detection':
+                                coco_keypoint_detection_to_sa_vector,
+                            'instance_segmentation':
+                                coco_instance_segmentation_to_sa_vector,
+                            'object_detection':
+                                coco_object_detection_to_sa_vector
+                        },
+                    'Pixel':
+                        {
+                            'panoptic_segmentation':
+                                coco_panoptic_segmentation_to_sa_pixel,
+                            'instance_segmentation':
+                                coco_instance_segmentation_to_sa_pixel
+                        }
+                },
+            'VOC':
+                {
+                    'Vector':
+                        {
+                            'object_detection':
+                                voc_object_detection_to_sa_vector,
+                            'instance_segmentation':
+                                voc_instance_segmentation_to_sa_vector
+                        },
+                    'Pixel':
+                        {
+                            'instance_segmentation':
+                                voc_instance_segmentation_to_sa_pixel
+                        }
+                },
+            'LabelBox':
+                {
+                    'Vector':
+                        {
+                            'object_detection': labelbox_to_sa,
+                            'instance_segmentation': labelbox_to_sa,
+                            'vector_annotation': labelbox_to_sa
+                        },
+                    'Pixel':
+                        {
+                            'instance_segmentation':
+                                labelbox_instance_segmentation_to_sa_pixel
+                        }
+                },
+            'DataLoop':
+                {
+                    'Vector':
+                        {
+                            'object_detection': dataloop_to_sa,
+                            'instance_segmentation': dataloop_to_sa,
+                            'vector_annotation': dataloop_to_sa
+                        },
+                    'Pixel': {}
+                },
+            'Supervisely':
+                {
+                    'Vector':
+                        {
+                            'vector_annotation':
+                                supervisely_to_sa,
+                            'instance_segmentation':
+                                supervisely_to_sa,
+                            'object_detection':
+                                supervisely_to_sa,
+                            'keypoint_detection':
+                                supervisely_keypoint_detection_to_sa_vector
+                        },
+                    'Pixel':
+                        {
+                            'instance_segmentation':
+                                supervisely_instance_segmentation_to_sa_pixel
+                        }
+                },
+            'VoTT':
+                {
+                    'Vector':
+                        {
+                            'instance_segmentation': vott_to_sa,
+                            'object_detection': vott_to_sa,
+                            'vector_annotation': vott_to_sa
+                        },
+                    'Pixel': {}
+                },
+            'SageMaker':
+                {
+                    'Vector':
+                        {
+                            'object_detection':
+                                sagemaker_object_detection_to_sa_vector
+                        },
+                    'Pixel':
+                        {
+                            'instance_segmentation':
+                                sagemaker_instance_segmentation_to_sa_pixel
+                        }
+                },
+            'VGG':
+                {
+                    'Vector':
+                        {
+                            'object_detection': vgg_to_sa,
+                            'instance_segmentation': vgg_to_sa,
+                            'vector_annotation': vgg_to_sa
+                        },
+                    'Pixel': {}
+                },
+            'GoogleCloud':
+                {
+                    'Vector': {
+                        'object_detection': googlecloud_to_sa_vector
+                    },
+                    'Pixel': {}
+                },
+            'YOLO':
+                {
+                    'Vector':
+                        {
+                            'object_detection':
+                                yolo_object_detection_to_sa_vector
+                        },
+                    'Pixel': {}
+                }
+        },
+    'to':
+        {
+            'COCO':
+                {
+                    'Vector':
+                        {
+                            'instance_segmentation':
+                                sa_vector_to_coco_instance_segmentation,
+                            'object_detection':
+                                sa_vector_to_coco_object_detection,
+                            'keypoint_detection':
+                                sa_vector_to_coco_keypoint_detection
+                        },
+                    'Pixel':
+                        {
+                            'panoptic_segmentation':
+                                sa_pixel_to_coco_panoptic_segmentation,
+                            'instance_segmentation':
+                                sa_pixel_to_coco_instance_segmentation
+                        }
+                },
+        }
+}
 
 
 class baseStrategy():
     def __init__(self, args):
         if args.dataset_format not in ('COCO', 'VOC'):
             logger.warning(
-                "Beta feature. " + args.dataset_format +
-                " to SuperAnnotate annotation format converter is in BETA state."
+                "Beta feature. %s to SuperAnnotate annotation format converter is in BETA state."
+                % args.dataset_format
             )
         self.project_type = args.project_type
         self.dataset_name = args.dataset_name
@@ -27,18 +219,15 @@ class baseStrategy():
         self.task = args.task
         self.direction = args.direction
         self.platform = args.platform
+        self.conversion_algorithm = CONVERSION_ALGORITHMS[self.direction][
+            args.dataset_format][self.project_type][self.task]
+
+        self.name = "%s %s converter" % (args.dataset_format, self.task)
 
         self.failed_conversion_cnt = 0
 
-    def _create_single_category(self, item):
-        category = {
-            'id': item.id,
-            'name': item.class_name,
-            'supercategory': item.class_name,
-            'isthing': 1,
-            'color': id2rgb(item.id)
-        }
-        return category
+    def __str__(self):
+        return '%s object' % (self.name)
 
     def set_output_dir(self, output_dir_):
         self.output_dir = output_dir_
@@ -54,155 +243,3 @@ class baseStrategy():
 
     def set_num_converted(self, num_converted_):
         self.num_converted = num_converted_
-
-    def _create_categories(self, path_to_classes):
-
-        classes = None
-        s_class = namedtuple('Class', ['class_name', 'id'])
-
-        with open(path_to_classes, 'r') as fp:
-            classes = json.load(fp)
-        categories = [
-            self._create_single_category(s_class(item, classes[item]))
-            for item in classes
-        ]
-        return categories
-
-    def _make_id_generator(self):
-        cur_id = 0
-        while True:
-            cur_id += 1
-            yield cur_id
-
-    def _create_skeleton(self):
-        out_json = {
-            'info':
-                {
-                    'description':
-                        'This is {} dataset.'.format(self.dataset_name),
-                    'url':
-                        'https://superannotate.ai',
-                    'version':
-                        '1.0',
-                    'year':
-                        2020,
-                    'contributor':
-                        'Superannotate AI',
-                    'date_created':
-                        datetime.now().strftime("%d/%m/%Y")
-                },
-            'licenses':
-                [
-                    {
-                        'url': 'https://superannotate.ai',
-                        'id': 1,
-                        'name': 'Superannotate AI'
-                    }
-                ],
-            'images': [],
-            'annotations': [],
-            'categories': []
-        }
-        return out_json
-
-    def _load_sa_jsons(self):
-        if self.project_type == 'Pixel':
-            jsons_gen = self.export_root.glob('*pixel.json')
-        elif self.project_type == 'Vector':
-            jsons_gen = self.export_root.glob('*objects.json')
-        jsons = list(jsons_gen)
-        self.set_num_converted(len(jsons))
-        return jsons
-
-    def _prepare_single_image_commons_pixel(self, id_, json_path):
-        ImgCommons = namedtuple(
-            'ImgCommons', [
-                'image_info', 'sa_ann_json', 'ann_mask', 'sa_bluemask_rgb',
-                'flat_mask'
-            ]
-        )
-        rm_len = len('___pixel.json')
-
-        sa_ann_json = json.load(open(json_path))
-        sa_bluemask_path = str(json_path)[:-rm_len] + '___save.png'
-
-        image_info = self.__make_image_info(json_path, id_, self.project_type)
-
-        sa_bluemask_rgb = np.asarray(
-            Image.open(sa_bluemask_path).convert('RGB'), dtype=np.uint32
-        )
-
-        ann_mask = np.zeros(
-            (image_info['height'], image_info['width']), dtype=np.uint32
-        )
-        flat_mask = (sa_bluemask_rgb[:, :, 0] <<
-                     16) | (sa_bluemask_rgb[:, :, 1] <<
-                            8) | (sa_bluemask_rgb[:, :, 2])
-
-        res = ImgCommons(
-            image_info, sa_ann_json, ann_mask, sa_bluemask_rgb, flat_mask
-        )
-
-        return res
-
-    def __make_image_info(self, json_path, id_, source_type):
-        if source_type == 'Pixel':
-            rm_len = len('___pixel.json')
-        elif source_type == 'Vector':
-            rm_len = len('___objects.json')
-
-        image_path = str(json_path)[:-rm_len]
-
-        img_width, img_height = Image.open(image_path).size
-        image_info = {
-            'id': id_,
-            'file_name': Path(image_path).name,
-            'height': img_height,
-            'width': img_width,
-            'license': 1
-        }
-
-        return image_info
-
-    def _prepare_single_image_commons_vector(self, id_, json_path):
-        ImgCommons = namedtuple('ImgCommons', ['image_info', 'sa_ann_json'])
-
-        image_info = self.__make_image_info(json_path, id_, self.project_type)
-        sa_ann_json = json.load(open(json_path))
-
-        res = ImgCommons(image_info, sa_ann_json)
-
-        return res
-
-    def _prepare_single_image_commons(self, id_, json_path):
-        res = None
-        if self.project_type == 'Pixel':
-            res = self._prepare_single_image_commons_pixel(id_, json_path)
-        elif self.project_type == 'Vector':
-            res = self._prepare_single_image_commons_vector(id_, json_path)
-        return res
-
-    def _create_sa_classes(self, json_path):
-        json_data = json.load(open(json_path))
-        classes_list = json_data["categories"]
-
-        colors = self._generate_colors(len(classes_list))
-        classes = []
-        for c, data in enumerate(classes_list):
-            classes_dict = {
-                'name': data["name"],
-                'id': data["id"],
-                'color': colors[c],
-                'attribute_groups': []
-            }
-            classes.append(classes_dict)
-
-        return classes
-
-    def _generate_colors(self, number):
-        colors = []
-        for _ in range(number):
-            color = np.random.choice(range(256), size=3)
-            hexcolor = "#%02x%02x%02x" % tuple(color)
-            colors.append(hexcolor)
-        return colors

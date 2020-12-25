@@ -1,26 +1,18 @@
 import logging
-import os
+
+from pathlib import Path
 from glob import glob
 
 import cv2
-import numpy as np
 
 from ..sa_json_helper import _create_vector_instance
+
+from ....common import write_to_json
 
 logger = logging.getLogger("superannotate-python-sdk")
 
 
-def _create_classes(classes):
-    classes_loader = []
-    for id_, name in classes.items():
-        color = np.random.choice(range(256), size=3)
-        hexcolor = "#%02x%02x%02x" % tuple(color)
-        sa_classes = {'name': name, 'color': hexcolor, 'attribute_groups': []}
-        classes_loader.append(sa_classes)
-    return classes_loader
-
-
-def yolo_object_detection_to_sa_vector(data_path):
+def yolo_object_detection_to_sa_vector(data_path, output_dir):
     classes = {}
     id_ = 0
     classes_file = open(data_path / 'classes.txt')
@@ -32,27 +24,26 @@ def yolo_object_detection_to_sa_vector(data_path):
 
     annotations = data_path.glob('*.txt')
 
-    sa_jsons = {}
     for annotation in annotations:
         base_name = annotation.name
         if base_name == 'classes.txt':
             continue
 
         file = open(annotation)
-        file_name = os.path.splitext(base_name)[0] + '.*'
-        files_list = glob(os.path.join(data_path, file_name))
+        file_name = '%s.*' % annotation.stem
+        files_list = glob(str(data_path / file_name))
         if len(files_list) == 1:
             logger.warning(
-                "'{}' image for annotation doesn't exist".format(annotation)
+                "'%s' image for annotation doesn't exist" % (annotation)
             )
             continue
-        elif len(files_list) > 2:
+        if len(files_list) > 2:
             logger.warning(
-                "'{}' multiple file for this annotation".format(annotation)
+                "'%s' multiple file for this annotation" % (annotation)
             )
             continue
         else:
-            if os.path.splitext(files_list[0])[1] == '.txt':
+            if Path(files_list[0]).suffix == 'txt':
                 file_name = files_list[1]
             else:
                 file_name = files_list[0]
@@ -74,7 +65,7 @@ def yolo_object_detection_to_sa_vector(data_path):
             )
             sa_loader.append(sa_obj.copy())
 
-        file_name = '%s___objects.json' % os.path.basename(file_name)
-        sa_jsons[file_name] = sa_loader
+        file_name = '%s___objects.json' % Path(file_name).name
+        write_to_json(output_dir / file_name, sa_loader)
 
-    return sa_jsons, _create_classes(classes)
+    return classes

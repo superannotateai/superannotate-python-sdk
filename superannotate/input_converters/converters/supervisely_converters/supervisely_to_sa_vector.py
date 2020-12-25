@@ -1,13 +1,15 @@
 import os
+from pathlib import Path
 import json
 
 from .supervisely_helper import _base64_to_polygon, _create_attribute_list
 
 from ..sa_json_helper import _create_vector_instance
 
+from ....common import write_to_json
 
-def supervisely_to_sa(json_files, class_id_map, task):
-    sa_jsons = {}
+
+def supervisely_to_sa(json_files, class_id_map, task, output_dir):
     if task == 'object_detection':
         instance_types = ['rectangle']
     elif task == 'instance_segmentation':
@@ -18,9 +20,7 @@ def supervisely_to_sa(json_files, class_id_map, task):
         ]
 
     for json_file in json_files:
-        file_name = '%s___objects.json' % os.path.splitext(
-            os.path.basename(json_file)
-        )[0]
+        file_name = '%s___objects.json' % Path(json_file).stem
 
         json_data = json.load(open(json_file))
         sa_loader = []
@@ -83,12 +83,11 @@ def supervisely_to_sa(json_files, class_id_map, task):
                         instance_type, points, {}, attributes, obj['classTitle']
                     )
                     sa_loader.append(sa_obj)
-        sa_jsons[file_name] = sa_loader
-    return sa_jsons
+        write_to_json(output_dir / file_name, sa_loader)
 
 
 def supervisely_keypoint_detection_to_sa_vector(
-    json_files, class_id_map, meta_json
+    json_files, class_id_map, meta_json, output_dir
 ):
     classes_skeleton = {}
     for class_ in meta_json['classes']:
@@ -106,10 +105,8 @@ def supervisely_keypoint_detection_to_sa_vector(
                 (edge['src'], edge['dst'])
             )
 
-    sa_jsons = {}
     for json_file in json_files:
-        file_name = os.path.splitext(os.path.basename(json_file)
-                                    )[0] + '___objects.json'
+        file_name = '%s___objects.json' % (Path(json_file).stem)
 
         json_data = json.load(open(json_file))
         sa_loader = []
@@ -122,44 +119,34 @@ def supervisely_keypoint_detection_to_sa_vector(
                         obj['tags'], obj['classTitle'], class_id_map
                     )
 
-                    sa_obj = {
-                        'type': '',
-                        'points': [],
-                        'className': obj['classTitle'],
-                        'pointLabels': {},
-                        'attributes': attributes,
-                        'probability': 100,
-                        'locked': False,
-                        'visible': True,
-                        'connections': []
-                    }
-
                     if obj['geometryType'] == 'graph':
-                        sa_obj['type'] = 'template'
                         good_nodes = []
                         nodes = obj['nodes']
                         index = 1
+                        points = []
+                        pointLabels = {}
                         for node, value in nodes.items():
                             good_nodes.append(node)
-                            sa_obj['points'].append(
+                            points.append(
                                 {
                                     'id': index,
                                     'x': value['loc'][0],
                                     'y': value['loc'][1]
                                 }
                             )
-                            sa_obj['pointLabels'][index - 1] = classes_skeleton[
+                            pointLabels[index - 1] = classes_skeleton[
                                 obj['classTitle']]['nodes'][node]
                             index += 1
 
                         index = 1
+                        connections = []
                         for edge in classes_skeleton[obj['classTitle']
                                                     ]['edges']:
                             if edge[0] not in good_nodes or edge[
                                 1] not in good_nodes:
                                 continue
 
-                            sa_obj['connections'].append(
+                            connections.append(
                                 {
                                     'id': index,
                                     'from': good_nodes.index(edge[0]) + 1,
@@ -167,7 +154,9 @@ def supervisely_keypoint_detection_to_sa_vector(
                                 }
                             )
                             index += 1
-
-                    sa_loader.append(sa_obj)
-        sa_jsons[file_name] = sa_loader
-    return sa_jsons
+                        sa_obj = _create_vector_instance(
+                            'template', points, pointLabels, attributes,
+                            obj['classTitle'], connections
+                        )
+                        sa_loader.append(sa_obj)
+        write_to_json(output_dir / file_name, sa_loader)

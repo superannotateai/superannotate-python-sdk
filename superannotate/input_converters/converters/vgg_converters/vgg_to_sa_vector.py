@@ -1,11 +1,14 @@
+'''
+'''
 import json
 
-from .vgg_helper import _create_classes, _create_attribute_list
+from .vgg_helper import _create_attribute_list
 from ..sa_json_helper import _create_vector_instance
 
+from ....common import write_to_json
 
-def vgg_to_sa(json_data, task):
-    sa_jsons = {}
+
+def vgg_to_sa(json_data, task, output_dir):
     all_jsons = []
     for path in json_data:
         all_jsons.append(json.load(open(path)))
@@ -21,14 +24,15 @@ def vgg_to_sa(json_data, task):
 
     class_id_map = {}
     for images in all_jsons:
-        for key, img in images.items():
+        for _, img in images.items():
             file_name = '%s___objects.json' % img['filename']
             sa_loader = []
             instances = img['regions']
             for instance in instances:
                 if 'type' not in instance['region_attributes'].keys():
                     raise KeyError(
-                        "'VGG' JSON should contain 'type' key which will be category name. Please correct JSON file."
+                        "'VGG' JSON should contain 'type' key which will \
+                        be category name. Please correct JSON file."
                     )
                 if not isinstance(instance['region_attributes']['type'], str):
                     raise ValueError(
@@ -92,7 +96,5 @@ def vgg_to_sa(json_data, task):
                         instance_type, points, {}, attributes, class_name
                     )
                     sa_loader.append(sa_obj)
-            sa_jsons[file_name] = sa_loader
-
-        sa_classes = _create_classes(class_id_map)
-    return sa_jsons, sa_classes
+            write_to_json(output_dir / file_name, sa_loader)
+    return class_id_map

@@ -1,26 +1,24 @@
 import json
 from pathlib import Path
-
-from .vott_to_sa_vector import vott_to_sa
+import numpy as np
 
 from ..baseStrategy import baseStrategy
-from ....common import dump_output
+
+from ....common import write_to_json
 
 
 class VoTTStrategy(baseStrategy):
-    name = "VoTT converter"
-
     def __init__(self, args):
         super().__init__(args)
-        self.conversion_algorithm = vott_to_sa
-
-    def __str__(self):
-        return '{} object'.format(self.name)
 
     def to_sa_format(self):
         json_data = self.get_file_list()
-        sa_jsons, sa_classes = self.conversion_algorithm(json_data, self.task)
-        dump_output(self.output_dir, self.platform, sa_classes, sa_jsons)
+        classes = self.conversion_algorithm(
+            json_data, self.task, self.output_dir
+        )
+        sa_classes = self._create_classes(classes)
+        (self.output_dir / 'classes').mkdir(exist_ok=True)
+        write_to_json(self.output_dir / 'classes' / 'classes.json', sa_classes)
 
     def get_file_list(self):
         json_file_list = []
@@ -33,3 +31,16 @@ class VoTTStrategy(baseStrategy):
                 json_file_list.append(gen)
 
         return json_file_list
+
+    def _create_classes(self, classes_map):
+        classes_loader = []
+        for key in classes_map:
+            color = np.random.choice(range(256), size=3)
+            hexcolor = "#%02x%02x%02x" % tuple(color)
+            sa_classes = {
+                'name': key,
+                'color': hexcolor,
+                'attribute_groups': []
+            }
+            classes_loader.append(sa_classes)
+        return classes_loader

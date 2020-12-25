@@ -1,19 +1,17 @@
 import cv2
-from tqdm import tqdm
 import numpy as np
 
-from .voc_helper import (_get_voc_instances_from_xml, _create_classes, _iou)
+from .voc_helper import (_get_voc_instances_from_xml, _iou)
 
 from ..sa_json_helper import _create_pixel_instance
 
-from ....common import hex_to_rgb, blue_color_generator
+from ....common import hex_to_rgb, blue_color_generator, write_to_json
 
 
-def _generate_polygons(object_mask_path, class_mask_path):
+def _generate_polygons(object_mask_path):
     segmentation = []
 
     object_mask = cv2.imread(str(object_mask_path), cv2.IMREAD_GRAYSCALE)
-    class_mask = cv2.imread(str(class_mask_path), cv2.IMREAD_GRAYSCALE)
 
     object_unique_colors = np.unique(object_mask)
 
@@ -58,7 +56,7 @@ def _generate_instances(polygon_instances, voc_instances, bluemask_colors):
             max(polygon[::2]),
             max(polygon[1::2])
         ]
-        for class_name, bbox in voc_instances:
+        for _, bbox in voc_instances:
             ious.append(_iou(bbox_poly, bbox))
         ind = np.argmax(ious)
         instances.append(
@@ -73,18 +71,14 @@ def _generate_instances(polygon_instances, voc_instances, bluemask_colors):
     return instances
 
 
-def voc_instance_segmentation_to_sa_pixel(voc_root):
+def voc_instance_segmentation_to_sa_pixel(voc_root, output_dir):
     classes = []
     object_masks_dir = voc_root / 'SegmentationObject'
-    class_masks_dir = voc_root / 'SegmentationClass'
     annotation_dir = voc_root / "Annotations"
 
-    sa_jsons = {}
-    sa_masks = {}
     for filename in object_masks_dir.glob('*'):
         polygon_instances, sa_mask, bluemask_colors = _generate_polygons(
-            object_masks_dir / filename.name,
-            class_masks_dir / filename.name,
+            object_masks_dir / filename.name
         )
         voc_instances = _get_voc_instances_from_xml(
             annotation_dir / filename.name
@@ -100,11 +94,10 @@ def voc_instance_segmentation_to_sa_pixel(voc_root):
             sa_loader.append(sa_obj)
             classes.append(instance['className'])
 
-        sa_file_name = filename.stem + ".jpg___pixel.json"
-        sa_jsons[sa_file_name] = sa_loader
+        file_name = "%s.jpg___pixel.json" % (filename.stem)
+        write_to_json(output_dir / file_name, sa_loader)
 
-        sa_mask_name = filename.stem + ".jpg___save.png"
-        sa_masks[sa_mask_name] = sa_mask
+        mask_name = "%s.jpg___save.png" % (filename.stem)
+        cv2.imwrite(str(output_dir / mask_name), sa_mask[:, :, ::-1])
 
-    classes = _create_classes(classes)
-    return (classes, sa_jsons, sa_masks)
+    return classes

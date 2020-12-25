@@ -1,21 +1,13 @@
+'''
+'''
 import json
-import numpy as np
 
 from ..sa_json_helper import _create_vector_instance
 
-
-def _create_classes(classes_map):
-    classes_loader = []
-    for key in classes_map:
-        color = np.random.choice(range(256), size=3)
-        hexcolor = "#%02x%02x%02x" % tuple(color)
-        sa_classes = {'name': key, 'color': hexcolor, 'attribute_groups': []}
-        classes_loader.append(sa_classes)
-    return classes_loader
+from ....common import write_to_json
 
 
-def vott_to_sa(file_list, task):
-    sa_jsons = {}
+def vott_to_sa(file_list, task, output_dir):
     classes = []
     if task == 'object_detection':
         instance_types = ['RECTANGLE']
@@ -57,7 +49,5 @@ def vott_to_sa(file_list, task):
                 )
                 sa_loader.append(sa_obj.copy())
 
-        sa_jsons[file_name] = sa_loader
-
-    sa_classes = _create_classes(set(classes))
-    return sa_jsons, sa_classes
+        write_to_json(output_dir / file_name, sa_loader)
+    return set(classes)

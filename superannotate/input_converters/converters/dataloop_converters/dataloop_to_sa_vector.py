@@ -3,15 +3,15 @@ import numpy as np
 
 from pathlib import Path
 
+from .dataloop_helper import (_update_classes_dict, _create_attributes_list)
+
 from ..sa_json_helper import _create_vector_instance, _create_comment
-from .dataloop_helper import (
-    _create_sa_classes, _update_classes_dict, _create_attributes_list
-)
+
+from ....common import write_to_json
 
 
-def dataloop_to_sa(input_dir, task):
+def dataloop_to_sa(input_dir, task, output_dir):
     classes = {}
-    sa_jsons = {}
     json_data = Path(input_dir).glob('*.json')
     if task == 'object_detection':
         instance_types = ['box']
@@ -84,7 +84,5 @@ def dataloop_to_sa(input_dir, task):
                 sa_loader.append(sa_tags)
 
         file_name = '%s___objects.json' % dl_data['filename'][1:]
-        sa_jsons[file_name] = sa_loader
-
-    classes = _create_sa_classes(classes)
-    return sa_jsons, classes
+        write_to_json(output_dir / file_name, sa_loader)
+    return classes

@@ -19,10 +19,7 @@ from ..sa_json_helper import _create_vector_instance
 
 def _rle_to_polygon(coco_json, annotation):
     coco = COCO(coco_json)
-    # start = time.time()
     binary_mask = coco.annToMask(annotation)
-    # stop = time.time()
-    # intervals.append(stop - start)
     contours, _ = cv2.findContours(
         binary_mask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
     )

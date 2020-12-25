@@ -11,7 +11,7 @@ from .labelbox_converters.labelbox_strategies import LabelBoxStrategy
 from .sagemaker_converters.sagemaker_strategies import SageMakerStrategy
 from .supervisely_converters.supervisely_strategies import SuperviselyStrategy
 from .vgg_converters.vgg_strategies import VGGStrategy
-from .voc_converters.voc_strategies import VocObjectDetectionStrategy
+from .voc_converters.voc_strategies import VocStrategy
 from .vott_converters.vott_strategies import VoTTStrategy
 from .yolo_converters.yolo_strategies import YoloStrategy
 
@@ -51,8 +51,7 @@ class Converter(object):
         elif args.dataset_format == "VGG":
             c_strategy = VGGStrategy(args)
         elif args.dataset_format == "VOC":
-            if args.task == 'instance_segmentation' or args.task == 'object_detection':
-                c_strategy = VocObjectDetectionStrategy(args)
+            c_strategy = VocStrategy(args)
         elif args.dataset_format == "VoTT":
             c_strategy = VoTTStrategy(args)
         elif args.dataset_format == "YOLO":

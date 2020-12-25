@@ -1,48 +1,181 @@
 import json
+import numpy as np
+
+from collections import namedtuple
+from datetime import datetime
 
 from pathlib import Path
 from PIL import Image
 from tqdm import tqdm
-
-# from .coco_converter import CoCoConverter
-from .coco_to_sa_pixel import (
-    coco_instance_segmentation_to_sa_pixel,
-    coco_panoptic_segmentation_to_sa_pixel
-)
-from .coco_to_sa_vector import (
-    coco_instance_segmentation_to_sa_vector,
-    coco_keypoint_detection_to_sa_vector, coco_object_detection_to_sa_vector
-)
-from .sa_pixel_to_coco import (
-    sa_pixel_to_coco_instance_segmentation,
-    sa_pixel_to_coco_panoptic_segmentation
-)
-from .sa_vector_to_coco import (
-    sa_vector_to_coco_instance_segmentation,
-    sa_vector_to_coco_keypoint_detection, sa_vector_to_coco_object_detection
-)
 
 from ..baseStrategy import baseStrategy
 
 from ....common import id2rgb, dump_output
 
 
-class CocoPanopticConverterStrategy(baseStrategy):
-    name = "Panoptic converter"
-
+class CocoBaseStrategy(baseStrategy):
     def __init__(self, args):
         super().__init__(args)
-        self.__setup_conversion_algorithm()
 
-    def __setup_conversion_algorithm(self):
-        if self.direction == "to":
-            if self.project_type == 'Pixel':
-                self.conversion_algorithm = sa_pixel_to_coco_panoptic_segmentation
-        else:
-            self.conversion_algorithm = coco_panoptic_segmentation_to_sa_pixel
+    def _create_categories(self, path_to_classes):
 
-    def __str__(self, ):
-        return '{} object'.format(self.name)
+        classes = None
+        s_class = namedtuple('Class', ['class_name', 'id'])
+
+        with open(path_to_classes, 'r') as fp:
+            classes = json.load(fp)
+        categories = [
+            self._create_single_category(s_class(item, classes[item]))
+            for item in classes
+        ]
+        return categories
+
+    def _create_single_category(self, item):
+        category = {
+            'id': item.id,
+            'name': item.class_name,
+            'supercategory': item.class_name,
+            'isthing': 1,
+            'color': id2rgb(item.id)
+        }
+        return category
+
+    def _make_id_generator(self):
+        cur_id = 0
+        while True:
+            cur_id += 1
+            yield cur_id
+
+    def _create_skeleton(self):
+        out_json = {
+            'info':
+                {
+                    'description':
+                        'This is {} dataset.'.format(self.dataset_name),
+                    'url':
+                        'https://superannotate.ai',
+                    'version':
+                        '1.0',
+                    'year':
+                        2020,
+                    'contributor':
+                        'Superannotate AI',
+                    'date_created':
+                        datetime.now().strftime("%d/%m/%Y")
+                },
+            'licenses':
+                [
+                    {
+                        'url': 'https://superannotate.ai',
+                        'id': 1,
+                        'name': 'Superannotate AI'
+                    }
+                ],
+            'images': [],
+            'annotations': [],
+            'categories': []
+        }
+        return out_json
+
+    def _load_sa_jsons(self):
+        if self.project_type == 'Pixel':
+            jsons_gen = self.export_root.glob('*pixel.json')
+        elif self.project_type == 'Vector':
+            jsons_gen = self.export_root.glob('*objects.json')
+        jsons = list(jsons_gen)
+        self.set_num_converted(len(jsons))
+        return jsons
+
+    def _prepare_single_image_commons_pixel(self, id_, json_path):
+        ImgCommons = namedtuple(
+            'ImgCommons', [
+                'image_info', 'sa_ann_json', 'ann_mask', 'sa_bluemask_rgb',
+                'flat_mask'
+            ]
+        )
+        rm_len = len('___pixel.json')
+
+        sa_ann_json = json.load(open(json_path))
+        sa_bluemask_path = str(json_path)[:-rm_len] + '___save.png'
+
+        image_info = self.__make_image_info(json_path, id_, self.project_type)
+
+        sa_bluemask_rgb = np.asarray(
+            Image.open(sa_bluemask_path).convert('RGB'), dtype=np.uint32
+        )
+
+        ann_mask = np.zeros(
+            (image_info['height'], image_info['width']), dtype=np.uint32
+        )
+        flat_mask = (sa_bluemask_rgb[:, :, 0] <<
+                     16) | (sa_bluemask_rgb[:, :, 1] <<
+                            8) | (sa_bluemask_rgb[:, :, 2])
+
+        res = ImgCommons(
+            image_info, sa_ann_json, ann_mask, sa_bluemask_rgb, flat_mask
+        )
+
+        return res
+
+    def __make_image_info(self, json_path, id_, source_type):
+        if source_type == 'Pixel':
+            rm_len = len('___pixel.json')
+        elif source_type == 'Vector':
+            rm_len = len('___objects.json')
+
+        image_path = str(json_path)[:-rm_len]
+
+        img_width, img_height = Image.open(image_path).size
+        image_info = {
+            'id': id_,
+            'file_name': Path(image_path).name,
+            'height': img_height,
+            'width': img_width,
+            'license': 1
+        }
+
+        return image_info
+
+    def _prepare_single_image_commons_vector(self, id_, json_path):
+        ImgCommons = namedtuple('ImgCommons', ['image_info', 'sa_ann_json'])
+
+        image_info = self.__make_image_info(json_path, id_, self.project_type)
+        sa_ann_json = json.load(open(json_path))
+
+        res = ImgCommons(image_info, sa_ann_json)
+
+        return res
+
+    def _prepare_single_image_commons(self, id_, json_path):
+        res = None
+        if self.project_type == 'Pixel':
+            res = self._prepare_single_image_commons_pixel(id_, json_path)
+        elif self.project_type == 'Vector':
+            res = self._prepare_single_image_commons_vector(id_, json_path)
+        return res
+
+    def _create_sa_classes(self, json_path):
+        json_data = json.load(open(json_path))
+        classes_list = json_data["categories"]
+
+        classes = []
+        for data in classes_list:
+            color = np.random.choice(range(256), size=3)
+            hexcolor = "#%02x%02x%02x" % tuple(color)
+            classes_dict = {
+                'name': data["name"],
+                'id': data["id"],
+                'color': hexcolor,
+                'attribute_groups': []
+            }
+            classes.append(classes_dict)
+
+        return classes
+
+
+class CocoPanopticConverterStrategy(CocoBaseStrategy):
+    def __init__(self, args):
+        super().__init__(args)
 
     def _sa_to_coco_single(self, id_, json_path, id_generator, cat_id_map):
 
@@ -100,37 +233,9 @@ class CocoPanopticConverterStrategy(baseStrategy):
         dump_output(self.output_dir, self.platform, sa_classes, sa_jsons)
 
 
-class CocoObjectDetectionStrategy(baseStrategy):
-    name = "ObjectDetection converter"
-
+class CocoObjectDetectionStrategy(CocoBaseStrategy):
     def __init__(self, args):
         super().__init__(args)
-        self.__setup_conversion_algorithm()
-
-    def __setup_conversion_algorithm(self):
-
-        if self.direction == "to":
-            if self.project_type == 'Pixel':
-                if self.task == 'instance_segmentation':
-                    self.conversion_algorithm = sa_pixel_to_coco_instance_segmentation
-
-            elif self.project_type == 'Vector':
-                if self.task == 'instance_segmentation':
-                    self.conversion_algorithm = sa_vector_to_coco_instance_segmentation
-                elif self.task == 'object_detection':
-                    self.conversion_algorithm = sa_vector_to_coco_object_detection
-        else:
-            if self.project_type == 'Pixel':
-                if self.task == 'instance_segmentation':
-                    self.conversion_algorithm = coco_instance_segmentation_to_sa_pixel
-            elif self.project_type == 'Vector':
-                if self.task == 'instance_segmentation':
-                    self.conversion_algorithm = coco_instance_segmentation_to_sa_vector
-                elif self.task == 'object_detection':
-                    self.conversion_algorithm = coco_object_detection_to_sa_vector
-
-    def __str__(self, ):
-        return '{} object'.format(self.name)
 
     def _sa_to_coco_single(self, id_, json_path, id_generator, cat_id_map):
 
@@ -165,7 +270,6 @@ class CocoObjectDetectionStrategy(baseStrategy):
         return res
 
     def sa_to_output_format(self):
-
         out_json = self._create_skeleton()
         out_json['categories'] = self._create_categories(
             self.export_root / 'classes_mapper.json'
@@ -208,21 +312,9 @@ class CocoObjectDetectionStrategy(baseStrategy):
         dump_output(self.output_dir, self.platform, sa_classes, sa_jsons)
 
 
-class CocoKeypointDetectionStrategy(baseStrategy):
-    name = 'Keypoint Detection Converter'
-
+class CocoKeypointDetectionStrategy(CocoBaseStrategy):
     def __init__(self, args):
         super().__init__(args)
-        self.__setup_conversion_algorithm()
-
-    def __str__(self):
-        return '{} object'.format(self.name)
-
-    def __setup_conversion_algorithm(self):
-        if self.direction == "to":
-            self.conversion_algorithm = sa_vector_to_coco_keypoint_detection
-        else:
-            self.conversion_algorithm = coco_keypoint_detection_to_sa_vector
 
     def __make_image_info(self, json_path, id_, source_type):
         if source_type == 'Pixel':

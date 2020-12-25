@@ -2,42 +2,42 @@ import cv2
 import numpy as np
 from tqdm import tqdm
 
-from .voc_helper import (_get_voc_instances_from_xml, _create_classes, _iou)
+from .voc_helper import (_get_voc_instances_from_xml, _iou)
 
 from ..sa_json_helper import _create_vector_instance
+from ....common import write_to_json
 
 
-def _generate_polygons(object_mask_path, class_mask_path):
+def _generate_polygons(object_mask_path):
     segmentation = []
 
     object_mask = cv2.imread(str(object_mask_path), cv2.IMREAD_GRAYSCALE)
-    class_mask = cv2.imread(str(class_mask_path), cv2.IMREAD_GRAYSCALE)
 
     object_unique_colors = np.unique(object_mask)
 
     index = 1
     groupId = 0
     for unique_color in object_unique_colors:
-        if unique_color == 0 or unique_color == 220:
+        if unique_color in (0, 220):
             continue
+
+        mask = np.zeros_like(object_mask)
+        mask[object_mask == unique_color] = 255
+        contours, _ = cv2.findContours(
+            mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+        )
+
+        segment = []
+        if len(contours) > 1:
+            for contour in contours:
+                segment.append(contour.flatten().tolist())
+            groupId = index
+            index += 1
         else:
-            mask = np.zeros_like(object_mask)
-            mask[object_mask == unique_color] = 255
-            contours, _ = cv2.findContours(
-                mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-            )
+            segment.append(contours[0].flatten().tolist())
+            groupId = 0
 
-            segment = []
-            if len(contours) > 1:
-                for contour in contours:
-                    segment.append(contour.flatten().tolist())
-                groupId = index
-                index += 1
-            else:
-                segment.append(contours[0].flatten().tolist())
-                groupId = 0
-
-            segmentation.append((segment, groupId))
+        segmentation.append((segment, groupId))
 
     return segmentation
 
@@ -58,7 +58,7 @@ def _generate_instances(polygon_instances, voc_instances):
             max(temp[::2]),
             max(temp[1::2])
         ]
-        for class_name, bbox in voc_instances:
+        for _, bbox in voc_instances:
             ious.append(_iou(bbox_poly, bbox))
         ind = np.argmax(ious)
         for poly in polygon:
@@ -73,18 +73,14 @@ def _generate_instances(polygon_instances, voc_instances):
     return instances
 
 
-def voc_instance_segmentation_to_sa_vector(voc_root):
+def voc_instance_segmentation_to_sa_vector(voc_root, output_dir):
     classes = []
     object_masks_dir = voc_root / 'SegmentationObject'
-    class_masks_dir = voc_root / 'SegmentationClass'
     annotation_dir = voc_root / "Annotations"
 
     file_list = object_masks_dir.glob('*')
-    sa_jsons = {}
     for filename in tqdm(file_list):
-        polygon_instances = _generate_polygons(
-            object_masks_dir / filename.name, class_masks_dir / filename.name
-        )
+        polygon_instances = _generate_polygons(object_masks_dir / filename.name)
         voc_instances = _get_voc_instances_from_xml(
             annotation_dir / filename.name
         )
@@ -98,18 +94,15 @@ def voc_instance_segmentation_to_sa_vector(voc_root):
 
             classes.append(instance["className"])
 
-        sa_file_name = filename.stem + ".jpg___objects.json"
-        sa_jsons[sa_file_name] = sa_loader
-
-    classes = _create_classes(classes)
-    return (classes, sa_jsons, None)
+        file_name = "%s.jpg___objects.json" % filename.stem
+        write_to_json(output_dir / file_name, sa_loader)
+    return classes
 
 
-def voc_object_detection_to_sa_vector(voc_root):
+def voc_object_detection_to_sa_vector(voc_root, output_dir):
     classes = []
     annotation_dir = voc_root / "Annotations"
     files_list = annotation_dir.glob('*')
-    sa_jsons = {}
     for filename in tqdm(files_list):
         voc_instances = _get_voc_instances_from_xml(
             annotation_dir / filename.name
@@ -122,8 +115,6 @@ def voc_object_detection_to_sa_vector(voc_root):
             sa_obj = _create_vector_instance('bbox', points, {}, [], class_name)
             sa_loader.append(sa_obj)
 
-        sa_file_name = "%s.jpg___objects.json" % filename.stem
-        sa_jsons[sa_file_name] = sa_loader
-
-    classes = _create_classes(classes)
-    return (classes, sa_jsons, None)
+        file_name = "%s.jpg___objects.json" % filename.stem
+        write_to_json(output_dir / file_name, sa_loader)
+    return classes

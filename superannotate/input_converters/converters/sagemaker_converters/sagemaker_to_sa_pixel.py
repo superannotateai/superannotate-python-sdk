@@ -1,17 +1,15 @@
-import os
 import cv2
 import json
 from glob import glob
 import numpy as np
-
-from .sagemaker_helper import _create_classes
+from pathlib import Path
 
 from ..sa_json_helper import _create_pixel_instance
 
-from ....common import hex_to_rgb, blue_color_generator
+from ....common import hex_to_rgb, blue_color_generator, write_to_json
 
 
-def sagemaker_instance_segmentation_to_sa_pixel(data_path):
+def sagemaker_instance_segmentation_to_sa_pixel(data_path, output_dir):
     img_mapping = {}
     try:
         img_map_file = open(data_path / 'output.manifest')
@@ -20,23 +18,22 @@ def sagemaker_instance_segmentation_to_sa_pixel(data_path):
 
     for line in img_map_file:
         dd = json.loads(line)
-        img_mapping[os.path.basename(dd['attribute-name-ref'])
-                   ] = os.path.basename(dd['source-ref'])
+        img_mapping[Path(dd['attribute-name-ref']).name] = Path(
+            dd['source-ref']
+        ).name
 
     json_list = data_path.glob('*.json')
     classes_ids = {}
-    sa_jsons = {}
-    sa_masks = {}
     for json_file in json_list:
         data_json = json.load(open(json_file))
         for annotataion in data_json:
             if 'consolidatedAnnotation' not in annotataion.keys():
                 print('Wrong json files')
                 raise Exception
-            mask_name = os.path.basename(
+            mask_name = Path(
                 annotataion['consolidatedAnnotation']['content']
                 ['attribute-name-ref']
-            )
+            ).name
 
             classes_dict = annotataion['consolidatedAnnotation']['content'][
                 'attribute-name-ref-metadata']['internal-color-map']
@@ -69,7 +66,7 @@ def sagemaker_instance_segmentation_to_sa_pixel(data_path):
 
             blue_colors = blue_color_generator(num_of_contours)
             idx = 0
-            sa_name = img_mapping[mask_name] + '___pixel.json'
+            file_name = '%s___pixel.json' % (img_mapping[mask_name])
             sa_loader = []
             sa_mask = np.zeros((H, W, C + 1))
             for name, contours in class_contours.items():
@@ -91,6 +88,9 @@ def sagemaker_instance_segmentation_to_sa_pixel(data_path):
                     idx += 1
                     sa_obj = _create_pixel_instance(parts, [], name)
                     sa_loader.append(sa_obj)
-            sa_jsons[sa_name] = sa_loader
-            sa_masks[img_mapping[mask_name] + '___save.png'] = sa_mask
-    return sa_jsons, _create_classes(classes_ids), sa_masks
+            write_to_json(output_dir / file_name, sa_loader)
+            cv2.imwrite(
+                str(output_dir / (img_mapping[mask_name] + '___save.png')),
+                sa_mask
+            )
+    return classes_ids

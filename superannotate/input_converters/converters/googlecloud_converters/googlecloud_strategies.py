@@ -1,23 +1,31 @@
 from pathlib import Path
-
-from .googlecloud_to_sa_vector import googlecloud_to_sa_vector
+import numpy as np
 
 from ..baseStrategy import baseStrategy
 
-from ....common import dump_output
+from ....common import write_to_json
 
 
 class GoogleCloudStrategy(baseStrategy):
-    name = "GoogleCloud converter"
-
     def __init__(self, args):
         super().__init__(args)
-        self.conversion_algorithm = googlecloud_to_sa_vector
-
-    def __str__(self):
-        return '{} object'.format(self.name)
 
     def to_sa_format(self):
         path = Path(self.export_root).joinpath(self.dataset_name + '.csv')
-        sa_jsons, sa_classes = self.conversion_algorithm(path)
-        dump_output(self.output_dir, self.platform, sa_classes, sa_jsons)
+        classes = self.conversion_algorithm(path, self.output_dir)
+        sa_classes = self._create_classes(classes)
+        (self.output_dir / 'classes').mkdir(exist_ok=True)
+        write_to_json(self.output_dir / 'classes' / 'classes.json', sa_classes)
+
+    def _create_classes(self, classes):
+        classes_loader = []
+        for class_ in set(classes):
+            color = np.random.choice(range(256), size=3)
+            hexcolor = "#%02x%02x%02x" % tuple(color)
+            sa_classes = {
+                'name': class_,
+                'color': hexcolor,
+                'attribute_groups': []
+            }
+            classes_loader.append(sa_classes)
+        return classes_loader

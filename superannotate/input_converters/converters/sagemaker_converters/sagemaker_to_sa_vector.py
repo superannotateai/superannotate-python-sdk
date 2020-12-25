@@ -1,13 +1,12 @@
-import os
 import json
-import numpy as np
+from pathlib import Path
 
-from .sagemaker_helper import _create_classes
 from ..sa_json_helper import _create_vector_instance
 
+from ....common import write_to_json
 
-def sagemaker_object_detection_to_sa_vector(data_path, main_key):
-    sa_jsons = {}
+
+def sagemaker_object_detection_to_sa_vector(data_path, main_key, output_dir):
     dataset_manifest = []
     try:
         img_map_file = open(data_path / 'output.manifest')
@@ -27,9 +26,7 @@ def sagemaker_object_detection_to_sa_vector(data_path, main_key):
                 raise Exception
 
             manifest = dataset_manifest[int(img['datasetObjectId'])]
-            file_name = '%s___objects.json' % os.path.basename(
-                manifest['source-ref']
-            )
+            file_name = '%s___objects.json' % Path(manifest['source-ref']).name
 
             classes = img['consolidatedAnnotation']['content'][
                 main_key + '-metadata']['class-map']
@@ -50,7 +47,5 @@ def sagemaker_object_detection_to_sa_vector(data_path, main_key):
                     'bbox', points, {}, [], classes[str(annotation['class_id'])]
                 )
                 sa_loader.append(sa_obj.copy())
-            sa_jsons[file_name] = sa_loader
-
-    sa_classes = _create_classes(classes_ids)
-    return sa_jsons, sa_classes, None
+            write_to_json(output_dir / file_name, sa_loader)
+    return classes_ids

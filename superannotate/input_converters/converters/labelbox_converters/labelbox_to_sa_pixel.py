@@ -3,19 +3,16 @@ import cv2
 import numpy as np
 
 from .labelbox_helper import (
-    image_downloader, _create_classes_json, _create_classes_id_map,
-    _create_attributes_list
+    image_downloader, _create_classes_id_map, _create_attributes_list
 )
 
 from ..sa_json_helper import _create_pixel_instance
 
-from ....common import hex_to_rgb, blue_color_generator
+from ....common import hex_to_rgb, blue_color_generator, write_to_json
 
 
-def labelbox_instance_segmentation_to_sa_pixel(json_data, task):
+def labelbox_instance_segmentation_to_sa_pixel(json_data, task, output_dir):
     classes = _create_classes_id_map(json_data)
-    sa_jsons = {}
-    sa_masks = {}
     for d in json_data:
         file_name = d['External ID'] + '___pixel.json'
         mask_name = d['External ID'] + '___save.png'
@@ -53,8 +50,6 @@ def labelbox_instance_segmentation_to_sa_pixel(json_data, task):
             sa_loader.append(sa_obj.copy())
             Path(mask_name).unlink()
 
-        sa_jsons[file_name] = sa_loader
-        sa_masks[mask_name] = sa_mask
-
-    sa_classes = _create_classes_json(classes)
-    return sa_jsons, sa_classes, sa_masks
+        write_to_json(output_dir / file_name, sa_loader)
+        cv2.imwrite(str(output_dir / mask_name), sa_mask)
+    return classes

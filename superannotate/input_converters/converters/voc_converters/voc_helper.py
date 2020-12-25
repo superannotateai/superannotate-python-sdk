@@ -18,16 +18,6 @@ def _get_voc_instances_from_xml(file_path):
     return voc_instances
 
 
-def _create_classes(classes):
-    sa_classes = []
-    for class_ in set(classes):
-        color = np.random.choice(range(256), size=3)
-        hexcolor = "#%02x%02x%02x" % tuple(color)
-        sa_class = {"name": class_, "color": hexcolor, "attribute_groups": []}
-        sa_classes.append(sa_class)
-    return sa_classes
-
-
 def _iou(bbox1, bbox2):
     xmin1, ymin1, xmax1, ymax1 = bbox1
     xmin2, ymin2, xmax2, ymax2 = bbox2

@@ -1,12 +1,11 @@
-from .labelbox_helper import (
-    _create_classes_json, _create_classes_id_map, _create_attributes_list
-)
+from .labelbox_helper import (_create_classes_id_map, _create_attributes_list)
 from ..sa_json_helper import _create_vector_instance
 
+from ....common import write_to_json
 
-def labelbox_to_sa(json_data, task):
+
+def labelbox_to_sa(json_data, task, output_dir):
     classes = _create_classes_id_map(json_data)
-    sa_jsons = {}
     if task == 'object_detection':
         instance_types = ['bbox']
     elif task == 'instance_segmentation':
@@ -17,7 +16,7 @@ def labelbox_to_sa(json_data, task):
     for d in json_data:
         if 'objects' not in d['Label'].keys():
             file_name = d['External ID'] + '___objects.json'
-            sa_jsons[file_name] = []
+            write_to_json(output_dir / file_name, [])
             continue
 
         instances = d["Label"]["objects"]
@@ -64,7 +63,5 @@ def labelbox_to_sa(json_data, task):
             sa_loader.append(sa_obj)
 
         file_name = '%s___objects.json' % d['External ID']
-        sa_jsons[file_name] = sa_loader
-
-    sa_classes = _create_classes_json(classes)
-    return sa_jsons, sa_classes, None
+        write_to_json(output_dir / file_name, sa_loader)
+    return classes
