@@ -1,11 +1,7 @@
 from pathlib import Path
 import json
 
-import pytest
-
 import superannotate as sa
-
-sa.init(Path.home() / ".superannotate" / "config.json")
 
 PROJECT_NAME = "Example Project test annotation add"
 PROJECT_NAME_NOINIT = "Example Project test annotation add no init"

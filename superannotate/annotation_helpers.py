@@ -3,6 +3,10 @@ import json
 from .exceptions import SABaseException
 
 
+def _create_empty_annotation_json():
+    return {"instances": [], "metadata": {}, "comments": [], "tags": []}
+
+
 def add_annotation_comment_to_json(
     annotation_json,
     comment_text,
@@ -29,23 +33,23 @@ def add_annotation_comment_to_json(
         raise SABaseException(0, "Comment should have two values")
 
     path = None
-    if not isinstance(annotation_json, list) and annotation_json is not None:
+    if not isinstance(annotation_json, dict) and annotation_json is not None:
         path = annotation_json
         annotation_json = json.load(open(annotation_json))
+    elif annotation_json is None:
+        annotation_json = _create_empty_annotation_json()
 
     annotation = {
         "type": "comment",
         "x": comment_coords[0],
         "y": comment_coords[1],
-        "comments": [{
+        "correspondence": [{
             "text": comment_text,
             "id": comment_author
         }],
         "resolved": resolved
     }
-    if annotation_json is None:
-        annotation_json = []
-    annotation_json.append(annotation)
+    annotation_json["comments"].append(annotation)
 
     if path is not None:
         json.dump(annotation_json, open(path, "w"))
