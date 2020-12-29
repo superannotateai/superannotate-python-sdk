@@ -861,7 +861,12 @@ def upload_image_annotations(
     :type mask: BytesIO or Pathlike (str or Path)
     """
 
-    if not isinstance(annotation_json, list):
+    if isinstance(annotation_json, list):
+        raise SABaseException(
+            0,
+            "Annotation JSON should be a dict object. You are using list object. If this is an old annotation format you can convert it to new format with superannotate.update_json_format SDK function"
+        )
+    if not isinstance(annotation_json, dict):
         if verbose:
             logger.info("Uploading annotations from %s.", annotation_json)
         annotation_json = json.load(open(annotation_json))
