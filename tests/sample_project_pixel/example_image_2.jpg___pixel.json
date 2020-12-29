@@ -1,0 +1,579 @@
+{
+  "metadata": {
+    "name": "example_image_2.jpg",
+    "width": null,
+    "height": null,
+    "status": null,
+    "pinned": null,
+    "isPredicted": null,
+    "projectId": null,
+    "annotatorEmail": null,
+    "qaEmail": null,
+    "isSegmented": null
+  },
+  "instances": [
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#00000f"
+        }
+      ],
+      "className": "Personal vehicle"
+    },
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#00001e"
+        }
+      ],
+      "className": "Personal vehicle"
+    },
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#00002d"
+        }
+      ],
+      "className": "Personal vehicle"
+    },
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#00003c"
+        }
+      ],
+      "className": "Personal vehicle"
+    },
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#00004b"
+        }
+      ],
+      "className": "Personal vehicle"
+    },
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#00005a"
+        }
+      ],
+      "className": "Personal vehicle"
+    },
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#000069"
+        }
+      ],
+      "className": "Personal vehicle"
+    },
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#000078"
+        }
+      ],
+      "className": "Personal vehicle"
+    },
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#000087"
+        }
+      ],
+      "className": "Personal vehicle"
+    },
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#000096"
+        }
+      ],
+      "className": "Personal vehicle"
+    },
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#0000a5"
+        }
+      ],
+      "className": "Personal vehicle"
+    },
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#0000b4"
+        }
+      ],
+      "className": "Personal vehicle"
+    },
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#0000c3"
+        }
+      ],
+      "className": "Personal vehicle"
+    },
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#0000d2"
+        }
+      ],
+      "className": "Personal vehicle"
+    },
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#0000e1"
+        },
+        {
+          "color": "#0000f0"
+        }
+      ],
+      "className": "Personal vehicle"
+    },
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#0000ff"
+        }
+      ],
+      "className": "Personal vehicle"
+    },
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#00010e"
+        }
+      ],
+      "className": "Personal vehicle"
+    },
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#00011d"
+        }
+      ],
+      "className": "Personal vehicle"
+    },
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#00012c"
+        }
+      ],
+      "className": "Personal vehicle"
+    },
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#00013b"
+        },
+        {
+          "color": "#00014a"
+        }
+      ],
+      "className": "Personal vehicle"
+    },
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#000159"
+        },
+        {
+          "color": "#000168"
+        },
+        {
+          "color": "#000177"
+        }
+      ],
+      "className": "Personal vehicle"
+    },
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#000186"
+        }
+      ],
+      "className": "Personal vehicle"
+    },
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#000195"
+        }
+      ],
+      "className": "Personal vehicle"
+    },
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#0001c2"
+        }
+      ],
+      "className": "Personal vehicle"
+    },
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#0001d1"
+        },
+        {
+          "color": "#0001e0"
+        }
+      ],
+      "className": "Personal vehicle"
+    },
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#0001ef"
+        },
+        {
+          "color": "#0001fe"
+        },
+        {
+          "color": "#00020d"
+        },
+        {
+          "color": "#00021c"
+        }
+      ],
+      "className": "Personal vehicle"
+    },
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#00022b"
+        }
+      ],
+      "className": "Personal vehicle"
+    },
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#00023a"
+        }
+      ],
+      "className": "Personal vehicle"
+    },
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#000249"
+        },
+        {
+          "color": "#000258"
+        }
+      ],
+      "className": "Personal vehicle"
+    },
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#000267"
+        }
+      ],
+      "className": "Personal vehicle"
+    },
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#000276"
+        }
+      ],
+      "className": "Personal vehicle"
+    },
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#000285"
+        }
+      ],
+      "className": "Personal vehicle"
+    },
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#000294"
+        }
+      ],
+      "className": "Personal vehicle"
+    },
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#0002a3"
+        },
+        {
+          "color": "#0002b2"
+        }
+      ],
+      "className": "Personal vehicle"
+    },
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#0002c1"
+        }
+      ],
+      "className": "Personal vehicle"
+    },
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#0002d0"
+        },
+        {
+          "color": "#0002df"
+        }
+      ],
+      "className": "Personal vehicle"
+    },
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#00032a"
+        }
+      ],
+      "className": "Personal vehicle"
+    },
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#000339"
+        }
+      ],
+      "className": "Personal vehicle"
+    },
+    {
+      "classId": 56821,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#0001a4"
+        }
+      ],
+      "className": "Large vehicle"
+    },
+    {
+      "classId": 56821,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#0001b3"
+        }
+      ],
+      "className": "Large vehicle"
+    },
+    {
+      "classId": 56824,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#0002ee"
+        }
+      ],
+      "className": "Traffic sign"
+    },
+    {
+      "classId": 56824,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#0002fd"
+        }
+      ],
+      "className": "Traffic sign"
+    },
+    {
+      "classId": 56824,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#00030c"
+        }
+      ],
+      "className": "Traffic sign"
+    },
+    {
+      "classId": 56824,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#00031b"
+        }
+      ],
+      "className": "Traffic sign"
+    }
+  ],
+  "tags": [],
+  "comments": []
+}

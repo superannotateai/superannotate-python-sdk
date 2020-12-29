@@ -1,0 +1,126 @@
+{
+  "metadata": {
+    "name": "example_image_3.jpg",
+    "width": null,
+    "height": null,
+    "status": null,
+    "pinned": null,
+    "isPredicted": null,
+    "projectId": null,
+    "annotatorEmail": null,
+    "qaEmail": null,
+    "isSegmented": null
+  },
+  "instances": [
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#00013b"
+        }
+      ],
+      "className": "Personal vehicle"
+    },
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#00014a"
+        }
+      ],
+      "className": "Personal vehicle"
+    },
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#000159"
+        }
+      ],
+      "className": "Personal vehicle"
+    },
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#000168"
+        }
+      ],
+      "className": "Personal vehicle"
+    },
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#000177"
+        }
+      ],
+      "className": "Personal vehicle"
+    },
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#000186"
+        }
+      ],
+      "className": "Personal vehicle"
+    },
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#000195"
+        }
+      ],
+      "className": "Personal vehicle"
+    },
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#0001a4"
+        }
+      ],
+      "className": "Personal vehicle"
+    },
+    {
+      "classId": 56820,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#0001b3"
+        }
+      ],
+      "className": "Personal vehicle"
+    }
+  ],
+  "tags": [],
+  "comments": []
+}

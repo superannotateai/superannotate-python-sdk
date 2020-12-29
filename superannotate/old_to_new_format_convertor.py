@@ -56,5 +56,5 @@ def update_json_format(old_json_path, new_json_path, project_type):
         else:
             new_json_data["instances"].append(item)
 
-    with open(new_json_path, "w+") as jf:
-        jf.write(json.dumps(new_json_data))
+    with open(new_json_path, "w") as jf:
+        json.dump(new_json_data, jf, indent=2)
