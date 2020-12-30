@@ -980,7 +980,7 @@ def create_fuse_image(
         if output_overlay:
             fi_pil_ovl = Image.fromarray(fi_ovl)
             draw_ovl = ImageDraw.Draw(fi_pil_ovl)
-        for annotation in annotation_json:
+        for annotation in annotation_json["instances"]:
             if "className" not in annotation:
                 continue
             color = class_color_dict[annotation["className"]]
@@ -1080,7 +1080,7 @@ def create_fuse_image(
     else:
         annotation_mask = np.array(Image.open(annotation_path[1]))
         # print(annotation_mask.shape, annotation_mask.dtype)
-        for annotation in annotation_json:
+        for annotation in annotation_json["instances"]:
             if "className" not in annotation or "parts" not in annotation:
                 continue
             color = class_color_dict[annotation["className"]]
