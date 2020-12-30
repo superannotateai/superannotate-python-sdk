@@ -9,8 +9,7 @@ def test_supervisely_convert_vector(tmpdir):
     ) / 'converter_test' / 'Supervisely' / 'input' / 'toSuperAnnotate' / 'vector'
     out_dir = Path(tmpdir) / 'vector_annotation'
     sa.import_annotation(
-        input_dir, out_dir, 'Supervisely', '', 'Vector', 'vector_annotation',
-        'Web'
+        input_dir, out_dir, 'Supervisely', '', 'Vector', 'vector_annotation'
     )
 
     project_name = "supervisely_test_vector_basic"
@@ -33,8 +32,7 @@ def test_supervisely_convert_object(tmpdir):
     ) / 'converter_test' / 'Supervisely' / 'input' / 'toSuperAnnotate' / 'vector'
     out_dir = Path(tmpdir) / 'object_detection_desktop'
     sa.import_annotation(
-        input_dir, out_dir, 'Supervisely', '', 'Vector', 'object_detection',
-        'Desktop'
+        input_dir, out_dir, 'Supervisely', '', 'Vector', 'object_detection'
     )
 
 
@@ -44,8 +42,7 @@ def test_supervisely_convert_instance(tmpdir):
     ) / 'converter_test' / 'Supervisely' / 'input' / 'toSuperAnnotate' / 'vector'
     out_dir = Path(tmpdir) / 'instance_segmentation'
     sa.import_annotation(
-        input_dir, out_dir, 'Supervisely', '', 'Vector',
-        'instance_segmentation', 'Web'
+        input_dir, out_dir, 'Supervisely', '', 'Vector', 'instance_segmentation'
     )
     project_name = "supervisely_test_vector_convert_instance"
 
@@ -67,8 +64,7 @@ def test_supervisely_convert_keypoint(tmpdir):
     ) / 'converter_test' / 'Supervisely' / 'input' / 'toSuperAnnotate' / 'keypoints'
     out_dir = Path(tmpdir) / 'keypoint_detection'
     sa.import_annotation(
-        input_dir, out_dir, 'Supervisely', '', 'Vector', 'keypoint_detection',
-        'Web'
+        input_dir, out_dir, 'Supervisely', '', 'Vector', 'keypoint_detection'
     )
 
     project_name = "supervisely_test_keypoint"
@@ -91,8 +87,7 @@ def test_supervisely_convert_instance_pixel(tmpdir):
     ) / 'converter_test' / 'Supervisely' / 'input' / 'toSuperAnnotate' / 'instance'
     out_dir = Path(tmpdir) / 'instance_segmentation_pixel'
     sa.import_annotation(
-        input_dir, out_dir, 'Supervisely', '', 'Pixel', 'instance_segmentation',
-        'Web'
+        input_dir, out_dir, 'Supervisely', '', 'Pixel', 'instance_segmentation'
     )
 
     project_name = "supervisely_test_instance_pixel"

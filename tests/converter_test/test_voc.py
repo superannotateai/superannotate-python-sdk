@@ -8,7 +8,7 @@ def test_voc_vector_instance(tmpdir):
     ) / "converter_test" / "VOC" / "input" / "fromPascalVOCToSuperAnnotate" / "VOC2012"
     out_dir = Path(tmpdir) / "instance_vector"
     sa.import_annotation(
-        input_dir, out_dir, "VOC", "", "Vector", "instance_segmentation", "Web"
+        input_dir, out_dir, "VOC", "", "Vector", "instance_segmentation"
     )
 
     project_name = "voc2sa_vector_instance"
@@ -31,7 +31,7 @@ def test_voc_vector_object(tmpdir):
     ) / "converter_test" / "VOC" / "input" / "fromPascalVOCToSuperAnnotate" / "VOC2012"
     out_dir = Path(tmpdir) / "object_vector"
     sa.import_annotation(
-        input_dir, out_dir, "VOC", "", "Vector", "object_detection", "Desktop"
+        input_dir, out_dir, "VOC", "", "Vector", "object_detection"
     )
 
 
@@ -41,7 +41,7 @@ def test_voc_pixel(tmpdir):
     ) / "converter_test" / "VOC" / "input" / "fromPascalVOCToSuperAnnotate" / "VOC2012"
     out_dir = Path(tmpdir) / "instance_pixel"
     sa.import_annotation(
-        input_dir, out_dir, "VOC", "", "Pixel", "instance_segmentation", "Web"
+        input_dir, out_dir, "VOC", "", "Pixel", "instance_segmentation"
     )
 
     project_name = "voc2sa_pixel"

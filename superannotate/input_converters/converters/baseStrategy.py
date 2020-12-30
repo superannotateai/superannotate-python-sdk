@@ -218,7 +218,6 @@ class baseStrategy():
         self.output_dir = args.output_dir
         self.task = args.task
         self.direction = args.direction
-        self.platform = args.platform
         self.conversion_algorithm = CONVERSION_ALGORITHMS[self.direction][
             args.dataset_format][self.project_type][self.task]
 

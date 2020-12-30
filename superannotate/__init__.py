@@ -74,8 +74,8 @@ from .exceptions import (
     SANonExistingProjectNameException
 )
 from .input_converters.conversion import (
-    coco_split_dataset, convert_platform, convert_project_type,
-    export_annotation, import_annotation
+    coco_split_dataset, convert_project_type, export_annotation,
+    import_annotation
 )
 from .version import __version__
 

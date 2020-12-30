@@ -7,34 +7,58 @@ from pathlib import Path
 from collections import defaultdict
 from tqdm import tqdm
 
-from superannotate.pycocotools_sa.coco import COCO
-from superannotate.pycocotools_sa import mask as maskUtils
-
 import time
 
-from ....common import id2rgb
+from .coco_api import (_maskfrRLE, decode)
 
-from ..sa_json_helper import _create_vector_instance
+from ..sa_json_helper import (_create_vector_instance, _create_empty_sa_json)
+
+from ....common import id2rgb, write_to_json
 
 
-def _rle_to_polygon(coco_json, annotation):
-    coco = COCO(coco_json)
-    binary_mask = coco.annToMask(annotation)
+def annot_to_polygon(annot):
+    if isinstance(annot['counts'], list):
+        bitmask = _maskfrRLE(annot)
+    elif isinstance(annot['counts'], str):
+        bitmask = decode(annot)
+
     contours, _ = cv2.findContours(
-        binary_mask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+        bitmask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
     )
-    segmentation = []
-
+    segments = []
     for contour in contours:
         contour = contour.flatten().tolist()
         if len(contour) > 4:
-            segmentation.append(contour)
-        if len(segmentation) == 0:
-            continue
-    return segmentation
+            segments.append(contour)
+
+    return segments
 
 
-def coco_instance_segmentation_to_sa_vector(coco_path, images_path):
+def save_sa_jsons(coco_json, img_id_to_annot, output_dir):
+    for img in tqdm(coco_json['images'], "Writing annotations to disk"):
+        # json_template = _create_empty_sa_json()
+        if 'file_name' in img:
+            image_path = Path(img['file_name']).name
+        else:
+            image_path = img['coco_url'].split('/')[-1]
+
+        if str(img['id']) not in img_id_to_annot:
+            sa_instances = []
+        else:
+            sa_instances = img_id_to_annot[str(img['id'])]
+        file_name = "%s___objects.json" % image_path
+        write_to_json(output_dir / file_name, sa_instances)
+
+        # json_template['instance'] = sa_instances
+        # json_template['metadata'] = {
+        #     'name': image_path,
+        #     'width': img['width'],
+        #     'height': img['height']
+        # }
+        # write_to_json(output_dir / file_name, json_template)
+
+
+def coco_instance_segmentation_to_sa_vector(coco_path, output_dir):
     coco_json = json.load(open(coco_path))
     cat_id_to_cat = {}
     for cat in coco_json['categories']:
@@ -51,23 +75,9 @@ def coco_instance_segmentation_to_sa_vector(coco_path, images_path):
     image_id_to_annotations = {}
     for annot in tqdm(coco_json['annotations'], "Converting annotations"):
         if isinstance(annot['segmentation'], dict):
-            if isinstance(annot['segmentation']['counts'], list):
-                annot['segmentation'] = _rle_to_polygon(coco_path, annot)
-            else:
-                binary_mask = maskUtils.decode(annot['segmentation'])
-                contours, _ = cv2.findContours(
-                    binary_mask.astype(np.uint8), cv2.RETR_EXTERNAL,
-                    cv2.CHAIN_APPROX_SIMPLE
-                )
-                segments = []
-                for contour in contours:
-                    contour = contour.flatten().tolist()
-                    if len(contour) > 4:
-                        segments.append(contour)
-                annot['segmentation'] = segments
+            annot['segmentation'] = annot_to_polygon(annot['segmentation'])
 
         cat = cat_id_to_cat[annot['category_id']]
-        sa_loader = []
         groupid = 0
         for polygon in annot['segmentation']:
             if 'id' in annot and annot[
@@ -80,28 +90,15 @@ def coco_instance_segmentation_to_sa_vector(coco_path, images_path):
             if groupid != 0:
                 sa_obj['groupId'] = groupid
 
-            if annot['image_id'] not in image_id_to_annotations:
-                image_id_to_annotations[annot['image_id']] = [sa_obj]
+            if str(annot['image_id']) not in image_id_to_annotations:
+                image_id_to_annotations[str(annot['image_id'])] = [sa_obj]
             else:
-                image_id_to_annotations[annot['image_id']].append(sa_obj)
+                image_id_to_annotations[str(annot['image_id'])].append(sa_obj)
 
-    sa_jsons = {}
-    for img in tqdm(coco_json['images'], "Writing annotations to disk"):
-        if 'file_name' in img:
-            image_path = Path(img['file_name']).name
-        else:
-            image_path = img['coco_url'].split('/')[-1]
-
-        if img['id'] not in image_id_to_annotations:
-            sa_loader = []
-        else:
-            sa_loader = image_id_to_annotations[img['id']]
-        file_name = image_path + "___objects.json"
-        sa_jsons[file_name] = sa_loader
-    return sa_jsons
+    save_sa_jsons(coco_json, image_id_to_annotations, output_dir)
 
 
-def coco_object_detection_to_sa_vector(coco_path, images_path):
+def coco_object_detection_to_sa_vector(coco_path, output_dir):
     coco_json = json.load(open(coco_path))
     cat_id_to_cat = {}
     for cat in coco_json['categories']:
@@ -110,21 +107,7 @@ def coco_object_detection_to_sa_vector(coco_path, images_path):
     image_id_to_annotations = {}
     for annot in tqdm(coco_json['annotations'], "Converting annotations"):
         if isinstance(annot['segmentation'], dict):
-            if isinstance(annot['segmentation']['counts'], list):
-                annot['segmentation'] = _rle_to_polygon(coco_path, annot)
-            else:
-                binary_mask = maskUtils.decode(annot['segmentation'])
-                contours, _ = cv2.findContours(
-                    binary_mask.astype(np.uint8), cv2.RETR_EXTERNAL,
-                    cv2.CHAIN_APPROX_SIMPLE
-                )
-                segments = []
-                for contour in contours:
-                    contour = contour.flatten().tolist()
-                    if len(contour) > 4:
-                        segments.append(contour)
-                annot['segmentation'] = segments
-
+            annot['segmentation'] = annot_to_polygon(annot['segmentation'])
         cat = cat_id_to_cat[annot['category_id']]
 
         points = (
@@ -135,30 +118,16 @@ def coco_object_detection_to_sa_vector(coco_path, images_path):
 
         sa_obj = _create_vector_instance('bbox', points, {}, [], cat['name'])
 
-        if annot['image_id'] not in image_id_to_annotations:
-            image_id_to_annotations[annot['image_id']] = [sa_obj]
+        if str(annot['image_id']) not in image_id_to_annotations:
+            image_id_to_annotations[str(annot['image_id'])] = [sa_obj]
         else:
-            image_id_to_annotations[annot['image_id']].append(sa_obj)
+            image_id_to_annotations[str(annot['image_id'])].append(sa_obj)
 
-    sa_jsons = {}
-    for img in tqdm(coco_json['images'], "Writing annotations to disk"):
-        if 'file_name' in img:
-            image_path = Path(img['file_name']).name
-        else:
-            image_path = img['coco_url'].split('/')[-1]
-
-        if img['id'] not in image_id_to_annotations:
-            sa_loader = []
-        else:
-            sa_loader = image_id_to_annotations[img['id']]
-        file_name = image_path + "___objects.json"
-        sa_jsons[file_name] = sa_loader
-    return sa_jsons
+    save_sa_jsons(coco_json, image_id_to_annotations, output_dir)
 
 
-def coco_keypoint_detection_to_sa_vector(coco_path, images_path):
+def coco_keypoint_detection_to_sa_vector(coco_path, output_dir):
     coco_json = json.load(open(coco_path))
-    loader = []
 
     cat_id_to_cat = {}
     for cat in coco_json["categories"]:
@@ -168,6 +137,7 @@ def coco_keypoint_detection_to_sa_vector(coco_path, images_path):
             "skeleton": cat["skeleton"]
         }
 
+    image_id_to_annotations = {}
     for annot in tqdm(coco_json['annotations'], 'Converting annotations'):
         if annot['num_keypoints'] > 0:
             sa_points = [
@@ -183,40 +153,19 @@ def coco_keypoint_detection_to_sa_vector(coco_path, images_path):
                 keypoint_names = cat_id_to_cat[annot["category_id"]
                                               ]['keypoints']
 
-                sa_template = {
-                    'type': 'template',
-                    'classId': annot['category_id'],
-                    'probability': 100,
-                    'points': [],
-                    'connections': [],
-                    'attributes': [],
-                    'attributeNames': [],
-                    'pointLabels': {},
-                    'locked': False,
-                    'visible': True,
-                    'templateId': -1,
-                    'className': cat_id_to_cat[annot["category_id"]]["name"],
-                    'templateName': 'skeleton',
-                    'imageId': annot['image_id']
-                }
-
                 bad_points = []
                 id_mapping = {}
                 index = 1
+                points = []
                 for point_index, point in enumerate(sa_points):
                     if sa_points[point_index] == (0, 0):
                         bad_points.append(point_index + 1)
                         continue
                     id_mapping[point_index + 1] = index
-                    sa_template['points'].append(
-                        {
-                            'id': index,
-                            'x': point[0],
-                            'y': point[1]
-                        }
-                    )
+                    points.append({'id': index, 'x': point[0], 'y': point[1]})
                     index += 1
 
+                connections = []
                 for connection in cat_id_to_cat[annot["category_id"]
                                                ]['skeleton']:
 
@@ -229,7 +178,7 @@ def coco_keypoint_detection_to_sa_vector(coco_path, images_path):
                     if from_point in bad_points or to_point in bad_points:
                         continue
 
-                    sa_template['connections'].append(
+                    connections.append(
                         {
                             'id': index + 1,
                             'from': id_mapping[from_point],
@@ -237,22 +186,20 @@ def coco_keypoint_detection_to_sa_vector(coco_path, images_path):
                         }
                     )
 
+                pointLabels = {}
                 for kp_index, kp_name in enumerate(keypoint_names):
                     if kp_index + 1 in bad_points:
                         continue
-                    sa_template['pointLabels'][id_mapping[kp_index + 1] -
-                                               1] = kp_name
+                    pointLabels[id_mapping[kp_index + 1] - 1] = kp_name
 
-                for img in coco_json['images']:
-                    if sa_template['imageId'] == img['id']:
-                        loader.append((img['id'], sa_template))
+                sa_obj = _create_vector_instance(
+                    'template', points, pointLabels, [],
+                    cat_id_to_cat[annot["category_id"]]["name"], connections
+                )
+                if str(annot['image_id']) not in image_id_to_annotations:
+                    image_id_to_annotations[str(annot['image_id'])] = [sa_obj]
+                else:
+                    image_id_to_annotations[str(annot['image_id']
+                                               )].append(sa_obj)
 
-        sa_jsons = {}
-        for img in coco_json['images']:
-            f_loader = []
-            for img_id, img_data in loader:
-                if img['id'] == img_id:
-                    f_loader.append(img_data)
-            file_name = str(Path(img['file_name']).name) + "___objects.json"
-            sa_jsons[file_name] = f_loader
-    return sa_jsons
+    save_sa_jsons(coco_json, image_id_to_annotations, output_dir)

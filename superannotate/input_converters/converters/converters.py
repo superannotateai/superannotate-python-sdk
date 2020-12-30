@@ -24,7 +24,7 @@ class Converter(object):
     def convert_from_sa(self):
         self.strategy.sa_to_output_format()
 
-    def convert_to_sa(self, platform):
+    def convert_to_sa(self):
         self.strategy.to_sa_format()
 
     def __set_strategy(self, c_strategy):

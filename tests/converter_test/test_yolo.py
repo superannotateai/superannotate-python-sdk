@@ -9,7 +9,7 @@ def test_yolo_object_detection_web(tmpdir):
     ) / 'converter_test' / 'YOLO' / 'input' / 'toSuperAnnotate'
     out_dir = Path(tmpdir) / "vector_annotation_web"
     sa.import_annotation(
-        input_dir, out_dir, 'YOLO', '', 'Vector', 'object_detection', 'Web'
+        input_dir, out_dir, 'YOLO', '', 'Vector', 'object_detection'
     )
 
     project_name = "yolo_object_detection"
@@ -32,5 +32,5 @@ def test_yolo_object_detection_desktop(tmpdir):
     ) / 'converter_test' / 'YOLO' / 'input' / 'toSuperAnnotate'
     out_dir = Path(tmpdir) / "vector_annotation_desktop"
     sa.import_annotation(
-        input_dir, out_dir, 'YOLO', '', 'Vector', 'object_detection', 'Desktop'
+        input_dir, out_dir, 'YOLO', '', 'Vector', 'object_detection'
     )

@@ -9,7 +9,7 @@ def test_sagemaker_instance_segmentation(tmpdir):
     out_dir = Path(tmpdir) / "instance_segmentation"
     sa.import_annotation(
         input_dir, out_dir, 'SageMaker', 'test-obj-detect', 'Pixel',
-        'instance_segmentation', 'Web'
+        'instance_segmentation'
     )
 
     project_name = "sagemaker_instance_segmentation"
@@ -33,5 +33,5 @@ def test_sagemaker_object_detection(tmpdir):
     out_dir = Path(tmpdir) / "object_detection"
     sa.import_annotation(
         input_dir, out_dir, 'SageMaker', 'test-obj-detect', 'Vector',
-        'object_detection', 'Desktop'
+        'object_detection'
     )

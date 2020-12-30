@@ -1,15 +1,12 @@
+'''
+'''
 import json
 import logging
-import os
 import shutil
-import sys
-import time
 from pathlib import Path
 
 import cv2
 import numpy as np
-from PIL import Image
-from tqdm import tqdm
 
 from ..common import blue_color_generator, hex_to_rgb
 from ..exceptions import SABaseException
@@ -17,104 +14,8 @@ from ..exceptions import SABaseException
 logger = logging.getLogger("superannotate-python-sdk")
 
 
-def _merge_jsons(input_dir, output_dir):
-    cat_id_map = {}
-    classes_json = json.load(open(input_dir / "classes" / "classes.json"))
-
-    new_classes = []
-    for idx, class_ in enumerate(classes_json):
-        cat_id_map[class_["id"]] = idx + 2
-        class_["id"] = idx + 2
-        new_classes.append(class_)
-
-    files = input_dir.glob("*.json")
-    merged_json = {}
-    files_path = []
-    (output_dir / 'images' / 'thumb').mkdir(parents=True)
-    for f in tqdm(files, "Merging files"):
-        json_data = json.load(open(f))
-        meta = {
-            "type": "meta",
-            "name": "lastAction",
-            "timestamp": int(round(time.time() * 1000))
-        }
-        for js_data in json_data:
-            if "classId" in js_data:
-                js_data["classId"] = cat_id_map[js_data["classId"]]
-        json_data.append(meta)
-        file_name = str(f.name).replace("___objects.json", "")
-        merged_json[file_name] = json_data
-
-        files_path.append(
-            {
-                'srcPath':
-                    str(output_dir.resolve() / file_name),
-                'name':
-                    file_name,
-                'imagePath':
-                    str(output_dir.resolve() / file_name),
-                'thumbPath':
-                    str(
-                        output_dir.resolve() / 'images' / 'thumb' /
-                        ('thmb_' + file_name + '.jpg')
-                    ),
-                'valid':
-                    True
-            }
-        )
-        copy_file(input_dir / file_name, output_dir / 'images' / file_name)
-
-        img = Image.open(output_dir / 'images' / file_name)
-        img.thumbnail((168, 120), Image.ANTIALIAS)
-        img.save(
-            output_dir / 'images' / 'thumb' / ('thmb_' + file_name + '.jpg')
-        )
-
-    with open(output_dir / 'images' / 'images.sa', 'w') as fw:
-        fw.write(json.dumps(files_path))
-
-    with open(output_dir / 'config.json', 'w') as fw:
-        json.dump({"pathSeparator": os.sep, "os": sys.platform}, fw)
-
-    with open(output_dir / "annotations.json", "w") as final_json_file:
-        json.dump(merged_json, final_json_file, indent=2)
-
-    with open(output_dir / "classes.json", "w") as fw:
-        json.dump(classes_json, fw, indent=2)
-
-
-def _split_json(input_dir, output_dir):
-    output_dir.mkdir(parents=True)
-    json_data = json.load(open(input_dir / "annotations.json"))
-    for img, annotations in tqdm(json_data.items(), 'Splitting files'):
-        objects = []
-        for annot in annotations:
-            if 'type' in annot.keys() and annot['type'] != 'meta':
-                objects.append(annot)
-        copy_file(input_dir / 'images' / img, output_dir / img)
-        with open(output_dir / (img + "___objects.json"), "w") as fw:
-            json.dump(objects, fw, indent=2)
-
-    (output_dir / "classes").mkdir(parents=True)
-    copy_file(
-        input_dir / "classes.json", output_dir / "classes" / "classes.json"
-    )
-
-
 def copy_file(src_path, dst_path):
     shutil.copy(src_path, dst_path)
-
-
-def sa_convert_platform(input_dir, output_dir, input_platform):
-    if input_platform == "Web":
-        for file_name in os.listdir(input_dir):
-            if '___pixel.json' in file_name:
-                raise SABaseException(
-                    0, "Desktop platform doesn't support 'Pixel' projects"
-                )
-        _merge_jsons(input_dir, output_dir)
-    elif input_platform == 'Desktop':
-        _split_json(input_dir, output_dir)
 
 
 def from_pixel_to_vector(json_paths):
@@ -274,7 +175,7 @@ def sa_convert_project_type(input_dir, output_dir):
         )
 
     output_dir.joinpath('classes').mkdir(parents=True)
-    shutil.copy(
+    copy_file(
         input_dir.joinpath('classes', 'classes.json'),
         output_dir.joinpath('classes', 'classes.json')
     )
@@ -283,9 +184,7 @@ def sa_convert_project_type(input_dir, output_dir):
         with open(output_dir.joinpath(key), 'w') as fw:
             json.dump(value['json'], fw, indent=2)
         file_name = key.replace(extension, '')
-        shutil.copy(
-            input_dir.joinpath(file_name), output_dir.joinpath(file_name)
-        )
+        copy_file(input_dir.joinpath(file_name), output_dir.joinpath(file_name))
 
         if value['mask'] is not None:
             mask_name = key.replace(extension, '___save.png')

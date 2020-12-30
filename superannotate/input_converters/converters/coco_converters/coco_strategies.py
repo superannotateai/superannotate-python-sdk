@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 from ..baseStrategy import baseStrategy
 
-from ....common import id2rgb, dump_output
+from ....common import id2rgb, write_to_json
 
 
 class CocoBaseStrategy(baseStrategy):
@@ -164,13 +164,20 @@ class CocoBaseStrategy(baseStrategy):
             hexcolor = "#%02x%02x%02x" % tuple(color)
             classes_dict = {
                 'name': data["name"],
-                'id': data["id"],
+                # 'id': data["id"],
                 'color': hexcolor,
                 'attribute_groups': []
             }
             classes.append(classes_dict)
 
         return classes
+
+    def to_sa_format(self):
+        json_data = self.export_root / (self.dataset_name + ".json")
+        sa_classes = self._create_sa_classes(json_data)
+        (self.output_dir / 'classes').mkdir(parents=True, exist_ok=True)
+        write_to_json(self.output_dir / 'classes' / 'classes.json', sa_classes)
+        self.conversion_algorithm(json_data, self.output_dir)
 
 
 class CocoPanopticConverterStrategy(CocoBaseStrategy):
@@ -225,12 +232,6 @@ class CocoPanopticConverterStrategy(CocoBaseStrategy):
             coco_json.write(json_data)
 
         self.set_num_converted(len(jsons))
-
-    def to_sa_format(self):
-        json_data = self.export_root / (self.dataset_name + ".json")
-        sa_classes = self._create_sa_classes(json_data)
-        sa_jsons = self.conversion_algorithm(json_data, self.output_dir)
-        dump_output(self.output_dir, self.platform, sa_classes, sa_jsons)
 
 
 class CocoObjectDetectionStrategy(CocoBaseStrategy):
@@ -305,12 +306,6 @@ class CocoObjectDetectionStrategy(CocoBaseStrategy):
 
         self.set_num_converted(len(jsons))
 
-    def to_sa_format(self):
-        json_data = self.export_root / (self.dataset_name + ".json")
-        sa_classes = self._create_sa_classes(json_data)
-        sa_jsons = self.conversion_algorithm(json_data, self.output_dir)
-        dump_output(self.output_dir, self.platform, sa_classes, sa_jsons)
-
 
 class CocoKeypointDetectionStrategy(CocoBaseStrategy):
     def __init__(self, args):
@@ -367,9 +362,3 @@ class CocoKeypointDetectionStrategy(CocoBaseStrategy):
             coco_json.write(json_data)
 
         self.set_num_converted(len(out_json['images']))
-
-    def to_sa_format(self):
-        json_data = self.export_root / (self.dataset_name + ".json")
-        sa_classes = self._create_sa_classes(json_data)
-        sa_jsons = self.conversion_algorithm(json_data, self.output_dir)
-        dump_output(self.output_dir, self.platform, sa_classes, sa_jsons)
