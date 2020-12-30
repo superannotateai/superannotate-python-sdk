@@ -296,7 +296,7 @@ def download_annotation_classes_json(project, folder):
 
 
 def fill_class_and_attribute_names(annotations_json, annotation_classes_dict):
-    for r in annotations_json:
+    for r in annotations_json["instances"]:
         if "classId" in r and r["classId"] in annotation_classes_dict:
             r["className"] = annotation_classes_dict[r["classId"]]["name"]
             if "attributes" in r:
@@ -311,10 +311,9 @@ def fill_class_and_attribute_names(annotations_json, annotation_classes_dict):
 
 
 def fill_class_and_attribute_ids(annotation_json, annotation_classes_dict):
-    for ann in annotation_json:
-        if (
-            "userId" in ann and "type" in ann and ann["type"] == "meta"
-        ) or "className" not in ann:
+    for ann in annotation_json["instances"]:
+        if "className" not in ann:
+            logger.warning("No className in annotation instance")
             continue
         annotation_class_name = ann["className"]
         if not annotation_class_name in annotation_classes_dict:

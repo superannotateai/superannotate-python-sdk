@@ -1,5 +1,5 @@
 [BASIC]
-good-names=df,f,e,i,j,k
+good-names=df,f,e,i,j,k,pt
 
 bad-functions=
   apply,
