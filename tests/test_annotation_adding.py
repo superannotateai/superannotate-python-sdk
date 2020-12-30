@@ -128,7 +128,7 @@ def test_add_bbox_noinit(tmpdir):
     annotations_new = sa.get_image_annotations(project,
                                                image_name)["annotation_json"]
 
-    assert len(annotations_new) == 2
+    assert len(annotations_new["instances"]) == 2
     export = sa.prepare_export(project, include_fuse=True)
     sa.download_export(project, export, tmpdir)
     assert len(list(Path(tmpdir).rglob("*.*"))) == 4
@@ -167,4 +167,7 @@ def test_add_bbox_json(tmpdir):
     )
     annotations_new = json.load(open(dest))
 
-    assert len(annotations_new) == len(annotations) + 8
+    assert len(annotations_new["instances"]
+              ) == len(annotations["instances"]) + 7
+    assert len(annotations_new["comments"]
+              ) == len(annotations["comments"]) + 1
