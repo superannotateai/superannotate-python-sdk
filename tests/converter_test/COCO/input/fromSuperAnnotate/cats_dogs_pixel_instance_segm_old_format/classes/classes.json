@@ -1,0 +1,20 @@
+[
+  {
+    "id": 1454,
+    "project_id": 414,
+    "name": "Cat",
+    "color": "#642865",
+    "createdAt": "2020-02-27T10:18:00.000Z",
+    "updatedAt": "2020-02-27T10:18:00.000Z",
+    "attribute_groups": []
+  },
+  {
+    "id": 1455,
+    "project_id": 414,
+    "name": "Dog",
+    "color": "#7631d9",
+    "createdAt": "2020-02-27T10:18:00.000Z",
+    "updatedAt": "2020-02-27T10:18:00.000Z",
+    "attribute_groups": []
+  }
+]
