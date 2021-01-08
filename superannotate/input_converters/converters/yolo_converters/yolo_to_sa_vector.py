@@ -5,7 +5,7 @@ from glob import glob
 
 import cv2
 
-from ..sa_json_helper import _create_vector_instance
+from ..sa_json_helper import (_create_vector_instance, _create_sa_json)
 
 from ....common import write_to_json
 
@@ -42,15 +42,16 @@ def yolo_object_detection_to_sa_vector(data_path, output_dir):
                 "'%s' multiple file for this annotation" % (annotation)
             )
             continue
+
+        if Path(files_list[0]).suffix == 'txt':
+            file_name = files_list[1]
         else:
-            if Path(files_list[0]).suffix == 'txt':
-                file_name = files_list[1]
-            else:
-                file_name = files_list[0]
+            file_name = files_list[0]
+
         img = cv2.imread(file_name)
         H, W, _ = img.shape
 
-        sa_loader = []
+        sa_instances = []
         for line in file:
             values = line.split()
             class_id = int(values[0])
@@ -63,9 +64,11 @@ def yolo_object_detection_to_sa_vector(data_path, output_dir):
             sa_obj = _create_vector_instance(
                 'bbox', points, {}, [], classes[class_id]
             )
-            sa_loader.append(sa_obj.copy())
+            sa_instances.append(sa_obj.copy())
 
         file_name = '%s___objects.json' % Path(file_name).name
-        write_to_json(output_dir / file_name, sa_loader)
+        sa_metadata = {'name': Path(file_name).name, 'width': W, 'height': H}
+        sa_json = _create_sa_json(sa_instances, sa_metadata)
+        write_to_json(output_dir / file_name, sa_json)
 
     return classes

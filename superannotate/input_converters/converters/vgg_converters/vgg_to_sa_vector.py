@@ -3,7 +3,7 @@
 import json
 
 from .vgg_helper import _create_attribute_list
-from ..sa_json_helper import _create_vector_instance
+from ..sa_json_helper import (_create_vector_instance, _create_sa_json)
 
 from ....common import write_to_json
 
@@ -26,7 +26,10 @@ def vgg_to_sa(json_data, task, output_dir):
     for images in all_jsons:
         for _, img in images.items():
             file_name = '%s___objects.json' % img['filename']
-            sa_loader = []
+            sa_metadata = {
+                'name': img['filename'],
+            }
+            sa_instances = []
             instances = img['regions']
             for instance in instances:
                 if 'type' not in instance['region_attributes'].keys():
@@ -95,6 +98,7 @@ def vgg_to_sa(json_data, task, output_dir):
                     sa_obj = _create_vector_instance(
                         instance_type, points, {}, attributes, class_name
                     )
-                    sa_loader.append(sa_obj)
-            write_to_json(output_dir / file_name, sa_loader)
+                    sa_instances.append(sa_obj)
+            sa_json = _create_sa_json(sa_instances, sa_metadata)
+            write_to_json(output_dir / file_name, sa_json)
     return class_id_map

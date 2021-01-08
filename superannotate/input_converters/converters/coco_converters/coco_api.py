@@ -1,4 +1,5 @@
 import numpy as np
+import cv2
 
 
 def encode(bitmask):
@@ -94,3 +95,47 @@ def _frString(rle_string):
         counts.append(count)
 
     return counts
+
+
+def _area(bitmask):
+    return np.sum(bitmask)
+
+
+def _toBbox(bitmask):
+    contours, _ = cv2.findContours(
+        bitmask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+    )
+    segments = []
+    for contour in contours:
+        contour = contour.flatten().tolist()
+        segments += contour
+
+    xmin = min(segments[::2])
+    xmax = max(segments[::2])
+    ymin = min(segments[1::2])
+    ymax = max(segments[1::2])
+
+    return [xmin, ymin, xmax - xmin, ymax - ymin]
+
+
+def _merge(list_of_bitmask):
+    shape = list_of_bitmask[0].shape
+    final_bitmask = np.zeros(shape, dtype=np.uint8)
+    for bitmask in list_of_bitmask:
+        final_bitmask |= bitmask
+
+    return final_bitmask
+
+
+def _polytoMask(polygons, height, width):
+    masks = []
+    for polygon in polygons:
+        polygon = np.round(polygon)
+        bitmask = np.zeros((height, width)).astype(np.uint8)
+        pts = np.array(
+            [polygon[2 * i:2 * (i + 1)] for i in range(len(polygon) // 2)],
+            dtype=np.int32
+        )
+        cv2.fillPoly(bitmask, [pts], 1)
+        masks.append(bitmask)
+    return masks

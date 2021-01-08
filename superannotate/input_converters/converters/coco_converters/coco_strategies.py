@@ -95,10 +95,14 @@ class CocoBaseStrategy(baseStrategy):
         )
         rm_len = len('___pixel.json')
 
-        sa_ann_json = json.load(open(json_path))
+        sa_json = json.load(open(json_path))
+        # sa_ann_json = json.load(open(json_path))
+        sa_ann_json = sa_json['instances']
+
         sa_bluemask_path = str(json_path)[:-rm_len] + '___save.png'
 
-        image_info = self.__make_image_info(json_path, id_, self.project_type)
+        # image_info = self.__make_image_info(json_path, id_, self.project_type)
+        image_info = self.__make_image_info(id_, sa_json['metadata'])
 
         sa_bluemask_rgb = np.asarray(
             Image.open(sa_bluemask_path).convert('RGB'), dtype=np.uint32
@@ -117,20 +121,21 @@ class CocoBaseStrategy(baseStrategy):
 
         return res
 
-    def __make_image_info(self, json_path, id_, source_type):
-        if source_type == 'Pixel':
-            rm_len = len('___pixel.json')
-        elif source_type == 'Vector':
-            rm_len = len('___objects.json')
+    # def __make_image_info(self, json_path, id_, source_type):
+    # if source_type == 'Pixel':
+    #     rm_len = len('___pixel.json')
+    # elif source_type == 'Vector':
+    #     rm_len = len('___objects.json')
 
-        image_path = str(json_path)[:-rm_len]
+    # image_path = str(json_path)[:-rm_len]
 
-        img_width, img_height = Image.open(image_path).size
+    # img_width, img_height = Image.open(image_path).size
+    def __make_image_info(self, id_, sa_meta_json):
         image_info = {
             'id': id_,
-            'file_name': Path(image_path).name,
-            'height': img_height,
-            'width': img_width,
+            'file_name': sa_meta_json['name'],
+            'height': sa_meta_json['height'],
+            'width': sa_meta_json['width'],
             'license': 1
         }
 
@@ -139,8 +144,12 @@ class CocoBaseStrategy(baseStrategy):
     def _prepare_single_image_commons_vector(self, id_, json_path):
         ImgCommons = namedtuple('ImgCommons', ['image_info', 'sa_ann_json'])
 
-        image_info = self.__make_image_info(json_path, id_, self.project_type)
-        sa_ann_json = json.load(open(json_path))
+        # sa_ann_json = json.load(open(json_path))
+        sa_json = json.load(open(json_path))
+        sa_ann_json = sa_json['instances']
+
+        # image_info = self.__make_image_info(json_path, id_, self.project_type)
+        image_info = self.__make_image_info(id_, sa_json['metadata'])
 
         res = ImgCommons(image_info, sa_ann_json)
 
@@ -164,7 +173,6 @@ class CocoBaseStrategy(baseStrategy):
             hexcolor = "#%02x%02x%02x" % tuple(color)
             classes_dict = {
                 'name': data["name"],
-                # 'id': data["id"],
                 'color': hexcolor,
                 'attribute_groups': []
             }
@@ -204,7 +212,7 @@ class CocoPanopticConverterStrategy(CocoBaseStrategy):
         id_generator = self._make_id_generator()
 
         jsons_gen = self.export_root.glob('*pixel.json')
-        jsons = [path for path in jsons_gen]
+        jsons = list(jsons_gen)
 
         for id_, json_ in tqdm(enumerate(jsons, 1)):
             res = self._sa_to_coco_single(id_, json_, id_generator, cat_id_map)

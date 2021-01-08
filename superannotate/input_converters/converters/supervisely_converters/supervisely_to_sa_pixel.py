@@ -1,12 +1,11 @@
+from pathlib import Path
+import json
 import cv2
 import numpy as np
-import os
-import json
-from pathlib import Path
 
 from .supervisely_helper import _base64_to_polygon, _create_attribute_list
 
-from ..sa_json_helper import _create_pixel_instance
+from ..sa_json_helper import _create_pixel_instance, _create_sa_json
 
 from ....common import hex_to_rgb, blue_color_generator, write_to_json
 
@@ -18,10 +17,11 @@ def supervisely_instance_segmentation_to_sa_pixel(
         file_name = '%s___pixel.json' % Path(json_file).stem
 
         json_data = json.load(open(json_file))
-        sa_loader = []
+        sa_instances = []
 
         H, W = json_data['size']['height'], json_data['size']['width']
         mask = np.zeros((H, W, 4))
+        sa_metadata = {'name': Path(json_file).stem, 'width': W, 'height': H}
 
         hex_colors = blue_color_generator(10 * len(json_data['objects']))
         index = 0
@@ -63,6 +63,7 @@ def supervisely_instance_segmentation_to_sa_pixel(
                         sa_obj = _create_pixel_instance(
                             parts, attributes, obj['classTitle']
                         )
-                        sa_loader.append(sa_obj)
+                        sa_instances.append(sa_obj)
 
-        write_to_json(output_dir / file_name, sa_loader)
+        sa_json = _create_sa_json(sa_instances, sa_metadata)
+        write_to_json(output_dir / file_name, sa_json)

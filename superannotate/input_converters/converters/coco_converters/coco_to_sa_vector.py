@@ -11,7 +11,7 @@ import time
 
 from .coco_api import (_maskfrRLE, decode)
 
-from ..sa_json_helper import (_create_vector_instance, _create_empty_sa_json)
+from ..sa_json_helper import (_create_vector_instance, _create_sa_json)
 
 from ....common import id2rgb, write_to_json
 
@@ -36,7 +36,6 @@ def annot_to_polygon(annot):
 
 def save_sa_jsons(coco_json, img_id_to_annot, output_dir):
     for img in tqdm(coco_json['images'], "Writing annotations to disk"):
-        # json_template = _create_empty_sa_json()
         if 'file_name' in img:
             image_path = Path(img['file_name']).name
         else:
@@ -47,15 +46,14 @@ def save_sa_jsons(coco_json, img_id_to_annot, output_dir):
         else:
             sa_instances = img_id_to_annot[str(img['id'])]
         file_name = "%s___objects.json" % image_path
-        write_to_json(output_dir / file_name, sa_instances)
 
-        # json_template['instance'] = sa_instances
-        # json_template['metadata'] = {
-        #     'name': image_path,
-        #     'width': img['width'],
-        #     'height': img['height']
-        # }
-        # write_to_json(output_dir / file_name, json_template)
+        sa_metadata = {
+            'name': image_path,
+            'width': img['width'],
+            'height': img['height']
+        }
+        json_template = _create_sa_json(sa_instances, sa_metadata)
+        write_to_json(output_dir / file_name, json_template)
 
 
 def coco_instance_segmentation_to_sa_vector(coco_path, output_dir):

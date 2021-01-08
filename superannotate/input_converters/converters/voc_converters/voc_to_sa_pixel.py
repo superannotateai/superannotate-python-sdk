@@ -3,7 +3,7 @@ import numpy as np
 
 from .voc_helper import (_get_voc_instances_from_xml, _iou)
 
-from ..sa_json_helper import _create_pixel_instance
+from ..sa_json_helper import _create_pixel_instance, _create_sa_json
 
 from ....common import hex_to_rgb, blue_color_generator, write_to_json
 
@@ -87,15 +87,17 @@ def voc_instance_segmentation_to_sa_pixel(voc_root, output_dir):
             polygon_instances, voc_instances, bluemask_colors
         )
 
-        sa_loader = []
+        sa_instances = []
         for instance in maped_instances:
             parts = [{"color": instance["blue_color"]}]
             sa_obj = _create_pixel_instance(parts, [], instance["className"])
-            sa_loader.append(sa_obj)
+            sa_instances.append(sa_obj)
             classes.append(instance['className'])
 
         file_name = "%s.jpg___pixel.json" % (filename.stem)
-        write_to_json(output_dir / file_name, sa_loader)
+        sa_metadata = {'name': filename.stem}
+        sa_json = _create_sa_json(sa_instances, sa_metadata)
+        write_to_json(output_dir / file_name, sa_json)
 
         mask_name = "%s.jpg___save.png" % (filename.stem)
         cv2.imwrite(str(output_dir / mask_name), sa_mask[:, :, ::-1])

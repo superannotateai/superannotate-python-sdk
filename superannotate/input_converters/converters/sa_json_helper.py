@@ -84,5 +84,10 @@ def _create_comment(points, comments):
     return sa_comment
 
 
-def _create_empty_sa_json():
-    return {'metadata': {}, 'instances': [], 'tags': [], 'comments': []}
+def _create_sa_json(instances, metadata, tags=[], comments=[]):
+    return {
+        'instances': instances,
+        'metadata': metadata,
+        'tags': tags,
+        'comments': comments
+    }

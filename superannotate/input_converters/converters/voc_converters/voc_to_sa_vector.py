@@ -4,7 +4,7 @@ from tqdm import tqdm
 
 from .voc_helper import (_get_voc_instances_from_xml, _iou)
 
-from ..sa_json_helper import _create_vector_instance
+from ..sa_json_helper import (_create_vector_instance, _create_sa_json)
 from ....common import write_to_json
 
 
@@ -85,17 +85,19 @@ def voc_instance_segmentation_to_sa_vector(voc_root, output_dir):
             annotation_dir / filename.name
         )
         maped_instances = _generate_instances(polygon_instances, voc_instances)
-        sa_loader = []
+        sa_instances = []
         for instance in maped_instances:
             sa_obj = _create_vector_instance(
                 'polygon', instance["polygon"], {}, [], instance["className"]
             )
-            sa_loader.append(sa_obj)
+            sa_instances.append(sa_obj)
 
             classes.append(instance["className"])
 
         file_name = "%s.jpg___objects.json" % filename.stem
-        write_to_json(output_dir / file_name, sa_loader)
+        sa_metadata = {'name': filename.stem}
+        sa_json = _create_sa_json(sa_instances, sa_metadata)
+        write_to_json(output_dir / file_name, sa_json)
     return classes
 
 
@@ -107,14 +109,16 @@ def voc_object_detection_to_sa_vector(voc_root, output_dir):
         voc_instances = _get_voc_instances_from_xml(
             annotation_dir / filename.name
         )
-        sa_loader = []
+        sa_instances = []
         for class_name, bbox in voc_instances:
             classes.append(class_name)
 
             points = (bbox[0], bbox[1], bbox[2], bbox[3])
             sa_obj = _create_vector_instance('bbox', points, {}, [], class_name)
-            sa_loader.append(sa_obj)
+            sa_instances.append(sa_obj)
 
         file_name = "%s.jpg___objects.json" % filename.stem
-        write_to_json(output_dir / file_name, sa_loader)
+        sa_metadata = {'name': filename.stem}
+        sa_json = _create_sa_json(sa_instances, sa_metadata)
+        write_to_json(output_dir / file_name, sa_json)
     return classes

@@ -15,7 +15,7 @@ class LabelBoxStrategy(baseStrategy):
             open(self.export_root / (self.dataset_name + '.json'))
         )
         classes = self.conversion_algorithm(
-            json_data, self.task, self.output_dir
+            json_data, self.output_dir, self.task
         )
         sa_classes = self._create_classes(classes)
         (self.output_dir / 'classes').mkdir(exist_ok=True)

@@ -8,11 +8,11 @@ from tqdm import tqdm
 
 from .coco_api import (_maskfrRLE, decode)
 
-from ..sa_json_helper import (_create_pixel_instance, _create_empty_sa_json)
+from ..sa_json_helper import (_create_pixel_instance, _create_sa_json)
 
 from ....common import blue_color_generator, hex_to_rgb, id2rgb, write_to_json
 
-logger = logging.getLogger("superannotate-python-sdk")
+logger = logging.getLogger("superannot-python-sdk")
 
 
 def annot_to_bitmask(annot):
@@ -27,14 +27,20 @@ def annot_to_bitmask(annot):
 def coco_panoptic_segmentation_to_sa_pixel(coco_path, output_dir):
     coco_json = json.load(open(coco_path))
     hex_colors = blue_color_generator(len(coco_json["categories"]))
-    annotate_list = coco_json["annotations"]
 
     cat_id_to_cat = {}
     for cat in coco_json['categories']:
         cat_id_to_cat[cat['id']] = cat['name']
 
-    for annotate in tqdm(annotate_list, "Converting annotations"):
-        annot_name = Path(annotate["file_name"]).stem
+    img_id_to_shape = {}
+    for img in coco_json['images']:
+        img_id_to_shape[str(img['id'])] = {
+            'height': img['height'],
+            'width': img['width']
+        }
+
+    for annot in tqdm(coco_json["annotations"], "Converting annotations"):
+        annot_name = Path(annot["file_name"]).stem
         img_cv = cv2.imread(str(output_dir / ("%s.png" % annot_name)))
         if img_cv is None:
             logger.warning(
@@ -47,7 +53,7 @@ def coco_panoptic_segmentation_to_sa_pixel(coco_path, output_dir):
         img = cv2.cvtColor(img_cv, cv2.COLOR_BGR2RGB)
         H, W, C = img.shape
         img = img.reshape((H * W, C))
-        segments = annotate["segments_info"]
+        segments = annot["segments_info"]
         hex_colors = blue_color_generator(len(segments))
 
         sa_instances = []
@@ -64,7 +70,13 @@ def coco_panoptic_segmentation_to_sa_pixel(coco_path, output_dir):
         cv2.imwrite(str(output_dir / ("%s.jpg___save.png" % annot_name)), img)
 
         file_name = "%s.jpg___pixel.json" % annot_name
-        write_to_json(output_dir / file_name, sa_instances)
+        sa_metadata = {
+            'name': annot_name,
+            'width': img_id_to_shape[str(annot['image_id'])]['width'],
+            'height': img_id_to_shape[str(annot['image_id'])]['height']
+        }
+        json_template = _create_sa_json(sa_instances, metadata)
+        write_to_json(output_dir / file_name, json_template)
         (output_dir / ("%s.png" % annot_name)).unlink()
 
 
@@ -119,14 +131,13 @@ def coco_instance_segmentation_to_sa_pixel(coco_path, output_dir):
             )
             sa_instances.append(sa_obj)
 
-        write_to_json(output_dir / file_name, sa_instances)
-        # json_template['instance'] = sa_instances
-        # json_template['metadata'] = {
-        #     'name': images_dict['file_name'],
-        #     'width': images_dict['shape'][1],
-        #     'height': images_dict['shape'][0]
-        # }
-        # write_to_json(output_dir / file_name, json_template)
+        sa_metadata = {
+            'name': images_dict[id_]['file_name'],
+            'width': images_dict[id_]['shape'][1],
+            'height': images_dict[id_]['shape'][0]
+        }
+        json_template = _create_sa_json(sa_instances, sa_metadata)
+        write_to_json(output_dir / file_name, json_template)
         cv2.imwrite(
             str(output_dir / ('%s___save.png' % annotations['file_name'])), mask
         )

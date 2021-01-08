@@ -1,10 +1,9 @@
-import os
 from pathlib import Path
 import json
 
 from .supervisely_helper import _base64_to_polygon, _create_attribute_list
 
-from ..sa_json_helper import _create_vector_instance
+from ..sa_json_helper import _create_vector_instance, _create_sa_json
 
 from ....common import write_to_json
 
@@ -21,10 +20,14 @@ def supervisely_to_sa(json_files, class_id_map, task, output_dir):
 
     for json_file in json_files:
         file_name = '%s___objects.json' % Path(json_file).stem
+        sa_metadata = {
+            'name': Path(json_file).stem,
+            'width': json_data['size']['width'],
+            'height': json_data['size']['height']
+        }
 
         json_data = json.load(open(json_file))
-        sa_loader = []
-
+        sa_instances = []
         for obj in json_data['objects']:
             if 'classTitle' in obj and obj['classTitle'] in class_id_map.keys():
                 attributes = []
@@ -82,8 +85,9 @@ def supervisely_to_sa(json_files, class_id_map, task, output_dir):
                     sa_obj = _create_vector_instance(
                         instance_type, points, {}, attributes, obj['classTitle']
                     )
-                    sa_loader.append(sa_obj)
-        write_to_json(output_dir / file_name, sa_loader)
+                    sa_instances.append(sa_obj)
+        sa_json = _create_sa_json(sa_instances, sa_metadata)
+        write_to_json(output_dir / file_name, sa_json)
 
 
 def supervisely_keypoint_detection_to_sa_vector(
@@ -107,9 +111,9 @@ def supervisely_keypoint_detection_to_sa_vector(
 
     for json_file in json_files:
         file_name = '%s___objects.json' % (Path(json_file).stem)
-
+        sa_metadata = {'name': Path(json_file).stem}
         json_data = json.load(open(json_file))
-        sa_loader = []
+        sa_instances = []
 
         for obj in json_data['objects']:
             if 'classTitle' in obj and obj['classTitle'] in class_id_map.keys():
@@ -158,5 +162,6 @@ def supervisely_keypoint_detection_to_sa_vector(
                             'template', points, pointLabels, attributes,
                             obj['classTitle'], connections
                         )
-                        sa_loader.append(sa_obj)
-        write_to_json(output_dir / file_name, sa_loader)
+                        sa_instances.append(sa_obj)
+        sa_json = _create_sa_json(sa_instances, sa_metadata)
+        write_to_json(output_dir / file_name, sa_json)

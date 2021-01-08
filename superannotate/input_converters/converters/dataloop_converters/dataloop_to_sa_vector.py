@@ -1,11 +1,12 @@
 import json
-import numpy as np
 
 from pathlib import Path
 
 from .dataloop_helper import (_update_classes_dict, _create_attributes_list)
 
-from ..sa_json_helper import _create_vector_instance, _create_comment
+from ..sa_json_helper import (
+    _create_vector_instance, _create_comment, _create_sa_json
+)
 
 from ....common import write_to_json
 
@@ -24,7 +25,17 @@ def dataloop_to_sa(input_dir, task, output_dir):
     comment_type = 'note'
 
     for json_file in json_data:
-        sa_loader = []
+        sa_metadata = {}
+        if 'itemMetadata' in dl_data and 'system' in dl_data['itemMetadata']:
+            temp = dl_data['itemMetadata']['system']
+            sa_metadata['name'] = temp['originalname']
+            sa_metadata['width'] = temp['width']
+            sa_metadata['height'] = temp['height']
+
+        sa_instances = []
+        sa_tags = []
+        sa_comments = []
+
         dl_data = json.load(open(json_file))
 
         for ann in dl_data['annotations']:
@@ -63,7 +74,7 @@ def dataloop_to_sa(input_dir, task, output_dir):
                 sa_obj = _create_vector_instance(
                     instance_type, points, {}, attributes, ann['label']
                 )
-                sa_loader.append(sa_obj)
+                sa_instances.append(sa_obj)
             elif ann['type'] == comment_type:
                 comments = []
                 for note in ann['coordinates']['note']['messages']:
@@ -78,11 +89,19 @@ def dataloop_to_sa(input_dir, task, output_dir):
                         ann['coordinates']['box'][0]['y']
                     )
                     sa_comment = _create_comment(points, comments)
-                sa_loader.append(sa_comment)
+                sa_comments.append(sa_comment)
             elif ann['type'] == tags_type:
-                sa_tags = {'type': 'tag', 'name': ann['label']}
-                sa_loader.append(sa_tags)
+                sa_tags.append(ann['labe'])
+                # sa_tags = {'type': 'tag', 'name': ann['label']}
+                # sa_instances.append(sa_tags)
 
-        file_name = '%s___objects.json' % dl_data['filename'][1:]
-        write_to_json(output_dir / file_name, sa_loader)
+        if 'name' in sa_metadata:
+            file_name = '%s___objects.json' % sa_metadata['name']
+        else:
+            file_name = '%s___objects.json' % dl_data['filename'][1:]
+
+        json_template = _create_sa_json(
+            sa_instances, sa_metadata, sa_tags, sa_comments
+        )
+        write_to_json(output_dir / file_name, json_template)
     return classes

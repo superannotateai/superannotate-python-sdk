@@ -1,10 +1,9 @@
-import cv2
 import json
-from glob import glob
-import numpy as np
 from pathlib import Path
+import cv2
+import numpy as np
 
-from ..sa_json_helper import _create_pixel_instance
+from ..sa_json_helper import (_create_pixel_instance, _create_sa_json)
 
 from ....common import hex_to_rgb, blue_color_generator, write_to_json
 
@@ -39,11 +38,11 @@ def sagemaker_instance_segmentation_to_sa_pixel(data_path, output_dir):
                 'attribute-name-ref-metadata']['internal-color-map']
 
             img = cv2.imread(str(data_path / mask_name.replace(':', '_')))
-            H, W, C = img.shape
+            H, W, _ = img.shape
 
             class_contours = {}
             num_of_contours = 0
-            for key, value in classes_dict.items():
+            for key, _ in classes_dict.items():
                 if classes_dict[key]['class-name'] == 'BACKGROUND':
                     continue
 
@@ -67,8 +66,13 @@ def sagemaker_instance_segmentation_to_sa_pixel(data_path, output_dir):
             blue_colors = blue_color_generator(num_of_contours)
             idx = 0
             file_name = '%s___pixel.json' % (img_mapping[mask_name])
-            sa_loader = []
-            sa_mask = np.zeros((H, W, C + 1))
+            sa_metadata = {
+                'name': img_mapping[mask_name],
+                'width': W,
+                'height': H
+            }
+            sa_instances = []
+            sa_mask = np.zeros((H, W, 4))
             for name, contours in class_contours.items():
                 parts = []
                 for contour in contours:
@@ -87,8 +91,9 @@ def sagemaker_instance_segmentation_to_sa_pixel(data_path, output_dir):
                     parts.append({'color': blue_colors[idx]})
                     idx += 1
                     sa_obj = _create_pixel_instance(parts, [], name)
-                    sa_loader.append(sa_obj)
-            write_to_json(output_dir / file_name, sa_loader)
+                    sa_instances.append(sa_obj)
+            sa_json = _create_sa_json(sa_instances, sa_metadata)
+            write_to_json(output_dir / file_name, sa_json)
             cv2.imwrite(
                 str(output_dir / (img_mapping[mask_name] + '___save.png')),
                 sa_mask

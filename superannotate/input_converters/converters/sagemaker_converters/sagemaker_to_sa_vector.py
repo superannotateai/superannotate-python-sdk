@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from ..sa_json_helper import _create_vector_instance
+from ..sa_json_helper import (_create_vector_instance, _create_sa_json)
 
 from ....common import write_to_json
 
@@ -28,6 +28,8 @@ def sagemaker_object_detection_to_sa_vector(data_path, main_key, output_dir):
             manifest = dataset_manifest[int(img['datasetObjectId'])]
             file_name = '%s___objects.json' % Path(manifest['source-ref']).name
 
+            sa_metadata = {'name': Path(manifest['source-ref']).name}
+
             classes = img['consolidatedAnnotation']['content'][
                 main_key + '-metadata']['class-map']
             for key, value in classes.items():
@@ -36,7 +38,7 @@ def sagemaker_object_detection_to_sa_vector(data_path, main_key, output_dir):
 
             annotations = img['consolidatedAnnotation']['content'][main_key][
                 'annotations']
-            sa_loader = []
+            sa_instances = []
             for annotation in annotations:
                 points = (
                     annotation['left'], annotation['top'],
@@ -46,6 +48,7 @@ def sagemaker_object_detection_to_sa_vector(data_path, main_key, output_dir):
                 sa_obj = _create_vector_instance(
                     'bbox', points, {}, [], classes[str(annotation['class_id'])]
                 )
-                sa_loader.append(sa_obj.copy())
-            write_to_json(output_dir / file_name, sa_loader)
+                sa_instances.append(sa_obj.copy())
+            sa_json = _create_sa_json(sa_instances, sa_metadata)
+            write_to_json(output_dir / file_name, sa_json)
     return classes_ids

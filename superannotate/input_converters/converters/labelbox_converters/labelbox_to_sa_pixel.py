@@ -6,22 +6,24 @@ from .labelbox_helper import (
     image_downloader, _create_classes_id_map, _create_attributes_list
 )
 
-from ..sa_json_helper import _create_pixel_instance
+from ..sa_json_helper import (_create_pixel_instance, _create_sa_json)
 
 from ....common import hex_to_rgb, blue_color_generator, write_to_json
 
 
-def labelbox_instance_segmentation_to_sa_pixel(json_data, task, output_dir):
+def labelbox_instance_segmentation_to_sa_pixel(json_data, output_dir, task=''):
     classes = _create_classes_id_map(json_data)
-    for d in json_data:
-        file_name = d['External ID'] + '___pixel.json'
-        mask_name = d['External ID'] + '___save.png'
-        if 'objects' not in d['Label'].keys():
-            sa_jsons[file_name] = []
+    for data in json_data:
+        file_name = data['External ID'] + '___pixel.json'
+        mask_name = data['External ID'] + '___save.png'
+        sa_metadata = {'name': data['External ID']}
+        if 'objects' not in data['Label'].keys():
+            sa_json = _create_sa_json([], sa_metadata)
+            write_to_json(output_dir / file_name, sa_json)
             continue
 
-        instances = d["Label"]["objects"]
-        sa_loader = []
+        instances = data["Label"]["objects"]
+        sa_instances = []
         blue_colors = blue_color_generator(len(instances))
 
         for i, instance in enumerate(instances):
@@ -39,17 +41,20 @@ def labelbox_instance_segmentation_to_sa_pixel(json_data, task, output_dir):
             image_downloader(instance['instanceURI'], mask_name)
             mask = cv2.imread(mask_name)
             if i == 0:
-                H, W, C = mask.shape
-                sa_mask = np.zeros((H, W, C + 1))
+                H, W, _ = mask.shape
+                sa_metadata['width'] = W
+                sa_metadata['height'] = H
+                sa_mask = np.zeros((H, W, 4))
             sa_mask[np.all(mask == [255, 255, 255], axis=2)
                    ] = list(hex_to_rgb(blue_colors[i]))[::-1] + [255]
 
             parts = [{'color': blue_colors[i]}]
             sa_obj = _create_pixel_instance(parts, attributes, class_name)
 
-            sa_loader.append(sa_obj.copy())
+            sa_instances.append(sa_obj.copy())
             Path(mask_name).unlink()
 
-        write_to_json(output_dir / file_name, sa_loader)
+        sa_json = _create_sa_json(sa_instances, sa_metadata)
+        write_to_json(output_dir / file_name, sa_json)
         cv2.imwrite(str(output_dir / mask_name), sa_mask)
     return classes
