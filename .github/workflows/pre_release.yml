@@ -33,3 +33,4 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
           repository: superannotate/pythonsdk
           tag_with_ref: true
+          file: ./Dockerfile_prerelease
