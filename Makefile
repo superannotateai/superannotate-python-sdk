@@ -5,10 +5,7 @@ PYLINT=pylint
 PYTESTS=pytest
 COVERAGE=coverage
 
-all: coverage tests
-	$(PYTHON) setup.py build_ext --inplace
-
-tests:
+tests: check_formatting
 	$(PYTESTS) -n auto
 
 stress-tests: SA_STRESS_TESTS=1
@@ -23,7 +20,7 @@ clean:
 
 coverage: test_coverage
 
-test_coverage:
+test_coverage: check_formatting
 	-$(PYTESTS) --cov=superannotate -n auto
 	$(COVERAGE) html
 	@echo "\033[95m\n\nCoverage successful! View the output at file://htmlcov/index.html.\n\033[0m"
@@ -31,7 +28,7 @@ test_coverage:
 install:
 	pip install .
 
-lint:
+lint: check_formatting
 	-$(PYLINT) --output-format=json superannotate/ | pylint-json2html -o pylint.html
 
 lint_tests:
