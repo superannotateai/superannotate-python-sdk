@@ -23,6 +23,26 @@ _ANNOTATION_STATUSES = {
 }
 _USER_ROLES = {"Admin": 2, "Annotator": 3, "QA": 4, "Customer": 5, "Viewer": 6}
 _AVAILABLE_SEGMENTATION_MODELS = ['autonomous', 'generic']
+_MODEL_TRAINING_STATUSES = {
+    "NotStarted": 1,
+    "InProgress": 2,
+    "Completed": 3,
+    "FailedBeforeEvaluation": 4,
+    "FailedAfterEvaluation": 5,
+    "FailedAfterEvaluationWithSavedModel": 6
+}
+
+
+def model_training_status_int_to_str(project_status):
+    for item in _MODEL_TRAINING_STATUSES:
+        if _MODEL_TRAINING_STATUSES[item] == project_status:
+            return item
+    raise RuntimeError("NA training status")
+
+
+def model_training_status_str_to_int(project_status):
+    return _MODEL_TRAINING_STATUSES[project_status]
+
 
 def image_path_to_annotation_paths(image_path, project_type):
     image_path = Path(image_path)

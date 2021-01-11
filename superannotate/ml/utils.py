@@ -1,6 +1,8 @@
 from ast import literal_eval
 import pandas as pd
 from .defaults import DROP_KEYS
+
+
 def reformat_metrics_json(data, name):
     continuous_metrics = []
     per_evaluation_metrics = []
@@ -16,18 +18,24 @@ def reformat_metrics_json(data, name):
             per_evaluation_metrics += [item]
     continuous_metrics_df = pd.DataFrame.from_dict(continuous_metrics)
     per_evaluation_metrics_df = pd.DataFrame.from_dict(per_evaluation_metrics)
-    continuous_metrics_df = drop_non_plotable_cols(continuous_metrics_df, DROP_KEYS)
-    per_evaluation_metrics_df = drop_non_plotable_cols(per_evaluation_metrics_df, DROP_KEYS)
+    continuous_metrics_df = drop_non_plotable_cols(
+        continuous_metrics_df, DROP_KEYS
+    )
+    per_evaluation_metrics_df = drop_non_plotable_cols(
+        per_evaluation_metrics_df, DROP_KEYS
+    )
     continuous_metrics_df['model'] = name
     per_evaluation_metrics_df['model'] = name
     return continuous_metrics_df, per_evaluation_metrics_df
+
 
 def drop_non_plotable_cols(df, non_plotable_cols):
     for column in df:
         if column not in non_plotable_cols:
             continue
-        df = df.drop(columns = column)
+        df = df.drop(columns=column)
     return df
+
 
 def make_plotly_specs(num_rows):
     specs = [[{"secondary_y": True}] for x in range(num_rows)]
