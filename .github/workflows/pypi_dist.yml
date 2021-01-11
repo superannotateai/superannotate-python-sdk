@@ -19,7 +19,7 @@ jobs:
           pip install setuptools wheel twine numpy yapf
       - name: Check formatting
         run: yapf -p -r --diff -e '*/pycocotools_sa' superannotate
-      - name: Install to PyPI
+      - name: Create distribution files
         run: python setup.py sdist
       - name: Publish distribution to PyPI
         if: startsWith(github.ref, 'refs/tags')
@@ -32,4 +32,5 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
           repository: superannotate/pythonsdk
+          tags: superannotate/pythonsdk:latest
           tag_with_ref: true
