@@ -1,4 +1,4 @@
-.PHONY: all clean tests stress-tests coverage test_coverage install lint docs dist
+.PHONY: all clean tests stress-tests coverage test_coverage install lint docs dist check_formatting
 
 PYTHON=python3
 PYLINT=pylint
@@ -45,3 +45,6 @@ dist:
 	-rm -rf dist/*
 	$(PYTHON) setup.py sdist
 	twine upload dist/*
+
+check_formatting:
+	yapf -p -r --diff -e '*/pycocotools_sa' superannotate
