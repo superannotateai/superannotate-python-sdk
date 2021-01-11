@@ -1,0 +1,36 @@
+name: Release
+
+on:
+  release:
+    types: [released]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.7"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install setuptools wheel twine numpy yapf
+      - name: Check formatting
+        run: yapf -p -r --diff -e '*/pycocotools_sa' superannotate
+      - name: Create distribution files
+        run: python setup.py sdist
+      - name: Publish distribution to PyPI
+        if: startsWith(github.ref, 'refs/tags')
+        uses: pypa/gh-action-pypi-publish@master
+        with:
+          password: ${{ secrets.pypi_password }}
+      - name: Push Docker image to Docker Hub
+        uses: docker/build-push-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          repository: superannotate/pythonsdk
+          tags: superannotate/pythonsdk:latest
+          tag_with_ref: true
