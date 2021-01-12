@@ -1,6 +1,8 @@
 FROM ubuntu:20.04
 ENV LANG C.UTF-8
 
+ARG PIP_FLAGS
+
 SHELL ["/bin/bash", "-c"]
 
 ENV DEBIAN_FRONTEND noninteractive
@@ -15,7 +17,7 @@ RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 1
 RUN update-alternatives --install /usr/local/bin/pip pip /usr/bin/pip3 1
 
 RUN apt-get install -y build-essential && \
-    pip install --no-cache-dir superannotate && \
+    pip install --no-cache-dir $PIP_FLAGS superannotate && \
     apt-get remove -y build-essential && \
     apt-get -y autoremove && \
     rm -rf /root/.cache/pip && \
