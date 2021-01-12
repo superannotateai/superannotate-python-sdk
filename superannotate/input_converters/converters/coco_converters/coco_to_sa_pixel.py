@@ -6,29 +6,19 @@ import cv2
 import numpy as np
 from tqdm import tqdm
 
+from .coco_api import (_maskfrRLE, decode)
+
 from ....common import blue_color_generator, hex_to_rgb, id2rgb
-from ....pycocotools_sa.coco import COCO
-from ....pycocotools_sa import mask as maskUtils
 
 logger = logging.getLogger("superannotate-python-sdk")
 
+def annot_to_bitmask(annot):
+    if isinstance(annot['counts'], list):
+        bitmask = _maskfrRLE(annot)
+    elif isinstance(annot['counts'], str):
+        bitmask = decode(annot)
 
-def _rle_to_polygon(coco_json, annotation):
-    coco = COCO(coco_json)
-    binary_mask = coco.annToMask(annotation)
-    contours, _ = cv2.findContours(
-        binary_mask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-    )
-    segmentation = []
-
-    for contour in contours:
-        contour = contour.flatten().tolist()
-        if len(contour) > 4:
-            segmentation.append(contour)
-        if len(segmentation) == 0:
-            continue
-    return segmentation
-
+    return bitmask
 
 def coco_panoptic_segmentation_to_sa_pixel(coco_path, images_path):
     coco_json = json.load(open(coco_path))
@@ -115,23 +105,8 @@ def coco_instance_segmentation_to_sa_pixel(coco_path, images_path):
             hexcolor = hexcolors[i]
             color = hex_to_rgb(hexcolor)
             if isinstance(annot['segmentation'], dict):
-                if isinstance(annot['segmentation']['counts'], list):
-                    annot['segmentation'] = _rle_to_polygon(coco_path, annot)
-                    for segment in annot['segmentation']:
-                        bitmask = np.zeros((H, W)).astype(np.uint8)
-                        pts = np.array(
-                            [
-                                segment[2 * i:2 * (i + 1)]
-                                for i in range(len(segment) // 2)
-                            ],
-                            dtype=np.int32
-                        )
-
-                        cv2.fillPoly(bitmask, [pts], 1)
-                        mask[bitmask == 1] = list(color)[::-1] + [255]
-                else:
-                    mask[maskUtils.decode(annot['segmentation']) == 1
-                        ] = list(color)[::-1] + [255]
+                bitmask = annot_to_bitmask(annot['segmentation'])
+                mask[bitmask == 1] = list(color)[::-1] + [255]
             else:
                 for segment in annot['segmentation']:
                     bitmask = np.zeros((H, W)).astype(np.uint8)

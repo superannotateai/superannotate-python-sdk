@@ -1,7 +1,7 @@
 import json
 import logging
 
-from ....pycocotools_sa import mask as cocomask
+from .coco_api import (_toBbox, _merge, _area, _polytoMask)
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -80,12 +80,6 @@ def sa_vector_to_coco_instance_segmentation(
         for cat_id, polygons in polygon_group.items():
             anno_id = next(id_generator)
             try:
-                masks = cocomask.frPyObjects(
-                    polygons, image_info['height'], image_info['width']
-                )
-                mask = cocomask.merge(masks)
-                area = int(cocomask.area(mask))
-                bbox = cocomask.toBbox(mask).tolist()
                 annotation = make_annotation(
                     cat_id, image_info['id'], bbox, polygons, area, anno_id
                 )
