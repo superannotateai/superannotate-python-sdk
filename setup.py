@@ -1,5 +1,4 @@
-import numpy as np
-from setuptools import Extension, find_packages, setup
+from setuptools import find_packages, setup
 
 with open('requirements.txt') as f:
     requirements = f.read()
@@ -18,18 +17,6 @@ with open('superannotate/version.py') as f:
 Version = Version.rstrip()
 Version = Version[15:-1]
 
-ext_modules = [
-    Extension(
-        'superannotate.pycocotools_sa._mask',
-        sources=[
-            'superannotate/pycocotools_sa/_mask.pyx',
-            'superannotate/pycocotools_sa/maskApi.c'
-        ],
-        include_dirs=[np.get_include(), 'superannotate/pycocotools_sa'],
-        extra_compile_args=[],
-    )
-]
-
 setup(
     name='superannotate',
     version=Version,
@@ -46,6 +33,5 @@ setup(
     entry_points={
         'console_scripts': ['superannotatecli = superannotate.__main__:main']
     },
-    python_requires='>=3.6',
-    ext_modules=ext_modules
+    python_requires='>=3.6'
 )
