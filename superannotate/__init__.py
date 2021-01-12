@@ -17,8 +17,8 @@ from .annotation_helpers import (
 )
 from .api import API as _API
 from .common import image_path_to_annotation_paths
-from .consensus_benchmark.benchmark import benchmark
-from .consensus_benchmark.consensus import consensus
+# from .consensus_benchmark.benchmark import benchmark
+# from .consensus_benchmark.consensus import consensus
 from .dataframe_filtering import (
     filter_annotation_instances, filter_images_by_comments,
     filter_images_by_tags

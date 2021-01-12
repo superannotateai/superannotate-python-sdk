@@ -1,7 +1,6 @@
 from pathlib import Path
-import superannotate as sa
 
-sa.init(Path.home() / ".superannotate" / "config.json")
+from superannotate.consensus_benchmark.benchmark import benchmark
 
 test_root = Path().resolve() / 'tests'
 
@@ -16,7 +15,7 @@ def test_benchmark():
     ]
     export_path = test_root / 'consensus_benchmark'
     for annot_type in annot_types:
-        res_df = sa.benchmark(
+        res_df = benchmark(
             gt_project_name,
             project_names,
             export_root=export_path,
@@ -40,7 +39,7 @@ def test_benchmark():
     ]
 
     #test filtering images with given image names list
-    res_images = sa.benchmark(
+    res_images = benchmark(
         gt_project_name,
         project_names,
         export_root=export_path,
