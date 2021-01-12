@@ -233,6 +233,9 @@ def upload_video_to_project(
     :rtype: list of strs
     """
     logger.info("Uploading from video %s.", str(video_path))
+    file_size = Path(video_path).stat().st_size
+    if file_size > common.MAX_VIDEO_SIZE:
+        raise SAVideoSizeTooLarge(file_size)
     rotate_code = None
     try:
         meta_dict = ffmpeg.probe(str(video_path))
@@ -413,15 +416,23 @@ def upload_videos_from_folder_to_project(
 
     filenames = []
     for path in filtered_paths:
-        filenames += upload_video_to_project(
-            project,
-            path,
-            target_fps=target_fps,
-            start_time=start_time,
-            end_time=end_time,
-            annotation_status=annotation_status,
-            image_quality_in_editor=image_quality_in_editor
-        )
+        try:
+            filename = upload_video_to_project(
+                project,
+                path,
+                target_fps=target_fps,
+                start_time=start_time,
+                end_time=end_time,
+                annotation_status=annotation_status,
+                image_quality_in_editor=image_quality_in_editor
+            )
+        except Exception as e:
+            logger.warning(
+                "Couldn't upload video %s. Exception: ", path, str(e)
+            )
+            pass
+        else:
+            filenames += filename
 
     return filenames
 
