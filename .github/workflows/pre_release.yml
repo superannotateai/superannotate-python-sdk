@@ -28,7 +28,7 @@ jobs:
         with:
           push: true
           tags: superannotate/pythonsdk:dev
-          build-args: PIP_FLAGS='--pre'
+          build-args: PIP_FLAGS=--pre
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
