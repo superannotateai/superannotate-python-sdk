@@ -25,15 +25,6 @@ class SAImageSizeTooLarge(SABaseException):
         )
 
 
-class SAVideoSizeTooLarge(SABaseException):
-    def __init__(self, file_size, file_name=""):
-        super().__init__(
-            0, "Video " + file_name + " size " + str(file_size // 1024**3) +
-            " GB is larger than " + str(common.MAX_VIDEO_SIZE // 1024**3) +
-            " GB limit."
-        )
-
-
 class SAExistingProjectNameException(SABaseException):
     pass
 

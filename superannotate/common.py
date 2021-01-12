@@ -244,7 +244,6 @@ def dump_output(output_dir, platform, classes, files_dict):
         save_desktop_format(output_dir, classes, files_dict)
 
 
-MAX_VIDEO_SIZE = 5 * 1024 * 1024 * 1024  # 5 GB limit
 MAX_IMAGE_SIZE = 100 * 1024 * 1024  # 100 MB limit
 MAX_IMAGE_RESOLUTION = {
     "Vector": 100_000_000,
