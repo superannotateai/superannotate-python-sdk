@@ -12,6 +12,7 @@ from ....common import blue_color_generator, hex_to_rgb, id2rgb
 
 logger = logging.getLogger("superannotate-python-sdk")
 
+
 def annot_to_bitmask(annot):
     if isinstance(annot['counts'], list):
         bitmask = _maskfrRLE(annot)
@@ -19,6 +20,7 @@ def annot_to_bitmask(annot):
         bitmask = decode(annot)
 
     return bitmask
+
 
 def coco_panoptic_segmentation_to_sa_pixel(coco_path, images_path):
     coco_json = json.load(open(coco_path))

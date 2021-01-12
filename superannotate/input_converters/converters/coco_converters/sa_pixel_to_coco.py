@@ -3,6 +3,7 @@ import numpy as np
 
 from .coco_api import (encode, _toBbox, _area)
 
+
 def __instance_object_commons_per_instance(
     instance, id_generator, image_commons, cat_id_map
 ):
@@ -22,7 +23,7 @@ def __instance_object_commons_per_instance(
         databytes, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE
     )
     bbox = list(_toBbox(instance_bitmask))
-    area = int(_area(instance_bitmask.astype(np.uint8)))    
+    area = int(_area(instance_bitmask.astype(np.uint8)))
     return (bbox, area, contours, category_id, anno_id)
 
 
