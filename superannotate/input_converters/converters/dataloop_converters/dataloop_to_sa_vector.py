@@ -25,6 +25,8 @@ def dataloop_to_sa(input_dir, task, output_dir):
     comment_type = 'note'
 
     for json_file in json_data:
+        dl_data = json.load(open(json_file))
+
         sa_metadata = {}
         if 'itemMetadata' in dl_data and 'system' in dl_data['itemMetadata']:
             temp = dl_data['itemMetadata']['system']
@@ -35,8 +37,6 @@ def dataloop_to_sa(input_dir, task, output_dir):
         sa_instances = []
         sa_tags = []
         sa_comments = []
-
-        dl_data = json.load(open(json_file))
 
         for ann in dl_data['annotations']:
             if ann['type'] in instance_types:
@@ -91,9 +91,7 @@ def dataloop_to_sa(input_dir, task, output_dir):
                     sa_comment = _create_comment(points, comments)
                 sa_comments.append(sa_comment)
             elif ann['type'] == tags_type:
-                sa_tags.append(ann['labe'])
-                # sa_tags = {'type': 'tag', 'name': ann['label']}
-                # sa_instances.append(sa_tags)
+                sa_tags.append(ann['label'])
 
         if 'name' in sa_metadata:
             file_name = '%s___objects.json' % sa_metadata['name']

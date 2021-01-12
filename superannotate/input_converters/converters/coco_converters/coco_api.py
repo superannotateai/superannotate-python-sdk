@@ -103,7 +103,7 @@ def _area(bitmask):
 
 def _toBbox(bitmask):
     contours, _ = cv2.findContours(
-        bitmask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+        bitmask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE
     )
     segments = []
     for contour in contours:
@@ -115,7 +115,7 @@ def _toBbox(bitmask):
     ymin = min(segments[1::2])
     ymax = max(segments[1::2])
 
-    return [xmin, ymin, xmax - xmin, ymax - ymin]
+    return [xmin, ymin, xmax - xmin + 1, ymax - ymin + 1]
 
 
 def _merge(list_of_bitmask):
@@ -130,12 +130,13 @@ def _merge(list_of_bitmask):
 def _polytoMask(polygons, height, width):
     masks = []
     for polygon in polygons:
-        polygon = np.round(polygon)
-        bitmask = np.zeros((height, width)).astype(np.uint8)
+        polygon = np.array(polygon, dtype=np.uint16)
         pts = np.array(
             [polygon[2 * i:2 * (i + 1)] for i in range(len(polygon) // 2)],
             dtype=np.int32
         )
+        bitmask = np.zeros((height, width)).astype(np.uint8)
         cv2.fillPoly(bitmask, [pts], 1)
+
         masks.append(bitmask)
     return masks

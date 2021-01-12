@@ -19,6 +19,7 @@ def supervisely_to_sa(json_files, class_id_map, task, output_dir):
         ]
 
     for json_file in json_files:
+        json_data = json.load(open(json_file))
         file_name = '%s___objects.json' % Path(json_file).stem
         sa_metadata = {
             'name': Path(json_file).stem,
@@ -26,7 +27,6 @@ def supervisely_to_sa(json_files, class_id_map, task, output_dir):
             'height': json_data['size']['height']
         }
 
-        json_data = json.load(open(json_file))
         sa_instances = []
         for obj in json_data['objects']:
             if 'classTitle' in obj and obj['classTitle'] in class_id_map.keys():

@@ -96,13 +96,18 @@ class CocoBaseStrategy(baseStrategy):
         rm_len = len('___pixel.json')
 
         sa_json = json.load(open(json_path))
-        # sa_ann_json = json.load(open(json_path))
         sa_ann_json = sa_json['instances']
 
         sa_bluemask_path = str(json_path)[:-rm_len] + '___save.png'
 
-        # image_info = self.__make_image_info(json_path, id_, self.project_type)
         image_info = self.__make_image_info(id_, sa_json['metadata'])
+
+        if image_info['height'] is None or image_info['width'] is None:
+            img_height, img_width = self.get_dimensions(
+                json_path, self.project_type
+            )
+            image_info['height'] = img_height
+            image_info['width'] = img_width
 
         sa_bluemask_rgb = np.asarray(
             Image.open(sa_bluemask_path).convert('RGB'), dtype=np.uint32
@@ -121,15 +126,16 @@ class CocoBaseStrategy(baseStrategy):
 
         return res
 
-    # def __make_image_info(self, json_path, id_, source_type):
-    # if source_type == 'Pixel':
-    #     rm_len = len('___pixel.json')
-    # elif source_type == 'Vector':
-    #     rm_len = len('___objects.json')
+    def get_dimensions(self, json_path, source_type):
+        if source_type == 'Pixel':
+            rm_len = len('___pixel.json')
+        elif source_type == 'Vector':
+            rm_len = len('___objects.json')
 
-    # image_path = str(json_path)[:-rm_len]
+        image_path = str(json_path)[:-rm_len]
+        img_width, img_height = Image.open(image_path).size
+        return img_height, img_width
 
-    # img_width, img_height = Image.open(image_path).size
     def __make_image_info(self, id_, sa_meta_json):
         image_info = {
             'id': id_,
@@ -144,11 +150,9 @@ class CocoBaseStrategy(baseStrategy):
     def _prepare_single_image_commons_vector(self, id_, json_path):
         ImgCommons = namedtuple('ImgCommons', ['image_info', 'sa_ann_json'])
 
-        # sa_ann_json = json.load(open(json_path))
         sa_json = json.load(open(json_path))
         sa_ann_json = sa_json['instances']
 
-        # image_info = self.__make_image_info(json_path, id_, self.project_type)
         image_info = self.__make_image_info(id_, sa_json['metadata'])
 
         res = ImgCommons(image_info, sa_ann_json)

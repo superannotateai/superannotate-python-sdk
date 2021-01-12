@@ -75,7 +75,7 @@ def coco_panoptic_segmentation_to_sa_pixel(coco_path, output_dir):
             'width': img_id_to_shape[str(annot['image_id'])]['width'],
             'height': img_id_to_shape[str(annot['image_id'])]['height']
         }
-        json_template = _create_sa_json(sa_instances, metadata)
+        json_template = _create_sa_json(sa_instances, sa_metadata)
         write_to_json(output_dir / file_name, json_template)
         (output_dir / ("%s.png" % annot_name)).unlink()
 

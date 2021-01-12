@@ -2,7 +2,6 @@ import cv2 as cv
 import numpy as np
 
 from .coco_api import (encode, _toBbox, _area)
-# from ....pycocotools_sa import mask as cocomask
 
 
 def __instance_object_commons_per_instance(
@@ -24,11 +23,7 @@ def __instance_object_commons_per_instance(
         databytes, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE
     )
 
-    # coco_instance_mask = cocomask.encode(np.asfortranarray(instance_bitmask))
-    # coco_instance_mask = encode(instance_bitmask.astype(np.uint8))
-    # bbox = cocomask.toBbox(coco_instance_mask).tolist()
-    bbox = list(_toBbox(instance_bitmask.astype(np.uint8)))
-    # area = int(cocomask.area(coco_instance_mask))
+    bbox = list(_toBbox(instance_bitmask))
     area = int(_area(instance_bitmask.astype(np.uint8)))
     return (bbox, area, contours, category_id, anno_id)
 
@@ -96,14 +91,7 @@ def sa_pixel_to_coco_panoptic_segmentation(
         instance_bitmask = np.isin(flat_mask, parts)
         segment_id = next(id_generator)
         ann_mask[instance_bitmask] = segment_id
-        # coco_instance_mask = cocomask.encode(
-        #     np.asfortranarray(instance_bitmask)
-        # )
-        # bbox = cocomask.toBbox(coco_instance_mask).tolist()
-        # area = int(cocomask.area(coco_instance_mask))
-
-        # coco_instance_mask = encode(instance_bitmask.astype(np.uint8))
-        bbox = list(_toBbox(instance_bitmask.astype(np.uint8)))
+        bbox = list(_toBbox(instance_bitmask))
         area = int(_area(instance_bitmask.astype(np.uint8)))
 
         segment_info = {
