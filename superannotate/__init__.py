@@ -77,6 +77,12 @@ from .input_converters.conversion import (
     coco_split_dataset, convert_platform, convert_project_type,
     export_annotation, import_annotation
 )
+
+from .ml.ml_funcs import (
+    run_prediction, run_segmentation, run_training, stop_model_training,
+    plot_model_metrics, download_model, delete_model
+)
+from .ml.ml_models import search_models
 from .version import __version__
 
 formatter = logging.Formatter(fmt='SA-PYTHON-SDK - %(levelname)s - %(message)s')

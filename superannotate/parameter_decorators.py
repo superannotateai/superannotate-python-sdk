@@ -1,8 +1,8 @@
-from .db.project_metadata import get_project_metadata
-from .exceptions import SABaseException
-from .ml.ml_models import search_models
-from inspect import signature
+from .db.project_api import get_project_metadata_bare as get_project_metadata
 from .common import project_type_int_to_str
+from .ml.ml_models import search_models
+from .exceptions import SABaseException
+from inspect import signature
 from functools import wraps
 
 

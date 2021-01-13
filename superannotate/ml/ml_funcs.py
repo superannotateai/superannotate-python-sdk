@@ -3,27 +3,26 @@ develoer  : Vahagn Tumanyan
 maintainer: Vahagn Tumanyan
 email     : Vahagn@superannotate.com
 """
-import plotly.graph_objects as go
-import logging
-import json
-from ..api import API
-from .defaults import DEFAULT_HYPERPARAMETERS
-from ..exceptions import SABaseException
+from ..parameter_decorators import project_metadata, model_metadata
 from ..common import (
     _AVAILABLE_SEGMENTATION_MODELS, process_api_response,
     project_type_str_to_int, model_training_status_int_to_str
 )
-from ..parameter_decorators import project_metadata, model_metadata
-from ..db.images import search_images
-import boto3
-from .utils import reformat_metrics_json, make_plotly_specs
-import os
-import plotly.express as px
-from .defaults import NON_PLOTABLE_KEYS
-import pandas as pd
+from .utils import reformat_metrics_json, make_plotly_specs, log_process
+from .defaults import DEFAULT_HYPERPARAMETERS
 from plotly.subplots import make_subplots
-import os
+from ..exceptions import SABaseException
+from .defaults import NON_PLOTABLE_KEYS
+from ..db.images import search_images
+import plotly.graph_objects as go
+import plotly.express as px
+from ..api import API
+import pandas as pd
+import logging
+import boto3
+import json
 import time
+import os
 
 logger = logging.getLogger("superannotate-python-sdk")
 _api = API.get_instance()
@@ -34,8 +33,9 @@ def get_valid_image_id(image_name, images_name_id_map):
         logger.info(
             f"image with the name {image_name} does not exist in the provided project, skipping"
         )
+        return None,
     else:
-        return images_name_id_map[image_name]
+        return (images_name_id_map[image_name], image_name)
 
 
 def get_valid_image_id_list(project, images_list):
@@ -45,7 +45,7 @@ def get_valid_image_id_list(project, images_list):
     images_id_list = [
         get_valid_image_id(x, images_name_id_map) for x in images_list
     ]
-    images_id_list = [x for x in images_id_list if x is not None]
+    images_id_list = [x for x in images_id_list if x[0] is not None]
     return images_id_list
 
 
@@ -70,7 +70,8 @@ def run_prediction(project, images_list, model):
     project_id = project["id"]
 
     images_id_list = get_valid_image_id_list(project, images_list)
-
+    image_name_set = set([x[1] for x in images_id_list])
+    image_id_list = [x[0] for x in images_id_list]
     if len(images_id_list) == 0:
         raise SABaseException(0, "No valid image names were provided")
 
@@ -89,7 +90,8 @@ def run_prediction(project, images_list, model):
         raise SABaseException(0, "Could not start prediction")
 
     logger.info("Started smart prediction")
-
+    total_image_count = len(image_name_set)
+    log_process(project, image_name_set, total_image_count, 'prediction_status', "Smart Prediction", logger)
     return response.ok
 
 
@@ -125,6 +127,8 @@ def run_segmentation(project, images_list, model):
         raise SABaseException(0, "Model Does not exist")
 
     images_id_list = get_valid_image_id_list(project, images_list)
+    image_name_set = set([x[1] for x in images_id_list])
+    image_id_list = [x[0] for x in images_id_list]
 
     if len(images_id_list) == 0:
         raise SABaseException(0, "No valid image names were provided")
@@ -145,6 +149,7 @@ def run_segmentation(project, images_list, model):
     else:
         logger.info("Started smart segmentation")
 
+    log_process(project, image_name_set, total_image_count, 'segmentation_status', 'Smart Segmentation'. logger)
     return response.ok
 
 
@@ -279,85 +284,11 @@ def run_training(
                         pass
                     else:
                         delete_model(name)
-                        logging.info('The model was not saved')
+                        logger.info('The model was not saved')
                 is_training_finished = True
 
         time.sleep(5)
 
-
-@model_metadata
-def download_model(model, output_dir):
-    """Downloads the neural network and related files
-    which are the <model_name>.pth/pkl. <model_name>.json, <model_name>.yaml, classes_mapper.json
-    :param model: the model that needs to be downloaded
-    :type  model: str
-    :param output_dir: the directiory in which the files will be saved
-    :type output_dir: str
-    """
-    if not os.path.isdir(output_dir):
-        os.makedirs(output_dir, exist_ok=True)
-
-    weights_path = model["path"]
-    weights_name = os.path.basename(weights_path)
-    metrics_name = weights_name.split('.')[0] + '.json'
-
-    config_path = model["config_path"]
-    _path = config_path.split("/")
-    _path[-1] = "classes_mapper.json"
-    mapper_path = "/".join(_path)
-    _path[-1] = metrics_name
-    metrics_path = "/".join(_path)
-
-    params = {
-        "team_id": _api.team_id,
-    }
-
-    response = _api.send_request(
-        req_type="GET",
-        path=f"/ml_model/getMyModelDownloadToken/{model['id']}",
-        params=params
-    )
-    if response.ok:
-        response = process_api_response(response.json())
-    else:
-        raise SABaseException(0, "Could not get model info ")
-
-    tokens = response["tokens"]
-    s3_session = boto3.Session(
-        aws_access_key_id=tokens["accessKeyId"],
-        aws_secret_access_key=tokens["secretAccessKey"],
-        aws_session_token=tokens["sessionToken"]
-    )
-    s3_resource = s3_session.resource('s3')
-
-    bucket = s3_resource.Bucket(tokens["bucket"])
-
-    bucket.download_file(config_path, os.path.join(output_dir, 'config.yaml'))
-    bucket.download_file(weights_path, os.path.join(output_dir, weights_name))
-    try:
-        bucket.download_file(
-            metrics_path, os.path.join(output_dir, metrics_path)
-        )
-        bucket.download_file(mapper_path, os.path.join(output_dir, mapper_path))
-
-    except Exception as e:
-        logger.info(
-            "the specified model does not contain a classes_mapper and/or a metrics file"
-        )
-
-    logger.info("Downloaded model related files")
-
-
-@model_metadata
-def delete_model(model):
-    params = {"team_id": _api.team_id}
-    response = _api.send_request(
-        req_type="DELETE", path=f'/ml_model/{model["id"]}', params=params
-    )
-    if response.ok:
-        logger.info("Model successfully deleted")
-    else:
-        logger.info("Failed to delete model, please try again")
 
 
 @model_metadata
@@ -445,3 +376,77 @@ def plot_model_metrics(metric_json_list):
     plot_df(full_c_metrics, plottable_c_cols, figure )
     plot_df(full_pe_metrics, plottable_pe_cols, figure, len(plottable_c_cols) )
     figure.show()
+
+@model_metadata
+def download_model(model, output_dir):
+    """Downloads the neural network and related files
+    which are the <model_name>.pth/pkl. <model_name>.json, <model_name>.yaml, classes_mapper.json
+    :param model: the model that needs to be downloaded
+    :type  model: str
+    :param output_dir: the directiory in which the files will be saved
+    :type output_dir: str
+    """
+    if not os.path.isdir(output_dir):
+        os.makedirs(output_dir, exist_ok=True)
+
+    weights_path = model["path"]
+    weights_name = os.path.basename(weights_path)
+    metrics_name = weights_name.split('.')[0] + '.json'
+
+    config_path = model["config_path"]
+    _path = config_path.split("/")
+    _path[-1] = "classes_mapper.json"
+    mapper_path = "/".join(_path)
+    _path[-1] = metrics_name
+    metrics_path = "/".join(_path)
+
+    params = {
+        "team_id": _api.team_id,
+    }
+
+    response = _api.send_request(
+        req_type="GET",
+        path=f"/ml_model/getMyModelDownloadToken/{model['id']}",
+        params=params
+    )
+    if response.ok:
+        response = process_api_response(response.json())
+    else:
+        raise SABaseException(0, "Could not get model info ")
+
+    tokens = response["tokens"]
+    s3_session = boto3.Session(
+        aws_access_key_id=tokens["accessKeyId"],
+        aws_secret_access_key=tokens["secretAccessKey"],
+        aws_session_token=tokens["sessionToken"]
+    )
+    s3_resource = s3_session.resource('s3')
+
+    bucket = s3_resource.Bucket(tokens["bucket"])
+
+    bucket.download_file(config_path, os.path.join(output_dir, 'config.yaml'))
+    bucket.download_file(weights_path, os.path.join(output_dir, weights_name))
+    try:
+        bucket.download_file(
+            metrics_path, os.path.join(output_dir, metrics_path)
+        )
+        bucket.download_file(mapper_path, os.path.join(output_dir, mapper_path))
+
+    except Exception as e:
+        logger.info(
+            "the specified model does not contain a classes_mapper and/or a metrics file"
+        )
+
+    logger.info("Downloaded model related files")
+
+@model_metadata
+def delete_model(model):
+    params = {"team_id": _api.team_id}
+    response = _api.send_request(
+        req_type="DELETE", path=f'/ml_model/{model["id"]}', params=params
+    )
+    if response.ok:
+        logger.info("Model successfully deleted")
+    else:
+        logger.info("Failed to delete model, please try again")
+

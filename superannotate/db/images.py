@@ -25,6 +25,8 @@ from .annotation_classes import (
 )
 from .project_api import get_project_metadata_bare
 from ..common import process_api_response
+from ..parameter_decorators import project_metadata
+
 logger = logging.getLogger("superannotate-python-sdk")
 
 _api = API.get_instance()
@@ -130,8 +132,8 @@ def search_images(
     else:
         return result_list
 
-
-def get_image_metadata(project, image_name):
+@project_metadata
+def get_image_metadata(project, image_names):
     """Returns image metadata
 
     :param project: project name or metadata of the project
@@ -142,11 +144,26 @@ def get_image_metadata(project, image_name):
     :return: metadata of image
     :rtype: dict
     """
-    images = search_images(project, image_name, return_metadata=True)
-    for image in images:
-        if image["name"] == image_name:
-            return image
-    raise SABaseException(0, "Image " + image_name + " doesn't exist.")
+    if isinstance(image_names, str):
+        image_names = [image_names]
+
+    json_req = {
+        'project_id' : project['id'],
+        'team_id' : _api.team_id,
+        'names' : image_names
+    }
+    response =_api.send_request(
+        req_type='POST',
+        path = '/images/getBulk',
+        json_req = json_req,
+    )
+
+    metadata = response.json()
+    if len(metadata) == 1:
+        return metadata[0]
+    elif len(metadata) == 0:
+        raise SABaseException(0, "Image " + image_name + " doesn't exist.")
+    return metadata
 
 
 def set_image_annotation_status(project, image_name, annotation_status):

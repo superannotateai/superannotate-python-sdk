@@ -1,7 +1,10 @@
-import logging
-from ..api import API
-from ..exceptions import SABaseException
 from ..common import process_api_response
+from ..exceptions import SABaseException
+from ..api import API
+
+import logging
+
+
 logger = logging.getLogger("superannotate-python-sdk")
 _api = API.get_instance()
 
@@ -33,3 +36,4 @@ def search_models(
     if not result['data']:
         raise SABaseException(0, "Model with such a name does not exist")
     return result['data']
+
