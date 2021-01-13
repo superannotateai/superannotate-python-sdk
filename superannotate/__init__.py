@@ -22,7 +22,17 @@ try:
     from .consensus_benchmark.benchmark import benchmark
     from .consensus_benchmark.consensus import consensus
 except:
-    pass
+
+    def benchmark(*args, **kwargs):
+        raise RuntimeError(
+            "To use superannotate.benchmark or superannotate.consensus functions please install shapely package with # conda install shapely or # pip install shapely"
+        )
+
+    def consensus(*args, **kwargs):
+        raise RuntimeError(
+            "To use superannotate.benchmark or superannotate.consensus functions please install shapely package with # conda install shapely or # pip install shapely"
+        )
+
 
 from .dataframe_filtering import (
     filter_annotation_instances, filter_images_by_comments,
