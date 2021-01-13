@@ -69,16 +69,19 @@ def _generate_instances(polygon_instances, voc_instances):
             max(temp[::2]),
             max(temp[1::2])
         ]
-        for class_name, bbox in voc_instances:
+        for _, bbox in voc_instances:
             ious.append(_iou(bbox_poly, bbox))
         ind = np.argmax(ious)
         for poly in polygon:
+            class_name = list(voc_instances[ind][0].keys())[0]
+            attributes = voc_instances[ind][0][class_name]
             instances.append(
                 {
-                    'className': voc_instances[ind][0],
+                    'className': class_name,
                     'polygon': poly,
                     'bbox': voc_instances[ind][1],
-                    'groupId': group_id
+                    'groupId': group_id,
+                    'classAttributes': attributes
                 }
             )
     return instances
@@ -91,26 +94,65 @@ def _get_voc_instances_from_xml(file_path):
     voc_instances = []
     for instance in instances:
         class_name = instance.find("name").text
+        class_attributes = []
+        for attr in ['pose', 'occluded', 'difficult', 'truncated']:
+            attr_value = instance.find(attr)
+            if attr_value is not None:
+                class_attributes.append(
+                    {
+                        'name': attr_value.text,
+                        'groupName': attr
+                    }
+                )
+
         bbox = instance.find("bndbox")
         bbox = [
             float(bbox.find(x).text) for x in ["xmin", "ymin", "xmax", "ymax"]
         ]
-        voc_instances.append((class_name, bbox))
+        voc_instances.append(({class_name: class_attributes}, bbox))
     return voc_instances
 
 
-def _create_classes(classes):
+def _create_classes(voc_instance):
+    classes = {}
+    for instance in voc_instance:
+        for class_, value in instance.items():
+            if class_ not in classes:
+                classes[class_] = {}
+
+            for attr in value:
+                if attr['groupName'] in classes[class_]:
+                    classes[class_][attr['groupName']].append(attr['name'])
+                else:
+                    classes[class_][attr['groupName']] = [attr['name']]
+
     sa_classes = []
-    for class_ in set(classes):
+    for class_ in classes:
         color = np.random.choice(range(256), size=3)
         hexcolor = "#%02x%02x%02x" % tuple(color)
-        sa_class = {"name": class_, "color": hexcolor, "attribute_groups": []}
+        attribute_groups = []
+        for attr_group, value in classes[class_].items():
+            attributes = []
+            for attr in set(value):
+                attributes.append({'name': attr})
+
+            attribute_groups.append(
+                {
+                    'name': attr_group,
+                    'is_multiselect': 0,
+                    'attributes': attributes
+                }
+            )
+        sa_class = {
+            "name": class_,
+            "color": hexcolor,
+            "attribute_groups": attribute_groups
+        }
         sa_classes.append(sa_class)
     return sa_classes
 
 
-def voc_instance_segmentation_to_sa_vector(voc_root):
-    # classes = {}
+def voc_instance_segmentation_to_sa_vector(voc_root, output_dir):
     classes = []
     object_masks_dir = voc_root / 'SegmentationObject'
     class_masks_dir = voc_root / 'SegmentationClass'
@@ -125,6 +167,9 @@ def voc_instance_segmentation_to_sa_vector(voc_root):
         voc_instances = _get_voc_instances_from_xml(
             annotation_dir / filename.name
         )
+        for class_, _ in voc_instances:
+            classes.append(class_)
+
         maped_instances = _generate_instances(polygon_instances, voc_instances)
         sa_loader = []
         for instance in maped_instances:
@@ -132,7 +177,7 @@ def voc_instance_segmentation_to_sa_vector(voc_root):
                 'type': 'polygon',
                 'points': instance["polygon"],
                 'className': instance["className"],
-                'attributes': [],
+                'attributes': instance['classAttributes'],
                 'probability': 100,
                 'locked': False,
                 'visible': True,
@@ -140,17 +185,15 @@ def voc_instance_segmentation_to_sa_vector(voc_root):
             }
             sa_loader.append(sa_polygon)
 
-            classes.append(instance["className"])
-
         sa_file_name = os.path.splitext(filename.name
                                        )[0] + ".jpg___objects.json"
         sa_jsons[sa_file_name] = sa_loader
 
     classes = _create_classes(classes)
-    return (classes, sa_jsons, None)
+    return (classes, sa_jsons)
 
 
-def voc_object_detection_to_sa_vector(voc_root):
+def voc_object_detection_to_sa_vector(voc_root, output_dir):
     classes = []
     annotation_dir = voc_root / "Annotations"
     files_list = annotation_dir.glob('*')
@@ -160,15 +203,16 @@ def voc_object_detection_to_sa_vector(voc_root):
             annotation_dir / filename.name
         )
         sa_loader = []
-        for class_name, bbox in voc_instances:
-            classes.append(class_name)
+        for class_, bbox in voc_instances:
+            class_name = list(class_.keys())[0]
+            classes.append(class_)
 
             sa_bbox = {
                 'type': "bbox",
                 'className': class_name,
                 'probability': 100,
                 'points': [],
-                'attributes': [],
+                'attributes': class_[class_name],
                 'points':
                     {
                         "x1": bbox[0],
@@ -184,4 +228,4 @@ def voc_object_detection_to_sa_vector(voc_root):
         sa_jsons[sa_file_name] = sa_loader
 
     classes = _create_classes(classes)
-    return (classes, sa_jsons, None)
+    return (classes, sa_jsons)

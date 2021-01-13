@@ -26,7 +26,6 @@ def _generate_polygons(object_mask_path, class_mask_path):
         if unique_color in (0, 220):
             continue
 
-        # class_color = class_mask[object_mask == unique_color][0]
         mask = np.zeros_like(object_mask)
         mask[object_mask == unique_color] = 255
         contours, _ = cv2.findContours(
@@ -63,7 +62,6 @@ def _iou(bbox1, bbox2):
 def _generate_instances(polygon_instances, voc_instances, bluemask_colors):
     instances = []
     i = 0
-    # for polygon, color_id in polygon_instances:
     for polygon in polygon_instances:
         ious = []
         bbox_poly = [
@@ -72,16 +70,18 @@ def _generate_instances(polygon_instances, voc_instances, bluemask_colors):
             max(polygon[::2]),
             max(polygon[1::2])
         ]
-        for class_name, bbox in voc_instances:
+        for _, bbox in voc_instances:
             ious.append(_iou(bbox_poly, bbox))
         ind = np.argmax(ious)
+        class_name = list(voc_instances[ind][0].keys())[0]
+        attributes = voc_instances[ind][0][class_name]
         instances.append(
             {
-                "className": voc_instances[ind][0],
-                # "classId": color_id,
+                "className": class_name,
                 "polygon": polygon,
                 "bbox": voc_instances[ind][1],
-                "blue_color": bluemask_colors[i]
+                "blue_color": bluemask_colors[i],
+                'classAttributes': attributes
             }
         )
         i += 1
@@ -95,31 +95,65 @@ def _get_voc_instances_from_xml(file_path):
     voc_instances = []
     for instance in instances:
         class_name = instance.find("name").text
+        class_attributes = []
+        for attr in ['pose', 'occluded', 'difficult', 'truncated']:
+            attr_value = instance.find(attr)
+            if attr_value is not None:
+                class_attributes.append(
+                    {
+                        'name': attr_value.text,
+                        'groupName': attr
+                    }
+                )
+
         bbox = instance.find("bndbox")
         bbox = [
             float(bbox.find(x).text) for x in ["xmin", "ymin", "xmax", "ymax"]
         ]
-        voc_instances.append((class_name, bbox))
+        voc_instances.append(({class_name: class_attributes}, bbox))
     return voc_instances
 
 
-def _create_classes(classes):
+def _create_classes(voc_instance):
+    classes = {}
+    for instance in voc_instance:
+        for class_, value in instance.items():
+            if class_ not in classes:
+                classes[class_] = {}
+
+            for attr in value:
+                if attr['groupName'] in classes[class_]:
+                    classes[class_][attr['groupName']].append(attr['name'])
+                else:
+                    classes[class_][attr['groupName']] = [attr['name']]
+
     sa_classes = []
-    # for class_, id_ in classes.items():
-    for class_ in set(classes):
+    for class_ in classes:
         color = np.random.choice(range(256), size=3)
         hexcolor = "#%02x%02x%02x" % tuple(color)
+        attribute_groups = []
+        for attr_group, value in classes[class_].items():
+            attributes = []
+            for attr in set(value):
+                attributes.append({'name': attr})
+
+            attribute_groups.append(
+                {
+                    'name': attr_group,
+                    'is_multiselect': 0,
+                    'attributes': attributes
+                }
+            )
         sa_class = {
-            # "id": id_,
             "name": class_,
             "color": hexcolor,
-            "attribute_groups": []
+            "attribute_groups": attribute_groups
         }
         sa_classes.append(sa_class)
     return sa_classes
 
 
-def voc_instance_segmentation_to_sa_pixel(voc_root):
+def voc_instance_segmentation_to_sa_pixel(voc_root, output_dir):
     classes = []
     object_masks_dir = voc_root / 'SegmentationObject'
     class_masks_dir = voc_root / 'SegmentationClass'
@@ -135,6 +169,9 @@ def voc_instance_segmentation_to_sa_pixel(voc_root):
         voc_instances = _get_voc_instances_from_xml(
             annotation_dir / filename.name
         )
+        for class_, _ in voc_instances:
+            classes.append(class_)
+
         maped_instances = _generate_instances(
             polygon_instances, voc_instances, bluemask_colors
         )
@@ -152,13 +189,12 @@ def voc_instance_segmentation_to_sa_pixel(voc_root):
                 'visible': True,
             }
             sa_loader.append(sa_polygon)
-            classes.append(instance['className'])
 
         sa_file_name = os.path.splitext(filename.name)[0] + ".jpg___pixel.json"
         sa_jsons[sa_file_name] = sa_loader
 
         sa_mask_name = os.path.splitext(filename.name)[0] + ".jpg___save.png"
-        sa_masks[sa_mask_name] = sa_mask
+        cv2.imwrite(str(output_dir / sa_mask_name), sa_mask[:, :, ::-1])
 
     classes = _create_classes(classes)
-    return (classes, sa_jsons, sa_masks)
+    return (classes, sa_jsons)

@@ -33,8 +33,8 @@ class VocObjectDetectionStrategy(VocConverter):
         return '{} object'.format(self.name)
 
     def to_sa_format(self):
-        sa_classes, sa_jsons, sa_masks = self.conversion_algorithm(
-            self.export_root
+        sa_classes, sa_jsons = self.conversion_algorithm(
+            self.export_root, self.output_dir
         )
         dump_output(self.output_dir, self.platform, sa_classes, sa_jsons)
 
@@ -43,7 +43,3 @@ class VocObjectDetectionStrategy(VocConverter):
             for file in all_files:
                 if '___save.png' not in str(file.name):
                     (self.output_dir / file.name).unlink()
-
-            for sa_mask_name, sa_mask_value in sa_masks.items():
-                sa_mask_value = sa_mask_value[:, :, ::-1]
-                cv2.imwrite(str(self.output_dir / sa_mask_name), sa_mask_value)
