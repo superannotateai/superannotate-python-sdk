@@ -249,7 +249,7 @@ def upload_video_to_project(
                 rot
             )
     except Exception as e:
-        logger.warning("Couldn't read video metadata. %s", e)
+        logger.warning("Couldn't read video metadata %s", e)
 
     video = cv2.VideoCapture(str(video_path), cv2.CAP_FFMPEG)
     if not video.isOpened():
@@ -257,28 +257,28 @@ def upload_video_to_project(
 
     total_num_of_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
     if total_num_of_frames < 0:
-        if target_fps is not None:
-            logger.warning(
-                "Number of frames indicated in the video is negative number. Disabling FPS change."
-            )
-            target_fps = None
-    else:
-        logger.info("Video frame count is %s.", total_num_of_frames)
+        total_num_of_frames = 0
+        flag = True
+        while flag:
+            flag, frame = video.read()
+            if flag:
+                total_num_of_frames += 1
+            else:
+                break
+        video = cv2.VideoCapture(str(video_path), cv2.CAP_FFMPEG)
+    logger.info("Video frame count is %s.", total_num_of_frames)
 
     if target_fps is not None:
-        video_fps = video.get(cv2.CAP_PROP_FPS)
+        video_fps = float(video.get(cv2.CAP_PROP_FPS))
         logger.info(
             "Video frame rate is %s. Target frame rate is %s.", video_fps,
             target_fps
         )
-        if target_fps > video_fps:
+        if target_fps >= video_fps:
             target_fps = None
         else:
             r = video_fps / target_fps
-            frames_count_to_drop = total_num_of_frames - (
-                total_num_of_frames / r
-            )
-            percent_to_drop = frames_count_to_drop / total_num_of_frames
+            percent_to_drop = 1.0 - 1.0 / r
             my_random = random.Random(122222)
 
     zero_fill_count = len(str(total_num_of_frames))
@@ -286,6 +286,7 @@ def upload_video_to_project(
 
     video_name = Path(video_path).stem
     frame_no = 1
+    logger.info("Extracting frames from video to %s.", tempdir.name)
     while True:
         success, frame = video.read()
         if not success:
