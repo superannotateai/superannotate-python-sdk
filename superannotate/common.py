@@ -5,7 +5,7 @@ import os
 import sys
 import time
 from pathlib import Path
-
+from enum import IntEnum
 import numpy as np
 from PIL import Image
 
@@ -32,6 +32,11 @@ _MODEL_TRAINING_STATUSES = {
     "FailedAfterEvaluationWithSavedModel": 6
 }
 
+class PredictionSegmentationStatuses(IntEnum):
+    NotStarted = 1
+    InProgress = 2
+    Completed = 3
+    Failed = 4
 
 def model_training_status_int_to_str(project_status):
     for item in _MODEL_TRAINING_STATUSES:

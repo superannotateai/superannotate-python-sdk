@@ -10,6 +10,7 @@ from ..common import (
 )
 from .utils import reformat_metrics_json, make_plotly_specs, log_process
 from .defaults import DEFAULT_HYPERPARAMETERS
+from ..db.images import get_image_metadata
 from plotly.subplots import make_subplots
 from ..exceptions import SABaseException
 from .defaults import NON_PLOTABLE_KEYS
@@ -39,7 +40,7 @@ def get_valid_image_id(image_name, images_name_id_map):
 
 
 def get_valid_image_id_list(project, images_list):
-
+    #TODO use metadata search by name
     images_metadata = search_images(project, return_metadata=True)
     images_name_id_map = {x['name']: x['id'] for x in images_metadata}
     images_id_list = [
@@ -69,11 +70,18 @@ def run_prediction(project, images_list, model):
         )
     project_id = project["id"]
 
-    images_id_list = get_valid_image_id_list(project, images_list)
-    image_name_set = set([x[1] for x in images_id_list])
-    image_id_list = [x[0] for x in images_id_list]
-    if len(images_id_list) == 0:
+    images_metadata = get_image_metadata(project, image_names).sort(key = lambda x: x["name"])
+
+    if len(images_metadata) == 0:
         raise SABaseException(0, "No valid image names were provided")
+
+    skipped_images_num = len(images_list) - len(images_metadata)
+
+    if skipped_images_num > 0:
+        logger.warning(f"{skipped_images_num} images did not exist in the provided project and were skipped.")
+
+    image_name_set = set([x['name'] for x in images_metadata])
+    image_id_list = [x['id'] for x in images_metadata]
 
     params = {
         "team_id": _api.team_id,
@@ -83,7 +91,7 @@ def run_prediction(project, images_list, model):
     }
 
     response = _api.send_request(
-        req_type="POST", json_req=params, path=f"/images/prediction"
+        req_type="POST", json_req=params, path="/images/prediction"
     )
 
     if not response.ok:
@@ -91,9 +99,8 @@ def run_prediction(project, images_list, model):
 
     logger.info("Started smart prediction")
     total_image_count = len(image_name_set)
-    log_process(project, image_name_set, total_image_count, 'prediction_status', "Smart Prediction", logger)
-    return response.ok
-
+    succeded_imgs, failed_imgs = log_process(project, image_name_set, total_image_count, 'prediction_status', "Smart Prediction", logger)
+    return succeded_imgs, failed_imgs
 
 @project_metadata
 def run_segmentation(project, images_list, model):
@@ -126,12 +133,19 @@ def run_segmentation(project, images_list, model):
         )
         raise SABaseException(0, "Model Does not exist")
 
-    images_id_list = get_valid_image_id_list(project, images_list)
-    image_name_set = set([x[1] for x in images_id_list])
-    image_id_list = [x[0] for x in images_id_list]
 
-    if len(images_id_list) == 0:
+    images_metadata = get_image_metadata(project, image_names).sort(key = lambda x: x["name"])
+
+    if len(images_metadata) == 0:
         raise SABaseException(0, "No valid image names were provided")
+
+    skipped_images_num = len(images_list) - len(images_metadata)
+
+    if skipped_images_num > 0:
+        logger.warning(f"{skipped_images_num} images did not exist in the provided project and were skipped.")
+
+    image_name_set = set([x['name'] for x in images_metadata])
+    image_id_list = [x['id'] for x in images_metadata]
 
     json_req = {"model_name": model, "image_ids": images_id_list}
 
@@ -146,11 +160,13 @@ def run_segmentation(project, images_list, model):
 
     if not response.ok:
         logger.error("Could not start segmentation")
-    else:
-        logger.info("Started smart segmentation")
+        raise SABaseException(0, "Could not start prediction")
 
-    log_process(project, image_name_set, total_image_count, 'segmentation_status', 'Smart Segmentation'. logger)
-    return response.ok
+    logger.info("Started smart segmentation")
+
+    succeded_imgs, failed_imgs = log_process(project, image_name_set, total_image_count, 'segmentation_status', 'Smart Segmentation', logger)
+
+    return (succeded_imgs, failed_imgs)
 
 
 @project_metadata
@@ -177,6 +193,7 @@ def run_training(
     :type  task   : str
     :param hyperparameters: hyperparameters that should be used in training
     :type  hyperparameters: dict
+    #TODO FIX DOCSTRING (log)
     """
 
     project_ids = None
@@ -230,7 +247,7 @@ def run_training(
         logger.info("Started model training")
     else:
         logger.error("Could not start training")
-        return response.ok
+        return response.ok # TODO Raise
 
     if not log:
         return response.ok
@@ -244,7 +261,7 @@ def run_training(
 
     is_training_finished = False
     while not is_training_finished:
-        new_model_id = response.json()['id']  #make sure this works
+        new_model_id = response.json()['id']
         metrics_response = _api.send_request(
             req_type='GET',
             path=f'/ml_model/{new_model_id}/getCurrentMetrics',
@@ -279,7 +296,14 @@ def run_training(
                 while answer not in ['Y', 'N', 'y', 'n']:
                     answer = input()
                     if answer in ['Y', 'y']:
-                        #TODO Save Model
+                        params = {'team_id': _api.team_id}
+                        json_req = {'training_status' : 6}
+                        response = _api.send_request(
+                            req_type = 'PUT'
+                            path = f'ml_model/{new_model_id}',
+                            params = params,
+                            json_req = json_req
+                        )
                         logger.info("Model was successfully saved")
                         pass
                     else:
@@ -288,7 +312,7 @@ def run_training(
                 is_training_finished = True
 
         time.sleep(5)
-
+        return new_model_id
 
 
 @model_metadata
