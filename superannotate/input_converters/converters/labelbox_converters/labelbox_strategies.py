@@ -1,5 +1,4 @@
 import json
-import cv2
 
 from ..baseStrategy import baseStrategy
 
@@ -14,9 +13,14 @@ class LabelBoxStrategy(baseStrategy):
         json_data = json.load(
             open(self.export_root / (self.dataset_name + '.json'))
         )
-        classes = self.conversion_algorithm(
-            json_data, self.output_dir, self.task
-        )
+        if self.project_type == 'Vector':
+            classes = self.conversion_algorithm(
+                json_data, self.output_dir, self.task
+            )
+        elif self.project_type == 'Pixel':
+            classes = self.conversion_algorithm(
+                json_data, self.output_dir, self.export_root
+            )
         sa_classes = self._create_classes(classes)
         (self.output_dir / 'classes').mkdir(exist_ok=True)
         write_to_json(self.output_dir / 'classes' / 'classes.json', sa_classes)

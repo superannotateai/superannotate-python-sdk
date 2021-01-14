@@ -102,18 +102,11 @@ def _area(bitmask):
 
 
 def _toBbox(bitmask):
-    contours, _ = cv2.findContours(
-        bitmask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE
-    )
-    segments = []
-    for contour in contours:
-        contour = contour.flatten().tolist()
-        segments += contour
-
-    xmin = min(segments[::2])
-    xmax = max(segments[::2])
-    ymin = min(segments[1::2])
-    ymax = max(segments[1::2])
+    y, x = np.where(bitmask)
+    xmin = int(min(x))
+    xmax = int(max(x))
+    ymin = int(min(y))
+    ymax = int(max(y))
 
     return [xmin, ymin, xmax - xmin + 1, ymax - ymin + 1]
 

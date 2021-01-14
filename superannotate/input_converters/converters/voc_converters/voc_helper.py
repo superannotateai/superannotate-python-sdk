@@ -10,11 +10,22 @@ def _get_voc_instances_from_xml(file_path):
     voc_instances = []
     for instance in instances:
         class_name = instance.find("name").text
+        class_attributes = []
+        for attr in ['pose', 'occluded', 'difficult', 'truncated']:
+            attr_value = instance.find(attr)
+            if attr_value is not None:
+                class_attributes.append(
+                    {
+                        'name': attr_value.text,
+                        'groupName': attr
+                    }
+                )
+
         bbox = instance.find("bndbox")
         bbox = [
             float(bbox.find(x).text) for x in ["xmin", "ymin", "xmax", "ymax"]
         ]
-        voc_instances.append((class_name, bbox))
+        voc_instances.append(({class_name: class_attributes}, bbox))
     return voc_instances
 
 

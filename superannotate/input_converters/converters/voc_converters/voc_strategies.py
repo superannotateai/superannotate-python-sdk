@@ -21,15 +21,40 @@ class VocStrategy(baseStrategy):
                 if '___save.png' not in str(file.name):
                     (self.output_dir / file.name).unlink()
 
-    def _create_classes(self, classes):
+    def _create_classes(self, instances):
+        classes = {}
+        for instance in instances:
+            for class_, value in instance.items():
+                if class_ not in classes:
+                    classes[class_] = {}
+
+                for attr in value:
+                    if attr['groupName'] in classes[class_]:
+                        classes[class_][attr['groupName']].append(attr['name'])
+                    else:
+                        classes[class_][attr['groupName']] = [attr['name']]
+
         sa_classes = []
-        for class_ in set(classes):
+        for class_ in classes:
             color = np.random.choice(range(256), size=3)
             hexcolor = "#%02x%02x%02x" % tuple(color)
+            attribute_groups = []
+            for attr_group, value in classes[class_].items():
+                attributes = []
+                for attr in set(value):
+                    attributes.append({'name': attr})
+
+                attribute_groups.append(
+                    {
+                        'name': attr_group,
+                        'is_multiselect': 0,
+                        'attributes': attributes
+                    }
+                )
             sa_class = {
                 "name": class_,
                 "color": hexcolor,
-                "attribute_groups": []
+                "attribute_groups": attribute_groups
             }
             sa_classes.append(sa_class)
         return sa_classes

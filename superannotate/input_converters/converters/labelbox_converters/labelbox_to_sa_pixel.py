@@ -11,7 +11,9 @@ from ..sa_json_helper import (_create_pixel_instance, _create_sa_json)
 from ....common import hex_to_rgb, blue_color_generator, write_to_json
 
 
-def labelbox_instance_segmentation_to_sa_pixel(json_data, output_dir, task=''):
+def labelbox_instance_segmentation_to_sa_pixel(
+    json_data, output_dir, input_dir
+):
     classes = _create_classes_id_map(json_data)
     for data in json_data:
         file_name = data['External ID'] + '___pixel.json'
@@ -38,8 +40,17 @@ def labelbox_instance_segmentation_to_sa_pixel(json_data, output_dir, task=''):
             ) or 'line' in instance.keys() or 'point' in instance.keys():
                 continue
 
-            image_downloader(instance['instanceURI'], mask_name)
-            mask = cv2.imread(mask_name)
+            bitmask_name = '%s.png' % instance['featureId']
+            downloaded = image_downloader(instance['instanceURI'], bitmask_name)
+            if downloaded:
+                mask = cv2.imread(bitmask_name)
+            else:
+                mask = cv2.imread(str(input_dir / 'bitmasks' / bitmask_name))
+                bitmask_name = output_dir / bitmask_name
+
+            if isinstance(mask, type(None)):
+                continue
+
             if i == 0:
                 H, W, _ = mask.shape
                 sa_metadata['width'] = W
@@ -52,7 +63,7 @@ def labelbox_instance_segmentation_to_sa_pixel(json_data, output_dir, task=''):
             sa_obj = _create_pixel_instance(parts, attributes, class_name)
 
             sa_instances.append(sa_obj.copy())
-            Path(mask_name).unlink()
+            Path(bitmask_name).unlink()
 
         sa_json = _create_sa_json(sa_instances, sa_metadata)
         write_to_json(output_dir / file_name, sa_json)

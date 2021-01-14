@@ -59,12 +59,15 @@ def _generate_instances(polygon_instances, voc_instances, bluemask_colors):
         for _, bbox in voc_instances:
             ious.append(_iou(bbox_poly, bbox))
         ind = np.argmax(ious)
+        class_name = list(voc_instances[ind][0].keys())[0]
+        attributes = voc_instances[ind][0][class_name]
         instances.append(
             {
                 "className": voc_instances[ind][0],
                 "polygon": polygon,
                 "bbox": voc_instances[ind][1],
-                "blue_color": bluemask_colors[i]
+                "blue_color": bluemask_colors[i],
+                'classAttributes': attributes
             }
         )
         i += 1
@@ -83,6 +86,9 @@ def voc_instance_segmentation_to_sa_pixel(voc_root, output_dir):
         voc_instances = _get_voc_instances_from_xml(
             annotation_dir / filename.name
         )
+        for class_, _ in voc_instances:
+            classes.append(class_)
+
         maped_instances = _generate_instances(
             polygon_instances, voc_instances, bluemask_colors
         )
@@ -90,9 +96,10 @@ def voc_instance_segmentation_to_sa_pixel(voc_root, output_dir):
         sa_instances = []
         for instance in maped_instances:
             parts = [{"color": instance["blue_color"]}]
-            sa_obj = _create_pixel_instance(parts, [], instance["className"])
+            sa_obj = _create_pixel_instance(
+                parts, instance['classAttributes'], instance["className"]
+            )
             sa_instances.append(sa_obj)
-            classes.append(instance['className'])
 
         file_name = "%s.jpg___pixel.json" % (filename.stem)
         sa_metadata = {'name': filename.stem}

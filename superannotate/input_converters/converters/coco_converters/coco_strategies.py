@@ -236,12 +236,15 @@ class CocoPanopticConverterStrategy(CocoBaseStrategy):
 
         out_json['annotations'] = annotations
         out_json['images'] = images
-        json_data = json.dumps(out_json, indent=4)
-        with open(
-            self.output_dir / '{}.json'.format(self.dataset_name), 'w+'
-        ) as coco_json:
+        write_to_json(
+            self.output_dir / '{}.json'.format(self.dataset_name), out_json
+        )
+        # json_data = json.dumps(out_json, indent=4)
+        # with open(
+        #     self.output_dir / '{}.json'.format(self.dataset_name), 'w+'
+        # ) as coco_json:
 
-            coco_json.write(json_data)
+        #     coco_json.write(json_data)
 
         self.set_num_converted(len(jsons))
 
@@ -309,11 +312,9 @@ class CocoObjectDetectionStrategy(CocoBaseStrategy):
         out_json['annotations'] = annotations
         out_json['images'] = images
 
-        json_data = json.dumps(out_json, indent=4)
-        with open(
-            self.output_dir / '{}.json'.format(self.dataset_name), 'w+'
-        ) as coco_json:
-            coco_json.write(json_data)
+        write_to_json(
+            self.output_dir / '{}.json'.format(self.dataset_name), out_json
+        )
         print("NUMBER OF IMAGES FAILED TO CONVERT", self.failed_conversion_cnt)
 
         self.set_num_converted(len(jsons))
@@ -366,11 +367,14 @@ class CocoKeypointDetectionStrategy(CocoBaseStrategy):
         out_json['categories'] = res[0]
         out_json['annotations'] = res[1]
         out_json['images'] = res[2]
-        json_data = json.dumps(out_json, indent=4)
+        write_to_json(
+            self.output_dir / '{}.json'.format(self.dataset_name), out_json
+        )
+        # json_data = json.dumps(out_json, indent=4)
 
-        with open(
-            self.output_dir / '{}.json'.format(self.dataset_name), 'w+'
-        ) as coco_json:
-            coco_json.write(json_data)
+        # with open(
+        #     self.output_dir / '{}.json'.format(self.dataset_name), 'w+'
+        # ) as coco_json:
+        #     coco_json.write(json_data)
 
         self.set_num_converted(len(out_json['images']))

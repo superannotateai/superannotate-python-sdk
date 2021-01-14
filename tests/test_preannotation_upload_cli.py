@@ -171,7 +171,7 @@ def test_preannotation_folder_upload_download_cli_pixel_object_COCO(tmpdir):
         shell=True
     )
     time.sleep(5)
-    count_in = 6
+    count_in = 3
 
     images = sa.search_images(project)
     for image_name in images:
