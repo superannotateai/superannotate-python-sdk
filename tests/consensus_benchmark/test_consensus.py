@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from superannotate.consensus_benchmark.consensus import consensus
+import superannotate as sa
 
 test_root = Path().resolve() / 'tests'
 
@@ -14,7 +14,7 @@ def test_consensus():
     ]
     export_path = test_root / 'consensus_benchmark'
     for annot_type in annot_types:
-        res_df = consensus(
+        res_df = sa.consensus(
             project_names, export_root=export_path, annot_type=annot_type
         )
         #test content of projectName column
@@ -35,7 +35,7 @@ def test_consensus():
     ]
 
     #test filtering images with given image names list
-    res_images = consensus(
+    res_images = sa.consensus(
         project_names, export_root=export_path, image_list=image_names
     )
 
