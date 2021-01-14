@@ -28,28 +28,6 @@ import os
 logger = logging.getLogger("superannotate-python-sdk")
 _api = API.get_instance()
 
-
-def get_valid_image_id(image_name, images_name_id_map):
-    if image_name not in images_name_id_map:
-        logger.info(
-            f"image with the name {image_name} does not exist in the provided project, skipping"
-        )
-        return None,
-    else:
-        return (images_name_id_map[image_name], image_name)
-
-
-def get_valid_image_id_list(project, images_list):
-    #TODO use metadata search by name
-    images_metadata = search_images(project, return_metadata=True)
-    images_name_id_map = {x['name']: x['id'] for x in images_metadata}
-    images_id_list = [
-        get_valid_image_id(x, images_name_id_map) for x in images_list
-    ]
-    images_id_list = [x for x in images_id_list if x[0] is not None]
-    return images_id_list
-
-
 @project_metadata
 @model_metadata
 def run_prediction(project, images_list, model):
@@ -60,7 +38,8 @@ def run_prediction(project, images_list, model):
     :type images_list: list of str
     :param model: the name of the model that should be used for running smart prediction
     :type model: str or dict
-    :return status: Returns true if smart prediction successfully started on provided image list
+    :out res: tupe of two lists, list of images on which the prediction has succeded and failed respectively
+    :rtype res: tuple
     """
 
     if not isinstance(project, dict):
@@ -100,6 +79,7 @@ def run_prediction(project, images_list, model):
     logger.info("Started smart prediction")
     total_image_count = len(image_name_set)
     succeded_imgs, failed_imgs = log_process(project, image_name_set, total_image_count, 'prediction_status', "Smart Prediction", logger)
+
     return succeded_imgs, failed_imgs
 
 @project_metadata
@@ -110,7 +90,8 @@ def run_segmentation(project, images_list, model):
     :type  project: str or dict
     :param model  : The model name or metadata of the model
     :type  model  : str or dict
-    :return status: returns true if smart segmentation succesfully started, false otherwise
+    :out res: tupe of two lists, list of images on which the prediction has succeded and failed respectively
+    :rtype res: tuple
     """
 
     if not isinstance(project, dict):
@@ -193,7 +174,10 @@ def run_training(
     :type  task   : str
     :param hyperparameters: hyperparameters that should be used in training
     :type  hyperparameters: dict
-    #TODO FIX DOCSTRING (log)
+    :param log: If true will log training metrics in the stdout
+    :type log: boolean
+    :out new_model: the metadata of the newly created model
+    :rtype new_model: dict
     """
 
     project_ids = None
@@ -247,10 +231,13 @@ def run_training(
         logger.info("Started model training")
     else:
         logger.error("Could not start training")
-        return response.ok # TODO Raise
-
+        raise SABaseException(
+            0, "Could not start training"
+        )
+    new_model = response.json()
+    new_model_id = new_model['id']
     if not log:
-        return response.ok
+        return new_model
 
     logger.info(
         "We are firing up servers to run model training. Depending on the number of training images and the task it may take up to 15 minutes until you will start seeing metric reports"
@@ -260,8 +247,8 @@ def run_training(
     )
 
     is_training_finished = False
+
     while not is_training_finished:
-        new_model_id = response.json()['id']
         metrics_response = _api.send_request(
             req_type='GET',
             path=f'/ml_model/{new_model_id}/getCurrentMetrics',
@@ -312,7 +299,7 @@ def run_training(
                 is_training_finished = True
 
         time.sleep(5)
-        return new_model_id
+        return new_model
 
 
 @model_metadata
