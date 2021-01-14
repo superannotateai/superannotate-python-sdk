@@ -821,6 +821,7 @@ def upload_images_to_project(
 def upload_images_from_public_urls_to_project(
     project,
     img_urls,
+    img_names=None,
     annotation_status='NotStarted',
     image_quality_in_editor=None
 ):
@@ -831,6 +832,8 @@ def upload_images_from_public_urls_to_project(
     :type project: str or dict
     :param img_urls: list of str objects to upload
     :type img_urls: list
+    :param img_names: list of str names for each urls in img_url list
+    :type img_names: list
     :param annotation_status: value to set the annotation statuses of the uploaded images NotStarted InProgress QualityCheck Returned Completed Skipped
     :type annotation_status: str
     :param image_quality_in_editor: image quality be seen in SuperAnnotate web annotation editor.
@@ -840,13 +843,17 @@ def upload_images_from_public_urls_to_project(
     :return: uploaded images' urls, uploaded images' filenames, duplicate images' filenames and not-uploaded images' urls
     :rtype: tuple of list of strs
     """
+
+    if img_names is not None and len(img_names) != len(img_urls):
+        raise SABaseException(0, "Not all image URLs have corresponding names.")
+
     images_not_uploaded = []
     images_to_upload = []
     duplicate_images_filenames = []
     path_to_url = {}
     with tempfile.TemporaryDirectory() as save_dir_name:
         save_dir = Path(save_dir_name)
-        for img_url in img_urls:
+        for i, img_url in enumerate(img_urls):
             try:
                 response = requests.get(img_url)
                 response.raise_for_status()
@@ -856,12 +863,15 @@ def upload_images_from_public_urls_to_project(
                 )
                 images_not_uploaded.append(img_url)
             else:
-                if response.headers.get('Content-Disposition') is not None:
-                    img_path = save_dir / cgi.parse_header(
-                        response.headers['Content-Disposition']
-                    )[1]['filename']
+                if not img_names:
+                    if response.headers.get('Content-Disposition') is not None:
+                        img_path = save_dir / cgi.parse_header(
+                            response.headers['Content-Disposition']
+                        )[1]['filename']
+                    else:
+                        img_path = save_dir / basename(urlparse(img_url).path)
                 else:
-                    img_path = save_dir / basename(urlparse(img_url).path)
+                    img_path = save_dir / img_names[i]
 
                 if str(img_path) in path_to_url.keys():
                     duplicate_images_filenames.append(basename(img_path))
