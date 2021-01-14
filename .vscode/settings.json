@@ -1,4 +1,5 @@
 {
     "python.formatting.provider": "yapf",
-    "python.linting.pylintPath": "~/miniconda3/bin/pylint"
+    "python.linting.pylintPath": "~/miniconda3/bin/pylint",
+    "python.linting.pylintEnabled": true
 }
