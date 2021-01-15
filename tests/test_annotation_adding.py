@@ -131,7 +131,16 @@ def test_add_bbox_noinit(tmpdir):
     assert len(annotations_new["instances"]) == 2
     export = sa.prepare_export(project, include_fuse=True)
     sa.download_export(project, export, tmpdir)
-    assert len(list(Path(tmpdir).rglob("*.*"))) == 4
+
+    non_empty_annotations = 0
+    json_files = tmpdir.glob("*.json")
+    for json_file in json_files:
+        json_ann = json.load(open(json_file))
+        if "instances" in json_ann and len(json_ann["instances"]) > 0:
+            non_empty_annotations += 1
+            assert len(json_ann["instances"]) == 2
+
+    assert non_empty_annotations == 1
 
 
 def test_add_bbox_json(tmpdir):
@@ -169,5 +178,4 @@ def test_add_bbox_json(tmpdir):
 
     assert len(annotations_new["instances"]
               ) == len(annotations["instances"]) + 7
-    assert len(annotations_new["comments"]
-              ) == len(annotations["comments"]) + 1
+    assert len(annotations_new["comments"]) == len(annotations["comments"]) + 1
