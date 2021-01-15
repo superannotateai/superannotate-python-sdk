@@ -238,6 +238,7 @@ def import_annotation(
     Vector          object_detection
     Vector          instance_segmentation
     Vector          vector_annotation
+    Pixel           instance_segmentation
     ==============  ======================
 
     ==============  ======================

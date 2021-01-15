@@ -53,6 +53,8 @@ def _move_files(data_set, src):
         for tup in data_set:
             for i in tup:
                 shutil.copy(i, train_path / Path(i).name)
+    else:
+        logger.warning("Images doesn't exist")
 
 
 def _create_classes_mapper(imgs, classes_json):
@@ -70,9 +72,6 @@ def export_from_sa(args):
     :param args: All arguments that will be used during convertion.
     :type args: Namespace
     """
-    # if args.platform == "Desktop":
-    #     args.input_dir = _split_json(args.input_dir)
-
     data_set = None
 
     (args.output_dir / "image_set").mkdir(parents=True, exist_ok=True)

@@ -28,13 +28,20 @@ def sagemaker_object_detection_to_sa_vector(data_path, main_key, output_dir):
             manifest = dataset_manifest[int(img['datasetObjectId'])]
             file_name = '%s___objects.json' % Path(manifest['source-ref']).name
 
-            sa_metadata = {'name': Path(manifest['source-ref']).name}
-
             classes = img['consolidatedAnnotation']['content'][
                 main_key + '-metadata']['class-map']
             for key, value in classes.items():
                 if key not in classes_ids.keys():
                     classes_ids[key] = value
+
+            image_size = img['consolidatedAnnotation']['content'][main_key][
+                'image_size']
+
+            sa_metadata = {
+                'name': Path(manifest['source-ref']).name,
+                'width': image_size['width'],
+                'height': image_size['height']
+            }
 
             annotations = img['consolidatedAnnotation']['content'][main_key][
                 'annotations']
