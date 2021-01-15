@@ -76,17 +76,17 @@ def dataloop_to_sa(input_dir, task, output_dir):
                 )
                 sa_instances.append(sa_obj)
             elif ann['type'] == comment_type:
+                points = (
+                    ann['coordinates']['box'][0]['x'],
+                    ann['coordinates']['box'][0]['y']
+                )
                 comments = []
                 for note in ann['coordinates']['note']['messages']:
                     comments.append(
                         {
                             'text': note['body'],
-                            'id': note['creator']
+                            'email': note['creator']
                         }
-                    )
-                    points = (
-                        ann['coordinates']['box'][0]['x'],
-                        ann['coordinates']['box'][0]['y']
                     )
                     sa_comment = _create_comment(points, comments)
                 sa_comments.append(sa_comment)

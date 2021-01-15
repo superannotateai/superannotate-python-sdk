@@ -79,7 +79,7 @@ def _create_comment(points, comments):
         'type': 'comment',
         'x': points[0],
         'y': points[1],
-        'comments': comments
+        'correspondence': comments
     }
     return sa_comment
 

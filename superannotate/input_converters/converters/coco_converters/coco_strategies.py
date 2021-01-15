@@ -239,13 +239,6 @@ class CocoPanopticConverterStrategy(CocoBaseStrategy):
         write_to_json(
             self.output_dir / '{}.json'.format(self.dataset_name), out_json
         )
-        # json_data = json.dumps(out_json, indent=4)
-        # with open(
-        #     self.output_dir / '{}.json'.format(self.dataset_name), 'w+'
-        # ) as coco_json:
-
-        #     coco_json.write(json_data)
-
         self.set_num_converted(len(jsons))
 
 
@@ -370,11 +363,4 @@ class CocoKeypointDetectionStrategy(CocoBaseStrategy):
         write_to_json(
             self.output_dir / '{}.json'.format(self.dataset_name), out_json
         )
-        # json_data = json.dumps(out_json, indent=4)
-
-        # with open(
-        #     self.output_dir / '{}.json'.format(self.dataset_name), 'w+'
-        # ) as coco_json:
-        #     coco_json.write(json_data)
-
         self.set_num_converted(len(out_json['images']))
