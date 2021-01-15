@@ -7,6 +7,9 @@ bad-functions=
   input,
   quit
 
+[TYPECHECK]
+generated-members=cv2.*
+
 [ELIF]
 max-nested-blocks=5
 
