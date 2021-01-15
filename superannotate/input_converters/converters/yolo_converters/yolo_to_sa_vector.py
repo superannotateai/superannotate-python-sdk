@@ -43,7 +43,7 @@ def yolo_object_detection_to_sa_vector(data_path, output_dir):
             )
             continue
 
-        if Path(files_list[0]).suffix == 'txt':
+        if Path(files_list[0]).suffix == '.txt':
             file_name = files_list[1]
         else:
             file_name = files_list[0]
