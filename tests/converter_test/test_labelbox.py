@@ -11,7 +11,7 @@ def test_labelbox_convert_vector(tmpdir):
     dataset_name = 'labelbox_example'
     sa.import_annotation(
         input_dir, out_dir, 'LabelBox', dataset_name, 'Vector',
-        'vector_annotation', 'Web'
+        'vector_annotation'
     )
 
     project_name = "labelbox_vector"
@@ -36,7 +36,7 @@ def test_labelbox_convert_object(tmpdir):
     dataset_name = 'labelbox_example'
     sa.import_annotation(
         input_dir, out_dir, 'LabelBox', dataset_name, 'Vector',
-        'object_detection', 'Web'
+        'object_detection'
     )
 
     project_name = "labelbox_object"
@@ -61,7 +61,7 @@ def test_labelbox_convert_instance(tmpdir):
     dataset_name = 'labelbox_example'
     sa.import_annotation(
         input_dir, out_dir, 'LabelBox', dataset_name, 'Vector',
-        'instance_segmentation', 'Desktop'
+        'instance_segmentation'
     )
 
 

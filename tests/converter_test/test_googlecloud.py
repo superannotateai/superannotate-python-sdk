@@ -9,7 +9,7 @@ def test_googlecloud_convert_web(tmpdir):
     out_dir = Path(tmpdir) / "output_web"
     sa.import_annotation(
         input_dir, out_dir, "GoogleCloud", "image_object_detection", "Vector",
-        "object_detection", "Web"
+        "object_detection"
     )
 
     project_name = "googlcloud_vector"
@@ -33,5 +33,5 @@ def test_googlecloud_convert_desktop(tmpdir):
     out_dir = Path(tmpdir) / "output_desktop"
     sa.import_annotation(
         input_dir, out_dir, "GoogleCloud", "image_object_detection", "Vector",
-        "object_detection", "Desktop"
+        "object_detection"
     )

@@ -89,9 +89,10 @@ from .exceptions import (
     SANonExistingProjectNameException
 )
 from .input_converters.conversion import (
-    coco_split_dataset, convert_platform, convert_project_type,
-    export_annotation, import_annotation
+    coco_split_dataset, convert_project_type, export_annotation,
+    import_annotation
 )
+from .old_to_new_format_convertor import update_json_format
 from .version import __version__
 
 formatter = logging.Formatter(fmt='SA-PYTHON-SDK - %(levelname)s - %(message)s')

@@ -1303,6 +1303,11 @@ def _upload_annotations_from_folder_to_project(
     finish_event.set()
     tqdm_thread.join()
     logger.info("Number of annotations uploaded %s.", sum(num_uploaded))
+    if sum(num_uploaded) != len_annotations_paths:
+        logger.warning(
+            "%s annotations were not uploaded.",
+            len_annotations_paths - sum(num_uploaded)
+        )
 
     for ac_upl in actually_uploaded:
         return_result += [str(p) for p in ac_upl]
@@ -1532,36 +1537,38 @@ def _upload_preannotations_from_folder_to_project(
     annotation_classes_dict = get_annotation_classes_name_to_id(
         annotation_classes
     )
-    while True:
-        if sum(num_uploaded) == len_preannotations_paths:
-            break
-        response = _api.send_request(
-            req_type='GET',
-            path=f'/project/{project_id}/preannotation',
-            params=params
-        )
-        if not response.ok:
-            raise SABaseException(response.status_code, response.text)
-        aws_creds = response.json()
+    response = _api.send_request(
+        req_type='GET',
+        path=f'/project/{project_id}/preannotation',
+        params=params
+    )
+    if not response.ok:
+        raise SABaseException(response.status_code, response.text)
+    aws_creds = response.json()
 
-        threads = []
-        for thread_id in range(_NUM_THREADS):
-            t = threading.Thread(
-                target=__upload_preannotations_thread,
-                args=(
-                    aws_creds, project_type, preannotations_filenames,
-                    folder_path, annotation_classes_dict, thread_id, chunksize,
-                    num_uploaded, already_uploaded, from_s3_bucket
-                ),
-                daemon=True
-            )
-            threads.append(t)
-            t.start()
-        for t in threads:
-            t.join()
+    threads = []
+    for thread_id in range(_NUM_THREADS):
+        t = threading.Thread(
+            target=__upload_preannotations_thread,
+            args=(
+                aws_creds, project_type, preannotations_filenames, folder_path,
+                annotation_classes_dict, thread_id, chunksize, num_uploaded,
+                already_uploaded, from_s3_bucket
+            ),
+            daemon=True
+        )
+        threads.append(t)
+        t.start()
+    for t in threads:
+        t.join()
     finish_event.set()
     tqdm_thread.join()
     logger.info("Number of preannotations uploaded %s.", sum(num_uploaded))
+    if sum(num_uploaded) != len_preannotations_paths:
+        logger.warning(
+            "%s preannotations were not uploaded.",
+            len_preannotations_paths - sum(num_uploaded)
+        )
     return return_result + [str(p) for p in preannotations_paths]
 
 

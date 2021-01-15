@@ -861,7 +861,12 @@ def upload_image_annotations(
     :type mask: BytesIO or Pathlike (str or Path)
     """
 
-    if not isinstance(annotation_json, list):
+    if isinstance(annotation_json, list):
+        raise SABaseException(
+            0,
+            "Annotation JSON should be a dict object. You are using list object. If this is an old annotation format you can convert it to new format with superannotate.update_json_format SDK function"
+        )
+    if not isinstance(annotation_json, dict):
         if verbose:
             logger.info("Uploading annotations from %s.", annotation_json)
         annotation_json = json.load(open(annotation_json))
@@ -975,7 +980,7 @@ def create_fuse_image(
         if output_overlay:
             fi_pil_ovl = Image.fromarray(fi_ovl)
             draw_ovl = ImageDraw.Draw(fi_pil_ovl)
-        for annotation in annotation_json:
+        for annotation in annotation_json["instances"]:
             if "className" not in annotation:
                 continue
             color = class_color_dict[annotation["className"]]
@@ -1075,7 +1080,7 @@ def create_fuse_image(
     else:
         annotation_mask = np.array(Image.open(annotation_path[1]))
         # print(annotation_mask.shape, annotation_mask.dtype)
-        for annotation in annotation_json:
+        for annotation in annotation_json["instances"]:
             if "className" not in annotation or "parts" not in annotation:
                 continue
             color = class_color_dict[annotation["className"]]

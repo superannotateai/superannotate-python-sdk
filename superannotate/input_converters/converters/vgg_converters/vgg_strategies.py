@@ -1,43 +1,52 @@
-import json
+import numpy as np
+from pathlib import Path
 
-from .vgg_converter import VGGConverter
-from .vgg_to_sa_vector import vgg_object_detection_to_sa_vector, vgg_instance_segmentation_to_sa_vector, vgg_to_sa
+from ..baseStrategy import baseStrategy
 
-from ....common import dump_output
+from ....common import write_to_json
 
 
-class VGGObjectDetectionStrategy(VGGConverter):
-    name = "ObjectDetection converter"
-
+class VGGStrategy(baseStrategy):
     def __init__(self, args):
         super().__init__(args)
-        self.__setup_conversion_algorithm()
-
-    def __setup_conversion_algorithm(self):
-        if self.direction == "to":
-            raise NotImplementedError("Doesn't support yet")
-        else:
-            if self.project_type == "Vector":
-                if self.task == "object_detection":
-                    self.conversion_algorithm = vgg_object_detection_to_sa_vector
-                elif self.task == 'instance_segmentation':
-                    self.conversion_algorithm = vgg_instance_segmentation_to_sa_vector
-                elif self.task == 'vector_annotation':
-                    self.conversion_algorithm = vgg_to_sa
-
-    def __str__(self):
-        return '{} object'.format(self.name)
 
     def to_sa_format(self):
         json_data = self.get_file_list()
-        id_generator = self._make_id_generator()
-        sa_jsons, sa_classes = self.conversion_algorithm(
-            json_data, id_generator
+        classes = self.conversion_algorithm(
+            json_data, self.task, self.output_dir
         )
-        dump_output(self.output_dir, self.platform, sa_classes, sa_jsons)
+        sa_classes = self._create_classes(classes)
+        (self.output_dir / 'classes').mkdir(exist_ok=True)
+        write_to_json(self.output_dir / 'classes' / 'classes.json', sa_classes)
 
-    def _make_id_generator(self):
-        cur_id = 0
-        while True:
-            cur_id += 1
-            yield cur_id
+    def get_file_list(self):
+        json_file_list = []
+        path = Path(self.export_root)
+        if self.dataset_name != '':
+            json_file_list.append(path.joinpath(self.dataset_name + '.json'))
+        else:
+            file_generator = path.glob('*.json')
+            for gen in file_generator:
+                json_file_list.append(gen)
+
+        return json_file_list
+
+    def _create_classes(self, class_id_map):
+        sa_classes = []
+        for key in class_id_map.keys():
+            color = np.random.choice(range(256), size=3)
+            hexcolor = "#%02x%02x%02x" % tuple(color)
+            dd = {'name': key, 'color': hexcolor, 'attribute_groups': []}
+            for attributes, value in class_id_map[key]['attribute_groups'
+                                                      ].items():
+                attr_group = {
+                    'name': attributes,
+                    'is_multiselect': value['is_multiselect'],
+                    'attributes': []
+                }
+                for attribute in value['attributes']:
+                    attr = {'name': attribute, 'groupName': attributes}
+                    attr_group['attributes'].append(attr.copy())
+                dd['attribute_groups'].append(attr_group.copy())
+            sa_classes.append(dd)
+        return sa_classes

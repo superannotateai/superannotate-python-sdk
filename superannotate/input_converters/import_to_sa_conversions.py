@@ -1,5 +1,5 @@
 """
-Module which will run converters and convert from other
+Module which will convert from other
 annotation formats to superannotate annotation format
 """
 import logging
@@ -31,13 +31,9 @@ def _load_files(path_to_imgs, ptype, extensions):
     return images, masks
 
 
-def _move_files(imgs, masks, output_dir, platforom):
-    if platforom == "Desktop":
-        output_path = output_dir / "images"
-        output_path.mkdir(parents=True)
-    else:
-        (output_dir / 'classes').mkdir(parents=True, exist_ok=True)
-        output_path = output_dir
+def _move_files(imgs, masks, output_dir):
+    (output_dir / 'classes').mkdir(parents=True, exist_ok=True)
+    output_path = output_dir
 
     for im in imgs:
         shutil.copy(im, output_path / Path(im).name)
@@ -56,11 +52,11 @@ def import_to_sa(args):
         args.input_dir / args.images_root, args.project_type,
         args.images_extensions
     )
-    _move_files(images, masks, args.output_dir, args.platform)
+    _move_files(images, masks, args.output_dir)
 
     args.__dict__.update({'direction': 'from', 'export_root': args.input_dir})
     converter = Converter(args)
 
-    converter.convert_to_sa(args.platform)
+    converter.convert_to_sa()
 
     logger.info('Conversion completed successfully')

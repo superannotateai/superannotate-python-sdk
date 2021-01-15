@@ -1,10 +1,12 @@
+import glob
 import json
 import logging
 from pathlib import Path
-import glob
 
 import pandas as pd
+
 from ..exceptions import SABaseException
+
 logger = logging.getLogger("superannotate-python-sdk")
 
 
@@ -32,7 +34,12 @@ def df_to_annotations(df, output_dir):
         image_height = None
         image_width = None
         image_df = df[df["imageName"] == image]
-        image_annotation = []
+        image_annotation = {
+            "instances": [],
+            "metadata": {},
+            "tags": [],
+            "comments": []
+        }
         instances = image_df["instanceId"].dropna().unique()
         for instance in instances:
             instance_df = image_df[image_df["instanceId"] == instance]
@@ -67,7 +74,7 @@ def df_to_annotations(df, output_dir):
                             "name": row["attributeName"]
                         }
                     )
-            image_annotation.append(instance_annotation)
+            image_annotation["instances"].append(instance_annotation)
             image_width = image_width or instance_df.iloc[0]["imageWidth"]
             image_height = image_height or instance_df.iloc[0]["imageHeight"]
             image_pinned = image_pinned or instance_df.iloc[0]["imagePinned"]
@@ -75,19 +82,23 @@ def df_to_annotations(df, output_dir):
 
         comments = image_df[image_df["type"] == "comment"]
         for _, comment in comments.iterrows():
-            comment_json = {"type": "comment"}
+            comment_json = {}
             comment_json.update(comment["meta"])
+            comment_json["correspondence"] = comment_json["comments"]
+            del comment_json["comments"]
             comment_json["resolved"] = comment["commentResolved"]
-            image_annotation.append(comment_json)
+            image_annotation["comments"].append(comment_json)
 
-        meta = {
-            "type": "meta",
+        tags = image_df[image_df["type"] == "tag"]
+        for _, tag in tags.iterrows():
+            image_annotation["tags"].append(tag["tag"])
+
+        image_annotation["metadata"] = {
             "width": int(image_width),
             "height": int(image_height),
             "status": image_status,
             "pinned": bool(image_pinned)
         }
-        image_annotation.append(meta)
         json.dump(
             image_annotation,
             open(output_dir / f"{image}___{project_suffix}", "w"),
@@ -236,13 +247,11 @@ def aggregate_annotations_as_df(
 
     def __get_image_metadata(image_name, annotations):
         image_metadata = {"imageName": image_name}
-        for annotation in annotations:
-            if "type" in annotation and annotation["type"] == "meta":
-                image_metadata["imageHeight"] = annotation.get("height")
-                image_metadata["imageWidth"] = annotation.get("width")
-                image_metadata["imageStatus"] = annotation.get("status")
-                image_metadata["imagePinned"] = annotation.get("pinned")
-                break
+
+        image_metadata["imageHeight"] = annotations["metadata"].get("height")
+        image_metadata["imageWidth"] = annotations["metadata"].get("width")
+        image_metadata["imageStatus"] = annotations["metadata"].get("status")
+        image_metadata["imagePinned"] = annotations["metadata"].get("pinned")
         return image_metadata
 
     def __get_user_metadata(annotation):
@@ -289,38 +298,30 @@ def aggregate_annotations_as_df(
         image_name = annotation_path.name.split(type_postfix)[0]
         image_metadata = __get_image_metadata(image_name, annotation_json)
         annotation_instance_id = 0
-        for annotation in annotation_json:
+        if include_comments:
+            for annotation in annotation_json["comments"]:
+                comment_resolved = annotation["resolved"]
+                comment_meta = {
+                    "x": annotation["x"],
+                    "y": annotation["y"],
+                    "comments": annotation["correspondence"]
+                }
+                annotation_dict = {
+                    "type": "comment",
+                    "meta": comment_meta,
+                    "commentResolved": comment_resolved,
+                }
+                user_metadata = __get_user_metadata(annotation)
+                annotation_dict.update(user_metadata)
+                annotation_dict.update(image_metadata)
+                __append_annotation(annotation_dict)
+        if include_tags:
+            for annotation in annotation_json["tags"]:
+                annotation_dict = {"type": "tag", "tag": annotation}
+                annotation_dict.update(image_metadata)
+                __append_annotation(annotation_dict)
+        for annotation in annotation_json["instances"]:
             annotation_type = annotation.get("type", "mask")
-            if annotation_type == "meta":
-                continue
-            if annotation_type == "comment":
-                if include_comments:
-                    comment_resolved = annotation["resolved"]
-                    comment_meta = {
-                        "x": annotation["x"],
-                        "y": annotation["y"],
-                        "comments": annotation["comments"]
-                    }
-                    annotation_dict = {
-                        "type": annotation_type,
-                        "meta": comment_meta,
-                        "commentResolved": comment_resolved,
-                    }
-                    user_metadata = __get_user_metadata(annotation)
-                    annotation_dict.update(user_metadata)
-                    annotation_dict.update(image_metadata)
-                    __append_annotation(annotation_dict)
-                continue
-            if annotation_type == "tag":
-                if include_tags:
-                    annotation_tag = annotation["name"]
-                    annotation_dict = {
-                        "type": annotation_type,
-                        "tag": annotation_tag
-                    }
-                    annotation_dict.update(image_metadata)
-                    __append_annotation(annotation_dict)
-                continue
             annotation_class_name = annotation.get("className")
             if annotation_class_name is None or annotation_class_name not in class_name_to_color:
                 logger.warning(

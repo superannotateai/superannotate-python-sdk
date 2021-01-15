@@ -87,6 +87,11 @@ class API:
                     'limit': 1
                 }
             )
+            if not self._verify:
+                urllib3.disable_warnings(
+                    urllib3.exceptions.InsecureRequestWarning
+                )
+
             if not response.ok:
                 self._authenticated = False
                 self._session = None

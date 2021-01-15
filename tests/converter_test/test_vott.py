@@ -8,7 +8,7 @@ def test_vott_convert_object(tmpdir):
     ) / "converter_test" / "VoTT" / "input" / "toSuperAnnotate"
     out_dir = Path(tmpdir) / "object_detection"
     sa.import_annotation(
-        input_dir, out_dir, "VoTT", "", "Vector", "object_detection", "Web"
+        input_dir, out_dir, "VoTT", "", "Vector", "object_detection"
     )
 
     project_name = "vott_object"
@@ -31,8 +31,7 @@ def test_vott_convert_instance(tmpdir):
     ) / "converter_test" / "VoTT" / "input" / "toSuperAnnotate"
     out_dir = Path(tmpdir) / "instance_segmentation"
     sa.import_annotation(
-        input_dir, out_dir, "VoTT", "", "Vector", "instance_segmentation",
-        "Desktop"
+        input_dir, out_dir, "VoTT", "", "Vector", "instance_segmentation"
     )
 
 
@@ -42,7 +41,7 @@ def test_vott_convert_vector(tmpdir):
     ) / "converter_test" / "VoTT" / "input" / "toSuperAnnotate"
     out_dir = Path(tmpdir) / "vector_annotation"
     sa.import_annotation(
-        input_dir, out_dir, "VoTT", "", "Vector", "vector_annotation", "Web"
+        input_dir, out_dir, "VoTT", "", "Vector", "vector_annotation"
     )
 
     project_name = "vott_vector"

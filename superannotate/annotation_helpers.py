@@ -1,6 +1,30 @@
+"""SuperAnnotate format annotation JSON helpers"""
+
 import json
 
 from .exceptions import SABaseException
+
+
+def _create_empty_annotation_json():
+    return {"instances": [], "metadata": {}, "comments": [], "tags": []}
+
+
+def _preprocess_annotation_json(annotation_json):
+    path = None
+    if not isinstance(annotation_json, dict) and annotation_json is not None:
+        path = annotation_json
+        annotation_json = json.load(open(annotation_json))
+    elif annotation_json is None:
+        annotation_json = _create_empty_annotation_json()
+    return (annotation_json, path)
+
+
+def _postprocess_annotation_json(annotation_json, path):
+    if path is not None:
+        json.dump(annotation_json, open(path, "w"))
+        return None
+    else:
+        return annotation_json
 
 
 def add_annotation_comment_to_json(
@@ -14,7 +38,7 @@ def add_annotation_comment_to_json(
 
 
     :param annotation_json: annotations in SuperAnnotate format JSON or filepath to JSON
-    :type annotation_json: list or Pathlike (str or Path)
+    :type annotation_json: dict or Pathlike (str or Path)
     :param comment_text: comment text
     :type comment_text: str
     :param comment_coords: [x, y] coords
@@ -28,28 +52,21 @@ def add_annotation_comment_to_json(
     if len(comment_coords) != 2:
         raise SABaseException(0, "Comment should have two values")
 
-    path = None
-    if not isinstance(annotation_json, list) and annotation_json is not None:
-        path = annotation_json
-        annotation_json = json.load(open(annotation_json))
+    annotation_json, path = _preprocess_annotation_json(annotation_json)
 
     annotation = {
         "type": "comment",
         "x": comment_coords[0],
         "y": comment_coords[1],
-        "comments": [{
+        "correspondence": [{
             "text": comment_text,
             "id": comment_author
         }],
         "resolved": resolved
     }
-    if annotation_json is None:
-        annotation_json = []
-    annotation_json.append(annotation)
+    annotation_json["comments"].append(annotation)
 
-    if path is not None:
-        json.dump(annotation_json, open(path, "w"))
-    return annotation_json
+    return _postprocess_annotation_json(annotation_json, path)
 
 
 def add_annotation_bbox_to_json(
@@ -64,7 +81,7 @@ def add_annotation_bbox_to_json(
     annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
 
     :param annotation_json: annotations in SuperAnnotate format JSON or filepath to JSON
-    :type annotation_json: list or Pathlike (str or Path)
+    :type annotation_json: dict or Pathlike (str or Path)
     :param bbox: 4 element list of top-left x,y and bottom-right x, y coordinates
     :type bbox: list of floats
     :param annotation_class_name: annotation class name
@@ -78,10 +95,7 @@ def add_annotation_bbox_to_json(
     if len(bbox) != 4:
         raise SABaseException(0, "Bounding boxes should have 4 float elements")
 
-    path = None
-    if not isinstance(annotation_json, list) and annotation_json is not None:
-        path = annotation_json
-        annotation_json = json.load(open(annotation_json))
+    annotation_json, path = _preprocess_annotation_json(annotation_json)
 
     annotation = {
         "type":
@@ -107,13 +121,10 @@ def add_annotation_bbox_to_json(
             [] if annotation_class_attributes is None else
             annotation_class_attributes
     }
-    if annotation_json is None:
-        annotation_json = []
-    annotation_json.append(annotation)
 
-    if path is not None:
-        json.dump(annotation_json, open(path, "w"))
-    return annotation_json
+    annotation_json["instances"].append(annotation)
+
+    return _postprocess_annotation_json(annotation_json, path)
 
 
 def add_annotation_polygon_to_json(
@@ -128,7 +139,7 @@ def add_annotation_polygon_to_json(
     annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
 
     :param annotation_json: annotations in SuperAnnotate format JSON or filepath to JSON
-    :type annotation_json: list or Pathlike (str or Path)
+    :type annotation_json: dict or Pathlike (str or Path)
     :param polygon: [x1,y1,x2,y2,...] list of coordinates
     :type polygon: list of floats
     :param annotation_class_name: annotation class name
@@ -143,10 +154,7 @@ def add_annotation_polygon_to_json(
             0, "Polygons should be even length lists of floats."
         )
 
-    path = None
-    if not isinstance(annotation_json, list) and annotation_json is not None:
-        path = annotation_json
-        annotation_json = json.load(open(annotation_json))
+    annotation_json, path = _preprocess_annotation_json(annotation_json)
 
     annotation = {
         "type":
@@ -168,13 +176,10 @@ def add_annotation_polygon_to_json(
             [] if annotation_class_attributes is None else
             annotation_class_attributes
     }
-    if annotation_json is None:
-        annotation_json = []
-    annotation_json.append(annotation)
 
-    if path is not None:
-        json.dump(annotation_json, open(path, "w"))
-    return annotation_json
+    annotation_json["instances"].append(annotation)
+
+    return _postprocess_annotation_json(annotation_json, path)
 
 
 def add_annotation_polyline_to_json(
@@ -189,7 +194,7 @@ def add_annotation_polyline_to_json(
     annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
 
     :param annotation_json: annotations in SuperAnnotate format JSON or filepath to JSON
-    :type annotation_json: list or Pathlike (str or Path)
+    :type annotation_json: dict or Pathlike (str or Path)
     :param polyline: [x1,y1,x2,y2,...] list of coordinates
     :type polyline: list of floats
     :param annotation_class_name: annotation class name
@@ -205,10 +210,7 @@ def add_annotation_polyline_to_json(
             0, "Polylines should be even length lists of floats."
         )
 
-    path = None
-    if not isinstance(annotation_json, list) and annotation_json is not None:
-        path = annotation_json
-        annotation_json = json.load(open(annotation_json))
+    annotation_json, path = _preprocess_annotation_json(annotation_json)
 
     annotation = {
         "type":
@@ -230,13 +232,10 @@ def add_annotation_polyline_to_json(
             [] if annotation_class_attributes is None else
             annotation_class_attributes
     }
-    if annotation_json is None:
-        annotation_json = []
-    annotation_json.append(annotation)
 
-    if path is not None:
-        json.dump(annotation_json, open(path, "w"))
-    return annotation_json
+    annotation_json["instances"].append(annotation)
+
+    return _postprocess_annotation_json(annotation_json, path)
 
 
 def add_annotation_point_to_json(
@@ -251,7 +250,7 @@ def add_annotation_point_to_json(
     annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
 
     :param annotation_json: annotations in SuperAnnotate format JSON or filepath to JSON
-    :type annotation_json: list or Pathlike (str or Path)
+    :type annotation_json: dict or Pathlike (str or Path)
     :param point: [x,y] list of coordinates
     :type point: list of floats
     :param annotation_class_name: annotation class name
@@ -264,10 +263,7 @@ def add_annotation_point_to_json(
     if len(point) != 2:
         raise SABaseException(0, "Point should be 2 element float list.")
 
-    path = None
-    if not isinstance(annotation_json, list) and annotation_json is not None:
-        path = annotation_json
-        annotation_json = json.load(open(annotation_json))
+    annotation_json, path = _preprocess_annotation_json(annotation_json)
 
     annotation = {
         "type":
@@ -291,13 +287,10 @@ def add_annotation_point_to_json(
             [] if annotation_class_attributes is None else
             annotation_class_attributes
     }
-    if annotation_json is None:
-        annotation_json = []
-    annotation_json.append(annotation)
 
-    if path is not None:
-        json.dump(annotation_json, open(path, "w"))
-    return annotation_json
+    annotation_json["instances"].append(annotation)
+
+    return _postprocess_annotation_json(annotation_json, path)
 
 
 def add_annotation_ellipse_to_json(
@@ -312,7 +305,7 @@ def add_annotation_ellipse_to_json(
     annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
 
     :param annotation_json: annotations in SuperAnnotate format JSON or filepath to JSON
-    :type annotation_json: list or Pathlike (str or Path)
+    :type annotation_json: dict or Pathlike (str or Path)
     :param ellipse: [center_x, center_y, r_x, r_y, angle]
                     list of coordinates and rotation angle in degrees around y
                     axis
@@ -327,10 +320,7 @@ def add_annotation_ellipse_to_json(
     if len(ellipse) != 5:
         raise SABaseException(0, "Ellipse should be 5 element float list.")
 
-    path = None
-    if not isinstance(annotation_json, list) and annotation_json is not None:
-        path = annotation_json
-        annotation_json = json.load(open(annotation_json))
+    annotation_json, path = _preprocess_annotation_json(annotation_json)
 
     annotation = {
         "type":
@@ -360,13 +350,10 @@ def add_annotation_ellipse_to_json(
             [] if annotation_class_attributes is None else
             annotation_class_attributes
     }
-    if annotation_json is None:
-        annotation_json = []
-    annotation_json.append(annotation)
 
-    if path is not None:
-        json.dump(annotation_json, open(path, "w"))
-    return annotation_json
+    annotation_json["instances"].append(annotation)
+
+    return _postprocess_annotation_json(annotation_json, path)
 
 
 def add_annotation_template_to_json(
@@ -382,7 +369,7 @@ def add_annotation_template_to_json(
     annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
 
     :param annotation_json: annotations in SuperAnnotate format JSON or filepath to JSON
-    :type annotation_json: list or Pathlike (str or Path)
+    :type annotation_json: dict or Pathlike (str or Path)
     :param template_points: [x1,y1,x2,y2,...] list of coordinates
     :type template_points: list of floats
     :param template_connections: [from_id_1,to_id_1,from_id_2,to_id_2,...]
@@ -407,10 +394,7 @@ def add_annotation_template_to_json(
             0, "template_connections should be even length lists of ints."
         )
 
-    path = None
-    if not isinstance(annotation_json, list) and annotation_json is not None:
-        path = annotation_json
-        annotation_json = json.load(open(annotation_json))
+    annotation_json, path = _preprocess_annotation_json(annotation_json)
 
     annotation = {
         "type":
@@ -448,13 +432,10 @@ def add_annotation_template_to_json(
                 "to": template_connections[i + 1]
             }
         )
-    if annotation_json is None:
-        annotation_json = []
-    annotation_json.append(annotation)
 
-    if path is not None:
-        json.dump(annotation_json, open(path, "w"))
-    return annotation_json
+    annotation_json["instances"].append(annotation)
+
+    return _postprocess_annotation_json(annotation_json, path)
 
 
 def add_annotation_cuboid_to_json(
@@ -469,7 +450,7 @@ def add_annotation_cuboid_to_json(
     annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
 
     :param annotation_json: annotations in SuperAnnotate format JSON or filepath to JSON
-    :type annotation_json: list or Pathlike (str or Path)
+    :type annotation_json: dict or Pathlike (str or Path)
     :param cuboid: [x_front_tl,y_front_tl,x_front_br,y_front_br,
                     x_rear_tl,y_rear_tl,x_rear_br,y_rear_br] list of coordinates
                     of front rectangle and back rectangle, in top-left (tl) and
@@ -485,10 +466,7 @@ def add_annotation_cuboid_to_json(
     if len(cuboid) != 8:
         raise SABaseException(0, "cuboid should be lenght 8 list of floats.")
 
-    path = None
-    if not isinstance(annotation_json, list) and annotation_json is not None:
-        path = annotation_json
-        annotation_json = json.load(open(annotation_json))
+    annotation_json, path = _preprocess_annotation_json(annotation_json)
 
     annotation = {
         "type":
@@ -527,10 +505,7 @@ def add_annotation_cuboid_to_json(
             [] if annotation_class_attributes is None else
             annotation_class_attributes
     }
-    if annotation_json is None:
-        annotation_json = []
-    annotation_json.append(annotation)
 
-    if path is not None:
-        json.dump(annotation_json, open(path, "w"))
-    return annotation_json
+    annotation_json["instances"].append(annotation)
+
+    return _postprocess_annotation_json(annotation_json, path)

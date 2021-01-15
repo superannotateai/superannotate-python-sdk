@@ -218,11 +218,17 @@ def test_df_to_annotations_full(tmpdir):
     tmpdir = Path(tmpdir)
 
     df = sa.aggregate_annotations_as_df(
-        PROJECT_DIR, include_classes_wo_annotations=True, include_comments=True
+        PROJECT_DIR,
+        include_classes_wo_annotations=True,
+        include_comments=True,
+        include_tags=True
     )
     sa.df_to_annotations(df, tmpdir)
     df_new = sa.aggregate_annotations_as_df(
-        tmpdir, include_classes_wo_annotations=True, include_comments=True
+        tmpdir,
+        include_classes_wo_annotations=True,
+        include_comments=True,
+        include_tags=True
     )
     for project in sa.search_projects("test df to annotations 4"):
         sa.delete_project(project)
