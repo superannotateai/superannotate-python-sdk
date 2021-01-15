@@ -46,7 +46,7 @@ def test_vott_convert_instance(tmpdir):
 
 
 def test_vott_convert_vector(tmpdir):
-    project_name = "vott_vector"
+    project_name = "vott_vector_annotation"
 
     input_dir = Path(
         "tests"
