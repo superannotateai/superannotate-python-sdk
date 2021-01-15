@@ -35,7 +35,7 @@ def sagemaker_object_detection_to_sa_vector(data_path, main_key, output_dir):
                     classes_ids[key] = value
 
             image_size = img['consolidatedAnnotation']['content'][main_key][
-                'image_size']
+                'image_size'][0]
 
             sa_metadata = {
                 'name': Path(manifest['source-ref']).name,
