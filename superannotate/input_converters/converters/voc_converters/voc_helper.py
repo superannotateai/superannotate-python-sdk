@@ -39,3 +39,14 @@ def _iou(bbox1, bbox2):
         (xmax1 - xmin1) * (ymax1 - ymin1) + (xmax2 - xmin2) *
         (ymax2 - ymin2) - x * y
     )
+
+
+def _get_image_shape_from_xml(file_path):
+    with open(os.path.splitext(file_path)[0] + ".xml") as f:
+        tree = ET.parse(f)
+
+    size = tree.find('size')
+    width = int(size.find('width').text)
+    height = int(size.find('height').text)
+
+    return height, width

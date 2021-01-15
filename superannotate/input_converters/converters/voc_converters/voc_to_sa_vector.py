@@ -4,7 +4,7 @@ from tqdm import tqdm
 
 from ....common import write_to_json
 from ..sa_json_helper import _create_sa_json, _create_vector_instance
-from .voc_helper import _get_voc_instances_from_xml, _iou
+from .voc_helper import _get_voc_instances_from_xml, _iou, _get_image_shape_from_xml
 
 
 def _generate_polygons(object_mask_path):
@@ -99,7 +99,10 @@ def voc_instance_segmentation_to_sa_vector(voc_root, output_dir):
             sa_instances.append(sa_obj)
 
         file_name = "%s.jpg___objects.json" % filename.stem
-        sa_metadata = {'name': filename.stem}
+        height, width = _get_image_shape_from_xml(
+            annotation_dir / filename.name
+        )
+        sa_metadata = {'name': filename.stem, 'height': height, 'width': width}
         sa_json = _create_sa_json(sa_instances, sa_metadata)
         write_to_json(output_dir / file_name, sa_json)
     return classes
@@ -125,7 +128,10 @@ def voc_object_detection_to_sa_vector(voc_root, output_dir):
             sa_instances.append(sa_obj)
 
         file_name = "%s.jpg___objects.json" % filename.stem
-        sa_metadata = {'name': filename.stem}
+        height, width = _get_image_shape_from_xml(
+            annotation_dir / filename.name
+        )
+        sa_metadata = {'name': filename.stem, 'height': height, 'width': width}
         sa_json = _create_sa_json(sa_instances, sa_metadata)
         write_to_json(output_dir / file_name, sa_json)
     return classes

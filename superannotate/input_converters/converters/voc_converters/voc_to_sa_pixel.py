@@ -3,7 +3,7 @@ import numpy as np
 
 from ....common import blue_color_generator, hex_to_rgb, write_to_json
 from ..sa_json_helper import _create_pixel_instance, _create_sa_json
-from .voc_helper import _get_voc_instances_from_xml, _iou
+from .voc_helper import _get_voc_instances_from_xml, _iou, _get_image_shape_from_xml
 
 
 def _generate_polygons(object_mask_path):
@@ -61,7 +61,7 @@ def _generate_instances(polygon_instances, voc_instances, bluemask_colors):
         attributes = voc_instances[ind][0][class_name]
         instances.append(
             {
-                "className": voc_instances[ind][0],
+                "className": class_name,
                 "polygon": polygon,
                 "bbox": voc_instances[ind][1],
                 "blue_color": bluemask_colors[i],
@@ -100,7 +100,10 @@ def voc_instance_segmentation_to_sa_pixel(voc_root, output_dir):
             sa_instances.append(sa_obj)
 
         file_name = "%s.jpg___pixel.json" % (filename.stem)
-        sa_metadata = {'name': filename.stem}
+        height, width = _get_image_shape_from_xml(
+            annotation_dir / filename.name
+        )
+        sa_metadata = {'name': filename.stem, 'height': height, 'width': width}
         sa_json = _create_sa_json(sa_instances, sa_metadata)
         write_to_json(output_dir / file_name, sa_json)
 
