@@ -539,7 +539,15 @@ def upload_images_from_folder_to_project(
 
 
 def create_empty_annotation(size):
-    return {"metadata": {'height': size[1], 'width': size[0]}}
+    return {
+        "metadata": {
+            'height': size[1],
+            'width': size[0]
+        },
+        "instances": [],
+        "comments": [],
+        "tags": []
+    }
 
 
 def upload_image_array_to_s3(
