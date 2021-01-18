@@ -29,8 +29,9 @@ from ..exceptions import (
     SANonExistingProjectNameException
 )
 from .annotation_classes import (
-    create_annotation_classes_from_classes_json, fill_class_and_attribute_ids,
-    get_annotation_classes_name_to_id, search_annotation_classes
+    check_annotation_json, create_annotation_classes_from_classes_json,
+    fill_class_and_attribute_ids, get_annotation_classes_name_to_id,
+    search_annotation_classes
 )
 from .images import search_images
 from .project_api import get_project_metadata_bare
@@ -537,8 +538,21 @@ def upload_images_from_folder_to_project(
     )
 
 
+def create_empty_annotation(size):
+    return {
+        "metadata": {
+            'height': size[1],
+            'width': size[0]
+        },
+        "instances": [],
+        "comments": [],
+        "tags": []
+    }
+
+
 def upload_image_array_to_s3(
-    bucket, size, orig_image, lores_image, huge_image, thumbnail_image, key
+    bucket, size, orig_image, lores_image, huge_image, thumbnail_image, key,
+    project_type
 ):
     bucket.put_object(Body=orig_image, Key=key)
     bucket.put_object(Body=lores_image, Key=key + '___lores.jpg')
@@ -551,6 +565,10 @@ def upload_image_array_to_s3(
         }
     )
     bucket.put_object(Body=thumbnail_image, Key=key + '___thumb.jpg')
+    postfix_json = '___objects.json' if project_type == "Vector" else '___pixel.json'
+    bucket.put_object(
+        Body=json.dumps(create_empty_annotation(size)), Key=key + postfix_json
+    )
 
 
 def get_image_array_to_upload(
@@ -656,7 +674,9 @@ def __upload_images_to_aws_thread(
             images_array = get_image_array_to_upload(
                 file, image_quality_in_editor, project["type"]
             )
-            upload_image_array_to_s3(bucket, *images_array, key)
+            upload_image_array_to_s3(
+                bucket, *images_array, key, project["type"]
+            )
         except Exception as e:
             logger.warning("Unable to upload image %s. %s", path, e)
             couldnt_upload[thread_id].append(path)
@@ -784,7 +804,7 @@ def upload_images_to_project(
             response.status_code, "Couldn't get upload token " + response.text
         )
     tqdm_thread = threading.Thread(
-        target=__tqdm_thread_image_upload,
+        target=__tqdm_thread_upload,
         args=(len_img_paths, uploaded, couldnt_upload, finish_event),
         daemon=True
     )
@@ -1077,9 +1097,10 @@ def upload_images_from_azure_blob_to_project(
 
 def __upload_annotations_thread(
     team_id, project_id, project_type, anns_filenames, folder_path,
-    annotation_classes_dict, thread_id, chunksize, num_uploaded, from_s3_bucket,
-    actually_uploaded
+    annotation_classes_dict, thread_id, chunksize, missing_images,
+    couldnt_upload, uploaded, from_s3_bucket
 ):
+    print("DEBUG")
     NUM_TO_SEND = 500
     len_anns = len(anns_filenames)
     start_index = thread_id * chunksize
@@ -1096,6 +1117,7 @@ def __upload_annotations_thread(
 
     for i in range(start_index, end_index, NUM_TO_SEND):
         data = {"project_id": project_id, "team_id": team_id, "names": []}
+        print("DEBUG", flush=True)
         for j in range(i, i + NUM_TO_SEND):
             if j >= end_index:
                 break
@@ -1107,8 +1129,14 @@ def __upload_annotations_thread(
             json_req=data
         )
         res = response.json()
-        if len(res["images"]) != len(data["names"]):
-            logger.warning("Couldn't find all the images for annotation JSONs.")
+        if len(res["images"]) < len(data["names"]):
+            for name in data["names"]:
+                if name not in res["images"]:
+                    ann_path = Path(folder_path) / (name + postfix_json)
+                    missing_images[thread_id].append(ann_path)
+                    logger.warning(
+                        "Couldn't find image %s for annotation upload", ann_path
+                    )
         aws_creds = res["creds"]
         s3_session = boto3.Session(
             aws_access_key_id=aws_creds['accessKeyId'],
@@ -1121,18 +1149,22 @@ def __upload_annotations_thread(
         for image_name, image_path in res['images'].items():
             json_filename = image_name + postfix_json
             if from_s3_bucket is None:
-                annotation_json = json.load(
-                    open(Path(folder_path) / json_filename)
-                )
+                full_path = Path(folder_path) / json_filename
+                annotation_json = json.load(open(full_path))
             else:
                 file = io.BytesIO()
-                from_s3_object = from_s3.Object(
-                    from_s3_bucket, folder_path + json_filename
-                )
+                full_path = folder_path + json_filename
+                from_s3_object = from_s3.Object(from_s3_bucket, full_path)
                 from_s3_object.download_fileobj(file)
                 file.seek(0)
                 annotation_json = json.load(file)
 
+            if not check_annotation_json(annotation_json):
+                couldnt_upload[thread_id].append(full_path)
+                logger.warning(
+                    "Annotation JSON %s missing width or height info", full_path
+                )
+                continue
             fill_class_and_attribute_ids(
                 annotation_json, annotation_classes_dict
             )
@@ -1152,10 +1184,7 @@ def __upload_annotations_thread(
                     from_s3_object.download_fileobj(file)
                     file.seek(0)
                 bucket.put_object(Key=image_path + postfix_mask, Body=file)
-            num_uploaded[thread_id] += 1
-            actually_uploaded[thread_id].append(
-                Path(folder_path) / json_filename
-            )
+            uploaded[thread_id].append(full_path)
 
 
 def upload_annotations_from_folder_to_project(
@@ -1181,8 +1210,8 @@ def upload_annotations_from_folder_to_project(
     :param recursive_subfolders: enable recursive subfolder parsing
     :type recursive_subfolders: bool
 
-    :return: paths to annotations uploaded
-    :rtype: list of strs
+    :return: paths to annotations uploaded, could-not-upload, missing-images
+    :rtype: tuple of list of strs
     """
     if recursive_subfolders:
         logger.info(
@@ -1268,14 +1297,22 @@ def _upload_annotations_from_folder_to_project(
     )
     if len_annotations_paths == 0:
         return return_result
-    num_uploaded = [0] * _NUM_THREADS
-    actually_uploaded = []
+    uploaded = []
     for _ in range(_NUM_THREADS):
-        actually_uploaded.append([])
+        uploaded.append([])
+    couldnt_upload = []
+    for _ in range(_NUM_THREADS):
+        couldnt_upload.append([])
+    missing_image = []
+    for _ in range(_NUM_THREADS):
+        missing_image.append([])
     finish_event = threading.Event()
     tqdm_thread = threading.Thread(
-        target=__tqdm_thread,
-        args=(len_annotations_paths, num_uploaded, finish_event),
+        target=__tqdm_thread_upload_annotations,
+        args=(
+            len_annotations_paths, uploaded, couldnt_upload, missing_image,
+            finish_event
+        ),
         daemon=True
     )
     tqdm_thread.start()
@@ -1292,7 +1329,7 @@ def _upload_annotations_from_folder_to_project(
             args=(
                 team_id, project_id, project_type, annotations_filenames,
                 folder_path, annotation_classes_dict, thread_id, chunksize,
-                num_uploaded, from_s3_bucket, actually_uploaded
+                missing_image, couldnt_upload, uploaded, from_s3_bucket
             ),
             daemon=True
         )
@@ -1302,23 +1339,27 @@ def _upload_annotations_from_folder_to_project(
         t.join()
     finish_event.set()
     tqdm_thread.join()
-    logger.info("Number of annotations uploaded %s.", sum(num_uploaded))
-    if sum(num_uploaded) != len_annotations_paths:
-        logger.warning(
-            "%s annotations were not uploaded.",
-            len_annotations_paths - sum(num_uploaded)
-        )
 
-    for ac_upl in actually_uploaded:
-        return_result += [str(p) for p in ac_upl]
+    list_of_not_uploaded = []
+    for couldnt_upload_thread in couldnt_upload:
+        for file in couldnt_upload_thread:
+            list_of_not_uploaded.append(str(file))
+    list_of_uploaded = []
+    for upload_thread in uploaded:
+        for file in upload_thread:
+            list_of_uploaded.append(str(file))
+    list_of_missing_images = []
+    for missing_thread in missing_image:
+        for file in missing_thread:
+            list_of_missing_images.append(str(file))
     # print(return_result)
-    return return_result
+    return (list_of_uploaded, list_of_not_uploaded, list_of_missing_images)
 
 
 def __upload_preannotations_thread(
     aws_creds, project_type, preannotations_filenames, folder_path,
-    annotation_classes_dict, thread_id, chunksize, num_uploaded,
-    already_uploaded, from_s3_bucket
+    annotation_classes_dict, thread_id, chunksize, couldnt_upload, uploaded,
+    from_s3_bucket
 ):
     len_preanns = len(preannotations_filenames)
     start_index = thread_id * chunksize
@@ -1341,20 +1382,24 @@ def __upload_preannotations_thread(
         from_s3 = from_session.resource('s3')
 
     for i in range(start_index, end_index):
-        if already_uploaded[i]:
-            continue
         json_filename = preannotations_filenames[i]
         if from_s3_bucket is None:
-            annotation_json = json.load(open(Path(folder_path) / json_filename))
+            full_path = Path(folder_path) / json_filename
+            annotation_json = json.load(open(full_path))
         else:
             file = io.BytesIO()
-            from_s3_object = from_s3.Object(
-                from_s3_bucket, folder_path + json_filename
-            )
+            full_path = folder_path + json_filename
+            from_s3_object = from_s3.Object(from_s3_bucket, full_path)
             from_s3_object.download_fileobj(file)
             file.seek(0)
             annotation_json = json.load(file)
 
+        if not check_annotation_json(annotation_json):
+            couldnt_upload[thread_id].append(full_path)
+            logger.warning(
+                "Annotation JSON %s missing width or height info", full_path
+            )
+            continue
         fill_class_and_attribute_ids(annotation_json, annotation_classes_dict)
         bucket.put_object(
             Key=aws_creds["filePath"] + f"/{json_filename}",
@@ -1375,22 +1420,46 @@ def __upload_preannotations_thread(
             bucket.put_object(
                 Key=aws_creds['filePath'] + f'/{mask_filename}', Body=file
             )
-        num_uploaded[thread_id] += 1
-        already_uploaded[i] = True
+        uploaded[thread_id].append(full_path)
 
 
-def __tqdm_thread(total_num, current_nums, finish_event):
+def __tqdm_thread_upload(total_num, uploaded, couldnt_upload, finish_event):
     with tqdm(total=total_num) as pbar:
         while True:
             finished = finish_event.wait(5)
             if not finished:
-                pbar.update(sum(current_nums) - pbar.n)
+                sum_all = 0
+                for i in couldnt_upload:
+                    sum_all += len(i)
+                for i in uploaded:
+                    sum_all += len(i)
+                pbar.update(sum_all - pbar.n)
             else:
                 pbar.update(total_num - pbar.n)
                 break
 
 
-def __tqdm_thread_image_upload(
+def __tqdm_thread_upload_annotations(
+    total_num, uploaded, couldnt_upload, missing_image, finish_event
+):
+    with tqdm(total=total_num) as pbar:
+        while True:
+            finished = finish_event.wait(5)
+            if not finished:
+                sum_all = 0
+                for i in couldnt_upload:
+                    sum_all += len(i)
+                for i in uploaded:
+                    sum_all += len(i)
+                for i in missing_image:
+                    sum_all += len(i)
+                pbar.update(sum_all - pbar.n)
+            else:
+                pbar.update(total_num - pbar.n)
+                break
+
+
+def __tqdm_thread_upload_preannotations(
     total_num, uploaded, couldnt_upload, finish_event
 ):
     with tqdm(total=total_num) as pbar:
@@ -1431,8 +1500,8 @@ def upload_preannotations_from_folder_to_project(
     :param recursive_subfolders: enable recursive subfolder parsing
     :type recursive_subfolders: bool
 
-    :return: paths to pre-annotations uploaded
-    :rtype: list of strs
+    :return: paths to pre-annotations uploaded and could-not-upload
+    :rtype: tuple of list of strs
     """
     if recursive_subfolders:
         logger.info(
@@ -1523,13 +1592,18 @@ def _upload_preannotations_from_folder_to_project(
         'creds_only': True,
         'type': common.project_type_str_to_int(project_type)
     }
-    num_uploaded = [0] * _NUM_THREADS
-    already_uploaded = [False] * len_preannotations_paths
+    uploaded = []
+    for _ in range(_NUM_THREADS):
+        uploaded.append([])
+    couldnt_upload = []
+    for _ in range(_NUM_THREADS):
+        couldnt_upload.append([])
+    finish_event = threading.Event()
     chunksize = int(math.ceil(len_preannotations_paths / _NUM_THREADS))
     finish_event = threading.Event()
     tqdm_thread = threading.Thread(
-        target=__tqdm_thread,
-        args=(len_preannotations_paths, num_uploaded, finish_event),
+        target=__tqdm_thread_upload_preannotations,
+        args=(len_preannotations_paths, couldnt_upload, uploaded, finish_event),
         daemon=True
     )
     tqdm_thread.start()
@@ -1552,8 +1626,8 @@ def _upload_preannotations_from_folder_to_project(
             target=__upload_preannotations_thread,
             args=(
                 aws_creds, project_type, preannotations_filenames, folder_path,
-                annotation_classes_dict, thread_id, chunksize, num_uploaded,
-                already_uploaded, from_s3_bucket
+                annotation_classes_dict, thread_id, chunksize, couldnt_upload,
+                uploaded, from_s3_bucket
             ),
             daemon=True
         )
@@ -1563,13 +1637,15 @@ def _upload_preannotations_from_folder_to_project(
         t.join()
     finish_event.set()
     tqdm_thread.join()
-    logger.info("Number of preannotations uploaded %s.", sum(num_uploaded))
-    if sum(num_uploaded) != len_preannotations_paths:
-        logger.warning(
-            "%s preannotations were not uploaded.",
-            len_preannotations_paths - sum(num_uploaded)
-        )
-    return return_result + [str(p) for p in preannotations_paths]
+    list_of_not_uploaded = []
+    for couldnt_upload_thread in couldnt_upload:
+        for file in couldnt_upload_thread:
+            list_of_not_uploaded.append(str(file))
+    list_of_uploaded = []
+    for upload_thread in uploaded:
+        for file in upload_thread:
+            list_of_uploaded.append(str(file))
+    return (list_of_uploaded, list_of_not_uploaded)
 
 
 def share_project(project, user, user_role):
