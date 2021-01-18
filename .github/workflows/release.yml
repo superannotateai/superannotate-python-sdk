@@ -16,9 +16,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install setuptools wheel twine numpy yapf
-      - name: Check formatting
-        run: yapf -p -r --diff -e '*/pycocotools_sa' superannotate
+          pip install setuptools wheel twine
       - name: Create distribution files
         run: python setup.py sdist
       - name: Publish distribution to PyPI

@@ -5,7 +5,7 @@ PYLINT=pylint
 PYTESTS=pytest
 COVERAGE=coverage
 
-tests: check_formatting
+tests: check_formatting docs
 	$(PYTESTS) -n auto
 
 stress-tests: SA_STRESS_TESTS=1
@@ -35,7 +35,7 @@ lint_tests:
 	-$(PYLINT) tests/*
 
 docs:
-	cd docs && make html
+	cd docs && make html SPHINXOPTS="-W"
 	@echo "\033[95m\n\nBuild successful! View the docs homepage at file://docs/build/html/index.html.\n\033[0m"
 
 dist:
