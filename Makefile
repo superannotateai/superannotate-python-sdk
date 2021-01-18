@@ -44,4 +44,4 @@ dist:
 	twine upload dist/*
 
 check_formatting:
-	yapf -p -r --diff -e '*/pycocotools_sa' superannotate
+	yapf -p -r --diff superannotate

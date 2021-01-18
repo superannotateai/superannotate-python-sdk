@@ -538,8 +538,13 @@ def upload_images_from_folder_to_project(
     )
 
 
+def create_empty_annotation(size):
+    return {"metadata": {'height': size[1], 'width': size[0]}}
+
+
 def upload_image_array_to_s3(
-    bucket, size, orig_image, lores_image, huge_image, thumbnail_image, key
+    bucket, size, orig_image, lores_image, huge_image, thumbnail_image, key,
+    project_type
 ):
     bucket.put_object(Body=orig_image, Key=key)
     bucket.put_object(Body=lores_image, Key=key + '___lores.jpg')
@@ -552,6 +557,10 @@ def upload_image_array_to_s3(
         }
     )
     bucket.put_object(Body=thumbnail_image, Key=key + '___thumb.jpg')
+    postfix_json = '___objects.json' if project_type == "Vector" else '___pixel.json'
+    bucket.put_object(
+        Body=json.dumps(create_empty_annotation(size)), Key=key + postfix_json
+    )
 
 
 def get_image_array_to_upload(
@@ -657,7 +666,9 @@ def __upload_images_to_aws_thread(
             images_array = get_image_array_to_upload(
                 file, image_quality_in_editor, project["type"]
             )
-            upload_image_array_to_s3(bucket, *images_array, key)
+            upload_image_array_to_s3(
+                bucket, *images_array, key, project["type"]
+            )
         except Exception as e:
             logger.warning("Unable to upload image %s. %s", path, e)
             couldnt_upload[thread_id].append(path)
@@ -1191,8 +1202,8 @@ def upload_annotations_from_folder_to_project(
     :param recursive_subfolders: enable recursive subfolder parsing
     :type recursive_subfolders: bool
 
-    :return: paths to annotations uploaded
-    :rtype: list of strs
+    :return: paths to annotations uploaded, could-not-upload, missing-images
+    :rtype: tuple of list of strs
     """
     if recursive_subfolders:
         logger.info(
@@ -1439,6 +1450,7 @@ def __tqdm_thread_upload_annotations(
                 pbar.update(total_num - pbar.n)
                 break
 
+
 def __tqdm_thread_upload_preannotations(
     total_num, uploaded, couldnt_upload, finish_event
 ):
@@ -1480,8 +1492,8 @@ def upload_preannotations_from_folder_to_project(
     :param recursive_subfolders: enable recursive subfolder parsing
     :type recursive_subfolders: bool
 
-    :return: paths to pre-annotations uploaded
-    :rtype: list of strs
+    :return: paths to pre-annotations uploaded and could-not-upload
+    :rtype: tuple of list of strs
     """
     if recursive_subfolders:
         logger.info(
@@ -1583,7 +1595,6 @@ def _upload_preannotations_from_folder_to_project(
     finish_event = threading.Event()
     tqdm_thread = threading.Thread(
         target=__tqdm_thread_upload_preannotations,
-
         args=(len_preannotations_paths, couldnt_upload, uploaded, finish_event),
         daemon=True
     )
@@ -1627,7 +1638,6 @@ def _upload_preannotations_from_folder_to_project(
         for file in upload_thread:
             list_of_uploaded.append(str(file))
     return (list_of_uploaded, list_of_not_uploaded)
-    return return_result + [str(p) for p in preannotations_paths]
 
 
 def share_project(project, user, user_role):

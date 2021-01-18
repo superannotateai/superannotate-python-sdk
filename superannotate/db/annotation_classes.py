@@ -296,6 +296,8 @@ def download_annotation_classes_json(project, folder):
 
 
 def fill_class_and_attribute_names(annotations_json, annotation_classes_dict):
+    if "instances" not in annotations_json:
+        return
     for r in annotations_json["instances"]:
         if "classId" in r and r["classId"] in annotation_classes_dict:
             r["className"] = annotation_classes_dict[r["classId"]]["name"]

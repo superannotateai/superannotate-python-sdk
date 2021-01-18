@@ -114,7 +114,7 @@ def upload_image_to_project(
         images_array = get_image_array_to_upload(
             img, image_quality_in_editor, project["type"]
         )
-        upload_image_array_to_s3(bucket, *images_array, key)
+        upload_image_array_to_s3(bucket, *images_array, key, project["type"])
     except Exception as e:
         raise SABaseException(0, "Couldn't upload to data server. " + e)
 

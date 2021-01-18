@@ -2,13 +2,11 @@ from pathlib import Path
 
 import superannotate as sa
 
-name = "Example Project test vector missing annotation upload"
-project_type = "Vector"
-description = "test vector"
-from_folder = Path("./tests/sample_project_vector_for_checks")
-
-
 def test_missing_annotation_upload(tmpdir):
+    name = "Example Project test vector missing annotation upload"
+    project_type = "Vector"
+    description = "test vector"
+    from_folder = Path("./tests/sample_project_vector_for_checks")
     projects = sa.search_projects(name, return_metadata=True)
     for project in projects:
         sa.delete_project(project)
@@ -44,6 +42,12 @@ def test_missing_annotation_upload(tmpdir):
 
 
 def test_missing_preannotation_upload(tmpdir):
+    name = "Example Project test vector missing preannotation upload"
+    project_type = "Vector"
+    description = "test vector"
+    from_folder = Path("./tests/sample_project_vector_for_checks")
+
+
     projects = sa.search_projects(name, return_metadata=True)
     for project in projects:
         sa.delete_project(project)
