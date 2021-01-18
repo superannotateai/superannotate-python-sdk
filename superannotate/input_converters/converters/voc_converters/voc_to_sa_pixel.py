@@ -1,19 +1,15 @@
-import os
 import cv2
-import json
-from tqdm import tqdm
 import numpy as np
-import xml.etree.ElementTree as ET
 
-from ....common import hex_to_rgb, blue_color_generator
+from ....common import blue_color_generator, hex_to_rgb, write_to_json
+from ..sa_json_helper import _create_pixel_instance, _create_sa_json
+from .voc_helper import _get_voc_instances_from_xml, _iou, _get_image_shape_from_xml
 
 
-# Generates polygons for each instance
-def _generate_polygons(object_mask_path, class_mask_path):
+def _generate_polygons(object_mask_path):
     segmentation = []
 
     object_mask = cv2.imread(str(object_mask_path), cv2.IMREAD_GRAYSCALE)
-    class_mask = cv2.imread(str(class_mask_path), cv2.IMREAD_GRAYSCALE)
 
     object_unique_colors = np.unique(object_mask)
 
@@ -26,7 +22,6 @@ def _generate_polygons(object_mask_path, class_mask_path):
         if unique_color in (0, 220):
             continue
 
-        # class_color = class_mask[object_mask == unique_color][0]
         mask = np.zeros_like(object_mask)
         mask[object_mask == unique_color] = 255
         contours, _ = cv2.findContours(
@@ -48,22 +43,9 @@ def _generate_polygons(object_mask_path, class_mask_path):
     return segmentation, sa_mask, bluemask_colors
 
 
-def _iou(bbox1, bbox2):
-    xmin1, ymin1, xmax1, ymax1 = bbox1
-    xmin2, ymin2, xmax2, ymax2 = bbox2
-
-    x = max(0, min(xmax1, xmax2) - max(xmin1, xmin2))
-    y = max(0, min(ymax1, ymax2) - max(ymin1, ymin2))
-    return x * y / float(
-        (xmax1 - xmin1) * (ymax1 - ymin1) + (xmax2 - xmin2) *
-        (ymax2 - ymin2) - x * y
-    )
-
-
 def _generate_instances(polygon_instances, voc_instances, bluemask_colors):
     instances = []
     i = 0
-    # for polygon, color_id in polygon_instances:
     for polygon in polygon_instances:
         ious = []
         bbox_poly = [
@@ -72,93 +54,60 @@ def _generate_instances(polygon_instances, voc_instances, bluemask_colors):
             max(polygon[::2]),
             max(polygon[1::2])
         ]
-        for class_name, bbox in voc_instances:
+        for _, bbox in voc_instances:
             ious.append(_iou(bbox_poly, bbox))
         ind = np.argmax(ious)
+        class_name = list(voc_instances[ind][0].keys())[0]
+        attributes = voc_instances[ind][0][class_name]
         instances.append(
             {
-                "className": voc_instances[ind][0],
-                # "classId": color_id,
+                "className": class_name,
                 "polygon": polygon,
                 "bbox": voc_instances[ind][1],
-                "blue_color": bluemask_colors[i]
+                "blue_color": bluemask_colors[i],
+                'classAttributes': attributes
             }
         )
         i += 1
     return instances
 
 
-def _get_voc_instances_from_xml(file_path):
-    with open(os.path.splitext(file_path)[0] + ".xml") as f:
-        tree = ET.parse(f)
-    instances = tree.findall('object')
-    voc_instances = []
-    for instance in instances:
-        class_name = instance.find("name").text
-        bbox = instance.find("bndbox")
-        bbox = [
-            float(bbox.find(x).text) for x in ["xmin", "ymin", "xmax", "ymax"]
-        ]
-        voc_instances.append((class_name, bbox))
-    return voc_instances
-
-
-def _create_classes(classes):
-    sa_classes = []
-    # for class_, id_ in classes.items():
-    for class_ in set(classes):
-        color = np.random.choice(range(256), size=3)
-        hexcolor = "#%02x%02x%02x" % tuple(color)
-        sa_class = {
-            # "id": id_,
-            "name": class_,
-            "color": hexcolor,
-            "attribute_groups": []
-        }
-        sa_classes.append(sa_class)
-    return sa_classes
-
-
-def voc_instance_segmentation_to_sa_pixel(voc_root):
+def voc_instance_segmentation_to_sa_pixel(voc_root, output_dir):
     classes = []
     object_masks_dir = voc_root / 'SegmentationObject'
-    class_masks_dir = voc_root / 'SegmentationClass'
     annotation_dir = voc_root / "Annotations"
 
-    sa_jsons = {}
-    sa_masks = {}
     for filename in object_masks_dir.glob('*'):
         polygon_instances, sa_mask, bluemask_colors = _generate_polygons(
-            object_masks_dir / filename.name,
-            class_masks_dir / filename.name,
+            object_masks_dir / filename.name
         )
         voc_instances = _get_voc_instances_from_xml(
             annotation_dir / filename.name
         )
+        for class_, _ in voc_instances:
+            classes.append(class_)
+
         maped_instances = _generate_instances(
             polygon_instances, voc_instances, bluemask_colors
         )
 
-        sa_loader = []
+        sa_instances = []
         for instance in maped_instances:
-            sa_polygon = {
-                'className': instance["className"],
-                'parts': [{
-                    "color": instance["blue_color"]
-                }],
-                'attributes': [],
-                'probability': 100,
-                'locked': False,
-                'visible': True,
-            }
-            sa_loader.append(sa_polygon)
-            classes.append(instance['className'])
+            parts = [{"color": instance["blue_color"]}]
+            sa_obj = _create_pixel_instance(
+                parts, instance['classAttributes'], instance["className"]
+            )
+            sa_instances.append(sa_obj)
 
-        sa_file_name = os.path.splitext(filename.name)[0] + ".jpg___pixel.json"
-        sa_jsons[sa_file_name] = sa_loader
+        file_name = "%s.jpg___pixel.json" % (filename.stem)
+        height, width = _get_image_shape_from_xml(
+            annotation_dir / filename.name
+        )
+        sa_metadata = {'name': filename.stem, 'height': height, 'width': width}
+        sa_json = _create_sa_json(sa_instances, sa_metadata)
+        write_to_json(output_dir / file_name, sa_json)
 
-        sa_mask_name = os.path.splitext(filename.name)[0] + ".jpg___save.png"
-        sa_masks[sa_mask_name] = sa_mask
+        mask_name = "%s.jpg___save.png" % (filename.stem)
+        cv2.imwrite(str(output_dir / mask_name), sa_mask[:, :, ::-1])
 
-    classes = _create_classes(classes)
-    return (classes, sa_jsons, sa_masks)
+    return classes

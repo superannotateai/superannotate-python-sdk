@@ -5,123 +5,102 @@ import pytest
 import superannotate as sa
 
 
-def test_coco_vector_instance(tmpdir):
-    input_dir = Path(
-        "tests"
-    ) / "converter_test" / "COCO" / "input" / "toSuperAnnotate" / "instance_segmentation"
-    out_dir = Path(tmpdir) / "instance_vector"
-    sa.import_annotation(
-        input_dir, out_dir, "COCO", "instances_test", "Vector",
-        "instance_segmentation", "Web"
-    )
-
-    project_name = "coco2sa_vector_instance"
-
+def upload_project(project_path, project_name, description, ptype):
     projects = sa.search_projects(project_name, True)
     if projects:
         sa.delete_project(projects[0])
-    project = sa.create_project(project_name, "converter vector", "Vector")
+    project = sa.create_project(project_name, description, ptype)
 
     sa.create_annotation_classes_from_classes_json(
-        project, out_dir / "classes" / "classes.json"
+        project, project_path / "classes" / "classes.json"
     )
-    sa.upload_images_from_folder_to_project(project, out_dir)
-    sa.upload_annotations_from_folder_to_project(project, out_dir)
+    sa.upload_images_from_folder_to_project(project, project_path)
+    sa.upload_annotations_from_folder_to_project(project, project_path)
+
+
+def test_coco_vector_instance(tmpdir):
+    project_name = "coco2sa_vector_instance"
+
+    input_dir = Path(
+        "tests"
+    ) / "converter_test" / "COCO" / "input" / "toSuperAnnotate" / "instance_segmentation"
+    out_dir = Path(tmpdir) / project_name
+    sa.import_annotation(
+        input_dir, out_dir, "COCO", "instances_test", "Vector",
+        "instance_segmentation"
+    )
+
+    description = 'coco vector instance segmentation'
+    ptype = 'Vector'
+    upload_project(out_dir, project_name, description, ptype)
 
 
 def test_coco_vector_object(tmpdir):
+    project_name = "coco2sa_vector_object"
+
     input_dir = Path(
         "tests"
     ) / "converter_test" / "COCO" / "input" / "toSuperAnnotate" / "instance_segmentation"
-    out_dir = Path(tmpdir) / "object_vector_desktop"
+    out_dir = Path(tmpdir) / project_name
     sa.import_annotation(
         input_dir, out_dir, "COCO", "instances_test", "Vector",
-        "object_detection", "Desktop"
+        "object_detection"
     )
 
-
-def test_coco_vector_object_instance(tmpdir):
-    input_dir = Path(
-        "tests"
-    ) / "converter_test" / "COCO" / "input" / "toSuperAnnotate" / "instance_segmentation"
-    out_dir = Path(tmpdir) / "object_vector_instance_desktop"
-    sa.import_annotation(
-        input_dir, out_dir, "COCO", "instances_test", "Vector",
-        "instance_segmentation", "Desktop"
-    )
-
-
-def test_coco_pixel_instance_desktop(tmpdir):
-    input_dir = Path(
-        "tests"
-    ) / "converter_test" / "COCO" / "input" / "toSuperAnnotate" / "instance_segmentation"
-    out_dir = Path(tmpdir) / "instance_pixel_desktop"
-
-    with pytest.raises(sa.SABaseException) as e:
-        sa.import_annotation(
-            input_dir, out_dir, "COCO", "instances_test", "Pixel",
-            "instance_segmentation", "Desktop"
-        )
-    assert e.value.message == "Sorry, but Desktop Application doesn't support 'Pixel' projects."
-
-
-def test_coco_pixel_instance(tmpdir):
-    input_dir = Path(
-        "tests"
-    ) / "converter_test" / "COCO" / "input" / "toSuperAnnotate" / "instance_segmentation"
-    out_dir = Path(tmpdir) / "instance_pixel"
-    sa.import_annotation(
-        input_dir, out_dir, "COCO", "instances_test", "Pixel",
-        "instance_segmentation", "Web"
-    )
-
-    project_name = "coco2sa_pixel_instance"
-
-    projects = sa.search_projects(project_name, True)
-    if projects:
-        sa.delete_project(projects[0])
-    project = sa.create_project(project_name, "converter vector", "Pixel")
-
-    sa.create_annotation_classes_from_classes_json(
-        project, out_dir / "classes" / "classes.json"
-    )
-    sa.upload_images_from_folder_to_project(project, out_dir)
-    sa.upload_annotations_from_folder_to_project(project, out_dir)
+    description = 'coco vector object detection'
+    ptype = 'Vector'
+    upload_project(out_dir, project_name, description, ptype)
 
 
 def test_coco_vector_keypoint(tmpdir):
+    project_name = "coco2sa_keypoint"
+
     input_dir = Path(
         "tests"
     ) / "converter_test" / "COCO" / "input" / "toSuperAnnotate" / "keypoint_detection/"
-    out_dir = Path(tmpdir) / "vector_keypoint"
+    out_dir = Path(tmpdir) / project_name
     sa.import_annotation(
         input_dir, out_dir, "COCO", "person_keypoints_test", "Vector",
-        "keypoint_detection", "Web"
+        "keypoint_detection"
     )
 
-    project_name = "coco2sa_keypoint"
-
-    projects = sa.search_projects(project_name, True)
-    if projects:
-        sa.delete_project(projects[0])
-    project = sa.create_project(project_name, "converter vector", "Vector")
-
-    sa.create_annotation_classes_from_classes_json(
-        project, out_dir / "classes" / "classes.json"
-    )
-    sa.upload_images_from_folder_to_project(project, out_dir)
-    sa.upload_annotations_from_folder_to_project(project, out_dir)
+    description = 'coco vector keypoint detection'
+    ptype = 'Vector'
+    upload_project(out_dir, project_name, description, ptype)
 
 
-def test_coco_desktop_object(tmpdir):
+def test_coco_panoptic(tmpdir):
+    project_name = "coco2sa_panoptic"
+
     input_dir = Path(
         "tests"
-    ) / "converter_test" / "COCO" / "input" / "fromSuperAnnotate" / "cats_dogs_desktop"
-    out_dir = Path(tmpdir) / "coco_from_desktop"
-    sa.export_annotation(
-        input_dir, out_dir, "COCO", "object_test", "Vector", "object_detection",
-        "Desktop"
+    ) / "converter_test" / "COCO" / "input" / "toSuperAnnotate" / "panoptic_segmentation"
+    out_dir = Path(tmpdir) / project_name
+    sa.import_annotation(
+        input_dir, out_dir, "COCO", "panoptic_test", "Pixel",
+        "panoptic_segmentation"
     )
+
+    description = 'coco pixel panoptic segmentation'
+    ptype = 'Pixel'
+    upload_project(out_dir, project_name, description, ptype)
+
+
+def test_coco_pixel_instance(tmpdir):
+    project_name = "coco2sa_pixel_instance"
+
+    input_dir = Path(
+        "tests"
+    ) / "converter_test" / "COCO" / "input" / "toSuperAnnotate" / "instance_segmentation"
+    out_dir = Path(tmpdir) / project_name
+    sa.import_annotation(
+        input_dir, out_dir, "COCO", "instances_test", "Pixel",
+        "instance_segmentation"
+    )
+
+    description = 'coco pixel instance segmentation'
+    ptype = 'Pixel'
+    upload_project(out_dir, project_name, description, ptype)
 
 
 def test_sa_to_coco_to_sa(tmpdir):
@@ -131,22 +110,15 @@ def test_sa_to_coco_to_sa(tmpdir):
 
     sa.export_annotation(
         input_dir, output1, "COCO", "object_test", "Pixel",
-        "instance_segmentation", "Web"
+        "instance_segmentation"
     )
 
     sa.import_annotation(
         output1, output2, "COCO", "object_test", "Pixel",
-        "instance_segmentation", "Web", 'image_set'
+        "instance_segmentation", 'image_set'
     )
 
     project_name = 'coco_pipeline_new'
-    project = sa.search_projects(project_name, return_metadata=True)
-    for pr in project:
-        sa.delete_project(pr)
-
-    project = sa.create_project(project_name, 'test_instane', 'Pixel')
-    sa.upload_images_from_folder_to_project(project, output2)
-    sa.create_annotation_classes_from_classes_json(
-        project, output2 / "classes" / "classes.json"
-    )
-    sa.upload_annotations_from_folder_to_project(project, output2)
+    description = 'test_instane'
+    ptype = 'Pixel'
+    upload_project(output2, project_name, description, ptype)

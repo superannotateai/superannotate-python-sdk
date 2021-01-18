@@ -1,11 +1,7 @@
 from pathlib import Path
 import json
 
-import pytest
-
 import superannotate as sa
-
-sa.init(Path.home() / ".superannotate" / "config.json")
 
 PROJECT_NAME = "Example Project test annotation add"
 PROJECT_NAME_NOINIT = "Example Project test annotation add no init"
@@ -85,7 +81,9 @@ def test_add_bbox(tmpdir):
                                                image_name)["annotation_json"]
     json.dump(annotations_new, open(tmpdir / "new_anns.json", "w"))
 
-    assert len(annotations_new) == len(annotations) + 8
+    assert len(annotations_new["instances"]) + len(
+        annotations_new["comments"]
+    ) == len(annotations["instances"]) + len(annotations["comments"]) + 8
 
     export = sa.prepare_export(project, include_fuse=True)
     sa.download_export(project, export, tmpdir)
@@ -95,8 +93,8 @@ def test_add_bbox(tmpdir):
     num = len(df[df["imageName"] == image_name]["instanceId"].dropna().unique())
 
     assert num == len(
-        annotations
-    ) - 6 + 7  # -6 for 3 comments and 3 invalid annotations, className or attributes
+        annotations["instances"]
+    ) - 3 + 7  # -6 for 3 comments and 3 invalid annotations, className or attributes
 
 
 def test_add_bbox_noinit(tmpdir):
@@ -130,10 +128,19 @@ def test_add_bbox_noinit(tmpdir):
     annotations_new = sa.get_image_annotations(project,
                                                image_name)["annotation_json"]
 
-    assert len(annotations_new) == 2
+    assert len(annotations_new["instances"]) == 2
     export = sa.prepare_export(project, include_fuse=True)
     sa.download_export(project, export, tmpdir)
-    assert len(list(Path(tmpdir).rglob("*.*"))) == 4
+
+    non_empty_annotations = 0
+    json_files = tmpdir.glob("*.json")
+    for json_file in json_files:
+        json_ann = json.load(open(json_file))
+        if "instances" in json_ann and len(json_ann["instances"]) > 0:
+            non_empty_annotations += 1
+            assert len(json_ann["instances"]) == 2
+
+    assert non_empty_annotations == 1
 
 
 def test_add_bbox_json(tmpdir):
@@ -169,4 +176,6 @@ def test_add_bbox_json(tmpdir):
     )
     annotations_new = json.load(open(dest))
 
-    assert len(annotations_new) == len(annotations) + 8
+    assert len(annotations_new["instances"]
+              ) == len(annotations["instances"]) + 7
+    assert len(annotations_new["comments"]) == len(annotations["comments"]) + 1

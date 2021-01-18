@@ -1,124 +1,25 @@
+'''
+'''
 import json
 import logging
-import os
 import shutil
-import sys
-import time
 from pathlib import Path
 
 import cv2
 import numpy as np
-from PIL import Image
-from tqdm import tqdm
 
-from ..common import blue_color_generator, hex_to_rgb
+from ..common import (blue_color_generator, hex_to_rgb, write_to_json)
 from ..exceptions import SABaseException
 
 logger = logging.getLogger("superannotate-python-sdk")
-
-
-def _merge_jsons(input_dir, output_dir):
-    cat_id_map = {}
-    classes_json = json.load(open(input_dir / "classes" / "classes.json"))
-
-    new_classes = []
-    for idx, class_ in enumerate(classes_json):
-        cat_id_map[class_["id"]] = idx + 2
-        class_["id"] = idx + 2
-        new_classes.append(class_)
-
-    files = input_dir.glob("*.json")
-    merged_json = {}
-    files_path = []
-    (output_dir / 'images' / 'thumb').mkdir(parents=True)
-    for f in tqdm(files, "Merging files"):
-        json_data = json.load(open(f))
-        meta = {
-            "type": "meta",
-            "name": "lastAction",
-            "timestamp": int(round(time.time() * 1000))
-        }
-        for js_data in json_data:
-            if "classId" in js_data:
-                js_data["classId"] = cat_id_map[js_data["classId"]]
-        json_data.append(meta)
-        file_name = str(f.name).replace("___objects.json", "")
-        merged_json[file_name] = json_data
-
-        files_path.append(
-            {
-                'srcPath':
-                    str(output_dir.resolve() / file_name),
-                'name':
-                    file_name,
-                'imagePath':
-                    str(output_dir.resolve() / file_name),
-                'thumbPath':
-                    str(
-                        output_dir.resolve() / 'images' / 'thumb' /
-                        ('thmb_' + file_name + '.jpg')
-                    ),
-                'valid':
-                    True
-            }
-        )
-        copy_file(input_dir / file_name, output_dir / 'images' / file_name)
-
-        img = Image.open(output_dir / 'images' / file_name)
-        img.thumbnail((168, 120), Image.ANTIALIAS)
-        img.save(
-            output_dir / 'images' / 'thumb' / ('thmb_' + file_name + '.jpg')
-        )
-
-    with open(output_dir / 'images' / 'images.sa', 'w') as fw:
-        fw.write(json.dumps(files_path))
-
-    with open(output_dir / 'config.json', 'w') as fw:
-        json.dump({"pathSeparator": os.sep, "os": sys.platform}, fw)
-
-    with open(output_dir / "annotations.json", "w") as final_json_file:
-        json.dump(merged_json, final_json_file, indent=2)
-
-    with open(output_dir / "classes.json", "w") as fw:
-        json.dump(classes_json, fw, indent=2)
-
-
-def _split_json(input_dir, output_dir):
-    output_dir.mkdir(parents=True)
-    json_data = json.load(open(input_dir / "annotations.json"))
-    for img, annotations in tqdm(json_data.items(), 'Splitting files'):
-        objects = []
-        for annot in annotations:
-            if 'type' in annot.keys() and annot['type'] != 'meta':
-                objects.append(annot)
-        copy_file(input_dir / 'images' / img, output_dir / img)
-        with open(output_dir / (img + "___objects.json"), "w") as fw:
-            json.dump(objects, fw, indent=2)
-
-    (output_dir / "classes").mkdir(parents=True)
-    copy_file(
-        input_dir / "classes.json", output_dir / "classes" / "classes.json"
-    )
 
 
 def copy_file(src_path, dst_path):
     shutil.copy(src_path, dst_path)
 
 
-def sa_convert_platform(input_dir, output_dir, input_platform):
-    if input_platform == "Web":
-        for file_name in os.listdir(input_dir):
-            if '___pixel.json' in file_name:
-                raise SABaseException(
-                    0, "Desktop platform doesn't support 'Pixel' projects"
-                )
-        _merge_jsons(input_dir, output_dir)
-    elif input_platform == 'Desktop':
-        _split_json(input_dir, output_dir)
-
-
-def from_pixel_to_vector(json_paths):
-    sa_jsons = {}
+def from_pixel_to_vector(json_paths, output_dir):
+    img_names = []
     for json_path in json_paths:
         file_name = str(json_path.name
                        ).replace('___pixel.json', '___objects.json')
@@ -127,13 +28,14 @@ def from_pixel_to_vector(json_paths):
         img = cv2.imread(mask_name)
         H, W, _ = img.shape
 
-        sa_loader = []
-        instances = json.load(open(json_path))
+        sa_json = json.load(open(json_path))
+        instances = sa_json['instances']
         idx = 0
+        sa_instances = []
         for instance in instances:
             if 'parts' not in instance.keys():
                 if 'type' in instance.keys() and instance['type'] == 'meta':
-                    sa_loader.append(instance)
+                    sa_instances.append(instance)
                 continue
 
             parts = instance['parts']
@@ -167,7 +69,7 @@ def from_pixel_to_vector(json_paths):
                     temp['groupId'] = group_id
                     temp['type'] = 'polygon'
                     temp['points'] = polygon
-                    sa_loader.append(temp.copy())
+                    sa_instances.append(temp.copy())
                     temp['type'] = 'bbox'
                     temp['points'] = {
                         'x1': min(polygon[::2]),
@@ -175,14 +77,16 @@ def from_pixel_to_vector(json_paths):
                         'y1': min(polygon[1::2]),
                         'y2': max(polygon[1::2])
                     }
-                    sa_loader.append(temp.copy())
+                    sa_instances.append(temp.copy())
 
-        sa_jsons[file_name] = {'json': sa_loader, 'mask': None}
-    return sa_jsons
+        sa_json['instances'] = sa_instances
+        write_to_json(output_dir / file_name, sa_json)
+        img_names.append(file_name.replace('___objects.json', ''))
+    return img_names
 
 
-def from_vector_to_pixel(json_paths):
-    sa_jsons = {}
+def from_vector_to_pixel(json_paths, output_dir):
+    img_names = []
     for json_path in json_paths:
         file_name = str(json_path.name
                        ).replace('___objects.json', '___pixel.json')
@@ -191,10 +95,11 @@ def from_vector_to_pixel(json_paths):
         img = cv2.imread(img_name)
         H, W, _ = img.shape
 
+        sa_json = json.load(open(json_path))
+        instances = sa_json['instances']
         mask = np.zeros((H, W, 4))
-        sa_loader = []
 
-        instances = json.load(open(json_path))
+        sa_instances = []
         blue_colors = blue_color_generator(len(instances))
         instances_group = {}
         for idx, instance in enumerate(instances):
@@ -204,7 +109,7 @@ def from_vector_to_pixel(json_paths):
                 else:
                     instances_group[instance['groupId']] = [instance]
             elif instance['type'] == 'meta':
-                sa_loader.append(instance)
+                sa_instances.append(instance)
 
         idx = 0
         for key, instances in instances_group.items():
@@ -226,7 +131,7 @@ def from_vector_to_pixel(json_paths):
                     del instance['pointLabels']
                     del instance['groupId']
                     instance['parts'] = [{'color': blue_colors[idx]}]
-                    sa_loader.append(instance.copy())
+                    sa_instances.append(instance.copy())
                     idx += 1
             else:
                 parts = []
@@ -249,47 +154,38 @@ def from_vector_to_pixel(json_paths):
                 del instance['pointLabels']
                 del instance['groupId']
                 instance['parts'] = parts
-                sa_loader.append(instance.copy())
+                sa_instances.append(instance.copy())
 
-        sa_jsons[file_name] = {'json': sa_loader, 'mask': mask}
+        mask_name = file_name.replace('___pixel.json', '___save.png')
+        cv2.imwrite(str(output_dir.joinpath(mask_name)), mask)
 
-    return sa_jsons
+        sa_json['instances'] = sa_instances
+        write_to_json(output_dir / file_name, sa_json)
+        img_names.append(file_name.replace('___pixel.json', ''))
+    return img_names
 
 
 def sa_convert_project_type(input_dir, output_dir):
-    json_generator = input_dir.glob('*.json')
-    json_paths = list(json_generator)
+    json_paths = list(input_dir.glob('*.json'))
 
-    extension = ''
+    output_dir.joinpath('classes').mkdir(parents=True)
+    copy_file(
+        input_dir.joinpath('classes', 'classes.json'),
+        output_dir.joinpath('classes', 'classes.json')
+    )
+
     if '___pixel.json' in json_paths[0].name:
-        sa_jsons = from_pixel_to_vector(json_paths)
-        extension = '___objects.json'
+        img_names = from_pixel_to_vector(json_paths, output_dir)
     elif '__objects.json' in json_paths[0].name:
-        sa_jsons = from_vector_to_pixel(json_paths)
-        extension = '___pixel.json'
+        img_names = from_vector_to_pixel(json_paths, output_dir)
     else:
         raise SABaseException(
             0,
             "'input_dir' should contain JSON files with '[IMAGE_NAME]___objects.json'  or '[IMAGE_NAME]___pixel.json' names structure."
         )
 
-    output_dir.joinpath('classes').mkdir(parents=True)
-    shutil.copy(
-        input_dir.joinpath('classes', 'classes.json'),
-        output_dir.joinpath('classes', 'classes.json')
-    )
-
-    for key, value in sa_jsons.items():
-        with open(output_dir.joinpath(key), 'w') as fw:
-            json.dump(value['json'], fw, indent=2)
-        file_name = key.replace(extension, '')
-        shutil.copy(
-            input_dir.joinpath(file_name), output_dir.joinpath(file_name)
-        )
-
-        if value['mask'] is not None:
-            mask_name = key.replace(extension, '___save.png')
-            cv2.imwrite(str(output_dir.joinpath(mask_name)), value['mask'])
+    for img_name in img_names:
+        copy_file(input_dir.joinpath(img_name), output_dir.joinpath(img_name))
 
 
 def split_coco(

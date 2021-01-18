@@ -238,11 +238,11 @@ to convert them to other annotation formats:
 .. code-block:: python
 
     sa.export_annotation("<input_folder>", "<output_folder>", "<dataset_format>", "<dataset_name>",
-    "<project_type>", "<task>", "<platform>")
+    "<project_type>", "<task>")
 
 .. note::
     
-  Right now we support only SuperAnnotate annotation format to COCO annotation format conversion, but you can convert from "COCO", "Pascal VOC" or "LabelBox" annotation formats to SuperAnnotate annotation format.
+  Right now we support only SuperAnnotate annotation format to COCO annotation format conversion, but you can convert from "COCO", "Pascal VOC", "DataLoop", "LabelBox", "SageMaker", "Supervisely", "VGG", "VoTT" or "YOLO" annotation formats to SuperAnnotate annotation format.
 
 .. _git_repo: https://github.com/superannotateai/superannotate-python-sdk
 
@@ -252,81 +252,81 @@ You can find more information annotation format conversion :ref:`here <ref_conve
 
    import superannotate as sa
 
-    # From SA panoptic format to COCO panoptic format
+    # From SA format to COCO panoptic format
     sa.export_annotation(
        "tests/converter_test/COCO/input/fromSuperAnnotate/cats_dogs_panoptic_segm",
        "tests/converter_test/COCO/output/panoptic",
-       "COCO", "panoptic_test", "Pixel","panoptic_segmentation","Web"
+       "COCO", "panoptic_test", "Pixel","panoptic_segmentation"
     )
 
-    # From COCO keypoints detection format to SA keypoints detection desktop application format 
+    # From COCO keypoints detection format to SA annotation format
     sa.import_annotation(
        "tests/converter_test/COCO/input/toSuperAnnotate/keypoint_detection",
        "tests/converter_test/COCO/output/keypoints",
-       "COCO", "person_keypoints_test", "Vector", "keypoint_detection", "Desktop"
+       "COCO", "person_keypoints_test", "Vector", "keypoint_detection"
     )
 
-    # Pascal VOC annotation format to SA Web platform annotation format
+    # Pascal VOC annotation format to SA annotation format
     sa.import_annotation(
        "tests/converter_test/VOC/input/fromPascalVOCToSuperAnnotate/VOC2012",
        "tests/converter_test/VOC/output/instances",
-       "VOC", "instances_test", "Pixel", "instance_segmentation", "Web"
+       "VOC", "instances_test", "Pixel", "instance_segmentation"
     )
 
-    # YOLO annotation format to SA Web platform annotation format
+    # YOLO annotation format to SA annotation format
     sa.import_annotation(
       'tests/converter_test/YOLO/input/toSuperAnnotate',
       'tests/converter_test/YOLO/output',
-      'YOLO', '', 'Vector', 'object_detection', 'Web'
+      'YOLO', '', 'Vector', 'object_detection'
       )
 
-    # LabelBox annotation format to SA Desktop application annotation format
+    # LabelBox annotation format to SA annotation format
     sa.import_annotation(
        "tests/converter_test/LabelBox/input/toSuperAnnotate/",
        "tests/converter_test/LabelBox/output/objects/",
-       "LabelBox", "labelbox_example", "Vector", "object_detection", "Desktop"
+       "LabelBox", "labelbox_example", "Vector", "object_detection"
     )
 
-    # Supervisely annotation format to SA Web platform annotation format
+    # Supervisely annotation format to SA annotation format
     sa.import_annotation(
        "tests/converter_test/Supervisely/input/toSuperAnnotate",
        "tests/converter_test/Supervisely/output",
-       "Supervisely", "", "Vector", "vector_annotation", "Web"
+       "Supervisely", "", "Vector", "vector_annotation"
     )
 
-    # DataLoop annotation format to SA Web platform annotation format
+    # DataLoop annotation format to SA annotation format
     sa.import_annotation(
        "tests/converter_test/DataLoop/input/toSuperAnnotate",
        "tests/converter_test/DataLoop/output",
-       "DataLoop", "", "Vector", "vector_annotation", "Web"
+       "DataLoop", "", "Vector", "vector_annotation"
     )
 
-    # VGG annotation format to SA Web platform annotation format
+    # VGG annotation format to SA annotation format
     sa.import_annotation(
        "tests/converter_test/VGG/input/toSuperAnnotate",
        "tests/converter_test/VGG/output",
-       "VGG", "vgg_test", "Vector", "instance_segmentation", "Web"
+       "VGG", "vgg_test", "Vector", "instance_segmentation"
     )
 
-    # VoTT annotation format to SA Web platform annotation format
+    # VoTT annotation format to SA annotation format
     sa.import_annotation(
        "tests/converter_test/VoTT/input/toSuperAnnotate",
        "tests/converter_test/VoTT/output",
-       "VoTT", "", "Vector", "vector_annotation", "Web"
+       "VoTT", "", "Vector", "vector_annotation"
     )
 
-    # GoogleCloud annotation format to SA Web platform annotation format
+    # GoogleCloud annotation format to SA annotation format
     sa.import_annotation(
        "tests/converter_test/GoogleCloud/input/toSuperAnnotate",
        "tests/converter_test/GoogleCloud/output",
-       "GoogleCloud", "image_object_detection", "Vector", "object_detection", "Web"
+       "GoogleCloud", "image_object_detection", "Vector", "object_detection"
     )
 
-    # GoogleCloud annotation format to SA desktop application annotation format
+    # GoogleCloud annotation format to SA annotation format
     sa.import_annotation(
        "tests/converter_test/SageMaker/input/toSuperAnnotate",
        "tests/converter_test/SageMaker/output",
-       "SageMaker", "test-obj-detect", "Vector", "object_detection", "Desktop"
+       "SageMaker", "test-obj-detect", "Vector", "object_detection"
     )
 
 

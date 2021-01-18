@@ -3,30 +3,31 @@ develoer  : Vahagn Tumanyan
 maintainer: Vahagn Tumanyan
 email     : Vahagn@superannotate.com
 """
-from ..parameter_decorators import project_metadata, model_metadata
-from ..common import (
-    _AVAILABLE_SEGMENTATION_MODELS, process_api_response,
-    project_type_str_to_int, model_training_status_int_to_str
-)
-from .utils import reformat_metrics_json, make_plotly_specs, log_process
-from .defaults import DEFAULT_HYPERPARAMETERS
-from ..db.images import get_image_metadata
-from plotly.subplots import make_subplots
-from ..exceptions import SABaseException
-from .defaults import NON_PLOTABLE_KEYS
-from ..db.images import search_images
-import plotly.graph_objects as go
-import plotly.express as px
-from ..api import API
-import pandas as pd
-import logging
-import boto3
 import json
-import time
+import logging
 import os
+import time
+
+import boto3
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+
+from ..api import API
+from ..common import (
+    _AVAILABLE_SEGMENTATION_MODELS, model_training_status_int_to_str,
+    process_api_response, project_type_str_to_int
+)
+from ..db.images import get_image_metadata, search_images
+from ..exceptions import SABaseException
+from ..parameter_decorators import model_metadata, project_metadata
+from .defaults import DEFAULT_HYPERPARAMETERS, NON_PLOTABLE_KEYS
+from .utils import log_process, make_plotly_specs, reformat_metrics_json
 
 logger = logging.getLogger("superannotate-python-sdk")
 _api = API.get_instance()
+
 
 @project_metadata
 @model_metadata
@@ -49,7 +50,9 @@ def run_prediction(project, images_list, model):
         )
     project_id = project["id"]
 
-    images_metadata = get_image_metadata(project, image_names).sort(key = lambda x: x["name"])
+    images_metadata = get_image_metadata(project, image_names).sort(
+        key=lambda x: x["name"]
+    )
 
     if len(images_metadata) == 0:
         raise SABaseException(0, "No valid image names were provided")
@@ -57,7 +60,9 @@ def run_prediction(project, images_list, model):
     skipped_images_num = len(images_list) - len(images_metadata)
 
     if skipped_images_num > 0:
-        logger.warning(f"{skipped_images_num} images did not exist in the provided project and were skipped.")
+        logger.warning(
+            f"{skipped_images_num} images did not exist in the provided project and were skipped."
+        )
 
     image_name_set = set([x['name'] for x in images_metadata])
     image_id_list = [x['id'] for x in images_metadata]
@@ -78,9 +83,13 @@ def run_prediction(project, images_list, model):
 
     logger.info("Started smart prediction")
     total_image_count = len(image_name_set)
-    succeded_imgs, failed_imgs = log_process(project, image_name_set, total_image_count, 'prediction_status', "Smart Prediction", logger)
+    succeded_imgs, failed_imgs = log_process(
+        project, image_name_set, total_image_count, 'prediction_status',
+        "Smart Prediction", logger
+    )
 
     return succeded_imgs, failed_imgs
+
 
 @project_metadata
 def run_segmentation(project, images_list, model):
@@ -114,8 +123,9 @@ def run_segmentation(project, images_list, model):
         )
         raise SABaseException(0, "Model Does not exist")
 
-
-    images_metadata = get_image_metadata(project, image_names).sort(key = lambda x: x["name"])
+    images_metadata = get_image_metadata(project, image_names).sort(
+        key=lambda x: x["name"]
+    )
 
     if len(images_metadata) == 0:
         raise SABaseException(0, "No valid image names were provided")
@@ -123,7 +133,9 @@ def run_segmentation(project, images_list, model):
     skipped_images_num = len(images_list) - len(images_metadata)
 
     if skipped_images_num > 0:
-        logger.warning(f"{skipped_images_num} images did not exist in the provided project and were skipped.")
+        logger.warning(
+            f"{skipped_images_num} images did not exist in the provided project and were skipped."
+        )
 
     image_name_set = set([x['name'] for x in images_metadata])
     image_id_list = [x['id'] for x in images_metadata]
@@ -145,7 +157,10 @@ def run_segmentation(project, images_list, model):
 
     logger.info("Started smart segmentation")
 
-    succeded_imgs, failed_imgs = log_process(project, image_name_set, total_image_count, 'segmentation_status', 'Smart Segmentation', logger)
+    succeded_imgs, failed_imgs = log_process(
+        project, image_name_set, total_image_count, 'segmentation_status',
+        'Smart Segmentation', logger
+    )
 
     return (succeded_imgs, failed_imgs)
 
@@ -231,9 +246,7 @@ def run_training(
         logger.info("Started model training")
     else:
         logger.error("Could not start training")
-        raise SABaseException(
-            0, "Could not start training"
-        )
+        raise SABaseException(0, "Could not start training")
     new_model = response.json()
     new_model_id = new_model['id']
     if not log:
@@ -284,12 +297,12 @@ def run_training(
                     answer = input()
                     if answer in ['Y', 'y']:
                         params = {'team_id': _api.team_id}
-                        json_req = {'training_status' : 6}
+                        json_req = {'training_status': 6}
                         response = _api.send_request(
-                            req_type = 'PUT'
-                            path = f'ml_model/{new_model_id}',
-                            params = params,
-                            json_req = json_req
+                            req_type='PUT',
+                            path=f'ml_model/{new_model_id}',
+                            params=params,
+                            json_req=json_req
                         )
                         logger.info("Model was successfully saved")
                         pass
@@ -323,12 +336,13 @@ def stop_model_training(model):
         logger.ingo("Failed to stop model training please try again")
     return model
 
+
 def plot_model_metrics(metric_json_list):
     """plots the metrics generated by neural network using plotly
        :param metric_json_list: list of <model_name>.json files
        :type  metric_json_list: list of str
     """
-    def plot_df(df, plottable_cols, figure, start_index = 1):
+    def plot_df(df, plottable_cols, figure, start_index=1):
         for row, metric in enumerate(plottable_cols, start_index):
             for model_df in df:
                 name = model_df['model'].iloc[0]
@@ -378,16 +392,15 @@ def plot_model_metrics(metric_json_list):
         rows=num_rows,
         cols=1,
         specs=figure_specs,
-        subplot_titles = plottable_cols,
+        subplot_titles=plottable_cols,
     )
-    figure.update_layout(
-        height= 1000 * len(num_rows)
-    )
+    figure.update_layout(height=1000 * len(num_rows))
     models = [os.path.basename(x).split('.')[0] for x in metric_json_list]
 
-    plot_df(full_c_metrics, plottable_c_cols, figure )
-    plot_df(full_pe_metrics, plottable_pe_cols, figure, len(plottable_c_cols) )
+    plot_df(full_c_metrics, plottable_c_cols, figure)
+    plot_df(full_pe_metrics, plottable_pe_cols, figure, len(plottable_c_cols))
     figure.show()
+
 
 @model_metadata
 def download_model(model, output_dir):
@@ -454,6 +467,7 @@ def download_model(model, output_dir):
     logger.info("Downloaded model related files")
     return model
 
+
 @model_metadata
 def delete_model(model):
     '''This function deletes the provided model
@@ -467,9 +481,7 @@ def delete_model(model):
     )
     if response.ok:
         logger.info("Model successfully deleted")
-        raise SABaseException(
-            0, 'Failed to delete model'
-        )
+        raise SABaseException(0, 'Failed to delete model')
     else:
         logger.info("Failed to delete model, please try again")
     return model

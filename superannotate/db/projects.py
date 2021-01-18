@@ -249,7 +249,7 @@ def upload_video_to_project(
                 rot
             )
     except Exception as e:
-        logger.warning("Couldn't read video metadata. %s", e)
+        logger.warning("Couldn't read video metadata %s", e)
 
     video = cv2.VideoCapture(str(video_path), cv2.CAP_FFMPEG)
     if not video.isOpened():
@@ -257,28 +257,28 @@ def upload_video_to_project(
 
     total_num_of_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
     if total_num_of_frames < 0:
-        if target_fps is not None:
-            logger.warning(
-                "Number of frames indicated in the video is negative number. Disabling FPS change."
-            )
-            target_fps = None
-    else:
-        logger.info("Video frame count is %s.", total_num_of_frames)
+        total_num_of_frames = 0
+        flag = True
+        while flag:
+            flag, frame = video.read()
+            if flag:
+                total_num_of_frames += 1
+            else:
+                break
+        video = cv2.VideoCapture(str(video_path), cv2.CAP_FFMPEG)
+    logger.info("Video frame count is %s.", total_num_of_frames)
 
     if target_fps is not None:
-        video_fps = video.get(cv2.CAP_PROP_FPS)
+        video_fps = float(video.get(cv2.CAP_PROP_FPS))
         logger.info(
             "Video frame rate is %s. Target frame rate is %s.", video_fps,
             target_fps
         )
-        if target_fps > video_fps:
+        if target_fps >= video_fps:
             target_fps = None
         else:
             r = video_fps / target_fps
-            frames_count_to_drop = total_num_of_frames - (
-                total_num_of_frames / r
-            )
-            percent_to_drop = frames_count_to_drop / total_num_of_frames
+            percent_to_drop = 1.0 - 1.0 / r
             my_random = random.Random(122222)
 
     zero_fill_count = len(str(total_num_of_frames))
@@ -286,6 +286,7 @@ def upload_video_to_project(
 
     video_name = Path(video_path).stem
     frame_no = 1
+    logger.info("Extracting frames from video to %s.", tempdir.name)
     while True:
         success, frame = video.read()
         if not success:
@@ -537,11 +538,18 @@ def upload_images_from_folder_to_project(
 
 
 def upload_image_array_to_s3(
-    bucket, orig_image, lores_image, huge_image, thumbnail_image, key
+    bucket, size, orig_image, lores_image, huge_image, thumbnail_image, key
 ):
     bucket.put_object(Body=orig_image, Key=key)
     bucket.put_object(Body=lores_image, Key=key + '___lores.jpg')
-    bucket.put_object(Body=huge_image, Key=key + '___huge.jpg')
+    bucket.put_object(
+        Body=huge_image,
+        Key=key + '___huge.jpg',
+        Metadata={
+            'height': str(size[1]),
+            'width': str(size[0])
+        }
+    )
     bucket.put_object(Body=thumbnail_image, Key=key + '___thumb.jpg')
 
 
@@ -600,7 +608,9 @@ def get_image_array_to_upload(
     byte_io_huge.seek(0)
     byte_io_orig.seek(0)
 
-    return byte_io_orig, byte_io_lores, byte_io_huge, byte_io_thumbs
+    return (
+        width, height
+    ), byte_io_orig, byte_io_lores, byte_io_huge, byte_io_thumbs
 
 
 def __upload_images_to_aws_thread(
@@ -643,10 +653,10 @@ def __upload_images_to_aws_thread(
                     raise SAImageSizeTooLarge(file_size)
                 with open(path, "rb") as f:
                     file = io.BytesIO(f.read())
-            images = get_image_array_to_upload(
+            images_array = get_image_array_to_upload(
                 file, image_quality_in_editor, project["type"]
             )
-            upload_image_array_to_s3(bucket, *images, key)
+            upload_image_array_to_s3(bucket, *images_array, key)
         except Exception as e:
             logger.warning("Unable to upload image %s. %s", path, e)
             couldnt_upload[thread_id].append(path)
@@ -812,6 +822,7 @@ def upload_images_to_project(
 def upload_images_from_public_urls_to_project(
     project,
     img_urls,
+    img_names=None,
     annotation_status='NotStarted',
     image_quality_in_editor=None
 ):
@@ -822,6 +833,8 @@ def upload_images_from_public_urls_to_project(
     :type project: str or dict
     :param img_urls: list of str objects to upload
     :type img_urls: list
+    :param img_names: list of str names for each urls in img_url list
+    :type img_names: list
     :param annotation_status: value to set the annotation statuses of the uploaded images NotStarted InProgress QualityCheck Returned Completed Skipped
     :type annotation_status: str
     :param image_quality_in_editor: image quality be seen in SuperAnnotate web annotation editor.
@@ -831,13 +844,17 @@ def upload_images_from_public_urls_to_project(
     :return: uploaded images' urls, uploaded images' filenames, duplicate images' filenames and not-uploaded images' urls
     :rtype: tuple of list of strs
     """
+
+    if img_names is not None and len(img_names) != len(img_urls):
+        raise SABaseException(0, "Not all image URLs have corresponding names.")
+
     images_not_uploaded = []
     images_to_upload = []
     duplicate_images_filenames = []
     path_to_url = {}
     with tempfile.TemporaryDirectory() as save_dir_name:
         save_dir = Path(save_dir_name)
-        for img_url in img_urls:
+        for i, img_url in enumerate(img_urls):
             try:
                 response = requests.get(img_url)
                 response.raise_for_status()
@@ -847,12 +864,15 @@ def upload_images_from_public_urls_to_project(
                 )
                 images_not_uploaded.append(img_url)
             else:
-                if response.headers.get('Content-Disposition') is not None:
-                    img_path = save_dir / cgi.parse_header(
-                        response.headers['Content-Disposition']
-                    )[1]['filename']
+                if not img_names:
+                    if response.headers.get('Content-Disposition') is not None:
+                        img_path = save_dir / cgi.parse_header(
+                            response.headers['Content-Disposition']
+                        )[1]['filename']
+                    else:
+                        img_path = save_dir / basename(urlparse(img_url).path)
                 else:
-                    img_path = save_dir / basename(urlparse(img_url).path)
+                    img_path = save_dir / img_names[i]
 
                 if str(img_path) in path_to_url.keys():
                     duplicate_images_filenames.append(basename(img_path))
@@ -1283,6 +1303,11 @@ def _upload_annotations_from_folder_to_project(
     finish_event.set()
     tqdm_thread.join()
     logger.info("Number of annotations uploaded %s.", sum(num_uploaded))
+    if sum(num_uploaded) != len_annotations_paths:
+        logger.warning(
+            "%s annotations were not uploaded.",
+            len_annotations_paths - sum(num_uploaded)
+        )
 
     for ac_upl in actually_uploaded:
         return_result += [str(p) for p in ac_upl]
@@ -1512,36 +1537,38 @@ def _upload_preannotations_from_folder_to_project(
     annotation_classes_dict = get_annotation_classes_name_to_id(
         annotation_classes
     )
-    while True:
-        if sum(num_uploaded) == len_preannotations_paths:
-            break
-        response = _api.send_request(
-            req_type='GET',
-            path=f'/project/{project_id}/preannotation',
-            params=params
-        )
-        if not response.ok:
-            raise SABaseException(response.status_code, response.text)
-        aws_creds = response.json()
+    response = _api.send_request(
+        req_type='GET',
+        path=f'/project/{project_id}/preannotation',
+        params=params
+    )
+    if not response.ok:
+        raise SABaseException(response.status_code, response.text)
+    aws_creds = response.json()
 
-        threads = []
-        for thread_id in range(_NUM_THREADS):
-            t = threading.Thread(
-                target=__upload_preannotations_thread,
-                args=(
-                    aws_creds, project_type, preannotations_filenames,
-                    folder_path, annotation_classes_dict, thread_id, chunksize,
-                    num_uploaded, already_uploaded, from_s3_bucket
-                ),
-                daemon=True
-            )
-            threads.append(t)
-            t.start()
-        for t in threads:
-            t.join()
+    threads = []
+    for thread_id in range(_NUM_THREADS):
+        t = threading.Thread(
+            target=__upload_preannotations_thread,
+            args=(
+                aws_creds, project_type, preannotations_filenames, folder_path,
+                annotation_classes_dict, thread_id, chunksize, num_uploaded,
+                already_uploaded, from_s3_bucket
+            ),
+            daemon=True
+        )
+        threads.append(t)
+        t.start()
+    for t in threads:
+        t.join()
     finish_event.set()
     tqdm_thread.join()
     logger.info("Number of preannotations uploaded %s.", sum(num_uploaded))
+    if sum(num_uploaded) != len_preannotations_paths:
+        logger.warning(
+            "%s preannotations were not uploaded.",
+            len_preannotations_paths - sum(num_uploaded)
+        )
     return return_result + [str(p) for p in preannotations_paths]
 
 

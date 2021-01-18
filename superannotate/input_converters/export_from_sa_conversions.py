@@ -1,5 +1,5 @@
 """
-Module which will run converters and convert from
+Module which will convert from
 superannotate annotation format to other annotation formats
 """
 import copy
@@ -11,34 +11,11 @@ import shutil
 
 from pathlib import Path
 
-import tempfile
 import numpy as np
 
 from .converters.converters import Converter
 
 logger = logging.getLogger("superannotate-python-sdk")
-
-
-def _split_json(input_dir):
-    temp_path = Path(tempfile.mkdtemp()) / 'WebApp'
-    temp_path.mkdir()
-    json_data = json.load(open(input_dir / "annotations.json"))
-    images = json_data.keys()
-    for img in images:
-        annotations = json_data[img]
-        objects = []
-        for annot in annotations:
-            if annot["type"] != "meta":
-                objects.append(annot)
-        with open(temp_path / (img + "___objects.json"), "w") as fw:
-            json.dump(objects, fw, indent=2)
-        shutil.copy(input_dir / "images" / img, temp_path / img)
-    (temp_path / "classes").mkdir()
-    shutil.copy(
-        input_dir / "classes.json", temp_path / "classes" / "classes.json"
-    )
-
-    return temp_path
 
 
 def _load_files(path_to_imgs, task, ptype):
@@ -76,6 +53,8 @@ def _move_files(data_set, src):
         for tup in data_set:
             for i in tup:
                 shutil.copy(i, train_path / Path(i).name)
+    else:
+        logger.warning("Images doesn't exist")
 
 
 def _create_classes_mapper(imgs, classes_json):
@@ -93,9 +72,6 @@ def export_from_sa(args):
     :param args: All arguments that will be used during convertion.
     :type args: Namespace
     """
-    if args.platform == "Desktop":
-        args.input_dir = _split_json(args.input_dir)
-
     data_set = None
 
     (args.output_dir / "image_set").mkdir(parents=True, exist_ok=True)
@@ -122,8 +98,6 @@ def export_from_sa(args):
         converter.strategy.set_dataset_name(args.dataset_name)
         converter.convert_from_sa()
 
-    if args.platform == "Desktop":
-        shutil.rmtree(args.input_dir)
     image_set_failed = copy.deepcopy(converter.strategy.failed_conversion_cnt)
 
     logger.info('Conversion completed successfully')

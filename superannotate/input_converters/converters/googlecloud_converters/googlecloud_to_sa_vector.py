@@ -1,20 +1,14 @@
-import os
-import pandas as pd
-import numpy as np
+from pathlib import Path
+
 import cv2
+import pandas as pd
+
+from ..sa_json_helper import (_create_vector_instance, _create_sa_json)
+
+from ....common import write_to_json
 
 
-def _create_classes(classes):
-    classes_loader = []
-    for class_ in set(classes):
-        color = np.random.choice(range(256), size=3)
-        hexcolor = "#%02x%02x%02x" % tuple(color)
-        sa_classes = {'name': class_, 'color': hexcolor, 'attribute_groups': []}
-        classes_loader.append(sa_classes)
-    return classes_loader
-
-
-def googlecloud_object_detection_to_sa_vector(path):
+def googlecloud_to_sa_vector(path, output_dir):
     df = pd.read_csv(path, header=None)
     dir_name = path.parent
 
@@ -26,31 +20,26 @@ def googlecloud_object_detection_to_sa_vector(path):
         file_name = row[1].split('/')[-1]
         img = cv2.imread(str(dir_name / file_name))
         H, W, _ = img.shape
-        sa_file_name = os.path.basename(file_name) + '___objects.json'
-        xmin = row[3] * W
-        xmax = row[5] * W
-        ymin = row[4] * H
-        ymax = row[8] * H
+        sa_file_name = '%s___objects.json' % Path(file_name).name
 
-        sa_obj = {
-            'type': 'bbox',
-            'points': {
-                'x1': xmin,
-                'y1': ymin,
-                'x2': xmax,
-                'y2': ymax
-            },
-            'className': row[2],
-            'attributes': [],
-            'probability': 100,
-            'locked': False,
-            'visible': True,
-            'groupId': 0
-        }
+        points = (row[3] * W, row[4] * H, row[5] * W, row[8] * H)
+        sa_instances = _create_vector_instance('bbox', points, {}, [], row[2])
 
         if sa_file_name in sa_jsons.keys():
-            sa_jsons[sa_file_name].append(sa_obj)
+            sa_jsons[sa_file_name]['instances'].append(sa_instances)
         else:
-            sa_jsons[sa_file_name] = [sa_obj]
+            sa_metadata = {
+                'name': Path(file_name).name,
+                'width': W,
+                'height': H
+            }
+            sa_jsons[sa_file_name] = {
+                'metadata': sa_metadata,
+                'instances': [sa_instances]
+            }
 
-    return sa_jsons, _create_classes(classes)
+    for key, value in sa_jsons.items():
+        sa_json = _create_sa_json(value['instances'], value['metadata'])
+        write_to_json(output_dir / key, sa_json)
+
+    return classes

@@ -7,11 +7,7 @@ from pathlib import Path
 from ..exceptions import SABaseException
 from .export_from_sa_conversions import export_from_sa
 from .import_to_sa_conversions import import_to_sa
-from .sa_conversion import (
-    sa_convert_platform, sa_convert_project_type, split_coco
-)
-
-AVAILABLE_PLATFORMS = ["Desktop", "Web"]
+from .sa_conversion import (sa_convert_project_type, split_coco)
 
 ALLOWED_TASK_TYPES = [
     'panoptic_segmentation', 'instance_segmentation', 'keypoint_detection',
@@ -114,18 +110,6 @@ def _passes_sanity_checks(args):
             0, "Please enter valid task '%s'" % (ALLOWED_TASK_TYPES)
         )
 
-    if 'platform' in args:
-        if args.platform not in AVAILABLE_PLATFORMS:
-            raise SABaseException(
-                0, "Please enter valid platform: 'Desktop' or 'Web'"
-            )
-
-    if args.project_type == "Pixel" and args.platform == "Desktop":
-        raise SABaseException(
-            0,
-            "Sorry, but Desktop Application doesn't support 'Pixel' projects."
-        )
-
 
 def _passes_converter_sanity(args, direction):
     converter_values = (args.project_type, args.task)
@@ -153,7 +137,6 @@ def export_annotation(
     dataset_name,
     project_type="Vector",
     task="object_detection",
-    platform="Web",
 ):
     """Converts SuperAnnotate annotation formate to the other annotation formats. Currently available (project_type, task) combinations for converter
     presented below:
@@ -189,8 +172,6 @@ def export_annotation(
                  'instance_segmentation' 'Pixel' project_type converts instance masks and 'Vector' project_type generates bounding boxes and polygons from instance masks. Masks should be in the input folder if it is 'Pixel' project_type.
                  'object_detection' converts objects from/to available annotation format
     :type task: str
-    :param platform: SuperAnnotate has both 'Web' and 'Desktop' platforms. Choose from which one you are converting. (Default: "Web")
-    :type platform: str
 
     """
 
@@ -206,7 +187,6 @@ def export_annotation(
         dataset_name=dataset_name,
         project_type=project_type,
         task=task,
-        platform=platform,
     )
 
     _passes_sanity_checks(args)
@@ -222,7 +202,6 @@ def import_annotation(
     dataset_name='',
     project_type="Vector",
     task="object_detection",
-    platform="Web",
     images_root='',
     images_extensions=['jpg']
 ):
@@ -259,6 +238,7 @@ def import_annotation(
     Vector          object_detection
     Vector          instance_segmentation
     Vector          vector_annotation
+    Pixel           instance_segmentation
     ==============  ======================
 
     ==============  ======================
@@ -348,14 +328,10 @@ def import_annotation(
                  'instance_segmentation' 'Pixel' project_type converts instance masks and 'Vector' project_type generates bounding boxes and polygons from instance masks. Masks should be in the input folder if it is 'Pixel' project_type.
                  'object_detection' converts objects from/to available annotation format
                  'vector_annotation' can be used to convert all annotations (point, ellipse, circule, cuboid and etc) to SuperAnnotate vector project.
-    :param platform: SuperAnnotate has both 'Web' and 'Desktop' platforms. Choose to which platform you want convert. (Default: "Web")
-    :type platform: str
     :param images_root: Additonal path to images directory in input_dir
-    :type platform: str
-    :param images_root: Additonal path to images directory in input_dir
-    :type platform: str
+    :type images_root: str
     :param image_extensions: List of image files xtensions in the images_root folder
-    :type platform: list
+    :type image_extensions: list
 
     """
 
@@ -371,7 +347,6 @@ def import_annotation(
         dataset_name=dataset_name,
         project_type=project_type,
         task=task,
-        platform=platform,
         images_root=images_root,
         images_extensions=images_extensions
     )
@@ -380,38 +355,6 @@ def import_annotation(
     _passes_converter_sanity(args, 'import')
 
     import_to_sa(args)
-
-
-def convert_platform(input_dir, output_dir, input_platform):
-    """ Converts SuperAnnotate input file structure from one platform too another.
-
-    :param input_dir: Path to the dataset folder that you want to convert.
-    :type input_dir: str or PathLike
-    :param output_dir: Path to the folder where you want to have converted files.
-    :type output_dir: str or PathLike
-    :param input_platform: Original platform format type
-    :type input_platform: str
-
-    """
-    param_info = [
-        (input_dir, 'input_dir', (str, Path)),
-        (output_dir, 'output_dir', (str, Path)),
-        (input_platform, 'input_platform', str),
-    ]
-    for param in param_info:
-        _type_sanity(param[0], param[1], param[2])
-
-    if input_platform not in AVAILABLE_PLATFORMS:
-        raise SABaseException(
-            0, "Please enter valid platform: 'Desktop' or 'Web'"
-        )
-
-    if isinstance(input_dir, str):
-        input_dir = Path(input_dir)
-    if isinstance(output_dir, str):
-        output_dir = Path(output_dir)
-
-    sa_convert_platform(input_dir, output_dir, input_platform)
 
 
 def convert_project_type(input_dir, output_dir):

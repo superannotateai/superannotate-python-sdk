@@ -1,29 +1,18 @@
 import logging
-import os
+
+from pathlib import Path
 from glob import glob
 
 import cv2
-import numpy as np
+
+from ..sa_json_helper import (_create_vector_instance, _create_sa_json)
+
+from ....common import write_to_json
 
 logger = logging.getLogger("superannotate-python-sdk")
 
 
-def _create_classes(classes):
-    classes_loader = []
-    for id_, name in classes.items():
-        color = np.random.choice(range(256), size=3)
-        hexcolor = "#%02x%02x%02x" % tuple(color)
-        sa_classes = {
-            'id': id_ + 1,
-            'name': name,
-            'color': hexcolor,
-            'attribute_groups': []
-        }
-        classes_loader.append(sa_classes)
-    return classes_loader
-
-
-def yolo_object_detection_to_sa_vector(data_path):
+def yolo_object_detection_to_sa_vector(data_path, output_dir):
     classes = {}
     id_ = 0
     classes_file = open(data_path / 'classes.txt')
@@ -35,60 +24,51 @@ def yolo_object_detection_to_sa_vector(data_path):
 
     annotations = data_path.glob('*.txt')
 
-    sa_jsons = {}
     for annotation in annotations:
         base_name = annotation.name
         if base_name == 'classes.txt':
             continue
 
         file = open(annotation)
-        file_name = os.path.splitext(base_name)[0] + '.*'
-        files_list = glob(os.path.join(data_path, file_name))
+        file_name = '%s.*' % annotation.stem
+        files_list = glob(str(data_path / file_name))
         if len(files_list) == 1:
             logger.warning(
-                "'{}' image for annotation doesn't exist".format(annotation)
+                "'%s' image for annotation doesn't exist" % (annotation)
             )
             continue
-        elif len(files_list) > 2:
+        if len(files_list) > 2:
             logger.warning(
-                "'{}' multiple file for this annotation".format(annotation)
+                "'%s' multiple file for this annotation" % (annotation)
             )
             continue
+
+        if Path(files_list[0]).suffix == '.txt':
+            file_name = files_list[1]
         else:
-            if os.path.splitext(files_list[0])[1] == '.txt':
-                file_name = files_list[1]
-            else:
-                file_name = files_list[0]
+            file_name = files_list[0]
+
         img = cv2.imread(file_name)
         H, W, _ = img.shape
 
-        sa_loader = []
+        sa_instances = []
         for line in file:
             values = line.split()
             class_id = int(values[0])
-            x_center = float(values[1]) * W
-            y_center = float(values[2]) * H
-            width = float(values[3]) * W
-            height = float(values[4]) * H
-            bbox = {
-                'x1': x_center - width / 2,
-                'y1': y_center - height / 2,
-                'x2': x_center + width / 2,
-                'y2': y_center + height / 2
-            }
-            sa_obj = {
-                'type': 'bbox',
-                'points': bbox,
-                'className': classes[class_id],
-                'attributes': [],
-                'probability': 100,
-                'locked': False,
-                'visible': True,
-                'groupId': 0
-            }
-            sa_loader.append(sa_obj.copy())
+            points = (
+                float(values[1]) * W - float(values[3]) * W / 2,
+                float(values[2]) * H - float(values[4]) * H / 2,
+                float(values[1]) * W + float(values[3]) * W / 2,
+                float(values[2]) * H + float(values[4]) * H / 2
+            )
+            sa_obj = _create_vector_instance(
+                'bbox', points, {}, [], classes[class_id]
+            )
+            sa_instances.append(sa_obj.copy())
 
-        file_name = os.path.basename(file_name) + '___objects.json'
-        sa_jsons[file_name] = sa_loader
+        file_name = '%s___objects.json' % Path(file_name).name
+        sa_metadata = {'name': Path(file_name).name, 'width': W, 'height': H}
+        sa_json = _create_sa_json(sa_instances, sa_metadata)
+        write_to_json(output_dir / file_name, sa_json)
 
-    return sa_jsons, _create_classes(classes)
+    return classes

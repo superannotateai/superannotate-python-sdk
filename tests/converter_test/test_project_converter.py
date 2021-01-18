@@ -9,7 +9,7 @@ def compare_jsons(json_gen, input_dir):
         input_path = input_dir.joinpath(path.name)
         init_json = json.load(open(str(input_path)))
 
-        for init, final in zip(init_json, final_json):
+        for init, final in zip(init_json['instances'], final_json['instances']):
             for key in init.keys():
                 if key == 'parts':
                     continue

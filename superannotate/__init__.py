@@ -17,8 +17,23 @@ from .annotation_helpers import (
 )
 from .api import API as _API
 from .common import image_path_to_annotation_paths
-from .consensus_benchmark.benchmark import benchmark
-from .consensus_benchmark.consensus import consensus
+
+try:
+    from .consensus_benchmark.benchmark import benchmark
+    from .consensus_benchmark.consensus import consensus
+except:
+
+    def benchmark(*args, **kwargs):
+        raise RuntimeError(
+            "To use superannotate.benchmark or superannotate.consensus functions please install shapely package with # conda install shapely or # pip install shapely"
+        )
+
+    def consensus(*args, **kwargs):
+        raise RuntimeError(
+            "To use superannotate.benchmark or superannotate.consensus functions please install shapely package with # conda install shapely or # pip install shapely"
+        )
+
+
 from .dataframe_filtering import (
     filter_annotation_instances, filter_images_by_comments,
     filter_images_by_tags
@@ -74,15 +89,15 @@ from .exceptions import (
     SANonExistingProjectNameException
 )
 from .input_converters.conversion import (
-    coco_split_dataset, convert_platform, convert_project_type,
-    export_annotation, import_annotation
+    coco_split_dataset, convert_project_type, export_annotation,
+    import_annotation
 )
-
 from .ml.ml_funcs import (
-    run_prediction, run_segmentation, run_training, stop_model_training,
-    plot_model_metrics, download_model, delete_model
+    delete_model, download_model, plot_model_metrics, run_prediction,
+    run_segmentation, run_training, stop_model_training
 )
 from .ml.ml_models import search_models
+from .old_to_new_format_convertor import update_json_format
 from .version import __version__
 
 formatter = logging.Formatter(fmt='SA-PYTHON-SDK - %(levelname)s - %(message)s')

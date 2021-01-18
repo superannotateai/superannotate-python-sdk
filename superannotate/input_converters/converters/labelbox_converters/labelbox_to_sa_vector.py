@@ -1,282 +1,69 @@
-def _create_classes_json(classes):
-    sa_classes_loader = []
-    for key, value in classes.items():
-        sa_classes = {
-            'name': key,
-            'color': value['color'],
-            'attribute_groups': []
-        }
-        attribute_groups = []
-        for attr_group_key, attr_group in value['attribute_groups'].items():
-            attr_loader = {
-                'name': attr_group_key,
-                'is_multiselect': attr_group['is_multiselect'],
-                'attributes': []
-            }
-            for attr in attr_group['attributes']:
-                attr_loader['attributes'].append({'name': attr})
-            if attr_loader:
-                attribute_groups.append(attr_loader)
-        sa_classes['attribute_groups'] = attribute_groups
+from .labelbox_helper import (_create_classes_id_map, _create_attributes_list)
+from ..sa_json_helper import (_create_vector_instance, _create_sa_json)
 
-        sa_classes_loader.append(sa_classes)
-
-    return sa_classes_loader
+from ....common import write_to_json
 
 
-def _create_classes_id_map(json_data):
-    classes = {}
-    for d in json_data:
-        if 'objects' not in d['Label'].keys():
-            continue
-
-        instances = d["Label"]["objects"]
-        for instance in instances:
-            class_name = instance["value"]
-            if class_name not in classes.keys():
-                color = instance["color"]
-                classes[class_name] = {"color": color, 'attribute_groups': {}}
-
-            if 'classifications' in instance.keys():
-                classifications = instance['classifications']
-                for classification in classifications:
-                    if classification['value'] not in classes[class_name][
-                        'attribute_groups']:
-                        if 'answer' in classification.keys():
-                            if isinstance(classification['answer'], str):
-                                continue
-
-                            classes[class_name]['attribute_groups'][
-                                classification['value']] = {
-                                    'is_multiselect': 0,
-                                    'attributes': []
-                                }
-                            classes[class_name]['attribute_groups'][
-                                classification['value']]['attributes'].append(
-                                    classification['answer']['value']
-                                )
-
-                        elif 'answers' in classification.keys():
-                            classes[class_name]['attribute_groups'][
-                                classification['value']] = {
-                                    'is_multiselect': 1,
-                                    'attributes': []
-                                }
-                            for attr in classification['answers']:
-                                classes[class_name]['attribute_groups'][
-                                    classification['value']
-                                ]['attributes'].append(attr['value'])
-
-                    else:
-                        if 'answer' in classification.keys():
-                            classes[class_name]['attribute_groups'][
-                                classification['value']]['attributes'].append(
-                                    classification['answer']['value']
-                                )
-                        elif 'answers' in classification.keys():
-                            for attr in classification['answers']:
-                                classes[class_name]['attribute_groups'][
-                                    classification['value']
-                                ]['attributes'].append(attr['value'])
-    return classes
-
-
-def labelbox_object_detection_to_sa_vector(json_data):
+def labelbox_to_sa(json_data, output_dir, task):
     classes = _create_classes_id_map(json_data)
-    sa_jsons = {}
-    for d in json_data:
-        if 'objects' not in d['Label'].keys():
-            file_name = d['External ID'] + '___objects.json'
-            sa_jsons[file_name] = []
+    if task == 'object_detection':
+        instance_types = ['bbox']
+    elif task == 'instance_segmentation':
+        instance_types = ['polygon']
+    elif task == 'vector_annotation':
+        instance_types = ['bbox', 'polygon', 'line', 'point']
+
+    for data in json_data:
+        if 'objects' not in data['Label'].keys():
+            file_name = data['External ID'] + '___objects.json'
+            write_to_json(output_dir / file_name, [])
             continue
 
-        instances = d["Label"]["objects"]
-        sa_loader = []
+        instances = data["Label"]["objects"]
+        sa_instances = []
+
         for instance in instances:
             class_name = instance["value"]
             attributes = []
             if 'classifications' in instance.keys():
-                classifications = instance['classifications']
-                for classification in classifications:
-                    group_name = classification['value']
-                    if 'answer' in classification.keys(
-                    ) and isinstance(classification['answer'], dict):
-                        attribute_name = classification['answer']['value']
-                        attr_dict = {
-                            'name': attribute_name,
-                            'groupName': group_name
-                        }
-                        attributes.append(attr_dict)
-                    elif 'answers' in classification.keys():
-                        for attr in classification['answers']:
-                            attribute_name = attr['value']
-                            attr_dict = {
-                                'name': attribute_name,
-                                'groupName': group_name
-                            }
-                            attributes.append(attr_dict)
-            sa_obj = {
-                'className': class_name,
-                'attributes': attributes,
-                'probability': 100,
-                'locked': False,
-                'visible': True,
-                'groupId': 0,
-            }
+                attributes = _create_attributes_list(
+                    instance['classifications']
+                )
 
-            if 'bbox' in instance.keys():
-                x1 = instance['bbox']['left']
-                x2 = instance['bbox']['left'] + instance['bbox']['width']
-                y1 = instance['bbox']['top']
-                y2 = instance['bbox']['top'] + instance['bbox']['height']
-                sa_obj['points'] = {'x1': x1, 'x2': x2, 'y1': y1, 'y2': y2}
-                sa_obj['type'] = 'bbox'
-                sa_loader.append(sa_obj)
+            lb_type = list(set(instance_types) & set(instance.keys()))
+            if len(lb_type) != 1:
+                continue
 
-        file_name = d['External ID'] + '___objects.json'
-        sa_jsons[file_name] = sa_loader
-
-    sa_classes = _create_classes_json(classes)
-    return sa_jsons, sa_classes, None
-
-
-def labelbox_instance_segmentation_to_sa_vector(json_data):
-    classes = _create_classes_id_map(json_data)
-    sa_jsons = {}
-    for d in json_data:
-        if 'objects' not in d['Label'].keys():
-            file_name = d['External ID'] + '___objects.json'
-            sa_jsons[file_name] = []
-            continue
-
-        instances = d["Label"]["objects"]
-        sa_loader = []
-        for instance in instances:
-            class_name = instance["value"]
-            attributes = []
-            if 'classifications' in instance.keys():
-                classifications = instance['classifications']
-                for classification in classifications:
-                    group_name = classification['value']
-                    if 'answer' in classification.keys(
-                    ) and isinstance(classification['answer'], dict):
-                        attribute_name = classification['answer']['value']
-                        attr_dict = {
-                            'name': attribute_name,
-                            'groupName': group_name
-                        }
-                        attributes.append(attr_dict)
-                    elif 'answers' in classification.keys():
-                        for attr in classification['answers']:
-                            attribute_name = attr['value']
-                            attr_dict = {
-                                'name': attribute_name,
-                                'groupName': group_name
-                            }
-                            attributes.append(attr_dict)
-
-            sa_obj = {
-                'className': class_name,
-                'attributes': attributes,
-                'probability': 100,
-                'locked': False,
-                'visible': True,
-                'groupId': 0,
-            }
-
-            if 'polygon' in instance.keys():
-                sa_obj['type'] = 'polygon'
+            if lb_type[0] == 'bbox':
+                points = (
+                    instance['bbox']['left'], instance['bbox']['top'],
+                    instance['bbox']['left'] + instance['bbox']['width'],
+                    instance['bbox']['top'] + instance['bbox']['height']
+                )
+                instance_type = 'bbox'
+            elif lb_type[0] == 'polygon':
                 points = []
                 for point in instance['polygon']:
                     points.append(point['x'])
                     points.append(point['y'])
-                sa_obj['points'] = points
-                sa_loader.append(sa_obj)
-
-        file_name = d['External ID'] + '___objects.json'
-        sa_jsons[file_name] = sa_loader
-
-    sa_classes = _create_classes_json(classes)
-    return sa_jsons, sa_classes, None
-
-
-def labelbox_to_sa(json_data):
-    classes = _create_classes_id_map(json_data)
-    sa_jsons = {}
-    for d in json_data:
-        if 'objects' not in d['Label'].keys():
-            file_name = d['External ID'] + '___objects.json'
-            sa_jsons[file_name] = []
-            continue
-
-        instances = d["Label"]["objects"]
-        sa_loader = []
-        for instance in instances:
-            class_name = instance["value"]
-            attributes = []
-            if 'classifications' in instance.keys():
-                classifications = instance['classifications']
-                for classification in classifications:
-                    group_name = classification['value']
-                    if 'answer' in classification.keys(
-                    ) and isinstance(classification['answer'], dict):
-                        attribute_name = classification['answer']['value']
-                        attr_dict = {
-                            'name': attribute_name,
-                            'groupName': group_name
-                        }
-                        attributes.append(attr_dict)
-                    elif 'answers' in classification.keys():
-                        for attr in classification['answers']:
-                            attribute_name = attr['value']
-                            attr_dict = {
-                                'name': attribute_name,
-                                'groupName': group_name
-                            }
-                            attributes.append(attr_dict)
-
-            sa_obj = {
-                'className': class_name,
-                'attributes': attributes,
-                'probability': 100,
-                'locked': False,
-                'visible': True,
-                'groupId': 0,
-            }
-            if 'polygon' in instance.keys():
-                sa_obj['type'] = 'polygon'
-                points = []
-                for point in instance['polygon']:
-                    points.append(point['x'])
-                    points.append(point['y'])
-                sa_obj['points'] = points
-                sa_loader.append(sa_obj)
-            elif 'bbox' in instance.keys():
-                x1 = instance['bbox']['left']
-                x2 = instance['bbox']['left'] + instance['bbox']['width']
-                y1 = instance['bbox']['top']
-                y2 = instance['bbox']['top'] + instance['bbox']['height']
-                sa_obj['points'] = {'x1': x1, 'x2': x2, 'y1': y1, 'y2': y2}
-                sa_obj['type'] = 'bbox'
-                sa_loader.append(sa_obj)
-            elif 'line' in instance.keys():
-                sa_obj['type'] = 'polyline'
+                instance_type = 'polygon'
+            elif lb_type[0] == 'line':
                 points = []
                 for point in instance['line']:
                     points.append(point['x'])
                     points.append(point['y'])
-                sa_obj['points'] = points
-                sa_loader.append(sa_obj)
-            elif 'point' in instance.keys():
-                sa_obj['points'] = {
-                    'x': instance['point']['x'],
-                    'y': instance['point']['y']
-                }
-                sa_obj['type'] = 'point'
-                sa_loader.append(sa_obj)
+                instance_type = 'polyline'
+            elif lb_type[0] == 'point':
+                points = (instance['point']['x'], instance['point']['y'])
+                instance_type = 'point'
 
-        file_name = d['External ID'] + '___objects.json'
-        sa_jsons[file_name] = sa_loader
+            sa_obj = _create_vector_instance(
+                instance_type, points, {}, attributes, class_name
+            )
+            sa_instances.append(sa_obj)
 
-    sa_classes = _create_classes_json(classes)
-    return sa_jsons, sa_classes, None
+        file_name = '%s___objects.json' % data['External ID']
+        sa_metadata = {'name': data['External ID']}
+        sa_json = _create_sa_json(sa_instances, sa_metadata)
+        write_to_json(output_dir / file_name, sa_json)
+    return classes

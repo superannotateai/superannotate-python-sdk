@@ -1,7 +1,6 @@
 from pathlib import Path
-import superannotate as sa
 
-sa.init(Path.home() / ".superannotate" / "config.json")
+import superannotate as sa
 
 test_root = Path().resolve() / 'tests'
 

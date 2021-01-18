@@ -1,7 +1,7 @@
 import json
 import logging
 
-from ....pycocotools_sa import mask as cocomask
+from .coco_api import _area, _merge, _polytoMask, _toBbox
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -80,12 +80,13 @@ def sa_vector_to_coco_instance_segmentation(
         for cat_id, polygons in polygon_group.items():
             anno_id = next(id_generator)
             try:
-                masks = cocomask.frPyObjects(
+                masks = _polytoMask(
                     polygons, image_info['height'], image_info['width']
                 )
-                mask = cocomask.merge(masks)
-                area = int(cocomask.area(mask))
-                bbox = cocomask.toBbox(mask).tolist()
+                mask = _merge(masks)
+                area = int(_area(mask))
+                bbox = list(_toBbox(mask))
+
                 annotation = make_annotation(
                     cat_id, image_info['id'], bbox, polygons, area, anno_id
                 )
@@ -156,7 +157,7 @@ def sa_vector_to_coco_keypoint_detection(
     images = []
 
     for path_ in json_paths:
-        json_data = __load_one_json(path_)
+        json_data = __load_one_json(path_)['instances']
 
         for instance in json_data:
             if instance['type'] == 'template' and 'templateId' not in instance:

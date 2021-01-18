@@ -1,11 +1,14 @@
 [BASIC]
-good-names=df,f,e,i,j,k
+good-names=df,f,e,i,j,k,im,pt,pr
 
 bad-functions=
   apply,
   exit,
   input,
   quit
+
+[TYPECHECK]
+generated-members=cv2.*
 
 [ELIF]
 max-nested-blocks=5

@@ -270,6 +270,11 @@ def dump_output(output_dir, platform, classes, files_dict):
         save_desktop_format(output_dir, classes, files_dict)
 
 
+def write_to_json(output_path, json_data):
+    with open(output_path, 'w') as fw:
+        json.dump(json_data, fw, indent=2)
+
+
 MAX_IMAGE_SIZE = 100 * 1024 * 1024  # 100 MB limit
 MAX_IMAGE_RESOLUTION = {
     "Vector": 100_000_000,

@@ -1,24 +1,30 @@
-import json
+'''
+'''
+import numpy as np
+from ..baseStrategy import baseStrategy
 
-from .yolo_converter import YOLOConverter
-from .yolo_to_sa_vector import yolo_object_detection_to_sa_vector
-
-from ....common import dump_output
+from ....common import write_to_json
 
 
-class YoloObjectDetectionStrategy(YOLOConverter):
-    name = "ObjectDetection converter"
-
+class YoloStrategy(baseStrategy):
     def __init__(self, args):
         super().__init__(args)
-        self.__setup_conversion_algorithm()
-
-    def __setup_conversion_algorithm(self):
-        if self.direction == "from":
-            if self.project_type == "Vector":
-                if self.task == "object_detection":
-                    self.converion_algorithm = yolo_object_detection_to_sa_vector
 
     def to_sa_format(self):
-        sa_jsons, sa_classes = self.converion_algorithm(self.export_root)
-        dump_output(self.output_dir, self.platform, sa_classes, sa_jsons)
+        classes = self.conversion_algorithm(self.export_root, self.output_dir)
+        sa_classes = self._create_classes(classes)
+        (self.output_dir / 'classes').mkdir(exist_ok=True)
+        write_to_json(self.output_dir / 'classes' / 'classes.json', sa_classes)
+
+    def _create_classes(self, classes):
+        classes_loader = []
+        for _, name in classes.items():
+            color = np.random.choice(range(256), size=3)
+            hexcolor = "#%02x%02x%02x" % tuple(color)
+            sa_classes = {
+                'name': name,
+                'color': hexcolor,
+                'attribute_groups': []
+            }
+            classes_loader.append(sa_classes)
+        return classes_loader

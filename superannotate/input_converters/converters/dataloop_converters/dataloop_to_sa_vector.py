@@ -1,298 +1,105 @@
 import json
-import numpy as np
 
 from pathlib import Path
 
+from .dataloop_helper import (_update_classes_dict, _create_attributes_list)
 
-def _create_classes(classes):
-    sa_classes_loader = []
-    for key, value in classes.items():
-        color = np.random.choice(range(256), size=3)
-        hexcolor = "#%02x%02x%02x" % tuple(color)
-        sa_classes = {'name': key, 'color': hexcolor, 'attribute_groups': []}
-        attribute_groups = []
-        for attr_group_key, attr_group in value['attribute_group'].items():
-            attr_loader = {
-                'name': attr_group_key,
-                'is_multiselect': attr_group['is_multiselect'],
-                'attributes': []
-            }
-            for attr in set(attr_group['attributes']):
-                attr_loader['attributes'].append({'name': attr})
-            if attr_loader:
-                attribute_groups.append(attr_loader)
+from ..sa_json_helper import (
+    _create_vector_instance, _create_comment, _create_sa_json
+)
 
-        sa_classes['attribute_groups'] = attribute_groups
-
-        sa_classes_loader.append(sa_classes)
-    return sa_classes_loader
+from ....common import write_to_json
 
 
-def dataloop_object_detection_to_sa_vector(input_dir):
+def dataloop_to_sa(input_dir, task, output_dir):
     classes = {}
-    sa_jsons = {}
     json_data = Path(input_dir).glob('*.json')
-    sa_classes_labels = ['point', 'box', 'ellipse', 'segment', 'binary']
+    if task == 'object_detection':
+        instance_types = ['box']
+    elif task == 'instance_segmentation':
+        instance_types = ['segment']
+    elif task == 'vector_annotation':
+        instance_types = ['point', 'box', 'ellipse', 'segment']
+
+    tags_type = 'class'
+    comment_type = 'note'
+
     for json_file in json_data:
-        sa_loader = []
         dl_data = json.load(open(json_file))
 
-        for ann in dl_data['annotations']:
-            if ann['type'] in sa_classes_labels:
-                if ann['label'] not in classes.keys():
-                    classes[ann['label']] = {'attribute_group': {}}
-                    classes[ann['label']
-                           ]['attribute_group']['converted_attributes'] = {}
-                    classes[ann['label']]['attribute_group'][
-                        'converted_attributes']['is_multiselect'] = 1
-                    classes[ann['label']
-                           ]['attribute_group']['converted_attributes'][
-                               'attributes'] = ann['attributes']
-                else:
-                    classes[ann['label']
-                           ]['attribute_group']['converted_attributes'][
-                               'attributes'] += ann['attributes']
+        sa_metadata = {}
+        if 'itemMetadata' in dl_data and 'system' in dl_data['itemMetadata']:
+            temp = dl_data['itemMetadata']['system']
+            sa_metadata['name'] = temp['originalname']
+            sa_metadata['width'] = temp['width']
+            sa_metadata['height'] = temp['height']
 
-            attributes = []
-            for attribute in ann['attributes']:
-                attr = {'name': attribute, 'groupName': 'converted_attributes'}
-                attributes.append(attr)
-
-            if ann['type'] == 'box':
-                sa_bbox = {
-                    'type': 'bbox',
-                    'points':
-                        {
-                            'x1': ann['coordinates'][0]['x'],
-                            'y1': ann['coordinates'][0]['y'],
-                            'x2': ann['coordinates'][1]['x'],
-                            'y2': ann['coordinates'][1]['y']
-                        },
-                    'className': ann['label'],
-                    'attributes': attributes,
-                    'probability': 100,
-                    'locked': False,
-                    'visible': True,
-                    'groupId': 0
-                }
-                sa_loader.append(sa_bbox)
-            elif ann['type'] == 'note':
-                sa_comment = {
-                    'type': 'comment',
-                    'x': ann['coordinates']['box'][0]['x'],
-                    'y': ann['coordinates']['box'][0]['y'],
-                    'comments': []
-                }
-                for note in ann['coordinates']['note']['messages']:
-                    sa_comment['comments'].append(
-                        {
-                            'text': note['body'],
-                            'id': note['creator']
-                        }
-                    )
-                sa_loader.append(sa_comment)
-            elif ann['type'] == 'class':
-                sa_tags = {'type': 'tag', 'name': ann['label']}
-                sa_loader.append(sa_tags)
-
-        file_name = dl_data['filename'][1:] + '___objects.json'
-        sa_jsons[file_name] = sa_loader
-
-    classes = _create_classes(classes)
-    return sa_jsons, classes
-
-
-def dataloop_instance_segmentation_to_sa_vector(input_dir):
-    classes = {}
-    sa_jsons = {}
-    json_data = Path(input_dir).glob('*.json')
-    sa_classes_labels = ['point', 'box', 'ellipse', 'segment', 'binary']
-    for json_file in json_data:
-        sa_loader = []
-        dl_data = json.load(open(json_file))
+        sa_instances = []
+        sa_tags = []
+        sa_comments = []
 
         for ann in dl_data['annotations']:
-            if ann['type'] in sa_classes_labels:
-                if ann['label'] not in classes.keys():
-                    classes[ann['label']] = {'attribute_group': {}}
-                    classes[ann['label']
-                           ]['attribute_group']['converted_attributes'] = {}
-                    classes[ann['label']]['attribute_group'][
-                        'converted_attributes']['is_multiselect'] = 1
-                    classes[ann['label']
-                           ]['attribute_group']['converted_attributes'][
-                               'attributes'] = ann['attributes']
-                else:
-                    classes[ann['label']
-                           ]['attribute_group']['converted_attributes'][
-                               'attributes'] += ann['attributes']
+            if ann['type'] in instance_types:
+                classes = _update_classes_dict(
+                    classes, ann['label'], ann['attributes']
+                )
 
-            attributes = []
-            for attribute in ann['attributes']:
-                attr = {'name': attribute, 'groupName': 'converted_attributes'}
-                attributes.append(attr)
+            attributes = _create_attributes_list(ann['attributes'])
 
-            if ann['type'] == 'segment' and len(ann['coordinates']) == 1:
-                sa_polygon = {
-                    'type': 'polygon',
-                    'points': [],
-                    'className': ann['label'],
-                    'attributes': attributes,
-                    'probability': 100,
-                    'locked': False,
-                    'visible': True,
-                    'groupId': 0,
-                }
-                for sub_list in ann['coordinates']:
-                    for sub_dict in sub_list:
-                        sa_polygon['points'].append(sub_dict['x'])
-                        sa_polygon['points'].append(sub_dict['y'])
-
-                sa_loader.append(sa_polygon)
-            elif ann['type'] == 'note':
-                sa_comment = {
-                    'type': 'comment',
-                    'x': ann['coordinates']['box'][0]['x'],
-                    'y': ann['coordinates']['box'][0]['y'],
-                    'comments': []
-                }
+            if ann['type'] in instance_types:
+                if ann['type'] == 'segment' and len(ann['coordinates']) == 1:
+                    points = []
+                    for sub_list in ann['coordinates']:
+                        for sub_dict in sub_list:
+                            points.append(sub_dict['x'])
+                            points.append(sub_dict['y'])
+                    instance_type = 'polygon'
+                elif ann['type'] == 'box':
+                    points = (
+                        ann['coordinates'][0]['x'], ann['coordinates'][0]['y'],
+                        ann['coordinates'][1]['x'], ann['coordinates'][1]['y']
+                    )
+                    instance_type = 'bbox'
+                elif ann['type'] == 'ellipse':
+                    points = (
+                        ann['coordinates']['center']['x'],
+                        ann['coordinates']['center']['y'],
+                        ann['coordinates']['rx'], ann['coordinates']['ry'],
+                        ann['coordinates']['angle']
+                    )
+                    instance_type = 'ellipse'
+                elif ann['type'] == 'point':
+                    points = (ann['coordinates']['x'], ann['coordinates']['y'])
+                    instance_type = 'point'
+                sa_obj = _create_vector_instance(
+                    instance_type, points, {}, attributes, ann['label']
+                )
+                sa_instances.append(sa_obj)
+            elif ann['type'] == comment_type:
+                points = (
+                    ann['coordinates']['box'][0]['x'],
+                    ann['coordinates']['box'][0]['y']
+                )
+                comments = []
                 for note in ann['coordinates']['note']['messages']:
-                    sa_comment['comments'].append(
+                    comments.append(
                         {
                             'text': note['body'],
-                            'id': note['creator']
+                            'email': note['creator']
                         }
                     )
-                sa_loader.append(sa_comment)
-            elif ann['type'] == 'class':
-                sa_tags = {'type': 'tag', 'name': ann['label']}
-                sa_loader.append(sa_tags)
+                    sa_comment = _create_comment(points, comments)
+                sa_comments.append(sa_comment)
+            elif ann['type'] == tags_type:
+                sa_tags.append(ann['label'])
 
-        file_name = dl_data['filename'][1:] + '___objects.json'
-        sa_jsons[file_name] = sa_loader
+        if 'name' in sa_metadata:
+            file_name = '%s___objects.json' % sa_metadata['name']
+        else:
+            file_name = '%s___objects.json' % dl_data['filename'][1:]
 
-    classes = _create_classes(classes)
-    return sa_jsons, classes
-
-
-def dataloop_to_sa(input_dir):
-    classes = {}
-    sa_jsons = {}
-    json_data = Path(input_dir).glob('*.json')
-    sa_classes_labels = ['point', 'box', 'ellipse', 'segment', 'binary']
-    for json_file in json_data:
-        sa_loader = []
-        dl_data = json.load(open(json_file))
-
-        for ann in dl_data['annotations']:
-            if ann['type'] in sa_classes_labels:
-                if ann['label'] not in classes.keys():
-                    classes[ann['label']] = {'attribute_group': {}}
-                    classes[ann['label']
-                           ]['attribute_group']['converted_attributes'] = {}
-                    classes[ann['label']]['attribute_group'][
-                        'converted_attributes']['is_multiselect'] = 1
-                    classes[ann['label']
-                           ]['attribute_group']['converted_attributes'][
-                               'attributes'] = ann['attributes']
-                else:
-                    classes[ann['label']
-                           ]['attribute_group']['converted_attributes'][
-                               'attributes'] += ann['attributes']
-
-            attributes = []
-            for attribute in ann['attributes']:
-                attr = {'name': attribute, 'groupName': 'converted_attributes'}
-                attributes.append(attr)
-
-            if ann['type'] == 'segment' and len(ann['coordinates']) == 1:
-                sa_polygon = {
-                    'type': 'polygon',
-                    'points': [],
-                    'className': ann['label'],
-                    'attributes': attributes,
-                    'probability': 100,
-                    'locked': False,
-                    'visible': True,
-                    'groupId': 0,
-                }
-                for sub_list in ann['coordinates']:
-                    for sub_dict in sub_list:
-                        sa_polygon['points'].append(sub_dict['x'])
-                        sa_polygon['points'].append(sub_dict['y'])
-                sa_loader.append(sa_polygon)
-            elif ann['type'] == 'box':
-                sa_bbox = {
-                    'type': 'bbox',
-                    'points':
-                        {
-                            'x1': ann['coordinates'][0]['x'],
-                            'y1': ann['coordinates'][0]['y'],
-                            'x2': ann['coordinates'][1]['x'],
-                            'y2': ann['coordinates'][1]['y']
-                        },
-                    'className': ann['label'],
-                    'attributes': attributes,
-                    'probability': 100,
-                    'locked': False,
-                    'visible': True,
-                    'groupId': 0
-                }
-                sa_loader.append(sa_bbox)
-            elif ann['type'] == 'ellipse':
-                sa_ellipse = {
-                    'type': 'ellipse',
-                    'className': ann['label'],
-                    'probability': 100,
-                    'cx': ann['coordinates']['center']['x'],
-                    'cy': ann['coordinates']['center']['y'],
-                    'rx': ann['coordinates']['rx'],
-                    'ry': ann['coordinates']['ry'],
-                    'angle': ann['coordinates']['angle'],
-                    'groupId': 0,
-                    'pointLabels': {},
-                    'attributes': attributes,
-                    'locked': False,
-                    'visible': True,
-                    'attributes': []
-                }
-                sa_loader.append(sa_ellipse)
-            elif ann['type'] == 'point':
-                sa_point = {
-                    'type': 'point',
-                    'className': ann['label'],
-                    'probability': 100,
-                    'x': ann['coordinates']['x'],
-                    'y': ann['coordinates']['y'],
-                    'groupId': 0,
-                    'pointLabels': {},
-                    'attributes': attributes,
-                    'locked': False,
-                    'visible': True,
-                    'attributes': []
-                }
-                sa_loader.append(sa_point)
-            elif ann['type'] == 'note':
-                sa_comment = {
-                    'type': 'comment',
-                    'x': ann['coordinates']['box'][0]['x'],
-                    'y': ann['coordinates']['box'][0]['y'],
-                    'comments': []
-                }
-                for note in ann['coordinates']['note']['messages']:
-                    sa_comment['comments'].append(
-                        {
-                            'text': note['body'],
-                            'id': note['creator']
-                        }
-                    )
-                sa_loader.append(sa_comment)
-            elif ann['type'] == 'class':
-                sa_tags = {'type': 'tag', 'name': ann['label']}
-                sa_loader.append(sa_tags)
-
-        file_name = dl_data['filename'][1:] + '___objects.json'
-        sa_jsons[file_name] = sa_loader
-
-    classes = _create_classes(classes)
-    return sa_jsons, classes
+        json_template = _create_sa_json(
+            sa_instances, sa_metadata, sa_tags, sa_comments
+        )
+        write_to_json(output_dir / file_name, json_template)
+    return classes

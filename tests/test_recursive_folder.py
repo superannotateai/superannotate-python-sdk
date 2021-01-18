@@ -1,9 +1,8 @@
+import json
 from pathlib import Path
 import time
 
 import superannotate as sa
-
-sa.init(Path.home() / ".superannotate" / "config.json")
 
 TEMP_PROJECT_NAME = "test_recursive"
 
@@ -40,7 +39,14 @@ def test_nonrecursive_annotations_folder(tmpdir):
     time.sleep(1)
     sa.download_export(project, export, tmpdir)
 
-    assert len(list(tmpdir.glob("*.json"))) == 1
+    non_empty_annotations = 0
+    json_files = tmpdir.glob("*.json")
+    for json_file in json_files:
+        json_ann = json.load(open(json_file))
+        if "instances" in json_ann and len(json_ann["instances"]) > 0:
+            non_empty_annotations += 1
+
+    assert non_empty_annotations == 1
 
 
 def test_recursive_annotations_folder(tmpdir):
@@ -223,7 +229,14 @@ def test_annotations_nonrecursive_s3_folder(tmpdir):
     time.sleep(1)
     sa.download_export(project, export, tmpdir)
 
-    assert len(list(tmpdir.glob("*.json"))) == 1
+    non_empty_annotations = 0
+    json_files = tmpdir.glob("*.json")
+    for json_file in json_files:
+        json_ann = json.load(open(json_file))
+        if "instances" in json_ann and len(json_ann["instances"]) > 0:
+            non_empty_annotations += 1
+
+    assert non_empty_annotations == 1
 
 
 def test_preannotations_recursive_s3_folder(tmpdir):

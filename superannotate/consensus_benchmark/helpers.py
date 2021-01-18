@@ -1,10 +1,8 @@
-from shapely.geometry import Polygon, box, Point
-import plotly.express as px
-from plotly.subplots import make_subplots
-import plotly.graph_objects as go
-import plotly.colors as col
 import logging
-import numpy as np
+
+import plotly.express as px
+from shapely.geometry import Point, Polygon, box
+
 logger = logging.getLogger("superannotate-python-sdk")
 
 
