@@ -13,11 +13,14 @@ def project_metadata(func):
     @wraps(func)
     def inner(*args, **kwargs):
         new_kwargs = sig.bind(*args, **kwargs)
+        include_complete_image_count = False
         new_kwargs = new_kwargs.arguments
+        if func.__name__ == 'run_training':
+            include_complete_image_count = True
 
         if isinstance(new_kwargs['project'], str):
             new_kwargs['project'] = get_project_metadata(
-                new_kwargs['project'], include_complete_image_count=True
+                new_kwargs['project'], include_complete_image_count
             )
 
         elif isinstance(new_kwargs['project'], list):
