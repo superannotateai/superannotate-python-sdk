@@ -52,7 +52,7 @@ def run_prediction(project, images_list, model):
 
     images_metadata = get_image_metadata(project, images_list)
 
-    images_metadata.sort(key= lambda x: x['name'])
+    images_metadata.sort(key=lambda x: x['name'])
 
     if len(images_metadata) == 0:
         raise SABaseException(0, "No valid image names were provided")

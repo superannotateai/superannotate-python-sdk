@@ -1,9 +1,10 @@
-from .db.project_api import get_project_metadata_bare as get_project_metadata
-from .common import project_type_int_to_str
-from .ml.ml_models import search_models
-from .exceptions import SABaseException
-from inspect import signature
 from functools import wraps
+from inspect import signature
+
+from .common import project_type_int_to_str
+from .db.project_api import get_project_metadata_bare
+from .exceptions import SABaseException
+from .ml.ml_models import search_models
 
 
 def project_metadata(func):
@@ -37,7 +38,7 @@ def project_metadata(func):
             current_chosen_type = types.pop()
             if current_chosen_type is str:
                 for idx, item in enumerate(new_kwargs['project']):
-                    new_kwargs['project'][idx] = get_project_metadata(
+                    new_kwargs['project'][idx] = get_project_metadata_bare(
                         item, include_complete_image_count=True
                     )
             elif current_chosen_type is not dict:
