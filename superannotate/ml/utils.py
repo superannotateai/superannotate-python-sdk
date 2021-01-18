@@ -56,7 +56,7 @@ def log_process(project, image_name_set, total_image_count,status_key, task, log
     succeded_imgs = []
     failed_imgs = []
     while image_name_set:
-        succeded_imgs_batch, failed_imgs_batch = set(get_images_prediction_segmentation_status(project, list(image_name_set), status_key))
+        succeded_imgs_batch, failed_imgs_batch = get_images_prediction_segmentation_status(project, list(image_name_set), status_key)
         complete_images = succeded_imgs_batch + failed_imgs_batch
         succeded_imgs += succeded_imgs_batch
         failed_imgs += failed_imgs_batch

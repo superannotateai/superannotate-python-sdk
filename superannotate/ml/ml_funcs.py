@@ -50,9 +50,9 @@ def run_prediction(project, images_list, model):
         )
     project_id = project["id"]
 
-    images_metadata = get_image_metadata(project, image_names).sort(
-        key=lambda x: x["name"]
-    )
+    images_metadata = get_image_metadata(project, images_list)
+
+    images_metadata.sort(key= lambda x: x['name'])
 
     if len(images_metadata) == 0:
         raise SABaseException(0, "No valid image names were provided")
@@ -70,7 +70,7 @@ def run_prediction(project, images_list, model):
     params = {
         "team_id": _api.team_id,
         "project_id": project_id,
-        "image_ids": images_id_list,
+        "image_ids": image_id_list,
         "ml_model_id": model["id"]
     }
 
