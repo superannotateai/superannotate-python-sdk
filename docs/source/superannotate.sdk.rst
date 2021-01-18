@@ -274,6 +274,7 @@ _____________________________________________________________
 .. autofunction:: superannotate.export_annotation
 .. autofunction:: superannotate.convert_project_type
 .. autofunction:: superannotate.coco_split_dataset
+.. autofunction:: superannotate.convert_json_version
 
 
 

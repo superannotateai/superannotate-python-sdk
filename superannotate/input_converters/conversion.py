@@ -7,7 +7,9 @@ from pathlib import Path
 from ..exceptions import SABaseException
 from .export_from_sa_conversions import export_from_sa
 from .import_to_sa_conversions import import_to_sa
-from .sa_conversion import (sa_convert_project_type, split_coco)
+from .sa_conversion import (
+    degrade_json, sa_convert_project_type, split_coco, upgrade_json
+)
 
 ALLOWED_TASK_TYPES = [
     'panoptic_segmentation', 'instance_segmentation', 'keypoint_detection',
@@ -154,9 +156,9 @@ def export_annotation(
     ==============  ======================
 
     :param input_dir: Path to the dataset folder that you want to convert.
-    :type input_dir: str
+    :type input_dir: Pathlike(str or Path)
     :param output_dir: Path to the folder, where you want to have converted dataset.
-    :type output_dir: str
+    :type output_dir: Pathlike(str or Path)
     :param dataset_format: One of the formats that are possible to convert. Available candidates are: ["COCO"]
     :type dataset_format: str
     :param dataset_name: Will be used to create json file in the output_dir.
@@ -309,9 +311,9 @@ def import_annotation(
     ==============  ======================
 
     :param input_dir: Path to the dataset folder that you want to convert.
-    :type input_dir: str
+    :type input_dir: Pathlike(str or Path)
     :param output_dir: Path to the folder, where you want to have converted dataset.
-    :type output_dir: str
+    :type output_dir: Pathlike(str or Path)
     :param dataset_format: Annotation format to convert SuperAnnotate annotation format. Available candidates are: ["COCO", "VOC", "LabelBox", "DataLoop",
                         "Supervisely", 'VGG', 'YOLO', 'SageMake', 'VoTT', 'GoogleCloud']
     :type dataset_format: str
@@ -361,9 +363,9 @@ def convert_project_type(input_dir, output_dir):
     """ Converts SuperAnnotate 'Vector' project type to 'Pixel' or reverse.
 
     :param input_dir: Path to the dataset folder that you want to convert.
-    :type input_dir: str or PathLike
+    :type input_dir: Pathlike(str or Path)
     :param output_dir: Path to the folder where you want to have converted files.
-    :type output_dir: str or PathLike
+    :type output_dir: Pathlike(str or Path)
 
     """
     param_info = [
@@ -387,11 +389,11 @@ def coco_split_dataset(
     """ Splits COCO dataset to few datsets.
 
     :param coco_json_path: Path to main COCO JSON dataset, which should be splitted.
-    :type coco_json_path: str or PathLike
+    :type coco_json_path: Pathlike(str or Path)
     :param image_dir: Path to all images in the original dataset.
-    :type coco_json_path: str or PathLike
+    :type coco_json_path: str or Pathlike
     :param coco_json_path: Path to the folder where you want to output splitted COCO JSON files.
-    :type coco_json_path: str or PathLike
+    :type coco_json_path: str or Pathlike
     :param dataset_list_name: List of dataset names.
     :type dataset_list_name: list
     :param ratio_list: List of ratios for each splitted dataset.
@@ -448,3 +450,40 @@ def _type_sanity(var, var_name, var_type):
                 var_name, var_type, type(var)
             )
         )
+
+
+def convert_json_version(input_dir, output_dir, version=2):
+    """
+    Converts SuperAnnotate JSON versions. Newest JSON version is 2.
+
+    :param input_dir: Path to the dataset folder that you want to convert.
+    :type input_dir: Pathlike(str or Path)
+    :param output_dir: Path to the folder, where you want to have converted dataset.
+    :type output_dir: Pathlike(str or Path)
+    :param version: Output version number. Currently is either 1 or 2. Default value is 2. It will upgrade version 1 to  version 2. Set 1 to degrade from version 2 to version 1.
+    :type version: int
+
+    :return: List of converted files
+    :rtype: list
+    """
+    param_info = [
+        (input_dir, 'input_dir', (str, Path)),
+        (output_dir, 'output_dir', (str, Path)), (version, 'version', int)
+    ]
+    for param in param_info:
+        _type_sanity(param[0], param[1], param[2])
+
+    if isinstance(input_dir, str):
+        input_dir = Path(input_dir)
+    if isinstance(output_dir, str):
+        output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    if version == 2:
+        converted_files = upgrade_json(input_dir, output_dir)
+    elif version == 1:
+        converted_files = degrade_json(input_dir, output_dir)
+    else:
+        raise SABaseException(0, "'version' is either 1 or 2.")
+
+    return converted_files

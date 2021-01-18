@@ -1,0 +1,83 @@
+{
+    "metadata": {
+        "name": "example.jpg",
+        "width": 2449,
+        "height": 1632,
+        "status": "Completed",
+        "pinned": true,
+        "is_Predicted": false,
+        "project_id": 12121,
+        "annotator_email": "annotator@superannotate.com",
+        "qa_email": "qa@superannotate.com",
+        "last_Action": {
+            "timestamp": "20201207T23:59Z",
+            "email": "davitbadalyan@gmail.com",
+            "role": "Admin"
+        }
+    },
+    "comments": [
+        {
+            "x": 343.4545,
+            "y": 12.121,
+            "correspondence": [
+                {
+                    "text": "Fix this",
+                    "email": "admin@superannotate.com",
+                    "timestamp": "2020-10-08T11:17:10.000Z",
+                    "role": "Admin"
+                },
+                {
+                    "text": "done",
+                    "email": "admin@superannotate.com",
+                    "timestamp": "2020-10-08T11:17:10.000Z",
+                    "role": "QA"
+                }
+            ],
+            "resolved": false
+        }
+    ],
+    "tags": [
+        "tagName1",
+        "tagName2",
+        "tagName3"
+    ],
+    "instances": [
+        {
+            "type": "bbox",
+            "classId": 59244,
+            "className": "Gable",
+            "probability": 100,
+            "points": {
+                "x1": 819.59,
+                "x2": 1493.91,
+                "y1": 756.37,
+                "y2": 1833.85
+            },
+            "groupId": 0,
+            "pointLabels": {},
+            "locked": false,
+            "visible": true,
+            "attributes": [
+                {
+                    "id": 94853,
+                    "groupId": 23650,
+                    "name": "Small",
+                    "groupName": "Size"
+                }
+            ],
+            "trackingId": null,
+            "error": null,
+            "createdBy": {
+                "email": "annotator@superannotate.com",
+                "role": "Annotator"
+            },
+            "createdAt": "20201207T23:59Z",
+            "creationType": "Manual",
+            "updatedBy": {
+                "email": "qa@superannotate.com",
+                "role": "QA"
+            },
+            "updatedAt": "20201207T23:59Z"
+        }
+    ]
+}
