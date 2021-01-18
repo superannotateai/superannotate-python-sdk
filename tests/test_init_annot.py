@@ -18,7 +18,7 @@ def test_meta_init(tmpdir):
     project = sa.create_project(name, description, project_type)
 
     sa.upload_images_from_folder_to_project(
-        project, from_folder, annotation_status="NotStarted"
+        project, from_folder, annotation_status="InProgress"
     )
 
     for image in from_folder.glob("*.jpg"):
@@ -27,3 +27,6 @@ def test_meta_init(tmpdir):
         print(annot)
         assert annot["metadata"]["width"] == size[1]
         assert annot["metadata"]["height"] == size[0]
+        assert len(annot["metadata"]) == 2
+
+    sa.download_export(project, sa.prepare_export(project), tmpdir)
