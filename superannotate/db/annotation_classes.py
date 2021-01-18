@@ -348,6 +348,14 @@ def fill_class_and_attribute_ids(annotation_json, annotation_classes_dict):
                 del attribute["groupId"]
 
 
+def check_annotation_json(annotation_json):
+    if "metadata" not in annotation_json or "width" not in annotation_json[
+        "metadata"] or "height" not in annotation_json["metadata"]:
+        return False
+    else:
+        return True
+
+
 def get_annotation_classes_id_to_name(annotation_classes):
     annotation_classes_dict = {}
     for annotation_class in annotation_classes:
