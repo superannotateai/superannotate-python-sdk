@@ -19,7 +19,7 @@ import superannotate
 # -- Project information -----------------------------------------------------
 
 project = 'SuperAnnotate Python SDK'
-copyright = '2020, SuperAnnotate AI'
+copyright = '2021, SuperAnnotate AI'
 author = 'Hovnatan Karapetyan, Vahagn Tumanyan, Armen Gyurjinyan, Shabin Dilanchian, Erik Harutyunyan, Arsine Mangasaryan'
 
 # The full version, including alpha/beta/rc tags
