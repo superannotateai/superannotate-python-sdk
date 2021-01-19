@@ -14,4 +14,5 @@ DEFAULT_HYPERPARAMETERS = {
 }
 
 NON_PLOTABLE_KEYS = ['eta_seconds', 'iteration', 'data_time', 'time', 'model']
+PLOTTABLE_METRICS = ['total_loss']
 DROP_KEYS = ['eta_seconds', 'data_time', 'time']

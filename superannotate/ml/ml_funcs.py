@@ -333,7 +333,7 @@ def stop_model_training(model):
     if response.ok:
         logger.info("Stopped model training")
     else:
-        logger.ingo("Failed to stop model training please try again")
+        logger.info("Failed to stop model training please try again")
     return model
 
 
@@ -356,14 +356,12 @@ def plot_model_metrics(metric_json_list):
 
         return figure
 
-    def get_plottable_cols(df, already_taken):
+    def get_plottable_cols(df):
         plottable_cols = []
         for sub_df in df:
             col_names = sub_df.columns.values.tolist()
-            for col_name in col_names:
-                if col_name not in plottable_cols and col_name not in NON_PLOTABLE_KEYS and col_name not in already_taken:
-                    plottable_cols.append(col_name)
-
+            plottable_cols += [col_name for col_name in col_names if col_name not in plottable_cols and col_name not in NON_PLOTABLE_KEYS]
+        print(plottable_cols)
         return plottable_cols
 
     if not isinstance(metric_json_list, list):
@@ -382,8 +380,8 @@ def plot_model_metrics(metric_json_list):
         full_pe_metrics.append(pe_metrics)
 
     num_rows = 0
-    plottable_c_cols = get_plottable_cols(full_c_metrics, [])
-    plottable_pe_cols = get_plottable_cols(full_pe_metrics, plottable_c_cols)
+    plottable_c_cols = get_plottable_cols(full_c_metrics)
+    plottable_pe_cols = get_plottable_cols(full_pe_metrics)
     num_rows = len(plottable_c_cols) + len(plottable_pe_cols)
     figure_specs = make_plotly_specs(num_rows)
     num_sublots_per_row = len(metric_json_list)
@@ -394,11 +392,11 @@ def plot_model_metrics(metric_json_list):
         specs=figure_specs,
         subplot_titles=plottable_cols,
     )
-    figure.update_layout(height=1000 * len(num_rows))
+    figure.update_layout(height=1000* num_rows)
     models = [os.path.basename(x).split('.')[0] for x in metric_json_list]
 
     plot_df(full_c_metrics, plottable_c_cols, figure)
-    plot_df(full_pe_metrics, plottable_pe_cols, figure, len(plottable_c_cols))
+    plot_df(full_pe_metrics, plottable_pe_cols, figure, len(plottable_c_cols) + 1)
     figure.show()
 
 

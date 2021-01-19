@@ -1,10 +1,15 @@
 from ..db.images import get_image_metadata
 from ..common import PredictionSegmentationStatuses
-from .defaults import DROP_KEYS
+from .defaults import PLOTTABLE_METRICS
 from ast import literal_eval
 import pandas as pd
 import time
 import os
+
+def metric_is_plottable(key):
+    if key in PLOTTABLE_METRICS or 'mIoU'in key or 'mAP' in key or key == 'iteration':
+        return True
+    return False
 
 def reformat_metrics_json(data, name):
     continuous_metrics = []
@@ -22,19 +27,23 @@ def reformat_metrics_json(data, name):
     continuous_metrics_df = pd.DataFrame.from_dict(continuous_metrics)
     per_evaluation_metrics_df = pd.DataFrame.from_dict(per_evaluation_metrics)
     continuous_metrics_df = drop_non_plotable_cols(
-        continuous_metrics_df, DROP_KEYS
+        continuous_metrics_df
     )
     per_evaluation_metrics_df = drop_non_plotable_cols(
-        per_evaluation_metrics_df, DROP_KEYS
+        per_evaluation_metrics_df
     )
     continuous_metrics_df['model'] = name
     per_evaluation_metrics_df['model'] = name
+    if 'total_loss' in per_evaluation_metrics_df:
+        per_evaluation_metrics_df = per_evaluation_metrics_df.drop(columns='total_loss')
+
+    per_evaluation_metrics_df = per_evaluation_metrics_df.dropna(axis = 'rows')
     return continuous_metrics_df, per_evaluation_metrics_df
 
 
-def drop_non_plotable_cols(df, non_plotable_cols):
+def drop_non_plotable_cols(df):
     for column in df:
-        if column not in non_plotable_cols:
+        if metric_is_plottable(column):
             continue
         df = df.drop(columns=column)
     return df
