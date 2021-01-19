@@ -6,11 +6,10 @@ PYTESTS=pytest
 COVERAGE=coverage
 
 tests: check_formatting docs
-	$(PYTESTS) -n auto
+	$(PYTESTS) -n auto tests
 
 stress-tests: SA_STRESS_TESTS=1
 stress-tests: tests
-	$(PYTESTS) -n auto
 
 clean:
 	rm -rf superannotate.egg-info

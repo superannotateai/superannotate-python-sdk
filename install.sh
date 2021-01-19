@@ -20,13 +20,13 @@ pip install -e .
 pip install pytest pytest-xdist
 
 # for coverage
-# pip install coverage pytest-cov
+pip install coverage pytest-cov
 
 # for linting
-# pip install pylint pylint-json2html pylint-pytest
+pip install pylint pylint-json2html pylint-pytest
 
 # for docs
-# pip install sphinx sphinx_rtd_theme
+pip install sphinx sphinx_rtd_theme
 
 # for on PyPI distribution
-# pip install twine
+pip install twine
