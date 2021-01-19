@@ -1,9 +1,17 @@
+import sys
+
 from setuptools import find_packages, setup
 
 with open('requirements.txt') as f:
     requirements = f.read()
-
 requirements = requirements.splitlines()
+
+if sys.platform == 'linux':
+    with open('requirements_extra_linux.txt') as f:
+        requirements_extra_linux = f.read()
+
+    requirements_extra_linux = requirements_extra_linux.splitlines()
+    requirements += requirements_extra_linux
 
 with open('README.md') as f:
     readme = f.read()

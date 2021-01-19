@@ -11,7 +11,7 @@ rm -rf venv_sa_conv
 python${PYTHON_VER} -m venv venv_sa_conv
 source venv_sa_conv/bin/activate
 
-pip install shapely
+# pip install shapely
 pip install -e .
 # pip install --pre superannotate
 # pip install superannotate
