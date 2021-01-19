@@ -1103,7 +1103,6 @@ def __upload_annotations_thread(
     annotation_classes_dict, thread_id, chunksize, missing_images,
     couldnt_upload, uploaded, from_s3_bucket
 ):
-    print("DEBUG")
     NUM_TO_SEND = 500
     len_anns = len(anns_filenames)
     start_index = thread_id * chunksize
@@ -1120,7 +1119,6 @@ def __upload_annotations_thread(
 
     for i in range(start_index, end_index, NUM_TO_SEND):
         data = {"project_id": project_id, "team_id": team_id, "names": []}
-        print("DEBUG", flush=True)
         for j in range(i, i + NUM_TO_SEND):
             if j >= end_index:
                 break

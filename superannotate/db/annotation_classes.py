@@ -350,7 +350,8 @@ def fill_class_and_attribute_ids(annotation_json, annotation_classes_dict):
 
 def check_annotation_json(annotation_json):
     if "metadata" not in annotation_json or "width" not in annotation_json[
-        "metadata"] or "height" not in annotation_json["metadata"]:
+        "metadata"] or "height" not in annotation_json[
+            "metadata"] or "name" not in annotation_json["metadata"]:
         return False
     else:
         return True
