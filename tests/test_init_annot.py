@@ -27,6 +27,7 @@ def test_meta_init(tmpdir):
         print(annot)
         assert annot["metadata"]["width"] == size[1]
         assert annot["metadata"]["height"] == size[0]
-        assert len(annot["metadata"]) == 2
+        assert annot["metadata"]["name"] == image.name
+        assert len(annot["metadata"]) == 3
 
     sa.download_export(project, sa.prepare_export(project), tmpdir)

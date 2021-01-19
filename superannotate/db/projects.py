@@ -538,11 +538,12 @@ def upload_images_from_folder_to_project(
     )
 
 
-def create_empty_annotation(size):
+def create_empty_annotation(size, image_name):
     return {
         "metadata": {
             'height': size[1],
-            'width': size[0]
+            'width': size[0],
+            'name': image_name
         },
         "instances": [],
         "comments": [],
@@ -567,7 +568,9 @@ def upload_image_array_to_s3(
     bucket.put_object(Body=thumbnail_image, Key=key + '___thumb.jpg')
     postfix_json = '___objects.json' if project_type == "Vector" else '___pixel.json'
     bucket.put_object(
-        Body=json.dumps(create_empty_annotation(size)), Key=key + postfix_json
+        Body=json.dumps(create_empty_annotation(size,
+                                                Path(key).name)),
+        Key=key + postfix_json
     )
 
 
