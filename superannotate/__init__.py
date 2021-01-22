@@ -87,7 +87,7 @@ from .exceptions import (
 )
 from .input_converters.conversion import (
     coco_split_dataset, convert_project_type, export_annotation,
-    import_annotation, convert_json_version, convert_platform
+    import_annotation, convert_json_version
 )
 
 from .old_to_new_format_convertor import update_json_format

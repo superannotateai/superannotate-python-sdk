@@ -296,16 +296,13 @@ def _update_json_format(old_json_path, project_type):
 
     new_json_data["metadata"] = dict.fromkeys(meta_keys)
 
-    #set image name
     suffix = "___objects.json" if project_type == "Vector" else "___pixel.json"
-    # image_name = os.path.basename(old_json_path).split(suffix)[0]
     image_name = str(old_json_path.name).split(suffix)[0]
     metadata = new_json_data["metadata"]
     metadata["name"] = image_name
 
     for item in old_json_data:
         object_type = item.get("type")
-        #add metadata
         if object_type == "meta":
             meta_name = item["name"]
             if meta_name == "imageAttributes":
@@ -317,10 +314,8 @@ def _update_json_format(old_json_path, project_type):
                 metadata["lastAction"] = dict.fromkeys(["email", "timestamp"])
                 metadata["lastAction"]["email"] = item.get("userId")
                 metadata["lastAction"]["timestamp"] = item.get("timestamp")
-        #add tags
         elif object_type == "tag":
             new_json_data["tags"].append(item.get("name"))
-        #add comments
         elif object_type == "comment":
             item.pop("type")
             item["correspondence"] = item["comments"]
@@ -329,7 +324,6 @@ def _update_json_format(old_json_path, project_type):
                 comment.pop("id")
             item.pop("comments")
             new_json_data["comments"].append(item)
-        #add instances
         else:
             new_json_data["instances"].append(item)
 
@@ -384,22 +378,3 @@ def _degrade_json_format(new_json_path):
         sa_loader.append(tag)
 
     return sa_loader
-
-
-def _toWeb(input_dir, output_dir):
-    json_files = list(input_dir.glob('*.json'))
-    for json_file in json_files:
-        file_name = '%s___objects' % json_file.name
-        json_data = json.load(open(json_file))
-        json_data['comments'] = []
-        write_to_json(output_dir / file_name, json_data)
-
-
-def _toDesktop(input_dir, output_dir):
-    json_files = list(input_dir.glob('*.json'))
-
-    for json_file in json_files:
-        file_name = str(json_file.name).replace('___objects', '')
-        json_data = json.load(open(json_file))
-        del json_data['comments']
-        write_to_json(output_dir / file_name, json_data)

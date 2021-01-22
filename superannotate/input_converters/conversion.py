@@ -8,8 +8,7 @@ from ..exceptions import SABaseException
 from .export_from_sa_conversions import export_from_sa
 from .import_to_sa_conversions import import_to_sa
 from .sa_conversion import (
-    degrade_json, sa_convert_project_type, split_coco, upgrade_json, _toDesktop,
-    _toWeb
+    degrade_json, sa_convert_project_type, split_coco, upgrade_json
 )
 
 ALLOWED_TASK_TYPES = [
@@ -488,39 +487,3 @@ def convert_json_version(input_dir, output_dir, version=2):
         raise SABaseException(0, "'version' is either 1 or 2.")
 
     return converted_files
-
-
-def convert_platform(input_dir, output_dir, platform_type):
-    """
-    Converts from Desktop App to Web or reverse'.
-
-    :param input_dir: Path to the dataset folder that you want to convert.
-    :type input_dir: Pathlike(str or Path)
-    :param output_dir: Path to the folder, where you want to have converted dataset.
-    :type output_dir: Pathlike(str or Path)
-    :param platform_type: Output platform 'Desktop' or 'Web'.
-    :type platform_type: str
-
-    :return: List of converted files
-    :rtype: list
-    """
-    param_info = [
-        (input_dir, 'input_dir', (str, Path)),
-        (output_dir, 'output_dir', (str, Path)),
-        (platform_type, 'platform_type', str)
-    ]
-    for param in param_info:
-        _type_sanity(param[0], param[1], param[2])
-
-    if isinstance(input_dir, str):
-        input_dir = Path(input_dir)
-    if isinstance(output_dir, str):
-        output_dir = Path(output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    if platform_type == 'Web':
-        _toWeb(input_dir, output_dir)
-    elif platform_type == 'Desktop':
-        _toDesktop(input_dir, output_dir)
-    else:
-        raise SABaseException(0, "'platform_type' is either 'Desktop' or 'Web'")
