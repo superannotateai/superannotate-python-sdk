@@ -1,4 +1,4 @@
-.PHONY: all clean tests stress-tests coverage test_coverage install lint docs dist check_formatting
+.PHONY: clean tests stress-tests test_coverage install lint docs dist check_formatting
 
 PYTHON=python3
 PYLINT=pylint
@@ -6,11 +6,10 @@ PYTESTS=pytest
 COVERAGE=coverage
 
 tests: check_formatting docs
-	$(PYTESTS) -n auto
+	$(PYTESTS) -n auto tests
 
 stress-tests: SA_STRESS_TESTS=1
 stress-tests: tests
-	$(PYTESTS) -n auto
 
 clean:
 	rm -rf superannotate.egg-info
@@ -18,15 +17,13 @@ clean:
 	rm -rf dist
 	rm -rf htmlcov
 
-coverage: test_coverage
-
 test_coverage: check_formatting
-	-$(PYTESTS) --cov=superannotate -n auto
+	-$(PYTESTS) --cov=superannotate -n auto tests
 	$(COVERAGE) html
 	@echo "\033[95m\n\nCoverage successful! View the output at file://htmlcov/index.html.\n\033[0m"
 
 install:
-	pip install .
+	pip install -e .
 
 lint: check_formatting
 	-$(PYLINT) --output-format=json superannotate/ | pylint-json2html -o pylint.html

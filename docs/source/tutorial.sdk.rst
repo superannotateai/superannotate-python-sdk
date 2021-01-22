@@ -20,15 +20,14 @@ SDK is available on PyPI:
 The package officially supports Python 3.6+ and was tested under Linux and
 Windows (`Anaconda <https://www.anaconda.com/products/individual#windows>`_) platforms.
 
-For Windows based Anaconda distribution 
-you might also need to install beforehand :py:obj:`shapely` package:
+For Windows and Mac OS based installations to use :py:obj:`benchmark` and :py:obj:`consensus`
+functions you might also need to install beforehand :py:obj:`shapely` package,
+which we found to work properly only under Anaconda distribution, with:
 
 .. code-block:: bash
 
    conda install shapely
 
-and `C++ build tools from Microsoft
-<https://go.microsoft.com/fwlink/?LinkId=691126>`_.
 
 ----------
 
