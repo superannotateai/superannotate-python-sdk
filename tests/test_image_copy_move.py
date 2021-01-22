@@ -1,7 +1,5 @@
 from pathlib import Path
 
-import pytest
-
 import superannotate as sa
 
 PROJECT_NAME_CPY = "test image copy 1"
