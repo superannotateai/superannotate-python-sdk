@@ -384,3 +384,22 @@ def _degrade_json_format(new_json_path):
         sa_loader.append(tag)
 
     return sa_loader
+
+
+def _toWeb(input_dir, output_dir):
+    json_files = list(input_dir.glob('*.json'))
+    for json_file in json_files:
+        file_name = '%s___objects' % json_file.name
+        json_data = json.load(open(json_file))
+        json_data['comments'] = []
+        write_to_json(output_dir / file_name, json_data)
+
+
+def _toDesktop(input_dir, output_dir):
+    json_files = list(input_dir.glob('*.json'))
+
+    for json_file in json_files:
+        file_name = str(json_file.name).replace('___objects', '')
+        json_data = json.load(open(json_file))
+        del json_data['comments']
+        write_to_json(output_dir / file_name, json_data)

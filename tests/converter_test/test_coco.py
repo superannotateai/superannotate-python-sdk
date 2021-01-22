@@ -1,21 +1,8 @@
 from pathlib import Path
 
-import pytest
-
 import superannotate as sa
 
-
-def upload_project(project_path, project_name, description, ptype):
-    projects = sa.search_projects(project_name, True)
-    if projects:
-        sa.delete_project(projects[0])
-    project = sa.create_project(project_name, description, ptype)
-
-    sa.create_annotation_classes_from_classes_json(
-        project, project_path / "classes" / "classes.json"
-    )
-    sa.upload_images_from_folder_to_project(project, project_path)
-    sa.upload_annotations_from_folder_to_project(project, project_path)
+from ..common import upload_project
 
 
 def test_coco_vector_instance(tmpdir):
