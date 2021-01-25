@@ -38,7 +38,7 @@ def test_annotation_download_upload(
     )
     sa.upload_annotations_from_folder_to_project(project, from_folder)
 
-    image = sa.search_images(project)[2]
+    image = sa.search_images(project)[0]
     paths = sa.download_image_annotations(project, image, tmpdir)
 
     input_annotation_paths_after = sa.image_path_to_annotation_paths(
@@ -64,8 +64,14 @@ def test_annotation_download_upload(
     json2 = json.load(open(anns_json_in_folder[0]))
     for i in json1["instances"]:
         i.pop("classId", None)
+        for j in i["attributes"]:
+            j.pop("groupId", None)
+            j.pop("id", None)
     for i in json2["instances"]:
         i.pop("classId", None)
+        for j in i["attributes"]:
+            j.pop("groupId", None)
+            j.pop("id", None)
     assert json1 == json2
     if project_type == "Pixel":
         assert filecmp.cmp(
