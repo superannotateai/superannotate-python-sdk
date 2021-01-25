@@ -297,23 +297,25 @@ def download_annotation_classes_json(project, folder):
 
 def fill_class_and_attribute_names(annotations_json, annotation_classes_dict):
     for r in annotations_json["instances"]:
-        if "classId" in r and r["classId"] in annotation_classes_dict:
-            r["className"] = annotation_classes_dict[r["classId"]]["name"]
-            if "attributes" in r:
-                for attribute in r["attributes"]:
-                    if "groupId" in attribute and "id" in attribute:
-                        if attribute["groupId"] in annotation_classes_dict[
-                            r["classId"]]["attribute_groups"]:
-                            attribute["groupName"] = annotation_classes_dict[
-                                r["classId"]]["attribute_groups"][
-                                    attribute["groupId"]]["name"]
-                            if attribute["id"] in annotation_classes_dict[
-                                r["classId"]]["attribute_groups"][
-                                    attribute["groupId"]]["attributes"]:
-                                attribute["name"] = annotation_classes_dict[
-                                    r["classId"]]["attribute_groups"][
-                                        attribute["groupId"]]["attributes"][
-                                            attribute["id"]]
+        if "classId" not in r or r["classId"] not in annotation_classes_dict:
+            continue
+        r["className"] = annotation_classes_dict[r["classId"]]["name"]
+        if "attributes" not in r:
+            continue
+        for attribute in r["attributes"]:
+            if "groupId" not in attribute or "id" not in attribute:
+                continue
+            if attribute["groupId"] not in annotation_classes_dict[
+                r["classId"]]["attribute_groups"]:
+                continue
+            attribute["groupName"] = annotation_classes_dict[
+                r["classId"]]["attribute_groups"][attribute["groupId"]]["name"]
+            if attribute["id"] not in annotation_classes_dict[r["classId"]][
+                "attribute_groups"][attribute["groupId"]]["attributes"]:
+                continue
+            attribute["name"] = annotation_classes_dict[
+                r["classId"]]["attribute_groups"][
+                    attribute["groupId"]]["attributes"][attribute["id"]]
 
 
 def fill_class_and_attribute_ids(annotation_json, annotation_classes_dict):
@@ -330,28 +332,27 @@ def fill_class_and_attribute_ids(annotation_json, annotation_classes_dict):
         class_id = annotation_classes_dict[annotation_class_name]["id"]
         ann["classId"] = class_id
         for attribute in ann["attributes"]:
-            if attribute["groupName"] in annotation_classes_dict[
+            if attribute["groupName"] not in annotation_classes_dict[
                 annotation_class_name]["attribute_groups"]:
-                attribute["groupId"] = annotation_classes_dict[
-                    annotation_class_name]["attribute_groups"][
-                        attribute["groupName"]]["id"]
-            else:
                 logger.warning(
                     "Couldn't find annotation group %s", attribute["groupName"]
                 )
                 continue
-            if attribute["name"] in annotation_classes_dict[
+            attribute["groupId"] = annotation_classes_dict[
+                annotation_class_name]["attribute_groups"][
+                    attribute["groupName"]]["id"]
+            if attribute["name"] not in annotation_classes_dict[
                 annotation_class_name]["attribute_groups"][
                     attribute["groupName"]]["attributes"]:
-                attribute["id"] = annotation_classes_dict[
-                    annotation_class_name]["attribute_groups"][
-                        attribute["groupName"]]["attributes"][attribute["name"]]
-            else:
                 logger.warning(
                     "Couldn't find annotation name %s in annotation group %s",
                     attribute["name"], attribute["groupName"]
                 )
                 del attribute["groupId"]
+                continue
+            attribute["id"] = annotation_classes_dict[annotation_class_name][
+                "attribute_groups"][attribute["groupName"]]["attributes"][
+                    attribute["name"]]
 
 
 def check_annotation_json(annotation_json):
