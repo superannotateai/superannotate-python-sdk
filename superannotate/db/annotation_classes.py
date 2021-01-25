@@ -301,7 +301,7 @@ def fill_class_and_attribute_names(annotations_json, annotation_classes_dict):
             r["className"] = annotation_classes_dict[r["classId"]]["name"]
             if "attributes" in r:
                 for attribute in r["attributes"]:
-                    if "groupId" in attribute and "id" in "attribute":
+                    if "groupId" in attribute and "id" in attribute:
                         attribute["groupName"] = annotation_classes_dict[
                             r["classId"]]["attribute_groups"][
                                 attribute["groupId"]]["name"]
