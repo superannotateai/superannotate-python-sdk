@@ -41,6 +41,7 @@ logger = logging.getLogger("superannotate-python-sdk")
 
 _api = API.get_instance()
 _NUM_THREADS = 10
+_TIME_TO_UPDATE_IN_TQDM = 1
 
 
 def create_project(project_name, project_description, project_type):
@@ -1196,7 +1197,8 @@ def __upload_annotations_thread(
             if not check_annotation_json(annotation_json):
                 couldnt_upload[thread_id].append(full_path)
                 logger.warning(
-                    "Annotation JSON %s missing width or height info", full_path
+                    "Annotation JSON %s missing width or height info. Skipping upload",
+                    full_path
                 )
                 continue
             fill_class_and_attribute_ids(
@@ -1431,7 +1433,8 @@ def __upload_preannotations_thread(
         if not check_annotation_json(annotation_json):
             couldnt_upload[thread_id].append(full_path)
             logger.warning(
-                "Annotation JSON %s missing width or height info", full_path
+                "Annotation JSON %s missing width or height info. Skipping upload",
+                full_path
             )
             continue
         fill_class_and_attribute_ids(annotation_json, annotation_classes_dict)
@@ -1460,7 +1463,7 @@ def __upload_preannotations_thread(
 def __tqdm_thread_upload(total_num, uploaded, couldnt_upload, finish_event):
     with tqdm(total=total_num) as pbar:
         while True:
-            finished = finish_event.wait(5)
+            finished = finish_event.wait(_TIME_TO_UPDATE_IN_TQDM)
             if not finished:
                 sum_all = 0
                 for i in couldnt_upload:
@@ -1478,7 +1481,7 @@ def __tqdm_thread_upload_annotations(
 ):
     with tqdm(total=total_num) as pbar:
         while True:
-            finished = finish_event.wait(5)
+            finished = finish_event.wait(_TIME_TO_UPDATE_IN_TQDM)
             if not finished:
                 sum_all = 0
                 for i in couldnt_upload:
@@ -1498,7 +1501,7 @@ def __tqdm_thread_upload_preannotations(
 ):
     with tqdm(total=total_num) as pbar:
         while True:
-            finished = finish_event.wait(5)
+            finished = finish_event.wait(_TIME_TO_UPDATE_IN_TQDM)
             if not finished:
                 sum_all = 0
                 for i in couldnt_upload:
