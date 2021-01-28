@@ -1164,7 +1164,8 @@ def __upload_annotations_thread(
             if not check_annotation_json(annotation_json):
                 couldnt_upload[thread_id].append(full_path)
                 logger.warning(
-                    "Annotation JSON %s missing width or height info. Skipping upload", full_path
+                    "Annotation JSON %s missing width or height info. Skipping upload",
+                    full_path
                 )
                 continue
             fill_class_and_attribute_ids(
@@ -1399,7 +1400,8 @@ def __upload_preannotations_thread(
         if not check_annotation_json(annotation_json):
             couldnt_upload[thread_id].append(full_path)
             logger.warning(
-                "Annotation JSON %s missing width or height info. Skipping upload", full_path
+                "Annotation JSON %s missing width or height info. Skipping upload",
+                full_path
             )
             continue
         fill_class_and_attribute_ids(annotation_json, annotation_classes_dict)
