@@ -1,5 +1,8 @@
+'''
+YOLO to SA conversion method
+'''
 import logging
-
+import threading
 from pathlib import Path
 from glob import glob
 
@@ -7,7 +10,7 @@ import cv2
 
 from ..sa_json_helper import (_create_vector_instance, _create_sa_json)
 
-from ....common import write_to_json
+from ....common import write_to_json, tqdm_converter
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -22,25 +25,37 @@ def yolo_object_detection_to_sa_vector(data_path, output_dir):
             classes[id_] = key
             id_ += 1
 
-    annotations = data_path.glob('*.txt')
+    annotations = [
+        annot
+        for annot in data_path.glob('*.txt') if annot.name != 'classes.txt'
+    ]
 
+    images_converted = []
+    images_not_converted = []
+    finish_event = threading.Event()
+    tqdm_thread = threading.Thread(
+        target=tqdm_converter,
+        args=(
+            len(annotations), images_converted, images_not_converted,
+            finish_event
+        ),
+        daemon=True
+    )
+    logger.info('Converting to SuperAnnotate JSON format')
+    tqdm_thread.start()
     for annotation in annotations:
-        base_name = annotation.name
-        if base_name == 'classes.txt':
-            continue
-
         file = open(annotation)
         file_name = '%s.*' % annotation.stem
         files_list = glob(str(data_path / file_name))
         if len(files_list) == 1:
+            images_not_converted.append(annotation.name)
             logger.warning(
-                "'%s' image for annotation doesn't exist" % (annotation)
+                "'%s' image for annotation doesn't exist", annotation
             )
             continue
         if len(files_list) > 2:
-            logger.warning(
-                "'%s' multiple file for this annotation" % (annotation)
-            )
+            images_not_converted.append(annotation.name)
+            logger.warning("'%s' multiple file for this annotation", annotation)
             continue
 
         if Path(files_list[0]).suffix == '.txt':
@@ -66,9 +81,12 @@ def yolo_object_detection_to_sa_vector(data_path, output_dir):
             )
             sa_instances.append(sa_obj.copy())
 
+        images_converted.append(annotation.name)
         file_name = '%s___objects.json' % Path(file_name).name
         sa_metadata = {'name': Path(file_name).name, 'width': W, 'height': H}
         sa_json = _create_sa_json(sa_instances, sa_metadata)
         write_to_json(output_dir / file_name, sa_json)
 
+    finish_event.set()
+    tqdm_thread.join()
     return classes

@@ -4,7 +4,7 @@ from ..common import upload_project
 
 
 def test_sagemaker_instance_segmentation(tmpdir):
-    project_name = "sagemaker_instance_vector"
+    project_name = "sagemaker_instance_pixel"
 
     input_dir = Path(
         'tests'
@@ -16,7 +16,7 @@ def test_sagemaker_instance_segmentation(tmpdir):
     )
 
     description = 'sagemaker vector instance segmentation'
-    ptype = 'Vector'
+    ptype = 'Pixel'
     upload_project(out_dir, project_name, description, ptype)
 
 

@@ -1,13 +1,19 @@
+'''
+COCO to SA conversion methods
+'''
+import logging
+import threading
 import json
 from pathlib import Path
 
 import cv2
 import numpy as np
-from tqdm import tqdm
 
-from ....common import write_to_json
+from ....common import write_to_json, tqdm_converter
 from ..sa_json_helper import _create_sa_json, _create_vector_instance
 from .coco_api import _maskfrRLE, decode
+
+logger = logging.getLogger("superannotate-python-sdk")
 
 
 def annot_to_polygon(annot):
@@ -29,7 +35,16 @@ def annot_to_polygon(annot):
 
 
 def save_sa_jsons(coco_json, img_id_to_annot, output_dir):
-    for img in tqdm(coco_json['images'], "Writing annotations to disk"):
+    images_converted = []
+    finish_event = threading.Event()
+    tqdm_thread = threading.Thread(
+        target=tqdm_converter,
+        args=(len(coco_json["images"]), images_converted, [], finish_event),
+        daemon=True
+    )
+    logger.info('Writting to disk')
+    tqdm_thread.start()
+    for img in coco_json['images']:
         if 'file_name' in img:
             image_path = Path(img['file_name']).name
         else:
@@ -48,6 +63,8 @@ def save_sa_jsons(coco_json, img_id_to_annot, output_dir):
         }
         json_template = _create_sa_json(sa_instances, sa_metadata)
         write_to_json(output_dir / file_name, json_template)
+    finish_event.set()
+    tqdm_thread.join()
 
 
 def coco_instance_segmentation_to_sa_vector(coco_path, output_dir):
@@ -65,7 +82,19 @@ def coco_instance_segmentation_to_sa_vector(coco_path, output_dir):
                 instance_groups[annot['id']] = 1
 
     image_id_to_annotations = {}
-    for annot in tqdm(coco_json['annotations'], "Converting annotations"):
+    annotations_processed = []
+    finish_event = threading.Event()
+    tqdm_thread = threading.Thread(
+        target=tqdm_converter,
+        args=(
+            len(coco_json["annotations"]), annotations_processed, [],
+            finish_event
+        ),
+        daemon=True
+    )
+    logger.info('Converting to SuperAnnotate JSON format')
+    tqdm_thread.start()
+    for annot in coco_json['annotations']:
         if isinstance(annot['segmentation'], dict):
             annot['segmentation'] = annot_to_polygon(annot['segmentation'])
 
@@ -86,7 +115,9 @@ def coco_instance_segmentation_to_sa_vector(coco_path, output_dir):
                 image_id_to_annotations[str(annot['image_id'])] = [sa_obj]
             else:
                 image_id_to_annotations[str(annot['image_id'])].append(sa_obj)
-
+        annotations_processed.append(annot)
+    finish_event.set()
+    tqdm_thread.join()
     save_sa_jsons(coco_json, image_id_to_annotations, output_dir)
 
 
@@ -97,7 +128,19 @@ def coco_object_detection_to_sa_vector(coco_path, output_dir):
         cat_id_to_cat[cat['id']] = cat
 
     image_id_to_annotations = {}
-    for annot in tqdm(coco_json['annotations'], "Converting annotations"):
+    annotations_processed = []
+    finish_event = threading.Event()
+    tqdm_thread = threading.Thread(
+        target=tqdm_converter,
+        args=(
+            len(coco_json["annotations"]), annotations_processed, [],
+            finish_event
+        ),
+        daemon=True
+    )
+    logger.info('Converting to SuperAnnotate JSON format')
+    tqdm_thread.start()
+    for annot in coco_json['annotations']:
         if isinstance(annot['segmentation'], dict):
             annot['segmentation'] = annot_to_polygon(annot['segmentation'])
         cat = cat_id_to_cat[annot['category_id']]
@@ -114,7 +157,9 @@ def coco_object_detection_to_sa_vector(coco_path, output_dir):
             image_id_to_annotations[str(annot['image_id'])] = [sa_obj]
         else:
             image_id_to_annotations[str(annot['image_id'])].append(sa_obj)
-
+        annotations_processed.append(annot)
+    finish_event.set()
+    tqdm_thread.join()
     save_sa_jsons(coco_json, image_id_to_annotations, output_dir)
 
 
@@ -130,7 +175,19 @@ def coco_keypoint_detection_to_sa_vector(coco_path, output_dir):
         }
 
     image_id_to_annotations = {}
-    for annot in tqdm(coco_json['annotations'], 'Converting annotations'):
+    annotations_processed = []
+    finish_event = threading.Event()
+    tqdm_thread = threading.Thread(
+        target=tqdm_converter,
+        args=(
+            len(coco_json["annotations"]), annotations_processed, [],
+            finish_event
+        ),
+        daemon=True
+    )
+    logger.info('Converting to SuperAnnotate JSON format')
+    tqdm_thread.start()
+    for annot in coco_json['annotations']:
         if annot['num_keypoints'] > 0:
             sa_points = [
                 item for index, item in enumerate(annot['keypoints'])
@@ -193,5 +250,7 @@ def coco_keypoint_detection_to_sa_vector(coco_path, output_dir):
                 else:
                     image_id_to_annotations[str(annot['image_id']
                                                )].append(sa_obj)
-
+        annotations_processed.append(annot)
+    finish_event.set()
+    tqdm_thread.join()
     save_sa_jsons(coco_json, image_id_to_annotations, output_dir)

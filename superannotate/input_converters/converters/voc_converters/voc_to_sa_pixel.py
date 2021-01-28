@@ -1,9 +1,18 @@
+'''
+VOC to SA conversion method
+'''
+import logging
+import threading
 import cv2
 import numpy as np
 
-from ....common import blue_color_generator, hex_to_rgb, write_to_json
-from ..sa_json_helper import _create_pixel_instance, _create_sa_json
 from .voc_helper import _get_voc_instances_from_xml, _iou, _get_image_shape_from_xml
+from ..sa_json_helper import _create_pixel_instance, _create_sa_json
+from ....common import (
+    blue_color_generator, hex_to_rgb, write_to_json, tqdm_converter
+)
+
+logger = logging.getLogger("superannotate-python-sdk")
 
 
 def _generate_polygons(object_mask_path):
@@ -77,7 +86,24 @@ def voc_instance_segmentation_to_sa_pixel(voc_root, output_dir):
     object_masks_dir = voc_root / 'SegmentationObject'
     annotation_dir = voc_root / "Annotations"
 
-    for filename in object_masks_dir.glob('*'):
+    file_list = list(object_masks_dir.glob('*'))
+    if not file_list:
+        logger.warning(
+            "You need to have both 'Annotations' and 'SegmentationObject' directories to be able to convert."
+        )
+    images_converted = []
+    images_not_converted = []
+    finish_event = threading.Event()
+    tqdm_thread = threading.Thread(
+        target=tqdm_converter,
+        args=(
+            len(file_list), images_converted, images_not_converted, finish_event
+        ),
+        daemon=True
+    )
+    logger.info('Converting to SuperAnnotate JSON format')
+    tqdm_thread.start()
+    for filename in file_list:
         polygon_instances, sa_mask, bluemask_colors = _generate_polygons(
             object_masks_dir / filename.name
         )
@@ -99,6 +125,7 @@ def voc_instance_segmentation_to_sa_pixel(voc_root, output_dir):
             )
             sa_instances.append(sa_obj)
 
+        images_converted.append(filename)
         file_name = "%s.jpg___pixel.json" % (filename.stem)
         height, width = _get_image_shape_from_xml(
             annotation_dir / filename.name
@@ -109,5 +136,6 @@ def voc_instance_segmentation_to_sa_pixel(voc_root, output_dir):
 
         mask_name = "%s.jpg___save.png" % (filename.stem)
         cv2.imwrite(str(output_dir / mask_name), sa_mask[:, :, ::-1])
-
+    finish_event.set()
+    tqdm_thread.join()
     return classes

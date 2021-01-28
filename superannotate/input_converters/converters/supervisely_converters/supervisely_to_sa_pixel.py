@@ -1,5 +1,10 @@
-from pathlib import Path
+'''
+Supervisely to SA conversion method
+'''
+import logging
+import threading
 import json
+from pathlib import Path
 import cv2
 import numpy as np
 
@@ -7,12 +12,30 @@ from .supervisely_helper import _base64_to_polygon, _create_attribute_list
 
 from ..sa_json_helper import _create_pixel_instance, _create_sa_json
 
-from ....common import hex_to_rgb, blue_color_generator, write_to_json
+from ....common import (
+    hex_to_rgb, blue_color_generator, write_to_json, tqdm_converter
+)
+
+logger = logging.getLogger("superannotate-python-sdk")
 
 
 def supervisely_instance_segmentation_to_sa_pixel(
     json_files, class_id_map, output_dir
 ):
+    images_converted = []
+    images_not_converted = []
+    finish_event = threading.Event()
+    tqdm_thread = threading.Thread(
+        target=tqdm_converter,
+        args=(
+            len(json_files), images_converted, images_not_converted,
+            finish_event
+        ),
+        daemon=True
+    )
+    logger.info('Converting to SuperAnnotate JSON format')
+    tqdm_thread.start()
+
     for json_file in json_files:
         file_name = '%s___pixel.json' % Path(json_file).stem
 
@@ -65,5 +88,8 @@ def supervisely_instance_segmentation_to_sa_pixel(
                         )
                         sa_instances.append(sa_obj)
 
+        images_converted.append(Path(json_file).stem)
         sa_json = _create_sa_json(sa_instances, sa_metadata)
         write_to_json(output_dir / file_name, sa_json)
+    finish_event.set()
+    tqdm_thread.join()

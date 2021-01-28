@@ -40,8 +40,16 @@ def _create_classes_id_map(json_data):
                                     'is_multiselect': 0,
                                     'attributes': []
                                 }
-                            classes[class_name]['attribute_groups'][
-                                classification['value']]['attributes'].append(
+                            if isinstance(classification['answer'], list):
+                                classes[class_name]['attribute_groups'][
+                                    classification['value']
+                                ]['attributes'].append(
+                                    classification['answer'][0]['value']
+                                )
+                            elif isinstance(classification['answer'], dict):
+                                classes[class_name]['attribute_groups'][
+                                    classification['value']
+                                ]['attributes'].append(
                                     classification['answer']['value']
                                 )
 
@@ -58,9 +66,17 @@ def _create_classes_id_map(json_data):
 
                     else:
                         if 'answer' in classification.keys():
-                            classes[class_name]['attribute_groups'][
-                                classification['value']]['attributes'].append(
+                            if isinstance(classification['answer'], dict):
+                                classes[class_name]['attribute_groups'][
+                                    classification['value']
+                                ]['attributes'].append(
                                     classification['answer']['value']
+                                )
+                            elif isinstance(classification['answer'], list):
+                                classes[class_name]['attribute_groups'][
+                                    classification['value']
+                                ]['attributes'].append(
+                                    classification['answer'][0]['value']
                                 )
                         elif 'answers' in classification.keys():
                             for attr in classification['answers']:

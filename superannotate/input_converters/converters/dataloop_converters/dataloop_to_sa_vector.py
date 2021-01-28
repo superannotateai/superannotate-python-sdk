@@ -1,6 +1,9 @@
+'''
+Dataloop to SA conversion method
+'''
+import logging
+import threading
 import json
-
-from pathlib import Path
 
 from .dataloop_helper import (_update_classes_dict, _create_attributes_list)
 
@@ -8,12 +11,14 @@ from ..sa_json_helper import (
     _create_vector_instance, _create_comment, _create_sa_json
 )
 
-from ....common import write_to_json
+from ....common import write_to_json, tqdm_converter
+
+logger = logging.getLogger("superannotate-python-sdk")
 
 
 def dataloop_to_sa(input_dir, task, output_dir):
     classes = {}
-    json_data = Path(input_dir).glob('*.json')
+    json_data = list(input_dir.glob('*.json'))
     if task == 'object_detection':
         instance_types = ['box']
     elif task == 'instance_segmentation':
@@ -24,6 +29,18 @@ def dataloop_to_sa(input_dir, task, output_dir):
     tags_type = 'class'
     comment_type = 'note'
 
+    images_converted = []
+    images_not_converted = []
+    finish_event = threading.Event()
+    tqdm_thread = threading.Thread(
+        target=tqdm_converter,
+        args=(
+            len(json_data), images_converted, images_not_converted, finish_event
+        ),
+        daemon=True
+    )
+    logger.info('Converting to SuperAnnotate JSON format')
+    tqdm_thread.start()
     for json_file in json_data:
         dl_data = json.load(open(json_file))
 
@@ -98,8 +115,11 @@ def dataloop_to_sa(input_dir, task, output_dir):
         else:
             file_name = '%s___objects.json' % dl_data['filename'][1:]
 
+        images_converted.append(file_name.replace('___objects.json ', ''))
         json_template = _create_sa_json(
             sa_instances, sa_metadata, sa_tags, sa_comments
         )
         write_to_json(output_dir / file_name, json_template)
+    finish_event.set()
+    tqdm_thread.join()
     return classes

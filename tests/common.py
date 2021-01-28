@@ -1,3 +1,4 @@
+from pathlib import Path
 import superannotate as sa
 
 
@@ -10,6 +11,9 @@ def upload_project(
     annotation_status='NotStarted',
     image_quality_in_editor=None
 ):
+    if isinstance(project_path, str):
+        project_path = Path(project_path)
+
     projects = sa.search_projects(project_name, return_metadata=True)
     for project in projects:
         sa.delete_project(project)

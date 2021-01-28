@@ -842,6 +842,24 @@ def upload_images_to_project(
     return (list_of_uploaded, list_of_not_uploaded, duplicate_images)
 
 
+def _tqdm_download(
+    total_num, images_to_upload, images_not_uploaded,
+    duplicate_images_filenames, finish_event
+):
+    with tqdm(total=total_num) as pbar:
+        while True:
+            finished = finish_event.wait(1)
+            if not finished:
+                sum_all = 0
+                sum_all += len(images_not_uploaded)
+                sum_all += len(images_to_upload)
+                sum_all += len(duplicate_images_filenames)
+                pbar.update(sum_all - pbar.n)
+            else:
+                pbar.update(total_num - pbar.n)
+                break
+
+
 def upload_images_from_public_urls_to_project(
     project,
     img_urls,
@@ -875,6 +893,18 @@ def upload_images_from_public_urls_to_project(
     images_to_upload = []
     duplicate_images_filenames = []
     path_to_url = {}
+
+    finish_event = threading.Event()
+    tqdm_thread = threading.Thread(
+        target=_tqdm_download,
+        args=(
+            len(img_urls), images_to_upload, images_not_uploaded,
+            duplicate_images_filenames, finish_event
+        ),
+        daemon=True
+    )
+    logger.info('Downloading %s images' % len(img_urls))
+    tqdm_thread.start()
     with tempfile.TemporaryDirectory() as save_dir_name:
         save_dir = Path(save_dir_name)
         for i, img_url in enumerate(img_urls):
@@ -906,6 +936,9 @@ def upload_images_from_public_urls_to_project(
 
                 path_to_url[str(img_path)] = img_url
                 images_to_upload.append(img_path)
+
+        finish_event.set()
+        tqdm_thread.join()
         images_uploaded_paths, images_not_uploaded_paths, duplicate_images_paths = upload_images_to_project(
             project,
             images_to_upload,

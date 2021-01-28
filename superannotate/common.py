@@ -4,6 +4,7 @@ import logging
 import os
 import sys
 import time
+from tqdm import tqdm
 from pathlib import Path
 
 import numpy as np
@@ -254,3 +255,17 @@ MAX_IMAGE_RESOLUTION = {
     "Vector": 100_000_000,
     "Pixel": 4_000_000
 }  # Resolution limit
+
+
+def tqdm_converter(
+    total_num, images_converted, images_not_converted, finish_event
+):
+    with tqdm(total=total_num) as pbar:
+        while True:
+            finished = finish_event.wait(5)
+            if not finished:
+                sum_all = len(images_converted) + len(images_not_converted)
+                pbar.update(sum_all - pbar.n)
+            else:
+                pbar.update(total_num - pbar.n)
+                break

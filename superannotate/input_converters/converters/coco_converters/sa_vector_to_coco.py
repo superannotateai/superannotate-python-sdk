@@ -1,7 +1,13 @@
+'''
+SA to COCO conversion methods
+'''
 import json
 import logging
+import threading
 
 from .coco_api import _area, _merge, _polytoMask, _toBbox
+
+from ....common import tqdm_converter
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -16,8 +22,8 @@ def sa_vector_to_coco_object_detection(
     for instance in sa_ann_json:
         if instance['type'] != 'bbox':
             logger.warning(
-                "Skipping '{}' type convertion during object_detection task".
-                format(instance['type'])
+                "Skipping '%s' type convertion during object_detection task",
+                instance['type']
             )
             continue
 
@@ -61,8 +67,8 @@ def sa_vector_to_coco_instance_segmentation(
     for instance in sa_ann_json:
         if instance['type'] != 'polygon':
             logger.warning(
-                "Skipping '{}' type convertion during object_detection task".
-                format(instance['type'])
+                "Skipping '%s' type convertion during object_detection task",
+                instance['type']
             )
             continue
 
@@ -156,6 +162,19 @@ def sa_vector_to_coco_keypoint_detection(
     annotations = []
     images = []
 
+    images_converted = []
+    images_not_converted = []
+    finish_event = threading.Event()
+    tqdm_thread = threading.Thread(
+        target=tqdm_converter,
+        args=(
+            len(json_paths), images_converted, images_not_converted,
+            finish_event
+        ),
+        daemon=True
+    )
+    logger.info('Converting to COCO JSON format')
+    tqdm_thread.start()
     for path_ in json_paths:
         json_data = __load_one_json(path_)['instances']
 
@@ -163,7 +182,7 @@ def sa_vector_to_coco_keypoint_detection(
             if instance['type'] == 'template' and 'templateId' not in instance:
                 logger.warning(
                     'There was a template with no "templateName". \
-                                This can happen if the template was deleted from annotate.online. Ignoring this annotation'
+                                This can happen if the template was deleted from superannotate.com. Ignoring this annotation'
                 )
                 continue
 
@@ -219,4 +238,7 @@ def sa_vector_to_coco_keypoint_detection(
                     instance, id_generator_anno, cat_id, image_info['id']
                 )
                 annotations.append(annotation)
+        images_converted.append(path_)
+    finish_event.set()
+    tqdm_thread.join()
     return (categories, annotations, images)

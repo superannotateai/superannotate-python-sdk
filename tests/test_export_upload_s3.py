@@ -4,6 +4,7 @@ import boto3
 
 import superannotate as sa
 
+from .common import upload_project
 s3_client = boto3.client('s3')
 
 S3_PREFIX = 'frex9'
@@ -22,22 +23,30 @@ def test_export_s3(tmpdir):
                 key = object_data['Key']
                 s3_client.delete_object(Bucket=S3_BUCKET, Key=key)
     tmpdir = Path(tmpdir)
-    projects = sa.search_projects(PROJECT_NAME_EXPORT, return_metadata=True)
-    for project in projects:
-        sa.delete_project(project)
-    project = sa.create_project(PROJECT_NAME_EXPORT, "test", "Vector")
 
-    sa.upload_images_from_folder_to_project(
-        project,
+    project = upload_project(
         Path("./tests/sample_project_vector"),
-        annotation_status="InProgress"
+        PROJECT_NAME_EXPORT,
+        'test',
+        'Vector',
+        annotation_status='InProgress'
     )
-    sa.create_annotation_classes_from_classes_json(
-        project, Path("./tests/sample_project_vector/classes/classes.json")
-    )
-    sa.upload_annotations_from_folder_to_project(
-        project, Path("./tests/sample_project_vector")
-    )
+    # projects = sa.search_projects(PROJECT_NAME_EXPORT, return_metadata=True)
+    # for project in projects:
+    #     sa.delete_project(project)
+    # project = sa.create_project(PROJECT_NAME_EXPORT, "test", "Vector")
+
+    # sa.upload_images_from_folder_to_project(
+    #     project,
+    #     Path("./tests/sample_project_vector"),
+    #     annotation_status="InProgress"
+    # )
+    # sa.create_annotation_classes_from_classes_json(
+    #     project, Path("./tests/sample_project_vector/classes/classes.json")
+    # )
+    # sa.upload_annotations_from_folder_to_project(
+    #     project, Path("./tests/sample_project_vector")
+    # )
     images = sa.search_images(project)
     for img in images:
         sa.set_image_annotation_status(project, img, 'QualityCheck')

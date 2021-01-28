@@ -1,3 +1,8 @@
+'''
+Sagemaker to SA conversion method
+'''
+import logging
+import threading
 import json
 from pathlib import Path
 import cv2
@@ -5,7 +10,11 @@ import numpy as np
 
 from ..sa_json_helper import (_create_pixel_instance, _create_sa_json)
 
-from ....common import hex_to_rgb, blue_color_generator, write_to_json
+from ....common import (
+    hex_to_rgb, blue_color_generator, write_to_json, tqdm_converter
+)
+
+logger = logging.getLogger("superannotate-python-sdk")
 
 
 def sagemaker_instance_segmentation_to_sa_pixel(data_path, output_dir):
@@ -21,14 +30,27 @@ def sagemaker_instance_segmentation_to_sa_pixel(data_path, output_dir):
             dd['source-ref']
         ).name
 
-    json_list = data_path.glob('*.json')
+    json_list = list(data_path.glob('*.json'))
     classes_ids = {}
+    images_converted = []
+    images_not_converted = []
+    finish_event = threading.Event()
+    tqdm_thread = threading.Thread(
+        target=tqdm_converter,
+        args=(
+            len(json_list), images_converted, images_not_converted, finish_event
+        ),
+        daemon=True
+    )
+    logger.info('Converting to SuperAnnotate JSON format')
+    tqdm_thread.start()
     for json_file in json_list:
         data_json = json.load(open(json_file))
         for annotataion in data_json:
             if 'consolidatedAnnotation' not in annotataion.keys():
-                print('Wrong json files')
+                logger.warning('Wrong json files')
                 raise Exception
+
             mask_name = Path(
                 annotataion['consolidatedAnnotation']['content']
                 ['attribute-name-ref']
@@ -37,8 +59,15 @@ def sagemaker_instance_segmentation_to_sa_pixel(data_path, output_dir):
             classes_dict = annotataion['consolidatedAnnotation']['content'][
                 'attribute-name-ref-metadata']['internal-color-map']
 
-            img = cv2.imread(str(data_path / mask_name.replace(':', '_')))
-            H, W, _ = img.shape
+            try:
+                img = cv2.imread(str(data_path / mask_name.replace(':', '_')))
+                H, W, _ = img.shape
+            except Exception as e:
+                logger.warning(
+                    "Can't open %s mask", mask_name.replace(':', '_')
+                )
+                images_not_converted.append(mask_name.replace(':', '_'))
+                continue
 
             class_contours = {}
             num_of_contours = 0
@@ -92,10 +121,13 @@ def sagemaker_instance_segmentation_to_sa_pixel(data_path, output_dir):
                     idx += 1
                     sa_obj = _create_pixel_instance(parts, [], name)
                     sa_instances.append(sa_obj)
+            images_converted.append(img_mapping[mask_name])
             sa_json = _create_sa_json(sa_instances, sa_metadata)
             write_to_json(output_dir / file_name, sa_json)
             cv2.imwrite(
                 str(output_dir / (img_mapping[mask_name] + '___save.png')),
                 sa_mask
             )
+    finish_event.set()
+    tqdm_thread.join()
     return classes_ids

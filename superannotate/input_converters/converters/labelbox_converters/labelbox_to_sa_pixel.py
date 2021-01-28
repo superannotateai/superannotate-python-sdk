@@ -1,3 +1,8 @@
+'''
+Labelbox to SA conversion method
+'''
+import logging
+import threading
 from pathlib import Path
 import cv2
 import numpy as np
@@ -8,13 +13,30 @@ from .labelbox_helper import (
 
 from ..sa_json_helper import (_create_pixel_instance, _create_sa_json)
 
-from ....common import hex_to_rgb, blue_color_generator, write_to_json
+from ....common import (
+    hex_to_rgb, blue_color_generator, write_to_json, tqdm_converter
+)
+
+logger = logging.getLogger("superannotate-python-sdk")
 
 
 def labelbox_instance_segmentation_to_sa_pixel(
     json_data, output_dir, input_dir
 ):
     classes = _create_classes_id_map(json_data)
+
+    images_converted = []
+    images_not_converted = []
+    finish_event = threading.Event()
+    tqdm_thread = threading.Thread(
+        target=tqdm_converter,
+        args=(
+            len(json_data), images_converted, images_not_converted, finish_event
+        ),
+        daemon=True
+    )
+    logger.info('Converting to SuperAnnotate JSON format')
+    tqdm_thread.start()
     for data in json_data:
         file_name = data['External ID'] + '___pixel.json'
         mask_name = data['External ID'] + '___save.png'
@@ -49,6 +71,8 @@ def labelbox_instance_segmentation_to_sa_pixel(
                 bitmask_name = output_dir / bitmask_name
 
             if isinstance(mask, type(None)):
+                logger.warning("Can't open '%s' bitmask.", bitmask_name)
+                images_not_converted.append(bitmask_name)
                 continue
 
             if i == 0:
@@ -65,7 +89,11 @@ def labelbox_instance_segmentation_to_sa_pixel(
             sa_instances.append(sa_obj.copy())
             Path(bitmask_name).unlink()
 
+        images_converted.append(data['External ID'])
         sa_json = _create_sa_json(sa_instances, sa_metadata)
         write_to_json(output_dir / file_name, sa_json)
         cv2.imwrite(str(output_dir / mask_name), sa_mask)
+
+    finish_event.set()
+    tqdm_thread.join()
     return classes

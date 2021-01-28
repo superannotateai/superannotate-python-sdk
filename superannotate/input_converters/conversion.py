@@ -75,42 +75,40 @@ ALLOWED_ANNOTATION_EXPORT_FORMATS = {
 }
 
 
-def _passes_sanity_checks(args):
-    if not isinstance(args.input_dir, (str, Path)):
-        raise SABaseException(
-            0, "'input_dir' should be 'str' or 'Path' type, not '%s'" %
-            (type(args.input_dir))
-        )
+def _change_type(input_dir, output_dir):
+    if isinstance(input_dir, str):
+        input_dir = Path(input_dir)
+    if isinstance(output_dir, str):
+        output_dir = Path(output_dir)
+    return input_dir, output_dir
 
-    if not isinstance(args.output_dir, (str, Path)):
-        raise SABaseException(
-            0, "'output_dir' should be 'str' or 'Path' type, not {}".format(
-                type(args.output_dir)
+
+def _passes_type_sanity(params_info):
+    for param in params_info:
+        if not isinstance(param[0], param[2]):
+            raise SABaseException(
+                0, "'%s' should be %s type, not %s" %
+                (param[1], param[2], type(param[0]))
             )
-        )
 
-    if args.dataset_format not in ALLOWED_ANNOTATION_IMPORT_FORMATS.keys():
-        raise SABaseException(
-            0, "'%s' converter doesn't exist. Possible candidates are '%s'" %
-            (args.dataset_format, ALLOWED_ANNOTATION_IMPORT_FORMATS.keys())
-        )
 
-    if not isinstance(args.dataset_name, str):
-        raise SABaseException(
-            0, "'dataset_name' should be 'str' type, not {}".format(
-                type(args.dataset_name)
+def _passes_list_members_type_sanity(lists_info):
+    for _list in lists_info:
+        for _list_member in _list[0]:
+            if not isinstance(_list_member, _list[2]):
+                raise SABaseException(
+                    0, "'%s' should be list of '%s', but contains '%s'" %
+                    (_list[1], _list[2], type(_list_member))
+                )
+
+
+def _passes_value_sanity(values_info):
+    for value in values_info:
+        if value[0] not in value[2]:
+            raise SABaseException(
+                0, "'%s' should be one of the following '%s'" %
+                (value[1], value[2])
             )
-        )
-
-    if args.project_type not in ALLOWED_PROJECT_TYPES:
-        raise SABaseException(
-            0, "Please enter valid project type: 'Pixel' or 'Vector'"
-        )
-
-    if args.task not in ALLOWED_TASK_TYPES:
-        raise SABaseException(
-            0, "Please enter valid task '%s'" % (ALLOWED_TASK_TYPES)
-        )
 
 
 def _passes_converter_sanity(args, direction):
@@ -177,10 +175,25 @@ def export_annotation(
 
     """
 
-    if isinstance(input_dir, str):
-        input_dir = Path(input_dir)
-    if isinstance(output_dir, str):
-        output_dir = Path(output_dir)
+    params_info = [
+        (input_dir, 'input_dir', (str, Path)),
+        (output_dir, 'output_dir', (str, Path)),
+        (dataset_name, 'dataset_name', str),
+        (dataset_format, 'dataset_format', str),
+        (project_type, 'project_type', str), (task, 'task', str)
+    ]
+    _passes_type_sanity(params_info)
+    input_dir, output_dir = _change_type(input_dir, output_dir)
+
+    values_info = [
+        (project_type, 'project_type', ALLOWED_PROJECT_TYPES),
+        (task, 'task', ALLOWED_TASK_TYPES),
+        (
+            dataset_format, 'dataset_format',
+            list(ALLOWED_ANNOTATION_EXPORT_FORMATS.keys())
+        )
+    ]
+    _passes_value_sanity(values_info)
 
     args = Namespace(
         input_dir=input_dir,
@@ -191,7 +204,6 @@ def export_annotation(
         task=task,
     )
 
-    _passes_sanity_checks(args)
     _passes_converter_sanity(args, 'export')
 
     export_from_sa(args)
@@ -205,7 +217,7 @@ def import_annotation(
     project_type="Vector",
     task="object_detection",
     images_root='',
-    images_extensions=['jpg']
+    images_extensions=None
 ):
     """Converts other annotation formats to SuperAnnotate annotation format. Currently available (project_type, task) combinations for converter
     presented below:
@@ -337,11 +349,31 @@ def import_annotation(
 
     """
 
-    if isinstance(input_dir, str):
-        input_dir = Path(input_dir)
-    if isinstance(output_dir, str):
-        output_dir = Path(output_dir)
+    params_info = [
+        (input_dir, 'input_dir', (str, Path)),
+        (output_dir, 'output_dir', (str, Path)),
+        (dataset_name, 'dataset_name', str),
+        (dataset_format, 'dataset_format', str),
+        (project_type, 'project_type', str), (task, 'task', str),
+        (images_root, 'images_root', str)
+    ]
 
+    if images_extensions is not None:
+        params_info.append((images_extensions, 'image_extensions', list))
+
+    _passes_type_sanity(params_info)
+
+    values_info = [
+        (project_type, 'project_type', ALLOWED_PROJECT_TYPES),
+        (task, 'task', ALLOWED_TASK_TYPES),
+        (
+            dataset_format, 'dataset_format',
+            list(ALLOWED_ANNOTATION_IMPORT_FORMATS.keys())
+        )
+    ]
+    _passes_value_sanity(values_info)
+
+    input_dir, output_dir = _change_type(input_dir, output_dir)
     args = Namespace(
         input_dir=input_dir,
         output_dir=output_dir,
@@ -353,7 +385,6 @@ def import_annotation(
         images_extensions=images_extensions
     )
 
-    _passes_sanity_checks(args)
     _passes_converter_sanity(args, 'import')
 
     import_to_sa(args)
@@ -368,17 +399,12 @@ def convert_project_type(input_dir, output_dir):
     :type output_dir: Pathlike(str or Path)
 
     """
-    param_info = [
+    params_info = [
         (input_dir, 'input_dir', (str, Path)),
         (output_dir, 'output_dir', (str, Path)),
     ]
-    for param in param_info:
-        _type_sanity(param[0], param[1], param[2])
-
-    if isinstance(input_dir, str):
-        input_dir = Path(input_dir)
-    if isinstance(output_dir, str):
-        output_dir = Path(output_dir)
+    _passes_type_sanity(params_info)
+    input_dir, output_dir = _change_type(input_dir, output_dir)
 
     sa_convert_project_type(input_dir, output_dir)
 
@@ -399,40 +425,32 @@ def coco_split_dataset(
     :param ratio_list: List of ratios for each splitted dataset.
     :type ratio_list: list
     """
-    param_info = [
+    params_info = [
         (coco_json_path, 'coco_json_path', (str, Path)),
         (image_dir, 'image_dir', (str, Path)),
         (output_dir, 'output_dir', (str, Path)),
         (dataset_list_name, 'dataset_list_name', list),
         (ratio_list, 'ratio_list', list)
     ]
-    for param in param_info:
-        _type_sanity(param[0], param[1], param[2])
+    _passes_type_sanity(params_info)
 
-    for dataset_name in dataset_list_name:
-        if not isinstance(dataset_name, (str, Path)):
-            raise SABaseException(
-                0,
-                "'dataset_list_name' member should be 'str' or 'Path' type, not '%s'"
-                % (type(dataset_name))
-            )
+    lists_info = [
+        (dataset_list_name, 'dataset_name', str),
+        (ratio_list, 'ratio_list', (int, float))
+    ]
 
-    for ratio in ratio_list:
-        if not isinstance(ratio, (int, float)):
-            raise SABaseException(
-                0,
-                "'ratio_list' member should be 'int' or 'float' type, not '%s'"
-                % (type(ratio))
-            )
+    _passes_list_members_type_sanity(lists_info)
 
     if sum(ratio_list) != 100:
-        raise SABaseException(0, "Sum of 'ratio_list' members must be '100'")
+        raise SABaseException(0, "Sum of 'ratio_list' members must be 100")
 
     if len(dataset_list_name) != len(ratio_list):
         raise SABaseException(
             0, "'dataset_list_name' and 'ratio_list' should have same lenght"
         )
 
+    if isinstance(coco_json_path, str):
+        coco_json_path = Path(coco_json_path)
     if isinstance(image_dir, str):
         image_dir = Path(image_dir)
     if isinstance(output_dir, str):
@@ -441,15 +459,6 @@ def coco_split_dataset(
     split_coco(
         coco_json_path, image_dir, output_dir, dataset_list_name, ratio_list
     )
-
-
-def _type_sanity(var, var_name, var_type):
-    if not isinstance(var, var_type):
-        raise SABaseException(
-            0, "'{}' should be '{}' type, not '{}'".format(
-                var_name, var_type, type(var)
-            )
-        )
 
 
 def convert_json_version(input_dir, output_dir, version=2):
@@ -466,19 +475,15 @@ def convert_json_version(input_dir, output_dir, version=2):
     :return: List of converted files
     :rtype: list
     """
-    param_info = [
+
+    params_info = [
         (input_dir, 'input_dir', (str, Path)),
         (output_dir, 'output_dir', (str, Path)), (version, 'version', int)
     ]
-    for param in param_info:
-        _type_sanity(param[0], param[1], param[2])
+    _passes_type_sanity(params_info)
+    input_dir, output_dir = _change_type(input_dir, output_dir)
 
-    if isinstance(input_dir, str):
-        input_dir = Path(input_dir)
-    if isinstance(output_dir, str):
-        output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-
     if version == 2:
         converted_files = upgrade_json(input_dir, output_dir)
     elif version == 1:

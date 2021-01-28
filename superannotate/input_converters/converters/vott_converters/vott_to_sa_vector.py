@@ -1,10 +1,15 @@
 '''
+VoTT to SA conversion method
 '''
+import logging
 import json
+import threading
 
 from ..sa_json_helper import _create_vector_instance, _create_sa_json
 
-from ....common import write_to_json
+from ....common import write_to_json, tqdm_converter
+
+logger = logging.getLogger("superannotate-python-sdk")
 
 
 def vott_to_sa(file_list, task, output_dir):
@@ -16,6 +21,18 @@ def vott_to_sa(file_list, task, output_dir):
     elif task == 'vector_annotation':
         instance_types = ['RECTANGLE', 'POLYGON']
 
+    images_converted = []
+    images_not_converted = []
+    finish_event = threading.Event()
+    tqdm_thread = threading.Thread(
+        target=tqdm_converter,
+        args=(
+            len(file_list), images_converted, images_not_converted, finish_event
+        ),
+        daemon=True
+    )
+    logger.info('Converting to SuperAnnotate JSON format')
+    tqdm_thread.start()
     for json_file in file_list:
         json_data = json.load(open(json_file))
         file_name = '%s___objects.json' % json_data['asset']['name']
@@ -53,6 +70,9 @@ def vott_to_sa(file_list, task, output_dir):
                     instance_type, points, {}, [], instance['tags'][0]
                 )
                 sa_instances.append(sa_obj.copy())
+        images_converted.append(json_data['asset']['name'])
         sa_json = _create_sa_json(sa_instances, sa_metadata)
         write_to_json(output_dir / file_name, sa_json)
+    finish_event.set()
+    tqdm_thread.join()
     return set(classes)
