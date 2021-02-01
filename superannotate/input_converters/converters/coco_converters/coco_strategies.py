@@ -1,4 +1,8 @@
+'''
+'''
 import json
+import logging
+import threading
 import numpy as np
 
 from collections import namedtuple
@@ -10,7 +14,9 @@ from tqdm import tqdm
 
 from ..baseStrategy import baseStrategy
 
-from ....common import id2rgb, write_to_json
+from ....common import id2rgb, write_to_json, tqdm_converter
+
+logger = logging.getLogger("superannotate-python-sdk")
 
 
 class CocoBaseStrategy(baseStrategy):
@@ -218,6 +224,18 @@ class CocoPanopticConverterStrategy(CocoBaseStrategy):
         jsons_gen = self.export_root.glob('*pixel.json')
         jsons = list(jsons_gen)
 
+        images_converted = []
+        images_not_converted = []
+        finish_event = threading.Event()
+        tqdm_thread = threading.Thread(
+            target=tqdm_converter,
+            args=(
+                len(jsons), images_converted, images_not_converted, finish_event
+            ),
+            daemon=True
+        )
+        logger.info('Converting to COCO JSON format')
+        tqdm_thread.start()
         for id_, json_ in tqdm(enumerate(jsons, 1)):
             res = self._sa_to_coco_single(id_, json_, id_generator, cat_id_map)
 
@@ -233,6 +251,7 @@ class CocoPanopticConverterStrategy(CocoBaseStrategy):
             annotations.append(annotation)
 
             images.append(res[0])
+            images_converted.append(json_)
 
         out_json['annotations'] = annotations
         out_json['images'] = images
@@ -290,12 +309,27 @@ class CocoObjectDetectionStrategy(CocoBaseStrategy):
         images = []
         annotations = []
         id_generator = self._make_id_generator()
-        for id_, json_ in tqdm(enumerate(jsons)):
+
+        images_converted = []
+        images_not_converted = []
+        finish_event = threading.Event()
+        tqdm_thread = threading.Thread(
+            target=tqdm_converter,
+            args=(
+                len(jsons), images_converted, images_not_converted, finish_event
+            ),
+            daemon=True
+        )
+        logger.info('Converting to COCO JSON format')
+        tqdm_thread.start()
+        for id_, json_ in enumerate(jsons):
             try:
+                images_converted.append(json_)
                 res = self._sa_to_coco_single(
                     id_, json_, id_generator, cat_id_map
                 )
             except Exception as e:
+                images_not_converted.append(json_)
                 raise
             images.append(res[0])
             if len(res[1]) < 1:
@@ -308,7 +342,9 @@ class CocoObjectDetectionStrategy(CocoBaseStrategy):
         write_to_json(
             self.output_dir / '{}.json'.format(self.dataset_name), out_json
         )
-        print("NUMBER OF IMAGES FAILED TO CONVERT", self.failed_conversion_cnt)
+        finish_event.set()
+        tqdm_thread.join()
+        # print("NUMBER OF IMAGES FAILED TO CONVERT", self.failed_conversion_cnt)
 
         self.set_num_converted(len(jsons))
 

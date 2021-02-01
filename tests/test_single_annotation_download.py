@@ -6,6 +6,8 @@ import pytest
 
 import superannotate as sa
 
+from .common import upload_project
+
 
 @pytest.mark.parametrize(
     "project_type,name,description,from_folder", [
@@ -24,19 +26,21 @@ import superannotate as sa
 def test_annotation_download_upload(
     project_type, name, description, from_folder, tmpdir
 ):
-    projects = sa.search_projects(name, return_metadata=True)
-    for project in projects:
-        sa.delete_project(project)
+    # projects = sa.search_projects(name, return_metadata=True)
+    # for project in projects:
+    #     sa.delete_project(project)
 
-    project = sa.create_project(name, description, project_type)
+    # project = sa.create_project(name, description, project_type)
 
-    sa.upload_images_from_folder_to_project(
-        project, from_folder, annotation_status="NotStarted"
-    )
-    sa.create_annotation_classes_from_classes_json(
-        project, from_folder / "classes" / "classes.json"
-    )
-    sa.upload_annotations_from_folder_to_project(project, from_folder)
+    # sa.upload_images_from_folder_to_project(
+    #     project, from_folder, annotation_status="NotStarted"
+    # )
+    # sa.create_annotation_classes_from_classes_json(
+    #     project, from_folder / "classes" / "classes.json"
+    # )
+    # sa.upload_annotations_from_folder_to_project(project, from_folder)
+
+    project = upload_project(from_folder, name, description, project_type)
 
     image = sa.search_images(project)[0]
     paths = sa.download_image_annotations(project, image, tmpdir)

@@ -1,3 +1,8 @@
+'''
+Supervisely to SA conversion method
+'''
+import logging
+import threading
 from pathlib import Path
 import json
 
@@ -5,7 +10,9 @@ from .supervisely_helper import _base64_to_polygon, _create_attribute_list
 
 from ..sa_json_helper import _create_vector_instance, _create_sa_json
 
-from ....common import write_to_json
+from ....common import write_to_json, tqdm_converter
+
+logger = logging.getLogger("superannotate-python-sdk")
 
 
 def supervisely_to_sa(json_files, class_id_map, task, output_dir):
@@ -18,6 +25,19 @@ def supervisely_to_sa(json_files, class_id_map, task, output_dir):
             'point', 'rectangle', 'line', 'polygon', 'cuboid', 'bitmap'
         ]
 
+    images_converted = []
+    images_not_converted = []
+    finish_event = threading.Event()
+    tqdm_thread = threading.Thread(
+        target=tqdm_converter,
+        args=(
+            len(json_files), images_converted, images_not_converted,
+            finish_event
+        ),
+        daemon=True
+    )
+    logger.info('Converting to SuperAnnotate JSON format')
+    tqdm_thread.start()
     for json_file in json_files:
         json_data = json.load(open(json_file))
         file_name = '%s___objects.json' % Path(json_file).stem
@@ -86,8 +106,11 @@ def supervisely_to_sa(json_files, class_id_map, task, output_dir):
                         instance_type, points, {}, attributes, obj['classTitle']
                     )
                     sa_instances.append(sa_obj)
+        images_converted.append(Path(json_file).stem)
         sa_json = _create_sa_json(sa_instances, sa_metadata)
         write_to_json(output_dir / file_name, sa_json)
+    finish_event.set()
+    tqdm_thread.join()
 
 
 def supervisely_keypoint_detection_to_sa_vector(
@@ -109,10 +132,27 @@ def supervisely_keypoint_detection_to_sa_vector(
                 (edge['src'], edge['dst'])
             )
 
+    images_converted = []
+    images_not_converted = []
+    finish_event = threading.Event()
+    tqdm_thread = threading.Thread(
+        target=tqdm_converter,
+        args=(
+            len(json_files), images_converted, images_not_converted,
+            finish_event
+        ),
+        daemon=True
+    )
+    logger.info('Converting to SuperAnnotate JSON format')
+    tqdm_thread.start()
     for json_file in json_files:
         file_name = '%s___objects.json' % (Path(json_file).stem)
-        sa_metadata = {'name': Path(json_file).stem}
         json_data = json.load(open(json_file))
+        sa_metadata = {
+            'name': Path(json_file).stem,
+            'width': json_data['size']['width'],
+            'height': json_data['size']['height']
+        }
         sa_instances = []
 
         for obj in json_data['objects']:
@@ -163,5 +203,8 @@ def supervisely_keypoint_detection_to_sa_vector(
                             obj['classTitle'], connections
                         )
                         sa_instances.append(sa_obj)
+        images_converted.append(Path(json_file).stem)
         sa_json = _create_sa_json(sa_instances, sa_metadata)
         write_to_json(output_dir / file_name, sa_json)
+    finish_event.set()
+    tqdm_thread.join()

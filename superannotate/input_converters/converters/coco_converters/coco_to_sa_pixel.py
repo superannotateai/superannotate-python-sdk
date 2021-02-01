@@ -1,16 +1,22 @@
+'''
+COCO to SA conversion method
+'''
+
 import json
 import logging
+import threading
 from pathlib import Path
 
 import cv2
 import numpy as np
-from tqdm import tqdm
 
-from ....common import blue_color_generator, hex_to_rgb, id2rgb, write_to_json
-from ..sa_json_helper import _create_pixel_instance, _create_sa_json
 from .coco_api import _maskfrRLE, decode
+from ..sa_json_helper import _create_pixel_instance, _create_sa_json
+from ....common import (
+    blue_color_generator, hex_to_rgb, id2rgb, write_to_json, tqdm_converter
+)
 
-logger = logging.getLogger("superannot-python-sdk")
+logger = logging.getLogger("superannotate-python-sdk")
 
 
 def annot_to_bitmask(annot):
@@ -37,14 +43,27 @@ def coco_panoptic_segmentation_to_sa_pixel(coco_path, output_dir):
             'width': img['width']
         }
 
-    for annot in tqdm(coco_json["annotations"], "Converting annotations"):
+    images_converted = []
+    images_not_converted = []
+    finish_event = threading.Event()
+    tqdm_thread = threading.Thread(
+        target=tqdm_converter,
+        args=(
+            len(coco_json["annotations"]), images_converted,
+            images_not_converted, finish_event
+        ),
+        daemon=True
+    )
+    logger.info('Converting to SuperAnnotate JSON format')
+    tqdm_thread.start()
+    for annot in coco_json["annotations"]:
         annot_name = Path(annot["file_name"]).stem
         img_cv = cv2.imread(str(output_dir / ("%s.png" % annot_name)))
         if img_cv is None:
+            images_not_converted.append("%s.jpg" % annot_name)
             logger.warning(
-                "'{}' file dosen't exist!".format(
-                    output_dir / ("%s.png" % annot_name)
-                )
+                "'%s' file dosen't exist!",
+                output_dir / ("%s.png" % annot_name)
             )
             continue
 
@@ -67,6 +86,7 @@ def coco_panoptic_segmentation_to_sa_pixel(coco_path, output_dir):
         img = cv2.cvtColor(img.reshape((H, W, C)), cv2.COLOR_RGB2BGR)
         cv2.imwrite(str(output_dir / ("%s.jpg___save.png" % annot_name)), img)
 
+        images_converted.append("%s.jpg" % annot_name)
         file_name = "%s.jpg___pixel.json" % annot_name
         sa_metadata = {
             'name': annot_name,
@@ -76,6 +96,8 @@ def coco_panoptic_segmentation_to_sa_pixel(coco_path, output_dir):
         json_template = _create_sa_json(sa_instances, sa_metadata)
         write_to_json(output_dir / file_name, json_template)
         (output_dir / ("%s.png" % annot_name)).unlink()
+    finish_event.set()
+    tqdm_thread.join()
 
 
 def coco_instance_segmentation_to_sa_pixel(coco_path, output_dir):
@@ -97,7 +119,20 @@ def coco_instance_segmentation_to_sa_pixel(coco_path, output_dir):
             continue
         images_dict[annot['image_id']]['annotations'].append(annot)
 
-    for id_, annotations in tqdm(images_dict.items()):
+    images_converted = []
+    images_not_converted = []
+    finish_event = threading.Event()
+    tqdm_thread = threading.Thread(
+        target=tqdm_converter,
+        args=(
+            len(images_dict.items()), images_converted, images_not_converted,
+            finish_event
+        ),
+        daemon=True
+    )
+    logger.info('Converting to SuperAnnotate JSON format')
+    tqdm_thread.start()
+    for id_, annotations in images_dict.items():
         file_name = '%s___pixel.json' % annotations['file_name']
         hexcolors = blue_color_generator(len(annotations['annotations']))
         mask = np.zeros(annotations['shape'])
@@ -134,8 +169,11 @@ def coco_instance_segmentation_to_sa_pixel(coco_path, output_dir):
             'width': images_dict[id_]['shape'][1],
             'height': images_dict[id_]['shape'][0]
         }
+        images_converted.append(annotations['file_name'])
         json_template = _create_sa_json(sa_instances, sa_metadata)
         write_to_json(output_dir / file_name, json_template)
         cv2.imwrite(
             str(output_dir / ('%s___save.png' % annotations['file_name'])), mask
         )
+    finish_event.set()
+    tqdm_thread.join()

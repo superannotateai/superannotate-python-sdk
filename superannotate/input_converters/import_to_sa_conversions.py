@@ -12,6 +12,14 @@ logger = logging.getLogger("superannotate-python-sdk")
 
 
 def _load_files(path_to_imgs, ptype, extensions):
+    if extensions is None:
+        extensions = ["jpg", "jpeg", "png", "tif", "tiff", "webp", "bmp"]
+
+    logger.info(
+        'All files with following extensions %s will be copied to output folder',
+        extensions
+    )
+
     images = []
     for extension in extensions:
         rec_search = str(Path('**') / ('*.' + extension))
@@ -21,25 +29,15 @@ def _load_files(path_to_imgs, ptype, extensions):
     if not images:
         logger.warning("Images doesn't exist")
 
-    if ptype == 'Pixel':
-        rec_search = str(Path('**') / '*.png')
-        masks_gen = Path(path_to_imgs).glob(rec_search)
-        masks = list(masks_gen)
-    else:
-        masks = []
-
-    return images, masks
+    return images
 
 
-def _move_files(imgs, masks, output_dir):
+def _move_files(imgs, output_dir):
     (output_dir / 'classes').mkdir(parents=True, exist_ok=True)
     output_path = output_dir
 
     for im in imgs:
         shutil.copy(im, output_path / Path(im).name)
-
-    for mask in masks:
-        shutil.copy(mask, output_path / Path(mask).name)
 
 
 def import_to_sa(args):
@@ -48,15 +46,15 @@ def import_to_sa(args):
     :type args: Namespace
     """
 
-    images, masks = _load_files(
+    images = _load_files(
         args.input_dir / args.images_root, args.project_type,
         args.images_extensions
     )
-    _move_files(images, masks, args.output_dir)
+    _move_files(images, args.output_dir)
 
     args.__dict__.update({'direction': 'from', 'export_root': args.input_dir})
     converter = Converter(args)
 
     converter.convert_to_sa()
 
-    logger.info('Conversion completed successfully')
+    logger.info('Conversion completed')

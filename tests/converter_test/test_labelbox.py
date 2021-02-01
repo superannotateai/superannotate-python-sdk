@@ -10,7 +10,7 @@ def test_labelbox_convert_vector(tmpdir):
 
     input_dir = Path(
         'tests'
-    ) / 'converter_test' / 'LabelBox' / 'input' / 'toSuperAnnotate'
+    ) / 'converter_test' / 'LabelBox' / 'vector_annotations' / 'toSuperAnnotate'
     out_dir = Path(tmpdir) / project_name
     dataset_name = 'labelbox_example'
     sa.import_annotation(
@@ -28,7 +28,7 @@ def test_labelbox_convert_object(tmpdir):
 
     input_dir = Path(
         'tests'
-    ) / 'converter_test' / 'LabelBox' / 'input' / 'toSuperAnnotate'
+    ) / 'converter_test' / 'LabelBox' / 'vector_annotations' / 'toSuperAnnotate'
     out_dir = Path(tmpdir) / project_name
     dataset_name = 'labelbox_example'
     sa.import_annotation(
@@ -46,7 +46,7 @@ def test_labelbox_convert_instance(tmpdir):
 
     input_dir = Path(
         'tests'
-    ) / 'converter_test' / 'LabelBox' / 'input' / 'toSuperAnnotate'
+    ) / 'converter_test' / 'LabelBox' / 'vector_annotations' / 'toSuperAnnotate'
     out_dir = Path(tmpdir) / project_name
     dataset_name = 'labelbox_example'
     sa.import_annotation(

@@ -1,10 +1,16 @@
+'''
+VOC to SA conversion method
+'''
+import logging
+import threading
 import cv2
 import numpy as np
-from tqdm import tqdm
 
-from ....common import write_to_json
-from ..sa_json_helper import _create_sa_json, _create_vector_instance
 from .voc_helper import _get_voc_instances_from_xml, _iou, _get_image_shape_from_xml
+from ..sa_json_helper import _create_sa_json, _create_vector_instance
+from ....common import write_to_json, tqdm_converter
+
+logger = logging.getLogger("superannotate-python-sdk")
 
 
 def _generate_polygons(object_mask_path):
@@ -79,9 +85,25 @@ def voc_instance_segmentation_to_sa_vector(voc_root, output_dir):
     classes = []
     object_masks_dir = voc_root / 'SegmentationObject'
     annotation_dir = voc_root / "Annotations"
+    file_list = list(object_masks_dir.glob('*'))
+    if not file_list:
+        logger.warning(
+            "You need to have both 'Annotations' and 'SegmentationObject' directories to be able to convert."
+        )
 
-    file_list = object_masks_dir.glob('*')
-    for filename in tqdm(file_list):
+    images_converted = []
+    images_not_converted = []
+    finish_event = threading.Event()
+    tqdm_thread = threading.Thread(
+        target=tqdm_converter,
+        args=(
+            len(file_list), images_converted, images_not_converted, finish_event
+        ),
+        daemon=True
+    )
+    logger.info('Converting to SuperAnnotate JSON format')
+    tqdm_thread.start()
+    for filename in file_list:
         polygon_instances = _generate_polygons(object_masks_dir / filename.name)
         voc_instances = _get_voc_instances_from_xml(
             annotation_dir / filename.name
@@ -98,6 +120,7 @@ def voc_instance_segmentation_to_sa_vector(voc_root, output_dir):
             )
             sa_instances.append(sa_obj)
 
+        images_converted.append(filename)
         file_name = "%s.jpg___objects.json" % filename.stem
         height, width = _get_image_shape_from_xml(
             annotation_dir / filename.name
@@ -105,14 +128,33 @@ def voc_instance_segmentation_to_sa_vector(voc_root, output_dir):
         sa_metadata = {'name': filename.stem, 'height': height, 'width': width}
         sa_json = _create_sa_json(sa_instances, sa_metadata)
         write_to_json(output_dir / file_name, sa_json)
+
+    finish_event.set()
+    tqdm_thread.join()
     return classes
 
 
 def voc_object_detection_to_sa_vector(voc_root, output_dir):
     classes = []
     annotation_dir = voc_root / "Annotations"
-    files_list = annotation_dir.glob('*')
-    for filename in tqdm(files_list):
+    file_list = list(annotation_dir.glob('*'))
+    if not file_list:
+        logger.warning("'Annotations' directory is empty")
+
+    images_converted = []
+    images_not_converted = []
+    finish_event = threading.Event()
+    tqdm_thread = threading.Thread(
+        target=tqdm_converter,
+        args=(
+            len(file_list), images_converted, images_not_converted, finish_event
+        ),
+        daemon=True
+    )
+    logger.info('Converting to SuperAnnotate JSON format')
+    tqdm_thread.start()
+
+    for filename in file_list:
         voc_instances = _get_voc_instances_from_xml(
             annotation_dir / filename.name
         )
@@ -127,6 +169,7 @@ def voc_object_detection_to_sa_vector(voc_root, output_dir):
             )
             sa_instances.append(sa_obj)
 
+        images_converted.append(filename)
         file_name = "%s.jpg___objects.json" % filename.stem
         height, width = _get_image_shape_from_xml(
             annotation_dir / filename.name
@@ -134,4 +177,7 @@ def voc_object_detection_to_sa_vector(voc_root, output_dir):
         sa_metadata = {'name': filename.stem, 'height': height, 'width': width}
         sa_json = _create_sa_json(sa_instances, sa_metadata)
         write_to_json(output_dir / file_name, sa_json)
+
+    finish_event.set()
+    tqdm_thread.join()
     return classes

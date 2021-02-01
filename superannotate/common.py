@@ -4,6 +4,7 @@ import logging
 import os
 import sys
 import time
+from tqdm import tqdm
 from pathlib import Path
 from enum import IntEnum
 import numpy as np
@@ -288,3 +289,15 @@ def process_api_response(data):
         return data
 
     return data['data']
+def tqdm_converter(
+    total_num, images_converted, images_not_converted, finish_event
+):
+    with tqdm(total=total_num) as pbar:
+        while True:
+            finished = finish_event.wait(5)
+            if not finished:
+                sum_all = len(images_converted) + len(images_not_converted)
+                pbar.update(sum_all - pbar.n)
+            else:
+                pbar.update(total_num - pbar.n)
+                break

@@ -100,5 +100,5 @@ def export_from_sa(args):
 
     image_set_failed = copy.deepcopy(converter.strategy.failed_conversion_cnt)
 
-    logger.info('Conversion completed successfully')
+    logger.info('Conversion completed')
     return image_set_failed
