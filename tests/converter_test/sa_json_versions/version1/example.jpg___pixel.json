@@ -1,0 +1,142 @@
+[
+    {
+        "type": "comment",
+        "x": 1195.72,
+        "y": 786.18,
+        "comments": [
+            {
+                "text": "test comment",
+                "id": "hasmik@superannotate.com"
+            }
+        ],
+        "resolved": false,
+        "createdAt": "2020-12-10T23:45:24.399Z",
+        "createdBy": {
+            "email": "hasmik@superannotate.com",
+            "role": "Admin"
+        },
+        "creationType": "Manual",
+        "updatedAt": "2020-12-10T23:45:29.377Z",
+        "updatedBy": {
+            "email": "hasmik@superannotate.com",
+            "role": "Admin"
+        }
+    },
+    {
+        "classId": 95138,
+        "probability": 100,
+        "visible": true,
+        "attributes": [],
+        "parts": [
+            {
+                "color": "#000177"
+            }
+        ],
+        "error": null,
+        "createdAt": "2020-12-10T23:44:45.101Z",
+        "createdBy": {
+            "email": "hasmik@superannotate.com",
+            "role": "Admin"
+        },
+        "creationType": "Manual",
+        "updatedAt": "2020-12-10T23:44:53.157Z",
+        "updatedBy": {
+            "email": "hasmik@superannotate.com",
+            "role": "Admin"
+        },
+        "className": "Class 4"
+    },
+    {
+        "classId": 95135,
+        "probability": 100,
+        "visible": true,
+        "attributes": [],
+        "parts": [
+            {
+                "color": "#00012c"
+            },
+            {
+                "color": "#00013b"
+            },
+            {
+                "color": "#00014a"
+            },
+            {
+                "color": "#000159"
+            }
+        ],
+        "error": null,
+        "createdAt": "2020-12-10T23:42:42.968Z",
+        "createdBy": {
+            "email": "hasmik@superannotate.com",
+            "role": "Admin"
+        },
+        "creationType": "Manual",
+        "updatedAt": "2020-12-10T23:43:21.142Z",
+        "updatedBy": {
+            "email": "hasmik@superannotate.com",
+            "role": "Admin"
+        },
+        "className": "Class 1"
+    },
+    {
+        "classId": 95136,
+        "probability": 100,
+        "visible": true,
+        "attributes": [],
+        "parts": [
+            {
+                "color": "#00010e"
+            }
+        ],
+        "error": null,
+        "createdAt": "2020-12-10T23:42:26.048Z",
+        "createdBy": {
+            "email": "hasmik@superannotate.com",
+            "role": "Admin"
+        },
+        "creationType": "Manual",
+        "updatedAt": "2020-12-10T23:43:22.718Z",
+        "updatedBy": {
+            "email": "hasmik@superannotate.com",
+            "role": "Admin"
+        },
+        "className": "Class 2"
+    },
+    {
+        "classId": 95137,
+        "probability": 100,
+        "visible": true,
+        "attributes": [],
+        "parts": [
+            {
+                "color": "#000168"
+            }
+        ],
+        "error": null,
+        "createdAt": "2020-12-10T23:43:27.335Z",
+        "createdBy": {
+            "email": "hasmik@superannotate.com",
+            "role": "Admin"
+        },
+        "creationType": "Manual",
+        "updatedAt": "2020-12-10T23:43:30.923Z",
+        "updatedBy": {
+            "email": "hasmik@superannotate.com",
+            "role": "Admin"
+        },
+        "className": "Class 3"
+    },
+    {
+        "type": "tag",
+        "name": "tag_1"
+    },
+    {
+        "type": "meta",
+        "name": "imageAttributes",
+        "width": 4579,
+        "height": 2526,
+        "status": "Completed",
+        "pinned": false
+    }
+]

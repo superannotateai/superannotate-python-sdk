@@ -1,5 +1,5 @@
 DEFAULT_HYPERPARAMETERS = {
-    "instance_type": "1xK80-12GB",
+    "instance_type": "1 x T4 16 GB",
     "num_epochs": 12,
     "dataset_split_ratio": 80,
     "base_lr": 0.02,

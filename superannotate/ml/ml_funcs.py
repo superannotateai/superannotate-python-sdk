@@ -48,10 +48,17 @@ def run_prediction(project, images_list, model):
             0,
             "smart prediction cannot be run on images from different projects simultaneously"
         )
+
+    model = model.get(project['type'], None)
+    if not model:
+        raise SABaseException(
+            0, f"Specified project has type {project['type']}, and does not correspond to the type of provided model"
+        )
     project_id = project["id"]
 
     images_metadata = get_image_metadata(project, images_list)
-
+    if isinstance(images_metadata, dict):
+        images_metadata = [images_metadata]
     images_metadata.sort(key=lambda x: x['name'])
 
     if len(images_metadata) == 0:
@@ -82,6 +89,7 @@ def run_prediction(project, images_list, model):
         raise SABaseException(0, "Could not start prediction")
 
     logger.info("Started smart prediction")
+
     total_image_count = len(image_name_set)
     succeded_imgs, failed_imgs = log_process(
         project, image_name_set, total_image_count, 'prediction_status',
@@ -103,12 +111,6 @@ def run_segmentation(project, images_list, model):
     :rtype res: tuple
     """
 
-    if not isinstance(project, dict):
-        raise SABaseException(
-            0,
-            "smart prediction cannot be run on images from different projects simultaneously"
-        )
-
     if project['type'] != 'Pixel':
         logger.error(
             f"Smart segmentation is supported only for 'Pixel' projects"
@@ -123,7 +125,8 @@ def run_segmentation(project, images_list, model):
         )
         raise SABaseException(0, "Model Does not exist")
 
-    images_metadata = get_image_metadata(project, image_names).sort(
+    images_metadata = get_image_metadata(project, images_list)
+    images_metadata.sort(
         key=lambda x: x["name"]
     )
 
@@ -138,8 +141,9 @@ def run_segmentation(project, images_list, model):
         )
 
     image_name_set = set([x['name'] for x in images_metadata])
-    image_id_list = [x['id'] for x in images_metadata]
+    images_id_list = [x['id'] for x in images_metadata]
 
+    total_image_count = len(image_name_set)
     json_req = {"model_name": model, "image_ids": images_id_list}
 
     params = {"team_id": _api.team_id, "project_id": project["id"]}
@@ -213,11 +217,15 @@ def run_training(
             raise SABaseException(0, "Invalid project types")
         project_type = types.pop()
 
-    if project_type != base_model["type"]:
+    base_model = base_model.get(project_type, None)
+    if not base_model:
         logger.error(
             "The base model has to be of the same type (vector or pixel) as the projects"
         )
-        raise SABaseException(0, "Invalid project and model types")
+        raise SABaseException(
+            0, f"The type of provided projects is {project_type}, and does not correspond to the type of provided model"
+        )
+
     for item in DEFAULT_HYPERPARAMETERS:
         if item not in hyperparameters:
             hyperparameters[item] = DEFAULT_HYPERPARAMETERS[item]
@@ -312,7 +320,7 @@ def run_training(
                 is_training_finished = True
 
         time.sleep(5)
-        return new_model
+    return new_model
 
 
 @model_metadata
@@ -361,7 +369,6 @@ def plot_model_metrics(metric_json_list):
         for sub_df in df:
             col_names = sub_df.columns.values.tolist()
             plottable_cols += [col_name for col_name in col_names if col_name not in plottable_cols and col_name not in NON_PLOTABLE_KEYS]
-        print(plottable_cols)
         return plottable_cols
 
     if not isinstance(metric_json_list, list):

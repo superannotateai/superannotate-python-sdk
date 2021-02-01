@@ -22,16 +22,13 @@ try:
     from .consensus_benchmark.benchmark import benchmark
     from .consensus_benchmark.consensus import consensus
 except:
+    _WARNING_SHAPELY = "To use superannotate.benchmark or superannotate.consensus functions please install shapely package in Anaconda enviornment with # conda install shapely"
 
     def benchmark(*args, **kwargs):
-        raise RuntimeError(
-            "To use superannotate.benchmark or superannotate.consensus functions please install shapely package with # conda install shapely or # pip install shapely"
-        )
+        raise RuntimeError(_WARNING_SHAPELY)
 
     def consensus(*args, **kwargs):
-        raise RuntimeError(
-            "To use superannotate.benchmark or superannotate.consensus functions please install shapely package with # conda install shapely or # pip install shapely"
-        )
+        raise RuntimeError(_WARNING_SHAPELY)
 
 
 from .dataframe_filtering import (
@@ -90,13 +87,14 @@ from .exceptions import (
 )
 from .input_converters.conversion import (
     coco_split_dataset, convert_project_type, export_annotation,
-    import_annotation
+    import_annotation, convert_json_version
 )
 from .ml.ml_funcs import (
     delete_model, download_model, plot_model_metrics, run_prediction,
     run_segmentation, run_training, stop_model_training
 )
 from .ml.ml_models import search_models
+
 from .old_to_new_format_convertor import update_json_format
 from .version import __version__
 

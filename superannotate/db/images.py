@@ -161,8 +161,6 @@ def get_image_metadata(project, image_names):
     metadata = response.json()
     if len(metadata) == 1:
         return metadata[0]
-    elif len(metadata) == 0:
-        raise SABaseException(0, "Image " + image_name + " doesn't exist.")
     return metadata
 
 
@@ -778,13 +776,17 @@ def get_image_annotations(project, image_name, project_type=None):
             raise SABaseException(response.status_code, response.text)
         res_json = response.json()
         fill_class_and_attribute_names(res_json, annotation_classes_dict)
-        url = res["pixelSave"]["url"]
-        annotation_mask_filename = url.rsplit('/', 1)[-1]
-        headers = res["pixelSave"]["headers"]
-        response = requests.get(url=url, headers=headers)
-        if not response.ok:
-            raise SABaseException(response.status_code, response.text)
-        mask = io.BytesIO(response.content)
+        if len(res_json["instances"]) != 0:
+            url = res["pixelSave"]["url"]
+            annotation_mask_filename = url.rsplit('/', 1)[-1]
+            headers = res["pixelSave"]["headers"]
+            response = requests.get(url=url, headers=headers)
+            if not response.ok:
+                raise SABaseException(response.status_code, response.text)
+            mask = io.BytesIO(response.content)
+        else:
+            mask = None
+            annotation_mask_filename = None
         return {
             "annotation_json": res_json,
             "annotation_json_filename": annotation_json_filename,
@@ -825,11 +827,14 @@ def download_image_annotations(project, image_name, local_dir_path):
     else:
         with open(json_path, "w") as f:
             json.dump(annotation["annotation_json"], f, indent=4)
-        mask_path = Path(local_dir_path
-                        ) / annotation["annotation_mask_filename"]
+        if annotation["annotation_mask_filename"] is not None:
+            mask_path = Path(local_dir_path
+                            ) / annotation["annotation_mask_filename"]
+            with open(mask_path, "wb") as f:
+                f.write(annotation["annotation_mask"].getbuffer())
+        else:
+            mask_path = None
         return_filepaths.append(str(mask_path))
-        with open(mask_path, "wb") as f:
-            f.write(annotation["annotation_mask"].getbuffer())
 
     return tuple(return_filepaths)
 

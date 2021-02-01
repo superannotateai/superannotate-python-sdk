@@ -55,7 +55,8 @@ def make_plotly_specs(num_rows):
 
 def get_images_prediction_segmentation_status(project, image_names, task):
     metadata = get_image_metadata(project,image_names)
-
+    if isinstance(metadata, dict):
+        metadata = [metadata]
     success_names = [x['name'] for x in metadata if x[task] == PredictionSegmentationStatuses.Completed]
     failure_names = [x['name'] for x in metadata if x[task] == PredictionSegmentationStatuses.Failed]
     return success_names, failure_names

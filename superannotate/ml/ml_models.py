@@ -1,7 +1,7 @@
 from ..common import process_api_response
 from ..exceptions import SABaseException
 from ..api import API
-
+from ..common import project_type_int_to_str
 import logging
 
 
@@ -33,6 +33,8 @@ def search_models(
         raise SABaseException(0, "could not search models")
     result = process_api_response(response.json())
 
+    for model in result['data']:
+        model['type'] = project_type_int_to_str(model['type'])
     if not result['data']:
         raise SABaseException(0, "Model with such a name does not exist")
     return result['data']
