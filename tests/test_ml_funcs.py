@@ -1,8 +1,12 @@
+import os
+from pathlib import Path
+
+import pytest
+
 import superannotate as sa
 from superannotate.exceptions import SABaseException
-from pathlib import Path
+
 from .common import upload_project
-import pytest
 
 sa.init(Path.home() / ".superannotate" / "config.json")
 PROJECT_NAME_VECTOR = 'ML Functionality Test Vector'
