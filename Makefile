@@ -1,5 +1,7 @@
 .PHONY: clean tests stress-tests test_coverage install lint docs dist check_formatting
 
+MAKEFLAGS += -j1
+
 PYTHON=python3
 PYLINT=pylint
 PYTESTS=pytest
