@@ -132,6 +132,7 @@ def search_images(
     else:
         return result_list
 
+
 @project_metadata
 def get_image_metadata(project, image_names):
     """Returns image metadata
@@ -148,14 +149,14 @@ def get_image_metadata(project, image_names):
         image_names = [image_names]
 
     json_req = {
-        'project_id' : project['id'],
-        'team_id' : _api.team_id,
-        'names' : image_names
+        'project_id': project['id'],
+        'team_id': _api.team_id,
+        'names': image_names
     }
-    response =_api.send_request(
+    response = _api.send_request(
         req_type='POST',
-        path = '/images/getBulk',
-        json_req = json_req,
+        path='/images/getBulk',
+        json_req=json_req,
     )
 
     metadata = response.json()

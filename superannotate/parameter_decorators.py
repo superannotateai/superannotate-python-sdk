@@ -37,7 +37,8 @@ def project_metadata(func):
             if current_chosen_type is str:
                 for idx, item in enumerate(new_kwargs['project']):
                     new_kwargs['project'][idx] = get_project_metadata_bare(
-                        item, include_complete_image_count=include_complete_image_count
+                        item,
+                        include_complete_image_count=include_complete_image_count
                     )
             elif current_chosen_type is not dict:
                 raise SABaseException(
@@ -86,8 +87,11 @@ def model_metadata(func):
                     0,
                     f"The specifed model does not exist. Available models are {list(all_models_name_map.keys())}"
                 )
-            elif (func.__name__ == 'run_prediction' or func.__name__ == 'run_training'):
-                new_model_arg = {x['type']:x for x in all_models}
+            elif (
+                func.__name__ == 'run_prediction' or
+                func.__name__ == 'run_training'
+            ):
+                new_model_arg = {x['type']: x for x in all_models}
             elif len(all_models) == 2:
                 raise SABaseException(
                     0,

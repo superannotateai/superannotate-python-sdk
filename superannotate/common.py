@@ -33,11 +33,13 @@ _MODEL_TRAINING_STATUSES = {
     "FailedAfterEvaluationWithSavedModel": 6
 }
 
+
 class PredictionSegmentationStatuses(IntEnum):
     NotStarted = 1
     InProgress = 2
     Completed = 3
     Failed = 4
+
 
 def model_training_status_int_to_str(project_status):
     for item in _MODEL_TRAINING_STATUSES:
@@ -289,6 +291,8 @@ def process_api_response(data):
         return data
 
     return data['data']
+
+
 def tqdm_converter(
     total_num, images_converted, images_not_converted, finish_event
 ):

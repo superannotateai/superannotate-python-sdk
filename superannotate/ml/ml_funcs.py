@@ -52,7 +52,8 @@ def run_prediction(project, images_list, model):
     model = model.get(project['type'], None)
     if not model:
         raise SABaseException(
-            0, f"Specified project has type {project['type']}, and does not correspond to the type of provided model"
+            0,
+            f"Specified project has type {project['type']}, and does not correspond to the type of provided model"
         )
     project_id = project["id"]
 
@@ -126,9 +127,7 @@ def run_segmentation(project, images_list, model):
         raise SABaseException(0, "Model Does not exist")
 
     images_metadata = get_image_metadata(project, images_list)
-    images_metadata.sort(
-        key=lambda x: x["name"]
-    )
+    images_metadata.sort(key=lambda x: x["name"])
 
     if len(images_metadata) == 0:
         raise SABaseException(0, "No valid image names were provided")
@@ -223,7 +222,8 @@ def run_training(
             "The base model has to be of the same type (vector or pixel) as the projects"
         )
         raise SABaseException(
-            0, f"The type of provided projects is {project_type}, and does not correspond to the type of provided model"
+            0,
+            f"The type of provided projects is {project_type}, and does not correspond to the type of provided model"
         )
 
     for item in DEFAULT_HYPERPARAMETERS:
@@ -368,7 +368,11 @@ def plot_model_metrics(metric_json_list):
         plottable_cols = []
         for sub_df in df:
             col_names = sub_df.columns.values.tolist()
-            plottable_cols += [col_name for col_name in col_names if col_name not in plottable_cols and col_name not in NON_PLOTABLE_KEYS]
+            plottable_cols += [
+                col_name
+                for col_name in col_names if col_name not in plottable_cols and
+                col_name not in NON_PLOTABLE_KEYS
+            ]
         return plottable_cols
 
     if not isinstance(metric_json_list, list):
@@ -399,11 +403,14 @@ def plot_model_metrics(metric_json_list):
         specs=figure_specs,
         subplot_titles=plottable_cols,
     )
-    figure.update_layout(height=1000* num_rows)
+    figure.update_layout(height=1000 * num_rows)
     models = [os.path.basename(x).split('.')[0] for x in metric_json_list]
 
     plot_df(full_c_metrics, plottable_c_cols, figure)
-    plot_df(full_pe_metrics, plottable_pe_cols, figure, len(plottable_c_cols) + 1)
+    plot_df(
+        full_pe_metrics, plottable_pe_cols, figure,
+        len(plottable_c_cols) + 1
+    )
     figure.show()
 
 
