@@ -4,7 +4,7 @@ from pathlib import Path
 from .common import upload_project
 import pytest
 
-sa.init('./config.json')
+sa.init(Path.home() / ".superannotate" / "config.json")
 PROJECT_NAME_VECTOR = 'ML Functionality Test Vector'
 PROJECT_NAME_PIXEL = 'ML Functionality Test Pixel'
 PROJECT_DESCRIPTION = 'testing ml functionality through SDK'
