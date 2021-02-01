@@ -123,6 +123,11 @@ class API:
             )
         url = self._main_endpoint + path
 
+        if params is not None:
+            for key, value in params.items():
+                if isinstance(value, str):
+                    params[key] = value.replace("\\", "\\\\")
+
         req = requests.Request(
             method=req_type, url=url, json=json_req, params=params
         )
