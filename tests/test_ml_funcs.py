@@ -4,6 +4,7 @@ from pathlib import Path
 from .common import upload_project
 import pytest
 
+
 sa.init(Path.home() / ".superannotate" / "config.json")
 PROJECT_NAME_VECTOR = 'ML Functionality Test Vector'
 PROJECT_NAME_PIXEL = 'ML Functionality Test Pixel'
@@ -13,6 +14,10 @@ PROJECT_PATH_VECTOR = "./tests/sample_project_vector_for_ml_functionality"
 
 MODEL_NAME = 'Instance segmentation (trained on COCO)'
 
+@pytest.mark.skipif(
+    "SA_STRESS_TESTS" not in os.environ,
+    reason="Requires env variable to be set"
+)
 def test_run_prediction():
 
     upload_project(
@@ -51,6 +56,10 @@ def test_run_prediction():
 
 
 
+@pytest.mark.skipif(
+    "SA_STRESS_TESTS" not in os.environ,
+    reason="Requires env variable to be set"
+)
 def test_run_segmentation():
 
     model_auto = 'autonomous'
