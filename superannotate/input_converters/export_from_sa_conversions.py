@@ -3,10 +3,8 @@ Module which will convert from
 superannotate annotation format to other annotation formats
 """
 import copy
-import glob
 import json
 import logging
-import os
 import shutil
 
 from pathlib import Path
@@ -18,31 +16,28 @@ from .converters.converters import Converter
 logger = logging.getLogger("superannotate-python-sdk")
 
 
-def _load_files(path_to_imgs, task, ptype):
+def _load_files(path_to_imgs, ptype):
     suffix = None
     if ptype == "Pixel":
         suffix = '___pixel.json'
     else:
         suffix = '___objects.json'
 
-    orig_images = glob.glob(os.path.join(path_to_imgs, '*'))
-    orig_images = [
-        x for x in orig_images if not os.path.isdir(x) and
-        '___' not in x.split('.')[-2] and "mapper.json" not in x
-    ]
+    orig_images = path_to_imgs.glob(('*' + suffix))
+    orig_images = [str(x).replace(suffix, '') for x in orig_images]
     all_files = None
-    if task == 'keypoint_detection':
-        all_files = np.array([(fname, fname + suffix) for fname in orig_images])
 
-    elif ptype == 'Pixel':
+    if ptype == 'Pixel':
         all_files = np.array(
             [
-                (fname, fname + suffix, fname + '___save.png')
+                (str(fname), str(fname) + suffix, str(fname) + '___save.png')
                 for fname in orig_images
             ]
         )
     elif ptype == 'Vector':
-        all_files = np.array([(fname, fname + suffix) for fname in orig_images])
+        all_files = np.array(
+            [(str(fname), str(fname) + suffix) for fname in orig_images]
+        )
 
     return all_files
 
@@ -60,8 +55,8 @@ def _move_files(data_set, src):
 def _create_classes_mapper(imgs, classes_json):
     classes = {}
     j_data = json.load(open(classes_json))
-    for i, instance in enumerate(j_data):
-        classes[instance['name']] = i + 1
+    for instance in j_data:
+        classes[instance['name']] = instance['id']
 
     with open(imgs / 'image_set' / 'classes_mapper.json', 'w') as fp:
         json.dump(classes, fp)
@@ -83,7 +78,7 @@ def export_from_sa(args):
     except Exception as e:
         _create_classes_mapper(args.input_dir, args.output_dir)
 
-    data_set = _load_files(args.input_dir, args.task, args.project_type)
+    data_set = _load_files(args.input_dir, args.project_type)
     _move_files(data_set, args.output_dir)
 
     args.__dict__.update(

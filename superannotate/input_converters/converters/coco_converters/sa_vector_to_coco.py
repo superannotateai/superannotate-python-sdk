@@ -1,7 +1,6 @@
 '''
 SA to COCO conversion methods
 '''
-import json
 import logging
 import threading
 
@@ -13,13 +12,12 @@ logger = logging.getLogger("superannotate-python-sdk")
 
 
 def sa_vector_to_coco_object_detection(
-    make_annotation, image_commons, id_generator, cat_id_map
+    make_annotation, image_commons, instances, id_generator
 ):
     annotations_per_image = []
     image_info = image_commons.image_info
-    sa_ann_json = image_commons.sa_ann_json
 
-    for instance in sa_ann_json:
+    for instance in instances:
         if instance['type'] != 'bbox':
             logger.warning(
                 "Skipping '%s' type convertion during object_detection task",
@@ -28,43 +26,34 @@ def sa_vector_to_coco_object_detection(
             continue
 
         anno_id = next(id_generator)
-        try:
-            if 'className' in instance and instance['className'] in cat_id_map:
-                category_id = cat_id_map[instance['className']]
-            else:
-                category_id = instance['classId']
+        category_id = instance['classId']
+        points = instance['points']
+        for key in points:
+            points[key] = round(points[key], 2)
+        bbox = (
+            points['x1'], points['y1'], points['x2'] - points['x1'],
+            points['y2'] - points['y1']
+        )
+        polygons = bbox
+        area = int((points['x2'] - points['x1']) * points['y2'] - points['y1'])
 
-            points = instance['points']
-            for key in points:
-                points[key] = round(points[key], 2)
-            bbox = (
-                points['x1'], points['y1'], points['x2'] - points['x1'],
-                points['y2'] - points['y1']
-            )
-            polygons = bbox
-            area = int(
-                (points['x2'] - points['x1']) * points['y2'] - points['y1']
-            )
-
-            annotation = make_annotation(
-                category_id, image_info['id'], bbox, polygons, area, anno_id
-            )
-            annotations_per_image.append(annotation)
-        except Exception as e:
-            print(e)
+        annotation = make_annotation(
+            category_id, image_info['id'], bbox, polygons, area, anno_id
+        )
+        annotations_per_image.append(annotation)
 
     return image_info, annotations_per_image
 
 
 def sa_vector_to_coco_instance_segmentation(
-    make_annotation, image_commons, id_generator, cat_id_map
+    make_annotation, image_commons, instances, id_generator
 ):
     annotations_per_image = []
     grouped_polygons = {}
 
     image_info = image_commons.image_info
-    sa_ann_json = image_commons.sa_ann_json
-    for instance in sa_ann_json:
+    id_ = -1
+    for instance in instances:
         if instance['type'] != 'polygon':
             logger.warning(
                 "Skipping '%s' type convertion during object_detection task",
@@ -72,12 +61,16 @@ def sa_vector_to_coco_instance_segmentation(
             )
             continue
 
-        group_id = instance['groupId']
-        if 'className' in instance and instance['className'] in cat_id_map:
-            category_id = cat_id_map[instance['className']]
-        else:
-            category_id = instance['classId']
+        if instance['classId'] < 0:
+            continue
 
+        group_id = instance['groupId']
+
+        if group_id == 0:
+            group_id += id_
+            id_ -= 1
+
+        category_id = instance['classId']
         points = [round(point, 2) for point in instance['points']]
         grouped_polygons.setdefault(group_id, {}).setdefault(category_id,
                                                              []).append(points)
@@ -85,26 +78,22 @@ def sa_vector_to_coco_instance_segmentation(
     for polygon_group in grouped_polygons.values():
         for cat_id, polygons in polygon_group.items():
             anno_id = next(id_generator)
-            try:
-                masks = _polytoMask(
-                    polygons, image_info['height'], image_info['width']
-                )
-                mask = _merge(masks)
-                area = int(_area(mask))
-                bbox = list(_toBbox(mask))
-
-                annotation = make_annotation(
-                    cat_id, image_info['id'], bbox, polygons, area, anno_id
-                )
-                annotations_per_image.append(annotation)
-            except Exception as e:
-                print(e)
+            masks = _polytoMask(
+                polygons, image_info['height'], image_info['width']
+            )
+            mask = _merge(masks)
+            area = int(_area(mask))
+            bbox = list(_toBbox(mask))
+            annotation = make_annotation(
+                cat_id, image_info['id'], bbox, polygons, area, anno_id
+            )
+            annotations_per_image.append(annotation)
     return (image_info, annotations_per_image)
 
 
 def sa_vector_to_coco_keypoint_detection(
-    json_paths, id_generator, id_generator_anno, id_generator_img,
-    make_image_info
+    jsons, id_generator, id_generator_anno, id_generator_img, make_image_info,
+    total_num
 ):
     def __make_skeleton(template):
         res = [
@@ -132,11 +121,6 @@ def sa_vector_to_coco_keypoint_detection(
             int(max(xs)) - int(min(xs)),
             int(max(ys)) - int(min(ys))
         ]
-
-    def __load_one_json(path_):
-        with open(path_) as fp:
-            data = json.load(fp)
-        return data
 
     def __make_annotations(template, id_generator, cat_id, image_id):
         keypoints = []
@@ -167,22 +151,18 @@ def sa_vector_to_coco_keypoint_detection(
     finish_event = threading.Event()
     tqdm_thread = threading.Thread(
         target=tqdm_converter,
-        args=(
-            len(json_paths), images_converted, images_not_converted,
-            finish_event
-        ),
+        args=(total_num, images_converted, images_not_converted, finish_event),
         daemon=True
     )
     logger.info('Converting to COCO JSON format')
     tqdm_thread.start()
-    for path_ in json_paths:
-        json_data = __load_one_json(path_)['instances']
-
+    for json_ in jsons:
+        json_data = json_['instances']
         for instance in json_data:
             if instance['type'] == 'template' and 'templateId' not in instance:
                 logger.warning(
                     'There was a template with no "templateName". \
-                                This can happen if the template was deleted from superannotate.com. Ignoring this annotation'
+    This can happen if the template was deleted from superannotate.com. Ignoring this annotation'
                 )
                 continue
 
@@ -224,7 +204,10 @@ def sa_vector_to_coco_keypoint_detection(
             }
             categories.append(category_item)
         image_id = next(id_generator_img)
-        image_info = make_image_info(path_, image_id, 'Vector')
+        image_info = make_image_info(
+            json_['metadata']['name'], json_['metadata']['height'],
+            json_['metadata']['width'], image_id
+        )
         images.append(image_info)
 
         for instance in json_data:
@@ -238,7 +221,7 @@ def sa_vector_to_coco_keypoint_detection(
                     instance, id_generator_anno, cat_id, image_info['id']
                 )
                 annotations.append(annotation)
-        images_converted.append(path_)
+        images_converted.append(json_data)
     finish_event.set()
     tqdm_thread.join()
     return (categories, annotations, images)

@@ -4,19 +4,15 @@ import numpy as np
 from .coco_api import _area, _toBbox
 
 
-def __instance_object_commons_per_instance(
-    instance, id_generator, image_commons, cat_id_map
-):
+def __instance_object_commons_per_instance(instance, id_generator, flat_mask):
     if "parts" not in instance:
         return None
+
     anno_id = next(id_generator)
     parts = [int(part["color"][1:], 16) for part in instance["parts"]]
+    category_id = instance['classId']
 
-    if instance['className'] in cat_id_map:
-        category_id = cat_id_map[instance['className']]
-    else:
-        category_id = instance['classId']
-    instance_bitmask = np.isin(image_commons.flat_mask, parts)
+    instance_bitmask = np.isin(flat_mask, parts)
 
     databytes = instance_bitmask * np.uint8(255)
     contours, _ = cv.findContours(
@@ -27,66 +23,55 @@ def __instance_object_commons_per_instance(
     return (bbox, area, contours, category_id, anno_id)
 
 
-def instance_object_commons(image_commons, id_generator, cat_id_map):
-    sa_ann_json = image_commons.sa_ann_json
+def instance_object_commons(instances, id_generator, flat_mask):
     commons_lst = [
-        __instance_object_commons_per_instance(
-            x, id_generator, image_commons, cat_id_map
-        ) for x in sa_ann_json
+        __instance_object_commons_per_instance(x, id_generator, flat_mask)
+        for x in instances
     ]
+    commons_lst = [x for x in commons_lst if x is not None]
     return commons_lst
 
 
 def sa_pixel_to_coco_instance_segmentation(
-    make_annotation, image_commons, id_generator, cat_id_map
+    make_annotation, image_commons, instances, id_generator
 ):
     commons_lst = instance_object_commons(
-        image_commons, id_generator, cat_id_map
+        instances, id_generator, image_commons.flat_mask
     )
     image_info = image_commons.image_info
     annotations_per_image = []
     for common in commons_lst:
-        if common is None:
-            continue
         bbox, area, contours, category_id, anno_id = common
-        if category_id < 0:
-            continue
         segmentation = [
             contour.flatten().tolist()
             for contour in contours if len(contour.flatten().tolist()) >= 5
         ]
 
-        annotations_per_image.append(
-            make_annotation(
-                category_id, image_info['id'], bbox, segmentation, area, anno_id
+        if segmentation != []:
+            annotations_per_image.append(
+                make_annotation(
+                    category_id, image_info['id'], bbox, segmentation, area,
+                    anno_id
+                )
             )
-        )
 
     return (image_info, annotations_per_image)
 
 
 def sa_pixel_to_coco_panoptic_segmentation(
-    image_commons, id_generator, cat_id_map
+    image_commons, instnaces, id_generator
 ):
-
-    sa_ann_json = image_commons.sa_ann_json
     flat_mask = image_commons.flat_mask
     ann_mask = image_commons.ann_mask
 
     segments_info = []
 
-    for instance in sa_ann_json:
-
+    for instance in instnaces:
         if 'parts' not in instance:
             continue
 
         parts = [int(part['color'][1:], 16) for part in instance['parts']]
-
-        if instance['className'] in cat_id_map:
-            category_id = cat_id_map[instance['className']]
-        else:
-            category_id = instance['classId']
-
+        category_id = instance['classId']
         instance_bitmask = np.isin(flat_mask, parts)
         segment_id = next(id_generator)
         ann_mask[instance_bitmask] = segment_id
