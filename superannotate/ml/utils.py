@@ -61,14 +61,8 @@ def get_images_prediction_segmentation_status(project, image_names, task):
     if isinstance(metadata, dict):
         metadata = [metadata]
 
-    success_names = [
-        x['name']
-        for x in metadata if x[task] == 'Completed'
-    ]
-    failure_names = [
-        x['name']
-        for x in metadata if x[task] == 'Failed'
-    ]
+    success_names = [x['name'] for x in metadata if x[task] == 'Completed']
+    failure_names = [x['name'] for x in metadata if x[task] == 'Failed']
     return success_names, failure_names
 
 
