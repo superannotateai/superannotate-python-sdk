@@ -160,6 +160,11 @@ def get_image_metadata(project, image_names):
     )
 
     metadata = response.json()
+    if len(metadata) == 0:
+        raise SABaseException(
+            0,
+            f"None of the images in {image_names} exist in the provided project"
+        )
     for item in metadata:
         item['annotation_status'] = common.annotation_status_int_to_str(
             item['annotation_status']
