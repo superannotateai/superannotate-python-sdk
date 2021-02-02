@@ -68,14 +68,12 @@ def model_metadata(func):
             model_keyword = 'model'
         else:
             model_keyword = 'base_model'
-
-        new_model_arg = None
+        new_model_arg = new_kwargs[model_keyword]
         if isinstance(new_kwargs[model_keyword], str):
 
             all_models = search_models(
                 include_global=True, name=new_kwargs[model_keyword]
             )
-
             if len(all_models) > 2:
                 raise SABaseException(
                     0,

@@ -19,7 +19,7 @@ MODEL_NAME = 'Instance segmentation (trained on COCO)'
 
 
 @pytest.mark.skipif(
-    "SA_STRESS_TESTS" not in os.environ,
+    "SA_ML_FUNCTIONALITY" not in os.environ,
     reason="Requires env variable to be set"
 )
 def test_run_prediction():
@@ -77,7 +77,7 @@ def test_run_prediction():
 
 
 @pytest.mark.skipif(
-    "SA_STRESS_TESTS" not in os.environ,
+    "SA_ML_FUNCTIONALITY" not in os.environ,
     reason="Requires env variable to be set"
 )
 def test_run_segmentation():
@@ -127,5 +127,7 @@ def test_download_model(tmpdir):
 
     ml_model = sa.search_models(include_global=True)[0]
     Path.rmdir(Path(tmpdir) / './export')
-    assert (sa.download_model(ml_model, './export') == True)
-    assert (sa.download_model(ml_model['name'], './export') == True)
+    model = sa.download_model(ml_model, './export')
+    assert model['name']
+    model = sa.download_model(ml_model['name'], './export')
+    assert model['name']
