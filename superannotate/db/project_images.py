@@ -181,6 +181,7 @@ def copy_image(
             else:
                 new_name = new_name[:m.start() +
                                     2] + str(num + 1) + ")" + extension
+
     upload_image_to_project(destination_project, img_b, new_name)
     if include_annotations:
         annotations = get_image_annotations(source_project, image_name)

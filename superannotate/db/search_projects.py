@@ -2,12 +2,14 @@ import logging
 
 from ..api import API
 from ..exceptions import (SABaseException)
-
+from ..common import process_api_response
 logger = logging.getLogger("superannotate-python-sdk")
 _api = API.get_instance()
 
 
-def search_projects(name=None, return_metadata=False):
+def search_projects(
+    name=None, return_metadata=False, include_complete_image_count=False
+):
     """Project name based case-insensitive search for projects.
     If **name** is None, all the projects will be returned.
 
@@ -20,7 +22,11 @@ def search_projects(name=None, return_metadata=False):
     :rtype: list of strs or dicts
     """
     result_list = []
-    params = {'team_id': str(_api.team_id), 'offset': 0}
+    params = {
+        'team_id': str(_api.team_id),
+        'offset': 0,
+        'completeImagesCount': include_complete_image_count
+    }
     if name is not None:
         params['name'] = name
     while True:
@@ -28,9 +34,9 @@ def search_projects(name=None, return_metadata=False):
             req_type='GET', path='/projects', params=params
         )
         if response.ok:
-            new_results = response.json()
+            new_results = process_api_response(response.json())
             result_list += new_results["data"]
-            if response.json()["count"] <= len(result_list):
+            if new_results["count"] <= len(result_list):
                 break
             params["offset"] = len(result_list)
         else:

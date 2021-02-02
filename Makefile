@@ -1,12 +1,14 @@
 .PHONY: clean tests stress-tests test_coverage install lint docs dist check_formatting
 
+MAKEFLAGS += -j1
+
 PYTHON=python3
 PYLINT=pylint
 PYTESTS=pytest
 COVERAGE=coverage
 
 tests: check_formatting docs
-	$(PYTESTS) -n auto tests
+	$(PYTESTS) -n 8 --full-trace tests
 
 stress-tests: SA_STRESS_TESTS=1
 stress-tests: tests

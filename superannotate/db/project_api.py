@@ -12,7 +12,7 @@ logger = logging.getLogger("superannotate-python-sdk")
 _api = API.get_instance()
 
 
-def get_project_metadata_bare(project_name):
+def get_project_metadata_bare(project_name, include_complete_image_count=False):
     """Returns project metadata
 
     :param project_name: project name
@@ -21,7 +21,11 @@ def get_project_metadata_bare(project_name):
     :return: metadata of project
     :rtype: dict
     """
-    projects = search_projects(project_name, return_metadata=True)
+    projects = search_projects(
+        project_name,
+        return_metadata=True,
+        include_complete_image_count=include_complete_image_count
+    )
     results = []
     for project in projects:
         if project["name"] == project_name:

@@ -6,13 +6,14 @@ import sys
 import time
 from tqdm import tqdm
 from pathlib import Path
-
+from enum import IntEnum
 import numpy as np
 from PIL import Image
 
 logger = logging.getLogger("superannotate-python-sdk")
 
 _PROJECT_TYPES = {"Vector": 1, "Pixel": 2}
+
 _ANNOTATION_STATUSES = {
     "NotStarted": 1,
     "InProgress": 2,
@@ -22,6 +23,44 @@ _ANNOTATION_STATUSES = {
     "Skipped": 6
 }
 _USER_ROLES = {"Admin": 2, "Annotator": 3, "QA": 4, "Customer": 5, "Viewer": 6}
+_AVAILABLE_SEGMENTATION_MODELS = ['autonomous', 'generic']
+_MODEL_TRAINING_STATUSES = {
+    "NotStarted": 1,
+    "InProgress": 2,
+    "Completed": 3,
+    "FailedBeforeEvaluation": 4,
+    "FailedAfterEvaluation": 5,
+    "FailedAfterEvaluationWithSavedModel": 6
+}
+
+_PREDICTION_SEGMENTATION_STATUSES = {
+    "NotStarted": 1,
+    "InProgress": 2,
+    "Completed": 3,
+    "Failed": 4
+}
+
+
+def prediction_segmentation_status_from_str_to_int(status):
+    return _PREDICTION_SEGMENTATION_STATUSES[status]
+
+
+def prediction_segmentation_status_from_int_to_str(status):
+    for idx, item in _PREDICTION_SEGMENTATION_STATUSES.items():
+        if item == status:
+            return idx
+    raise RuntimeError("NA segmentation/prediction status")
+
+
+def model_training_status_int_to_str(project_status):
+    for item in _MODEL_TRAINING_STATUSES:
+        if _MODEL_TRAINING_STATUSES[item] == project_status:
+            return item
+    raise RuntimeError("NA training status")
+
+
+def model_training_status_str_to_int(project_status):
+    return _MODEL_TRAINING_STATUSES[project_status]
 
 
 def image_path_to_annotation_paths(image_path, project_type):
@@ -255,6 +294,14 @@ MAX_IMAGE_RESOLUTION = {
     "Vector": 100_000_000,
     "Pixel": 4_000_000
 }  # Resolution limit
+
+
+def process_api_response(data):
+    logger.info("Maintenance operations are being performed")
+    if 'metadata' not in data:
+        return data
+
+    return data['data']
 
 
 def tqdm_converter(

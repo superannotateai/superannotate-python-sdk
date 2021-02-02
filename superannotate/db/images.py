@@ -24,6 +24,8 @@ from .annotation_classes import (
     search_annotation_classes
 )
 from .project_api import get_project_metadata_bare
+from ..common import process_api_response
+from ..parameter_decorators import project_metadata
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -43,7 +45,10 @@ def _get_project_root_folder_id(project):
     )
     if not response.ok:
         raise SABaseException(response.status_code, response.text)
-    return response.json()['folder_id']
+
+    response = process_api_response(response.json())
+
+    return response['folder_id']
 
 
 def search_images(
@@ -94,14 +99,16 @@ def search_images(
         )
         if response.ok:
             # print(response.json())
-            results = response.json()["data"]
+            response = process_api_response(response.json())
+            results = response["data"]
             total_got += len(results)
             for r in results:
                 if return_metadata:
                     result_list.append(r)
                 else:
                     result_list.append(r["name"])
-            if response.json()["count"] <= total_got:
+
+            if response["count"] <= total_got:
                 break
             params["offset"] = total_got
             # print(
@@ -126,7 +133,8 @@ def search_images(
         return result_list
 
 
-def get_image_metadata(project, image_name):
+@project_metadata
+def get_image_metadata(project, image_names):
     """Returns image metadata
 
     :param project: project name or metadata of the project
@@ -137,11 +145,42 @@ def get_image_metadata(project, image_name):
     :return: metadata of image
     :rtype: dict
     """
-    images = search_images(project, image_name, return_metadata=True)
-    for image in images:
-        if image["name"] == image_name:
-            return image
-    raise SABaseException(0, "Image " + image_name + " doesn't exist.")
+    if isinstance(image_names, str):
+        image_names = [image_names]
+
+    json_req = {
+        'project_id': project['id'],
+        'team_id': _api.team_id,
+        'names': image_names
+    }
+    response = _api.send_request(
+        req_type='POST',
+        path='/images/getBulk',
+        json_req=json_req,
+    )
+
+    metadata = response.json()
+    if len(metadata) == 0:
+        raise SABaseException(
+            0,
+            f"None of the images in {image_names} exist in the provided project"
+        )
+    for item in metadata:
+        item['annotation_status'] = common.annotation_status_int_to_str(
+            item['annotation_status']
+        )
+        item['prediction_status'
+            ] = common.prediction_segmentation_status_from_int_to_str(
+                item['prediction_status']
+            )
+        item['segmentation_status'
+            ] = common.prediction_segmentation_status_from_int_to_str(
+                item['segmentation_status']
+            )
+
+    if len(metadata) == 1:
+        return metadata[0]
+    return metadata
 
 
 def set_image_annotation_status(project, image_name, annotation_status):
@@ -174,7 +213,10 @@ def set_image_annotation_status(project, image_name, annotation_status):
     )
     if not response.ok:
         raise SABaseException(response.status_code, response.text)
-    return response.json()
+
+    response = process_api_response(response.json())
+
+    return response
 
 
 def add_annotation_comment_to_image(

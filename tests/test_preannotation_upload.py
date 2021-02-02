@@ -7,7 +7,6 @@ import pytest
 import superannotate as sa
 
 
-
 @pytest.mark.parametrize(
     "project_type,name,description,from_folder", [
         (
