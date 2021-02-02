@@ -33,13 +33,21 @@ _MODEL_TRAINING_STATUSES = {
     "FailedAfterEvaluationWithSavedModel": 6
 }
 
+_PREDICTION_SEGMENTATION_STATUSES = {
+    "NotStarted": 1,
+    "InProgress": 2,
+    "Completed": 3,
+    "Failed": 4
+}
 
-class PredictionSegmentationStatuses(IntEnum):
-    NotStarted = 1
-    InProgress = 2
-    Completed = 3
-    Failed = 4
+def prediction_segmentation_status_from_str_to_int(status):
+    return _PREDICTION_SEGMENTATION_STATUSES[status]
 
+def prediction_segmentation_status_from_int_to_str(status):
+    for idx, item in _PREDICTION_SEGMENTATION_STATUSES.items():
+        if item == status:
+            return idx
+    raise RuntimeError("NA segmentation/prediction status")
 
 def model_training_status_int_to_str(project_status):
     for item in _MODEL_TRAINING_STATUSES:

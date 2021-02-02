@@ -160,6 +160,11 @@ def get_image_metadata(project, image_names):
     )
 
     metadata = response.json()
+    for item in metadata:
+        item['annotation_status'] = common.annotation_status_int_to_str(item['annotation_status'])
+        item['prediction_status'] = common.prediction_segmentation_status_from_int_to_str(item['prediction_status'])
+        item['segmentation_status'] = common.prediction_segmentation_status_from_int_to_str(item['segmentation_status'])
+
     if len(metadata) == 1:
         return metadata[0]
     return metadata

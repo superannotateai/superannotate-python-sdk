@@ -1,5 +1,5 @@
 from ..db.images import get_image_metadata
-from ..common import PredictionSegmentationStatuses
+from ..common import _PREDICTION_SEGMENTATION_STATUSES
 from .defaults import PLOTTABLE_METRICS
 from ast import literal_eval
 import pandas as pd
@@ -60,13 +60,14 @@ def get_images_prediction_segmentation_status(project, image_names, task):
     metadata = get_image_metadata(project, image_names)
     if isinstance(metadata, dict):
         metadata = [metadata]
+
     success_names = [
         x['name']
-        for x in metadata if x[task] == PredictionSegmentationStatuses.Completed
+        for x in metadata if x[task] == 'Completed'
     ]
     failure_names = [
         x['name']
-        for x in metadata if x[task] == PredictionSegmentationStatuses.Failed
+        for x in metadata if x[task] == 'Failed'
     ]
     return success_names, failure_names
 
