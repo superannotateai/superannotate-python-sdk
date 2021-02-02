@@ -8,7 +8,7 @@ PYTESTS=pytest
 COVERAGE=coverage
 
 tests: check_formatting docs
-	$(PYTESTS) -n auto tests
+	$(PYTESTS) -n 8 --full-trace tests
 
 stress-tests: SA_STRESS_TESTS=1
 stress-tests: tests
