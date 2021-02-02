@@ -121,13 +121,12 @@ def test_run_segmentation():
 
 
 def test_download_model(tmpdir):
-    print(tmpdir)
+    tmpdir = Path(tmpdir)
     export_dir = Path(tmpdir / 'export')
     export_dir.mkdir(parents=True, exist_ok=True)
 
     ml_model = sa.search_models(include_global=True)[0]
-    Path.rmdir(Path(tmpdir) / './export')
-    model = sa.download_model(ml_model, './export')
+    model = sa.download_model(ml_model, tmpdir / 'export')
     assert model['name']
-    model = sa.download_model(ml_model['name'], './export')
+    model = sa.download_model(ml_model['name'], tmpdir / 'export')
     assert model['name']
