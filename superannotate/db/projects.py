@@ -1875,15 +1875,12 @@ def get_project_workflow(project):
 def set_project_workflow(project, new_workflow):
     """Sets project's workflow.
 
-    new_workflow example: [{ "step" : <step_num>, "className" : <annotation_class>, "tool" : <tool_num>, ...},...]
+    new_workflow example: [{ "step" : <step_num>, "className" : <annotation_class>, "tool" : <tool_num>, "attribute":[{"name" : <attribute_value>, "attribute_group" : {"name": <attribute_group>}},...]},...]
 
     :param project: project name or metadata
     :type project: str or dict
     :param project: new workflow list of dicts
     :type project: list of dicts
-
-    :return: updated part of project's workflow
-    :rtype: list of dicts
     """
     if not isinstance(project, dict):
         project = get_project_metadata_bare(project)
@@ -1902,33 +1899,68 @@ def set_project_workflow(project, new_workflow):
     for step in new_list:
         if "id" in step:
             del step["id"]
-        if "className" in step:
-            found = False
-            for an_class in annotation_classes:
-                if an_class["name"] == step["className"]:
-                    step["class_id"] = an_class["id"]
-                    del step["className"]
-                    found = True
+        if "className" not in step:
+            continue
+        for an_class in annotation_classes:
+            if an_class["name"] == step["className"]:
+                step["class_id"] = an_class["id"]
+                break
+        else:
+            raise SABaseException(
+                0, "Annotation class not found in set_project_workflow."
+            )
+        json_req = {"steps": [step]}
+        response = _api.send_request(
+            req_type='POST',
+            path=f'/project/{project_id}/workflow',
+            params=params,
+            json_req=json_req
+        )
+        if not response.ok:
+            raise SABaseException(
+                response.status_code,
+                "Couldn't set project workflow " + response.text
+            )
+        workflow_id = response.json()[0]["id"]
+        if "attribute" not in step:
+            continue
+        request_data = []
+        for attribute in step["attribute"]:
+            for att_class in an_class["attribute_groups"]:
+                if att_class["name"] == attribute["attribute"]["attribute_group"
+                                                              ]["name"]:
                     break
-            if not found:
+            else:
                 raise SABaseException(
-                    0, "Annotation class not found in set_project_workflow."
+                    0, "Attribute group not found in set_project_workflow."
+                )
+            for att_value in att_class["attributes"]:
+                if att_value["name"] == attribute["attribute"]["name"]:
+                    attribute_id = att_value["id"]
+                    break
+            else:
+                raise SABaseException(
+                    0, "Attribute value not found in set_project_workflow."
                 )
 
-    json_req = {"steps": new_list}
-    response = _api.send_request(
-        req_type='POST',
-        path=f'/project/{project_id}/workflow',
-        params=params,
-        json_req=json_req
-    )
-    if not response.ok:
-        raise SABaseException(
-            response.status_code,
-            "Couldn't set project workflow " + response.text
+            request_data.append(
+                {
+                    "workflow_id": workflow_id,
+                    "attribute_id": attribute_id
+                }
+            )
+
+        response = _api.send_request(
+            req_type='POST',
+            path=f'/project/{project_id}/workflow_attribute',
+            params=params,
+            json_req={"data": request_data}
         )
-    res = response.json()
-    return res
+        if not response.ok:
+            raise SABaseException(
+                response.status_code,
+                "Couldn't set project workflow " + response.text
+            )
 
 
 def get_project_settings(project):
