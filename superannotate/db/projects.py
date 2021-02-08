@@ -1876,7 +1876,9 @@ def set_project_workflow(project, new_workflow):
     """Sets project's workflow.
 
     new_workflow example: [{ "step" : <step_num>, "className" : <annotation_class>, "tool" : <tool_num>,
-     "attribute":[{"attribute" : {"name" : <attribute_value>, "attribute_group" : {"name": <attribute_group>}}},...]},...]
+                          "attribute":[{"attribute" : {"name" : <attribute_value>, "attribute_group" : {"name": <attribute_group>}}},
+                          ...]
+                          },...]
 
     :param project: project name or metadata
     :type project: str or dict
@@ -1922,9 +1924,15 @@ def set_project_workflow(project, new_workflow):
                 response.status_code,
                 "Couldn't set project workflow " + response.text
             )
-        workflow_id = response.json()[0]["id"]
         if "attribute" not in step:
             continue
+        current_steps = get_project_workflow(project)
+        for step_in_response in current_steps:
+            if step_in_response["step"] == step["step"]:
+                workflow_id = step_in_response["id"]
+                break
+        else:
+            raise SABaseException(0, "Couldn't find step in workflow")
         request_data = []
         for attribute in step["attribute"]:
             for att_class in an_class["attribute_groups"]:
