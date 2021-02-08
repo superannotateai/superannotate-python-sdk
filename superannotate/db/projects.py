@@ -1875,7 +1875,8 @@ def get_project_workflow(project):
 def set_project_workflow(project, new_workflow):
     """Sets project's workflow.
 
-    new_workflow example: [{ "step" : <step_num>, "className" : <annotation_class>, "tool" : <tool_num>, "attribute":[{"name" : <attribute_value>, "attribute_group" : {"name": <attribute_group>}},...]},...]
+    new_workflow example: [{ "step" : <step_num>, "className" : <annotation_class>, "tool" : <tool_num>,
+     "attribute":[{"attribute" : {"name" : <attribute_value>, "attribute_group" : {"name": <attribute_group>}}},...]},...]
 
     :param project: project name or metadata
     :type project: str or dict
