@@ -159,13 +159,18 @@ def get_image_metadata(project, image_names):
         json_req=json_req,
     )
 
-    metadata = response.json()
-    if len(metadata) == 0:
+    metadata_raw = response.json()
+    metadata_without_deleted = []
+    for im_metadata in metadata_raw:
+        if 'deleted' in im_metadata and im_metadata['deleted'] == 1:
+            continue
+        metadata_without_deleted.append(im_metadata)
+    if len(metadata_without_deleted) == 0:
         raise SABaseException(
             0,
             f"None of the images in {image_names} exist in the provided project"
         )
-    for item in metadata:
+    for item in metadata_without_deleted:
         item['annotation_status'] = common.annotation_status_int_to_str(
             item['annotation_status']
         )
@@ -178,9 +183,9 @@ def get_image_metadata(project, image_names):
                 item['segmentation_status']
             )
 
-    if len(metadata) == 1:
-        return metadata[0]
-    return metadata
+    if len(metadata_without_deleted) == 1:
+        return metadata_without_deleted[0]
+    return metadata_without_deleted
 
 
 def set_image_annotation_status(project, image_name, annotation_status):
