@@ -162,7 +162,7 @@ def get_image_metadata(project, image_names):
     metadata_raw = response.json()
     metadata_without_deleted = []
     for im_metadata in metadata_raw:
-        if 'deleted' in im_metadata and im_metadata['deleted'] == 1:
+        if 'delete' in im_metadata and im_metadata['delete'] == 1:
             continue
         metadata_without_deleted.append(im_metadata)
     if len(metadata_without_deleted) == 0:
