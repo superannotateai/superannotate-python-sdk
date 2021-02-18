@@ -65,13 +65,15 @@ def model_training_status_str_to_int(project_status):
 
 def image_path_to_annotation_paths(image_path, project_type):
     image_path = Path(image_path)
-    postfix_json = '___objects.json' if project_type == "Vector" else '___pixel.json'
-    postfix_mask = '___save.png'
     if project_type == "Vector":
-        return (image_path.parent / (image_path.name + postfix_json), )
+        return (
+            image_path.parent /
+            get_annotation_json_name(image_path.name, project_type),
+        )
     return (
-        image_path.parent / (image_path.name + postfix_json),
-        image_path.parent / (image_path.name + postfix_mask)
+        image_path.parent /
+        get_annotation_json_name(image_path.name, project_type),
+        image_path.parent / get_annotation_png_name(image_path.name)
     )
 
 
@@ -316,3 +318,14 @@ def tqdm_converter(
             else:
                 pbar.update(total_num - pbar.n)
                 break
+
+
+def get_annotation_json_name(image_name, project_type):
+    if project_type == "Vector":
+        return image_name + "___objects.json"
+    else:
+        return image_name + "___pixel.json"
+
+
+def get_annotation_png_name(image_name):
+    return image_name + "___save.png"

@@ -17,15 +17,15 @@ from ..annotation_helpers import (
     add_annotation_polyline_to_json, add_annotation_template_to_json
 )
 from ..api import API
+from ..common import process_api_response
 from ..exceptions import SABaseException
+from ..parameter_decorators import project_metadata
 from .annotation_classes import (
     fill_class_and_attribute_ids, fill_class_and_attribute_names,
     get_annotation_classes_id_to_name, get_annotation_classes_name_to_id,
     search_annotation_classes
 )
 from .project_api import get_project_metadata_bare
-from ..common import process_api_response
-from ..parameter_decorators import project_metadata
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -632,7 +632,14 @@ def get_image_bytes(project, image_name, variant='original'):
     res = response.json()
     url = res[variant]["url"]
     headers = res[variant]["headers"]
+    print(params)
+    print(url)
+    print(headers)
     response = requests.get(url=url, headers=headers)
+    if not response.ok:
+        raise SABaseException(
+            response.status_code, "Couldn't download image" + response.text
+        )
     img = io.BytesIO(response.content)
     return img
 
@@ -762,61 +769,50 @@ def get_image_annotations(project, image_name, project_type=None):
         params=params
     )
     if not response.ok:
-        raise SABaseException(response.status_code, response.text)
+        raise SABaseException(
+            response.status_code,
+            "Couldn't get annotation download token" + response.text
+        )
     res = response.json()
+    # print(json.dumps(res, indent=2))
 
     annotation_classes = search_annotation_classes(project)
     annotation_classes_dict = get_annotation_classes_id_to_name(
         annotation_classes
     )
-    if project_type == "Vector":
-        url = res["objects"]["url"]
-        annotation_json_filename = url.rsplit('/', 1)[-1]
-        headers = res["objects"]["headers"]
-        response = requests.get(url=url, headers=headers)
-        if response.ok:
-            res_json = response.json()
-            fill_class_and_attribute_names(res_json, annotation_classes_dict)
-            return {
-                "annotation_json_filename": annotation_json_filename,
-                "annotation_json": res_json
-            }
-        if not response.ok and response.status_code == 403:
-            return {"annotation_json": None, "annotation_json_filename": None}
-        raise SABaseException(response.status_code, response.text)
-    else:  # pixel
-        url = res["pixelObjects"]["url"]
-        annotation_json_filename = url.rsplit('/', 1)[-1]
-        headers = res["pixelObjects"]["headers"]
-        response = requests.get(url=url, headers=headers)
-        if not response.ok and response.status_code == 403:
-            return {
-                "annotation_json": None,
-                "annotation_json_filename": None,
-                "annotation_mask": None,
-                "annotation_mask_filename": None
-            }
-        elif not response.ok:
-            raise SABaseException(response.status_code, response.text)
-        res_json = response.json()
-        fill_class_and_attribute_names(res_json, annotation_classes_dict)
-        if len(res_json["instances"]) != 0:
-            url = res["pixelSave"]["url"]
-            annotation_mask_filename = url.rsplit('/', 1)[-1]
-            headers = res["pixelSave"]["headers"]
-            response = requests.get(url=url, headers=headers)
-            if not response.ok:
-                raise SABaseException(response.status_code, response.text)
-            mask = io.BytesIO(response.content)
-        else:
-            mask = None
-            annotation_mask_filename = None
-        return {
-            "annotation_json": res_json,
-            "annotation_json_filename": annotation_json_filename,
-            "annotation_mask": mask,
-            "annotation_mask_filename": annotation_mask_filename
-        }
+    main_annotations = res["annotations"]["MAIN"][0]
+    response = requests.get(
+        url=main_annotations["annotation_json_path"]["url"],
+        headers=main_annotations["annotation_json_path"]["headers"]
+    )
+    if not response.ok:
+        raise SABaseException(
+            response.status_code, "Couldn't load annotations" + response.text
+        )
+    res_json = response.json()
+    fill_class_and_attribute_names(res_json, annotation_classes_dict)
+    result = {
+        "annotation_json":
+            response.json(),
+        "annotation_json_filename":
+            common.get_annotation_json_name(image_name, project_type)
+    }
+    if project_type == "Pixel":
+        response = requests.get(
+            url=main_annotations["annotation_bluemap_path"]["url"],
+            headers=main_annotations["annotation_bluemape_path"]["headers"]
+        )
+        if not response.ok:
+            raise SABaseException(
+                response.status_code,
+                "Couldn't load annotations" + response.text
+            )
+        mask = io.BytesIO(response.content)
+        result["annotation_mask"] = mask
+        result["annotation_mask_filename"] = common.get_annotation_png_name(
+            image_name
+        )
+    return result
 
 
 def download_image_annotations(project, image_name, local_dir_path):
@@ -956,17 +952,16 @@ def upload_image_annotations(
             response.status_code, "Couldn't upload annotation. " + response.text
         )
     res = response.json()
-    if project_type == "Vector":
-        res = res['objects']
-        s3_session = boto3.Session(
-            aws_access_key_id=res['accessKeyId'],
-            aws_secret_access_key=res['secretAccessKey'],
-            aws_session_token=res['sessionToken']
-        )
-        s3_resource = s3_session.resource('s3')
-        bucket = s3_resource.Bucket(res["bucket"])
-        bucket.put_object(Key=res['filePath'], Body=json.dumps(annotation_json))
-    else:  # pixel
+    res = res['annotation_json_path']
+    s3_session = boto3.Session(
+        aws_access_key_id=res['accessKeyId'],
+        aws_secret_access_key=res['secretAccessKey'],
+        aws_session_token=res['sessionToken']
+    )
+    s3_resource = s3_session.resource('s3')
+    bucket = s3_resource.Bucket(res["bucket"])
+    bucket.put_object(Key=res['filePath'], Body=json.dumps(annotation_json))
+    if project_type == "Pixel":
         if mask is None:
             raise SABaseException(0, "Pixel annotation should have mask.")
         if not isinstance(mask, io.BytesIO):

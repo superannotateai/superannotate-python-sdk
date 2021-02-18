@@ -96,13 +96,12 @@ def upload_image_to_project(
         path=f'/project/{project_id}/sdkImageUploadToken',
         params=params
     )
-    if response.ok:
-        res = response.json()
-        prefix = res['filePath']
-    else:
+    if not response.ok:
         raise SABaseException(
             response.status_code, "Couldn't get upload token " + response.text
         )
+    res = response.json()
+    prefix = res['filePath']
     s3_session = boto3.Session(
         aws_access_key_id=res['accessKeyId'],
         aws_secret_access_key=res['secretAccessKey'],
@@ -120,7 +119,7 @@ def upload_image_to_project(
 
     __create_image(
         [img_name], [key], project, annotation_status, prefix,
-        images_info_and_array[2]
+        [images_info_and_array[2]]
     )
 
     while True:

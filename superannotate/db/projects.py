@@ -658,11 +658,11 @@ def __upload_images_to_aws_thread(
     bucket = s3_resource.Bucket(res["bucket"])
     prefix = res['filePath']
     uploaded_imgs = []
+    uploaded_imgs_info = ([], [], [])
     for i in range(start_index, end_index):
         if i >= len_img_paths:
             break
         path = img_paths[i]
-        key = prefix + f'{Path(path).name}'
         try:
             if from_s3_bucket is not None:
                 file = io.BytesIO()
@@ -678,11 +678,9 @@ def __upload_images_to_aws_thread(
                 with open(path, "rb") as f:
                     file = io.BytesIO(f.read())
             images_array = get_image_array_to_upload(
-                file, image_quality_in_editor, project["type"]
+                Path(path).name, file, image_quality_in_editor, project["type"]
             )
-            upload_image_array_to_s3(
-                bucket, *images_array, key, project["type"]
-            )
+            key = upload_image_array_to_s3(bucket, *images_array, prefix)
         except Exception as e:
             logger.warning("Unable to upload image %s. %s", path, e)
             couldnt_upload[thread_id].append(path)
@@ -690,16 +688,24 @@ def __upload_images_to_aws_thread(
         else:
             uploaded[thread_id].append(path)
             uploaded_imgs.append(path)
+            uploaded_imgs_info[0].append(Path(path).name)
+            uploaded_imgs_info[1].append(key)
+            uploaded_imgs_info[2].append(images_array[2])
             if len(uploaded_imgs) >= 100:
                 __create_image(
-                    uploaded_imgs, project, annotation_status, prefix
+                    uploaded_imgs_info[0], uploaded_imgs_info[1], project,
+                    annotation_status, prefix, uploaded_imgs_info[2]
                 )
                 uploaded_imgs = []
-    __create_image(uploaded_imgs, project, annotation_status, prefix)
+                uploaded_imgs_info = ([], [], [])
+    __create_image(
+        uploaded_imgs_info[0], uploaded_imgs_info[1], project,
+        annotation_status, prefix, uploaded_imgs_info[2]
+    )
 
 
 def __create_image(
-    img_names, img_paths, project, annotation_status, remote_dir, size
+    img_names, img_paths, project, annotation_status, remote_dir, sizes
 ):
     if len(img_paths) == 0:
         return
@@ -714,7 +720,7 @@ def __create_image(
         "annotation_status": annotation_status,
         "meta": {}
     }
-    for img_name, img_path in zip(img_names, img_paths):
+    for img_name, img_path, size in zip(img_names, img_paths, sizes):
         img_name_uuid = Path(img_path).name
         remote_path = remote_dir + f"{img_name_uuid}"
         data["images"].append({"name": img_name, "path": remote_path})
@@ -1571,6 +1577,7 @@ def upload_preannotations_from_folder_to_project(
         project, folder_path, from_s3_bucket, recursive_subfolders
     )
     #TODO: new endpoint to be delivered: use new endpoint to create annotation json for preannotations
+
 
 def _upload_preannotations_from_folder_to_project(
     project, folder_path, from_s3_bucket=None, recursive_subfolders=False
