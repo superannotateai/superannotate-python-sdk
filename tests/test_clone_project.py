@@ -15,7 +15,27 @@ def test_create_like_project(tmpdir):
         sa.delete_project(project)
 
     sa.create_project(PROJECT_NAME, "tt", "Vector")
-    sa.create_annotation_class(PROJECT_NAME, "rrr", "#FFAAFF")
+    sa.create_annotation_class(
+        PROJECT_NAME, "rrr", "#FFAAFF", [
+            {
+                "name": "tall",
+                "is_multiselect": 0,
+                "attributes": [{
+                    "name": "yes"
+                }, {
+                    "name": "no"
+                }]
+            }, {
+                "name": "age",
+                "is_multiselect": 0,
+                "attributes": [{
+                    "name": "young"
+                }, {
+                    "name": "old"
+                }]
+            }
+        ]
+    )
 
     old_settings = sa.get_project_settings(PROJECT_NAME)
     for setting in old_settings:
@@ -29,11 +49,36 @@ def test_create_like_project(tmpdir):
         }]
     )
     sa.set_project_workflow(
-        PROJECT_NAME, [{
-            "step": 1,
-            "className": "rrr",
-            "tool": 3
-        }]
+        PROJECT_NAME, [
+            {
+                "step":
+                    1,
+                "className":
+                    "rrr",
+                "tool":
+                    3,
+                "attribute":
+                    [
+                        {
+                            "attribute":
+                                {
+                                    "name": "young",
+                                    "attribute_group": {
+                                        "name": "age"
+                                    }
+                                }
+                        }, {
+                            "attribute":
+                                {
+                                    "name": "yes",
+                                    "attribute_group": {
+                                        "name": "tall"
+                                    }
+                                }
+                        }
+                    ]
+            }
+        ]
     )
     users = sa.search_team_contributors()
     sa.share_project(PROJECT_NAME, users[1], "QA")
@@ -65,6 +110,13 @@ def test_create_like_project(tmpdir):
     assert len(new_workflow) == 1
     assert new_workflow[0]["className"] == "rrr"
     assert new_workflow[0]["tool"] == 3
+    assert len(new_workflow[0]["attribute"]) == 2
+    assert new_workflow[0]["attribute"][0]["attribute"]["name"] == "young"
+    assert new_workflow[0]["attribute"][0]["attribute"]["attribute_group"][
+        "name"] == "age"
+    assert new_workflow[0]["attribute"][1]["attribute"]["name"] == "yes"
+    assert new_workflow[0]["attribute"][1]["attribute"]["attribute_group"][
+        "name"] == "tall"
 
     new_project = sa.get_project_metadata(
         new_project["name"], include_contributors=True
