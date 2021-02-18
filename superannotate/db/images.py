@@ -632,9 +632,6 @@ def get_image_bytes(project, image_name, variant='original'):
     res = response.json()
     url = res[variant]["url"]
     headers = res[variant]["headers"]
-    print(params)
-    print(url)
-    print(headers)
     response = requests.get(url=url, headers=headers)
     if not response.ok:
         raise SABaseException(
@@ -800,7 +797,7 @@ def get_image_annotations(project, image_name, project_type=None):
     if project_type == "Pixel":
         response = requests.get(
             url=main_annotations["annotation_bluemap_path"]["url"],
-            headers=main_annotations["annotation_bluemape_path"]["headers"]
+            headers=main_annotations["annotation_bluemap_path"]["headers"]
         )
         if not response.ok:
             raise SABaseException(
@@ -952,41 +949,31 @@ def upload_image_annotations(
             response.status_code, "Couldn't upload annotation. " + response.text
         )
     res = response.json()
-    res = res['annotation_json_path']
+    res_json = res['annotation_json_path']
     s3_session = boto3.Session(
-        aws_access_key_id=res['accessKeyId'],
-        aws_secret_access_key=res['secretAccessKey'],
-        aws_session_token=res['sessionToken']
+        aws_access_key_id=res_json['accessKeyId'],
+        aws_secret_access_key=res_json['secretAccessKey'],
+        aws_session_token=res_json['sessionToken']
     )
     s3_resource = s3_session.resource('s3')
-    bucket = s3_resource.Bucket(res["bucket"])
-    bucket.put_object(Key=res['filePath'], Body=json.dumps(annotation_json))
+    bucket = s3_resource.Bucket(res_json["bucket"])
+    bucket.put_object(
+        Key=res_json['filePath'], Body=json.dumps(annotation_json)
+    )
     if project_type == "Pixel":
         if mask is None:
             raise SABaseException(0, "Pixel annotation should have mask.")
         if not isinstance(mask, io.BytesIO):
             with open(mask, "rb") as f:
                 mask = io.BytesIO(f.read())
-        res_j = res['pixel']
+        res_mask = res['annotation_bluemap_path']
         s3_session = boto3.Session(
-            aws_access_key_id=res_j['accessKeyId'],
-            aws_secret_access_key=res_j['secretAccessKey'],
-            aws_session_token=res_j['sessionToken']
+            aws_access_key_id=res_mask['accessKeyId'],
+            aws_secret_access_key=res_mask['secretAccessKey'],
+            aws_session_token=res_mask['sessionToken']
         )
-        s3_resource = s3_session.resource('s3')
-        bucket = s3_resource.Bucket(res_j["bucket"])
-        bucket.put_object(
-            Key=res_j['filePath'], Body=json.dumps(annotation_json)
-        )
-        res_m = res['save']
-        s3_session = boto3.Session(
-            aws_access_key_id=res_m['accessKeyId'],
-            aws_secret_access_key=res_m['secretAccessKey'],
-            aws_session_token=res_m['sessionToken']
-        )
-        s3_resource = s3_session.resource('s3')
-        bucket = s3_resource.Bucket(res_m["bucket"])
-        bucket.put_object(Key=res_m['filePath'], Body=mask)
+        bucket = s3_resource.Bucket(res_mask["bucket"])
+        bucket.put_object(Key=res_mask['filePath'], Body=mask)
 
 
 def create_fuse_image(
