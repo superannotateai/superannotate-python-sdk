@@ -557,9 +557,12 @@ def upload_image_array_to_s3(
     project_type
 ):
     bucket.put_object(Body=orig_image, Key=key)
-    bucket.put_object(Body=lores_image, Key=key + '___lores.jpg')
+    #TODO: uuid__lores.jpg
+    bucket.put_object(Body=lores_image, Key=key + '___lores.jpg') 
+   
     bucket.put_object(
         Body=huge_image,
+        #TODO: uuid__huge.jpg
         Key=key + '___huge.jpg',
         Metadata={
             'height': str(size[1]),
@@ -567,7 +570,8 @@ def upload_image_array_to_s3(
         }
     )
     bucket.put_object(Body=thumbnail_image, Key=key + '___thumb.jpg')
-    postfix_json = '___objects.json' if project_type == "Vector" else '___pixel.json'
+    # TODO: remove suffix objects, pixel: save uuid.json
+    postfix_json = '___objects.json' if project_type == "Vector" else '___pixel.json' 
     bucket.put_object(
         Body=json.dumps(create_empty_annotation(size,
                                                 Path(key).name)),
@@ -703,9 +707,11 @@ def __create_image(img_paths, project, annotation_status, remote_dir):
     team_id, project_id = project["team_id"], project["id"]
     data = {
         "project_id": str(project_id),
-        "team_id": str(team_id),
-        "images": [],
+        "team_id": str(team_id)
+        "images": [], 
         "annotation_status": annotation_status
+        #TODO:  {image_name: {heigh, width, annotation_path})
+        # "meta": {"a.jpg": {"height":78, "width":56, "annotation_json_path": "remote_path/a_uuid.json" }, "b.jpg": {"height":78, "width":56, "annotation_json_path": "remote_path/b_uuid.json" } }
     }
     for img_path in img_paths:
         img_name = Path(img_path).name
@@ -721,7 +727,7 @@ def __create_image(img_paths, project, annotation_status, remote_dir):
         )
 
 
-def upload_images_to_project(
+o_project(
     project,
     img_paths,
     annotation_status="NotStarted",
@@ -1163,6 +1169,7 @@ def __upload_annotations_thread(
             path='/images/getAnnotationsPathsAndTokens',
             json_req=data
         )
+        #TODO: will res["images"] = [{image_name: {annotation_json_path:, annotation_blue_map_path:}}, ]
         res = response.json()
         if len(res["images"]) < len(data["names"]):
             for name in data["names"]:
@@ -1556,7 +1563,7 @@ def upload_preannotations_from_folder_to_project(
     return _upload_preannotations_from_folder_to_project(
         project, folder_path, from_s3_bucket, recursive_subfolders
     )
-
+    #TODO: new endpoint to be delivered: use new endpoint to create annotation json for preannotations
 
 def _upload_preannotations_from_folder_to_project(
     project, folder_path, from_s3_bucket=None, recursive_subfolders=False
@@ -1648,6 +1655,7 @@ def _upload_preannotations_from_folder_to_project(
     annotation_classes_dict = get_annotation_classes_name_to_id(
         annotation_classes
     )
+  
     response = _api.send_request(
         req_type='GET',
         path=f'/project/{project_id}/preannotation',
