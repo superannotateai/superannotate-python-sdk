@@ -2,6 +2,7 @@ import io
 import logging
 import re
 import time
+import uuid
 from pathlib import Path
 
 import boto3
@@ -15,8 +16,8 @@ from .images import (
 )
 from .project_api import get_project_metadata_bare
 from .projects import (
-    __create_image, get_project_default_image_quality_in_editor,
-    get_image_array_to_upload, upload_image_array_to_s3
+    __create_image, get_image_array_to_upload,
+    get_project_default_image_quality_in_editor, upload_image_array_to_s3
 )
 
 logger = logging.getLogger("superannotate-python-sdk")
@@ -76,7 +77,7 @@ def upload_image_to_project(
             with open(img, "rb") as f:
                 img = io.BytesIO(f.read())
     elif img.getbuffer().nbytes > common.MAX_IMAGE_SIZE:
-        raise SAImageSizeTooLarge(file_size)
+        raise SAImageSizeTooLarge(img.getbuffer().nbytes)
 
     if image_name is not None:
         img_name = image_name
@@ -109,16 +110,18 @@ def upload_image_to_project(
     )
     s3_resource = s3_session.resource('s3')
     bucket = s3_resource.Bucket(res["bucket"])
-    key = prefix + f'{img_name}'
     try:
-        images_array = get_image_array_to_upload(
-            img, image_quality_in_editor, project["type"]
+        images_info_and_array = get_image_array_to_upload(
+            img_name, img, image_quality_in_editor, project["type"]
         )
-        upload_image_array_to_s3(bucket, *images_array, key, project["type"])
+        key = upload_image_array_to_s3(bucket, *images_info_and_array, prefix)
     except Exception as e:
         raise SABaseException(0, "Couldn't upload to data server. " + e)
 
-    __create_image([img_name], project, annotation_status, prefix)
+    __create_image(
+        [img_name], [key], project, annotation_status, prefix,
+        images_info_and_array[2]
+    )
 
     while True:
         try:

@@ -12,6 +12,7 @@ import time
 from os.path import basename
 from pathlib import Path
 from urllib.parse import urlparse
+import uuid
 
 import boto3
 import cv2
@@ -553,16 +554,14 @@ def create_empty_annotation(size, image_name):
 
 
 def upload_image_array_to_s3(
-    bucket, size, orig_image, lores_image, huge_image, thumbnail_image, key,
-    project_type
+    bucket, img_name, img_name_hash, size, orig_image, lores_image, huge_image,
+    thumbnail_image, prefix
 ):
+    key = prefix + img_name_hash
     bucket.put_object(Body=orig_image, Key=key)
-    #TODO: uuid__lores.jpg
-    bucket.put_object(Body=lores_image, Key=key + '___lores.jpg') 
-   
+    bucket.put_object(Body=lores_image, Key=key + '___lores.jpg')
     bucket.put_object(
         Body=huge_image,
-        #TODO: uuid__huge.jpg
         Key=key + '___huge.jpg',
         Metadata={
             'height': str(size[1]),
@@ -570,17 +569,15 @@ def upload_image_array_to_s3(
         }
     )
     bucket.put_object(Body=thumbnail_image, Key=key + '___thumb.jpg')
-    # TODO: remove suffix objects, pixel: save uuid.json
-    postfix_json = '___objects.json' if project_type == "Vector" else '___pixel.json' 
     bucket.put_object(
-        Body=json.dumps(create_empty_annotation(size,
-                                                Path(key).name)),
-        Key=key + postfix_json
+        Body=json.dumps(create_empty_annotation(size, img_name)),
+        Key=key + ".json"
     )
+    return key
 
 
 def get_image_array_to_upload(
-    byte_io_orig, image_quality_in_editor, project_type
+    img_name, byte_io_orig, image_quality_in_editor, project_type
 ):
     if image_quality_in_editor not in ["original", "compressed"]:
         raise SABaseException(0, "NA ImageQuality in get_image_array_to_upload")
@@ -634,7 +631,8 @@ def get_image_array_to_upload(
     byte_io_huge.seek(0)
     byte_io_orig.seek(0)
 
-    return (
+    img_name_hash = str(uuid.uuid4()) + Path(img_name).suffix
+    return img_name, img_name_hash, (
         width, height
     ), byte_io_orig, byte_io_lores, byte_io_huge, byte_io_thumbs
 
@@ -700,23 +698,32 @@ def __upload_images_to_aws_thread(
     __create_image(uploaded_imgs, project, annotation_status, prefix)
 
 
-def __create_image(img_paths, project, annotation_status, remote_dir):
-    # print("Creating images ", len(img_paths))
+def __create_image(
+    img_names, img_paths, project, annotation_status, remote_dir, size
+):
     if len(img_paths) == 0:
         return
     team_id, project_id = project["team_id"], project["id"]
     data = {
         "project_id": str(project_id),
-        "team_id": str(team_id)
-        "images": [], 
-        "annotation_status": annotation_status
-        #TODO:  {image_name: {heigh, width, annotation_path})
-        # "meta": {"a.jpg": {"height":78, "width":56, "annotation_json_path": "remote_path/a_uuid.json" }, "b.jpg": {"height":78, "width":56, "annotation_json_path": "remote_path/b_uuid.json" } }
+        "team_id": str(team_id),
+        "images": [],
+        "annotation_status": annotation_status,
+        "team_id": str(team_id),
+        "images": [],
+        "annotation_status": annotation_status,
+        "meta": {}
     }
-    for img_path in img_paths:
-        img_name = Path(img_path).name
-        remote_path = remote_dir + f"{img_name}"
+    for img_name, img_path in zip(img_names, img_paths):
+        img_name_uuid = Path(img_path).name
+        remote_path = remote_dir + f"{img_name_uuid}"
         data["images"].append({"name": img_name, "path": remote_path})
+        data["meta"][img_name] = {
+            "width": size[0],
+            "height": size[1],
+            "annotation_json_path": remote_path + ".json",
+            "annotation_bluemap_path": remote_path + ".png"
+        }
 
     response = _api.send_request(
         req_type='POST', path='/image/ext-create', json_req=data
@@ -727,7 +734,7 @@ def __create_image(img_paths, project, annotation_status, remote_dir):
         )
 
 
-o_project(
+def upload_images_to_project(
     project,
     img_paths,
     annotation_status="NotStarted",
@@ -1655,7 +1662,7 @@ def _upload_preannotations_from_folder_to_project(
     annotation_classes_dict = get_annotation_classes_name_to_id(
         annotation_classes
     )
-  
+
     response = _api.send_request(
         req_type='GET',
         path=f'/project/{project_id}/preannotation',
