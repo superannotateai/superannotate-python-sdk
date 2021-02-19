@@ -34,7 +34,7 @@ from .annotation_classes import (
     fill_class_and_attribute_ids, get_annotation_classes_name_to_id,
     search_annotation_classes
 )
-from .images import search_images
+from .images import get_image_metadata, search_images
 from .project_api import get_project_metadata_bare
 from .users import get_team_contributor_metadata
 
@@ -1171,27 +1171,41 @@ def __upload_annotations_thread(
         from_s3 = from_session.resource('s3')
 
     for i in range(start_index, end_index, NUM_TO_SEND):
-        data = {"project_id": project_id, "team_id": team_id, "names": []}
+        names = []
         for j in range(i, i + NUM_TO_SEND):
             if j >= end_index:
                 break
             image_name = anns_filenames[j][:-len_postfix_json]
-            data["names"].append(image_name)
-        response = _api.send_request(
-            req_type='POST',
-            path='/images/getAnnotationsPathsAndTokens',
-            json_req=data
-        )
-        #TODO: will res["images"] = [{image_name: {annotation_json_path:, annotation_blue_map_path:}}, ]
-        res = response.json()
-        if len(res["images"]) < len(data["names"]):
-            for name in data["names"]:
-                if name not in res["images"]:
+            names.append(image_name)
+        try:
+            metadatas = get_image_metadata({"id": project_id}, names, False)
+        except SABaseException:
+            metadatas = []
+        names_in_metadatas = [metadata["name"] for metadata in metadatas]
+        if len(names) < len(metadatas):
+            for name in names:
+                if name not in names_in_metadatas:
                     ann_path = Path(folder_path) / (name + postfix_json)
                     missing_images[thread_id].append(ann_path)
                     logger.warning(
                         "Couldn't find image %s for annotation upload", ann_path
                     )
+        data = {
+            "project_id": project_id,
+            "team_id": team_id,
+            "ids": [metadata["id"] for metadata in metadatas]
+        }
+        response = _api.send_request(
+            req_type='POST',
+            path='/images/getAnnotationsPathsAndTokens',
+            json_req=data
+        )
+        if not response.ok:
+            logger.warning(
+                "Couldn't get token upload annotations %s", response.text
+            )
+            continue
+        res = response.json()
         aws_creds = res["creds"]
         s3_session = boto3.Session(
             aws_access_key_id=aws_creds['accessKeyId'],
@@ -1201,7 +1215,7 @@ def __upload_annotations_thread(
         s3_resource = s3_session.resource('s3')
         bucket = s3_resource.Bucket(aws_creds["bucket"])
 
-        for image_name, image_path in res['images'].items():
+        for image_name, image_info in res['images'].items():
             json_filename = image_name + postfix_json
             if from_s3_bucket is None:
                 full_path = Path(folder_path) / json_filename
@@ -1225,9 +1239,10 @@ def __upload_annotations_thread(
                 annotation_json, annotation_classes_dict
             )
             bucket.put_object(
-                Key=image_path + postfix_json, Body=json.dumps(annotation_json)
+                Key=image_info["annotation_json_path"],
+                Body=json.dumps(annotation_json)
             )
-            if project_type != "Vector":
+            if project_type == "Pixel":
                 mask_filename = image_name + postfix_mask
                 if from_s3_bucket is None:
                     with open(Path(folder_path) / mask_filename, 'rb') as fin:
@@ -1239,7 +1254,9 @@ def __upload_annotations_thread(
                     )
                     from_s3_object.download_fileobj(file)
                     file.seek(0)
-                bucket.put_object(Key=image_path + postfix_mask, Body=file)
+                bucket.put_object(
+                    Key=image_info["annotation_bluemap_path"], Body=file
+                )
             uploaded[thread_id].append(full_path)
 
 

@@ -134,7 +134,7 @@ def search_images(
 
 
 @project_metadata
-def get_image_metadata(project, image_names):
+def get_image_metadata(project, image_names, return_dict_on_single_output=True):
     """Returns image metadata
 
     :param project: project name or metadata of the project
@@ -183,7 +183,7 @@ def get_image_metadata(project, image_names):
                 item['segmentation_status']
             )
 
-    if len(metadata_without_deleted) == 1:
+    if len(metadata_without_deleted) == 1 and return_dict_on_single_output:
         return metadata_without_deleted[0]
     return metadata_without_deleted
 
