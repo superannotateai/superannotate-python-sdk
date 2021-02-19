@@ -1182,6 +1182,10 @@ def __upload_annotations_thread(
         except SABaseException:
             metadatas = []
         names_in_metadatas = [metadata["name"] for metadata in metadatas]
+        id_to_name = {
+            metadata["id"]: metadata["name"]
+            for metadata in metadatas
+        }
         if len(names) < len(metadatas):
             for name in names:
                 if name not in names_in_metadatas:
@@ -1214,8 +1218,8 @@ def __upload_annotations_thread(
         )
         s3_resource = s3_session.resource('s3')
         bucket = s3_resource.Bucket(aws_creds["bucket"])
-
-        for image_name, image_info in res['images'].items():
+        for image_id, image_info in res['images'].items():
+            image_name = id_to_name[int(image_id)]
             json_filename = image_name + postfix_json
             if from_s3_bucket is None:
                 full_path = Path(folder_path) / json_filename
