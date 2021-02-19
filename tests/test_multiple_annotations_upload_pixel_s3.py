@@ -1,10 +1,9 @@
+import os
 from pathlib import Path
 from urllib.parse import urlparse
 
 import pytest
-
 import superannotate as sa
-sa.init(Path.home() / ".superannotate" / "config.json")
 
 TEST_PROJECT_PIXEL = "sample_project_pixel"
 TEST_PROJECT_VECTOR = "sample_project_vector"
@@ -43,6 +42,10 @@ def test_upload_from_s3(tmpdir):
     sa.delete_project(project)
 
 
+@pytest.mark.skipif(
+    "SA_TEST_PREANNOTATION" not in os.environ,
+    reason="Requires env variable to be set"
+)
 def test_pixel_preannotation_upload_from_s3(tmpdir):
     projects_found = sa.search_projects(TEST_PROJECT2, return_metadata=True)
     for pr in projects_found:
@@ -72,6 +75,10 @@ def test_pixel_preannotation_upload_from_s3(tmpdir):
     sa.delete_project(project)
 
 
+@pytest.mark.skipif(
+    "SA_TEST_PREANNOTATION" not in os.environ,
+    reason="Requires env variable to be set"
+)
 def test_vector_preannotation_upload_from_s3(tmpdir):
     projects_found = sa.search_projects(TEST_PROJECT3, return_metadata=True)
     for pr in projects_found:

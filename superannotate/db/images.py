@@ -795,20 +795,28 @@ def get_image_annotations(project, image_name, project_type=None):
             common.get_annotation_json_name(image_name, project_type)
     }
     if project_type == "Pixel":
-        response = requests.get(
-            url=main_annotations["annotation_bluemap_path"]["url"],
-            headers=main_annotations["annotation_bluemap_path"]["headers"]
-        )
-        if not response.ok:
-            raise SABaseException(
-                response.status_code,
-                "Couldn't load annotations" + response.text
+        if main_annotations["annotation_bluemap_path"]["exist"]:
+            response = requests.get(
+                url=main_annotations["annotation_bluemap_path"]["url"],
+                headers=main_annotations["annotation_bluemap_path"]["headers"]
             )
-        mask = io.BytesIO(response.content)
-        result["annotation_mask"] = mask
-        result["annotation_mask_filename"] = common.get_annotation_png_name(
-            image_name
-        )
+            if not response.ok:
+                raise SABaseException(
+                    response.status_code,
+                    "Couldn't load annotations" + response.text
+                )
+            mask = io.BytesIO(response.content)
+            result["annotation_mask"] = mask
+            result["annotation_mask_filename"] = common.get_annotation_png_name(
+                image_name
+            )
+        else:
+            result.update(
+                {
+                    "annotation_mask": None,
+                    "annotation_mask_filename": None
+                }
+            )
     return result
 
 

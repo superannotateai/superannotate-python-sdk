@@ -1,12 +1,16 @@
-from pathlib import Path
+import os
 import subprocess
 import time
+from pathlib import Path
 
 import pytest
-
 import superannotate as sa
 
 
+@pytest.mark.skipif(
+    "SA_TEST_PREANNOTATION" not in os.environ,
+    reason="Requires env variable to be set"
+)
 @pytest.mark.parametrize(
     "project_type,name,description,from_folder", [
         (
@@ -83,6 +87,10 @@ def test_annotation_folder_upload_download_cli_vector_COCO(tmpdir):
     assert count_in == count_out
 
 
+@pytest.mark.skipif(
+    "SA_TEST_PREANNOTATION" not in os.environ,
+    reason="Requires env variable to be set"
+)
 def test_preannotation_folder_upload_download_cli_vector_COCO(tmpdir):
     project_type = "Vector"
     name = "Example Project test vector2 preannotation cli upload coco vector"
@@ -116,6 +124,10 @@ def test_preannotation_folder_upload_download_cli_vector_COCO(tmpdir):
     assert count_in == count_out
 
 
+@pytest.mark.skipif(
+    "SA_TEST_PREANNOTATION" not in os.environ,
+    reason="Requires env variable to be set"
+)
 def test_preannotation_folder_upload_download_cli_vector_object_COCO(tmpdir):
     project_type = "Vector"
     name = "Example Project test vector1 preannotation cli upload coco object vector"
@@ -149,6 +161,10 @@ def test_preannotation_folder_upload_download_cli_vector_object_COCO(tmpdir):
     assert count_in == count_out
 
 
+@pytest.mark.skipif(
+    "SA_TEST_PREANNOTATION" not in os.environ,
+    reason="Requires env variable to be set"
+)
 def test_preannotation_folder_upload_download_cli_pixel_object_COCO(tmpdir):
     project_type = "Pixel"
     name = "Example Project test pixel1 preannotation cli upload coco object pixel"

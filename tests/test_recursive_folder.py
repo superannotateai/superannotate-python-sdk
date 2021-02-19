@@ -1,6 +1,9 @@
 import json
 from pathlib import Path
 import time
+import os
+
+import pytest
 
 import superannotate as sa
 
@@ -84,6 +87,10 @@ def test_recursive_annotations_folder(tmpdir):
     assert len(list(tmpdir.glob("*.json"))) == 2
 
 
+@pytest.mark.skipif(
+    "SA_TEST_PREANNOTATION" not in os.environ,
+    reason="Requires env variable to be set"
+)
 def test_recursive_preannotations_folder(tmpdir):
     tmpdir = Path(tmpdir)
     projects_found = sa.search_projects(
@@ -117,6 +124,10 @@ def test_recursive_preannotations_folder(tmpdir):
     assert len(list(tmpdir.glob("*.json"))) == 2
 
 
+@pytest.mark.skipif(
+    "SA_TEST_PREANNOTATION" not in os.environ,
+    reason="Requires env variable to be set"
+)
 def test_nonrecursive_preannotations_folder(tmpdir):
     tmpdir = Path(tmpdir)
     projects_found = sa.search_projects(
@@ -239,6 +250,10 @@ def test_annotations_nonrecursive_s3_folder(tmpdir):
     assert non_empty_annotations == 1
 
 
+@pytest.mark.skipif(
+    "SA_TEST_PREANNOTATION" not in os.environ,
+    reason="Requires env variable to be set"
+)
 def test_preannotations_recursive_s3_folder(tmpdir):
     tmpdir = Path(tmpdir)
     projects_found = sa.search_projects(
@@ -277,6 +292,10 @@ def test_preannotations_recursive_s3_folder(tmpdir):
     assert len(list(tmpdir.glob("*.json"))) == 2
 
 
+@pytest.mark.skipif(
+    "SA_TEST_PREANNOTATION" not in os.environ,
+    reason="Requires env variable to be set"
+)
 def test_preannotations_nonrecursive_s3_folder(tmpdir):
     tmpdir = Path(tmpdir)
     projects_found = sa.search_projects(

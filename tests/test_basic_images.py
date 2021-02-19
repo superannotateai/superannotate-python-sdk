@@ -40,16 +40,16 @@ def test_basic_images(project_type, name, description, from_folder, tmpdir):
 
     image_name = images[0]
     sa.download_image(project, image_name, tmpdir, True)
-    assert sa.get_image_preannotations(project, image_name
-                                      )["preannotation_json_filename"] is None
+    # assert sa.get_image_preannotations(project, image_name
+    #                                   )["preannotation_json_filename"] is None
     assert len(
         sa.get_image_annotations(project,
                                  image_name)["annotation_json"]["instances"]
     ) == 0
     sa.download_image_annotations(project, image_name, tmpdir)
     assert len(list(Path(tmpdir).glob("*"))) == 2
-    sa.download_image_preannotations(project, image_name, tmpdir)
-    assert len(list(Path(tmpdir).glob("*"))) == 2
+    # sa.download_image_preannotations(project, image_name, tmpdir)
+    # assert len(list(Path(tmpdir).glob("*"))) == 2
 
     assert (Path(tmpdir) / image_name).is_file()
 
