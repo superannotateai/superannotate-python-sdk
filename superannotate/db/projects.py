@@ -1186,7 +1186,7 @@ def __upload_annotations_thread(
             metadata["id"]: metadata["name"]
             for metadata in metadatas
         }
-        if len(names) < len(metadatas):
+        if len(metadatas) < len(names):
             for name in names:
                 if name not in names_in_metadatas:
                     ann_path = Path(folder_path) / (name + postfix_json)
