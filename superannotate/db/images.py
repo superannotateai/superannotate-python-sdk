@@ -706,6 +706,14 @@ def _get_image_pre_or_annotations(project, image_name, pre, project_type=None):
         annotation_classes
     )
     loc = "MAIN" if pre == "" else "PREANNOTATION"
+    if loc not in res["annotations"]:
+        logger.warning("%sannotation doesn't exist for %s.", pre, image_name)
+        return {
+            f"{pre}annotation_json": None,
+            f"{pre}annotation_json_filename": None,
+            f"{pre}annotation_mask": None,
+            f"{pre}annotation_mask_filename": None
+        }
     main_annotations = res["annotations"][loc][0]
     response = requests.get(
         url=main_annotations["annotation_json_path"]["url"],
@@ -779,7 +787,9 @@ def _download_image_pre_or_annotations(
 
     if annotation[f"{pre}annotation_json_filename"] is None:
         image = get_image_metadata(project, image_name)
-        logger.warning("No annotation found for image %s.", image["name"])
+        logger.warning(
+            "No %sannotation found for image %s.", pre, image["name"]
+        )
         return None
     return_filepaths = []
     json_path = Path(local_dir_path

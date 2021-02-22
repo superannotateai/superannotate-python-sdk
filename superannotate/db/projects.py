@@ -1199,7 +1199,7 @@ def __upload_annotations_thread(
             "team_id": team_id,
             "ids": [metadata["id"] for metadata in metadatas]
         }
-        endpoint = '/images/getAnnotationsPathsAndTokens' if not pre else '/images/getPreAnnotationsPathsAndTokens'
+        endpoint = '/images/getAnnotationsPathsAndTokens' if pre == "" else '/images/getPreAnnotationsPathsAndTokens'
         response = _api.send_request(
             req_type='POST', path=endpoint, json_req=data
         )
@@ -1288,48 +1288,27 @@ def upload_annotations_from_folder_to_project(
     :rtype: tuple of list of strs
     """
     return _upload_pre_or_annotations_from_folder_to_project(
-        project, folder_path, False, from_s3_bucket, recursive_subfolders
+        project, folder_path, "", from_s3_bucket, recursive_subfolders
     )
 
 
 def _upload_pre_or_annotations_from_folder_to_project(
     project,
     folder_path,
-    pre=False,
+    pre,
     from_s3_bucket=None,
     recursive_subfolders=False
 ):
-    """Finds and uploads all JSON files in the folder_path as annotations to the project.
-
-    The JSON files should follow specific naming convention. For Vector
-    projects they should be named "<image_filename>___objects.json" (e.g., if
-    image is cats.jpg the annotation filename should be cats.jpg___objects.json), for Pixel projects
-    JSON file should be named "<image_filename>___pixel.json" and also second mask
-    image file should be present with the name "<image_name>___save.png". In both cases
-    image with <image_name> should be already present on the platform.
-
-    Existing annotations will be overwritten.
-
-    :param project: project name or metadata of the project to upload annotations to
-    :type project: str or dict
-    :param from_s3_bucket: AWS S3 bucket to use. If None then folder_path is in local filesystem
-    :type from_s3_bucket: str
-    :param recursive_subfolders: enable recursive subfolder parsing
-    :type recursive_subfolders: bool
-
-    :return: paths to annotations uploaded, could-not-upload, missing-images
-    :rtype: tuple of list of strs
-    """
     if recursive_subfolders:
         logger.info(
-            "When using recursive subfolder parsing same name annotations in different subfolders will overwrite each other."
+            "When using recursive subfolder parsing same name %sannotations in different subfolders will overwrite each other.", pre
         )
 
     logger.info(
         "The JSON files should follow specific naming convention. For Vector projects they should be named '<image_name>___objects.json', for Pixel projects JSON file should be names '<image_name>___pixel.json' and also second mask image file should be present with the name '<image_name>___save.png'. In both cases image with <image_name> should be already present on the platform."
     )
 
-    logger.info("Existing annotations will be overwritten.")
+    logger.info("Existing %sannotations will be overwritten.", pre)
     if not isinstance(project, dict):
         project = get_project_metadata_bare(project)
 
@@ -1544,7 +1523,7 @@ def upload_preannotations_from_folder_to_project(
     :rtype: tuple of list of strs
     """
     return _upload_pre_or_annotations_from_folder_to_project(
-        project, folder_path, True, from_s3_bucket, recursive_subfolders
+        project, folder_path, "pre", from_s3_bucket, recursive_subfolders
     )
 
 

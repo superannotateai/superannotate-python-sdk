@@ -54,14 +54,15 @@ def test_missing_preannotation_upload(tmpdir):
     sa.create_annotation_classes_from_classes_json(
         project, from_folder / "classes" / "classes.json"
     )
-    uploaded, couldnt_upload = sa.upload_preannotations_from_folder_to_project(
+    uploaded, couldnt_upload, missing_images = sa.upload_preannotations_from_folder_to_project(
         project, from_folder
     )
     print(uploaded, couldnt_upload)
-    assert len(uploaded) == 2
+    assert len(uploaded) == 1
     assert len(couldnt_upload) == 2
+    assert len(missing_images) == 1
 
     assert "tests/sample_project_vector_for_checks/example_image_1.jpg___objects.json" in uploaded
-    assert "tests/sample_project_vector_for_checks/example_image_5.jpg___objects.json" in uploaded
     assert "tests/sample_project_vector_for_checks/example_image_2.jpg___objects.json" in couldnt_upload
     assert "tests/sample_project_vector_for_checks/example_image_4.jpg___objects.json" in couldnt_upload
+    assert "tests/sample_project_vector_for_checks/example_image_5.jpg___objects.json" in missing_images
