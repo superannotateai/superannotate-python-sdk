@@ -1201,9 +1201,7 @@ def __upload_annotations_thread(
         }
         endpoint = '/images/getAnnotationsPathsAndTokens' if not pre else '/images/getPreAnnotationsPathsAndTokens'
         response = _api.send_request(
-            req_type='POST',
-            path=endpoint,
-            json_req=data
+            req_type='POST', path=endpoint, json_req=data
         )
         if not response.ok:
             logger.warning(
