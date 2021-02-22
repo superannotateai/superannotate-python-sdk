@@ -5,10 +5,6 @@ import pytest
 import superannotate as sa
 
 
-@pytest.mark.skipif(
-    "SA_TEST_PREANNOTATION" not in os.environ,
-    reason="Requires env variable to be set"
-)
 @pytest.mark.parametrize(
     "project_type,name,description,from_folder", [
         (

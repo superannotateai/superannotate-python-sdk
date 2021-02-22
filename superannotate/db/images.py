@@ -654,83 +654,7 @@ def get_image_preannotations(project, image_name):
         "preannotation_json_filename": filename on server,
     :rtype: dict
     """
-    image = get_image_metadata(project, image_name)
-    team_id, project_id, image_id, folder_id = image["team_id"], image[
-        "project_id"], image["id"], image['folder_id']
-    if not isinstance(project, dict):
-        project = get_project_metadata_bare(project)
-    project_type = project["type"]
-
-    params = {
-        'team_id': team_id,
-        'project_id': project_id,
-        'folder_id': folder_id
-    }
-    response = _api.send_request(
-        req_type='GET',
-        path=f'/image/{image_id}/annotation/getAnnotationDownloadToken',
-        params=params
-    )
-    if not response.ok:
-        raise SABaseException(response.status_code, response.text)
-    res = response.json()
-
-    annotation_classes = search_annotation_classes(project)
-    annotation_classes_dict = get_annotation_classes_id_to_name(
-        annotation_classes
-    )
-    if project_type == "Vector":
-        res = res['preannotation']
-        url = res["url"]
-        annotation_json_filename = url.rsplit('/', 1)[-1]
-        headers = res["headers"]
-        response = requests.get(url=url, headers=headers)
-        if not response.ok:
-            logger.warning(
-                "No preannotation available for image %s.", image_name
-            )
-            return {
-                "preannotation_json_filename": None,
-                "preannotation_json": None
-            }
-        res_json = response.json()
-        fill_class_and_attribute_names(res_json, annotation_classes_dict)
-        return {
-            "preannotation_json_filename": annotation_json_filename,
-            "preannotation_json": res_json
-        }
-    else:  # pixel
-        res_json = res['preAnnotationJson']
-        url = res_json["url"]
-        preannotation_json_filename = url.rsplit('/', 1)[-1]
-        headers = res_json["headers"]
-        response = requests.get(url=url, headers=headers)
-        if not response.ok:
-            logger.warning("No preannotation available.")
-            return {
-                "preannotation_json_filename": None,
-                "preannotation_json": None,
-                "preannotation_mask_filename": None,
-                "preannotation_mask": None,
-            }
-        preannotation_json = response.json()
-        fill_class_and_attribute_names(
-            preannotation_json, annotation_classes_dict
-        )
-
-        res_mask = res['preAnnotationSavePng']
-        url = res_mask["url"]
-        preannotation_mask_filename = url.rsplit('/', 1)[-1]
-        annotation_json_filename = url.rsplit('/', 1)[-1]
-        headers = res_mask["headers"]
-        response = requests.get(url=url, headers=headers)
-        mask = io.BytesIO(response.content)
-        return {
-            "preannotation_json_filename": preannotation_json_filename,
-            "preannotation_json": preannotation_json,
-            "preannotation_mask_filename": preannotation_mask_filename,
-            "preannotation_mask": mask
-        }
+    return _get_image_pre_or_annotations(project, image_name, "pre", "Vector")
 
 
 def get_image_annotations(project, image_name, project_type=None):
@@ -748,6 +672,10 @@ def get_image_annotations(project, image_name, project_type=None):
         "annotation_mask_filename": mask filename on server
     :rtype: dict
     """
+    return _get_image_pre_or_annotations(project, image_name, "", project_type)
+
+
+def _get_image_pre_or_annotations(project, image_name, pre, project_type=None):
     image = get_image_metadata(project, image_name)
     team_id, project_id, image_id, folder_id = image["team_id"], image[
         "project_id"], image["id"], image['folder_id']
@@ -777,7 +705,8 @@ def get_image_annotations(project, image_name, project_type=None):
     annotation_classes_dict = get_annotation_classes_id_to_name(
         annotation_classes
     )
-    main_annotations = res["annotations"]["MAIN"][0]
+    loc = "MAIN" if pre == "" else "PREANNOTATION"
+    main_annotations = res["annotations"][loc][0]
     response = requests.get(
         url=main_annotations["annotation_json_path"]["url"],
         headers=main_annotations["annotation_json_path"]["headers"]
@@ -789,9 +718,9 @@ def get_image_annotations(project, image_name, project_type=None):
     res_json = response.json()
     fill_class_and_attribute_names(res_json, annotation_classes_dict)
     result = {
-        "annotation_json":
+        f"{pre}annotation_json":
             response.json(),
-        "annotation_json_filename":
+        f"{pre}annotation_json_filename":
             common.get_annotation_json_name(image_name, project_type)
     }
     if project_type == "Pixel":
@@ -806,15 +735,14 @@ def get_image_annotations(project, image_name, project_type=None):
                     "Couldn't load annotations" + response.text
                 )
             mask = io.BytesIO(response.content)
-            result["annotation_mask"] = mask
-            result["annotation_mask_filename"] = common.get_annotation_png_name(
-                image_name
-            )
+            result[f"{pre}annotation_mask"] = mask
+            result[f"{pre}annotation_mask_filename"
+                  ] = common.get_annotation_png_name(image_name)
         else:
             result.update(
                 {
-                    "annotation_mask": None,
-                    "annotation_mask_filename": None
+                    f"{pre}annotation_mask": None,
+                    f"{pre}annotation_mask_filename": None
                 }
             )
     return result
@@ -834,29 +762,40 @@ def download_image_annotations(project, image_name, local_dir_path):
     :return: paths of downloaded annotations
     :rtype: tuple
     """
+    return _download_image_pre_or_annotations(
+        project, image_name, local_dir_path, ""
+    )
+
+
+def _download_image_pre_or_annotations(
+    project, image_name, local_dir_path, pre
+):
     if not isinstance(project, dict):
         project = get_project_metadata_bare(project)
 
-    annotation = get_image_annotations(project, image_name)
+    annotation = _get_image_pre_or_annotations(
+        project, image_name, pre, project["type"]
+    )
 
-    if annotation["annotation_json_filename"] is None:
+    if annotation[f"{pre}annotation_json_filename"] is None:
         image = get_image_metadata(project, image_name)
         logger.warning("No annotation found for image %s.", image["name"])
         return None
     return_filepaths = []
-    json_path = Path(local_dir_path) / annotation["annotation_json_filename"]
+    json_path = Path(local_dir_path
+                    ) / annotation[f"{pre}annotation_json_filename"]
     return_filepaths.append(str(json_path))
     if project["type"] == "Vector":
         with open(json_path, "w") as f:
-            json.dump(annotation["annotation_json"], f, indent=4)
+            json.dump(annotation[f"{pre}annotation_json"], f, indent=4)
     else:
         with open(json_path, "w") as f:
-            json.dump(annotation["annotation_json"], f, indent=4)
-        if annotation["annotation_mask_filename"] is not None:
+            json.dump(annotation[f"{pre}annotation_json"], f, indent=4)
+        if annotation[f"{pre}annotation_mask_filename"] is not None:
             mask_path = Path(local_dir_path
-                            ) / annotation["annotation_mask_filename"]
+                            ) / annotation[f"{pre}annotation_mask_filename"]
             with open(mask_path, "wb") as f:
-                f.write(annotation["annotation_mask"].getbuffer())
+                f.write(annotation[f"{pre}annotation_mask"].getbuffer())
         else:
             mask_path = None
         return_filepaths.append(str(mask_path))
@@ -878,26 +817,9 @@ def download_image_preannotations(project, image_name, local_dir_path):
     :return: paths of downloaded pre-annotations
     :rtype: tuple
     """
-    if not isinstance(project, dict):
-        project = get_project_metadata_bare(project)
-    annotation = get_image_preannotations(project, image_name)
-    if annotation["preannotation_json_filename"] is None:
-        return (None, )
-    return_filepaths = []
-    json_path = Path(local_dir_path) / annotation["preannotation_json_filename"]
-    return_filepaths.append(str(json_path))
-    if project["type"] == "Vector":
-        with open(json_path, "w") as f:
-            json.dump(annotation["preannotation_json"], f)
-    else:
-        with open(json_path, "w") as f:
-            json.dump(annotation["preannotation_json"], f)
-        mask_path = Path(local_dir_path
-                        ) / annotation["preannotation_mask_filename"]
-        with open(mask_path, "wb") as f:
-            f.write(annotation["preannotation_mask"].getbuffer())
-        return_filepaths.append(str(mask_path))
-    return tuple(return_filepaths)
+    return _download_image_pre_or_annotations(
+        project, image_name, local_dir_path, "pre"
+    )
 
 
 def upload_image_annotations(

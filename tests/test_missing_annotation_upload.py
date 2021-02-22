@@ -36,10 +36,6 @@ def test_missing_annotation_upload(tmpdir):
     assert "tests/sample_project_vector_for_checks/example_image_5.jpg___objects.json" in missing_images
 
 
-@pytest.mark.skipif(
-    "SA_TEST_PREANNOTATION" not in os.environ,
-    reason="Requires env variable to be set"
-)
 def test_missing_preannotation_upload(tmpdir):
     name = "Example Project test vector missing preannotation upload"
     project_type = "Vector"
