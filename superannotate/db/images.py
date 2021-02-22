@@ -652,12 +652,14 @@ def get_image_preannotations(project, image_name):
     :return: dict object with following keys:
         "preannotation_json": dict object of the annotation,
         "preannotation_json_filename": filename on server,
+        "preannotation_mask": mask (for pixel),
+        "preannotation_mask_filename": mask filename on server
     :rtype: dict
     """
-    return _get_image_pre_or_annotations(project, image_name, "pre", "Vector")
+    return _get_image_pre_or_annotations(project, image_name, "pre")
 
 
-def get_image_annotations(project, image_name, project_type=None):
+def get_image_annotations(project, image_name):
     """Get annotations of the image.
 
     :param project: project name or metadata of the project
@@ -672,7 +674,7 @@ def get_image_annotations(project, image_name, project_type=None):
         "annotation_mask_filename": mask filename on server
     :rtype: dict
     """
-    return _get_image_pre_or_annotations(project, image_name, "", project_type)
+    return _get_image_pre_or_annotations(project, image_name, "")
 
 
 def _get_image_pre_or_annotations(project, image_name, pre, project_type=None):
