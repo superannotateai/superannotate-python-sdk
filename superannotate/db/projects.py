@@ -1293,15 +1293,12 @@ def upload_annotations_from_folder_to_project(
 
 
 def _upload_pre_or_annotations_from_folder_to_project(
-    project,
-    folder_path,
-    pre,
-    from_s3_bucket=None,
-    recursive_subfolders=False
+    project, folder_path, pre, from_s3_bucket=None, recursive_subfolders=False
 ):
     if recursive_subfolders:
         logger.info(
-            "When using recursive subfolder parsing same name %sannotations in different subfolders will overwrite each other.", pre
+            "When using recursive subfolder parsing same name %sannotations in different subfolders will overwrite each other.",
+            pre
         )
 
     logger.info(
