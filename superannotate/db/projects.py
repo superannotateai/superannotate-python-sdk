@@ -9,10 +9,10 @@ import random
 import tempfile
 import threading
 import time
+import uuid
 from os.path import basename
 from pathlib import Path
 from urllib.parse import urlparse
-import uuid
 
 import boto3
 import cv2
@@ -1468,24 +1468,6 @@ def __tqdm_thread_upload_annotations(
                 for i in uploaded:
                     sum_all += len(i)
                 for i in missing_image:
-                    sum_all += len(i)
-                pbar.update(sum_all - pbar.n)
-            else:
-                pbar.update(total_num - pbar.n)
-                break
-
-
-def __tqdm_thread_upload_preannotations(
-    total_num, uploaded, couldnt_upload, finish_event
-):
-    with tqdm(total=total_num) as pbar:
-        while True:
-            finished = finish_event.wait(_TIME_TO_UPDATE_IN_TQDM)
-            if not finished:
-                sum_all = 0
-                for i in couldnt_upload:
-                    sum_all += len(i)
-                for i in uploaded:
                     sum_all += len(i)
                 pbar.update(sum_all - pbar.n)
             else:
