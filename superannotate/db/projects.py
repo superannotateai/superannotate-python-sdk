@@ -639,7 +639,8 @@ def get_image_array_to_upload(
 
 def __upload_images_to_aws_thread(
     res, img_paths, project, annotation_status, prefix, thread_id, chunksize,
-    couldnt_upload, uploaded, image_quality_in_editor, from_s3_bucket
+    couldnt_upload, uploaded, tried_upload, image_quality_in_editor,
+    from_s3_bucket
 ):
     len_img_paths = len(img_paths)
     start_index = thread_id * chunksize
@@ -686,7 +687,6 @@ def __upload_images_to_aws_thread(
             couldnt_upload[thread_id].append(path)
             continue
         else:
-            uploaded[thread_id].append(path)
             uploaded_imgs.append(path)
             uploaded_imgs_info[0].append(Path(path).name)
             uploaded_imgs_info[1].append(key)
@@ -696,12 +696,15 @@ def __upload_images_to_aws_thread(
                     uploaded_imgs_info[0], uploaded_imgs_info[1], project,
                     annotation_status, prefix, uploaded_imgs_info[2]
                 )
+                uploaded[thread_id] += uploaded_imgs
                 uploaded_imgs = []
                 uploaded_imgs_info = ([], [], [])
+        tried_upload[thread_id].append(path)
     __create_image(
         uploaded_imgs_info[0], uploaded_imgs_info[1], project,
         annotation_status, prefix, uploaded_imgs_info[2]
     )
+    uploaded[thread_id] += uploaded_imgs
 
 
 def __create_image(
@@ -809,6 +812,7 @@ def upload_images_to_project(
     uploaded = []
     for _ in range(_NUM_THREADS):
         uploaded.append([])
+    tried_upload = [[] for _ in range(_NUM_THREADS)]
     couldnt_upload = []
     for _ in range(_NUM_THREADS):
         couldnt_upload.append([])
@@ -826,8 +830,8 @@ def upload_images_to_project(
     res = response.json()
     prefix = res['filePath']
     tqdm_thread = threading.Thread(
-        target=__tqdm_thread_upload,
-        args=(len_img_paths, uploaded, couldnt_upload, finish_event),
+        target=__tqdm_thread_image_upload,
+        args=(len_img_paths, tried_upload, finish_event),
         daemon=True
     )
     tqdm_thread.start()
@@ -838,8 +842,8 @@ def upload_images_to_project(
             target=__upload_images_to_aws_thread,
             args=(
                 res, img_paths, project, annotation_status, prefix, thread_id,
-                chunksize, couldnt_upload, uploaded, image_quality_in_editor,
-                from_s3_bucket
+                chunksize, couldnt_upload, uploaded, tried_upload,
+                image_quality_in_editor, from_s3_bucket
             ),
             daemon=True
         )
@@ -1438,15 +1442,13 @@ def _upload_annotations_from_folder_to_project(
     return (list_of_uploaded, list_of_not_uploaded, list_of_missing_images)
 
 
-def __tqdm_thread_upload(total_num, uploaded, couldnt_upload, finish_event):
+def __tqdm_thread_image_upload(total_num, tried_upload, finish_event):
     with tqdm(total=total_num) as pbar:
         while True:
             finished = finish_event.wait(_TIME_TO_UPDATE_IN_TQDM)
             if not finished:
                 sum_all = 0
-                for i in couldnt_upload:
-                    sum_all += len(i)
-                for i in uploaded:
+                for i in tried_upload:
                     sum_all += len(i)
                 pbar.update(sum_all - pbar.n)
             else:
