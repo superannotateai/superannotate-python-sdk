@@ -114,7 +114,7 @@ def test_run_segmentation():
     assert (len(succeded_imgs) + len(failed_imgs)) == 4
 
     succeded_imgs, failed_imgs = sa.run_segmentation(
-        PROJECT_NAME_PIXEL, image_names_pixel[:4] + ["NA.jpg"], Pmodel_auto
+        PROJECT_NAME_PIXEL, image_names_pixel[:4] + ["NA.jpg"], model_auto
     )
 
     assert (len(succeded_imgs) + len(failed_imgs)) == 4
