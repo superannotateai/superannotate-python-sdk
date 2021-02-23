@@ -819,13 +819,12 @@ def upload_images_to_project(
         path=f'/project/{project_id}/sdkImageUploadToken',
         params=params
     )
-    if response.ok:
-        res = response.json()
-        prefix = res['filePath']
-    else:
+    if not response.ok:
         raise SABaseException(
             response.status_code, "Couldn't get upload token " + response.text
         )
+    res = response.json()
+    prefix = res['filePath']
     tqdm_thread = threading.Thread(
         target=__tqdm_thread_upload,
         args=(len_img_paths, uploaded, couldnt_upload, finish_event),
@@ -852,12 +851,12 @@ def upload_images_to_project(
     tqdm_thread.join()
     list_of_not_uploaded = []
     for couldnt_upload_thread in couldnt_upload:
-        for file in couldnt_upload_thread:
-            list_of_not_uploaded.append(str(file))
+        for f in couldnt_upload_thread:
+            list_of_not_uploaded.append(str(f))
     list_of_uploaded = []
     for upload_thread in uploaded:
-        for file in upload_thread:
-            list_of_uploaded.append(str(file))
+        for f in upload_thread:
+            list_of_uploaded.append(str(f))
 
     return (list_of_uploaded, list_of_not_uploaded, duplicate_images)
 
