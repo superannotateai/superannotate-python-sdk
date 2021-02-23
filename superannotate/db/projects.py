@@ -664,6 +664,7 @@ def __upload_images_to_aws_thread(
         if i >= len_img_paths:
             break
         path = img_paths[i]
+        tried_upload[thread_id].append(path)
         try:
             if from_s3_bucket is not None:
                 file = io.BytesIO()
@@ -704,7 +705,6 @@ def __upload_images_to_aws_thread(
                     uploaded[thread_id] += uploaded_imgs
                 uploaded_imgs = []
                 uploaded_imgs_info = ([], [], [])
-        tried_upload[thread_id].append(path)
     try:
         __create_image(
             uploaded_imgs_info[0], uploaded_imgs_info[1], project,
