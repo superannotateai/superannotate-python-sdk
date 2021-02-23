@@ -692,19 +692,29 @@ def __upload_images_to_aws_thread(
             uploaded_imgs_info[1].append(key)
             uploaded_imgs_info[2].append(images_array[2])
             if len(uploaded_imgs) >= 100:
-                __create_image(
-                    uploaded_imgs_info[0], uploaded_imgs_info[1], project,
-                    annotation_status, prefix, uploaded_imgs_info[2]
-                )
-                uploaded[thread_id] += uploaded_imgs
+                try:
+                    __create_image(
+                        uploaded_imgs_info[0], uploaded_imgs_info[1], project,
+                        annotation_status, prefix, uploaded_imgs_info[2]
+                    )
+                except SABaseException as e:
+                    couldnt_upload[thread_id] += uploaded_imgs
+                    logger.warning(e)
+                else:
+                    uploaded[thread_id] += uploaded_imgs
                 uploaded_imgs = []
                 uploaded_imgs_info = ([], [], [])
         tried_upload[thread_id].append(path)
-    __create_image(
-        uploaded_imgs_info[0], uploaded_imgs_info[1], project,
-        annotation_status, prefix, uploaded_imgs_info[2]
-    )
-    uploaded[thread_id] += uploaded_imgs
+    try:
+        __create_image(
+            uploaded_imgs_info[0], uploaded_imgs_info[1], project,
+            annotation_status, prefix, uploaded_imgs_info[2]
+        )
+    except SABaseException as e:
+        couldnt_upload[thread_id] += uploaded_imgs
+        logger.warning(e)
+    else:
+        uploaded[thread_id] += uploaded_imgs
 
 
 def __create_image(
@@ -809,13 +819,9 @@ def upload_images_to_project(
     params = {
         'team_id': team_id,
     }
-    uploaded = []
-    for _ in range(_NUM_THREADS):
-        uploaded.append([])
+    uploaded = [[] for _ in range(_NUM_THREADS)]
     tried_upload = [[] for _ in range(_NUM_THREADS)]
-    couldnt_upload = []
-    for _ in range(_NUM_THREADS):
-        couldnt_upload.append([])
+    couldnt_upload = [[] for _ in range(_NUM_THREADS)]
     finish_event = threading.Event()
     chunksize = int(math.ceil(len(img_paths) / _NUM_THREADS))
     response = _api.send_request(
