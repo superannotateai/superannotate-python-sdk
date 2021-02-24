@@ -803,7 +803,7 @@ def upload_images_to_project(
                 i = j
                 break
         if i != -1:
-            duplicate_images.append(img_paths[i])
+            duplicate_images.append(str(img_paths[i]))
             del img_paths[i]
     if len(duplicate_images) != 0:
         logger.warning(
