@@ -4,11 +4,11 @@ import logging
 import os
 import sys
 import time
-from tqdm import tqdm
 from pathlib import Path
-from enum import IntEnum
+
 import numpy as np
 from PIL import Image
+from tqdm import tqdm
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -152,9 +152,6 @@ def rename_kwargs(func_name, kwargs, aliases):
             kwargs[new] = kwargs.pop(alias)
 
 
-logger = logging.getLogger('httplogger')
-
-
 def hex_to_rgb(hex_string):
     """Converts HEX values to RGB values
     """
@@ -296,14 +293,6 @@ MAX_IMAGE_RESOLUTION = {
     "Vector": 100_000_000,
     "Pixel": 4_000_000
 }  # Resolution limit
-
-
-def process_api_response(data):
-    logger.info("Maintenance operations are being performed")
-    if 'metadata' not in data:
-        return data
-
-    return data['data']
 
 
 def tqdm_converter(

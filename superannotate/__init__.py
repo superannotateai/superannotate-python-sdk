@@ -1,6 +1,4 @@
-import json
 import logging
-from pathlib import Path
 
 import packaging.version
 import requests
@@ -49,9 +47,10 @@ from .db.images import (
     add_annotation_cuboid_to_image, add_annotation_ellipse_to_image,
     add_annotation_point_to_image, add_annotation_polygon_to_image,
     add_annotation_polyline_to_image, add_annotation_template_to_image,
-    create_fuse_image, delete_image, download_image, download_image_annotations,
-    download_image_preannotations, get_image_annotations, get_image_bytes,
-    get_image_metadata, get_image_preannotations, search_images,
+    create_folder, create_fuse_image, delete_image, download_image,
+    download_image_annotations, download_image_preannotations,
+    get_folder_metadata, get_image_annotations, get_image_bytes,
+    get_image_metadata, get_image_preannotations, search_folders, search_images,
     set_image_annotation_status, upload_image_annotations
 )
 from .db.project_images import (
@@ -86,15 +85,14 @@ from .exceptions import (
     SANonExistingProjectNameException
 )
 from .input_converters.conversion import (
-    coco_split_dataset, convert_project_type, export_annotation,
-    import_annotation, convert_json_version
+    coco_split_dataset, convert_json_version, convert_project_type,
+    export_annotation, import_annotation
 )
 from .ml.ml_funcs import (
     delete_model, download_model, plot_model_metrics, run_prediction,
     run_segmentation, run_training, stop_model_training
 )
 from .ml.ml_models import search_models
-
 from .old_to_new_format_convertor import update_json_format
 from .version import __version__
 

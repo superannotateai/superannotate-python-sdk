@@ -17,7 +17,6 @@ from ..annotation_helpers import (
     add_annotation_polyline_to_json, add_annotation_template_to_json
 )
 from ..api import API
-from ..common import process_api_response
 from ..exceptions import SABaseException
 from ..parameter_decorators import project_metadata
 from .annotation_classes import (
@@ -46,16 +45,43 @@ def _get_project_root_folder_id(project):
     if not response.ok:
         raise SABaseException(response.status_code, response.text)
 
-    response = process_api_response(response.json())
+    response = response.json()
 
     return response['folder_id']
+
+
+def create_folder(project, folder_name):
+    """Create a new folder in the project.
+
+    :param project: project name or metadata of the project to be deleted
+    :type project: str or dict
+    :param folder_name: the new folder's name
+    :type folder_name: str
+
+    :return: dict object metadata the new folder
+    :rtype: dict
+    """
+    if not isinstance(project, dict):
+        project = get_project_metadata_bare(project)
+    params = {"team_id": project["team_id"], "project_id": project["id"]}
+    data = {"name": folder_name}
+    response = _api.send_request(
+        req_type='POST', path='/folder', params=params, json_req=data
+    )
+    if not response.ok:
+        raise SABaseException(
+            response.status_code, "Couldn't create project " + response.text
+        )
+    res = response.json()
+    return res
 
 
 def search_images(
     project,
     image_name_prefix=None,
     annotation_status=None,
-    return_metadata=False
+    return_metadata=False,
+    folder_name=None
 ):
     """Search images by name_prefix (case-insensitive) and annotation status
 
@@ -76,19 +102,24 @@ def search_images(
     if not isinstance(project, dict):
         project = get_project_metadata_bare(project)
     team_id, project_id = project["team_id"], project["id"]
-    folder_id = _get_project_root_folder_id(project)  # maybe changed in future
     if annotation_status is not None:
         annotation_status = common.annotation_status_str_to_int(
             annotation_status
         )
 
+    if folder_name is not None:
+        folder = get_folder_metadata(project, folder_name)
+        folder_id = folder["id"]
+    else:
+        folder_id = None
+
     result_list = []
     params = {
         'team_id': team_id,
         'project_id': project_id,
-        'folder_id': folder_id,
         'annotation_status': annotation_status,
-        'offset': 0
+        'offset': 0,
+        'folder_id': folder_id
     }
     if image_name_prefix is not None:
         params['name'] = image_name_prefix
@@ -97,28 +128,32 @@ def search_images(
         response = _api.send_request(
             req_type='GET', path='/images', params=params
         )
-        if response.ok:
-            # print(response.json())
-            response = process_api_response(response.json())
-            results = response["data"]
-            total_got += len(results)
-            for r in results:
-                if return_metadata:
-                    result_list.append(r)
-                else:
-                    result_list.append(r["name"])
-
-            if response["count"] <= total_got:
-                break
-            params["offset"] = total_got
-            # print(
-            #     "Got to ", len(result_list),
-            #     response.json()["count"], len(new_results), params['offset']
-            # )
-        else:
+        if not response.ok:
             raise SABaseException(
                 response.status_code, "Couldn't search images " + response.text
             )
+        response = response.json()
+        images = response["images"]
+        folders = response["folders"]
+
+        image_count = images["count"]
+        folder_count = folders["count"]
+
+        results_images = images["data"]
+        total_got += len(results_images) + len(folders["data"])
+        for r in results_images:
+            if return_metadata:
+                result_list.append(r)
+            else:
+                result_list.append(r["name"])
+
+        if image_count + folder_count <= total_got:
+            break
+        params["offset"] = total_got
+        # print(
+        #     "Got to ", len(result_list),
+        #     response.json()["count"], len(new_results), params['offset']
+        # )
 
     if return_metadata:
 
@@ -131,6 +166,55 @@ def search_images(
         return list(map(process_result, result_list))
     else:
         return result_list
+
+
+def get_folder_metadata(project, folder_name):
+    folders = search_folders(project, folder_name, return_metadata=True)
+    if len(folders) == 0:
+        raise SABaseException(0, "Folder doesn't exist")
+    elif len(folders) > 1:
+        raise SABaseException(0, "Multiple folders with the same name")
+    else:
+        return folders[0]
+
+
+def search_folders(project, folder_name=None, return_metadata=False):
+    if not isinstance(project, dict):
+        project = get_project_metadata_bare(project)
+    team_id, project_id = project["team_id"], project["id"]
+    result_list = []
+    params = {'team_id': team_id, 'project_id': project_id, 'offset': 0}
+    total_got = 0
+    total_folders = 0
+    while True:
+        response = _api.send_request(
+            req_type='GET', path='/images', params=params
+        )
+        if not response.ok:
+            raise SABaseException(
+                response.status_code, "Couldn't search images " + response.text
+            )
+        response = response.json()
+        images = response["images"]
+        folders = response["folders"]
+
+        results_folders = folders["data"]
+        for r in folders["data"]:
+            if folder_name is not None and r["name"] != folder_name:
+                continue
+            if return_metadata:
+                result_list.append(r)
+            else:
+                result_list.append(r["name"])
+
+        total_folders += len(results_folders)
+        if folders["count"] <= total_folders:
+            break
+
+        total_got += len(images["data"]) + len(results_folders)
+        params["offset"] = total_got
+
+    return result_list
 
 
 @project_metadata
@@ -219,7 +303,7 @@ def set_image_annotation_status(project, image_name, annotation_status):
     if not response.ok:
         raise SABaseException(response.status_code, response.text)
 
-    response = process_api_response(response.json())
+    response = response.json()
 
     return response
 
