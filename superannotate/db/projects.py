@@ -816,9 +816,7 @@ def upload_images_to_project(
     )
     if len_img_paths == 0:
         return ([], [], duplicate_images)
-    params = {
-        'team_id': team_id,
-    }
+    params = {'team_id': team_id}
     uploaded = [[] for _ in range(_NUM_THREADS)]
     tried_upload = [[] for _ in range(_NUM_THREADS)]
     couldnt_upload = [[] for _ in range(_NUM_THREADS)]

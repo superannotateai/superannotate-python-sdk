@@ -81,7 +81,7 @@ def search_images(
     image_name_prefix=None,
     annotation_status=None,
     return_metadata=False,
-    folder_name=None
+    folder=None
 ):
     """Search images by name_prefix (case-insensitive) and annotation status
 
@@ -107,8 +107,8 @@ def search_images(
             annotation_status
         )
 
-    if folder_name is not None:
-        folder = get_folder_metadata(project, folder_name)
+    if folder is not None:
+        folder = get_folder_metadata(project, folder)
         folder_id = folder["id"]
     else:
         folder_id = None
@@ -124,6 +124,7 @@ def search_images(
     if image_name_prefix is not None:
         params['name'] = image_name_prefix
     total_got = 0
+    total_images = 0
     while True:
         response = _api.send_request(
             req_type='GET', path='/images', params=params
@@ -136,24 +137,18 @@ def search_images(
         images = response["images"]
         folders = response["folders"]
 
-        image_count = images["count"]
-        folder_count = folders["count"]
-
         results_images = images["data"]
-        total_got += len(results_images) + len(folders["data"])
         for r in results_images:
             if return_metadata:
                 result_list.append(r)
             else:
                 result_list.append(r["name"])
 
-        if image_count + folder_count <= total_got:
+        total_images += len(results_images)
+        if images["count"] <= total_images:
             break
+        total_got += len(results_images) + len(folders["data"])
         params["offset"] = total_got
-        # print(
-        #     "Got to ", len(result_list),
-        #     response.json()["count"], len(new_results), params['offset']
-        # )
 
     if return_metadata:
 
@@ -199,7 +194,7 @@ def search_folders(project, folder_name=None, return_metadata=False):
         folders = response["folders"]
 
         results_folders = folders["data"]
-        for r in folders["data"]:
+        for r in results_folders:
             if folder_name is not None and r["name"] != folder_name:
                 continue
             if return_metadata:
