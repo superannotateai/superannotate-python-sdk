@@ -34,6 +34,7 @@ from .annotation_classes import (
     fill_class_and_attribute_ids, get_annotation_classes_name_to_id,
     search_annotation_classes
 )
+from .folders import get_folder_metadata
 from .images import get_image_metadata, search_images
 from .project_api import get_project_metadata_bare
 from .users import get_team_contributor_metadata
@@ -438,7 +439,8 @@ def upload_images_from_folder_to_project(
     from_s3_bucket=None,
     exclude_file_patterns=None,
     recursive_subfolders=False,
-    image_quality_in_editor=None
+    image_quality_in_editor=None,
+    folder=None
 ):
     """Uploads all images with given extensions from folder_path to the project.
     Sets status of all the uploaded images to set_status if it is not None.
@@ -536,7 +538,7 @@ def upload_images_from_folder_to_project(
 
     return upload_images_to_project(
         project, filtered_paths, annotation_status, from_s3_bucket,
-        image_quality_in_editor
+        image_quality_in_editor, folder
     )
 
 
@@ -640,7 +642,7 @@ def get_image_array_to_upload(
 def __upload_images_to_aws_thread(
     res, img_paths, project, annotation_status, prefix, thread_id, chunksize,
     couldnt_upload, uploaded, tried_upload, image_quality_in_editor,
-    from_s3_bucket
+    from_s3_bucket, folder_id
 ):
     len_img_paths = len(img_paths)
     start_index = thread_id * chunksize
@@ -696,7 +698,8 @@ def __upload_images_to_aws_thread(
                 try:
                     __create_image(
                         uploaded_imgs_info[0], uploaded_imgs_info[1], project,
-                        annotation_status, prefix, uploaded_imgs_info[2]
+                        annotation_status, prefix, uploaded_imgs_info[2],
+                        folder_id
                     )
                 except SABaseException as e:
                     couldnt_upload[thread_id] += uploaded_imgs
@@ -708,7 +711,7 @@ def __upload_images_to_aws_thread(
     try:
         __create_image(
             uploaded_imgs_info[0], uploaded_imgs_info[1], project,
-            annotation_status, prefix, uploaded_imgs_info[2]
+            annotation_status, prefix, uploaded_imgs_info[2], folder_id
         )
     except SABaseException as e:
         couldnt_upload[thread_id] += uploaded_imgs
@@ -718,7 +721,8 @@ def __upload_images_to_aws_thread(
 
 
 def __create_image(
-    img_names, img_paths, project, annotation_status, remote_dir, sizes
+    img_names, img_paths, project, annotation_status, remote_dir, sizes,
+    folder_id
 ):
     if len(img_paths) == 0:
         return
@@ -733,6 +737,8 @@ def __create_image(
         "annotation_status": annotation_status,
         "meta": {}
     }
+    if folder_id is not None:
+        data["folder_id"] = folder_id
     for img_name, img_path, size in zip(img_names, img_paths, sizes):
         img_name_uuid = Path(img_path).name
         remote_path = remote_dir + f"{img_name_uuid}"
@@ -747,6 +753,7 @@ def __create_image(
     response = _api.send_request(
         req_type='POST', path='/image/ext-create', json_req=data
     )
+    print(data)
     if not response.ok:
         raise SABaseException(
             response.status_code, "Couldn't ext-create image " + response.text
@@ -758,7 +765,8 @@ def upload_images_to_project(
     img_paths,
     annotation_status="NotStarted",
     from_s3_bucket=None,
-    image_quality_in_editor=None
+    image_quality_in_editor=None,
+    folder=None
 ):
     """Uploads all images given in list of path objects in img_paths to the project.
     Sets status of all the uploaded images to set_status if it is not None.
@@ -794,7 +802,7 @@ def upload_images_to_project(
             project
         )
     team_id, project_id = project["team_id"], project["id"]
-    existing_images = search_images(project)
+    existing_images = search_images(project, folder=folder)
     duplicate_images = []
     for existing_image in existing_images:
         i = -1
@@ -831,6 +839,13 @@ def upload_images_to_project(
         raise SABaseException(
             response.status_code, "Couldn't get upload token " + response.text
         )
+    if folder is not None:
+        if not isinstance(folder, dict):
+            folder_id = get_folder_metadata(project, folder)
+        else:
+            folder_id = folder["id"]
+    else:
+        folder_id = None
     res = response.json()
     prefix = res['filePath']
     tqdm_thread = threading.Thread(
@@ -847,7 +862,7 @@ def upload_images_to_project(
             args=(
                 res, img_paths, project, annotation_status, prefix, thread_id,
                 chunksize, couldnt_upload, uploaded, tried_upload,
-                image_quality_in_editor, from_s3_bucket
+                image_quality_in_editor, from_s3_bucket, folder_id
             ),
             daemon=True
         )

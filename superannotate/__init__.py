@@ -42,15 +42,15 @@ from .db.clone_project import clone_project
 from .db.exports import (
     download_export, get_export_metadata, get_exports, prepare_export
 )
+from .db.folders import create_folder, get_folder_metadata, search_folders
 from .db.images import (
     add_annotation_bbox_to_image, add_annotation_comment_to_image,
     add_annotation_cuboid_to_image, add_annotation_ellipse_to_image,
     add_annotation_point_to_image, add_annotation_polygon_to_image,
     add_annotation_polyline_to_image, add_annotation_template_to_image,
-    create_folder, create_fuse_image, delete_image, download_image,
-    download_image_annotations, download_image_preannotations,
-    get_folder_metadata, get_image_annotations, get_image_bytes,
-    get_image_metadata, get_image_preannotations, search_folders, search_images,
+    create_fuse_image, delete_image, download_image, download_image_annotations,
+    download_image_preannotations, get_image_annotations, get_image_bytes,
+    get_image_metadata, get_image_preannotations, search_images,
     set_image_annotation_status, upload_image_annotations
 )
 from .db.project_images import (

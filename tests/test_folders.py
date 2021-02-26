@@ -50,3 +50,9 @@ def test_basic_folders(tmpdir):
     with pytest.raises(SABaseException) as e:
         folder = sa.get_folder_metadata(project, "folder2")
     assert 'Folder not found' in str(e)
+
+    sa.upload_images_from_folder_to_project(
+        project, FROM_FOLDER, annotation_status="InProgress", folder="folder1"
+    )
+    images = sa.search_images(project, "example_image_1", folder="folder1")
+    assert len(images) == 1
