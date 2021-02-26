@@ -17,7 +17,6 @@ from ..annotation_helpers import (
     add_annotation_polyline_to_json, add_annotation_template_to_json
 )
 from ..api import API
-from ..common import process_api_response
 from ..exceptions import SABaseException
 from ..parameter_decorators import project_metadata
 from .annotation_classes import (
@@ -46,7 +45,7 @@ def _get_project_root_folder_id(project):
     if not response.ok:
         raise SABaseException(response.status_code, response.text)
 
-    response = process_api_response(response.json())
+    response = response.json()
 
     return response['folder_id']
 
@@ -99,7 +98,7 @@ def search_images(
         )
         if response.ok:
             # print(response.json())
-            response = process_api_response(response.json())
+            response = response.json()
             results = response["data"]
             total_got += len(results)
             for r in results:
@@ -219,7 +218,7 @@ def set_image_annotation_status(project, image_name, annotation_status):
     if not response.ok:
         raise SABaseException(response.status_code, response.text)
 
-    response = process_api_response(response.json())
+    response = response.json()
 
     return response
 

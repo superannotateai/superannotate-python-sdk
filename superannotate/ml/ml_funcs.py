@@ -17,7 +17,7 @@ from plotly.subplots import make_subplots
 from ..api import API
 from ..common import (
     _AVAILABLE_SEGMENTATION_MODELS, model_training_status_int_to_str,
-    process_api_response, project_type_str_to_int
+    project_type_str_to_int
 )
 from ..db.images import get_image_metadata, search_images
 from ..exceptions import SABaseException
@@ -449,7 +449,7 @@ def download_model(model, output_dir):
         params=params
     )
     if response.ok:
-        response = process_api_response(response.json())
+        response = response.json()
     else:
         raise SABaseException(0, "Could not get model info ")
 

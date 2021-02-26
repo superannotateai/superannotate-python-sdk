@@ -1,10 +1,11 @@
-from ..common import process_api_response
-from ..exceptions import SABaseException
-from ..api import API
-from ..common import project_type_int_to_str
 import logging
 
+from ..api import API
+from ..common import project_type_int_to_str
+from ..exceptions import SABaseException
+
 logger = logging.getLogger("superannotate-python-sdk")
+
 _api = API.get_instance()
 
 
@@ -30,7 +31,7 @@ def search_models(
 
     if not response.ok:
         raise SABaseException(0, "could not search models")
-    result = process_api_response(response.json())
+    result = response.json()
 
     for model in result['data']:
         model['type'] = project_type_int_to_str(model['type'])

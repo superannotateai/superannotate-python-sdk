@@ -1,9 +1,10 @@
 import logging
 
 from ..api import API
-from ..exceptions import (SABaseException)
-from ..common import process_api_response
+from ..exceptions import SABaseException
+
 logger = logging.getLogger("superannotate-python-sdk")
+
 _api = API.get_instance()
 
 
@@ -34,7 +35,7 @@ def search_projects(
             req_type='GET', path='/projects', params=params
         )
         if response.ok:
-            new_results = process_api_response(response.json())
+            new_results = response.json()
             result_list += new_results["data"]
             if new_results["count"] <= len(result_list):
                 break
