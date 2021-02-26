@@ -164,13 +164,20 @@ def search_images(
 
 
 def get_folder_metadata(project, folder_name):
-    folders = search_folders(project, folder_name, return_metadata=True)
-    if len(folders) == 0:
-        raise SABaseException(0, "Folder doesn't exist")
-    elif len(folders) > 1:
-        raise SABaseException(0, "Multiple folders with the same name")
-    else:
-        return folders[0]
+    if not isinstance(project, dict):
+        project = get_project_metadata_bare(project)
+    team_id, project_id = project["team_id"], project["id"]
+    params = {'team_id': team_id, 'project_id': project_id, 'name': folder_name}
+    response = _api.send_request(
+        req_type='GET', path='/folder/getFolderByName', params=params
+    )
+    if not response.ok:
+        raise SABaseException(
+            response.status_code,
+            "Couldn't get folder metadata " + response.text
+        )
+    res = response.json()
+    return res
 
 
 def search_folders(project, folder_name=None, return_metadata=False):

@@ -1,5 +1,6 @@
 from pathlib import Path
 import json
+from superannotate.exceptions import SABaseException
 
 import pytest
 
@@ -41,3 +42,11 @@ def test_basic_folders(tmpdir):
 
     images = sa.search_images(project, "example_image_1", folder="folder1")
     assert len(images) == 0
+
+    folder = sa.get_folder_metadata(project, "folder1")
+    assert isinstance(folder, dict)
+    assert folder["name"] == "folder1"
+
+    with pytest.raises(SABaseException) as e:
+        folder = sa.get_folder_metadata(project, "folder2")
+    assert 'Folder not found' in str(e)
