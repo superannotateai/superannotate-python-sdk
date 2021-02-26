@@ -56,3 +56,6 @@ def test_basic_folders(tmpdir):
     )
     images = sa.search_images(project, "example_image_1", folder="folder1")
     assert len(images) == 1
+
+    print(sa.search_images(project))
+    print(sa.search_images(project, folder="folder1"))

@@ -65,9 +65,7 @@ def search_images(
 
     if folder is not None:
         folder = get_folder_metadata(project, folder)
-        folder_id = folder["id"]
-    else:
-        folder_id = None
+        folder = folder["id"]
 
     result_list = []
     params = {
@@ -75,7 +73,7 @@ def search_images(
         'project_id': project_id,
         'annotation_status': annotation_status,
         'offset': 0,
-        'folder_id': folder_id
+        'folder_id': folder
     }
     if image_name_prefix is not None:
         params['name'] = image_name_prefix
@@ -120,7 +118,9 @@ def search_images(
 
 
 @project_metadata
-def get_image_metadata(project, image_names, return_dict_on_single_output=True):
+def get_image_metadata(
+    project, image_names, return_dict_on_single_output=True, folder=None
+):
     """Returns image metadata
 
     :param project: project name or metadata of the project
@@ -556,7 +556,7 @@ def download_image(
     return (str(filepath_save), annotations_filepaths, fuse_path)
 
 
-def delete_image(project, image_name):
+def delete_image(project, image_name, folder=None):
     """Deletes image
 
     :param project: project name or metadata of the project
@@ -564,7 +564,7 @@ def delete_image(project, image_name):
     :param image_name: image name
     :type image: str
     """
-    image = get_image_metadata(project, image_name)
+    image = get_image_metadata(project, image_name, folder)
     team_id, project_id, image_id = image["team_id"], image["project_id"
                                                            ], image["id"]
     params = {"team_id": team_id, "project_id": project_id}

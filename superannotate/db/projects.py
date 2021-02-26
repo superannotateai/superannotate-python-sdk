@@ -753,7 +753,6 @@ def __create_image(
     response = _api.send_request(
         req_type='POST', path='/image/ext-create', json_req=data
     )
-    print(data)
     if not response.ok:
         raise SABaseException(
             response.status_code, "Couldn't ext-create image " + response.text
@@ -841,11 +840,8 @@ def upload_images_to_project(
         )
     if folder is not None:
         if not isinstance(folder, dict):
-            folder_id = get_folder_metadata(project, folder)
-        else:
-            folder_id = folder["id"]
-    else:
-        folder_id = None
+            folder = get_folder_metadata(project, folder)
+        folder = folder["id"]
     res = response.json()
     prefix = res['filePath']
     tqdm_thread = threading.Thread(
@@ -862,7 +858,7 @@ def upload_images_to_project(
             args=(
                 res, img_paths, project, annotation_status, prefix, thread_id,
                 chunksize, couldnt_upload, uploaded, tried_upload,
-                image_quality_in_editor, from_s3_bucket, folder_id
+                image_quality_in_editor, from_s3_bucket, folder
             ),
             daemon=True
         )
