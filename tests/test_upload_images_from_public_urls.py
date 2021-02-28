@@ -1,13 +1,10 @@
 from pathlib import Path
+
 import superannotate as sa
-
-sa.init(Path.home() / ".superannotate" / "config.json")
-
-test_root = Path().resolve() / 'tests'
 
 
 def test_upload_images_from_public_urls_to_project():
-    PROJECT_NAME = 'test_public_links_upload'
+    PROJECT_NAME = 'test_public_links_upload1'
 
     test_img_list = [
         'https://images.pexels.com/photos/3702354/pexels-photo-3702354.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940',
