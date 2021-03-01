@@ -37,7 +37,7 @@ def search_images(
     image_name_prefix=None,
     annotation_status=None,
     return_metadata=False,
-    folder=None
+    project_folder=None
 ):
     """Search images by name_prefix (case-insensitive) and annotation status
 
@@ -63,8 +63,8 @@ def search_images(
             annotation_status
         )
 
-    if folder is not None:
-        folder = get_folder_metadata(project, folder)
+    if project_folder is not None:
+        folder = get_folder_metadata(project, project_folder)
         folder = folder["id"]
 
     result_list = []
@@ -73,7 +73,7 @@ def search_images(
         'project_id': project_id,
         'annotation_status': annotation_status,
         'offset': 0,
-        'folder_id': folder
+        'folder_id': project_folder
     }
     if image_name_prefix is not None:
         params['name'] = image_name_prefix
@@ -119,7 +119,10 @@ def search_images(
 
 @project_metadata
 def get_image_metadata(
-    project, image_names, return_dict_on_single_output=True, folder=None
+    project,
+    image_names,
+    return_dict_on_single_output=True,
+    project_folder=None
 ):
     """Returns image metadata
 
@@ -138,6 +141,7 @@ def get_image_metadata(
         'project_id': project['id'],
         'team_id': _api.team_id,
         'names': image_names
+        'folder_id': project_folder
     }
     response = _api.send_request(
         req_type='POST',

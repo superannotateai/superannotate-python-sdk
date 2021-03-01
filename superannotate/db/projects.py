@@ -440,7 +440,7 @@ def upload_images_from_folder_to_project(
     exclude_file_patterns=None,
     recursive_subfolders=False,
     image_quality_in_editor=None,
-    folder=None
+    project_folder=None
 ):
     """Uploads all images with given extensions from folder_path to the project.
     Sets status of all the uploaded images to set_status if it is not None.
@@ -538,7 +538,7 @@ def upload_images_from_folder_to_project(
 
     return upload_images_to_project(
         project, filtered_paths, annotation_status, from_s3_bucket,
-        image_quality_in_editor, folder
+        image_quality_in_editor, project_folder
     )
 
 
@@ -765,7 +765,7 @@ def upload_images_to_project(
     annotation_status="NotStarted",
     from_s3_bucket=None,
     image_quality_in_editor=None,
-    folder=None
+    project_folder=None
 ):
     """Uploads all images given in list of path objects in img_paths to the project.
     Sets status of all the uploaded images to set_status if it is not None.
@@ -801,7 +801,7 @@ def upload_images_to_project(
             project
         )
     team_id, project_id = project["team_id"], project["id"]
-    existing_images = search_images(project, folder=folder)
+    existing_images = search_images(project, project_folder=project_folder)
     duplicate_images = []
     for existing_image in existing_images:
         i = -1
@@ -1172,7 +1172,7 @@ def upload_images_from_azure_blob_to_project(
 def __upload_annotations_thread(
     team_id, project_id, project_type, anns_filenames, folder_path,
     annotation_classes_dict, pre, thread_id, chunksize, missing_images,
-    couldnt_upload, uploaded, from_s3_bucket
+    couldnt_upload, uploaded, from_s3_bucket, project_folder
 ):
     NUM_TO_SEND = 500
     len_anns = len(anns_filenames)
@@ -1215,7 +1215,8 @@ def __upload_annotations_thread(
         data = {
             "project_id": project_id,
             "team_id": team_id,
-            "ids": [metadata["id"] for metadata in metadatas]
+            "ids": [metadata["id"] for metadata in metadatas],
+            "folder_id": project_folder
         }
         endpoint = '/images/getAnnotationsPathsAndTokens' if pre == "" else '/images/getPreAnnotationsPathsAndTokens'
         response = _api.send_request(
@@ -1282,7 +1283,11 @@ def __upload_annotations_thread(
 
 
 def upload_annotations_from_folder_to_project(
-    project, folder_path, from_s3_bucket=None, recursive_subfolders=False
+    project,
+    folder_path,
+    from_s3_bucket=None,
+    recursive_subfolders=False,
+    project_folder=None
 ):
     """Finds and uploads all JSON files in the folder_path as annotations to the project.
 
@@ -1306,12 +1311,18 @@ def upload_annotations_from_folder_to_project(
     :rtype: tuple of list of strs
     """
     return _upload_pre_or_annotations_from_folder_to_project(
-        project, folder_path, "", from_s3_bucket, recursive_subfolders
+        project, folder_path, "", from_s3_bucket, recursive_subfolders,
+        project_folder
     )
 
 
 def _upload_pre_or_annotations_from_folder_to_project(
-    project, folder_path, pre, from_s3_bucket=None, recursive_subfolders=False
+    project,
+    folder_path,
+    pre,
+    from_s3_bucket=None,
+    recursive_subfolders=False,
+    project_folder=None
 ):
     if recursive_subfolders:
         logger.info(
@@ -1328,12 +1339,18 @@ def _upload_pre_or_annotations_from_folder_to_project(
         project = get_project_metadata_bare(project)
 
     return _upload_annotations_from_folder_to_project(
-        project, folder_path, pre, from_s3_bucket, recursive_subfolders
+        project, folder_path, pre, from_s3_bucket, recursive_subfolders,
+        project_folder
     )
 
 
 def _upload_annotations_from_folder_to_project(
-    project, folder_path, pre, from_s3_bucket=None, recursive_subfolders=False
+    project,
+    folder_path,
+    pre,
+    from_s3_bucket=None,
+    recursive_subfolders=False,
+    project_folder=None
 ):
     return_result = []
     if from_s3_bucket is not None:
@@ -1344,7 +1361,8 @@ def _upload_annotations_from_folder_to_project(
             for path in Path(folder_path).glob('*'):
                 if path.is_dir():
                     return_result += _upload_annotations_from_folder_to_project(
-                        project, path, pre, from_s3_bucket, recursive_subfolders
+                        project, path, pre, from_s3_bucket,
+                        recursive_subfolders, project_folder
                     )
         else:
             s3_client = boto3.client('s3')
@@ -1356,7 +1374,7 @@ def _upload_annotations_from_folder_to_project(
                 for o in results:
                     return_result += _upload_annotations_from_folder_to_project(
                         project, o.get('Prefix'), pre, from_s3_bucket,
-                        recursive_subfolders
+                        recursive_subfolders, project_folder
                     )
 
     team_id, project_id, project_type = project["team_id"], project[
@@ -1430,7 +1448,8 @@ def _upload_annotations_from_folder_to_project(
             args=(
                 team_id, project_id, project_type, annotations_filenames,
                 folder_path, annotation_classes_dict, pre, thread_id, chunksize,
-                missing_image, couldnt_upload, uploaded, from_s3_bucket
+                missing_image, couldnt_upload, uploaded, from_s3_bucket,
+                project_folder
             ),
             daemon=True
         )
