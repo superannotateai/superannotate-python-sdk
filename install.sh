@@ -25,6 +25,9 @@ pip install coverage pytest-cov
 # for linting
 pip install pylint pylint-json2html pylint-pytest
 
+# for formatting
+pip install yapf
+
 # for docs
 pip install sphinx sphinx_rtd_theme
 

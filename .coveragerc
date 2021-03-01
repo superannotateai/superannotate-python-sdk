@@ -1,8 +1,5 @@
 [run]
 branch = True
-omit =
-    # copied pycocotools module from github
-    superannotate/pycocotools_sa/*
 
 
 [report]
