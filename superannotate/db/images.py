@@ -681,15 +681,15 @@ def get_image_annotations(project, image_name, project_folder=None):
     :rtype: dict
     """
     return _get_image_pre_or_annotations(
-        project, image_name, "", project_folder
+        project, image_name, "", None, project_folder
     )
 
 
 def _get_image_pre_or_annotations(
     project, image_name, pre, project_type=None, project_folder=None
 ):
-    image = get_image_metadata(project, image_name)
-    team_id, project_id, image_id, folder_id = image["team_id"], image[
+    image = get_image_metadata(project, image_name, True, project_folder)
+    team_id, project_id, image_id, project_folder_id = image["team_id"], image[
         "project_id"], image["id"], image['folder_id']
     if project_type is None:
         if not isinstance(project, dict):
@@ -698,7 +698,7 @@ def _get_image_pre_or_annotations(
     params = {
         'team_id': team_id,
         'project_id': project_id,
-        'folder_id': folder_id
+        'folder_id': project_folder_id
     }
     response = _api.send_request(
         req_type='GET',

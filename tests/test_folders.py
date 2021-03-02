@@ -132,7 +132,6 @@ def test_folder_annotations(tmpdir):
     sa.upload_annotations_from_folder_to_project(
         project, FROM_FOLDER, project_folder=folders[0]
     )
-    print(folders[0])
     annot = sa.get_image_annotations(project, "example_image_1.jpg")
     assert len(annot["annotation_json"]["instances"]) == 0
 
