@@ -642,7 +642,7 @@ def get_image_array_to_upload(
 def __upload_images_to_aws_thread(
     res, img_paths, project, annotation_status, prefix, thread_id, chunksize,
     couldnt_upload, uploaded, tried_upload, image_quality_in_editor,
-    from_s3_bucket, folder_id
+    from_s3_bucket, project_folder_id
 ):
     len_img_paths = len(img_paths)
     start_index = thread_id * chunksize
@@ -699,7 +699,7 @@ def __upload_images_to_aws_thread(
                     __create_image(
                         uploaded_imgs_info[0], uploaded_imgs_info[1], project,
                         annotation_status, prefix, uploaded_imgs_info[2],
-                        folder_id
+                        project_folder_id
                     )
                 except SABaseException as e:
                     couldnt_upload[thread_id] += uploaded_imgs
@@ -711,7 +711,7 @@ def __upload_images_to_aws_thread(
     try:
         __create_image(
             uploaded_imgs_info[0], uploaded_imgs_info[1], project,
-            annotation_status, prefix, uploaded_imgs_info[2], folder_id
+            annotation_status, prefix, uploaded_imgs_info[2], project_folder_id
         )
     except SABaseException as e:
         couldnt_upload[thread_id] += uploaded_imgs
@@ -722,7 +722,7 @@ def __upload_images_to_aws_thread(
 
 def __create_image(
     img_names, img_paths, project, annotation_status, remote_dir, sizes,
-    folder_id
+    project_folder_id
 ):
     if len(img_paths) == 0:
         return
@@ -737,8 +737,8 @@ def __create_image(
         "annotation_status": annotation_status,
         "meta": {}
     }
-    if folder_id is not None:
-        data["folder_id"] = folder_id
+    if project_folder_id is not None:
+        data["folder_id"] = project_folder_id
     for img_name, img_path, size in zip(img_names, img_paths, sizes):
         img_name_uuid = Path(img_path).name
         remote_path = remote_dir + f"{img_name_uuid}"
@@ -838,10 +838,10 @@ def upload_images_to_project(
         raise SABaseException(
             response.status_code, "Couldn't get upload token " + response.text
         )
-    if folder is not None:
-        if not isinstance(folder, dict):
-            folder = get_folder_metadata(project, folder)
-        folder = folder["id"]
+    if project_folder is not None:
+        if not isinstance(project_folder, dict):
+            project_folder = get_folder_metadata(project, project_folder)
+        project_folder = project_folder["id"]
     res = response.json()
     prefix = res['filePath']
     tqdm_thread = threading.Thread(
@@ -858,7 +858,7 @@ def upload_images_to_project(
             args=(
                 res, img_paths, project, annotation_status, prefix, thread_id,
                 chunksize, couldnt_upload, uploaded, tried_upload,
-                image_quality_in_editor, from_s3_bucket, folder
+                image_quality_in_editor, from_s3_bucket, project_folder
             ),
             daemon=True
         )
@@ -1172,7 +1172,7 @@ def upload_images_from_azure_blob_to_project(
 def __upload_annotations_thread(
     team_id, project_id, project_type, anns_filenames, folder_path,
     annotation_classes_dict, pre, thread_id, chunksize, missing_images,
-    couldnt_upload, uploaded, from_s3_bucket, project_folder
+    couldnt_upload, uploaded, from_s3_bucket, project_folder_id
 ):
     NUM_TO_SEND = 500
     len_anns = len(anns_filenames)
@@ -1196,7 +1196,9 @@ def __upload_annotations_thread(
             image_name = anns_filenames[j][:-len_postfix_json]
             names.append(image_name)
         try:
-            metadatas = get_image_metadata({"id": project_id}, names, False)
+            metadatas = get_image_metadata(
+                {"id": project_id}, names, False, {"id": project_folder_id}
+            )
         except SABaseException:
             metadatas = []
         names_in_metadatas = [metadata["name"] for metadata in metadatas]
@@ -1216,7 +1218,7 @@ def __upload_annotations_thread(
             "project_id": project_id,
             "team_id": team_id,
             "ids": [metadata["id"] for metadata in metadatas],
-            "folder_id": project_folder
+            "folder_id": project_folder_id
         }
         endpoint = '/images/getAnnotationsPathsAndTokens' if pre == "" else '/images/getPreAnnotationsPathsAndTokens'
         response = _api.send_request(
@@ -1338,9 +1340,16 @@ def _upload_pre_or_annotations_from_folder_to_project(
     if not isinstance(project, dict):
         project = get_project_metadata_bare(project)
 
+    if project_folder is not None:
+        if not isinstance(project_folder, dict):
+            project_folder = get_folder_metadata(project, project_folder)
+        project_folder_id = project_folder["id"]
+    else:
+        project_folder_id = None
+
     return _upload_annotations_from_folder_to_project(
         project, folder_path, pre, from_s3_bucket, recursive_subfolders,
-        project_folder
+        project_folder_id
     )
 
 
@@ -1350,7 +1359,7 @@ def _upload_annotations_from_folder_to_project(
     pre,
     from_s3_bucket=None,
     recursive_subfolders=False,
-    project_folder=None
+    project_folder_id=None
 ):
     return_result = []
     if from_s3_bucket is not None:
@@ -1362,7 +1371,7 @@ def _upload_annotations_from_folder_to_project(
                 if path.is_dir():
                     return_result += _upload_annotations_from_folder_to_project(
                         project, path, pre, from_s3_bucket,
-                        recursive_subfolders, project_folder
+                        recursive_subfolders, project_folder_id
                     )
         else:
             s3_client = boto3.client('s3')
@@ -1374,7 +1383,7 @@ def _upload_annotations_from_folder_to_project(
                 for o in results:
                     return_result += _upload_annotations_from_folder_to_project(
                         project, o.get('Prefix'), pre, from_s3_bucket,
-                        recursive_subfolders, project_folder
+                        recursive_subfolders, project_folder_id
                     )
 
     team_id, project_id, project_type = project["team_id"], project[
@@ -1449,7 +1458,7 @@ def _upload_annotations_from_folder_to_project(
                 team_id, project_id, project_type, annotations_filenames,
                 folder_path, annotation_classes_dict, pre, thread_id, chunksize,
                 missing_image, couldnt_upload, uploaded, from_s3_bucket,
-                project_folder
+                project_folder_id
             ),
             daemon=True
         )

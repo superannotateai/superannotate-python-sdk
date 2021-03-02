@@ -64,8 +64,11 @@ def search_images(
         )
 
     if project_folder is not None:
-        folder = get_folder_metadata(project, project_folder)
-        folder = folder["id"]
+        if not isinstance(project_folder, dict):
+            project_folder = get_folder_metadata(project, project_folder)
+        project_folder_id = project_folder["id"]
+    else:
+        project_folder_id = None
 
     result_list = []
     params = {
@@ -73,7 +76,7 @@ def search_images(
         'project_id': project_id,
         'annotation_status': annotation_status,
         'offset': 0,
-        'folder_id': project_folder
+        'folder_id': project_folder_id
     }
     if image_name_prefix is not None:
         params['name'] = image_name_prefix
@@ -137,17 +140,30 @@ def get_image_metadata(
     if isinstance(image_names, str):
         image_names = [image_names]
 
+    if project_folder is not None:
+        if not isinstance(project_folder, dict):
+            project_folder = get_folder_metadata(project, project_folder)
+        project_folder_id = project_folder["id"]
+    else:
+        project_folder_id = None
+
     json_req = {
         'project_id': project['id'],
         'team_id': _api.team_id,
-        'names': image_names
-        'folder_id': project_folder
+        'names': image_names,
     }
+    if project_folder_id is not None:
+        json_req["folder_id"] = project_folder_id
     response = _api.send_request(
         req_type='POST',
         path='/images/getBulk',
         json_req=json_req,
     )
+    if not response.ok:
+        raise SABaseException(
+            response.status_code,
+            "Couldn't get image metadata. " + response.text
+        )
 
     metadata_raw = response.json()
     metadata_without_deleted = []
@@ -649,7 +665,7 @@ def get_image_preannotations(project, image_name):
     return _get_image_pre_or_annotations(project, image_name, "pre")
 
 
-def get_image_annotations(project, image_name):
+def get_image_annotations(project, image_name, project_folder=None):
     """Get annotations of the image.
 
     :param project: project name or metadata of the project
@@ -664,10 +680,14 @@ def get_image_annotations(project, image_name):
         "annotation_mask_filename": mask filename on server
     :rtype: dict
     """
-    return _get_image_pre_or_annotations(project, image_name, "")
+    return _get_image_pre_or_annotations(
+        project, image_name, "", project_folder
+    )
 
 
-def _get_image_pre_or_annotations(project, image_name, pre, project_type=None):
+def _get_image_pre_or_annotations(
+    project, image_name, pre, project_type=None, project_folder=None
+):
     image = get_image_metadata(project, image_name)
     team_id, project_id, image_id, folder_id = image["team_id"], image[
         "project_id"], image["id"], image['folder_id']

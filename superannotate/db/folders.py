@@ -1,6 +1,10 @@
+import logging
+
 from ..api import API
 from ..exceptions import SABaseException
 from .project_api import get_project_metadata_bare
+
+logger = logging.getLogger("superannotate-python-sdk")
 
 _api = API.get_instance()
 
@@ -27,36 +31,35 @@ def search_folders(project, folder_name=None, return_metadata=False):
         project = get_project_metadata_bare(project)
     team_id, project_id = project["team_id"], project["id"]
     result_list = []
-    params = {'team_id': team_id, 'project_id': project_id, 'offset': 0}
-    total_got = 0
+    params = {
+        'team_id': team_id,
+        'project_id': project_id,
+        'offset': 0,
+        'name': folder_name,
+        'is_root': 0
+    }
     total_folders = 0
     while True:
         response = _api.send_request(
-            req_type='GET', path='/images', params=params
+            req_type='GET', path='/folders', params=params
         )
         if not response.ok:
             raise SABaseException(
-                response.status_code, "Couldn't search images " + response.text
+                response.status_code, "Couldn't search folders " + response.text
             )
         response = response.json()
-        images = response["images"]
-        folders = response["folders"]
-
-        results_folders = folders["data"]
+        results_folders = response["data"]
         for r in results_folders:
-            if folder_name is not None and r["name"] != folder_name:
-                continue
             if return_metadata:
                 result_list.append(r)
             else:
                 result_list.append(r["name"])
 
         total_folders += len(results_folders)
-        if folders["count"] <= total_folders:
+        if response["count"] <= total_folders:
             break
 
-        total_got += len(images["data"]) + len(results_folders)
-        params["offset"] = total_got
+        params["offset"] = total_folders
 
     return result_list
 
@@ -84,4 +87,9 @@ def create_folder(project, folder_name):
             response.status_code, "Couldn't create project " + response.text
         )
     res = response.json()
+    if res["name"] != folder_name:
+        logger.warning(
+            "Created folder has name %s, since folder with name %s already existed.",
+            res["name"], folder_name
+        )
     return res
