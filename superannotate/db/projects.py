@@ -34,9 +34,8 @@ from .annotation_classes import (
     fill_class_and_attribute_ids, get_annotation_classes_name_to_id,
     search_annotation_classes
 )
-from .folders import get_folder_metadata
 from .images import get_image_metadata, search_images
-from .project_api import get_project_metadata_bare
+from .project_api import get_project_metadata_bare, get_project_project_folder_metadata
 from .users import get_team_contributor_metadata
 
 logger = logging.getLogger("superannotate-python-sdk")
@@ -378,8 +377,7 @@ def upload_videos_from_folder_to_project(
     :return: uploaded and not-uploaded video frame images' filenames
     :rtype: tuple of list of strs
     """
-    if not isinstance(project, dict):
-        project = get_project_metadata_bare(project)
+    project, project_folder = get_project_project_folder_metadata(project)
     if recursive_subfolders:
         logger.warning(
             "When using recursive subfolder parsing same name videos in different subfolders will overwrite each other."
@@ -419,7 +417,7 @@ def upload_videos_from_folder_to_project(
     filenames = []
     for path in filtered_paths:
         filenames += upload_video_to_project(
-            project,
+            (project, project_folder),
             path,
             target_fps=target_fps,
             start_time=start_time,
@@ -439,8 +437,7 @@ def upload_images_from_folder_to_project(
     from_s3_bucket=None,
     exclude_file_patterns=None,
     recursive_subfolders=False,
-    image_quality_in_editor=None,
-    project_folder=None
+    image_quality_in_editor=None
 ):
     """Uploads all images with given extensions from folder_path to the project.
     Sets status of all the uploaded images to set_status if it is not None.
@@ -474,8 +471,7 @@ def upload_images_from_folder_to_project(
     :return: uploaded, could-not-upload, existing-images filepaths
     :rtype: tuple (3 members) of list of strs
     """
-    if not isinstance(project, dict):
-        project = get_project_metadata_bare(project)
+    project, project_folder = get_project_project_folder_metadata(project)
     if recursive_subfolders:
         logger.info(
             "When using recursive subfolder parsing same name images in different subfolders will overwrite each other."
@@ -537,8 +533,8 @@ def upload_images_from_folder_to_project(
             filtered_paths.append(path)
 
     return upload_images_to_project(
-        project, filtered_paths, annotation_status, from_s3_bucket,
-        image_quality_in_editor, project_folder
+        (project, project_folder), filtered_paths, annotation_status,
+        from_s3_bucket, image_quality_in_editor
     )
 
 
@@ -764,8 +760,7 @@ def upload_images_to_project(
     img_paths,
     annotation_status="NotStarted",
     from_s3_bucket=None,
-    image_quality_in_editor=None,
-    project_folder=None
+    image_quality_in_editor=None
 ):
     """Uploads all images given in list of path objects in img_paths to the project.
     Sets status of all the uploaded images to set_status if it is not None.
@@ -789,8 +784,7 @@ def upload_images_to_project(
     :return: uploaded, could-not-upload, existing-images filepaths
     :rtype: tuple (3 members) of list of strs
     """
-    if not isinstance(project, dict):
-        project = get_project_metadata_bare(project)
+    project, project_folder = get_project_project_folder_metadata(project)
     if not isinstance(img_paths, list):
         raise SABaseException(
             0, "img_paths argument to upload_images_to_project should be a list"
@@ -801,7 +795,7 @@ def upload_images_to_project(
             project
         )
     team_id, project_id = project["team_id"], project["id"]
-    existing_images = search_images(project, project_folder=project_folder)
+    existing_images = search_images((project, project_folder))
     duplicate_images = []
     for existing_image in existing_images:
         i = -1
@@ -839,9 +833,9 @@ def upload_images_to_project(
             response.status_code, "Couldn't get upload token " + response.text
         )
     if project_folder is not None:
-        if not isinstance(project_folder, dict):
-            project_folder = get_folder_metadata(project, project_folder)
-        project_folder = project_folder["id"]
+        project_folder_id = project_folder["id"]
+    else:
+        project_folder_id = None
     res = response.json()
     prefix = res['filePath']
     tqdm_thread = threading.Thread(
@@ -858,7 +852,7 @@ def upload_images_to_project(
             args=(
                 res, img_paths, project, annotation_status, prefix, thread_id,
                 chunksize, couldnt_upload, uploaded, tried_upload,
-                image_quality_in_editor, from_s3_bucket, project_folder
+                image_quality_in_editor, from_s3_bucket, project_folder_id
             ),
             daemon=True
         )
@@ -1197,7 +1191,11 @@ def __upload_annotations_thread(
             names.append(image_name)
         try:
             metadatas = get_image_metadata(
-                {"id": project_id}, names, False, {"id": project_folder_id}
+                ({
+                    "id": project_id
+                }, {
+                    "id": project_folder_id
+                }), names, False
             )
         except SABaseException:
             metadatas = []
@@ -1285,11 +1283,7 @@ def __upload_annotations_thread(
 
 
 def upload_annotations_from_folder_to_project(
-    project,
-    folder_path,
-    from_s3_bucket=None,
-    recursive_subfolders=False,
-    project_folder=None
+    project, folder_path, from_s3_bucket=None, recursive_subfolders=False
 ):
     """Finds and uploads all JSON files in the folder_path as annotations to the project.
 
@@ -1313,18 +1307,12 @@ def upload_annotations_from_folder_to_project(
     :rtype: tuple of list of strs
     """
     return _upload_pre_or_annotations_from_folder_to_project(
-        project, folder_path, "", from_s3_bucket, recursive_subfolders,
-        project_folder
+        project, folder_path, "", from_s3_bucket, recursive_subfolders
     )
 
 
 def _upload_pre_or_annotations_from_folder_to_project(
-    project,
-    folder_path,
-    pre,
-    from_s3_bucket=None,
-    recursive_subfolders=False,
-    project_folder=None
+    project, folder_path, pre, from_s3_bucket=None, recursive_subfolders=False
 ):
     if recursive_subfolders:
         logger.info(
@@ -1337,12 +1325,9 @@ def _upload_pre_or_annotations_from_folder_to_project(
     )
 
     logger.info("Existing %sannotations will be overwritten.", pre)
-    if not isinstance(project, dict):
-        project = get_project_metadata_bare(project)
+    project, project_folder = get_project_project_folder_metadata(project)
 
     if project_folder is not None:
-        if not isinstance(project_folder, dict):
-            project_folder = get_folder_metadata(project, project_folder)
         project_folder_id = project_folder["id"]
     else:
         project_folder_id = None

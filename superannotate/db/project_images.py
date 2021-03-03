@@ -14,7 +14,7 @@ from .images import (
     delete_image, get_image_annotations, get_image_bytes, get_image_metadata,
     search_images, set_image_annotation_status, upload_image_annotations
 )
-from .project_api import get_project_metadata_bare
+from .project_api import get_project_metadata_bare, get_project_project_folder_metadata
 from .projects import (
     __create_image, get_image_array_to_upload,
     get_project_default_image_quality_in_editor, upload_image_array_to_s3
@@ -50,8 +50,7 @@ def upload_image_to_project(
            Can be either "compressed" or "original".  If None then the default value in project settings will be used.
     :type image_quality_in_editor: str
     """
-    if not isinstance(project, dict):
-        project = get_project_metadata_bare(project)
+    project, project_folder = get_project_project_folder_metadata(project)
     annotation_status = common.annotation_status_str_to_int(annotation_status)
     if image_quality_in_editor is None:
         image_quality_in_editor = get_project_default_image_quality_in_editor(
@@ -115,11 +114,15 @@ def upload_image_to_project(
         )
         key = upload_image_array_to_s3(bucket, *images_info_and_array, prefix)
     except Exception as e:
-        raise SABaseException(0, "Couldn't upload to data server. " + e)
+        raise SABaseException(0, "Couldn't upload to data server. " + str(e))
 
+    if project_folder is not None:
+        project_folder_id = project_folder["id"]
+    else:
+        project_folder_id = None
     __create_image(
         [img_name], [key], project, annotation_status, prefix,
-        [images_info_and_array[2]]
+        [images_info_and_array[2]], project_folder_id
     )
 
     while True:
@@ -262,12 +265,13 @@ def pin_image(project, image_name, pin=True):
     :param pin: sets to pin if True, else unpins image
     :type pin: bool
     """
-    if not isinstance(project, dict):
-        project = get_project_metadata_bare(project)
-    img_metadata = get_image_metadata(project, image_name)
+    project, project_folder = get_project_project_folder_metadata(project)
+    img_metadata = get_image_metadata((project, project_folder), image_name)
     team_id, project_id, image_id = project["team_id"], project[
         "id"], img_metadata["id"]
     params = {"team_id": team_id, "project_id": project_id}
+    if project_folder is not None:
+        params["folder_id"] = project_folder["id"]
     json_req = {"is_pinned": int(pin)}
     response = _api.send_request(
         req_type='PUT',
@@ -296,27 +300,19 @@ def assign_images(project, image_names, user):
     logger.info("Assign %s images to user %s", len(image_names), user)
     if len(image_names) == 0:
         return
-    if not isinstance(project, dict):
-        project = get_project_metadata_bare(project)
-    folder_id = None
-    images = search_images(project, return_metadata=True)
+    project, project_folder = get_project_project_folder_metadata(project)
+    images = search_images((project, project_folder), return_metadata=True)
     image_dict = {}
     for image in images:
         image_dict[image["name"]] = image["id"]
-        if folder_id is None:
-            folder_id = image["folder_id"]
-        elif folder_id != image["folder_id"]:
-            raise SABaseException(0, "Folders not implemented yet")
 
     image_ids = []
     for image_name in image_names:
         image_ids.append(image_dict[image_name])
     team_id, project_id = project["team_id"], project["id"]
-    params = {
-        "team_id": team_id,
-        "project_id": project_id,
-        "folder_id": folder_id
-    }
+    params = {"team_id": team_id, "project_id": project_id}
+    if project_folder is not None:
+        params['folder_id'] = project_folder['id']
     json_req = {"user_id": user, "image_ids": image_ids}
     response = _api.send_request(
         req_type='POST',

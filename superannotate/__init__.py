@@ -42,7 +42,6 @@ from .db.clone_project import clone_project
 from .db.exports import (
     download_export, get_export_metadata, get_exports, prepare_export
 )
-from .db.folders import create_folder, get_folder_metadata, search_folders
 from .db.images import (
     add_annotation_bbox_to_image, add_annotation_comment_to_image,
     add_annotation_cuboid_to_image, add_annotation_ellipse_to_image,
@@ -53,6 +52,7 @@ from .db.images import (
     get_image_metadata, get_image_preannotations, search_images,
     set_image_annotation_status, upload_image_annotations
 )
+from .db.project_api import create_folder, get_folder_metadata, search_folders
 from .db.project_images import (
     assign_images, copy_image, move_image, pin_image, upload_image_to_project
 )

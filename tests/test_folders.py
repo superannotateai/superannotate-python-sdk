@@ -18,6 +18,7 @@ def test_basic_folders(tmpdir):
         sa.delete_project(pr)
 
     project = sa.create_project(PROJECT_NAME1, 'test', 'Vector')
+    project = project["name"]
     sa.upload_images_from_folder_to_project(
         project, FROM_FOLDER, annotation_status="InProgress"
     )
@@ -40,9 +41,7 @@ def test_basic_folders(tmpdir):
 
     assert folders[0] == "folder1"
 
-    images = sa.search_images(
-        project, "example_image_1", project_folder="folder1"
-    )
+    images = sa.search_images(project + "/folder1", "example_image_1")
     assert len(images) == 0
 
     folder = sa.get_folder_metadata(project, "folder1")
@@ -54,31 +53,20 @@ def test_basic_folders(tmpdir):
     assert 'Folder not found' in str(e)
 
     sa.upload_images_from_folder_to_project(
-        project,
-        FROM_FOLDER,
-        annotation_status="InProgress",
-        project_folder="folder1"
+        project + "/folder1", FROM_FOLDER, annotation_status="InProgress"
     )
-    images = sa.search_images(
-        project, "example_image_1", project_folder="folder1"
-    )
+    images = sa.search_images(project + "/folder1", "example_image_1")
     assert len(images) == 1
 
     sa.upload_images_from_folder_to_project(
-        project,
-        FROM_FOLDER,
-        annotation_status="InProgress",
-        project_folder="folder1"
+        project + "/folder1", FROM_FOLDER, annotation_status="InProgress"
     )
-    images = sa.search_images(project, project_folder="folder1")
+    images = sa.search_images(project + "/folder1")
     assert len(images) == 4
 
     with pytest.raises(SABaseException) as e:
         sa.upload_images_from_folder_to_project(
-            project,
-            FROM_FOLDER,
-            annotation_status="InProgress",
-            project_folder="folder2"
+            project + "/folder2", FROM_FOLDER, annotation_status="InProgress"
         )
     assert 'Folder not found' in str(e)
 
@@ -111,6 +99,7 @@ def test_folder_annotations(tmpdir):
         sa.delete_project(pr)
 
     project = sa.create_project(PROJECT_NAME2, 'test', 'Vector')
+    project = project["name"]
     sa.upload_images_from_folder_to_project(
         project, FROM_FOLDER, annotation_status="InProgress"
     )
@@ -124,18 +113,17 @@ def test_folder_annotations(tmpdir):
     assert len(folders) == 1
 
     sa.upload_images_from_folder_to_project(
-        project,
+        project + "/" + folders[0]["name"],
         FROM_FOLDER,
-        annotation_status="InProgress",
-        project_folder=folders[0]
+        annotation_status="InProgress"
     )
     sa.upload_annotations_from_folder_to_project(
-        project, FROM_FOLDER, project_folder=folders[0]
+        project + "/" + folders[0]["name"], FROM_FOLDER
     )
     annot = sa.get_image_annotations(project, "example_image_1.jpg")
     assert len(annot["annotation_json"]["instances"]) == 0
 
     annot = sa.get_image_annotations(
-        project, "example_image_1.jpg", project_folder="folder1"
+        project + "/folder1", "example_image_1.jpg"
     )
     assert len(annot["annotation_json"]["instances"]) > 0

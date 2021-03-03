@@ -24,8 +24,7 @@ from .annotation_classes import (
     get_annotation_classes_id_to_name, get_annotation_classes_name_to_id,
     search_annotation_classes
 )
-from .folders import get_folder_metadata
-from .project_api import get_project_metadata_bare
+from .project_api import get_project_project_folder_metadata
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -36,8 +35,7 @@ def search_images(
     project,
     image_name_prefix=None,
     annotation_status=None,
-    return_metadata=False,
-    project_folder=None
+    return_metadata=False
 ):
     """Search images by name_prefix (case-insensitive) and annotation status
 
@@ -55,8 +53,7 @@ def search_images(
     :return: metadata of found images or image names
     :rtype: list of dicts or strs
     """
-    if not isinstance(project, dict):
-        project = get_project_metadata_bare(project)
+    project, project_folder = get_project_project_folder_metadata(project)
     team_id, project_id = project["team_id"], project["id"]
     if annotation_status is not None:
         annotation_status = common.annotation_status_str_to_int(
@@ -64,8 +61,6 @@ def search_images(
         )
 
     if project_folder is not None:
-        if not isinstance(project_folder, dict):
-            project_folder = get_folder_metadata(project, project_folder)
         project_folder_id = project_folder["id"]
     else:
         project_folder_id = None
@@ -120,13 +115,7 @@ def search_images(
         return result_list
 
 
-@project_metadata
-def get_image_metadata(
-    project,
-    image_names,
-    return_dict_on_single_output=True,
-    project_folder=None
-):
+def get_image_metadata(project, image_names, return_dict_on_single_output=True):
     """Returns image metadata
 
     :param project: project name or metadata of the project
@@ -137,12 +126,11 @@ def get_image_metadata(
     :return: metadata of image
     :rtype: dict
     """
+    project, project_folder = get_project_project_folder_metadata(project)
     if isinstance(image_names, str):
         image_names = [image_names]
 
     if project_folder is not None:
-        if not isinstance(project_folder, dict):
-            project_folder = get_folder_metadata(project, project_folder)
         project_folder_id = project_folder["id"]
     else:
         project_folder_id = None
@@ -546,8 +534,7 @@ def download_image(
             0, "Image download variant should be either original or lores"
         )
 
-    if not isinstance(project, dict):
-        project = get_project_metadata_bare(project)
+    project, project_folder = get_project_project_folder_metadata(project)
     img = get_image_bytes(project, image_name, variant=variant)
     filepath_save = image_name
     if variant == "lores":
@@ -665,7 +652,7 @@ def get_image_preannotations(project, image_name):
     return _get_image_pre_or_annotations(project, image_name, "pre")
 
 
-def get_image_annotations(project, image_name, project_folder=None):
+def get_image_annotations(project, image_name):
     """Get annotations of the image.
 
     :param project: project name or metadata of the project
@@ -680,20 +667,16 @@ def get_image_annotations(project, image_name, project_folder=None):
         "annotation_mask_filename": mask filename on server
     :rtype: dict
     """
-    return _get_image_pre_or_annotations(
-        project, image_name, "", None, project_folder
-    )
+    return _get_image_pre_or_annotations(project, image_name, "", None)
 
 
-def _get_image_pre_or_annotations(
-    project, image_name, pre, project_type=None, project_folder=None
-):
-    image = get_image_metadata(project, image_name, True, project_folder)
+def _get_image_pre_or_annotations(project, image_name, pre, project_type=None):
+    image = get_image_metadata(project, image_name, True)
     team_id, project_id, image_id, project_folder_id = image["team_id"], image[
         "project_id"], image["id"], image['folder_id']
     if project_type is None:
         if not isinstance(project, dict):
-            project = get_project_metadata_bare(project)
+            project, _ = get_project_project_folder_metadata(project)
         project_type = project["type"]
     params = {
         'team_id': team_id,
@@ -790,11 +773,10 @@ def download_image_annotations(project, image_name, local_dir_path):
 def _download_image_pre_or_annotations(
     project, image_name, local_dir_path, pre
 ):
-    if not isinstance(project, dict):
-        project = get_project_metadata_bare(project)
+    project, project_folder = get_project_project_folder_metadata(project)
 
     annotation = _get_image_pre_or_annotations(
-        project, image_name, pre, project["type"]
+        (project, project_folder), image_name, pre, project["type"]
     )
 
     if annotation[f"{pre}annotation_json_filename"] is None:
@@ -869,9 +851,8 @@ def upload_image_annotations(
         if verbose:
             logger.info("Uploading annotations from %s.", annotation_json)
         annotation_json = json.load(open(annotation_json))
-    if not isinstance(project, dict):
-        project = get_project_metadata_bare(project)
-    image = get_image_metadata(project, image_name)
+    project, project_folder = get_project_project_folder_metadata(project)
+    image = get_image_metadata((project, project_folder), image_name)
     team_id, project_id, image_id, folder_id, image_name = image[
         "team_id"], image["project_id"], image["id"], image['folder_id'], image[
             'name']

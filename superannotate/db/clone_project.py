@@ -9,7 +9,6 @@ from .project_metadata import get_project_metadata
 from .projects import create_project_from_metadata
 
 logger = logging.getLogger("superannotate-python-sdk")
-_api = API.get_instance()
 
 
 def clone_project(
