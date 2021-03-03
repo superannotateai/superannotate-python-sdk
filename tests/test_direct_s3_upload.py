@@ -12,6 +12,10 @@ S3_FOLDER = 'sample_project_vector'
 S3_FOLDER_STRESS = 'ff'
 
 
+@pytest.mark.skipif(
+    "SA_FORCE_ALL_TESTS" not in os.environ,
+    reason="Requires env variable to be set"
+)
 def test_direct_s3_upload():
     projects_found = sa.search_projects(TEST_PROJECT_NAME, return_metadata=True)
     for pr in projects_found:
