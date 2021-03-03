@@ -134,9 +134,27 @@ def upload_image_to_project(
             break
 
 
+def copy_image_endpoint(img_metadatas, destination_project_folder_id):
+    params = {
+        "team_id": _api.team_id,
+        "project_id": img_metadatas[0]["project_id"]
+    }
+    json_req = {
+        "image_ids": [x["id"] for x in img_metadatas],
+        "destination_folder_id": destination_project_folder_id
+    }
+    response = _api.send_request(
+        req_type='POST', path='/image/copy', params=params, json_req=json_req
+    )
+    if not response.ok:
+        raise SABaseException(
+            response.status_code, "Couldn't copy images " + response.text
+        )
+
+
 def copy_image(
     source_project,
-    image_name,
+    image_names,
     destination_project,
     include_annotations=False,
     copy_annotation_status=False,
@@ -159,12 +177,22 @@ def copy_image(
     :param copy_pin: enables image pin status copy
     :type copy_pin: bool
     """
-    if not isinstance(source_project, dict):
-        source_project = get_project_metadata_bare(source_project)
-    if not isinstance(destination_project, dict):
-        destination_project = get_project_metadata_bare(destination_project)
-    img_b = get_image_bytes(source_project, image_name)
-    img_metadata = get_image_metadata(source_project, image_name)
+    source_project, source_project_folder = get_project_project_folder_metadata(
+        source_project
+    )
+    destination_project, destination_project_folder = get_project_project_folder_metadata(
+        destination_project
+    )
+    img_metadatas = get_image_metadata(
+        (source_project, source_project_folder), image_names
+    )
+    print(source_project, destination_project)
+    if source_project["id"] == destination_project["id"]:
+        copy_image_endpoint(img_metadatas, destination_project_folder["id"])
+        return
+    img_b = get_image_bytes(
+        (source_project, source_project_folder), image_names
+    )
     new_name = image_name
     extension = Path(image_name).suffix
     p = re.compile(r"_\([0-9]+\)\.")
