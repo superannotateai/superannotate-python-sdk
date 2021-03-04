@@ -1619,8 +1619,7 @@ def upload_images_from_s3_bucket_to_project(
            Can be either "compressed" or "original".  If None then the default value in project settings will be used.
     :type image_quality_in_editor: str
     """
-    if not isinstance(project, dict):
-        project = get_project_metadata_bare(project)
+    project, project_folder = get_project_and_folder_metadata(project)
     if image_quality_in_editor is not None:
         old_quality = get_project_default_image_quality_in_editor(project)
         set_project_default_image_quality_in_editor(
@@ -1636,6 +1635,9 @@ def upload_images_from_s3_bucket_to_project(
         "bucketName": bucket_name,
         "folderName": folder_path
     }
+    if project_folder is not None:
+        data["folder_id"] = project_folder["id"]
+
     response = _api.send_request(
         req_type='POST',
         path=f'/project/{project_id}/get-image-s3-access-point',
