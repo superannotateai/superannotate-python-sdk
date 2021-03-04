@@ -186,6 +186,33 @@ def delete_folders(project, folder_names):
     )
 
 
+def rename_folder(project, new_folder_name):
+    """Renames folder in project.
+
+    :param project: project name or metadata of the project to be deleted
+    :type project: str or dict
+    :param new_folder_name: folder's new name
+    :type new_folder_name: str
+    """
+    project, project_folder = get_project_and_folder_metadata(project)
+    params = {"team_id": project["team_id"], "project_id": project["id"]}
+    data = {"name": new_folder_name}
+    response = _api.send_request(
+        req_type='PUT',
+        path=f'/folder/{project_folder["id"]}',
+        params=params,
+        json_req=data
+    )
+    if not response.ok:
+        raise SABaseException(
+            response.status_code, "Couldn't rename folder " + response.text
+        )
+    logger.info(
+        "Folder %s renamed to %s in project %s", project_folder["name"],
+        new_folder_name, project["name"]
+    )
+
+
 def get_project_and_folder_metadata(project):
     if isinstance(project, dict):
         project = project

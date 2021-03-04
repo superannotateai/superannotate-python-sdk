@@ -156,3 +156,27 @@ def test_delete_folders(tmpdir):
     sa.delete_folders(project, ["folder2", "folder5"])
     assert len(sa.search_folders(project)) == 1
     assert sa.search_folders(project)[0] == "folder6"
+
+
+def test_rename_folder(tmpdir):
+    tmpdir = Path(tmpdir)
+
+    projects_found = sa.search_projects(PROJECT_NAME3, return_metadata=True)
+    for pr in projects_found:
+        sa.delete_project(pr)
+
+    project = sa.create_project(PROJECT_NAME3, 'test', 'Vector')
+    sa.create_folder(project, "folder1")
+    sa.create_folder(project, "folder2")
+    sa.create_folder(project, "folder3")
+
+    assert len(sa.search_folders(project)) == 3
+
+    sa.rename_folder(project["name"] + "/folder1", "folder5")
+
+    assert len(sa.search_folders(project)) == 3
+
+    assert "folder5" in sa.search_folders(project)
+    assert "folder1" not in sa.search_folders(project)
+
+    print(sa.search_folders(project))

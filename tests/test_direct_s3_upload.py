@@ -9,7 +9,6 @@ import superannotate as sa
 TEST_PROJECT_NAME = "test_direct_s3_upload"
 S3_BUCKET = 'superannotate-python-sdk-test'
 S3_FOLDER = 'sample_project_vector'
-S3_FOLDER_STRESS = 'ff'
 
 
 def test_direct_s3_upload():
