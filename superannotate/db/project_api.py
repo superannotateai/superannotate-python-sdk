@@ -123,7 +123,7 @@ def search_folders(project, folder_name=None, return_metadata=False):
 def create_folder(project, folder_name):
     """Create a new folder in the project.
 
-    :param project: project name or metadata of the project to be deleted
+    :param project: project name or metadata of the project
     :type project: str or dict
     :param folder_name: the new folder's name
     :type folder_name: str
@@ -150,6 +150,40 @@ def create_folder(project, folder_name):
         )
     logger.info("Folder %s created in project %s", res["name"], project["name"])
     return res
+
+
+def delete_folders(project, folder_names):
+    """Delete folder in project.
+
+    :param project: project name or metadata of the project to be deleted
+    :type project: str or dict
+    :param folder_names: to be deleted folders' names
+    :type folder_names: str or list of strs
+    """
+    if isinstance(folder_names, str):
+        folder_names = [folder_names]
+    if not isinstance(project, dict):
+        project = get_project_metadata_bare(project)
+    all_folders_metadata = search_folders(project, return_metadata=True)
+    folder_ids_to_delete = [
+        f["id"] for f in all_folders_metadata if f["name"] in folder_names
+    ]
+
+    params = {"team_id": project["team_id"], "project_id": project["id"]}
+    data = {"folder_ids": folder_ids_to_delete}
+    response = _api.send_request(
+        req_type='PUT',
+        path='/image/delete/images',
+        params=params,
+        json_req=data
+    )
+    if not response.ok:
+        raise SABaseException(
+            response.status_code, "Couldn't delete folders " + response.text
+        )
+    logger.info(
+        "Folders %s deleted in project %s", folder_names, project["name"]
+    )
 
 
 def get_project_and_folder_metadata(project):

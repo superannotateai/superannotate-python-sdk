@@ -6,6 +6,7 @@ from superannotate.exceptions import SABaseException
 
 PROJECT_NAME1 = "test folder simple"
 PROJECT_NAME2 = "test folder annotations"
+PROJECT_NAME3 = "test folder deletes"
 
 FROM_FOLDER = Path("./tests/sample_project_vector")
 
@@ -127,3 +128,31 @@ def test_folder_annotations(tmpdir):
         project + "/folder1", "example_image_1.jpg"
     )
     assert len(annot["annotation_json"]["instances"]) > 0
+
+
+def test_delete_folders(tmpdir):
+    tmpdir = Path(tmpdir)
+
+    projects_found = sa.search_projects(PROJECT_NAME3, return_metadata=True)
+    for pr in projects_found:
+        sa.delete_project(pr)
+
+    project = sa.create_project(PROJECT_NAME3, 'test', 'Vector')
+    sa.create_folder(project, "folder1")
+    sa.create_folder(project, "folder2")
+    sa.create_folder(project, "folder3")
+
+    assert len(sa.search_folders(project)) == 3
+
+    sa.delete_folders(project, "folder1")
+    assert len(sa.search_folders(project)) == 2
+    sa.delete_folders(project, ["folder2", "folder3"])
+    assert len(sa.search_folders(project)) == 0
+
+    sa.create_folder(project, "folder5")
+    sa.create_folder(project, "folder6")
+    assert len(sa.search_folders(project)) == 2
+
+    sa.delete_folders(project, ["folder2", "folder5"])
+    assert len(sa.search_folders(project)) == 1
+    assert sa.search_folders(project)[0] == "folder6"

@@ -53,8 +53,8 @@ from .db.images import (
     set_image_annotation_status, upload_image_annotations
 )
 from .db.project_api import (
-    create_folder, get_folder_metadata, get_project_and_folder_metadata,
-    search_folders
+    create_folder, delete_folders, get_folder_metadata,
+    get_project_and_folder_metadata, search_folders
 )
 from .db.project_images import (
     assign_images, copy_image, move_image, pin_image, upload_image_to_project

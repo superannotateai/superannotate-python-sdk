@@ -1677,6 +1677,7 @@ def _get_upload_from_s3_bucket_to_project_status(project):
             response.status_code,
             "Couldn't get upload to project from S3 status " + response.text
         )
+    print(response.text)
     return response.json()
 
 
