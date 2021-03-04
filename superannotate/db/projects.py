@@ -1658,7 +1658,7 @@ def upload_images_from_s3_bucket_to_project(
         if res["progress"] != "1":
             raise SABaseException(
                 response.status_code,
-                "Couldn't upload to project from S3 " + response.text
+                "Couldn't upload to project from S3 " + str(res)
             )
     if image_quality_in_editor is not None:
         set_project_default_image_quality_in_editor(project, old_quality)
@@ -1679,7 +1679,6 @@ def _get_upload_from_s3_bucket_to_project_status(project):
             response.status_code,
             "Couldn't get upload to project from S3 status " + response.text
         )
-    print(response.text)
     return response.json()
 
 
