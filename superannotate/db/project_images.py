@@ -134,7 +134,13 @@ def upload_image_to_project(
             break
 
 
-def copy_image_endpoint(img_metadatas, destination_project_folder_id):
+def copy_images(project, source_folder, destination_folder, image_names):
+    project, source_project_folder = get_project_project_folder_metadata(
+        source_project
+    )
+    destination_project, destination_project_folder = get_project_project_folder_metadata(
+        destination_project
+    )
     params = {
         "team_id": _api.team_id,
         "project_id": img_metadatas[0]["project_id"]
@@ -154,7 +160,7 @@ def copy_image_endpoint(img_metadatas, destination_project_folder_id):
 
 def copy_image(
     source_project,
-    image_names,
+    image_name,
     destination_project,
     include_annotations=False,
     copy_annotation_status=False,
@@ -183,22 +189,18 @@ def copy_image(
     destination_project, destination_project_folder = get_project_project_folder_metadata(
         destination_project
     )
-    img_metadatas = get_image_metadata(
-        (source_project, source_project_folder), image_names
+    img_metadata = get_image_metadata(
+        (source_project, source_project_folder), image_name
     )
-    print(source_project, destination_project)
-    if source_project["id"] == destination_project["id"]:
-        copy_image_endpoint(img_metadatas, destination_project_folder["id"])
-        return
-    img_b = get_image_bytes(
-        (source_project, source_project_folder), image_names
-    )
+    img_b = get_image_bytes((source_project, source_project_folder), image_name)
     new_name = image_name
     extension = Path(image_name).suffix
     p = re.compile(r"_\([0-9]+\)\.")
     while True:
         try:
-            get_image_metadata(destination_project, new_name)
+            get_image_metadata(
+                (destination_project, destination_project_folder), new_name
+            )
         except SABaseException:
             break
         else:
@@ -215,9 +217,13 @@ def copy_image(
                 new_name = new_name[:m.start() +
                                     2] + str(num + 1) + ")" + extension
 
-    upload_image_to_project(destination_project, img_b, new_name)
+    upload_image_to_project(
+        (destination_project, destination_project_folder), img_b, new_name
+    )
     if include_annotations:
-        annotations = get_image_annotations(source_project, image_name)
+        annotations = get_image_annotations(
+            (source_project, source_project_folder), image_name
+        )
         if annotations["annotation_json"] is not None:
             if "annotation_mask" in annotations:
                 upload_image_annotations(
@@ -232,10 +238,14 @@ def copy_image(
                 )
     if copy_annotation_status:
         set_image_annotation_status(
-            destination_project, new_name, img_metadata["annotation_status"]
+            (destination_project, destination_project_folder), new_name,
+            img_metadata["annotation_status"]
         )
     if copy_pin:
-        pin_image(destination_project, new_name, img_metadata["is_pinned"])
+        pin_image(
+            (destination_project, destination_project_folder), new_name,
+            img_metadata["is_pinned"]
+        )
 
     logger.info(
         "Copied image %s/%s to %s/%s.", source_project["name"], image_name,
@@ -267,19 +277,22 @@ def move_image(
     :param copy_pin: enables image pin status copy
     :type copy_pin: bool
     """
-    if not isinstance(source_project, dict):
-        source_project = get_project_metadata_bare(source_project)
-    if not isinstance(destination_project, dict):
-        destination_project = get_project_metadata_bare(destination_project)
+    source_project, source_project_folder = get_project_project_folder_metadata(
+        source_project
+    )
+    destination_project, destination_project_folder = get_project_project_folder_metadata(
+        destination_project
+    )
     if source_project == destination_project:
         raise SABaseException(
             0, "Cannot move image if source_project == destination_project."
         )
     copy_image(
-        source_project, image_name, destination_project, include_annotations,
+        (source_project, source_project_folder), image_name,
+        (destination_project, destination_project_folder), include_annotations,
         copy_annotation_status, copy_pin
     )
-    delete_image(source_project, image_name)
+    delete_image((source_project, source_project_folder), image_name)
     logger.info("Deleted image %s/%s.", source_project["name"], image_name)
 
 

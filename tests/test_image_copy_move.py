@@ -161,35 +161,35 @@ def test_image_move(tmpdir):
     assert len(si) == 1
 
 
-def test_image_copy_folders(tmpdir):
-    tmpdir = Path(tmpdir)
+# def test_image_copy_folders(tmpdir):
+#     tmpdir = Path(tmpdir)
 
-    projects_found = sa.search_projects(
-        PROJECT_NAME_CPY_FOLDER, return_metadata=True
-    )
-    for pr in projects_found:
-        sa.delete_project(pr)
+#     projects_found = sa.search_projects(
+#         PROJECT_NAME_CPY_FOLDER, return_metadata=True
+#     )
+#     for pr in projects_found:
+#         sa.delete_project(pr)
 
-    project = sa.create_project(PROJECT_NAME_CPY_FOLDER, "test", "Vector")
+#     project = sa.create_project(PROJECT_NAME_CPY_FOLDER, "test", "Vector")
 
-    sa.upload_image_to_project(
-        project,
-        "./tests/sample_project_vector/example_image_1.jpg",
-        annotation_status="InProgress"
-    )
-    sa.upload_image_to_project(
-        project,
-        "./tests/sample_project_vector/example_image_2.jpg",
-        annotation_status="InProgress"
-    )
+#     sa.upload_image_to_project(
+#         project,
+#         "./tests/sample_project_vector/example_image_1.jpg",
+#         annotation_status="InProgress"
+#     )
+#     sa.upload_image_to_project(
+#         project,
+#         "./tests/sample_project_vector/example_image_2.jpg",
+#         annotation_status="InProgress"
+#     )
 
-    sa.create_folder(project, "folder1")
+#     sa.create_folder(project, "folder1")
 
-    sa.copy_image(
-        project, ["example_image_1.jpg", "example_image_2.jpg"],
-        project["name"] + "/folder1"
-    )
-    sa.copy_image(
-        project, ["example_image_1.jpg", "example_image_2.jpg"],
-        project["name"] + "/folder1"
-    )
+#     sa.copy_image(
+#         project, ["example_image_1.jpg", "example_image_2.jpg"],
+#         project["name"] + "/folder1"
+#     )
+#     sa.copy_image(
+#         project, ["example_image_1.jpg", "example_image_2.jpg"],
+#         project["name"] + "/folder1"
+#     )
