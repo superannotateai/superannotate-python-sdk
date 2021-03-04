@@ -29,6 +29,7 @@ ________
 .. autofunction:: superannotate.rename_project
 .. _ref_get_project_metadata:
 .. autofunction:: superannotate.get_project_metadata
+.. autofunction:: superannotate.get_project_and_folder_metadata
 .. autofunction:: superannotate.get_project_image_count
 .. autofunction:: superannotate.upload_images_to_project
 .. autofunction:: superannotate.upload_images_from_public_urls_to_project

@@ -35,7 +35,7 @@ from .annotation_classes import (
     search_annotation_classes
 )
 from .images import get_image_metadata, search_images
-from .project_api import get_project_metadata_bare, get_project_project_folder_metadata
+from .project_api import get_project_metadata_bare, get_project_and_folder_metadata
 from .users import get_team_contributor_metadata
 
 logger = logging.getLogger("superannotate-python-sdk")
@@ -377,7 +377,7 @@ def upload_videos_from_folder_to_project(
     :return: uploaded and not-uploaded video frame images' filenames
     :rtype: tuple of list of strs
     """
-    project, project_folder = get_project_project_folder_metadata(project)
+    project, project_folder = get_project_and_folder_metadata(project)
     if recursive_subfolders:
         logger.warning(
             "When using recursive subfolder parsing same name videos in different subfolders will overwrite each other."
@@ -471,7 +471,7 @@ def upload_images_from_folder_to_project(
     :return: uploaded, could-not-upload, existing-images filepaths
     :rtype: tuple (3 members) of list of strs
     """
-    project, project_folder = get_project_project_folder_metadata(project)
+    project, project_folder = get_project_and_folder_metadata(project)
     if recursive_subfolders:
         logger.info(
             "When using recursive subfolder parsing same name images in different subfolders will overwrite each other."
@@ -784,7 +784,7 @@ def upload_images_to_project(
     :return: uploaded, could-not-upload, existing-images filepaths
     :rtype: tuple (3 members) of list of strs
     """
-    project, project_folder = get_project_project_folder_metadata(project)
+    project, project_folder = get_project_and_folder_metadata(project)
     if not isinstance(img_paths, list):
         raise SABaseException(
             0, "img_paths argument to upload_images_to_project should be a list"
@@ -1325,7 +1325,7 @@ def _upload_pre_or_annotations_from_folder_to_project(
     )
 
     logger.info("Existing %sannotations will be overwritten.", pre)
-    project, project_folder = get_project_project_folder_metadata(project)
+    project, project_folder = get_project_and_folder_metadata(project)
 
     if project_folder is not None:
         project_folder_id = project_folder["id"]

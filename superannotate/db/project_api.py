@@ -151,7 +151,7 @@ def create_folder(project, folder_name):
     return res
 
 
-def get_project_project_folder_metadata(project):
+def get_project_and_folder_metadata(project):
     if isinstance(project, dict):
         project = project
         folder = None

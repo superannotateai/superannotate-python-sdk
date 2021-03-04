@@ -2,7 +2,6 @@ import io
 import logging
 import re
 import time
-import uuid
 from pathlib import Path
 
 import boto3
@@ -14,7 +13,7 @@ from .images import (
     delete_image, get_image_annotations, get_image_bytes, get_image_metadata,
     search_images, set_image_annotation_status, upload_image_annotations
 )
-from .project_api import get_project_metadata_bare, get_project_project_folder_metadata
+from .project_api import get_project_and_folder_metadata
 from .projects import (
     __create_image, get_image_array_to_upload,
     get_project_default_image_quality_in_editor, upload_image_array_to_s3
@@ -50,7 +49,7 @@ def upload_image_to_project(
            Can be either "compressed" or "original".  If None then the default value in project settings will be used.
     :type image_quality_in_editor: str
     """
-    project, project_folder = get_project_project_folder_metadata(project)
+    project, project_folder = get_project_and_folder_metadata(project)
     annotation_status = common.annotation_status_str_to_int(annotation_status)
     if image_quality_in_editor is None:
         image_quality_in_editor = get_project_default_image_quality_in_editor(
@@ -135,10 +134,10 @@ def upload_image_to_project(
 
 
 def copy_images(project, source_folder, destination_folder, image_names):
-    project, source_project_folder = get_project_project_folder_metadata(
+    project, source_project_folder = get_project_and_folder_metadata(
         source_project
     )
-    destination_project, destination_project_folder = get_project_project_folder_metadata(
+    destination_project, destination_project_folder = get_project_and_folder_metadata(
         destination_project
     )
     params = {
@@ -170,7 +169,8 @@ def copy_image(
     project then the name will be changed to <image_name>_(<num>).<image_ext>,
     where <num> is the next available number deducted from project image list.
 
-    :param source_project: project name or metadata of the project of source project
+    :param source_project: project name plus optional subfolder in the project (e.g., "project1/folder1") or
+                           metadata of the project of source project
     :type source_project: str or dict
     :param image_name: image name
     :type image: str
@@ -183,10 +183,10 @@ def copy_image(
     :param copy_pin: enables image pin status copy
     :type copy_pin: bool
     """
-    source_project, source_project_folder = get_project_project_folder_metadata(
+    source_project, source_project_folder = get_project_and_folder_metadata(
         source_project
     )
-    destination_project, destination_project_folder = get_project_project_folder_metadata(
+    destination_project, destination_project_folder = get_project_and_folder_metadata(
         destination_project
     )
     img_metadata = get_image_metadata(
@@ -277,10 +277,10 @@ def move_image(
     :param copy_pin: enables image pin status copy
     :type copy_pin: bool
     """
-    source_project, source_project_folder = get_project_project_folder_metadata(
+    source_project, source_project_folder = get_project_and_folder_metadata(
         source_project
     )
-    destination_project, destination_project_folder = get_project_project_folder_metadata(
+    destination_project, destination_project_folder = get_project_and_folder_metadata(
         destination_project
     )
     if source_project == destination_project:
@@ -306,7 +306,7 @@ def pin_image(project, image_name, pin=True):
     :param pin: sets to pin if True, else unpins image
     :type pin: bool
     """
-    project, project_folder = get_project_project_folder_metadata(project)
+    project, project_folder = get_project_and_folder_metadata(project)
     img_metadata = get_image_metadata((project, project_folder), image_name)
     team_id, project_id, image_id = project["team_id"], project[
         "id"], img_metadata["id"]
@@ -341,7 +341,7 @@ def assign_images(project, image_names, user):
     logger.info("Assign %s images to user %s", len(image_names), user)
     if len(image_names) == 0:
         return
-    project, project_folder = get_project_project_folder_metadata(project)
+    project, project_folder = get_project_and_folder_metadata(project)
     images = search_images((project, project_folder), return_metadata=True)
     image_dict = {}
     for image in images:
@@ -365,4 +365,3 @@ def assign_images(project, image_names, user):
         raise SABaseException(
             response.status_code, "Couldn't assign images " + response.text
         )
-    # print(response.json())

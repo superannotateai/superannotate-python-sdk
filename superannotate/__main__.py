@@ -110,6 +110,9 @@ def preannotations_upload(command_name, args):
     )
 
     args = parser.parse_args(args)
+    project_metadata, folder_metadata = sa.get_project_and_folder_metadata(
+        args.project
+    )
 
     if args.format != "SuperAnnotate":
         if args.format != "COCO":
@@ -126,7 +129,7 @@ def preannotations_upload(command_name, args):
             )
 
         logger.info("Annotations in format %s.", args.format)
-        project_type = sa.get_project_metadata(args.project)["type"]
+        project_type = project_metadata["type"]
 
         tempdir = tempfile.TemporaryDirectory()
         tempdir_path = Path(tempdir.name)
@@ -137,17 +140,17 @@ def preannotations_upload(command_name, args):
         args.folder = tempdir_path
 
     sa.create_annotation_classes_from_classes_json(
-        args.project,
+        project_metadata,
         Path(args.folder) / "classes" / "classes.json"
     )
 
     if "pre" not in command_name:
         sa.upload_annotations_from_folder_to_project(
-            project=args.project, folder_path=args.folder
+            (project_metadata, folder_metadata), folder_path=args.folder
         )
     else:
         sa.upload_preannotations_from_folder_to_project(
-            project=args.project, folder_path=args.folder
+            (project_metadata, folder_metadata), folder_path=args.folder
         )
 
 
