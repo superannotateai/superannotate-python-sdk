@@ -47,7 +47,7 @@ def ask_token():
 
 
 def main():
-    available_commands = "Available commands to superannotate CLI are: init version create-project upload-images upload-videos upload-preannotations upload-annotations export-project"
+    available_commands = "Available commands to superannotate CLI are: init version create-project create-folder upload-images upload-videos upload-preannotations upload-annotations export-project"
     if len(sys.argv) == 1:
         raise SABaseException(
             0, "No command given to superannotate CLI. " + available_commands
@@ -57,6 +57,8 @@ def main():
 
     if command == "create-project":
         create_project(command, further_args)
+    elif command == "create-folder":
+        create_folder(command, further_args)
     elif command == "upload-images":
         image_upload(command, further_args)
     elif command == "upload-videos":
@@ -166,6 +168,17 @@ def create_project(command_name, args):
     args = parser.parse_args(args)
 
     sa.create_project(args.name, args.description, args.type)
+
+
+def create_folder(command_name, args):
+    parser = argparse.ArgumentParser(prog=_CLI_COMMAND + " " + command_name)
+    parser.add_argument(
+        '--project', required=True, help='Project in which to create folder'
+    )
+    parser.add_argument('--name', required=True, help='Folder name to create')
+    args = parser.parse_args(args)
+
+    sa.create_folder(args.project, args.name)
 
 
 def video_upload(command_name, args):

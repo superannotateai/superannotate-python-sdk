@@ -148,6 +148,7 @@ def create_folder(project, folder_name):
             "Created folder has name %s, since folder with name %s already existed.",
             res["name"], folder_name
         )
+    logger.info("Folder %s created in project %s", res["name"], project["name"])
     return res
 
 
