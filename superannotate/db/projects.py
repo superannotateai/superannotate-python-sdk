@@ -185,21 +185,7 @@ def get_project_image_count(project):
     :return: number of images in the project
     :rtype: int
     """
-    if not isinstance(project, dict):
-        project = get_project_metadata_bare(project)
-    team_id, project_id = project["team_id"], project["id"]
-    params = {'team_id': team_id}
-    response = _api.send_request(
-        req_type='GET',
-        path=f'/reporting/project/{project_id}/overview',
-        params=params
-    )
-    if not response.ok:
-        raise SABaseException(
-            response.status_code,
-            "Couldn't get project image count " + response.text
-        )
-    return response.json()["total_images"]
+    return len(search_images(project))
 
 
 def upload_video_to_project(
@@ -472,6 +458,9 @@ def upload_images_from_folder_to_project(
     :rtype: tuple (3 members) of list of strs
     """
     project, project_folder = get_project_and_folder_metadata(project)
+    project_folder_name = project["name"] + (
+        f'/{project_folder["name"]}' if project_folder else ""
+    )
     if recursive_subfolders:
         logger.info(
             "When using recursive subfolder parsing same name images in different subfolders will overwrite each other."
@@ -488,7 +477,7 @@ def upload_images_from_folder_to_project(
 
     logger.info(
         "Uploading all images with extensions %s from %s to project %s. Excluded file patterns are: %s.",
-        extensions, folder_path, project["name"], exclude_file_patterns
+        extensions, folder_path, project_folder_name, exclude_file_patterns
     )
     if from_s3_bucket is None:
         paths = []
@@ -785,6 +774,9 @@ def upload_images_to_project(
     :rtype: tuple (3 members) of list of strs
     """
     project, project_folder = get_project_and_folder_metadata(project)
+    project_folder_name = project["name"] + (
+        f'/{project_folder["name"]}' if project_folder else ""
+    )
     if not isinstance(img_paths, list):
         raise SABaseException(
             0, "img_paths argument to upload_images_to_project should be a list"
@@ -813,7 +805,7 @@ def upload_images_to_project(
         )
     len_img_paths = len(img_paths)
     logger.info(
-        "Uploading %s images to project %s.", len_img_paths, project["name"]
+        "Uploading %s images to project %s.", len_img_paths, project_folder_name
     )
     if len_img_paths == 0:
         return ([], [], duplicate_images)
@@ -1652,7 +1644,9 @@ def upload_images_from_s3_bucket_to_project(
     logger.info("Waiting for S3 upload to finish.")
     while True:
         time.sleep(5)
-        res = _get_upload_from_s3_bucket_to_project_status(project)
+        res = _get_upload_from_s3_bucket_to_project_status(
+            project, project_folder
+        )
         if res["progress"] == '2':
             break
         if res["progress"] != "1":
@@ -1664,11 +1658,13 @@ def upload_images_from_s3_bucket_to_project(
         set_project_default_image_quality_in_editor(project, old_quality)
 
 
-def _get_upload_from_s3_bucket_to_project_status(project):
+def _get_upload_from_s3_bucket_to_project_status(project, project_folder):
     team_id, project_id = project["team_id"], project["id"]
     params = {
         "team_id": team_id,
     }
+    if project_folder is not None:
+        params["folder_id"] = project_folder["id"]
     response = _api.send_request(
         req_type='GET',
         path=f'/project/{project_id}/getS3UploadStatus',

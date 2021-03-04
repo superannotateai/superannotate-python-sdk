@@ -7,6 +7,7 @@ from superannotate.exceptions import SABaseException
 PROJECT_NAME1 = "test folder simple"
 PROJECT_NAME2 = "test folder annotations"
 PROJECT_NAME3 = "test folder deletes"
+PROJECT_NAME4 = "test folder image count"
 
 FROM_FOLDER = Path("./tests/sample_project_vector")
 
@@ -180,3 +181,30 @@ def test_rename_folder(tmpdir):
     assert "folder1" not in sa.search_folders(project)
 
     print(sa.search_folders(project))
+
+
+def test_project_folder_image_count(tmpdir):
+    tmpdir = Path(tmpdir)
+
+    projects_found = sa.search_projects(PROJECT_NAME4, return_metadata=True)
+    for pr in projects_found:
+        sa.delete_project(pr)
+
+    project = sa.create_project(PROJECT_NAME4, 'test', 'Vector')
+    project = project["name"]
+    sa.upload_images_from_folder_to_project(
+        project, FROM_FOLDER, annotation_status="InProgress"
+    )
+    num_images = sa.get_project_image_count(project)
+    assert num_images == 4
+
+    sa.create_folder(project, "folder1")
+
+    sa.upload_images_from_folder_to_project(
+        project + "/folder1", FROM_FOLDER, annotation_status="InProgress"
+    )
+    num_images = sa.get_project_image_count(project)
+    assert num_images == 4
+
+    num_images = sa.get_project_image_count(project + "/folder1")
+    assert num_images == 4
