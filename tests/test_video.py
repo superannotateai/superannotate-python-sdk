@@ -10,7 +10,7 @@ PROJECT_NAME1 = "test video upload1"
 PROJECT_NAME2 = "test video upload2"
 
 
-def test_image_quality_setting1(tmpdir):
+def test_video(tmpdir):
     tmpdir = Path(tmpdir)
 
     projects = sa.search_projects(PROJECT_NAME1, return_metadata=True)

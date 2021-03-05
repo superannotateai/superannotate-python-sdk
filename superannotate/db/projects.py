@@ -271,51 +271,57 @@ def upload_video_to_project(
         video = cv2.VideoCapture(str(video_path), cv2.CAP_FFMPEG)
     logger.info("Video frame count is %s.", total_num_of_frames)
 
+    r = 1.0
     if target_fps is not None:
         video_fps = float(video.get(cv2.CAP_PROP_FPS))
-        logger.info(
-            "Video frame rate is %s. Target frame rate is %s.", video_fps,
-            target_fps
-        )
         if target_fps >= video_fps:
-            target_fps = None
+            logger.warning(
+                "Video frame rate %s smaller than target frame rate %s. Cannot change frame rate.",
+                video_fps, target_fps
+            )
         else:
+            logger.info(
+                "Changing video frame rate from %s to target frame rate %s.",
+                video_fps, target_fps
+            )
             r = video_fps / target_fps
-            percent_to_drop = 1.0 - 1.0 / r
-            my_random = random.Random(122222)
 
     zero_fill_count = len(str(total_num_of_frames))
     tempdir = tempfile.TemporaryDirectory()
 
     video_name = Path(video_path).stem
-    frame_no = 1
+    frame_no = 0
+    frame_no_with_change = 1.0
+    extracted_frame_no = 1
     logger.info("Extracting frames from video to %s.", tempdir.name)
     while True:
         success, frame = video.read()
         if not success:
             break
-        if target_fps is not None and my_random.random() < percent_to_drop:
+        frame_no += 1
+        if round(frame_no_with_change) != frame_no:
             continue
+        frame_no_with_change += r
         frame_time = video.get(cv2.CAP_PROP_POS_MSEC) / 1000.0
-        if frame_time < start_time:
-            continue
         if end_time is not None and frame_time > end_time:
+            break
+        if frame_time < start_time:
             continue
         if rotate_code is not None:
             frame = cv2.rotate(frame, rotate_code)
         cv2.imwrite(
             str(
                 Path(tempdir.name) / (
-                    video_name + "_" + str(frame_no).zfill(zero_fill_count) +
-                    ".jpg"
+                    video_name + "_" +
+                    str(extracted_frame_no).zfill(zero_fill_count) + ".jpg"
                 )
             ), frame
         )
-        frame_no += 1
+        extracted_frame_no += 1
 
     logger.info(
         "Extracted %s frames from video. Now uploading to platform.",
-        frame_no - 1
+        extracted_frame_no - 1
     )
 
     filenames = upload_images_from_folder_to_project(
