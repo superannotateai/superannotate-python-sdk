@@ -153,7 +153,8 @@ def aggregate_annotations_as_df(
     include_classes_wo_annotations=False,
     include_comments=False,
     include_tags=False,
-    verbose=True
+    verbose=True,
+    folder_names=None
 ):
     """Aggregate annotations as pandas dataframe from project root.
 
@@ -166,6 +167,8 @@ def aggregate_annotations_as_df(
     :type include_comments: bool
     :param include_tags: enables inclusion of tags info as tag column
     :type include_tags: bool
+    :param folder_names: Aggregate the specified folders from project_root. If None aggregate all folders in the project_root.
+    :type folder_names: (list of str)
 
     :return: DataFrame on annotations with columns: "imageName", "instanceId",
                                                     "className", "attributeGroupName", "attributeName", "type", "error", "locked",
@@ -173,7 +176,7 @@ def aggregate_annotations_as_df(
                                                     "meta" (geometry information as string), "commentResolved", "classColor",
                                                     "groupId", "imageWidth", "imageHeight", "imageStatus", "imagePinned",
                                                     "createdAt", "creatorRole", "creationType", "creatorEmail", "updatedAt",
-                                                    "updatorRole", "updatorEmail", "tag"
+                                                    "updatorRole", "updatorEmail", "tag", "folderName"
     :rtype: pandas DataFrame
     """
 
@@ -208,7 +211,8 @@ def aggregate_annotations_as_df(
         "creatorEmail": [],
         "updatedAt": [],
         "updatorRole": [],
-        "updatorEmail": []
+        "updatorEmail": [],
+        "folderName": []
     }
 
     if include_comments:
@@ -283,15 +287,25 @@ def aggregate_annotations_as_df(
 
     annotations_paths = []
 
-    for path in Path(project_root).glob('*.json'):
-        annotations_paths.append(path)
+    if folder_names is None:
+        project_dir_content = Path(project_root).glob('*.json')
+        for entry in project_dir_content:
+            if entry.is_file() and entry.suffix == '.json':
+                annotations_paths.append(entry)
+            elif entry.is_dir() and entry.name != "classes":
+                annotations_paths.extend(list(entry.rglob('*.json')))
+    else:
+        for folder_name in folder_names:
+            annotations_paths.extend(
+                list((Path(project_root) / folder_name).rglob('*.json'))
+            )
 
     if not annotations_paths:
         logger.warning(
             "No annotations found in project export root %s", project_root
         )
-    type_postfix = "___objects.json" if glob.glob(
-        "{}/*___objects.json".format(project_root)
+    type_postfix = "___objects.json" if annotations_paths[0].match(
+        "*___objects.json"
     ) else "___pixel.json"
     for annotation_path in annotations_paths:
         annotation_json = json.load(open(annotation_path))
