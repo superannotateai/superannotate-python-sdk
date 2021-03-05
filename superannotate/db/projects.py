@@ -237,8 +237,10 @@ def upload_video_to_project(
                 "Frame rotation of %s found. Output images will be rotated accordingly.",
                 rot
             )
-    except Exception as e:
-        logger.warning("Couldn't read video metadata %s", e)
+    except:
+        logger.warning(
+            "Couldn't read video metadata to determine rotation. This could be because ffmpeg package is not installed. To install it, run: sudo apt install ffmpeg"
+        )
 
     video = cv2.VideoCapture(str(video_path), cv2.CAP_FFMPEG)
     if not video.isOpened():
