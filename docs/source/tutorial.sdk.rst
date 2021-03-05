@@ -20,6 +20,13 @@ SDK is available on PyPI:
 The package officially supports Python 3.6+ and was tested under Linux and
 Windows (`Anaconda <https://www.anaconda.com/products/individual#windows>`_) platforms.
 
+For certain video related functions to work, ffmpeg package needs to be installed.
+It can be installed on Ubuntu with:
+
+.. code-block:: bash
+
+   sudo apt-get install ffmpeg
+
 For Windows and Mac OS based installations to use :py:obj:`benchmark` and :py:obj:`consensus`
 functions you might also need to install beforehand :py:obj:`shapely` package,
 which we found to work properly only under Anaconda distribution, with:
