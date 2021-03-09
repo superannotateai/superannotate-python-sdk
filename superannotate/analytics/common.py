@@ -288,7 +288,7 @@ def aggregate_annotations_as_df(
     annotations_paths = []
 
     if folder_names is None:
-        project_dir_content = Path(project_root).glob('*.json')
+        project_dir_content = Path(project_root).glob('*')
         for entry in project_dir_content:
             if entry.is_file() and entry.suffix == '.json':
                 annotations_paths.append(entry)
@@ -374,7 +374,7 @@ def aggregate_annotations_as_df(
             attributes = annotation.get("attributes")
             user_metadata = __get_user_metadata(annotation)
             folder_name = None
-            if annotation_path.parent.name != '':
+            if annotation_path.parent != Path(project_root):
                 folder_name = annotation_path.parent.name
             num_added = 0
             if not attributes:

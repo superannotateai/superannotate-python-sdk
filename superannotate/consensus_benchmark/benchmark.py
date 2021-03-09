@@ -81,7 +81,7 @@ def benchmark(
             download_export(project_name, proj_export_meta, export_dir)
             project_df = aggregate_annotations_as_df(export_dir)
     else:
-        project_df = aggregate_annotations_as_df(export_dir)
+        project_df = aggregate_annotations_as_df(export_root)
 
     gt_project_df = project_df[project_df["folderName"] == gt_folder]
 
