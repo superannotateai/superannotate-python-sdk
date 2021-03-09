@@ -232,3 +232,71 @@ def test_delete_images(tmpdir):
 
     num_images = sa.get_project_image_count(project)
     assert num_images == 2
+
+
+def test_copy_images(tmpdir):
+    PROJECT_NAME = "test copy folder images"
+    tmpdir = Path(tmpdir)
+
+    projects_found = sa.search_projects(PROJECT_NAME, return_metadata=True)
+    for pr in projects_found:
+        sa.delete_project(pr)
+
+    project = sa.create_project(PROJECT_NAME, 'test', 'Vector')
+    sa.create_folder(project, "folder1")
+    project = PROJECT_NAME + "/folder1"
+    sa.upload_images_from_folder_to_project(
+        project, FROM_FOLDER, annotation_status="InProgress"
+    )
+    num_images = sa.get_project_image_count(project)
+    assert num_images == 4
+
+    sa.create_folder(PROJECT_NAME, "folder2")
+    project2 = PROJECT_NAME + "/folder2"
+    num_images = sa.get_project_image_count(project2)
+    assert num_images == 0
+
+    sa.copy_images(
+        project, project2, ["example_image_2.jpg", "example_image_3.jpg"]
+    )
+
+    num_images = sa.get_project_image_count(project2)
+    assert num_images == 2
+
+    res = sa.copy_images(project, project2, None)
+
+    num_images = sa.get_project_image_count(project2)
+    assert num_images == 4
+
+    assert res == 2
+
+
+def test_move_images(tmpdir):
+    PROJECT_NAME = "test move folder images"
+    tmpdir = Path(tmpdir)
+
+    projects_found = sa.search_projects(PROJECT_NAME, return_metadata=True)
+    for pr in projects_found:
+        sa.delete_project(pr)
+
+    project = sa.create_project(PROJECT_NAME, 'test', 'Vector')
+    sa.create_folder(project, "folder1")
+    project = PROJECT_NAME + "/folder1"
+    sa.upload_images_from_folder_to_project(
+        project, FROM_FOLDER, annotation_status="InProgress"
+    )
+    num_images = sa.get_project_image_count(project)
+    assert num_images == 4
+
+    sa.create_folder(PROJECT_NAME, "folder2")
+    project2 = PROJECT_NAME + "/folder2"
+    num_images = sa.get_project_image_count(project2)
+    assert num_images == 0
+
+    sa.move_images(project, project2, ["example_image_2.jpg"])
+
+    num_images = sa.get_project_image_count(project2)
+    assert num_images == 1
+
+    num_images = sa.get_project_image_count(project)
+    assert num_images == 3

@@ -587,34 +587,6 @@ def delete_image(project, image_name):
     logger.info("Successfully deleted image  %s.", image_name)
 
 
-def delete_images(project, image_names):
-    """Delete images in project.
-
-    :param project: project name or metadata of the project to be deleted
-    :type project: str or dict
-    :param folder_names: to be deleted folders' names
-    :type folder_names: str or list of strs
-    """
-    if not isinstance(image_names, list):
-        raise SABaseException(0, "image_names should be a list of strs")
-    images = get_image_metadata(project, image_names)
-    project, _ = get_project_and_folder_metadata(project)
-
-    params = {"team_id": project["team_id"], "project_id": project["id"]}
-    data = {"image_ids": [image["id"] for image in images]}
-    response = _api.send_request(
-        req_type='PUT',
-        path='/image/delete/images',
-        params=params,
-        json_req=data
-    )
-    if not response.ok:
-        raise SABaseException(
-            response.status_code, "Couldn't delete images " + response.text
-        )
-    logger.info("Images %s deleted in project %s", image_names, project["name"])
-
-
 def get_image_bytes(project, image_name, variant='original'):
     """Returns an io.BytesIO() object of the image. Suitable for creating
     PIL.Image out of it.

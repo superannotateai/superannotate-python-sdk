@@ -133,20 +133,22 @@ def upload_image_to_project(
             break
 
 
-def copy_images(project, source_folder, destination_folder, image_names):
-    project, source_project_folder = get_project_and_folder_metadata(
-        source_project
-    )
-    destination_project, destination_project_folder = get_project_and_folder_metadata(
-        destination_project
-    )
+def _copy_images(source_project, destination_project, image_names=None):
+    source_project, source_project_folder = source_project
+    destination_project, destination_project_folder = destination_project
+    if source_project["id"] != destination_project["id"]:
+        raise SABaseException(
+            0,
+            "Source and destination projects should be the same for copy_images"
+        )
     params = {
-        "team_id": _api.team_id,
-        "project_id": img_metadatas[0]["project_id"]
+        "team_id": source_project["team_id"],
+        "project_id": source_project["id"]
     }
     json_req = {
-        "image_ids": [x["id"] for x in img_metadatas],
-        "destination_folder_id": destination_project_folder_id
+        "image_names": image_names,
+        "destination_folder_id": destination_project_folder["id"],
+        "source_folder_name": source_project_folder["name"]
     }
     response = _api.send_request(
         req_type='POST', path='/image/copy', params=params, json_req=json_req
@@ -155,6 +157,85 @@ def copy_images(project, source_folder, destination_folder, image_names):
         raise SABaseException(
             response.status_code, "Couldn't copy images " + response.text
         )
+
+    return response.json()
+
+
+def copy_images(source_project, destination_project, image_names=None):
+    source_project, source_project_folder = get_project_and_folder_metadata(
+        source_project
+    )
+    destination_project, destination_project_folder = get_project_and_folder_metadata(
+        destination_project
+    )
+    if image_names is None:
+        image_names = search_images((source_project, source_project_folder))
+    res = _copy_images(
+        (source_project, source_project_folder),
+        (destination_project, destination_project_folder), image_names
+    )
+    logger.info(
+        "Copied images %s from %s to %s. Number of skipped images %s",
+        image_names,
+        source_project["name"] + "" if source_project_folder is None else "/" +
+        source_project_folder["name"], destination_project["name"] +
+        "" if destination_project_folder is None else "/" +
+        destination_project_folder["name"], res["skipped"]
+    )
+    return res["skipped"]
+
+
+def delete_images(project, image_names):
+    """Delete images in project.
+
+    :param project: project name or metadata of the project to be deleted
+    :type project: str or dict
+    :param folder_names: to be deleted folders' names
+    :type folder_names: str or list of strs
+    """
+    if not isinstance(image_names, list):
+        raise SABaseException(0, "image_names should be a list of strs")
+    images = get_image_metadata(
+        project, image_names, return_dict_on_single_output=False
+    )
+    project, _ = get_project_and_folder_metadata(project)
+
+    params = {"team_id": project["team_id"], "project_id": project["id"]}
+    data = {"image_ids": [image["id"] for image in images]}
+    response = _api.send_request(
+        req_type='PUT',
+        path='/image/delete/images',
+        params=params,
+        json_req=data
+    )
+    if not response.ok:
+        raise SABaseException(
+            response.status_code, "Couldn't delete images " + response.text
+        )
+    logger.info("Images %s deleted in project %s", image_names, project["name"])
+
+
+def move_images(source_project, destination_project, image_names=None):
+    source_project, source_project_folder = get_project_and_folder_metadata(
+        source_project
+    )
+    destination_project, destination_project_folder = get_project_and_folder_metadata(
+        destination_project
+    )
+    if image_names is None:
+        image_names = search_images((source_project, source_project_folder))
+    _copy_images(
+        (source_project, source_project_folder),
+        (destination_project, destination_project_folder), image_names
+    )
+    delete_images((source_project, source_project_folder), image_names)
+    logger.info(
+        "Moved images %s from project %s to project %s", image_names,
+        source_project["name"] + "" if source_project_folder is None else "/" +
+        source_project_folder["name"], destination_project["name"] +
+        "" if destination_project_folder is None else "/" +
+        destination_project_folder["name"]
+    )
 
 
 def copy_image(
