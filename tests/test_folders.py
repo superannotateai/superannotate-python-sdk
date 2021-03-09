@@ -331,3 +331,47 @@ def test_move_images2(tmpdir):
 
     num_images = sa.get_project_image_count(project)
     assert num_images == 0
+
+
+def test_copy_images2(tmpdir):
+    PROJECT_NAME = "test copy folder annotation images"
+    tmpdir = Path(tmpdir)
+
+    projects_found = sa.search_projects(PROJECT_NAME, return_metadata=True)
+    for pr in projects_found:
+        sa.delete_project(pr)
+
+    project = sa.create_project(PROJECT_NAME, 'test', 'Vector')
+    sa.create_annotation_classes_from_classes_json(
+        project, FROM_FOLDER / "classes" / "classes.json"
+    )
+    sa.create_folder(project, "folder1")
+    project = PROJECT_NAME + "/folder1"
+    sa.upload_images_from_folder_to_project(
+        project, FROM_FOLDER, annotation_status="InProgress"
+    )
+
+    sa.upload_annotations_from_folder_to_project(project, FROM_FOLDER)
+    num_images = sa.get_project_image_count(project)
+    assert num_images == 4
+
+    sa.create_folder(PROJECT_NAME, "folder2")
+    project2 = PROJECT_NAME + "/folder2"
+    num_images = sa.get_project_image_count(project2)
+    assert num_images == 0
+
+    sa.copy_images(
+        project,
+        project2, ["example_image_2.jpg", "example_image_3.jpg"],
+        include_annotations=False,
+        copy_annotation_status=False,
+        copy_pin=False
+    )
+
+    num_images = sa.get_project_image_count(project2)
+    assert num_images == 2
+
+    # ann1 = sa.get_image_annotations(project, "example_image_2.jpg")
+    # ann2 = sa.get_image_annotations(project2, "example_image_2.jpg")
+
+    # assert ann1 == ann2

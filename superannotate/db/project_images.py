@@ -133,7 +133,10 @@ def upload_image_to_project(
             break
 
 
-def _copy_images(source_project, destination_project, image_names=None):
+def _copy_images(
+    source_project, destination_project, image_names, include_annotations,
+    copy_annotation_status, copy_pin
+):
     source_project, source_project_folder = source_project
     destination_project, destination_project_folder = destination_project
     if source_project["id"] != destination_project["id"]:
@@ -158,10 +161,48 @@ def _copy_images(source_project, destination_project, image_names=None):
             response.status_code, "Couldn't copy images " + response.text
         )
 
+    for image_name in image_names:
+        if include_annotations:
+            annotations = get_image_annotations(
+                (source_project, source_project_folder), image_name
+            )
+            if annotations["annotation_json"] is not None:
+                if "annotation_mask" in annotations:
+                    upload_image_annotations(
+                        (destination_project, destination_project_folder),
+                        image_name, annotations["annotation_json"],
+                        annotations["annotation_mask"]
+                    )
+                else:
+                    upload_image_annotations(
+                        (destination_project, destination_project_folder),
+                        image_name, annotations["annotation_json"]
+                    )
+        if copy_annotation_status or copy_pin:
+            img_metadata = get_image_metadata(
+                (source_project, source_project_folder), image_name
+            )
+            if copy_annotation_status:
+                set_image_annotation_status(
+                    (destination_project, destination_project_folder),
+                    image_name, img_metadata["annotation_status"]
+                )
+            if copy_pin:
+                pin_image(
+                    (destination_project, destination_project_folder),
+                    image_name, img_metadata["is_pinned"]
+                )
     return response.json()
 
 
-def copy_images(source_project, destination_project, image_names=None):
+def copy_images(
+    source_project,
+    destination_project,
+    image_names=None,
+    include_annotations=True,
+    copy_annotation_status=True,
+    copy_pin=True
+):
     source_project, source_project_folder = get_project_and_folder_metadata(
         source_project
     )
@@ -172,7 +213,8 @@ def copy_images(source_project, destination_project, image_names=None):
         image_names = search_images((source_project, source_project_folder))
     res = _copy_images(
         (source_project, source_project_folder),
-        (destination_project, destination_project_folder), image_names
+        (destination_project, destination_project_folder), image_names,
+        include_annotations, copy_annotation_status, copy_pin
     )
     logger.info(
         "Copied images %s from %s to %s. Number of skipped images %s",
@@ -215,7 +257,14 @@ def delete_images(project, image_names):
     logger.info("Images %s deleted in project %s", image_names, project["name"])
 
 
-def move_images(source_project, destination_project, image_names=None):
+def move_images(
+    source_project,
+    destination_project,
+    image_names=None,
+    include_annotations=True,
+    copy_annotation_status=True,
+    copy_pin=True,
+):
     source_project, source_project_folder = get_project_and_folder_metadata(
         source_project
     )
@@ -226,7 +275,8 @@ def move_images(source_project, destination_project, image_names=None):
         image_names = search_images((source_project, source_project_folder))
     _copy_images(
         (source_project, source_project_folder),
-        (destination_project, destination_project_folder), image_names
+        (destination_project, destination_project_folder), image_names,
+        include_annotations, copy_annotation_status, copy_pin
     )
     delete_images((source_project, source_project_folder), image_names)
     logger.info(
@@ -308,13 +358,13 @@ def copy_image(
         if annotations["annotation_json"] is not None:
             if "annotation_mask" in annotations:
                 upload_image_annotations(
-                    destination_project, new_name,
+                    (destination_project, destination_project_folder), new_name,
                     annotations["annotation_json"],
                     annotations["annotation_mask"]
                 )
             else:
                 upload_image_annotations(
-                    destination_project, new_name,
+                    (destination_project, destination_project_folder), new_name,
                     annotations["annotation_json"]
                 )
     if copy_annotation_status:
