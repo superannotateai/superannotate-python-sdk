@@ -272,7 +272,7 @@ def test_copy_images(tmpdir):
 
 
 def test_move_images(tmpdir):
-    PROJECT_NAME = "test move folder images"
+    PROJECT_NAME = "test move folder images1"
     tmpdir = Path(tmpdir)
 
     projects_found = sa.search_projects(PROJECT_NAME, return_metadata=True)
@@ -300,3 +300,34 @@ def test_move_images(tmpdir):
 
     num_images = sa.get_project_image_count(project)
     assert num_images == 3
+
+
+def test_move_images2(tmpdir):
+    PROJECT_NAME = "test move folder images2"
+    tmpdir = Path(tmpdir)
+
+    projects_found = sa.search_projects(PROJECT_NAME, return_metadata=True)
+    for pr in projects_found:
+        sa.delete_project(pr)
+
+    project = sa.create_project(PROJECT_NAME, 'test', 'Vector')
+    sa.create_folder(project, "folder1")
+    project = PROJECT_NAME + "/folder1"
+    sa.upload_images_from_folder_to_project(
+        project, FROM_FOLDER, annotation_status="InProgress"
+    )
+    num_images = sa.get_project_image_count(project)
+    assert num_images == 4
+
+    sa.create_folder(PROJECT_NAME, "folder2")
+    project2 = PROJECT_NAME + "/folder2"
+    num_images = sa.get_project_image_count(project2)
+    assert num_images == 0
+
+    sa.move_images(project, project2)
+
+    num_images = sa.get_project_image_count(project2)
+    assert num_images == 4
+
+    num_images = sa.get_project_image_count(project)
+    assert num_images == 0
