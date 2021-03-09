@@ -49,7 +49,7 @@ def consensus(
             download_export(project, proj_export_meta, export_dir)
             project_df = aggregate_annotations_as_df(export_dir)
     else:
-        project_df = aggregate_annotations_as_df(export_dir)
+        project_df = aggregate_annotations_as_df(export_root)
 
     all_projects_df = project_df[project_df["instanceId"].notna()]
     all_projects_df = all_projects_df.loc[
