@@ -4,22 +4,18 @@ import pytest
 import superannotate as sa
 from superannotate.exceptions import SABaseException
 
-PROJECT_NAME1 = "test folder simple"
-PROJECT_NAME2 = "test folder annotations"
-PROJECT_NAME3 = "test folder deletes"
-PROJECT_NAME4 = "test folder image count"
-
 FROM_FOLDER = Path("./tests/sample_project_vector")
 
 
 def test_basic_folders(tmpdir):
+    PROJECT_NAME = "test folder simple"
     tmpdir = Path(tmpdir)
 
-    projects_found = sa.search_projects(PROJECT_NAME1, return_metadata=True)
+    projects_found = sa.search_projects(PROJECT_NAME, return_metadata=True)
     for pr in projects_found:
         sa.delete_project(pr)
 
-    project = sa.create_project(PROJECT_NAME1, 'test', 'Vector')
+    project = sa.create_project(PROJECT_NAME, 'test', 'Vector')
     project = project["name"]
     sa.upload_images_from_folder_to_project(
         project, FROM_FOLDER, annotation_status="InProgress"
@@ -94,13 +90,14 @@ def test_basic_folders(tmpdir):
 
 
 def test_folder_annotations(tmpdir):
+    PROJECT_NAME = "test folder annotations"
     tmpdir = Path(tmpdir)
 
-    projects_found = sa.search_projects(PROJECT_NAME2, return_metadata=True)
+    projects_found = sa.search_projects(PROJECT_NAME, return_metadata=True)
     for pr in projects_found:
         sa.delete_project(pr)
 
-    project = sa.create_project(PROJECT_NAME2, 'test', 'Vector')
+    project = sa.create_project(PROJECT_NAME, 'test', 'Vector')
     project = project["name"]
     sa.upload_images_from_folder_to_project(
         project, FROM_FOLDER, annotation_status="InProgress"
@@ -132,13 +129,15 @@ def test_folder_annotations(tmpdir):
 
 
 def test_delete_folders(tmpdir):
+    PROJECT_NAME = "test folder deletes"
+
     tmpdir = Path(tmpdir)
 
-    projects_found = sa.search_projects(PROJECT_NAME3, return_metadata=True)
+    projects_found = sa.search_projects(PROJECT_NAME, return_metadata=True)
     for pr in projects_found:
         sa.delete_project(pr)
 
-    project = sa.create_project(PROJECT_NAME3, 'test', 'Vector')
+    project = sa.create_project(PROJECT_NAME, 'test', 'Vector')
     sa.create_folder(project, "folder1")
     sa.create_folder(project, "folder2")
     sa.create_folder(project, "folder3")
@@ -160,13 +159,14 @@ def test_delete_folders(tmpdir):
 
 
 def test_rename_folder(tmpdir):
+    PROJECT_NAME = "test folder image count"
     tmpdir = Path(tmpdir)
 
-    projects_found = sa.search_projects(PROJECT_NAME3, return_metadata=True)
+    projects_found = sa.search_projects(PROJECT_NAME, return_metadata=True)
     for pr in projects_found:
         sa.delete_project(pr)
 
-    project = sa.create_project(PROJECT_NAME3, 'test', 'Vector')
+    project = sa.create_project(PROJECT_NAME, 'test', 'Vector')
     sa.create_folder(project, "folder1")
     sa.create_folder(project, "folder2")
     sa.create_folder(project, "folder3")
@@ -184,13 +184,14 @@ def test_rename_folder(tmpdir):
 
 
 def test_project_folder_image_count(tmpdir):
+    PROJECT_NAME = "test folder image count"
     tmpdir = Path(tmpdir)
 
-    projects_found = sa.search_projects(PROJECT_NAME4, return_metadata=True)
+    projects_found = sa.search_projects(PROJECT_NAME, return_metadata=True)
     for pr in projects_found:
         sa.delete_project(pr)
 
-    project = sa.create_project(PROJECT_NAME4, 'test', 'Vector')
+    project = sa.create_project(PROJECT_NAME, 'test', 'Vector')
     project = project["name"]
     sa.upload_images_from_folder_to_project(
         project, FROM_FOLDER, annotation_status="InProgress"
@@ -208,3 +209,26 @@ def test_project_folder_image_count(tmpdir):
 
     num_images = sa.get_project_image_count(project + "/folder1")
     assert num_images == 4
+
+
+def test_delete_images(tmpdir):
+    PROJECT_NAME = "test delete folder images"
+    tmpdir = Path(tmpdir)
+
+    projects_found = sa.search_projects(PROJECT_NAME, return_metadata=True)
+    for pr in projects_found:
+        sa.delete_project(pr)
+
+    project = sa.create_project(PROJECT_NAME, 'test', 'Vector')
+    sa.create_folder(project, "folder1")
+    project = project["name"] + "/folder1"
+    sa.upload_images_from_folder_to_project(
+        project, FROM_FOLDER, annotation_status="InProgress"
+    )
+    num_images = sa.get_project_image_count(project)
+    assert num_images == 4
+
+    sa.delete_images(project, ["example_image_2.jpg", "example_image_3.jpg"])
+
+    num_images = sa.get_project_image_count(project)
+    assert num_images == 2

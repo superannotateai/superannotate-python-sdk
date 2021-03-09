@@ -87,6 +87,7 @@ ______
 .. autofunction:: superannotate.pin_image
 .. autofunction:: superannotate.assign_images
 .. autofunction:: superannotate.delete_image
+.. autofunction:: superannotate.delete_images
 .. autofunction:: superannotate.add_annotation_bbox_to_image
 .. autofunction:: superannotate.add_annotation_polygon_to_image
 .. autofunction:: superannotate.add_annotation_polyline_to_image

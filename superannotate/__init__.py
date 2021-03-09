@@ -47,10 +47,11 @@ from .db.images import (
     add_annotation_cuboid_to_image, add_annotation_ellipse_to_image,
     add_annotation_point_to_image, add_annotation_polygon_to_image,
     add_annotation_polyline_to_image, add_annotation_template_to_image,
-    create_fuse_image, delete_image, download_image, download_image_annotations,
-    download_image_preannotations, get_image_annotations, get_image_bytes,
-    get_image_metadata, get_image_preannotations, search_images,
-    set_image_annotation_status, upload_image_annotations
+    create_fuse_image, delete_image, delete_images, download_image,
+    download_image_annotations, download_image_preannotations,
+    get_image_annotations, get_image_bytes, get_image_metadata,
+    get_image_preannotations, search_images, set_image_annotation_status,
+    upload_image_annotations
 )
 from .db.project_api import (
     create_folder, delete_folders, get_folder_metadata,
