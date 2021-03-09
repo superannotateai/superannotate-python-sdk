@@ -14,19 +14,22 @@ logger = logging.getLogger("superannotate-python-sdk")
 
 
 def benchmark(
-    gt_project_name,
-    project_names,
+    project,
+    gt_folder,
+    folder_names,
     export_root=None,
     image_list=None,
     annot_type='bbox',
     show_plots=False
 ):
-    """Computes benchmark score for each instance of given images that are present both gt_project_name project and projects in project_names list:    
+    """Computes benchmark score for each instance of given images that are present both gt_project_name project and projects in folder_names list:    
     
-    :param gt_project_name: Project name that contains the ground truth annotations
-    :type gt_project_name: str
-    :param project_names: list of project names to aggregate through
-    :type project_names: list of str
+    :param project: project name or metadata of the project
+    :type project: str or dict
+    :param gt_folder: project folder name that contains the ground truth annotations
+    :type gt_folder: str
+    :param folder_names: list of folder names in the project for which the scores will be computed
+    :type folder_names: list of str
     :param export_root: root export path of the projects
     :type export_root: Pathlike (str or Path)
     :param image_list: List of image names from the projects list that must be used. If None, then all images from the projects list will be used. Default: None
@@ -36,6 +39,8 @@ def benchmark(
     :param show_plots: If True, show plots based on results of consensus computation. Default: False
     :type show_plots: bool
 
+    :return: Pandas DateFrame with columns (creatorEmail, QA, imageName, instanceId, className, area, attribute, folderName, score)
+    :rtype: pandas DataFrame
     """
     def aggregate_attributes(instance_df):
         def attribute_to_list(attribute_df):
@@ -61,7 +66,7 @@ def benchmark(
             ["attributeGroupName", "attributeName"], axis=1, inplace=True
         )
         instance_df.drop_duplicates(
-            subset=["imageName", "instanceId", "project"], inplace=True
+            subset=["imageName", "instanceId", "folderName"], inplace=True
         )
         instance_df["attributes"] = [attributes]
         return instance_df
@@ -72,27 +77,18 @@ def benchmark(
 
     if export_root is None:
         with tempfile.TemporaryDirectory() as export_dir:
-            gt_project_meta = prepare_export(gt_project_name)
-            download_export(gt_project_name, gt_project_meta, export_dir)
-            gt_project_df = aggregate_annotations_as_df(export_dir)
+            proj_export_meta = prepare_export(project_name)
+            download_export(project_name, proj_export_meta, export_dir)
+            project_df = aggregate_annotations_as_df(export_dir)
     else:
-        export_dir = Path(export_root) / gt_project_name
-        gt_project_df = aggregate_annotations_as_df(export_dir)
-    gt_project_df["project"] = gt_project_name
+        project_df = aggregate_annotations_as_df(export_dir)
+
+    gt_project_df = project_df[project_df["folderName"] == gt_folder]
 
     benchmark_dfs = []
-    for project_name in project_names:
-        if export_root is None:
-            with tempfile.TemporaryDirectory() as export_dir:
-                proj_export_meta = prepare_export(project_name)
-                download_export(project_name, proj_export_meta, export_dir)
-                project_df = aggregate_annotations_as_df(export_dir)
-        else:
-            export_dir = Path(export_root) / project_name
-            project_df = aggregate_annotations_as_df(export_dir)
-
-        project_df["project"] = project_name
-        project_gt_df = pd.concat([project_df, gt_project_df])
+    for folder_name in folder_names:
+        folder_df = project_df[project_df["folderName"] == folder_name]
+        project_gt_df = pd.concat([folder_df, gt_project_df])
         project_gt_df = project_gt_df[project_gt_df["instanceId"].notna()]
 
         if image_list is not None:
@@ -102,7 +98,7 @@ def benchmark(
         project_gt_df.query("type == '" + annot_type + "'", inplace=True)
 
         project_gt_df = project_gt_df.groupby(
-            ["imageName", "instanceId", "project"]
+            ["imageName", "instanceId", "folderName"]
         )
         project_gt_df = project_gt_df.apply(aggregate_attributes).reset_index(
             drop=True
@@ -115,13 +111,13 @@ def benchmark(
 
         benchmark_project_df = pd.concat(all_benchmark_data, ignore_index=True)
         benchmark_project_df = benchmark_project_df[
-            benchmark_project_df["projectName"] == project_name]
+            benchmark_project_df["folderName"] == folder_name]
 
         benchmark_dfs.append(benchmark_project_df)
 
     benchmark_df = pd.concat(benchmark_dfs, ignore_index=True)
 
     if show_plots:
-        consensus_plot(benchmark_df, project_names)
+        consensus_plot(benchmark_df, folder_names)
 
     return benchmark_df

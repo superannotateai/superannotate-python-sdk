@@ -373,6 +373,9 @@ def aggregate_annotations_as_df(
             annotation_point_labels = annotation.get("pointLabels")
             attributes = annotation.get("attributes")
             user_metadata = __get_user_metadata(annotation)
+            folder_name = None
+            if annotation_path.parent.name != '':
+                folder_name = annotation_path.parent.name
             num_added = 0
             if not attributes:
                 annotation_dict = {
@@ -389,6 +392,7 @@ def aggregate_annotations_as_df(
                     "pointLabels": annotation_point_labels,
                     "classColor": annotation_class_color,
                     "groupId": annotation_group_id,
+                    "folderName": folder_name,
                 }
                 annotation_dict.update(user_metadata)
                 annotation_dict.update(image_metadata)
@@ -428,6 +432,7 @@ def aggregate_annotations_as_df(
                         "pointLabels": annotation_point_labels,
                         "classColor": annotation_class_color,
                         "groupId": annotation_group_id,
+                        "folderName": folder_name,
                     }
                     annotation_dict.update(user_metadata)
                     annotation_dict.update(image_metadata)
