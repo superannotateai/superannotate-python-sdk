@@ -235,11 +235,16 @@ def delete_images(project, image_names):
     :param folder_names: to be deleted folders' names
     :type folder_names: str or list of strs
     """
-    if not isinstance(image_names, list):
-        raise SABaseException(0, "image_names should be a list of strs")
-    images = get_image_metadata(
-        project, image_names, return_dict_on_single_output=False
-    )
+    if image_names is None:
+        images = search_images(project, return_metadata=True)
+    else:
+        if not isinstance(image_names, list):
+            raise SABaseException(
+                0, "image_names should be a list of strs or None"
+            )
+        images = get_image_metadata(
+            project, image_names, return_dict_on_single_output=False
+        )
     project, _ = get_project_and_folder_metadata(project)
 
     params = {"team_id": project["team_id"], "project_id": project["id"]}
