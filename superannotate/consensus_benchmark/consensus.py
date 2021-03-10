@@ -14,7 +14,8 @@ logger = logging.getLogger("superannotate-python-sdk")
 
 
 def consensus(
-    project_names,
+    project,
+    folder_names,
     export_root=None,
     image_list=None,
     annot_type='bbox',
@@ -22,8 +23,10 @@ def consensus(
 ):
     """Computes consensus score for each instance of given images that are present in at least 2 of the given projects:    
     
-    :param project_names: list of project names to aggregate through
-    :type project_names: list of str
+    :param project: project name or metadata of the project
+    :type project: str or dict
+    :param folder_names: list of folder names in the project for which the scores will be computed
+    :type folder_names: list of str
     :param export_root: root export path of the projects
     :type export_root: Pathlike (str or Path)
     :param image_list: List of image names from the projects list that must be used. If None, then all images from the projects list will be used. Default: None
@@ -33,26 +36,24 @@ def consensus(
     :param show_plots: If True, show plots based on results of consensus computation. Default: False
     :type show_plots: bool
 
+    :return: Pandas DateFrame with columns (creatorEmail, QA, imageName, instanceId, className, area, attribute, folderName, score)
+    :rtype: pandas DataFrame
     """
     supported_types = ['polygon', 'bbox', 'point']
     if annot_type not in supported_types:
         raise NotImplementedError
 
-    project_dfs = []
-    for project_name in project_names:
-        if export_root is None:
-            with tempfile.TemporaryDirectory() as export_dir:
-                proj_export_meta = prepare_export(project_name)
-                download_export(project_name, proj_export_meta, export_dir)
-                project_df = aggregate_annotations_as_df(export_dir)
-        else:
-            export_dir = Path(export_root) / project_name
+    if export_root is None:
+        with tempfile.TemporaryDirectory() as export_dir:
+            proj_export_meta = prepare_export(project)
+            download_export(project, proj_export_meta, export_dir)
             project_df = aggregate_annotations_as_df(export_dir)
-        project_df["project"] = project_name
-        project_dfs.append(project_df)
+    else:
+        project_df = aggregate_annotations_as_df(export_root)
 
-    all_projects_df = pd.concat(project_dfs)
-    all_projects_df = all_projects_df[all_projects_df["instanceId"].notna()]
+    all_projects_df = project_df[project_df["instanceId"].notna()]
+    all_projects_df = all_projects_df.loc[
+        all_projects_df["folderName"].isin(folder_names)]
 
     if image_list is not None:
         all_projects_df = all_projects_df.loc[
@@ -84,13 +85,13 @@ def consensus(
             ["attributeGroupName", "attributeName"], axis=1, inplace=True
         )
         instance_df.drop_duplicates(
-            subset=["imageName", "instanceId", "project"], inplace=True
+            subset=["imageName", "instanceId", "folderName"], inplace=True
         )
         instance_df["attributes"] = [attributes]
         return instance_df
 
     all_projects_df = all_projects_df.groupby(
-        ["imageName", "instanceId", "project"]
+        ["imageName", "instanceId", "folderName"]
     )
     all_projects_df = all_projects_df.apply(aggregate_attributes).reset_index(
         drop=True
@@ -105,6 +106,6 @@ def consensus(
     consensus_df = pd.concat(all_consensus_data, ignore_index=True)
 
     if show_plots:
-        consensus_plot(consensus_df, project_names)
+        consensus_plot(consensus_df, folder_names)
 
     return consensus_df

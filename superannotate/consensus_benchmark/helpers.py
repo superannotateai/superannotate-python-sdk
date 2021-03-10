@@ -39,10 +39,10 @@ def image_consensus(df, image_name, annot_type):
 
     """
     image_df = df[df["imageName"] == image_name]
-    all_projects = list(set(df["project"]))
+    all_projects = list(set(df["folderName"]))
     column_names = [
         "creatorEmail", "imageName", "instanceId", "area", "className",
-        "attributes", "projectName", "score"
+        "attributes", "folderName", "score"
     ]
     instance_id = 0
     image_data = {}
@@ -52,8 +52,8 @@ def image_consensus(df, image_name, annot_type):
     projects_shaply_objs = {}
     # generate shapely objects of instances
     for _, row in image_df.iterrows():
-        if row["project"] not in projects_shaply_objs:
-            projects_shaply_objs[row["project"]] = []
+        if row["folderName"] not in projects_shaply_objs:
+            projects_shaply_objs[row["folderName"]] = []
         inst_data = row["meta"]
         if annot_type == 'bbox':
             inst_coords = inst_data["points"]
@@ -69,7 +69,7 @@ def image_consensus(df, image_name, annot_type):
         elif annot_type == 'point':
             inst = Point(inst_data["x"], inst_data["y"])
         if inst.is_valid:
-            projects_shaply_objs[row["project"]].append(
+            projects_shaply_objs[row["folderName"]].append(
                 (
                     inst, row["className"], row["creatorEmail"],
                     row["attributes"]
@@ -113,7 +113,7 @@ def image_consensus(df, image_name, annot_type):
                 image_data["imageName"].append(image_name)
                 image_data["instanceId"].append(instance_id)
                 image_data["className"].append(max_instances[0][2])
-                image_data["projectName"].append(max_instances[0][0])
+                image_data["folderName"].append(max_instances[0][0])
                 image_data["score"].append(0)
             else:
                 for curr_match_data in max_instances:
@@ -130,7 +130,7 @@ def image_consensus(df, image_name, annot_type):
                     image_data["imageName"].append(image_name)
                     image_data["instanceId"].append(instance_id)
                     image_data["className"].append(curr_match_data[2])
-                    image_data["projectName"].append(curr_match_data[0])
+                    image_data["folderName"].append(curr_match_data[0])
                     image_data["score"].append(
                         proj_cons / (len(all_projects) - 1)
                     )
@@ -156,10 +156,10 @@ def consensus_plot(consensus_df, projects):
     #project-wise boxplot
     project_box_fig = px.box(
         plot_data,
-        x="projectName",
+        x="folderName",
         y="score",
         points="all",
-        color="projectName",
+        color="folderName",
         color_discrete_sequence=px.colors.qualitative.Dark24
     )
     project_box_fig.show()
@@ -171,12 +171,12 @@ def consensus_plot(consensus_df, projects):
         y="score",
         color="className",
         symbol="creatorEmail",
-        facet_col="projectName",
+        facet_col="folderName",
         color_discrete_sequence=px.colors.qualitative.Dark24,
         hover_data={
             "className": False,
             "imageName": True,
-            "projectName": False,
+            "folderName": False,
             "area": False,
             "score": False
         },

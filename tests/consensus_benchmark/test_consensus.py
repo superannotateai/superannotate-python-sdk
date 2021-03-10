@@ -3,22 +3,26 @@ from pathlib import Path
 import superannotate as sa
 
 test_root = Path().resolve() / 'tests'
+project_name = "consensus_enhanced"
 
 
 def test_consensus():
     annot_types = ['polygon', 'bbox', 'point']
-    project_names = ['consensus_1', 'consensus_2', 'consensus_3']
+    folder_names = ['consensus_1', 'consensus_2', 'consensus_3']
     df_column_names = [
         'creatorEmail', 'imageName', 'instanceId', 'area', 'className',
-        'attributes', 'projectName', 'score'
+        'attributes', 'folderName', 'score'
     ]
-    export_path = test_root / 'consensus_benchmark'
+    export_path = test_root / 'consensus_benchmark' / 'consensus_test_data'
     for annot_type in annot_types:
         res_df = sa.consensus(
-            project_names, export_root=export_path, annot_type=annot_type
+            project_name,
+            folder_names,
+            export_root=export_path,
+            annot_type=annot_type
         )
         #test content of projectName column
-        assert sorted(res_df['projectName'].unique()) == project_names
+        assert sorted(res_df['folderName'].unique()) == folder_names
 
         #test structure of resulting DataFrame
         assert sorted(res_df.columns) == sorted(df_column_names)
@@ -36,7 +40,10 @@ def test_consensus():
 
     #test filtering images with given image names list
     res_images = sa.consensus(
-        project_names, export_root=export_path, image_list=image_names
+        project_name,
+        folder_names,
+        export_root=export_path,
+        image_list=image_names
     )
 
     assert sorted(res_images['imageName'].unique()) == sorted(image_names)
