@@ -159,7 +159,7 @@ def test_delete_folders(tmpdir):
 
 
 def test_rename_folder(tmpdir):
-    PROJECT_NAME = "test folder image count"
+    PROJECT_NAME = "test rename folder"
     tmpdir = Path(tmpdir)
 
     projects_found = sa.search_projects(PROJECT_NAME, return_metadata=True)
@@ -232,6 +232,10 @@ def test_delete_images(tmpdir):
 
     num_images = sa.get_project_image_count(project)
     assert num_images == 2
+
+    sa.delete_images(project, None)
+    num_images = sa.get_project_image_count(project)
+    assert num_images == 0
 
 
 def test_copy_images(tmpdir):
@@ -371,7 +375,7 @@ def test_copy_images2(tmpdir):
     num_images = sa.get_project_image_count(project2)
     assert num_images == 2
 
-    # ann1 = sa.get_image_annotations(project, "example_image_2.jpg")
-    # ann2 = sa.get_image_annotations(project2, "example_image_2.jpg")
+    ann1 = sa.get_image_annotations(project, "example_image_2.jpg")
+    ann2 = sa.get_image_annotations(project2, "example_image_2.jpg")
 
-    # assert ann1 == ann2
+    assert ann1 == ann2
