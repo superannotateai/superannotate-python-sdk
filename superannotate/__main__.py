@@ -316,8 +316,19 @@ def export_project(command_name, args):
     )
     args = parser.parse_args(args)
 
+    parts = args.project.split('/')
+    if len(parts) == 1:
+        project, folder = parts[0], None
+    elif len(parts) == 2:
+        project, folder = parts
+    else:
+        raise SABaseException(
+            0, "Project should be in format <project>[/<folder>]"
+        )
     export = sa.prepare_export(
-        args.project, args.annotation_statuses, args.include_fuse
+        project, [folder],
+        annotation_statuses=args.annotation_statuses,
+        include_fuse=args.include_fuse
     )
     sa.download_export(
         args.project, export, args.folder, not args.disable_extract_zip_contents

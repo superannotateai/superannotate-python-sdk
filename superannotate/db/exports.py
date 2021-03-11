@@ -17,7 +17,7 @@ from ..exceptions import (
     SABaseException, SAExistingExportNameException,
     SANonExistingExportNameException
 )
-from .project_api import get_project_metadata_bare
+from .project_api import get_project_and_folder_metadata, get_project_metadata_bare
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -97,7 +97,11 @@ def _get_export(export):
 
 
 def prepare_export(
-    project, annotation_statuses=None, include_fuse=False, only_pinned=False
+    project,
+    folder_names=None,
+    annotation_statuses=None,
+    include_fuse=False,
+    only_pinned=False
 ):
     """Prepare annotations and classes.json for export. Original and fused images for images with
     annotations can be included with include_fuse flag.
@@ -133,6 +137,8 @@ def prepare_export(
         "coco": 0,
         "time": current_time
     }
+    if folder_names is not None:
+        json_req["folder_names"] = folder_names
     params = {'team_id': team_id, 'project_id': project_id}
     response = _api.send_request(
         req_type='POST', path='/export', params=params, json_req=json_req
@@ -142,9 +148,10 @@ def prepare_export(
             response.status_code, "Couldn't create_export." + response.text
         )
     res = response.json()
+    folder_str = "" if folder_names is None else ("/" + str(folder_names))
     logger.info(
-        "Prepared export %s for project %s (ID %s).", res['name'],
-        project["name"], project["id"]
+        "Prepared export %s for project %s%s (project ID %s).", res['name'],
+        project["name"], folder_str, project["id"]
     )
     return res
 

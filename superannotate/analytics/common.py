@@ -304,12 +304,15 @@ def aggregate_annotations_as_df(
         logger.warning(
             "No annotations found in project export root %s", project_root
         )
-    type_postfix = "___objects.json" if annotations_paths[0].match(
-        "*___objects.json"
-    ) else "___pixel.json"
+    type_postfix = "___objects.json" if len(
+        list(Path(project_root).rglob("*___objects.json"))
+    ) > 0 else "___pixel.json"
     for annotation_path in annotations_paths:
         annotation_json = json.load(open(annotation_path))
-        image_name = annotation_path.name.split(type_postfix)[0]
+        parts = annotation_path.name.split(type_postfix)
+        if len(parts) != 2:
+            continue
+        image_name = parts[0]
         image_metadata = __get_image_metadata(image_name, annotation_json)
         annotation_instance_id = 0
         if include_comments:

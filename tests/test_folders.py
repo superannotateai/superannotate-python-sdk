@@ -255,14 +255,24 @@ def test_copy_images(tmpdir):
     num_images = sa.get_project_image_count(project)
     assert num_images == 4
 
+    im1 = sa.get_image_metadata(project, "example_image_2.jpg")
+    assert im1["annotation_status"] == "InProgress"
+
     sa.create_folder(PROJECT_NAME, "folder2")
     project2 = PROJECT_NAME + "/folder2"
     num_images = sa.get_project_image_count(project2)
     assert num_images == 0
 
     sa.copy_images(
-        project, project2, ["example_image_2.jpg", "example_image_3.jpg"]
+        project,
+        project2, ["example_image_2.jpg", "example_image_3.jpg"],
+        include_annotations=False,
+        copy_annotation_status=False,
+        copy_pin=False
     )
+
+    im1_copied = sa.get_image_metadata(project2, "example_image_2.jpg")
+    assert im1_copied["annotation_status"] == "NotStarted"
 
     num_images = sa.get_project_image_count(project2)
     assert num_images == 2
@@ -364,12 +374,14 @@ def test_copy_images2(tmpdir):
     num_images = sa.get_project_image_count(project2)
     assert num_images == 0
 
+    sa.pin_image(project, "example_image_2.jpg")
+
+    im1 = sa.get_image_metadata(project, "example_image_2.jpg")
+    assert im1["is_pinned"] == 1
+    assert im1["annotation_status"] == "InProgress"
+
     sa.copy_images(
-        project,
-        project2, ["example_image_2.jpg", "example_image_3.jpg"],
-        include_annotations=False,
-        copy_annotation_status=False,
-        copy_pin=False
+        project, project2, ["example_image_2.jpg", "example_image_3.jpg"]
     )
 
     num_images = sa.get_project_image_count(project2)
@@ -377,5 +389,69 @@ def test_copy_images2(tmpdir):
 
     ann1 = sa.get_image_annotations(project, "example_image_2.jpg")
     ann2 = sa.get_image_annotations(project2, "example_image_2.jpg")
-
     assert ann1 == ann2
+
+    im1_copied = sa.get_image_metadata(project2, "example_image_2.jpg")
+    assert im1_copied["is_pinned"] == 1
+    assert im1_copied["annotation_status"] == "InProgress"
+
+    im2_copied = sa.get_image_metadata(project2, "example_image_3.jpg")
+    assert im2_copied["is_pinned"] == 0
+    assert im2_copied["annotation_status"] == "InProgress"
+
+
+def test_folder_export(tmpdir):
+    PROJECT_NAME = "test folder export"
+    tmpdir = Path(tmpdir)
+
+    projects_found = sa.search_projects(PROJECT_NAME, return_metadata=True)
+    for pr in projects_found:
+        sa.delete_project(pr)
+
+    project = sa.create_project(PROJECT_NAME, 'test', 'Vector')
+    sa.create_annotation_classes_from_classes_json(
+        project, FROM_FOLDER / "classes" / "classes.json"
+    )
+    sa.upload_images_from_folder_to_project(
+        project, FROM_FOLDER, annotation_status="InProgress"
+    )
+    sa.create_folder(project, "folder1")
+    project = PROJECT_NAME + "/folder1"
+    sa.upload_images_from_folder_to_project(
+        project, FROM_FOLDER, annotation_status="InProgress"
+    )
+
+    sa.upload_annotations_from_folder_to_project(project, FROM_FOLDER)
+    num_images = sa.get_project_image_count(project)
+    assert num_images == 4
+
+    sa.create_folder(PROJECT_NAME, "folder2")
+    project2 = PROJECT_NAME + "/folder2"
+    num_images = sa.get_project_image_count(project2)
+    assert num_images == 0
+
+    sa.copy_images(
+        project, project2, ["example_image_2.jpg", "example_image_3.jpg"]
+    )
+
+    export = sa.prepare_export(PROJECT_NAME, ["folder1", "folder2"])
+    sa.download_export(project, export, tmpdir)
+
+    assert len(list((tmpdir / "classes").rglob("*"))) == 1
+
+    assert len(list((tmpdir / "folder1").rglob("*"))) == 4
+
+    assert len(list((tmpdir / "folder2").rglob("*"))) == 2
+
+    assert len(list((tmpdir).glob("*.*"))) == 0
+
+    export = sa.prepare_export(PROJECT_NAME)
+    sa.download_export(project, export, tmpdir)
+
+    assert len(list((tmpdir / "classes").rglob("*"))) == 1
+
+    assert len(list((tmpdir / "folder1").rglob("*"))) == 4
+
+    assert len(list((tmpdir / "folder2").rglob("*"))) == 2
+
+    assert len(list((tmpdir).glob("*.*"))) == 4
