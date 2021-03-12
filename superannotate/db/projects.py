@@ -35,7 +35,9 @@ from .annotation_classes import (
     search_annotation_classes
 )
 from .images import get_image_metadata, search_images
-from .project_api import get_project_metadata_bare, get_project_and_folder_metadata
+from .project_api import (
+    get_project_and_folder_metadata, get_project_metadata_bare
+)
 from .users import get_team_contributor_metadata
 
 logger = logging.getLogger("superannotate-python-sdk")
@@ -335,7 +337,7 @@ def upload_video_to_project(
 def upload_videos_from_folder_to_project(
     project,
     folder_path,
-    extensions=("mp4", "avi", "mov", "webm", "flv", "mpg", "ogg"),
+    extensions=common.DEFAULT_VIDEO_EXTENSIONS,
     exclude_file_patterns=(),
     recursive_subfolders=False,
     target_fps=None,
@@ -424,10 +426,10 @@ def upload_videos_from_folder_to_project(
 def upload_images_from_folder_to_project(
     project,
     folder_path,
-    extensions=("jpg", "jpeg", "png", "tif", "tiff", "webp", "bmp"),
+    extensions=common.DEFAULT_IMAGE_EXTENSIONS,
     annotation_status="NotStarted",
     from_s3_bucket=None,
-    exclude_file_patterns=("___save.png", "___fuse.png"),
+    exclude_file_patterns=common.DEFAULT_FILE_EXCLUDE_PATTERNS,
     recursive_subfolders=False,
     image_quality_in_editor=None
 ):

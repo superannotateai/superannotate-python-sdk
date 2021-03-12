@@ -2,11 +2,12 @@ import argparse
 import json
 import logging
 import sys
-from pathlib import Path
 import tempfile
+from pathlib import Path
 
 import superannotate as sa
 
+from . import common
 from .exceptions import SABaseException
 
 logger = logging.getLogger("superannotate-python-sdk")
@@ -198,7 +199,7 @@ def video_upload(command_name, args):
     parser.add_argument(
         '--extensions',
         required=False,
-        default=None,
+        default=common.DEFAULT_VIDEO_EXTENSIONS,
         type=_list_str,
         help=
         'List of video extensions to include. Default is mp4,avi,mov,webm,flv,mpg,ogg'
@@ -264,7 +265,7 @@ def image_upload(command_name, args):
     )
     parser.add_argument(
         '--extensions',
-        default=None,
+        default=common.DEFAULT_IMAGE_EXTENSIONS,
         type=_list_str,
         help=
         'List of image extensions to include. Default is jpg,jpeg,png,tif,tiff,webp,bmp'
