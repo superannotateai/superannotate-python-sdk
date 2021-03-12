@@ -335,8 +335,8 @@ def upload_video_to_project(
 def upload_videos_from_folder_to_project(
     project,
     folder_path,
-    extensions=None,
-    exclude_file_patterns=None,
+    extensions=("mp4", "avi", "mov", "webm", "flv", "mpg", "ogg"),
+    exclude_file_patterns=(),
     recursive_subfolders=False,
     target_fps=None,
     start_time=0.0,
@@ -351,11 +351,10 @@ def upload_videos_from_folder_to_project(
     :type project: str or dict
     :param folder_path: from which folder to upload the videos
     :type folder_path: Pathlike (str or Path)
-    :param extensions: list of filename extensions to include from folder, if None, then
-                       extensions = ["mp4", "avi", "mov", "webm", "flv", "mpg", "ogg"]
-    :type extensions: list of str
+    :param extensions: tuple or list of filename extensions to include from folder 
+    :type extensions: tuple or list of strs
     :param exclude_file_patterns: filename patterns to exclude from uploading
-    :type exclude_file_patterns: list of strs
+    :type exclude_file_patterns: listlike of strs
     :param recursive_subfolders: enable recursive subfolder parsing
     :type recursive_subfolders: bool
     :param target_fps: how many frames per second need to extract from the video (approximate).
@@ -379,14 +378,10 @@ def upload_videos_from_folder_to_project(
         logger.warning(
             "When using recursive subfolder parsing same name videos in different subfolders will overwrite each other."
         )
-    if exclude_file_patterns is None:
-        exclude_file_patterns = []
-    if extensions is None:
-        extensions = ["mp4", "avi", "mov", "webm", "flv", "mpg", "ogg"]
-    elif not isinstance(extensions, list):
+    if not isinstance(extensions, (list, tuple)):
         raise SABaseException(
             0,
-            "extensions should be a list in upload_images_from_folder_to_project"
+            "extensions should be a list or a tuple in upload_images_from_folder_to_project"
         )
 
     logger.info(
@@ -429,10 +424,10 @@ def upload_videos_from_folder_to_project(
 def upload_images_from_folder_to_project(
     project,
     folder_path,
-    extensions=None,
+    extensions=("jpg", "jpeg", "png", "tif", "tiff", "webp", "bmp"),
     annotation_status="NotStarted",
     from_s3_bucket=None,
-    exclude_file_patterns=None,
+    exclude_file_patterns=("___save.png", "___fuse.png"),
     recursive_subfolders=False,
     image_quality_in_editor=None
 ):
@@ -447,18 +442,15 @@ def upload_images_from_folder_to_project(
     :type project: str or dict
     :param folder_path: from which folder to upload the images
     :type folder_path: Pathlike (str or Path)
-    :param extensions: list of filename extensions to include from folder, if None, then "jpg", "jpeg", "png", "tif", "tiff", "webp", "bmp" are included
-    :type extensions: list of str
+    :param extensions: tuple or list of filename extensions to include from folder
+    :type extensions: tuple or list of strs
     :param annotation_status: value to set the annotation statuses of the uploaded images NotStarted InProgress QualityCheck Returned Completed Skipped
     :type annotation_status: str
     :param from_s3_bucket: AWS S3 bucket to use. If None then folder_path is in local filesystem
     :type from_s3_bucket: str
     :param exclude_file_patterns: filename patterns to exclude from uploading,
-                                 default value is to exclude SuperAnnotate pixel project
-                                 annotation mask output file pattern. If None,
-                                 SuperAnnotate related ["___save.png", "___fuse.png"]
-                                 will bet set as default exclude_file_patterns.
-    :type exclude_file_patterns: list of strs
+                                 default value is to exclude SuperAnnotate export related ["___save.png", "___fuse.png"]
+    :type exclude_file_patterns: list or tuple of strs
     :param recursive_subfolders: enable recursive subfolder parsing
     :type recursive_subfolders: bool
     :param image_quality_in_editor: image quality be seen in SuperAnnotate web annotation editor.
@@ -476,14 +468,10 @@ def upload_images_from_folder_to_project(
         logger.info(
             "When using recursive subfolder parsing same name images in different subfolders will overwrite each other."
         )
-    if exclude_file_patterns is None:
-        exclude_file_patterns = ["___save.png", "___fuse.png"]
-    if extensions is None:
-        extensions = ["jpg", "jpeg", "png", "tif", "tiff", "webp", "bmp"]
-    elif not isinstance(extensions, list):
+    if not isinstance(extensions, (list, tuple)):
         raise SABaseException(
             0,
-            "extensions should be a list in upload_images_from_folder_to_project"
+            "extensions should be a list or a tuple in upload_images_from_folder_to_project"
         )
 
     logger.info(
