@@ -296,6 +296,8 @@ def download_annotation_classes_json(project, folder):
 
 
 def fill_class_and_attribute_names(annotations_json, annotation_classes_dict):
+    if "instances" not in annotations_json:
+        return
     for r in annotations_json["instances"]:
         if "classId" not in r or r["classId"] not in annotation_classes_dict:
             continue
@@ -319,6 +321,8 @@ def fill_class_and_attribute_names(annotations_json, annotation_classes_dict):
 
 
 def fill_class_and_attribute_ids(annotation_json, annotation_classes_dict):
+    if "instances" not in annotation_json:
+        return
     for ann in annotation_json["instances"]:
         if "className" not in ann:
             logger.warning("No className in annotation instance")

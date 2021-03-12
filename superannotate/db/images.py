@@ -14,7 +14,8 @@ from ..annotation_helpers import (
     add_annotation_bbox_to_json, add_annotation_comment_to_json,
     add_annotation_cuboid_to_json, add_annotation_ellipse_to_json,
     add_annotation_point_to_json, add_annotation_polygon_to_json,
-    add_annotation_polyline_to_json, add_annotation_template_to_json
+    add_annotation_polyline_to_json, add_annotation_template_to_json,
+    fill_in_missing
 )
 from ..api import API
 from ..exceptions import SABaseException
@@ -748,6 +749,8 @@ def _get_image_pre_or_annotations(project, image_name, pre):
                     f"{pre}annotation_mask_filename": None
                 }
             )
+
+    fill_in_missing(result[f"{pre}annotation_json"])
     return result
 
 

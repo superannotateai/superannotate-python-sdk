@@ -5,8 +5,12 @@ import json
 from .exceptions import SABaseException
 
 
-def _create_empty_annotation_json():
-    return {"instances": [], "metadata": {}, "comments": [], "tags": []}
+def fill_in_missing(annotation_json):
+    for field in ["instances", "comments", "tags"]:
+        if field not in annotation_json:
+            annotation_json[field] = []
+    if "metadata" not in annotation_json:
+        annotation_json["metadata"] = {}
 
 
 def _preprocess_annotation_json(annotation_json):
@@ -15,7 +19,10 @@ def _preprocess_annotation_json(annotation_json):
         path = annotation_json
         annotation_json = json.load(open(annotation_json))
     elif annotation_json is None:
-        annotation_json = _create_empty_annotation_json()
+        annotation_json = {}
+
+    fill_in_missing(annotation_json)
+
     return (annotation_json, path)
 
 

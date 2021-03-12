@@ -276,7 +276,7 @@ def test_copy_images(tmpdir):
 
     ann2 = sa.get_image_annotations(project2, "example_image_2.jpg")
 
-    assert "instances" not in ann2["annotation_json"]
+    assert len(ann2["annotation_json"]["instances"]) == 0
 
     num_images = sa.get_project_image_count(project2)
     assert num_images == 2

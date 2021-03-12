@@ -318,15 +318,16 @@ def export_project(command_name, args):
 
     parts = args.project.split('/')
     if len(parts) == 1:
-        project, folder = parts[0], None
+        project, project_folder = parts[0], None
     elif len(parts) == 2:
-        project, folder = parts
+        project, project_folder = parts
     else:
         raise SABaseException(
             0, "Project should be in format <project>[/<folder>]"
         )
     export = sa.prepare_export(
-        project, [folder],
+        project,
+        None if project_folder is None else [project_folder],
         annotation_statuses=args.annotation_statuses,
         include_fuse=args.include_fuse
     )

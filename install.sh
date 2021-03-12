@@ -17,7 +17,7 @@ pip install -e .
 # pip install superannotate
 
 # for testing
-pip install pytest pytest-xdist
+pip install pytest pytest-xdist pytest-timeout
 
 # for coverage
 pip install coverage pytest-cov
