@@ -800,7 +800,7 @@ def upload_images_to_project(
     for existing_image in existing_images:
         i = -1
         for j, img_path in enumerate(img_paths):
-            if str(img_path).endswith(existing_image):
+            if Path(img_path).name == existing_image:
                 i = j
                 break
         if i != -1:
