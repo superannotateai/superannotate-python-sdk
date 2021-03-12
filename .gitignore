@@ -140,3 +140,4 @@ pylint.html
 _mask.c
 tags
 temp
+debug_*

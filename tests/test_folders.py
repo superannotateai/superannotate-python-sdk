@@ -274,6 +274,10 @@ def test_copy_images(tmpdir):
     im1_copied = sa.get_image_metadata(project2, "example_image_2.jpg")
     assert im1_copied["annotation_status"] == "NotStarted"
 
+    ann2 = sa.get_image_annotations(project2, "example_image_2.jpg")
+
+    assert "instances" not in ann2["annotation_json"]
+
     num_images = sa.get_project_image_count(project2)
     assert num_images == 2
 

@@ -544,10 +544,7 @@ def create_empty_annotation(size, image_name):
             'height': size[1],
             'width': size[0],
             'name': image_name
-        },
-        "instances": [],
-        "comments": [],
-        "tags": []
+        }
     }
 
 
