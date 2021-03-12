@@ -304,9 +304,12 @@ def aggregate_annotations_as_df(
         logger.warning(
             "No annotations found in project export root %s", project_root
         )
-    type_postfix = "___objects.json" if len(
-        list(Path(project_root).rglob("*___objects.json"))
-    ) > 0 else "___pixel.json"
+    if len(list(Path(project_root).rglob("*___objects.json"))) > 0:
+        type_postfix = "___objects.json"
+        logger.info("Found Vector project")
+    else:
+        type_postfix = "___pixel.json"
+        logger.info("Found Pixel project")
     for annotation_path in annotations_paths:
         annotation_json = json.load(open(annotation_path))
         parts = annotation_path.name.split(type_postfix)

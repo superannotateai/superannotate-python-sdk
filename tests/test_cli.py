@@ -88,6 +88,10 @@ def test_cli_image_upload_project_export(tmpdir):
         shell=True
     )
 
-    assert len(list(test_dir3.glob("*.json"))) == 1
+    assert len(list(test_dir3.glob("*.json"))) == 0
     assert len(list(test_dir3.glob("*.jpg"))) == 0
     assert len(list(test_dir3.glob("*.png"))) == 0
+
+    assert len(list((test_dir3 / "folder1").glob("*.json"))) == 1
+    assert len(list((test_dir3 / "folder1").glob("*.jpg"))) == 0
+    assert len(list((test_dir3 / "folder1").glob("*.png"))) == 0
