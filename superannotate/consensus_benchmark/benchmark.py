@@ -77,8 +77,8 @@ def benchmark(
 
     if export_root is None:
         with tempfile.TemporaryDirectory() as export_dir:
-            proj_export_meta = prepare_export(project_name)
-            download_export(project_name, proj_export_meta, export_dir)
+            proj_export_meta = prepare_export(project)
+            download_export(project, proj_export_meta, export_dir)
             project_df = aggregate_annotations_as_df(export_dir)
     else:
         project_df = aggregate_annotations_as_df(export_root)
