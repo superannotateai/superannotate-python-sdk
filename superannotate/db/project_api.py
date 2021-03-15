@@ -82,6 +82,35 @@ def get_folder_metadata(project, folder_name):
     return res
 
 
+def get_project_and_folder_metadata(project):
+    if isinstance(project, dict):
+        project = project
+        folder = None
+    elif isinstance(project, tuple):
+        if len(project) != 2:
+            raise SAIncorrectProjectArgument(project)
+        project, folder = project
+        if not isinstance(project, dict):
+            raise SAIncorrectProjectArgument(project)
+        if folder is not None and not isinstance(project, dict):
+            raise SAIncorrectProjectArgument(project)
+    elif isinstance(project, str):
+        parts = project.split('/')
+        if len(parts) == 1:
+            project_name = parts[0]
+            project = get_project_metadata_bare(project_name)
+            folder = None
+        elif len(parts) == 2:
+            project_name, folder_name = parts
+            project = get_project_metadata_bare(project_name)
+            folder = get_folder_metadata(project, folder_name)
+        else:
+            raise SAIncorrectProjectArgument(project)
+    else:
+        raise SAIncorrectProjectArgument(project)
+    return project, folder
+
+
 def search_folders(project, folder_name=None, return_metadata=False):
     if not isinstance(project, dict):
         project = get_project_metadata_bare(project)
@@ -213,30 +242,27 @@ def rename_folder(project, new_folder_name):
     )
 
 
-def get_project_and_folder_metadata(project):
-    if isinstance(project, dict):
-        project = project
-        folder = None
-    elif isinstance(project, tuple):
-        if len(project) != 2:
-            raise SAIncorrectProjectArgument(project)
-        project, folder = project
-        if not isinstance(project, dict):
-            raise SAIncorrectProjectArgument(project)
-        if folder is not None and not isinstance(project, dict):
-            raise SAIncorrectProjectArgument(project)
-    elif isinstance(project, str):
-        parts = project.split('/')
-        if len(parts) == 1:
-            project_name = parts[0]
-            project = get_project_metadata_bare(project_name)
-            folder = None
-        elif len(parts) == 2:
-            project_name, folder_name = parts
-            project = get_project_metadata_bare(project_name)
-            folder = get_folder_metadata(project, folder_name)
-        else:
-            raise SAIncorrectProjectArgument(project)
-    else:
-        raise SAIncorrectProjectArgument(project)
-    return project, folder
+def set_images_annotation_statuses(project, image_names, annotation_status):
+    NUM_TO_SEND = 500
+    project, project_folder = get_project_and_folder_metadata(project)
+    params = {"team_id": project["team_id"], "project_id": project["id"]}
+    annotation_status = common.annotation_status_str_to_int(annotation_status)
+    data = {
+        "annotation_status": annotation_status,
+        "folder_id": project_folder["id"]
+    }
+    for start_index in range(0, len(image_names), NUM_TO_SEND):
+        end_index = min(start_index + NUM_TO_SEND, len(image_names))
+        data["image_names"] = image_names[start_index:end_index]
+        response = _api.send_request(
+            req_type='PUT',
+            path=f'/image/updateAnnotationStatusBulk',
+            params=params,
+            json_req=data
+        )
+        if not response.ok:
+            raise SABaseException(
+                response.status_code,
+                "Couldn't change annotation statuses " + response.text
+            )
+    logger.info("Annotations status changed")

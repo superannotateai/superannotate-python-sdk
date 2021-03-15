@@ -77,6 +77,7 @@ ______
 .. autofunction:: superannotate.get_image_bytes
 .. autofunction:: superannotate.download_image
 .. autofunction:: superannotate.set_image_annotation_status
+.. autofunction:: superannotate.set_images_annotation_statuses
 .. autofunction:: superannotate.get_image_annotations
 .. autofunction:: superannotate.get_image_preannotations
 .. autofunction:: superannotate.download_image_annotations

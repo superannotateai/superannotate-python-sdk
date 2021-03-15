@@ -459,3 +459,37 @@ def test_folder_export(tmpdir):
     assert len(list((tmpdir / "folder2").rglob("*"))) == 2
 
     assert len(list((tmpdir).glob("*.*"))) == 4
+
+
+def test_folder_image_annotation_status(tmpdir):
+    PROJECT_NAME = "test folder set annotation status"
+    tmpdir = Path(tmpdir)
+
+    projects_found = sa.search_projects(PROJECT_NAME, return_metadata=True)
+    for pr in projects_found:
+        sa.delete_project(pr)
+
+    project = sa.create_project(PROJECT_NAME, 'test', 'Vector')
+    sa.create_annotation_classes_from_classes_json(
+        project, FROM_FOLDER / "classes" / "classes.json"
+    )
+    sa.upload_images_from_folder_to_project(
+        project, FROM_FOLDER, annotation_status="InProgress"
+    )
+    sa.create_folder(project, "folder1")
+    project = PROJECT_NAME + "/folder1"
+    sa.upload_images_from_folder_to_project(
+        project, FROM_FOLDER, annotation_status="InProgress"
+    )
+
+    sa.set_images_annotation_statuses(
+        project, ["example_image_1.jpg", "example_image_2.jpg"], "QualityCheck"
+    )
+
+    for image in ["example_image_1.jpg", "example_image_2.jpg"]:
+        metadata = sa.get_image_metadata(project, image)
+        assert metadata["annotation_status"] == "QualityCheck"
+
+    for image in ["example_image_3.jpg", "example_image_3.jpg"]:
+        metadata = sa.get_image_metadata(project, image)
+        assert metadata["annotation_status"] == "InProgress"

@@ -54,7 +54,8 @@ from .db.images import (
 )
 from .db.project_api import (
     create_folder, delete_folders, get_folder_metadata,
-    get_project_and_folder_metadata, rename_folder, search_folders
+    get_project_and_folder_metadata, rename_folder, search_folders,
+    set_images_annotation_statuses
 )
 from .db.project_images import (
     assign_images, copy_image, copy_images, delete_images, move_image,
