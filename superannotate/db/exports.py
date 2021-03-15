@@ -17,7 +17,7 @@ from ..exceptions import (
     SABaseException, SAExistingExportNameException,
     SANonExistingExportNameException
 )
-from .project_api import get_project_metadata_bare
+from .project_api import get_project_and_folder_metadata, get_project_metadata_bare
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -28,8 +28,8 @@ _NUM_THREADS = 10
 def get_export_metadata(project, export_name):
     """Returns project metadata
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name
+    :type project: str
     :param export_name: export name
     :type project: str
 
@@ -58,8 +58,8 @@ def get_export_metadata(project, export_name):
 def get_exports(project, return_metadata=False):
     """Get all prepared exports of the project.
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name
+    :type project: str
     :param return_metadata: return metadata of images instead of names
     :type return_metadata: bool
 
@@ -97,13 +97,19 @@ def _get_export(export):
 
 
 def prepare_export(
-    project, annotation_statuses=None, include_fuse=False, only_pinned=False
+    project,
+    folder_names=None,
+    annotation_statuses=None,
+    include_fuse=False,
+    only_pinned=False
 ):
     """Prepare annotations and classes.json for export. Original and fused images for images with
     annotations can be included with include_fuse flag.
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name
+    :type project: str
+    :param folder_names: names of folders to include in the export. If None, whole project will be exported
+    :type project: list of str
     :param annotation_statuses: images with which status to include, if None, [ "InProgress", "QualityCheck", "Returned", "Completed"] will be chose
            list elements should be one of NotStarted InProgress QualityCheck Returned Completed Skipped
     :type annotation_statuses: list of strs
@@ -133,6 +139,8 @@ def prepare_export(
         "coco": 0,
         "time": current_time
     }
+    if folder_names is not None:
+        json_req["folder_names"] = folder_names
     params = {'team_id': team_id, 'project_id': project_id}
     response = _api.send_request(
         req_type='POST', path='/export', params=params, json_req=json_req
@@ -142,9 +150,10 @@ def prepare_export(
             response.status_code, "Couldn't create_export." + response.text
         )
     res = response.json()
+    folder_str = "" if folder_names is None else ("/" + str(folder_names))
     logger.info(
-        "Prepared export %s for project %s (ID %s).", res['name'],
-        project["name"], project["id"]
+        "Prepared export %s for project %s%s (project ID %s).", res['name'],
+        project["name"], folder_str, project["id"]
     )
     return res
 
@@ -202,10 +211,10 @@ def download_export(
     WARNING: Starting from version 1.9.0 :ref:`download_export <ref_download_export>` additionally
     requires :py:obj:`project` as first argument.
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
-    :param export: export name or metadata of the prepared export
-    :type export: str or dict
+    :param project: project name
+    :type project: str
+    :param export: export name
+    :type export: str
     :param folder_path: where to download the export
     :type folder_path: Pathlike (str or Path)
     :param extract_zip_contents: if False then a zip file will be downloaded,

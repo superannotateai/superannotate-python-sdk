@@ -2,7 +2,6 @@ import io
 import logging
 import re
 import time
-import uuid
 from pathlib import Path
 
 import boto3
@@ -14,7 +13,7 @@ from .images import (
     delete_image, get_image_annotations, get_image_bytes, get_image_metadata,
     search_images, set_image_annotation_status, upload_image_annotations
 )
-from .project_api import get_project_metadata_bare
+from .project_api import get_project_and_folder_metadata
 from .projects import (
     __create_image, get_image_array_to_upload,
     get_project_default_image_quality_in_editor, upload_image_array_to_s3
@@ -35,8 +34,8 @@ def upload_image_to_project(
     """Uploads image (io.BytesIO() or filepath to image) to project.
     Sets status of the uploaded image to set_status if it is not None.
 
-    :param project: project name or metadata of the project to upload image to
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param img: image to upload
     :type img: io.BytesIO() or Pathlike (str or Path)
     :param image_name: image name to set on platform. If None and img is filepath,
@@ -50,8 +49,7 @@ def upload_image_to_project(
            Can be either "compressed" or "original".  If None then the default value in project settings will be used.
     :type image_quality_in_editor: str
     """
-    if not isinstance(project, dict):
-        project = get_project_metadata_bare(project)
+    project, project_folder = get_project_and_folder_metadata(project)
     annotation_status = common.annotation_status_str_to_int(annotation_status)
     if image_quality_in_editor is None:
         image_quality_in_editor = get_project_default_image_quality_in_editor(
@@ -115,11 +113,15 @@ def upload_image_to_project(
         )
         key = upload_image_array_to_s3(bucket, *images_info_and_array, prefix)
     except Exception as e:
-        raise SABaseException(0, "Couldn't upload to data server. " + e)
+        raise SABaseException(0, "Couldn't upload to data server. " + str(e))
 
+    if project_folder is not None:
+        project_folder_id = project_folder["id"]
+    else:
+        project_folder_id = None
     __create_image(
         [img_name], [key], project, annotation_status, prefix,
-        [images_info_and_array[2]]
+        [images_info_and_array[2]], project_folder_id
     )
 
     while True:
@@ -129,6 +131,196 @@ def upload_image_to_project(
             time.sleep(0.2)
         else:
             break
+
+
+def _copy_images(
+    source_project, destination_project, image_names, include_annotations,
+    copy_annotation_status, copy_pin
+):
+    source_project, source_project_folder = source_project
+    destination_project, destination_project_folder = destination_project
+    if source_project["id"] != destination_project["id"]:
+        raise SABaseException(
+            0,
+            "Source and destination projects should be the same for copy_images"
+        )
+    params = {
+        "team_id": source_project["team_id"],
+        "project_id": source_project["id"]
+    }
+    json_req = {
+        "image_names": image_names,
+        "destination_folder_id": destination_project_folder["id"],
+        "source_folder_name": source_project_folder["name"]
+    }
+    response = _api.send_request(
+        req_type='POST', path='/image/copy', params=params, json_req=json_req
+    )
+    if not response.ok:
+        raise SABaseException(
+            response.status_code, "Couldn't copy images " + response.text
+        )
+
+    for image_name in image_names:
+        if include_annotations:
+            annotations = get_image_annotations(
+                (source_project, source_project_folder), image_name
+            )
+            if annotations["annotation_json"] is not None:
+                if "annotation_mask" in annotations:
+                    upload_image_annotations(
+                        (destination_project, destination_project_folder),
+                        image_name, annotations["annotation_json"],
+                        annotations["annotation_mask"]
+                    )
+                else:
+                    upload_image_annotations(
+                        (destination_project, destination_project_folder),
+                        image_name, annotations["annotation_json"]
+                    )
+        if copy_annotation_status or copy_pin:
+            img_metadata = get_image_metadata(
+                (source_project, source_project_folder), image_name
+            )
+            if copy_annotation_status:
+                set_image_annotation_status(
+                    (destination_project, destination_project_folder),
+                    image_name, img_metadata["annotation_status"]
+                )
+            if copy_pin:
+                pin_image(
+                    (destination_project, destination_project_folder),
+                    image_name, img_metadata["is_pinned"]
+                )
+    return response.json()
+
+
+def copy_images(
+    source_project,
+    destination_project,
+    image_names=None,
+    include_annotations=True,
+    copy_annotation_status=True,
+    copy_pin=True
+):
+    """Copy images in bulk between folders in a project 
+
+    :param source_project: project name or folder path (e.g., "project1/folder1")
+    :type source_project: str
+    :param destination_project: project name or folder path (e.g., "project1/folder2")
+    :type destination_project: str
+    :param image_names: image names. If None, all images from source project will be copied
+    :type image: list of str
+    :param include_annotations: enables annotations copy
+    :type include_annotations: bool
+    :param copy_annotation_status: enables annotations status copy
+    :type copy_annotation_status: bool
+    :param copy_pin: enables image pin status copy
+    :type copy_pin: bool
+    """
+    source_project, source_project_folder = get_project_and_folder_metadata(
+        source_project
+    )
+    destination_project, destination_project_folder = get_project_and_folder_metadata(
+        destination_project
+    )
+    if image_names is None:
+        image_names = search_images((source_project, source_project_folder))
+    res = _copy_images(
+        (source_project, source_project_folder),
+        (destination_project, destination_project_folder), image_names,
+        include_annotations, copy_annotation_status, copy_pin
+    )
+    logger.info(
+        "Copied images %s from %s to %s. Number of skipped images %s",
+        image_names,
+        source_project["name"] + "" if source_project_folder is None else "/" +
+        source_project_folder["name"], destination_project["name"] +
+        "" if destination_project_folder is None else "/" +
+        destination_project_folder["name"], res["skipped"]
+    )
+    return res["skipped"]
+
+
+def delete_images(project, image_names):
+    """Delete images in project.
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param image_names: to be deleted images' names. If None, all the images will be deleted
+    :type image_names: list of strs
+    """
+    if image_names is None:
+        images = search_images(project, return_metadata=True)
+    else:
+        if not isinstance(image_names, list):
+            raise SABaseException(
+                0, "image_names should be a list of strs or None"
+            )
+        images = get_image_metadata(
+            project, image_names, return_dict_on_single_output=False
+        )
+    project, _ = get_project_and_folder_metadata(project)
+
+    params = {"team_id": project["team_id"], "project_id": project["id"]}
+    data = {"image_ids": [image["id"] for image in images]}
+    response = _api.send_request(
+        req_type='PUT',
+        path='/image/delete/images',
+        params=params,
+        json_req=data
+    )
+    if not response.ok:
+        raise SABaseException(
+            response.status_code, "Couldn't delete images " + response.text
+        )
+    logger.info("Images %s deleted in project %s", image_names, project["name"])
+
+
+def move_images(
+    source_project,
+    destination_project,
+    image_names=None,
+    include_annotations=True,
+    copy_annotation_status=True,
+    copy_pin=True,
+):
+    """Move images in bulk between folders in a project 
+
+    :param source_project: project name or folder path (e.g., "project1/folder1")
+    :type source_project: str
+    :param destination_project: project name or folder path (e.g., "project1/folder2")
+    :type destination_project: str
+    :param image_names: image names. If None, all images from source project will be moved
+    :type image: list of str
+    :param include_annotations: enables annotations copy
+    :type include_annotations: bool
+    :param copy_annotation_status: enables annotations status copy
+    :type copy_annotation_status: bool
+    :param copy_pin: enables image pin status copy
+    :type copy_pin: bool
+    """
+    source_project, source_project_folder = get_project_and_folder_metadata(
+        source_project
+    )
+    destination_project, destination_project_folder = get_project_and_folder_metadata(
+        destination_project
+    )
+    if image_names is None:
+        image_names = search_images((source_project, source_project_folder))
+    _copy_images(
+        (source_project, source_project_folder),
+        (destination_project, destination_project_folder), image_names,
+        include_annotations, copy_annotation_status, copy_pin
+    )
+    delete_images((source_project, source_project_folder), image_names)
+    logger.info(
+        "Moved images %s from project %s to project %s", image_names,
+        source_project["name"] + "" if source_project_folder is None else "/" +
+        source_project_folder["name"], destination_project["name"] +
+        "" if destination_project_folder is None else "/" +
+        destination_project_folder["name"]
+    )
 
 
 def copy_image(
@@ -143,7 +335,8 @@ def copy_image(
     project then the name will be changed to <image_name>_(<num>).<image_ext>,
     where <num> is the next available number deducted from project image list.
 
-    :param source_project: project name or metadata of the project of source project
+    :param source_project: project name plus optional subfolder in the project (e.g., "project1/folder1") or
+                           metadata of the project of source project
     :type source_project: str or dict
     :param image_name: image name
     :type image: str
@@ -156,18 +349,24 @@ def copy_image(
     :param copy_pin: enables image pin status copy
     :type copy_pin: bool
     """
-    if not isinstance(source_project, dict):
-        source_project = get_project_metadata_bare(source_project)
-    if not isinstance(destination_project, dict):
-        destination_project = get_project_metadata_bare(destination_project)
-    img_b = get_image_bytes(source_project, image_name)
-    img_metadata = get_image_metadata(source_project, image_name)
+    source_project, source_project_folder = get_project_and_folder_metadata(
+        source_project
+    )
+    destination_project, destination_project_folder = get_project_and_folder_metadata(
+        destination_project
+    )
+    img_metadata = get_image_metadata(
+        (source_project, source_project_folder), image_name
+    )
+    img_b = get_image_bytes((source_project, source_project_folder), image_name)
     new_name = image_name
     extension = Path(image_name).suffix
     p = re.compile(r"_\([0-9]+\)\.")
     while True:
         try:
-            get_image_metadata(destination_project, new_name)
+            get_image_metadata(
+                (destination_project, destination_project_folder), new_name
+            )
         except SABaseException:
             break
         else:
@@ -184,27 +383,35 @@ def copy_image(
                 new_name = new_name[:m.start() +
                                     2] + str(num + 1) + ")" + extension
 
-    upload_image_to_project(destination_project, img_b, new_name)
+    upload_image_to_project(
+        (destination_project, destination_project_folder), img_b, new_name
+    )
     if include_annotations:
-        annotations = get_image_annotations(source_project, image_name)
+        annotations = get_image_annotations(
+            (source_project, source_project_folder), image_name
+        )
         if annotations["annotation_json"] is not None:
             if "annotation_mask" in annotations:
                 upload_image_annotations(
-                    destination_project, new_name,
+                    (destination_project, destination_project_folder), new_name,
                     annotations["annotation_json"],
                     annotations["annotation_mask"]
                 )
             else:
                 upload_image_annotations(
-                    destination_project, new_name,
+                    (destination_project, destination_project_folder), new_name,
                     annotations["annotation_json"]
                 )
     if copy_annotation_status:
         set_image_annotation_status(
-            destination_project, new_name, img_metadata["annotation_status"]
+            (destination_project, destination_project_folder), new_name,
+            img_metadata["annotation_status"]
         )
     if copy_pin:
-        pin_image(destination_project, new_name, img_metadata["is_pinned"])
+        pin_image(
+            (destination_project, destination_project_folder), new_name,
+            img_metadata["is_pinned"]
+        )
 
     logger.info(
         "Copied image %s/%s to %s/%s.", source_project["name"], image_name,
@@ -236,38 +443,42 @@ def move_image(
     :param copy_pin: enables image pin status copy
     :type copy_pin: bool
     """
-    if not isinstance(source_project, dict):
-        source_project = get_project_metadata_bare(source_project)
-    if not isinstance(destination_project, dict):
-        destination_project = get_project_metadata_bare(destination_project)
+    source_project, source_project_folder = get_project_and_folder_metadata(
+        source_project
+    )
+    destination_project, destination_project_folder = get_project_and_folder_metadata(
+        destination_project
+    )
     if source_project == destination_project:
         raise SABaseException(
             0, "Cannot move image if source_project == destination_project."
         )
     copy_image(
-        source_project, image_name, destination_project, include_annotations,
+        (source_project, source_project_folder), image_name,
+        (destination_project, destination_project_folder), include_annotations,
         copy_annotation_status, copy_pin
     )
-    delete_image(source_project, image_name)
+    delete_image((source_project, source_project_folder), image_name)
     logger.info("Deleted image %s/%s.", source_project["name"], image_name)
 
 
 def pin_image(project, image_name, pin=True):
     """Pins (or unpins) image
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param image_name: image name
     :type image: str
     :param pin: sets to pin if True, else unpins image
     :type pin: bool
     """
-    if not isinstance(project, dict):
-        project = get_project_metadata_bare(project)
-    img_metadata = get_image_metadata(project, image_name)
+    project, project_folder = get_project_and_folder_metadata(project)
+    img_metadata = get_image_metadata((project, project_folder), image_name)
     team_id, project_id, image_id = project["team_id"], project[
         "id"], img_metadata["id"]
     params = {"team_id": team_id, "project_id": project_id}
+    if project_folder is not None:
+        params["folder_id"] = project_folder["id"]
     json_req = {"is_pinned": int(pin)}
     response = _api.send_request(
         req_type='PUT',
@@ -286,8 +497,8 @@ def assign_images(project, image_names, user):
     be deduced from the user's role in the project. With SDK, the user can be
     assigned to a role in the project with the share_project function.
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param image_names: list of image names to assign
     :type image_names: list of str
     :param user: user email
@@ -296,27 +507,19 @@ def assign_images(project, image_names, user):
     logger.info("Assign %s images to user %s", len(image_names), user)
     if len(image_names) == 0:
         return
-    if not isinstance(project, dict):
-        project = get_project_metadata_bare(project)
-    folder_id = None
-    images = search_images(project, return_metadata=True)
+    project, project_folder = get_project_and_folder_metadata(project)
+    images = search_images((project, project_folder), return_metadata=True)
     image_dict = {}
     for image in images:
         image_dict[image["name"]] = image["id"]
-        if folder_id is None:
-            folder_id = image["folder_id"]
-        elif folder_id != image["folder_id"]:
-            raise SABaseException(0, "Folders not implemented yet")
 
     image_ids = []
     for image_name in image_names:
         image_ids.append(image_dict[image_name])
     team_id, project_id = project["team_id"], project["id"]
-    params = {
-        "team_id": team_id,
-        "project_id": project_id,
-        "folder_id": folder_id
-    }
+    params = {"team_id": team_id, "project_id": project_id}
+    if project_folder is not None:
+        params['folder_id'] = project_folder['id']
     json_req = {"user_id": user, "image_ids": image_ids}
     response = _api.send_request(
         req_type='POST',
@@ -328,4 +531,3 @@ def assign_images(project, image_names, user):
         raise SABaseException(
             response.status_code, "Couldn't assign images " + response.text
         )
-    # print(response.json())

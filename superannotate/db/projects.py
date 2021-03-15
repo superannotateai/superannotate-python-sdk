@@ -5,7 +5,6 @@ import json
 import logging
 import math
 import os
-import random
 import tempfile
 import threading
 import time
@@ -35,7 +34,9 @@ from .annotation_classes import (
     search_annotation_classes
 )
 from .images import get_image_metadata, search_images
-from .project_api import get_project_metadata_bare
+from .project_api import (
+    get_project_and_folder_metadata, get_project_metadata_bare
+)
 from .users import get_team_contributor_metadata
 
 logger = logging.getLogger("superannotate-python-sdk")
@@ -68,6 +69,14 @@ def create_project(project_name, project_description, project_type):
             " already exists. Please use unique names for projects to use with SDK."
         )
     project_type = common.project_type_str_to_int(project_type)
+    if len(
+        set(project_name).intersection(
+            common.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
+        )
+    ) > 0:
+        logger.warning(
+            "New project name has special characters. Special characters will be replaced by underscores."
+        )
     data = {
         "team_id": str(_api.team_id),
         "name": project_name,
@@ -122,8 +131,8 @@ def create_project_from_metadata(project_metadata):
 def delete_project(project):
     """Deletes the project
 
-    :param project: project name or metadata of the project to be deleted
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     """
     if not isinstance(project, dict):
         project = get_project_metadata_bare(project)
@@ -142,8 +151,8 @@ def delete_project(project):
 def rename_project(project, new_name):
     """Renames the project
 
-    :param project: project name or metadata of the project to be deleted
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param new_name: project's new name
     :type new_name: str
     """
@@ -179,27 +188,13 @@ def rename_project(project, new_name):
 def get_project_image_count(project):
     """Returns number of images in the project.
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
 
     :return: number of images in the project
     :rtype: int
     """
-    if not isinstance(project, dict):
-        project = get_project_metadata_bare(project)
-    team_id, project_id = project["team_id"], project["id"]
-    params = {'team_id': team_id}
-    response = _api.send_request(
-        req_type='GET',
-        path=f'/reporting/project/{project_id}/overview',
-        params=params
-    )
-    if not response.ok:
-        raise SABaseException(
-            response.status_code,
-            "Couldn't get project image count " + response.text
-        )
-    return response.json()["total_images"]
+    return len(search_images(project))
 
 
 def upload_video_to_project(
@@ -214,8 +209,8 @@ def upload_video_to_project(
     """Uploads image frames from video to platform. Uploaded images will have
     names "<video_name>_<frame_no>.jpg".
 
-    :param project: project name or metadata of the project to upload video frames to
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param video_path: video to upload
     :type video_path: Pathlike (str or Path)
     :param target_fps: how many frames per second need to extract from the video (approximate).
@@ -349,8 +344,8 @@ def upload_video_to_project(
 def upload_videos_from_folder_to_project(
     project,
     folder_path,
-    extensions=None,
-    exclude_file_patterns=None,
+    extensions=common.DEFAULT_VIDEO_EXTENSIONS,
+    exclude_file_patterns=(),
     recursive_subfolders=False,
     target_fps=None,
     start_time=0.0,
@@ -361,15 +356,14 @@ def upload_videos_from_folder_to_project(
     """Uploads image frames from all videos with given extensions from folder_path to the project.
     Sets status of all the uploaded images to set_status if it is not None.
 
-    :param project: project name or metadata of the project to upload videos to
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param folder_path: from which folder to upload the videos
     :type folder_path: Pathlike (str or Path)
-    :param extensions: list of filename extensions to include from folder, if None, then
-                       extensions = ["mp4", "avi", "mov", "webm", "flv", "mpg", "ogg"]
-    :type extensions: list of str
+    :param extensions: tuple or list of filename extensions to include from folder 
+    :type extensions: tuple or list of strs
     :param exclude_file_patterns: filename patterns to exclude from uploading
-    :type exclude_file_patterns: list of strs
+    :type exclude_file_patterns: listlike of strs
     :param recursive_subfolders: enable recursive subfolder parsing
     :type recursive_subfolders: bool
     :param target_fps: how many frames per second need to extract from the video (approximate).
@@ -388,20 +382,15 @@ def upload_videos_from_folder_to_project(
     :return: uploaded and not-uploaded video frame images' filenames
     :rtype: tuple of list of strs
     """
-    if not isinstance(project, dict):
-        project = get_project_metadata_bare(project)
+    project, project_folder = get_project_and_folder_metadata(project)
     if recursive_subfolders:
         logger.warning(
             "When using recursive subfolder parsing same name videos in different subfolders will overwrite each other."
         )
-    if exclude_file_patterns is None:
-        exclude_file_patterns = []
-    if extensions is None:
-        extensions = ["mp4", "avi", "mov", "webm", "flv", "mpg", "ogg"]
-    elif not isinstance(extensions, list):
+    if not isinstance(extensions, (list, tuple)):
         raise SABaseException(
             0,
-            "extensions should be a list in upload_images_from_folder_to_project"
+            "extensions should be a list or a tuple in upload_images_from_folder_to_project"
         )
 
     logger.info(
@@ -429,7 +418,7 @@ def upload_videos_from_folder_to_project(
     filenames = []
     for path in filtered_paths:
         filenames += upload_video_to_project(
-            project,
+            (project, project_folder),
             path,
             target_fps=target_fps,
             start_time=start_time,
@@ -444,10 +433,10 @@ def upload_videos_from_folder_to_project(
 def upload_images_from_folder_to_project(
     project,
     folder_path,
-    extensions=None,
+    extensions=common.DEFAULT_IMAGE_EXTENSIONS,
     annotation_status="NotStarted",
     from_s3_bucket=None,
-    exclude_file_patterns=None,
+    exclude_file_patterns=common.DEFAULT_FILE_EXCLUDE_PATTERNS,
     recursive_subfolders=False,
     image_quality_in_editor=None
 ):
@@ -458,22 +447,19 @@ def upload_images_from_folder_to_project(
     and its path will be appended to the third member of return value of this
     function.
 
-    :param project: project name or metadata of the project to upload images_to
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param folder_path: from which folder to upload the images
     :type folder_path: Pathlike (str or Path)
-    :param extensions: list of filename extensions to include from folder, if None, then "jpg", "jpeg", "png", "tif", "tiff", "webp", "bmp" are included
-    :type extensions: list of str
+    :param extensions: tuple or list of filename extensions to include from folder
+    :type extensions: tuple or list of strs
     :param annotation_status: value to set the annotation statuses of the uploaded images NotStarted InProgress QualityCheck Returned Completed Skipped
     :type annotation_status: str
     :param from_s3_bucket: AWS S3 bucket to use. If None then folder_path is in local filesystem
     :type from_s3_bucket: str
     :param exclude_file_patterns: filename patterns to exclude from uploading,
-                                 default value is to exclude SuperAnnotate pixel project
-                                 annotation mask output file pattern. If None,
-                                 SuperAnnotate related ["___save.png", "___fuse.png"]
-                                 will bet set as default exclude_file_patterns.
-    :type exclude_file_patterns: list of strs
+                                 default value is to exclude SuperAnnotate export related ["___save.png", "___fuse.png"]
+    :type exclude_file_patterns: list or tuple of strs
     :param recursive_subfolders: enable recursive subfolder parsing
     :type recursive_subfolders: bool
     :param image_quality_in_editor: image quality be seen in SuperAnnotate web annotation editor.
@@ -483,25 +469,23 @@ def upload_images_from_folder_to_project(
     :return: uploaded, could-not-upload, existing-images filepaths
     :rtype: tuple (3 members) of list of strs
     """
-    if not isinstance(project, dict):
-        project = get_project_metadata_bare(project)
+    project, project_folder = get_project_and_folder_metadata(project)
+    project_folder_name = project["name"] + (
+        f'/{project_folder["name"]}' if project_folder else ""
+    )
     if recursive_subfolders:
         logger.info(
             "When using recursive subfolder parsing same name images in different subfolders will overwrite each other."
         )
-    if exclude_file_patterns is None:
-        exclude_file_patterns = ["___save.png", "___fuse.png"]
-    if extensions is None:
-        extensions = ["jpg", "jpeg", "png", "tif", "tiff", "webp", "bmp"]
-    elif not isinstance(extensions, list):
+    if not isinstance(extensions, (list, tuple)):
         raise SABaseException(
             0,
-            "extensions should be a list in upload_images_from_folder_to_project"
+            "extensions should be a list or a tuple in upload_images_from_folder_to_project"
         )
 
     logger.info(
         "Uploading all images with extensions %s from %s to project %s. Excluded file patterns are: %s.",
-        extensions, folder_path, project["name"], exclude_file_patterns
+        extensions, folder_path, project_folder_name, exclude_file_patterns
     )
     if from_s3_bucket is None:
         paths = []
@@ -546,8 +530,8 @@ def upload_images_from_folder_to_project(
             filtered_paths.append(path)
 
     return upload_images_to_project(
-        project, filtered_paths, annotation_status, from_s3_bucket,
-        image_quality_in_editor
+        (project, project_folder), filtered_paths, annotation_status,
+        from_s3_bucket, image_quality_in_editor
     )
 
 
@@ -557,10 +541,7 @@ def create_empty_annotation(size, image_name):
             'height': size[1],
             'width': size[0],
             'name': image_name
-        },
-        "instances": [],
-        "comments": [],
-        "tags": []
+        }
     }
 
 
@@ -651,7 +632,7 @@ def get_image_array_to_upload(
 def __upload_images_to_aws_thread(
     res, img_paths, project, annotation_status, prefix, thread_id, chunksize,
     couldnt_upload, uploaded, tried_upload, image_quality_in_editor,
-    from_s3_bucket
+    from_s3_bucket, project_folder_id
 ):
     len_img_paths = len(img_paths)
     start_index = thread_id * chunksize
@@ -707,7 +688,8 @@ def __upload_images_to_aws_thread(
                 try:
                     __create_image(
                         uploaded_imgs_info[0], uploaded_imgs_info[1], project,
-                        annotation_status, prefix, uploaded_imgs_info[2]
+                        annotation_status, prefix, uploaded_imgs_info[2],
+                        project_folder_id
                     )
                 except SABaseException as e:
                     couldnt_upload[thread_id] += uploaded_imgs
@@ -719,7 +701,7 @@ def __upload_images_to_aws_thread(
     try:
         __create_image(
             uploaded_imgs_info[0], uploaded_imgs_info[1], project,
-            annotation_status, prefix, uploaded_imgs_info[2]
+            annotation_status, prefix, uploaded_imgs_info[2], project_folder_id
         )
     except SABaseException as e:
         couldnt_upload[thread_id] += uploaded_imgs
@@ -729,7 +711,8 @@ def __upload_images_to_aws_thread(
 
 
 def __create_image(
-    img_names, img_paths, project, annotation_status, remote_dir, sizes
+    img_names, img_paths, project, annotation_status, remote_dir, sizes,
+    project_folder_id
 ):
     if len(img_paths) == 0:
         return
@@ -744,6 +727,8 @@ def __create_image(
         "annotation_status": annotation_status,
         "meta": {}
     }
+    if project_folder_id is not None:
+        data["folder_id"] = project_folder_id
     for img_name, img_path, size in zip(img_names, img_paths, sizes):
         img_name_uuid = Path(img_path).name
         remote_path = remote_dir + f"{img_name_uuid}"
@@ -778,8 +763,8 @@ def upload_images_to_project(
     and its path will be appended to the third member of return value of this
     function.
 
-    :param project: project name or metadata of the project to upload images to
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param img_paths: list of Pathlike (str or Path) objects to upload
     :type img_paths: list
     :param annotation_status: value to set the annotation statuses of the uploaded images NotStarted InProgress QualityCheck Returned Completed Skipped
@@ -793,8 +778,10 @@ def upload_images_to_project(
     :return: uploaded, could-not-upload, existing-images filepaths
     :rtype: tuple (3 members) of list of strs
     """
-    if not isinstance(project, dict):
-        project = get_project_metadata_bare(project)
+    project, project_folder = get_project_and_folder_metadata(project)
+    project_folder_name = project["name"] + (
+        f'/{project_folder["name"]}' if project_folder else ""
+    )
     if not isinstance(img_paths, list):
         raise SABaseException(
             0, "img_paths argument to upload_images_to_project should be a list"
@@ -805,12 +792,12 @@ def upload_images_to_project(
             project
         )
     team_id, project_id = project["team_id"], project["id"]
-    existing_images = search_images(project)
+    existing_images = search_images((project, project_folder))
     duplicate_images = []
     for existing_image in existing_images:
         i = -1
         for j, img_path in enumerate(img_paths):
-            if str(img_path).endswith(existing_image):
+            if Path(img_path).name == existing_image:
                 i = j
                 break
         if i != -1:
@@ -823,13 +810,11 @@ def upload_images_to_project(
         )
     len_img_paths = len(img_paths)
     logger.info(
-        "Uploading %s images to project %s.", len_img_paths, project["name"]
+        "Uploading %s images to project %s.", len_img_paths, project_folder_name
     )
     if len_img_paths == 0:
         return ([], [], duplicate_images)
-    params = {
-        'team_id': team_id,
-    }
+    params = {'team_id': team_id}
     uploaded = [[] for _ in range(_NUM_THREADS)]
     tried_upload = [[] for _ in range(_NUM_THREADS)]
     couldnt_upload = [[] for _ in range(_NUM_THREADS)]
@@ -844,6 +829,10 @@ def upload_images_to_project(
         raise SABaseException(
             response.status_code, "Couldn't get upload token " + response.text
         )
+    if project_folder is not None:
+        project_folder_id = project_folder["id"]
+    else:
+        project_folder_id = None
     res = response.json()
     prefix = res['filePath']
     tqdm_thread = threading.Thread(
@@ -860,7 +849,7 @@ def upload_images_to_project(
             args=(
                 res, img_paths, project, annotation_status, prefix, thread_id,
                 chunksize, couldnt_upload, uploaded, tried_upload,
-                image_quality_in_editor, from_s3_bucket
+                image_quality_in_editor, from_s3_bucket, project_folder_id
             ),
             daemon=True
         )
@@ -910,8 +899,8 @@ def upload_images_from_public_urls_to_project(
     """Uploads all images given in the list of URL strings in img_urls to the project.
     Sets status of all the uploaded images to annotation_status if it is not None.
 
-    :param project: project name or metadata of the project to upload images to
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param img_urls: list of str objects to upload
     :type img_urls: list
     :param img_names: list of str names for each urls in img_url list
@@ -1014,8 +1003,8 @@ def upload_images_from_google_cloud_to_project(
     """Uploads all images present in folder_path at bucket_name in google_project to the project.
     Sets status of all the uploaded images to set_status if it is not None.
 
-    :param project: project name or metadata of the project to upload images to
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param google_project: the project name on google cloud, where the bucket resides
     :type google_project: str
     :param bucket_name: the name of the bucket where the images are stored
@@ -1092,8 +1081,8 @@ def upload_images_from_azure_blob_to_project(
     """Uploads all images present in folder_path at container_name Azure blob storage to the project.
     Sets status of all the uploaded images to set_status if it is not None.
 
-    :param project: project name or metadata of the project to upload images to
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param container_name: container name of the Azure blob storage
     :type container_name: str
     :param folder_path: path of the folder on the bucket where the images are stored
@@ -1174,7 +1163,7 @@ def upload_images_from_azure_blob_to_project(
 def __upload_annotations_thread(
     team_id, project_id, project_type, anns_filenames, folder_path,
     annotation_classes_dict, pre, thread_id, chunksize, missing_images,
-    couldnt_upload, uploaded, from_s3_bucket
+    couldnt_upload, uploaded, from_s3_bucket, project_folder_id
 ):
     NUM_TO_SEND = 500
     len_anns = len(anns_filenames)
@@ -1198,7 +1187,13 @@ def __upload_annotations_thread(
             image_name = anns_filenames[j][:-len_postfix_json]
             names.append(image_name)
         try:
-            metadatas = get_image_metadata({"id": project_id}, names, False)
+            metadatas = get_image_metadata(
+                ({
+                    "id": project_id
+                }, {
+                    "id": project_folder_id
+                }), names, False
+            )
         except SABaseException:
             metadatas = []
         names_in_metadatas = [metadata["name"] for metadata in metadatas]
@@ -1217,7 +1212,8 @@ def __upload_annotations_thread(
         data = {
             "project_id": project_id,
             "team_id": team_id,
-            "ids": [metadata["id"] for metadata in metadatas]
+            "ids": [metadata["id"] for metadata in metadatas],
+            "folder_id": project_folder_id
         }
         endpoint = '/images/getAnnotationsPathsAndTokens' if pre == "" else '/images/getPreAnnotationsPathsAndTokens'
         response = _api.send_request(
@@ -1297,8 +1293,8 @@ def upload_annotations_from_folder_to_project(
 
     Existing annotations will be overwritten.
 
-    :param project: project name or metadata of the project to upload annotations to
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param from_s3_bucket: AWS S3 bucket to use. If None then folder_path is in local filesystem
     :type from_s3_bucket: str
     :param recursive_subfolders: enable recursive subfolder parsing
@@ -1326,16 +1322,26 @@ def _upload_pre_or_annotations_from_folder_to_project(
     )
 
     logger.info("Existing %sannotations will be overwritten.", pre)
-    if not isinstance(project, dict):
-        project = get_project_metadata_bare(project)
+    project, project_folder = get_project_and_folder_metadata(project)
+
+    if project_folder is not None:
+        project_folder_id = project_folder["id"]
+    else:
+        project_folder_id = None
 
     return _upload_annotations_from_folder_to_project(
-        project, folder_path, pre, from_s3_bucket, recursive_subfolders
+        project, folder_path, pre, from_s3_bucket, recursive_subfolders,
+        project_folder_id
     )
 
 
 def _upload_annotations_from_folder_to_project(
-    project, folder_path, pre, from_s3_bucket=None, recursive_subfolders=False
+    project,
+    folder_path,
+    pre,
+    from_s3_bucket=None,
+    recursive_subfolders=False,
+    project_folder_id=None
 ):
     return_result = []
     if from_s3_bucket is not None:
@@ -1346,7 +1352,8 @@ def _upload_annotations_from_folder_to_project(
             for path in Path(folder_path).glob('*'):
                 if path.is_dir():
                     return_result += _upload_annotations_from_folder_to_project(
-                        project, path, pre, from_s3_bucket, recursive_subfolders
+                        project, path, pre, from_s3_bucket,
+                        recursive_subfolders, project_folder_id
                     )
         else:
             s3_client = boto3.client('s3')
@@ -1358,7 +1365,7 @@ def _upload_annotations_from_folder_to_project(
                 for o in results:
                     return_result += _upload_annotations_from_folder_to_project(
                         project, o.get('Prefix'), pre, from_s3_bucket,
-                        recursive_subfolders
+                        recursive_subfolders, project_folder_id
                     )
 
     team_id, project_id, project_type = project["team_id"], project[
@@ -1432,7 +1439,8 @@ def _upload_annotations_from_folder_to_project(
             args=(
                 team_id, project_id, project_type, annotations_filenames,
                 folder_path, annotation_classes_dict, pre, thread_id, chunksize,
-                missing_image, couldnt_upload, uploaded, from_s3_bucket
+                missing_image, couldnt_upload, uploaded, from_s3_bucket,
+                project_folder_id
             ),
             daemon=True
         )
@@ -1507,8 +1515,8 @@ def upload_preannotations_from_folder_to_project(
 
     Existing pre-annotations will be overwritten.
 
-    :param project: project name or metadata of the project to upload pre-annotations to
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param folder_path: from which folder to upload the pre-annotations
     :type folder_path: Pathlike (str or Path)
     :param from_s3_bucket: AWS S3 bucket to use. If None then folder_path is in local filesystem
@@ -1527,8 +1535,8 @@ def upload_preannotations_from_folder_to_project(
 def share_project(project, user, user_role):
     """Share project with user.
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name
+    :type project: str
     :param user: user email or metadata of the user to share project with
     :type user: str or dict
     :param user_role: user role to apply, one of Admin , Annotator , QA , Customer , Viewer
@@ -1560,8 +1568,8 @@ def share_project(project, user, user_role):
 def unshare_project(project, user):
     """Unshare (remove) user from project.
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name
+    :type project: str
     :param user: user email or metadata of the user to unshare project
     :type user: str or dict
     """
@@ -1594,8 +1602,8 @@ def upload_images_from_s3_bucket_to_project(
 ):
     """Uploads all images from AWS S3 bucket to the project.
 
-    :param project: project name or metadata of the project to upload images to
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param accessKeyId: AWS S3 access key ID
     :type accessKeyId: str
     :param secretAccessKey: AWS S3 secret access key
@@ -1608,8 +1616,7 @@ def upload_images_from_s3_bucket_to_project(
            Can be either "compressed" or "original".  If None then the default value in project settings will be used.
     :type image_quality_in_editor: str
     """
-    if not isinstance(project, dict):
-        project = get_project_metadata_bare(project)
+    project, project_folder = get_project_and_folder_metadata(project)
     if image_quality_in_editor is not None:
         old_quality = get_project_default_image_quality_in_editor(project)
         set_project_default_image_quality_in_editor(
@@ -1625,6 +1632,9 @@ def upload_images_from_s3_bucket_to_project(
         "bucketName": bucket_name,
         "folderName": folder_path
     }
+    if project_folder is not None:
+        data["folder_id"] = project_folder["id"]
+
     response = _api.send_request(
         req_type='POST',
         path=f'/project/{project_id}/get-image-s3-access-point',
@@ -1639,23 +1649,27 @@ def upload_images_from_s3_bucket_to_project(
     logger.info("Waiting for S3 upload to finish.")
     while True:
         time.sleep(5)
-        res = _get_upload_from_s3_bucket_to_project_status(project)
+        res = _get_upload_from_s3_bucket_to_project_status(
+            project, project_folder
+        )
         if res["progress"] == '2':
             break
         if res["progress"] != "1":
             raise SABaseException(
                 response.status_code,
-                "Couldn't upload to project from S3 " + response.text
+                "Couldn't upload to project from S3 " + str(res)
             )
     if image_quality_in_editor is not None:
         set_project_default_image_quality_in_editor(project, old_quality)
 
 
-def _get_upload_from_s3_bucket_to_project_status(project):
+def _get_upload_from_s3_bucket_to_project_status(project, project_folder):
     team_id, project_id = project["team_id"], project["id"]
     params = {
         "team_id": team_id,
     }
+    if project_folder is not None:
+        params["folder_id"] = project_folder["id"]
     response = _api.send_request(
         req_type='GET',
         path=f'/project/{project_id}/getS3UploadStatus',

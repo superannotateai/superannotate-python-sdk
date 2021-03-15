@@ -49,6 +49,17 @@ To create a new project:
 
 ----------
 
+Creating a folder in a project
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To create a new folder:
+
+.. code-block:: bash
+
+   superannotatecli create-folder --project <project_name> --name <folder_name>
+
+----------
+
 .. _ref_upload_images:
 
 Uploading images

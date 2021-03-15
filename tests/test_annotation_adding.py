@@ -89,6 +89,8 @@ def test_add_bbox(tmpdir):
     sa.download_export(project, export, tmpdir)
 
     df = sa.aggregate_annotations_as_df(tmpdir)
+    print(df)
+    print(image_name)
 
     num = len(df[df["imageName"] == image_name]["instanceId"].dropna().unique())
 

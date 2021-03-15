@@ -17,13 +17,16 @@ pip install -e .
 # pip install superannotate
 
 # for testing
-pip install pytest pytest-xdist
+pip install pytest pytest-xdist pytest-timeout
 
 # for coverage
 pip install coverage pytest-cov
 
 # for linting
 pip install pylint pylint-json2html pylint-pytest
+
+# for formatting
+pip install yapf
 
 # for docs
 pip install sphinx sphinx_rtd_theme

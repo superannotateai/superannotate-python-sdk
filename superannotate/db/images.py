@@ -14,7 +14,8 @@ from ..annotation_helpers import (
     add_annotation_bbox_to_json, add_annotation_comment_to_json,
     add_annotation_cuboid_to_json, add_annotation_ellipse_to_json,
     add_annotation_point_to_json, add_annotation_polygon_to_json,
-    add_annotation_polyline_to_json, add_annotation_template_to_json
+    add_annotation_polyline_to_json, add_annotation_template_to_json,
+    fill_in_missing
 )
 from ..api import API
 from ..exceptions import SABaseException
@@ -24,30 +25,11 @@ from .annotation_classes import (
     get_annotation_classes_id_to_name, get_annotation_classes_name_to_id,
     search_annotation_classes
 )
-from .project_api import get_project_metadata_bare
+from .project_api import get_project_and_folder_metadata
 
 logger = logging.getLogger("superannotate-python-sdk")
 
 _api = API.get_instance()
-
-
-def _get_project_root_folder_id(project):
-    """Get root folder ID
-    Returns
-    -------
-    int
-        Root folder ID
-    """
-    params = {'team_id': project['team_id']}
-    response = _api.send_request(
-        req_type='GET', path=f'/project/{project["id"]}', params=params
-    )
-    if not response.ok:
-        raise SABaseException(response.status_code, response.text)
-
-    response = response.json()
-
-    return response['folder_id']
 
 
 def search_images(
@@ -58,8 +40,8 @@ def search_images(
 ):
     """Search images by name_prefix (case-insensitive) and annotation status
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param image_name_prefix: image name prefix for search
     :type image_name_prefix: str
     :param annotation_status: if not None, annotation statuses of images to filter,
@@ -72,52 +54,54 @@ def search_images(
     :return: metadata of found images or image names
     :rtype: list of dicts or strs
     """
-    if not isinstance(project, dict):
-        project = get_project_metadata_bare(project)
+    project, project_folder = get_project_and_folder_metadata(project)
     team_id, project_id = project["team_id"], project["id"]
-    folder_id = _get_project_root_folder_id(project)  # maybe changed in future
     if annotation_status is not None:
         annotation_status = common.annotation_status_str_to_int(
             annotation_status
         )
 
+    if project_folder is not None:
+        project_folder_id = project_folder["id"]
+    else:
+        project_folder_id = None
+
     result_list = []
     params = {
         'team_id': team_id,
         'project_id': project_id,
-        'folder_id': folder_id,
         'annotation_status': annotation_status,
-        'offset': 0
+        'offset': 0,
+        'folder_id': project_folder_id
     }
     if image_name_prefix is not None:
         params['name'] = image_name_prefix
     total_got = 0
+    total_images = 0
     while True:
         response = _api.send_request(
             req_type='GET', path='/images', params=params
         )
-        if response.ok:
-            # print(response.json())
-            response = response.json()
-            results = response["data"]
-            total_got += len(results)
-            for r in results:
-                if return_metadata:
-                    result_list.append(r)
-                else:
-                    result_list.append(r["name"])
-
-            if response["count"] <= total_got:
-                break
-            params["offset"] = total_got
-            # print(
-            #     "Got to ", len(result_list),
-            #     response.json()["count"], len(new_results), params['offset']
-            # )
-        else:
+        if not response.ok:
             raise SABaseException(
                 response.status_code, "Couldn't search images " + response.text
             )
+        response = response.json()
+        images = response["images"]
+        folders = response["folders"]
+
+        results_images = images["data"]
+        for r in results_images:
+            if return_metadata:
+                result_list.append(r)
+            else:
+                result_list.append(r["name"])
+
+        total_images += len(results_images)
+        if images["count"] <= total_images:
+            break
+        total_got += len(results_images) + len(folders["data"])
+        params["offset"] = total_got
 
     if return_metadata:
 
@@ -132,31 +116,43 @@ def search_images(
         return result_list
 
 
-@project_metadata
 def get_image_metadata(project, image_names, return_dict_on_single_output=True):
     """Returns image metadata
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param image_name: image name
     :type image: str
 
     :return: metadata of image
     :rtype: dict
     """
+    project, project_folder = get_project_and_folder_metadata(project)
     if isinstance(image_names, str):
         image_names = [image_names]
+
+    if project_folder is not None:
+        project_folder_id = project_folder["id"]
+    else:
+        project_folder_id = None
 
     json_req = {
         'project_id': project['id'],
         'team_id': _api.team_id,
-        'names': image_names
+        'names': image_names,
     }
+    if project_folder_id is not None:
+        json_req["folder_id"] = project_folder_id
     response = _api.send_request(
         req_type='POST',
         path='/images/getBulk',
         json_req=json_req,
     )
+    if not response.ok:
+        raise SABaseException(
+            response.status_code,
+            "Couldn't get image metadata. " + response.text
+        )
 
     metadata_raw = response.json()
     metadata_without_deleted = []
@@ -190,10 +186,10 @@ def get_image_metadata(project, image_names, return_dict_on_single_output=True):
 def set_image_annotation_status(project, image_name, annotation_status):
     """Sets the image annotation status
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param image_name: image name
-    :type image: str
+    :type image_name: str
     :param annotation_status: annotation status to set,
            should be one of NotStarted InProgress QualityCheck Returned Completed Skipped
     :type annotation_status: str
@@ -233,8 +229,8 @@ def add_annotation_comment_to_image(
 ):
     """Add a comment to SuperAnnotate format annotation JSON
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param image_name: image name
     :type image: str
     :param comment_text: comment text
@@ -269,8 +265,8 @@ def add_annotation_bbox_to_image(
 
     annotation_class_attributes has the form [ {"name" : "<attribute_value>" }, "groupName" : "<attribute_group>"} ], ... ]
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param image_name: image name
     :type image: str
     :param bbox: 4 element list of top-left x,y and bottom-right x, y coordinates
@@ -305,8 +301,8 @@ def add_annotation_polygon_to_image(
 
     annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param image_name: image name
     :type image: str
     :param polygon: [x1,y1,x2,y2,...] list of coordinates
@@ -339,8 +335,8 @@ def add_annotation_polyline_to_image(
 
     annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param image_name: image name
     :type image: str
     :param polyline: [x1,y1,x2,y2,...] list of coordinates
@@ -372,8 +368,8 @@ def add_annotation_point_to_image(
 
     annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param image_name: image name
     :type image: str
     :param point: [x,y] list of coordinates
@@ -405,8 +401,8 @@ def add_annotation_ellipse_to_image(
 
     annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param image_name: image name
     :type image: str
     :param ellipse: [center_x, center_y, r_x, r_y, angle] list of coordinates and angle
@@ -439,8 +435,8 @@ def add_annotation_template_to_image(
 
     annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param image_name: image name
     :type image: str
     :param template_points: [x1,y1,x2,y2,...] list of coordinates
@@ -478,8 +474,8 @@ def add_annotation_cuboid_to_image(
 
     annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param image_name: image name
     :type image: str
     :param cuboid: [x_front_tl,y_front_tl,x_front_br,y_front_br,
@@ -513,8 +509,8 @@ def download_image(
 ):
     """Downloads the image (and annotation if not None) to local_dir_path
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param image_name: image name
     :type image: str
     :param local_dir_path: where to download the image
@@ -539,9 +535,10 @@ def download_image(
             0, "Image download variant should be either original or lores"
         )
 
-    if not isinstance(project, dict):
-        project = get_project_metadata_bare(project)
-    img = get_image_bytes(project, image_name, variant=variant)
+    project, project_folder = get_project_and_folder_metadata(project)
+    img = get_image_bytes(
+        (project, project_folder), image_name, variant=variant
+    )
     filepath_save = image_name
     if variant == "lores":
         filepath_save += "___lores.jpg"
@@ -552,7 +549,7 @@ def download_image(
     fuse_path = None
     if include_annotations:
         annotations_filepaths = download_image_annotations(
-            project, image_name, local_dir_path
+            (project, project_folder), image_name, local_dir_path
         )
         if annotations_filepaths is not None and (
             include_fuse or include_overlay
@@ -572,8 +569,8 @@ def download_image(
 def delete_image(project, image_name):
     """Deletes image
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param image_name: image name
     :type image: str
     """
@@ -595,8 +592,8 @@ def get_image_bytes(project, image_name, variant='original'):
     """Returns an io.BytesIO() object of the image. Suitable for creating
     PIL.Image out of it.
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param image_name: image name
     :type image: str
     :param variant: which resolution to get, can be 'original' or 'lores'
@@ -643,8 +640,8 @@ def get_image_bytes(project, image_name, variant='original'):
 def get_image_preannotations(project, image_name):
     """Get pre-annotations of the image. Only works for "vector" projects.
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param image_name: image name
     :type image: str
 
@@ -661,8 +658,8 @@ def get_image_preannotations(project, image_name):
 def get_image_annotations(project, image_name):
     """Get annotations of the image.
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param image_name: image name
     :type image: str
 
@@ -676,18 +673,16 @@ def get_image_annotations(project, image_name):
     return _get_image_pre_or_annotations(project, image_name, "")
 
 
-def _get_image_pre_or_annotations(project, image_name, pre, project_type=None):
-    image = get_image_metadata(project, image_name)
-    team_id, project_id, image_id, folder_id = image["team_id"], image[
+def _get_image_pre_or_annotations(project, image_name, pre):
+    project, project_folder = get_project_and_folder_metadata(project)
+    image = get_image_metadata((project, project_folder), image_name, True)
+    team_id, project_id, image_id, project_folder_id = image["team_id"], image[
         "project_id"], image["id"], image['folder_id']
-    if project_type is None:
-        if not isinstance(project, dict):
-            project = get_project_metadata_bare(project)
-        project_type = project["type"]
+    project_type = project["type"]
     params = {
         'team_id': team_id,
         'project_id': project_id,
-        'folder_id': folder_id
+        'folder_id': project_folder_id
     }
     response = _api.send_request(
         req_type='GET',
@@ -754,6 +749,8 @@ def _get_image_pre_or_annotations(project, image_name, pre, project_type=None):
                     f"{pre}annotation_mask_filename": None
                 }
             )
+
+    fill_in_missing(result[f"{pre}annotation_json"])
     return result
 
 
@@ -761,8 +758,8 @@ def download_image_annotations(project, image_name, local_dir_path):
     """Downloads annotations of the image (JSON and mask if pixel type project)
     to local_dir_path.
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param image_name: image name
     :type image: str
     :param local_dir_path: local directory path to download to
@@ -779,15 +776,14 @@ def download_image_annotations(project, image_name, local_dir_path):
 def _download_image_pre_or_annotations(
     project, image_name, local_dir_path, pre
 ):
-    if not isinstance(project, dict):
-        project = get_project_metadata_bare(project)
+    project, project_folder = get_project_and_folder_metadata(project)
 
     annotation = _get_image_pre_or_annotations(
-        project, image_name, pre, project["type"]
+        (project, project_folder), image_name, pre
     )
 
     if annotation[f"{pre}annotation_json_filename"] is None:
-        image = get_image_metadata(project, image_name)
+        image = get_image_metadata((project, project_folder), image_name)
         logger.warning(
             "No %sannotation found for image %s.", pre, image["name"]
         )
@@ -818,8 +814,8 @@ def download_image_preannotations(project, image_name, local_dir_path):
     """Downloads pre-annotations of the image to local_dir_path.
     Only works for "vector" projects.
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param image_name: image name
     :type image: str
     :param local_dir_path: local directory path to download to
@@ -839,8 +835,8 @@ def upload_image_annotations(
     """Upload annotations from JSON (also mask for pixel annotations)
     to the image.
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param image_name: image name
     :type image: str
     :param annotation_json: annotations in SuperAnnotate format JSON dict or path to JSON file
@@ -858,9 +854,8 @@ def upload_image_annotations(
         if verbose:
             logger.info("Uploading annotations from %s.", annotation_json)
         annotation_json = json.load(open(annotation_json))
-    if not isinstance(project, dict):
-        project = get_project_metadata_bare(project)
-    image = get_image_metadata(project, image_name)
+    project, project_folder = get_project_and_folder_metadata(project)
+    image = get_image_metadata((project, project_folder), image_name)
     team_id, project_id, image_id, folder_id, image_name = image[
         "team_id"], image["project_id"], image["id"], image['folder_id'], image[
             'name']

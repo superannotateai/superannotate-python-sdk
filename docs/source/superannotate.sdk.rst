@@ -30,6 +30,10 @@ ________
 .. _ref_get_project_metadata:
 .. autofunction:: superannotate.get_project_metadata
 .. autofunction:: superannotate.get_project_image_count
+.. autofunction:: superannotate.get_project_and_folder_metadata
+.. autofunction:: superannotate.create_folder
+.. autofunction:: superannotate.delete_folders
+.. autofunction:: superannotate.rename_folder
 .. autofunction:: superannotate.upload_images_to_project
 .. autofunction:: superannotate.upload_images_from_public_urls_to_project
 .. autofunction:: superannotate.upload_images_from_google_cloud_to_project
@@ -73,16 +77,20 @@ ______
 .. autofunction:: superannotate.get_image_bytes
 .. autofunction:: superannotate.download_image
 .. autofunction:: superannotate.set_image_annotation_status
+.. autofunction:: superannotate.set_images_annotation_statuses
 .. autofunction:: superannotate.get_image_annotations
 .. autofunction:: superannotate.get_image_preannotations
 .. autofunction:: superannotate.download_image_annotations
 .. autofunction:: superannotate.download_image_preannotations
 .. autofunction:: superannotate.upload_image_annotations
 .. autofunction:: superannotate.copy_image
+.. autofunction:: superannotate.copy_images
 .. autofunction:: superannotate.move_image
+.. autofunction:: superannotate.move_images
 .. autofunction:: superannotate.pin_image
 .. autofunction:: superannotate.assign_images
 .. autofunction:: superannotate.delete_image
+.. autofunction:: superannotate.delete_images
 .. autofunction:: superannotate.add_annotation_bbox_to_image
 .. autofunction:: superannotate.add_annotation_polygon_to_image
 .. autofunction:: superannotate.add_annotation_polyline_to_image

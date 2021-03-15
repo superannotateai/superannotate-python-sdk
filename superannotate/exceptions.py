@@ -25,6 +25,14 @@ class SAImageSizeTooLarge(SABaseException):
         )
 
 
+class SAIncorrectProjectArgument(SABaseException):
+    def __init__(self, project):
+        super().__init__(
+            0,
+            "project should be a str in format project_name/folder_name or a project metadata or a tuple of (project_metadata, folder_metadata)"
+        )
+
+
 class SAExistingProjectNameException(SABaseException):
     pass
 

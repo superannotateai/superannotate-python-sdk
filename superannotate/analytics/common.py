@@ -153,7 +153,8 @@ def aggregate_annotations_as_df(
     include_classes_wo_annotations=False,
     include_comments=False,
     include_tags=False,
-    verbose=True
+    verbose=True,
+    folder_names=None
 ):
     """Aggregate annotations as pandas dataframe from project root.
 
@@ -166,6 +167,8 @@ def aggregate_annotations_as_df(
     :type include_comments: bool
     :param include_tags: enables inclusion of tags info as tag column
     :type include_tags: bool
+    :param folder_names: Aggregate the specified folders from project_root. If None aggregate all folders in the project_root.
+    :type folder_names: (list of str)
 
     :return: DataFrame on annotations with columns: "imageName", "instanceId",
                                                     "className", "attributeGroupName", "attributeName", "type", "error", "locked",
@@ -173,7 +176,7 @@ def aggregate_annotations_as_df(
                                                     "meta" (geometry information as string), "commentResolved", "classColor",
                                                     "groupId", "imageWidth", "imageHeight", "imageStatus", "imagePinned",
                                                     "createdAt", "creatorRole", "creationType", "creatorEmail", "updatedAt",
-                                                    "updatorRole", "updatorEmail", "tag"
+                                                    "updatorRole", "updatorEmail", "tag", "folderName"
     :rtype: pandas DataFrame
     """
 
@@ -208,7 +211,8 @@ def aggregate_annotations_as_df(
         "creatorEmail": [],
         "updatedAt": [],
         "updatorRole": [],
-        "updatorEmail": []
+        "updatorEmail": [],
+        "folderName": []
     }
 
     if include_comments:
@@ -283,19 +287,35 @@ def aggregate_annotations_as_df(
 
     annotations_paths = []
 
-    for path in Path(project_root).glob('*.json'):
-        annotations_paths.append(path)
+    if folder_names is None:
+        project_dir_content = Path(project_root).glob('*')
+        for entry in project_dir_content:
+            if entry.is_file() and entry.suffix == '.json':
+                annotations_paths.append(entry)
+            elif entry.is_dir() and entry.name != "classes":
+                annotations_paths.extend(list(entry.rglob('*.json')))
+    else:
+        for folder_name in folder_names:
+            annotations_paths.extend(
+                list((Path(project_root) / folder_name).rglob('*.json'))
+            )
 
     if not annotations_paths:
         logger.warning(
             "No annotations found in project export root %s", project_root
         )
-    type_postfix = "___objects.json" if glob.glob(
-        "{}/*___objects.json".format(project_root)
-    ) else "___pixel.json"
+    if len(list(Path(project_root).rglob("*___objects.json"))) > 0:
+        type_postfix = "___objects.json"
+        logger.info("Found Vector project")
+    else:
+        type_postfix = "___pixel.json"
+        logger.info("Found Pixel project")
     for annotation_path in annotations_paths:
         annotation_json = json.load(open(annotation_path))
-        image_name = annotation_path.name.split(type_postfix)[0]
+        parts = annotation_path.name.split(type_postfix)
+        if len(parts) != 2:
+            continue
+        image_name = parts[0]
         image_metadata = __get_image_metadata(image_name, annotation_json)
         annotation_instance_id = 0
         if include_comments:
@@ -359,6 +379,9 @@ def aggregate_annotations_as_df(
             annotation_point_labels = annotation.get("pointLabels")
             attributes = annotation.get("attributes")
             user_metadata = __get_user_metadata(annotation)
+            folder_name = None
+            if annotation_path.parent != Path(project_root):
+                folder_name = annotation_path.parent.name
             num_added = 0
             if not attributes:
                 annotation_dict = {
@@ -375,6 +398,7 @@ def aggregate_annotations_as_df(
                     "pointLabels": annotation_point_labels,
                     "classColor": annotation_class_color,
                     "groupId": annotation_group_id,
+                    "folderName": folder_name,
                 }
                 annotation_dict.update(user_metadata)
                 annotation_dict.update(image_metadata)
@@ -414,6 +438,7 @@ def aggregate_annotations_as_df(
                         "pointLabels": annotation_point_labels,
                         "classColor": annotation_class_color,
                         "groupId": annotation_group_id,
+                        "folderName": folder_name,
                     }
                     annotation_dict.update(user_metadata)
                     annotation_dict.update(image_metadata)

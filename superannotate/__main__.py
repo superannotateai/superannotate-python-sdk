@@ -2,11 +2,12 @@ import argparse
 import json
 import logging
 import sys
-from pathlib import Path
 import tempfile
+from pathlib import Path
 
 import superannotate as sa
 
+from . import common
 from .exceptions import SABaseException
 
 logger = logging.getLogger("superannotate-python-sdk")
@@ -47,7 +48,7 @@ def ask_token():
 
 
 def main():
-    available_commands = "Available commands to superannotate CLI are: init version create-project upload-images upload-videos upload-preannotations upload-annotations export-project"
+    available_commands = "Available commands to superannotate CLI are: init version create-project create-folder upload-images upload-videos upload-preannotations upload-annotations export-project"
     if len(sys.argv) == 1:
         raise SABaseException(
             0, "No command given to superannotate CLI. " + available_commands
@@ -57,6 +58,8 @@ def main():
 
     if command == "create-project":
         create_project(command, further_args)
+    elif command == "create-folder":
+        create_folder(command, further_args)
     elif command == "upload-images":
         image_upload(command, further_args)
     elif command == "upload-videos":
@@ -110,6 +113,9 @@ def preannotations_upload(command_name, args):
     )
 
     args = parser.parse_args(args)
+    project_metadata, folder_metadata = sa.get_project_and_folder_metadata(
+        args.project
+    )
 
     if args.format != "SuperAnnotate":
         if args.format != "COCO":
@@ -126,7 +132,7 @@ def preannotations_upload(command_name, args):
             )
 
         logger.info("Annotations in format %s.", args.format)
-        project_type = sa.get_project_metadata(args.project)["type"]
+        project_type = project_metadata["type"]
 
         tempdir = tempfile.TemporaryDirectory()
         tempdir_path = Path(tempdir.name)
@@ -137,17 +143,17 @@ def preannotations_upload(command_name, args):
         args.folder = tempdir_path
 
     sa.create_annotation_classes_from_classes_json(
-        args.project,
+        project_metadata,
         Path(args.folder) / "classes" / "classes.json"
     )
 
     if "pre" not in command_name:
         sa.upload_annotations_from_folder_to_project(
-            project=args.project, folder_path=args.folder
+            (project_metadata, folder_metadata), folder_path=args.folder
         )
     else:
         sa.upload_preannotations_from_folder_to_project(
-            project=args.project, folder_path=args.folder
+            (project_metadata, folder_metadata), folder_path=args.folder
         )
 
 
@@ -163,6 +169,17 @@ def create_project(command_name, args):
     args = parser.parse_args(args)
 
     sa.create_project(args.name, args.description, args.type)
+
+
+def create_folder(command_name, args):
+    parser = argparse.ArgumentParser(prog=_CLI_COMMAND + " " + command_name)
+    parser.add_argument(
+        '--project', required=True, help='Project in which to create folder'
+    )
+    parser.add_argument('--name', required=True, help='Folder name to create')
+    args = parser.parse_args(args)
+
+    sa.create_folder(args.project, args.name)
 
 
 def video_upload(command_name, args):
@@ -182,7 +199,7 @@ def video_upload(command_name, args):
     parser.add_argument(
         '--extensions',
         required=False,
-        default=None,
+        default=common.DEFAULT_VIDEO_EXTENSIONS,
         type=_list_str,
         help=
         'List of video extensions to include. Default is mp4,avi,mov,webm,flv,mpg,ogg'
@@ -248,7 +265,7 @@ def image_upload(command_name, args):
     )
     parser.add_argument(
         '--extensions',
-        default=None,
+        default=common.DEFAULT_IMAGE_EXTENSIONS,
         type=_list_str,
         help=
         'List of image extensions to include. Default is jpg,jpeg,png,tif,tiff,webp,bmp'
@@ -300,8 +317,20 @@ def export_project(command_name, args):
     )
     args = parser.parse_args(args)
 
+    parts = args.project.split('/')
+    if len(parts) == 1:
+        project, project_folder = parts[0], None
+    elif len(parts) == 2:
+        project, project_folder = parts
+    else:
+        raise SABaseException(
+            0, "Project should be in format <project>[/<folder>]"
+        )
     export = sa.prepare_export(
-        args.project, args.annotation_statuses, args.include_fuse
+        project,
+        None if project_folder is None else [project_folder],
+        annotation_statuses=args.annotation_statuses,
+        include_fuse=args.include_fuse
     )
     sa.download_export(
         args.project, export, args.folder, not args.disable_extract_zip_contents

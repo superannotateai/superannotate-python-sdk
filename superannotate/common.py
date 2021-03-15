@@ -12,6 +12,13 @@ from tqdm import tqdm
 
 logger = logging.getLogger("superannotate-python-sdk")
 
+DEFAULT_IMAGE_EXTENSIONS = ("jpg", "jpeg", "png", "tif", "tiff", "webp", "bmp")
+DEFAULT_FILE_EXCLUDE_PATTERNS = ("___save.png", "___fuse.png")
+
+DEFAULT_VIDEO_EXTENSIONS = ("mp4", "avi", "mov", "webm", "flv", "mpg", "ogg")
+
+SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES = set('/\\:*?"<>|')
+
 _PROJECT_TYPES = {"Vector": 1, "Pixel": 2}
 
 _ANNOTATION_STATUSES = {

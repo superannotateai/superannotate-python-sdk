@@ -3,7 +3,6 @@ import time
 from pathlib import Path
 
 import pytest
-
 import superannotate as sa
 
 PROJECT_NAME = "test stress upload"
@@ -13,6 +12,7 @@ PROJECT_NAME = "test stress upload"
     "SA_STRESS_TESTS" not in os.environ,
     reason="Requires env variable to be set"
 )
+@pytest.mark.timeout(3 * 3600)
 def test_upload_stress(tmpdir):
     tmpdir = Path(tmpdir)
 

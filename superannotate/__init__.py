@@ -1,6 +1,4 @@
-import json
 import logging
-from pathlib import Path
 
 import packaging.version
 import requests
@@ -54,8 +52,14 @@ from .db.images import (
     get_image_metadata, get_image_preannotations, search_images,
     set_image_annotation_status, upload_image_annotations
 )
+from .db.project_api import (
+    create_folder, delete_folders, get_folder_metadata,
+    get_project_and_folder_metadata, rename_folder, search_folders,
+    set_images_annotation_statuses
+)
 from .db.project_images import (
-    assign_images, copy_image, move_image, pin_image, upload_image_to_project
+    assign_images, copy_image, copy_images, delete_images, move_image,
+    move_images, pin_image, upload_image_to_project
 )
 from .db.project_metadata import get_project_metadata
 from .db.projects import (
@@ -86,15 +90,14 @@ from .exceptions import (
     SANonExistingProjectNameException
 )
 from .input_converters.conversion import (
-    coco_split_dataset, convert_project_type, export_annotation,
-    import_annotation, convert_json_version
+    coco_split_dataset, convert_json_version, convert_project_type,
+    export_annotation, import_annotation
 )
 from .ml.ml_funcs import (
     delete_model, download_model, plot_model_metrics, run_prediction,
     run_segmentation, run_training, stop_model_training
 )
 from .ml.ml_models import search_models
-
 from .old_to_new_format_convertor import update_json_format
 from .version import __version__
 
