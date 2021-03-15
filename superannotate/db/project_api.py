@@ -163,9 +163,12 @@ def create_folder(project, folder_name):
     if not isinstance(project, dict):
         project = get_project_metadata_bare(project)
     params = {"team_id": project["team_id"], "project_id": project["id"]}
-    special_characters = set('/\\:*?"<>|')
     name_changed = False
-    if len(set(folder_name).intersection(special_characters)) > 0:
+    if len(
+        set(folder_name).intersection(
+            common.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
+        )
+    ) > 0:
         logger.warning(
             "New folder name has special characters. Special characters will be replaced by underscores."
         )

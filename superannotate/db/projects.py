@@ -69,6 +69,14 @@ def create_project(project_name, project_description, project_type):
             " already exists. Please use unique names for projects to use with SDK."
         )
     project_type = common.project_type_str_to_int(project_type)
+    if len(
+        set(project_name).intersection(
+            common.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
+        )
+    ) > 0:
+        logger.warning(
+            "New project name has special characters. Special characters will be replaced by underscores."
+        )
     data = {
         "team_id": str(_api.team_id),
         "name": project_name,
