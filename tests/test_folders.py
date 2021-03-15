@@ -493,3 +493,22 @@ def test_folder_image_annotation_status(tmpdir):
     for image in ["example_image_3.jpg", "example_image_3.jpg"]:
         metadata = sa.get_image_metadata(project, image)
         assert metadata["annotation_status"] == "InProgress"
+
+
+def test_folder_misnamed(tmpdir):
+    PROJECT_NAME = "test folder misnamed"
+    tmpdir = Path(tmpdir)
+
+    projects_found = sa.search_projects(PROJECT_NAME, return_metadata=True)
+    for pr in projects_found:
+        sa.delete_project(pr)
+
+    project = sa.create_project(PROJECT_NAME, 'test', 'Vector')
+    sa.create_folder(project, "folder1")
+    assert "folder1" in sa.search_folders(project)
+
+    sa.create_folder(project, "folder1")
+    assert "folder1 (1)" in sa.search_folders(project)
+
+    sa.create_folder(project, "folder2\\")
+    assert "folder2_" in sa.search_folders(project)

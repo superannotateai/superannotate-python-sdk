@@ -163,6 +163,14 @@ def create_folder(project, folder_name):
     if not isinstance(project, dict):
         project = get_project_metadata_bare(project)
     params = {"team_id": project["team_id"], "project_id": project["id"]}
+    special_characters = set('/\\:*?"<>|')
+    name_changed = False
+    if len(set(folder_name).intersection(special_characters)) > 0:
+        logger.warning(
+            "New folder name has special characters. Special characters will be replaced by underscores."
+        )
+        name_changed = True
+
     data = {"name": folder_name}
     response = _api.send_request(
         req_type='POST', path='/folder', params=params, json_req=data
@@ -172,7 +180,8 @@ def create_folder(project, folder_name):
             response.status_code, "Couldn't create project " + response.text
         )
     res = response.json()
-    if res["name"] != folder_name:
+
+    if res["name"] != folder_name and not name_changed:
         logger.warning(
             "Created folder has name %s, since folder with name %s already existed.",
             res["name"], folder_name
