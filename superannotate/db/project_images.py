@@ -34,8 +34,8 @@ def upload_image_to_project(
     """Uploads image (io.BytesIO() or filepath to image) to project.
     Sets status of the uploaded image to set_status if it is not None.
 
-    :param project: project name or metadata of the project to upload image to
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param img: image to upload
     :type img: io.BytesIO() or Pathlike (str or Path)
     :param image_name: image name to set on platform. If None and img is filepath,
@@ -230,10 +230,10 @@ def copy_images(
 def delete_images(project, image_names):
     """Delete images in project.
 
-    :param project: project name or metadata of the project to be deleted
-    :type project: str or dict
-    :param folder_names: to be deleted folders' names
-    :type folder_names: str or list of strs
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param image_names: to be deleted images' names. If None, all the images will be deleted
+    :type image_names: list of strs
     """
     if image_names is None:
         images = search_images(project, return_metadata=True)
@@ -435,8 +435,8 @@ def move_image(
 def pin_image(project, image_name, pin=True):
     """Pins (or unpins) image
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param image_name: image name
     :type image: str
     :param pin: sets to pin if True, else unpins image
@@ -467,8 +467,8 @@ def assign_images(project, image_names, user):
     be deduced from the user's role in the project. With SDK, the user can be
     assigned to a role in the project with the share_project function.
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param image_names: list of image names to assign
     :type image_names: list of str
     :param user: user email

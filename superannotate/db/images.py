@@ -40,8 +40,8 @@ def search_images(
 ):
     """Search images by name_prefix (case-insensitive) and annotation status
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param image_name_prefix: image name prefix for search
     :type image_name_prefix: str
     :param annotation_status: if not None, annotation statuses of images to filter,
@@ -119,8 +119,8 @@ def search_images(
 def get_image_metadata(project, image_names, return_dict_on_single_output=True):
     """Returns image metadata
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param image_name: image name
     :type image: str
 
@@ -186,8 +186,8 @@ def get_image_metadata(project, image_names, return_dict_on_single_output=True):
 def set_image_annotation_status(project, image_name, annotation_status):
     """Sets the image annotation status
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param image_name: image name
     :type image: str
     :param annotation_status: annotation status to set,
@@ -229,8 +229,8 @@ def add_annotation_comment_to_image(
 ):
     """Add a comment to SuperAnnotate format annotation JSON
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param image_name: image name
     :type image: str
     :param comment_text: comment text
@@ -265,8 +265,8 @@ def add_annotation_bbox_to_image(
 
     annotation_class_attributes has the form [ {"name" : "<attribute_value>" }, "groupName" : "<attribute_group>"} ], ... ]
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param image_name: image name
     :type image: str
     :param bbox: 4 element list of top-left x,y and bottom-right x, y coordinates
@@ -301,8 +301,8 @@ def add_annotation_polygon_to_image(
 
     annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param image_name: image name
     :type image: str
     :param polygon: [x1,y1,x2,y2,...] list of coordinates
@@ -335,8 +335,8 @@ def add_annotation_polyline_to_image(
 
     annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param image_name: image name
     :type image: str
     :param polyline: [x1,y1,x2,y2,...] list of coordinates
@@ -368,8 +368,8 @@ def add_annotation_point_to_image(
 
     annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param image_name: image name
     :type image: str
     :param point: [x,y] list of coordinates
@@ -401,8 +401,8 @@ def add_annotation_ellipse_to_image(
 
     annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param image_name: image name
     :type image: str
     :param ellipse: [center_x, center_y, r_x, r_y, angle] list of coordinates and angle
@@ -435,8 +435,8 @@ def add_annotation_template_to_image(
 
     annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param image_name: image name
     :type image: str
     :param template_points: [x1,y1,x2,y2,...] list of coordinates
@@ -474,8 +474,8 @@ def add_annotation_cuboid_to_image(
 
     annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param image_name: image name
     :type image: str
     :param cuboid: [x_front_tl,y_front_tl,x_front_br,y_front_br,
@@ -509,8 +509,8 @@ def download_image(
 ):
     """Downloads the image (and annotation if not None) to local_dir_path
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param image_name: image name
     :type image: str
     :param local_dir_path: where to download the image
@@ -569,8 +569,8 @@ def download_image(
 def delete_image(project, image_name):
     """Deletes image
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param image_name: image name
     :type image: str
     """
@@ -592,8 +592,8 @@ def get_image_bytes(project, image_name, variant='original'):
     """Returns an io.BytesIO() object of the image. Suitable for creating
     PIL.Image out of it.
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param image_name: image name
     :type image: str
     :param variant: which resolution to get, can be 'original' or 'lores'
@@ -640,8 +640,8 @@ def get_image_bytes(project, image_name, variant='original'):
 def get_image_preannotations(project, image_name):
     """Get pre-annotations of the image. Only works for "vector" projects.
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param image_name: image name
     :type image: str
 
@@ -658,8 +658,8 @@ def get_image_preannotations(project, image_name):
 def get_image_annotations(project, image_name):
     """Get annotations of the image.
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param image_name: image name
     :type image: str
 
@@ -758,8 +758,8 @@ def download_image_annotations(project, image_name, local_dir_path):
     """Downloads annotations of the image (JSON and mask if pixel type project)
     to local_dir_path.
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param image_name: image name
     :type image: str
     :param local_dir_path: local directory path to download to
@@ -814,8 +814,8 @@ def download_image_preannotations(project, image_name, local_dir_path):
     """Downloads pre-annotations of the image to local_dir_path.
     Only works for "vector" projects.
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param image_name: image name
     :type image: str
     :param local_dir_path: local directory path to download to
@@ -835,8 +835,8 @@ def upload_image_annotations(
     """Upload annotations from JSON (also mask for pixel annotations)
     to the image.
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param image_name: image name
     :type image: str
     :param annotation_json: annotations in SuperAnnotate format JSON dict or path to JSON file

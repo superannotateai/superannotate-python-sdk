@@ -152,8 +152,8 @@ def search_folders(project, folder_name=None, return_metadata=False):
 def create_folder(project, folder_name):
     """Create a new folder in the project.
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name
+    :type project: str
     :param folder_name: the new folder's name
     :type folder_name: str
 
@@ -184,13 +184,11 @@ def create_folder(project, folder_name):
 def delete_folders(project, folder_names):
     """Delete folder in project.
 
-    :param project: project name or metadata of the project to be deleted
-    :type project: str or dict
+    :param project: project name
+    :type project: str
     :param folder_names: to be deleted folders' names
     :type folder_names: str or list of strs
     """
-    if isinstance(folder_names, str):
-        folder_names = [folder_names]
     if not isinstance(project, dict):
         project = get_project_metadata_bare(project)
     all_folders_metadata = search_folders(project, return_metadata=True)
@@ -218,8 +216,8 @@ def delete_folders(project, folder_names):
 def rename_folder(project, new_folder_name):
     """Renames folder in project.
 
-    :param project: project name or metadata of the project to be deleted
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param new_folder_name: folder's new name
     :type new_folder_name: str
     """

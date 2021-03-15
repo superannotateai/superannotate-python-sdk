@@ -20,8 +20,8 @@ _api = API.get_instance()
 def create_annotation_class(project, name, color, attribute_groups=None):
     """Create annotation class in project
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name
+    :type project: str
     :param name: name for the class
     :type name: str
     :param color: RGB hex color value, e.g., "#FFFFAA"
@@ -82,8 +82,8 @@ def create_annotation_class(project, name, color, attribute_groups=None):
 def delete_annotation_class(project, annotation_class):
     """Deletes annotation class from project
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name
+    :type project: str
     :param project: annotation class name or  metadata
     :type project: str or dict
     """
@@ -119,8 +119,8 @@ def create_annotation_classes_from_classes_json(
     """Creates annotation classes in project from a SuperAnnotate format
     annotation classes.json.
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name
+    :type project: str
     :param classes_json: JSON itself or path to the JSON file
     :type classes_json: list or Pathlike (str or Path)
     :param from_s3_bucket: AWS S3 bucket to use. If None then classes_json is in local filesystem
@@ -203,8 +203,8 @@ def create_annotation_classes_from_classes_json(
 def search_annotation_classes(project, name_prefix=None):
     """Searches annotation classes by name_prefix (case-insensitive)
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name
+    :type project: str
     :param name_prefix: name prefix for search. If None all annotation classes
      will be returned
     :type name_prefix: str
@@ -242,8 +242,8 @@ def search_annotation_classes(project, name_prefix=None):
 def get_annotation_class_metadata(project, annotation_class_name):
     """Returns annotation class metadata
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name
+    :type project: str
     :param annotation_class_name: annotation class name
     :type annotation_class_name: str
 
@@ -275,8 +275,8 @@ def get_annotation_class_metadata(project, annotation_class_name):
 def download_annotation_classes_json(project, folder):
     """Downloads project classes.json to folder
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name
+    :type project: str
     :param folder: folder to download to
     :type folder: Pathlike (str or Path)
 

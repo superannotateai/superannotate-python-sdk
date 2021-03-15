@@ -123,8 +123,8 @@ def create_project_from_metadata(project_metadata):
 def delete_project(project):
     """Deletes the project
 
-    :param project: project name or metadata of the project to be deleted
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     """
     if not isinstance(project, dict):
         project = get_project_metadata_bare(project)
@@ -143,8 +143,8 @@ def delete_project(project):
 def rename_project(project, new_name):
     """Renames the project
 
-    :param project: project name or metadata of the project to be deleted
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param new_name: project's new name
     :type new_name: str
     """
@@ -180,8 +180,8 @@ def rename_project(project, new_name):
 def get_project_image_count(project):
     """Returns number of images in the project.
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
 
     :return: number of images in the project
     :rtype: int
@@ -201,8 +201,8 @@ def upload_video_to_project(
     """Uploads image frames from video to platform. Uploaded images will have
     names "<video_name>_<frame_no>.jpg".
 
-    :param project: project name or metadata of the project to upload video frames to
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param video_path: video to upload
     :type video_path: Pathlike (str or Path)
     :param target_fps: how many frames per second need to extract from the video (approximate).
@@ -348,8 +348,8 @@ def upload_videos_from_folder_to_project(
     """Uploads image frames from all videos with given extensions from folder_path to the project.
     Sets status of all the uploaded images to set_status if it is not None.
 
-    :param project: project name or metadata of the project to upload videos to
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param folder_path: from which folder to upload the videos
     :type folder_path: Pathlike (str or Path)
     :param extensions: tuple or list of filename extensions to include from folder 
@@ -439,8 +439,8 @@ def upload_images_from_folder_to_project(
     and its path will be appended to the third member of return value of this
     function.
 
-    :param project: project name or metadata of the project to upload images_to
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param folder_path: from which folder to upload the images
     :type folder_path: Pathlike (str or Path)
     :param extensions: tuple or list of filename extensions to include from folder
@@ -755,8 +755,8 @@ def upload_images_to_project(
     and its path will be appended to the third member of return value of this
     function.
 
-    :param project: project name or metadata of the project to upload images to
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param img_paths: list of Pathlike (str or Path) objects to upload
     :type img_paths: list
     :param annotation_status: value to set the annotation statuses of the uploaded images NotStarted InProgress QualityCheck Returned Completed Skipped
@@ -891,8 +891,8 @@ def upload_images_from_public_urls_to_project(
     """Uploads all images given in the list of URL strings in img_urls to the project.
     Sets status of all the uploaded images to annotation_status if it is not None.
 
-    :param project: project name or metadata of the project to upload images to
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param img_urls: list of str objects to upload
     :type img_urls: list
     :param img_names: list of str names for each urls in img_url list
@@ -995,8 +995,8 @@ def upload_images_from_google_cloud_to_project(
     """Uploads all images present in folder_path at bucket_name in google_project to the project.
     Sets status of all the uploaded images to set_status if it is not None.
 
-    :param project: project name or metadata of the project to upload images to
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param google_project: the project name on google cloud, where the bucket resides
     :type google_project: str
     :param bucket_name: the name of the bucket where the images are stored
@@ -1073,8 +1073,8 @@ def upload_images_from_azure_blob_to_project(
     """Uploads all images present in folder_path at container_name Azure blob storage to the project.
     Sets status of all the uploaded images to set_status if it is not None.
 
-    :param project: project name or metadata of the project to upload images to
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param container_name: container name of the Azure blob storage
     :type container_name: str
     :param folder_path: path of the folder on the bucket where the images are stored
@@ -1285,8 +1285,8 @@ def upload_annotations_from_folder_to_project(
 
     Existing annotations will be overwritten.
 
-    :param project: project name or metadata of the project to upload annotations to
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param from_s3_bucket: AWS S3 bucket to use. If None then folder_path is in local filesystem
     :type from_s3_bucket: str
     :param recursive_subfolders: enable recursive subfolder parsing
@@ -1507,8 +1507,8 @@ def upload_preannotations_from_folder_to_project(
 
     Existing pre-annotations will be overwritten.
 
-    :param project: project name or metadata of the project to upload pre-annotations to
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param folder_path: from which folder to upload the pre-annotations
     :type folder_path: Pathlike (str or Path)
     :param from_s3_bucket: AWS S3 bucket to use. If None then folder_path is in local filesystem
@@ -1527,8 +1527,8 @@ def upload_preannotations_from_folder_to_project(
 def share_project(project, user, user_role):
     """Share project with user.
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name
+    :type project: str
     :param user: user email or metadata of the user to share project with
     :type user: str or dict
     :param user_role: user role to apply, one of Admin , Annotator , QA , Customer , Viewer
@@ -1560,8 +1560,8 @@ def share_project(project, user, user_role):
 def unshare_project(project, user):
     """Unshare (remove) user from project.
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name
+    :type project: str
     :param user: user email or metadata of the user to unshare project
     :type user: str or dict
     """
@@ -1594,8 +1594,8 @@ def upload_images_from_s3_bucket_to_project(
 ):
     """Uploads all images from AWS S3 bucket to the project.
 
-    :param project: project name or metadata of the project to upload images to
-    :type project: str or dict
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
     :param accessKeyId: AWS S3 access key ID
     :type accessKeyId: str
     :param secretAccessKey: AWS S3 secret access key

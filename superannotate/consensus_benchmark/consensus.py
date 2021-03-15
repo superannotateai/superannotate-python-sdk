@@ -23,8 +23,8 @@ def consensus(
 ):
     """Computes consensus score for each instance of given images that are present in at least 2 of the given projects:    
     
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project: project name
+    :type project: str
     :param folder_names: list of folder names in the project for which the scores will be computed
     :type folder_names: list of str
     :param export_root: root export path of the projects
