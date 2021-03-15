@@ -252,8 +252,7 @@ def set_images_annotation_statuses(project, image_names, annotation_status):
         "folder_id": project_folder["id"]
     }
     for start_index in range(0, len(image_names), NUM_TO_SEND):
-        end_index = min(start_index + NUM_TO_SEND, len(image_names))
-        data["image_names"] = image_names[start_index:end_index]
+        data["image_names"] = image_names[start_index:start_index + NUM_TO_SEND]
         response = _api.send_request(
             req_type='PUT',
             path=f'/image/updateAnnotationStatusBulk',
