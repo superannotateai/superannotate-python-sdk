@@ -241,6 +241,16 @@ def rename_folder(project, new_folder_name):
 
 
 def set_images_annotation_statuses(project, image_names, annotation_status):
+    """Sets annotation statuses of images
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param image_names: image names
+    :type image_names: list of str
+    :param annotation_status: annotation status to set,
+           should be one of NotStarted InProgress QualityCheck Returned Completed Skipped
+    :type annotation_status: str
+    """
     NUM_TO_SEND = 500
     project, project_folder = get_project_and_folder_metadata(project)
     params = {"team_id": project["team_id"], "project_id": project["id"]}

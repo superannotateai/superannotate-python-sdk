@@ -189,7 +189,7 @@ def set_image_annotation_status(project, image_name, annotation_status):
     :param project: project name or folder path (e.g., "project1/folder1")
     :type project: str
     :param image_name: image name
-    :type image: str
+    :type image_name: str
     :param annotation_status: annotation status to set,
            should be one of NotStarted InProgress QualityCheck Returned Completed Skipped
     :type annotation_status: str
