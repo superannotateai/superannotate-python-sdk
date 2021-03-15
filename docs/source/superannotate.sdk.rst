@@ -84,7 +84,9 @@ ______
 .. autofunction:: superannotate.download_image_preannotations
 .. autofunction:: superannotate.upload_image_annotations
 .. autofunction:: superannotate.copy_image
+.. autofunction:: superannotate.copy_images
 .. autofunction:: superannotate.move_image
+.. autofunction:: superannotate.move_images
 .. autofunction:: superannotate.pin_image
 .. autofunction:: superannotate.assign_images
 .. autofunction:: superannotate.delete_image

@@ -203,6 +203,21 @@ def copy_images(
     copy_annotation_status=True,
     copy_pin=True
 ):
+    """Copy images in bulk between folders in a project 
+
+    :param source_project: project name or folder path (e.g., "project1/folder1")
+    :type source_project: str
+    :param destination_project: project name or folder path (e.g., "project1/folder2")
+    :type destination_project: str
+    :param image_names: image names. If None, all images from source project will be copied
+    :type image: list of str
+    :param include_annotations: enables annotations copy
+    :type include_annotations: bool
+    :param copy_annotation_status: enables annotations status copy
+    :type copy_annotation_status: bool
+    :param copy_pin: enables image pin status copy
+    :type copy_pin: bool
+    """
     source_project, source_project_folder = get_project_and_folder_metadata(
         source_project
     )
@@ -270,6 +285,21 @@ def move_images(
     copy_annotation_status=True,
     copy_pin=True,
 ):
+    """Move images in bulk between folders in a project 
+
+    :param source_project: project name or folder path (e.g., "project1/folder1")
+    :type source_project: str
+    :param destination_project: project name or folder path (e.g., "project1/folder2")
+    :type destination_project: str
+    :param image_names: image names. If None, all images from source project will be moved
+    :type image: list of str
+    :param include_annotations: enables annotations copy
+    :type include_annotations: bool
+    :param copy_annotation_status: enables annotations status copy
+    :type copy_annotation_status: bool
+    :param copy_pin: enables image pin status copy
+    :type copy_pin: bool
+    """
     source_project, source_project_folder = get_project_and_folder_metadata(
         source_project
     )
