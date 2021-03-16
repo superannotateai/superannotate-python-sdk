@@ -98,6 +98,19 @@ To create a new "Vector" project with name "Example Project 1" and description
 
     sa.create_project(project, "test", "Vector")
 
+Creating a folder in a project
+______________________________
+
+To create a new folder "folder1" in the project "Example Project 1":
+
+.. code-block:: python
+
+    sa.create_folder(project, "folder1")
+
+After that point almost all SDK functions that use project name as argument can
+point to that folder with slash after the project name, e.g., in this case
+"Example Project 1/folder1".
+
 Uploading images to project
 ____________________________
 
@@ -127,6 +140,13 @@ For full list of available functions on projects, see :ref:`ref_projects`.
 
     CLI command :ref:`upload-images <ref_upload_images>` can also be used for
     image upload.
+
+.. note::
+
+   To upload images to the "folder1" instead of the root of the project: 
+      .. code-block:: python
+
+         sa.upload_images_from_folder_to_project(project + "/folder1", "<local_folder_path>")
 
 Working with annotation classes
 _______________________________________________
