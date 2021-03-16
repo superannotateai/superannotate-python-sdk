@@ -35,7 +35,8 @@ from .annotation_classes import (
 )
 from .images import get_image_metadata, search_images
 from .project_api import (
-    get_project_and_folder_metadata, get_project_metadata_bare
+    get_project_and_folder_metadata, get_project_metadata_bare,
+    get_project_metadata_with_users
 )
 from .users import get_team_contributor_metadata
 
@@ -1962,3 +1963,98 @@ def get_project_default_image_quality_in_editor(project):
             0,
             "Image quality in editor should be 'compressed', 'original' or None for project settings value"
         )
+
+
+def get_project_metadata(
+    project,
+    include_annotation_classes=False,
+    include_settings=False,
+    include_workflow=False,
+    include_contributors=False,
+    include_complete_image_count=False
+):
+    """Returns project metadata
+
+    :param project: project name or project metadata from previous calls
+    :type project: str or dict
+    :param include_annotation_classes: enables project annotation classes output under
+                                       the key "annotation_classes"
+    :type include_annotation_classes: bool
+    :param include_settings: enables project settings output under
+                             the key "settings"
+    :type include_settings: bool
+    :param include_workflow: enables project workflow output under
+                             the key "workflow"
+    :type include_workflow: bool
+    :param include_contributors: enables project contributors output under
+                             the key "contributors"
+    :type include_contributors: bool
+
+    :return: metadata of project
+    :rtype: dict
+    """
+    if not isinstance(project, dict):
+        project = get_project_metadata_bare(
+            project, include_complete_image_count
+        )
+    result = copy.deepcopy(project)
+    if include_annotation_classes:
+        result["annotation_classes"] = search_annotation_classes(project)
+    if include_contributors:
+        result["contributors"] = get_project_metadata_with_users(project
+                                                                )["users"]
+    if include_settings:
+        result["settings"] = get_project_settings(project)
+    if include_workflow:
+        result["workflow"] = get_project_workflow(project)
+    return result
+
+
+def clone_project(
+    project_name,
+    from_project,
+    project_description=None,
+    copy_annotation_classes=True,
+    copy_settings=True,
+    copy_workflow=True,
+    copy_contributors=False
+):
+    """Create a new project in the team using annotation classes and settings from from_project.
+
+    :param project_name: new project's name
+    :type project_name: str
+    :param from_project: the name of the project being used for duplication
+    :type from_project: str
+    :param project_description: the new project's description. If None, from_project's
+                                description will be used
+    :type project_description: str
+    :param copy_annotation_classes: enables copying annotation classes
+    :type copy_annotation_classes: bool
+    :param copy_settings: enables copying project settings
+    :type copy_settings: bool
+    :param copy_workflow: enables copying project workflow
+    :type copy_workflow: bool
+    :param copy_contributors: enables copying project contributors
+    :type copy_contributors: bool
+
+    :return: dict object metadata of the new project
+    :rtype: dict
+    """
+    try:
+        get_project_metadata_bare(project_name)
+    except SANonExistingProjectNameException:
+        pass
+    else:
+        raise SAExistingProjectNameException(
+            0, "Project with name " + project_name +
+            " already exists. Please use unique names for projects to use with SDK."
+        )
+    metadata = get_project_metadata(
+        from_project, copy_annotation_classes, copy_settings, copy_workflow,
+        copy_contributors
+    )
+    metadata["name"] = project_name
+    if project_description is not None:
+        metadata["description"] = project_description
+
+    return create_project_from_metadata(metadata)

@@ -38,7 +38,6 @@ from .db.annotation_classes import (
     delete_annotation_class, download_annotation_classes_json,
     get_annotation_class_metadata, search_annotation_classes
 )
-from .db.clone_project import clone_project
 from .db.exports import (
     download_export, get_export_metadata, get_exports, prepare_export
 )
@@ -61,13 +60,12 @@ from .db.project_images import (
     assign_images, copy_image, copy_images, delete_images, move_image,
     move_images, pin_image, upload_image_to_project
 )
-from .db.project_metadata import get_project_metadata
 from .db.projects import (
-    create_project, create_project_from_metadata, delete_project,
+    clone_project, create_project, create_project_from_metadata, delete_project,
     get_project_default_image_quality_in_editor, get_project_image_count,
-    get_project_settings, get_project_workflow, rename_project,
-    set_project_default_image_quality_in_editor, set_project_settings,
-    set_project_workflow, share_project, unshare_project,
+    get_project_metadata, get_project_settings, get_project_workflow,
+    rename_project, set_project_default_image_quality_in_editor,
+    set_project_settings, set_project_workflow, share_project, unshare_project,
     upload_annotations_from_folder_to_project,
     upload_images_from_azure_blob_to_project,
     upload_images_from_folder_to_project,

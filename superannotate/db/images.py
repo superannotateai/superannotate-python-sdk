@@ -19,7 +19,6 @@ from ..annotation_helpers import (
 )
 from ..api import API
 from ..exceptions import SABaseException
-from ..parameter_decorators import project_metadata
 from .annotation_classes import (
     fill_class_and_attribute_ids, fill_class_and_attribute_names,
     get_annotation_classes_id_to_name, get_annotation_classes_name_to_id,
