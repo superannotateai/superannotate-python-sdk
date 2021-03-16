@@ -31,5 +31,5 @@ pip install yapf
 # for docs
 pip install sphinx sphinx_rtd_theme
 
-# for on PyPI distribution
+# for PyPI distribution
 pip install twine

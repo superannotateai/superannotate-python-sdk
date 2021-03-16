@@ -17,7 +17,7 @@ from ..exceptions import (
     SABaseException, SAExistingExportNameException,
     SANonExistingExportNameException
 )
-from .project_api import get_project_and_folder_metadata, get_project_metadata_bare
+from .project_api import get_project_metadata_bare
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -109,7 +109,7 @@ def prepare_export(
     :param project: project name
     :type project: str
     :param folder_names: names of folders to include in the export. If None, whole project will be exported
-    :type project: list of str
+    :type folder_names: list of str
     :param annotation_statuses: images with which status to include, if None, [ "InProgress", "QualityCheck", "Returned", "Completed"] will be chose
            list elements should be one of NotStarted InProgress QualityCheck Returned Completed Skipped
     :type annotation_statuses: list of strs

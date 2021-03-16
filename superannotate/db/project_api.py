@@ -199,11 +199,14 @@ def delete_folders(project, folder_names):
     :param project: project name
     :type project: str
     :param folder_names: to be deleted folders' names
-    :type folder_names: str or list of strs
+    :type folder_names: list of strs
     """
     if not isinstance(project, dict):
         project = get_project_metadata_bare(project)
     all_folders_metadata = search_folders(project, return_metadata=True)
+    if not isinstance(folder_names, list):
+        raise SABaseException(0, "folder_names should be a list of strings")
+
     folder_ids_to_delete = [
         f["id"] for f in all_folders_metadata if f["name"] in folder_names
     ]
