@@ -1095,12 +1095,11 @@ def set_images_annotation_statuses(project, image_names, annotation_status):
     project, project_folder = get_project_and_folder_metadata(project)
     params = {"team_id": project["team_id"], "project_id": project["id"]}
     annotation_status = common.annotation_status_str_to_int(annotation_status)
-    data = {
-        "annotation_status": annotation_status,
-        "folder_id": project_folder["id"]
-    }
+    data = {"annotation_status": annotation_status}
+    if project_folder is not None:
+        data["folder_id"] = project_folder["id"]
     if image_names is None:
-        image_names = search_images(project)
+        image_names = search_images((project, project_folder))
     for start_index in range(0, len(image_names), NUM_TO_SEND):
         data["image_names"] = image_names[start_index:start_index + NUM_TO_SEND]
         response = _api.send_request(

@@ -144,7 +144,7 @@ def test_delete_folders(tmpdir):
 
     assert len(sa.search_folders(project)) == 3
 
-    sa.delete_folders(project, "folder1")
+    sa.delete_folders(project, ["folder1"])
     assert len(sa.search_folders(project)) == 2
     sa.delete_folders(project, ["folder2", "folder3"])
     assert len(sa.search_folders(project)) == 0
@@ -493,6 +493,12 @@ def test_folder_image_annotation_status(tmpdir):
     for image in ["example_image_3.jpg", "example_image_3.jpg"]:
         metadata = sa.get_image_metadata(project, image)
         assert metadata["annotation_status"] == "InProgress"
+
+    sa.set_images_annotation_statuses(PROJECT_NAME, None, "QualityCheck")
+
+    for image in sa.search_images(PROJECT_NAME):
+        metadata = sa.get_image_metadata(PROJECT_NAME, image)
+        assert metadata["annotation_status"] == "QualityCheck"
 
 
 def test_folder_misnamed(tmpdir):
