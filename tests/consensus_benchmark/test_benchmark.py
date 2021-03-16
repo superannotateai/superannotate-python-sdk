@@ -39,6 +39,7 @@ def test_benchmark():
         )
 
     for annot_type in annot_types:
+        print(project_name)
         res_df = sa.benchmark(
             project_name, gt_folder_name, folder_names, annot_type=annot_type
         )

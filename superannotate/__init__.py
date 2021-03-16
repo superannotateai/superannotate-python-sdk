@@ -50,12 +50,12 @@ from .db.images import (
     create_fuse_image, delete_image, download_image, download_image_annotations,
     download_image_preannotations, get_image_annotations, get_image_bytes,
     get_image_metadata, get_image_preannotations, search_images,
-    set_image_annotation_status, upload_image_annotations
+    set_image_annotation_status, set_images_annotation_statuses,
+    upload_image_annotations
 )
 from .db.project_api import (
     create_folder, delete_folders, get_folder_metadata,
-    get_project_and_folder_metadata, rename_folder, search_folders,
-    set_images_annotation_statuses
+    get_project_and_folder_metadata, rename_folder, search_folders
 )
 from .db.project_images import (
     assign_images, copy_image, copy_images, delete_images, move_image,

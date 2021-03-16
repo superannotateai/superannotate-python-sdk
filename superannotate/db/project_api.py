@@ -253,38 +253,3 @@ def rename_folder(project, new_folder_name):
         "Folder %s renamed to %s in project %s", project_folder["name"],
         new_folder_name, project["name"]
     )
-
-
-def set_images_annotation_statuses(project, image_names, annotation_status):
-    """Sets annotation statuses of images
-
-    :param project: project name or folder path (e.g., "project1/folder1")
-    :type project: str
-    :param image_names: image names
-    :type image_names: list of str
-    :param annotation_status: annotation status to set,
-           should be one of NotStarted InProgress QualityCheck Returned Completed Skipped
-    :type annotation_status: str
-    """
-    NUM_TO_SEND = 500
-    project, project_folder = get_project_and_folder_metadata(project)
-    params = {"team_id": project["team_id"], "project_id": project["id"]}
-    annotation_status = common.annotation_status_str_to_int(annotation_status)
-    data = {
-        "annotation_status": annotation_status,
-        "folder_id": project_folder["id"]
-    }
-    for start_index in range(0, len(image_names), NUM_TO_SEND):
-        data["image_names"] = image_names[start_index:start_index + NUM_TO_SEND]
-        response = _api.send_request(
-            req_type='PUT',
-            path=f'/image/updateAnnotationStatusBulk',
-            params=params,
-            json_req=data
-        )
-        if not response.ok:
-            raise SABaseException(
-                response.status_code,
-                "Couldn't change annotation statuses " + response.text
-            )
-    logger.info("Annotations status changed")
