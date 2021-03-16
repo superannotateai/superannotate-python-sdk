@@ -14,11 +14,33 @@ def test_consensus():
         'attributes', 'folderName', 'score'
     ]
     export_path = test_root / 'consensus_benchmark' / 'consensus_test_data'
+    if len(sa.search_projects(project_name)) != 0:
+        sa.delete_project(project_name)
+
+    sa.create_project(project_name, "test bench", "Vector")
+    for i in range(1, 4):
+        sa.create_folder(project_name, "consensus_" + str(i))
+    sa.create_annotation_classes_from_classes_json(
+        project_name, export_path / 'classes' / 'classes.json'
+    )
+    sa.upload_images_from_folder_to_project(
+        project_name, export_path / "images"
+    )
+    for i in range(1, 4):
+        sa.upload_images_from_folder_to_project(
+            project_name + '/consensus_' + str(i), export_path / "images"
+        )
+    sa.upload_annotations_from_folder_to_project(project_name, export_path)
+    for i in range(1, 4):
+        sa.upload_annotations_from_folder_to_project(
+            project_name + '/consensus_' + str(i),
+            export_path / ('consensus_' + str(i))
+        )
+
     for annot_type in annot_types:
         res_df = sa.consensus(
             project_name,
             folder_names,
-            export_root=export_path,
             annot_type=annot_type
         )
         #test content of projectName column
