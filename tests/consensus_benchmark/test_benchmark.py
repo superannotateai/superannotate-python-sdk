@@ -25,11 +25,13 @@ def test_benchmark():
         project_name, export_path / 'classes' / 'classes.json'
     )
     sa.upload_images_from_folder_to_project(
-        project_name, export_path / "images"
+        project_name, export_path / "images", annotation_status="Completed"
     )
     for i in range(1, 4):
         sa.upload_images_from_folder_to_project(
-            project_name + '/consensus_' + str(i), export_path / "images"
+            project_name + '/consensus_' + str(i),
+            export_path / "images",
+            annotation_status="Completed"
         )
     sa.upload_annotations_from_folder_to_project(project_name, export_path)
     for i in range(1, 4):

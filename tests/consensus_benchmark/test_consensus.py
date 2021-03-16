@@ -24,11 +24,13 @@ def test_consensus():
         project_name, export_path / 'classes' / 'classes.json'
     )
     sa.upload_images_from_folder_to_project(
-        project_name, export_path / "images"
+        project_name, export_path / "images", annotation_status="Completed"
     )
     for i in range(1, 4):
         sa.upload_images_from_folder_to_project(
-            project_name + '/consensus_' + str(i), export_path / "images"
+            project_name + '/consensus_' + str(i),
+            export_path / "images",
+            annotation_status="Completed"
         )
     sa.upload_annotations_from_folder_to_project(project_name, export_path)
     for i in range(1, 4):
@@ -38,11 +40,7 @@ def test_consensus():
         )
 
     for annot_type in annot_types:
-        res_df = sa.consensus(
-            project_name,
-            folder_names,
-            annot_type=annot_type
-        )
+        res_df = sa.consensus(project_name, folder_names, annot_type=annot_type)
         #test content of projectName column
         assert sorted(res_df['folderName'].unique()) == folder_names
 
