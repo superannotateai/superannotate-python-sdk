@@ -108,8 +108,8 @@ To create a new folder "folder1" in the project "Example Project 1":
     sa.create_folder(project, "folder1")
 
 After that point almost all SDK functions that use project name as argument can
-point to that folder with slash after the project name, e.g., in this case
-"Example Project 1/folder1".
+point to that folder with slash after the project name, e.g.,
+"Example Project 1/folder1", in this case.
 
 Uploading images to project
 ____________________________
@@ -144,6 +144,7 @@ For full list of available functions on projects, see :ref:`ref_projects`.
 .. note::
 
    To upload images to the "folder1" instead of the root of the project: 
+   
       .. code-block:: python
 
          sa.upload_images_from_folder_to_project(project + "/folder1", "<local_folder_path>")
