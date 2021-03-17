@@ -17,10 +17,6 @@ PROJECT_PATH_VECTOR = "./tests/sample_project_vector_for_ml_functionality"
 MODEL_NAME = 'Instance segmentation (trained on COCO)'
 
 
-@pytest.mark.skipif(
-    "SA_ML_FUNCTIONALITY" not in os.environ,
-    reason="Requires env variable to be set"
-)
 def test_run_prediction():
 
     upload_project(
@@ -76,10 +72,6 @@ def test_run_prediction():
     assert (len(succeded_imgs) + len(failed_imgs)) == 4
 
 
-@pytest.mark.skipif(
-    "SA_ML_FUNCTIONALITY" not in os.environ,
-    reason="Requires env variable to be set"
-)
 def test_run_segmentation():
 
     model_auto = 'autonomous'
