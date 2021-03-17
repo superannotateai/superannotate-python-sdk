@@ -33,7 +33,7 @@ from .annotation_classes import (
     fill_class_and_attribute_ids, get_annotation_classes_name_to_id,
     search_annotation_classes
 )
-from .images import get_image_metadata, search_images
+from .images import get_image_metadata, search_images, search_images_all_folders
 from .project_api import (
     get_project_and_folder_metadata, get_project_metadata_bare,
     get_project_metadata_with_users
@@ -186,16 +186,21 @@ def rename_project(project, new_name):
     )
 
 
-def get_project_image_count(project):
+def get_project_image_count(project, with_all_subfolders=False):
     """Returns number of images in the project.
 
     :param project: project name or folder path (e.g., "project1/folder1")
     :type project: str
+    :param with_all_subfolders: enables recursive folder counting
+    :type with_all_subfolders: bool
 
     :return: number of images in the project
     :rtype: int
     """
-    return len(search_images(project))
+    if not with_all_subfolders:
+        return len(search_images(project))
+    else:
+        return len(search_images_all_folders(project))
 
 
 def upload_video_to_project(

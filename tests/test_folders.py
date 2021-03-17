@@ -42,6 +42,9 @@ def test_basic_folders(tmpdir):
     images = sa.search_images(project + "/folder1", "example_image_1")
     assert len(images) == 0
 
+    images = sa.search_images_all_folders(project, "example_image_1")
+    assert len(images) == 1
+
     folder = sa.get_folder_metadata(project, "folder1")
     assert isinstance(folder, dict)
     assert folder["name"] == "folder1"
@@ -210,6 +213,9 @@ def test_project_folder_image_count(tmpdir):
     num_images = sa.get_project_image_count(project + "/folder1")
     assert num_images == 4
 
+    num_images = sa.get_project_image_count(project, with_all_subfolders=True)
+    assert num_images == 8
+
 
 def test_delete_images(tmpdir):
     PROJECT_NAME = "test delete folder images"
@@ -318,6 +324,17 @@ def test_move_images(tmpdir):
 
     num_images = sa.get_project_image_count(project)
     assert num_images == 3
+
+    num_images = sa.get_project_image_count(
+        PROJECT_NAME, with_all_subfolders=True
+    )
+    assert num_images == 4
+
+    images = sa.search_images_all_folders(PROJECT_NAME)
+    assert images == [
+        "example_image_1.jpg", "example_image_2.jpg", "example_image_3.jpg",
+        "example_image_4.jpg"
+    ]
 
 
 def test_move_images2(tmpdir):

@@ -24,11 +24,30 @@ from .annotation_classes import (
     get_annotation_classes_id_to_name, get_annotation_classes_name_to_id,
     search_annotation_classes
 )
-from .project_api import get_project_and_folder_metadata
+from .project_api import get_project_and_folder_metadata, get_project_metadata_bare
 
 logger = logging.getLogger("superannotate-python-sdk")
 
 _api = API.get_instance()
+
+
+def _get_project_root_folder_id(project):
+    """Get root folder ID
+    Returns
+    -------
+    int
+        Root folder ID
+    """
+    params = {'team_id': project['team_id']}
+    response = _api.send_request(
+        req_type='GET', path=f'/project/{project["id"]}', params=params
+    )
+    if not response.ok:
+        raise SABaseException(response.status_code, response.text)
+
+    response = response.json()
+
+    return response['folder_id']
 
 
 def search_images(
@@ -63,7 +82,7 @@ def search_images(
     if project_folder is not None:
         project_folder_id = project_folder["id"]
     else:
-        project_folder_id = None
+        project_folder_id = _get_project_root_folder_id(project)
 
     result_list = []
     params = {
@@ -79,7 +98,7 @@ def search_images(
     total_images = 0
     while True:
         response = _api.send_request(
-            req_type='GET', path='/images', params=params
+            req_type='GET', path='/images-folders', params=params
         )
         if not response.ok:
             raise SABaseException(
@@ -101,6 +120,83 @@ def search_images(
             break
         total_got += len(results_images) + len(folders["data"])
         params["offset"] = total_got
+
+    if return_metadata:
+
+        def process_result(x):
+            x["annotation_status"] = common.annotation_status_int_to_str(
+                x["annotation_status"]
+            )
+            return x
+
+        return list(map(process_result, result_list))
+    else:
+        return result_list
+
+
+def search_images_all_folders(
+    project,
+    image_name_prefix=None,
+    annotation_status=None,
+    return_metadata=False
+):
+    """Search images by name_prefix (case-insensitive) and annotation status in 
+    project and all of its folders
+
+    :param project: project name
+    :type project: str
+    :param image_name_prefix: image name prefix for search
+    :type image_name_prefix: str
+    :param annotation_status: if not None, annotation statuses of images to filter,
+                              should be one of NotStarted InProgress QualityCheck Returned Completed Skipped
+    :type annotation_status: str
+
+    :param return_metadata: return metadata of images instead of names
+    :type return_metadata: bool
+
+    :return: metadata of found images or image names
+    :rtype: list of dicts or strs
+    """
+    project = get_project_metadata_bare(project)
+    team_id, project_id = project["team_id"], project["id"]
+    if annotation_status is not None:
+        annotation_status = common.annotation_status_str_to_int(
+            annotation_status
+        )
+
+    project_folder_id = _get_project_root_folder_id(project)
+
+    result_list = []
+    params = {
+        'team_id': team_id,
+        'project_id': project_id,
+        'annotation_status': annotation_status,
+        'offset': 0,
+        'folder_id': project_folder_id
+    }
+    if image_name_prefix is not None:
+        params['name'] = image_name_prefix
+    total_images = 0
+    while True:
+        response = _api.send_request(
+            req_type='GET', path='/images', params=params
+        )
+        if not response.ok:
+            raise SABaseException(
+                response.status_code, "Couldn't search images " + response.text
+            )
+        response = response.json()
+        results_images = response["data"]
+        for r in results_images:
+            if return_metadata:
+                result_list.append(r)
+            else:
+                result_list.append(r["name"])
+
+        total_images += len(results_images)
+        if response["count"] <= total_images:
+            break
+        params["offset"] = total_images
 
     if return_metadata:
 
