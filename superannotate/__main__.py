@@ -62,6 +62,8 @@ def main():
         create_folder(command, further_args)
     elif command == "upload-images":
         image_upload(command, further_args)
+    elif command == "attach-image-urls":
+        attach_image_urls(command, further_args)
     elif command == "upload-videos":
         video_upload(command, further_args)
     elif command in ["upload-preannotations", "upload-annotations"]:
@@ -285,6 +287,31 @@ def image_upload(command_name, args):
         extensions=args.extensions,
         annotation_status=args.set_annotation_status,
         recursive_subfolders=args.recursive
+    )
+
+
+def attach_image_urls(command_name, args):
+    parser = argparse.ArgumentParser(prog=_CLI_COMMAND + " " + command_name)
+    parser.add_argument(
+        '--project', required=True, help='Project name to upload'
+    )
+    parser.add_argument(
+        '--attachments',
+        required=True,
+        help='path to csv file on attachments metadata'
+    )
+    parser.add_argument(
+        '--annotation_status',
+        required=False,
+        default="NotStarted",
+        help=
+        'Set images\' annotation statuses after upload. Default is NotStarted'
+    )
+    args = parser.parse_args(args)
+    sa.attach_image_urls_to_project(
+        project=args.project,
+        attachments=args.attachments,
+        annotation_status=args.annotation_status
     )
 
 
