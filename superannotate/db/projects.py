@@ -1975,8 +1975,8 @@ def get_project_metadata(
 ):
     """Returns project metadata
 
-    :param project: project name or project metadata from previous calls
-    :type project: str or dict
+    :param project: project name
+    :type project: str
     :param include_annotation_classes: enables project annotation classes output under
                                        the key "annotation_classes"
     :type include_annotation_classes: bool

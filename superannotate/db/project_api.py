@@ -66,6 +66,16 @@ def get_project_metadata_with_users(project_metadata):
 
 
 def get_folder_metadata(project, folder_name):
+    """Returns folder metadata
+
+    :param project: project name
+    :type project: str
+    :param folder_name: folder's name
+    :type folder_name: str
+
+    :return: metadata of folder
+    :rtype: dict
+    """
     if not isinstance(project, dict):
         project = get_project_metadata_bare(project)
     team_id, project_id = project["team_id"], project["id"]
@@ -83,6 +93,17 @@ def get_folder_metadata(project, folder_name):
 
 
 def get_project_and_folder_metadata(project):
+    """Returns project and folder metadata tuple. If folder part is empty, 
+    than returned folder part is set to None.
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param folder_name: folder's name
+    :type folder_name: str
+
+    :return: metadata of folder
+    :rtype: dict
+    """
     if isinstance(project, dict):
         project = project
         folder = None
@@ -112,6 +133,18 @@ def get_project_and_folder_metadata(project):
 
 
 def search_folders(project, folder_name=None, return_metadata=False):
+    """Folder name based case-insensitive search for folders in project.
+
+    :param project: project name
+    :type project: str
+    :param folder_name: the new folder's name
+    :type folder_name: str. If  None, all the folders in the project will be returned.
+    :param return_metadata: return metadata of folders instead of names
+    :type return_metadata: bool
+
+    :return: folder names or metadatas
+    :rtype: list of strs or dicts
+    """
     if not isinstance(project, dict):
         project = get_project_metadata_bare(project)
     team_id, project_id = project["team_id"], project["id"]

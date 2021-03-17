@@ -16,7 +16,7 @@ def search_projects(
 
     :param name: search string
     :type name: str
-    :param return_metadata: return metadata of images instead of names
+    :param return_metadata: return metadata of projects instead of names
     :type return_metadata: bool
 
     :return: project names or metadatas
