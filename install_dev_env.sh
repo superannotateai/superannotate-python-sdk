@@ -2,10 +2,10 @@
 
 PYTHON_VER="3.7"
 
-# ubuntu install dependencies
-# sudo add-apt-repository ppa:deadsnakes/ppa
-# sudo apt update
-# sudo apt install python${PYTHON_VER} python${PYTHON_VER}-venv python${PYTHON_VER}-dev
+# install ubuntu dependencies
+sudo add-apt-repository ppa:deadsnakes/ppa
+sudo apt update
+sudo apt install python${PYTHON_VER} python${PYTHON_VER}-venv python${PYTHON_VER}-dev
 
 rm -rf venv_sa_conv
 python${PYTHON_VER} -m venv venv_sa_conv
