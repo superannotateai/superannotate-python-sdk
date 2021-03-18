@@ -1,13 +1,15 @@
 version: "3.7"
 services:
-  jupyterlab-server:
+  superannotate_pythonsdk_jupyterlab_server:
+    image: superannotate/pythonsdk:latest
     build:
       context: .
       dockerfile: Dockerfile
     ports:
       - "8888:8888"
     volumes:
-      - ${HOME}/.superannotate:/root/
+      - ${HOME}/.superannotate:/root/.superannotate
+    command: jupyter lab --allow-root --NotebookApp.token='' --NotebookApp.password='' --no-browser --ip 0.0.0.0
     init: true
     stdin_open: true
     tty: true

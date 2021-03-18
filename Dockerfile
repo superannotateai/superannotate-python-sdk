@@ -22,16 +22,9 @@ ENV PATH="${VIRTUAL_ENV}/bin:$PATH"
 
 COPY requirements_extra.txt /tmp/
 
-RUN apt-get update && apt-get install -y --no-install-recommends build-essential && \
-  pip install --no-cache-dir -r /tmp/requirements_extra && \
+RUN pip install --no-cache-dir -r /tmp/requirements_extra.txt && \
   pip install --no-cache-dir ${PIP_FLAGS} superannotate && \
   pip install --no-cache-dir jupyterlab && \
-  rm -rf /root/.cache/pip && \
-  apt-get remove -y build-essential && \
-  rm -rf /var/lib/apt/lists/* && \
-  apt-get purge -y --auto-remove && \
-  apt-get clean -y
+  rm -rf /root/.cache/pip
 
-RUN mkdir -p $HOME/.superannotate
-
-CMD [ "jupyter", "lab", "--no-browser", "--ip", "0.0.0.0" ]
+CMD ["/bin/bash", "-l"]
