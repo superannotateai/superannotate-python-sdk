@@ -1,0 +1,13 @@
+version: "3.7"
+services:
+  jupyterlab-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8888:8888"
+    volumes:
+      - ${HOME}/.superannotate:/root/
+    init: true
+    stdin_open: true
+    tty: true

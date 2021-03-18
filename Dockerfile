@@ -20,9 +20,12 @@ ENV VIRTUAL_ENV=$HOME/venv_superannotatesdk
 RUN python -m venv ${VIRTUAL_ENV}
 ENV PATH="${VIRTUAL_ENV}/bin:$PATH"
 
+COPY requirements_extra.txt /tmp/
+
 RUN apt-get update && apt-get install -y --no-install-recommends build-essential && \
-  pip install --no-cache-dir shapely && \
+  pip install --no-cache-dir -r /tmp/requirements_extra && \
   pip install --no-cache-dir ${PIP_FLAGS} superannotate && \
+  pip install --no-cache-dir jupyterlab && \
   rm -rf /root/.cache/pip && \
   apt-get remove -y build-essential && \
   rm -rf /var/lib/apt/lists/* && \
@@ -31,4 +34,4 @@ RUN apt-get update && apt-get install -y --no-install-recommends build-essential
 
 RUN mkdir -p $HOME/.superannotate
 
-CMD ["/bin/bash"]
+CMD [ "jupyter", "lab", "--no-browser", "--ip", "0.0.0.0" ]
