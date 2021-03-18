@@ -137,6 +137,7 @@ def _copy_images(
     source_project, destination_project, image_names, include_annotations,
     copy_annotation_status, copy_pin
 ):
+    NUM_TO_SEND = 500
     source_project, source_project_folder = source_project
     destination_project, destination_project_folder = destination_project
     if source_project["id"] != destination_project["id"]:
@@ -149,17 +150,26 @@ def _copy_images(
         "project_id": source_project["id"]
     }
     json_req = {
-        "image_names": image_names,
         "destination_folder_id": destination_project_folder["id"],
         "source_folder_name": source_project_folder["name"]
     }
-    response = _api.send_request(
-        req_type='POST', path='/image/copy', params=params, json_req=json_req
-    )
-    if not response.ok:
-        raise SABaseException(
-            response.status_code, "Couldn't copy images " + response.text
+    res = {}
+    res['skipped'] = 0
+    for start_index in range(0, len(image_names), NUM_TO_SEND):
+        json_req["image_names"] = image_names[start_index:start_index +
+                                              NUM_TO_SEND]
+        response = _api.send_request(
+            req_type='POST',
+            path='/image/copy',
+            params=params,
+            json_req=json_req
         )
+
+        if not response.ok:
+            raise SABaseException(
+                response.status_code, "Couldn't copy images " + response.text
+            )
+        res['skipped'] += response.json()['skipped']
 
     for image_name in image_names:
         if include_annotations:
@@ -192,13 +202,13 @@ def _copy_images(
                     (destination_project, destination_project_folder),
                     image_name, img_metadata["is_pinned"]
                 )
-    return response.json()
+    return res
 
 
 def copy_images(
     source_project,
+    image_names,
     destination_project,
-    image_names=None,
     include_annotations=True,
     copy_annotation_status=True,
     copy_pin=True
@@ -207,10 +217,10 @@ def copy_images(
 
     :param source_project: project name or folder path (e.g., "project1/folder1")
     :type source_project: str
-    :param destination_project: project name or folder path (e.g., "project1/folder2")
-    :type destination_project: str
     :param image_names: image names. If None, all images from source project will be copied
     :type image: list of str
+    :param destination_project: project name or folder path (e.g., "project1/folder2")
+    :type destination_project: str
     :param include_annotations: enables annotations copy
     :type include_annotations: bool
     :param copy_annotation_status: enables annotations status copy
@@ -279,8 +289,8 @@ def delete_images(project, image_names):
 
 def move_images(
     source_project,
+    image_names,
     destination_project,
-    image_names=None,
     include_annotations=True,
     copy_annotation_status=True,
     copy_pin=True,
@@ -289,10 +299,10 @@ def move_images(
 
     :param source_project: project name or folder path (e.g., "project1/folder1")
     :type source_project: str
-    :param destination_project: project name or folder path (e.g., "project1/folder2")
-    :type destination_project: str
     :param image_names: image names. If None, all images from source project will be moved
     :type image: list of str
+    :param destination_project: project name or folder path (e.g., "project1/folder2")
+    :type destination_project: str
     :param include_annotations: enables annotations copy
     :type include_annotations: bool
     :param copy_annotation_status: enables annotations status copy
