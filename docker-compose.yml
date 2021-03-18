@@ -2,9 +2,6 @@ version: "3.7"
 services:
   superannotate_pythonsdk_jupyterlab_server:
     image: superannotate/pythonsdk:latest
-    build:
-      context: .
-      dockerfile: Dockerfile
     ports:
       - "8888:8888"
     volumes:
