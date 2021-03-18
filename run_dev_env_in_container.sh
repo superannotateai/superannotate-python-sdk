@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# docker build -t superannotate/pythonsdk-dev-env:latest -f Dockerfile_dev .
+# docker build -t superannotate/pythonsdk-dev-env:latest -f Dockerfile_dev_env .
 # docker pull superannotate/pythonsdk-dev-env:latest
 
 # docker run -it -p 8888:8888 \
