@@ -22,6 +22,7 @@ ENV PATH="${VIRTUAL_ENV}/bin:$PATH"
 
 RUN pip install --no-cache-dir ${PIP_FLAGS} superannotate && \
   pip install --no-cache-dir jupyterlab && \
+  pip install --no-cache-dir xeus-python notebook && \
   rm -rf /root/.cache/pip
 
 CMD ["jupyter", "lab", "--allow-root", "--NotebookApp.token=''", "--NotebookApp.password=''", "--no-browser", "--ip", "0.0.0.0"]
