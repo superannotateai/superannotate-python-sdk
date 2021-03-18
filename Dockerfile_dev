@@ -1,8 +1,6 @@
 FROM ubuntu:20.04
 ENV LANG C.UTF-8
 
-ARG PIP_FLAGS
-
 SHELL ["/bin/bash", "-c"]
 
 ENV DEBIAN_FRONTEND noninteractive
@@ -20,11 +18,17 @@ ENV VIRTUAL_ENV=$HOME/venv_superannotatesdk
 RUN python -m venv ${VIRTUAL_ENV}
 ENV PATH="${VIRTUAL_ENV}/bin:$PATH"
 
-COPY requirements_extra.txt /tmp/
+COPY . $HOME/superannotate-python-sdk
 
-RUN pip install --no-cache-dir -r /tmp/requirements_extra.txt && \
-  pip install --no-cache-dir ${PIP_FLAGS} superannotate && \
+RUN pip install --no-cache-dir -e superannotate-python-sdk && \
   pip install --no-cache-dir jupyterlab && \
+  pip install --no-cache-dir pytest pytest-xdist pytest-timeout && \
+  pip install --no-cache-dir coverage pytest-cov && \
+  pip install --no-cache-dir pylint pylint-json2html pylint-pytest && \
+  pip install --no-cache-dir yapf && \
+  pip install --no-cache-dir sphinx sphinx_rtd_theme && \ 
+  pip install --no-cache-dir twine && \
+  pip install --no-cache-dir xeus-python notebook && \
   rm -rf /root/.cache/pip
 
-CMD ["/bin/bash", "-l"]
+CMD ["jupyter", "lab", "--allow-root", "--NotebookApp.token=''", "--NotebookApp.password=''", "--no-browser", "--ip", "0.0.0.0"]
