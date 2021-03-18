@@ -1,0 +1,17 @@
+version: "3.7"
+services:
+  superannotate_pythonsdk_dev_env:
+    image: superannotate/pythonsdk-dev-env:latest
+    build:
+      context: .
+      dockerfile: Dockerfile_dev
+    ports:
+      - "8888:8888"
+    volumes:
+      - ${HOME}/.superannotate:/root/.superannotate
+      - .:/root/superannotate-python-sdk
+    command: >
+      bash -c "pip install -e superannotate-python-sdk && jupyter lab --allow-root --NotebookApp.token='' --NotebookApp.password='' --no-browser --ip 0.0.0.0"
+    init: true
+    stdin_open: true
+    tty: true

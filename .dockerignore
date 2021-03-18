@@ -12,3 +12,4 @@ html/*
 docs/
 venv*
 tests/
+.ipynb_checkpoints
