@@ -20,11 +20,8 @@ ENV VIRTUAL_ENV=$HOME/venv_superannotatesdk
 RUN python -m venv ${VIRTUAL_ENV}
 ENV PATH="${VIRTUAL_ENV}/bin:$PATH"
 
-COPY requirements_extra.txt /tmp/
-
-RUN pip install --no-cache-dir -r /tmp/requirements_extra.txt && \
-  pip install --no-cache-dir ${PIP_FLAGS} superannotate && \
+RUN pip install --no-cache-dir ${PIP_FLAGS} superannotate && \
   pip install --no-cache-dir jupyterlab && \
   rm -rf /root/.cache/pip
 
-CMD ["/bin/bash", "-l"]
+CMD ["jupyter", "lab", "--allow-root", "--NotebookApp.token=''", "--NotebookApp.password=''", "--no-browser", "--ip", "0.0.0.0"]

@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 1
 RUN update-alternatives --install /usr/local/bin/pip pip /usr/bin/pip3 1
 
-ENV VIRTUAL_ENV=$HOME/venv_superannotatesdk
+ENV VIRTUAL_ENV=$HOME/venv_superannotatesdk_dev_env
 RUN python -m venv ${VIRTUAL_ENV}
 ENV PATH="${VIRTUAL_ENV}/bin:$PATH"
 
