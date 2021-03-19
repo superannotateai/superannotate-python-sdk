@@ -410,11 +410,12 @@ def copy_image(
         )
         if annotations["annotation_json"] is not None:
             if "annotation_mask" in annotations:
-                upload_image_annotations(
-                    (destination_project, destination_project_folder), new_name,
-                    annotations["annotation_json"],
-                    annotations["annotation_mask"]
-                )
+                if annotations["annotation_mask"] is not None:
+                    upload_image_annotations(
+                        (destination_project, destination_project_folder),
+                        new_name, annotations["annotation_json"],
+                        annotations["annotation_mask"]
+                    )
             else:
                 upload_image_annotations(
                     (destination_project, destination_project_folder), new_name,
