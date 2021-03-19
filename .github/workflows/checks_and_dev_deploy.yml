@@ -45,6 +45,6 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           push: true
-          file: Dockerfile_dev
+          file: Dockerfile_dev_env
           tags: superannotate/pythonsdk-dev-env:latest
 

@@ -244,6 +244,36 @@ def test_delete_images(tmpdir):
     assert num_images == 0
 
 
+def test_copy_images3(tmpdir):
+    PROJECT_NAME = "test copy3 folder images"
+    tmpdir = Path(tmpdir)
+
+    projects_found = sa.search_projects(PROJECT_NAME, return_metadata=True)
+    for pr in projects_found:
+        sa.delete_project(pr)
+
+    project = sa.create_project(PROJECT_NAME, 'test', 'Vector')
+    sa.upload_images_from_folder_to_project(
+        project, FROM_FOLDER, annotation_status="InProgress"
+    )
+    sa.create_folder(project, "folder1")
+    project = PROJECT_NAME + "/folder1"
+
+    sa.copy_images(
+        PROJECT_NAME, ["example_image_2.jpg", "example_image_3.jpg"],
+        project,
+        include_annotations=False,
+        copy_annotation_status=False,
+        copy_pin=False
+    )
+
+    num_images = sa.get_project_image_count(project)
+    assert num_images == 2
+
+    num_images = sa.get_project_image_count(PROJECT_NAME)
+    assert num_images == 4
+
+
 def test_copy_images(tmpdir):
     PROJECT_NAME = "test copy folder images"
     tmpdir = Path(tmpdir)
@@ -270,8 +300,8 @@ def test_copy_images(tmpdir):
     assert num_images == 0
 
     sa.copy_images(
-        project,
-        project2, ["example_image_2.jpg", "example_image_3.jpg"],
+        project, ["example_image_2.jpg", "example_image_3.jpg"],
+        project2,
         include_annotations=False,
         copy_annotation_status=False,
         copy_pin=False
@@ -287,12 +317,22 @@ def test_copy_images(tmpdir):
     num_images = sa.get_project_image_count(project2)
     assert num_images == 2
 
-    res = sa.copy_images(project, project2, None)
+    res = sa.copy_images(project, None, project2)
 
     num_images = sa.get_project_image_count(project2)
     assert num_images == 4
 
     assert res == 2
+
+    sa.copy_images(
+        project, ["example_image_2.jpg", "example_image_3.jpg"],
+        PROJECT_NAME,
+        include_annotations=False,
+        copy_annotation_status=False,
+        copy_pin=False
+    )
+    num_images = sa.get_project_image_count(PROJECT_NAME)
+    assert num_images == 2
 
 
 def test_move_images(tmpdir):
@@ -317,7 +357,7 @@ def test_move_images(tmpdir):
     num_images = sa.get_project_image_count(project2)
     assert num_images == 0
 
-    sa.move_images(project, project2, ["example_image_2.jpg"])
+    sa.move_images(project, ["example_image_2.jpg"], project2)
 
     num_images = sa.get_project_image_count(project2)
     assert num_images == 1
@@ -359,7 +399,7 @@ def test_move_images2(tmpdir):
     num_images = sa.get_project_image_count(project2)
     assert num_images == 0
 
-    sa.move_images(project, project2)
+    sa.move_images(project, None, project2)
 
     num_images = sa.get_project_image_count(project2)
     assert num_images == 4
@@ -402,7 +442,7 @@ def test_copy_images2(tmpdir):
     assert im1["annotation_status"] == "InProgress"
 
     sa.copy_images(
-        project, project2, ["example_image_2.jpg", "example_image_3.jpg"]
+        project, ["example_image_2.jpg", "example_image_3.jpg"], project2
     )
 
     num_images = sa.get_project_image_count(project2)
@@ -452,7 +492,7 @@ def test_folder_export(tmpdir):
     assert num_images == 0
 
     sa.copy_images(
-        project, project2, ["example_image_2.jpg", "example_image_3.jpg"]
+        project, ["example_image_2.jpg", "example_image_3.jpg"], project2
     )
 
     export = sa.prepare_export(PROJECT_NAME, ["folder1", "folder2"])
