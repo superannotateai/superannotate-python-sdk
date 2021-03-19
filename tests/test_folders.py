@@ -274,6 +274,32 @@ def test_copy_images3(tmpdir):
     assert num_images == 4
 
 
+def test_copy_images4(tmpdir):
+    PROJECT_NAME = "test copy4 folder images"
+    tmpdir = Path(tmpdir)
+
+    projects_found = sa.search_projects(PROJECT_NAME, return_metadata=True)
+    for pr in projects_found:
+        sa.delete_project(pr)
+
+    project = sa.create_project(PROJECT_NAME, 'test', 'Pixel')
+    sa.upload_images_from_folder_to_project(
+        project, FROM_FOLDER, annotation_status="InProgress"
+    )
+    sa.create_folder(project, "folder1")
+    project = PROJECT_NAME + "/folder1"
+
+    sa.copy_images(
+        PROJECT_NAME, ["example_image_2.jpg", "example_image_3.jpg"], project
+    )
+
+    num_images = sa.get_project_image_count(project)
+    assert num_images == 2
+
+    num_images = sa.get_project_image_count(PROJECT_NAME)
+    assert num_images == 4
+
+
 def test_copy_images(tmpdir):
     PROJECT_NAME = "test copy folder images"
     tmpdir = Path(tmpdir)
