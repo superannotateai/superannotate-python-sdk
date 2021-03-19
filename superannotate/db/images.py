@@ -31,7 +31,7 @@ logger = logging.getLogger("superannotate-python-sdk")
 _api = API.get_instance()
 
 
-def _get_project_root_folder_id(project):
+def get_project_root_folder_id(project):
     """Get root folder ID
     Returns
     -------
@@ -82,7 +82,7 @@ def search_images(
     if project_folder is not None:
         project_folder_id = project_folder["id"]
     else:
-        project_folder_id = _get_project_root_folder_id(project)
+        project_folder_id = get_project_root_folder_id(project)
 
     result_list = []
     params = {
@@ -164,7 +164,7 @@ def search_images_all_folders(
             annotation_status
         )
 
-    project_folder_id = _get_project_root_folder_id(project)
+    project_folder_id = get_project_root_folder_id(project)
 
     result_list = []
     params = {

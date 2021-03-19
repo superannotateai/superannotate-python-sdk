@@ -11,7 +11,8 @@ from ..api import API
 from ..exceptions import SABaseException, SAImageSizeTooLarge
 from .images import (
     delete_image, get_image_annotations, get_image_bytes, get_image_metadata,
-    search_images, set_image_annotation_status, upload_image_annotations
+    get_project_root_folder_id, search_images, set_image_annotation_status,
+    upload_image_annotations
 )
 from .project_api import get_project_and_folder_metadata
 from .projects import (
@@ -149,10 +150,16 @@ def _copy_images(
         "team_id": source_project["team_id"],
         "project_id": source_project["id"]
     }
-    json_req = {
-        "destination_folder_id": destination_project_folder["id"],
-        "source_folder_name": source_project_folder["name"]
-    }
+    if source_project_folder is not None:
+        source_folder_name = source_project_folder["name"]
+    else:
+        source_folder_name = 'root'
+    json_req = {"source_folder_name": source_folder_name}
+    if destination_project_folder is not None:
+        destination_folder_id = destination_project_folder["id"]
+    else:
+        destination_folder_id = get_project_root_folder_id(destination_project)
+    json_req["destination_folder_id"] = destination_folder_id
     res = {}
     res['skipped'] = 0
     for start_index in range(0, len(image_names), NUM_TO_SEND):
