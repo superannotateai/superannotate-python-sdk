@@ -84,7 +84,9 @@ def coco_panoptic_segmentation_to_sa_pixel(coco_path, output_dir):
             sa_instances.append(sa_obj)
 
         img = cv2.cvtColor(img.reshape((H, W, C)), cv2.COLOR_RGB2BGR)
-        cv2.imwrite(str(output_dir / ("%s___save.png" % annot['file_name'])), img)
+        cv2.imwrite(
+            str(output_dir / ("%s___save.png" % annot['file_name'])), img
+        )
 
         images_converted.append(annot['file_name'])
         file_name = "%s___pixel.json" % annot['file_name']
