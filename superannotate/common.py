@@ -29,6 +29,9 @@ _ANNOTATION_STATUSES = {
     "Completed": 5,
     "Skipped": 6
 }
+
+_UPLOAD_STATES = {"Initial": 1, "Basic": 2, "External": 3}
+
 _USER_ROLES = {"Admin": 2, "Annotator": 3, "QA": 4, "Customer": 5, "Viewer": 6}
 _AVAILABLE_SEGMENTATION_MODELS = ['autonomous', 'generic']
 _MODEL_TRAINING_STATUSES = {
@@ -116,6 +119,10 @@ def user_role_int_to_str(user_role):
 
 def annotation_status_str_to_int(annotation_status):
     return _ANNOTATION_STATUSES[annotation_status]
+
+
+def upload_state_str_to_int(upload_state):
+    return _UPLOAD_STATES[upload_state]
 
 
 def annotation_status_int_to_str(annotation_status):

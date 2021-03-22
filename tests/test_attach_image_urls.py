@@ -19,7 +19,7 @@ def test_attach_image_urls():
         project, PATH_TO_URLS
     )
 
-    assert len(uploaded) == 8
+    assert len(uploaded) == 7
     assert len(could_not_upload) == 0
     assert len(existing_images) == 0
 
@@ -29,4 +29,4 @@ def test_attach_image_urls():
 
     assert len(uploaded) == 2
     assert len(could_not_upload) == 0
-    assert len(existing_images) == 6
+    assert len(existing_images) == 5

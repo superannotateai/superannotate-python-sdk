@@ -694,9 +694,14 @@ def __upload_images_to_aws_thread(
             if len(uploaded_imgs) >= 100:
                 try:
                     __create_image(
-                        uploaded_imgs_info[0], uploaded_imgs_info[1], project,
-                        annotation_status, prefix, uploaded_imgs_info[2],
-                        project_folder_id
+                        uploaded_imgs_info[0],
+                        uploaded_imgs_info[1],
+                        project,
+                        annotation_status,
+                        prefix,
+                        uploaded_imgs_info[2],
+                        project_folder_id,
+                        upload_state="Basic"
                     )
                 except SABaseException as e:
                     couldnt_upload[thread_id] += uploaded_imgs
@@ -707,8 +712,14 @@ def __upload_images_to_aws_thread(
                 uploaded_imgs_info = ([], [], [])
     try:
         __create_image(
-            uploaded_imgs_info[0], uploaded_imgs_info[1], project,
-            annotation_status, prefix, uploaded_imgs_info[2], project_folder_id
+            uploaded_imgs_info[0],
+            uploaded_imgs_info[1],
+            project,
+            annotation_status,
+            prefix,
+            uploaded_imgs_info[2],
+            project_folder_id,
+            upload_state="Basic"
         )
     except SABaseException as e:
         couldnt_upload[thread_id] += uploaded_imgs
@@ -718,12 +729,19 @@ def __upload_images_to_aws_thread(
 
 
 def __create_image(
-    img_names, img_paths, project, annotation_status, remote_dir, sizes,
-    project_folder_id
+    img_names,
+    img_paths,
+    project,
+    annotation_status,
+    remote_dir,
+    sizes,
+    project_folder_id,
+    upload_state="Initial"
 ):
     if len(img_paths) == 0:
         return
     team_id, project_id = project["team_id"], project["id"]
+    upload_state_code = common.upload_state_str_to_int(upload_state)
     data = {
         "project_id": str(project_id),
         "team_id": str(team_id),
@@ -732,14 +750,19 @@ def __create_image(
         "team_id": str(team_id),
         "images": [],
         "annotation_status": annotation_status,
-        "meta": {}
+        "meta": {},
+        "upload_state": upload_state_code
     }
     if project_folder_id is not None:
         data["folder_id"] = project_folder_id
-    for img_name, img_path, size in zip(img_names, img_paths, sizes):
+    for img_data, img_path, size in zip(img_names, img_paths, sizes):
         img_name_uuid = Path(img_path).name
         remote_path = remote_dir + f"{img_name_uuid}"
-        data["images"].append({"name": img_name, "path": remote_path})
+        if upload_state == "External":
+            img_name, img_url = img_data
+        else:
+            img_name, img_url = img_data, remote_path
+        data["images"].append({"name": img_name, "path": img_url})
         data["meta"][img_name] = {
             "width": size[0],
             "height": size[1],
@@ -982,7 +1005,6 @@ def attach_image_urls_to_project(
         daemon=True
     )
     tqdm_thread.start()
-
     threads = []
     for thread_id in range(_NUM_THREADS):
         t = threading.Thread(
@@ -1030,7 +1052,7 @@ def __attach_image_urls_to_project_thread(
     bucket = s3_resource.Bucket(res["bucket"])
     prefix = res['filePath']
     uploaded_imgs = []
-    uploaded_imgs_info = ([], [])
+    uploaded_imgs_info = ([], [], [])
     for i in range(start_index, end_index):
         if i >= len_img_paths:
             break
@@ -1051,11 +1073,18 @@ def __attach_image_urls_to_project_thread(
             uploaded_imgs.append(name)
             uploaded_imgs_info[0].append(img_names_urls[i])
             uploaded_imgs_info[1].append(key)
+            uploaded_imgs_info[2].append((None, None))
             if len(uploaded_imgs) >= 100:
                 try:
-                    __create_image_url(
-                        uploaded_imgs_info[0], uploaded_imgs_info[1], project,
-                        annotation_status, project_folder_id
+                    __create_image(
+                        uploaded_imgs_info[0],
+                        uploaded_imgs_info[1],
+                        project,
+                        annotation_status,
+                        prefix,
+                        uploaded_imgs_info[2],
+                        project_folder_id,
+                        upload_state="External"
                     )
                 except SABaseException as e:
                     couldnt_upload[thread_id] += uploaded_imgs
@@ -1063,56 +1092,23 @@ def __attach_image_urls_to_project_thread(
                 else:
                     uploaded[thread_id] += uploaded_imgs
                 uploaded_imgs = []
-                uploaded_imgs_info = ([], [])
+                uploaded_imgs_info = ([], [], [])
     try:
-        __create_image_url(
-            uploaded_imgs_info[0], uploaded_imgs_info[1], project,
-            annotation_status, project_folder_id
+        __create_image(
+            uploaded_imgs_info[0],
+            uploaded_imgs_info[1],
+            project,
+            annotation_status,
+            prefix,
+            uploaded_imgs_info[2],
+            project_folder_id,
+            upload_state="External"
         )
     except SABaseException as e:
         couldnt_upload[thread_id] += uploaded_imgs
         logger.warning(e)
     else:
         uploaded[thread_id] += uploaded_imgs
-
-
-def __create_image_url(
-    img_names_urls, remote_paths, project, annotation_status, project_folder_id
-):
-    if len(remote_paths) == 0:
-        return
-    team_id, project_id = project["team_id"], project["id"]
-    data = {
-        "project_id": str(project_id),
-        "team_id": str(team_id),
-        "images": [],
-        "annotation_status": annotation_status,
-        "meta": {},
-        "upload_state": 2
-    }
-    if project_folder_id is not None:
-        data["folder_id"] = project_folder_id
-    for img_name_url, remote_path in zip(img_names_urls, remote_paths):
-        data["images"].append(
-            {
-                "name": img_name_url[0],
-                "path": img_name_url[1]
-            }
-        )
-        data["meta"][img_name_url[0]] = {
-            "width": None,
-            "height": None,
-            "annotation_json_path": remote_path + ".json",
-            "annotation_bluemap_path": remote_path + ".png"
-        }
-
-    response = _api.send_request(
-        req_type='POST', path='/image/ext-create', json_req=data
-    )
-    if not response.ok:
-        raise SABaseException(
-            response.status_code, "Couldn't ext-create image " + response.text
-        )
 
 
 def upload_images_from_public_urls_to_project(
