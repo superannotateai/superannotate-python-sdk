@@ -60,7 +60,7 @@ def coco_panoptic_segmentation_to_sa_pixel(coco_path, output_dir):
         annot_name = Path(annot["file_name"]).stem
         img_cv = cv2.imread(str(output_dir / ("%s.png" % annot_name)))
         if img_cv is None:
-            images_not_converted.append("%s.jpg" % annot_name)
+            images_not_converted.append(annot['file_name'])
             logger.warning(
                 "'%s' file dosen't exist!",
                 output_dir / ("%s.png" % annot_name)
@@ -84,10 +84,12 @@ def coco_panoptic_segmentation_to_sa_pixel(coco_path, output_dir):
             sa_instances.append(sa_obj)
 
         img = cv2.cvtColor(img.reshape((H, W, C)), cv2.COLOR_RGB2BGR)
-        cv2.imwrite(str(output_dir / ("%s.jpg___save.png" % annot_name)), img)
+        cv2.imwrite(
+            str(output_dir / ("%s___save.png" % annot['file_name'])), img
+        )
 
-        images_converted.append("%s.jpg" % annot_name)
-        file_name = "%s.jpg___pixel.json" % annot_name
+        images_converted.append(annot['file_name'])
+        file_name = "%s___pixel.json" % annot['file_name']
         sa_metadata = {
             'name': annot_name,
             'width': img_id_to_shape[str(annot['image_id'])]['width'],

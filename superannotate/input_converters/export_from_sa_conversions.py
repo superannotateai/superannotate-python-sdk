@@ -16,7 +16,7 @@ from .converters.converters import Converter
 logger = logging.getLogger("superannotate-python-sdk")
 
 
-def _load_files(path_to_imgs, ptype):
+def _load_files(path_to_imgs, task, ptype):
     suffix = None
     if ptype == "Pixel":
         suffix = '___pixel.json'
@@ -27,16 +27,21 @@ def _load_files(path_to_imgs, ptype):
     orig_images = [str(x).replace(suffix, '') for x in orig_images]
     all_files = None
 
-    if ptype == 'Pixel':
+    if task == 'keypoint_detection':
+        all_files = np.array([[fname, fname + suffix] for fname in orig_images])
+    elif ptype == 'Pixel':
         all_files = np.array(
             [
-                (str(fname), str(fname) + suffix, str(fname) + '___save.png')
+                [fname, fname + suffix, fname + '___save.png']
                 for fname in orig_images
             ]
         )
     elif ptype == 'Vector':
         all_files = np.array(
-            [(str(fname), str(fname) + suffix) for fname in orig_images]
+            [
+                [fname, fname + suffix, fname + '___fuse.png']
+                for fname in orig_images
+            ]
         )
 
     return all_files
@@ -47,7 +52,8 @@ def _move_files(data_set, src):
     if data_set is not None:
         for tup in data_set:
             for i in tup:
-                shutil.copy(i, train_path / Path(i).name)
+                if Path(i).exists():
+                    shutil.copy(i, train_path / Path(i).name)
     else:
         logger.warning("Images doesn't exist")
 
@@ -78,7 +84,7 @@ def export_from_sa(args):
     except Exception as e:
         _create_classes_mapper(args.input_dir, args.output_dir)
 
-    data_set = _load_files(args.input_dir, args.project_type)
+    data_set = _load_files(args.input_dir, args.task, args.project_type)
     _move_files(data_set, args.output_dir)
 
     args.__dict__.update(
