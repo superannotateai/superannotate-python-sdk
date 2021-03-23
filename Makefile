@@ -9,7 +9,7 @@ PYTESTS=pytest
 COVERAGE=coverage
 
 tests: check_formatting docs
-	$(PYTESTS) -n auto --full-trace tests
+	$(PYTESTS) -n auto --full-trace --verbose tests
 
 stress-tests: SA_STRESS_TESTS=1
 stress-tests: tests
