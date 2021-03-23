@@ -30,7 +30,8 @@ _ANNOTATION_STATUSES = {
     "Skipped": 6
 }
 
-_UPLOAD_STATES = {"Initial": 1, "Basic": 2, "External": 3}
+_UPLOAD_STATES_STR_TO_CODES = {"Initial": 1, "Basic": 2, "External": 3}
+_UPLOAD_STATES_CODES_TO_STR = {1: "Initial", 2: "Basic", 3: "External"}
 
 _USER_ROLES = {"Admin": 2, "Annotator": 3, "QA": 4, "Customer": 5, "Viewer": 6}
 _AVAILABLE_SEGMENTATION_MODELS = ['autonomous', 'generic']
@@ -122,7 +123,11 @@ def annotation_status_str_to_int(annotation_status):
 
 
 def upload_state_str_to_int(upload_state):
-    return _UPLOAD_STATES[upload_state]
+    return _UPLOAD_STATES_STR_TO_CODES[upload_state]
+
+
+def upload_state_int_to_str(upload_state):
+    return _UPLOAD_STATES_CODES_TO_STR[upload_state]
 
 
 def annotation_status_int_to_str(annotation_status):
