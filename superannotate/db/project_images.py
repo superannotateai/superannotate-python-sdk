@@ -268,9 +268,25 @@ def delete_images(project, image_names):
     :param image_names: to be deleted images' names. If None, all the images will be deleted
     :type image_names: list of strs
     """
+    project, project_folder = get_project_and_folder_metadata(project)
+    params = {"team_id": project["team_id"], "project_id": project["id"]}
     if image_names is None:
-        images = search_images(project, return_metadata=True)
+        if project_folder is not None:
+            data = {"folder_id": project_folder["id"]}
+        else:
+            data = {"folder_id": get_project_root_folder_id(project)}
+        response = _api.send_request(
+            req_type='PUT',
+            path='/image/delete/images',
+            params=params,
+            json_req=data
+        )
+        if not response.ok:
+            raise SABaseException(
+                response.status_code, "Couldn't delete images " + response.text
+            )
     else:
+        NUM_TO_SEND = 1000
         if not isinstance(image_names, list):
             raise SABaseException(
                 0, "image_names should be a list of strs or None"
@@ -278,21 +294,30 @@ def delete_images(project, image_names):
         images = get_image_metadata(
             project, image_names, return_dict_on_single_output=False
         )
-    project, _ = get_project_and_folder_metadata(project)
-
-    params = {"team_id": project["team_id"], "project_id": project["id"]}
-    data = {"image_ids": [image["id"] for image in images]}
-    response = _api.send_request(
-        req_type='PUT',
-        path='/image/delete/images',
-        params=params,
-        json_req=data
+        for start_index in range(0, len(image_names), NUM_TO_SEND):
+            data = {
+                "image_ids":
+                    [
+                        image["id"]
+                        for image in images[start_index:start_index +
+                                            NUM_TO_SEND]
+                    ]
+            }
+            response = _api.send_request(
+                req_type='PUT',
+                path='/image/delete/images',
+                params=params,
+                json_req=data
+            )
+            if not response.ok:
+                raise SABaseException(
+                    response.status_code,
+                    "Couldn't delete images " + response.text
+                )
+    logger.info(
+        "Images deleted in project %s%s", project["name"],
+        "" if project_folder is None else "/" + project_folder["name"]
     )
-    if not response.ok:
-        raise SABaseException(
-            response.status_code, "Couldn't delete images " + response.text
-        )
-    logger.info("Images %s deleted in project %s", image_names, project["name"])
 
 
 def move_images(
