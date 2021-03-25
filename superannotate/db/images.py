@@ -621,6 +621,11 @@ def download_image(
     :return: paths of downloaded image and annotations if included
     :rtype: tuple
     """
+    if (include_fuse or include_overlay) and not include_annotations:
+        raise SABaseException(
+            0,
+            "To download fuse or overlay image need to set include_annotations=True in download_image"
+        )
     if not Path(local_dir_path).is_dir():
         raise SABaseException(
             0, f"local_dir_path {local_dir_path} is not an existing directory"
@@ -818,7 +823,7 @@ def _get_image_pre_or_annotations(project, image_name, pre):
     fill_class_and_attribute_names(res_json, annotation_classes_dict)
     result = {
         f"{pre}annotation_json":
-            response.json(),
+            res_json,
         f"{pre}annotation_json_filename":
             common.get_annotation_json_name(image_name, project_type)
     }
@@ -1041,12 +1046,11 @@ def create_fuse_image(
             (image_size[1], image_size[0], 4), [0, 0, 0, 255], np.uint8
         )
         fi_ovl[:, :, :3] = np.array(pil_image)
+        fi_pil_ovl = Image.fromarray(fi_ovl)
+        draw_ovl = ImageDraw.Draw(fi_pil_ovl)
     if project_type == "Vector":
         fi_pil = Image.fromarray(fi)
         draw = ImageDraw.Draw(fi_pil)
-        if output_overlay:
-            fi_pil_ovl = Image.fromarray(fi_ovl)
-            draw_ovl = ImageDraw.Draw(fi_pil_ovl)
         for annotation in annotation_json["instances"]:
             if "className" not in annotation:
                 continue
@@ -1159,6 +1163,11 @@ def create_fuse_image(
                 temp_mask = np.alltrue(annotation_mask == part_color, axis=2)
                 fi[temp_mask] = fill_color
         fi_pil = Image.fromarray(fi)
+        alpha = 0.5  # transparency measure
+        if output_overlay:
+            fi_pil_ovl = Image.fromarray(
+                cv2.addWeighted(fi, alpha, fi_ovl, 1 - alpha, 0)
+            )
 
     if in_memory:
         if output_overlay:
