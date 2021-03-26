@@ -179,37 +179,11 @@ def _copy_images(
         res['skipped'] += response.json()['skipped']
 
     for image_name in image_names:
-        if include_annotations:
-            annotations = get_image_annotations(
-                (source_project, source_project_folder), image_name
-            )
-            if annotations["annotation_json"] is not None:
-                if "annotation_mask" in annotations:
-                    if annotations["annotation_mask"] is not None:
-                        upload_image_annotations(
-                            (destination_project, destination_project_folder),
-                            image_name, annotations["annotation_json"],
-                            annotations["annotation_mask"]
-                        )
-                else:
-                    upload_image_annotations(
-                        (destination_project, destination_project_folder),
-                        image_name, annotations["annotation_json"]
-                    )
-        if copy_annotation_status or copy_pin:
-            img_metadata = get_image_metadata(
-                (source_project, source_project_folder), image_name
-            )
-            if copy_annotation_status:
-                set_image_annotation_status(
-                    (destination_project, destination_project_folder),
-                    image_name, img_metadata["annotation_status"]
-                )
-            if copy_pin:
-                pin_image(
-                    (destination_project, destination_project_folder),
-                    image_name, img_metadata["is_pinned"]
-                )
+        _copy_metadata(
+            source_project, source_project_folder, image_name,
+            destination_project, destination_project_folder, image_name,
+            include_annotations, copy_annotation_status, copy_pin
+        )
     return res
 
 
@@ -385,9 +359,6 @@ def copy_image(
     destination_project, destination_project_folder = get_project_and_folder_metadata(
         destination_project
     )
-    img_metadata = get_image_metadata(
-        (source_project, source_project_folder), image_name
-    )
     img_b = get_image_bytes((source_project, source_project_folder), image_name)
     new_name = image_name
     extension = Path(image_name).suffix
@@ -416,6 +387,22 @@ def copy_image(
     upload_image_to_project(
         (destination_project, destination_project_folder), img_b, new_name
     )
+    _copy_metadata(
+        source_project, source_project_folder, image_name, destination_project,
+        destination_project_folder, new_name, include_annotations,
+        copy_annotation_status, copy_pin
+    )
+    logger.info(
+        "Copied image %s/%s to %s/%s.", source_project["name"], image_name,
+        destination_project["name"], new_name
+    )
+
+
+def _copy_metadata(
+    source_project, source_project_folder, image_name, destination_project,
+    destination_project_folder, new_name, include_annotations,
+    copy_annotation_status, copy_pin
+):
     if include_annotations:
         annotations = get_image_annotations(
             (source_project, source_project_folder), image_name
@@ -433,21 +420,20 @@ def copy_image(
                     (destination_project, destination_project_folder), new_name,
                     annotations["annotation_json"]
                 )
-    if copy_annotation_status:
-        set_image_annotation_status(
-            (destination_project, destination_project_folder), new_name,
-            img_metadata["annotation_status"]
+    if copy_annotation_status or copy_pin:
+        img_metadata = get_image_metadata(
+            (source_project, source_project_folder), image_name
         )
-    if copy_pin:
-        pin_image(
-            (destination_project, destination_project_folder), new_name,
-            img_metadata["is_pinned"]
-        )
-
-    logger.info(
-        "Copied image %s/%s to %s/%s.", source_project["name"], image_name,
-        destination_project["name"], new_name
-    )
+        if copy_annotation_status:
+            set_image_annotation_status(
+                (destination_project, destination_project_folder), new_name,
+                img_metadata["annotation_status"]
+            )
+        if copy_pin:
+            pin_image(
+                (destination_project, destination_project_folder), new_name,
+                img_metadata["is_pinned"]
+            )
 
 
 def move_image(
