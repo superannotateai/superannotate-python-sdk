@@ -956,7 +956,7 @@ def attach_image_urls_to_project(
     :param annotation_status: value to set the annotation statuses of the linked images: NotStarted InProgress QualityCheck Returned Completed Skipped
     :type annotation_status: str
 
-    :return: list of linked image urls, list of unreachable image urls
+    :return: list of linked image names, list of failed image names, list of duplicate image names
     :rtype: tuple
     """
 
