@@ -973,7 +973,11 @@ def attach_image_urls_to_project(
     annotation_status = common.annotation_status_str_to_int(annotation_status)
     team_id, project_id = project["team_id"], project["id"]
     image_data = pd.read_csv(attachments)
+    image_data = image_data[~image_data["url"].isnull()]
     existing_names = image_data[~image_data["name"].isnull()]
+    duplicate_idx_csv = existing_names.duplicated(subset="name", keep="first")
+    duplicate_images = existing_names[duplicate_idx_csv]["name"].tolist()
+    existing_names = existing_names[~duplicate_idx_csv]
     existing_images = search_images((project, project_folder))
     duplicate_idx = []
     for ind, _ in image_data[image_data["name"].isnull()].iterrows():
@@ -983,10 +987,11 @@ def attach_image_urls_to_project(
                 image_data.at[ind, "name"] = name_try
                 existing_images.append(name_try)
                 break
+    image_data.drop_duplicates(subset="name", keep="first", inplace=True)
     for ind, row in existing_names.iterrows():
         if row["name"] in existing_images:
             duplicate_idx.append(ind)
-    duplicate_images = image_data.loc[duplicate_idx]["name"].tolist()
+    duplicate_images.extend(image_data.loc[duplicate_idx]["name"].tolist())
     image_data.drop(labels=duplicate_idx, inplace=True)
     if len(duplicate_images) != 0:
         logger.warning(

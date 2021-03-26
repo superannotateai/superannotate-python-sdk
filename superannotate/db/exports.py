@@ -12,7 +12,7 @@ import requests
 from tqdm import tqdm
 
 from ..api import API
-from ..common import annotation_status_str_to_int
+from ..common import annotation_status_str_to_int, upload_state_int_to_str
 from ..exceptions import (
     SABaseException, SAExistingExportNameException,
     SANonExistingExportNameException
@@ -123,6 +123,11 @@ def prepare_export(
     """
     if not isinstance(project, dict):
         project = get_project_metadata_bare(project)
+    upload_state = upload_state_int_to_str(project.get("upload_state"))
+    if upload_state == "External" and include_fuse == True:
+        logger.info(
+            "Include fuse functionality is not supported for  projects containing images attached with URLs"
+        )
     team_id, project_id = project["team_id"], project["id"]
     if annotation_statuses is None:
         annotation_statuses = [2, 3, 4, 5]
