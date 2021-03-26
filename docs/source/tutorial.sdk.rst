@@ -98,6 +98,10 @@ To create a new "Vector" project with name "Example Project 1" and description
 
     sa.create_project(project, "test", "Vector")
 
+.. warning::
+
+   In general, SDK functions are not thread-safe.
+
 Creating a folder in a project
 ______________________________
 
