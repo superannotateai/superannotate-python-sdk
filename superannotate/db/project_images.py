@@ -179,7 +179,7 @@ def _copy_images(
         res['skipped'] += response.json()['skipped']
 
     for image_name in image_names:
-        _copy_metadata(
+        _copy_annotations_and_metadata(
             source_project, source_project_folder, image_name,
             destination_project, destination_project_folder, image_name,
             include_annotations, copy_annotation_status, copy_pin
@@ -387,7 +387,7 @@ def copy_image(
     upload_image_to_project(
         (destination_project, destination_project_folder), img_b, new_name
     )
-    _copy_metadata(
+    _copy_annotations_and_metadata(
         source_project, source_project_folder, image_name, destination_project,
         destination_project_folder, new_name, include_annotations,
         copy_annotation_status, copy_pin
@@ -398,7 +398,7 @@ def copy_image(
     )
 
 
-def _copy_metadata(
+def _copy_annotations_and_metadata(
     source_project, source_project_folder, image_name, destination_project,
     destination_project_folder, new_name, include_annotations,
     copy_annotation_status, copy_pin
