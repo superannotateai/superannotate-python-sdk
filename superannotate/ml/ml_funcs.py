@@ -228,12 +228,15 @@ def run_training(
             raise SABaseException(0, "Invalid project types")
         project_type = types.pop()
 
-    upload_state = upload_state_int_to_str(project.get("upload_state"))
-    if upload_state == "External":
-        raise SABaseException(
-            0,
-            "The function does not support projects containing images attached with URLs"
+    for single_project in project:
+        upload_state = upload_state_int_to_str(
+            single_project.get("upload_state")
         )
+        if upload_state == "External":
+            raise SABaseException(
+                0,
+                "The function does not support projects containing images attached with URLs"
+            )
 
     base_model = base_model.get(project_type, None)
     if not base_model:
