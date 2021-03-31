@@ -128,6 +128,7 @@ def prepare_export(
         logger.info(
             "Include fuse functionality is not supported for  projects containing images attached with URLs"
         )
+        include_fuse = False
     team_id, project_id = project["team_id"], project["id"]
     if annotation_statuses is None:
         annotation_statuses = [2, 3, 4, 5]
