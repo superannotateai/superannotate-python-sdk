@@ -6,13 +6,14 @@ import time
 import zipfile
 from datetime import datetime
 from pathlib import Path
+import shutil
 
 import boto3
 import requests
 from tqdm import tqdm
 
 from ..api import API
-from ..common import annotation_status_str_to_int
+from ..common import annotation_status_str_to_int, upload_state_int_to_str
 from ..exceptions import (
     SABaseException, SAExistingExportNameException,
     SANonExistingExportNameException
@@ -123,6 +124,12 @@ def prepare_export(
     """
     if not isinstance(project, dict):
         project = get_project_metadata_bare(project)
+    upload_state = upload_state_int_to_str(project.get("upload_state"))
+    if upload_state == "External" and include_fuse == True:
+        logger.info(
+            "Include fuse functionality is not supported for  projects containing images attached with URLs"
+        )
+        include_fuse = False
     team_id, project_id = project["team_id"], project["id"]
     if annotation_statuses is None:
         annotation_statuses = [2, 3, 4, 5]
@@ -203,6 +210,15 @@ def __upload_files_to_aws_thread(
             already_uploaded[i] = True
 
 
+def _download_file(url, local_filename):
+    with requests.get(url, stream=True) as r:
+        r.raise_for_status()
+        with open(local_filename, 'wb') as f:
+            for chunk in r.iter_content(chunk_size=8192):
+                f.write(chunk)
+    return local_filename
+
+
 def download_export(
     project, export, folder_path, extract_zip_contents=True, to_s3_bucket=None
 ):
@@ -237,25 +253,26 @@ def download_export(
         break
 
     filename = Path(res['path']).name
-    r = requests.get(res['download'], allow_redirects=True)
-    if to_s3_bucket is None:
-        filepath = Path(folder_path) / filename
-        open(filepath, 'wb').write(r.content)
-        if extract_zip_contents:
-            with zipfile.ZipFile(filepath, 'r') as f:
-                f.extractall(folder_path)
-            Path.unlink(filepath)
-            logger.info("Extracted %s to folder %s", filepath, folder_path)
-        else:
-            logger.info("Downloaded export ID %s to %s", res['id'], filepath)
-    else:
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            filepath = Path(tmpdirname) / filename
-            open(filepath, 'wb').write(r.content)
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        temp_filepath = Path(tmpdirname) / filename
+        _download_file(res['download'], temp_filepath)
+        if to_s3_bucket is None:
+            filepath = Path(folder_path) / filename
+            shutil.copyfile(temp_filepath, filepath)
             if extract_zip_contents:
                 with zipfile.ZipFile(filepath, 'r') as f:
-                    f.extractall(tmpdirname)
+                    f.extractall(folder_path)
                 Path.unlink(filepath)
+                logger.info("Extracted %s to folder %s", filepath, folder_path)
+            else:
+                logger.info(
+                    "Downloaded export ID %s to %s", res['id'], filepath
+                )
+        else:
+            if extract_zip_contents:
+                with zipfile.ZipFile(temp_filepath, 'r') as f:
+                    f.extractall(tmpdirname)
+                Path.unlink(temp_filepath)
             files_to_upload = []
             for file in Path(tmpdirname).rglob("*.*"):
                 if not file.is_file():
@@ -290,4 +307,4 @@ def download_export(
                     t.join()
             finish_event.set()
             tqdm_thread.join()
-        logger.info("Exported to AWS %s/%s", to_s3_bucket, folder_path)
+            logger.info("Exported to AWS %s/%s", to_s3_bucket, folder_path)

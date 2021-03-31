@@ -37,6 +37,7 @@ ________
 .. autofunction:: superannotate.delete_folders
 .. autofunction:: superannotate.rename_folder
 .. autofunction:: superannotate.upload_images_to_project
+.. autofunction:: superannotate.attach_image_urls_to_project
 .. autofunction:: superannotate.upload_images_from_public_urls_to_project
 .. autofunction:: superannotate.upload_images_from_google_cloud_to_project
 .. autofunction:: superannotate.upload_images_from_azure_blob_to_project

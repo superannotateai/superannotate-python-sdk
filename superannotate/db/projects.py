@@ -9,6 +9,7 @@ import tempfile
 import threading
 import time
 import uuid
+import pandas as pd
 from os.path import basename
 from pathlib import Path
 from urllib.parse import urlparse
@@ -236,6 +237,13 @@ def upload_video_to_project(
     :return: filenames of uploaded images
     :rtype: list of strs
     """
+    project, project_folder = get_project_and_folder_metadata(project)
+    upload_state = common.upload_state_int_to_str(project.get("upload_state"))
+    if upload_state == "External":
+        raise SABaseException(
+            0,
+            "The function does not support projects containing images attached with URLs"
+        )
     logger.info("Uploading from video %s.", str(video_path))
     rotate_code = None
     try:
@@ -389,6 +397,12 @@ def upload_videos_from_folder_to_project(
     :rtype: tuple of list of strs
     """
     project, project_folder = get_project_and_folder_metadata(project)
+    upload_state = common.upload_state_int_to_str(project.get("upload_state"))
+    if upload_state == "External":
+        raise SABaseException(
+            0,
+            "The function does not support projects containing images attached with URLs"
+        )
     if recursive_subfolders:
         logger.warning(
             "When using recursive subfolder parsing same name videos in different subfolders will overwrite each other."
@@ -479,6 +493,12 @@ def upload_images_from_folder_to_project(
     project_folder_name = project["name"] + (
         f'/{project_folder["name"]}' if project_folder else ""
     )
+    upload_state = common.upload_state_int_to_str(project.get("upload_state"))
+    if upload_state == "External":
+        raise SABaseException(
+            0,
+            "The function does not support projects containing images attached with URLs"
+        )
     if recursive_subfolders:
         logger.info(
             "When using recursive subfolder parsing same name images in different subfolders will overwrite each other."
@@ -693,9 +713,14 @@ def __upload_images_to_aws_thread(
             if len(uploaded_imgs) >= 100:
                 try:
                     __create_image(
-                        uploaded_imgs_info[0], uploaded_imgs_info[1], project,
-                        annotation_status, prefix, uploaded_imgs_info[2],
-                        project_folder_id
+                        uploaded_imgs_info[0],
+                        uploaded_imgs_info[1],
+                        project,
+                        annotation_status,
+                        prefix,
+                        uploaded_imgs_info[2],
+                        project_folder_id,
+                        upload_state="Basic"
                     )
                 except SABaseException as e:
                     couldnt_upload[thread_id] += uploaded_imgs
@@ -706,8 +731,14 @@ def __upload_images_to_aws_thread(
                 uploaded_imgs_info = ([], [], [])
     try:
         __create_image(
-            uploaded_imgs_info[0], uploaded_imgs_info[1], project,
-            annotation_status, prefix, uploaded_imgs_info[2], project_folder_id
+            uploaded_imgs_info[0],
+            uploaded_imgs_info[1],
+            project,
+            annotation_status,
+            prefix,
+            uploaded_imgs_info[2],
+            project_folder_id,
+            upload_state="Basic"
         )
     except SABaseException as e:
         couldnt_upload[thread_id] += uploaded_imgs
@@ -717,12 +748,19 @@ def __upload_images_to_aws_thread(
 
 
 def __create_image(
-    img_names, img_paths, project, annotation_status, remote_dir, sizes,
-    project_folder_id
+    img_names,
+    img_paths,
+    project,
+    annotation_status,
+    remote_dir,
+    sizes,
+    project_folder_id,
+    upload_state="Initial"
 ):
     if len(img_paths) == 0:
         return
     team_id, project_id = project["team_id"], project["id"]
+    upload_state_code = common.upload_state_str_to_int(upload_state)
     data = {
         "project_id": str(project_id),
         "team_id": str(team_id),
@@ -731,14 +769,19 @@ def __create_image(
         "team_id": str(team_id),
         "images": [],
         "annotation_status": annotation_status,
-        "meta": {}
+        "meta": {},
+        "upload_state": upload_state_code
     }
     if project_folder_id is not None:
         data["folder_id"] = project_folder_id
-    for img_name, img_path, size in zip(img_names, img_paths, sizes):
+    for img_data, img_path, size in zip(img_names, img_paths, sizes):
         img_name_uuid = Path(img_path).name
         remote_path = remote_dir + f"{img_name_uuid}"
-        data["images"].append({"name": img_name, "path": remote_path})
+        if upload_state == "External":
+            img_name, img_url = img_data
+        else:
+            img_name, img_url = img_data, remote_path
+        data["images"].append({"name": img_name, "path": img_url})
         data["meta"][img_name] = {
             "width": size[0],
             "height": size[1],
@@ -788,6 +831,12 @@ def upload_images_to_project(
     project_folder_name = project["name"] + (
         f'/{project_folder["name"]}' if project_folder else ""
     )
+    upload_state = common.upload_state_int_to_str(project.get("upload_state"))
+    if upload_state == "External":
+        raise SABaseException(
+            0,
+            "The function does not support projects containing images attached with URLs"
+        )
     if not isinstance(img_paths, list):
         raise SABaseException(
             0, "img_paths argument to upload_images_to_project should be a list"
@@ -895,6 +944,202 @@ def _tqdm_download(
                 break
 
 
+def attach_image_urls_to_project(
+    project, attachments, annotation_status="NotStarted"
+):
+    """Link images on external storage to SuperAnnotate.
+    
+    :param project: project name or project folder path
+    :type project: str or dict
+    :param attachments: path to csv file on attachments metadata
+    :type attachments: Pathlike (str or Path)
+    :param annotation_status: value to set the annotation statuses of the linked images: NotStarted InProgress QualityCheck Returned Completed Skipped
+    :type annotation_status: str
+
+    :return: list of linked image names, list of failed image names, list of duplicate image names
+    :rtype: tuple
+    """
+
+    project, project_folder = get_project_and_folder_metadata(project)
+    project_folder_name = project["name"] + (
+        f'/{project_folder["name"]}' if project_folder else ""
+    )
+    upload_state = common.upload_state_int_to_str(project.get("upload_state"))
+    if upload_state == "Basic":
+        raise SABaseException(
+            0,
+            "You cannot attach URLs in this type of project. Please attach it in an external storage project"
+        )
+    annotation_status = common.annotation_status_str_to_int(annotation_status)
+    team_id, project_id = project["team_id"], project["id"]
+    image_data = pd.read_csv(attachments)
+    image_data = image_data[~image_data["url"].isnull()]
+    existing_names = image_data[~image_data["name"].isnull()]
+    duplicate_idx_csv = existing_names.duplicated(subset="name", keep="first")
+    duplicate_images = existing_names[duplicate_idx_csv]["name"].tolist()
+    existing_names = existing_names[~duplicate_idx_csv]
+    existing_images = search_images((project, project_folder))
+    duplicate_idx = []
+    for ind, _ in image_data[image_data["name"].isnull()].iterrows():
+        while True:
+            name_try = str(uuid.uuid4())
+            if name_try not in existing_images:
+                image_data.at[ind, "name"] = name_try
+                existing_images.append(name_try)
+                break
+    image_data.drop_duplicates(subset="name", keep="first", inplace=True)
+    for ind, row in existing_names.iterrows():
+        if row["name"] in existing_images:
+            duplicate_idx.append(ind)
+    duplicate_images.extend(image_data.loc[duplicate_idx]["name"].tolist())
+    image_data.drop(labels=duplicate_idx, inplace=True)
+    if len(duplicate_images) != 0:
+        logger.warning(
+            "%s already existing images found that won't be uploaded.",
+            len(duplicate_images)
+        )
+    image_data = pd.DataFrame(image_data, columns=["name", "url"])
+    img_names_urls = image_data.values.tolist()
+    len_img_names_urls = len(img_names_urls)
+    logger.info(
+        "Uploading %s images to project %s.", len_img_names_urls,
+        project_folder_name
+    )
+    if len_img_names_urls == 0:
+        return ([], [], duplicate_images)
+    params = {'team_id': team_id}
+    uploaded = [[] for _ in range(_NUM_THREADS)]
+    tried_upload = [[] for _ in range(_NUM_THREADS)]
+    couldnt_upload = [[] for _ in range(_NUM_THREADS)]
+    finish_event = threading.Event()
+    chunksize = int(math.ceil(len_img_names_urls / _NUM_THREADS))
+    response = _api.send_request(
+        req_type='GET',
+        path=f'/project/{project_id}/sdkImageUploadToken',
+        params=params
+    )
+    if not response.ok:
+        raise SABaseException(
+            response.status_code, "Couldn't get upload token " + response.text
+        )
+    if project_folder is not None:
+        project_folder_id = project_folder["id"]
+    else:
+        project_folder_id = None
+    res = response.json()
+    prefix = res['filePath']
+    tqdm_thread = threading.Thread(
+        target=__tqdm_thread_image_upload,
+        args=(len_img_names_urls, tried_upload, finish_event),
+        daemon=True
+    )
+    tqdm_thread.start()
+    threads = []
+    for thread_id in range(_NUM_THREADS):
+        t = threading.Thread(
+            target=__attach_image_urls_to_project_thread,
+            args=(
+                res, img_names_urls, project, annotation_status, prefix,
+                thread_id, chunksize, couldnt_upload, uploaded, tried_upload,
+                project_folder_id
+            ),
+            daemon=True
+        )
+        threads.append(t)
+        t.start()
+    for t in threads:
+        t.join()
+    finish_event.set()
+    tqdm_thread.join()
+    list_of_not_uploaded = []
+    for couldnt_upload_thread in couldnt_upload:
+        for f in couldnt_upload_thread:
+            list_of_not_uploaded.append(str(f))
+    list_of_uploaded = []
+    for upload_thread in uploaded:
+        for f in upload_thread:
+            list_of_uploaded.append(str(f))
+
+    return (list_of_uploaded, list_of_not_uploaded, duplicate_images)
+
+
+def __attach_image_urls_to_project_thread(
+    res, img_names_urls, project, annotation_status, prefix, thread_id,
+    chunksize, couldnt_upload, uploaded, tried_upload, project_folder_id
+):
+    len_img_paths = len(img_names_urls)
+    start_index = thread_id * chunksize
+    end_index = start_index + chunksize
+    if start_index >= len_img_paths:
+        return
+    s3_session = boto3.Session(
+        aws_access_key_id=res['accessKeyId'],
+        aws_secret_access_key=res['secretAccessKey'],
+        aws_session_token=res['sessionToken']
+    )
+    s3_resource = s3_session.resource('s3')
+    bucket = s3_resource.Bucket(res["bucket"])
+    prefix = res['filePath']
+    uploaded_imgs = []
+    uploaded_imgs_info = ([], [], [])
+    for i in range(start_index, end_index):
+        if i >= len_img_paths:
+            break
+        name, url = img_names_urls[i]
+        tried_upload[thread_id].append(name)
+        img_name_hash = str(uuid.uuid4()) + Path(name).suffix
+        key = prefix + img_name_hash
+        try:
+            bucket.put_object(
+                Body=json.dumps(create_empty_annotation((None, None), name)),
+                Key=key + ".json"
+            )
+        except Exception as e:
+            logger.warning("Unable to upload image %s. %s", name, e)
+            couldnt_upload[thread_id].append(name)
+            continue
+        else:
+            uploaded_imgs.append(name)
+            uploaded_imgs_info[0].append(img_names_urls[i])
+            uploaded_imgs_info[1].append(key)
+            uploaded_imgs_info[2].append((None, None))
+            if len(uploaded_imgs) >= 100:
+                try:
+                    __create_image(
+                        uploaded_imgs_info[0],
+                        uploaded_imgs_info[1],
+                        project,
+                        annotation_status,
+                        prefix,
+                        uploaded_imgs_info[2],
+                        project_folder_id,
+                        upload_state="External"
+                    )
+                except SABaseException as e:
+                    couldnt_upload[thread_id] += uploaded_imgs
+                    logger.warning(e)
+                else:
+                    uploaded[thread_id] += uploaded_imgs
+                uploaded_imgs = []
+                uploaded_imgs_info = ([], [], [])
+    try:
+        __create_image(
+            uploaded_imgs_info[0],
+            uploaded_imgs_info[1],
+            project,
+            annotation_status,
+            prefix,
+            uploaded_imgs_info[2],
+            project_folder_id,
+            upload_state="External"
+        )
+    except SABaseException as e:
+        couldnt_upload[thread_id] += uploaded_imgs
+        logger.warning(e)
+    else:
+        uploaded[thread_id] += uploaded_imgs
+
+
 def upload_images_from_public_urls_to_project(
     project,
     img_urls,
@@ -928,7 +1173,13 @@ def upload_images_from_public_urls_to_project(
     images_to_upload = []
     duplicate_images_filenames = []
     path_to_url = {}
-
+    project, project_folder = get_project_and_folder_metadata(project)
+    upload_state = common.upload_state_int_to_str(project.get("upload_state"))
+    if upload_state == "External":
+        raise SABaseException(
+            0,
+            "The function does not support projects containing images attached with URLs"
+        )
     finish_event = threading.Event()
     tqdm_thread = threading.Thread(
         target=_tqdm_download,
@@ -1030,6 +1281,13 @@ def upload_images_from_google_cloud_to_project(
     images_to_upload = []
     duplicate_images_filenames = []
     path_to_url = {}
+    project, project_folder = get_project_and_folder_metadata(project)
+    upload_state = common.upload_state_int_to_str(project.get("upload_state"))
+    if upload_state == "External":
+        raise SABaseException(
+            0,
+            "The function does not support projects containing images attached with URLs"
+        )
     cloud_client = storage.Client(project=google_project)
     bucket = cloud_client.get_bucket(bucket_name)
     image_blobs = bucket.list_blobs(prefix=folder_path)
@@ -1106,6 +1364,13 @@ def upload_images_from_azure_blob_to_project(
     images_to_upload = []
     duplicate_images_filenames = []
     path_to_url = {}
+    project, project_folder = get_project_and_folder_metadata(project)
+    upload_state = common.upload_state_int_to_str(project.get("upload_state"))
+    if upload_state == "External":
+        raise SABaseException(
+            0,
+            "The function does not support projects containing images attached with URLs"
+        )
     connect_key = os.getenv('AZURE_STORAGE_CONNECTION_STRING')
     blob_service_client = BlobServiceClient.from_connection_string(connect_key)
     container_client = blob_service_client.get_container_client(container_name)

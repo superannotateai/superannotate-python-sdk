@@ -17,7 +17,7 @@ from plotly.subplots import make_subplots
 from ..api import API
 from ..common import (
     _AVAILABLE_SEGMENTATION_MODELS, model_training_status_int_to_str,
-    project_type_str_to_int
+    project_type_str_to_int, upload_state_int_to_str
 )
 from ..db.images import get_image_metadata, search_images
 from ..exceptions import SABaseException
@@ -56,7 +56,12 @@ def run_prediction(project, images_list, model):
             f"Specified project has type {project['type']}, and does not correspond to the type of provided model"
         )
     project_id = project["id"]
-
+    upload_state = upload_state_int_to_str(project.get("upload_state"))
+    if upload_state == "External":
+        raise SABaseException(
+            0,
+            "The function does not support projects containing images attached with URLs"
+        )
     images_metadata = get_image_metadata(project, images_list)
     if isinstance(images_metadata, dict):
         images_metadata = [images_metadata]
@@ -125,6 +130,13 @@ def run_segmentation(project, images_list, model):
             f"the model does not exist, please chose from {_AVAILABLE_SEGMENTATION_MODELS}"
         )
         raise SABaseException(0, "Model Does not exist")
+
+    upload_state = upload_state_int_to_str(project.get("upload_state"))
+    if upload_state == "External":
+        raise SABaseException(
+            0,
+            "The function does not support projects containing images attached with URLs"
+        )
 
     images_metadata = get_image_metadata(project, images_list)
     images_metadata.sort(key=lambda x: x["name"])
@@ -215,6 +227,16 @@ def run_training(
             )
             raise SABaseException(0, "Invalid project types")
         project_type = types.pop()
+
+    for single_project in project:
+        upload_state = upload_state_int_to_str(
+            single_project.get("upload_state")
+        )
+        if upload_state == "External":
+            raise SABaseException(
+                0,
+                "The function does not support projects containing images attached with URLs"
+            )
 
     base_model = base_model.get(project_type, None)
     if not base_model:

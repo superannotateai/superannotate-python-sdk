@@ -79,6 +79,19 @@ to look for. If the argument is not given then value *jpg,jpeg,png,tif,tiff,webp
 
 ----------
 
+.. _ref_attach_image_urls:
+
+Attaching image URLs
+~~~~~~~~~~~~~~~~~~~~
+
+To attach image URLs to project use:
+
+.. code-block:: bash
+
+   superannotatecli attach-image-urls --project <project_name/folder_name> --attachments <csv_path> [--annotation_status <annotation_status>]
+
+----------
+
 .. _ref_upload_videos:
 
 Uploading videos
