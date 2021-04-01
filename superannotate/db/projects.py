@@ -237,8 +237,8 @@ def upload_video_to_project(
     :return: filenames of uploaded images
     :rtype: list of strs
     """
-    project, project_folder = get_project_and_folder_metadata(project)
-    upload_state = common.upload_state_int_to_str(project.get("upload_state"))
+    project_metadata, project_folder = get_project_and_folder_metadata(project)
+    upload_state = common.upload_state_int_to_str(project_metadata.get("upload_state"))
     if upload_state == "External":
         raise SABaseException(
             0,
