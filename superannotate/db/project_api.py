@@ -105,7 +105,6 @@ def get_project_and_folder_metadata(project):
     :rtype: dict
     """
     if isinstance(project, dict):
-        project = project
         folder = None
     elif isinstance(project, tuple):
         if len(project) != 2:
