@@ -2,8 +2,6 @@ import subprocess
 import time
 from pathlib import Path
 
-import pytest
-
 import superannotate as sa
 
 PROJECT_NAME1 = "test video upload1"

@@ -766,9 +766,6 @@ def __create_image(
         "team_id": str(team_id),
         "images": [],
         "annotation_status": annotation_status,
-        "team_id": str(team_id),
-        "images": [],
-        "annotation_status": annotation_status,
         "meta": {},
         "upload_state": upload_state_code
     }
@@ -1226,7 +1223,7 @@ def upload_images_from_public_urls_to_project(
         finish_event.set()
         tqdm_thread.join()
         images_uploaded_paths, images_not_uploaded_paths, duplicate_images_paths = upload_images_to_project(
-            project,
+            (project, project_folder),
             images_to_upload,
             annotation_status=annotation_status,
             image_quality_in_editor=image_quality_in_editor
@@ -1312,7 +1309,7 @@ def upload_images_from_google_cloud_to_project(
                 path_to_url[str(image_save_pth)] = image_blob.name
                 images_to_upload.append(image_save_pth)
         images_uploaded_paths, images_not_uploaded_paths, duplicate_images_paths = upload_images_to_project(
-            project,
+            (project, project_folder),
             images_to_upload,
             annotation_status=annotation_status,
             image_quality_in_editor=image_quality_in_editor
@@ -1408,7 +1405,7 @@ def upload_images_from_azure_blob_to_project(
                 path_to_url[str(image_save_pth)] = image_blob.name
                 images_to_upload.append(image_save_pth)
         images_uploaded_paths, images_not_uploaded_paths, duplicate_images_paths = upload_images_to_project(
-            project,
+            (project, project_folder),
             images_to_upload,
             annotation_status=annotation_status,
             image_quality_in_editor=image_quality_in_editor

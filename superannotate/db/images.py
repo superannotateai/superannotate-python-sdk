@@ -720,7 +720,7 @@ def get_image_bytes(project, image_name, variant='original'):
         raise SABaseException(
             0, "Image download variant should be either original or lores"
         )
-    image = get_image_metadata(project, image_name)
+    image = get_image_metadata((project, project_folder), image_name)
     team_id, project_id, image_id, folder_id = image["team_id"], image[
         "project_id"], image["id"], image['folder_id']
     params = {
@@ -1221,7 +1221,7 @@ def set_images_annotation_statuses(project, image_names, annotation_status):
         data["image_names"] = image_names[start_index:start_index + NUM_TO_SEND]
         response = _api.send_request(
             req_type='PUT',
-            path=f'/image/updateAnnotationStatusBulk',
+            path='/image/updateAnnotationStatusBulk',
             params=params,
             json_req=data
         )

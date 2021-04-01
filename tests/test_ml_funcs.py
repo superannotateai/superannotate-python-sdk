@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 
 import pytest
@@ -84,9 +83,7 @@ def test_run_segmentation():
 
     image_names_pixel = sa.search_images(PROJECT_NAME_PIXEL_SEGMENTATION)
     with pytest.raises(SABaseException) as e:
-        res = sa.run_segmentation(
-            PROJECT_NAME_VECTOR, image_names_pixel, model_auto
-        )
+        sa.run_segmentation(PROJECT_NAME_VECTOR, image_names_pixel, model_auto)
         assert str(e) == "Operation not supported for given project type"
     with pytest.raises(SABaseException) as e:
         sa.run_segmentation(
