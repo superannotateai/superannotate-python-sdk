@@ -120,7 +120,7 @@ def upload_image_to_project(
         )
         key = upload_image_array_to_s3(bucket, *images_info_and_array, prefix)
     except Exception as e:
-        raise SABaseException(0, "Couldn't upload to data server. " + str(e))
+        raise SABaseException(0, "Couldn't upload to data server.") from e
 
     if project_folder is not None:
         project_folder_id = project_folder["id"]

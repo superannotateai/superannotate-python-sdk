@@ -265,7 +265,8 @@ def upload_video_to_project(
         if "ffprobe" in str(e):
             warning_str = "This could be because ffmpeg package is not installed. To install it, run: sudo apt install ffmpeg"
         logger.warning(
-            "Couldn't read video metadata to determine rotation. " + warning_str
+            "Couldn't read video metadata to determine rotation. %s",
+            warning_str
         )
 
     video = cv2.VideoCapture(str(video_path), cv2.CAP_FFMPEG)
@@ -1082,7 +1083,7 @@ def __attach_image_urls_to_project_thread(
     for i in range(start_index, end_index):
         if i >= len_img_paths:
             break
-        name, url = img_names_urls[i]
+        name, _ = img_names_urls[i]
         tried_upload[thread_id].append(name)
         img_name_hash = str(uuid.uuid4()) + Path(name).suffix
         key = prefix + img_name_hash
@@ -1186,7 +1187,7 @@ def upload_images_from_public_urls_to_project(
         ),
         daemon=True
     )
-    logger.info('Downloading %s images' % len(img_urls))
+    logger.info('Downloading %s images', len(img_urls))
     tqdm_thread.start()
     with tempfile.TemporaryDirectory() as save_dir_name:
         save_dir = Path(save_dir_name)
@@ -2225,11 +2226,10 @@ def get_project_default_image_quality_in_editor(project):
     for setting in get_project_settings(project):
         if "attribute" in setting and setting["attribute"] == "ImageQuality":
             return setting["value"]
-    else:
-        raise SABaseException(
-            0,
-            "Image quality in editor should be 'compressed', 'original' or None for project settings value"
-        )
+    raise SABaseException(
+        0,
+        "Image quality in editor should be 'compressed', 'original' or None for project settings value"
+    )
 
 
 def get_project_metadata(
