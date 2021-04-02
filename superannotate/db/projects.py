@@ -1000,7 +1000,7 @@ def attach_image_urls_to_project(
     img_names_urls = image_data.values.tolist()
     len_img_names_urls = len(img_names_urls)
     logger.info(
-        "Uploading %s images to project %s.", len_img_names_urls,
+        "Attaching %s images to project %s.", len_img_names_urls,
         project_folder_name
     )
     if len_img_names_urls == 0:
