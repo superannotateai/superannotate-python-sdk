@@ -19,6 +19,7 @@ from .projects import (
     __create_image, get_image_array_to_upload,
     get_project_default_image_quality_in_editor, upload_image_array_to_s3
 )
+from .utils import _get_upload_auth_token
 
 logger = logging.getLogger("superannotate-python-sdk")
 _api = API.get_instance()
@@ -50,7 +51,7 @@ def upload_image_to_project(
            Can be either "compressed" or "original".  If None then the default value in project settings will be used.
     :type image_quality_in_editor: str
     """
-    project, project_folder = get_project_and_folder_metadata(project)
+    project, folder = get_project_and_folder_metadata(project)
     upload_state = common.upload_state_int_to_str(project.get("upload_state"))
     if upload_state == "External":
         raise SABaseException(
@@ -92,21 +93,18 @@ def upload_image_to_project(
             0, "Image name img_name should be set if img is not Pathlike"
         )
 
+    if folder:
+        folder_id = folder["id"]
+    else:
+        folder_id = get_project_root_folder_id(project)
+
     team_id, project_id = project["team_id"], project["id"]
     params = {
         'team_id': team_id,
+        'folder_id' : folder_id
     }
-    response = _api.send_request(
-        req_type='GET',
-        path=f'/project/{project_id}/sdkImageUploadToken',
-        params=params
-    )
-    if not response.ok:
-        raise SABaseException(
-            response.status_code, "Couldn't get upload token " + response.text
-        )
-    res = response.json()
-    prefix = res['filePath']
+    res = _get_upload_auth_token(params=params,project_id=project_id)
+    prefix = res['filePath']    
     s3_session = boto3.Session(
         aws_access_key_id=res['accessKeyId'],
         aws_secret_access_key=res['secretAccessKey'],
@@ -122,16 +120,12 @@ def upload_image_to_project(
     except Exception as e:
         raise SABaseException(0, "Couldn't upload to data server. " + str(e))
 
-    if project_folder is not None:
-        project_folder_id = project_folder["id"]
-    else:
-        project_folder_id = None
     __create_image(
         [img_name], [key],
         project,
         annotation_status,
         prefix, [images_info_and_array[2]],
-        project_folder_id,
+        folder_id,
         upload_state="Basic"
     )
 
@@ -171,7 +165,7 @@ def _copy_images(
         destination_folder_id = get_project_root_folder_id(destination_project)
     json_req["destination_folder_id"] = destination_folder_id
     res = {}
-    res['skipped'] = 0
+    res['skipped'] = []
     for start_index in range(0, len(image_names), NUM_TO_SEND):
         json_req["image_names"] = image_names[start_index:start_index +
                                               NUM_TO_SEND]
@@ -239,7 +233,7 @@ def copy_images(
         source_project["name"] + "" if source_project_folder is None else "/" +
         source_project_folder["name"], destination_project["name"] +
         "" if destination_project_folder is None else "/" +
-        destination_project_folder["name"], res["skipped"]
+        destination_project_folder["name"], len(res["skipped"])
     )
     return res["skipped"]
 

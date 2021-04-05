@@ -34,12 +34,13 @@ from .annotation_classes import (
     fill_class_and_attribute_ids, get_annotation_classes_name_to_id,
     search_annotation_classes
 )
-from .images import get_image_metadata, search_images, search_images_all_folders
+from .images import get_image_metadata, search_images, search_images_all_folders, get_project_root_folder_id
 from .project_api import (
     get_project_and_folder_metadata, get_project_metadata_bare,
     get_project_metadata_with_users
 )
 from .users import get_team_contributor_metadata
+from .utils import _get_upload_auth_token
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -827,9 +828,9 @@ def upload_images_to_project(
     :return: uploaded, could-not-upload, existing-images filepaths
     :rtype: tuple (3 members) of list of strs
     """
-    project, project_folder = get_project_and_folder_metadata(project)
-    project_folder_name = project["name"] + (
-        f'/{project_folder["name"]}' if project_folder else ""
+    project, folder = get_project_and_folder_metadata(project)
+    folder_name = project["name"] + (
+        f'/{folder["name"]}' if folder else ""
     )
     upload_state = common.upload_state_int_to_str(project.get("upload_state"))
     if upload_state == "External":
@@ -847,7 +848,7 @@ def upload_images_to_project(
             project
         )
     team_id, project_id = project["team_id"], project["id"]
-    existing_images = search_images((project, project_folder))
+    existing_images = search_images((project, folder))
     duplicate_images = []
     for existing_image in existing_images:
         i = -1
@@ -865,31 +866,31 @@ def upload_images_to_project(
         )
     len_img_paths = len(img_paths)
     logger.info(
-        "Uploading %s images to project %s.", len_img_paths, project_folder_name
+        "Uploading %s images to project %s.", len_img_paths, folder_name
     )
     if len_img_paths == 0:
         return ([], [], duplicate_images)
-    params = {'team_id': team_id}
+
+    
+    if folder:
+        folder_id = folder["id"]
+    else:
+        folder_id = get_project_root_folder_id(project)
+
+    params = {'team_id': team_id , 'folder_id' : folder_id }
     uploaded = [[] for _ in range(_NUM_THREADS)]
     tried_upload = [[] for _ in range(_NUM_THREADS)]
     couldnt_upload = [[] for _ in range(_NUM_THREADS)]
     finish_event = threading.Event()
-    chunksize = int(math.ceil(len(img_paths) / _NUM_THREADS))
-    response = _api.send_request(
-        req_type='GET',
-        path=f'/project/{project_id}/sdkImageUploadToken',
-        params=params
-    )
-    if not response.ok:
-        raise SABaseException(
-            response.status_code, "Couldn't get upload token " + response.text
-        )
-    if project_folder is not None:
-        project_folder_id = project_folder["id"]
-    else:
-        project_folder_id = None
-    res = response.json()
+
+    res = _get_upload_auth_token(params=params,project_id=project_id)
+
     prefix = res['filePath']
+    limit = res['availableImageCount']
+    images_to_upload = img_paths[:limit]
+    images_to_skip = img_paths[limit:]
+    chunksize = int(math.ceil(len(images_to_upload) / _NUM_THREADS))
+
     tqdm_thread = threading.Thread(
         target=__tqdm_thread_image_upload,
         args=(len_img_paths, tried_upload, finish_event),
@@ -902,9 +903,9 @@ def upload_images_to_project(
         t = threading.Thread(
             target=__upload_images_to_aws_thread,
             args=(
-                res, img_paths, project, annotation_status, prefix, thread_id,
+                res, images_to_upload, project, annotation_status, prefix, thread_id,
                 chunksize, couldnt_upload, uploaded, tried_upload,
-                image_quality_in_editor, from_s3_bucket, project_folder_id
+                image_quality_in_editor, from_s3_bucket, folder_id
             ),
             daemon=True
         )
@@ -923,6 +924,7 @@ def upload_images_to_project(
         for f in upload_thread:
             list_of_uploaded.append(str(f))
 
+    list_of_not_uploaded += images_to_skip
     return (list_of_uploaded, list_of_not_uploaded, duplicate_images)
 
 
@@ -960,9 +962,9 @@ def attach_image_urls_to_project(
     :rtype: tuple
     """
 
-    project, project_folder = get_project_and_folder_metadata(project)
-    project_folder_name = project["name"] + (
-        f'/{project_folder["name"]}' if project_folder else ""
+    project, folder = get_project_and_folder_metadata(project)
+    folder_name = project["name"] + (
+        f'/{folder["name"]}' if folder else ""
     )
     upload_state = common.upload_state_int_to_str(project.get("upload_state"))
     if upload_state == "Basic":
@@ -978,7 +980,7 @@ def attach_image_urls_to_project(
     duplicate_idx_csv = existing_names.duplicated(subset="name", keep="first")
     duplicate_images = existing_names[duplicate_idx_csv]["name"].tolist()
     existing_names = existing_names[~duplicate_idx_csv]
-    existing_images = search_images((project, project_folder))
+    existing_images = search_images((project, folder))
     duplicate_idx = []
     for ind, _ in image_data[image_data["name"].isnull()].iterrows():
         while True:
@@ -1000,37 +1002,35 @@ def attach_image_urls_to_project(
         )
     image_data = pd.DataFrame(image_data, columns=["name", "url"])
     img_names_urls = image_data.values.tolist()
-    len_img_names_urls = len(img_names_urls)
     logger.info(
-        "Uploading %s images to project %s.", len_img_names_urls,
-        project_folder_name
+        "Uploading %s images to project %s.", len(img_names_urls),
+        folder_name
     )
-    if len_img_names_urls == 0:
+    if len(img_names_urls) == 0:
         return ([], [], duplicate_images)
-    params = {'team_id': team_id}
+
+    if folder:
+        folder_id = folder["id"]
+    else:
+        folder_id = get_project_root_folder_id(project)
+
+    params = {'team_id': team_id , 'folder_id' : folder_id }
     uploaded = [[] for _ in range(_NUM_THREADS)]
     tried_upload = [[] for _ in range(_NUM_THREADS)]
     couldnt_upload = [[] for _ in range(_NUM_THREADS)]
     finish_event = threading.Event()
-    chunksize = int(math.ceil(len_img_names_urls / _NUM_THREADS))
-    response = _api.send_request(
-        req_type='GET',
-        path=f'/project/{project_id}/sdkImageUploadToken',
-        params=params
-    )
-    if not response.ok:
-        raise SABaseException(
-            response.status_code, "Couldn't get upload token " + response.text
-        )
-    if project_folder is not None:
-        project_folder_id = project_folder["id"]
-    else:
-        project_folder_id = None
-    res = response.json()
+
+    res = _get_upload_auth_token(params=params,project_id=project_id)
+    
     prefix = res['filePath']
+    limit = res['availableImageCount']
+    images_to_upload = img_names_urls[:limit]
+    images_to_skip = img_names_urls[limit:]
+    chunksize = int(math.ceil(len(images_to_upload) / _NUM_THREADS))
+
     tqdm_thread = threading.Thread(
         target=__tqdm_thread_image_upload,
-        args=(len_img_names_urls, tried_upload, finish_event),
+        args=(len(images_to_upload), tried_upload, finish_event),
         daemon=True
     )
     tqdm_thread.start()
@@ -1039,9 +1039,9 @@ def attach_image_urls_to_project(
         t = threading.Thread(
             target=__attach_image_urls_to_project_thread,
             args=(
-                res, img_names_urls, project, annotation_status, prefix,
+                res, images_to_upload, project, annotation_status, prefix,
                 thread_id, chunksize, couldnt_upload, uploaded, tried_upload,
-                project_folder_id
+                folder_id
             ),
             daemon=True
         )
@@ -1060,6 +1060,7 @@ def attach_image_urls_to_project(
         for f in upload_thread:
             list_of_uploaded.append(str(f))
 
+    list_of_not_uploaded += [i[0] for i in images_to_skip ]
     return (list_of_uploaded, list_of_not_uploaded, duplicate_images)
 
 
