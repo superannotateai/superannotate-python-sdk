@@ -1,9 +1,6 @@
 import json
 from pathlib import Path
 import time
-import os
-
-import pytest
 
 import superannotate as sa
 

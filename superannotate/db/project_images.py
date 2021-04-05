@@ -118,7 +118,7 @@ def upload_image_to_project(
         )
         key = upload_image_array_to_s3(bucket, *images_info_and_array, prefix)
     except Exception as e:
-        raise SABaseException(0, "Couldn't upload to data server. " + str(e))
+        raise SABaseException(0, "Couldn't upload to data server.") from e
 
     __create_image(
         [img_name], [key],
@@ -375,18 +375,15 @@ def copy_image(
         except SABaseException:
             break
         else:
-            found_copied = False
             for m in p.finditer(new_name):
                 if m.start() + len(m.group()
                                   ) + len(extension) - 1 == len(new_name):
                     num = int(m.group()[2:-2])
-                    found_copied = True
+                    new_name = new_name[:m.start() +
+                                        2] + str(num + 1) + ")" + extension
                     break
-            if not found_copied:
-                new_name = Path(new_name).stem + "_(1)" + extension
             else:
-                new_name = new_name[:m.start() +
-                                    2] + str(num + 1) + ")" + extension
+                new_name = Path(new_name).stem + "_(1)" + extension
 
     upload_image_to_project(
         (destination_project, destination_project_folder), img_b, new_name

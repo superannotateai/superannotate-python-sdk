@@ -2,8 +2,6 @@ import subprocess
 import time
 from pathlib import Path
 
-import pytest
-
 import superannotate as sa
 
 PROJECT_NAME1 = "test video upload1"
@@ -42,5 +40,15 @@ def test_video(tmpdir):
     sa.create_annotation_class(project, "fr2", "#FFAACC")
 
     assert len(sa.search_images(PROJECT_NAME1)) == len(
+        sa.search_images(PROJECT_NAME2)
+    )
+
+    sa.create_folder(project, "new folder")
+
+    sa.upload_videos_from_folder_to_project(
+        PROJECT_NAME2 + "/new folder", "./tests/sample_videos", target_fps=2
+    )
+
+    assert len(sa.search_images(PROJECT_NAME2 + "/new folder")) == len(
         sa.search_images(PROJECT_NAME2)
     )
