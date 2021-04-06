@@ -51,6 +51,14 @@ _PREDICTION_SEGMENTATION_STATUSES = {
     "Failed": 4
 }
 
+_MODEL_TRAINING_TASKS = {
+    "Instance Segmentation for Pixel Projects" : "instance_segmentation_pixel",
+    "Instance Segmentation for Vector Projects" : "instance_segmentation_vector",
+    "Keypoint Detection for Vector Projects" : "keypoint_detection_vector",
+    "Object Detection for Vector Projects" : "object_detection_vector",
+    "Semantic Segmentation for Pixel Projects" : "semantic_segmentation_pixel"
+}
+
 
 def prediction_segmentation_status_from_str_to_int(status):
     return _PREDICTION_SEGMENTATION_STATUSES[status]
