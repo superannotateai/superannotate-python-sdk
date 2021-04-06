@@ -23,9 +23,11 @@ def search_projects(
     :rtype: list of strs or dicts
     """
     result_list = []
+    limit = 1000
     params = {
         'team_id': str(_api.team_id),
         'offset': 0,
+        'limit' : limit,
         'completeImagesCount': include_complete_image_count
     }
     if name is not None:
@@ -37,9 +39,9 @@ def search_projects(
         if response.ok:
             new_results = response.json()
             result_list += new_results["data"]
-            if new_results["count"] <= len(result_list):
+            params["offset"] += limit
+            if params["offset"] >= new_results["count"]:
                 break
-            params["offset"] = len(result_list)
         else:
             raise SABaseException(
                 response.status_code,
