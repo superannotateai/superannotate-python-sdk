@@ -213,6 +213,8 @@ def copy_images(
     :type copy_annotation_status: bool
     :param copy_pin: enables image pin status copy
     :type copy_pin: bool
+    :return: list of skipped image names
+    :rtype: list of strs
     """
     source_project, source_project_folder = get_project_and_folder_metadata(
         source_project
@@ -232,7 +234,7 @@ def copy_images(
         image_names,
         source_project["name"] + "" if source_project_folder is None else "/" +
         source_project_folder["name"], destination_project["name"] +
-        "" if destination_project_folder is None else "/" +
+        "" if destination_project_folder is None else destination_project["name"] + "/" +
         destination_project_folder["name"], len(res["skipped"])
     )
     return res["skipped"]
