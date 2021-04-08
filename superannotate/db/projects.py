@@ -205,6 +205,113 @@ def get_project_image_count(project, with_all_subfolders=False):
         return len(search_images_all_folders(project))
 
 
+def _get_video_frames_count(video_path):
+    """
+    Get video frames count
+    """
+    video = cv2.VideoCapture(str(video_path), cv2.CAP_FFMPEG)
+    total_num_of_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
+    if total_num_of_frames < 0:
+        total_num_of_frames = 0
+        flag = True
+        while flag:
+            flag, _ = video.read()
+            if flag:
+                total_num_of_frames += 1
+            else:
+                break
+    return total_num_of_frames
+
+
+def _get_video_fps_ration(target_fps,video,ratio):
+    """
+    Get video fps / target fps ratio
+    """
+    video_fps = float(video.get(cv2.CAP_PROP_FPS))
+    if target_fps >= video_fps:
+        logger.warning(
+            "Video frame rate %s smaller than target frame rate %s. Cannot change frame rate.",
+            video_fps, target_fps
+            )
+    else:
+        logger.info(
+            "Changing video frame rate from %s to target frame rate %s.",
+            video_fps, target_fps
+        )
+        ratio = video_fps / target_fps
+    return ratio
+
+def _get_available_image_counts(project,folder):
+    if folder:
+        folder_id = folder["id"]
+    else:
+        folder_id = get_project_root_folder_id(project)
+    params = {'team_id': project['team_id'] , 'folder_id' : folder_id }
+    res = _get_upload_auth_token(params=params,project_id=project['id'])
+    return res['availableImageCount']
+
+def _get_video_rotate_code(video_path):
+    rotate_code = None
+    try:
+        cv2_rotations = {
+            90 : cv2.ROTATE_90_CLOCKWISE,
+            180 : cv2.ROTATE_180,
+            270 :cv2.ROTATE_90_COUNTERCLOCKWISE,
+        }
+
+        meta_dict = ffmpeg.probe(str(video_path))
+        rot = int(meta_dict['streams'][0]['tags']['rotate'])
+        rotate_code = cv2_rotations[rot]
+        if rot != 0:
+            logger.info(
+                "Frame rotation of %s found. Output images will be rotated accordingly.",
+                rot
+            )
+    except Exception as e:
+        warning_str = ""
+        if "ffprobe" in str(e):
+            warning_str = "This could be because ffmpeg package is not installed. To install it, run: sudo apt install ffmpeg"
+        logger.warning(
+            "Couldn't read video metadata to determine rotation. %s",
+            warning_str
+        )
+    return rotate_code
+
+
+def _extract_frames_from_video(start_time,end_time,ratio,video,video_path,tempdir,limit,rotate_code,total_num_of_frames):
+    video_name = Path(video_path).stem
+    frame_no = 0
+    frame_no_with_change = 1.0
+    extracted_frame_no = 1
+    logger.info("Extracting frames from video to %s.", tempdir.name)
+    zero_fill_count = len(str(total_num_of_frames))
+    while extracted_frame_no < (limit + 1) :
+        success, frame = video.read()
+        if not success:
+            break
+        frame_no += 1
+        if round(frame_no_with_change) != frame_no:
+            continue
+        frame_no_with_change += ratio
+        frame_time = video.get(cv2.CAP_PROP_POS_MSEC) / 1000.0
+        if end_time and frame_time > end_time:
+            break
+        if frame_time < start_time:
+            continue
+        if rotate_code:
+            frame = cv2.rotate(frame, rotate_code)
+        cv2.imwrite(
+            str(
+                Path(tempdir.name) / (
+                    video_name + "_" +
+                    str(extracted_frame_no).zfill(zero_fill_count) + ".jpg"
+                )
+            ), frame
+        )
+        extracted_frame_no += 1
+    return extracted_frame_no - 1
+
+
 def upload_video_to_project(
     project,
     video_path,
@@ -238,7 +345,10 @@ def upload_video_to_project(
     :return: filenames of uploaded images
     :rtype: list of strs
     """
-    project, project_folder = get_project_and_folder_metadata(project)
+
+    project, folder = get_project_and_folder_metadata(project)
+    limit = _get_available_image_counts(project,folder)
+
     upload_state = common.upload_state_int_to_str(project.get("upload_state"))
     if upload_state == "External":
         raise SABaseException(
@@ -246,114 +356,32 @@ def upload_video_to_project(
             "The function does not support projects containing images attached with URLs"
         )
     logger.info("Uploading from video %s.", str(video_path))
-    rotate_code = None
-    try:
-        meta_dict = ffmpeg.probe(str(video_path))
-        rot = int(meta_dict['streams'][0]['tags']['rotate'])
-        if rot == 90:
-            rotate_code = cv2.ROTATE_90_CLOCKWISE
-        elif rot == 180:
-            rotate_code = cv2.ROTATE_180
-        elif rot == 270:
-            rotate_code = cv2.ROTATE_90_COUNTERCLOCKWISE
-        if rot != 0:
-            logger.info(
-                "Frame rotation of %s found. Output images will be rotated accordingly.",
-                rot
-            )
-    except Exception as e:
-        warning_str = ""
-        if "ffprobe" in str(e):
-            warning_str = "This could be because ffmpeg package is not installed. To install it, run: sudo apt install ffmpeg"
-        logger.warning(
-            "Couldn't read video metadata to determine rotation. %s",
-            warning_str
-        )
-
+    rotate_code = _get_video_rotate_code(video_path)
     video = cv2.VideoCapture(str(video_path), cv2.CAP_FFMPEG)
     if not video.isOpened():
         raise SABaseException(0, "Couldn't open video file " + str(video_path))
 
-    total_num_of_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
-    if total_num_of_frames < 0:
-        total_num_of_frames = 0
-        flag = True
-        while flag:
-            flag, frame = video.read()
-            if flag:
-                total_num_of_frames += 1
-            else:
-                break
-        video = cv2.VideoCapture(str(video_path), cv2.CAP_FFMPEG)
+    total_num_of_frames = _get_video_frames_count(video_path)
     logger.info("Video frame count is %s.", total_num_of_frames)
-
-    r = 1.0
-    if target_fps is not None:
-        video_fps = float(video.get(cv2.CAP_PROP_FPS))
-        if target_fps >= video_fps:
-            logger.warning(
-                "Video frame rate %s smaller than target frame rate %s. Cannot change frame rate.",
-                video_fps, target_fps
-            )
-        else:
-            logger.info(
-                "Changing video frame rate from %s to target frame rate %s.",
-                video_fps, target_fps
-            )
-            r = video_fps / target_fps
-
-    zero_fill_count = len(str(total_num_of_frames))
+    ratio = 1.0
+    if target_fps:
+        ratio = _get_video_fps_ration(target_fps,video,ratio)
     tempdir = tempfile.TemporaryDirectory()
-
-    video_name = Path(video_path).stem
-    frame_no = 0
-    frame_no_with_change = 1.0
-    extracted_frame_no = 1
-    logger.info("Extracting frames from video to %s.", tempdir.name)
-    while True:
-        success, frame = video.read()
-        if not success:
-            break
-        frame_no += 1
-        if round(frame_no_with_change) != frame_no:
-            continue
-        frame_no_with_change += r
-        frame_time = video.get(cv2.CAP_PROP_POS_MSEC) / 1000.0
-        if end_time is not None and frame_time > end_time:
-            break
-        if frame_time < start_time:
-            continue
-        if rotate_code is not None:
-            frame = cv2.rotate(frame, rotate_code)
-        cv2.imwrite(
-            str(
-                Path(tempdir.name) / (
-                    video_name + "_" +
-                    str(extracted_frame_no).zfill(zero_fill_count) + ".jpg"
-                )
-            ), frame
-        )
-        extracted_frame_no += 1
-
+    extracted_frame_no = _extract_frames_from_video(start_time,end_time,ratio,
+                                                    video,video_path,tempdir,
+                                                    limit,rotate_code,total_num_of_frames)
     logger.info(
         "Extracted %s frames from video. Now uploading to platform.",
-        extracted_frame_no - 1
+        extracted_frame_no
     )
-
     filenames = upload_images_from_folder_to_project(
-        (project, project_folder),
+        (project, folder),
         tempdir.name,
         extensions=["jpg"],
         annotation_status=annotation_status,
         image_quality_in_editor=image_quality_in_editor
     )
-
-    assert len(filenames[1]) == 0
-
-    filenames_base = []
-    for file in filenames[0]:
-        filenames_base.append(Path(file).name)
-
+    filenames_base = [Path(f).name for f in filenames[0]]
     return filenames_base
 
 
@@ -398,7 +426,7 @@ def upload_videos_from_folder_to_project(
     :return: uploaded and not-uploaded video frame images' filenames
     :rtype: tuple of list of strs
     """
-    project, project_folder = get_project_and_folder_metadata(project)
+    project, folder = get_project_and_folder_metadata(project)
     upload_state = common.upload_state_int_to_str(project.get("upload_state"))
     if upload_state == "External":
         raise SABaseException(
@@ -440,7 +468,7 @@ def upload_videos_from_folder_to_project(
     filenames = []
     for path in filtered_paths:
         filenames += upload_video_to_project(
-            (project, project_folder),
+            (project, folder),
             path,
             target_fps=target_fps,
             start_time=start_time,
