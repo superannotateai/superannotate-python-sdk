@@ -210,16 +210,14 @@ def _get_video_frames_count(video_path):
     Get video frames count
     """
     video = cv2.VideoCapture(str(video_path), cv2.CAP_FFMPEG)
-    total_num_of_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
-    if total_num_of_frames < 0:
-        total_num_of_frames = 0
-        flag = True
-        while flag:
-            flag, _ = video.read()
-            if flag:
-                total_num_of_frames += 1
-            else:
-                break
+    total_num_of_frames = 0
+    flag = True
+    while flag:
+        flag, _ = video.read()
+        if flag:
+            total_num_of_frames += 1
+        else:
+            break
     return total_num_of_frames
 
 
