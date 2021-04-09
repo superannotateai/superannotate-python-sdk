@@ -997,7 +997,7 @@ def attach_image_urls_to_project(
         )
     annotation_status = common.annotation_status_str_to_int(annotation_status)
     team_id, project_id = project["team_id"], project["id"]
-    image_data = pd.read_csv(attachments)
+    image_data = pd.read_csv(attachments, dtype=str)
     image_data = image_data[~image_data["url"].isnull()]
     existing_names = image_data[~image_data["name"].isnull()]
     duplicate_idx_csv = existing_names.duplicated(subset="name", keep="first")
