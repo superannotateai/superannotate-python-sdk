@@ -17,7 +17,8 @@ from .images import (
 from .project_api import get_project_and_folder_metadata
 from .projects import (
     __create_image, get_image_array_to_upload,
-    get_project_default_image_quality_in_editor, upload_image_array_to_s3
+    get_project_default_image_quality_in_editor, upload_image_array_to_s3,
+    _get_available_image_counts
 )
 from .utils import _get_upload_auth_token
 
@@ -99,12 +100,9 @@ def upload_image_to_project(
         folder_id = get_project_root_folder_id(project)
 
     team_id, project_id = project["team_id"], project["id"]
-    params = {
-        'team_id': team_id,
-        'folder_id' : folder_id
-    }
-    res = _get_upload_auth_token(params=params,project_id=project_id)
-    prefix = res['filePath']    
+    params = {'team_id': team_id, 'folder_id': folder_id}
+    res = _get_upload_auth_token(params=params, project_id=project_id)
+    prefix = res['filePath']
     s3_session = boto3.Session(
         aws_access_key_id=res['accessKeyId'],
         aws_secret_access_key=res['secretAccessKey'],
@@ -224,6 +222,11 @@ def copy_images(
     )
     if image_names is None:
         image_names = search_images((source_project, source_project_folder))
+
+    limit = _get_available_image_counts(
+        destination_project, destination_project_folder
+    )
+    image_names = image_names[:limit]
     res = _copy_images(
         (source_project, source_project_folder),
         (destination_project, destination_project_folder), image_names,
@@ -231,11 +234,11 @@ def copy_images(
     )
     logger.info(
         "Copied images %s from %s to %s. Number of skipped images %s",
-        image_names,
-        source_project["name"] + "" if source_project_folder is None else "/" +
-        source_project_folder["name"], destination_project["name"] +
-        "" if destination_project_folder is None else destination_project["name"] + "/" +
-        destination_project_folder["name"], len(res["skipped"])
+        image_names, source_project["name"] +
+        "" if source_project_folder is None else source_project["name"] + "/" +
+        source_project_folder["name"], destination_project["name"] + ""
+        if destination_project_folder is None else destination_project["name"] +
+        "/" + destination_project_folder["name"], len(res["skipped"])
     )
     return res["skipped"]
 
