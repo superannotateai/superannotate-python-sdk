@@ -210,16 +210,14 @@ def _get_video_frames_count(video_path):
     Get video frames count
     """
     video = cv2.VideoCapture(str(video_path), cv2.CAP_FFMPEG)
-    total_num_of_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
-    if total_num_of_frames < 0:
-        total_num_of_frames = 0
-        flag = True
-        while flag:
-            flag, _ = video.read()
-            if flag:
-                total_num_of_frames += 1
-            else:
-                break
+    total_num_of_frames = 0
+    flag = True
+    while flag:
+        flag, _ = video.read()
+        if flag:
+            total_num_of_frames += 1
+        else:
+            break
     return total_num_of_frames
 
 
@@ -281,16 +279,25 @@ def _get_video_rotate_code(video_path):
 
 
 def _extract_frames_from_video(
-    start_time, end_time, ratio, video, video_path, tempdir, limit, rotate_code,
-    total_num_of_frames
+    start_time, end_time, video_path, tempdir, limit, target_fps
 ):
+    video = cv2.VideoCapture(str(video_path), cv2.CAP_FFMPEG)
+    if not video.isOpened():
+        raise SABaseException(0, "Couldn't open video file " + str(video_path))
+    total_num_of_frames = _get_video_frames_count(video_path)
+    logger.info("Video frame count is %s.", total_num_of_frames)
+    ratio = 1.0
+    if target_fps:
+        ratio = _get_video_fps_ration(target_fps, video, ratio)
+    rotate_code = _get_video_rotate_code(video_path)
     video_name = Path(video_path).stem
     frame_no = 0
     frame_no_with_change = 1.0
     extracted_frame_no = 1
     logger.info("Extracting frames from video to %s.", tempdir.name)
     zero_fill_count = len(str(total_num_of_frames))
-    while extracted_frame_no < (limit + 1):
+    extracted_frames_paths = []
+    while len(extracted_frames_paths) < limit:
         success, frame = video.read()
         if not success:
             break
@@ -305,16 +312,16 @@ def _extract_frames_from_video(
             continue
         if rotate_code:
             frame = cv2.rotate(frame, rotate_code)
-        cv2.imwrite(
-            str(
-                Path(tempdir.name) / (
-                    video_name + "_" +
-                    str(extracted_frame_no).zfill(zero_fill_count) + ".jpg"
-                )
-            ), frame
+        path = str(
+            Path(tempdir.name) / (
+                video_name + "_" +
+                str(extracted_frame_no).zfill(zero_fill_count) + ".jpg"
+            )
         )
+        cv2.imwrite(path, frame)
+        extracted_frames_paths.append(path)
         extracted_frame_no += 1
-    return extracted_frame_no - 1
+    return extracted_frames_paths
 
 
 def upload_video_to_project(
@@ -361,24 +368,13 @@ def upload_video_to_project(
             "The function does not support projects containing images attached with URLs"
         )
     logger.info("Uploading from video %s.", str(video_path))
-    rotate_code = _get_video_rotate_code(video_path)
-    video = cv2.VideoCapture(str(video_path), cv2.CAP_FFMPEG)
-    if not video.isOpened():
-        raise SABaseException(0, "Couldn't open video file " + str(video_path))
-
-    total_num_of_frames = _get_video_frames_count(video_path)
-    logger.info("Video frame count is %s.", total_num_of_frames)
-    ratio = 1.0
-    if target_fps:
-        ratio = _get_video_fps_ration(target_fps, video, ratio)
     tempdir = tempfile.TemporaryDirectory()
-    extracted_frame_no = _extract_frames_from_video(
-        start_time, end_time, ratio, video, video_path, tempdir, limit,
-        rotate_code, total_num_of_frames
+    extracted_frames = _extract_frames_from_video(
+        start_time, end_time, video_path, tempdir, limit, target_fps
     )
     logger.info(
         "Extracted %s frames from video. Now uploading to platform.",
-        extracted_frame_no
+        len(extracted_frames)
     )
     filenames = upload_images_from_folder_to_project(
         (project, folder),
@@ -917,7 +913,7 @@ def upload_images_to_project(
     prefix = res['filePath']
     limit = res['availableImageCount']
     images_to_upload = img_paths[:limit]
-    images_to_skip = img_paths[limit:]
+    images_to_skip = [str(path) for path in img_paths[limit:]]
     chunksize = int(math.ceil(len(images_to_upload) / _NUM_THREADS))
 
     tqdm_thread = threading.Thread(
