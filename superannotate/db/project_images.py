@@ -164,6 +164,7 @@ def _copy_images(
     json_req["destination_folder_id"] = destination_folder_id
     res = {}
     res['skipped'] = []
+    res['completed'] = []
     for start_index in range(0, len(image_names), NUM_TO_SEND):
         json_req["image_names"] = image_names[start_index:start_index +
                                               NUM_TO_SEND]
@@ -179,6 +180,7 @@ def _copy_images(
                 response.status_code, "Couldn't copy images " + response.text
             )
         res['skipped'] += response.json()['skipped']
+        res['completed'] += response.json()['completed']
 
     for image_name in image_names:
         _copy_annotations_and_metadata(
@@ -226,21 +228,26 @@ def copy_images(
     limit = _get_available_image_counts(
         destination_project, destination_project_folder
     )
-    image_names = image_names[:limit]
+    imgs_to_upload = image_names[:limit]
     res = _copy_images(
         (source_project, source_project_folder),
-        (destination_project, destination_project_folder), image_names,
+        (destination_project, destination_project_folder), imgs_to_upload,
         include_annotations, copy_annotation_status, copy_pin
     )
+    uploaded_imgs = res['completed']
+    skipped_imgs = [i for i in imgs_to_upload if i not in uploaded_imgs]
+
+    skipped_images_count = len(skipped_imgs) + len(image_names[limit:])
+
     logger.info(
         "Copied images %s from %s to %s. Number of skipped images %s",
-        image_names, source_project["name"] +
+        uploaded_imgs, source_project["name"] +
         "" if source_project_folder is None else source_project["name"] + "/" +
         source_project_folder["name"], destination_project["name"] + ""
         if destination_project_folder is None else destination_project["name"] +
-        "/" + destination_project_folder["name"], len(res["skipped"])
+        "/" + destination_project_folder["name"], skipped_images_count
     )
-    return res["skipped"]
+    return skipped_imgs
 
 
 def delete_images(project, image_names):
