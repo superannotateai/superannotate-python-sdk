@@ -329,11 +329,9 @@ def move_images(
     )
     if image_names is None:
         image_names = search_images((source_project, source_project_folder))
-    _copy_images(
-        (source_project, source_project_folder),
-        (destination_project, destination_project_folder), image_names,
-        include_annotations, copy_annotation_status, copy_pin
-    )
+    copy_images((source_project, source_project_folder), image_names,
+                (destination_project, destination_project_folder),
+                include_annotations, copy_annotation_status, copy_pin)
     delete_images((source_project, source_project_folder), image_names)
     logger.info(
         "Moved images %s from project %s to project %s", image_names,
