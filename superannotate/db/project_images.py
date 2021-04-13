@@ -52,6 +52,7 @@ def upload_image_to_project(
            Can be either "compressed" or "original".  If None then the default value in project settings will be used.
     :type image_quality_in_editor: str
     """
+    initial_project_inp = project
     project, folder = get_project_and_folder_metadata(project)
     upload_state = common.upload_state_int_to_str(project.get("upload_state"))
     if upload_state == "External":
@@ -129,7 +130,7 @@ def upload_image_to_project(
 
     while True:
         try:
-            get_image_metadata(project, img_name)
+            get_image_metadata(initial_project_inp, img_name)
         except SABaseException:
             time.sleep(0.2)
         else:
