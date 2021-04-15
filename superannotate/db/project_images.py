@@ -52,6 +52,7 @@ def upload_image_to_project(
            Can be either "compressed" or "original".  If None then the default value in project settings will be used.
     :type image_quality_in_editor: str
     """
+    initial_project_inp = project
     project, folder = get_project_and_folder_metadata(project)
     upload_state = common.upload_state_int_to_str(project.get("upload_state"))
     if upload_state == "External":
@@ -129,7 +130,7 @@ def upload_image_to_project(
 
     while True:
         try:
-            get_image_metadata(project, img_name)
+            get_image_metadata(initial_project_inp, img_name)
         except SABaseException:
             time.sleep(0.2)
         else:
@@ -328,11 +329,9 @@ def move_images(
     )
     if image_names is None:
         image_names = search_images((source_project, source_project_folder))
-    _copy_images(
-        (source_project, source_project_folder),
-        (destination_project, destination_project_folder), image_names,
-        include_annotations, copy_annotation_status, copy_pin
-    )
+    copy_images((source_project, source_project_folder), image_names,
+                (destination_project, destination_project_folder),
+                include_annotations, copy_annotation_status, copy_pin)
     delete_images((source_project, source_project_folder), image_names)
     logger.info(
         "Moved images %s from project %s to project %s", image_names,
