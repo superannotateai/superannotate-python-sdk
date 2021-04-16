@@ -40,7 +40,7 @@ from .project_api import (
     get_project_metadata_with_users
 )
 from .users import get_team_contributor_metadata
-from .utils import _get_upload_auth_token
+from .utils import _get_upload_auth_token, _get_boto_session_by_credentials
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -700,11 +700,7 @@ def __upload_images_to_aws_thread(
         from_s3 = from_session.resource('s3')
     if start_index >= len_img_paths:
         return
-    s3_session = boto3.Session(
-        aws_access_key_id=res['accessKeyId'],
-        aws_secret_access_key=res['secretAccessKey'],
-        aws_session_token=res['sessionToken']
-    )
+    s3_session = _get_boto_session_by_credentials(res)
     s3_resource = s3_session.resource('s3')
     bucket = s3_resource.Bucket(res["bucket"])
     prefix = res['filePath']
@@ -1095,11 +1091,7 @@ def __attach_image_urls_to_project_thread(
     end_index = start_index + chunksize
     if start_index >= len_img_paths:
         return
-    s3_session = boto3.Session(
-        aws_access_key_id=res['accessKeyId'],
-        aws_secret_access_key=res['secretAccessKey'],
-        aws_session_token=res['sessionToken']
-    )
+    s3_session = _get_boto_session_by_credentials(res)
     s3_resource = s3_session.resource('s3')
     bucket = s3_resource.Bucket(res["bucket"])
     prefix = res['filePath']
@@ -1520,11 +1512,7 @@ def __upload_annotations_thread(
             continue
         res = response.json()
         aws_creds = res["creds"]
-        s3_session = boto3.Session(
-            aws_access_key_id=aws_creds['accessKeyId'],
-            aws_secret_access_key=aws_creds['secretAccessKey'],
-            aws_session_token=aws_creds['sessionToken']
-        )
+        s3_session = _get_boto_session_by_credentials(aws_creds)
         s3_resource = s3_session.resource('s3')
         bucket = s3_resource.Bucket(aws_creds["bucket"])
         for image_id, image_info in res['images'].items():
