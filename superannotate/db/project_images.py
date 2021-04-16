@@ -16,11 +16,9 @@ from .images import (
 )
 from .project_api import get_project_and_folder_metadata
 from .projects import (
-    __create_image, get_image_array_to_upload,
-    get_project_default_image_quality_in_editor, upload_image_array_to_s3,
-    _get_available_image_counts
+    get_project_default_image_quality_in_editor, _get_available_image_counts
 )
-from .utils import _get_upload_auth_token, _get_boto_session_by_credentials
+from .utils import _get_upload_auth_token, _get_boto_session_by_credentials, upload_image_array_to_s3, get_image_array_to_upload, __create_image
 
 logger = logging.getLogger("superannotate-python-sdk")
 _api = API.get_instance()
