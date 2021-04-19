@@ -17,8 +17,10 @@ from .images import (
 from .project_api import get_project_and_folder_metadata
 from .projects import (
     __create_image, get_image_array_to_upload,
-    get_project_default_image_quality_in_editor, upload_image_array_to_s3
+    get_project_default_image_quality_in_editor, upload_image_array_to_s3,
+    _get_available_image_counts
 )
+from .utils import _get_upload_auth_token
 
 logger = logging.getLogger("superannotate-python-sdk")
 _api = API.get_instance()
@@ -50,7 +52,8 @@ def upload_image_to_project(
            Can be either "compressed" or "original".  If None then the default value in project settings will be used.
     :type image_quality_in_editor: str
     """
-    project, project_folder = get_project_and_folder_metadata(project)
+    initial_project_inp = project
+    project, folder = get_project_and_folder_metadata(project)
     upload_state = common.upload_state_int_to_str(project.get("upload_state"))
     if upload_state == "External":
         raise SABaseException(
@@ -92,20 +95,14 @@ def upload_image_to_project(
             0, "Image name img_name should be set if img is not Pathlike"
         )
 
+    if folder:
+        folder_id = folder["id"]
+    else:
+        folder_id = get_project_root_folder_id(project)
+
     team_id, project_id = project["team_id"], project["id"]
-    params = {
-        'team_id': team_id,
-    }
-    response = _api.send_request(
-        req_type='GET',
-        path=f'/project/{project_id}/sdkImageUploadToken',
-        params=params
-    )
-    if not response.ok:
-        raise SABaseException(
-            response.status_code, "Couldn't get upload token " + response.text
-        )
-    res = response.json()
+    params = {'team_id': team_id, 'folder_id': folder_id}
+    res = _get_upload_auth_token(params=params, project_id=project_id)
     prefix = res['filePath']
     s3_session = boto3.Session(
         aws_access_key_id=res['accessKeyId'],
@@ -120,24 +117,20 @@ def upload_image_to_project(
         )
         key = upload_image_array_to_s3(bucket, *images_info_and_array, prefix)
     except Exception as e:
-        raise SABaseException(0, "Couldn't upload to data server. " + str(e))
+        raise SABaseException(0, "Couldn't upload to data server.") from e
 
-    if project_folder is not None:
-        project_folder_id = project_folder["id"]
-    else:
-        project_folder_id = None
     __create_image(
         [img_name], [key],
         project,
         annotation_status,
         prefix, [images_info_and_array[2]],
-        project_folder_id,
+        folder_id,
         upload_state="Basic"
     )
 
     while True:
         try:
-            get_image_metadata(project, img_name)
+            get_image_metadata(initial_project_inp, img_name)
         except SABaseException:
             time.sleep(0.2)
         else:
@@ -171,7 +164,8 @@ def _copy_images(
         destination_folder_id = get_project_root_folder_id(destination_project)
     json_req["destination_folder_id"] = destination_folder_id
     res = {}
-    res['skipped'] = 0
+    res['skipped'] = []
+    res['completed'] = []
     for start_index in range(0, len(image_names), NUM_TO_SEND):
         json_req["image_names"] = image_names[start_index:start_index +
                                               NUM_TO_SEND]
@@ -187,6 +181,7 @@ def _copy_images(
                 response.status_code, "Couldn't copy images " + response.text
             )
         res['skipped'] += response.json()['skipped']
+        res['completed'] += response.json()['completed']
 
     for image_name in image_names:
         _copy_annotations_and_metadata(
@@ -219,6 +214,8 @@ def copy_images(
     :type copy_annotation_status: bool
     :param copy_pin: enables image pin status copy
     :type copy_pin: bool
+    :return: list of skipped image names
+    :rtype: list of strs
     """
     source_project, source_project_folder = get_project_and_folder_metadata(
         source_project
@@ -228,20 +225,30 @@ def copy_images(
     )
     if image_names is None:
         image_names = search_images((source_project, source_project_folder))
+
+    limit = _get_available_image_counts(
+        destination_project, destination_project_folder
+    )
+    imgs_to_upload = image_names[:limit]
     res = _copy_images(
         (source_project, source_project_folder),
-        (destination_project, destination_project_folder), image_names,
+        (destination_project, destination_project_folder), imgs_to_upload,
         include_annotations, copy_annotation_status, copy_pin
     )
+    uploaded_imgs = res['completed']
+    skipped_imgs = [i for i in imgs_to_upload if i not in uploaded_imgs]
+
+    skipped_images_count = len(skipped_imgs) + len(image_names[limit:])
+
     logger.info(
         "Copied images %s from %s to %s. Number of skipped images %s",
-        image_names,
-        source_project["name"] + "" if source_project_folder is None else "/" +
-        source_project_folder["name"], destination_project["name"] +
-        "" if destination_project_folder is None else "/" +
-        destination_project_folder["name"], res["skipped"]
+        uploaded_imgs, source_project["name"] +
+        "" if source_project_folder is None else source_project["name"] + "/" +
+        source_project_folder["name"], destination_project["name"] + ""
+        if destination_project_folder is None else destination_project["name"] +
+        "/" + destination_project_folder["name"], skipped_images_count
     )
-    return res["skipped"]
+    return skipped_imgs
 
 
 def delete_images(project, image_names):
@@ -322,11 +329,9 @@ def move_images(
     )
     if image_names is None:
         image_names = search_images((source_project, source_project_folder))
-    _copy_images(
-        (source_project, source_project_folder),
-        (destination_project, destination_project_folder), image_names,
-        include_annotations, copy_annotation_status, copy_pin
-    )
+    copy_images((source_project, source_project_folder), image_names,
+                (destination_project, destination_project_folder),
+                include_annotations, copy_annotation_status, copy_pin)
     delete_images((source_project, source_project_folder), image_names)
     logger.info(
         "Moved images %s from project %s to project %s", image_names,

@@ -231,30 +231,32 @@ def get_image_metadata(project, image_names, return_dict_on_single_output=True):
     else:
         project_folder_id = None
 
+    chunk_size = 500
+    chunks = [image_names[i:i + chunk_size] for i in range(0, len(image_names), chunk_size)]
+
     json_req = {
         'project_id': project['id'],
         'team_id': _api.team_id,
-        'names': image_names,
     }
+
     if project_folder_id is not None:
         json_req["folder_id"] = project_folder_id
-    response = _api.send_request(
-        req_type='POST',
-        path='/images/getBulk',
-        json_req=json_req,
-    )
-    if not response.ok:
-        raise SABaseException(
-            response.status_code,
-            "Couldn't get image metadata. " + response.text
-        )
 
-    metadata_raw = response.json()
+    metadata_raw = []
+    for chunk in chunks:
+        json_req['names'] = chunk
+        response = _api.send_request(
+            req_type='POST',
+            path='/images/getBulk',
+            json_req=json_req,
+            )
+        if not response.ok:
+            raise SABaseException(response.status_code,"Couldn't get image metadata. " + response.text)
+        metadata_raw += response.json()
+
     metadata_without_deleted = []
-    for im_metadata in metadata_raw:
-        if 'delete' in im_metadata and im_metadata['delete'] == 1:
-            continue
-        metadata_without_deleted.append(im_metadata)
+    metadata_without_deleted = [ i for i in metadata_raw if i['delete'] != 1 ]
+
     if len(metadata_without_deleted) == 0:
         raise SABaseException(
             0,

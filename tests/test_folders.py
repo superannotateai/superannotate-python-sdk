@@ -348,7 +348,7 @@ def test_copy_images(tmpdir):
     num_images = sa.get_project_image_count(project2)
     assert num_images == 4
 
-    assert res == 2
+    assert len(res) == 2
 
     sa.copy_images(
         project, ["example_image_2.jpg", "example_image_3.jpg"],

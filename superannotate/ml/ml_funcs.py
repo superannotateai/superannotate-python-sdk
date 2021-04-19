@@ -17,7 +17,7 @@ from plotly.subplots import make_subplots
 from ..api import API
 from ..common import (
     _AVAILABLE_SEGMENTATION_MODELS, model_training_status_int_to_str,
-    project_type_str_to_int, upload_state_int_to_str
+    project_type_str_to_int, upload_state_int_to_str,_MODEL_TRAINING_TASKS
 )
 from ..db.images import get_image_metadata, search_images
 from ..exceptions import SABaseException
@@ -253,11 +253,11 @@ def run_training(
             hyperparameters[item] = DEFAULT_HYPERPARAMETERS[item]
     complete_image_count = 0
     for proj in project:
-        complete_image_count += proj['completedImagesCount']
+        complete_image_count += proj['rootFolderCompletedImagesCount']
 
     hyperparameters["name"] = model_name
     hyperparameters["description"] = model_description
-    hyperparameters["task"] = task
+    hyperparameters["task"] = _MODEL_TRAINING_TASKS[task]
     hyperparameters["base_model_id"] = base_model["id"]
     hyperparameters["project_ids"] = project_ids
     hyperparameters["image_count"] = complete_image_count

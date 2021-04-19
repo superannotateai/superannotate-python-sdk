@@ -34,12 +34,13 @@ from .annotation_classes import (
     fill_class_and_attribute_ids, get_annotation_classes_name_to_id,
     search_annotation_classes
 )
-from .images import get_image_metadata, search_images, search_images_all_folders
+from .images import get_image_metadata, search_images, search_images_all_folders, get_project_root_folder_id
 from .project_api import (
     get_project_and_folder_metadata, get_project_metadata_bare,
     get_project_metadata_with_users
 )
 from .users import get_team_contributor_metadata
+from .utils import _get_upload_auth_token
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -204,6 +205,125 @@ def get_project_image_count(project, with_all_subfolders=False):
         return len(search_images_all_folders(project))
 
 
+def _get_video_frames_count(video_path):
+    """
+    Get video frames count
+    """
+    video = cv2.VideoCapture(str(video_path), cv2.CAP_FFMPEG)
+    total_num_of_frames = 0
+    flag = True
+    while flag:
+        flag, _ = video.read()
+        if flag:
+            total_num_of_frames += 1
+        else:
+            break
+    return total_num_of_frames
+
+
+def _get_video_fps_ration(target_fps, video, ratio):
+    """
+    Get video fps / target fps ratio
+    """
+    video_fps = float(video.get(cv2.CAP_PROP_FPS))
+    if target_fps >= video_fps:
+        logger.warning(
+            "Video frame rate %s smaller than target frame rate %s. Cannot change frame rate.",
+            video_fps, target_fps
+        )
+    else:
+        logger.info(
+            "Changing video frame rate from %s to target frame rate %s.",
+            video_fps, target_fps
+        )
+        ratio = video_fps / target_fps
+    return ratio
+
+
+def _get_available_image_counts(project, folder):
+    if folder:
+        folder_id = folder["id"]
+    else:
+        folder_id = get_project_root_folder_id(project)
+    params = {'team_id': project['team_id'], 'folder_id': folder_id}
+    res = _get_upload_auth_token(params=params, project_id=project['id'])
+    return res['availableImageCount']
+
+
+def _get_video_rotate_code(video_path):
+    rotate_code = None
+    try:
+        cv2_rotations = {
+            90: cv2.ROTATE_90_CLOCKWISE,
+            180: cv2.ROTATE_180,
+            270: cv2.ROTATE_90_COUNTERCLOCKWISE,
+        }
+
+        meta_dict = ffmpeg.probe(str(video_path))
+        rot = int(meta_dict['streams'][0]['tags']['rotate'])
+        rotate_code = cv2_rotations[rot]
+        if rot != 0:
+            logger.info(
+                "Frame rotation of %s found. Output images will be rotated accordingly.",
+                rot
+            )
+    except Exception as e:
+        warning_str = ""
+        if "ffprobe" in str(e):
+            warning_str = "This could be because ffmpeg package is not installed. To install it, run: sudo apt install ffmpeg"
+        logger.warning(
+            "Couldn't read video metadata to determine rotation. %s",
+            warning_str
+        )
+    return rotate_code
+
+
+def _extract_frames_from_video(
+    start_time, end_time, video_path, tempdir, limit, target_fps
+):
+    video = cv2.VideoCapture(str(video_path), cv2.CAP_FFMPEG)
+    if not video.isOpened():
+        raise SABaseException(0, "Couldn't open video file " + str(video_path))
+    total_num_of_frames = _get_video_frames_count(video_path)
+    logger.info("Video frame count is %s.", total_num_of_frames)
+    ratio = 1.0
+    if target_fps:
+        ratio = _get_video_fps_ration(target_fps, video, ratio)
+    rotate_code = _get_video_rotate_code(video_path)
+    video_name = Path(video_path).stem
+    frame_no = 0
+    frame_no_with_change = 1.0
+    extracted_frame_no = 1
+    logger.info("Extracting frames from video to %s.", tempdir.name)
+    zero_fill_count = len(str(total_num_of_frames))
+    extracted_frames_paths = []
+    while len(extracted_frames_paths) < limit:
+        success, frame = video.read()
+        if not success:
+            break
+        frame_no += 1
+        if round(frame_no_with_change) != frame_no:
+            continue
+        frame_no_with_change += ratio
+        frame_time = video.get(cv2.CAP_PROP_POS_MSEC) / 1000.0
+        if end_time and frame_time > end_time:
+            break
+        if frame_time < start_time:
+            continue
+        if rotate_code:
+            frame = cv2.rotate(frame, rotate_code)
+        path = str(
+            Path(tempdir.name) / (
+                video_name + "_" +
+                str(extracted_frame_no).zfill(zero_fill_count) + ".jpg"
+            )
+        )
+        cv2.imwrite(path, frame)
+        extracted_frames_paths.append(path)
+        extracted_frame_no += 1
+    return extracted_frames_paths
+
+
 def upload_video_to_project(
     project,
     video_path,
@@ -237,7 +357,10 @@ def upload_video_to_project(
     :return: filenames of uploaded images
     :rtype: list of strs
     """
-    project, project_folder = get_project_and_folder_metadata(project)
+
+    project, folder = get_project_and_folder_metadata(project)
+    limit = _get_available_image_counts(project, folder)
+
     upload_state = common.upload_state_int_to_str(project.get("upload_state"))
     if upload_state == "External":
         raise SABaseException(
@@ -245,113 +368,22 @@ def upload_video_to_project(
             "The function does not support projects containing images attached with URLs"
         )
     logger.info("Uploading from video %s.", str(video_path))
-    rotate_code = None
-    try:
-        meta_dict = ffmpeg.probe(str(video_path))
-        rot = int(meta_dict['streams'][0]['tags']['rotate'])
-        if rot == 90:
-            rotate_code = cv2.ROTATE_90_CLOCKWISE
-        elif rot == 180:
-            rotate_code = cv2.ROTATE_180
-        elif rot == 270:
-            rotate_code = cv2.ROTATE_90_COUNTERCLOCKWISE
-        if rot != 0:
-            logger.info(
-                "Frame rotation of %s found. Output images will be rotated accordingly.",
-                rot
-            )
-    except Exception as e:
-        warning_str = ""
-        if "ffprobe" in str(e):
-            warning_str = "This could be because ffmpeg package is not installed. To install it, run: sudo apt install ffmpeg"
-        logger.warning(
-            "Couldn't read video metadata to determine rotation. " + warning_str
-        )
-
-    video = cv2.VideoCapture(str(video_path), cv2.CAP_FFMPEG)
-    if not video.isOpened():
-        raise SABaseException(0, "Couldn't open video file " + str(video_path))
-
-    total_num_of_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
-    if total_num_of_frames < 0:
-        total_num_of_frames = 0
-        flag = True
-        while flag:
-            flag, frame = video.read()
-            if flag:
-                total_num_of_frames += 1
-            else:
-                break
-        video = cv2.VideoCapture(str(video_path), cv2.CAP_FFMPEG)
-    logger.info("Video frame count is %s.", total_num_of_frames)
-
-    r = 1.0
-    if target_fps is not None:
-        video_fps = float(video.get(cv2.CAP_PROP_FPS))
-        if target_fps >= video_fps:
-            logger.warning(
-                "Video frame rate %s smaller than target frame rate %s. Cannot change frame rate.",
-                video_fps, target_fps
-            )
-        else:
-            logger.info(
-                "Changing video frame rate from %s to target frame rate %s.",
-                video_fps, target_fps
-            )
-            r = video_fps / target_fps
-
-    zero_fill_count = len(str(total_num_of_frames))
     tempdir = tempfile.TemporaryDirectory()
-
-    video_name = Path(video_path).stem
-    frame_no = 0
-    frame_no_with_change = 1.0
-    extracted_frame_no = 1
-    logger.info("Extracting frames from video to %s.", tempdir.name)
-    while True:
-        success, frame = video.read()
-        if not success:
-            break
-        frame_no += 1
-        if round(frame_no_with_change) != frame_no:
-            continue
-        frame_no_with_change += r
-        frame_time = video.get(cv2.CAP_PROP_POS_MSEC) / 1000.0
-        if end_time is not None and frame_time > end_time:
-            break
-        if frame_time < start_time:
-            continue
-        if rotate_code is not None:
-            frame = cv2.rotate(frame, rotate_code)
-        cv2.imwrite(
-            str(
-                Path(tempdir.name) / (
-                    video_name + "_" +
-                    str(extracted_frame_no).zfill(zero_fill_count) + ".jpg"
-                )
-            ), frame
-        )
-        extracted_frame_no += 1
-
+    extracted_frames = _extract_frames_from_video(
+        start_time, end_time, video_path, tempdir, limit, target_fps
+    )
     logger.info(
         "Extracted %s frames from video. Now uploading to platform.",
-        extracted_frame_no - 1
+        len(extracted_frames)
     )
-
     filenames = upload_images_from_folder_to_project(
-        (project, project_folder),
+        (project, folder),
         tempdir.name,
         extensions=["jpg"],
         annotation_status=annotation_status,
         image_quality_in_editor=image_quality_in_editor
     )
-
-    assert len(filenames[1]) == 0
-
-    filenames_base = []
-    for file in filenames[0]:
-        filenames_base.append(Path(file).name)
-
+    filenames_base = [Path(f).name for f in filenames[0]]
     return filenames_base
 
 
@@ -396,7 +428,7 @@ def upload_videos_from_folder_to_project(
     :return: uploaded and not-uploaded video frame images' filenames
     :rtype: tuple of list of strs
     """
-    project, project_folder = get_project_and_folder_metadata(project)
+    project, folder = get_project_and_folder_metadata(project)
     upload_state = common.upload_state_int_to_str(project.get("upload_state"))
     if upload_state == "External":
         raise SABaseException(
@@ -438,7 +470,7 @@ def upload_videos_from_folder_to_project(
     filenames = []
     for path in filtered_paths:
         filenames += upload_video_to_project(
-            (project, project_folder),
+            (project, folder),
             path,
             target_fps=target_fps,
             start_time=start_time,
@@ -824,10 +856,8 @@ def upload_images_to_project(
     :return: uploaded, could-not-upload, existing-images filepaths
     :rtype: tuple (3 members) of list of strs
     """
-    project, project_folder = get_project_and_folder_metadata(project)
-    project_folder_name = project["name"] + (
-        f'/{project_folder["name"]}' if project_folder else ""
-    )
+    project, folder = get_project_and_folder_metadata(project)
+    folder_name = project["name"] + (f'/{folder["name"]}' if folder else "")
     upload_state = common.upload_state_int_to_str(project.get("upload_state"))
     if upload_state == "External":
         raise SABaseException(
@@ -844,7 +874,7 @@ def upload_images_to_project(
             project
         )
     team_id, project_id = project["team_id"], project["id"]
-    existing_images = search_images((project, project_folder))
+    existing_images = search_images((project, folder))
     duplicate_images = []
     for existing_image in existing_images:
         i = -1
@@ -862,31 +892,30 @@ def upload_images_to_project(
         )
     len_img_paths = len(img_paths)
     logger.info(
-        "Uploading %s images to project %s.", len_img_paths, project_folder_name
+        "Uploading %s images to project %s.", len_img_paths, folder_name
     )
     if len_img_paths == 0:
         return ([], [], duplicate_images)
-    params = {'team_id': team_id}
+
+    if folder:
+        folder_id = folder["id"]
+    else:
+        folder_id = get_project_root_folder_id(project)
+
+    params = {'team_id': team_id, 'folder_id': folder_id}
     uploaded = [[] for _ in range(_NUM_THREADS)]
     tried_upload = [[] for _ in range(_NUM_THREADS)]
     couldnt_upload = [[] for _ in range(_NUM_THREADS)]
     finish_event = threading.Event()
-    chunksize = int(math.ceil(len(img_paths) / _NUM_THREADS))
-    response = _api.send_request(
-        req_type='GET',
-        path=f'/project/{project_id}/sdkImageUploadToken',
-        params=params
-    )
-    if not response.ok:
-        raise SABaseException(
-            response.status_code, "Couldn't get upload token " + response.text
-        )
-    if project_folder is not None:
-        project_folder_id = project_folder["id"]
-    else:
-        project_folder_id = None
-    res = response.json()
+
+    res = _get_upload_auth_token(params=params, project_id=project_id)
+
     prefix = res['filePath']
+    limit = res['availableImageCount']
+    images_to_upload = img_paths[:limit]
+    images_to_skip = [str(path) for path in img_paths[limit:]]
+    chunksize = int(math.ceil(len(images_to_upload) / _NUM_THREADS))
+
     tqdm_thread = threading.Thread(
         target=__tqdm_thread_image_upload,
         args=(len_img_paths, tried_upload, finish_event),
@@ -899,9 +928,9 @@ def upload_images_to_project(
         t = threading.Thread(
             target=__upload_images_to_aws_thread,
             args=(
-                res, img_paths, project, annotation_status, prefix, thread_id,
-                chunksize, couldnt_upload, uploaded, tried_upload,
-                image_quality_in_editor, from_s3_bucket, project_folder_id
+                res, images_to_upload, project, annotation_status, prefix,
+                thread_id, chunksize, couldnt_upload, uploaded, tried_upload,
+                image_quality_in_editor, from_s3_bucket, folder_id
             ),
             daemon=True
         )
@@ -920,6 +949,7 @@ def upload_images_to_project(
         for f in upload_thread:
             list_of_uploaded.append(str(f))
 
+    list_of_not_uploaded += images_to_skip
     return (list_of_uploaded, list_of_not_uploaded, duplicate_images)
 
 
@@ -957,10 +987,8 @@ def attach_image_urls_to_project(
     :rtype: tuple
     """
 
-    project, project_folder = get_project_and_folder_metadata(project)
-    project_folder_name = project["name"] + (
-        f'/{project_folder["name"]}' if project_folder else ""
-    )
+    project, folder = get_project_and_folder_metadata(project)
+    folder_name = project["name"] + (f'/{folder["name"]}' if folder else "")
     upload_state = common.upload_state_int_to_str(project.get("upload_state"))
     if upload_state == "Basic":
         raise SABaseException(
@@ -969,13 +997,13 @@ def attach_image_urls_to_project(
         )
     annotation_status = common.annotation_status_str_to_int(annotation_status)
     team_id, project_id = project["team_id"], project["id"]
-    image_data = pd.read_csv(attachments)
+    image_data = pd.read_csv(attachments, dtype=str)
     image_data = image_data[~image_data["url"].isnull()]
     existing_names = image_data[~image_data["name"].isnull()]
     duplicate_idx_csv = existing_names.duplicated(subset="name", keep="first")
     duplicate_images = existing_names[duplicate_idx_csv]["name"].tolist()
     existing_names = existing_names[~duplicate_idx_csv]
-    existing_images = search_images((project, project_folder))
+    existing_images = search_images((project, folder))
     duplicate_idx = []
     for ind, _ in image_data[image_data["name"].isnull()].iterrows():
         while True:
@@ -997,37 +1025,34 @@ def attach_image_urls_to_project(
         )
     image_data = pd.DataFrame(image_data, columns=["name", "url"])
     img_names_urls = image_data.values.tolist()
-    len_img_names_urls = len(img_names_urls)
     logger.info(
-        "Uploading %s images to project %s.", len_img_names_urls,
-        project_folder_name
+        "Uploading %s images to project %s.", len(img_names_urls), folder_name
     )
-    if len_img_names_urls == 0:
+    if len(img_names_urls) == 0:
         return ([], [], duplicate_images)
-    params = {'team_id': team_id}
+
+    if folder:
+        folder_id = folder["id"]
+    else:
+        folder_id = get_project_root_folder_id(project)
+
+    params = {'team_id': team_id, 'folder_id': folder_id}
     uploaded = [[] for _ in range(_NUM_THREADS)]
     tried_upload = [[] for _ in range(_NUM_THREADS)]
     couldnt_upload = [[] for _ in range(_NUM_THREADS)]
     finish_event = threading.Event()
-    chunksize = int(math.ceil(len_img_names_urls / _NUM_THREADS))
-    response = _api.send_request(
-        req_type='GET',
-        path=f'/project/{project_id}/sdkImageUploadToken',
-        params=params
-    )
-    if not response.ok:
-        raise SABaseException(
-            response.status_code, "Couldn't get upload token " + response.text
-        )
-    if project_folder is not None:
-        project_folder_id = project_folder["id"]
-    else:
-        project_folder_id = None
-    res = response.json()
+
+    res = _get_upload_auth_token(params=params, project_id=project_id)
+
     prefix = res['filePath']
+    limit = res['availableImageCount']
+    images_to_upload = img_names_urls[:limit]
+    images_to_skip = img_names_urls[limit:]
+    chunksize = int(math.ceil(len(images_to_upload) / _NUM_THREADS))
+
     tqdm_thread = threading.Thread(
         target=__tqdm_thread_image_upload,
-        args=(len_img_names_urls, tried_upload, finish_event),
+        args=(len(images_to_upload), tried_upload, finish_event),
         daemon=True
     )
     tqdm_thread.start()
@@ -1036,9 +1061,9 @@ def attach_image_urls_to_project(
         t = threading.Thread(
             target=__attach_image_urls_to_project_thread,
             args=(
-                res, img_names_urls, project, annotation_status, prefix,
+                res, images_to_upload, project, annotation_status, prefix,
                 thread_id, chunksize, couldnt_upload, uploaded, tried_upload,
-                project_folder_id
+                folder_id
             ),
             daemon=True
         )
@@ -1057,6 +1082,7 @@ def attach_image_urls_to_project(
         for f in upload_thread:
             list_of_uploaded.append(str(f))
 
+    list_of_not_uploaded += [i[0] for i in images_to_skip]
     return (list_of_uploaded, list_of_not_uploaded, duplicate_images)
 
 
@@ -1082,7 +1108,7 @@ def __attach_image_urls_to_project_thread(
     for i in range(start_index, end_index):
         if i >= len_img_paths:
             break
-        name, url = img_names_urls[i]
+        name, _ = img_names_urls[i]
         tried_upload[thread_id].append(name)
         img_name_hash = str(uuid.uuid4()) + Path(name).suffix
         key = prefix + img_name_hash
@@ -1186,7 +1212,7 @@ def upload_images_from_public_urls_to_project(
         ),
         daemon=True
     )
-    logger.info('Downloading %s images' % len(img_urls))
+    logger.info('Downloading %s images', len(img_urls))
     tqdm_thread.start()
     with tempfile.TemporaryDirectory() as save_dir_name:
         save_dir = Path(save_dir_name)
@@ -2225,11 +2251,10 @@ def get_project_default_image_quality_in_editor(project):
     for setting in get_project_settings(project):
         if "attribute" in setting and setting["attribute"] == "ImageQuality":
             return setting["value"]
-    else:
-        raise SABaseException(
-            0,
-            "Image quality in editor should be 'compressed', 'original' or None for project settings value"
-        )
+    raise SABaseException(
+        0,
+        "Image quality in editor should be 'compressed', 'original' or None for project settings value"
+    )
 
 
 def get_project_metadata(
