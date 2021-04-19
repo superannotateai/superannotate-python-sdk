@@ -9,10 +9,8 @@ import uuid
 from PIL import Image, ImageOps
 import json
 from ..api import API
-from ..exceptions import SABaseException, SAImageSizeTooLarge
-from ..exceptions import (
-    SABaseException, SAImageSizeTooLarge, SANonExistingProjectNameException
-)
+from ..exceptions import SABaseException, SAImageSizeTooLarge, SANonExistingProjectNameException
+
 import boto3
 
 _api = API.get_instance()
@@ -298,7 +296,19 @@ def __tqdm_thread_image_upload(total_num, tried_upload, finish_event):
 
 
 def get_duplicate_image_names(project_id, team_id, folder_id, image_paths):
-    """TODO"""
+    """ Find duplicated images in a folder.
+    :param project_id: project_id
+    :type project_id: int
+    :param team_id: team_id
+    :type team_id: int
+    :param folder_id: folder_id
+    :type folder_id: int
+    :param image_paths: list
+    :type image_paths: list of str
+
+    :return: list of duplicated images
+    :rtype: list of strs
+    """
     duplicate_images = []
     image_paths_lists = divide_chunks(image_paths, 500)
     for image_path_list in image_paths_lists:
@@ -388,14 +398,156 @@ def _upload_images(
     finish_event.set()
     tqdm_thread.join()
     not_uploaded = [str(f) for f in not_upload for not_upload in couldnt_upload]
-    #for couldnt_upload_thread in couldnt_upload:
-    #    for f in couldnt_upload_thread:
-    #        list_of_not_uploaded.append(str(f))
     uploaded = [str(f) for f in upload for upload in uploaded]
-    #for upload_thread in uploaded:
-    #    for f in upload_thread:
-    #        list_of_uploaded.append(str(f))
-
     not_uploaded += images_to_skip
 
     return (uploaded, not_uploaded, duplicate_images_names)
+
+
+def _attach_urls(
+    img_names_urls, team_id, folder_id, project_id, annotation_status, project,
+    folder_name
+):
+    _NUM_THREADS = 10
+    params = {'team_id': team_id, 'folder_id': folder_id}
+    uploaded = [[] for _ in range(_NUM_THREADS)]
+    tried_upload = [[] for _ in range(_NUM_THREADS)]
+    couldnt_upload = [[] for _ in range(_NUM_THREADS)]
+    finish_event = threading.Event()
+
+    res = _get_upload_auth_token(params=params, project_id=project_id)
+
+    prefix = res['filePath']
+    limit = res['availableImageCount']
+    images_to_upload = img_names_urls[:limit]
+
+    img_names = [i[0] for i in images_to_upload]
+    duplicate_images = get_duplicate_image_names(
+        project_id=project_id,
+        team_id=team_id,
+        folder_id=folder_id,
+        image_paths=img_names
+    )
+    if len(duplicate_images) != 0:
+        logger.warning(
+            "%s already existing images found that won't be uploaded.",
+            len(duplicate_images)
+        )
+
+    images_to_upload = [
+        i for i in images_to_upload if i[0] not in duplicate_images
+    ]
+    logger.info(
+        "Uploading %s images to project %s.", len(images_to_upload), folder_name
+    )
+
+    images_to_skip = img_names_urls[limit:]
+    chunksize = int(math.ceil(len(images_to_upload) / _NUM_THREADS))
+
+    tqdm_thread = threading.Thread(
+        target=__tqdm_thread_image_upload,
+        args=(len(images_to_upload), tried_upload, finish_event),
+        daemon=True
+    )
+    tqdm_thread.start()
+    threads = []
+    for thread_id in range(_NUM_THREADS):
+        t = threading.Thread(
+            target=__attach_image_urls_to_project_thread,
+            args=(
+                res, images_to_upload, project, annotation_status, prefix,
+                thread_id, chunksize, couldnt_upload, uploaded, tried_upload,
+                folder_id
+            ),
+            daemon=True
+        )
+        threads.append(t)
+        t.start()
+    for t in threads:
+        t.join()
+    finish_event.set()
+    tqdm_thread.join()
+    list_of_not_uploaded = []
+    for couldnt_upload_thread in couldnt_upload:
+        for f in couldnt_upload_thread:
+            list_of_not_uploaded.append(str(f))
+    list_of_uploaded = []
+    for upload_thread in uploaded:
+        for f in upload_thread:
+            list_of_uploaded.append(str(f))
+
+    list_of_not_uploaded += [i[0] for i in images_to_skip]
+    return (list_of_uploaded, list_of_not_uploaded, duplicate_images)
+
+
+def __attach_image_urls_to_project_thread(
+    res, img_names_urls, project, annotation_status, prefix, thread_id,
+    chunksize, couldnt_upload, uploaded, tried_upload, project_folder_id
+):
+    len_img_paths = len(img_names_urls)
+    start_index = thread_id * chunksize
+    end_index = start_index + chunksize
+    if start_index >= len_img_paths:
+        return
+    s3_session = _get_boto_session_by_credentials(res)
+    s3_resource = s3_session.resource('s3')
+    bucket = s3_resource.Bucket(res["bucket"])
+    prefix = res['filePath']
+    uploaded_imgs = []
+    uploaded_imgs_info = ([], [], [])
+    for i in range(start_index, end_index):
+        if i >= len_img_paths:
+            break
+        name, _ = img_names_urls[i]
+        tried_upload[thread_id].append(name)
+        img_name_hash = str(uuid.uuid4()) + Path(name).suffix
+        key = prefix + img_name_hash
+        try:
+            bucket.put_object(
+                Body=json.dumps(create_empty_annotation((None, None), name)),
+                Key=key + ".json"
+            )
+        except Exception as e:
+            logger.warning("Unable to upload image %s. %s", name, e)
+            couldnt_upload[thread_id].append(name)
+            continue
+        else:
+            uploaded_imgs.append(name)
+            uploaded_imgs_info[0].append(img_names_urls[i])
+            uploaded_imgs_info[1].append(key)
+            uploaded_imgs_info[2].append((None, None))
+            if len(uploaded_imgs) >= 100:
+                try:
+                    __create_image(
+                        uploaded_imgs_info[0],
+                        uploaded_imgs_info[1],
+                        project,
+                        annotation_status,
+                        prefix,
+                        uploaded_imgs_info[2],
+                        project_folder_id,
+                        upload_state="External"
+                    )
+                except SABaseException as e:
+                    couldnt_upload[thread_id] += uploaded_imgs
+                    logger.warning(e)
+                else:
+                    uploaded[thread_id] += uploaded_imgs
+                uploaded_imgs = []
+                uploaded_imgs_info = ([], [], [])
+    try:
+        __create_image(
+            uploaded_imgs_info[0],
+            uploaded_imgs_info[1],
+            project,
+            annotation_status,
+            prefix,
+            uploaded_imgs_info[2],
+            project_folder_id,
+            upload_state="External"
+        )
+    except SABaseException as e:
+        couldnt_upload[thread_id] += uploaded_imgs
+        logger.warning(e)
+    else:
+        uploaded[thread_id] += uploaded_imgs

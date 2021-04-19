@@ -52,11 +52,11 @@ _PREDICTION_SEGMENTATION_STATUSES = {
 }
 
 _MODEL_TRAINING_TASKS = {
-    "Instance Segmentation for Pixel Projects" : "instance_segmentation_pixel",
-    "Instance Segmentation for Vector Projects" : "instance_segmentation_vector",
-    "Keypoint Detection for Vector Projects" : "keypoint_detection_vector",
-    "Object Detection for Vector Projects" : "object_detection_vector",
-    "Semantic Segmentation for Pixel Projects" : "semantic_segmentation_pixel"
+    "Instance Segmentation for Pixel Projects": "instance_segmentation_pixel",
+    "Instance Segmentation for Vector Projects": "instance_segmentation_vector",
+    "Keypoint Detection for Vector Projects": "keypoint_detection_vector",
+    "Object Detection for Vector Projects": "object_detection_vector",
+    "Semantic Segmentation for Pixel Projects": "semantic_segmentation_pixel"
 }
 
 
