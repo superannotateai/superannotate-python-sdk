@@ -397,8 +397,8 @@ def _upload_images(
         thread.join()
     finish_event.set()
     tqdm_thread.join()
-    not_uploaded = [str(f) for f in not_upload for not_upload in couldnt_upload]
-    uploaded = [str(f) for f in upload for upload in uploaded]
+    not_uploaded = [str(f) for s in couldnt_upload for f in s]
+    uploaded = [str(f) for s in uploaded for f in s]
     not_uploaded += images_to_skip
 
     return (uploaded, not_uploaded, duplicate_images_names)

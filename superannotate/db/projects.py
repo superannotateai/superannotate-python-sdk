@@ -382,6 +382,7 @@ def upload_video_to_project(
         annotation_status=annotation_status,
         image_quality_in_editor=image_quality_in_editor
     )
+
     filenames_base = [Path(f).name for f in filenames[0]]
     return filenames_base
 
