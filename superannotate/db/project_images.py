@@ -16,11 +16,9 @@ from .images import (
 )
 from .project_api import get_project_and_folder_metadata
 from .projects import (
-    __create_image, get_image_array_to_upload,
-    get_project_default_image_quality_in_editor, upload_image_array_to_s3,
-    _get_available_image_counts
+    get_project_default_image_quality_in_editor, _get_available_image_counts
 )
-from .utils import _get_upload_auth_token
+from .utils import _get_upload_auth_token, _get_boto_session_by_credentials, upload_image_array_to_s3, get_image_array_to_upload, __create_image
 
 logger = logging.getLogger("superannotate-python-sdk")
 _api = API.get_instance()
@@ -104,11 +102,7 @@ def upload_image_to_project(
     params = {'team_id': team_id, 'folder_id': folder_id}
     res = _get_upload_auth_token(params=params, project_id=project_id)
     prefix = res['filePath']
-    s3_session = boto3.Session(
-        aws_access_key_id=res['accessKeyId'],
-        aws_secret_access_key=res['secretAccessKey'],
-        aws_session_token=res['sessionToken']
-    )
+    s3_session = _get_boto_session_by_credentials(res)
     s3_resource = s3_session.resource('s3')
     bucket = s3_resource.Bucket(res["bucket"])
     try:
@@ -329,9 +323,11 @@ def move_images(
     )
     if image_names is None:
         image_names = search_images((source_project, source_project_folder))
-    copy_images((source_project, source_project_folder), image_names,
-                (destination_project, destination_project_folder),
-                include_annotations, copy_annotation_status, copy_pin)
+    copy_images(
+        (source_project, source_project_folder), image_names,
+        (destination_project, destination_project_folder), include_annotations,
+        copy_annotation_status, copy_pin
+    )
     delete_images((source_project, source_project_folder), image_names)
     logger.info(
         "Moved images %s from project %s to project %s", image_names,

@@ -8,22 +8,20 @@ import logging
 import os
 import time
 
-import boto3
-import pandas as pd
-import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 from ..api import API
 from ..common import (
     _AVAILABLE_SEGMENTATION_MODELS, model_training_status_int_to_str,
-    project_type_str_to_int, upload_state_int_to_str,_MODEL_TRAINING_TASKS
+    project_type_str_to_int, upload_state_int_to_str, _MODEL_TRAINING_TASKS
 )
-from ..db.images import get_image_metadata, search_images
+from ..db.images import get_image_metadata
 from ..exceptions import SABaseException
 from ..parameter_decorators import model_metadata, project_metadata
 from .defaults import DEFAULT_HYPERPARAMETERS, NON_PLOTABLE_KEYS
 from .utils import log_process, make_plotly_specs, reformat_metrics_json
+from ..db.utils import _get_boto_session_by_credentials
 
 logger = logging.getLogger("superannotate-python-sdk")
 _api = API.get_instance()
@@ -476,11 +474,7 @@ def download_model(model, output_dir):
         raise SABaseException(0, "Could not get model info ")
 
     tokens = response["tokens"]
-    s3_session = boto3.Session(
-        aws_access_key_id=tokens["accessKeyId"],
-        aws_secret_access_key=tokens["secretAccessKey"],
-        aws_session_token=tokens["sessionToken"]
-    )
+    s3_session = _get_boto_session_by_credentials(tokens)
     s3_resource = s3_session.resource('s3')
 
     bucket = s3_resource.Bucket(tokens["bucket"])

@@ -25,6 +25,7 @@ from .annotation_classes import (
     search_annotation_classes
 )
 from .project_api import get_project_and_folder_metadata, get_project_metadata_bare
+from .utils import _get_boto_session_by_credentials
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -38,16 +39,17 @@ def get_project_root_folder_id(project):
     int
         Root folder ID
     """
-    params = {'team_id': project['team_id']}
-    response = _api.send_request(
-        req_type='GET', path=f'/project/{project["id"]}', params=params
-    )
+    params = {
+        'team_id': project['team_id'],
+        'project_id': project['id'],
+        'is_root': 1
+    }
+    response = _api.send_request(req_type='GET', path='/folders', params=params)
     if not response.ok:
         raise SABaseException(response.status_code, response.text)
 
     response = response.json()
-
-    return response['folder_id']
+    return response['data'][0]['id']
 
 
 def search_images(
@@ -232,7 +234,10 @@ def get_image_metadata(project, image_names, return_dict_on_single_output=True):
         project_folder_id = None
 
     chunk_size = 500
-    chunks = [image_names[i:i + chunk_size] for i in range(0, len(image_names), chunk_size)]
+    chunks = [
+        image_names[i:i + chunk_size]
+        for i in range(0, len(image_names), chunk_size)
+    ]
 
     json_req = {
         'project_id': project['id'],
@@ -249,13 +254,16 @@ def get_image_metadata(project, image_names, return_dict_on_single_output=True):
             req_type='POST',
             path='/images/getBulk',
             json_req=json_req,
-            )
+        )
         if not response.ok:
-            raise SABaseException(response.status_code,"Couldn't get image metadata. " + response.text)
+            raise SABaseException(
+                response.status_code,
+                "Couldn't get image metadata. " + response.text
+            )
         metadata_raw += response.json()
 
     metadata_without_deleted = []
-    metadata_without_deleted = [ i for i in metadata_raw if i['delete'] != 1 ]
+    metadata_without_deleted = [i for i in metadata_raw if i['delete'] != 1]
 
     if len(metadata_without_deleted) == 0:
         raise SABaseException(
@@ -1001,11 +1009,7 @@ def upload_image_annotations(
         )
     res = response.json()
     res_json = res['annotation_json_path']
-    s3_session = boto3.Session(
-        aws_access_key_id=res_json['accessKeyId'],
-        aws_secret_access_key=res_json['secretAccessKey'],
-        aws_session_token=res_json['sessionToken']
-    )
+    s3_session = _get_boto_session_by_credentials(res_json)
     s3_resource = s3_session.resource('s3')
     bucket = s3_resource.Bucket(res_json["bucket"])
     bucket.put_object(
@@ -1018,11 +1022,7 @@ def upload_image_annotations(
             with open(mask, "rb") as f:
                 mask = io.BytesIO(f.read())
         res_mask = res['annotation_bluemap_path']
-        s3_session = boto3.Session(
-            aws_access_key_id=res_mask['accessKeyId'],
-            aws_secret_access_key=res_mask['secretAccessKey'],
-            aws_session_token=res_mask['sessionToken']
-        )
+        s3_session = _get_boto_session_by_credentials(res_mask)
         bucket = s3_resource.Bucket(res_mask["bucket"])
         bucket.put_object(Key=res_mask['filePath'], Body=mask)
 
