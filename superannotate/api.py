@@ -24,10 +24,13 @@ class API:
         self._default_headers = None
         self._main_endpoint = None
         self.team_id = None
+        self.user_id = None
+        self.team_name = None
         if API.__instance is not None:
             raise SABaseException(0, "API class is a singleton!")
         API.__instance = self
         self._authenticated = False
+        self.init()
 
     def init(self, config_location=None):
         if config_location is None:
@@ -78,15 +81,15 @@ class API:
                 self._verify = self._api_config["ssl_verify"]
             self._session = None
             self._authenticated = True
+
             response = self.send_request(
                 req_type='GET',
-                path='/projects',
-                params={
-                    'team_id': str(self.team_id),
-                    'offset': 0,
-                    'limit': 1
-                }
+                path=f'/team/{self.team_id}',
             )
+
+            self.user_id = response.json()['creator_id']
+            self.team_name = response.json()['name']
+
             if not self._verify:
                 urllib3.disable_warnings(
                     urllib3.exceptions.InsecureRequestWarning
