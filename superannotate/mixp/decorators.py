@@ -5,14 +5,14 @@ from superannotate.api import API
 
 _api = API.get_instance()
 
-func_names_to_ignore = []
-
 
 def trackable(func):
     def wrapper(*args, **kwargs):
         try:
+            import superannotate
+            callers_to_ignore = dir(superannotate)
             caller_function_name = sys._getframe().f_back.f_code.co_name
-            if caller_function_name not in func_names_to_ignore:
+            if caller_function_name not in callers_to_ignore:
                 func_name_to_track = func.__name__
                 data = parsers[func_name_to_track](*args, **kwargs)
                 user_id = _api.user_id
