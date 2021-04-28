@@ -595,6 +595,7 @@ def upload_images_from_folder_to_project(
         from_s3_bucket, image_quality_in_editor
     )
 
+
 @trackable
 def upload_images_to_project(
     project,
@@ -733,6 +734,7 @@ def attach_image_urls_to_project(
     return (list_of_uploaded, list_of_not_uploaded, duplicate_images)
 
 
+@trackable
 def upload_images_from_public_urls_to_project(
     project,
     img_urls,
@@ -842,6 +844,7 @@ def upload_images_from_public_urls_to_project(
     )
 
 
+@trackable
 def upload_images_from_google_cloud_to_project(
     project,
     google_project,

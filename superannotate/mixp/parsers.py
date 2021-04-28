@@ -1,6 +1,18 @@
 parsers = {}
 
 
+def get_project_name(project):
+    project_name = ""
+    if isinstance(project, dict):
+        project_name = project['name']
+    if isinstance(project, str):
+        if '/' in project:
+            project_name = project.split('/')[0]
+        else:
+            project_name = project
+    return project_name
+
+
 def get_team_metadata(*args, **kwargs):
     return {"event_name": "get_team_metadata", "properties": {}}
 
@@ -56,12 +68,17 @@ parsers['search_team_contributors'] = search_team_contributors
 
 
 def search_projects(*args, **kwargs):
+    project = kwargs.get("name", None)
+    if not project:
+        project = args[0:1][0]
     return {
         "event_name": "search_projects",
         "properties":
             {
                 "Metadata":
-                    bool(args[2:3] or kwargs.get("return_metadata", None))
+                    bool(args[2:3] or kwargs.get("return_metadata", None)),
+                "project_name":
+                    get_project_name(project)
             }
     }
 
@@ -70,15 +87,20 @@ parsers['search_projects'] = search_projects
 
 
 def create_project(*args, **kwargs):
+    project = kwargs.get("project_name", None)
+    if not project:
+        project = args[0:1][0]
     project_type = kwargs.get("project_type", None)
     if not project_type:
         project_type = args[2:3][0]
 
     return {
         "event_name": "create_project",
-        "properties": {
-            "Project Type": project_type
-        }
+        "properties":
+            {
+                "Project Type": project_type,
+                "project_name": get_project_name(project)
+            }
     }
 
 
@@ -86,13 +108,24 @@ parsers['create_project'] = create_project
 
 
 def create_project_from_metadata(*args, **kwargs):
-    return {"event_name": "create_project_from_metadata", "properties": {}}
+    project = kwargs.get("project_metadata", None)
+    if not project:
+        project = args[0:1][0]
+    return {
+        "event_name": "create_project_from_metadata",
+        "properties": {
+            "project_name": get_project_name(project)
+        }
+    }
 
 
 parsers['create_project_from_metadata'] = create_project_from_metadata
 
 
 def clone_project(*args, **kwargs):
+    project = kwargs.get("project_name", None)
+    if not project:
+        project = args[0:1][0]
     return {
         "event_name": "clone_project",
         "properties":
@@ -107,7 +140,9 @@ def clone_project(*args, **kwargs):
                 "Copy Workflow":
                     bool(args[5:6] or kwargs.get("copy_workflow", None)),
                 "Copy Contributors":
-                    bool(args[6:7] or kwargs.get("copy_contributors", None))
+                    bool(args[6:7] or kwargs.get("copy_contributors", None)),
+                "project_name":
+                    get_project_name(project)
             }
     }
 
@@ -116,6 +151,9 @@ parsers['clone_project'] = clone_project
 
 
 def search_images(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
     return {
         "event_name": "search_images",
         "properties":
@@ -124,6 +162,8 @@ def search_images(*args, **kwargs):
                     bool(args[2:3] or kwargs.get("annotation_status", None)),
                 "Metadata":
                     bool(args[3:4] or kwargs.get("return_metadata", None)),
+                "project_name":
+                    get_project_name(project)
             }
     }
 
@@ -132,16 +172,25 @@ parsers['search_images'] = search_images
 
 
 def upload_images_to_project(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    img_paths = kwargs.get("img_paths", [])
+    if not img_paths:
+        img_paths += args[1:2][0]
     return {
         "event_name": "upload_images_to_project",
         "properties":
             {
                 "Image Count":
-                    len(args[1]),
+                    len(img_paths),
                 "Annotation Status":
                     bool(args[2:3] or kwargs.get("annotation_status", None)),
                 "From S3":
-                    bool(args[3:4] or kwargs.get("from_s3", None))
+                    bool(args[3:4] or kwargs.get("from_s3", None)),
+                "project_name":
+                    get_project_name(project)
             }
     }
 
@@ -150,6 +199,9 @@ parsers['upload_images_to_project'] = upload_images_to_project
 
 
 def upload_image_to_project(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
     return {
         "event_name": "upload_image_to_project",
         "properties":
@@ -157,9 +209,55 @@ def upload_image_to_project(*args, **kwargs):
                 "Image Name":
                     bool(args[2:3] or kwargs.get("image_name", None)),
                 "Annotation Status":
-                    bool(args[3:4] or kwargs.get("annotation_status", None))
+                    bool(args[3:4] or kwargs.get("annotation_status", None)),
+                "project_name":
+                    get_project_name(project)
             }
     }
 
 
 parsers['upload_image_to_project'] = upload_image_to_project
+
+
+def upload_images_from_public_urls_to_project(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    img_urls = kwargs.get("img_urls", [])
+    if not img_urls:
+        img_urls += args[1:2][0]
+    return {
+        "event_name": "upload_images_from_public_urls_to_project",
+        "properties":
+            {
+                "Image Count":
+                    len(img_urls),
+                "Image Name":
+                    bool(args[2:3] or kwargs.get("img_names", None)),
+                "Annotation Status":
+                    bool(args[3:4] or kwargs.get("annotation_status", None)),
+                "project_name":
+                    get_project_name(project)
+            }
+    }
+
+
+parsers['upload_images_from_public_urls_to_project'
+       ] = upload_images_from_public_urls_to_project
+
+
+def upload_images_from_google_cloud_to_project(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+    return {
+        "event_name": "upload_images_from_google_cloud_to_project",
+        "properties": {
+            "project_name": get_project_name(project)
+        }
+    }
+
+
+parsers['upload_images_from_google_cloud_to_project'
+       ] = upload_images_from_google_cloud_to_project

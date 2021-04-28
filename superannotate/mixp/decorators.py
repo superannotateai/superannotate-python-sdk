@@ -24,6 +24,7 @@ def trackable(func):
                     _api.user_id,
                     project_name=properties.get('project_name', None)
                 )
+                properties.pop("project_name", None)
                 properties = {**default, **properties}
                 mp.track(user_id, event_name, properties)
         # except Exception as e:
