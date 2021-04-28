@@ -9,6 +9,7 @@ import urllib3
 
 from .exceptions import SABaseException
 from .version import __version__
+from .mixp.app import mp, get_default
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -105,6 +106,10 @@ class API:
                 raise SABaseException(
                     0, "Couldn't reach superannotate " + response.text
                 )
+            mp.track(
+                self.user_id, "SDK init",
+                get_default(self.team_name, self.user_id)
+            )
         except SABaseException:
             self._authenticated = False
             self._session = None

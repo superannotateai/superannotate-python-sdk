@@ -26,6 +26,7 @@ from .annotation_classes import (
 )
 from .project_api import get_project_and_folder_metadata, get_project_metadata_bare
 from .utils import _get_boto_session_by_credentials
+from ..mixp.decorators import trackable
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -52,6 +53,7 @@ def get_project_root_folder_id(project):
     return response['data'][0]['id']
 
 
+@trackable
 def search_images(
     project,
     image_name_prefix=None,

@@ -4,10 +4,12 @@ from ..api import API
 from ..exceptions import SABaseException
 
 logger = logging.getLogger("superannotate-python-sdk")
+from ..mixp.decorators import trackable
 
 _api = API.get_instance()
 
 
+@trackable
 def search_team_contributors(
     email=None, first_name=None, last_name=None, return_metadata=False
 ):

@@ -1,16 +1,17 @@
 import sys
 from .parsers import parsers
-from .app import mp
+from .app import mp, get_default
 from superannotate.api import API
 
 _api = API.get_instance()
+callers_to_ignore = []
 
 
 def trackable(func):
+    callers_to_ignore.append(func.__name__)
+
     def wrapper(*args, **kwargs):
-        try:
-            import superannotate
-            callers_to_ignore = dir(superannotate)
+        if 1:
             caller_function_name = sys._getframe().f_back.f_code.co_name
             if caller_function_name not in callers_to_ignore:
                 func_name_to_track = func.__name__
@@ -18,17 +19,15 @@ def trackable(func):
                 user_id = _api.user_id
                 event_name = data['event_name']
                 properties = data['properties']
-                properties['SDK'] = True
-                properties['Paid'] = True
-                properties['Team'] = _api.team_name
-                properties['Team Owner'] = _api.user_id
-                properties['Project Name'] = properties.get(
-                    'project_name', None
+                default = get_default(
+                    _api.team_name,
+                    _api.user_id,
+                    project_name=properties.get('project_name', None)
                 )
-                properties['Project Role'] = "Admin"
+                properties = {**default, **properties}
                 mp.track(user_id, event_name, properties)
-        except Exception as e:
-            print("--- ---- --- MIX PANEL EXCEPTION")
+        # except Exception as e:
+        #     print("--- ---- --- MIX PANEL EXCEPTION")
         return func(*args, **kwargs)
 
     return wrapper

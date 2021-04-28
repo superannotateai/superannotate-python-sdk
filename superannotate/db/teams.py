@@ -11,6 +11,7 @@ _api = API.get_instance()
 from ..mixp.decorators import trackable
 
 
+@trackable
 def invite_contributor_to_team(email, admin=False):
     """Invites a contributor to team
 
@@ -57,6 +58,7 @@ def get_team_metadata():
     return res
 
 
+@trackable
 def delete_contributor_to_team_invitation(email):
     """Deletes team contributor invitation
 

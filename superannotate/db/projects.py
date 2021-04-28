@@ -40,6 +40,7 @@ from .project_api import (
 from .users import get_team_contributor_metadata
 from .utils import _get_upload_auth_token, _get_boto_session_by_credentials, _upload_images, _attach_urls
 from tqdm import tqdm
+from ..mixp.decorators import trackable
 
 _NUM_THREADS = 10
 _TIME_TO_UPDATE_IN_TQDM = 1
@@ -48,6 +49,7 @@ logger = logging.getLogger("superannotate-python-sdk")
 _api = API.get_instance()
 
 
+@trackable
 def create_project(project_name, project_description, project_type):
     """Create a new project in the team.
 
@@ -102,6 +104,7 @@ def create_project(project_name, project_description, project_type):
     return res
 
 
+@trackable
 def create_project_from_metadata(project_metadata):
     """Create a new project in the team using project metadata object dict.
     Mandatory keys in project_metadata are "name", "description" and "type" (Vector or Pixel)
@@ -592,7 +595,7 @@ def upload_images_from_folder_to_project(
         from_s3_bucket, image_quality_in_editor
     )
 
-
+@trackable
 def upload_images_to_project(
     project,
     img_paths,
@@ -1851,6 +1854,7 @@ def get_project_metadata(
     return result
 
 
+@trackable
 def clone_project(
     project_name,
     from_project,
