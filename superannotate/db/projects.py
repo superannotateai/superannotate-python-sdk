@@ -326,6 +326,7 @@ def _extract_frames_from_video(
     return extracted_frames_paths
 
 
+@trackable
 def upload_video_to_project(
     project,
     video_path,
@@ -683,6 +684,7 @@ def _tqdm_download(
                 break
 
 
+@trackable
 def attach_image_urls_to_project(
     project, attachments, annotation_status="NotStarted"
 ):
@@ -931,6 +933,7 @@ def upload_images_from_google_cloud_to_project(
     )
 
 
+@trackable
 def upload_images_from_azure_blob_to_project(
     project,
     container_name,

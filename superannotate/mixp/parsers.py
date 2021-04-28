@@ -261,3 +261,88 @@ def upload_images_from_google_cloud_to_project(*args, **kwargs):
 
 parsers['upload_images_from_google_cloud_to_project'
        ] = upload_images_from_google_cloud_to_project
+
+
+def upload_images_from_azure_blob_to_project(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+    return {
+        "event_name": "upload_images_from_azure_blob_to_project",
+        "properties": {
+            "project_name": get_project_name(project)
+        }
+    }
+
+
+parsers['upload_images_from_azure_blob_to_project'
+       ] = upload_images_from_azure_blob_to_project
+
+
+def upload_video_to_project(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "upload_video_to_project",
+        "properties":
+            {
+                "project_name": get_project_name(project),
+                "FPS": bool(args[2:3] or kwargs.get("target_fps", None)),
+                "Start": bool(args[3:4] or kwargs.get("start_time", None)),
+                "End": bool(args[4:5] or kwargs.get("end_time", None))
+            }
+    }
+
+
+parsers['upload_video_to_project'] = upload_video_to_project
+
+
+def attach_image_urls_to_project(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "attach_image_urls_to_project",
+        "properties":
+            {
+                "project_name":
+                    get_project_name(project),
+                "Image Names":
+                    bool(args[1:2] or kwargs.get("attachments", None)),
+                "Annotation Status":
+                    bool(args[2:3] or kwargs.get("annotation_status", None))
+            }
+    }
+
+
+parsers['attach_image_urls_to_project'] = attach_image_urls_to_project
+
+
+def set_images_annotation_statuses(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    annotation_status = kwargs.get("annotation_status", None)
+    if not annotation_status:
+        annotation_status = args[2:3][0]
+
+    image_names = kwargs.get("image_names", [])
+    if not image_names:
+        image_names = args[1:2][0]
+
+    return {
+        "event_name": "set_images_annotation_statuses",
+        "properties":
+            {
+                "project_name": get_project_name(project),
+                "Image Count": len(image_names),
+                "Annotation Status": annotation_status
+            }
+    }
+
+
+parsers['set_images_annotation_statuses'] = set_images_annotation_statuses

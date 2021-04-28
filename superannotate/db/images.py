@@ -1201,6 +1201,7 @@ def create_fuse_image(
         return (fuse_path, )
 
 
+@trackable
 def set_images_annotation_statuses(project, image_names, annotation_status):
     """Sets annotation statuses of images
 
