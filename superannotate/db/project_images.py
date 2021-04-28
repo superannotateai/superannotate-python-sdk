@@ -19,11 +19,13 @@ from .projects import (
     get_project_default_image_quality_in_editor, _get_available_image_counts
 )
 from .utils import _get_upload_auth_token, _get_boto_session_by_credentials, upload_image_array_to_s3, get_image_array_to_upload, __create_image
+from ..mixp.decorators import trackable
 
 logger = logging.getLogger("superannotate-python-sdk")
 _api = API.get_instance()
 
 
+@trackable
 def upload_image_to_project(
     project,
     img,
