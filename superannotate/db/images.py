@@ -762,6 +762,7 @@ def get_image_bytes(project, image_name, variant='original'):
     return img
 
 
+@trackable
 def get_image_preannotations(project, image_name):
     """Get pre-annotations of the image. Only works for "vector" projects.
 
@@ -780,6 +781,7 @@ def get_image_preannotations(project, image_name):
     return _get_image_pre_or_annotations(project, image_name, "pre")
 
 
+@trackable
 def get_image_annotations(project, image_name):
     """Get annotations of the image.
 
@@ -879,6 +881,7 @@ def _get_image_pre_or_annotations(project, image_name, pre):
     return result
 
 
+@trackable
 def download_image_annotations(project, image_name, local_dir_path):
     """Downloads annotations of the image (JSON and mask if pixel type project)
     to local_dir_path.
@@ -935,6 +938,7 @@ def _download_image_pre_or_annotations(
     return tuple(return_filepaths)
 
 
+@trackable
 def download_image_preannotations(project, image_name, local_dir_path):
     """Downloads pre-annotations of the image to local_dir_path.
     Only works for "vector" projects.

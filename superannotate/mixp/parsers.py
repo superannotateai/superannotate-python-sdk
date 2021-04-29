@@ -346,3 +346,67 @@ def set_images_annotation_statuses(*args, **kwargs):
 
 
 parsers['set_images_annotation_statuses'] = set_images_annotation_statuses
+
+
+def get_image_annotations(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "get_image_annotations",
+        "properties": {
+            "project_name": get_project_name(project),
+        }
+    }
+
+
+parsers['get_image_annotations'] = get_image_annotations
+
+
+def get_image_preannotations(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "get_image_preannotations",
+        "properties": {
+            "project_name": get_project_name(project),
+        }
+    }
+
+
+parsers['get_image_preannotations'] = get_image_preannotations
+
+
+def download_image_annotations(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "download_image_annotations",
+        "properties": {
+            "project_name": get_project_name(project),
+        }
+    }
+
+
+parsers['download_image_annotations'] = download_image_annotations
+
+
+def download_image_preannotations(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "download_image_preannotations",
+        "properties": {
+            "project_name": get_project_name(project),
+        }
+    }
+
+
+parsers['download_image_preannotations'] = download_image_preannotations
