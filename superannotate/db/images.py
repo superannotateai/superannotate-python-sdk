@@ -215,6 +215,7 @@ def search_images_all_folders(
         return result_list
 
 
+@trackable
 def get_image_metadata(project, image_names, return_dict_on_single_output=True):
     """Returns image metadata
 
@@ -325,7 +326,7 @@ def set_image_annotation_status(project, image_name, annotation_status):
 
     return response
 
-
+@trackable
 def add_annotation_comment_to_image(
     project,
     image_name,
@@ -683,7 +684,7 @@ def download_image(
 
     return (str(filepath_save), annotations_filepaths, fuse_path)
 
-
+@trackable
 def delete_image(project, image_name):
     """Deletes image
 
@@ -705,7 +706,7 @@ def delete_image(project, image_name):
         )
     logger.info("Successfully deleted image  %s.", image_name)
 
-
+@trackable
 def get_image_bytes(project, image_name, variant='original'):
     """Returns an io.BytesIO() object of the image. Suitable for creating
     PIL.Image out of it.

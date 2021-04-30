@@ -6,10 +6,10 @@ from pathlib import Path
 import pandas as pd
 
 from ..exceptions import SABaseException
-
+from ..mixp.decorators import trackable
 logger = logging.getLogger("superannotate-python-sdk")
 
-
+@trackable
 def df_to_annotations(df, output_dir):
     """Converts and saves pandas DataFrame annotation info (see aggregate_annotations_as_df)
     in output_dir.

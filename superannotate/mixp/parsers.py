@@ -410,3 +410,506 @@ def download_image_preannotations(*args, **kwargs):
 
 
 parsers['download_image_preannotations'] = download_image_preannotations
+
+
+
+
+def get_image_metadata(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "get_image_metadata",
+        "properties": {
+            "project_name": get_project_name(project),
+        }
+    }
+
+
+parsers['get_image_metadata'] = get_image_metadata
+
+
+
+
+def get_image_bytes(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "get_image_bytes",
+        "properties": {
+            "project_name": get_project_name(project),
+        }
+    }
+
+
+parsers['get_image_bytes'] = get_image_bytes
+
+
+
+def delete_image(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "delete_image",
+        "properties": {
+            "project_name": get_project_name(project),
+        }
+    }
+
+
+parsers['delete_image'] = delete_image
+
+
+
+def add_annotation_comment_to_image(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "add_annotation_comment_to_image",
+        "properties": {
+            "project_name": get_project_name(project),
+        }
+    }
+
+
+parsers['add_annotation_comment_to_image'] = add_annotation_comment_to_image
+
+
+
+def delete_annotation_class(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "delete_annotation_class",
+        "properties": {
+            "project_name": get_project_name(project),
+        }
+    }
+
+
+parsers['delete_annotation_class'] = delete_annotation_class
+
+
+
+
+def get_annotation_class_metadata(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "get_annotation_class_metadata",
+        "properties": {
+            "project_name": get_project_name(project),
+        }
+    }
+
+
+parsers['get_annotation_class_metadata'] = get_annotation_class_metadata
+
+
+
+
+def download_annotation_classes_json(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "download_annotation_classes_json",
+        "properties": {
+            "project_name": get_project_name(project),
+        }
+    }
+
+
+parsers['download_annotation_classes_json'] = download_annotation_classes_json
+
+
+
+def search_annotation_classes(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "search_annotation_classes",
+        "properties": {
+            "project_name": get_project_name(project),
+        }
+    }
+
+
+parsers['search_annotation_classes'] = search_annotation_classes
+
+
+def unshare_project(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "unshare_project",
+        "properties": {
+            "project_name": get_project_name(project),
+        }
+    }
+
+
+parsers['unshare_project'] = unshare_project
+
+
+
+def get_project_image_count(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "get_project_image_count",
+        "properties": {
+            "project_name": get_project_name(project),
+        }
+    }
+
+
+parsers['get_project_image_count'] = get_project_image_count
+
+
+
+def get_project_settings(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "get_project_settings",
+        "properties": {
+            "project_name": get_project_name(project),
+        }
+    }
+
+
+parsers['get_project_settings'] = get_project_settings
+
+
+
+
+def set_project_settings(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "set_project_settings",
+        "properties": {
+            "project_name": get_project_name(project),
+        }
+    }
+
+
+parsers['set_project_settings'] = set_project_settings
+
+
+
+def get_project_default_image_quality_in_editor(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "get_project_default_image_quality_in_editor",
+        "properties": {
+            "project_name": get_project_name(project),
+        }
+    }
+
+
+parsers['get_project_default_image_quality_in_editor'] = get_project_default_image_quality_in_editor
+
+
+def get_project_metadata(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "get_project_metadata",
+        "properties": {
+            "project_name": get_project_name(project),
+        }
+    }
+
+
+parsers['get_project_metadata'] = get_project_metadata
+
+
+def delete_project(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "delete_project",
+        "properties": {
+            "project_name": get_project_name(project),
+        }
+    }
+
+
+parsers['delete_project'] = delete_project
+
+
+
+
+def rename_project(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "rename_project",
+        "properties": {
+            "project_name": get_project_name(project),
+        }
+    }
+
+
+parsers['rename_project'] = rename_project
+
+
+
+
+def get_project_workflow(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "get_project_workflow",
+        "properties": {
+            "project_name": get_project_name(project),
+        }
+    }
+
+
+parsers['get_project_workflow'] = get_project_workflow
+
+
+
+def set_project_workflow(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "set_project_workflow",
+        "properties": {
+            "project_name": get_project_name(project),
+        }
+    }
+
+
+parsers['set_project_workflow'] = set_project_workflow
+
+
+
+
+def create_folder(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "create_folder",
+        "properties": {
+            "project_name": get_project_name(project),
+        }
+    }
+
+
+parsers['create_folder'] = create_folder
+
+
+
+
+def get_folder_metadata(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "get_folder_metadata",
+        "properties": {
+            "project_name": get_project_name(project),
+        }
+    }
+
+
+parsers['get_folder_metadata'] = get_folder_metadata
+
+
+
+
+def get_project_and_folder_metadata(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "get_project_and_folder_metadata",
+        "properties": {
+            "project_name": get_project_name(project),
+        }
+    }
+
+
+parsers['get_project_and_folder_metadata'] = get_project_and_folder_metadata
+
+
+
+
+
+def rename_folder(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "rename_folder",
+        "properties": {
+            "project_name": get_project_name(project),
+        }
+    }
+
+
+parsers['rename_folder'] = rename_folder
+
+
+
+def stop_model_training(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "stop_model_training",
+        "properties": {
+            "project_name": get_project_name(project),
+        }
+    }
+
+
+parsers['stop_model_training'] = stop_model_training
+
+
+
+def download_model(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "download_model",
+        "properties": {
+            "project_name": get_project_name(project),
+        }
+    }
+
+
+parsers['download_model'] = download_model
+
+
+
+def plot_model_metrics(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "plot_model_metrics",
+        "properties": {
+            "project_name": get_project_name(project),
+        }
+    }
+
+
+parsers['plot_model_metrics'] = plot_model_metrics
+
+
+def delete_model(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "delete_model",
+        "properties": {
+            "project_name": get_project_name(project),
+        }
+    }
+
+
+parsers['delete_model'] = delete_model
+
+
+
+def convert_project_type(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "convert_project_type",
+        "properties": {
+            "project_name": get_project_name(project),
+        }
+    }
+
+
+parsers['convert_project_type'] = convert_project_type
+
+
+
+def convert_json_version(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "convert_json_version",
+        "properties": {
+            "project_name": get_project_name(project),
+        }
+    }
+
+
+parsers['convert_json_version'] = convert_json_version
+
+
+
+def df_to_annotations(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "df_to_annotations",
+        "properties": {
+            "project_name": get_project_name(project),
+        }
+    }
+
+
+parsers['df_to_annotations'] = df_to_annotations
+
+

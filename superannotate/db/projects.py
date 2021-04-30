@@ -132,7 +132,7 @@ def create_project_from_metadata(project_metadata):
         set_project_workflow(new_project_metadata, project_metadata["workflow"])
     return new_project_metadata
 
-
+@trackable
 def delete_project(project):
     """Deletes the project
 
@@ -152,7 +152,7 @@ def delete_project(project):
         )
     logger.info("Successfully deleted project %s.", project["name"])
 
-
+@trackable
 def rename_project(project, new_name):
     """Renames the project
 
@@ -189,7 +189,7 @@ def rename_project(project, new_name):
         "Successfully renamed project %s to %s.", project["name"], new_name
     )
 
-
+@trackable
 def get_project_image_count(project, with_all_subfolders=False):
     """Returns number of images in the project.
 
@@ -1416,7 +1416,7 @@ def share_project(project, user, user_role):
         user["email"], common.user_role_int_to_str(user_role)
     )
 
-
+@trackable
 def unshare_project(project, user):
     """Unshare (remove) user from project.
 
@@ -1534,7 +1534,7 @@ def _get_upload_from_s3_bucket_to_project_status(project, project_folder):
         )
     return response.json()
 
-
+@trackable
 def get_project_workflow(project):
     """Gets project's workflow.
 
@@ -1576,7 +1576,7 @@ def get_project_workflow(project):
             raise SABaseException(0, "Couldn't find class_id in workflow")
     return res
 
-
+@trackable
 def set_project_workflow(project, new_workflow):
     """Sets project's workflow.
 
@@ -1676,7 +1676,7 @@ def set_project_workflow(project, new_workflow):
                 "Couldn't set project workflow " + response.text
             )
 
-
+@trackable
 def get_project_settings(project):
     """Gets project's settings.
 
@@ -1713,7 +1713,7 @@ def get_project_settings(project):
                 raise SABaseException(0, "NA ImageQuality value")
     return res
 
-
+@trackable
 def set_project_settings(project, new_settings):
     """Sets project's settings.
 
@@ -1796,7 +1796,7 @@ def set_project_default_image_quality_in_editor(
         }]
     )
 
-
+@trackable
 def get_project_default_image_quality_in_editor(project):
     """Gets project's default image quality in editor setting.
 
@@ -1814,7 +1814,7 @@ def get_project_default_image_quality_in_editor(project):
         "Image quality in editor should be 'compressed', 'original' or None for project settings value"
     )
 
-
+@trackable
 def get_project_metadata(
     project,
     include_annotation_classes=False,

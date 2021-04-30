@@ -11,7 +11,7 @@ from ..exceptions import (
     SANonExistingAnnotationClassNameException
 )
 from .project_api import get_project_metadata_bare
-
+from ..mixp.decorators import trackable
 logger = logging.getLogger("superannotate-python-sdk")
 
 _api = API.get_instance()
@@ -78,7 +78,7 @@ def create_annotation_class(project, name, color, attribute_groups=None):
     new_class = res[0]
     return new_class
 
-
+@trackable
 def delete_annotation_class(project, annotation_class):
     """Deletes annotation class from project
 
@@ -199,7 +199,7 @@ def create_annotation_classes_from_classes_json(
     assert len(res) == len(new_classes)
     return res
 
-
+@trackable
 def search_annotation_classes(project, name_prefix=None):
     """Searches annotation classes by name_prefix (case-insensitive)
 
@@ -238,7 +238,7 @@ def search_annotation_classes(project, name_prefix=None):
 
     return result_list
 
-
+@trackable
 def get_annotation_class_metadata(project, annotation_class_name):
     """Returns annotation class metadata
 
@@ -271,7 +271,7 @@ def get_annotation_class_metadata(project, annotation_class_name):
             " doesn't exist."
         )
 
-
+@trackable
 def download_annotation_classes_json(project, folder):
     """Downloads project classes.json to folder
 
