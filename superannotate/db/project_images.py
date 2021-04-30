@@ -315,27 +315,58 @@ def move_images(
     :param copy_pin: enables image pin status copy
     :type copy_pin: bool
     """
-    source_project, source_project_folder = get_project_and_folder_metadata(
+    source_project_inp = source_project
+    destination_project_inp = destination_project
+
+    source_project, source_folder = get_project_and_folder_metadata(
         source_project
     )
-    destination_project, destination_project_folder = get_project_and_folder_metadata(
+    destination_project, destination_folder = get_project_and_folder_metadata(
         destination_project
     )
-    if image_names is None:
-        image_names = search_images((source_project, source_project_folder))
-    copy_images(
-        (source_project, source_project_folder), image_names,
-        (destination_project, destination_project_folder), include_annotations,
-        copy_annotation_status, copy_pin
+    root_folder_id = get_project_root_folder_id(source_project)
+
+    destination_folder_id = root_folder_id
+    source_folder_id = root_folder_id
+
+    if destination_folder:
+        destination_folder_id = destination_folder['id']
+    if source_folder:
+        source_folder_id = source_folder['id']
+
+    response = _api.send_request(
+        req_type='POST',
+        path='/image/move',
+        params={
+            "team_id": source_project["team_id"],
+            "project_id": source_project["id"]
+        },
+        json_req={
+            "image_names": image_names,
+            "destination_folder_id": destination_folder_id,
+            "source_folder_id": source_folder_id
+        }
     )
-    delete_images((source_project, source_project_folder), image_names)
-    logger.info(
-        "Moved images %s from project %s to project %s", image_names,
-        source_project["name"] + "" if source_project_folder is None else "/" +
-        source_project_folder["name"], destination_project["name"] +
-        "" if destination_project_folder is None else "/" +
-        destination_project_folder["name"]
-    )
+
+    res = response.json()
+    if res.get('error', None):
+        logger.error(res['error'])
+        return []
+
+    moved = res['moved']
+    skipped = res['skipped'] + [
+        i for i in image_names if i not in [*moved, *res['skipped']]
+    ]
+
+    if len(moved) > 1:
+        message = f"Moved {len(moved)}/{len(image_names)} images from {source_project_inp} to {destination_project_inp}."
+        logger.info(message)
+
+    elif len(moved) == 1:
+        message = f"Moved an image from {source_project_inp} to {destination_project_inp}."
+        logger.info(message)
+
+    return skipped
 
 
 def copy_image(
