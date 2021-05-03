@@ -1388,5 +1388,44 @@ def aggregate_annotations_as_df(*args, **kwargs):
 parsers['aggregate_annotations_as_df'] = aggregate_annotations_as_df
 
 
+def delete_folders(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    folder_names = kwargs.get("folder_names", None)
+    if not folder_names:
+        folder_names = args[1:2][0]
+    
+    
+    return {
+        "event_name": "delete_folders",
+        "properties": {
+            "project_name": get_project_name(project),
+            "Folder Count": len(folder_names),
+        }
+    }
+
+parsers['delete_folders'] = delete_folders
 
 
+
+def delete_images(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    image_names = kwargs.get("image_names", None)
+    if not image_names:
+        image_names = args[1:2][0]
+    
+    
+    return {
+        "event_name": "delete_images",
+        "properties": {
+            "project_name": get_project_name(project),
+            "Image Count": len(image_names),
+        }
+    }
+
+parsers['delete_images'] = delete_images

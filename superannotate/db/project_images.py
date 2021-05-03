@@ -246,7 +246,7 @@ def copy_images(
     )
     return skipped_imgs
 
-
+@trackable
 def delete_images(project, image_names):
     """Delete images in project.
 

@@ -225,7 +225,7 @@ def create_folder(project, folder_name):
     logger.info("Folder %s created in project %s", res["name"], project["name"])
     return res
 
-
+@trackable
 def delete_folders(project, folder_names):
     """Delete folder in project.
 
