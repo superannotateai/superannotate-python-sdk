@@ -1291,3 +1291,102 @@ def set_project_default_image_quality_in_editor(*args, **kwargs):
 
 parsers['set_project_default_image_quality_in_editor'] = set_project_default_image_quality_in_editor
 
+
+
+def get_exports(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+    
+    return {
+        "event_name": "get_exports",
+        "properties": {
+            "project_name": get_project_name(project),
+            "Metadata": bool(args[1:2] or ("return_metadata" in kwargs) ),
+        }
+    }
+
+parsers['get_exports'] = get_exports
+
+
+
+
+def search_folders(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+    
+    return {
+        "event_name": "search_folders",
+        "properties": {
+            "project_name": get_project_name(project),
+            "Metadata": bool(args[2:3] or ("return_metadata" in kwargs) ),
+        }
+    }
+
+parsers['search_folders'] = search_folders
+
+
+
+def filter_images_by_tags(*args, **kwargs):
+    return {
+        "event_name": "filter_images_by_tags",
+        "properties": {
+            "Include": bool(args[1:2] or ("include" in kwargs) ),
+            "Exclude" : bool(args[2:3] or ("exclude" in kwargs) )
+        }
+    }
+
+parsers['filter_images_by_tags'] = filter_images_by_tags
+
+
+
+def filter_images_by_comments(*args, **kwargs):
+    return {
+        "event_name": "filter_images_by_comments",
+        "properties": {
+            "Include Unresolved Comments" : bool(args[1:2] or ("include_unresolved_comments" in kwargs) ),
+            "Include Resolved Comments": bool(args[2:3] or ("include_resolved_comments" in kwargs) )
+        }
+    }
+
+parsers['filter_images_by_comments'] = filter_images_by_comments
+
+
+
+def filter_annotation_instances(*args, **kwargs):
+    return {
+        "event_name": "filter_annotation_instances",
+        "properties": {
+            "Include" : bool(args[1:2] or ("include" in kwargs) ),
+            "Exclude": bool(args[2:3] or ("exclude" in kwargs) )
+        }
+    }
+
+parsers['filter_annotation_instances'] = filter_annotation_instances
+
+
+
+
+def aggregate_annotations_as_df(*args, **kwargs):
+    folder_names = kwargs.get("folder_names", None)
+    if not folder_names:
+        folder_names = args[5:6]
+        if folder_names:
+            folder_names = args[5:6][0]
+        else:
+            folder_names = []
+
+
+    return {
+        "event_name": "aggregate_annotations_as_df",
+        "properties": {
+            "Fodler Count" : len(folder_names),
+        }
+    }
+
+parsers['aggregate_annotations_as_df'] = aggregate_annotations_as_df
+
+
+
+

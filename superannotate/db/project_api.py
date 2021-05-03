@@ -131,7 +131,7 @@ def get_project_and_folder_metadata(project):
         raise SAIncorrectProjectArgument(project)
     return project, folder
 
-
+@trackable
 def search_folders(project, folder_name=None, return_metadata=False):
     """Folder name based case-insensitive search for folders in project.
 

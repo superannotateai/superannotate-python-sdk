@@ -147,7 +147,7 @@ def df_to_annotations(df, output_dir):
         indent=4
     )
 
-
+@trackable
 def aggregate_annotations_as_df(
     project_root,
     include_classes_wo_annotations=False,

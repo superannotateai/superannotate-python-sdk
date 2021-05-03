@@ -19,6 +19,7 @@ from ..exceptions import (
     SANonExistingExportNameException
 )
 from .project_api import get_project_metadata_bare
+from ..mixp.decorators import trackable
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -55,7 +56,7 @@ def get_export_metadata(project, export_name):
             " is not unique. To use SDK please use unique export names."
         )
 
-
+@trackable
 def get_exports(project, return_metadata=False):
     """Get all prepared exports of the project.
 
