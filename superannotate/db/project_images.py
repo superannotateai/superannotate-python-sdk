@@ -339,7 +339,7 @@ def move_images(
         destination_project_folder["name"]
     )
 
-
+@trackable
 def copy_image(
     source_project,
     image_name,
@@ -445,7 +445,7 @@ def _copy_annotations_and_metadata(
                 img_metadata["is_pinned"]
             )
 
-
+@trackable
 def move_image(
     source_project,
     image_name,
@@ -488,7 +488,7 @@ def move_image(
     delete_image((source_project, source_project_folder), image_name)
     logger.info("Deleted image %s/%s.", source_project["name"], image_name)
 
-
+@trackable
 def pin_image(project, image_name, pin=True):
     """Pins (or unpins) image
 

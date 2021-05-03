@@ -290,7 +290,7 @@ def get_image_metadata(project, image_names, return_dict_on_single_output=True):
         return metadata_without_deleted[0]
     return metadata_without_deleted
 
-
+@trackable
 def set_image_annotation_status(project, image_name, annotation_status):
     """Sets the image annotation status
 
@@ -360,7 +360,7 @@ def add_annotation_comment_to_image(
     )
     upload_image_annotations(project, image_name, annotations, verbose=False)
 
-
+@trackable
 def add_annotation_bbox_to_image(
     project,
     image_name,
@@ -396,7 +396,7 @@ def add_annotation_bbox_to_image(
     )
     upload_image_annotations(project, image_name, annotations, verbose=False)
 
-
+@trackable
 def add_annotation_polygon_to_image(
     project,
     image_name,
@@ -430,7 +430,7 @@ def add_annotation_polygon_to_image(
     )
     upload_image_annotations(project, image_name, annotations, verbose=False)
 
-
+@trackable
 def add_annotation_polyline_to_image(
     project,
     image_name,
@@ -463,7 +463,7 @@ def add_annotation_polyline_to_image(
     )
     upload_image_annotations(project, image_name, annotations, verbose=False)
 
-
+@trackable
 def add_annotation_point_to_image(
     project,
     image_name,
@@ -496,7 +496,7 @@ def add_annotation_point_to_image(
     )
     upload_image_annotations(project, image_name, annotations, verbose=False)
 
-
+@trackable
 def add_annotation_ellipse_to_image(
     project,
     image_name,
@@ -529,7 +529,7 @@ def add_annotation_ellipse_to_image(
     )
     upload_image_annotations(project, image_name, annotations, verbose=False)
 
-
+@trackable
 def add_annotation_template_to_image(
     project,
     image_name,
@@ -569,7 +569,7 @@ def add_annotation_template_to_image(
     )
     upload_image_annotations(project, image_name, annotations, verbose=False)
 
-
+@trackable
 def add_annotation_cuboid_to_image(
     project,
     image_name,
@@ -605,7 +605,7 @@ def add_annotation_cuboid_to_image(
     )
     upload_image_annotations(project, image_name, annotations, verbose=False)
 
-
+@trackable
 def download_image(
     project,
     image_name,
@@ -958,7 +958,7 @@ def download_image_preannotations(project, image_name, local_dir_path):
         project, image_name, local_dir_path, "pre"
     )
 
-
+@trackable
 def upload_image_annotations(
     project, image_name, annotation_json, mask=None, verbose=True
 ):
@@ -1033,7 +1033,7 @@ def upload_image_annotations(
         bucket = s3_resource.Bucket(res_mask["bucket"])
         bucket.put_object(Key=res_mask['filePath'], Body=mask)
 
-
+@trackable
 def create_fuse_image(
     image, classes_json, project_type, in_memory=False, output_overlay=False
 ):

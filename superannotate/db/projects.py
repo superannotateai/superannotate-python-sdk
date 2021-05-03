@@ -1383,7 +1383,7 @@ def upload_preannotations_from_folder_to_project(
         project, folder_path, "pre", from_s3_bucket, recursive_subfolders
     )
 
-
+@trackable
 def share_project(project, user, user_role):
     """Share project with user.
 
@@ -1777,7 +1777,7 @@ def set_project_settings(project, new_settings):
         )
     return response.json()
 
-
+@trackable
 def set_project_default_image_quality_in_editor(
     project, image_quality_in_editor
 ):

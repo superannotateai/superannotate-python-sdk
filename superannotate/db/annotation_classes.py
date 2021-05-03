@@ -16,7 +16,7 @@ logger = logging.getLogger("superannotate-python-sdk")
 
 _api = API.get_instance()
 
-
+@trackable
 def create_annotation_class(project, name, color, attribute_groups=None):
     """Create annotation class in project
 
@@ -112,7 +112,7 @@ def delete_annotation_class(project, annotation_class):
             "Couldn't delete annotation class " + response.text
         )
 
-
+@trackable
 def create_annotation_classes_from_classes_json(
     project, classes_json, from_s3_bucket=None
 ):

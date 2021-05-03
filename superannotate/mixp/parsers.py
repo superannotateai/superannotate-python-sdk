@@ -913,3 +913,381 @@ def df_to_annotations(*args, **kwargs):
 parsers['df_to_annotations'] = df_to_annotations
 
 
+
+def upload_image_annotations(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "upload_image_annotations",
+        "properties": {
+            "project_name": get_project_name(project),
+            "Pixel" :  bool(args[3:4] or ("mask" in kwargs) ),
+        }
+    }
+
+parsers['upload_image_annotations'] = upload_image_annotations
+
+
+
+
+
+
+
+def download_image(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "download_image",
+        "properties": {
+            "project_name": get_project_name(project),
+            "Download Annotations": bool(args[3:4] or ("include_annotations" in kwargs) ),
+            "Download Fuse": bool(args[4:5] or ("include_fuse" in kwargs) ),
+            "Download Overlay": bool(args[5:6] or ("include_overlay" in kwargs) ),
+        }
+    }
+
+parsers['download_image'] = download_image
+
+
+
+
+
+
+def copy_image(*args, **kwargs):
+    project = kwargs.get("source_project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "copy_image",
+        "properties": {
+            "project_name": get_project_name(project),
+            "Copy Annotations": bool(args[3:4] or ("include_annotations" in kwargs) ),
+            "Copy Annotation Status": bool(args[4:5] or ("copy_annotation_status" in kwargs) ),
+            "Copy Pin": bool(args[5:6] or ("copy_pin" in kwargs) ),
+        }
+    }
+
+parsers['copy_image'] = copy_image
+
+
+
+
+def move_image(*args, **kwargs):
+    project = kwargs.get("source_project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "move_image",
+        "properties": {
+            "project_name": get_project_name(project),
+            "Move Annotations": bool(args[3:4] or ("include_annotations" in kwargs) ),
+            "Move Annotation Status": bool(args[4:5] or ("copy_annotation_status" in kwargs) ),
+            "Move Pin": bool(args[5:6] or ("copy_pin" in kwargs) ),
+        }
+    }
+
+parsers['move_image'] = move_image
+
+
+def pin_image(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "pin_image",
+        "properties": {
+            "project_name": get_project_name(project),
+            "Pin": bool(args[2:3] or ("pin" in kwargs) ),
+        }
+    }
+
+parsers['pin_image'] = pin_image
+
+
+
+
+def create_fuse_image(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    project_type = kwargs.get("project_type", None)
+    if not project_type:
+        project_type = args[2:3][0]
+
+    return {
+        "event_name": "create_fuse_image",
+        "properties": {
+            "project_name": get_project_name(project),
+            "Project Type": project_type,
+            "Overlay": bool(args[4:5] or ("output_overlay" in kwargs) ),
+        }
+    }
+
+parsers['create_fuse_image'] = create_fuse_image
+
+
+
+
+
+def set_image_annotation_status(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "set_image_annotation_status",
+        "properties": {
+            "project_name": get_project_name(project),
+            "Annotation Status": bool(args[2:3] or ("annotation_status" in kwargs) ),
+        }
+    }
+
+parsers['set_image_annotation_status'] = set_image_annotation_status
+
+
+
+
+def add_annotation_bbox_to_image(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "add_annotation_bbox_to_image",
+        "properties": {
+            "project_name": get_project_name(project),
+            "Attributes": bool(args[4:5] or ("annotation_class_attributes" in kwargs) ),
+            "Error": bool(args[5:6] or ("error" in kwargs) ),
+
+        }
+    }
+
+parsers['add_annotation_bbox_to_image'] = add_annotation_bbox_to_image
+
+
+
+def add_annotation_polygon_to_image(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "add_annotation_polygon_to_image",
+        "properties": {
+            "project_name": get_project_name(project),
+            "Attributes": bool(args[4:5] or ("annotation_class_attributes" in kwargs) ),
+            "Error": bool(args[5:6] or ("error" in kwargs) ),
+
+        }
+    }
+
+parsers['add_annotation_polygon_to_image'] = add_annotation_polygon_to_image
+
+
+
+def add_annotation_polyline_to_image(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "add_annotation_polyline_to_image",
+        "properties": {
+            "project_name": get_project_name(project),
+            "Attributes": bool(args[4:5] or ("annotation_class_attributes" in kwargs) ),
+            "Error": bool(args[5:6] or ("error" in kwargs) ),
+
+        }
+    }
+
+parsers['add_annotation_polyline_to_image'] = add_annotation_polyline_to_image
+
+
+
+def add_annotation_point_to_image(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "add_annotation_point_to_image",
+        "properties": {
+            "project_name": get_project_name(project),
+            "Attributes": bool(args[4:5] or ("annotation_class_attributes" in kwargs) ),
+            "Error": bool(args[5:6] or ("error" in kwargs) ),
+
+        }
+    }
+
+parsers['add_annotation_point_to_image'] = add_annotation_point_to_image
+
+
+def add_annotation_ellipse_to_image(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "add_annotation_ellipse_to_image",
+        "properties": {
+            "project_name": get_project_name(project),
+            "Attributes": bool(args[4:5] or ("annotation_class_attributes" in kwargs) ),
+            "Error": bool(args[5:6] or ("error" in kwargs) ),
+
+        }
+    }
+
+parsers['add_annotation_ellipse_to_image'] = add_annotation_ellipse_to_image
+
+
+
+
+def add_annotation_template_to_image(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "add_annotation_template_to_image",
+        "properties": {
+            "project_name": get_project_name(project),
+            "Attributes": bool(args[5:6] or ("annotation_class_attributes" in kwargs) ),
+            "Error": bool(args[6:7] or ("error" in kwargs) ),
+
+        }
+    }
+
+parsers['add_annotation_template_to_image'] = add_annotation_template_to_image
+
+
+
+
+
+def add_annotation_cuboid_to_image(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "add_annotation_cuboid_to_image",
+        "properties": {
+            "project_name": get_project_name(project),
+            "Attributes": bool(args[4:5] or ("annotation_class_attributes" in kwargs) ),
+            "Error": bool(args[5:6] or ("error" in kwargs) ),
+
+        }
+    }
+
+parsers['add_annotation_cuboid_to_image'] = add_annotation_cuboid_to_image
+
+
+
+
+def create_annotation_class(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "create_annotation_class",
+        "properties": {
+            "project_name": get_project_name(project),
+            "Attributes": bool(args[3:4] or ("attribute_groups" in kwargs) ),
+        }
+    }
+
+parsers['create_annotation_class'] = create_annotation_class
+
+
+
+def create_annotation_classes_from_classes_json(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "create_annotation_classes_from_classes_json",
+        "properties": {
+            "project_name": get_project_name(project),
+            "From S3": bool(args[2:3] or ("from_s3_bucket" in kwargs) ),
+        }
+    }
+
+parsers['create_annotation_classes_from_classes_json'] = create_annotation_classes_from_classes_json
+
+
+
+
+def class_distribution(*args, **kwargs):
+    return {
+        "event_name": "class_distribution",
+        "properties": {
+            "Plot": bool(args[2:3] or ("visualize" in kwargs) ),
+        }
+    }
+
+parsers['class_distribution'] = class_distribution
+
+
+
+def attribute_distribution(*args, **kwargs):
+    return {
+        "event_name": "attribute_distribution",
+        "properties": {
+            "Plot": bool(args[2:3] or ("visualize" in kwargs) ),
+        }
+    }
+
+parsers['attribute_distribution'] = attribute_distribution
+
+
+def share_project(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    user_role = kwargs.get("user_role", None)
+    if not user_role:
+        user_role = args[2:3][0]
+
+    
+    return {
+        "event_name": "share_project",
+        "properties": {
+            "project_name": get_project_name(project),
+            "User Role":user_role
+        }
+    }
+
+parsers['share_project'] = share_project
+
+
+
+def set_project_default_image_quality_in_editor(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    image_quality_in_editor = kwargs.get("image_quality_in_editor", None)
+    if not image_quality_in_editor:
+        image_quality_in_editor = args[1:2][0]
+
+    
+    return {
+        "event_name": "set_project_default_image_quality_in_editor",
+        "properties": {
+            "project_name": get_project_name(project),
+            "Image Quality":image_quality_in_editor
+        }
+    }
+
+parsers['set_project_default_image_quality_in_editor'] = set_project_default_image_quality_in_editor
+
