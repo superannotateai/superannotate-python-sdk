@@ -11,7 +11,7 @@ def trackable(func):
     callers_to_ignore.append(func.__name__)
 
     def wrapper(*args, **kwargs):
-        if 1:
+        try:
             caller_function_name = sys._getframe().f_back.f_code.co_name
             if caller_function_name not in callers_to_ignore:
                 func_name_to_track = func.__name__
@@ -27,8 +27,8 @@ def trackable(func):
                 properties.pop("project_name", None)
                 properties = {**default, **properties}
                 mp.track(user_id, event_name, properties)
-        # except Exception as e:
-        #     print("--- ---- --- MIX PANEL EXCEPTION")
+        except Exception as e:
+            print("--- ---- --- MIX PANEL EXCEPTION")
         return func(*args, **kwargs)
 
     return wrapper
