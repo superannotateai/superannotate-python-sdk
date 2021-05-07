@@ -1,7 +1,7 @@
 import sys
-from .parsers import parsers
 from .app import mp, get_default
 from superannotate.api import API
+from .utils import parsers
 
 _api = API.get_instance()
 callers_to_ignore = []
@@ -15,7 +15,7 @@ def trackable(func):
             caller_function_name = sys._getframe().f_back.f_code.co_name
             if caller_function_name not in callers_to_ignore:
                 func_name_to_track = func.__name__
-                data = parsers[func_name_to_track](*args, **kwargs)
+                data = getattr(parsers, func_name_to_track)(*args, **kwargs)
                 user_id = _api.user_id
                 event_name = data['event_name']
                 properties = data['properties']
