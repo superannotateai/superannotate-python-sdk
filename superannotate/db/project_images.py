@@ -18,7 +18,7 @@ from .project_api import get_project_and_folder_metadata
 from .projects import (
     get_project_default_image_quality_in_editor, _get_available_image_counts
 )
-from .utils import _get_upload_auth_token, _get_boto_session_by_credentials, upload_image_array_to_s3, get_image_array_to_upload, __create_image
+from .utils import _get_upload_auth_token, _get_boto_session_by_credentials, upload_image_array_to_s3, get_image_array_to_upload, __create_image, __copy_images, __move_images, get_project_folder_string
 
 logger = logging.getLogger("superannotate-python-sdk")
 _api = API.get_instance()
@@ -211,38 +211,43 @@ def copy_images(
     :return: list of skipped image names
     :rtype: list of strs
     """
-    source_project, source_project_folder = get_project_and_folder_metadata(
+
+    source_project_inp = source_project
+    destination_project_inp = destination_project
+
+    source_project, source_folder = get_project_and_folder_metadata(
         source_project
     )
-    destination_project, destination_project_folder = get_project_and_folder_metadata(
+    destination_project, destination_folder = get_project_and_folder_metadata(
         destination_project
     )
-    if image_names is None:
-        image_names = search_images((source_project, source_project_folder))
+    root_folder_id = get_project_root_folder_id(source_project)
 
-    limit = _get_available_image_counts(
-        destination_project, destination_project_folder
-    )
-    imgs_to_upload = image_names[:limit]
-    res = _copy_images(
-        (source_project, source_project_folder),
-        (destination_project, destination_project_folder), imgs_to_upload,
-        include_annotations, copy_annotation_status, copy_pin
-    )
-    uploaded_imgs = res['completed']
-    skipped_imgs = [i for i in imgs_to_upload if i not in uploaded_imgs]
+    destination_folder_id = root_folder_id
+    source_folder_id = root_folder_id
 
-    skipped_images_count = len(skipped_imgs) + len(image_names[limit:])
+    if destination_folder:
+        destination_folder_id = destination_folder['id']
+    if source_folder:
+        source_folder_id = source_folder['id']
 
-    logger.info(
-        "Copied images %s from %s to %s. Number of skipped images %s",
-        uploaded_imgs, source_project["name"] +
-        "" if source_project_folder is None else source_project["name"] + "/" +
-        source_project_folder["name"], destination_project["name"] + ""
-        if destination_project_folder is None else destination_project["name"] +
-        "/" + destination_project_folder["name"], skipped_images_count
+    if image_names == None:
+        image_names = search_images(source_project_inp)
+
+    done_count, skipped_count, total_skipped_list = __copy_images(
+        source_project, source_folder_id, destination_folder_id, image_names,
+        include_annotations, copy_pin
     )
-    return skipped_imgs
+
+    if done_count > 1:
+        message = f"Copied {done_count}/{len(image_names)} images from {get_project_folder_string(source_project_inp)} to {get_project_folder_string(destination_project_inp)}."
+        logger.info(message)
+
+    elif done_count == 1:
+        message = f"Copied an image from {get_project_folder_string(source_project_inp)} to {get_project_folder_string(destination_project_inp)}."
+        logger.info(message)
+
+    return total_skipped_list
 
 
 def delete_images(project, image_names):
@@ -314,6 +319,8 @@ def move_images(
     :type copy_annotation_status: bool
     :param copy_pin: enables image pin status copy
     :type copy_pin: bool
+    :return: list of skipped image names
+    :rtype: list of strs
     """
     source_project_inp = source_project
     destination_project_inp = destination_project
@@ -334,36 +341,19 @@ def move_images(
     if source_folder:
         source_folder_id = source_folder['id']
 
-    response = _api.send_request(
-        req_type='POST',
-        path='/image/move',
-        params={
-            "team_id": source_project["team_id"],
-            "project_id": source_project["id"]
-        },
-        json_req={
-            "image_names": image_names,
-            "destination_folder_id": destination_folder_id,
-            "source_folder_id": source_folder_id
-        }
+    if image_names == None:
+        image_names = search_images(source_project_inp)
+
+    moved, skipped = __move_images(
+        source_project, source_folder_id, destination_folder_id, image_names
     )
 
-    res = response.json()
-    if res.get('error', None):
-        logger.error(res['error'])
-        return []
-
-    moved = res['moved']
-    skipped = res['skipped'] + [
-        i for i in image_names if i not in [*moved, *res['skipped']]
-    ]
-
     if len(moved) > 1:
-        message = f"Moved {len(moved)}/{len(image_names)} images from {source_project_inp} to {destination_project_inp}."
+        message = f"Moved {len(moved)}/{len(image_names)} images from {get_project_folder_string(source_project_inp)} to {get_project_folder_string(destination_project_inp)}."
         logger.info(message)
 
     elif len(moved) == 1:
-        message = f"Moved an image from {source_project_inp} to {destination_project_inp}."
+        message = f"Moved an image from {get_project_folder_string(source_project_inp)} to {get_project_folder_string(destination_project_inp)}."
         logger.info(message)
 
     return skipped
