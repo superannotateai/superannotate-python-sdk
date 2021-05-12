@@ -80,32 +80,43 @@ def image_consensus(df, image_name, annot_type):
                 "Invalid %s instance occured, skipping to the next one.",
                 annot_type
             )
+    visited_instances = {}
+    for proj, instances in projects_shaply_objs.items():
+        visited_instances[proj] = [False] * len(instances)
 
     # match instances
     for curr_proj, curr_proj_instances in projects_shaply_objs.items():
-        for curr_inst_data in curr_proj_instances:
+        for curr_id, curr_inst_data in enumerate(curr_proj_instances):
             curr_inst, curr_class, _, _ = curr_inst_data
+            if visited_instances[curr_proj][curr_id] == True:
+                continue
             max_instances = []
             for other_proj, other_proj_instances in projects_shaply_objs.items(
             ):
                 if curr_proj == other_proj:
                     max_instances.append((curr_proj, *curr_inst_data))
-                    projects_shaply_objs[curr_proj].remove(curr_inst_data)
+                    visited_instances[curr_proj][curr_id] = True
                 else:
                     if annot_type in ['polygon', 'bbox']:
                         max_score = 0
                     else:
                         max_score = float('-inf')
                     max_inst_data = None
-                    for other_inst_data in other_proj_instances:
+                    max_inst_id = -1
+                    for other_id, other_inst_data in enumerate(
+                        other_proj_instances
+                    ):
                         other_inst, other_class, _, _ = other_inst_data
+                        if visited_instances[other_proj][other_id] == True:
+                            continue
                         score = instance_consensus(curr_inst, other_inst)
                         if score > max_score and other_class == curr_class:
                             max_score = score
                             max_inst_data = other_inst_data
+                            max_inst_id = other_id
                     if max_inst_data is not None:
                         max_instances.append((other_proj, *max_inst_data))
-                        projects_shaply_objs[other_proj].remove(max_inst_data)
+                        visited_instances[other_proj][max_inst_id] = True
             if len(max_instances) == 1:
                 image_data["creatorEmail"].append(max_instances[0][3])
                 image_data["attributes"].append(max_instances[0][4])
