@@ -776,6 +776,551 @@ def copy_image(*args, **kwargs):
     }
 
 
+def run_prediction(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    from superannotate.db.projects import get_project_metadata as sa_get_project_metadata
+    project_name = get_project_name(project)
+    project_metadata = sa_get_project_metadata(project_name)
+
+    image_list = kwargs.get("images_list", None)
+    if not image_list:
+        image_list = args[1:2][0]
+
+    return {
+        "event_name": "run_prediction",
+        "properties":
+            {
+                "Project Type": project_metadata['type'],
+                "Image Count": len(image_list)
+            }
+    }
+
+
+def run_segmentation(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    from superannotate.db.projects import get_project_metadata as sa_get_project_metadata
+    project_name = get_project_name(project)
+    project_metadata = sa_get_project_metadata(project_name)
+
+    image_list = kwargs.get("images_list", None)
+    if not image_list:
+        image_list = args[1:2][0]
+
+    model = kwargs.get("model", None)
+    if not model:
+        model = args[2:3][0]
+
+    return {
+        "event_name": "run_segmentation",
+        "properties":
+            {
+                "Project Type": project_metadata['type'],
+                "Image Count": len(image_list),
+                "Model": model
+            }
+    }
+
+
+def upload_videos_from_folder_to_project(*args, **kwargs):
+    folder_path = kwargs.get("folder_path", None)
+    if not folder_path:
+        folder_path = args[1:2][0]
+
+    from pathlib import Path
+    glob_iterator = Path(folder_path).glob('*')
+
+    return {
+        "event_name": "upload_videos_from_folder_to_project",
+        "properties": {
+            "Video Count": sum(1 for _ in glob_iterator),
+        }
+    }
+
+
+def export_annotation(*args, **kwargs):
+
+    dataset_format = kwargs.get("dataset_format", None)
+    if not dataset_format:
+        dataset_format = args[2:3][0]
+
+    project_type = kwargs.get("project_type", None)
+    if not project_type:
+        project_type = args[4:5]
+        if not project_type:
+            project_type = 'Vector'
+        else:
+            project_type = args[4:5][0]
+
+    task = kwargs.get("task", None)
+    if not task:
+        task = args[5:6]
+        if not task:
+            task = "object_detection"
+        else:
+            task = args[5:6][0]
+
+    return {
+        "event_name": "export_annotation",
+        "properties":
+            {
+                "Format": dataset_format,
+                "Project Type": project_type,
+                "Task": task
+            }
+    }
+
+
+def import_annotation(*args, **kwargs):
+    dataset_format = kwargs.get("dataset_format", None)
+    if not dataset_format:
+        dataset_format = args[2:3][0]
+
+    project_type = kwargs.get("project_type", None)
+    if not project_type:
+        project_type = args[4:5]
+        if not project_type:
+            project_type = 'Vector'
+        else:
+            project_type = args[4:5][0]
+
+    task = kwargs.get("task", None)
+    if not task:
+        task = args[5:6]
+        if not task:
+            task = "object_detection"
+        else:
+            task = args[5:6][0]
+
+    return {
+        "event_name": "import_annotation",
+        "properties":
+            {
+                "Format": dataset_format,
+                "Project Type": project_type,
+                "Task": task
+            }
+    }
+
+
+def move_images(*args, **kwargs):
+    project = kwargs.get("source_project", None)
+    if not project:
+        project = args[0:1][0]
+
+    image_names = kwargs.get("image_names", False)
+    if image_names == False:
+        image_names = args[1:2][0]
+        if image_names == None:
+            from superannotate.db.images import search_images as sa_search_images
+            image_names = sa_search_images(project)
+
+    return {
+        "event_name": "move_images",
+        "properties":
+            {
+                "project_name":
+                    get_project_name(project),
+                "Image Count":
+                    len(image_names),
+                "Copy Annotations":
+                    bool(args[3:4] or ("include_annotations" in kwargs)),
+                "Copy Annotation Status":
+                    bool(args[4:5] or ("copy_annotation_status" in kwargs)),
+                "Copy Pin":
+                    bool(args[5:6] or ("copy_pin" in kwargs)),
+            }
+    }
+
+
+def copy_images(*args, **kwargs):
+    project = kwargs.get("source_project", None)
+    if not project:
+        project = args[0:1][0]
+
+    image_names = kwargs.get("image_names", False)
+    if image_names == False:
+        image_names = args[1:2][0]
+        if image_names == None:
+            from superannotate.db.images import search_images as sa_search_images
+            image_names = sa_search_images(project)
+
+    return {
+        "event_name": "copy_images",
+        "properties":
+            {
+                "project_name":
+                    get_project_name(project),
+                "Image Count":
+                    len(image_names),
+                "Copy Annotations":
+                    bool(args[3:4] or ("include_annotations" in kwargs)),
+                "Copy Annotation Status":
+                    bool(args[4:5] or ("copy_annotation_status" in kwargs)),
+                "Copy Pin":
+                    bool(args[5:6] or ("copy_pin" in kwargs)),
+            }
+    }
+
+
+def consensus(*args, **kwargs):
+
+    project = kwargs.get("source_project", None)
+    if not project:
+        project = args[0:1][0]
+
+    folder_names = kwargs.get("folder_names", None)
+    if not folder_names:
+        folder_names = args[1:2][0]
+
+    image_list = kwargs.get("image_list", "empty")
+    if image_list == "empty":
+        image_list = args[3:4]
+        if image_list == None or len(image_list) == 0:
+            from superannotate.db.images import search_images as sa_search_images
+            image_list = sa_search_images(project)
+        else:
+            image_list = args[3:4][0]
+
+    annot_type = kwargs.get("annot_type", "empty")
+    if annot_type == 'empty':
+        annot_type = args[4:5]
+        if not annot_type:
+            annot_type = "bbox"
+        else:
+            annot_type = args[4:5][0]
+
+    show_plots = kwargs.get("show_plots", "empty")
+    if show_plots == "empty":
+        show_plots = args[5:6]
+        if not show_plots:
+            show_plots = False
+        else:
+            show_plots = args[5:6][0]
+
+    return {
+        "event_name": "consensus",
+        "properties":
+            {
+                "Folder Count": len(folder_names),
+                "Image Count": len(image_list),
+                "Annotation Type": annot_type,
+                "Plot": show_plots
+            }
+    }
+
+
+def benchmark(*args, **kwargs):
+
+    project = kwargs.get("source_project", None)
+    if not project:
+        project = args[0:1][0]
+
+    folder_names = kwargs.get("folder_names", None)
+    if not folder_names:
+        folder_names = args[2:3][0]
+
+    image_list = kwargs.get("image_list", "empty")
+    if image_list == "empty":
+        image_list = args[4:5]
+        if image_list == None or len(image_list) == 0:
+            from superannotate.db.images import search_images as sa_search_images
+            image_list = sa_search_images(project)
+        else:
+            image_list = args[4:5][0]
+
+    annot_type = kwargs.get("annot_type", "empty")
+    if annot_type == 'empty':
+        annot_type = args[5:6]
+        if not annot_type:
+            annot_type = "bbox"
+        else:
+            annot_type = args[5:6][0]
+
+    show_plots = kwargs.get("show_plots", "empty")
+    if show_plots == "empty":
+        show_plots = args[6:7]
+        if not show_plots:
+            show_plots = False
+        else:
+            show_plots = args[6:7][0]
+
+    return {
+        "event_name": "benchmark",
+        "properties":
+            {
+                "Folder Count": len(folder_names),
+                "Image Count": len(image_list),
+                "Annotation Type": annot_type,
+                "Plot": show_plots
+            }
+    }
+
+
+def upload_annotations_from_folder_to_project(*args, **kwargs):
+    project = kwargs.get("source_project", None)
+    if not project:
+        project = args[0:1][0]
+
+    from superannotate.db.projects import get_project_metadata as sa_get_project_metadata
+    project_name = get_project_name(project)
+    project_metadata = sa_get_project_metadata(project_name)
+
+    folder_path = kwargs.get("folder_path", None)
+    if not folder_path:
+        folder_path = args[1:2][0]
+
+    from pathlib import Path
+    glob_iterator = Path(folder_path).glob('*.json')
+
+    return {
+        "event_name": "upload_annotations_from_folder_to_project",
+        "properties":
+            {
+                "Annotation Count": sum(1 for _ in glob_iterator),
+                "Project Type": project_metadata['type'],
+                "From S3": bool(args[2:3] or ("from_s3_bucket" in kwargs))
+            }
+    }
+
+
+def upload_preannotations_from_folder_to_project(*args, **kwargs):
+    project = kwargs.get("source_project", None)
+    if not project:
+        project = args[0:1][0]
+
+    from superannotate.db.projects import get_project_metadata as sa_get_project_metadata
+    project_name = get_project_name(project)
+    project_metadata = sa_get_project_metadata(project_name)
+
+    folder_path = kwargs.get("folder_path", None)
+    if not folder_path:
+        folder_path = args[1:2][0]
+
+    from pathlib import Path
+    glob_iterator = Path(folder_path).glob('*.json')
+
+    return {
+        "event_name": "upload_preannotations_from_folder_to_project",
+        "properties":
+            {
+                "Annotation Count": sum(1 for _ in glob_iterator),
+                "Project Type": project_metadata['type'],
+                "From S3": bool(args[2:3] or ("from_s3_bucket" in kwargs))
+            }
+    }
+
+
+def upload_images_from_folder_to_project(*args, **kwargs):
+    project = kwargs.get("source_project", None)
+    if not project:
+        project = args[0:1][0]
+
+    folder_path = kwargs.get("folder_path", None)
+    if not folder_path:
+        folder_path = args[1:2][0]
+
+    from ... import common
+    extension = common.DEFAULT_IMAGE_EXTENSIONS
+
+    from pathlib import Path
+    glob_iterator = Path(folder_path).glob(f'*.{extension}')
+
+    return {
+        "event_name": "upload_images_from_folder_to_project",
+        "properties":
+            {
+                "Image Count":
+                    sum(1 for _ in glob_iterator),
+                "Custom Extentions":
+                    bool(args[2:3] or kwargs.get("extensions", None)),
+                "Annotation Status":
+                    bool(args[3:4] or kwargs.get("annotation_status", None)),
+                "From S3":
+                    bool(args[4:5] or kwargs.get("from_s3_bucket", None)),
+                "Custom Exclude Patters":
+                    bool(
+                        args[5:6] or kwargs.get("exclude_file_patterns", None)
+                    )
+            }
+    }
+
+
+def upload_images_from_s3_bucket_to_project(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "upload_images_from_s3_bucket_to_project",
+        "properties": {
+            "project_name": get_project_name(project)
+        }
+    }
+
+
+# def prepare_export(
+#     project,
+#     folder_names=None,
+#     annotation_statuses=None,
+#     include_fuse=False,
+#     only_pinned=False
+# ):
+
+# Folder Count: len(folder_names),
+# Annotation Statuses: True/False,
+# Include Fuse: True/False,
+# Only Pinned: True/False
+
+
+def prepare_export(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "prepare_export",
+        "properties":
+            {
+                "project_name":
+                    get_project_name(project),
+                "Folder Count":
+                    bool(args[1:2] or kwargs.get("folder_names", None)),
+                "Annotation Statuses":
+                    bool(args[2:3] or kwargs.get("annotation_statuses", None)),
+                "Include Fuse":
+                    bool(args[3:4] or kwargs.get("include_fuse", None)),
+                "Only Pinned":
+                    bool(args[4:5] or kwargs.get("only_pinned", None)),
+            }
+    }
+
+
+def download_export(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    return {
+        "event_name": "download_export",
+        "properties":
+            {
+                "project_name":
+                    get_project_name(project),
+                "to_s3_bucket":
+                    bool(args[4:5] or kwargs.get("to_s3_bucket", None)),
+            }
+    }
+
+
+def dicom_to_rgb_sequence(*args, **kwargs):
+
+    return {"event_name": "dicom_to_rgb_sequence", "properties": {}}
+
+
+def coco_split_dataset(*args, **kwargs):
+    ratio_list = kwargs.get("ratio_list", None)
+    if not ratio_list:
+        ratio_list = args[4:5][0]
+
+    return {
+        "event_name": "coco_split_dataset",
+        "properties": {
+            "ratio_list": str(ratio_list)
+        }
+    }
+
+
+def run_training(*args, **kwargs):
+
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+        project = project[0]
+
+    task = kwargs.get("task", None)
+    if not task:
+        task = args[4:5][0]
+
+    hyperparameters = kwargs.get("hyperparameters", None)
+    if not hyperparameters:
+        hyperparameters = args[4:5][0]
+
+    from superannotate.db.projects import get_project_metadata as sa_get_project_metadata
+    project_name = get_project_name(project)
+    project_metadata = sa_get_project_metadata(project_name)
+
+    log = kwargs.get("log", "empty")
+    if log == "empty":
+        log = args[6:7]
+        if not log:
+            log = False
+        else:
+            log = args[6:7][0]
+
+    return {
+        "event_name": "run_training",
+        "properties":
+            {
+                "Project Type": project_metadata['type'],
+                "Task": task,
+                "Learning Rate": hyperparameters['base_lr'],
+                "Batch Size": hyperparameters['images_per_batch'],
+                "Log": log
+            }
+    }
+
+
+# def assign_images(project, image_names, user):
+# Assign Folder: IsRoot(project) ,
+# Image Count: len(image_names),
+# User Role: Annotator/QA/...
+
+
+def assign_images(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0:1][0]
+
+    image_names = kwargs.get("image_names", None)
+    if not image_names:
+        image_names = args[1:2][0]
+
+    user = kwargs.get("user", None)
+    if not user:
+        user = args[2:3][0]
+
+    from superannotate.db.users import get_team_contributor_metadata
+    res = get_team_contributor_metadata(user)
+    user_role = "ADMIN"
+    if res['user_role'] == 3:
+        user_role = 'ANNOTATOR'
+    if res['user_role'] == 4:
+        user_role = 'QA'
+
+    from superannotate.db.project_api import get_project_and_folder_metadata
+    project, folder = get_project_and_folder_metadata(project)
+    is_root = True
+    if folder:
+        is_root = False
+
+    return {
+        "event_name": "assign_images",
+        "properties":
+            {
+                "project_name": get_project_name(project),
+                "Assign Folder": is_root,
+                "Image Count": len(image_names),
+                "User Role": user_role,
+            }
+    }
+
+
 def move_image(*args, **kwargs):
     project = kwargs.get("source_project", None)
     if not project:

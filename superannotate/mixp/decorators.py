@@ -5,6 +5,7 @@ from .utils import parsers
 
 _api = API.get_instance()
 callers_to_ignore = []
+always_trackable_func_names = ["upload_images_from_folder_to_project"]
 
 
 def trackable(func):
@@ -13,7 +14,7 @@ def trackable(func):
     def wrapper(*args, **kwargs):
         try:
             caller_function_name = sys._getframe().f_back.f_code.co_name
-            if caller_function_name not in callers_to_ignore:
+            if caller_function_name not in callers_to_ignore or caller_function_name in always_trackable_func_names:
                 func_name_to_track = func.__name__
                 data = getattr(parsers, func_name_to_track)(*args, **kwargs)
                 user_id = _api.user_id

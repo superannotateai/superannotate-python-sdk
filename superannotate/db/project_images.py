@@ -188,6 +188,7 @@ def _copy_images(
     return res
 
 
+@trackable
 def copy_images(
     source_project,
     image_names,
@@ -300,6 +301,7 @@ def delete_images(project, image_names):
     )
 
 
+@trackable
 def move_images(
     source_project,
     image_names,
@@ -544,6 +546,7 @@ def pin_image(project, image_name, pin=True):
         )
 
 
+@trackable
 def assign_images(project, image_names, user):
     """Assigns images to a user. The assignment role, QA or Annotator, will
     be deduced from the user's role in the project. With SDK, the user can be

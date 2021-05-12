@@ -3,8 +3,10 @@ from pathlib import Path
 import numpy as np
 import pydicom
 from PIL import Image
+from .mixp.decorators import trackable
 
 
+@trackable
 def dicom_to_rgb_sequence(
     input_dicom_file, output_dir, output_image_quality="original"
 ):

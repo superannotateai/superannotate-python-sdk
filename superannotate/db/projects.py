@@ -132,6 +132,7 @@ def create_project_from_metadata(project_metadata):
         set_project_workflow(new_project_metadata, project_metadata["workflow"])
     return new_project_metadata
 
+
 @trackable
 def delete_project(project):
     """Deletes the project
@@ -151,6 +152,7 @@ def delete_project(project):
             response.status_code, "Couldn't delete project " + response.text
         )
     logger.info("Successfully deleted project %s.", project["name"])
+
 
 @trackable
 def rename_project(project, new_name):
@@ -188,6 +190,7 @@ def rename_project(project, new_name):
     logger.info(
         "Successfully renamed project %s to %s.", project["name"], new_name
     )
+
 
 @trackable
 def get_project_image_count(project, with_all_subfolders=False):
@@ -391,6 +394,7 @@ def upload_video_to_project(
     return filenames_base
 
 
+@trackable
 def upload_videos_from_folder_to_project(
     project,
     folder_path,
@@ -486,6 +490,7 @@ def upload_videos_from_folder_to_project(
     return filenames
 
 
+@trackable
 def upload_images_from_folder_to_project(
     project,
     folder_path,
@@ -1145,6 +1150,7 @@ def __upload_annotations_thread(
             uploaded[thread_id].append(full_path)
 
 
+@trackable
 def upload_annotations_from_folder_to_project(
     project, folder_path, from_s3_bucket=None, recursive_subfolders=False
 ):
@@ -1353,6 +1359,7 @@ def __tqdm_thread_upload_annotations(
                 break
 
 
+@trackable
 def upload_preannotations_from_folder_to_project(
     project, folder_path, from_s3_bucket=None, recursive_subfolders=False
 ):
@@ -1382,6 +1389,7 @@ def upload_preannotations_from_folder_to_project(
     return _upload_pre_or_annotations_from_folder_to_project(
         project, folder_path, "pre", from_s3_bucket, recursive_subfolders
     )
+
 
 @trackable
 def share_project(project, user, user_role):
@@ -1416,6 +1424,7 @@ def share_project(project, user, user_role):
         user["email"], common.user_role_int_to_str(user_role)
     )
 
+
 @trackable
 def unshare_project(project, user):
     """Unshare (remove) user from project.
@@ -1443,7 +1452,7 @@ def unshare_project(project, user):
         raise SABaseException(response.status_code, response.text)
     logger.info("Unshared project %s from user ID %s", project["name"], user_id)
 
-
+@trackable
 def upload_images_from_s3_bucket_to_project(
     project,
     accessKeyId,
@@ -1534,6 +1543,7 @@ def _get_upload_from_s3_bucket_to_project_status(project, project_folder):
         )
     return response.json()
 
+
 @trackable
 def get_project_workflow(project):
     """Gets project's workflow.
@@ -1575,6 +1585,7 @@ def get_project_workflow(project):
         if not found_classid:
             raise SABaseException(0, "Couldn't find class_id in workflow")
     return res
+
 
 @trackable
 def set_project_workflow(project, new_workflow):
@@ -1676,6 +1687,7 @@ def set_project_workflow(project, new_workflow):
                 "Couldn't set project workflow " + response.text
             )
 
+
 @trackable
 def get_project_settings(project):
     """Gets project's settings.
@@ -1712,6 +1724,7 @@ def get_project_settings(project):
             else:
                 raise SABaseException(0, "NA ImageQuality value")
     return res
+
 
 @trackable
 def set_project_settings(project, new_settings):
@@ -1777,6 +1790,7 @@ def set_project_settings(project, new_settings):
         )
     return response.json()
 
+
 @trackable
 def set_project_default_image_quality_in_editor(
     project, image_quality_in_editor
@@ -1796,6 +1810,7 @@ def set_project_default_image_quality_in_editor(
         }]
     )
 
+
 @trackable
 def get_project_default_image_quality_in_editor(project):
     """Gets project's default image quality in editor setting.
@@ -1813,6 +1828,7 @@ def get_project_default_image_quality_in_editor(project):
         0,
         "Image quality in editor should be 'compressed', 'original' or None for project settings value"
     )
+
 
 @trackable
 def get_project_metadata(

@@ -56,6 +56,7 @@ def get_export_metadata(project, export_name):
             " is not unique. To use SDK please use unique export names."
         )
 
+
 @trackable
 def get_exports(project, return_metadata=False):
     """Get all prepared exports of the project.
@@ -98,6 +99,7 @@ def _get_export(export):
     return response.json()
 
 
+@trackable
 def prepare_export(
     project,
     folder_names=None,
@@ -220,6 +222,7 @@ def _download_file(url, local_filename):
     return local_filename
 
 
+@trackable
 def download_export(
     project, export, folder_path, extract_zip_contents=True, to_s3_bucket=None
 ):

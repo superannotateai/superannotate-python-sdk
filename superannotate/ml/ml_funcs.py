@@ -23,10 +23,12 @@ from .defaults import DEFAULT_HYPERPARAMETERS, NON_PLOTABLE_KEYS
 from .utils import log_process, make_plotly_specs, reformat_metrics_json
 from ..db.utils import _get_boto_session_by_credentials
 from ..mixp.decorators import trackable
+
 logger = logging.getLogger("superannotate-python-sdk")
 _api = API.get_instance()
 
 
+@trackable
 @project_metadata
 @model_metadata
 def run_prediction(project, images_list, model):
@@ -103,6 +105,7 @@ def run_prediction(project, images_list, model):
     return succeded_imgs, failed_imgs
 
 
+@trackable
 @project_metadata
 def run_segmentation(project, images_list, model):
     """Starts smart segmentation on a list of images using the specified model
@@ -178,6 +181,7 @@ def run_segmentation(project, images_list, model):
     return (succeded_imgs, failed_imgs)
 
 
+@trackable
 @project_metadata
 @model_metadata
 def run_training(
@@ -342,6 +346,7 @@ def run_training(
         time.sleep(5)
     return new_model
 
+
 @trackable
 @model_metadata
 def stop_model_training(model):
@@ -363,6 +368,7 @@ def stop_model_training(model):
     else:
         logger.info("Failed to stop model training please try again")
     return model
+
 
 @trackable
 def plot_model_metrics(metric_json_list):
@@ -433,6 +439,7 @@ def plot_model_metrics(metric_json_list):
     )
     figure.show()
 
+
 @trackable
 @model_metadata
 def download_model(model, output_dir):
@@ -494,6 +501,7 @@ def download_model(model, output_dir):
 
     logger.info("Downloaded model related files")
     return model
+
 
 @trackable
 @model_metadata
