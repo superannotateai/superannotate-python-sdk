@@ -1,7 +1,8 @@
 import pandas as pd
-from .mixp.decorators import trackable
+from .mixp.decorators import Trackable
 
-@trackable
+
+@Trackable
 def filter_images_by_comments(
     annotations_df,
     include_unresolved_comments=True,
@@ -40,7 +41,8 @@ def filter_images_by_comments(
 
     return list(images)
 
-@trackable
+
+@Trackable
 def filter_images_by_tags(annotations_df, include=None, exclude=None):
     """Filter images on tags
 
@@ -74,7 +76,8 @@ def filter_images_by_tags(annotations_df, include=None, exclude=None):
 
     return list(images)
 
-@trackable
+
+@Trackable
 def filter_annotation_instances(annotations_df, include=None, exclude=None):
     """Filter annotation instances from project annotations pandas DataFrame.
 

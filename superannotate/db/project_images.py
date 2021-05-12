@@ -18,14 +18,14 @@ from .project_api import get_project_and_folder_metadata
 from .projects import (
     get_project_default_image_quality_in_editor, _get_available_image_counts
 )
-from ..mixp.decorators import trackable
+from ..mixp.decorators import Trackable
 from .utils import _get_upload_auth_token, _get_boto_session_by_credentials, upload_image_array_to_s3, get_image_array_to_upload, __create_image, __copy_images, __move_images, get_project_folder_string
 
 logger = logging.getLogger("superannotate-python-sdk")
 _api = API.get_instance()
 
 
-@trackable
+@Trackable
 def upload_image_to_project(
     project,
     img,
@@ -188,7 +188,7 @@ def _copy_images(
     return res
 
 
-@trackable
+@Trackable
 def copy_images(
     source_project,
     image_names,
@@ -253,7 +253,7 @@ def copy_images(
     return total_skipped_list
 
 
-@trackable
+@Trackable
 def delete_images(project, image_names):
     """Delete images in project.
 
@@ -301,7 +301,7 @@ def delete_images(project, image_names):
     )
 
 
-@trackable
+@Trackable
 def move_images(
     source_project,
     image_names,
@@ -364,7 +364,7 @@ def move_images(
     return skipped
 
 
-@trackable
+@Trackable
 def copy_image(
     source_project,
     image_name,
@@ -471,7 +471,7 @@ def _copy_annotations_and_metadata(
             )
 
 
-@trackable
+@Trackable
 def move_image(
     source_project,
     image_name,
@@ -515,7 +515,7 @@ def move_image(
     logger.info("Deleted image %s/%s.", source_project["name"], image_name)
 
 
-@trackable
+@Trackable
 def pin_image(project, image_name, pin=True):
     """Pins (or unpins) image
 
@@ -546,7 +546,7 @@ def pin_image(project, image_name, pin=True):
         )
 
 
-@trackable
+@Trackable
 def assign_images(project, image_names, user):
     """Assigns images to a user. The assignment role, QA or Annotator, will
     be deduced from the user's role in the project. With SDK, the user can be

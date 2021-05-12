@@ -2,20 +2,27 @@ import sys
 from .app import mp, get_default
 from superannotate.api import API
 from .utils import parsers
+from threading import Lock
+from functools import wraps
 
 _api = API.get_instance()
-callers_to_ignore = []
 always_trackable_func_names = ["upload_images_from_folder_to_project"]
 
 
-def trackable(func):
-    callers_to_ignore.append(func.__name__)
+class Trackable(object):
+    registered = set('<module>')
 
-    def wrapper(*args, **kwargs):
+    def __init__(self, function):
+        lock = Lock()
+        self.function = function
+        with lock:
+            Trackable.registered.add(function.__name__)
+
+    def __call__(self, *args, **kwargs):
         try:
-            caller_function_name = sys._getframe().f_back.f_code.co_name
-            if caller_function_name not in callers_to_ignore or caller_function_name in always_trackable_func_names:
-                func_name_to_track = func.__name__
+            func_name_to_track = self.function.__name__
+            caller_name = sys._getframe(1).f_code.co_name
+            if caller_name not in Trackable.registered or func_name_to_track in always_trackable_func_names:
                 data = getattr(parsers, func_name_to_track)(*args, **kwargs)
                 user_id = _api.user_id
                 event_name = data['event_name']
@@ -28,8 +35,6 @@ def trackable(func):
                 properties.pop("project_name", None)
                 properties = {**default, **properties}
                 mp.track(user_id, event_name, properties)
-        except Exception as e:
-            print("--- ---- --- MIX PANEL EXCEPTION")
-        return func(*args, **kwargs)
-
-    return wrapper
+        except:
+            print('--- mix panel exception ---')
+        return self.function(*args, **kwargs)

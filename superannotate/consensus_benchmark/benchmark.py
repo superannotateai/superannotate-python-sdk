@@ -9,12 +9,12 @@ from pathlib import Path
 from .helpers import image_consensus, consensus_plot
 from ..db.exports import prepare_export, download_export
 from ..analytics.common import aggregate_annotations_as_df
-from ..mixp.decorators import trackable
+from ..mixp.decorators import Trackable
 
 logger = logging.getLogger("superannotate-python-sdk")
 
 
-@trackable
+@Trackable
 def benchmark(
     project,
     gt_folder,

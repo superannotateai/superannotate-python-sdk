@@ -8,10 +8,12 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 from .common import aggregate_annotations_as_df
-from ..mixp.decorators import trackable
+from ..mixp.decorators import Trackable
+
 logger = logging.getLogger("superannotate-python-sdk")
 
-@trackable
+
+@Trackable
 def class_distribution(export_root, project_names, visualize=False):
     """Aggregate distribution of classes across multiple projects.
 
@@ -63,7 +65,7 @@ def class_distribution(export_root, project_names, visualize=False):
     return df
 
 
-@trackable
+@Trackable
 def attribute_distribution(export_root, project_names, visualize=False):
     """Aggregate distribution of attributes across multiple projects.
 

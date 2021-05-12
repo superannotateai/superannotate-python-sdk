@@ -8,10 +8,10 @@ logger = logging.getLogger("superannotate-python-sdk")
 
 _api = API.get_instance()
 
-from ..mixp.decorators import trackable
+from ..mixp.decorators import Trackable
 
 
-@trackable
+@Trackable
 def invite_contributor_to_team(email, admin=False):
     """Invites a contributor to team
 
@@ -33,7 +33,7 @@ def invite_contributor_to_team(email, admin=False):
     return response.json()
 
 
-@trackable
+@Trackable
 def get_team_metadata():
     """Returns team metadata
 
@@ -58,7 +58,7 @@ def get_team_metadata():
     return res
 
 
-@trackable
+@Trackable
 def delete_contributor_to_team_invitation(email):
     """Deletes team contributor invitation
 

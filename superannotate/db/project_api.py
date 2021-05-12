@@ -7,7 +7,7 @@ from ..exceptions import (
     SANonExistingProjectNameException
 )
 from .search_projects import search_projects
-from ..mixp.decorators import trackable
+from ..mixp.decorators import Trackable
 
 logger = logging.getLogger("superannotate-python-sdk")
 _api = API.get_instance()
@@ -65,7 +65,8 @@ def get_project_metadata_with_users(project_metadata):
         )
     return res
 
-@trackable
+
+@Trackable
 def get_folder_metadata(project, folder_name):
     """Returns folder metadata
 
@@ -92,7 +93,8 @@ def get_folder_metadata(project, folder_name):
     res = response.json()
     return res
 
-@trackable
+
+@Trackable
 def get_project_and_folder_metadata(project):
     """Returns project and folder metadata tuple. If folder part is empty, 
     than returned folder part is set to None.
@@ -131,7 +133,8 @@ def get_project_and_folder_metadata(project):
         raise SAIncorrectProjectArgument(project)
     return project, folder
 
-@trackable
+
+@Trackable
 def search_folders(project, folder_name=None, return_metadata=False):
     """Folder name based case-insensitive search for folders in project.
 
@@ -181,7 +184,8 @@ def search_folders(project, folder_name=None, return_metadata=False):
 
     return result_list
 
-@trackable
+
+@Trackable
 def create_folder(project, folder_name):
     """Create a new folder in the project.
 
@@ -225,7 +229,8 @@ def create_folder(project, folder_name):
     logger.info("Folder %s created in project %s", res["name"], project["name"])
     return res
 
-@trackable
+
+@Trackable
 def delete_folders(project, folder_names):
     """Delete folder in project.
 
@@ -260,7 +265,8 @@ def delete_folders(project, folder_names):
         "Folders %s deleted in project %s", folder_names, project["name"]
     )
 
-@trackable
+
+@Trackable
 def rename_folder(project, new_folder_name):
     """Renames folder in project.
 
