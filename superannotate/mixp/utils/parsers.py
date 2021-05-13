@@ -18,12 +18,10 @@ def invite_contributor_to_team(*args, **kwargs):
     admin = kwargs.get("admin", None)
     if not admin:
         admin = args[1:2]
-
     if admin:
         admin = "CUSTOM"
     else:
         admin = "DEFAULT"
-
     return {
         "event_name": "invite_contributor_to_team",
         "properties": {
@@ -54,7 +52,12 @@ def search_team_contributors(*args, **kwargs):
 def search_projects(*args, **kwargs):
     project = kwargs.get("name", None)
     if not project:
-        project = args[0:1][0]
+        project_name = None
+        project = args[0:1]
+        if project:
+            project_name = get_project_name(project[0])
+    else:
+        project_name = get_project_name(project)
     return {
         "event_name": "search_projects",
         "properties":
@@ -62,7 +65,7 @@ def search_projects(*args, **kwargs):
                 "Metadata":
                     bool(args[2:3] or kwargs.get("return_metadata", None)),
                 "project_name":
-                    get_project_name(project)
+                    project_name
             }
     }
 
@@ -70,11 +73,10 @@ def search_projects(*args, **kwargs):
 def create_project(*args, **kwargs):
     project = kwargs.get("project_name", None)
     if not project:
-        project = args[0:1][0]
+        project = args[0]
     project_type = kwargs.get("project_type", None)
     if not project_type:
-        project_type = args[2:3][0]
-
+        project_type = args[2]
     return {
         "event_name": "create_project",
         "properties":
@@ -88,7 +90,7 @@ def create_project(*args, **kwargs):
 def create_project_from_metadata(*args, **kwargs):
     project = kwargs.get("project_metadata", None)
     if not project:
-        project = args[0:1][0]
+        project = args[0]
     return {
         "event_name": "create_project_from_metadata",
         "properties": {
@@ -100,7 +102,7 @@ def create_project_from_metadata(*args, **kwargs):
 def clone_project(*args, **kwargs):
     project = kwargs.get("project_name", None)
     if not project:
-        project = args[0:1][0]
+        project = args[0]
     return {
         "event_name": "clone_project",
         "properties":
@@ -125,7 +127,7 @@ def clone_project(*args, **kwargs):
 def search_images(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
+        project = args[0]
     return {
         "event_name": "search_images",
         "properties":
@@ -143,11 +145,10 @@ def search_images(*args, **kwargs):
 def upload_images_to_project(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     img_paths = kwargs.get("img_paths", [])
     if not img_paths:
-        img_paths += args[1:2][0]
+        img_paths += args[1]
     return {
         "event_name": "upload_images_to_project",
         "properties":
@@ -167,7 +168,7 @@ def upload_images_to_project(*args, **kwargs):
 def upload_image_to_project(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
+        project = args[0]
     return {
         "event_name": "upload_image_to_project",
         "properties":
@@ -185,11 +186,10 @@ def upload_image_to_project(*args, **kwargs):
 def upload_images_from_public_urls_to_project(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     img_urls = kwargs.get("img_urls", [])
     if not img_urls:
-        img_urls += args[1:2][0]
+        img_urls += args[1]
     return {
         "event_name": "upload_images_from_public_urls_to_project",
         "properties":
@@ -209,7 +209,7 @@ def upload_images_from_public_urls_to_project(*args, **kwargs):
 def upload_images_from_google_cloud_to_project(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
+        project = args[0]
     return {
         "event_name": "upload_images_from_google_cloud_to_project",
         "properties": {
@@ -221,7 +221,7 @@ def upload_images_from_google_cloud_to_project(*args, **kwargs):
 def upload_images_from_azure_blob_to_project(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
+        project = args[0]
     return {
         "event_name": "upload_images_from_azure_blob_to_project",
         "properties": {
@@ -233,7 +233,7 @@ def upload_images_from_azure_blob_to_project(*args, **kwargs):
 def upload_video_to_project(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
+        project = args[0]
 
     return {
         "event_name": "upload_video_to_project",
@@ -250,8 +250,7 @@ def upload_video_to_project(*args, **kwargs):
 def attach_image_urls_to_project(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "attach_image_urls_to_project",
         "properties":
@@ -269,16 +268,13 @@ def attach_image_urls_to_project(*args, **kwargs):
 def set_images_annotation_statuses(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     annotation_status = kwargs.get("annotation_status", None)
     if not annotation_status:
-        annotation_status = args[2:3][0]
-
+        annotation_status = args[2]
     image_names = kwargs.get("image_names", [])
     if not image_names:
-        image_names = args[1:2][0]
-
+        image_names = args[1]
     return {
         "event_name": "set_images_annotation_statuses",
         "properties":
@@ -293,8 +289,7 @@ def set_images_annotation_statuses(*args, **kwargs):
 def get_image_annotations(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "get_image_annotations",
         "properties": {
@@ -306,8 +301,7 @@ def get_image_annotations(*args, **kwargs):
 def get_image_preannotations(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "get_image_preannotations",
         "properties": {
@@ -319,8 +313,7 @@ def get_image_preannotations(*args, **kwargs):
 def download_image_annotations(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "download_image_annotations",
         "properties": {
@@ -332,8 +325,7 @@ def download_image_annotations(*args, **kwargs):
 def download_image_preannotations(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "download_image_preannotations",
         "properties": {
@@ -345,8 +337,7 @@ def download_image_preannotations(*args, **kwargs):
 def get_image_metadata(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "get_image_metadata",
         "properties": {
@@ -358,8 +349,7 @@ def get_image_metadata(*args, **kwargs):
 def get_image_bytes(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "get_image_bytes",
         "properties": {
@@ -371,8 +361,7 @@ def get_image_bytes(*args, **kwargs):
 def delete_image(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "delete_image",
         "properties": {
@@ -384,8 +373,7 @@ def delete_image(*args, **kwargs):
 def add_annotation_comment_to_image(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "add_annotation_comment_to_image",
         "properties": {
@@ -397,8 +385,7 @@ def add_annotation_comment_to_image(*args, **kwargs):
 def delete_annotation_class(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "delete_annotation_class",
         "properties": {
@@ -410,8 +397,7 @@ def delete_annotation_class(*args, **kwargs):
 def get_annotation_class_metadata(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "get_annotation_class_metadata",
         "properties": {
@@ -423,8 +409,7 @@ def get_annotation_class_metadata(*args, **kwargs):
 def download_annotation_classes_json(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "download_annotation_classes_json",
         "properties": {
@@ -436,8 +421,7 @@ def download_annotation_classes_json(*args, **kwargs):
 def search_annotation_classes(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "search_annotation_classes",
         "properties": {
@@ -449,8 +433,7 @@ def search_annotation_classes(*args, **kwargs):
 def unshare_project(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "unshare_project",
         "properties": {
@@ -462,8 +445,7 @@ def unshare_project(*args, **kwargs):
 def get_project_image_count(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "get_project_image_count",
         "properties": {
@@ -475,8 +457,7 @@ def get_project_image_count(*args, **kwargs):
 def get_project_settings(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "get_project_settings",
         "properties": {
@@ -488,8 +469,7 @@ def get_project_settings(*args, **kwargs):
 def set_project_settings(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "set_project_settings",
         "properties": {
@@ -501,8 +481,7 @@ def set_project_settings(*args, **kwargs):
 def get_project_default_image_quality_in_editor(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "get_project_default_image_quality_in_editor",
         "properties": {
@@ -514,8 +493,7 @@ def get_project_default_image_quality_in_editor(*args, **kwargs):
 def get_project_metadata(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "get_project_metadata",
         "properties": {
@@ -527,8 +505,7 @@ def get_project_metadata(*args, **kwargs):
 def delete_project(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "delete_project",
         "properties": {
@@ -540,8 +517,7 @@ def delete_project(*args, **kwargs):
 def rename_project(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "rename_project",
         "properties": {
@@ -553,7 +529,7 @@ def rename_project(*args, **kwargs):
 def get_project_workflow(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
+        project = args[0]
 
     return {
         "event_name": "get_project_workflow",
@@ -566,8 +542,7 @@ def get_project_workflow(*args, **kwargs):
 def set_project_workflow(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "set_project_workflow",
         "properties": {
@@ -579,8 +554,7 @@ def set_project_workflow(*args, **kwargs):
 def create_folder(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "create_folder",
         "properties": {
@@ -592,8 +566,7 @@ def create_folder(*args, **kwargs):
 def get_folder_metadata(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "get_folder_metadata",
         "properties": {
@@ -605,8 +578,7 @@ def get_folder_metadata(*args, **kwargs):
 def get_project_and_folder_metadata(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "get_project_and_folder_metadata",
         "properties": {
@@ -618,8 +590,7 @@ def get_project_and_folder_metadata(*args, **kwargs):
 def rename_folder(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "rename_folder",
         "properties": {
@@ -631,8 +602,7 @@ def rename_folder(*args, **kwargs):
 def stop_model_training(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "stop_model_training",
         "properties": {
@@ -644,8 +614,7 @@ def stop_model_training(*args, **kwargs):
 def download_model(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "download_model",
         "properties": {
@@ -657,8 +626,7 @@ def download_model(*args, **kwargs):
 def plot_model_metrics(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "plot_model_metrics",
         "properties": {
@@ -670,8 +638,7 @@ def plot_model_metrics(*args, **kwargs):
 def delete_model(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "delete_model",
         "properties": {
@@ -683,8 +650,7 @@ def delete_model(*args, **kwargs):
 def convert_project_type(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "convert_project_type",
         "properties": {
@@ -696,8 +662,7 @@ def convert_project_type(*args, **kwargs):
 def convert_json_version(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "convert_json_version",
         "properties": {
@@ -709,8 +674,7 @@ def convert_json_version(*args, **kwargs):
 def df_to_annotations(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "df_to_annotations",
         "properties": {
@@ -722,8 +686,7 @@ def df_to_annotations(*args, **kwargs):
 def upload_image_annotations(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "upload_image_annotations",
         "properties":
@@ -737,8 +700,7 @@ def upload_image_annotations(*args, **kwargs):
 def download_image(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "download_image",
         "properties":
@@ -758,8 +720,7 @@ def download_image(*args, **kwargs):
 def copy_image(*args, **kwargs):
     project = kwargs.get("source_project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "copy_image",
         "properties":
@@ -779,16 +740,13 @@ def copy_image(*args, **kwargs):
 def run_prediction(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     from superannotate.db.projects import get_project_metadata as sa_get_project_metadata
     project_name = get_project_name(project)
     project_metadata = sa_get_project_metadata(project_name)
-
     image_list = kwargs.get("images_list", None)
     if not image_list:
-        image_list = args[1:2][0]
-
+        image_list = args[1]
     return {
         "event_name": "run_prediction",
         "properties":
@@ -802,20 +760,16 @@ def run_prediction(*args, **kwargs):
 def run_segmentation(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     from superannotate.db.projects import get_project_metadata as sa_get_project_metadata
     project_name = get_project_name(project)
     project_metadata = sa_get_project_metadata(project_name)
-
     image_list = kwargs.get("images_list", None)
     if not image_list:
-        image_list = args[1:2][0]
-
+        image_list = args[1]
     model = kwargs.get("model", None)
     if not model:
-        model = args[2:3][0]
-
+        model = args[2]
     return {
         "event_name": "run_segmentation",
         "properties":
@@ -830,11 +784,9 @@ def run_segmentation(*args, **kwargs):
 def upload_videos_from_folder_to_project(*args, **kwargs):
     folder_path = kwargs.get("folder_path", None)
     if not folder_path:
-        folder_path = args[1:2][0]
-
+        folder_path = args[1]
     from pathlib import Path
     glob_iterator = Path(folder_path).glob('*')
-
     return {
         "event_name": "upload_videos_from_folder_to_project",
         "properties": {
@@ -844,27 +796,23 @@ def upload_videos_from_folder_to_project(*args, **kwargs):
 
 
 def export_annotation(*args, **kwargs):
-
     dataset_format = kwargs.get("dataset_format", None)
     if not dataset_format:
-        dataset_format = args[2:3][0]
-
+        dataset_format = args[2]
     project_type = kwargs.get("project_type", None)
     if not project_type:
         project_type = args[4:5]
         if not project_type:
             project_type = 'Vector'
         else:
-            project_type = args[4:5][0]
-
+            project_type = args[4]
     task = kwargs.get("task", None)
     if not task:
         task = args[5:6]
         if not task:
             task = "object_detection"
         else:
-            task = args[5:6][0]
-
+            task = args[5]
     return {
         "event_name": "export_annotation",
         "properties":
@@ -879,24 +827,21 @@ def export_annotation(*args, **kwargs):
 def import_annotation(*args, **kwargs):
     dataset_format = kwargs.get("dataset_format", None)
     if not dataset_format:
-        dataset_format = args[2:3][0]
-
+        dataset_format = args[2]
     project_type = kwargs.get("project_type", None)
     if not project_type:
         project_type = args[4:5]
         if not project_type:
             project_type = 'Vector'
         else:
-            project_type = args[4:5][0]
-
+            project_type = args[4]
     task = kwargs.get("task", None)
     if not task:
         task = args[5:6]
         if not task:
             task = "object_detection"
         else:
-            task = args[5:6][0]
-
+            task = args[5]
     return {
         "event_name": "import_annotation",
         "properties":
@@ -911,15 +856,13 @@ def import_annotation(*args, **kwargs):
 def move_images(*args, **kwargs):
     project = kwargs.get("source_project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     image_names = kwargs.get("image_names", False)
     if image_names == False:
-        image_names = args[1:2][0]
+        image_names = args[0]
         if image_names == None:
             from superannotate.db.images import search_images as sa_search_images
             image_names = sa_search_images(project)
-
     return {
         "event_name": "move_images",
         "properties":
@@ -941,15 +884,13 @@ def move_images(*args, **kwargs):
 def copy_images(*args, **kwargs):
     project = kwargs.get("source_project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     image_names = kwargs.get("image_names", False)
     if image_names == False:
-        image_names = args[1:2][0]
+        image_names = args[1]
         if image_names == None:
             from superannotate.db.images import search_images as sa_search_images
             image_names = sa_search_images(project)
-
     return {
         "event_name": "copy_images",
         "properties":
@@ -969,31 +910,27 @@ def copy_images(*args, **kwargs):
 
 
 def consensus(*args, **kwargs):
-
     project = kwargs.get("source_project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     folder_names = kwargs.get("folder_names", None)
     if not folder_names:
-        folder_names = args[1:2][0]
-
+        folder_names = args[1]
     image_list = kwargs.get("image_list", "empty")
     if image_list == "empty":
         image_list = args[3:4]
-        if image_list == None or len(image_list) == 0:
+        if len(image_list) and image_list[0] == None:
             from superannotate.db.images import search_images as sa_search_images
             image_list = sa_search_images(project)
         else:
-            image_list = args[3:4][0]
-
+            image_list = image_list[0]
     annot_type = kwargs.get("annot_type", "empty")
     if annot_type == 'empty':
         annot_type = args[4:5]
         if not annot_type:
             annot_type = "bbox"
         else:
-            annot_type = args[4:5][0]
+            annot_type = args[4]
 
     show_plots = kwargs.get("show_plots", "empty")
     if show_plots == "empty":
@@ -1001,8 +938,7 @@ def consensus(*args, **kwargs):
         if not show_plots:
             show_plots = False
         else:
-            show_plots = args[5:6][0]
-
+            show_plots = args[5]
     return {
         "event_name": "consensus",
         "properties":
@@ -1016,31 +952,27 @@ def consensus(*args, **kwargs):
 
 
 def benchmark(*args, **kwargs):
-
     project = kwargs.get("source_project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     folder_names = kwargs.get("folder_names", None)
     if not folder_names:
-        folder_names = args[2:3][0]
-
+        folder_names = args[2]
     image_list = kwargs.get("image_list", "empty")
     if image_list == "empty":
         image_list = args[4:5]
-        if image_list == None or len(image_list) == 0:
+        if len(image_list) and image_list[0] == None:
             from superannotate.db.images import search_images as sa_search_images
             image_list = sa_search_images(project)
         else:
-            image_list = args[4:5][0]
-
+            image_list = image_list[0]
     annot_type = kwargs.get("annot_type", "empty")
     if annot_type == 'empty':
         annot_type = args[5:6]
         if not annot_type:
             annot_type = "bbox"
         else:
-            annot_type = args[5:6][0]
+            annot_type = args[5]
 
     show_plots = kwargs.get("show_plots", "empty")
     if show_plots == "empty":
@@ -1048,8 +980,7 @@ def benchmark(*args, **kwargs):
         if not show_plots:
             show_plots = False
         else:
-            show_plots = args[6:7][0]
-
+            show_plots = args[6]
     return {
         "event_name": "benchmark",
         "properties":
@@ -1065,19 +996,16 @@ def benchmark(*args, **kwargs):
 def upload_annotations_from_folder_to_project(*args, **kwargs):
     project = kwargs.get("source_project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     from superannotate.db.projects import get_project_metadata as sa_get_project_metadata
     project_name = get_project_name(project)
     project_metadata = sa_get_project_metadata(project_name)
 
     folder_path = kwargs.get("folder_path", None)
     if not folder_path:
-        folder_path = args[1:2][0]
-
+        folder_path = args[1]
     from pathlib import Path
     glob_iterator = Path(folder_path).glob('*.json')
-
     return {
         "event_name": "upload_annotations_from_folder_to_project",
         "properties":
@@ -1092,19 +1020,15 @@ def upload_annotations_from_folder_to_project(*args, **kwargs):
 def upload_preannotations_from_folder_to_project(*args, **kwargs):
     project = kwargs.get("source_project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     from superannotate.db.projects import get_project_metadata as sa_get_project_metadata
     project_name = get_project_name(project)
     project_metadata = sa_get_project_metadata(project_name)
-
     folder_path = kwargs.get("folder_path", None)
     if not folder_path:
-        folder_path = args[1:2][0]
-
+        folder_path = args[1]
     from pathlib import Path
     glob_iterator = Path(folder_path).glob('*.json')
-
     return {
         "event_name": "upload_preannotations_from_folder_to_project",
         "properties":
@@ -1119,18 +1043,13 @@ def upload_preannotations_from_folder_to_project(*args, **kwargs):
 def upload_images_from_folder_to_project(*args, **kwargs):
     project = kwargs.get("source_project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     folder_path = kwargs.get("folder_path", None)
     if not folder_path:
-        folder_path = args[1:2][0]
-
-    from ... import common
-    extension = common.DEFAULT_IMAGE_EXTENSIONS
-
+        folder_path = args[1]
+    from ...common import DEFAULT_IMAGE_EXTENSIONS as extension
     from pathlib import Path
     glob_iterator = Path(folder_path).glob(f'*.{extension}')
-
     return {
         "event_name": "upload_images_from_folder_to_project",
         "properties":
@@ -1154,8 +1073,7 @@ def upload_images_from_folder_to_project(*args, **kwargs):
 def upload_images_from_s3_bucket_to_project(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "upload_images_from_s3_bucket_to_project",
         "properties": {
@@ -1164,25 +1082,10 @@ def upload_images_from_s3_bucket_to_project(*args, **kwargs):
     }
 
 
-# def prepare_export(
-#     project,
-#     folder_names=None,
-#     annotation_statuses=None,
-#     include_fuse=False,
-#     only_pinned=False
-# ):
-
-# Folder Count: len(folder_names),
-# Annotation Statuses: True/False,
-# Include Fuse: True/False,
-# Only Pinned: True/False
-
-
 def prepare_export(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "prepare_export",
         "properties":
@@ -1204,8 +1107,7 @@ def prepare_export(*args, **kwargs):
 def download_export(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "download_export",
         "properties":
@@ -1219,15 +1121,13 @@ def download_export(*args, **kwargs):
 
 
 def dicom_to_rgb_sequence(*args, **kwargs):
-
     return {"event_name": "dicom_to_rgb_sequence", "properties": {}}
 
 
 def coco_split_dataset(*args, **kwargs):
     ratio_list = kwargs.get("ratio_list", None)
     if not ratio_list:
-        ratio_list = args[4:5][0]
-
+        ratio_list = args[4]
     return {
         "event_name": "coco_split_dataset",
         "properties": {
@@ -1237,32 +1137,25 @@ def coco_split_dataset(*args, **kwargs):
 
 
 def run_training(*args, **kwargs):
-
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-        project = project[0]
-
+        project = args[0][0]
     task = kwargs.get("task", None)
     if not task:
-        task = args[4:5][0]
-
+        task = args[4]
     hyperparameters = kwargs.get("hyperparameters", None)
     if not hyperparameters:
-        hyperparameters = args[4:5][0]
-
+        hyperparameters = args[4]
     from superannotate.db.projects import get_project_metadata as sa_get_project_metadata
     project_name = get_project_name(project)
     project_metadata = sa_get_project_metadata(project_name)
-
     log = kwargs.get("log", "empty")
     if log == "empty":
         log = args[6:7]
         if not log:
             log = False
         else:
-            log = args[6:7][0]
-
+            log = args[6]
     return {
         "event_name": "run_training",
         "properties":
@@ -1276,25 +1169,16 @@ def run_training(*args, **kwargs):
     }
 
 
-# def assign_images(project, image_names, user):
-# Assign Folder: IsRoot(project) ,
-# Image Count: len(image_names),
-# User Role: Annotator/QA/...
-
-
 def assign_images(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     image_names = kwargs.get("image_names", None)
     if not image_names:
-        image_names = args[1:2][0]
-
+        image_names = args[1]
     user = kwargs.get("user", None)
     if not user:
-        user = args[2:3][0]
-
+        user = args[2]
     from superannotate.db.users import get_team_contributor_metadata
     res = get_team_contributor_metadata(user)
     user_role = "ADMIN"
@@ -1302,13 +1186,11 @@ def assign_images(*args, **kwargs):
         user_role = 'ANNOTATOR'
     if res['user_role'] == 4:
         user_role = 'QA'
-
     from superannotate.db.project_api import get_project_and_folder_metadata
     project, folder = get_project_and_folder_metadata(project)
     is_root = True
     if folder:
         is_root = False
-
     return {
         "event_name": "assign_images",
         "properties":
@@ -1324,8 +1206,7 @@ def assign_images(*args, **kwargs):
 def move_image(*args, **kwargs):
     project = kwargs.get("source_project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "move_image",
         "properties":
@@ -1345,8 +1226,7 @@ def move_image(*args, **kwargs):
 def pin_image(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "pin_image",
         "properties":
@@ -1360,12 +1240,10 @@ def pin_image(*args, **kwargs):
 def create_fuse_image(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     project_type = kwargs.get("project_type", None)
     if not project_type:
-        project_type = args[2:3][0]
-
+        project_type = args[2]
     return {
         "event_name": "create_fuse_image",
         "properties":
@@ -1380,8 +1258,7 @@ def create_fuse_image(*args, **kwargs):
 def set_image_annotation_status(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "set_image_annotation_status",
         "properties":
@@ -1397,8 +1274,7 @@ def set_image_annotation_status(*args, **kwargs):
 def add_annotation_bbox_to_image(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "add_annotation_bbox_to_image",
         "properties":
@@ -1418,8 +1294,7 @@ def add_annotation_bbox_to_image(*args, **kwargs):
 def add_annotation_polygon_to_image(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "add_annotation_polygon_to_image",
         "properties":
@@ -1439,8 +1314,7 @@ def add_annotation_polygon_to_image(*args, **kwargs):
 def add_annotation_polyline_to_image(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "add_annotation_polyline_to_image",
         "properties":
@@ -1460,8 +1334,7 @@ def add_annotation_polyline_to_image(*args, **kwargs):
 def add_annotation_point_to_image(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "add_annotation_point_to_image",
         "properties":
@@ -1481,8 +1354,7 @@ def add_annotation_point_to_image(*args, **kwargs):
 def add_annotation_ellipse_to_image(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "add_annotation_ellipse_to_image",
         "properties":
@@ -1502,8 +1374,7 @@ def add_annotation_ellipse_to_image(*args, **kwargs):
 def add_annotation_template_to_image(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "add_annotation_template_to_image",
         "properties":
@@ -1523,8 +1394,7 @@ def add_annotation_template_to_image(*args, **kwargs):
 def add_annotation_cuboid_to_image(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "add_annotation_cuboid_to_image",
         "properties":
@@ -1544,7 +1414,7 @@ def add_annotation_cuboid_to_image(*args, **kwargs):
 def create_annotation_class(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
+        project = args[0]
 
     return {
         "event_name": "create_annotation_class",
@@ -1559,8 +1429,7 @@ def create_annotation_class(*args, **kwargs):
 def create_annotation_classes_from_classes_json(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "create_annotation_classes_from_classes_json",
         "properties":
@@ -1592,12 +1461,10 @@ def attribute_distribution(*args, **kwargs):
 def share_project(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     user_role = kwargs.get("user_role", None)
     if not user_role:
-        user_role = args[2:3][0]
-
+        user_role = args[2]
     return {
         "event_name": "share_project",
         "properties":
@@ -1611,12 +1478,10 @@ def share_project(*args, **kwargs):
 def set_project_default_image_quality_in_editor(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     image_quality_in_editor = kwargs.get("image_quality_in_editor", None)
     if not image_quality_in_editor:
-        image_quality_in_editor = args[1:2][0]
-
+        image_quality_in_editor = args[1]
     return {
         "event_name": "set_project_default_image_quality_in_editor",
         "properties":
@@ -1630,8 +1495,7 @@ def set_project_default_image_quality_in_editor(*args, **kwargs):
 def get_exports(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "get_exports",
         "properties":
@@ -1645,8 +1509,7 @@ def get_exports(*args, **kwargs):
 def search_folders(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     return {
         "event_name": "search_folders",
         "properties":
@@ -1695,18 +1558,16 @@ def filter_annotation_instances(*args, **kwargs):
 
 
 def aggregate_annotations_as_df(*args, **kwargs):
-    folder_names = kwargs.get("folder_names", None)
-    if not folder_names:
-        folder_names = args[5:6]
-        if folder_names:
-            folder_names = args[5:6][0]
-        else:
-            folder_names = []
 
+    folder_names = kwargs.get("folder_names", "empty")
+    if folder_names == "empty":
+        folder_names = args[5:6]
+        if folder_names != None:
+            folder_names = len(folder_names)
     return {
         "event_name": "aggregate_annotations_as_df",
         "properties": {
-            "Fodler Count": len(folder_names),
+            "Folder Count": folder_names,
         }
     }
 
@@ -1714,12 +1575,10 @@ def aggregate_annotations_as_df(*args, **kwargs):
 def delete_folders(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     folder_names = kwargs.get("folder_names", None)
     if not folder_names:
-        folder_names = args[1:2][0]
-
+        folder_names = args[1]
     return {
         "event_name": "delete_folders",
         "properties":
@@ -1733,12 +1592,10 @@ def delete_folders(*args, **kwargs):
 def delete_images(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
-        project = args[0:1][0]
-
+        project = args[0]
     image_names = kwargs.get("image_names", None)
     if not image_names:
-        image_names = args[1:2][0]
-
+        image_names = args[1]
     return {
         "event_name": "delete_images",
         "properties":
