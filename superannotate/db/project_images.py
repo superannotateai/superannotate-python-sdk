@@ -237,12 +237,14 @@ def copy_images(
     if image_names == None:
         image_names = search_images(source_project_inp)
 
-    done_count, skipped_count, total_skipped_list = __copy_images(
+    done_count, total_skipped_list, logs = __copy_images(
         source_project, source_folder_id, destination_folder_id, image_names,
         include_annotations, copy_pin
     )
+    for log in logs:
+        logger.info(log)
 
-    if done_count > 1:
+    if done_count > 1 or done_count == 0:
         message = f"Copied {done_count}/{len(image_names)} images from {get_project_folder_string(source_project_inp)} to {get_project_folder_string(destination_project_inp)}."
         logger.info(message)
 
@@ -349,14 +351,16 @@ def move_images(
     if image_names == None:
         image_names = search_images(source_project_inp)
 
-    moved, skipped = __move_images(
+    moved, skipped, logs = __move_images(
         source_project, source_folder_id, destination_folder_id, image_names
     )
 
-    if len(moved) > 1:
+    for log in logs:
+        logger.info(log)
+
+    if len(moved) > 1 or len(moved) == 0:
         message = f"Moved {len(moved)}/{len(image_names)} images from {get_project_folder_string(source_project_inp)} to {get_project_folder_string(destination_project_inp)}."
         logger.info(message)
-
     elif len(moved) == 1:
         message = f"Moved an image from {get_project_folder_string(source_project_inp)} to {get_project_folder_string(destination_project_inp)}."
         logger.info(message)
