@@ -6,8 +6,10 @@ from ..exceptions import SABaseException
 logger = logging.getLogger("superannotate-python-sdk")
 
 _api = API.get_instance()
+from ..mixp.decorators import Trackable
 
 
+@Trackable
 def search_projects(
     name=None, return_metadata=False, include_complete_image_count=False
 ):

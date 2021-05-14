@@ -2,6 +2,7 @@ import math
 from tqdm import tqdm
 import threading
 import io
+import time
 from pathlib import Path
 from .. import common
 import logging
@@ -10,7 +11,7 @@ from PIL import Image, ImageOps
 import json
 from ..api import API
 from ..exceptions import SABaseException, SAImageSizeTooLarge, SANonExistingProjectNameException
-
+import datetime
 import boto3
 
 _api = API.get_instance()
@@ -24,6 +25,185 @@ def divide_chunks(l, n):
     # looping till length l
     for i in range(0, len(l), n):
         yield l[i:i + n]
+
+
+def get_project_folder_string(project):
+    if isinstance(project, dict):
+        return project['name']
+    elif isinstance(project, tuple):
+        project, folder = project
+        project_name = project['name']
+        if folder:
+            return project_name + '/' + folder['name']
+        return project_name
+    elif isinstance(project, str):
+        return project
+
+
+def __move_images(
+    source_project, source_folder_id, destination_folder_id, image_names
+):
+    """Move images in bulk between folders in a project 
+
+    :param source_project: source project
+    :type source_project: dict
+    :param source_folder_id: source folder id
+    :type source_folder_id: int
+    :param image_names: image names. If None, all images from source project will be moved
+    :type image: list of str
+    :param destination_folder_id: destination folder id
+    :type destination_folder_id: int
+    :return: tuple of moved images list and skipped images list
+    :rtype: tuple of lists
+    """
+
+    image_names_lists = divide_chunks(image_names, 1000)
+    total_skipped = []
+    total_moved = []
+    logs = []
+
+    for image_names in image_names_lists:
+        response = _api.send_request(
+            req_type='POST',
+            path='/image/move',
+            params={
+                "team_id": source_project["team_id"],
+                "project_id": source_project["id"]
+            },
+            json_req={
+                "image_names": image_names,
+                "destination_folder_id": destination_folder_id,
+                "source_folder_id": source_folder_id
+            }
+        )
+
+        if not response.ok:
+            logs.append("Couldn't move images " + response.text)
+            total_skipped += image_names
+            continue
+        res = response.json()
+        total_moved += res['done']
+
+    total_skipped = list(set(image_names) - set(total_moved))
+    return (total_moved, total_skipped, logs)
+
+
+def _copy_images_request(
+    team_id, project_id, image_names, destination_folder_id, source_folder_id,
+    include_annotations, copy_pin
+):
+    response = _api.send_request(
+        req_type='POST',
+        path='/images/copy-image-or-folders',
+        params={
+            "team_id": team_id,
+            "project_id": project_id
+        },
+        json_req={
+            "is_folder_copy": False,
+            "image_names": image_names,
+            "destination_folder_id": destination_folder_id,
+            "source_folder_id": source_folder_id,
+            "include_annotations": include_annotations,
+            "keep_pin_status": copy_pin
+        }
+    )
+    return response
+
+
+def copy_polling(image_names, source_project, poll_id):
+    done_count = 0
+    skipped_count = 0
+    now_timestamp = datetime.datetime.now().timestamp()
+    delta_seconds = len(image_names) * 0.3
+    max_timestamp = now_timestamp + delta_seconds
+    logs = []
+    while True:
+        time.sleep(4)
+        now_timestamp = datetime.datetime.now().timestamp()
+        if (now_timestamp > max_timestamp):
+            break
+        response = _api.send_request(
+            req_type='GET',
+            path='/images/copy-image-progress',
+            params={
+                "team_id": source_project["team_id"],
+                "project_id": source_project["id"],
+                "poll_id": poll_id
+            }
+        )
+        if not response.ok:
+            logs.append("Couldn't copy images " + response.text)
+            continue
+        res = response.json()
+        done_count = int(res['done'])
+        skipped_count = int(res['skipped'])
+        total_count = int(res['total_count'])
+        if (skipped_count + done_count == total_count):
+            break
+    return (skipped_count, done_count, logs)
+
+
+def __copy_images(
+    source_project, source_folder_id, destination_folder_id, image_names,
+    include_annotations, copy_pin
+):
+    """Copy images in bulk between folders in a project 
+
+    :param source_project: source project
+    :type source_project: dict
+    :param source_folder_id: source folder id
+    :type source_folder_id: int
+    :param image_names: image names. If None, all images from source project will be moved
+    :type image: list of str
+    :param destination_folder_id: destination folder id
+    :type destination_folder_id: int
+    :param include_annotations: enables annotations copy
+    :type include_annotations: bool
+    :param copy_pin: enables image pin status copy
+    :type copy_pin: bool
+    """
+
+    team_id = source_project["team_id"]
+    project_id = source_project["id"]
+
+    image_names_lists = divide_chunks(image_names, 1000)
+    total_skipped_count = 0
+    total_done_count = 0
+    total_skipped_list = []
+
+    logs = []
+
+    for image_names in image_names_lists:
+        duplicates = get_duplicate_image_names(
+            project_id=project_id,
+            team_id=team_id,
+            folder_id=destination_folder_id,
+            image_paths=image_names
+        )
+        total_skipped_list += duplicates
+        image_names = list(set(image_names) - set(duplicates))
+        if not image_names:
+            continue
+
+        response = _copy_images_request(
+            team_id, project_id, image_names, destination_folder_id,
+            source_folder_id, include_annotations, copy_pin
+        )
+        if not response.ok:
+            logs.append("Couldn't copy images " + response.text)
+            total_skipped_list += image_names
+            continue
+
+        res = response.json()
+        poll_id = res['poll_id']
+        skipped_count, done_count, polling_logs = copy_polling(
+            image_names, source_project, poll_id
+        )
+        logs += polling_logs
+        total_skipped_count += skipped_count
+        total_done_count += done_count
+    return (total_done_count, total_skipped_list, logs)
 
 
 def create_empty_annotation(size, image_name):

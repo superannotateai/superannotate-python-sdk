@@ -26,6 +26,7 @@ from .annotation_classes import (
 )
 from .project_api import get_project_and_folder_metadata, get_project_metadata_bare
 from .utils import _get_boto_session_by_credentials
+from ..mixp.decorators import Trackable
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -52,6 +53,7 @@ def get_project_root_folder_id(project):
     return response['data'][0]['id']
 
 
+@Trackable
 def search_images(
     project,
     image_name_prefix=None,
@@ -213,6 +215,7 @@ def search_images_all_folders(
         return result_list
 
 
+@Trackable
 def get_image_metadata(project, image_names, return_dict_on_single_output=True):
     """Returns image metadata
 
@@ -288,6 +291,7 @@ def get_image_metadata(project, image_names, return_dict_on_single_output=True):
     return metadata_without_deleted
 
 
+@Trackable
 def set_image_annotation_status(project, image_name, annotation_status):
     """Sets the image annotation status
 
@@ -324,6 +328,7 @@ def set_image_annotation_status(project, image_name, annotation_status):
     return response
 
 
+@Trackable
 def add_annotation_comment_to_image(
     project,
     image_name,
@@ -358,6 +363,7 @@ def add_annotation_comment_to_image(
     upload_image_annotations(project, image_name, annotations, verbose=False)
 
 
+@Trackable
 def add_annotation_bbox_to_image(
     project,
     image_name,
@@ -394,6 +400,7 @@ def add_annotation_bbox_to_image(
     upload_image_annotations(project, image_name, annotations, verbose=False)
 
 
+@Trackable
 def add_annotation_polygon_to_image(
     project,
     image_name,
@@ -428,6 +435,7 @@ def add_annotation_polygon_to_image(
     upload_image_annotations(project, image_name, annotations, verbose=False)
 
 
+@Trackable
 def add_annotation_polyline_to_image(
     project,
     image_name,
@@ -461,6 +469,7 @@ def add_annotation_polyline_to_image(
     upload_image_annotations(project, image_name, annotations, verbose=False)
 
 
+@Trackable
 def add_annotation_point_to_image(
     project,
     image_name,
@@ -494,6 +503,7 @@ def add_annotation_point_to_image(
     upload_image_annotations(project, image_name, annotations, verbose=False)
 
 
+@Trackable
 def add_annotation_ellipse_to_image(
     project,
     image_name,
@@ -527,6 +537,7 @@ def add_annotation_ellipse_to_image(
     upload_image_annotations(project, image_name, annotations, verbose=False)
 
 
+@Trackable
 def add_annotation_template_to_image(
     project,
     image_name,
@@ -567,6 +578,7 @@ def add_annotation_template_to_image(
     upload_image_annotations(project, image_name, annotations, verbose=False)
 
 
+@Trackable
 def add_annotation_cuboid_to_image(
     project,
     image_name,
@@ -603,6 +615,7 @@ def add_annotation_cuboid_to_image(
     upload_image_annotations(project, image_name, annotations, verbose=False)
 
 
+@Trackable
 def download_image(
     project,
     image_name,
@@ -682,6 +695,7 @@ def download_image(
     return (str(filepath_save), annotations_filepaths, fuse_path)
 
 
+@Trackable
 def delete_image(project, image_name):
     """Deletes image
 
@@ -704,6 +718,7 @@ def delete_image(project, image_name):
     logger.info("Successfully deleted image  %s.", image_name)
 
 
+@Trackable
 def get_image_bytes(project, image_name, variant='original'):
     """Returns an io.BytesIO() object of the image. Suitable for creating
     PIL.Image out of it.
@@ -760,6 +775,7 @@ def get_image_bytes(project, image_name, variant='original'):
     return img
 
 
+@Trackable
 def get_image_preannotations(project, image_name):
     """Get pre-annotations of the image. Only works for "vector" projects.
 
@@ -778,6 +794,7 @@ def get_image_preannotations(project, image_name):
     return _get_image_pre_or_annotations(project, image_name, "pre")
 
 
+@Trackable
 def get_image_annotations(project, image_name):
     """Get annotations of the image.
 
@@ -877,6 +894,7 @@ def _get_image_pre_or_annotations(project, image_name, pre):
     return result
 
 
+@Trackable
 def download_image_annotations(project, image_name, local_dir_path):
     """Downloads annotations of the image (JSON and mask if pixel type project)
     to local_dir_path.
@@ -933,6 +951,7 @@ def _download_image_pre_or_annotations(
     return tuple(return_filepaths)
 
 
+@Trackable
 def download_image_preannotations(project, image_name, local_dir_path):
     """Downloads pre-annotations of the image to local_dir_path.
     Only works for "vector" projects.
@@ -952,6 +971,7 @@ def download_image_preannotations(project, image_name, local_dir_path):
     )
 
 
+@Trackable
 def upload_image_annotations(
     project, image_name, annotation_json, mask=None, verbose=True
 ):
@@ -1027,6 +1047,7 @@ def upload_image_annotations(
         bucket.put_object(Key=res_mask['filePath'], Body=mask)
 
 
+@Trackable
 def create_fuse_image(
     image, classes_json, project_type, in_memory=False, output_overlay=False
 ):
@@ -1199,6 +1220,7 @@ def create_fuse_image(
         return (fuse_path, )
 
 
+@Trackable
 def set_images_annotation_statuses(project, image_names, annotation_status):
     """Sets annotation statuses of images
 

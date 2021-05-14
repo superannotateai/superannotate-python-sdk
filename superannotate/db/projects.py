@@ -40,6 +40,7 @@ from .project_api import (
 from .users import get_team_contributor_metadata
 from .utils import _get_upload_auth_token, _get_boto_session_by_credentials, _upload_images, _attach_urls
 from tqdm import tqdm
+from ..mixp.decorators import Trackable
 
 _NUM_THREADS = 10
 _TIME_TO_UPDATE_IN_TQDM = 1
@@ -48,6 +49,7 @@ logger = logging.getLogger("superannotate-python-sdk")
 _api = API.get_instance()
 
 
+@Trackable
 def create_project(project_name, project_description, project_type):
     """Create a new project in the team.
 
@@ -102,6 +104,7 @@ def create_project(project_name, project_description, project_type):
     return res
 
 
+@Trackable
 def create_project_from_metadata(project_metadata):
     """Create a new project in the team using project metadata object dict.
     Mandatory keys in project_metadata are "name", "description" and "type" (Vector or Pixel)
@@ -130,6 +133,7 @@ def create_project_from_metadata(project_metadata):
     return new_project_metadata
 
 
+@Trackable
 def delete_project(project):
     """Deletes the project
 
@@ -150,6 +154,7 @@ def delete_project(project):
     logger.info("Successfully deleted project %s.", project["name"])
 
 
+@Trackable
 def rename_project(project, new_name):
     """Renames the project
 
@@ -187,6 +192,7 @@ def rename_project(project, new_name):
     )
 
 
+@Trackable
 def get_project_image_count(project, with_all_subfolders=False):
     """Returns number of images in the project.
 
@@ -323,6 +329,7 @@ def _extract_frames_from_video(
     return extracted_frames_paths
 
 
+@Trackable
 def upload_video_to_project(
     project,
     video_path,
@@ -387,6 +394,7 @@ def upload_video_to_project(
     return filenames_base
 
 
+@Trackable
 def upload_videos_from_folder_to_project(
     project,
     folder_path,
@@ -482,6 +490,7 @@ def upload_videos_from_folder_to_project(
     return filenames
 
 
+@Trackable
 def upload_images_from_folder_to_project(
     project,
     folder_path,
@@ -593,6 +602,7 @@ def upload_images_from_folder_to_project(
     )
 
 
+@Trackable
 def upload_images_to_project(
     project,
     img_paths,
@@ -679,6 +689,7 @@ def _tqdm_download(
                 break
 
 
+@Trackable
 def attach_image_urls_to_project(
     project, attachments, annotation_status="NotStarted"
 ):
@@ -730,6 +741,7 @@ def attach_image_urls_to_project(
     return (list_of_uploaded, list_of_not_uploaded, duplicate_images)
 
 
+@Trackable
 def upload_images_from_public_urls_to_project(
     project,
     img_urls,
@@ -839,6 +851,7 @@ def upload_images_from_public_urls_to_project(
     )
 
 
+@Trackable
 def upload_images_from_google_cloud_to_project(
     project,
     google_project,
@@ -925,6 +938,7 @@ def upload_images_from_google_cloud_to_project(
     )
 
 
+@Trackable
 def upload_images_from_azure_blob_to_project(
     project,
     container_name,
@@ -1136,6 +1150,7 @@ def __upload_annotations_thread(
             uploaded[thread_id].append(full_path)
 
 
+@Trackable
 def upload_annotations_from_folder_to_project(
     project, folder_path, from_s3_bucket=None, recursive_subfolders=False
 ):
@@ -1344,6 +1359,7 @@ def __tqdm_thread_upload_annotations(
                 break
 
 
+@Trackable
 def upload_preannotations_from_folder_to_project(
     project, folder_path, from_s3_bucket=None, recursive_subfolders=False
 ):
@@ -1375,6 +1391,7 @@ def upload_preannotations_from_folder_to_project(
     )
 
 
+@Trackable
 def share_project(project, user, user_role):
     """Share project with user.
 
@@ -1408,6 +1425,7 @@ def share_project(project, user, user_role):
     )
 
 
+@Trackable
 def unshare_project(project, user):
     """Unshare (remove) user from project.
 
@@ -1435,6 +1453,7 @@ def unshare_project(project, user):
     logger.info("Unshared project %s from user ID %s", project["name"], user_id)
 
 
+@Trackable
 def upload_images_from_s3_bucket_to_project(
     project,
     accessKeyId,
@@ -1526,6 +1545,7 @@ def _get_upload_from_s3_bucket_to_project_status(project, project_folder):
     return response.json()
 
 
+@Trackable
 def get_project_workflow(project):
     """Gets project's workflow.
 
@@ -1568,6 +1588,7 @@ def get_project_workflow(project):
     return res
 
 
+@Trackable
 def set_project_workflow(project, new_workflow):
     """Sets project's workflow.
 
@@ -1668,6 +1689,7 @@ def set_project_workflow(project, new_workflow):
             )
 
 
+@Trackable
 def get_project_settings(project):
     """Gets project's settings.
 
@@ -1705,6 +1727,7 @@ def get_project_settings(project):
     return res
 
 
+@Trackable
 def set_project_settings(project, new_settings):
     """Sets project's settings.
 
@@ -1769,6 +1792,7 @@ def set_project_settings(project, new_settings):
     return response.json()
 
 
+@Trackable
 def set_project_default_image_quality_in_editor(
     project, image_quality_in_editor
 ):
@@ -1788,6 +1812,7 @@ def set_project_default_image_quality_in_editor(
     )
 
 
+@Trackable
 def get_project_default_image_quality_in_editor(project):
     """Gets project's default image quality in editor setting.
 
@@ -1806,6 +1831,7 @@ def get_project_default_image_quality_in_editor(project):
     )
 
 
+@Trackable
 def get_project_metadata(
     project,
     include_annotation_classes=False,
@@ -1851,6 +1877,7 @@ def get_project_metadata(
     return result
 
 
+@Trackable
 def clone_project(
     project_name,
     from_project,
