@@ -35,7 +35,7 @@ def _maskfrRLE(rle):
     x = np.arange(len(rle['counts']), dtype=np.uint8) % 2
     bitmask = np.repeat(x, rle['counts'], axis=0)
 
-    return bitmask.reshape((rle['size'][1], rle['size'][0])).T
+    return bitmask.reshape((rle['size'][1], rle['size'][0]))
 
 
 def _toString(rle_counts):

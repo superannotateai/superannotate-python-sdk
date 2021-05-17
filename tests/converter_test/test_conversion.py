@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from mixpanel import json_dumps
+
 import superannotate as sa
 
 
@@ -38,6 +40,14 @@ def test_instance_segmentation_coco2sa(tmpdir):
         input_dir, out_path, "COCO", "instances_test", "Vector",
         "instance_segmentation"
     )
+    import json
+    json_path = out_path / "000000411530.jpg___objects.json"
+    with open(json_path, 'r') as f:
+        data = json.loads(f.read())
+    truth_path = input_dir / "truth.json"
+    with open(truth_path, 'r') as f:
+        truth = json.loads(f.read())
+    assert truth == data
 
 
 # SA to COCO
