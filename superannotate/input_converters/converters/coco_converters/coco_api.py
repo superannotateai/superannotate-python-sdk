@@ -103,6 +103,8 @@ def _area(bitmask):
 
 def _toBbox(bitmask):
     y, x = np.where(bitmask)
+    if x.tolist() == [] and y.tolist() == []:
+        return [0, 0, 0, 0]
     xmin = int(min(x))
     xmax = int(max(x))
     ymin = int(min(y))
