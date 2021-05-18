@@ -88,8 +88,8 @@ class API:
                 path=f'/team/{self.team_id}',
             )
 
-            self.user_id = response.json()['creator_id']
-            self.team_name = response.json()['name']
+            self.user_id = response.json().get('creator_id', None)
+            self.team_name = response.json().get('name', None)
 
             if not self._verify:
                 urllib3.disable_warnings(
