@@ -36,5 +36,5 @@ class Trackable(object):
                 properties = {**default, **properties}
                 mp.track(user_id, event_name, properties)
         except:
-            print('--- mix panel exception ---')
+            pass
         return self.function(*args, **kwargs)

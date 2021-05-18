@@ -1,5 +1,4 @@
 from pathlib import Path
-
 from mixpanel import json_dumps
 
 import superannotate as sa
@@ -100,7 +99,9 @@ def test_instance_segmentation_sa2coco_vector_empty_array(tmpdir):
     input_dir = Path(
         "tests"
     ) / "converter_test" / "COCO" / "input" / "fromSuperAnnotate" / "cats_dogs_vector_instance_segm_empty_array"
-    out_path = Path(tmpdir) / "fromSuperAnnotate" / "instance_test_vector"
+    out_path = Path(
+        tmpdir
+    ) / "empty_array" / "fromSuperAnnotate" / "instance_test_vector"
     sa.export_annotation(
         input_dir, out_path, "COCO", "instance_test_vector", "Vector",
         "instance_segmentation"
@@ -112,14 +113,16 @@ def test_instance_segmentation_sa2coco_vector_empty_array(tmpdir):
     truth_path = input_dir / "truth.json"
     with open(truth_path, 'r') as f:
         truth = json.loads(f.read())
-    assert truth == data
+    assert truth['annotations'][0]['bbox'] == data['annotations'][0]['bbox']
 
 
 def test_instance_segmentation_sa2coco_vector_empty_name(tmpdir):
     input_dir = Path(
         "tests"
     ) / "converter_test" / "COCO" / "input" / "fromSuperAnnotate" / "vector_no_name"
-    out_path = Path("sssss1") / "fromSuperAnnotate" / "instance_test_vector"
+    out_path = Path(
+        tmpdir
+    ) / "empty_name" / "fromSuperAnnotate" / "instance_test_vector"
     sa.export_annotation(
         input_dir, out_path, "COCO", "instance_test_vector", "Vector",
         "instance_segmentation"

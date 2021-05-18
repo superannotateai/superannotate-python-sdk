@@ -18,8 +18,6 @@ logger = logging.getLogger("superannotate-python-sdk")
 
 class CocoBaseStrategy(baseStrategy):
     project_type_to_json_ending = {
-        'Pixel': '___pixel.json',
-        'Vector': '___objects.json',
         'pixel': '___pixel.json',
         'vector': '___objects.json'
     }
@@ -173,7 +171,7 @@ class CocoBaseStrategy(baseStrategy):
             'metadata'] or sa_annotation_json['metadata']['name'] is None:
             fname = fpath.name
             fname = fname[:-len(
-                self.project_type_to_json_ending[self.project_type]
+                self.project_type_to_json_ending[self.project_type.lower()]
             )]
             sa_annotation_json['metadata']['name'] = fname
         sa_annotation_json['metadata']['image_path'] = str(
