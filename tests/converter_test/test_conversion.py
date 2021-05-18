@@ -113,3 +113,14 @@ def test_instance_segmentation_sa2coco_vector_empty_array(tmpdir):
     with open(truth_path, 'r') as f:
         truth = json.loads(f.read())
     assert truth == data
+
+
+def test_instance_segmentation_sa2coco_vector_empty_name(tmpdir):
+    input_dir = Path(
+        "tests"
+    ) / "converter_test" / "COCO" / "input" / "fromSuperAnnotate" / "vector_no_name"
+    out_path = Path("sssss1") / "fromSuperAnnotate" / "instance_test_vector"
+    sa.export_annotation(
+        input_dir, out_path, "COCO", "instance_test_vector", "Vector",
+        "instance_segmentation"
+    )
