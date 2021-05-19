@@ -1047,15 +1047,63 @@ def upload_images_from_folder_to_project(*args, **kwargs):
     folder_path = kwargs.get("folder_path", None)
     if not folder_path:
         folder_path = args[1]
-    from ...common import DEFAULT_IMAGE_EXTENSIONS as extension
+
+    recursive_subfolders = kwargs.get("recursive_subfolders", None)
+    if not recursive_subfolders:
+        recursive_subfolders = args[6:7]
+        if recursive_subfolders:
+            recursive_subfolders = recursive_subfolders[0]
+        else:
+            recursive_subfolders = False
+
+    from ...common import DEFAULT_IMAGE_EXTENSIONS
+    extensions = DEFAULT_IMAGE_EXTENSIONS
+    extensions = kwargs.get("extensions", None)
+    if not extensions:
+        extensions = args[2:3]
+        if extensions:
+            extensions = extensions[0]
+        else:
+            extensions = DEFAULT_IMAGE_EXTENSIONS
+
+    from ...common import DEFAULT_FILE_EXCLUDE_PATTERNS
+    exclude_file_patterns = DEFAULT_FILE_EXCLUDE_PATTERNS
+    exclude_file_patterns = kwargs.get("exclude_file_patterns", None)
+    if not exclude_file_patterns:
+        exclude_file_patterns = args[5:6]
+        if exclude_file_patterns:
+            exclude_file_patterns = exclude_file_patterns[0]
+        else:
+            exclude_file_patterns = DEFAULT_FILE_EXCLUDE_PATTERNS
+
     from pathlib import Path
-    glob_iterator = Path(folder_path).glob(f'*.{extension}')
+    import os
+
+    paths = []
+    for extension in extensions:
+        if not recursive_subfolders:
+            paths += list(Path(folder_path).glob(f'*.{extension.lower()}'))
+            if os.name != "nt":
+                paths += list(Path(folder_path).glob(f'*.{extension.upper()}'))
+        else:
+            paths += list(Path(folder_path).rglob(f'*.{extension.lower()}'))
+            if os.name != "nt":
+                paths += list(Path(folder_path).rglob(f'*.{extension.upper()}'))
+
+    filtered_paths = []
+    for path in paths:
+        not_in_exclude_list = [
+            x not in Path(path).name for x in exclude_file_patterns
+        ]
+        if all(not_in_exclude_list):
+            filtered_paths.append(path)
+
     return {
         "event_name": "upload_images_from_folder_to_project",
         "properties":
             {
                 "Image Count":
-                    sum(1 for _ in glob_iterator),
+                    len(filtered_paths),
                 "Custom Extentions":
                     bool(args[2:3] or kwargs.get("extensions", None)),
                 "Annotation Status":
