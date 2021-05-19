@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+import sys
 from pathlib import Path
 
 import requests
@@ -106,10 +107,11 @@ class API:
                 raise SABaseException(
                     0, "Couldn't reach superannotate " + response.text
                 )
-            mp.track(
-                self.user_id, "SDK init",
-                get_default(self.team_name, self.user_id)
-            )
+            if "pytest" not in sys.modules:
+                mp.track(
+                    self.user_id, "SDK init",
+                    get_default(self.team_name, self.user_id)
+                )
         except SABaseException:
             self._authenticated = False
             self._session = None

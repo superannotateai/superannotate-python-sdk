@@ -34,7 +34,8 @@ class Trackable(object):
                 )
                 properties.pop("project_name", None)
                 properties = {**default, **properties}
-                mp.track(user_id, event_name, properties)
+                if "pytest" not in sys.modules:
+                    mp.track(user_id, event_name, properties)
         except:
             pass
         return self.function(*args, **kwargs)
