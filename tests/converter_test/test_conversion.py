@@ -105,7 +105,9 @@ def test_instance_segmentation_sa2coco_vector_empty_array(tmpdir):
     truth_path = input_dir / "truth.json"
     with open(truth_path, 'r') as f:
         truth = json.loads(f.read())
-    assert truth['annotations'][0]['bbox'] == data['annotations'][0]['bbox']
+    data['info']['date_created'] = 0
+    truth['info']['date_created'] = 0
+    assert truth == data
 
 
 def test_instance_segmentation_sa2coco_vector_empty_name(tmpdir):
