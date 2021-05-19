@@ -330,6 +330,21 @@ def fill_class_and_attribute_names(annotations_json, annotation_classes_dict):
 def fill_class_and_attribute_ids(annotation_json, annotation_classes_dict):
     if "instances" not in annotation_json:
         return
+
+    unknown_classes = {}
+    for ann in [i for i in annotation_json["instances"] if "className" in i]:
+        if "className" not in ann:
+            continue
+        annotation_class_name = ann["className"]
+        if not annotation_class_name in annotation_classes_dict:
+            if annotation_class_name not in unknown_classes:
+                class_num = -(len(unknown_classes) + 1)
+                unknown_classes[annotation_class_name] = {
+                    'id': class_num,
+                    'attribute_groups': {}
+                }
+    annotation_classes_dict = {**annotation_classes_dict, **unknown_classes}
+
     for ann in annotation_json["instances"]:
         if "className" not in ann:
             logger.warning("No className in annotation instance")

@@ -169,11 +169,10 @@ class CocoBaseStrategy(baseStrategy):
 
         if 'name' not in sa_annotation_json[
             'metadata'] or sa_annotation_json['metadata']['name'] is None:
-            fname = fpath.split('/')[-1]
+            fname = fpath.name
             fname = fname[:-len(
-                self.project_type_to_json_ending[self.project_type]
+                self.project_type_to_json_ending[self.project_type.lower()]
             )]
-
             sa_annotation_json['metadata']['name'] = fname
         sa_annotation_json['metadata']['image_path'] = str(
             Path(fpath).parent / sa_annotation_json['metadata']['name']
