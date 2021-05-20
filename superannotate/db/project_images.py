@@ -242,7 +242,7 @@ def copy_images(
         include_annotations, copy_pin
     )
     for log in logs:
-        logger.info(log)
+        logger.error(log)
 
     if done_count > 1 or done_count == 0:
         message = f"Copied {done_count}/{len(image_names)} images from {get_project_folder_string(source_project_inp)} to {get_project_folder_string(destination_project_inp)}."
@@ -356,7 +356,7 @@ def move_images(
     )
 
     for log in logs:
-        logger.info(log)
+        logger.error(log)
 
     if len(moved) > 1 or len(moved) == 0:
         message = f"Moved {len(moved)}/{len(image_names)} images from {get_project_folder_string(source_project_inp)} to {get_project_folder_string(destination_project_inp)}."
