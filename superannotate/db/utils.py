@@ -119,7 +119,6 @@ def copy_polling(image_names, source_project, poll_id):
     max_timestamp = now_timestamp + delta_seconds
     logs = []
     while True:
-        time.sleep(4)
         now_timestamp = datetime.datetime.now().timestamp()
         if (now_timestamp > max_timestamp):
             break
@@ -141,6 +140,22 @@ def copy_polling(image_names, source_project, poll_id):
         total_count = int(res['total_count'])
         if (skipped_count + done_count == total_count):
             break
+        time.sleep(4)
+    response = _api.send_request(
+        req_type='GET',
+        path='/images/copy-image-progress',
+        params={
+            "team_id": source_project["team_id"],
+            "project_id": source_project["id"],
+            "poll_id": poll_id
+        }
+    )
+    if not response.ok:
+        logs.append("Couldn't copy images " + response.text)
+    else:
+        res = response.json()
+        done_count = int(res['done'])
+        skipped_count = int(res['skipped'])
     return (skipped_count, done_count, logs)
 
 

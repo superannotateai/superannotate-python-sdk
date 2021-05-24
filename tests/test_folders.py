@@ -244,7 +244,7 @@ def test_delete_images(tmpdir):
     assert num_images == 0
 
 
-def test_copy_images3(tmpdir):
+def test_copy_images3(tmpdir, caplog):
     PROJECT_NAME = "test copy3 folder images"
     tmpdir = Path(tmpdir)
 
@@ -266,6 +266,7 @@ def test_copy_images3(tmpdir):
         copy_annotation_status=False,
         copy_pin=False
     )
+    assert "Copied 2/2 images from test copy3 folder images to test copy3 folder images/folder1" in caplog.text
 
     num_images = sa.get_project_image_count(project)
     assert num_images == 2
