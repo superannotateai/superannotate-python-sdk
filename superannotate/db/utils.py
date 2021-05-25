@@ -13,6 +13,7 @@ from ..api import API
 from ..exceptions import SABaseException, SAImageSizeTooLarge, SANonExistingProjectNameException
 import datetime
 import boto3
+from .project_api import get_project_metadata_bare
 
 _api = API.get_instance()
 logger = logging.getLogger("superannotate-python-sdk")
@@ -731,3 +732,25 @@ def __attach_image_urls_to_project_thread(
         logger.warning(e)
     else:
         uploaded[thread_id] += uploaded_imgs
+
+
+def _search_folders(project, folder_name=None, includeUsers=False):
+    if not isinstance(project, dict):
+        project = get_project_metadata_bare(project)
+    team_id, project_id = project["team_id"], project["id"]
+    params = {
+        'team_id': team_id,
+        'project_id': project_id,
+        'offset': 0,
+        'name': folder_name,
+        'is_root': 0,
+        'includeUsers': includeUsers
+    }
+
+    response = _api.send_request(req_type='GET', path='/folders', params=params)
+    if not response.ok:
+        raise SABaseException(
+            response.status_code, "Couldn't search folders " + response.text
+        )
+    response = response.json()
+    return response

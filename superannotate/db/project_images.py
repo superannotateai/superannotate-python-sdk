@@ -19,6 +19,7 @@ from .projects import (
     get_project_default_image_quality_in_editor, _get_available_image_counts,
     get_project_metadata
 )
+from .teams import get_team_metadata
 from ..mixp.decorators import Trackable
 from .utils import _get_upload_auth_token, _get_boto_session_by_credentials, upload_image_array_to_s3, get_image_array_to_upload, __create_image, __copy_images, __move_images, get_project_folder_string
 
@@ -564,15 +565,14 @@ def assign_images(project, image_names, user):
     :param user: user email
     :type user: str
     """
-
-    # TODO:
-    # logger.info("Assign %s images to user %s", len(image_names), user)
-    # if len(image_names) == 0:
-    #     return
+    logger.info("Assign %s images to user %s", len(image_names), user)
+    if len(image_names) == 0:
+        return
 
     project, folder = get_project_and_folder_metadata(project)
-    if not folder:
-        folder = 'root'
+    folder_name = 'root'
+    if folder:
+        folder_name = folder['name']
 
     project_meta = get_project_metadata(project)
     params = {
@@ -582,7 +582,7 @@ def assign_images(project, image_names, user):
     json_req = {
         "image_names": image_names,
         "assign_user_id": user,
-        "folder_name": folder,
+        "folder_name": folder_name,
     }
     response = _api.send_request(
         req_type='PUT',
@@ -595,30 +595,6 @@ def assign_images(project, image_names, user):
         raise SABaseException(
             response.status_code, "Couldn't assign images " + response.text
         )
-
-    # images = search_images((project, project_folder), return_metadata=True)
-    # image_dict = {}
-    # for image in images:
-    #     image_dict[image["name"]] = image["id"]
-
-    # image_ids = []
-    # for image_name in image_names:
-    #     image_ids.append(image_dict[image_name])
-    # team_id, project_id = project["team_id"], project["id"]
-    # params = {"team_id": team_id, "project_id": project_id}
-    # if project_folder is not None:
-    #     params['folder_id'] = project_folder['id']
-    # json_req = {"user_id": user, "image_ids": image_ids}
-    # response = _api.send_request(
-    #     req_type='POST',
-    #     path='/images/assign',
-    #     params=params,
-    #     json_req=json_req
-    # )
-    # if not response.ok:
-    #     raise SABaseException(
-    #         response.status_code, "Couldn't assign images " + response.text
-    #     )
 
 
 def assign_folder(project, folder_name, users):
@@ -634,9 +610,9 @@ def assign_folder(project, folder_name, users):
     """
 
     project_meta = get_project_metadata(project, include_contributors=True)
-    project_users = project_meta["contributors"]
+    project_users = get_team_metadata()["users"]
     project_name = project_meta['name']
-    project_users = [i['user_id'] for i in project_users]
+    project_users = [i['id'] for i in project_users]
     verified_contributor = []
 
     for user in users:
@@ -711,11 +687,20 @@ def unassign_images(project, image_names):
     :type image_names: list of str
     """
     project_meta = get_project_metadata(project)
+    project, folder = get_project_and_folder_metadata(project)
+    folder_name = 'root'
+    if folder:
+        folder_name = folder['name']
     params = {
         "project_id": project_meta['id'],
         "team_id": project_meta["team_id"]
     }
-    json_req = {"image_names": image_names, "remove_user_ids": ["all"]}
+    json_req = {
+        "image_names": image_names,
+        "remove_user_ids": ["all"],
+        "folder_name": folder_name
+    }
+
     response = _api.send_request(
         req_type='PUT',
         path='/images/editAssignment',
