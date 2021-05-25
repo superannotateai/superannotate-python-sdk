@@ -4,13 +4,14 @@ from superannotate.api import API
 from .utils import parsers
 from threading import Lock
 from functools import wraps
+from .helper import CALLERS_TO_IGNORE
 
 _api = API.get_instance()
 always_trackable_func_names = ["upload_images_from_folder_to_project"]
 
 
 class Trackable(object):
-    registered = set('<module>')
+    registered = set(CALLERS_TO_IGNORE)
 
     def __init__(self, function):
         lock = Lock()
