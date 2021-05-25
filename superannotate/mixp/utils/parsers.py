@@ -1041,7 +1041,7 @@ def upload_preannotations_from_folder_to_project(*args, **kwargs):
 
 
 def upload_images_from_folder_to_project(*args, **kwargs):
-    project = kwargs.get("source_project", None)
+    project = kwargs.get("project", None)
     if not project:
         project = args[0]
     folder_path = kwargs.get("folder_path", None)
@@ -1056,24 +1056,22 @@ def upload_images_from_folder_to_project(*args, **kwargs):
         else:
             recursive_subfolders = False
 
-    from ...common import DEFAULT_IMAGE_EXTENSIONS
-    extensions = DEFAULT_IMAGE_EXTENSIONS
     extensions = kwargs.get("extensions", None)
     if not extensions:
         extensions = args[2:3]
         if extensions:
             extensions = extensions[0]
         else:
+            from ...common import DEFAULT_IMAGE_EXTENSIONS
             extensions = DEFAULT_IMAGE_EXTENSIONS
 
-    from ...common import DEFAULT_FILE_EXCLUDE_PATTERNS
-    exclude_file_patterns = DEFAULT_FILE_EXCLUDE_PATTERNS
     exclude_file_patterns = kwargs.get("exclude_file_patterns", None)
     if not exclude_file_patterns:
         exclude_file_patterns = args[5:6]
         if exclude_file_patterns:
             exclude_file_patterns = exclude_file_patterns[0]
         else:
+            from ...common import DEFAULT_FILE_EXCLUDE_PATTERNS
             exclude_file_patterns = DEFAULT_FILE_EXCLUDE_PATTERNS
 
     from pathlib import Path
@@ -1644,9 +1642,12 @@ def delete_images(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
         project = args[0]
-    image_names = kwargs.get("image_names", None)
+    image_names = kwargs.get("image_names", False)
     if not image_names:
         image_names = args[1]
+        if image_names == None:
+            from superannotate.db.images import search_images as sa_search_images
+            image_names = sa_search_images(project)
     return {
         "event_name": "delete_images",
         "properties":
