@@ -257,8 +257,6 @@ def attach_image_urls_to_project(*args, **kwargs):
             {
                 "project_name":
                     get_project_name(project),
-                "Image Names":
-                    bool(args[1:2] or kwargs.get("attachments", None)),
                 "Annotation Status":
                     bool(args[2:3] or kwargs.get("annotation_status", None))
             }
@@ -918,12 +916,13 @@ def consensus(*args, **kwargs):
         folder_names = args[1]
     image_list = kwargs.get("image_list", "empty")
     if image_list == "empty":
-        image_list = args[3:4]
-        if len(image_list) and image_list[0] == None:
-            from superannotate.db.images import search_images as sa_search_images
-            image_list = sa_search_images(project)
-        else:
-            image_list = image_list[0]
+        image_list = args[4:5]
+        if image_list:
+            if image_list[0] == None:
+                from superannotate.db.images import search_images as sa_search_images
+                image_list = sa_search_images(project)
+            else:
+                image_list = image_list[0]
     annot_type = kwargs.get("annot_type", "empty")
     if annot_type == 'empty':
         annot_type = args[4:5]
@@ -961,11 +960,12 @@ def benchmark(*args, **kwargs):
     image_list = kwargs.get("image_list", "empty")
     if image_list == "empty":
         image_list = args[4:5]
-        if len(image_list) and image_list[0] == None:
-            from superannotate.db.images import search_images as sa_search_images
-            image_list = sa_search_images(project)
-        else:
-            image_list = image_list[0]
+        if image_list:
+            if image_list[0] == None:
+                from superannotate.db.images import search_images as sa_search_images
+                image_list = sa_search_images(project)
+            else:
+                image_list = image_list[0]
     annot_type = kwargs.get("annot_type", "empty")
     if annot_type == 'empty':
         annot_type = args[5:6]
@@ -1610,12 +1610,15 @@ def aggregate_annotations_as_df(*args, **kwargs):
     folder_names = kwargs.get("folder_names", "empty")
     if folder_names == "empty":
         folder_names = args[5:6]
-        if folder_names != None:
-            folder_names = len(folder_names)
+        if folder_names:
+            folder_names = folder_names[0]
+            if folder_names == None:
+                folder_names = []
+
     return {
         "event_name": "aggregate_annotations_as_df",
         "properties": {
-            "Folder Count": folder_names,
+            "Folder Count": len(folder_names),
         }
     }
 
