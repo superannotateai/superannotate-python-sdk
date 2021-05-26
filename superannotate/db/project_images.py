@@ -16,16 +16,16 @@ from .images import (
 )
 from .project_api import get_project_and_folder_metadata
 from .projects import (
-    __create_image, get_image_array_to_upload,
-    get_project_default_image_quality_in_editor, upload_image_array_to_s3,
-    _get_available_image_counts
+    get_project_default_image_quality_in_editor, _get_available_image_counts
 )
-from .utils import _get_upload_auth_token
+from ..mixp.decorators import Trackable
+from .utils import _get_upload_auth_token, _get_boto_session_by_credentials, upload_image_array_to_s3, get_image_array_to_upload, __create_image, __copy_images, __move_images, get_project_folder_string
 
 logger = logging.getLogger("superannotate-python-sdk")
 _api = API.get_instance()
 
 
+@Trackable
 def upload_image_to_project(
     project,
     img,
@@ -104,11 +104,7 @@ def upload_image_to_project(
     params = {'team_id': team_id, 'folder_id': folder_id}
     res = _get_upload_auth_token(params=params, project_id=project_id)
     prefix = res['filePath']
-    s3_session = boto3.Session(
-        aws_access_key_id=res['accessKeyId'],
-        aws_secret_access_key=res['secretAccessKey'],
-        aws_session_token=res['sessionToken']
-    )
+    s3_session = _get_boto_session_by_credentials(res)
     s3_resource = s3_session.resource('s3')
     bucket = s3_resource.Bucket(res["bucket"])
     try:
@@ -192,6 +188,7 @@ def _copy_images(
     return res
 
 
+@Trackable
 def copy_images(
     source_project,
     image_names,
@@ -217,40 +214,48 @@ def copy_images(
     :return: list of skipped image names
     :rtype: list of strs
     """
-    source_project, source_project_folder = get_project_and_folder_metadata(
+
+    source_project_inp = source_project
+    destination_project_inp = destination_project
+
+    source_project, source_folder = get_project_and_folder_metadata(
         source_project
     )
-    destination_project, destination_project_folder = get_project_and_folder_metadata(
+    destination_project, destination_folder = get_project_and_folder_metadata(
         destination_project
     )
-    if image_names is None:
-        image_names = search_images((source_project, source_project_folder))
+    root_folder_id = get_project_root_folder_id(source_project)
 
-    limit = _get_available_image_counts(
-        destination_project, destination_project_folder
+    destination_folder_id = root_folder_id
+    source_folder_id = root_folder_id
+
+    if destination_folder:
+        destination_folder_id = destination_folder['id']
+    if source_folder:
+        source_folder_id = source_folder['id']
+
+    if image_names == None:
+        image_names = search_images(source_project_inp)
+
+    done_count, total_skipped_list, logs = __copy_images(
+        source_project, source_folder_id, destination_folder_id, image_names,
+        include_annotations, copy_pin
     )
-    imgs_to_upload = image_names[:limit]
-    res = _copy_images(
-        (source_project, source_project_folder),
-        (destination_project, destination_project_folder), imgs_to_upload,
-        include_annotations, copy_annotation_status, copy_pin
-    )
-    uploaded_imgs = res['completed']
-    skipped_imgs = [i for i in imgs_to_upload if i not in uploaded_imgs]
+    for log in logs:
+        logger.error(log)
 
-    skipped_images_count = len(skipped_imgs) + len(image_names[limit:])
+    if done_count > 1 or done_count == 0:
+        message = f"Copied {done_count}/{len(image_names)} images from {get_project_folder_string(source_project_inp)} to {get_project_folder_string(destination_project_inp)}."
+        logger.info(message)
 
-    logger.info(
-        "Copied images %s from %s to %s. Number of skipped images %s",
-        uploaded_imgs, source_project["name"] +
-        "" if source_project_folder is None else source_project["name"] + "/" +
-        source_project_folder["name"], destination_project["name"] + ""
-        if destination_project_folder is None else destination_project["name"] +
-        "/" + destination_project_folder["name"], skipped_images_count
-    )
-    return skipped_imgs
+    elif done_count == 1:
+        message = f"Copied an image from {get_project_folder_string(source_project_inp)} to {get_project_folder_string(destination_project_inp)}."
+        logger.info(message)
+
+    return total_skipped_list
 
 
+@Trackable
 def delete_images(project, image_names):
     """Delete images in project.
 
@@ -298,6 +303,7 @@ def delete_images(project, image_names):
     )
 
 
+@Trackable
 def move_images(
     source_project,
     image_names,
@@ -320,28 +326,49 @@ def move_images(
     :type copy_annotation_status: bool
     :param copy_pin: enables image pin status copy
     :type copy_pin: bool
+    :return: list of skipped image names
+    :rtype: list of strs
     """
-    source_project, source_project_folder = get_project_and_folder_metadata(
+    source_project_inp = source_project
+    destination_project_inp = destination_project
+
+    source_project, source_folder = get_project_and_folder_metadata(
         source_project
     )
-    destination_project, destination_project_folder = get_project_and_folder_metadata(
+    destination_project, destination_folder = get_project_and_folder_metadata(
         destination_project
     )
-    if image_names is None:
-        image_names = search_images((source_project, source_project_folder))
-    copy_images((source_project, source_project_folder), image_names,
-                (destination_project, destination_project_folder),
-                include_annotations, copy_annotation_status, copy_pin)
-    delete_images((source_project, source_project_folder), image_names)
-    logger.info(
-        "Moved images %s from project %s to project %s", image_names,
-        source_project["name"] + "" if source_project_folder is None else "/" +
-        source_project_folder["name"], destination_project["name"] +
-        "" if destination_project_folder is None else "/" +
-        destination_project_folder["name"]
+    root_folder_id = get_project_root_folder_id(source_project)
+
+    destination_folder_id = root_folder_id
+    source_folder_id = root_folder_id
+
+    if destination_folder:
+        destination_folder_id = destination_folder['id']
+    if source_folder:
+        source_folder_id = source_folder['id']
+
+    if image_names == None:
+        image_names = search_images(source_project_inp)
+
+    moved, skipped, logs = __move_images(
+        source_project, source_folder_id, destination_folder_id, image_names
     )
 
+    for log in logs:
+        logger.error(log)
 
+    if len(moved) > 1 or len(moved) == 0:
+        message = f"Moved {len(moved)}/{len(image_names)} images from {get_project_folder_string(source_project_inp)} to {get_project_folder_string(destination_project_inp)}."
+        logger.info(message)
+    elif len(moved) == 1:
+        message = f"Moved an image from {get_project_folder_string(source_project_inp)} to {get_project_folder_string(destination_project_inp)}."
+        logger.info(message)
+
+    return skipped
+
+
+@Trackable
 def copy_image(
     source_project,
     image_name,
@@ -448,6 +475,7 @@ def _copy_annotations_and_metadata(
             )
 
 
+@Trackable
 def move_image(
     source_project,
     image_name,
@@ -491,6 +519,7 @@ def move_image(
     logger.info("Deleted image %s/%s.", source_project["name"], image_name)
 
 
+@Trackable
 def pin_image(project, image_name, pin=True):
     """Pins (or unpins) image
 
@@ -521,6 +550,7 @@ def pin_image(project, image_name, pin=True):
         )
 
 
+@Trackable
 def assign_images(project, image_names, user):
     """Assigns images to a user. The assignment role, QA or Annotator, will
     be deduced from the user's role in the project. With SDK, the user can be

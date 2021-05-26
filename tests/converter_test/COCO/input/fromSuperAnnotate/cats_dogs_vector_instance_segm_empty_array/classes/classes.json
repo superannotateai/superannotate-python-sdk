@@ -1,0 +1,12 @@
+[
+    {
+        "id": 1,
+        "project_id": 1,
+        "name": "class1",
+        "color": "#626bef",
+        "count": 0,
+        "createdAt": "2021-03-31T21:13:10.000Z",
+        "updatedAt": "2021-03-31T21:13:10.000Z",
+        "attribute_groups": []
+    }
+]

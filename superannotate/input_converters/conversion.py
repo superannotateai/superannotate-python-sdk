@@ -11,6 +11,8 @@ from .sa_conversion import (
     degrade_json, sa_convert_project_type, split_coco, upgrade_json
 )
 
+from ..mixp.decorators import Trackable
+
 ALLOWED_TASK_TYPES = [
     'panoptic_segmentation', 'instance_segmentation', 'keypoint_detection',
     'object_detection', 'vector_annotation'
@@ -130,6 +132,7 @@ def _passes_converter_sanity(args, direction):
         )
 
 
+@Trackable
 def export_annotation(
     input_dir,
     output_dir,
@@ -209,6 +212,7 @@ def export_annotation(
     export_from_sa(args)
 
 
+@Trackable
 def import_annotation(
     input_dir,
     output_dir,
@@ -390,6 +394,7 @@ def import_annotation(
     import_to_sa(args)
 
 
+@Trackable
 def convert_project_type(input_dir, output_dir):
     """ Converts SuperAnnotate 'Vector' project type to 'Pixel' or reverse.
 
@@ -409,6 +414,7 @@ def convert_project_type(input_dir, output_dir):
     sa_convert_project_type(input_dir, output_dir)
 
 
+@Trackable
 def coco_split_dataset(
     coco_json_path, image_dir, output_dir, dataset_list_name, ratio_list
 ):
@@ -461,6 +467,7 @@ def coco_split_dataset(
     )
 
 
+@Trackable
 def convert_json_version(input_dir, output_dir, version=2):
     """
     Converts SuperAnnotate JSON versions. Newest JSON version is 2.

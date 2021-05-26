@@ -19,6 +19,7 @@ from ..exceptions import (
     SANonExistingExportNameException
 )
 from .project_api import get_project_metadata_bare
+from ..mixp.decorators import Trackable
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -56,6 +57,7 @@ def get_export_metadata(project, export_name):
         )
 
 
+@Trackable
 def get_exports(project, return_metadata=False):
     """Get all prepared exports of the project.
 
@@ -97,6 +99,7 @@ def _get_export(export):
     return response.json()
 
 
+@Trackable
 def prepare_export(
     project,
     folder_names=None,
@@ -219,6 +222,7 @@ def _download_file(url, local_filename):
     return local_filename
 
 
+@Trackable
 def download_export(
     project, export, folder_path, extract_zip_contents=True, to_s3_bucket=None
 ):

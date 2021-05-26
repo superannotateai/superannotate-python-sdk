@@ -1,6 +1,7 @@
 import os
 import json
 import logging
+import sys
 from pathlib import Path
 
 import requests
@@ -9,6 +10,7 @@ import urllib3
 
 from .exceptions import SABaseException
 from .version import __version__
+from .mixp.app import mp, get_default
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -24,10 +26,13 @@ class API:
         self._default_headers = None
         self._main_endpoint = None
         self.team_id = None
+        self.user_id = None
+        self.team_name = None
         if API.__instance is not None:
             raise SABaseException(0, "API class is a singleton!")
         API.__instance = self
         self._authenticated = False
+        self.init()
 
     def init(self, config_location=None):
         if config_location is None:
@@ -78,15 +83,15 @@ class API:
                 self._verify = self._api_config["ssl_verify"]
             self._session = None
             self._authenticated = True
+
             response = self.send_request(
                 req_type='GET',
-                path='/projects',
-                params={
-                    'team_id': str(self.team_id),
-                    'offset': 0,
-                    'limit': 1
-                }
+                path=f'/team/{self.team_id}',
             )
+
+            self.user_id = response.json().get('creator_id', None)
+            self.team_name = response.json().get('name', None)
+
             if not self._verify:
                 urllib3.disable_warnings(
                     urllib3.exceptions.InsecureRequestWarning
@@ -101,6 +106,11 @@ class API:
                     )
                 raise SABaseException(
                     0, "Couldn't reach superannotate " + response.text
+                )
+            if "pytest" not in sys.modules:
+                mp.track(
+                    self.user_id, "SDK init",
+                    get_default(self.team_name, self.user_id)
                 )
         except SABaseException:
             self._authenticated = False

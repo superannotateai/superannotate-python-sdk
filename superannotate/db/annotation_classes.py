@@ -11,12 +11,14 @@ from ..exceptions import (
     SANonExistingAnnotationClassNameException
 )
 from .project_api import get_project_metadata_bare
+from ..mixp.decorators import Trackable
 
 logger = logging.getLogger("superannotate-python-sdk")
 
 _api = API.get_instance()
 
 
+@Trackable
 def create_annotation_class(project, name, color, attribute_groups=None):
     """Create annotation class in project
 
@@ -79,6 +81,7 @@ def create_annotation_class(project, name, color, attribute_groups=None):
     return new_class
 
 
+@Trackable
 def delete_annotation_class(project, annotation_class):
     """Deletes annotation class from project
 
@@ -113,6 +116,7 @@ def delete_annotation_class(project, annotation_class):
         )
 
 
+@Trackable
 def create_annotation_classes_from_classes_json(
     project, classes_json, from_s3_bucket=None
 ):
@@ -200,6 +204,7 @@ def create_annotation_classes_from_classes_json(
     return res
 
 
+@Trackable
 def search_annotation_classes(project, name_prefix=None):
     """Searches annotation classes by name_prefix (case-insensitive)
 
@@ -239,6 +244,7 @@ def search_annotation_classes(project, name_prefix=None):
     return result_list
 
 
+@Trackable
 def get_annotation_class_metadata(project, annotation_class_name):
     """Returns annotation class metadata
 
@@ -272,6 +278,7 @@ def get_annotation_class_metadata(project, annotation_class_name):
         )
 
 
+@Trackable
 def download_annotation_classes_json(project, folder):
     """Downloads project classes.json to folder
 
@@ -323,6 +330,21 @@ def fill_class_and_attribute_names(annotations_json, annotation_classes_dict):
 def fill_class_and_attribute_ids(annotation_json, annotation_classes_dict):
     if "instances" not in annotation_json:
         return
+
+    unknown_classes = {}
+    for ann in [i for i in annotation_json["instances"] if "className" in i]:
+        if "className" not in ann:
+            continue
+        annotation_class_name = ann["className"]
+        if not annotation_class_name in annotation_classes_dict:
+            if annotation_class_name not in unknown_classes:
+                class_num = -(len(unknown_classes) + 1)
+                unknown_classes[annotation_class_name] = {
+                    'id': class_num,
+                    'attribute_groups': {}
+                }
+    annotation_classes_dict = {**annotation_classes_dict, **unknown_classes}
+
     for ann in annotation_json["instances"]:
         if "className" not in ann:
             logger.warning("No className in annotation instance")

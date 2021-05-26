@@ -1,12 +1,13 @@
 {
+    "editor.formatOnSave": true,
     "python.formatting.provider": "yapf",
-    "python.linting.pylintPath": "venv_sa_conv/bin/pylint",
-    "python.linting.pylintEnabled": true,
-    "python.testing.pytestArgs": [
-        "tests"
-    ],
-    "python.testing.unittestEnabled": false,
-    "python.testing.nosetestsEnabled": false,
-    "python.testing.pytestEnabled": true,
-    "python.pythonPath": "venv_sa_conv/bin/python"
+    // "python.linting.pylintPath": "venv_sa_conv/bin/pylint",
+    // "python.linting.pylintEnabled": true,
+    // "python.testing.pytestArgs": [
+    //     "tests"
+    // ],
+    // "python.testing.unittestEnabled": false,
+    // "python.testing.nosetestsEnabled": false,
+    // "python.testing.pytestEnabled": true,
+    // "python.pythonPath": "venv_sa_conv/bin/python"
 }

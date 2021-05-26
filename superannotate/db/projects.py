@@ -20,13 +20,11 @@ import ffmpeg
 import requests
 from azure.storage.blob import BlobServiceClient
 from google.cloud import storage
-from PIL import Image, ImageOps
-from tqdm import tqdm
 
 from .. import common
 from ..api import API
 from ..exceptions import (
-    SABaseException, SAExistingProjectNameException, SAImageSizeTooLarge,
+    SABaseException, SAExistingProjectNameException,
     SANonExistingProjectNameException
 )
 from .annotation_classes import (
@@ -40,15 +38,18 @@ from .project_api import (
     get_project_metadata_with_users
 )
 from .users import get_team_contributor_metadata
-from .utils import _get_upload_auth_token
+from .utils import _get_upload_auth_token, _get_boto_session_by_credentials, _upload_images, _attach_urls
+from tqdm import tqdm
+from ..mixp.decorators import Trackable
 
+_NUM_THREADS = 10
+_TIME_TO_UPDATE_IN_TQDM = 1
 logger = logging.getLogger("superannotate-python-sdk")
 
 _api = API.get_instance()
-_NUM_THREADS = 10
-_TIME_TO_UPDATE_IN_TQDM = 1
 
 
+@Trackable
 def create_project(project_name, project_description, project_type):
     """Create a new project in the team.
 
@@ -103,6 +104,7 @@ def create_project(project_name, project_description, project_type):
     return res
 
 
+@Trackable
 def create_project_from_metadata(project_metadata):
     """Create a new project in the team using project metadata object dict.
     Mandatory keys in project_metadata are "name", "description" and "type" (Vector or Pixel)
@@ -131,6 +133,7 @@ def create_project_from_metadata(project_metadata):
     return new_project_metadata
 
 
+@Trackable
 def delete_project(project):
     """Deletes the project
 
@@ -151,6 +154,7 @@ def delete_project(project):
     logger.info("Successfully deleted project %s.", project["name"])
 
 
+@Trackable
 def rename_project(project, new_name):
     """Renames the project
 
@@ -188,6 +192,7 @@ def rename_project(project, new_name):
     )
 
 
+@Trackable
 def get_project_image_count(project, with_all_subfolders=False):
     """Returns number of images in the project.
 
@@ -324,6 +329,7 @@ def _extract_frames_from_video(
     return extracted_frames_paths
 
 
+@Trackable
 def upload_video_to_project(
     project,
     video_path,
@@ -383,10 +389,12 @@ def upload_video_to_project(
         annotation_status=annotation_status,
         image_quality_in_editor=image_quality_in_editor
     )
+
     filenames_base = [Path(f).name for f in filenames[0]]
     return filenames_base
 
 
+@Trackable
 def upload_videos_from_folder_to_project(
     project,
     folder_path,
@@ -482,6 +490,7 @@ def upload_videos_from_folder_to_project(
     return filenames
 
 
+@Trackable
 def upload_images_from_folder_to_project(
     project,
     folder_path,
@@ -593,240 +602,7 @@ def upload_images_from_folder_to_project(
     )
 
 
-def create_empty_annotation(size, image_name):
-    return {
-        "metadata": {
-            'height': size[1],
-            'width': size[0],
-            'name': image_name
-        }
-    }
-
-
-def upload_image_array_to_s3(
-    bucket, img_name, img_name_hash, size, orig_image, lores_image, huge_image,
-    thumbnail_image, prefix
-):
-    key = prefix + img_name_hash
-    bucket.put_object(Body=orig_image, Key=key)
-    bucket.put_object(Body=lores_image, Key=key + '___lores.jpg')
-    bucket.put_object(
-        Body=huge_image,
-        Key=key + '___huge.jpg',
-        Metadata={
-            'height': str(size[1]),
-            'width': str(size[0])
-        }
-    )
-    bucket.put_object(Body=thumbnail_image, Key=key + '___thumb.jpg')
-    bucket.put_object(
-        Body=json.dumps(create_empty_annotation(size, img_name)),
-        Key=key + ".json"
-    )
-    return key
-
-
-def get_image_array_to_upload(
-    img_name, byte_io_orig, image_quality_in_editor, project_type
-):
-    if image_quality_in_editor not in ["original", "compressed"]:
-        raise SABaseException(0, "NA ImageQuality in get_image_array_to_upload")
-    Image.MAX_IMAGE_PIXELS = None
-    im = Image.open(byte_io_orig)
-    im_format = im.format
-
-    im = ImageOps.exif_transpose(im)
-
-    width, height = im.size
-
-    resolution = width * height
-    if resolution > common.MAX_IMAGE_RESOLUTION[project_type]:
-        raise SABaseException(
-            0, "Image resolution " + str(resolution) +
-            " too large. Max supported for " + project_type + " projects is " +
-            str(common.MAX_IMAGE_RESOLUTION[project_type])
-        )
-
-    if image_quality_in_editor == "original" and im_format in ['JPEG', 'JPG']:
-        byte_io_lores = io.BytesIO(byte_io_orig.getbuffer())
-    else:
-        byte_io_lores = io.BytesIO()
-        bg = Image.new('RGBA', im.size, (255, 255, 255))
-        im = im.convert("RGBA")
-        bg.paste(im, mask=im)
-        bg = bg.convert('RGB')
-        if image_quality_in_editor == "original":
-            bg.save(byte_io_lores, 'JPEG', quality=100, subsampling=0)
-        else:
-            bg.save(byte_io_lores, 'JPEG', quality=60)
-        im = bg
-
-    byte_io_huge = io.BytesIO()
-    hsize = int(height * 600.0 / width)
-    im.resize((600, hsize), Image.ANTIALIAS).save(byte_io_huge, 'JPEG')
-
-    byte_io_thumbs = io.BytesIO()
-    thumbnail_size = (128, 96)
-    background = Image.new('RGB', thumbnail_size, "black")
-    im.thumbnail(thumbnail_size, Image.ANTIALIAS)
-    (w, h) = im.size
-    background.paste(
-        im, ((thumbnail_size[0] - w) // 2, (thumbnail_size[1] - h) // 2)
-    )
-    im = background
-    im.save(byte_io_thumbs, 'JPEG')
-
-    byte_io_thumbs.seek(0)
-    byte_io_lores.seek(0)
-    byte_io_huge.seek(0)
-    byte_io_orig.seek(0)
-
-    img_name_hash = str(uuid.uuid4()) + Path(img_name).suffix
-    return img_name, img_name_hash, (
-        width, height
-    ), byte_io_orig, byte_io_lores, byte_io_huge, byte_io_thumbs
-
-
-def __upload_images_to_aws_thread(
-    res, img_paths, project, annotation_status, prefix, thread_id, chunksize,
-    couldnt_upload, uploaded, tried_upload, image_quality_in_editor,
-    from_s3_bucket, project_folder_id
-):
-    len_img_paths = len(img_paths)
-    start_index = thread_id * chunksize
-    end_index = start_index + chunksize
-    if from_s3_bucket is not None:
-        from_session = boto3.Session()
-        from_s3 = from_session.resource('s3')
-    if start_index >= len_img_paths:
-        return
-    s3_session = boto3.Session(
-        aws_access_key_id=res['accessKeyId'],
-        aws_secret_access_key=res['secretAccessKey'],
-        aws_session_token=res['sessionToken']
-    )
-    s3_resource = s3_session.resource('s3')
-    bucket = s3_resource.Bucket(res["bucket"])
-    prefix = res['filePath']
-    uploaded_imgs = []
-    uploaded_imgs_info = ([], [], [])
-    for i in range(start_index, end_index):
-        if i >= len_img_paths:
-            break
-        path = img_paths[i]
-        tried_upload[thread_id].append(path)
-        try:
-            if from_s3_bucket is not None:
-                file = io.BytesIO()
-                from_s3_object = from_s3.Object(from_s3_bucket, path)
-                file_size = from_s3_object.content_length
-                if file_size > common.MAX_IMAGE_SIZE:
-                    raise SAImageSizeTooLarge(file_size)
-                from_s3_object.download_fileobj(file)
-            else:
-                file_size = Path(path).stat().st_size
-                if file_size > common.MAX_IMAGE_SIZE:
-                    raise SAImageSizeTooLarge(file_size)
-                with open(path, "rb") as f:
-                    file = io.BytesIO(f.read())
-            images_array = get_image_array_to_upload(
-                Path(path).name, file, image_quality_in_editor, project["type"]
-            )
-            key = upload_image_array_to_s3(bucket, *images_array, prefix)
-        except Exception as e:
-            logger.warning("Unable to upload image %s. %s", path, e)
-            couldnt_upload[thread_id].append(path)
-            continue
-        else:
-            uploaded_imgs.append(path)
-            uploaded_imgs_info[0].append(Path(path).name)
-            uploaded_imgs_info[1].append(key)
-            uploaded_imgs_info[2].append(images_array[2])
-            if len(uploaded_imgs) >= 100:
-                try:
-                    __create_image(
-                        uploaded_imgs_info[0],
-                        uploaded_imgs_info[1],
-                        project,
-                        annotation_status,
-                        prefix,
-                        uploaded_imgs_info[2],
-                        project_folder_id,
-                        upload_state="Basic"
-                    )
-                except SABaseException as e:
-                    couldnt_upload[thread_id] += uploaded_imgs
-                    logger.warning(e)
-                else:
-                    uploaded[thread_id] += uploaded_imgs
-                uploaded_imgs = []
-                uploaded_imgs_info = ([], [], [])
-    try:
-        __create_image(
-            uploaded_imgs_info[0],
-            uploaded_imgs_info[1],
-            project,
-            annotation_status,
-            prefix,
-            uploaded_imgs_info[2],
-            project_folder_id,
-            upload_state="Basic"
-        )
-    except SABaseException as e:
-        couldnt_upload[thread_id] += uploaded_imgs
-        logger.warning(e)
-    else:
-        uploaded[thread_id] += uploaded_imgs
-
-
-def __create_image(
-    img_names,
-    img_paths,
-    project,
-    annotation_status,
-    remote_dir,
-    sizes,
-    project_folder_id,
-    upload_state="Initial"
-):
-    if len(img_paths) == 0:
-        return
-    team_id, project_id = project["team_id"], project["id"]
-    upload_state_code = common.upload_state_str_to_int(upload_state)
-    data = {
-        "project_id": str(project_id),
-        "team_id": str(team_id),
-        "images": [],
-        "annotation_status": annotation_status,
-        "meta": {},
-        "upload_state": upload_state_code
-    }
-    if project_folder_id is not None:
-        data["folder_id"] = project_folder_id
-    for img_data, img_path, size in zip(img_names, img_paths, sizes):
-        img_name_uuid = Path(img_path).name
-        remote_path = remote_dir + f"{img_name_uuid}"
-        if upload_state == "External":
-            img_name, img_url = img_data
-        else:
-            img_name, img_url = img_data, remote_path
-        data["images"].append({"name": img_name, "path": img_url})
-        data["meta"][img_name] = {
-            "width": size[0],
-            "height": size[1],
-            "annotation_json_path": remote_path + ".json",
-            "annotation_bluemap_path": remote_path + ".png"
-        }
-
-    response = _api.send_request(
-        req_type='POST', path='/image/ext-create', json_req=data
-    )
-    if not response.ok:
-        raise SABaseException(
-            response.status_code, "Couldn't ext-create image " + response.text
-        )
-
-
+@Trackable
 def upload_images_to_project(
     project,
     img_paths,
@@ -874,82 +650,24 @@ def upload_images_to_project(
             project
         )
     team_id, project_id = project["team_id"], project["id"]
-    existing_images = search_images((project, folder))
-    duplicate_images = []
-    for existing_image in existing_images:
-        i = -1
-        for j, img_path in enumerate(img_paths):
-            if Path(img_path).name == existing_image:
-                i = j
-                break
-        if i != -1:
-            duplicate_images.append(str(img_paths[i]))
-            del img_paths[i]
-    if len(duplicate_images) != 0:
-        logger.warning(
-            "%s already existing images found that won't be uploaded.",
-            len(duplicate_images)
-        )
-    len_img_paths = len(img_paths)
-    logger.info(
-        "Uploading %s images to project %s.", len_img_paths, folder_name
-    )
-    if len_img_paths == 0:
-        return ([], [], duplicate_images)
 
     if folder:
         folder_id = folder["id"]
     else:
         folder_id = get_project_root_folder_id(project)
 
-    params = {'team_id': team_id, 'folder_id': folder_id}
-    uploaded = [[] for _ in range(_NUM_THREADS)]
-    tried_upload = [[] for _ in range(_NUM_THREADS)]
-    couldnt_upload = [[] for _ in range(_NUM_THREADS)]
-    finish_event = threading.Event()
-
-    res = _get_upload_auth_token(params=params, project_id=project_id)
-
-    prefix = res['filePath']
-    limit = res['availableImageCount']
-    images_to_upload = img_paths[:limit]
-    images_to_skip = [str(path) for path in img_paths[limit:]]
-    chunksize = int(math.ceil(len(images_to_upload) / _NUM_THREADS))
-
-    tqdm_thread = threading.Thread(
-        target=__tqdm_thread_image_upload,
-        args=(len_img_paths, tried_upload, finish_event),
-        daemon=True
+    list_of_uploaded, list_of_not_uploaded, duplicate_images = _upload_images(
+        img_paths=img_paths,
+        team_id=team_id,
+        folder_id=folder_id,
+        project_id=project_id,
+        annotation_status=annotation_status,
+        from_s3_bucket=from_s3_bucket,
+        image_quality_in_editor=image_quality_in_editor,
+        project=project,
+        folder_name=folder_name
     )
-    tqdm_thread.start()
 
-    threads = []
-    for thread_id in range(_NUM_THREADS):
-        t = threading.Thread(
-            target=__upload_images_to_aws_thread,
-            args=(
-                res, images_to_upload, project, annotation_status, prefix,
-                thread_id, chunksize, couldnt_upload, uploaded, tried_upload,
-                image_quality_in_editor, from_s3_bucket, folder_id
-            ),
-            daemon=True
-        )
-        threads.append(t)
-        t.start()
-    for t in threads:
-        t.join()
-    finish_event.set()
-    tqdm_thread.join()
-    list_of_not_uploaded = []
-    for couldnt_upload_thread in couldnt_upload:
-        for f in couldnt_upload_thread:
-            list_of_not_uploaded.append(str(f))
-    list_of_uploaded = []
-    for upload_thread in uploaded:
-        for f in upload_thread:
-            list_of_uploaded.append(str(f))
-
-    list_of_not_uploaded += images_to_skip
     return (list_of_uploaded, list_of_not_uploaded, duplicate_images)
 
 
@@ -971,6 +689,7 @@ def _tqdm_download(
                 break
 
 
+@Trackable
 def attach_image_urls_to_project(
     project, attachments, annotation_status="NotStarted"
 ):
@@ -986,7 +705,6 @@ def attach_image_urls_to_project(
     :return: list of linked image names, list of failed image names, list of duplicate image names
     :rtype: tuple
     """
-
     project, folder = get_project_and_folder_metadata(project)
     folder_name = project["name"] + (f'/{folder["name"]}' if folder else "")
     upload_state = common.upload_state_int_to_str(project.get("upload_state"))
@@ -999,170 +717,31 @@ def attach_image_urls_to_project(
     team_id, project_id = project["team_id"], project["id"]
     image_data = pd.read_csv(attachments, dtype=str)
     image_data = image_data[~image_data["url"].isnull()]
-    existing_names = image_data[~image_data["name"].isnull()]
-    duplicate_idx_csv = existing_names.duplicated(subset="name", keep="first")
-    duplicate_images = existing_names[duplicate_idx_csv]["name"].tolist()
-    existing_names = existing_names[~duplicate_idx_csv]
-    existing_images = search_images((project, folder))
-    duplicate_idx = []
     for ind, _ in image_data[image_data["name"].isnull()].iterrows():
-        while True:
-            name_try = str(uuid.uuid4())
-            if name_try not in existing_images:
-                image_data.at[ind, "name"] = name_try
-                existing_images.append(name_try)
-                break
-    image_data.drop_duplicates(subset="name", keep="first", inplace=True)
-    for ind, row in existing_names.iterrows():
-        if row["name"] in existing_images:
-            duplicate_idx.append(ind)
-    duplicate_images.extend(image_data.loc[duplicate_idx]["name"].tolist())
-    image_data.drop(labels=duplicate_idx, inplace=True)
-    if len(duplicate_images) != 0:
-        logger.warning(
-            "%s already existing images found that won't be uploaded.",
-            len(duplicate_images)
-        )
+        name_try = str(uuid.uuid4())
+        image_data.at[ind, "name"] = name_try
     image_data = pd.DataFrame(image_data, columns=["name", "url"])
     img_names_urls = image_data.values.tolist()
-    logger.info(
-        "Uploading %s images to project %s.", len(img_names_urls), folder_name
-    )
-    if len(img_names_urls) == 0:
-        return ([], [], duplicate_images)
 
     if folder:
         folder_id = folder["id"]
     else:
         folder_id = get_project_root_folder_id(project)
 
-    params = {'team_id': team_id, 'folder_id': folder_id}
-    uploaded = [[] for _ in range(_NUM_THREADS)]
-    tried_upload = [[] for _ in range(_NUM_THREADS)]
-    couldnt_upload = [[] for _ in range(_NUM_THREADS)]
-    finish_event = threading.Event()
-
-    res = _get_upload_auth_token(params=params, project_id=project_id)
-
-    prefix = res['filePath']
-    limit = res['availableImageCount']
-    images_to_upload = img_names_urls[:limit]
-    images_to_skip = img_names_urls[limit:]
-    chunksize = int(math.ceil(len(images_to_upload) / _NUM_THREADS))
-
-    tqdm_thread = threading.Thread(
-        target=__tqdm_thread_image_upload,
-        args=(len(images_to_upload), tried_upload, finish_event),
-        daemon=True
+    list_of_uploaded, list_of_not_uploaded, duplicate_images = _attach_urls(
+        img_names_urls=img_names_urls,
+        team_id=team_id,
+        folder_id=folder_id,
+        project_id=project_id,
+        annotation_status=annotation_status,
+        project=project,
+        folder_name=folder_name
     )
-    tqdm_thread.start()
-    threads = []
-    for thread_id in range(_NUM_THREADS):
-        t = threading.Thread(
-            target=__attach_image_urls_to_project_thread,
-            args=(
-                res, images_to_upload, project, annotation_status, prefix,
-                thread_id, chunksize, couldnt_upload, uploaded, tried_upload,
-                folder_id
-            ),
-            daemon=True
-        )
-        threads.append(t)
-        t.start()
-    for t in threads:
-        t.join()
-    finish_event.set()
-    tqdm_thread.join()
-    list_of_not_uploaded = []
-    for couldnt_upload_thread in couldnt_upload:
-        for f in couldnt_upload_thread:
-            list_of_not_uploaded.append(str(f))
-    list_of_uploaded = []
-    for upload_thread in uploaded:
-        for f in upload_thread:
-            list_of_uploaded.append(str(f))
 
-    list_of_not_uploaded += [i[0] for i in images_to_skip]
     return (list_of_uploaded, list_of_not_uploaded, duplicate_images)
 
 
-def __attach_image_urls_to_project_thread(
-    res, img_names_urls, project, annotation_status, prefix, thread_id,
-    chunksize, couldnt_upload, uploaded, tried_upload, project_folder_id
-):
-    len_img_paths = len(img_names_urls)
-    start_index = thread_id * chunksize
-    end_index = start_index + chunksize
-    if start_index >= len_img_paths:
-        return
-    s3_session = boto3.Session(
-        aws_access_key_id=res['accessKeyId'],
-        aws_secret_access_key=res['secretAccessKey'],
-        aws_session_token=res['sessionToken']
-    )
-    s3_resource = s3_session.resource('s3')
-    bucket = s3_resource.Bucket(res["bucket"])
-    prefix = res['filePath']
-    uploaded_imgs = []
-    uploaded_imgs_info = ([], [], [])
-    for i in range(start_index, end_index):
-        if i >= len_img_paths:
-            break
-        name, _ = img_names_urls[i]
-        tried_upload[thread_id].append(name)
-        img_name_hash = str(uuid.uuid4()) + Path(name).suffix
-        key = prefix + img_name_hash
-        try:
-            bucket.put_object(
-                Body=json.dumps(create_empty_annotation((None, None), name)),
-                Key=key + ".json"
-            )
-        except Exception as e:
-            logger.warning("Unable to upload image %s. %s", name, e)
-            couldnt_upload[thread_id].append(name)
-            continue
-        else:
-            uploaded_imgs.append(name)
-            uploaded_imgs_info[0].append(img_names_urls[i])
-            uploaded_imgs_info[1].append(key)
-            uploaded_imgs_info[2].append((None, None))
-            if len(uploaded_imgs) >= 100:
-                try:
-                    __create_image(
-                        uploaded_imgs_info[0],
-                        uploaded_imgs_info[1],
-                        project,
-                        annotation_status,
-                        prefix,
-                        uploaded_imgs_info[2],
-                        project_folder_id,
-                        upload_state="External"
-                    )
-                except SABaseException as e:
-                    couldnt_upload[thread_id] += uploaded_imgs
-                    logger.warning(e)
-                else:
-                    uploaded[thread_id] += uploaded_imgs
-                uploaded_imgs = []
-                uploaded_imgs_info = ([], [], [])
-    try:
-        __create_image(
-            uploaded_imgs_info[0],
-            uploaded_imgs_info[1],
-            project,
-            annotation_status,
-            prefix,
-            uploaded_imgs_info[2],
-            project_folder_id,
-            upload_state="External"
-        )
-    except SABaseException as e:
-        couldnt_upload[thread_id] += uploaded_imgs
-        logger.warning(e)
-    else:
-        uploaded[thread_id] += uploaded_imgs
-
-
+@Trackable
 def upload_images_from_public_urls_to_project(
     project,
     img_urls,
@@ -1272,6 +851,7 @@ def upload_images_from_public_urls_to_project(
     )
 
 
+@Trackable
 def upload_images_from_google_cloud_to_project(
     project,
     google_project,
@@ -1358,6 +938,7 @@ def upload_images_from_google_cloud_to_project(
     )
 
 
+@Trackable
 def upload_images_from_azure_blob_to_project(
     project,
     container_name,
@@ -1520,11 +1101,7 @@ def __upload_annotations_thread(
             continue
         res = response.json()
         aws_creds = res["creds"]
-        s3_session = boto3.Session(
-            aws_access_key_id=aws_creds['accessKeyId'],
-            aws_secret_access_key=aws_creds['secretAccessKey'],
-            aws_session_token=aws_creds['sessionToken']
-        )
+        s3_session = _get_boto_session_by_credentials(aws_creds)
         s3_resource = s3_session.resource('s3')
         bucket = s3_resource.Bucket(aws_creds["bucket"])
         for image_id, image_info in res['images'].items():
@@ -1573,6 +1150,7 @@ def __upload_annotations_thread(
             uploaded[thread_id].append(full_path)
 
 
+@Trackable
 def upload_annotations_from_folder_to_project(
     project, folder_path, from_s3_bucket=None, recursive_subfolders=False
 ):
@@ -1761,20 +1339,6 @@ def _upload_annotations_from_folder_to_project(
     return (list_of_uploaded, list_of_not_uploaded, list_of_missing_images)
 
 
-def __tqdm_thread_image_upload(total_num, tried_upload, finish_event):
-    with tqdm(total=total_num) as pbar:
-        while True:
-            finished = finish_event.wait(_TIME_TO_UPDATE_IN_TQDM)
-            if not finished:
-                sum_all = 0
-                for i in tried_upload:
-                    sum_all += len(i)
-                pbar.update(sum_all - pbar.n)
-            else:
-                pbar.update(total_num - pbar.n)
-                break
-
-
 def __tqdm_thread_upload_annotations(
     total_num, uploaded, couldnt_upload, missing_image, finish_event
 ):
@@ -1795,6 +1359,7 @@ def __tqdm_thread_upload_annotations(
                 break
 
 
+@Trackable
 def upload_preannotations_from_folder_to_project(
     project, folder_path, from_s3_bucket=None, recursive_subfolders=False
 ):
@@ -1826,6 +1391,7 @@ def upload_preannotations_from_folder_to_project(
     )
 
 
+@Trackable
 def share_project(project, user, user_role):
     """Share project with user.
 
@@ -1859,6 +1425,7 @@ def share_project(project, user, user_role):
     )
 
 
+@Trackable
 def unshare_project(project, user):
     """Unshare (remove) user from project.
 
@@ -1886,6 +1453,7 @@ def unshare_project(project, user):
     logger.info("Unshared project %s from user ID %s", project["name"], user_id)
 
 
+@Trackable
 def upload_images_from_s3_bucket_to_project(
     project,
     accessKeyId,
@@ -1977,6 +1545,7 @@ def _get_upload_from_s3_bucket_to_project_status(project, project_folder):
     return response.json()
 
 
+@Trackable
 def get_project_workflow(project):
     """Gets project's workflow.
 
@@ -2019,6 +1588,7 @@ def get_project_workflow(project):
     return res
 
 
+@Trackable
 def set_project_workflow(project, new_workflow):
     """Sets project's workflow.
 
@@ -2119,6 +1689,7 @@ def set_project_workflow(project, new_workflow):
             )
 
 
+@Trackable
 def get_project_settings(project):
     """Gets project's settings.
 
@@ -2156,6 +1727,7 @@ def get_project_settings(project):
     return res
 
 
+@Trackable
 def set_project_settings(project, new_settings):
     """Sets project's settings.
 
@@ -2220,6 +1792,7 @@ def set_project_settings(project, new_settings):
     return response.json()
 
 
+@Trackable
 def set_project_default_image_quality_in_editor(
     project, image_quality_in_editor
 ):
@@ -2239,6 +1812,7 @@ def set_project_default_image_quality_in_editor(
     )
 
 
+@Trackable
 def get_project_default_image_quality_in_editor(project):
     """Gets project's default image quality in editor setting.
 
@@ -2257,6 +1831,7 @@ def get_project_default_image_quality_in_editor(project):
     )
 
 
+@Trackable
 def get_project_metadata(
     project,
     include_annotation_classes=False,
@@ -2302,6 +1877,7 @@ def get_project_metadata(
     return result
 
 
+@Trackable
 def clone_project(
     project_name,
     from_project,

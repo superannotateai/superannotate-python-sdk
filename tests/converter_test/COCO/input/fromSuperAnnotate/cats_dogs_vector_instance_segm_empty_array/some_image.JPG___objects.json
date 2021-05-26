@@ -1,0 +1,53 @@
+{
+    "metadata": {
+        "lastAction": {
+            "email": "",
+            "timestamp": 1619092786567
+        },
+        "width": 2448,
+        "height": 3264,
+        "name": "q.JPG",
+        "projectId": 1,
+        "isPredicted": false,
+        "status": "Completed",
+        "pinned": false,
+        "annotatorEmail": "",
+        "qaEmail": ""
+    },
+    "comments": [],
+    "tags": [],
+    "instances": [
+        {
+            "type": "polygon",
+            "classId": 1,
+            "probability": 100,
+            "points": [
+                2448,
+                2612.07,
+                2448,
+                2651.45,
+                2448,
+                988.83
+            ],
+            "groupId": 0,
+            "pointLabels": {},
+            "locked": false,
+            "visible": true,
+            "attributes": [],
+            "trackingId": null,
+            "error": null,
+            "createdAt": "2021-04-21T06:56:10.242Z",
+            "createdBy": {
+                "email": "",
+                "role": ""
+            },
+            "creationType": "Manual",
+            "updatedAt": "2021-04-21T06:56:10.242Z",
+            "updatedBy": {
+                "email": "",
+                "role": ""
+            },
+            "className": "class1"
+        }
+    ]
+}
