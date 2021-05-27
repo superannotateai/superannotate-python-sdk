@@ -141,3 +141,6 @@ _mask.c
 tags
 temp
 debug_*
+
+# IDE
+.idea
