@@ -48,37 +48,35 @@ def ask_token():
 
 
 def main():
-    available_commands = "Available commands to superannotate CLI are: init version create-project create-folder upload-images upload-videos upload-preannotations upload-annotations export-project"
+    available_commands = {
+        "create-project": create_project,
+        "create-folder": create_folder,
+        "upload-images": image_upload,
+        "attach-image-urls": attach_video_urls,
+        "upload-videos": video_upload,
+        "upload-preannotations": preannotations_upload,
+        "upload-annotations": preannotations_upload,
+        "init": lambda *args, **kwargs: ask_token(),
+        "export-project": export_project,
+        "attach-video-urls": attach_video_urls,
+        "version": lambda *args, **kwargs: print(f"SuperAnnotate Python SDK version {sa.__version__}")
+    }
     if len(sys.argv) == 1:
-        raise SABaseException(
-            0, "No command given to superannotate CLI. " + available_commands
+        print(
+            "No command given to superannotate CLI. Available commands to superannotate CLI are:"
+            + ", ".join(available_commands.keys())
         )
+
     command = sys.argv[1]
     further_args = sys.argv[2:]
-
-    if command == "create-project":
-        create_project(command, further_args)
-    elif command == "create-folder":
-        create_folder(command, further_args)
-    elif command == "upload-images":
-        image_upload(command, further_args)
-    elif command == "attach-image-urls":
-        attach_image_urls(command, further_args)
-    elif command == "upload-videos":
-        video_upload(command, further_args)
-    elif command in ["upload-preannotations", "upload-annotations"]:
-        preannotations_upload(command, further_args)
-    elif command == "init":
-        ask_token()
-    elif command == "export-project":
-        export_project(command, further_args)
-    elif command == "version":
-        print(f"SuperAnnotate Python SDK version {sa.__version__}")
-    else:
-        raise SABaseException(
-            0, "Wrong command " + command + " to superannotate CLI. " +
-            available_commands
-        )
+    try:
+        available_commands[command](command, further_args)
+    except KeyError:
+        sys.stdout.write("Wrong command " + command + " to superannotate CLI. " + ", ".join(available_commands.keys()))
+    except SABaseException as e:
+        sys.stdout.write(e.message)
+    except BaseException as e:
+        sys.stdout.write(str(e))
 
 
 def _list_str(values):
@@ -361,6 +359,31 @@ def export_project(command_name, args):
     )
     sa.download_export(
         args.project, export, args.folder, not args.disable_extract_zip_contents
+    )
+
+
+def attach_video_urls(command_name, args):
+    parser = argparse.ArgumentParser(prog=_CLI_COMMAND + " " + command_name)
+    parser.add_argument(
+        '--project', required=True, help='Project name to upload'
+    )
+    parser.add_argument(
+        '--attachments',
+        required=True,
+        help='path to csv file on attachments metadata'
+    )
+    parser.add_argument(
+        '--annotation_status',
+        required=False,
+        default="NotStarted",
+        help=
+        'Set images\' annotation statuses after upload. Default is NotStarted'
+    )
+    args = parser.parse_args(args)
+    sa.attach_video_urls_to_project(
+        project=args.project,
+        attachments=args.attachments,
+        annotation_status=args.annotation_status
     )
 
 

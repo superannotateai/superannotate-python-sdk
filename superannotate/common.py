@@ -19,7 +19,7 @@ DEFAULT_VIDEO_EXTENSIONS = ("mp4", "avi", "mov", "webm", "flv", "mpg", "ogg")
 
 SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES = set('/\\:*?"<>|')
 
-_PROJECT_TYPES = {"Vector": 1, "Pixel": 2}
+_PROJECT_TYPES = {"Vector": 1, "Pixel": 2, "Video": 3}
 
 _ANNOTATION_STATUSES = {
     "NotStarted": 1,
@@ -109,10 +109,11 @@ def project_type_int_to_str(project_type):
     :return: 'Vector' or 'Pixel'
     :rtype: str
     """
+    if project_type not in _PROJECT_TYPES.values():
+        raise RuntimeError("NA Project type")
     for k, v in _PROJECT_TYPES.items():
         if v == project_type:
             return k
-    raise RuntimeError("NA Project type")
 
 
 def user_role_str_to_int(user_role):
