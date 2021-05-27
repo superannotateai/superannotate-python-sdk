@@ -1,3 +1,4 @@
+import functools
 import sys
 from .app import mp, get_default
 from superannotate.api import API
@@ -18,6 +19,7 @@ class Trackable(object):
         self.function = function
         with lock:
             Trackable.registered.add(function.__name__)
+        functools.update_wrapper(self, function)
 
     def __call__(self, *args, **kwargs):
         try:
