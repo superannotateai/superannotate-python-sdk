@@ -17,4 +17,3 @@ ffmpeg-python>=0.2.0
 google-cloud-storage>=1.33.0
 azure-storage-blob>=12.6.0
 mixpanel>=4.8.3
-Sphinx==4.0.2
