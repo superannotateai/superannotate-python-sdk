@@ -570,15 +570,19 @@ def assign_images(project, image_names, user):
         return
 
     project, folder = get_project_and_folder_metadata(project)
+
+    project_users = get_team_metadata()["users"]
+    project_users = [i['id'] for i in project_users]
+    if user not in project_users:
+        logging.warn(
+            f'Skipping {user}. {user} is not a verified contributor for the {project["name"]}'
+        )
+
     folder_name = 'root'
     if folder:
         folder_name = folder['name']
 
-    project_meta = get_project_metadata(project)
-    params = {
-        "project_id": project_meta['id'],
-        "team_id": project_meta["team_id"]
-    }
+    params = {"project_id": project['id'], "team_id": project["team_id"]}
     json_req = {
         "image_names": image_names,
         "assign_user_id": user,
@@ -613,22 +617,21 @@ def assign_folder(project, folder_name, users):
     project_users = get_team_metadata()["users"]
     project_name = project_meta['name']
     project_users = [i['id'] for i in project_users]
-    verified_contributor = []
+    unverified_contributor = set(project_users) - set(users)
+    verified_contributor = set(users) - set(unverified_contributor)
 
-    for user in users:
-        if user not in project_users:
-            logging.warn(
-                f'Skipping {user} from assignees. {user} is not a verified contributor for the {project_name}'
-            )
-            continue
-        verified_contributor.append(user)
+    for user in unverified_contributor:
+        logging.warn(
+            f'Skipping {user} from assignees. {user} is not a verified contributor for the {project_name}'
+        )
+        continue
 
     params = {
         "project_id": project_meta['id'],
         "team_id": project_meta["team_id"]
     }
     json_req = {
-        "assign_user_ids": verified_contributor,
+        "assign_user_ids": list(verified_contributor),
         "folder_name": folder_name
     }
     response = _api.send_request(
@@ -673,7 +676,6 @@ def unassign_folder(project, folder_name):
         raise SABaseException(
             response.status_code, "Couldn't unassign folder " + response.text
         )
-    print('unassign_folder>>>>>>', response.text)
 
 
 def unassign_images(project, image_names):
@@ -712,5 +714,3 @@ def unassign_images(project, image_names):
         raise SABaseException(
             response.status_code, "Couldn't unassign images " + response.text
         )
-
-    print('unassign_images>>>>>>', response.text)

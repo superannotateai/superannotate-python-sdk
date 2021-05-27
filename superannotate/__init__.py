@@ -33,7 +33,6 @@ from .dataframe_filtering import (
     filter_annotation_instances, filter_images_by_comments,
     filter_images_by_tags
 )
-from .db.utils import _search_folders
 from .db.annotation_classes import (
     create_annotation_class, create_annotation_classes_from_classes_json,
     delete_annotation_class, download_annotation_classes_json,

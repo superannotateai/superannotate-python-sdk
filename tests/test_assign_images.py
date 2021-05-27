@@ -1,9 +1,10 @@
 from pathlib import Path
 import time
-
 import pytest
-
 import superannotate as sa
+from superannotate.api import API
+
+_api = API.get_instance()
 
 PROJECT_NAME_VECTOR1 = "test assign images1"
 PROJECT_NAME_VECTOR2 = "test assign images2"
@@ -160,7 +161,7 @@ def test_assign_folder(tmpdir):
     email = sa.get_team_metadata()["users"][1]["email"]
     sa.share_project(project, email, "QA")
     sa.assign_folder(project, folder_name, [email])
-    folders = sa._search_folders(PROJECT_NAME_VECTOR1, includeUsers=True)
+    folders = _search_folders(project, includeUsers=True)
     assert len(folders["data"][0]['folder_users']) > 0
 
 
@@ -176,8 +177,24 @@ def test_unassign_folder(tmpdir):
     email = sa.get_team_metadata()["users"][1]["email"]
     sa.share_project(project, email, "QA")
     sa.assign_folder(project, folder_name, [email])
-    folders = sa._search_folders(PROJECT_NAME_VECTOR1, includeUsers=True)
+    folders = _search_folders(project, includeUsers=True)
     assert len(folders["data"][0]['folder_users']) > 0
     sa.unassign_folder(project, folder_name)
-    folders = sa._search_folders(PROJECT_NAME_VECTOR1, includeUsers=True)
+    folders = _search_folders(project, includeUsers=True)
     assert len(folders["data"][0]['folder_users']) == 0
+
+
+def _search_folders(project, folder_name=None, includeUsers=False):
+    team_id, project_id = project["team_id"], project["id"]
+    params = {
+        'team_id': team_id,
+        'project_id': project_id,
+        'offset': 0,
+        'name': folder_name,
+        'is_root': 0,
+        'includeUsers': includeUsers
+    }
+
+    response = _api.send_request(req_type='GET', path='/folders', params=params)
+    response = response.json()
+    return response
