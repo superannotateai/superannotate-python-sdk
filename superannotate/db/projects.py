@@ -702,43 +702,10 @@ def attach_image_urls_to_project(
     :param annotation_status: value to set the annotation statuses of the linked images: NotStarted InProgress QualityCheck Returned Completed Skipped
     :type annotation_status: str
 
-    :return: list of linked image names, list of failed image names, list of duplicate image names
-    :rtype: tuple
+    :return: attached images, failed images, skipped images
+    :rtype: (list, list, list)
     """
-    project, folder = get_project_and_folder_metadata(project)
-    folder_name = project["name"] + (f'/{folder["name"]}' if folder else "")
-    upload_state = common.upload_state_int_to_str(project.get("upload_state"))
-    if upload_state == "Basic":
-        raise SABaseException(
-            0,
-            "You cannot attach URLs in this type of project. Please attach it in an external storage project"
-        )
-    annotation_status = common.annotation_status_str_to_int(annotation_status)
-    team_id, project_id = project["team_id"], project["id"]
-    image_data = pd.read_csv(attachments, dtype=str)
-    image_data = image_data[~image_data["url"].isnull()]
-    for ind, _ in image_data[image_data["name"].isnull()].iterrows():
-        name_try = str(uuid.uuid4())
-        image_data.at[ind, "name"] = name_try
-    image_data = pd.DataFrame(image_data, columns=["name", "url"])
-    img_names_urls = image_data.values.tolist()
-
-    if folder:
-        folder_id = folder["id"]
-    else:
-        folder_id = get_project_root_folder_id(project)
-
-    list_of_uploaded, list_of_not_uploaded, duplicate_images = _attach_urls(
-        img_names_urls=img_names_urls,
-        team_id=team_id,
-        folder_id=folder_id,
-        project_id=project_id,
-        annotation_status=annotation_status,
-        project=project,
-        folder_name=folder_name
-    )
-
-    return (list_of_uploaded, list_of_not_uploaded, duplicate_images)
+    return attach_file_urls_to_project(project, attachments, annotation_status)
 
 
 @Trackable
@@ -1926,3 +1893,78 @@ def clone_project(
         metadata["description"] = project_description
 
     return create_project_from_metadata(metadata)
+
+
+@Trackable
+def attach_video_urls_to_project(project, attachments, annotation_status="NotStarted"):
+    """Link videos on external storage to SuperAnnotate.
+
+    :param project: project name or project folder path
+    :type project: str or dict
+
+    :param attachments: path to csv file on attachments metadata
+    :type attachments: Path-like (str or Path)
+
+    :param annotation_status: value to set the annotation statuses of the linked videos: NotStarted InProgress QualityCheck Returned Completed Skipped
+    :type annotation_status: str
+
+    :return: attached videos, failed videos, skipped videos
+    :rtype: (list, list, list)
+    """
+    return attach_file_urls_to_project(project, attachments, annotation_status)
+
+
+def attach_file_urls_to_project(project, attachments, annotation_status):
+    """Link files on external storage to SuperAnnotate.
+
+    :param project: project name or project folder path
+    :type project: str or dict
+
+    :param attachments: path to csv file on attachments metadata
+    :type attachments: Path-like (str or Path)
+
+    :param annotation_status: value to set the annotation statuses of the linked files: NotStarted InProgress QualityCheck Returned Completed Skipped
+    :type annotation_status: str
+
+    :return: attached files, failed files, skipped files
+    :rtype: (list, list, list)
+    """
+    project, folder = get_project_and_folder_metadata(project)
+    folder_name = project["name"] + (f'/{folder["name"]}' if folder else "")
+    upload_state = common.upload_state_int_to_str(project.get("upload_state"))
+    if upload_state == "Basic":
+        raise SABaseException(
+            0,
+            "You cannot attach URLs in this type of project. Please attach it in an external storage project"
+        )
+    annotation_status = common.annotation_status_str_to_int(annotation_status)
+    team_id, project_id = project["team_id"], project["id"]
+    df = pd.read_csv(attachments, dtype=str)
+    df = df[~df["url"].isnull()]
+
+    if "name" in df.columns:
+        df.loc[df["name"].usnull(), "name"] = [
+            str(uuid.uuid4()) for _ in range(df["name"].isnull().sum())
+        ]
+    else:
+        df["name"] = [str(uuid.uuid4()) for _ in range(len(df.index))]
+
+    df = pd.DataFrame(df, columns=["name", "url"])
+    df_names_urls = df.values.tolist()
+
+    if folder:
+        folder_id = folder["id"]
+    else:
+        folder_id = get_project_root_folder_id(project)
+
+    list_of_uploaded, list_of_not_uploaded, list_of_duplicated = _attach_urls(
+        file_urls=df_names_urls,
+        team_id=team_id,
+        folder_id=folder_id,
+        project_id=project_id,
+        annotation_status=annotation_status,
+        project=project,
+        folder_name=folder_name
+    )
+
+    return list_of_uploaded, list_of_not_uploaded, list_of_duplicated

@@ -368,7 +368,7 @@ def __upload_images_to_aws_thread(
             uploaded_imgs_info[2].append(images_array[2])
             if len(uploaded_imgs) >= 100:
                 try:
-                    __create_image(
+                    __create_file(
                         uploaded_imgs_info[0],
                         uploaded_imgs_info[1],
                         project,
@@ -386,7 +386,7 @@ def __upload_images_to_aws_thread(
                 uploaded_imgs = []
                 uploaded_imgs_info = ([], [], [])
     try:
-        __create_image(
+        __create_file(
             uploaded_imgs_info[0],
             uploaded_imgs_info[1],
             project,
@@ -403,9 +403,9 @@ def __upload_images_to_aws_thread(
         uploaded[thread_id] += uploaded_imgs
 
 
-def __create_image(
-    img_names,
-    img_paths,
+def __create_file(
+    file_names,
+    file_paths,
     project,
     annotation_status,
     remote_dir,
@@ -413,7 +413,7 @@ def __create_image(
     project_folder_id,
     upload_state="Initial"
 ):
-    if len(img_paths) == 0:
+    if len(file_paths) == 0:
         return
     team_id, project_id = project["team_id"], project["id"]
     upload_state_code = common.upload_state_str_to_int(upload_state)
@@ -427,15 +427,15 @@ def __create_image(
     }
     if project_folder_id is not None:
         data["folder_id"] = project_folder_id
-    for img_data, img_path, size in zip(img_names, img_paths, sizes):
-        img_name_uuid = Path(img_path).name
-        remote_path = remote_dir + f"{img_name_uuid}"
+    for file_data, file_path, size in zip(file_names, file_paths, sizes):
+        file_name_uuid = Path(file_path).name
+        remote_path = remote_dir + f"{file_name_uuid}"
         if upload_state == "External":
-            img_name, img_url = img_data
+            file_name, file_url = file_data
         else:
-            img_name, img_url = img_data, remote_path
-        data["images"].append({"name": img_name, "path": img_url})
-        data["meta"][img_name] = {
+            file_name, file_url = file_data, remote_path
+        data["images"].append({"name": file_name, "path": file_url})
+        data["meta"][file_name] = {
             "width": size[0],
             "height": size[1],
             "annotation_json_path": remote_path + ".json",
@@ -600,7 +600,7 @@ def _upload_images(
 
 
 def _attach_urls(
-    img_names_urls, team_id, folder_id, project_id, annotation_status, project,
+    file_urls, team_id, folder_id, project_id, annotation_status, project,
     folder_name
 ):
     _NUM_THREADS = 10
@@ -614,43 +614,43 @@ def _attach_urls(
 
     prefix = res['filePath']
     limit = res['availableImageCount']
-    images_to_upload = img_names_urls[:limit]
+    files_to_upload = file_urls[:limit]
 
-    img_names = [i[0] for i in images_to_upload]
-    duplicate_images = get_duplicate_image_names(
+    img_names = [i[0] for i in files_to_upload]
+    duplicate_files = get_duplicate_image_names(
         project_id=project_id,
         team_id=team_id,
         folder_id=folder_id,
         image_paths=img_names
     )
-    if len(duplicate_images) != 0:
+    if len(duplicate_files) != 0:
         logger.warning(
-            "%s already existing images found that won't be uploaded.",
-            len(duplicate_images)
+            "%s already existing files found that won't be uploaded.",
+            len(duplicate_files)
         )
 
-    images_to_upload = [
-        i for i in images_to_upload if i[0] not in duplicate_images
+    files_to_upload = [
+        i for i in files_to_upload if i[0] not in duplicate_files
     ]
     logger.info(
-        "Uploading %s images to project %s.", len(images_to_upload), folder_name
+        "Uploading %s files to project %s.", len(files_to_upload), folder_name
     )
 
-    images_to_skip = img_names_urls[limit:]
-    chunksize = int(math.ceil(len(images_to_upload) / _NUM_THREADS))
+    files_to_skip = file_urls[limit:]
+    chunksize = int(math.ceil(len(files_to_upload) / _NUM_THREADS))
 
     tqdm_thread = threading.Thread(
         target=__tqdm_thread_image_upload,
-        args=(len(images_to_upload), tried_upload, finish_event),
+        args=(len(files_to_upload), tried_upload, finish_event),
         daemon=True
     )
     tqdm_thread.start()
     threads = []
     for thread_id in range(_NUM_THREADS):
         t = threading.Thread(
-            target=__attach_image_urls_to_project_thread,
+            target=__attach_file_urls_to_project_thread,
             args=(
-                res, images_to_upload, project, annotation_status, prefix,
+                res, files_to_upload, project, annotation_status, prefix,
                 thread_id, chunksize, couldnt_upload, uploaded, tried_upload,
                 folder_id
             ),
@@ -671,29 +671,29 @@ def _attach_urls(
         for f in upload_thread:
             list_of_uploaded.append(str(f))
 
-    list_of_not_uploaded += [i[0] for i in images_to_skip]
-    return (list_of_uploaded, list_of_not_uploaded, duplicate_images)
+    list_of_not_uploaded += [i[0] for i in files_to_skip]
+    return (list_of_uploaded, list_of_not_uploaded, duplicate_files)
 
 
-def __attach_image_urls_to_project_thread(
-    res, img_names_urls, project, annotation_status, prefix, thread_id,
+def __attach_file_urls_to_project_thread(
+    res, file_urls, project, annotation_status, prefix, thread_id,
     chunksize, couldnt_upload, uploaded, tried_upload, project_folder_id
 ):
-    len_img_paths = len(img_names_urls)
+    len_file_paths = len(file_urls)
     start_index = thread_id * chunksize
     end_index = start_index + chunksize
-    if start_index >= len_img_paths:
+    if start_index >= len_file_paths:
         return
     s3_session = _get_boto_session_by_credentials(res)
     s3_resource = s3_session.resource('s3')
     bucket = s3_resource.Bucket(res["bucket"])
     prefix = res['filePath']
-    uploaded_imgs = []
-    uploaded_imgs_info = ([], [], [])
+    uploaded_files = []
+    uploaded_files_info = ([], [], [])
     for i in range(start_index, end_index):
-        if i >= len_img_paths:
+        if i >= len_file_paths:
             break
-        name, _ = img_names_urls[i]
+        name, _ = file_urls[i]
         tried_upload[thread_id].append(name)
         img_name_hash = str(uuid.uuid4()) + Path(name).suffix
         key = prefix + img_name_hash
@@ -703,46 +703,46 @@ def __attach_image_urls_to_project_thread(
                 Key=key + ".json"
             )
         except Exception as e:
-            logger.warning("Unable to upload image %s. %s", name, e)
+            logger.warning("Unable to upload file %s. %s", name, e)
             couldnt_upload[thread_id].append(name)
             continue
         else:
-            uploaded_imgs.append(name)
-            uploaded_imgs_info[0].append(img_names_urls[i])
-            uploaded_imgs_info[1].append(key)
-            uploaded_imgs_info[2].append((None, None))
-            if len(uploaded_imgs) >= 100:
+            uploaded_files.append(name)
+            uploaded_files_info[0].append(file_urls[i])
+            uploaded_files_info[1].append(key)
+            uploaded_files_info[2].append((None, None))
+            if len(uploaded_files) >= 100:
                 try:
-                    __create_image(
-                        uploaded_imgs_info[0],
-                        uploaded_imgs_info[1],
+                    __create_file(
+                        uploaded_files_info[0],
+                        uploaded_files_info[1],
                         project,
                         annotation_status,
                         prefix,
-                        uploaded_imgs_info[2],
+                        uploaded_files_info[2],
                         project_folder_id,
                         upload_state="External"
                     )
                 except SABaseException as e:
-                    couldnt_upload[thread_id] += uploaded_imgs
+                    couldnt_upload[thread_id] += uploaded_files
                     logger.warning(e)
                 else:
-                    uploaded[thread_id] += uploaded_imgs
-                uploaded_imgs = []
-                uploaded_imgs_info = ([], [], [])
+                    uploaded[thread_id] += uploaded_files
+                uploaded_files = []
+                uploaded_files_info = ([], [], [])
     try:
-        __create_image(
-            uploaded_imgs_info[0],
-            uploaded_imgs_info[1],
+        __create_file(
+            uploaded_files_info[0],
+            uploaded_files_info[1],
             project,
             annotation_status,
             prefix,
-            uploaded_imgs_info[2],
+            uploaded_files_info[2],
             project_folder_id,
             upload_state="External"
         )
     except SABaseException as e:
-        couldnt_upload[thread_id] += uploaded_imgs
+        couldnt_upload[thread_id] += uploaded_files
         logger.warning(e)
     else:
-        uploaded[thread_id] += uploaded_imgs
+        uploaded[thread_id] += uploaded_files

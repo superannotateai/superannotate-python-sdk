@@ -19,7 +19,7 @@ from .projects import (
     get_project_default_image_quality_in_editor, _get_available_image_counts
 )
 from ..mixp.decorators import Trackable
-from .utils import _get_upload_auth_token, _get_boto_session_by_credentials, upload_image_array_to_s3, get_image_array_to_upload, __create_image, __copy_images, __move_images, get_project_folder_string
+from .utils import _get_upload_auth_token, _get_boto_session_by_credentials, upload_image_array_to_s3, get_image_array_to_upload, __create_file, __copy_images, __move_images, get_project_folder_string
 
 logger = logging.getLogger("superannotate-python-sdk")
 _api = API.get_instance()
@@ -115,7 +115,7 @@ def upload_image_to_project(
     except Exception as e:
         raise SABaseException(0, "Couldn't upload to data server.") from e
 
-    __create_image(
+    __create_file(
         [img_name], [key],
         project,
         annotation_status,

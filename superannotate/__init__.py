@@ -74,7 +74,8 @@ from .db.projects import (
     upload_images_from_public_urls_to_project,
     upload_images_from_s3_bucket_to_project, upload_images_to_project,
     attach_image_urls_to_project, upload_preannotations_from_folder_to_project,
-    upload_video_to_project, upload_videos_from_folder_to_project
+    upload_video_to_project, upload_videos_from_folder_to_project,
+    attach_video_urls_to_project
 )
 from .db.search_projects import search_projects
 from .db.teams import (
