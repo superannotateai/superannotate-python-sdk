@@ -13,6 +13,7 @@ from ..api import API
 from ..exceptions import SABaseException, SAImageSizeTooLarge, SANonExistingProjectNameException
 import datetime
 import boto3
+from .project_api import get_project_metadata_bare
 
 _api = API.get_instance()
 logger = logging.getLogger("superannotate-python-sdk")
