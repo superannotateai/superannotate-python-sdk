@@ -198,3 +198,37 @@ def _search_folders(project, folder_name=None, includeUsers=False):
     response = _api.send_request(req_type='GET', path='/folders', params=params)
     response = response.json()
     return response
+
+
+def test_assign_folder_unverified_users(tmpdir, caplog):
+    tmpdir = Path(tmpdir)
+    projects = sa.search_projects(PROJECT_NAME_VECTOR1, return_metadata=True)
+    for project in projects:
+        sa.delete_project(project)
+    time.sleep(1)
+    project = sa.create_project(PROJECT_NAME_VECTOR1, "test", "Vector")
+    folder_name = "assign_folder"
+    sa.create_folder(project, folder_name)
+    email = "unverified_user@mail.com"
+    sa.assign_folder(project, folder_name, [email])
+    "Skipping unverified_user@mail.com from assignees." in caplog.text
+
+
+def test_assign_images_unverified_user(tmpdir, caplog):
+    tmpdir = Path(tmpdir)
+
+    projects = sa.search_projects(PROJECT_NAME_VECTOR2, return_metadata=True)
+    for project in projects:
+        sa.delete_project(project)
+    time.sleep(1)
+    project = sa.create_project(PROJECT_NAME_VECTOR2, "test", "Vector")
+    sa.create_folder(project, FOLDER2)
+    project_folder = project["name"] + "/" + FOLDER2
+    sa.upload_images_from_folder_to_project(
+        project_folder, "./tests/sample_project_vector"
+    )
+    email = "unverified_user@email.com"
+    sa.assign_images(
+        project_folder, ["example_image_1.jpg", "example_image_2.jpg"], email
+    )
+    "Skipping unverified_user@mail.com from assignees." in caplog.text

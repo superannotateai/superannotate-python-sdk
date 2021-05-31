@@ -571,9 +571,9 @@ def assign_images(project, image_names, user):
 
     project, folder = get_project_and_folder_metadata(project)
 
-    project_users = get_team_metadata()["users"]
-    project_users = [i['id'] for i in project_users]
-    if user not in project_users:
+    verified_users = get_team_metadata()["users"]
+    verified_users = [i['id'] for i in verified_users]
+    if user not in verified_users:
         logging.warn(
             f'Skipping {user}. {user} is not a verified contributor for the {project["name"]}'
         )
@@ -614,11 +614,11 @@ def assign_folder(project, folder_name, users):
     """
 
     project_meta = get_project_metadata(project, include_contributors=True)
-    project_users = get_team_metadata()["users"]
+    verified_users = get_team_metadata()["users"]
     project_name = project_meta['name']
-    project_users = [i['id'] for i in project_users]
-    unverified_contributor = set(project_users) - set(users)
-    verified_contributor = set(users) - set(unverified_contributor)
+    verified_users = [i['id'] for i in verified_users]
+    verified_users = set(users).intersection(set(verified_users))
+    unverified_contributor = set(users) - verified_users
 
     for user in unverified_contributor:
         logging.warn(
@@ -631,7 +631,7 @@ def assign_folder(project, folder_name, users):
         "team_id": project_meta["team_id"]
     }
     json_req = {
-        "assign_user_ids": list(verified_contributor),
+        "assign_user_ids": list(verified_users),
         "folder_name": folder_name
     }
     response = _api.send_request(
@@ -645,7 +645,7 @@ def assign_folder(project, folder_name, users):
         raise SABaseException(
             response.status_code, "Couldn't assign folder " + response.text
         )
-    logger.info(f'Assigned {folder_name} to users: {verified_contributor}')
+    logger.info(f'Assigned {folder_name} to users: {list(verified_users)}')
 
 
 def unassign_folder(project, folder_name):
