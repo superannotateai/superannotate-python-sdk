@@ -16,8 +16,10 @@ from .images import (
 )
 from .project_api import get_project_and_folder_metadata
 from .projects import (
-    get_project_default_image_quality_in_editor, _get_available_image_counts
+    get_project_default_image_quality_in_editor, _get_available_image_counts,
+    get_project_metadata
 )
+from .teams import get_team_metadata
 from ..mixp.decorators import Trackable
 from .utils import _get_upload_auth_token, _get_boto_session_by_credentials, upload_image_array_to_s3, get_image_array_to_upload, __create_image, __copy_images, __move_images, get_project_folder_string
 
@@ -566,27 +568,149 @@ def assign_images(project, image_names, user):
     logger.info("Assign %s images to user %s", len(image_names), user)
     if len(image_names) == 0:
         return
-    project, project_folder = get_project_and_folder_metadata(project)
-    images = search_images((project, project_folder), return_metadata=True)
-    image_dict = {}
-    for image in images:
-        image_dict[image["name"]] = image["id"]
 
-    image_ids = []
-    for image_name in image_names:
-        image_ids.append(image_dict[image_name])
-    team_id, project_id = project["team_id"], project["id"]
-    params = {"team_id": team_id, "project_id": project_id}
-    if project_folder is not None:
-        params['folder_id'] = project_folder['id']
-    json_req = {"user_id": user, "image_ids": image_ids}
+    project, folder = get_project_and_folder_metadata(project)
+
+    verified_users = get_team_metadata()["users"]
+    verified_users = [i['id'] for i in verified_users]
+    if user not in verified_users:
+        logging.warn(
+            f'Skipping {user}. {user} is not a verified contributor for the {project["name"]}'
+        )
+
+    folder_name = 'root'
+    if folder:
+        folder_name = folder['name']
+
+    params = {"project_id": project['id'], "team_id": project["team_id"]}
+    json_req = {
+        "image_names": image_names,
+        "assign_user_id": user,
+        "folder_name": folder_name,
+    }
     response = _api.send_request(
-        req_type='POST',
-        path='/images/assign',
+        req_type='PUT',
+        path='/images/editAssignment',
         params=params,
         json_req=json_req
     )
+
     if not response.ok:
         raise SABaseException(
             response.status_code, "Couldn't assign images " + response.text
+        )
+
+
+def assign_folder(project, folder_name, users):
+    """Assigns folder to users. With SDK, the user can be
+    assigned to a role in the project with the share_project function.
+
+    :param project: project name or metadata of the project
+    :type project: str or dict
+    :param folder_name: folder name to assign
+    :type folder_name: str
+    :param users: list of user emails
+    :type user: list of str
+    """
+
+    project_meta = get_project_metadata(project, include_contributors=True)
+    verified_users = get_team_metadata()["users"]
+    project_name = project_meta['name']
+    verified_users = [i['id'] for i in verified_users]
+    verified_users = set(users).intersection(set(verified_users))
+    unverified_contributor = set(users) - verified_users
+
+    for user in unverified_contributor:
+        logging.warn(
+            f'Skipping {user} from assignees. {user} is not a verified contributor for the {project_name}'
+        )
+        continue
+
+    params = {
+        "project_id": project_meta['id'],
+        "team_id": project_meta["team_id"]
+    }
+    json_req = {
+        "assign_user_ids": list(verified_users),
+        "folder_name": folder_name
+    }
+    response = _api.send_request(
+        req_type='POST',
+        path='/folder/editAssignment',
+        params=params,
+        json_req=json_req
+    )
+
+    if not response.ok:
+        raise SABaseException(
+            response.status_code, "Couldn't assign folder " + response.text
+        )
+    logger.info(f'Assigned {folder_name} to users: {list(verified_users)}')
+
+
+def unassign_folder(project, folder_name):
+    """Removes assignment of given folder for all assignees. 
+    With SDK, the user can be assigned to a role in the project 
+    with the share_project function.
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param folder_name: folder name to remove assignees
+    :type folder_name: str
+    """
+
+    project_meta = get_project_metadata(project)
+    params = {
+        "project_id": project_meta['id'],
+        "team_id": project_meta["team_id"]
+    }
+    json_req = {"folder_name": folder_name, "remove_user_ids": ["all"]}
+    response = _api.send_request(
+        req_type='POST',
+        path='/folder/editAssignment',
+        params=params,
+        json_req=json_req
+    )
+
+    if not response.ok:
+        raise SABaseException(
+            response.status_code, "Couldn't unassign folder " + response.text
+        )
+
+
+def unassign_images(project, image_names):
+    """Removes assignment of given images for all assignees.With SDK,
+    the user can be assigned to a role in the project with the share_project
+    function.
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param image_names: list of image unassign
+    :type image_names: list of str
+    """
+    project_meta = get_project_metadata(project)
+    project, folder = get_project_and_folder_metadata(project)
+    folder_name = 'root'
+    if folder:
+        folder_name = folder['name']
+    params = {
+        "project_id": project_meta['id'],
+        "team_id": project_meta["team_id"]
+    }
+    json_req = {
+        "image_names": image_names,
+        "remove_user_ids": ["all"],
+        "folder_name": folder_name
+    }
+
+    response = _api.send_request(
+        req_type='PUT',
+        path='/images/editAssignment',
+        params=params,
+        json_req=json_req
+    )
+
+    if not response.ok:
+        raise SABaseException(
+            response.status_code, "Couldn't unassign images " + response.text
         )
