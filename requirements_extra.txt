@@ -1,2 +1,2 @@
 Shapely>=1.7.1
-Sphinx==4.0.2
+Sphinx==3.1.2
