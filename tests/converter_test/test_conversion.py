@@ -29,6 +29,35 @@ def test_keypoint_detection_coco2sa(tmpdir):
     )
 
 
+def test_keypoint_detection_coco2sa_multi_template(tmpdir):
+    input_dir = Path(
+        "tests"
+    ) / "converter_test" / "COCO" / "input" / "toSuperAnnotate" / "keypoint_detection_multi_template"
+    out_path = Path(
+        tmpdir
+    ) / "toSuperAnnotate" / "keypoint_detection_multi_template"
+    print(input_dir)
+    print(out_path)
+
+    sa.import_annotation(
+        input_dir, out_path, "COCO", "keypoint_multi_template_test", "Vector",
+        "keypoint_detection"
+    )
+    import json
+    with open(str(Path(input_dir) / "truth.json")) as f:
+        truth = json.loads(f.read())
+
+    with open(
+        str(
+            Path(out_path) /
+            "68307_47130_68308_47130_68307_47131_68308_47131_0.png___objects.json"
+        )
+    ) as f:
+        data = json.loads(f.read())
+
+    assert data == truth
+
+
 # test instance segmentation
 def test_instance_segmentation_coco2sa(tmpdir):
     input_dir = Path(

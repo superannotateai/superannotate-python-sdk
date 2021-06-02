@@ -218,11 +218,8 @@ def coco_keypoint_detection_to_sa_vector(coco_path, output_dir):
                 for connection in cat_id_to_cat[annot["category_id"]
                                                ]['skeleton']:
 
-                    index = cat['skeleton'].index(connection)
-                    from_point = cat_id_to_cat[annot["category_id"]
-                                              ]['skeleton'][index][0]
-                    to_point = cat_id_to_cat[annot["category_id"]
-                                            ]['skeleton'][index][1]
+                    from_point = connection[0]
+                    to_point = connection[1]
 
                     if from_point in bad_points or to_point in bad_points:
                         continue
