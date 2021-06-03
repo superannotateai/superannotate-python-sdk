@@ -12,6 +12,7 @@ from ..exceptions import (
 )
 from .project_api import get_project_metadata_bare
 from ..mixp.decorators import Trackable
+from .utils import get_templates_mapping
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -344,7 +345,11 @@ def fill_class_and_attribute_ids(annotation_json, annotation_classes_dict):
                     'attribute_groups': {}
                 }
     annotation_classes_dict = {**annotation_classes_dict, **unknown_classes}
-
+    templates_map = get_templates_mapping()
+    for ann in (
+        i for i in annotation_json["instances"] if i['type'] == 'template'
+    ):
+        ann['templateId'] = templates_map.get(ann['templateName'], -1)
     for ann in annotation_json["instances"]:
         if "className" not in ann:
             logger.warning("No className in annotation instance")

@@ -747,3 +747,19 @@ def __attach_image_urls_to_project_thread(
         logger.warning(e)
     else:
         uploaded[thread_id] += uploaded_imgs
+
+
+def get_templates_mapping():
+    response = _api.send_request(
+        req_type='GET', path=f'/templates', params={"team_id": _api.team_id}
+    )
+    if not response.ok:
+        raise SABaseException(
+            response.status_code, "Couldn't get templates " + response.text
+        )
+    res = response.json()
+    templates = res['data']
+    templates_map = {}
+    for template in templates:
+        templates_map[template['name']] = template['id']
+    return templates_map
