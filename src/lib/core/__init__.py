@@ -8,7 +8,7 @@ from src.lib.core.enums import UploadState
 from src.lib.core.enums import UserRole
 
 
-CONFIG_FILE_LOCATION = str(Path.home() / ".superannotate" / "config.json")
+CONFIG_FILE_LOCATION = str(Path.home() / ".superannotate" / "config.ini")
 BACKEND_URL = "https://api.annotate.online"
 
 DEFAULT_IMAGE_EXTENSIONS = ("jpg", "jpeg", "png", "tif", "tiff", "webp", "bmp")

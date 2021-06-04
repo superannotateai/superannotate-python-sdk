@@ -35,7 +35,7 @@ class ConfigRepository(BaseManageableRepository):
         return ConfigEntity(uuid=uuid, value=config[self.DEFAULT_SECTION][uuid])
 
     def get_all(self, condition: Condition = None) -> List[ConfigEntity]:
-        config = constance.CONFIG_FILE_LOCATION
+        config = self._get_config(constance.CONFIG_FILE_LOCATION)
         return [
             ConfigEntity(uuid, value)
             for uuid, value in config.items(self.DEFAULT_SECTION)
