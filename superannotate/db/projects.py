@@ -2011,7 +2011,7 @@ def attach_file_urls_to_project(project, attachments, annotation_status):
     df = df[~df["url"].isnull()]
 
     if "name" in df.columns:
-        df.loc[df["name"].usnull(), "name"] = [
+        df.loc[df["name"].isnull(), "name"] = [
             str(uuid.uuid4()) for _ in range(df["name"].isnull().sum())
         ]
     else:
