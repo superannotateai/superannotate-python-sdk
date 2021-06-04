@@ -17,7 +17,7 @@ DEFAULT_VIDEO_EXTENSIONS = ("mp4", "avi", "mov", "webm", "flv", "mpg", "ogg")
 
 __version__ = "?"
 
-__alL_ = (
+__alL__ = (
     ProjectType,
     UserRole,
     UploadState,

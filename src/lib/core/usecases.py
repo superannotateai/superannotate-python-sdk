@@ -12,16 +12,24 @@ from src.lib.core.response import Response
 class BaseUseCase(ABC):
     def __init__(self, response: Response):
         self._response = response
+        self._errors = []
 
     @abstractmethod
     def execute(self):
         raise NotImplementedError
 
-    def validate(self):
+    def _validate(self):
         for name in dir(self):
-            if name.startswith("validate_"):
-                method = getattr(self, name)
-                method()
+            try:
+                if name.startswith("validate_"):
+                    method = getattr(self, name)
+                    method()
+            except AppValidationException as e:
+                self._errors.append(e)
+
+    def is_valid(self):
+        self._validate()
+        return not self._errors
 
 
 class GetProjectsUseCase(BaseUseCase):
@@ -36,7 +44,9 @@ class GetProjectsUseCase(BaseUseCase):
         self._projects = projects
 
     def execute(self):
-        self._response.data = self._projects.get_all(self._condition)
+        if self.is_valid():
+            self._response.data = self._projects.get_all(self._condition)
+        self._response.errors = self._errors
 
 
 class CreateProjectUseCase(BaseUseCase):
@@ -52,7 +62,10 @@ class CreateProjectUseCase(BaseUseCase):
         self._projects = projects
 
     def execute(self):
-        self._projects.insert(self._project)
+        if self.is_valid():
+            self._projects.insert(self._project)
+        else:
+            self._response.errors = self._errors
 
     def validate_project_name_uniqueness(self):
         condition = Condition("name", self._project.name, EQ) & Condition(
@@ -78,7 +91,10 @@ class DeleteProjectUseCase(BaseUseCase):
         self._projects = projects
 
     def execute(self):
-        self._projects.delete(self._project.uuid)
+        if self.is_valid():
+            self._projects.delete(self._project.uuid)
+        else:
+            self._response.errors = self._errors
 
 
 class UpdateProjectUseCase(BaseUseCase):
@@ -94,4 +110,7 @@ class UpdateProjectUseCase(BaseUseCase):
         self._projects = projects
 
     def execute(self):
-        self._projects.update(self._project)
+        if self.is_valid():
+            self._projects.update(self._project)
+        else:
+            self._response.errors = self._errors
