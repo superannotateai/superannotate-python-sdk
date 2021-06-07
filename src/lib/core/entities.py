@@ -46,6 +46,7 @@ class ProjectEntity(BaseEntity):
         project_type: int = None,
         description: str = None,
         status: int = None,
+        folder_id: int = None,
     ):
         super().__init__(uuid)
         self.team_id = team_id
@@ -53,6 +54,7 @@ class ProjectEntity(BaseEntity):
         self.project_type = project_type
         self.description = description
         self.status = status
+        self.folder_id = folder_id
 
     def to_dict(self):
         return {
@@ -69,12 +71,14 @@ class FolderEntity(BaseEntity):
     def __init__(
         self,
         uuid: int = None,
+        project_id: int = None,
         parent_id: int = None,
         team_id: int = None,
         name: str = None,
     ):
         super().__init__(uuid)
         self.team_id = team_id
+        self.project_id = project_id
         self.name = name
         self.parent_id = parent_id
 
@@ -84,4 +88,5 @@ class FolderEntity(BaseEntity):
             "team_id": self.team_id,
             "name": self.name,
             "parent_id": self.parent_id,
+            "project_id": self.project_id,
         }
