@@ -147,6 +147,28 @@ def test_unassign_images(tmpdir):
 
     assert im1_metadata["qa_id"] == None
     assert im2_metadata["qa_id"] == None
+    FOLDER_NAME = "test_folder"
+    sa.create_folder(project, FOLDER_NAME)
+    project = PROJECT_NAME_VECTOR1 + "/" + FOLDER_NAME
+    sa.move_images(
+        PROJECT_NAME_VECTOR1, ["example_image_1.jpg", "example_image_2.jpg"], project
+    )
+    sa.assign_images(
+        project, ["example_image_1.jpg", "example_image_2.jpg"], email
+    )
+    time.sleep(1)
+    sa.unassign_images(
+        project,
+        ["example_image_1.jpg", "example_image_2.jpg"],
+    )
+
+    sa.search_images(project)
+    im1_metadata = sa.get_image_metadata(project, "example_image_1.jpg")
+
+    im2_metadata = sa.get_image_metadata(project, "example_image_2.jpg")
+
+    assert im1_metadata["qa_id"] == None
+    assert im2_metadata["qa_id"] == None
 
 
 def test_assign_folder(tmpdir):
