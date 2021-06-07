@@ -688,14 +688,13 @@ def unassign_images(project, image_names):
     :param image_names: list of image unassign
     :type image_names: list of str
     """
-    project_meta = get_project_metadata(project)
     project, folder = get_project_and_folder_metadata(project)
     folder_name = 'root'
     if folder:
         folder_name = folder['name']
     params = {
-        "project_id": project_meta['id'],
-        "team_id": project_meta["team_id"]
+        "project_id": project['id'],
+        "team_id": project["team_id"]
     }
     json_req = {
         "image_names": image_names,
