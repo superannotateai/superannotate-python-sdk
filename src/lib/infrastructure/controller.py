@@ -93,13 +93,12 @@ class Controller(BaseController):
             return self.response
         raise AppException("There are duplicated names.")
 
-    def rename_project(self, name: str, new_name: str) -> Response:
+    def update_project(self, name: str, project_data: dict) -> Response:
         entities = self.projects.get_all(
             Condition("teams_id", self.team_id, EQ) & Condition("name", name, EQ)
         )
         if entities and len(entities) == 1:
-            entity = entities[0]
-            entity.name = new_name
+            entity = ProjectEntity(name=name, **project_data)
             use_case = UpdateProjectUseCase(self.response, entity, self.projects)
             use_case.execute()
             return self.response
