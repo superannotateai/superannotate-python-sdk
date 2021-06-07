@@ -600,7 +600,7 @@ def assign_images(project, image_names, user):
             response.status_code, "Couldn't assign images " + response.text
         )
 
-
+@Trackable
 def assign_folder(project, folder_name, users):
     """Assigns folder to users. With SDK, the user can be
     assigned to a role in the project with the share_project function.
@@ -647,7 +647,7 @@ def assign_folder(project, folder_name, users):
         )
     logger.info(f'Assigned {folder_name} to users: {list(verified_users)}')
 
-
+@Trackable
 def unassign_folder(project, folder_name):
     """Removes assignment of given folder for all assignees. 
     With SDK, the user can be assigned to a role in the project 
@@ -677,7 +677,7 @@ def unassign_folder(project, folder_name):
             response.status_code, "Couldn't unassign folder " + response.text
         )
 
-
+@Trackable
 def unassign_images(project, image_names):
     """Removes assignment of given images for all assignees.With SDK,
     the user can be assigned to a role in the project with the share_project
