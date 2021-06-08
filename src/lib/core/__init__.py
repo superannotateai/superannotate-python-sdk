@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from src.lib.core.enums import AnnotationStatus
 from src.lib.core.enums import ProjectType
 from src.lib.core.enums import SegmentationStatus
 from src.lib.core.enums import TrainingStatus
@@ -14,6 +15,8 @@ BACKEND_URL = "https://api.annotate.online"
 DEFAULT_IMAGE_EXTENSIONS = ("jpg", "jpeg", "png", "tif", "tiff", "webp", "bmp")
 DEFAULT_FILE_EXCLUDE_PATTERNS = ("___save.png", "___fuse.png")
 DEFAULT_VIDEO_EXTENSIONS = ("mp4", "avi", "mov", "webm", "flv", "mpg", "ogg")
+MAX_IMAGE_SIZE = 100 * 1024 * 1024  # 100 MB limit
+
 
 __version__ = "?"
 
@@ -24,10 +27,12 @@ __alL__ = (
     TrainingStatus,
     SegmentationStatus,
     TrainingTask,
+    AnnotationStatus,
     CONFIG_FILE_LOCATION,
     BACKEND_URL,
     DEFAULT_IMAGE_EXTENSIONS,
     DEFAULT_FILE_EXCLUDE_PATTERNS,
     DEFAULT_VIDEO_EXTENSIONS,
+    MAX_IMAGE_SIZE,
     __version__,
 )
