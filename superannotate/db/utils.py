@@ -783,3 +783,28 @@ def _assign_images(folder_name, image_names, user, project_id, team_id):
             message = "Couldn't assign images " + response.text
             messages.append(message)
     return messages
+
+
+def _unassign_images(folder_name, image_names, project_id, team_id):
+    image_names_lists = divide_chunks(image_names, 500)
+    params = {"project_id": project_id, "team_id": team_id}
+    messages = []
+    for image_name_list in image_names_lists:
+        json_req = {
+            "image_names": image_name_list,
+            "remove_user_ids": ["all"],
+            "folder_name": folder_name,
+        }
+        response = _api.send_request(
+            req_type='PUT',
+            path='/images/editAssignment',
+            params=params,
+            json_req=json_req
+        )
+        if not response.ok:
+            message = "Couldn't assign images " + response.text
+            messages.append(message)
+    return messages
+
+
+

@@ -21,7 +21,7 @@ from .projects import (
 )
 from .teams import get_team_metadata
 from ..mixp.decorators import Trackable
-from .utils import _assign_images, _get_upload_auth_token, _get_boto_session_by_credentials, upload_image_array_to_s3, \
+from .utils import _unassign_images, _assign_images, _get_upload_auth_token, _get_boto_session_by_credentials, upload_image_array_to_s3, \
     get_image_array_to_upload, __create_image, __copy_images, __move_images, get_project_folder_string
 
 logger = logging.getLogger("superannotate-python-sdk")
@@ -566,18 +566,18 @@ def assign_images(project, image_names, user):
     :param user: user email
     :type user: str
     """
-    logger.info("Assign %s images to user %s", len(image_names), user)
     if len(image_names) == 0:
         return
 
     project, folder = get_project_and_folder_metadata(project)
-
-    verified_users = get_team_metadata()["users"]
-    verified_users = [i['id'] for i in verified_users]
+    project_meta = get_project_metadata(project, include_contributors=True)
+    verified_users = project_meta["contributors"]
+    verified_users = [i['user_id'] for i in verified_users]
     if user not in verified_users:
         logging.warn(
             f'Skipping {user}. {user} is not a verified contributor for the {project["name"]}'
         )
+        return
 
     folder_name = 'root'
     if folder:
@@ -587,6 +587,7 @@ def assign_images(project, image_names, user):
                           team_id=project['team_id'])
     for log in logs:
         logger.warn(log)
+    logger.info("Assign images to user %s", user)
 
 
 def assign_folder(project, folder_name, users):
@@ -602,9 +603,9 @@ def assign_folder(project, folder_name, users):
     """
 
     project_meta = get_project_metadata(project, include_contributors=True)
-    verified_users = get_team_metadata()["users"]
+    verified_users = project_meta["contributors"]
+    verified_users = [i['user_id'] for i in verified_users]
     project_name = project_meta['name']
-    verified_users = [i['id'] for i in verified_users]
     verified_users = set(users).intersection(set(verified_users))
     unverified_contributor = set(users) - verified_users
 
@@ -613,6 +614,9 @@ def assign_folder(project, folder_name, users):
             f'Skipping {user} from assignees. {user} is not a verified contributor for the {project_name}'
         )
         continue
+
+    if not verified_users:
+        return
 
     params = {
         "project_id": project_meta['id'],
@@ -677,27 +681,12 @@ def unassign_images(project, image_names):
     :type image_names: list of str
     """
     project, folder = get_project_and_folder_metadata(project)
+
     folder_name = 'root'
     if folder:
         folder_name = folder['name']
-    params = {
-        "project_id": project['id'],
-        "team_id": project["team_id"]
-    }
-    json_req = {
-        "image_names": image_names,
-        "remove_user_ids": ["all"],
-        "folder_name": folder_name
-    }
-
-    response = _api.send_request(
-        req_type='PUT',
-        path='/images/editAssignment',
-        params=params,
-        json_req=json_req
-    )
-
-    if not response.ok:
-        raise SABaseException(
-            response.status_code, "Couldn't unassign images " + response.text
-        )
+    if not image_names:
+        return
+    logs = _unassign_images(folder_name=folder_name,image_names=image_names,project_id=project['id'],team_id=project['team_id'])
+    for log in logs:
+        logger.warn(log)
