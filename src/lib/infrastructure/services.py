@@ -1,13 +1,15 @@
-from abc import ABCMeta
+from abc import abstractmethod
 from contextlib import contextmanager
 from urllib.parse import urljoin
 
 import requests
 import src.lib.core as constance
 from requests.exceptions import HTTPError
+from src.lib.core.exceptions import AppException
+from src.lib.core.serviceproviders import SuerannotateServiceProvider
 
 
-class BaseBackendService(metaclass=ABCMeta):
+class BaseBackendService(SuerannotateServiceProvider):
     AUTH_TYPE = "sdk"
     PAGINATE_BY = 100
 
@@ -44,8 +46,7 @@ class BaseBackendService(metaclass=ABCMeta):
             try:
                 yield None
             except (HTTPError, ConnectionError) as exc:
-                # TODO raise own exceptions
-                raise Exception(f"Unknown exception: {exc}.")
+                raise AppException(f"Unknown exception: {exc}.")
 
         return safe_api
 
@@ -78,8 +79,7 @@ class BaseBackendService(metaclass=ABCMeta):
 
         response = self._request(url)
         if response.status_code != 200:
-            # TODO raise own exceptions
-            raise Exception(f"Got invalid response for url {url}: {response.text}.")
+            raise AppException(f"Got invalid response for url {url}: {response.text}.")
         data = response.json()
         remains_count = data.get("count") - offset
         return data, remains_count
@@ -95,6 +95,20 @@ class BaseBackendService(metaclass=ABCMeta):
             offset += self.paginate_by
         return total
 
+    @abstractmethod
+    def create_image(
+        self,
+        project_id,
+        team_id,
+        images,
+        annotation_status_code,
+        upload_state_code,
+        meta,
+        annotation_json_path,
+        annotation_bluemap_path,
+    ):
+        raise NotImplementedError
+
 
 class SuperannotateBackendService(BaseBackendService):
     """
@@ -104,6 +118,8 @@ class SuperannotateBackendService(BaseBackendService):
     URL_LIST_PROJECTS = "projects"
     URL_CREATE_PROJECT = "project"
     URL_GET_PROJECT = "project/{}"
+    URL_GET_FOLDER_BY_NAME = "folder/getFolderByName"
+    URL_CREATE_IMAGE = "/image/ext-create"
 
     def get_projects(self, query_string: str = None) -> list:
         url = urljoin(self.api_url, self.URL_LIST_PROJECTS)
@@ -131,3 +147,43 @@ class SuperannotateBackendService(BaseBackendService):
             update_project_url, "put", data, params={"team_id": data["team_id"]},
         )
         return res.ok
+
+    def create_image(
+        self,
+        project_id,
+        team_id,
+        images,
+        annotation_status_code,
+        upload_state_code,
+        meta,
+        annotation_json_path,
+        annotation_bluemap_path,
+    ):
+        data = {
+            "project_id": project_id,
+            "team_id": team_id,
+            "images": images,
+            "annotation_status": annotation_status_code,
+            "upload_state_code": upload_state_code,
+            "meta": meta,
+            "annotation_json_path": annotation_json_path,
+            "annotation_bluemap_path": annotation_bluemap_path,
+        }
+        create_image_url = urljoin(self.api_url, self.URL_CREATE_IMAGE)
+        self._request(create_image_url, "post", data)
+
+    def get_s3_upload_auth_token(self, team_id: int, folder_id: int, project_id: int):
+        auth_token_url = urljoin(
+            self.api_url, self.URL_GET_PROJECT.format(project_id), "sdkImageUploadToken"
+        )
+        response = self._request(
+            auth_token_url, "get", params={"team_id": team_id, "folder_id": folder_id}
+        )
+        return response.json()
+
+    def get_folder(self, query_string):
+        get_folder_url = urljoin(
+            self.api_url, self.URL_GET_FOLDER_BY_NAME, query_string
+        )
+        response = self._request(get_folder_url, "get")
+        return response.json()
