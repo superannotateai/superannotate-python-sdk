@@ -613,7 +613,6 @@ def assign_folder(project, folder_name, users):
         logging.warn(
             f'Skipping {user} from assignees. {user} is not a verified contributor for the {project_name}'
         )
-        continue
 
     if not verified_users:
         return
@@ -680,13 +679,13 @@ def unassign_images(project, image_names):
     :param image_names: list of image unassign
     :type image_names: list of str
     """
+    if not image_names:
+        return
     project, folder = get_project_and_folder_metadata(project)
 
     folder_name = 'root'
     if folder:
         folder_name = folder['name']
-    if not image_names:
-        return
     logs = _unassign_images(folder_name=folder_name,image_names=image_names,project_id=project['id'],team_id=project['team_id'])
     for log in logs:
         logger.warn(log)
