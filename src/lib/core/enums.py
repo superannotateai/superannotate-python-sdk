@@ -31,6 +31,14 @@ class UploadState(Enum):
     EXTERNAL = 3
 
 
+class AnnotationStatus(BaseTitledEnum):
+    NOT_STARTED = "NotStarted", 1
+    IN_PROGRESS = "InProgress", 2
+    COMPLETED = "Completed", 3
+    QUALITY_CHECK = "QualityCheck", 4
+    RETURNED = "Returned", 45
+
+
 class TrainingStatus(BaseTitledEnum):
     NOT_STARTED = "NotStarted", 1
     IN_PROGRESS = "InProgress", 2

@@ -1,12 +1,22 @@
+import uuid
 from abc import ABC
 from abc import abstractmethod
+from pathlib import Path
+from typing import List
+from typing import Optional
 
+import src.lib.core as constances
 from src.lib.core.conditions import Condition
 from src.lib.core.conditions import CONDITION_EQ as EQ
+from src.lib.core.entities import ImageFileEntity
 from src.lib.core.entities import ProjectEntity
+from src.lib.core.exceptions import AppException
 from src.lib.core.exceptions import AppValidationException
+from src.lib.core.plugin import ImagePlugin
 from src.lib.core.repositories import BaseManageableRepository
+from src.lib.core.repositories import BaseReadOnlyRepository
 from src.lib.core.response import Response
+from src.lib.core.serviceproviders import SuerannotateServiceProvider
 
 
 class BaseUseCase(ABC):
@@ -114,3 +124,118 @@ class UpdateProjectUseCase(BaseUseCase):
             self._projects.update(self._project)
         else:
             self._response.errors = self._errors
+
+
+class UploadS3ImageUseCase(BaseUseCase):
+    MAX_PIXEL_RESOLUTION = 4_000_000
+    MAX_VECTOR_RESOLUTION = 100_000_000
+
+    def __init__(
+        self,
+        response: Response,
+        project: ProjectEntity,
+        project_settings: BaseReadOnlyRepository,
+        backend_service_provider: SuerannotateServiceProvider,
+        image_paths: List[str],
+        bucket,
+        s3_repo: BaseManageableRepository,
+        upload_path: str,
+        annotation_status: Optional[str] = None,
+        image_quality: Optional[str] = None,
+    ):
+        super().__init__(response)
+        self._project = project
+        self._project_settings = project_settings
+        self._backend = backend_service_provider
+        self._image_paths = image_paths
+        self._bucket = bucket
+        self._s3_repo = s3_repo
+        self._annotation_status = annotation_status
+        self._image_quality = image_quality
+        self._upload_path = upload_path
+
+    @property
+    def image_quality(self):
+        if not self._image_quality:
+            for setting in self._project_settings.get_all():
+                if setting.attribute == "ImageQuality":
+                    if setting.value == 60:
+                        return "compressed"
+                    elif setting.value == 100:
+                        return "original"
+                    raise AppException("NA ImageQuality value")
+
+        return self._image_quality
+
+    @property
+    def upload_state_code(self) -> int:
+        return constances.UploadState.BASIC.value
+
+    @property
+    def max_resolution(self) -> int:
+        if self._project.project_type == "Vector":
+            return self.MAX_VECTOR_RESOLUTION
+        elif self._project.project_type == "Pixel":
+            return self.MAX_PIXEL_RESOLUTION
+
+    @property
+    def annotation_status_code(self):
+        if not self._annotation_status:
+            return constances.AnnotationStatus.NOT_STARTED.value
+        return constances.AnnotationStatus[self._annotation_status.upper()].value
+
+    def execute(self):
+        images = []
+        images_meta = {}
+        for image_path in self._image_paths:
+            image_name = Path(image_path).name
+            image = self._bucket.get_one(image_path)
+
+            image_processor = ImagePlugin(image, self.max_resolution)
+
+            origin_width, origin_height = image_processor.get_size()
+            thumb_image, _, _ = image_processor.generate_thumb()
+            huge_image, huge_width, huge_height = image_processor.generate_huge()
+            low_resolution_image, _, _ = image_processor.generate_low_resolution()
+
+            image_key = self._upload_path + str(uuid.uuid4()) + Path(image_path).suffix
+
+            file_entity = ImageFileEntity(uuid=image_key, data=image)
+            self._s3_repo.insert(file_entity)
+            images.append({"name": image_name, "path": self._upload_path + image_key})
+            images_meta[image_name] = {"width": origin_width, "height": origin_height}
+
+            thumb_image_name = image_key + "___thumb.jpg"
+            thumb_image_entity = ImageFileEntity(
+                uuid=thumb_image_name, data=thumb_image
+            )
+            self._s3_repo.insert(thumb_image_entity)
+
+            low_resolution_image_name = image_key + "___lores.jpg"
+            low_resolution_file_entity = ImageFileEntity(
+                uuid=low_resolution_image_name, data=low_resolution_image
+            )
+            self._s3_repo.insert(low_resolution_file_entity)
+
+            huge_image_name = image_key + "___huge.jpg"
+            huge_file_entity = ImageFileEntity(
+                uuid=huge_image_name,
+                data=huge_image,
+                metadata={"height": huge_width, "weight": huge_height},
+            )
+            self._s3_repo.insert(huge_file_entity)
+
+        self._backend.create_image(
+            project_id=self._project.uuid,
+            team_id=self._project.team_id,
+            images=images,
+            annotation_status_code=self.annotation_status_code,
+            upload_state_code=self.upload_state_code,
+            meta=images_meta,
+            annotation_json_path=self._upload_path + ".json",
+            annotation_bluemap_path=self._upload_path + ".png",
+        )
+
+    def validate_upload_state(self):
+        if self._project.upload_state == constances.UploadState.EXTERNAL.value:
+            raise AppValidationException("Invalid upload state.")
