@@ -2,7 +2,6 @@ import configparser
 import io
 import os
 from typing import List
-from typing import Optional
 
 import boto3
 import src.lib.core as constance
@@ -11,9 +10,7 @@ from src.lib.core.entities import ConfigEntity
 from src.lib.core.entities import FolderEntity
 from src.lib.core.entities import ImageFileEntity
 from src.lib.core.entities import ProjectEntity
-from src.lib.core.entities import ProjectSettingEntity
 from src.lib.core.repositories import BaseManageableRepository
-from src.lib.core.repositories import BaseReadOnlyRepository
 from src.lib.infrastructure.services import SuperannotateBackendService
 
 
@@ -146,29 +143,3 @@ class S3Repository(BaseManageableRepository):
             Key=entity.uuid, Body=entity.data, Metadata=entity.metadata
         )
         return entity
-
-
-class ProjectSettingsRepository(BaseReadOnlyRepository):
-    def __init__(self, service: SuperannotateBackendService, project: ProjectEntity):
-        self._service = service
-        self._project = project
-
-    def get_one(self, uuid: int) -> ProjectEntity:
-        raise NotImplementedError
-
-    def get_all(
-        self, condition: Optional[Condition] = None
-    ) -> List[ProjectSettingEntity]:
-        data = self._service.get_project_settings(
-            self._project.uuid, self._project.team_id
-        )
-        return [self.dict2entity(setting) for setting in data]
-
-    @staticmethod
-    def dict2entity(data: dict):
-        return ProjectSettingEntity(
-            uuid=data["id"],
-            project_id=data["project_id"],
-            attribute=data["attribute"],
-            value=data["value"],
-        )

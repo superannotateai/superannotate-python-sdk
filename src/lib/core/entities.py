@@ -72,22 +72,6 @@ class ProjectEntity(BaseEntity):
         }
 
 
-class ProjectSettingEntity(BaseEntity):
-    def __init__(self, uuid: int, project_id: int, attribute: str, value: Any = None):
-        super().__init__(uuid)
-        self.project_id = project_id
-        self.attribute = attribute
-        self.value = value
-
-    def to_dict(self):
-        return {
-            "id": self.uuid,
-            "project_id": self.project_id,
-            "attribute": self.attribute,
-            "value": self.value,
-        }
-
-
 class FolderEntity(BaseEntity):
     def __init__(
         self,

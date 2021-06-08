@@ -10,11 +10,9 @@ from src.lib.core.conditions import Condition
 from src.lib.core.conditions import CONDITION_EQ as EQ
 from src.lib.core.entities import ImageFileEntity
 from src.lib.core.entities import ProjectEntity
-from src.lib.core.exceptions import AppException
 from src.lib.core.exceptions import AppValidationException
 from src.lib.core.plugin import ImagePlugin
 from src.lib.core.repositories import BaseManageableRepository
-from src.lib.core.repositories import BaseReadOnlyRepository
 from src.lib.core.response import Response
 from src.lib.core.serviceproviders import SuerannotateServiceProvider
 
@@ -134,7 +132,6 @@ class UploadS3ImageUseCase(BaseUseCase):
         self,
         response: Response,
         project: ProjectEntity,
-        project_settings: BaseReadOnlyRepository,
         backend_service_provider: SuerannotateServiceProvider,
         image_paths: List[str],
         bucket,
@@ -145,7 +142,6 @@ class UploadS3ImageUseCase(BaseUseCase):
     ):
         super().__init__(response)
         self._project = project
-        self._project_settings = project_settings
         self._backend = backend_service_provider
         self._image_paths = image_paths
         self._bucket = bucket
@@ -157,14 +153,8 @@ class UploadS3ImageUseCase(BaseUseCase):
     @property
     def image_quality(self):
         if not self._image_quality:
-            for setting in self._project_settings.get_all():
-                if setting.attribute == "ImageQuality":
-                    if setting.value == 60:
-                        return "compressed"
-                    elif setting.value == 100:
-                        return "original"
-                    raise AppException("NA ImageQuality value")
-
+            # todo return from project settings
+            pass
         return self._image_quality
 
     @property
