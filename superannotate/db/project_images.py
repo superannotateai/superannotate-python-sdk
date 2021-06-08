@@ -613,7 +613,6 @@ def assign_folder(project, folder_name, users):
         logging.warn(
             f'Skipping {user} from assignees. {user} is not a verified contributor for the {project_name}'
         )
-        continue
 
     if not verified_users:
         return
