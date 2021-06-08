@@ -21,7 +21,8 @@ from .projects import (
 )
 from .teams import get_team_metadata
 from ..mixp.decorators import Trackable
-from .utils import _get_upload_auth_token, _get_boto_session_by_credentials, upload_image_array_to_s3, get_image_array_to_upload, __create_image, __copy_images, __move_images, get_project_folder_string
+from .utils import _assign_images, _get_upload_auth_token, _get_boto_session_by_credentials, upload_image_array_to_s3, \
+    get_image_array_to_upload, __create_image, __copy_images, __move_images, get_project_folder_string
 
 logger = logging.getLogger("superannotate-python-sdk")
 _api = API.get_instance()
@@ -29,12 +30,12 @@ _api = API.get_instance()
 
 @Trackable
 def upload_image_to_project(
-    project,
-    img,
-    image_name=None,
-    annotation_status="NotStarted",
-    from_s3_bucket=None,
-    image_quality_in_editor=None
+        project,
+        img,
+        image_name=None,
+        annotation_status="NotStarted",
+        from_s3_bucket=None,
+        image_quality_in_editor=None
 ):
     """Uploads image (io.BytesIO() or filepath to image) to project.
     Sets status of the uploaded image to set_status if it is not None.
@@ -136,8 +137,8 @@ def upload_image_to_project(
 
 
 def _copy_images(
-    source_project, destination_project, image_names, include_annotations,
-    copy_annotation_status, copy_pin
+        source_project, destination_project, image_names, include_annotations,
+        copy_annotation_status, copy_pin
 ):
     NUM_TO_SEND = 500
     source_project, source_project_folder = source_project
@@ -166,7 +167,7 @@ def _copy_images(
     res['completed'] = []
     for start_index in range(0, len(image_names), NUM_TO_SEND):
         json_req["image_names"] = image_names[start_index:start_index +
-                                              NUM_TO_SEND]
+                                                          NUM_TO_SEND]
         response = _api.send_request(
             req_type='POST',
             path='/image/copy',
@@ -192,12 +193,12 @@ def _copy_images(
 
 @Trackable
 def copy_images(
-    source_project,
-    image_names,
-    destination_project,
-    include_annotations=True,
-    copy_annotation_status=True,
-    copy_pin=True
+        source_project,
+        image_names,
+        destination_project,
+        include_annotations=True,
+        copy_annotation_status=True,
+        copy_pin=True
 ):
     """Copy images in bulk between folders in a project 
 
@@ -307,12 +308,12 @@ def delete_images(project, image_names):
 
 @Trackable
 def move_images(
-    source_project,
-    image_names,
-    destination_project,
-    include_annotations=True,
-    copy_annotation_status=True,
-    copy_pin=True,
+        source_project,
+        image_names,
+        destination_project,
+        include_annotations=True,
+        copy_annotation_status=True,
+        copy_pin=True,
 ):
     """Move images in bulk between folders in a project 
 
@@ -372,12 +373,12 @@ def move_images(
 
 @Trackable
 def copy_image(
-    source_project,
-    image_name,
-    destination_project,
-    include_annotations=False,
-    copy_annotation_status=False,
-    copy_pin=False
+        source_project,
+        image_name,
+        destination_project,
+        include_annotations=False,
+        copy_annotation_status=False,
+        copy_pin=False
 ):
     """Copy image to a project. The image's project is the same as destination
     project then the name will be changed to <image_name>_(<num>).<image_ext>,
@@ -417,10 +418,10 @@ def copy_image(
         else:
             for m in p.finditer(new_name):
                 if m.start() + len(m.group()
-                                  ) + len(extension) - 1 == len(new_name):
+                                   ) + len(extension) - 1 == len(new_name):
                     num = int(m.group()[2:-2])
                     new_name = new_name[:m.start() +
-                                        2] + str(num + 1) + ")" + extension
+                                         2] + str(num + 1) + ")" + extension
                     break
             else:
                 new_name = Path(new_name).stem + "_(1)" + extension
@@ -440,9 +441,9 @@ def copy_image(
 
 
 def _copy_annotations_and_metadata(
-    source_project, source_project_folder, image_name, destination_project,
-    destination_project_folder, new_name, include_annotations,
-    copy_annotation_status, copy_pin
+        source_project, source_project_folder, image_name, destination_project,
+        destination_project_folder, new_name, include_annotations,
+        copy_annotation_status, copy_pin
 ):
     if include_annotations:
         annotations = get_image_annotations(
@@ -479,12 +480,12 @@ def _copy_annotations_and_metadata(
 
 @Trackable
 def move_image(
-    source_project,
-    image_name,
-    destination_project,
-    include_annotations=True,
-    copy_annotation_status=True,
-    copy_pin=True
+        source_project,
+        image_name,
+        destination_project,
+        include_annotations=True,
+        copy_annotation_status=True,
+        copy_pin=True
 ):
     """Move image from source_project to destination_project. source_project
     and destination_project cannot be the same.
@@ -582,23 +583,10 @@ def assign_images(project, image_names, user):
     if folder:
         folder_name = folder['name']
 
-    params = {"project_id": project['id'], "team_id": project["team_id"]}
-    json_req = {
-        "image_names": image_names,
-        "assign_user_id": user,
-        "folder_name": folder_name,
-    }
-    response = _api.send_request(
-        req_type='PUT',
-        path='/images/editAssignment',
-        params=params,
-        json_req=json_req
-    )
-
-    if not response.ok:
-        raise SABaseException(
-            response.status_code, "Couldn't assign images " + response.text
-        )
+    logs = _assign_images(folder_name=folder_name, image_names=image_names, user=user, project_id=project['id'],
+                          team_id=project['team_id'])
+    for log in logs:
+        logger.warn(log)
 
 
 def assign_folder(project, folder_name, users):

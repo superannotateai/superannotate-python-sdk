@@ -22,7 +22,6 @@ logger = logging.getLogger("superannotate-python-sdk")
 # Yield successive n-sized
 # chunks from l.
 def divide_chunks(l, n):
-
     # looping till length l
     for i in range(0, len(l), n):
         yield l[i:i + n]
@@ -42,7 +41,7 @@ def get_project_folder_string(project):
 
 
 def __move_images(
-    source_project, source_folder_id, destination_folder_id, image_names
+        source_project, source_folder_id, destination_folder_id, image_names
 ):
     """Move images in bulk between folders in a project 
 
@@ -90,8 +89,8 @@ def __move_images(
 
 
 def _copy_images_request(
-    team_id, project_id, image_names, destination_folder_id, source_folder_id,
-    include_annotations, copy_pin
+        team_id, project_id, image_names, destination_folder_id, source_folder_id,
+        include_annotations, copy_pin
 ):
     response = _api.send_request(
         req_type='POST',
@@ -161,8 +160,8 @@ def copy_polling(image_names, source_project, poll_id):
 
 
 def __copy_images(
-    source_project, source_folder_id, destination_folder_id, image_names,
-    include_annotations, copy_pin
+        source_project, source_folder_id, destination_folder_id, image_names,
+        include_annotations, copy_pin
 ):
     """Copy images in bulk between folders in a project 
 
@@ -233,8 +232,8 @@ def create_empty_annotation(size, image_name):
 
 
 def upload_image_array_to_s3(
-    bucket, img_name, img_name_hash, size, orig_image, lores_image, huge_image,
-    thumbnail_image, prefix
+        bucket, img_name, img_name_hash, size, orig_image, lores_image, huge_image,
+        thumbnail_image, prefix
 ):
     key = prefix + img_name_hash
     bucket.put_object(Body=orig_image, Key=key)
@@ -256,7 +255,7 @@ def upload_image_array_to_s3(
 
 
 def get_image_array_to_upload(
-    img_name, byte_io_orig, image_quality_in_editor, project_type
+        img_name, byte_io_orig, image_quality_in_editor, project_type
 ):
     if image_quality_in_editor not in ["original", "compressed"]:
         raise SABaseException(0, "NA ImageQuality in get_image_array_to_upload")
@@ -272,8 +271,8 @@ def get_image_array_to_upload(
     if resolution > common.MAX_IMAGE_RESOLUTION[project_type]:
         raise SABaseException(
             0, "Image resolution " + str(resolution) +
-            " too large. Max supported for " + project_type + " projects is " +
-            str(common.MAX_IMAGE_RESOLUTION[project_type])
+               " too large. Max supported for " + project_type + " projects is " +
+               str(common.MAX_IMAGE_RESOLUTION[project_type])
         )
 
     if image_quality_in_editor == "original" and im_format in ['JPEG', 'JPG']:
@@ -317,9 +316,9 @@ def get_image_array_to_upload(
 
 
 def __upload_images_to_aws_thread(
-    res, img_paths, project, annotation_status, prefix, thread_id, chunksize,
-    couldnt_upload, uploaded, tried_upload, image_quality_in_editor,
-    from_s3_bucket, project_folder_id
+        res, img_paths, project, annotation_status, prefix, thread_id, chunksize,
+        couldnt_upload, uploaded, tried_upload, image_quality_in_editor,
+        from_s3_bucket, project_folder_id
 ):
     len_img_paths = len(img_paths)
     start_index = thread_id * chunksize
@@ -405,14 +404,14 @@ def __upload_images_to_aws_thread(
 
 
 def __create_image(
-    img_names,
-    img_paths,
-    project,
-    annotation_status,
-    remote_dir,
-    sizes,
-    project_folder_id,
-    upload_state="Initial"
+        img_names,
+        img_paths,
+        project,
+        annotation_status,
+        remote_dir,
+        sizes,
+        project_folder_id,
+        upload_state="Initial"
 ):
     if len(img_paths) == 0:
         return
@@ -531,10 +530,9 @@ def get_duplicate_image_names(project_id, team_id, folder_id, image_paths):
 
 
 def _upload_images(
-    img_paths, team_id, folder_id, project_id, annotation_status,
-    from_s3_bucket, image_quality_in_editor, project, folder_name
+        img_paths, team_id, folder_id, project_id, annotation_status,
+        from_s3_bucket, image_quality_in_editor, project, folder_name
 ):
-
     _NUM_THREADS = 10
     uploaded = [[] for _ in range(_NUM_THREADS)]
     tried_upload = [[] for _ in range(_NUM_THREADS)]
@@ -601,8 +599,8 @@ def _upload_images(
 
 
 def _attach_urls(
-    img_names_urls, team_id, folder_id, project_id, annotation_status, project,
-    folder_name
+        img_names_urls, team_id, folder_id, project_id, annotation_status, project,
+        folder_name
 ):
     _NUM_THREADS = 10
     params = {'team_id': team_id, 'folder_id': folder_id}
@@ -677,8 +675,8 @@ def _attach_urls(
 
 
 def __attach_image_urls_to_project_thread(
-    res, img_names_urls, project, annotation_status, prefix, thread_id,
-    chunksize, couldnt_upload, uploaded, tried_upload, project_folder_id
+        res, img_names_urls, project, annotation_status, prefix, thread_id,
+        chunksize, couldnt_upload, uploaded, tried_upload, project_folder_id
 ):
     len_img_paths = len(img_names_urls)
     start_index = thread_id * chunksize
@@ -763,3 +761,25 @@ def get_templates_mapping():
     for template in templates:
         templates_map[template['name']] = template['id']
     return templates_map
+
+
+def _assign_images(folder_name, image_names, user, project_id, team_id):
+    image_names_lists = divide_chunks(image_names, 500)
+    params = {"project_id": project_id, "team_id": team_id}
+    messages = []
+    for image_name_list in image_names_lists:
+        json_req = {
+            "image_names": image_name_list,
+            "assign_user_id": user,
+            "folder_name": folder_name,
+        }
+        response = _api.send_request(
+            req_type='PUT',
+            path='/images/editAssignment',
+            params=params,
+            json_req=json_req
+        )
+        if not response.ok:
+            message = "Couldn't assign images " + response.text
+            messages.append(message)
+    return messages
