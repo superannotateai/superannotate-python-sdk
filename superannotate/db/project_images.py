@@ -574,7 +574,7 @@ def assign_images(project, image_names, user):
     verified_users = get_team_metadata()["users"]
     verified_users = [i['id'] for i in verified_users]
     if user not in verified_users:
-        logging.warn(
+        logger.warn(
             f'Skipping {user}. {user} is not a verified contributor for the {project["name"]}'
         )
 
@@ -621,7 +621,7 @@ def assign_folder(project, folder_name, users):
     unverified_contributor = set(users) - verified_users
 
     for user in unverified_contributor:
-        logging.warn(
+        logger.warn(
             f'Skipping {user} from assignees. {user} is not a verified contributor for the {project_name}'
         )
         continue
