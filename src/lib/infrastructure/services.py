@@ -120,6 +120,7 @@ class SuperannotateBackendService(BaseBackendService):
     URL_GET_PROJECT = "project/{}"
     URL_GET_FOLDER_BY_NAME = "folder/getFolderByName"
     URL_CREATE_IMAGE = "/image/ext-create"
+    URL_GET_PROJECT_SETTIGNS = "/project/{}/settings"
 
     def get_projects(self, query_string: str = None) -> list:
         url = urljoin(self.api_url, self.URL_LIST_PROJECTS)
@@ -174,7 +175,8 @@ class SuperannotateBackendService(BaseBackendService):
 
     def get_s3_upload_auth_token(self, team_id: int, folder_id: int, project_id: int):
         auth_token_url = urljoin(
-            self.api_url, self.URL_GET_PROJECT.format(project_id), "sdkImageUploadToken"
+            self.api_url,
+            self.URL_GET_PROJECT.format(project_id) + "/sdkImageUploadToken",
         )
         response = self._request(
             auth_token_url, "get", params={"team_id": team_id, "folder_id": folder_id}
@@ -187,3 +189,10 @@ class SuperannotateBackendService(BaseBackendService):
         )
         response = self._request(get_folder_url, "get")
         return response.json()
+
+    def get_project_settings(self, project_id: int, team_id: int):
+        get_settings_url = urljoin(
+            self.api_url, self.URL_GET_PROJECT_SETTIGNS.format(project_id)
+        )
+        res = self._request(get_settings_url, "get", params={"team_id": team_id})
+        return res.json()

@@ -14,6 +14,7 @@ from src.lib.core.usecases import UploadS3ImageUseCase
 from src.lib.infrastructure.repositories import ConfigRepository
 from src.lib.infrastructure.repositories import FolderRepository
 from src.lib.infrastructure.repositories import ProjectRepository
+from src.lib.infrastructure.repositories import ProjectSettingsRepository
 from src.lib.infrastructure.repositories import S3Repository
 from src.lib.infrastructure.services import SuperannotateBackendService
 
@@ -134,6 +135,9 @@ class Controller(BaseController):
             use_case = UploadS3ImageUseCase(
                 response=self.response,
                 project=project,
+                project_settings=ProjectSettingsRepository(
+                    self._backend_client, project
+                ),
                 backend_service_provider=self._backend_client,
                 image_paths=image_paths,
                 bucket=s3_bucket,
