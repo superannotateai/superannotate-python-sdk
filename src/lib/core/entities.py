@@ -159,3 +159,19 @@ class ImageFileEntity(BaseEntity):
 
     def to_dict(self):
         return {"uuid": self.uuid, "bytes": self.data, "metadata": self.metadata}
+
+
+class ImageInfoEntity(BaseEntity):
+    def __init__(
+        self,
+        uuid=None,
+        name: str = None,
+        path: str = None,
+        width: float = None,
+        height: float = None,
+    ):
+        super().__init__(uuid),
+        self.name = name
+        self.path = path
+        self.width = width
+        self.height = height
