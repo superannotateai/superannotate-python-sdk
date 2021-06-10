@@ -174,7 +174,8 @@ class SuperannotateBackendService(BaseBackendService):
 
     def get_s3_upload_auth_token(self, team_id: int, folder_id: int, project_id: int):
         auth_token_url = urljoin(
-            self.api_url, self.URL_GET_PROJECT.format(project_id), "sdkImageUploadToken"
+            self.api_url,
+            self.URL_GET_PROJECT.format(project_id) + "/sdkImageUploadToken",
         )
         response = self._request(
             auth_token_url, "get", params={"team_id": team_id, "folder_id": folder_id}
