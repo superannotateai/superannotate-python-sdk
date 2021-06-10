@@ -164,7 +164,6 @@ class UploadS3ImageUseCase(BaseUseCase):
                     elif setting.value == 100:
                         return "original"
                     raise AppException("NA ImageQuality value")
-
         return self._image_quality
 
     @property
