@@ -69,6 +69,7 @@ class ProjectEntity(BaseEntity):
             "status": self.status,
             "folder_id": self.folder_id,
             "upload_state": self.upload_state,
+        }
 
 
 class ProjectSettingEntity(BaseEntity):
@@ -84,6 +85,7 @@ class ProjectSettingEntity(BaseEntity):
             "project_id": self.project_id,
             "attribute": self.attribute,
             "value": self.value,
+        }
 
 
 class FolderEntity(BaseEntity):

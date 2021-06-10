@@ -99,20 +99,6 @@ class ProjectRepository(BaseManageableRepository):
             status=data["status"],
             description=data["description"],
             folder_id=data["folder_id"],
-
-
-class FolderRepository(BaseManageableRepository):
-    def __init__(self, service: SuperannotateBackendService):
-        self._service = service
-
-    def get_one(self, uuid: Condition) -> FolderEntity:
-        condition = uuid.build_query()
-        data = self._service.get_folder(condition)
-        return FolderEntity(
-            uuid=data["id"],
-            project_id=data["project_id"],
-            team_id=data["team_id"],
-            name=data["name"],
         )
 
 
@@ -170,9 +156,10 @@ class ProjectSettingsRepository(BaseReadOnlyRepository):
             project_id=data["project_id"],
             attribute=data["attribute"],
             value=data["value"],
+        )
 
 
-class FolderRepository(BaseManageableRepository):
+class FolderRepository(BaseReadOnlyRepository):
     def __init__(self, service: SuperannotateBackendService):
         self._service = service
 
@@ -186,33 +173,5 @@ class FolderRepository(BaseManageableRepository):
             name=data["name"],
         )
 
-
-class S3Repository(BaseManageableRepository):
-    def __init__(
-        self,
-        access_key: str,
-        secret_key: str,
-        session_token: str,
-        bucket: str,
-        region: str = None,
-    ):
-        self._session = boto3.Session(
-            aws_access_key_id=access_key,
-            aws_secret_access_key=secret_key,
-            aws_session_token=session_token,
-        )
-
-        self._resource = self._session.resource("s3")
-        self._bucket = bucket
-        self.bucket = self._resource.Bucket(bucket)
-
-    def get_one(self, uuid: str) -> ImageFileEntity:
-        file = io.BytesIO()
-        self._resource.Object(self._bucket, uuid).download_fileobj(file)
-        return ImageFileEntity(uuid=uuid, data=file)
-
-    def insert(self, entity: ImageFileEntity) -> ImageFileEntity:
-        self.bucket.put_object(
-            Key=entity.uuid, Body=entity.data, Metadata=entity.metadata
-        )
-        return entity
+    def get_all(self, condition: Optional[Condition] = None) -> List[FolderEntity]:
+        raise NotImplementedError
