@@ -1,19 +1,23 @@
+import io
 from typing import List
 
 import src.lib.core as constances
 from src.lib.core.conditions import Condition
 from src.lib.core.conditions import CONDITION_EQ as EQ
+from src.lib.core.entities import ImageInfoEntity
 from src.lib.core.entities import ProjectEntity
 from src.lib.core.exceptions import AppException
 from src.lib.core.response import Response
 from src.lib.core.usecases import CreateProjectUseCase
 from src.lib.core.usecases import DeleteProjectUseCase
 from src.lib.core.usecases import GetProjectsUseCase
+from src.lib.core.usecases import ImageUploadUseCas
 from src.lib.core.usecases import UpdateProjectUseCase
-from src.lib.core.usecases import UploadS3ImageUseCase
+from src.lib.core.usecases import UploadImageS3UseCas
 from src.lib.infrastructure.repositories import ConfigRepository
 from src.lib.infrastructure.repositories import FolderRepository
 from src.lib.infrastructure.repositories import ProjectRepository
+from src.lib.infrastructure.repositories import ProjectSettingsRepository
 from src.lib.infrastructure.repositories import S3Repository
 from src.lib.infrastructure.services import SuperannotateBackendService
 
@@ -21,8 +25,8 @@ from src.lib.infrastructure.services import SuperannotateBackendService
 class BaseController:
     def __init__(self, backend_client: SuperannotateBackendService, response: Response):
         self._backend_client = backend_client
-        self._response = response
         self._s3_upload_auth_data = None
+        self._response = response
 
     @property
     def response(self):
@@ -47,14 +51,15 @@ class BaseController:
     def get_s3_repository(
         self, team_id: int, project_id: int, folder_id: int, bucket: str
     ):
-        auth_data = self._backend_client.get_s3_upload_auth_token(
-            team_id, folder_id, project_id
-        )
-        self._s3_upload_auth_data = auth_data
+        if not self._s3_upload_auth_data:
+            auth_data = self._backend_client.get_s3_upload_auth_token(
+                team_id, folder_id, project_id
+            )
+            self._s3_upload_auth_data = auth_data
         return S3Repository(
-            auth_data["accessKeyId"],
-            auth_data["secretAccessKey"],
-            auth_data["sessionToken"],
+            self._s3_upload_auth_data["accessKeyId"],
+            self._s3_upload_auth_data["secretAccessKey"],
+            self._s3_upload_auth_data["sessionToken"],
             bucket,
         )
 
@@ -100,50 +105,47 @@ class Controller(BaseController):
             return self.response
         raise AppException("There are duplicated names.")
 
-    def upload_s3_images(
+    def upload_images(
         self,
-        project_name: str,
-        image_paths: List[str],  # images to upload
-        s3_bucket: str,
-        folder_path: str = None,  # project folder path
+        project: ProjectEntity,
+        images: List[ImageInfoEntity],
         annotation_status: str = None,
         image_quality: str = None,
     ):
-        project_list_condition = Condition(
-            "project_name", project_name, EQ
-        ) & Condition("team_id", self.team_id, EQ)
-        projects = self.projects.get_all(condition=project_list_condition)
-        if projects:
-            project = projects[0]
-            if not folder_path:
-                folder_id = project.folder_id
-            else:
-                folder_condition = (
-                    Condition("project_id", project.uuid, EQ)
-                    & Condition("team_id", self.team_id, EQ)
-                    & Condition("name", folder_path, EQ)
-                )
-                folder_id = self.folders.get_one(folder_condition).uuid
+        use_case = ImageUploadUseCas(
+            response=self.response,
+            project=project,
+            project_settings=ProjectSettingsRepository(self._backend_client, project),
+            backend_service_provider=self._backend_client,
+            images=images,
+            upload_path=self._s3_upload_auth_data["filePath"],
+            annotation_status=annotation_status,
+            image_quality=image_quality,
+        )
+        use_case.execute()
+        return self.response
 
-            s3_repo = self.get_s3_repository(
-                self.team_id,
-                project.uuid,
-                folder_id,
-                self._s3_upload_auth_data["bucket"],
-            )
-            use_case = UploadS3ImageUseCase(
-                response=self.response,
-                project=project,
-                backend_service_provider=self._backend_client,
-                image_paths=image_paths,
-                bucket=s3_bucket,
-                s3_repo=s3_repo,
-                upload_path=self._s3_upload_auth_data["filePath"],
-                annotation_status=annotation_status,
-                image_quality=image_quality,
-            )
-            use_case.execute()
-            return self.response
+    def upload_image_to_s3(
+        self,
+        project: ProjectEntity,
+        image_path: str,  # image path to upload
+        image: io.BytesIO,
+        folder_id: int = None,  # project folder path
+    ):
+        s3_repo = self.get_s3_repository(
+            self.team_id, project.uuid, folder_id, self._s3_upload_auth_data["bucket"],
+        )
+        use_case = UploadImageS3UseCas(
+            response=self.response,
+            project=project,
+            project_settings=ProjectSettingsRepository(self._backend_client, project),
+            image_path=image_path,
+            image=image,
+            s3_repo=s3_repo,
+            upload_path=self._s3_upload_auth_data["filePath"],
+        )
+        use_case.execute()
+        return self.response
 
     def clone_project(
         self,
