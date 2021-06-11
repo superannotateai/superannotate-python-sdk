@@ -32,6 +32,13 @@ class BaseCLIFacade:
 
 
 class CLIFacade(BaseCLIFacade):
+    def create_project(self, project_name: str, project_description: str, project_type: str) -> dict:
+        project_type = constances.ProjectType[project_type.upper()].value
+        response = self.controller.create_project(project_name, project_description, project_type)
+        if response.errors:
+            return response.errors
+        return response.data
+
     def upload_images_from_folder_to_project(
             self,
             project: str,
