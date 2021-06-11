@@ -73,7 +73,8 @@ class CreateProjectUseCase(BaseUseCase):
 
     def execute(self):
         if self.is_valid():
-            self._projects.insert(self._project)
+            entity = self._projects.insert(self._project)
+            self._response.data = entity.to_dict()
         else:
             self._response.errors = self._errors
 
