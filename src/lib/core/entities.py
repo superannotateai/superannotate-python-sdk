@@ -59,6 +59,7 @@ class ProjectEntity(BaseEntity):
         self.folder_id = folder_id
         self.upload_state = upload_state
 
+
     def to_dict(self):
         return {
             "id": self.uuid,
@@ -92,6 +93,7 @@ class FolderEntity(BaseEntity):
     def __init__(
         self,
         uuid: int = None,
+        project_id: int = None,
         parent_id: int = None,
         project_id: int = None,
         team_id: int = None,
@@ -99,6 +101,7 @@ class FolderEntity(BaseEntity):
     ):
         super().__init__(uuid)
         self.team_id = team_id
+        self.project_id = project_id
         self.name = name
         self.parent_id = parent_id
         self.project_id = project_id
