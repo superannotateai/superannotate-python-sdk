@@ -15,6 +15,8 @@ BACKEND_URL = "https://api.annotate.online"
 DEFAULT_IMAGE_EXTENSIONS = ("jpg", "jpeg", "png", "tif", "tiff", "webp", "bmp")
 DEFAULT_FILE_EXCLUDE_PATTERNS = ("___save.png", "___fuse.png")
 DEFAULT_VIDEO_EXTENSIONS = ("mp4", "avi", "mov", "webm", "flv", "mpg", "ogg")
+MAX_PIXEL_RESOLUTION = 4_000_000
+MAX_VECTOR_RESOLUTION = 100_000_000
 MAX_IMAGE_SIZE = 100 * 1024 * 1024  # 100 MB limit
 
 
@@ -34,5 +36,7 @@ __alL__ = (
     DEFAULT_FILE_EXCLUDE_PATTERNS,
     DEFAULT_VIDEO_EXTENSIONS,
     MAX_IMAGE_SIZE,
+    MAX_VECTOR_RESOLUTION,
+    MAX_PIXEL_RESOLUTION,
     __version__,
 )
