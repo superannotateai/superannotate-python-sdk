@@ -286,6 +286,7 @@ def _get_video_rotate_code(video_path):
 def _extract_frames_from_video(
     start_time, end_time, video_path, tempdir, limit, target_fps
 ):
+    chunk_size = 100
     video = cv2.VideoCapture(str(video_path), cv2.CAP_FFMPEG)
     if not video.isOpened():
         raise SABaseException(0, "Couldn't open video file " + str(video_path))
@@ -296,37 +297,44 @@ def _extract_frames_from_video(
         ratio = _get_video_fps_ration(target_fps, video, ratio)
     rotate_code = _get_video_rotate_code(video_path)
     video_name = Path(video_path).stem
-    frame_no = 0
     frame_no_with_change = 1.0
     extracted_frame_no = 1
     logger.info("Extracting frames from video to %s.", tempdir.name)
     zero_fill_count = len(str(total_num_of_frames))
-    extracted_frames_paths = []
-    while len(extracted_frames_paths) < limit:
-        success, frame = video.read()
-        if not success:
-            break
-        frame_no += 1
-        if round(frame_no_with_change) != frame_no:
-            continue
-        frame_no_with_change += ratio
-        frame_time = video.get(cv2.CAP_PROP_POS_MSEC) / 1000.0
-        if end_time and frame_time > end_time:
-            break
-        if frame_time < start_time:
-            continue
-        if rotate_code:
-            frame = cv2.rotate(frame, rotate_code)
-        path = str(
-            Path(tempdir.name) / (
-                video_name + "_" +
-                str(extracted_frame_no).zfill(zero_fill_count) + ".jpg"
+    for frame_no in range(0, limit, chunk_size):
+        extracted_frames_paths = []
+        extracted_local_frame_no = 0
+        while extracted_frame_no < limit and extracted_local_frame_no <= chunk_size:
+            success, frame = video.read()
+            if not success:
+                yield None
+                return
+            frame_no += 1
+            if round(frame_no_with_change) != frame_no:
+                continue
+            frame_no_with_change += ratio
+            frame_time = video.get(cv2.CAP_PROP_POS_MSEC) / 1000.0
+            if end_time and frame_time > end_time:
+                yield None
+                return
+            if frame_time < start_time:
+                continue
+            if rotate_code:
+                frame = cv2.rotate(frame, rotate_code)
+            path = str(
+                Path(tempdir.name) / (
+                    video_name + "_" +
+                    str(extracted_frame_no).zfill(zero_fill_count) + ".jpg"
+                )
             )
-        )
-        cv2.imwrite(path, frame)
-        extracted_frames_paths.append(path)
-        extracted_frame_no += 1
-    return extracted_frames_paths
+            cv2.imwrite(path, frame)
+            extracted_frames_paths.append(path)
+            extracted_frame_no += 1
+            extracted_local_frame_no += 1
+        if not extracted_frames_paths:
+            yield None
+            return
+        yield extracted_frames_paths
 
 
 @Trackable
@@ -378,20 +386,22 @@ def upload_video_to_project(
     extracted_frames = _extract_frames_from_video(
         start_time, end_time, video_path, tempdir, limit, target_fps
     )
-    logger.info(
-        "Extracted %s frames from video. Now uploading to platform.",
-        len(extracted_frames)
-    )
-    filenames = upload_images_from_folder_to_project(
-        (project, folder),
-        tempdir.name,
-        extensions=["jpg"],
-        annotation_status=annotation_status,
-        image_quality_in_editor=image_quality_in_editor
-    )
+    upload_file_names = []
 
-    filenames_base = [Path(f).name for f in filenames[0]]
-    return filenames_base
+    for _ in extracted_frames:
+        filenames = upload_images_from_folder_to_project(
+            (project, folder),
+            tempdir.name,
+            extensions=["jpg"],
+            annotation_status=annotation_status,
+            image_quality_in_editor=image_quality_in_editor
+        )
+        files = os.listdir(tempdir.name)
+        for f in files:
+            os.remove(f'{tempdir.name}/{f}')
+        upload_file_names += [Path(f).name for f in filenames[0]]
+
+    return upload_file_names
 
 
 @Trackable

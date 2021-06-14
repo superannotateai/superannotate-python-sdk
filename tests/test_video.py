@@ -33,8 +33,8 @@ def test_video(tmpdir):
     for project in projects:
         sa.delete_project(project)
 
+    time.sleep(1)
     project = sa.create_project(PROJECT_NAME2, "test", "Vector")
-
     subprocess.run(
         f'superannotatecli upload-videos --project "{PROJECT_NAME2}" --folder ./tests/sample_videos --target-fps 2',
         check=True,
