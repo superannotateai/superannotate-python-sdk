@@ -7,11 +7,13 @@ from typing import Optional
 import boto3
 import src.lib.core as constance
 from src.lib.core.conditions import Condition
+from src.lib.core.entities import AnnotationClassEntity
 from src.lib.core.entities import ConfigEntity
 from src.lib.core.entities import FolderEntity
 from src.lib.core.entities import ImageFileEntity
 from src.lib.core.entities import ProjectEntity
 from src.lib.core.entities import ProjectSettingEntity
+from src.lib.core.entities import WorkflowEntity
 from src.lib.core.repositories import BaseManageableRepository
 from src.lib.core.repositories import BaseReadOnlyRepository
 from src.lib.infrastructure.services import SuperannotateBackendService
@@ -99,6 +101,7 @@ class ProjectRepository(BaseManageableRepository):
             status=data["status"],
             description=data["description"],
             folder_id=data["folder_id"],
+            users=data["users"],
         )
 
 
@@ -133,7 +136,7 @@ class S3Repository(BaseManageableRepository):
         return entity
 
 
-class ProjectSettingsRepository(BaseReadOnlyRepository):
+class ProjectSettingsRepository(BaseManageableRepository):
     def __init__(self, service: SuperannotateBackendService, project: ProjectEntity):
         self._service = service
         self._project = project
@@ -149,6 +152,12 @@ class ProjectSettingsRepository(BaseReadOnlyRepository):
         )
         return [self.dict2entity(setting) for setting in data]
 
+    def insert(self, entity: ProjectSettingEntity) -> ProjectSettingEntity:
+        res = self._service.set_project_settings(
+            entity.uuid, self._project.team_id, entity.to_dict()
+        )
+        return self.dict2entity(res)
+
     @staticmethod
     def dict2entity(data: dict):
         return ProjectSettingEntity(
@@ -156,6 +165,38 @@ class ProjectSettingsRepository(BaseReadOnlyRepository):
             project_id=data["project_id"],
             attribute=data["attribute"],
             value=data["value"],
+        )
+
+
+class WorkflowRepository(BaseManageableRepository):
+    def __init__(self, service: SuperannotateBackendService, project: ProjectEntity):
+        self._service = service
+        self._project = project
+
+    def get_one(self, uuid: int) -> WorkflowEntity:
+        raise NotImplementedError
+
+    def get_all(self, condition: Optional[Condition] = None) -> List[WorkflowEntity]:
+        data = self._service.get_project_workflows(
+            self._project.uuid, self._project.team_id
+        )
+        return [self.dict2entity(setting) for setting in data]
+
+    def insert(self, entity: WorkflowEntity) -> WorkflowEntity:
+        res = self._service.set_project_workflow(
+            entity.uuid, self._project.team_id, entity.to_dict()
+        )
+        return self.dict2entity(res)
+
+    @staticmethod
+    def dict2entity(data: dict):
+        return WorkflowEntity(
+            uuid=data["id"],
+            project_id=data["project_id"],
+            class_id=data["class_id"],
+            step=data["step"],
+            tool=data["tool"],
+            attribute=data["attribute"],
         )
 
 
@@ -175,3 +216,36 @@ class FolderRepository(BaseReadOnlyRepository):
 
     def get_all(self, condition: Optional[Condition] = None) -> List[FolderEntity]:
         raise NotImplementedError
+
+
+class AnnotationClassRepository(BaseManageableRepository):
+    def __init__(self, service: SuperannotateBackendService, project: ProjectEntity):
+        self._service = service
+        self.project = project
+
+    def get_one(self, uuid: Condition) -> AnnotationClassEntity:
+        raise NotImplementedError
+
+    def get_all(
+        self, condition: Optional[Condition] = None
+    ) -> List[AnnotationClassEntity]:
+        res = self._service.get_annotation_classes(
+            self.project.uuid, self.project.team_id
+        )
+        return [self.dict2entity(data) for data in res]
+
+    def insert(self, entity: AnnotationClassEntity):
+        res = self._service.set_annotation_classes(
+            self.project.uuid, self.project.team_id, [entity.to_dict()]
+        )
+        return self.dict2entity(res[0])
+
+    @staticmethod
+    def dict2entity(data: dict):
+        return AnnotationClassEntity(
+            uuid=data["id"],
+            project_id=data["project_id"],
+            name=data["name"],
+            count=data["count"],
+            attribute_groups=data["attribute_groups"],
+        )
