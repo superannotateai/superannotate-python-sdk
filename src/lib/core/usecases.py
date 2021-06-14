@@ -1,3 +1,4 @@
+import copy
 import io
 import uuid
 from abc import ABC
@@ -253,3 +254,65 @@ class UploadImageS3UseCas(BaseUseCase):
             width=origin_width,
             height=origin_height,
         )
+
+
+class CloneProjectUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        project: ProjectEntity,
+        project_to_create: ProjectEntity,
+        projects: BaseManageableRepository,
+        settings: BaseManageableRepository,
+        workflows: BaseManageableRepository,
+        annotation_classes: BaseManageableRepository,
+        backend_service_provider: SuerannotateServiceProvider,
+        include_annotation_classes: bool = True,
+        include_settings: bool = True,
+        include_workflow: bool = True,
+        include_contributors: bool = False,
+    ):
+        super().__init__(response)
+        self._project = project
+        self._project_to_create = project_to_create
+        self._projects = projects
+        self._settings = settings
+        self._workflows = workflows
+        self._annotation_classes = annotation_classes
+        self._backend_service = backend_service_provider
+        self._include_annotation_classes = include_annotation_classes
+        self._include_settings = include_settings
+        self._include_workflow = include_workflow
+        self._include_contributors = include_contributors
+
+    def execute(self):
+        project = self._projects.insert(self._project_to_create)
+
+        annotation_classes_mapping = {}
+        if self._include_annotation_classes:
+            annotation_classes = self._annotation_classes.get_all()
+            for annotation_class in annotation_classes:
+                annotation_class_copy = copy.copy(annotation_class)
+                annotation_class_copy.project_id = project.uuid
+                annotation_classes_mapping[
+                    annotation_class.uuid
+                ] = self._annotation_classes.insert(annotation_class_copy)
+
+        if not self._include_contributors:
+            for user in self._project.users:
+                self._backend_service.share_project(
+                    project.uuid, project.team_id, user.get("id"), user.get("role")
+                )
+
+        if self._include_settings:
+            for setting in self._settings.get_all():
+                setting_copy = copy.copy(setting)
+                setting_copy.project_id = project.uuid
+                self._settings.insert(setting)
+
+        if self._include_workflow:
+            for workflow in self._workflows.get_all():
+                workflow_copy = copy.copy(workflow)
+                workflow_copy.project_id = project.uuid
+                workflow_copy.class_id = annotation_classes_mapping[workflow.class_id]
+                self._workflows.insert(workflow_copy)

@@ -1,5 +1,7 @@
 from abc import abstractmethod
 from contextlib import contextmanager
+from typing import Dict
+from typing import List
 from urllib.parse import urljoin
 
 import requests
@@ -73,22 +75,22 @@ class BaseBackendService(SuerannotateServiceProvider):
             )
         return response
 
-    def _get_page(self, url, offset):
+    def _get_page(self, url, offset, params=None):
         splitter = "&" if "?" in url else "?"
         url = f"{url}{splitter}offset={offset}"
 
-        response = self._request(url)
+        response = self._request(url, params=params)
         if response.status_code != 200:
             raise AppException(f"Got invalid response for url {url}: {response.text}.")
         data = response.json()
         remains_count = data.get("count") - offset
         return data, remains_count
 
-    def _get_all_pages(self, url, offset=0):
+    def _get_all_pages(self, url, offset=0, params=None):
         total = list()
 
         while True:
-            resources, remains_count = self._get_page(url, offset)
+            resources, remains_count = self._get_page(url, offset, params)
             total.extend(resources)
             if remains_count <= 0:
                 break
@@ -115,11 +117,16 @@ class SuperannotateBackendService(BaseBackendService):
     Manage projects, images and team in the Superannotate
     """
 
+    URL_USERS = "users"
     URL_LIST_PROJECTS = "projects"
     URL_CREATE_PROJECT = "project"
     URL_GET_PROJECT = "project/{}"
     URL_GET_FOLDER_BY_NAME = "folder/getFolderByName"
-    URL_CREATE_IMAGE = "/image/ext-create"
+    URL_CREATE_IMAGE = "image/ext-create"
+    URL_PROJECT_SETTIGNS = "project/{}/settings"
+    URL_PROJECT_WORKFLOW = "project/{}/workflow"
+    URL_SHARE_PROJECT = "project/{}/workflow"
+    URL_ANNOTATION_CLASSES = "classes"
 
     def get_projects(self, query_string: str = None) -> list:
         url = urljoin(self.api_url, self.URL_LIST_PROJECTS)
@@ -188,3 +195,95 @@ class SuperannotateBackendService(BaseBackendService):
         )
         response = self._request(get_folder_url, "get")
         return response.json()
+
+    def get_project_settings(self, project_id: int, team_id: int):
+        get_settings_url = urljoin(
+            self.api_url, self.URL_PROJECT_SETTIGNS.format(project_id)
+        )
+        res = self._request(get_settings_url, "get", params={"team_id": team_id})
+        return res.json()
+
+    def set_project_settings(self, project_id: int, team_id: int, data: Dict):
+        set_project_settings_url = urljoin(
+            self.api_url, self.URL_PROJECT_SETTIGNS.format(project_id)
+        )
+        res = self._request(
+            set_project_settings_url,
+            "put",
+            data={"settings": [data]},
+            params={"team_id": team_id},
+        )
+        return res.json()
+
+    def get_annotation_classes(
+        self, project_id: int, team_id: int, query_string: str = None
+    ):
+        get_annotation_classes_url = urljoin(self.api_url, self.URL_ANNOTATION_CLASSES)
+        if query_string:
+            get_annotation_classes_url = f"{get_annotation_classes_url}?{query_string}"
+        params = {"project_id": project_id, "team_id": team_id}
+        return self._get_all_pages(get_annotation_classes_url, params=params)
+
+    def set_annotation_classes(self, project_id: int, team_id: int, data: List):
+        set_annotation_class_url = urljoin(self.api_url, self.URL_ANNOTATION_CLASSES)
+        params = {
+            "team_id": team_id,
+            "project_id": project_id,
+        }
+        res = self._request(set_annotation_class_url, "post", params=params, data=data)
+        return res.json()
+
+    def get_project_workflows(self, project_id: int, team_id: int):
+        get_project_workflow_url = urljoin(
+            self.api_url, self.URL_PROJECT_WORKFLOW.format(project_id)
+        )
+        return self._get_all_pages(
+            get_project_workflow_url, params={"team_id", team_id}
+        )
+
+    def set_project_workflow(self, project_id: int, team_id: int, data: Dict):
+        set_project_workflow_url = urljoin(
+            self.api_url, self.URL_PROJECT_WORKFLOW.format(project_id)
+        )
+        res = self._request(
+            set_project_workflow_url,
+            "put",
+            data={"steps": [data]},
+            params={"team_id": team_id},
+        )
+        return res.json()
+
+    def share_project(
+        self, project_id: int, team_id: int, user_id: int, user_role: int
+    ):
+        share_project_url = urljoin(
+            self.api_url, self.URL_SHARE_PROJECT.format(project_id)
+        )
+        res = self._request(
+            share_project_url,
+            "post",
+            data={"user_id": user_id, "user_role": user_role},
+            params={"team_id": team_id},
+        )
+        return res.json()
+
+    def search_team_contributors(
+        self, team_id: int, email=None, first_name=None, last_name=None,
+    ):
+        list_users_url = urljoin(self.api_url, self.URL_USERS)
+        params = {"team_id": team_id}
+        if email is not None:
+            params["email"] = email
+        if first_name is not None:
+            params["first_name"] = first_name
+        if last_name is not None:
+            params["last_name"] = last_name
+        return self._get_all_pages(list_users_url, params=params)
+
+    def unshare_project(self, project_id: int, team_id: int, user_id: int):
+        users_url = urljoin(self.api_url, self.URL_USERS.format(project_id))
+
+        res = self._request(
+            users_url, "delete", data={"user_id": user_id}, params={"team_id": team_id}
+        )
+        return res.ok

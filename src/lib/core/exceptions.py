@@ -14,3 +14,9 @@ class AppValidationException(AppException):
     """
     App validation exception
     """
+
+
+class ImageProcessingException(AppException):
+    """
+    App validation exception
+    """
