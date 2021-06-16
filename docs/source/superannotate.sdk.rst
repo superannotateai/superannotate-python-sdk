@@ -129,6 +129,20 @@ _________________
 
 ----------
 
+Neural Network
+_______________
+
+.. autofunction:: superannotate.delete_model
+.. autofunction:: superannotate.download_model
+.. autofunction:: superannotate.plot_model_metrics
+.. autofunction:: superannotate.run_prediction
+.. autofunction:: superannotate.run_segmentation
+.. autofunction:: superannotate.run_training
+.. autofunction:: superannotate.stop_model_training
+.. autofunction:: superannotate.search_models
+
+----------
+
 
 .. _ref_metadata:
 

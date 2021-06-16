@@ -1656,3 +1656,53 @@ def delete_images(*args, **kwargs):
                 "Image Count": len(image_names),
             }
     }
+
+
+def unassign_folder(*args, **kwargs):
+    return {"event_name": "unassign_folder", "properties": {}}
+
+
+def assign_folder(*args, **kwargs):
+    users = kwargs.get("users", None)
+    if not users:
+        users = args[2]
+    return {
+        "event_name": "assign_folder",
+        "properties": {
+            "User Count": len(users),
+        }
+    }
+
+def unassign_images(*args, **kwargs):
+    image_names = kwargs.get("image_names", None)
+    if not image_names:
+        image_names = args[1]
+
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0]
+
+    from superannotate.db.project_api import get_project_and_folder_metadata
+    project, folder = get_project_and_folder_metadata(project)
+    is_root = True
+    if folder:
+        is_root = False
+
+    return {
+        "event_name": "unassign_images",
+        "properties": {
+            "Assign Folder": is_root,
+            "Image Count": len(image_names)
+        }
+    }
+
+
+
+
+# def unassign_images(project, image_names):
+
+
+
+#
+# Assign Folder: IsRoot(project) ,
+# Image Count: len(image_names),

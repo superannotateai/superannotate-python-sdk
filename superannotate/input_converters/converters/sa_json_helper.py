@@ -8,7 +8,8 @@ def _create_vector_instance(
     pointLabels,
     attributes,
     class_name='',
-    connections=[]
+    connections=[],
+    template_name=''
 ):
     sa_instance = {
         'type': instance_type,
@@ -20,6 +21,8 @@ def _create_vector_instance(
     if instance_type == 'template':
         sa_instance['points'] = points
         sa_instance['connections'] = connections
+        sa_instance['className'] = class_name
+        sa_instance['templateName'] = template_name
     elif instance_type == 'point':
         sa_instance['x'] = points[0]
         sa_instance['y'] = points[1]
