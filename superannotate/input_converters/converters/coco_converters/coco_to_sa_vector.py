@@ -171,7 +171,8 @@ def coco_keypoint_detection_to_sa_vector(coco_path, output_dir):
         cat_id_to_cat[cat["id"]] = {
             "name": cat["name"],
             "keypoints": cat["keypoints"],
-            "skeleton": cat["skeleton"]
+            "skeleton": cat["skeleton"],
+            "supercategory": cat["supercategory"]
         }
 
     image_id_to_annotations = {}
@@ -218,11 +219,8 @@ def coco_keypoint_detection_to_sa_vector(coco_path, output_dir):
                 for connection in cat_id_to_cat[annot["category_id"]
                                                ]['skeleton']:
 
-                    index = cat['skeleton'].index(connection)
-                    from_point = cat_id_to_cat[annot["category_id"]
-                                              ]['skeleton'][index][0]
-                    to_point = cat_id_to_cat[annot["category_id"]
-                                            ]['skeleton'][index][1]
+                    from_point = connection[0]
+                    to_point = connection[1]
 
                     if from_point in bad_points or to_point in bad_points:
                         continue
@@ -242,8 +240,12 @@ def coco_keypoint_detection_to_sa_vector(coco_path, output_dir):
                     pointLabels[id_mapping[kp_index + 1] - 1] = kp_name
 
                 sa_obj = _create_vector_instance(
-                    'template', points, pointLabels, [],
-                    cat_id_to_cat[annot["category_id"]]["name"], connections
+                    'template',
+                    points,
+                    pointLabels, [],
+                    cat_id_to_cat[annot["category_id"]]["supercategory"],
+                    connections,
+                    template_name=cat_id_to_cat[annot["category_id"]]["name"]
                 )
                 if str(annot['image_id']) not in image_id_to_annotations:
                     image_id_to_annotations[str(annot['image_id'])] = [sa_obj]

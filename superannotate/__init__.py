@@ -59,7 +59,8 @@ from .db.project_api import (
 )
 from .db.project_images import (
     assign_images, copy_image, copy_images, delete_images, move_image,
-    move_images, pin_image, upload_image_to_project
+    move_images, pin_image, upload_image_to_project, assign_folder,
+    unassign_folder, unassign_images
 )
 from .db.projects import (
     clone_project, create_project, create_project_from_metadata, delete_project,
