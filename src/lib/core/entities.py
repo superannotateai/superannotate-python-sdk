@@ -226,6 +226,14 @@ class ImageInfoEntity(BaseEntity):
         self.width = width
         self.height = height
 
+    def to_dict(self):
+        return {
+            "id": self.uuid,
+            "name": self.name,
+            "path": self.path,
+            "width": self.width,
+            "height": self.height
+        }
 
 class AnnotationClassEntity(BaseEntity):
     def __init__(
