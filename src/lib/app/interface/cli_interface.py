@@ -3,32 +3,16 @@ import logging
 import os
 from pathlib import Path
 
-import lib.core as constances
-from lib.infrastructure.controller import Controller
+import src.lib.core as constances
+from src.lib.app.interface.base_interface import BaseInterfaceFacade
 from src.lib.core.conditions import Condition
 from src.lib.core.conditions import CONDITION_EQ as EQ
-from src.lib.core.response import Response
-from src.lib.infrastructure.repositories import ConfigRepository
-from src.lib.infrastructure.services import SuperannotateBackendService
 
 
 logger = logging.getLogger()
 
 
-class BaseCLIFacade:
-    @property
-    def controller(self):
-        return Controller(
-            backend_client=SuperannotateBackendService(
-                api_url=constances.BACKEND_URL,
-                auth_token=ConfigRepository().get_one("token"),
-                logger=logger,
-            ),
-            response=Response(),
-        )
-
-
-class CLIFacade(BaseCLIFacade):
+class CLIFacade(BaseInterfaceFacade):
     def create_project(
         self, project_name: str, project_description: str, project_type: str
     ) -> dict:
