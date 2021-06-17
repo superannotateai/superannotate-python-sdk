@@ -7,11 +7,11 @@ from typing import List
 
 class SuerannotateServiceProvider(ABC):
     @abstractmethod
-    def create_image(
+    def attach_files(
         self,
         project_id: int,
         team_id: int,
-        images: List[Dict],
+        files: List[Dict],
         annotation_status_code: int,
         upload_state_code: int,
         meta: Dict[Any],

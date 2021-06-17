@@ -171,10 +171,10 @@ class ImageUploadUseCas(BaseUseCase):
             images.append({"name": image.name, "path": image.path})
             meta[image.name] = {"width": image.width, "height": image.height}
 
-        self._backend.create_image(
+        self._backend.attach_files(
             project_id=self._project.uuid,
             team_id=self._project.team_id,
-            images=images,
+            files=images,
             annotation_status_code=self.annotation_status_code,
             upload_state_code=self.upload_state_code,
             meta=meta,
@@ -316,3 +316,41 @@ class CloneProjectUseCase(BaseUseCase):
                 workflow_copy.project_id = project.uuid
                 workflow_copy.class_id = annotation_classes_mapping[workflow.class_id]
                 self._workflows.insert(workflow_copy)
+
+
+class AttachFileUrls(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        project: ProjectEntity,
+        attachments: List[str],
+        limit: int,
+        backend_service_provider: SuerannotateServiceProvider,
+        annotation_status: int = constances.AnnotationStatus.NOT_STARTED.value,
+    ):
+        super().__init__(response)
+        self._attachments = attachments
+        self._project = project
+        self._limit = limit
+        self._backend_service = backend_service_provider
+        self._annotation_status_code = annotation_status
+
+    def execute(self):
+        attachments_to_upload = self._attachments[: self._limit]
+        attachments_to_skip = self._attachments[self._limit :]
+        attachments_data = []
+        for attachment in attachments_to_upload:
+            attachments_data.append(
+                {"name": Path(attachment).suffix, "path": attachment}
+            )
+        self._backend_service.attach_files(
+            project_id=self._project.uuid,
+            team_id=self._project.team_id,
+            files=attachments_data,
+            annotation_status_code=self._annotation_status_code,
+            upload_state_code=constances.UploadState.EXTERNAL.value,
+            # todo rewrite
+            meta=None,
+            annotation_json_path=None,
+            annotation_bluemap_path=None,
+        )

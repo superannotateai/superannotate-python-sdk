@@ -119,6 +119,7 @@ class SuperannotateBackendService(BaseBackendService):
 
     URL_USERS = "users"
     URL_LIST_PROJECTS = "projects"
+    URL_FOLDERS_IMAGES = "images-folders"
     URL_CREATE_PROJECT = "project"
     URL_GET_PROJECT = "project/{}"
     URL_GET_FOLDER_BY_NAME = "folder/getFolderByName"
@@ -155,11 +156,11 @@ class SuperannotateBackendService(BaseBackendService):
         )
         return res.ok
 
-    def create_image(
+    def attach_file(
         self,
-        project_id,
-        team_id,
-        images,
+        project_id: int,
+        team_id: int,
+        files: List[Dict],
         annotation_status_code,
         upload_state_code,
         meta,
@@ -169,7 +170,7 @@ class SuperannotateBackendService(BaseBackendService):
         data = {
             "project_id": project_id,
             "team_id": team_id,
-            "images": images,
+            "images": files,
             "annotation_status": annotation_status_code,
             "upload_state_code": upload_state_code,
             "meta": meta,
@@ -280,10 +281,17 @@ class SuperannotateBackendService(BaseBackendService):
             params["last_name"] = last_name
         return self._get_all_pages(list_users_url, params=params)
 
-    def unshare_project(self, project_id: int, team_id: int, user_id: int):
+    def un_share_project(self, project_id: int, team_id: int, user_id: int):
         users_url = urljoin(self.api_url, self.URL_USERS.format(project_id))
 
         res = self._request(
             users_url, "delete", data={"user_id": user_id}, params={"team_id": team_id}
         )
         return res.ok
+
+    def get_images(self, query_string: str = None):
+        url = urljoin(self.api_url, self.URL_FOLDERS_IMAGES)
+        if query_string:
+            url = f"{url}?{query_string}"
+        pages = self._get_all_pages(url)
+        return [image for page in pages for image in page["images"]]
