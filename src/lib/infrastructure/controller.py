@@ -1,3 +1,4 @@
+import copy
 import io
 from typing import List
 
@@ -12,11 +13,11 @@ from src.lib.core.response import Response
 from src.lib.core.usecases import AttachFileUrls
 from src.lib.core.usecases import CloneProjectUseCase
 from src.lib.core.usecases import CreateFolderUseCase
-from src.lib.core.usecases import CreateFolderUseCase
 from src.lib.core.usecases import CreateProjectUseCase
 from src.lib.core.usecases import DeleteProjectUseCase
 from src.lib.core.usecases import GetProjectsUseCase
 from src.lib.core.usecases import ImageUploadUseCas
+from src.lib.core.usecases import PrepareExportUseCase
 from src.lib.core.usecases import UpdateProjectUseCase
 from src.lib.core.usecases import UploadImageS3UseCas
 from src.lib.infrastructure.repositories import AnnotationClassRepository
@@ -220,4 +221,26 @@ class Controller(BaseController):
             response=self.response, folder=folder, folders=self.folders
         )
         use_case.execute()
+        return self.response
+
+    def prepare_export(
+        self,
+        project: ProjectEntity,
+        folders: List[str],
+        include_fuse: bool,
+        only_pinned: bool,
+        annotation_statuses: List[str] = None,
+    ):
+
+        use_case = PrepareExportUseCase(
+            response=self.response,
+            project=project,
+            folder_names=folders,
+            backend_service_provider=self._backend_client,
+            include_fuse=include_fuse,
+            only_pinned=only_pinned,
+            annotation_statuses=annotation_statuses,
+        )
+        use_case.execute()
+
         return self.response
