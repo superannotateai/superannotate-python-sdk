@@ -1,5 +1,4 @@
 from pathlib import Path
-
 import superannotate as sa
 
 
