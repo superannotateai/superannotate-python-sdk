@@ -7,7 +7,6 @@ from PIL import ImageOps
 
 
 class ImagePlugin:
-
     def __init__(self, image_bytes: io.BytesIO, max_resolution: int):
         self._image_bytes = image_bytes
         self._max_resolution = max_resolution

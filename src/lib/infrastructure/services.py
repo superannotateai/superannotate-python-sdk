@@ -1,6 +1,8 @@
 from abc import abstractmethod
 from contextlib import contextmanager
+from datetime import datetime
 from typing import Dict
+from typing import Iterable
 from typing import List
 from urllib.parse import urljoin
 
@@ -305,3 +307,35 @@ class SuperannotateBackendService(BaseBackendService):
             url = f"{url}?{query_string}"
         pages = self._get_all_pages(url)
         return [image for page in pages for image in page["images"]]
+
+    def prepare_export(
+        self,
+        project_id: int,
+        team_id: int,
+        folders: List[str],
+        annotation_statuses: Iterable[str],
+        include_fuse: bool,
+        only_pinned: bool,
+    ):
+        prepare_export_url = urljoin(self.api_url, self.URL_PREPARE_EXPORT)
+        annotation_status_codes = ",".join(
+            [constance.AnnotationStatus[status].value for status in annotation_statuses]
+        )
+
+        data = {
+            "include": annotation_status_codes,
+            "fuse": int(include_fuse),
+            "is_pinned": int(only_pinned),
+            "coco": 0,
+            "time": datetime.now().strftime("%b %d %Y %H:%M"),
+        }
+        if folders:
+            data["folder_names"] = folders
+
+        res = self._request(
+            prepare_export_url,
+            "post",
+            data=data,
+            params={"project_id": project_id, "team_id": team_id},
+        )
+        return res.json()

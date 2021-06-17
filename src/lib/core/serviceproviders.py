@@ -2,6 +2,7 @@ from abc import ABC
 from abc import abstractmethod
 from typing import Any
 from typing import Dict
+from typing import Iterable
 from typing import List
 
 
@@ -32,3 +33,14 @@ class SuerannotateServiceProvider(ABC):
     ):
         raise NotImplementedError
 
+    @abstractmethod
+    def prepare_export(
+        self,
+        project_id: int,
+        team_id: int,
+        folders: List[str],
+        annotation_statuses: Iterable[Any],
+        include_fuse: bool,
+        only_pinned: bool,
+    ):
+        raise NotImplementedError

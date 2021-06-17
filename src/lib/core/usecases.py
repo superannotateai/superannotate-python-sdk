@@ -389,3 +389,45 @@ class AttachFileUrls(BaseUseCase):
             annotation_json_path=None,
             annotation_bluemap_path=None,
         )
+
+
+class PrepareExportUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        project: ProjectEntity,
+        folder_names: List[str],
+        backend_service_provider: SuerannotateServiceProvider,
+        include_fuse: bool,
+        only_pinned: bool,
+        annotation_statuses: List[str] = None,
+    ):
+        super().__init__(response),
+        self._project = project
+        self._folder_names = folder_names
+        self._backend_service = backend_service_provider
+        self._annotation_statuses = annotation_statuses
+        self._include_fuse = (include_fuse,)
+        self._only_pinned = only_pinned
+
+    def execute(self):
+        if self._project.upload_state == constances.UploadState.EXTERNAL.value:
+            self._include_fuse = False
+
+        if not self._annotation_statuses:
+            self._annotation_statuses = (
+                constances.AnnotationStatus.IN_PROGRESS.name,
+                constances.AnnotationStatus.COMPLETED.name,
+                constances.AnnotationStatus.QUALITY_CHECK.name,
+                constances.AnnotationStatus.RETURNED.name,
+            )
+
+        res = self._backend_service.prepare_export(
+            project_id=self._project.uuid,
+            team_id=self._project.team_id,
+            folders=self._folder_names,
+            annotation_statuses=self._annotation_statuses,
+            include_fuse=self._include_fuse,
+            only_pinned=self._only_pinned,
+        )
+        self._response.data = res

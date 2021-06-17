@@ -231,8 +231,9 @@ class ImageInfoEntity(BaseEntity):
             "name": self.name,
             "path": self.path,
             "width": self.width,
-            "height": self.height
+            "height": self.height,
         }
+
 
 class AnnotationClassEntity(BaseEntity):
     def __init__(
