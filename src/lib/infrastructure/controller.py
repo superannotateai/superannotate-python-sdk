@@ -5,10 +5,12 @@ from typing import List
 import src.lib.core as constances
 from src.lib.core.conditions import Condition
 from src.lib.core.conditions import CONDITION_EQ as EQ
+from src.lib.core.entities import FolderEntity
 from src.lib.core.entities import ImageInfoEntity
 from src.lib.core.entities import ProjectEntity
 from src.lib.core.exceptions import AppException
 from src.lib.core.response import Response
+from src.lib.core.usecases import AttachFileUrls
 from src.lib.core.usecases import CloneProjectUseCase
 from src.lib.core.usecases import CreateProjectUseCase
 from src.lib.core.usecases import DeleteProjectUseCase
@@ -52,14 +54,19 @@ class BaseController:
     def team_id(self) -> int:
         return int(self.configs.get_one("token").value.split("=")[-1])
 
+    def get_auth_data(self, project_id: int, team_id: int, folder_id: int):
+        return self._backend_client.get_s3_upload_auth_token(
+            team_id, folder_id, project_id
+        )
+
     def get_s3_repository(
         self, team_id: int, project_id: int, folder_id: int, bucket: str
     ):
         if not self._s3_upload_auth_data:
-            auth_data = self._backend_client.get_s3_upload_auth_token(
-                team_id, folder_id, project_id
+            self._s3_upload_auth_data = self.get_auth_data(
+                project_id, team_id, folder_id
             )
-            self._s3_upload_auth_data = auth_data
+
         return S3Repository(
             self._s3_upload_auth_data["accessKeyId"],
             self._s3_upload_auth_data["secretAccessKey"],
@@ -184,17 +191,22 @@ class Controller(BaseController):
             use_case.execute()
         return self.response
 
-    def get_project_metadata(
+    def attach_urls(
         self,
-        name: str,
-        include_annotation_classes=False,
-        include_settings=False,
-        include_workflow=False,
-        include_contributors=False,
-        include_complete_image_count=False,
+        project: ProjectEntity,
+        attachments: List[str],
+        folder: FolderEntity,
+        annotation_status: int = None,
     ):
-        raise NotImplementedError
+        auth_data = self.get_auth_data(project.uuid, project.team_id, folder.uuid)
 
-    def create_project_from_metadata(self):
-        # todo move to cli level
-        raise NotImplementedError
+        limit = auth_data["availableImageCount"]
+        use_case = AttachFileUrls(
+            response=self.response,
+            project=project,
+            attachments=attachments,
+            limit=limit,
+            backend_service_provider=self._backend_client,
+            annotation_status=annotation_status,
+        )
+        use_case.execute()
