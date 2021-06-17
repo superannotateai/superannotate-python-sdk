@@ -10,6 +10,7 @@ from typing import Optional
 import src.lib.core as constances
 from src.lib.core.conditions import Condition
 from src.lib.core.conditions import CONDITION_EQ as EQ
+from src.lib.core.entities import FolderEntity
 from src.lib.core.entities import ImageFileEntity
 from src.lib.core.entities import ImageInfoEntity
 from src.lib.core.entities import ProjectEntity
@@ -265,6 +266,32 @@ class UploadImageS3UseCas(BaseUseCase):
         )
 
 
+class CreateFolderUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        folder: FolderEntity,
+        folders: BaseManageableRepository,
+    ):
+        super().__init__(response)
+        self._folder = folder
+        self._folders = folders
+
+    def execute(self):
+        self._response.data = self._folders.insert(self._folder)
+
+    def validate_folder_name(self):
+        if (
+            len(
+                set(self._folder.name).intersection(
+                    constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
+                )
+            )
+            > 0
+        ):
+            raise AppValidationException("New folder name has special characters.")
+
+
 class CloneProjectUseCase(BaseUseCase):
     def __init__(
         self,
@@ -346,7 +373,6 @@ class AttachFileUrls(BaseUseCase):
 
     def execute(self):
         attachments_to_upload = self._attachments[: self._limit]
-        attachments_to_skip = self._attachments[self._limit :]
         attachments_data = []
         for attachment in attachments_to_upload:
             attachments_data.append(

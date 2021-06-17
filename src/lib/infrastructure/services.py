@@ -129,6 +129,16 @@ class SuperannotateBackendService(BaseBackendService):
     URL_SHARE_PROJECT = "project/{}/workflow"
     URL_ANNOTATION_CLASSES = "classes"
 
+    def get_s3_upload_auth_token(self, team_id: int, folder_id: int, project_id: int):
+        auth_token_url = urljoin(
+            self.api_url,
+            self.URL_GET_PROJECT.format(project_id) + "/sdkImageUploadToken",
+        )
+        response = self._request(
+            auth_token_url, "get", params={"team_id": team_id, "folder_id": folder_id}
+        )
+        return response.json()
+
     def get_projects(self, query_string: str = None) -> list:
         url = urljoin(self.api_url, self.URL_LIST_PROJECTS)
         if query_string:
@@ -180,22 +190,19 @@ class SuperannotateBackendService(BaseBackendService):
         create_image_url = urljoin(self.api_url, self.URL_CREATE_IMAGE)
         self._request(create_image_url, "post", data)
 
-    def get_s3_upload_auth_token(self, team_id: int, folder_id: int, project_id: int):
-        auth_token_url = urljoin(
-            self.api_url,
-            self.URL_GET_PROJECT.format(project_id) + "/sdkImageUploadToken",
-        )
-        response = self._request(
-            auth_token_url, "get", params={"team_id": team_id, "folder_id": folder_id}
-        )
-        return response.json()
-
-    def get_folder(self, query_string):
-        get_folder_url = urljoin(
-            self.api_url, self.URL_GET_FOLDER_BY_NAME, query_string
-        )
+    def get_folder(self, query_string: str):
+        get_folder_url = urljoin(self.api_url, self.URL_GET_FOLDER_BY_NAME)
+        if query_string:
+            get_folder_url = f"{get_folder_url}?{query_string}"
         response = self._request(get_folder_url, "get")
         return response.json()
+
+    def create_folder(self, project_id: int, team_id: int, folder_name: str):
+        create_folder_url = urljoin(self.api_url, self.URL_CREATE_FOLDER)
+        data = {"name": folder_name}
+        params = {"project_id": project_id, "team_id": team_id}
+        res = self._request(create_folder_url, "post", data=data, params=params)
+        return res.json()
 
     def get_project_settings(self, project_id: int, team_id: int):
         get_settings_url = urljoin(
