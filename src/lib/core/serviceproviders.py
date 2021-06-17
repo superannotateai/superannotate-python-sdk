@@ -31,3 +31,4 @@ class SuerannotateServiceProvider(ABC):
         self, project_id: int, team_id: int, user_id: int, user_role: int
     ):
         raise NotImplementedError
+

@@ -151,7 +151,6 @@ class FolderEntity(BaseEntity):
         self.project_id = project_id
         self.name = name
         self.parent_id = parent_id
-        self.project_id = project_id
 
     def to_dict(self):
         return {

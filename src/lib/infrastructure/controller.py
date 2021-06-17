@@ -1,4 +1,3 @@
-import copy
 import io
 from typing import List
 
@@ -12,6 +11,7 @@ from src.lib.core.exceptions import AppException
 from src.lib.core.response import Response
 from src.lib.core.usecases import AttachFileUrls
 from src.lib.core.usecases import CloneProjectUseCase
+from src.lib.core.usecases import CreateFolderUseCase
 from src.lib.core.usecases import CreateFolderUseCase
 from src.lib.core.usecases import CreateProjectUseCase
 from src.lib.core.usecases import DeleteProjectUseCase
