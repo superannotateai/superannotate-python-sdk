@@ -12,6 +12,7 @@ from src.lib.core.exceptions import AppException
 from src.lib.core.response import Response
 from src.lib.core.usecases import AttachFileUrls
 from src.lib.core.usecases import CloneProjectUseCase
+from src.lib.core.usecases import CreateFolderUseCase
 from src.lib.core.usecases import CreateProjectUseCase
 from src.lib.core.usecases import DeleteProjectUseCase
 from src.lib.core.usecases import GetProjectsUseCase
@@ -210,3 +211,13 @@ class Controller(BaseController):
             annotation_status=annotation_status,
         )
         use_case.execute()
+
+    def create_folder(self, project: ProjectEntity, folder_name: str):
+        folder = FolderEntity(
+            name=folder_name, project_id=project.uuid, team_id=project.team_id
+        )
+        use_case = CreateFolderUseCase(
+            response=self.response, folder=folder, folders=self.folders
+        )
+        use_case.execute()
+        return self.response
