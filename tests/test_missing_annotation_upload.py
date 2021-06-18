@@ -1,4 +1,5 @@
 import os
+import time
 from pathlib import Path
 
 import pytest
@@ -13,15 +14,16 @@ def test_missing_annotation_upload(tmpdir):
     projects = sa.search_projects(name, return_metadata=True)
     for project in projects:
         sa.delete_project(project)
-
+    time.sleep(2)
     project = sa.create_project(name, description, project_type)
-
+    time.sleep(2)
     sa.upload_images_from_folder_to_project(
         project, from_folder, annotation_status="NotStarted"
     )
     sa.create_annotation_classes_from_classes_json(
         project, from_folder / "classes" / "classes.json"
     )
+    time.sleep(2)
     uploaded, couldnt_upload, missing_images = sa.upload_annotations_from_folder_to_project(
         project, from_folder
     )
@@ -45,9 +47,9 @@ def test_missing_preannotation_upload(tmpdir):
     projects = sa.search_projects(name, return_metadata=True)
     for project in projects:
         sa.delete_project(project)
-
+    time.sleep(2)
     project = sa.create_project(name, description, project_type)
-
+    time.sleep(2)
     sa.upload_images_from_folder_to_project(
         project, from_folder, annotation_status="NotStarted"
     )

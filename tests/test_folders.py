@@ -1,25 +1,24 @@
+import time
 from pathlib import Path
 
 import pytest
 import superannotate as sa
 from superannotate.exceptions import SABaseException
+from .test_assign_images import safe_create_project
+
 
 FROM_FOLDER = Path("./tests/sample_project_vector")
 
 
 def test_basic_folders(tmpdir):
-    PROJECT_NAME = "test folder simple"
-    tmpdir = Path(tmpdir)
-
-    projects_found = sa.search_projects(PROJECT_NAME, return_metadata=True)
-    for pr in projects_found:
-        sa.delete_project(pr)
-
-    project = sa.create_project(PROJECT_NAME, 'test', 'Vector')
+    PROJECT_NAME = "test_basic_folders"
+    project = safe_create_project(PROJECT_NAME)
     project = project["name"]
     sa.upload_images_from_folder_to_project(
         project, FROM_FOLDER, annotation_status="InProgress"
     )
+
+    time.sleep(2)
     images = sa.search_images(project, "example_image_1")
     assert len(images) == 1
 
@@ -30,6 +29,7 @@ def test_basic_folders(tmpdir):
     assert folder_metadata["name"] == "folder1"
 
     folders = sa.search_folders(project, return_metadata=True)
+    time.sleep(2)
     assert len(folders) == 1
 
     assert folders[0]["name"] == "folder1"
@@ -56,12 +56,14 @@ def test_basic_folders(tmpdir):
     sa.upload_images_from_folder_to_project(
         project + "/folder1", FROM_FOLDER, annotation_status="InProgress"
     )
+    time.sleep(2)
     images = sa.search_images(project + "/folder1", "example_image_1")
     assert len(images) == 1
 
     sa.upload_images_from_folder_to_project(
         project + "/folder1", FROM_FOLDER, annotation_status="InProgress"
     )
+    time.sleep(2)
     images = sa.search_images(project + "/folder1")
     assert len(images) == 4
 
@@ -94,13 +96,7 @@ def test_basic_folders(tmpdir):
 
 def test_folder_annotations(tmpdir):
     PROJECT_NAME = "test folder annotations"
-    tmpdir = Path(tmpdir)
-
-    projects_found = sa.search_projects(PROJECT_NAME, return_metadata=True)
-    for pr in projects_found:
-        sa.delete_project(pr)
-
-    project = sa.create_project(PROJECT_NAME, 'test', 'Vector')
+    project = safe_create_project(PROJECT_NAME)
     project = project["name"]
     sa.upload_images_from_folder_to_project(
         project, FROM_FOLDER, annotation_status="InProgress"
@@ -111,6 +107,7 @@ def test_folder_annotations(tmpdir):
     folder_metadata = sa.create_folder(project, "folder1")
     assert folder_metadata["name"] == "folder1"
 
+    time.sleep(2)
     folders = sa.search_folders(project, return_metadata=True)
     assert len(folders) == 1
 
@@ -122,9 +119,9 @@ def test_folder_annotations(tmpdir):
     sa.upload_annotations_from_folder_to_project(
         project + "/" + folders[0]["name"], FROM_FOLDER
     )
+    time.sleep(2)
     annot = sa.get_image_annotations(project, "example_image_1.jpg")
     assert len(annot["annotation_json"]["instances"]) == 0
-
     annot = sa.get_image_annotations(
         project + "/folder1", "example_image_1.jpg"
     )
@@ -134,68 +131,54 @@ def test_folder_annotations(tmpdir):
 def test_delete_folders(tmpdir):
     PROJECT_NAME = "test folder deletes"
 
-    tmpdir = Path(tmpdir)
-
-    projects_found = sa.search_projects(PROJECT_NAME, return_metadata=True)
-    for pr in projects_found:
-        sa.delete_project(pr)
-
-    project = sa.create_project(PROJECT_NAME, 'test', 'Vector')
+    project = safe_create_project(PROJECT_NAME)
     sa.create_folder(project, "folder1")
     sa.create_folder(project, "folder2")
     sa.create_folder(project, "folder3")
+    time.sleep(2)
 
     assert len(sa.search_folders(project)) == 3
 
     sa.delete_folders(project, ["folder1"])
+    time.sleep(2)
     assert len(sa.search_folders(project)) == 2
     sa.delete_folders(project, ["folder2", "folder3"])
+    time.sleep(2)
     assert len(sa.search_folders(project)) == 0
-
     sa.create_folder(project, "folder5")
     sa.create_folder(project, "folder6")
+    time.sleep(2)
     assert len(sa.search_folders(project)) == 2
 
     sa.delete_folders(project, ["folder2", "folder5"])
+    time.sleep(2)
     assert len(sa.search_folders(project)) == 1
     assert sa.search_folders(project)[0] == "folder6"
 
 
 def test_rename_folder(tmpdir):
     PROJECT_NAME = "test rename folder"
-    tmpdir = Path(tmpdir)
-
-    projects_found = sa.search_projects(PROJECT_NAME, return_metadata=True)
-    for pr in projects_found:
-        sa.delete_project(pr)
-
-    project = sa.create_project(PROJECT_NAME, 'test', 'Vector')
+    project = safe_create_project(PROJECT_NAME)
     sa.create_folder(project, "folder1")
     sa.create_folder(project, "folder2")
     sa.create_folder(project, "folder3")
+    time.sleep(2)
 
     assert len(sa.search_folders(project)) == 3
 
     sa.rename_folder(project["name"] + "/folder1", "folder5")
-
+    time.sleep(2)
     assert len(sa.search_folders(project)) == 3
 
     assert "folder5" in sa.search_folders(project)
     assert "folder1" not in sa.search_folders(project)
 
-    print(sa.search_folders(project))
-
 
 def test_project_folder_image_count(tmpdir):
     PROJECT_NAME = "test folder image count"
-    tmpdir = Path(tmpdir)
-
-    projects_found = sa.search_projects(PROJECT_NAME, return_metadata=True)
-    for pr in projects_found:
-        sa.delete_project(pr)
-
-    project = sa.create_project(PROJECT_NAME, 'test', 'Vector')
+    project = safe_create_project(PROJECT_NAME)
     project = project["name"]
+    time.sleep(2)
     sa.upload_images_from_folder_to_project(
         project, FROM_FOLDER, annotation_status="InProgress"
     )
@@ -203,7 +186,7 @@ def test_project_folder_image_count(tmpdir):
     assert num_images == 4
 
     sa.create_folder(project, "folder1")
-
+    time.sleep(2)
     sa.upload_images_from_folder_to_project(
         project + "/folder1", FROM_FOLDER, annotation_status="InProgress"
     )
@@ -219,46 +202,40 @@ def test_project_folder_image_count(tmpdir):
 
 def test_delete_images(tmpdir):
     PROJECT_NAME = "test delete folder images"
-    tmpdir = Path(tmpdir)
 
-    projects_found = sa.search_projects(PROJECT_NAME, return_metadata=True)
-    for pr in projects_found:
-        sa.delete_project(pr)
 
-    project = sa.create_project(PROJECT_NAME, 'test', 'Vector')
+    project = safe_create_project(PROJECT_NAME)
     sa.create_folder(project, "folder1")
     project = project["name"] + "/folder1"
     sa.upload_images_from_folder_to_project(
         project, FROM_FOLDER, annotation_status="InProgress"
     )
+    time.sleep(2)
     num_images = sa.get_project_image_count(project)
     assert num_images == 4
 
     sa.delete_images(project, ["example_image_2.jpg", "example_image_3.jpg"])
-
+    time.sleep(2)
     num_images = sa.get_project_image_count(project)
     assert num_images == 2
 
     sa.delete_images(project, None)
+    time.sleep(2)
     num_images = sa.get_project_image_count(project)
     assert num_images == 0
 
 
 def test_copy_images3(tmpdir, caplog):
     PROJECT_NAME = "test copy3 folder images"
-    tmpdir = Path(tmpdir)
 
-    projects_found = sa.search_projects(PROJECT_NAME, return_metadata=True)
-    for pr in projects_found:
-        sa.delete_project(pr)
-
-    project = sa.create_project(PROJECT_NAME, 'test', 'Vector')
+    project = safe_create_project(PROJECT_NAME)
     sa.upload_images_from_folder_to_project(
         project, FROM_FOLDER, annotation_status="InProgress"
     )
     sa.create_folder(project, "folder1")
     project = PROJECT_NAME + "/folder1"
 
+    time.sleep(2)
     sa.copy_images(
         PROJECT_NAME, ["example_image_2.jpg", "example_image_3.jpg"],
         project,
@@ -268,6 +245,7 @@ def test_copy_images3(tmpdir, caplog):
     )
     assert "Copied 2/2 images from test copy3 folder images to test copy3 folder images/folder1" in caplog.text
 
+    time.sleep(2)
     num_images = sa.get_project_image_count(project)
     assert num_images == 2
 
@@ -277,22 +255,19 @@ def test_copy_images3(tmpdir, caplog):
 
 def test_copy_images4(tmpdir):
     PROJECT_NAME = "test copy4 folder images"
-    tmpdir = Path(tmpdir)
+    project = safe_create_project(PROJECT_NAME, 'test', 'Pixel')
 
-    projects_found = sa.search_projects(PROJECT_NAME, return_metadata=True)
-    for pr in projects_found:
-        sa.delete_project(pr)
-
-    project = sa.create_project(PROJECT_NAME, 'test', 'Pixel')
     sa.upload_images_from_folder_to_project(
         project, FROM_FOLDER, annotation_status="InProgress"
     )
     sa.create_folder(project, "folder1")
     project = PROJECT_NAME + "/folder1"
+    time.sleep(2)
 
     sa.copy_images(
         PROJECT_NAME, ["example_image_2.jpg", "example_image_3.jpg"], project
     )
+    time.sleep(2)
 
     num_images = sa.get_project_image_count(project)
     assert num_images == 2
@@ -364,28 +339,25 @@ def test_copy_images(tmpdir):
 
 def test_move_images(tmpdir):
     PROJECT_NAME = "test move folder images1"
-    tmpdir = Path(tmpdir)
-
-    projects_found = sa.search_projects(PROJECT_NAME, return_metadata=True)
-    for pr in projects_found:
-        sa.delete_project(pr)
-
-    project = sa.create_project(PROJECT_NAME, 'test', 'Vector')
+    project = safe_create_project(PROJECT_NAME)
     sa.create_folder(project, "folder1")
     project = PROJECT_NAME + "/folder1"
+    time.sleep(2)
     sa.upload_images_from_folder_to_project(
         project, FROM_FOLDER, annotation_status="InProgress"
     )
+    time.sleep(2)
     num_images = sa.get_project_image_count(project)
     assert num_images == 4
 
     sa.create_folder(PROJECT_NAME, "folder2")
+    time.sleep(2)
     project2 = PROJECT_NAME + "/folder2"
     num_images = sa.get_project_image_count(project2)
     assert num_images == 0
 
     sa.move_images(project, ["example_image_2.jpg"], project2)
-
+    time.sleep(2)
     num_images = sa.get_project_image_count(project2)
     assert num_images == 1
 
@@ -406,28 +378,26 @@ def test_move_images(tmpdir):
 
 def test_move_images2(tmpdir):
     PROJECT_NAME = "test move folder images2"
-    tmpdir = Path(tmpdir)
 
-    projects_found = sa.search_projects(PROJECT_NAME, return_metadata=True)
-    for pr in projects_found:
-        sa.delete_project(pr)
-
-    project = sa.create_project(PROJECT_NAME, 'test', 'Vector')
+    project = safe_create_project(PROJECT_NAME)
     sa.create_folder(project, "folder1")
     project = PROJECT_NAME + "/folder1"
+    time.sleep(2)
     sa.upload_images_from_folder_to_project(
         project, FROM_FOLDER, annotation_status="InProgress"
     )
+    time.sleep(2)
     num_images = sa.get_project_image_count(project)
     assert num_images == 4
 
     sa.create_folder(PROJECT_NAME, "folder2")
+    time.sleep(2)
     project2 = PROJECT_NAME + "/folder2"
     num_images = sa.get_project_image_count(project2)
     assert num_images == 0
 
     sa.move_images(project, None, project2)
-
+    time.sleep(2)
     num_images = sa.get_project_image_count(project2)
     assert num_images == 4
 
@@ -436,33 +406,31 @@ def test_move_images2(tmpdir):
 
 
 def test_copy_images2(tmpdir):
-    PROJECT_NAME = "test copy folder annotation images"
-    tmpdir = Path(tmpdir)
-
-    projects_found = sa.search_projects(PROJECT_NAME, return_metadata=True)
-    for pr in projects_found:
-        sa.delete_project(pr)
-
-    project = sa.create_project(PROJECT_NAME, 'test', 'Vector')
+    PROJECT_NAME = "test copy folder annotation images2"
+    project = safe_create_project(PROJECT_NAME, 'test', 'Vector')
     sa.create_annotation_classes_from_classes_json(
         project, FROM_FOLDER / "classes" / "classes.json"
     )
     sa.create_folder(project, "folder1")
     project = PROJECT_NAME + "/folder1"
+    time.sleep(2)
     sa.upload_images_from_folder_to_project(
         project, FROM_FOLDER, annotation_status="InProgress"
     )
-
+    time.sleep(2)
     sa.upload_annotations_from_folder_to_project(project, FROM_FOLDER)
+    time.sleep(2)
     num_images = sa.get_project_image_count(project)
     assert num_images == 4
 
     sa.create_folder(PROJECT_NAME, "folder2")
+    time.sleep(2)
     project2 = PROJECT_NAME + "/folder2"
     num_images = sa.get_project_image_count(project2)
     assert num_images == 0
 
     sa.pin_image(project, "example_image_2.jpg")
+    time.sleep(2)
 
     im1 = sa.get_image_metadata(project, "example_image_2.jpg")
     assert im1["is_pinned"] == 1
@@ -471,6 +439,7 @@ def test_copy_images2(tmpdir):
     sa.copy_images(
         project, ["example_image_2.jpg", "example_image_3.jpg"], project2
     )
+    time.sleep(2)
 
     num_images = sa.get_project_image_count(project2)
     assert num_images == 2
@@ -492,11 +461,8 @@ def test_folder_export(tmpdir):
     PROJECT_NAME = "test folder export"
     tmpdir = Path(tmpdir)
 
-    projects_found = sa.search_projects(PROJECT_NAME, return_metadata=True)
-    for pr in projects_found:
-        sa.delete_project(pr)
+    project = safe_create_project(PROJECT_NAME)
 
-    project = sa.create_project(PROJECT_NAME, 'test', 'Vector')
     sa.create_annotation_classes_from_classes_json(
         project, FROM_FOLDER / "classes" / "classes.json"
     )
@@ -505,22 +471,26 @@ def test_folder_export(tmpdir):
     )
     sa.create_folder(project, "folder1")
     project = PROJECT_NAME + "/folder1"
+    time.sleep(2)
     sa.upload_images_from_folder_to_project(
         project, FROM_FOLDER, annotation_status="InProgress"
     )
 
     sa.upload_annotations_from_folder_to_project(project, FROM_FOLDER)
+    time.sleep(2)
     num_images = sa.get_project_image_count(project)
     assert num_images == 4
 
     sa.create_folder(PROJECT_NAME, "folder2")
     project2 = PROJECT_NAME + "/folder2"
+    time.sleep(2)
     num_images = sa.get_project_image_count(project2)
     assert num_images == 0
 
     sa.copy_images(
         project, ["example_image_2.jpg", "example_image_3.jpg"], project2
     )
+    time.sleep(2)
 
     export = sa.prepare_export(PROJECT_NAME, ["folder1", "folder2"])
     sa.download_export(project, export, tmpdir)
@@ -549,11 +519,7 @@ def test_folder_image_annotation_status(tmpdir):
     PROJECT_NAME = "test folder set annotation status"
     tmpdir = Path(tmpdir)
 
-    projects_found = sa.search_projects(PROJECT_NAME, return_metadata=True)
-    for pr in projects_found:
-        sa.delete_project(pr)
-
-    project = sa.create_project(PROJECT_NAME, 'test', 'Vector')
+    project = safe_create_project(PROJECT_NAME)
     sa.create_annotation_classes_from_classes_json(
         project, FROM_FOLDER / "classes" / "classes.json"
     )
@@ -562,6 +528,7 @@ def test_folder_image_annotation_status(tmpdir):
     )
     sa.create_folder(project, "folder1")
     project = PROJECT_NAME + "/folder1"
+    time.sleep(2)
     sa.upload_images_from_folder_to_project(
         project, FROM_FOLDER, annotation_status="InProgress"
     )
@@ -569,6 +536,8 @@ def test_folder_image_annotation_status(tmpdir):
     sa.set_images_annotation_statuses(
         project, ["example_image_1.jpg", "example_image_2.jpg"], "QualityCheck"
     )
+
+    time.sleep(2)
 
     for image in ["example_image_1.jpg", "example_image_2.jpg"]:
         metadata = sa.get_image_metadata(project, image)
@@ -580,6 +549,7 @@ def test_folder_image_annotation_status(tmpdir):
 
     sa.set_images_annotation_statuses(PROJECT_NAME, None, "QualityCheck")
 
+    time.sleep(2)
     for image in sa.search_images(PROJECT_NAME):
         metadata = sa.get_image_metadata(PROJECT_NAME, image)
         assert metadata["annotation_status"] == "QualityCheck"
@@ -587,18 +557,16 @@ def test_folder_image_annotation_status(tmpdir):
 
 def test_folder_misnamed(tmpdir):
     PROJECT_NAME = "test folder misnamed"
-    tmpdir = Path(tmpdir)
 
-    projects_found = sa.search_projects(PROJECT_NAME, return_metadata=True)
-    for pr in projects_found:
-        sa.delete_project(pr)
-
-    project = sa.create_project(PROJECT_NAME, 'test', 'Vector')
+    project = safe_create_project(PROJECT_NAME)
     sa.create_folder(project, "folder1")
+    time.sleep(1)
     assert "folder1" in sa.search_folders(project)
 
     sa.create_folder(project, "folder1")
+    time.sleep(1)
     assert "folder1 (1)" in sa.search_folders(project)
 
     sa.create_folder(project, "folder2\\")
+    time.sleep(1)
     assert "folder2_" in sa.search_folders(project)

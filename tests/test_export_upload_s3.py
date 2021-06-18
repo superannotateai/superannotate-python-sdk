@@ -1,8 +1,10 @@
+import time
 from pathlib import Path
 
 import boto3
 
 import superannotate as sa
+from .test_assign_images import safe_create_project
 
 from .common import upload_project
 s3_client = boto3.client('s3')
@@ -12,6 +14,7 @@ S3_PREFIX2 = 'frex_temp'
 S3_BUCKET = 'superannotate-python-sdk-test'
 PROJECT_NAME_EXPORT = "Example project test export upload s3 export "
 PROJECT_NAME_UPLOAD = "Example project test export upload s3 upload"
+
 
 
 def test_export_s3(tmpdir):
@@ -70,11 +73,7 @@ def test_export_s3(tmpdir):
 
 
 def test_from_s3_upload():
-    projects = sa.search_projects(PROJECT_NAME_UPLOAD, return_metadata=True)
-    for project in projects:
-        sa.delete_project(project)
-
-    project = sa.create_project(PROJECT_NAME_UPLOAD, "hk", "Vector")
+    project = safe_create_project(PROJECT_NAME_UPLOAD, "hk", "Vector")
     sa.create_annotation_classes_from_classes_json(
         project, "frex9/classes/classes.json", S3_BUCKET
     )
@@ -85,4 +84,5 @@ def test_from_s3_upload():
         annotation_status="QualityCheck",
         from_s3_bucket=S3_BUCKET
     )
+    time.sleep(2)
     assert len(sa.search_images(project)) == 4

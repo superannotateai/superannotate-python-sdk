@@ -1,3 +1,4 @@
+import time
 from pathlib import Path
 from mixpanel import json_dumps
 
@@ -154,10 +155,12 @@ def test_upload_annotations_with_template_id(tmpdir):
     project_name = "test_templates"
     for project in sa.search_projects(project_name):
         sa.delete_project(project)
+    time.sleep(2)
     project = sa.create_project(project_name, "test", "Vector")
     sa.upload_images_from_folder_to_project(
         project, "./tests/sample_coco_with_templates"
     )
+    time.sleep(2)
     input_dir = Path("tests") / "sample_coco_with_templates"
     out_path = Path(
         tmpdir
@@ -168,5 +171,6 @@ def test_upload_annotations_with_template_id(tmpdir):
         "keypoint_detection"
     )
     sa.upload_annotations_from_folder_to_project(project, out_path)
+    time.sleep(2)
     image_metadata = sa.get_image_annotations(project_name, "t.png")
     assert image_metadata['annotation_json']['instances'][0]['templateId'] == -1

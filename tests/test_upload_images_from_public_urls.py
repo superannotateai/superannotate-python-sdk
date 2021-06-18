@@ -1,7 +1,8 @@
+import time
 from pathlib import Path
 
 import superannotate as sa
-
+from .test_assign_images import safe_create_project
 
 def test_upload_images_from_public_urls_to_project():
     PROJECT_NAME = 'test_public_links_upload1'
@@ -14,15 +15,14 @@ def test_upload_images_from_public_urls_to_project():
         'https://www.pexels.com/photo/3702354/dwnload/', '', 'test_non_url'
     ]
 
-    if sa.search_projects(PROJECT_NAME) != []:
-        sa.delete_project(PROJECT_NAME)
-    proj_data = sa.create_project(PROJECT_NAME, "test", "Vector")
+    proj_data = safe_create_project(PROJECT_NAME)
     uploaded_urls, uploaded_filenames, duplicate_filenames, not_uploaded_urls = sa.upload_images_from_public_urls_to_project(
         proj_data,
         test_img_list,
         annotation_status='InProgress',
         image_quality_in_editor="original"
     )
+    time.sleep(2)
     images_in_project = sa.search_images(
         proj_data, annotation_status='InProgress'
     )
@@ -49,10 +49,7 @@ def test_upload_images_from_public_to_project_with_image_name():
 
     img_name_list = ['img1.jpg', 'img2.jpg', 'img3.jpg', 'img4.jpg', 'img5.jpg']
 
-    if sa.search_projects(PROJECT_NAME) != []:
-        sa.delete_project(PROJECT_NAME)
-
-    proj_data = sa.create_project(PROJECT_NAME, "test", "Vector")
+    proj_data = safe_create_project(PROJECT_NAME)
     uploaded_urls, uploaded_filenames, duplicate_filenames, not_uploaded_urls = sa.upload_images_from_public_urls_to_project(
         proj_data,
         test_img_list,
