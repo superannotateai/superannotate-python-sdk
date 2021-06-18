@@ -1,22 +1,21 @@
-import os
 import io
-from pathlib import Path
 import logging
+import os
+from pathlib import Path
 
 import lib.core as constances
 from lib.infrastructure.controller import Controller
-from src.lib.infrastructure.services import SuperannotateBackendService
-from src.lib.infrastructure.repositories import ConfigRepository
 from src.lib.core.conditions import Condition
 from src.lib.core.conditions import CONDITION_EQ as EQ
 from src.lib.core.response import Response
+from src.lib.infrastructure.repositories import ConfigRepository
+from src.lib.infrastructure.services import SuperannotateBackendService
 
 
 logger = logging.getLogger()
 
 
 class BaseCLIFacade:
-
     @property
     def controller(self):
         return Controller(
@@ -24,45 +23,43 @@ class BaseCLIFacade:
                 api_url=constances.BACKEND_URL,
                 auth_token=ConfigRepository().get_one("token"),
                 logger=logger,
-
             ),
             response=Response(),
-
         )
 
 
 class CLIFacade(BaseCLIFacade):
-    def create_project(self, project_name: str, project_description: str, project_type: str) -> dict:
+    def create_project(
+        self, project_name: str, project_description: str, project_type: str
+    ) -> dict:
         project_type = constances.ProjectType[project_type.upper()].value
-        response = self.controller.create_project(project_name, project_description, project_type)
+        response = self.controller.create_project(
+            project_name, project_description, project_type
+        )
         if response.errors:
             return response.errors
         return response.data
 
     def upload_images_from_folder_to_project(
-            self,
-            project: str,
-            folder_path: str,
-            extensions: str = constances.DEFAULT_IMAGE_EXTENSIONS,
-            annotation_status: str = constances.AnnotationStatus.NOT_STARTED.value,
-            exclude_file_patterns=constances.DEFAULT_FILE_EXCLUDE_PATTERNS,
-            recursive_subfolders=False,
-            image_quality_in_editor=None
+        self,
+        project: str,
+        folder_path: str,
+        extensions: str = constances.DEFAULT_IMAGE_EXTENSIONS,
+        annotation_status: str = constances.AnnotationStatus.NOT_STARTED.value,
+        exclude_file_patterns=constances.DEFAULT_FILE_EXCLUDE_PATTERNS,
+        recursive_subfolders=False,
+        image_quality_in_editor=None,
     ):
         paths = []
         for extension in extensions:
             if not recursive_subfolders:
-                paths += list(Path(folder_path).glob(f'*.{extension.lower()}'))
+                paths += list(Path(folder_path).glob(f"*.{extension.lower()}"))
                 if os.name != "nt":
-                    paths += list(
-                        Path(folder_path).glob(f'*.{extension.upper()}')
-                    )
+                    paths += list(Path(folder_path).glob(f"*.{extension.upper()}"))
             else:
-                paths += list(Path(folder_path).rglob(f'*.{extension.lower()}'))
+                paths += list(Path(folder_path).rglob(f"*.{extension.lower()}"))
                 if os.name != "nt":
-                    paths += list(
-                        Path(folder_path).rglob(f'*.{extension.upper()}')
-                    )
+                    paths += list(Path(folder_path).rglob(f"*.{extension.upper()}"))
 
         filtered_paths = []
         for path in paths:
@@ -73,9 +70,9 @@ class CLIFacade(BaseCLIFacade):
                 filtered_paths.append(path)
 
         controller = self.controller
-        project_list_condition = Condition(
-            "project_name", project, EQ
-        ) & Condition("team_id", controller.team_id, EQ)
+        project_list_condition = Condition("project_name", project, EQ) & Condition(
+            "team_id", controller.team_id, EQ
+        )
         projects = controller.projects.get_all(condition=project_list_condition)
         if projects:
             project = projects[0]
@@ -83,9 +80,9 @@ class CLIFacade(BaseCLIFacade):
                 folder_id = project.folder_id
             else:
                 folder_condition = (
-                        Condition("project_id", project.uuid, EQ)
-                        & Condition("team_id", controller.team_id, EQ)
-                        & Condition("name", folder_path, EQ)
+                    Condition("project_id", project.uuid, EQ)
+                    & Condition("team_id", controller.team_id, EQ)
+                    & Condition("name", folder_path, EQ)
                 )
                 folder_id = controller.folders.get_one(folder_condition).uuid
             image_info_entities = []
@@ -97,7 +94,7 @@ class CLIFacade(BaseCLIFacade):
                     project=project,
                     image_path=image_path,
                     image=file,
-                    folder_id=folder_id
+                    folder_id=folder_id,
                 )
                 image_info_entities.append(response.data)
 
@@ -106,5 +103,5 @@ class CLIFacade(BaseCLIFacade):
                     project=project,
                     images=image_info_entities,
                     annotation_status=annotation_status,
-                    image_quality=image_quality_in_editor
+                    image_quality=image_quality_in_editor,
                 )

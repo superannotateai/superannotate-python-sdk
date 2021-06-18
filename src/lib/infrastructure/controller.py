@@ -1,3 +1,4 @@
+import copy
 import io
 from typing import List
 
@@ -8,17 +9,20 @@ from src.lib.core.entities import ImageInfoEntity
 from src.lib.core.entities import ProjectEntity
 from src.lib.core.exceptions import AppException
 from src.lib.core.response import Response
+from src.lib.core.usecases import CloneProjectUseCase
 from src.lib.core.usecases import CreateProjectUseCase
 from src.lib.core.usecases import DeleteProjectUseCase
 from src.lib.core.usecases import GetProjectsUseCase
 from src.lib.core.usecases import ImageUploadUseCas
 from src.lib.core.usecases import UpdateProjectUseCase
 from src.lib.core.usecases import UploadImageS3UseCas
+from src.lib.infrastructure.repositories import AnnotationClassRepository
 from src.lib.infrastructure.repositories import ConfigRepository
 from src.lib.infrastructure.repositories import FolderRepository
 from src.lib.infrastructure.repositories import ProjectRepository
 from src.lib.infrastructure.repositories import ProjectSettingsRepository
 from src.lib.infrastructure.repositories import S3Repository
+from src.lib.infrastructure.repositories import WorkflowRepository
 from src.lib.infrastructure.services import SuperannotateBackendService
 
 
@@ -156,7 +160,29 @@ class Controller(BaseController):
         copy_workflow=True,
         copy_contributors=False,
     ):
-        raise NotImplementedError
+        projects = self.projects.get_all(Condition("project_name", from_name, EQ))
+        if projects:
+            project_to_create = copy.copy(projects[0])
+            project_to_create.name = name
+            project_to_create.description = project_description
+            use_case = CloneProjectUseCase(
+                self.response,
+                project=projects[0],
+                project_to_create=project_to_create,
+                projects=self.projects,
+                settings=ProjectSettingsRepository(self._backend_client, projects[0]),
+                workflows=WorkflowRepository(self._backend_client, projects[0]),
+                annotation_classes=AnnotationClassRepository(
+                    self._backend_client, projects[0]
+                ),
+                backend_service_provider=self._backend_client,
+                include_contributors=copy_contributors,
+                include_settings=copy_settings,
+                include_workflow=copy_workflow,
+                include_annotation_classes=copy_annotation_classes,
+            )
+            use_case.execute()
+        return self.response
 
     def get_project_metadata(
         self,
