@@ -218,6 +218,24 @@ class FolderRepository(BaseReadOnlyRepository):
     def get_all(self, condition: Optional[Condition] = None) -> List[FolderEntity]:
         raise NotImplementedError
 
+    def insert(self, entity: FolderEntity) -> FolderEntity:
+        res = self._service.create_folder(
+            project_id=entity.project_id,
+            team_id=entity.team_id,
+            folder_name=entity.name,
+        )
+        return self.dict2entity(res)
+
+    @staticmethod
+    def dict2entity(data: dict):
+        return FolderEntity(
+            uuid=data["id"],
+            team_id=data["team_id"],
+            project_id=data["project_id"],
+            name=data["name"],
+            parent_id=data["parent_id"],
+        )
+
 
 class AnnotationClassRepository(BaseManageableRepository):
     def __init__(self, service: SuperannotateBackendService, project: ProjectEntity):
