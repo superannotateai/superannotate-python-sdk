@@ -10,6 +10,7 @@ from src.lib.core.conditions import Condition
 from src.lib.core.entities import AnnotationClassEntity
 from src.lib.core.entities import ConfigEntity
 from src.lib.core.entities import FolderEntity
+from src.lib.core.entities import ImageEntity
 from src.lib.core.entities import ImageFileEntity
 from src.lib.core.entities import ProjectEntity
 from src.lib.core.entities import ProjectSettingEntity
@@ -248,4 +249,30 @@ class AnnotationClassRepository(BaseManageableRepository):
             name=data["name"],
             count=data["count"],
             attribute_groups=data["attribute_groups"],
+        )
+
+
+class ImageRepositroy(BaseManageableRepository):
+    def __init__(self, service: SuperannotateBackendService):
+        self._service = service
+
+    def get_one(self, uuid: int) -> ImageEntity:
+        raise NotImplementedError
+
+    def get_all(self, condition: Optional[Condition] = None) -> List[ImageEntity]:
+        images = self._service.get_images(condition.build_query())
+        return [self.dict2entity(image) for image in images]
+
+    @staticmethod
+    def dict2entity(data: dict):
+        return ImageEntity(
+            uuid=data["id"],
+            name=data["name"],
+            path=data["path"],
+            project_id=data["project_id"],
+            team_id=data["team_id"],
+            annotation_status_code=data["annotation_status"],
+            folder_id=data["folder_id"],
+            annotator_id=data["annotator_id"],
+            annotator_name=data["annotator_name"],
         )
