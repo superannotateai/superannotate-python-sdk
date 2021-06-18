@@ -4,7 +4,7 @@ from types import DynamicClassAttribute
 
 class BaseTitledEnum(Enum):
     @DynamicClassAttribute
-    def name(self):
+    def name(self) -> str:
         return super().value[0]
 
     @DynamicClassAttribute
@@ -36,7 +36,7 @@ class AnnotationStatus(BaseTitledEnum):
     IN_PROGRESS = "InProgress", 2
     COMPLETED = "Completed", 3
     QUALITY_CHECK = "QualityCheck", 4
-    RETURNED = "Returned", 45
+    RETURNED = "Returned", 5
 
 
 class TrainingStatus(BaseTitledEnum):

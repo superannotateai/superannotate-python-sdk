@@ -151,7 +151,6 @@ class FolderEntity(BaseEntity):
         self.project_id = project_id
         self.name = name
         self.parent_id = parent_id
-        self.project_id = project_id
 
     def to_dict(self):
         return {
@@ -232,8 +231,9 @@ class ImageInfoEntity(BaseEntity):
             "name": self.name,
             "path": self.path,
             "width": self.width,
-            "height": self.height
+            "height": self.height,
         }
+
 
 class AnnotationClassEntity(BaseEntity):
     def __init__(
