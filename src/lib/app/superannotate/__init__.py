@@ -40,3 +40,6 @@ __all__ = [
     "delete_contributor_to_team_invitation",
     "search_team_contributors",
 ]
+
+
+get_team_metadata()
