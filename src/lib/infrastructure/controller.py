@@ -87,9 +87,15 @@ class BaseController:
 
 
 class Controller(BaseController):
-    def search_project(self, name: str) -> Response:
+    def search_project(self, name: str, **kwargs) -> Response:
+        condition = Condition("project_name", name, EQ)
+        for key, val in kwargs.items():
+            condition = condition & Condition(key, val, EQ)
         use_case = GetProjectsUseCase(
-            self.response, Condition("project_name", name, EQ), self.projects
+            response=self.response,
+            condition=condition,
+            projects=self.projects,
+            team_id=self.team_id,
         )
         use_case.execute()
         return self.response
