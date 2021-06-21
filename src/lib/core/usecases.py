@@ -88,11 +88,6 @@ class CreateProjectUseCase(BaseUseCase):
         super().__init__(response)
         self._project = project
         self._projects = projects
-        self._settings = settings
-        self._workflows = workflows
-        self._annotation_classes = annotation_classes
-        self._contributors = contributors
-        self._backend_service = backend_service_provider
 
     def execute(self):
         if self.is_valid():
