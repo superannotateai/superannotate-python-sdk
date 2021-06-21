@@ -10,7 +10,8 @@ from src.lib.core.enums import UserRole
 
 
 CONFIG_FILE_LOCATION = str(Path.home() / ".superannotate" / "config.ini")
-BACKEND_URL = "https://api.annotate.online"
+# BACKEND_URL = "https://api.annotate.online"
+BACKEND_URL = "https://api.devsuperannotate.com"
 
 DEFAULT_IMAGE_EXTENSIONS = ("jpg", "jpeg", "png", "tif", "tiff", "webp", "bmp")
 DEFAULT_FILE_EXCLUDE_PATTERNS = ("___save.png", "___fuse.png")

@@ -15,7 +15,7 @@ class SuerannotateServiceProvider(ABC):
         files: List[Dict],
         annotation_status_code: int,
         upload_state_code: int,
-        meta: Dict[Any],
+        meta: Dict,
         annotation_json_path: str,
         annotation_bluemap_path: str,
     ):
@@ -43,4 +43,16 @@ class SuerannotateServiceProvider(ABC):
         include_fuse: bool,
         only_pinned: bool,
     ):
+        raise NotImplementedError
+
+    @abstractmethod
+    def invite_contributor(self, team_id: int, email: str, user_role: str):
+        raise NotImplementedError
+
+    @abstractmethod
+    def delete_team_invitation(self, team_id: int, token: str, email: str):
+        raise NotImplementedError
+
+    @abstractmethod
+    def search_team_contributors(self, team_id: int, query_string: str = None):
         raise NotImplementedError

@@ -6,7 +6,7 @@ class Response:
 
     @property
     def data(self):
-        return self.data
+        return self._data
 
     @data.setter
     def data(self, value):
