@@ -1,4 +1,3 @@
-from abc import abstractmethod
 from contextlib import contextmanager
 from datetime import datetime
 from typing import Dict
@@ -23,17 +22,17 @@ class BaseBackendService(SuerannotateServiceProvider):
 
     def __init__(self, api_url, auth_token, logger, paginate_by=None):
         self.api_url = api_url
-        self._auth_token = auth_token
+        self._auth_token = auth_token.value
         self.logger = logger
         self._paginate_by = paginate_by
-        self.team_id = auth_token.split("=")[-1]
+        self.team_id = auth_token.value.split("=")[-1]
 
     @property
     def default_headers(self):
         return {
             "Authorization": self._auth_token,
             "authtype": self.AUTH_TYPE,
-            "User-Agent": constance.__version__,
+            # "User-Agent": constance.__version__,
         }
 
     @property
@@ -99,20 +98,6 @@ class BaseBackendService(SuerannotateServiceProvider):
             offset += self.paginate_by
         return total
 
-    @abstractmethod
-    def create_image(
-        self,
-        project_id,
-        team_id,
-        images,
-        annotation_status_code,
-        upload_state_code,
-        meta,
-        annotation_json_path,
-        annotation_bluemap_path,
-    ):
-        raise NotImplementedError
-
 
 class SuperannotateBackendService(BaseBackendService):
     """
@@ -126,13 +111,14 @@ class SuperannotateBackendService(BaseBackendService):
     URL_GET_PROJECT = "project/{}"
     URL_GET_FOLDER_BY_NAME = "folder/getFolderByName"
     URL_CREATE_FOLDER = "folder/getFolderByName"
-    URL_CREATE_IMAGE = "/image/ext-create"
     URL_GET_PROJECT_SETTIGNS = "/project/{}/settings"
     URL_CREATE_IMAGE = "image/ext-create"
     URL_PROJECT_SETTIGNS = "project/{}/settings"
     URL_PROJECT_WORKFLOW = "project/{}/workflow"
     URL_SHARE_PROJECT = "project/{}/workflow"
     URL_ANNOTATION_CLASSES = "classes"
+    URL_TEAM = "team"
+    URL_INVITE_CONTRIBUTOR = "team/{}/invite"
 
     def get_s3_upload_auth_token(self, team_id: int, folder_id: int, project_id: int):
         auth_token_url = urljoin(
@@ -171,7 +157,7 @@ class SuperannotateBackendService(BaseBackendService):
         )
         return res.ok
 
-    def attach_file(
+    def attach_files(
         self,
         project_id: int,
         team_id: int,
@@ -280,17 +266,12 @@ class SuperannotateBackendService(BaseBackendService):
         )
         return res.json()
 
-    def search_team_contributors(
-        self, team_id: int, email=None, first_name=None, last_name=None,
-    ):
+    def search_team_contributors(self, team_id: int, query_string: str = None):
+
         list_users_url = urljoin(self.api_url, self.URL_USERS)
+        if query_string:
+            list_users_url = f"{list_users_url}?{query_string}"
         params = {"team_id": team_id}
-        if email is not None:
-            params["email"] = email
-        if first_name is not None:
-            params["first_name"] = first_name
-        if last_name is not None:
-            params["last_name"] = last_name
         return self._get_all_pages(list_users_url, params=params)
 
     def un_share_project(self, project_id: int, team_id: int, user_id: int):
@@ -317,6 +298,7 @@ class SuperannotateBackendService(BaseBackendService):
         include_fuse: bool,
         only_pinned: bool,
     ):
+        # todo add URL_PREPARE_EXPORT
         prepare_export_url = urljoin(self.api_url, self.URL_PREPARE_EXPORT)
         annotation_status_codes = ",".join(
             [constance.AnnotationStatus[status].value for status in annotation_statuses]
@@ -339,3 +321,28 @@ class SuperannotateBackendService(BaseBackendService):
             params={"project_id": project_id, "team_id": team_id},
         )
         return res.json()
+
+    def get_team(self, team_id: int):
+        get_team_url = urljoin(self.api_url, f"{self.URL_TEAM}/{team_id}")
+        res = self._request(get_team_url, "get")
+        return res.json()
+
+    def invite_contributor(self, team_id: int, email: str, user_role: str) -> bool:
+        invite_contributor_url = urljoin(
+            self.api_url, self.URL_INVITE_CONTRIBUTOR.format(team_id)
+        )
+        res = self._request(
+            invite_contributor_url,
+            "post",
+            data={"email": email, "user_role": user_role},
+        )
+        return res.ok
+
+    def delete_team_invitation(self, team_id: int, token: str, email: str) -> bool:
+        invite_contributor_url = urljoin(
+            self.api_url, self.URL_INVITE_CONTRIBUTOR.format(team_id)
+        )
+        res = self._request(
+            invite_contributor_url, "delete", data={"token": token, "e_mail": email}
+        )
+        return res.ok

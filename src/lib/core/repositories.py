@@ -10,7 +10,7 @@ from src.lib.core.entities import BaseEntity
 
 class BaseReadOnlyRepository(ABC):
     @abstractmethod
-    def get_one(self, uuid: Any) -> BaseEntity:
+    def get_one(self, uuid: Any) -> Optional[BaseEntity]:
         raise NotImplementedError
 
     @abstractmethod

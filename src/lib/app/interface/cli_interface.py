@@ -13,6 +13,7 @@ logger = logging.getLogger()
 
 
 class CLIFacade(BaseInterfaceFacade):
+
     def create_project(
         self, project_name: str, project_description: str, project_type: str
     ) -> dict:

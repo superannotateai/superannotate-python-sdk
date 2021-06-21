@@ -265,3 +265,65 @@ class AnnotationClassEntity(BaseEntity):
             "name": self.name,
             "project_id": self.project_id,
         }
+
+
+class UserEntity(BaseEntity):
+    def __init__(
+        self,
+        uuid: int = None,
+        first_name: str = None,
+        last_name: str = None,
+        email: str = None,
+        picture: int = None,
+        user_role: int = None,
+    ):
+        super().__init__(uuid)
+        self.first_name = first_name
+        self.last_name = last_name
+        self.email = email
+        self.picture = picture
+        self.user_role = user_role
+
+    def to_dict(self):
+        return {
+            "id": self.uuid,
+            "first_name": self.first_name,
+            "last_name": self.last_name,
+            "email": self.email,
+            "picture": self.picture,
+            "user_role": self.user_role,
+        }
+
+
+class TeamEntity(BaseEntity):
+    def __init__(
+        self,
+        uuid: int = None,
+        name: str = None,
+        description: str = None,
+        team_type: int = None,
+        user_role: int = None,
+        is_default: bool = None,
+        users: List[UserEntity] = None,
+        pending_invitations: List = None,
+    ):
+        super().__init__(uuid)
+        self.name = name
+        self.description = description
+        self.team_type = team_type
+        self.user_role = user_role
+        self.is_default = is_default
+        self.users = users
+        self.pending_invitations = pending_invitations
+
+    def to_dict(self):
+        return {
+            "id": self.uuid,
+            "name": self.name,
+            "description": self.description,
+            "type": self.team_type,
+            "user_role": self.user_role,
+            "is_default": self.is_default,
+            "users": [user.to_dict() for user in self.users],
+            "pending_invitations": self.pending_invitations,
+        }

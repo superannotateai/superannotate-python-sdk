@@ -14,9 +14,12 @@ from src.lib.core.entities import FolderEntity
 from src.lib.core.entities import ImageFileEntity
 from src.lib.core.entities import ImageInfoEntity
 from src.lib.core.entities import ProjectEntity
+from src.lib.core.entities import TeamEntity
+from src.lib.core.exceptions import AppException
 from src.lib.core.exceptions import AppValidationException
 from src.lib.core.plugin import ImagePlugin
 from src.lib.core.repositories import BaseManageableRepository
+from src.lib.core.repositories import BaseReadOnlyRepository
 from src.lib.core.response import Response
 from src.lib.core.serviceproviders import SuerannotateServiceProvider
 
@@ -134,6 +137,7 @@ class ImageUploadUseCas(BaseUseCase):
         self,
         response: Response,
         project: ProjectEntity,
+        project_settings: BaseReadOnlyRepository,
         backend_service_provider: SuerannotateServiceProvider,
         images: List[ImageInfoEntity],
         upload_path: str,
@@ -142,6 +146,7 @@ class ImageUploadUseCas(BaseUseCase):
     ):
         super().__init__(response)
         self._project = project
+        self._project_settings = project_settings
         self._backend = backend_service_provider
         self._images = images
         self._annotation_status = annotation_status
@@ -151,8 +156,13 @@ class ImageUploadUseCas(BaseUseCase):
     @property
     def image_quality(self):
         if not self._image_quality:
-            # todo return from project settings
-            pass
+            for setting in self._project_settings.get_all():
+                if setting.attribute == "ImageQuality":
+                    if setting.value == 60:
+                        return "compressed"
+                    elif setting.value == 100:
+                        return "original"
+                    raise AppException("NA ImageQuality value")
         return self._image_quality
 
     @property
@@ -420,5 +430,82 @@ class PrepareExportUseCase(BaseUseCase):
             annotation_statuses=self._annotation_statuses,
             include_fuse=self._include_fuse,
             only_pinned=self._only_pinned,
+        )
+        self._response.data = res
+
+
+class GetTeamUseCase(BaseUseCase):
+    def __init__(self, response: Response, teams: BaseReadOnlyRepository, team_id: int):
+        super().__init__(response)
+        self._teams = teams
+        self._team_id = team_id
+
+    def execute(self):
+        self._response.data = self._teams.get_one(self._team_id)
+
+
+class InviteContributorUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        backend_service_provider: SuerannotateServiceProvider,
+        email: str,
+        team_id: int,
+        is_admin: bool = False,
+    ):
+        super().__init__(response)
+        self._backend_service = backend_service_provider
+        self._email = email
+        self._team_id = team_id
+        self._is_admin = is_admin
+
+    def execute(self):
+        role = (
+            constances.UserRole.ADMIN.value
+            if self._is_admin
+            else constances.UserRole.ANNOTATOR.value
+        )
+        self._backend_service.invite_contributor(
+            team_id=self._team_id, email=self._email, user_role=role
+        )
+
+
+class DeleteContributorInvitationUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        backend_service_provider: SuerannotateServiceProvider,
+        team: TeamEntity,
+        email: str,
+    ):
+        super().__init__(response)
+        self._backend_service = backend_service_provider
+        self._email = email
+        self._team = team
+
+    def execute(self):
+        for invite in self._team.pending_invitations:
+            if invite["email"] == self._email:
+                self._backend_service.delete_team_invitation(
+                    self._team.uuid, invite["token"], self._email
+                )
+
+
+class SearchContributorsUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        backend_service_provider: SuerannotateServiceProvider,
+        team_id: int,
+        condition: Condition = None,
+    ):
+        super().__init__(response)
+        self._backend_service = backend_service_provider
+        self._team_id = team_id
+        self._condition = condition
+
+    def execute(self):
+        res = self._backend_service.search_team_contributors(
+            self._team_id, self._condition.build_query()
         )
         self._response.data = res
