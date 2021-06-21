@@ -531,7 +531,7 @@ def get_duplicate_image_names(project_id, team_id, folder_id, image_paths):
 
 def _upload_images(
         img_paths, team_id, folder_id, project_id, annotation_status,
-        from_s3_bucket, image_quality_in_editor, project, folder_name
+        from_s3_bucket, image_quality_in_editor, project, folder_name,disable_loading=False
 ):
     _NUM_THREADS = 10
     uploaded = [[] for _ in range(_NUM_THREADS)]
@@ -559,20 +559,22 @@ def _upload_images(
     imgs_to_upload = [
         i for i in imgs_to_upload if Path(i).name not in duplicate_images_names
     ]
-    logger.info(
-        "Uploading %s images to project %s.", len(imgs_to_upload), folder_name
-    )
 
     images_to_skip = [str(path) for path in img_paths[limit:]]
 
     chunksize = int(math.ceil(len(imgs_to_upload) / _NUM_THREADS))
 
-    tqdm_thread = threading.Thread(
-        target=__tqdm_thread_image_upload,
-        args=(len(imgs_to_upload), tried_upload, finish_event),
-        daemon=True
-    )
-    tqdm_thread.start()
+
+    if not disable_loading:
+        logger.info(
+            "Uploading %s images to project %s.", len(imgs_to_upload), folder_name
+        )
+        tqdm_thread = threading.Thread(
+            target=__tqdm_thread_image_upload,
+            args=(len(imgs_to_upload), tried_upload, finish_event),
+            daemon=True
+        )
+        tqdm_thread.start()
 
     threads = []
     for thread_id in range(_NUM_THREADS):
@@ -590,7 +592,8 @@ def _upload_images(
     for thread in threads:
         thread.join()
     finish_event.set()
-    tqdm_thread.join()
+    if not disable_loading:
+        tqdm_thread.join()
     not_uploaded = [str(f) for s in couldnt_upload for f in s]
     uploaded = [str(f) for s in uploaded for f in s]
     not_uploaded += images_to_skip
