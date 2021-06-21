@@ -4,8 +4,8 @@ from typing import List
 from typing import NamedTuple
 
 
-CONDITION_OR = "or"
-CONDITION_AND = "and"
+CONDITION_OR = "|"
+CONDITION_AND = "&"
 CONDITION_EQ = "="
 CONDITION_GT = ">"
 CONDITION_GE = ">="
@@ -39,5 +39,5 @@ class Condition:
 
     def build_query(self):
         return str(self) + "".join(
-            [f" {condition[0]} {condition[1]}" for condition in self._condition_set]
+            [f"{condition[0]}{condition[1]}" for condition in self._condition_set]
         )

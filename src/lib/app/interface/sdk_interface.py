@@ -1,6 +1,7 @@
 import logging
 
 import lib.core as constances
+from lib.app.serializers import ProjectSerializer
 from lib.app.serializers import TeamSerializer
 from lib.core.response import Response
 from lib.infrastructure.controller import Controller
@@ -52,7 +53,9 @@ def delete_contributor_to_team_invitation(email):
     controller.delete_contributor_invitation(email)
 
 
-def search_team_contributors(email=None, first_name=None, last_name=None, return_metadata=True):
+def search_team_contributors(
+    email=None, first_name=None, last_name=None, return_metadata=True
+):
     """Search for contributors in the team
 
     :param email: filter by email
@@ -72,3 +75,26 @@ def search_team_contributors(email=None, first_name=None, last_name=None, return
     if not return_metadata:
         return [contributor["email"] for contributor in contributors]
     return contributors
+
+
+def search_projects(
+    name=None, return_metadata=False, include_complete_image_count=False
+):
+    """Project name based case-insensitive search for projects.
+    If **name** is None, all the projects will be returned.
+
+    :param name: search string
+    :type name: str
+    :param return_metadata: return metadata of projects instead of names
+    :type return_metadata: bool
+
+    :return: project names or metadatas
+    :rtype: list of strs or dicts
+    """
+    result = controller.search_project(
+        name=name, include_complete_image_count=False
+    ).data
+    if return_metadata:
+        return [ProjectSerializer(project).serialize() for project in result]
+    else:
+        return [project.name for project in result]
