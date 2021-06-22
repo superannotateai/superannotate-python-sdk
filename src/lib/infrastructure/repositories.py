@@ -139,10 +139,26 @@ class S3Repository(BaseManageableRepository):
         return ImageFileEntity(uuid=uuid, data=file)
 
     def insert(self, entity: ImageFileEntity) -> ImageFileEntity:
-        self.bucket.put_object(
-            Key=entity.uuid, Body=entity.data, Metadata=entity.metadata
-        )
+        data = {
+            'Key': entity.uuid,
+            'Body': entity.data
+        }
+        if entity.metadata:
+            temp = entity.metadata
+            for k in temp:
+                temp[k] = str(temp[k])
+            data['Metadata'] = temp
+        self.bucket.put_object(**data)
         return entity
+
+    def update(self, entity: ProjectEntity):
+        self._service.update_project(entity.to_dict())
+
+    def delete(self, uuid: int):
+        self._service.delete_project(uuid)
+
+    def get_all(self, condition: Condition = None) -> List[ProjectEntity]:
+        pass
 
 
 class ProjectSettingsRepository(BaseProjectRelatedManageableRepository):

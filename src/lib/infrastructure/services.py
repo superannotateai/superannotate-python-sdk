@@ -169,8 +169,6 @@ class SuperannotateBackendService(BaseBackendService):
         annotation_status_code,
         upload_state_code,
         meta,
-        annotation_json_path,
-        annotation_bluemap_path,
     ):
         data = {
             "project_id": project_id,
@@ -179,8 +177,6 @@ class SuperannotateBackendService(BaseBackendService):
             "annotation_status": annotation_status_code,
             "upload_state_code": upload_state_code,
             "meta": meta,
-            "annotation_json_path": annotation_json_path,
-            "annotation_bluemap_path": annotation_bluemap_path,
         }
         create_image_url = urljoin(self.api_url, self.URL_CREATE_IMAGE)
         self._request(create_image_url, "post", data)
