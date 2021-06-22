@@ -20,6 +20,7 @@ def test_video(tmpdir):
         sa.delete_project(project)
 
     project = sa.create_project(PROJECT_NAME1, "test", "Vector")
+    print(project)
     time.sleep(1)
     sa.create_annotation_class(project, "fr", "#FFAAAA")
     time.sleep(1)
