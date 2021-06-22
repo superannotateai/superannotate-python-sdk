@@ -7,7 +7,6 @@ from typing import Optional
 import boto3
 import src.lib.core as constance
 from src.lib.core.conditions import Condition
-from src.lib.core.conditions import CONDITION_EQ as EQ
 from src.lib.core.entities import AnnotationClassEntity
 from src.lib.core.entities import ConfigEntity
 from src.lib.core.entities import FolderEntity
@@ -36,7 +35,7 @@ class ConfigRepository(BaseManageableRepository):
         config.add_section("default")
         with open(path, "w") as config_file:
             config.write(config_file)
-        return config
+        return  config
 
     def _get_config(self, path):
         config = None
@@ -103,11 +102,8 @@ class ProjectRepository(BaseManageableRepository):
     def update(self, entity: ProjectEntity):
         self._service.update_project(entity.to_dict())
 
-    def delete(self, entity: ProjectEntity):
-        team_id = entity.team_id
-        uuid = entity.uuid
-        condition = Condition("team_id", team_id, EQ)
-        self._service.delete_project(uuid=uuid, query_string=condition.build_query())
+    def delete(self, uuid: int):
+        self._service.delete_project(uuid)
 
     @staticmethod
     def dict2entity(data: dict):
@@ -148,26 +144,10 @@ class S3Repository(BaseManageableRepository):
         return ImageFileEntity(uuid=uuid, data=file)
 
     def insert(self, entity: ImageFileEntity) -> ImageFileEntity:
-        data = {
-            'Key': entity.uuid,
-            'Body': entity.data
-        }
-        if entity.metadata:
-            temp = entity.metadata
-            for k in temp:
-                temp[k] = str(temp[k])
-            data['Metadata'] = temp
-        self.bucket.put_object(**data)
+        self.bucket.put_object(
+            Key=entity.uuid, Body=entity.data, Metadata=entity.metadata
+        )
         return entity
-
-    def update(self, entity: ProjectEntity):
-        self._service.update_project(entity.to_dict())
-
-    def delete(self, uuid: int):
-        self._service.delete_project(uuid)
-
-    def get_all(self, condition: Condition = None) -> List[ProjectEntity]:
-        pass
 
 
 class ProjectSettingsRepository(BaseProjectRelatedManageableRepository):
@@ -248,7 +228,12 @@ class FolderRepository(BaseManageableRepository):
     def get_one(self, uuid: Condition) -> FolderEntity:
         condition = uuid.build_query()
         data = self._service.get_folder(condition)
-        return self.dict2entity(data)
+        return FolderEntity(
+            uuid=data["id"],
+            project_id=data["project_id"],
+            team_id=data["team_id"],
+            name=data["name"],
+        )
 
     def get_all(self, condition: Optional[Condition] = None) -> List[FolderEntity]:
         raise NotImplementedError
@@ -260,12 +245,6 @@ class FolderRepository(BaseManageableRepository):
             folder_name=entity.name,
         )
         return self.dict2entity(res)
-
-    def update(self, entity: FolderEntity):
-        raise NotImplementedError
-
-    def delete(self, uuid: int):
-        raise NotImplementedError
 
     @staticmethod
     def dict2entity(data: dict):
@@ -333,15 +312,6 @@ class ImageRepositroy(BaseManageableRepository):
     def get_all(self, condition: Optional[Condition] = None) -> List[ImageEntity]:
         images = self._service.get_images(condition.build_query())
         return [self.dict2entity(image) for image in images]
-
-    def insert(self, entity: ImageEntity) -> ImageEntity:
-        raise NotImplementedError
-
-    def delete(self, uuid: int):
-        raise NotImplementedError
-
-    def update(self, entity: ImageEntity):
-        raise NotImplementedError
 
     @staticmethod
     def dict2entity(data: dict):

@@ -3,6 +3,7 @@ import io
 from typing import Iterable
 from typing import List
 
+import src.lib.core as constances
 from src.lib.core.conditions import Condition
 from src.lib.core.conditions import CONDITION_EQ as EQ
 from src.lib.core.entities import FolderEntity
@@ -16,7 +17,6 @@ from src.lib.core.usecases import CreateFolderUseCase
 from src.lib.core.usecases import CreateProjectUseCase
 from src.lib.core.usecases import DeleteContributorInvitationUseCase
 from src.lib.core.usecases import DeleteProjectUseCase
-from src.lib.core.usecases import GetImagesUseCase
 from src.lib.core.usecases import GetProjectsUseCase
 from src.lib.core.usecases import GetTeamUseCase
 from src.lib.core.usecases import ImageUploadUseCas
@@ -28,7 +28,6 @@ from src.lib.core.usecases import UploadImageS3UseCas
 from src.lib.infrastructure.repositories import AnnotationClassRepository
 from src.lib.infrastructure.repositories import ConfigRepository
 from src.lib.infrastructure.repositories import FolderRepository
-from src.lib.infrastructure.repositories import ImageRepositroy
 from src.lib.infrastructure.repositories import ProjectRepository
 from src.lib.infrastructure.repositories import ProjectSettingsRepository
 from src.lib.infrastructure.repositories import S3Repository
@@ -56,10 +55,6 @@ class BaseController:
         return TeamRepository(self._backend_client)
 
     @property
-    def images(self):
-        return ImageRepositroy(self._backend_client)
-
-    @property
     def configs(self):
         return ConfigRepository()
 
@@ -77,7 +72,7 @@ class BaseController:
         )
 
     def get_s3_repository(
-        self, team_id: int, project_id: int, folder_id: int, bucket: str = None
+        self, team_id: int, project_id: int, folder_id: int, bucket: str
     ):
         if not self._s3_upload_auth_data:
             self._s3_upload_auth_data = self.get_auth_data(
@@ -88,24 +83,11 @@ class BaseController:
             self._s3_upload_auth_data["accessKeyId"],
             self._s3_upload_auth_data["secretAccessKey"],
             self._s3_upload_auth_data["sessionToken"],
-            self._s3_upload_auth_data["bucket"],
+            bucket,
         )
 
 
 class Controller(BaseController):
-    def _get_project(self, name: str):
-        projects = self.projects.get_all(
-            Condition("name", name, EQ) & Condition("team_id", self.team_id, EQ)
-        )
-        return projects[0]
-
-    def _get_folder(self, project: ProjectEntity, name: str):
-        return self.folders.get_one(
-            Condition("name", name, EQ)
-            & Condition("team_id", self.team_id, EQ)
-            & Condition("project_id", project.uuid, EQ)
-        )
-
     def search_project(self, name: str, **kwargs) -> Response:
         condition = Condition("name", name, EQ)
         for key, val in kwargs.items():
@@ -157,14 +139,13 @@ class Controller(BaseController):
 
     def delete_project(self, name: str):
         entities = self.projects.get_all(
-            Condition("team_id", self.team_id, EQ) & Condition("name", name, EQ)
+            Condition("teams_id", self.team_id, EQ) & Condition("name", name, EQ)
         )
         if entities and len(entities) == 1:
             use_case = DeleteProjectUseCase(self.response, entities[0], self.projects)
             use_case.execute()
             return self.response
-        if entities and len(entities) > 1:
-            raise AppException("There are duplicated names.")
+        raise AppException("There are duplicated names.")
 
     def update_project(self, name: str, project_data: dict) -> Response:
         entities = self.projects.get_all(
@@ -190,6 +171,7 @@ class Controller(BaseController):
             project_settings=ProjectSettingsRepository(self._backend_client, project),
             backend_service_provider=self._backend_client,
             images=images,
+            upload_path=self._s3_upload_auth_data["filePath"],
             annotation_status=annotation_status,
             image_quality=image_quality,
         )
@@ -203,7 +185,9 @@ class Controller(BaseController):
         image: io.BytesIO,
         folder_id: int = None,  # project folder path
     ):
-        s3_repo = self.get_s3_repository(self.team_id, project.uuid, folder_id,)
+        s3_repo = self.get_s3_repository(
+            self.team_id, project.uuid, folder_id, self._s3_upload_auth_data["bucket"],
+        )
         use_case = UploadImageS3UseCas(
             response=self.response,
             project=project,
@@ -273,10 +257,7 @@ class Controller(BaseController):
         use_case.execute()
 
     def create_folder(self, project: str, folder_name: str):
-        projects = ProjectRepository(service=self._backend_client).get_all(
-            condition=Condition("name", project, EQ)
-            & Condition("team_id", self.team_id, EQ)
-        )
+        projects = ProjectRepository(service=self._backend_client).get_all(condition=Condition("name", project, EQ) & Condition("team_id", self.team_id,EQ))
         project = projects[0]
         folder = FolderEntity(
             name=folder_name, project_id=project.uuid, team_id=project.team_id
@@ -352,29 +333,6 @@ class Controller(BaseController):
             backend_service_provider=self._backend_client,
             team_id=self.team_id,
             condition=condition,
-        )
-        use_case.execute()
-        return self.response
-
-    def search_images(
-        self,
-        project_name: str,
-        folder_path: str,
-        annotation_status: str = None,
-        image_name_prefix: str = None,
-    ):
-        project = self._get_project(project_name)
-        if not folder_path:
-            folder = self._get_folder(project, "root")
-        else:
-            folder = self._get_folder(project, folder_path)
-        use_case = GetImagesUseCase(
-            response=self.response,
-            project=project,
-            folder=folder,
-            images=self.images,
-            annotation_status=annotation_status,
-            image_name_prefix=image_name_prefix,
         )
         use_case.execute()
         return self.response
