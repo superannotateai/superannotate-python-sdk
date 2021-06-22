@@ -26,6 +26,7 @@ class ImagePlugin:
             raise ImageProcessingException(
                 f"Image resolution {resolution} too large. Max supported for resolution is {self._max_resolution}"
             )
+        return im
 
     def get_size(self) -> Tuple[float, float]:
         return self._image.size
@@ -66,6 +67,6 @@ class ImagePlugin:
         bg.paste(im, mask=im)
         bg = bg.convert("RGB")
         bg.save(buffer, "JPEG", quality=quality, subsampling=subsampling)
-        bg.seek(0)
+        buffer.seek(0)
         width, height = im.size
         return buffer, width, height

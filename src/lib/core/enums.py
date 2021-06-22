@@ -9,7 +9,7 @@ class BaseTitledEnum(Enum):
 
     @DynamicClassAttribute
     def value(self):
-        return super().name[1]
+        return super().value[1]
 
 
 class ProjectType(Enum):
@@ -35,7 +35,7 @@ class AnnotationStatus(BaseTitledEnum):
     NOT_STARTED = "NotStarted", 1
     IN_PROGRESS = "InProgress", 2
     COMPLETED = "Completed", 3
-    QUALITY_CHECK = "QualityCheck", 4
+    QUALITYCHECK = "QualityCheck", 4
     RETURNED = "Returned", 5
 
 
