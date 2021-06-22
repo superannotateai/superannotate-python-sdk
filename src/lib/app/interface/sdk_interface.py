@@ -146,3 +146,45 @@ def create_project_from_metadata(project_metadata):
     ).data
 
     return project
+
+
+def clone_project(
+    project_name,
+    from_project,
+    project_description=None,
+    copy_annotation_classes=True,
+    copy_settings=True,
+    copy_workflow=True,
+    copy_contributors=False,
+):
+    """Create a new project in the team using annotation classes and settings from from_project.
+
+    :param project_name: new project's name
+    :type project_name: str
+    :param from_project: the name of the project being used for duplication
+    :type from_project: str
+    :param project_description: the new project's description. If None, from_project's
+                                description will be used
+    :type project_description: str
+    :param copy_annotation_classes: enables copying annotation classes
+    :type copy_annotation_classes: bool
+    :param copy_settings: enables copying project settings
+    :type copy_settings: bool
+    :param copy_workflow: enables copying project workflow
+    :type copy_workflow: bool
+    :param copy_contributors: enables copying project contributors
+    :type copy_contributors: bool
+
+    :return: dict object metadata of the new project
+    :rtype: dict
+    """
+    result = controller.clone_project(
+        name=project_name,
+        from_name=from_project,
+        project_description=project_description,
+        copy_annotation_classes=copy_annotation_classes,
+        copy_settings=copy_settings,
+        copy_workflow=copy_workflow,
+        copy_contributors=copy_contributors,
+    ).data
+    return result

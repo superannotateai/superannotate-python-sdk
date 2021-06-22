@@ -13,7 +13,6 @@ class BaseSerializers(ABC):
 
 
 class UserSerializer(BaseSerializers):
-
     def serialize(self):
         data = super().serialize()
         data["user_role"] = constance.UserRole[data["user_role"]].name
@@ -21,7 +20,6 @@ class UserSerializer(BaseSerializers):
 
 
 class TeamSerializer(BaseSerializers):
-
     def serialize(self):
         data = super().serialize()
         users = []

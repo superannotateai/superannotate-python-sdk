@@ -100,13 +100,6 @@ class ProjectRepository(BaseManageableRepository):
         self._service.delete_project(uuid)
 
     @staticmethod
-    def _drop_nones(data: dict):
-        for k, v in list(data.items()):
-            if v is None:
-                del data[k]
-        return data
-
-    @staticmethod
     def dict2entity(data: dict):
         return ProjectEntity(
             uuid=data["id"],
@@ -116,7 +109,7 @@ class ProjectRepository(BaseManageableRepository):
             status=data["status"],
             description=data["description"],
             folder_id=data.get("folder_id"),
-            users=data.get("users"),
+            users=data.get("users", ()),
         )
 
 
@@ -165,9 +158,15 @@ class ProjectSettingsRepository(BaseProjectRelatedManageableRepository):
 
     def insert(self, entity: ProjectSettingEntity) -> ProjectSettingEntity:
         res = self._service.set_project_settings(
-            entity.uuid, self._project.team_id, entity.to_dict()
+            entity.project_id, self._project.team_id, entity.to_dict()
         )
-        return self.dict2entity(res)
+        return self.dict2entity(res[0])
+
+    def delete(self, uuid: int):
+        raise NotImplementedError
+
+    def update(self, entity: ProjectSettingEntity):
+        raise NotImplementedError
 
     @staticmethod
     def dict2entity(data: dict):
@@ -190,10 +189,19 @@ class WorkflowRepository(BaseProjectRelatedManageableRepository):
         return [self.dict2entity(setting) for setting in data]
 
     def insert(self, entity: WorkflowEntity) -> WorkflowEntity:
+        data = entity.to_dict()
+        del data["project_id"]
+        del data["attribute"]
         res = self._service.set_project_workflow(
-            entity.uuid, self._project.team_id, entity.to_dict()
+            entity.project_id, self._project.team_id, self._drop_nones(data)
         )
-        return self.dict2entity(res)
+        return self.dict2entity(res[0])
+
+    def delete(self, uuid: int):
+        raise NotImplementedError
+
+    def update(self, entity: WorkflowEntity):
+        raise NotImplementedError
 
     @staticmethod
     def dict2entity(data: dict):
@@ -203,7 +211,7 @@ class WorkflowRepository(BaseProjectRelatedManageableRepository):
             class_id=data["class_id"],
             step=data["step"],
             tool=data["tool"],
-            attribute=data["attribute"],
+            attribute=data.get("attribute"),
         )
 
 
@@ -261,9 +269,15 @@ class AnnotationClassRepository(BaseManageableRepository):
 
     def insert(self, entity: AnnotationClassEntity):
         res = self._service.set_annotation_classes(
-            self.project.uuid, self.project.team_id, [entity.to_dict()]
+            entity.project_id, self.project.team_id, [entity.to_dict()]
         )
         return self.dict2entity(res[0])
+
+    def delete(self, uuid: int):
+        raise NotImplementedError
+
+    def update(self, entity: AnnotationClassEntity):
+        raise NotImplementedError
 
     @staticmethod
     def dict2entity(data: dict):
@@ -272,6 +286,7 @@ class AnnotationClassRepository(BaseManageableRepository):
             project_id=data["project_id"],
             name=data["name"],
             count=data["count"],
+            color=data["color"],
             attribute_groups=data["attribute_groups"],
         )
 
