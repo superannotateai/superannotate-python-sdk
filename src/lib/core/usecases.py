@@ -52,15 +52,18 @@ class GetProjectsUseCase(BaseUseCase):
         self,
         response: Response,
         condition: Condition,
+        team_id: int,
         projects: BaseManageableRepository,
     ):
         super().__init__(response)
         self._condition = condition
         self._projects = projects
+        self._team_id = team_id
 
     def execute(self):
         if self.is_valid():
-            self._response.data = self._projects.get_all(self._condition)
+            condition = self._condition & Condition("team_id", self._team_id, EQ)
+            self._response.data = self._projects.get_all(condition)
         self._response.errors = self._errors
 
 

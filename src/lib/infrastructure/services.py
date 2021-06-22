@@ -92,7 +92,7 @@ class BaseBackendService(SuerannotateServiceProvider):
 
         while True:
             resources, remains_count = self._get_page(url, offset, params)
-            total.extend(resources)
+            total.extend(resources["data"])
             if remains_count <= 0:
                 break
             offset += self.paginate_by
@@ -134,9 +134,7 @@ class SuperannotateBackendService(BaseBackendService):
         url = urljoin(self.api_url, self.URL_LIST_PROJECTS)
         if query_string:
             url = f"{url}?{query_string}"
-        return [
-            project for page in self._get_all_pages(url) for project in page["data"]
-        ]
+        return self._get_all_pages(url)
 
     def create_project(self, project_data: dict) -> dict:
         create_project_url = urljoin(self.api_url, self.URL_CREATE_PROJECT)

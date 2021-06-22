@@ -1,8 +1,7 @@
 from abc import ABC
-from abc import abstractmethod
 
-from lib.core.entities import BaseEntity
 import src.lib.core as constance
+from lib.core.entities import BaseEntity
 
 
 class BaseSerializers(ABC):
@@ -14,7 +13,6 @@ class BaseSerializers(ABC):
 
 
 class UserSerializer(BaseSerializers):
-
     def serialize(self):
         data = super().serialize()
         data["user_role"] = constance.UserRole[data["user_role"]].name
@@ -31,4 +29,14 @@ class TeamSerializer(BaseSerializers):
         data["users"] = users
         for user in data["pending_invitations"]:
             user["user_role"] = constance.UserRole(data["user_role"]).name
+        return data
+
+
+class ProjectSerializer(BaseSerializers):
+    def serialize(self):
+        data = super().serialize()
+        data["type"] = constance.ProjectType(data["type"]).name
+        if data.get("upload_state"):
+            data["upload_state"] = constance.UploadState(data["upload_state"]).name
+
         return data

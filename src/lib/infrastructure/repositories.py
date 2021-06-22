@@ -106,8 +106,8 @@ class ProjectRepository(BaseManageableRepository):
             project_type=data["type"],
             status=data["status"],
             description=data["description"],
-            folder_id=data["folder_id"],
-            users=data["users"],
+            folder_id=data.get("folder_id"),
+            users=data.get("users"),
         )
 
 
