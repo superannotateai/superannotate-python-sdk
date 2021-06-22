@@ -78,7 +78,7 @@ class BaseController:
         )
 
     def get_s3_repository(
-        self, team_id: int, project_id: int, folder_id: int, bucket: str
+        self, team_id: int, project_id: int, folder_id: int, bucket: str = None
     ):
         if not self._s3_upload_auth_data:
             self._s3_upload_auth_data = self.get_auth_data(
@@ -89,7 +89,7 @@ class BaseController:
             self._s3_upload_auth_data["accessKeyId"],
             self._s3_upload_auth_data["secretAccessKey"],
             self._s3_upload_auth_data["sessionToken"],
-            bucket,
+            self._s3_upload_auth_data["bucket"],
         )
 
 
@@ -190,7 +190,6 @@ class Controller(BaseController):
             project_settings=ProjectSettingsRepository(self._backend_client, project),
             backend_service_provider=self._backend_client,
             images=images,
-            upload_path=self._s3_upload_auth_data["filePath"],
             annotation_status=annotation_status,
             image_quality=image_quality,
         )
@@ -205,7 +204,7 @@ class Controller(BaseController):
         folder_id: int = None,  # project folder path
     ):
         s3_repo = self.get_s3_repository(
-            self.team_id, project.uuid, folder_id, self._s3_upload_auth_data["bucket"],
+            self.team_id, project.uuid, folder_id,
         )
         use_case = UploadImageS3UseCas(
             response=self.response,

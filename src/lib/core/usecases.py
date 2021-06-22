@@ -27,6 +27,7 @@ from src.lib.core.repositories import BaseProjectRelatedManageableRepository
 from src.lib.core.repositories import BaseReadOnlyRepository
 from src.lib.core.response import Response
 from src.lib.core.serviceproviders import SuerannotateServiceProvider
+from src.lib.core.enums import ProjectType
 
 
 class BaseUseCase(ABC):
@@ -260,7 +261,6 @@ class ImageUploadUseCas(BaseUseCase):
         project_settings: BaseReadOnlyRepository,
         backend_service_provider: SuerannotateServiceProvider,
         images: List[ImageInfoEntity],
-        upload_path: str,
         annotation_status: Optional[str] = None,
         image_quality: Optional[str] = None,
     ):
@@ -271,7 +271,6 @@ class ImageUploadUseCas(BaseUseCase):
         self._images = images
         self._annotation_status = annotation_status
         self._image_quality = image_quality
-        self._upload_path = upload_path
 
     @property
     def image_quality(self):
@@ -309,8 +308,6 @@ class ImageUploadUseCas(BaseUseCase):
             annotation_status_code=self.annotation_status_code,
             upload_state_code=self.upload_state_code,
             meta=meta,
-            annotation_json_path=self._upload_path + ".json",
-            annotation_bluemap_path=self._upload_path + ".png",
         )
 
     def validate_upload_state(self):
@@ -374,9 +371,9 @@ class UploadImageS3UseCas(BaseUseCase):
 
     @property
     def max_resolution(self) -> int:
-        if self._project.project_type == "Vector":
+        if self._project.project_type == ProjectType.VECTOR.value:
             return constances.MAX_VECTOR_RESOLUTION
-        elif self._project.project_type == "Pixel":
+        elif self._project.project_type == ProjectType.PIXEL.value:
             return constances.MAX_PIXEL_RESOLUTION
 
     def execute(self):
@@ -416,7 +413,7 @@ class UploadImageS3UseCas(BaseUseCase):
         self._s3_repo.insert(file_entity)
         self._response.data = ImageInfoEntity(
             name=image_name,
-            path=self._upload_path + image_key,
+            path=image_key,
             width=origin_width,
             height=origin_height,
         )
@@ -480,8 +477,6 @@ class AttachFileUrls(BaseUseCase):
             upload_state_code=constances.UploadState.EXTERNAL.value,
             # todo rewrite
             meta=None,
-            annotation_json_path=None,
-            annotation_bluemap_path=None,
         )
 
 
