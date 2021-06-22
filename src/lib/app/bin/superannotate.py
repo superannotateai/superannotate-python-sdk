@@ -5,10 +5,10 @@ import sys
 import tempfile
 from pathlib import Path
 
-import fire
 import src.lib.app.bin as config
-from src.lib.app.interface.cli_interface import CLIFacade
 from src.lib.infrastructure import controller
+from src.lib.app.interface.cli_interface import CLIFacade
+import fire
 
 
 class SABaseException(Exception):
@@ -398,9 +398,11 @@ def main():
         print(f"SuperAnnotate Python SDK version {controller.__version__}")
     else:
         raise SABaseException(
-            0, f"Wrong command {command} to superannotate CLI. {available_commands}",
+            0,
+            "Wrong command " + command + " to superannotate CLI. " + available_commands,
         )
-
 
 if __name__ == "__main__":
     fire.Fire(CLIFacade)
+
+
