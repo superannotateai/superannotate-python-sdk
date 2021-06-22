@@ -14,6 +14,8 @@ from src.lib.core.entities import ImageEntity
 from src.lib.core.entities import ImageFileEntity
 from src.lib.core.entities import ProjectEntity
 from src.lib.core.entities import ProjectSettingEntity
+from src.lib.core.entities import TeamEntity
+from src.lib.core.entities import UserEntity
 from src.lib.core.entities import WorkflowEntity
 from src.lib.core.repositories import BaseManageableRepository
 from src.lib.core.repositories import BaseReadOnlyRepository
@@ -40,9 +42,12 @@ class ConfigRepository(BaseManageableRepository):
         config.read(constance.CONFIG_FILE_LOCATION)
         return config
 
-    def get_one(self, uuid: str) -> ConfigEntity:
+    def get_one(self, uuid: str) -> Optional[ConfigEntity]:
         config = self._get_config(constance.CONFIG_FILE_LOCATION)
-        return ConfigEntity(uuid=uuid, value=config[self.DEFAULT_SECTION][uuid])
+        try:
+            return ConfigEntity(uuid=uuid, value=config[self.DEFAULT_SECTION][uuid])
+        except KeyError:
+            return
 
     def get_all(self, condition: Condition = None) -> List[ConfigEntity]:
         config = self._get_config(constance.CONFIG_FILE_LOCATION)
@@ -201,7 +206,7 @@ class WorkflowRepository(BaseManageableRepository):
         )
 
 
-class FolderRepository(BaseReadOnlyRepository):
+class FolderRepository(BaseManageableRepository):
     def __init__(self, service: SuperannotateBackendService):
         self._service = service
 
@@ -293,4 +298,42 @@ class ImageRepositroy(BaseManageableRepository):
             folder_id=data["folder_id"],
             annotator_id=data["annotator_id"],
             annotator_name=data["annotator_name"],
+        )
+
+
+class UserRepository(BaseReadOnlyRepository):
+    @staticmethod
+    def dict2entity(data: dict):
+        return UserEntity(
+            uuid=data["id"],
+            first_name=data["first_name"],
+            last_name=data["last_name"],
+            email=data["email"],
+            picture=data["picture"],
+            user_role=data["user_role"],
+        )
+
+
+class TeamRepository(BaseReadOnlyRepository):
+    def __init__(self, service: SuperannotateBackendService):
+        self._service = service
+
+    def get_one(self, uuid: int) -> Optional[TeamEntity]:
+        res = self._service.get_team(team_id=uuid)
+        return self.dict2entity(res)
+
+    def get_all(self, condition: Optional[Condition] = None) -> List[TeamEntity]:
+        raise NotImplementedError
+
+    @staticmethod
+    def dict2entity(data: dict):
+        return TeamEntity(
+            uuid=data["id"],
+            name=data["name"],
+            description=data["description"],
+            team_type=data["type"],
+            user_role=data["user_role"],
+            is_default=data["is_default"],
+            users=[UserRepository.dict2entity(user) for user in data["users"]],
+            pending_invitations=data["pending_invitations"],
         )

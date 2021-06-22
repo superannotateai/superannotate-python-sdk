@@ -14,10 +14,14 @@ from src.lib.core.usecases import AttachFileUrls
 from src.lib.core.usecases import CloneProjectUseCase
 from src.lib.core.usecases import CreateFolderUseCase
 from src.lib.core.usecases import CreateProjectUseCase
+from src.lib.core.usecases import DeleteContributorInvitationUseCase
 from src.lib.core.usecases import DeleteProjectUseCase
 from src.lib.core.usecases import GetProjectsUseCase
+from src.lib.core.usecases import GetTeamUseCase
 from src.lib.core.usecases import ImageUploadUseCas
+from src.lib.core.usecases import InviteContributorUseCase
 from src.lib.core.usecases import PrepareExportUseCase
+from src.lib.core.usecases import SearchContributorsUseCase
 from src.lib.core.usecases import UpdateProjectUseCase
 from src.lib.core.usecases import UploadImageS3UseCas
 from src.lib.infrastructure.repositories import AnnotationClassRepository
@@ -26,6 +30,7 @@ from src.lib.infrastructure.repositories import FolderRepository
 from src.lib.infrastructure.repositories import ProjectRepository
 from src.lib.infrastructure.repositories import ProjectSettingsRepository
 from src.lib.infrastructure.repositories import S3Repository
+from src.lib.infrastructure.repositories import TeamRepository
 from src.lib.infrastructure.repositories import WorkflowRepository
 from src.lib.infrastructure.services import SuperannotateBackendService
 
@@ -43,6 +48,10 @@ class BaseController:
     @property
     def projects(self):
         return ProjectRepository(self._backend_client)
+
+    @property
+    def teams(self):
+        return TeamRepository(self._backend_client)
 
     @property
     def configs(self):
@@ -243,4 +252,51 @@ class Controller(BaseController):
         )
         use_case.execute()
 
+        return self.response
+
+    def get_team(self):
+        use_case = GetTeamUseCase(
+            response=self.response, teams=self.teams, team_id=self.team_id
+        )
+        use_case.execute()
+        return self.response
+
+    def invite_contributor(self, email: str, is_admin: bool):
+        use_case = InviteContributorUseCase(
+            response=self.response,
+            backend_service_provider=self._backend_client,
+            email=email,
+            team_id=self.team_id,
+            is_admin=is_admin,
+        )
+        use_case.execute()
+        return self.response
+
+    def delete_contributor_invitation(self, email: str):
+        team = self.teams.get_one(self.team_id)
+        use_case = DeleteContributorInvitationUseCase(
+            response=self.response,
+            backend_service_provider=self._backend_client,
+            email=email,
+            team=team,
+        )
+        use_case.execute()
+        return self.response
+
+    def search_team_contributors(self, **kwargs):
+        condition = None
+        if kwargs:
+            conditions_iter = iter(kwargs)
+            key = next(conditions_iter)
+            condition = Condition(key, kwargs[key], EQ)
+            for key, val in conditions_iter:
+                condition = condition & Condition(key, val, EQ)
+
+        use_case = SearchContributorsUseCase(
+            response=self.response,
+            backend_service_provider=self._backend_client,
+            team_id=self.team_id,
+            condition=condition,
+        )
+        use_case.execute()
         return self.response
