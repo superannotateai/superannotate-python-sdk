@@ -2,6 +2,7 @@ from abc import ABC
 from abc import abstractmethod
 from io import BytesIO
 from typing import Any
+from typing import Iterable
 from typing import List
 
 
@@ -50,7 +51,7 @@ class ProjectEntity(BaseEntity):
         status: int = None,
         folder_id: int = None,
         upload_state: int = None,
-        users: List = None,
+        users: Iterable = (),
         contributors: List = None,
         settings: List = None,
         annotation_classes: List = None,
@@ -78,6 +79,7 @@ class ProjectEntity(BaseEntity):
             description=self.description,
             status=self.status,
             folder_id=self.folder_id,
+            users=self.users,
             upload_state=self.upload_state,
         )
 
@@ -96,7 +98,13 @@ class ProjectEntity(BaseEntity):
 
 
 class ProjectSettingEntity(BaseEntity):
-    def __init__(self, uuid: int, project_id: int, attribute: str, value: Any = None):
+    def __init__(
+        self,
+        uuid: int = None,
+        project_id: int = None,
+        attribute: str = None,
+        value: Any = None,
+    ):
         super().__init__(uuid)
         self.project_id = project_id
         self.attribute = attribute
@@ -117,12 +125,12 @@ class ProjectSettingEntity(BaseEntity):
 class WorkflowEntity(BaseEntity):
     def __init__(
         self,
-        uuid: int,
-        project_id: int,
-        class_id: int,
-        step: int,
-        tool: int,
-        attribute: [],
+        uuid: int = None,
+        project_id: int = None,
+        class_id: int = None,
+        step: int = None,
+        tool: int = None,
+        attribute: Iterable = (),
     ):
         super().__init__(uuid)
         self.project_id = project_id
@@ -251,7 +259,7 @@ class AnnotationClassEntity(BaseEntity):
         count: int = None,
         name: str = None,
         project_id: int = None,
-        attribute_groups: List = None,
+        attribute_groups: Iterable = (),
     ):
         super().__init__(uuid)
         self.color = color
@@ -262,7 +270,10 @@ class AnnotationClassEntity(BaseEntity):
 
     def __copy__(self):
         return AnnotationClassEntity(
-            color=self.color, count=self.count, name=self.name,
+            color=self.color,
+            count=self.count,
+            name=self.name,
+            attribute_groups=self.attribute_groups,
         )
 
     def to_dict(self):
@@ -272,6 +283,7 @@ class AnnotationClassEntity(BaseEntity):
             "count": self.count,
             "name": self.name,
             "project_id": self.project_id,
+            "attribute_groups": self.attribute_groups,
         }
 
 

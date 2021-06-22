@@ -33,6 +33,13 @@ class BaseManageableRepository(BaseReadOnlyRepository):
     def delete(self, uuid: Any):
         raise NotImplementedError
 
+    @staticmethod
+    def _drop_nones(data: dict):
+        for k, v in list(data.items()):
+            if v is None:
+                del data[k]
+        return data
+
 
 class BaseProjectRelatedManageableRepository(BaseManageableRepository):
     def __init__(self, service: SuerannotateServiceProvider, project: ProjectEntity):

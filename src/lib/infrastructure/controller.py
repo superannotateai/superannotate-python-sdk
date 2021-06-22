@@ -211,7 +211,9 @@ class Controller(BaseController):
         copy_workflow=True,
         copy_contributors=False,
     ):
-        projects = self.projects.get_all(Condition("name", from_name, EQ))
+        projects = self.projects.get_all(
+            Condition("name", from_name, EQ) & Condition("team_id", self.team_id, EQ)
+        )
         if projects:
             project_to_create = copy.copy(projects[0])
             project_to_create.name = name

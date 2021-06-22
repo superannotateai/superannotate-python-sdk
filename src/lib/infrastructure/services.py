@@ -84,8 +84,12 @@ class BaseBackendService(SuerannotateServiceProvider):
         if response.status_code != 200:
             raise AppException(f"Got invalid response for url {url}: {response.text}.")
         data = response.json()
-        remains_count = data.get("count") - offset
-        return data, remains_count
+        if data:
+            if isinstance(data, dict):
+                return data, data.get("count") - offset
+            if isinstance(data, list):
+                return {"data": data}, 0
+        return {"data": []}, 0
 
     def _get_all_pages(self, url, offset=0, params=None):
         total = list()
@@ -227,7 +231,9 @@ class SuperannotateBackendService(BaseBackendService):
             "team_id": team_id,
             "project_id": project_id,
         }
-        res = self._request(set_annotation_class_url, "post", params=params, data=data)
+        res = self._request(
+            set_annotation_class_url, "post", params=params, data={"classes": data}
+        )
         return res.json()
 
     def get_project_workflows(self, project_id: int, team_id: int):
@@ -235,7 +241,7 @@ class SuperannotateBackendService(BaseBackendService):
             self.api_url, self.URL_PROJECT_WORKFLOW.format(project_id)
         )
         return self._get_all_pages(
-            get_project_workflow_url, params={"team_id", team_id}
+            get_project_workflow_url, params={"team_id": team_id}
         )
 
     def set_project_workflow(self, project_id: int, team_id: int, data: Dict):
@@ -244,7 +250,7 @@ class SuperannotateBackendService(BaseBackendService):
         )
         res = self._request(
             set_project_workflow_url,
-            "put",
+            "post",
             data={"steps": [data]},
             params={"team_id": team_id},
         )
