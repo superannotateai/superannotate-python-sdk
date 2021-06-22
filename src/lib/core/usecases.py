@@ -382,7 +382,7 @@ class CloneProjectUseCase(BaseUseCase):
 
     def execute(self):
         project = self._projects.insert(self._project_to_create)
-
+        self._response.data = project
         annotation_classes_mapping = {}
         if self._include_annotation_classes:
             annotation_classes = self._annotation_classes.get_all()
@@ -391,7 +391,7 @@ class CloneProjectUseCase(BaseUseCase):
                 annotation_class_copy.project_id = project.uuid
                 annotation_classes_mapping[
                     annotation_class.uuid
-                ] = self._annotation_classes.insert(annotation_class_copy)
+                ] = self._annotation_classes.insert(annotation_class_copy).uuid
 
         if self._include_contributors:
             for user in self._project.users:
