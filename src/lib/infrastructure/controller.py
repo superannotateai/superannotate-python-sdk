@@ -111,7 +111,6 @@ class Controller(BaseController):
         annotation_classes: Iterable = (),
         workflows: Iterable = (),
     ) -> Response:
-        project_type = constances.ProjectType[project_type.upper()].value
         entity = ProjectEntity(
             name=name,
             description=description,

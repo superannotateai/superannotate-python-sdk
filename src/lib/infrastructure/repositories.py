@@ -37,8 +37,9 @@ class ConfigRepository(BaseManageableRepository):
             config.write(config_file)
 
     def _get_config(self, path):
+        config = None
         if not os.path.exists(path):
-            self._create_config(path)
+            return config
         config = configparser.ConfigParser()
         config.read(constance.CONFIG_FILE_LOCATION)
         return config
@@ -48,7 +49,7 @@ class ConfigRepository(BaseManageableRepository):
         try:
             return ConfigEntity(uuid=uuid, value=config[self.DEFAULT_SECTION][uuid])
         except KeyError:
-            return
+            return None
 
     def get_all(self, condition: Condition = None) -> List[ConfigEntity]:
         config = self._get_config(constance.CONFIG_FILE_LOCATION)
@@ -60,7 +61,7 @@ class ConfigRepository(BaseManageableRepository):
     def insert(self, entity: ConfigEntity) -> ConfigEntity:
         config = self._get_config(constance.CONFIG_FILE_LOCATION)
         config.set("default", entity.uuid, entity.value)
-        with open(constance.CONFIG_FILE_LOCATION, "rw+") as config_file:
+        with open(constance.CONFIG_FILE_LOCATION, "w") as config_file:
             config.write(config_file)
         return entity
 
