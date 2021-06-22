@@ -27,6 +27,8 @@ MAX_IMAGE_SIZE = 100 * 1024 * 1024  # 100 MB limit
 TOKEN_UUID = "token"
 
 
+
+
 __version__ = "?"
 
 __alL__ = (
