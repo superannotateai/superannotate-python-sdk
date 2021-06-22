@@ -56,3 +56,19 @@ class SuerannotateServiceProvider(ABC):
     @abstractmethod
     def search_team_contributors(self, team_id: int, query_string: str = None):
         raise NotImplementedError
+
+    @abstractmethod
+    def get_project_settings(self, project_id: int, team_id: int):
+        raise NotImplementedError
+
+    @abstractmethod
+    def set_project_settings(self, project_id: int, team_id: int, data: Dict):
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_project_workflows(self, project_id: int, team_id: int):
+        raise NotImplementedError
+
+    @abstractmethod
+    def set_project_workflow(self, project_id: int, team_id: int, data: Dict):
+        raise NotImplementedError

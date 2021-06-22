@@ -1,5 +1,6 @@
 import copy
 import io
+from typing import Iterable
 from typing import List
 
 import src.lib.core as constances
@@ -88,7 +89,7 @@ class BaseController:
 
 class Controller(BaseController):
     def search_project(self, name: str, **kwargs) -> Response:
-        condition = Condition("project_name", name, EQ)
+        condition = Condition("name", name, EQ)
         for key, val in kwargs.items():
             condition = condition & Condition(key, val, EQ)
         use_case = GetProjectsUseCase(
@@ -101,13 +102,39 @@ class Controller(BaseController):
         return self.response
 
     def create_project(
-        self, name: str, description: str, project_type: str
+        self,
+        name: str,
+        description: str,
+        project_type: str,
+        contributors: Iterable = (),
+        settings: Iterable = (),
+        annotation_classes: Iterable = (),
+        workflows: Iterable = (),
     ) -> Response:
         project_type = constances.ProjectType[project_type.upper()].value
         entity = ProjectEntity(
-            name=name, description=description, project_type=project_type
+            name=name,
+            description=description,
+            project_type=project_type,
+            team_id=self.team_id,
         )
-        use_case = CreateProjectUseCase(self.response, entity, self.projects)
+        use_case = CreateProjectUseCase(
+            response=self.response,
+            project=entity,
+            projects=self.projects,
+            backend_service_provider=self._backend_client,
+            settings=[
+                ProjectSettingsRepository.dict2entity(setting) for setting in settings
+            ],
+            workflows=[
+                WorkflowRepository.dict2entity(workflow) for workflow in workflows
+            ],
+            annotation_classes=[
+                AnnotationClassRepository.dict2entity(annotation_class)
+                for annotation_class in annotation_classes
+            ],
+            contributors=contributors,
+        )
         use_case.execute()
         return self.response
 
@@ -184,7 +211,7 @@ class Controller(BaseController):
         copy_workflow=True,
         copy_contributors=False,
     ):
-        projects = self.projects.get_all(Condition("project_name", from_name, EQ))
+        projects = self.projects.get_all(Condition("name", from_name, EQ))
         if projects:
             project_to_create = copy.copy(projects[0])
             project_to_create.name = name

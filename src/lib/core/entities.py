@@ -51,6 +51,10 @@ class ProjectEntity(BaseEntity):
         folder_id: int = None,
         upload_state: int = None,
         users: List = None,
+        contributors: List = None,
+        settings: List = None,
+        annotation_classes: List = None,
+        workflow: List = None,
     ):
         super().__init__(uuid)
         self.team_id = team_id
@@ -61,6 +65,10 @@ class ProjectEntity(BaseEntity):
         self.folder_id = folder_id
         self.upload_state = upload_state
         self.users = users
+        self.contributors = contributors
+        self.settings = settings
+        self.annotation_classes = annotation_classes
+        self.workflow = workflow
 
     def __copy__(self):
         return ProjectEntity(

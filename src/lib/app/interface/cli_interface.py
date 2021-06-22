@@ -13,6 +13,7 @@ logger = logging.getLogger()
 
 
 class CLIFacade(BaseInterfaceFacade):
+
     def create_project(
         self, project_name: str, project_description: str, project_type: str
     ) -> dict:
@@ -54,7 +55,7 @@ class CLIFacade(BaseInterfaceFacade):
                 filtered_paths.append(path)
 
         controller = self.controller
-        project_list_condition = Condition("project_name", project, EQ) & Condition(
+        project_list_condition = Condition("name", project, EQ) & Condition(
             "team_id", controller.team_id, EQ
         )
         projects = controller.projects.get_all(condition=project_list_condition)
