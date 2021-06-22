@@ -7,12 +7,30 @@ import src.lib.core as constances
 from src.lib.app.interface.base_interface import BaseInterfaceFacade
 from src.lib.core.conditions import Condition
 from src.lib.core.conditions import CONDITION_EQ as EQ
-
+from src.lib.infrastructure.repositories import ConfigRepository
+from src.lib.core.entities import ConfigEntity
 
 logger = logging.getLogger()
 
 
 class CLIFacade(BaseInterfaceFacade):
+
+    def init(self):
+        config = ConfigRepository().get_one(uuid=constances.TOKEN_UUID)
+        if config:
+            yes_no = input(f"File {config} exists. Do you want to overwrite? [y/n] : ")
+            if yes_no != "y":
+                return
+        token = input("Input the team SDK token from https://app.superannotate.com/team : ")
+        config_entity = ConfigEntity(uuid=constances.TOKEN_UUID,value=token)
+        ConfigRepository().insert(config_entity)
+        if config:
+            print("Configuration file %s successfully updated.")
+        else:
+            print("Configuration file %s successfully created.")
+
+
+
     def create_project(
         self, project_name: str, project_description: str, project_type: str
     ) -> dict:

@@ -7,6 +7,8 @@ from pathlib import Path
 
 import src.lib.app.bin as config
 from src.lib.infrastructure import controller
+from src.lib.app.interface.cli_interface import CLIFacade
+import fire
 
 
 class SABaseException(Exception):
@@ -400,6 +402,7 @@ def main():
             "Wrong command " + command + " to superannotate CLI. " + available_commands,
         )
 
-
 if __name__ == "__main__":
-    main()
+    fire.Fire(CLIFacade)
+
+
