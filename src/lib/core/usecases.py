@@ -4,21 +4,26 @@ import uuid
 from abc import ABC
 from abc import abstractmethod
 from pathlib import Path
+from typing import Iterable
 from typing import List
 from typing import Optional
 
 import src.lib.core as constances
 from src.lib.core.conditions import Condition
 from src.lib.core.conditions import CONDITION_EQ as EQ
+from src.lib.core.entities import AnnotationClassEntity
 from src.lib.core.entities import FolderEntity
 from src.lib.core.entities import ImageFileEntity
 from src.lib.core.entities import ImageInfoEntity
 from src.lib.core.entities import ProjectEntity
+from src.lib.core.entities import ProjectSettingEntity
 from src.lib.core.entities import TeamEntity
+from src.lib.core.entities import WorkflowEntity
 from src.lib.core.exceptions import AppException
 from src.lib.core.exceptions import AppValidationException
 from src.lib.core.plugin import ImagePlugin
 from src.lib.core.repositories import BaseManageableRepository
+from src.lib.core.repositories import BaseProjectRelatedManageableRepository
 from src.lib.core.repositories import BaseReadOnlyRepository
 from src.lib.core.response import Response
 from src.lib.core.serviceproviders import SuerannotateServiceProvider
@@ -73,16 +78,66 @@ class CreateProjectUseCase(BaseUseCase):
         response: Response,
         project: ProjectEntity,
         projects: BaseManageableRepository,
+        backend_service_provider: SuerannotateServiceProvider,
+        settings: List[ProjectSettingEntity] = None,
+        workflows: List[WorkflowEntity] = None,
+        annotation_classes: List[AnnotationClassEntity] = None,
+        contributors: Iterable[dict] = None,
     ):
 
         super().__init__(response)
         self._project = project
         self._projects = projects
+        self._settings = settings
+        self._workflows = workflows
+        self._annotation_classes = annotation_classes
+        self._contributors = contributors
+        self._backend_service = backend_service_provider
 
     def execute(self):
         if self.is_valid():
+            # todo add status in the constanses
+            self._project.status = 0
             entity = self._projects.insert(self._project)
-            self._response.data = entity.to_dict()
+            self._response.data = entity
+            if self._settings:
+                settings_repo = BaseProjectRelatedManageableRepository(
+                    self._backend_service, entity
+                )
+                for setting in self._settings:
+                    settings_repo.insert(setting)
+                self._response.data.settings = self._settings
+            annotation_classes_mapping = {}
+            if self._annotation_classes:
+                annotation_repo = BaseProjectRelatedManageableRepository(
+                    self._backend_service, entity
+                )
+                for annotation_class in self._annotation_classes:
+                    annotation_classes_mapping[
+                        annotation_class.uuid
+                    ] = annotation_repo.insert(annotation_class)
+                self._response.data.annotation_classes = self._annotation_classes
+            if self._workflows:
+                workflow_repo = BaseProjectRelatedManageableRepository(
+                    self._backend_service, entity
+                )
+                for workflow in self._workflows:
+                    workflow.project_id = entity.uuid
+                    workflow.class_id = annotation_classes_mapping.get(
+                        workflow.class_id
+                    )
+                    workflow_repo.insert(workflow)
+                self._response.data.workflows = self._workflows
+
+            if self._contributors:
+                for contributor in self.contributors:
+                    self._backend_service.share_project(
+                        entity.uuid,
+                        entity.team_id,
+                        contributor.get("id"),
+                        contributor.get("role"),
+                    )
+                self._response.data.contributors = self._contributors
         else:
             self._response.errors = self._errors
 
@@ -338,7 +393,7 @@ class CloneProjectUseCase(BaseUseCase):
                     annotation_class.uuid
                 ] = self._annotation_classes.insert(annotation_class_copy)
 
-        if not self._include_contributors:
+        if self._include_contributors:
             for user in self._project.users:
                 self._backend_service.share_project(
                     project.uuid, project.team_id, user.get("id"), user.get("role")

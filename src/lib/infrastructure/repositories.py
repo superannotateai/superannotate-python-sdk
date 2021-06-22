@@ -18,6 +18,7 @@ from src.lib.core.entities import TeamEntity
 from src.lib.core.entities import UserEntity
 from src.lib.core.entities import WorkflowEntity
 from src.lib.core.repositories import BaseManageableRepository
+from src.lib.core.repositories import BaseProjectRelatedManageableRepository
 from src.lib.core.repositories import BaseReadOnlyRepository
 from src.lib.infrastructure.services import SuperannotateBackendService
 
@@ -88,14 +89,22 @@ class ProjectRepository(BaseManageableRepository):
         ]
 
     def insert(self, entity: ProjectEntity) -> ProjectEntity:
-        project_data = self._service.create_project(entity.to_dict())
-        return self.dict2entity(project_data)
+        project_data = self._drop_nones(entity.to_dict())
+        result = self._service.create_project(project_data)
+        return self.dict2entity(result)
 
     def update(self, entity: ProjectEntity):
         self._service.update_project(entity.to_dict())
 
     def delete(self, uuid: int):
         self._service.delete_project(uuid)
+
+    @staticmethod
+    def _drop_nones(data: dict):
+        for k, v in list(data.items()):
+            if v is None:
+                del data[k]
+        return data
 
     @staticmethod
     def dict2entity(data: dict):
@@ -142,11 +151,7 @@ class S3Repository(BaseManageableRepository):
         return entity
 
 
-class ProjectSettingsRepository(BaseManageableRepository):
-    def __init__(self, service: SuperannotateBackendService, project: ProjectEntity):
-        self._service = service
-        self._project = project
-
+class ProjectSettingsRepository(BaseProjectRelatedManageableRepository):
     def get_one(self, uuid: int) -> ProjectEntity:
         raise NotImplementedError
 
@@ -174,11 +179,7 @@ class ProjectSettingsRepository(BaseManageableRepository):
         )
 
 
-class WorkflowRepository(BaseManageableRepository):
-    def __init__(self, service: SuperannotateBackendService, project: ProjectEntity):
-        self._service = service
-        self._project = project
-
+class WorkflowRepository(BaseProjectRelatedManageableRepository):
     def get_one(self, uuid: int) -> WorkflowEntity:
         raise NotImplementedError
 

@@ -6,6 +6,8 @@ from typing import Optional
 
 from src.lib.core.conditions import Condition
 from src.lib.core.entities import BaseEntity
+from src.lib.core.entities import ProjectEntity
+from src.lib.core.serviceproviders import SuerannotateServiceProvider
 
 
 class BaseReadOnlyRepository(ABC):
@@ -30,3 +32,9 @@ class BaseManageableRepository(BaseReadOnlyRepository):
     @abstractmethod
     def delete(self, uuid: Any):
         raise NotImplementedError
+
+
+class BaseProjectRelatedManageableRepository(BaseManageableRepository):
+    def __init__(self, service: SuerannotateServiceProvider, project: ProjectEntity):
+        self._service = service
+        self._project = project
