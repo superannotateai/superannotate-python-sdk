@@ -15,7 +15,7 @@ class SuerannotateServiceProvider(ABC):
         files: List[Dict],
         annotation_status_code: int,
         upload_state_code: int,
-        meta: Dict,
+        meta: Dict
     ):
         raise NotImplementedError
 

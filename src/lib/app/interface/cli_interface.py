@@ -53,12 +53,12 @@ class CLIFacade(BaseInterfaceFacade):
         return response.data
 
 
-    def upload_images_from_folder_to_project(
+    def upload_images(
         self,
         project: str,
-        folder_path: str,
+        folder: str,
         extensions: str = constances.DEFAULT_IMAGE_EXTENSIONS,
-        annotation_status: str = constances.AnnotationStatus.NOT_STARTED.value,
+        set_annotation_status: str = constances.AnnotationStatus.NOT_STARTED.value,
         exclude_file_patterns=constances.DEFAULT_FILE_EXCLUDE_PATTERNS,
         recursive_subfolders=False,
         image_quality_in_editor=None,
@@ -66,13 +66,13 @@ class CLIFacade(BaseInterfaceFacade):
         paths = []
         for extension in extensions:
             if not recursive_subfolders:
-                paths += list(Path(folder_path).glob(f"*.{extension.lower()}"))
+                paths += list(Path(folder).glob(f"*.{extension.lower()}"))
                 if os.name != "nt":
-                    paths += list(Path(folder_path).glob(f"*.{extension.upper()}"))
+                    paths += list(Path(folder).glob(f"*.{extension.upper()}"))
             else:
-                paths += list(Path(folder_path).rglob(f"*.{extension.lower()}"))
+                paths += list(Path(folder).rglob(f"*.{extension.lower()}"))
                 if os.name != "nt":
-                    paths += list(Path(folder_path).rglob(f"*.{extension.upper()}"))
+                    paths += list(Path(folder).rglob(f"*.{extension.upper()}"))
 
         filtered_paths = []
         for path in paths:
@@ -87,15 +87,16 @@ class CLIFacade(BaseInterfaceFacade):
             "team_id", controller.team_id, EQ
         )
         projects = controller.projects.get_all(condition=project_list_condition)
+        app_folder_name = None
         if projects:
             project = projects[0]
-            if not folder_path:
+            if not app_folder_name:
                 folder_id = project.folder_id
             else:
                 folder_condition = (
                     Condition("project_id", project.uuid, EQ)
                     & Condition("team_id", controller.team_id, EQ)
-                    & Condition("name", folder_path, EQ)
+                    & Condition("name", app_folder_name, EQ)
                 )
                 folder_id = controller.folders.get_one(folder_condition).uuid
             image_info_entities = []
@@ -115,6 +116,6 @@ class CLIFacade(BaseInterfaceFacade):
                 self.controller.upload_images(
                     project=project,
                     images=image_info_entities,
-                    annotation_status=annotation_status,
+                    annotation_status=set_annotation_status,
                     image_quality=image_quality_in_editor,
                 )

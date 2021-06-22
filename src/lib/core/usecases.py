@@ -19,7 +19,6 @@ from src.lib.core.entities import ProjectEntity
 from src.lib.core.entities import ProjectSettingEntity
 from src.lib.core.entities import TeamEntity
 from src.lib.core.entities import WorkflowEntity
-from src.lib.core.enums import ProjectType
 from src.lib.core.exceptions import AppException
 from src.lib.core.exceptions import AppValidationException
 from src.lib.core.plugin import ImagePlugin
@@ -28,6 +27,7 @@ from src.lib.core.repositories import BaseProjectRelatedManageableRepository
 from src.lib.core.repositories import BaseReadOnlyRepository
 from src.lib.core.response import Response
 from src.lib.core.serviceproviders import SuerannotateServiceProvider
+from src.lib.core.enums import ProjectType
 
 
 class BaseUseCase(ABC):
@@ -167,7 +167,7 @@ class DeleteProjectUseCase(BaseUseCase):
 
     def execute(self):
         if self.is_valid():
-            self._projects.delete(self._project)
+            self._projects.delete(self._project.uuid)
         else:
             self._response.errors = self._errors
 
@@ -189,6 +189,163 @@ class UpdateProjectUseCase(BaseUseCase):
             self._projects.update(self._project)
         else:
             self._response.errors = self._errors
+
+
+class ImageUploadUseCas(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        project: ProjectEntity,
+        project_settings: BaseReadOnlyRepository,
+        backend_service_provider: SuerannotateServiceProvider,
+        images: List[ImageInfoEntity],
+        annotation_status: Optional[str] = None,
+        image_quality: Optional[str] = None,
+    ):
+        super().__init__(response)
+        self._project = project
+        self._project_settings = project_settings
+        self._backend = backend_service_provider
+        self._images = images
+        self._annotation_status = annotation_status
+        self._image_quality = image_quality
+
+    @property
+    def image_quality(self):
+        if not self._image_quality:
+            for setting in self._project_settings.get_all():
+                if setting.attribute == "ImageQuality":
+                    if setting.value == 60:
+                        return "compressed"
+                    elif setting.value == 100:
+                        return "original"
+                    raise AppException("NA ImageQuality value")
+        return self._image_quality
+
+    @property
+    def upload_state_code(self) -> int:
+        return constances.UploadState.BASIC.value
+
+    @property
+    def annotation_status_code(self):
+        if not self._annotation_status:
+            return constances.AnnotationStatus.NOT_STARTED.value
+        return constances.AnnotationStatus[self._annotation_status.upper()].value
+
+    def execute(self):
+        images = []
+        meta = {}
+        for image in self._images:
+            images.append({"name": image.name, "path": image.path})
+            meta[image.name] = {"width": image.width, "height": image.height}
+
+        self._backend.attach_files(
+            project_id=self._project.uuid,
+            team_id=self._project.team_id,
+            files=images,
+            annotation_status_code=self.annotation_status_code,
+            upload_state_code=self.upload_state_code,
+            meta=meta,
+        )
+
+    def validate_upload_state(self):
+        if self._project.upload_state == constances.UploadState.EXTERNAL.value:
+            raise AppValidationException("Invalid upload state.")
+
+
+class UploadImageS3UseCas(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        project: ProjectEntity,
+        project_settings: BaseReadOnlyRepository,
+        image_path: str,
+        image: io.BytesIO,
+        s3_repo: BaseManageableRepository,
+        upload_path: str,
+    ):
+        super().__init__(response)
+        self._project = project
+        self._project_settings = project_settings
+        self._image_path = image_path
+        self._image = image
+        self._s3_repo = s3_repo
+        self._upload_path = upload_path
+
+    @property
+    def max_resolution(self) -> int:
+        if self._project.project_type == ProjectType.VECTOR.value:
+            return constances.MAX_VECTOR_RESOLUTION
+        elif self._project.project_type == ProjectType.PIXEL.value:
+            return constances.MAX_PIXEL_RESOLUTION
+
+    def execute(self):
+        image_name = Path(self._image_path).name
+
+        image_processor = ImagePlugin(self._image, self.max_resolution)
+
+        origin_width, origin_height = image_processor.get_size()
+        thumb_image, _, _ = image_processor.generate_thumb()
+        huge_image, huge_width, huge_height = image_processor.generate_huge()
+        low_resolution_image, _, _ = image_processor.generate_low_resolution()
+
+        image_key = (
+            self._upload_path + str(uuid.uuid4()) + Path(self._image_path).suffix
+        )
+
+        file_entity = ImageFileEntity(uuid=image_key, data=self._image)
+
+        thumb_image_name = image_key + "___thumb.jpg"
+        thumb_image_entity = ImageFileEntity(uuid=thumb_image_name, data=thumb_image)
+        self._s3_repo.insert(thumb_image_entity)
+
+        low_resolution_image_name = image_key + "___lores.jpg"
+        low_resolution_file_entity = ImageFileEntity(
+            uuid=low_resolution_image_name, data=low_resolution_image
+        )
+        self._s3_repo.insert(low_resolution_file_entity)
+
+        huge_image_name = image_key + "___huge.jpg"
+        huge_file_entity = ImageFileEntity(
+            uuid=huge_image_name,
+            data=huge_image,
+            metadata={"height": huge_width, "weight": huge_height},
+        )
+        self._s3_repo.insert(huge_file_entity)
+
+        self._s3_repo.insert(file_entity)
+        self._response.data = ImageInfoEntity(
+            name=image_name,
+            path=image_key,
+            width=origin_width,
+            height=origin_height,
+        )
+
+
+class CreateFolderUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        folder: FolderEntity,
+        folders: BaseManageableRepository,
+    ):
+        super().__init__(response)
+        self._folder = folder
+        self._folders = folders
+
+    def execute(self):
+        self._response.data = self._folders.insert(self._folder)
+
+    def validate_folder_name(self):
+        if (
+            len(
+                set(self._folder.name).intersection(
+                    constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
+                )
+            )
+            > 0
+        ):
+            raise AppValidationException("New folder name has special characters.")
 
 
 class CloneProjectUseCase(BaseUseCase):
@@ -251,193 +408,6 @@ class CloneProjectUseCase(BaseUseCase):
                 workflow_copy.project_id = project.uuid
                 workflow_copy.class_id = annotation_classes_mapping[workflow.class_id]
                 self._workflows.insert(workflow_copy)
-
-
-class ImageUploadUseCas(BaseUseCase):
-    def __init__(
-        self,
-        response: Response,
-        project: ProjectEntity,
-        project_settings: BaseReadOnlyRepository,
-        backend_service_provider: SuerannotateServiceProvider,
-        images: List[ImageInfoEntity],
-        annotation_status: Optional[str] = None,
-        image_quality: Optional[str] = None,
-    ):
-        super().__init__(response)
-        self._project = project
-        self._project_settings = project_settings
-        self._backend = backend_service_provider
-        self._images = images
-        self._annotation_status = annotation_status
-        self._image_quality = image_quality
-
-    @property
-    def image_quality(self):
-        if not self._image_quality:
-            for setting in self._project_settings.get_all():
-                if setting.attribute == "ImageQuality":
-                    if setting.value == 60:
-                        return "compressed"
-                    elif setting.value == 100:
-                        return "original"
-                    raise AppException("NA ImageQuality value")
-        return self._image_quality
-
-    @property
-    def upload_state_code(self) -> int:
-        return constances.UploadState.BASIC.value
-
-    @property
-    def annotation_status_code(self):
-        if not self._annotation_status:
-            return constances.AnnotationStatus.NOT_STARTED.value
-        return constances.AnnotationStatus.get_value(self._annotation_status)
-
-    def execute(self):
-        images = []
-        meta = {}
-        for image in self._images:
-            images.append({"name": image.name, "path": image.path})
-            meta[image.name] = {"width": image.width, "height": image.height}
-
-        self._backend.attach_files(
-            project_id=self._project.uuid,
-            team_id=self._project.team_id,
-            files=images,
-            annotation_status_code=self.annotation_status_code,
-            upload_state_code=self.upload_state_code,
-            meta=meta,
-        )
-
-    def validate_upload_state(self):
-        if self._project.upload_state == constances.UploadState.EXTERNAL.value:
-            raise AppValidationException("Invalid upload state.")
-
-
-class GetImagesUseCase(BaseUseCase):
-    def __init__(
-        self,
-        response: Response,
-        project: ProjectEntity,
-        folder: FolderEntity,
-        images: BaseReadOnlyRepository,
-        annotation_status: str = None,
-        image_name_prefix: str = None,
-    ):
-        super().__init__(response)
-        self._project = project
-        self._folder = folder
-        self._images = images
-        self._annotation_status = annotation_status
-        self._image_name_prefix = image_name_prefix
-
-    def execute(self):
-        condition = (
-            Condition("team_id", self._project.team_id, EQ)
-            & Condition("project_id", self._project.uuid, EQ)
-            & Condition("folder_id", self._folder.uuid, EQ)
-        )
-        if self._image_name_prefix:
-            condition = condition & Condition("name", self._image_name_prefix, EQ)
-        if self._annotation_status:
-            condition = condition & Condition(
-                "annotation_status",
-                constances.AnnotationStatus[self._annotation_status.upper()].value,
-                EQ,
-            )
-
-        self._response.data = self._images.get_all(condition)
-
-
-class UploadImageS3UseCas(BaseUseCase):
-    def __init__(
-        self,
-        response: Response,
-        project: ProjectEntity,
-        project_settings: BaseReadOnlyRepository,
-        image_path: str,
-        image: io.BytesIO,
-        s3_repo: BaseManageableRepository,
-        upload_path: str,
-    ):
-        super().__init__(response)
-        self._project = project
-        self._project_settings = project_settings
-        self._image_path = image_path
-        self._image = image
-        self._s3_repo = s3_repo
-        self._upload_path = upload_path
-
-    @property
-    def max_resolution(self) -> int:
-        if self._project.project_type == ProjectType.VECTOR.value:
-            return constances.MAX_VECTOR_RESOLUTION
-        elif self._project.project_type == ProjectType.PIXEL.value:
-            return constances.MAX_PIXEL_RESOLUTION
-
-    def execute(self):
-        image_name = Path(self._image_path).name
-        image_processor = ImagePlugin(self._image, self.max_resolution)
-        origin_width, origin_height = image_processor.get_size()
-        thumb_image, _, _ = image_processor.generate_thumb()
-        huge_image, huge_width, huge_height = image_processor.generate_huge()
-        low_resolution_image, _, _ = image_processor.generate_low_resolution()
-
-        image_key = (
-            self._upload_path + str(uuid.uuid4()) + Path(self._image_path).suffix
-        )
-
-        file_entity = ImageFileEntity(uuid=image_key, data=self._image)
-
-        thumb_image_name = image_key + "___thumb.jpg"
-        thumb_image_entity = ImageFileEntity(uuid=thumb_image_name, data=thumb_image)
-        self._s3_repo.insert(thumb_image_entity)
-
-        low_resolution_image_name = image_key + "___lores.jpg"
-        low_resolution_file_entity = ImageFileEntity(
-            uuid=low_resolution_image_name, data=low_resolution_image
-        )
-        self._s3_repo.insert(low_resolution_file_entity)
-
-        huge_image_name = image_key + "___huge.jpg"
-        huge_file_entity = ImageFileEntity(
-            uuid=huge_image_name,
-            data=huge_image,
-            metadata={"height": huge_width, "weight": huge_height},
-        )
-        self._s3_repo.insert(huge_file_entity)
-        file_entity.data.seek(0)
-        self._s3_repo.insert(file_entity)
-        self._response.data = ImageInfoEntity(
-            name=image_name, path=image_key, width=origin_width, height=origin_height,
-        )
-
-
-class CreateFolderUseCase(BaseUseCase):
-    def __init__(
-        self,
-        response: Response,
-        folder: FolderEntity,
-        folders: BaseManageableRepository,
-    ):
-        super().__init__(response)
-        self._folder = folder
-        self._folders = folders
-
-    def execute(self):
-        self._response.data = self._folders.insert(self._folder)
-
-    def validate_folder_name(self):
-        if (
-            len(
-                set(self._folder.name).intersection(
-                    constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
-                )
-            )
-            > 0
-        ):
-            raise AppValidationException("New folder name has special characters.")
 
 
 class AttachFileUrls(BaseUseCase):
