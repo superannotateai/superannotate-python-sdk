@@ -155,14 +155,10 @@ class SuperannotateBackendService(BaseBackendService):
         return res.ok
 
     def update_project(self, data: dict, query_string: str = None) -> bool:
-        url = urljoin(
-            self.api_url, self.URL_GET_PROJECT.format(data["id"])
-        )
+        url = urljoin(self.api_url, self.URL_GET_PROJECT.format(data["id"]))
         if query_string:
             url = f"{url}?{query_string}"
-        res = self._request(
-            url, "put", data,
-        )
+        res = self._request(url, "put", data,)
         return res.ok
 
     def attach_files(
