@@ -15,6 +15,7 @@ from src.lib.app.interface.sdk_interface import create_project
 from src.lib.app.interface.sdk_interface import delete_contributor_to_team_invitation
 from src.lib.app.interface.sdk_interface import get_team_metadata
 from src.lib.app.interface.sdk_interface import invite_contributor_to_team
+from src.lib.app.interface.sdk_interface import search_images
 from src.lib.app.interface.sdk_interface import search_projects
 from src.lib.app.interface.sdk_interface import search_team_contributors
 
@@ -51,7 +52,7 @@ __all__ = [
     "search_projects",
     "create_project",
     "clone_project",
+    # Images Section
+    "search_images",
 ]
 
-
-print(create_project("test333411335", "desc", "vector"))

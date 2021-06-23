@@ -11,6 +11,12 @@ class BaseTitledEnum(Enum):
     def value(self):
         return super().value[1]
 
+    @classmethod
+    def get_name(cls, value):
+        for enum in list(cls):
+            if enum.value == value:
+                return enum.name
+
 
 class ProjectType(Enum):
     VECTOR = 1

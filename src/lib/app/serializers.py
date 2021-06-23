@@ -40,3 +40,12 @@ class ProjectSerializer(BaseSerializers):
             data["upload_state"] = constance.UploadState(data["upload_state"]).name
 
         return data
+
+
+class ImageSerializer(BaseSerializers):
+    def serialize(self):
+        data = super().serialize()
+        data["annotation_status"] = constance.AnnotationStatus.get_name(
+            data["annotation_status"]
+        )
+        return data
