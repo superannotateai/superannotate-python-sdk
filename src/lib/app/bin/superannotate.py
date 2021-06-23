@@ -399,10 +399,9 @@ def main():
     else:
         raise SABaseException(
             0,
-            "Wrong command " + command + " to superannotate CLI. " + available_commands,
+            f"Wrong command {command} to superannotate CLI. {available_commands}" ,
         )
 
 if __name__ == "__main__":
     fire.Fire(CLIFacade)
-
 
