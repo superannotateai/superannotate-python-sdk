@@ -17,6 +17,7 @@ from src.lib.core.usecases import CreateFolderUseCase
 from src.lib.core.usecases import CreateProjectUseCase
 from src.lib.core.usecases import DeleteContributorInvitationUseCase
 from src.lib.core.usecases import DeleteProjectUseCase
+from src.lib.core.usecases import GetFolderUseCase
 from src.lib.core.usecases import GetImagesUseCase
 from src.lib.core.usecases import GetProjectsUseCase
 from src.lib.core.usecases import GetTeamUseCase
@@ -283,6 +284,17 @@ class Controller(BaseController):
         )
         use_case = CreateFolderUseCase(
             response=self.response, folder=folder, folders=self.folders
+        )
+        use_case.execute()
+        return self.response
+
+    def get_folder(self, project_name: str, folder_name: str):
+        project = self._get_project(project_name)
+        use_case = GetFolderUseCase(
+            response=self.response,
+            project=project,
+            folders=self.folders,
+            folder_name=folder_name,
         )
         use_case.execute()
         return self.response
