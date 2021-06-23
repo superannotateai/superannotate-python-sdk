@@ -190,6 +190,68 @@ class UpdateProjectUseCase(BaseUseCase):
             self._response.errors = self._errors
 
 
+class CloneProjectUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        project: ProjectEntity,
+        project_to_create: ProjectEntity,
+        projects: BaseManageableRepository,
+        settings: BaseManageableRepository,
+        workflows: BaseManageableRepository,
+        annotation_classes: BaseManageableRepository,
+        backend_service_provider: SuerannotateServiceProvider,
+        include_annotation_classes: bool = True,
+        include_settings: bool = True,
+        include_workflow: bool = True,
+        include_contributors: bool = False,
+    ):
+        super().__init__(response)
+        self._project = project
+        self._project_to_create = project_to_create
+        self._projects = projects
+        self._settings = settings
+        self._workflows = workflows
+        self._annotation_classes = annotation_classes
+        self._backend_service = backend_service_provider
+        self._include_annotation_classes = include_annotation_classes
+        self._include_settings = include_settings
+        self._include_workflow = include_workflow
+        self._include_contributors = include_contributors
+
+    def execute(self):
+        project = self._projects.insert(self._project_to_create)
+        self._response.data = project
+        annotation_classes_mapping = {}
+        if self._include_annotation_classes:
+            annotation_classes = self._annotation_classes.get_all()
+            for annotation_class in annotation_classes:
+                annotation_class_copy = copy.copy(annotation_class)
+                annotation_class_copy.project_id = project.uuid
+                annotation_classes_mapping[
+                    annotation_class.uuid
+                ] = self._annotation_classes.insert(annotation_class_copy).uuid
+
+        if self._include_contributors:
+            for user in self._project.users:
+                self._backend_service.share_project(
+                    project.uuid, project.team_id, user.get("id"), user.get("role")
+                )
+
+        if self._include_settings:
+            for setting in self._settings.get_all():
+                setting_copy = copy.copy(setting)
+                setting_copy.project_id = project.uuid
+                self._settings.insert(setting)
+
+        if self._include_workflow:
+            for workflow in self._workflows.get_all():
+                workflow_copy = copy.copy(workflow)
+                workflow_copy.project_id = project.uuid
+                workflow_copy.class_id = annotation_classes_mapping[workflow.class_id]
+                self._workflows.insert(workflow_copy)
+
+
 class ImageUploadUseCas(BaseUseCase):
     def __init__(
         self,
@@ -254,6 +316,41 @@ class ImageUploadUseCas(BaseUseCase):
     def validate_upload_state(self):
         if self._project.upload_state == constances.UploadState.EXTERNAL.value:
             raise AppValidationException("Invalid upload state.")
+
+
+class GetImagesUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        images: BaseReadOnlyRepository,
+        annotation_status: str = None,
+        image_name_prefix: str = None,
+    ):
+        super().__init__(response)
+        self._project = project
+        self._folder = folder
+        self._images = images
+        self._annotation_status = annotation_status
+        self._image_name_prefix = image_name_prefix
+
+    def execute(self):
+        condition = (
+            Condition("team_id", self._project.team_id, EQ)
+            & Condition("project_id", self._project.uuid, EQ)
+            & Condition("folder_id", self._folder.uuid, EQ)
+        )
+        if self._image_name_prefix:
+            condition = condition & Condition("name", self._image_name_prefix, EQ)
+        if self._annotation_status:
+            condition = condition & Condition(
+                "annotation_status",
+                constances.AnnotationStatus[self._annotation_status.upper()].value,
+                EQ,
+            )
+
+        self._response.data = self._images.get_all(condition)
 
 
 class UploadImageS3UseCas(BaseUseCase):
@@ -349,68 +446,6 @@ class CreateFolderUseCase(BaseUseCase):
             > 0
         ):
             raise AppValidationException("New folder name has special characters.")
-
-
-class CloneProjectUseCase(BaseUseCase):
-    def __init__(
-        self,
-        response: Response,
-        project: ProjectEntity,
-        project_to_create: ProjectEntity,
-        projects: BaseManageableRepository,
-        settings: BaseManageableRepository,
-        workflows: BaseManageableRepository,
-        annotation_classes: BaseManageableRepository,
-        backend_service_provider: SuerannotateServiceProvider,
-        include_annotation_classes: bool = True,
-        include_settings: bool = True,
-        include_workflow: bool = True,
-        include_contributors: bool = False,
-    ):
-        super().__init__(response)
-        self._project = project
-        self._project_to_create = project_to_create
-        self._projects = projects
-        self._settings = settings
-        self._workflows = workflows
-        self._annotation_classes = annotation_classes
-        self._backend_service = backend_service_provider
-        self._include_annotation_classes = include_annotation_classes
-        self._include_settings = include_settings
-        self._include_workflow = include_workflow
-        self._include_contributors = include_contributors
-
-    def execute(self):
-        project = self._projects.insert(self._project_to_create)
-        self._response.data = project
-        annotation_classes_mapping = {}
-        if self._include_annotation_classes:
-            annotation_classes = self._annotation_classes.get_all()
-            for annotation_class in annotation_classes:
-                annotation_class_copy = copy.copy(annotation_class)
-                annotation_class_copy.project_id = project.uuid
-                annotation_classes_mapping[
-                    annotation_class.uuid
-                ] = self._annotation_classes.insert(annotation_class_copy).uuid
-
-        if self._include_contributors:
-            for user in self._project.users:
-                self._backend_service.share_project(
-                    project.uuid, project.team_id, user.get("id"), user.get("role")
-                )
-
-        if self._include_settings:
-            for setting in self._settings.get_all():
-                setting_copy = copy.copy(setting)
-                setting_copy.project_id = project.uuid
-                self._settings.insert(setting)
-
-        if self._include_workflow:
-            for workflow in self._workflows.get_all():
-                workflow_copy = copy.copy(workflow)
-                workflow_copy.project_id = project.uuid
-                workflow_copy.class_id = annotation_classes_mapping[workflow.class_id]
-                self._workflows.insert(workflow_copy)
 
 
 class AttachFileUrls(BaseUseCase):

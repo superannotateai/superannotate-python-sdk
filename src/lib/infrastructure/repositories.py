@@ -222,12 +222,7 @@ class FolderRepository(BaseManageableRepository):
     def get_one(self, uuid: Condition) -> FolderEntity:
         condition = uuid.build_query()
         data = self._service.get_folder(condition)
-        return FolderEntity(
-            uuid=data["id"],
-            project_id=data["project_id"],
-            team_id=data["team_id"],
-            name=data["name"],
-        )
+        return self.dict2entity(data)
 
     def get_all(self, condition: Optional[Condition] = None) -> List[FolderEntity]:
         raise NotImplementedError
@@ -239,6 +234,12 @@ class FolderRepository(BaseManageableRepository):
             folder_name=entity.name,
         )
         return self.dict2entity(res)
+
+    def update(self, entity: FolderEntity):
+        raise NotImplementedError
+
+    def delete(self, uuid: int):
+        raise NotImplementedError
 
     @staticmethod
     def dict2entity(data: dict):
@@ -301,6 +302,15 @@ class ImageRepositroy(BaseManageableRepository):
     def get_all(self, condition: Optional[Condition] = None) -> List[ImageEntity]:
         images = self._service.get_images(condition.build_query())
         return [self.dict2entity(image) for image in images]
+
+    def insert(self, entity: ImageEntity) -> ImageEntity:
+        raise NotImplementedError
+
+    def delete(self, uuid: int):
+        raise NotImplementedError
+
+    def update(self, entity: ImageEntity):
+        raise NotImplementedError
 
     @staticmethod
     def dict2entity(data: dict):

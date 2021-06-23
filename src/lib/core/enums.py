@@ -9,7 +9,13 @@ class BaseTitledEnum(Enum):
 
     @DynamicClassAttribute
     def value(self):
-        return super().name[1]
+        return super().value[1]
+
+    @classmethod
+    def get_name(cls, value):
+        for enum in list(cls):
+            if enum.value == value:
+                return enum.name
 
 
 class ProjectType(Enum):

@@ -61,7 +61,7 @@ class BaseBackendService(SuerannotateServiceProvider):
             return self.PAGINATE_BY
 
     def _request(
-        self, url, method="get", data=None, headers=None, params=None
+        self, url, method="get", data=None, headers=None, params=None,
     ) -> requests.Response:
         kwargs = {"json": data} if data else {}
         headers_dict = self.default_headers.copy()
@@ -76,7 +76,7 @@ class BaseBackendService(SuerannotateServiceProvider):
             )
         return response
 
-    def _get_page(self, url, offset, params=None):
+    def _get_page(self, url, offset, params=None, key_field: str = None):
         splitter = "&" if "?" in url else "?"
         url = f"{url}{splitter}offset={offset}"
 
@@ -86,16 +86,18 @@ class BaseBackendService(SuerannotateServiceProvider):
         data = response.json()
         if data:
             if isinstance(data, dict):
+                if key_field:
+                    data = data[key_field]
                 return data, data.get("count") - offset
             if isinstance(data, list):
                 return {"data": data}, 0
         return {"data": []}, 0
 
-    def _get_all_pages(self, url, offset=0, params=None):
+    def _get_all_pages(self, url, offset=0, params=None, key_field: str = None):
         total = list()
 
         while True:
-            resources, remains_count = self._get_page(url, offset, params)
+            resources, remains_count = self._get_page(url, offset, params, key_field)
             total.extend(resources["data"])
             if remains_count <= 0:
                 break
@@ -290,8 +292,8 @@ class SuperannotateBackendService(BaseBackendService):
         url = urljoin(self.api_url, self.URL_FOLDERS_IMAGES)
         if query_string:
             url = f"{url}?{query_string}"
-        pages = self._get_all_pages(url)
-        return [image for page in pages for image in page["images"]]
+        pages = self._get_all_pages(url, key_field="images")
+        return [image for image in pages]
 
     def prepare_export(
         self,
