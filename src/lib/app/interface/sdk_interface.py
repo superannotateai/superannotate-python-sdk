@@ -249,3 +249,10 @@ def search_images(
     #     return list(map(process_result, result_list))
     # else:
     #     return result_list
+
+
+def delete_project(project):
+    name = project
+    if isinstance(project, dict):
+        name = project["name"]
+    controller.delete_project(name=name)

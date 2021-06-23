@@ -147,9 +147,11 @@ class SuperannotateBackendService(BaseBackendService):
         res = self._request(create_project_url, "post", project_data)
         return res.json()
 
-    def delete_project(self, uuid: int) -> bool:
-        delete_project_url = urljoin(self.api_url, self.URL_GET_PROJECT.format(uuid))
-        res = self._request(delete_project_url, "delete")
+    def delete_project(self, uuid: int, query_string: str = None) -> bool:
+        url = urljoin(self.api_url, self.URL_GET_PROJECT.format(uuid))
+        if query_string:
+            url = f"{url}?{query_string}"
+        res = self._request(url, "delete")
         return res.ok
 
     def update_project(self, data: dict) -> bool:
