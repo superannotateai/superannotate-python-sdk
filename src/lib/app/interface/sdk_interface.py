@@ -252,3 +252,10 @@ def create_folder(project, folder_name):
         )
     logger.info(f"Folder {result.name} created in project {project}")
     return result.to_dict()
+
+
+def delete_project(project):
+    name = project
+    if isinstance(project, dict):
+        name = project["name"]
+    controller.delete_project(name=name)

@@ -157,13 +157,14 @@ class Controller(BaseController):
 
     def delete_project(self, name: str):
         entities = self.projects.get_all(
-            Condition("teams_id", self.team_id, EQ) & Condition("name", name, EQ)
+            Condition("team_id", self.team_id, EQ) & Condition("name", name, EQ)
         )
         if entities and len(entities) == 1:
             use_case = DeleteProjectUseCase(self.response, entities[0], self.projects)
             use_case.execute()
             return self.response
-        raise AppException("There are duplicated names.")
+        if entities and len(entities) > 1:
+            raise AppException("There are duplicated names.")
 
     def update_project(self, name: str, project_data: dict) -> Response:
         entities = self.projects.get_all(
