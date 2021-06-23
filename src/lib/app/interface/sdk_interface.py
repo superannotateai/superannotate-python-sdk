@@ -2,6 +2,7 @@ import logging
 from pathlib import Path
 
 import lib.core as constances
+from lib.app.exceptions import EmptyOutputError
 from lib.app.exceptions import UserInputError
 from lib.app.serializers import ImageSerializer
 from lib.app.serializers import ProjectSerializer
@@ -229,46 +230,43 @@ def search_images(
     if return_metadata:
         return [ImageSerializer(image).serialize() for image in result]
     return [image.name for image in result]
-    #
-    #
-    #     results_images = images["data"]
-    #     for r in results_images:
-    #         if return_metadata:
-    #             result_list.append(r)
-    #         else:
-    #             result_list.append(r["name"])
-    #
-    # if return_metadata:
-    #
-    #     def process_result(x):
-    #         x["annotation_status"] = common.annotation_status_int_to_str(
-    #             x["annotation_status"]
-    #         )
-    #         return x
-    #
-    #     return list(map(process_result, result_list))
-    # else:
-    #     return result_list
 
 
-def delete_project(project):
-    """Deletes the project
+def create_folder(project, folder_name):
+    """Create a new folder in the project.
 
-        :param project: project name or folder path (e.g., "project1/folder1")
-        :type project: str
-    """
-    name = project
-    if isinstance(project, dict):
-        name = project["name"]
-    controller.delete_project(name=name)
-
-
-def rename_project(project, new_name):
-    """Renames the project
-
-    :param project: project name or folder path (e.g., "project1/folder1")
+    :param project: project name
     :type project: str
-    :param new_name: project's new name
-    :type new_name: str
+    :param folder_name: the new folder's name
+    :type folder_name: str
+
+    :return: dict object metadata the new folder
+    :rtype: dict
     """
-    controller.update_project(name=project, project_data={"name": new_name})
+
+    result = controller.create_folder(
+        project_name=project, folder_name=folder_name
+    ).data
+    if result.name != folder_name:
+        logger.warning(
+            f"Created folder has name {result.name}, since folder with name {folder_name} already existed.",
+        )
+    logger.info(f"Folder {result.name} created in project {project}")
+    return result.to_dict()
+
+
+def get_folder_metadata(project, folder_name):
+    """Returns folder metadata
+
+    :param project: project name
+    :type project: str
+    :param folder_name: folder's name
+    :type folder_name: str
+
+    :return: metadata of folder
+    :rtype: dict
+    """
+    result = controller.get_folder(project_name=project, folder_name=folder_name).data
+    if not result:
+        raise EmptyOutputError("Couldn't get folder metadata.")
+    return result.to_dict()
