@@ -13,6 +13,8 @@ logger = logging.getLogger()
 class BaseInterfaceFacade:
     @property
     def controller(self):
+        if not ConfigRepository().get_one("token"):
+            raise Exception("Config does not exsits!")
         return Controller(
             backend_client=SuperannotateBackendService(
                 api_url=constances.BACKEND_URL,

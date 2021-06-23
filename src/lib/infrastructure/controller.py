@@ -275,8 +275,9 @@ class Controller(BaseController):
         )
         use_case.execute()
 
-    def create_folder(self, project_name: str, folder_name: str):
-        project = self._get_project(project_name)
+    def create_folder(self, project: str, folder_name: str):
+        projects = ProjectRepository(service=self._backend_client).get_all(condition=Condition("name", project, EQ) & Condition("team_id", self.team_id,EQ))
+        project = projects[0]
         folder = FolderEntity(
             name=folder_name, project_id=project.uuid, team_id=project.team_id
         )
