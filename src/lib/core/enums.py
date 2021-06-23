@@ -11,6 +11,18 @@ class BaseTitledEnum(Enum):
     def value(self):
         return super().value[1]
 
+    @classmethod
+    def get_name(cls, value):
+        for enum in list(cls):
+            if enum.value == value:
+                return enum.name
+
+    @classmethod
+    def get_value(cls, name):
+        for enum in list(cls):
+            if enum.name.lower() == name.lower():
+                return enum.value
+
 
 class ProjectType(Enum):
     VECTOR = 1
@@ -35,7 +47,7 @@ class AnnotationStatus(BaseTitledEnum):
     NOT_STARTED = "NotStarted", 1
     IN_PROGRESS = "InProgress", 2
     COMPLETED = "Completed", 3
-    QUALITYCHECK = "QualityCheck", 4
+    QUALITY_CHECK = "QualityCheck", 4
     RETURNED = "Returned", 5
 
 

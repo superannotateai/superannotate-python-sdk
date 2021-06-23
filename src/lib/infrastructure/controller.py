@@ -3,7 +3,6 @@ import io
 from typing import Iterable
 from typing import List
 
-import src.lib.core as constances
 from src.lib.core.conditions import Condition
 from src.lib.core.conditions import CONDITION_EQ as EQ
 from src.lib.core.entities import FolderEntity
@@ -184,9 +183,7 @@ class Controller(BaseController):
         image: io.BytesIO,
         folder_id: int = None,  # project folder path
     ):
-        s3_repo = self.get_s3_repository(
-            self.team_id, project.uuid, folder_id,
-        )
+        s3_repo = self.get_s3_repository(self.team_id, project.uuid, folder_id,)
         use_case = UploadImageS3UseCas(
             response=self.response,
             project=project,
@@ -256,7 +253,10 @@ class Controller(BaseController):
         use_case.execute()
 
     def create_folder(self, project: str, folder_name: str):
-        projects = ProjectRepository(service=self._backend_client).get_all(condition=Condition("name", project, EQ) & Condition("team_id", self.team_id,EQ))
+        projects = ProjectRepository(service=self._backend_client).get_all(
+            condition=Condition("name", project, EQ)
+            & Condition("team_id", self.team_id, EQ)
+        )
         project = projects[0]
         folder = FolderEntity(
             name=folder_name, project_id=project.uuid, team_id=project.team_id

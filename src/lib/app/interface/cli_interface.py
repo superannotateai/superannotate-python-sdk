@@ -7,24 +7,24 @@ import src.lib.core as constances
 from src.lib.app.interface.base_interface import BaseInterfaceFacade
 from src.lib.core.conditions import Condition
 from src.lib.core.conditions import CONDITION_EQ as EQ
-from src.lib.infrastructure.repositories import ConfigRepository
-from src.lib.infrastructure.repositories import ProjectRepository
 from src.lib.core.entities import ConfigEntity
-from src.lib.core.entities import ProjectEntity
+from src.lib.infrastructure.repositories import ConfigRepository
 
 logger = logging.getLogger()
 
 
 class CLIFacade(BaseInterfaceFacade):
-
     def init(self):
         repo = ConfigRepository()
         config = repo.get_one(uuid=constances.TOKEN_UUID)
         if config:
-            yes_no = input(f"File {config} exists. Do you want to overwrite? [y/n] : ")
-            if yes_no != "y":
+            if not input(
+                f"File {config} exists. Do you want to overwrite? [y/n] : "
+            ).lower() in ("y", "yes"):
                 return
-        token = input("Input the team SDK token from https://app.superannotate.com/team : ")
+        token = input(
+            "Input the team SDK token from https://app.superannotate.com/team : "
+        )
         config_entity = ConfigEntity(uuid=constances.TOKEN_UUID, value=token)
         repo.insert(config_entity)
         if config:
@@ -32,26 +32,18 @@ class CLIFacade(BaseInterfaceFacade):
         else:
             print("Configuration file successfully created.")
 
-    def create_project(
-        self, name: str, description: str, type: str
-    ) -> dict:
+    def create_project(self, name: str, description: str, type: str) -> dict:
         p_type = constances.ProjectType[type.upper()].value
-        response = self.controller.create_project(
-            name, description, p_type
-        )
+        response = self.controller.create_project(name, description, p_type)
         if response.errors:
             return response.errors
         return response.data
 
     def create_folder(self, project: str, folder: str) -> dict:
-        response = self.controller.create_folder(
-            project=project,
-            folder_name=folder
-        )
+        response = self.controller.create_folder(project=project, folder_name=folder)
         if response.errors:
             return response.errors
         return response.data
-
 
     def upload_images(
         self,
