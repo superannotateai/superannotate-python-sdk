@@ -35,6 +35,7 @@ class ConfigRepository(BaseManageableRepository):
         config.add_section("default")
         with open(path, "w") as config_file:
             config.write(config_file)
+        return config
 
     def _get_config(self, path):
         config = None
@@ -46,6 +47,8 @@ class ConfigRepository(BaseManageableRepository):
 
     def get_one(self, uuid: str) -> Optional[ConfigEntity]:
         config = self._get_config(constance.CONFIG_FILE_LOCATION)
+        if not config:
+            return None
         try:
             return ConfigEntity(uuid=uuid, value=config[self.DEFAULT_SECTION][uuid])
         except KeyError:
@@ -60,6 +63,8 @@ class ConfigRepository(BaseManageableRepository):
 
     def insert(self, entity: ConfigEntity) -> ConfigEntity:
         config = self._get_config(constance.CONFIG_FILE_LOCATION)
+        if not config:
+            config = self._create_config(constance.CONFIG_FILE_LOCATION)
         config.set("default", entity.uuid, entity.value)
         with open(constance.CONFIG_FILE_LOCATION, "w") as config_file:
             config.write(config_file)
