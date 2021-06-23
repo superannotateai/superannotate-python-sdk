@@ -19,6 +19,7 @@ from src.lib.core.entities import ProjectEntity
 from src.lib.core.entities import ProjectSettingEntity
 from src.lib.core.entities import TeamEntity
 from src.lib.core.entities import WorkflowEntity
+from src.lib.core.enums import ProjectType
 from src.lib.core.exceptions import AppException
 from src.lib.core.exceptions import AppValidationException
 from src.lib.core.plugin import ImagePlugin
@@ -27,7 +28,6 @@ from src.lib.core.repositories import BaseProjectRelatedManageableRepository
 from src.lib.core.repositories import BaseReadOnlyRepository
 from src.lib.core.response import Response
 from src.lib.core.serviceproviders import SuerannotateServiceProvider
-from src.lib.core.enums import ProjectType
 
 
 class BaseUseCase(ABC):
@@ -292,7 +292,7 @@ class ImageUploadUseCas(BaseUseCase):
     def annotation_status_code(self):
         if not self._annotation_status:
             return constances.AnnotationStatus.NOT_STARTED.value
-        return constances.AnnotationStatus[self._annotation_status.upper()].value
+        return constances.AnnotationStatus.get_value(self._annotation_status)
 
     def execute(self):
         images = []
@@ -378,9 +378,7 @@ class UploadImageS3UseCas(BaseUseCase):
 
     def execute(self):
         image_name = Path(self._image_path).name
-
         image_processor = ImagePlugin(self._image, self.max_resolution)
-
         origin_width, origin_height = image_processor.get_size()
         thumb_image, _, _ = image_processor.generate_thumb()
         huge_image, huge_width, huge_height = image_processor.generate_huge()
@@ -409,13 +407,10 @@ class UploadImageS3UseCas(BaseUseCase):
             metadata={"height": huge_width, "weight": huge_height},
         )
         self._s3_repo.insert(huge_file_entity)
-
+        file_entity.data.seek(0)
         self._s3_repo.insert(file_entity)
         self._response.data = ImageInfoEntity(
-            name=image_name,
-            path=image_key,
-            width=origin_width,
-            height=origin_height,
+            name=image_name, path=image_key, width=origin_width, height=origin_height,
         )
 
 
