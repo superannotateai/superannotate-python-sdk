@@ -249,8 +249,13 @@ class FolderRepository(BaseManageableRepository):
             team_id=data["team_id"],
             project_id=data["project_id"],
             name=data["name"],
-            parent_id=data.get("parent_id"),
         )
+    def delete(self, uuid: int):
+        raise NotImplementedError
+
+    def update(self, entity: FolderEntity):
+        raise NotImplementedError
+
 
 
 class AnnotationClassRepository(BaseManageableRepository):
