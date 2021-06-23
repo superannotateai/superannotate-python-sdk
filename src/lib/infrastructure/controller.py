@@ -17,6 +17,7 @@ from src.lib.core.usecases import CreateFolderUseCase
 from src.lib.core.usecases import CreateProjectUseCase
 from src.lib.core.usecases import DeleteContributorInvitationUseCase
 from src.lib.core.usecases import DeleteProjectUseCase
+from src.lib.core.usecases import GetImagesUseCase
 from src.lib.core.usecases import GetProjectsUseCase
 from src.lib.core.usecases import GetTeamUseCase
 from src.lib.core.usecases import ImageUploadUseCas
@@ -28,6 +29,7 @@ from src.lib.core.usecases import UploadImageS3UseCas
 from src.lib.infrastructure.repositories import AnnotationClassRepository
 from src.lib.infrastructure.repositories import ConfigRepository
 from src.lib.infrastructure.repositories import FolderRepository
+from src.lib.infrastructure.repositories import ImageRepositroy
 from src.lib.infrastructure.repositories import ProjectRepository
 from src.lib.infrastructure.repositories import ProjectSettingsRepository
 from src.lib.infrastructure.repositories import S3Repository
@@ -53,6 +55,10 @@ class BaseController:
     @property
     def teams(self):
         return TeamRepository(self._backend_client)
+
+    @property
+    def images(self):
+        return ImageRepositroy(self._backend_client)
 
     @property
     def configs(self):
@@ -88,6 +94,19 @@ class BaseController:
 
 
 class Controller(BaseController):
+    def _get_project(self, name: str):
+        projects = self.projects.get_all(
+            Condition("name", name, EQ) & Condition("team_id", self.team_id, EQ)
+        )
+        return projects[0]
+
+    def _get_folder(self, project: ProjectEntity, name: str):
+        return self.folders.get_one(
+            Condition("name", name, EQ)
+            & Condition("team_id", self.team_id, EQ)
+            & Condition("project_id", project.uuid, EQ)
+        )
+
     def search_project(self, name: str, **kwargs) -> Response:
         condition = Condition("name", name, EQ)
         for key, val in kwargs.items():
@@ -332,6 +351,29 @@ class Controller(BaseController):
             backend_service_provider=self._backend_client,
             team_id=self.team_id,
             condition=condition,
+        )
+        use_case.execute()
+        return self.response
+
+    def search_images(
+        self,
+        project_name: str,
+        folder_path: str,
+        annotation_status: str = None,
+        image_name_prefix: str = None,
+    ):
+        project = self._get_project(project_name)
+        if not folder_path:
+            folder = self._get_folder(project, "root")
+        else:
+            folder = self._get_folder(project, folder_path)
+        use_case = GetImagesUseCase(
+            response=self.response,
+            project=project,
+            folder=folder,
+            images=self.images,
+            annotation_status=annotation_status,
+            image_name_prefix=image_name_prefix,
         )
         use_case.execute()
         return self.response

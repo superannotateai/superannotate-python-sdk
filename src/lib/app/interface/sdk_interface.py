@@ -1,6 +1,9 @@
 import logging
+from pathlib import Path
 
 import lib.core as constances
+from lib.app.exceptions import UserInputError
+from lib.app.serializers import ImageSerializer
 from lib.app.serializers import ProjectSerializer
 from lib.app.serializers import TeamSerializer
 from lib.core.exceptions import AppException
@@ -188,3 +191,61 @@ def clone_project(
         copy_contributors=copy_contributors,
     ).data
     return result
+
+
+def search_images(
+    project, image_name_prefix=None, annotation_status=None, return_metadata=False
+):
+    """Search images by name_prefix (case-insensitive) and annotation status
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param image_name_prefix: image name prefix for search
+    :type image_name_prefix: str
+    :param annotation_status: if not None, annotation statuses of images to filter,
+                              should be one of NotStarted InProgress QualityCheck Returned Completed Skipped
+    :type annotation_status: str
+
+    :param return_metadata: return metadata of images instead of names
+    :type return_metadata: bool
+
+    :return: metadata of found images or image names
+    :rtype: list of dicts or strs
+    """
+    path = Path(project)
+    if len(path.parts) > 3:
+        raise UserInputError("There can be no subfolders in the project")
+    elif len(path.parts) == 2:
+        project_name, folder_name = path.parts
+    else:
+        project_name, folder_name = path.name, None
+
+    result = controller.search_images(
+        project_name=project_name,
+        folder_path=folder_name,
+        annotation_status=annotation_status,
+        image_name_prefix=image_name_prefix,
+    ).data
+    if return_metadata:
+        return [ImageSerializer(image).serialize() for image in result]
+    return [image.name for image in result]
+    #
+    #
+    #     results_images = images["data"]
+    #     for r in results_images:
+    #         if return_metadata:
+    #             result_list.append(r)
+    #         else:
+    #             result_list.append(r["name"])
+    #
+    # if return_metadata:
+    #
+    #     def process_result(x):
+    #         x["annotation_status"] = common.annotation_status_int_to_str(
+    #             x["annotation_status"]
+    #         )
+    #         return x
+    #
+    #     return list(map(process_result, result_list))
+    # else:
+    #     return result_list
