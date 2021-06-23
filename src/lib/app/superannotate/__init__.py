@@ -55,4 +55,3 @@ __all__ = [
     # Images Section
     "search_images",
 ]
-

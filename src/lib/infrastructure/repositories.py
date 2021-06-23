@@ -35,7 +35,7 @@ class ConfigRepository(BaseManageableRepository):
         config.add_section("default")
         with open(path, "w") as config_file:
             config.write(config_file)
-        return  config
+        return config
 
     def _get_config(self, path):
         config = None
@@ -144,15 +144,12 @@ class S3Repository(BaseManageableRepository):
         return ImageFileEntity(uuid=uuid, data=file)
 
     def insert(self, entity: ImageFileEntity) -> ImageFileEntity:
-        data = {
-            'Key': entity.uuid,
-            'Body': entity.data
-        }
+        data = {"Key": entity.uuid, "Body": entity.data}
         if entity.metadata:
             temp = entity.metadata
             for k in temp:
                 temp[k] = str(temp[k])
-            data['Metadata'] = temp
+            data["Metadata"] = temp
         self.bucket.put_object(**data)
         return entity
 
@@ -271,12 +268,12 @@ class FolderRepository(BaseManageableRepository):
             project_id=data["project_id"],
             name=data["name"],
         )
+
     def delete(self, uuid: int):
         raise NotImplementedError
 
     def update(self, entity: FolderEntity):
         raise NotImplementedError
-
 
 
 class AnnotationClassRepository(BaseManageableRepository):
