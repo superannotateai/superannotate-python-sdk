@@ -167,7 +167,7 @@ class DeleteProjectUseCase(BaseUseCase):
 
     def execute(self):
         if self.is_valid():
-            self._projects.delete(self._project.uuid)
+            self._projects.delete(self._project)
         else:
             self._response.errors = self._errors
 
