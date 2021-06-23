@@ -153,7 +153,7 @@ class Controller(BaseController):
         )
         project = entities[0]
         if entities and len(entities) == 1:
-            project.name = project_data['name']
+            project.name = project_data["name"]
             use_case = UpdateProjectUseCase(self.response, project, self.projects)
             use_case.execute()
             return self.response

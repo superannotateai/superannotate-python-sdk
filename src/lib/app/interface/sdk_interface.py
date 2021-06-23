@@ -263,7 +263,7 @@ def delete_project(project):
     controller.delete_project(name=name)
 
 
-def rename_project(project,new_name):
+def rename_project(project, new_name):
     """Renames the project
 
     :param project: project name or folder path (e.g., "project1/folder1")
