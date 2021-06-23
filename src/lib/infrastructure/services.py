@@ -116,7 +116,7 @@ class SuperannotateBackendService(BaseBackendService):
     URL_CREATE_PROJECT = "project"
     URL_GET_PROJECT = "project/{}"
     URL_GET_FOLDER_BY_NAME = "folder/getFolderByName"
-    URL_CREATE_FOLDER = "folder/getFolderByName"
+    URL_CREATE_FOLDER = "folder"
     URL_GET_PROJECT_SETTIGNS = "/project/{}/settings"
     URL_CREATE_IMAGE = "image/ext-create"
     URL_PROJECT_SETTIGNS = "project/{}/settings"

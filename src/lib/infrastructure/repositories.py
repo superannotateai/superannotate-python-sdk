@@ -248,7 +248,7 @@ class FolderRepository(BaseManageableRepository):
             team_id=data["team_id"],
             project_id=data["project_id"],
             name=data["name"],
-            parent_id=data["parent_id"],
+            parent_id=data.get("parent_id"),
         )
 
 
