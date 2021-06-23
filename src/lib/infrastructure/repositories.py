@@ -7,6 +7,7 @@ from typing import Optional
 import boto3
 import src.lib.core as constance
 from src.lib.core.conditions import Condition
+from src.lib.core.conditions import CONDITION_EQ as EQ
 from src.lib.core.entities import AnnotationClassEntity
 from src.lib.core.entities import ConfigEntity
 from src.lib.core.entities import FolderEntity
@@ -102,8 +103,11 @@ class ProjectRepository(BaseManageableRepository):
     def update(self, entity: ProjectEntity):
         self._service.update_project(entity.to_dict())
 
-    def delete(self, uuid: int):
-        self._service.delete_project(uuid)
+    def delete(self, entity: ProjectEntity):
+        team_id = entity.team_id
+        uuid = entity.uuid
+        condition = Condition("team_id", team_id, EQ)
+        self._service.delete_project(uuid=uuid, query_string=condition.build_query())
 
     @staticmethod
     def dict2entity(data: dict):
