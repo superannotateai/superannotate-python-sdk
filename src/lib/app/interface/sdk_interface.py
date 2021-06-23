@@ -229,23 +229,26 @@ def search_images(
     if return_metadata:
         return [ImageSerializer(image).serialize() for image in result]
     return [image.name for image in result]
-    #
-    #
-    #     results_images = images["data"]
-    #     for r in results_images:
-    #         if return_metadata:
-    #             result_list.append(r)
-    #         else:
-    #             result_list.append(r["name"])
-    #
-    # if return_metadata:
-    #
-    #     def process_result(x):
-    #         x["annotation_status"] = common.annotation_status_int_to_str(
-    #             x["annotation_status"]
-    #         )
-    #         return x
-    #
-    #     return list(map(process_result, result_list))
-    # else:
-    #     return result_list
+
+
+def create_folder(project, folder_name):
+    """Create a new folder in the project.
+
+    :param project: project name
+    :type project: str
+    :param folder_name: the new folder's name
+    :type folder_name: str
+
+    :return: dict object metadata the new folder
+    :rtype: dict
+    """
+
+    result = controller.create_folder(
+        project_name=project, folder_name=folder_name
+    ).data
+    if result.name != folder_name:
+        logger.warning(
+            f"Created folder has name {result.name}, since folder with name {folder_name} already existed.",
+        )
+    logger.info(f"Folder {result.name} created in project {project}")
+    return result.to_dict()
