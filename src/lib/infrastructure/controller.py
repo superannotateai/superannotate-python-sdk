@@ -3,7 +3,6 @@ import io
 from typing import Iterable
 from typing import List
 
-import src.lib.core as constances
 from src.lib.core.conditions import Condition
 from src.lib.core.conditions import CONDITION_EQ as EQ
 from src.lib.core.entities import FolderEntity
@@ -79,7 +78,7 @@ class BaseController:
         )
 
     def get_s3_repository(
-        self, team_id: int, project_id: int, folder_id: int, bucket: str
+        self, team_id: int, project_id: int, folder_id: int, bucket: str = None
     ):
         if not self._s3_upload_auth_data:
             self._s3_upload_auth_data = self.get_auth_data(
@@ -90,7 +89,7 @@ class BaseController:
             self._s3_upload_auth_data["accessKeyId"],
             self._s3_upload_auth_data["secretAccessKey"],
             self._s3_upload_auth_data["sessionToken"],
-            bucket,
+            self._s3_upload_auth_data["bucket"],
         )
 
 
@@ -131,7 +130,6 @@ class Controller(BaseController):
         annotation_classes: Iterable = (),
         workflows: Iterable = (),
     ) -> Response:
-        project_type = constances.ProjectType[project_type.upper()].value
         entity = ProjectEntity(
             name=name,
             description=description,
@@ -160,21 +158,23 @@ class Controller(BaseController):
 
     def delete_project(self, name: str):
         entities = self.projects.get_all(
-            Condition("teams_id", self.team_id, EQ) & Condition("name", name, EQ)
+            Condition("team_id", self.team_id, EQ) & Condition("name", name, EQ)
         )
         if entities and len(entities) == 1:
             use_case = DeleteProjectUseCase(self.response, entities[0], self.projects)
             use_case.execute()
             return self.response
-        raise AppException("There are duplicated names.")
+        if entities and len(entities) > 1:
+            raise AppException("There are duplicated names.")
 
     def update_project(self, name: str, project_data: dict) -> Response:
         entities = self.projects.get_all(
-            Condition("teams_id", self.team_id, EQ) & Condition("name", name, EQ)
+            Condition("team_id", self.team_id, EQ) & Condition("name", name, EQ)
         )
+        project = entities[0]
         if entities and len(entities) == 1:
-            entity = ProjectEntity(name=name, **project_data)
-            use_case = UpdateProjectUseCase(self.response, entity, self.projects)
+            project.name = project_data["name"]
+            use_case = UpdateProjectUseCase(self.response, project, self.projects)
             use_case.execute()
             return self.response
         raise AppException("There are duplicated names.")
@@ -192,7 +192,6 @@ class Controller(BaseController):
             project_settings=ProjectSettingsRepository(self._backend_client, project),
             backend_service_provider=self._backend_client,
             images=images,
-            upload_path=self._s3_upload_auth_data["filePath"],
             annotation_status=annotation_status,
             image_quality=image_quality,
         )
@@ -206,9 +205,7 @@ class Controller(BaseController):
         image: io.BytesIO,
         folder_id: int = None,  # project folder path
     ):
-        s3_repo = self.get_s3_repository(
-            self.team_id, project.uuid, folder_id, self._s3_upload_auth_data["bucket"],
-        )
+        s3_repo = self.get_s3_repository(self.team_id, project.uuid, folder_id,)
         use_case = UploadImageS3UseCas(
             response=self.response,
             project=project,
@@ -277,8 +274,12 @@ class Controller(BaseController):
         )
         use_case.execute()
 
-    def create_folder(self, project_name: str, folder_name: str):
-        project = self._get_project(project_name)
+    def create_folder(self, project: str, folder_name: str):
+        projects = ProjectRepository(service=self._backend_client).get_all(
+            condition=Condition("name", project, EQ)
+            & Condition("team_id", self.team_id, EQ)
+        )
+        project = projects[0]
         folder = FolderEntity(
             name=folder_name, project_id=project.uuid, team_id=project.team_id
         )

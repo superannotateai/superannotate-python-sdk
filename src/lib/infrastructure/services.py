@@ -147,18 +147,18 @@ class SuperannotateBackendService(BaseBackendService):
         res = self._request(create_project_url, "post", project_data)
         return res.json()
 
-    def delete_project(self, uuid: int) -> bool:
-        delete_project_url = urljoin(self.api_url, self.URL_GET_PROJECT.format(uuid))
-        res = self._request(delete_project_url, "delete")
+    def delete_project(self, uuid: int, query_string: str = None) -> bool:
+        url = urljoin(self.api_url, self.URL_GET_PROJECT.format(uuid))
+        if query_string:
+            url = f"{url}?{query_string}"
+        res = self._request(url, "delete")
         return res.ok
 
-    def update_project(self, data: dict) -> bool:
-        update_project_url = urljoin(
-            self.api_url, self.URL_GET_PROJECT.format(data["uuid"])
-        )
-        res = self._request(
-            update_project_url, "put", data, params={"team_id": data["team_id"]},
-        )
+    def update_project(self, data: dict, query_string: str = None) -> bool:
+        url = urljoin(self.api_url, self.URL_GET_PROJECT.format(data["id"]))
+        if query_string:
+            url = f"{url}?{query_string}"
+        res = self._request(url, "put", data,)
         return res.ok
 
     def attach_files(
@@ -169,8 +169,6 @@ class SuperannotateBackendService(BaseBackendService):
         annotation_status_code,
         upload_state_code,
         meta,
-        annotation_json_path,
-        annotation_bluemap_path,
     ):
         data = {
             "project_id": project_id,
@@ -179,8 +177,6 @@ class SuperannotateBackendService(BaseBackendService):
             "annotation_status": annotation_status_code,
             "upload_state_code": upload_state_code,
             "meta": meta,
-            "annotation_json_path": annotation_json_path,
-            "annotation_bluemap_path": annotation_bluemap_path,
         }
         create_image_url = urljoin(self.api_url, self.URL_CREATE_IMAGE)
         self._request(create_image_url, "post", data)

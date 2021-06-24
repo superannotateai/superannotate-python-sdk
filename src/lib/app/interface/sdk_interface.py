@@ -255,6 +255,28 @@ def create_folder(project, folder_name):
     return result.to_dict()
 
 
+def delete_project(project):
+    """Deletes the project
+
+        :param project: project name or folder path (e.g., "project1/folder1")
+        :type project: str
+    """
+    name = project
+    if isinstance(project, dict):
+        name = project["name"]
+    controller.delete_project(name=name)
+
+
+def rename_project(project, new_name):
+    """Renames the project
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param new_name: project's new name
+    :type new_name: str
+    """
+    controller.update_project(name=project, project_data={"name": new_name})
+
 def get_folder_metadata(project, folder_name):
     """Returns folder metadata
 

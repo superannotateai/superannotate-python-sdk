@@ -19,6 +19,7 @@ from src.lib.core.entities import ProjectEntity
 from src.lib.core.entities import ProjectSettingEntity
 from src.lib.core.entities import TeamEntity
 from src.lib.core.entities import WorkflowEntity
+from src.lib.core.enums import ProjectType
 from src.lib.core.exceptions import AppException
 from src.lib.core.exceptions import AppValidationException
 from src.lib.core.plugin import ImagePlugin
@@ -166,7 +167,7 @@ class DeleteProjectUseCase(BaseUseCase):
 
     def execute(self):
         if self.is_valid():
-            self._projects.delete(self._project.uuid)
+            self._projects.delete(self._project)
         else:
             self._response.errors = self._errors
 
@@ -260,7 +261,6 @@ class ImageUploadUseCas(BaseUseCase):
         project_settings: BaseReadOnlyRepository,
         backend_service_provider: SuerannotateServiceProvider,
         images: List[ImageInfoEntity],
-        upload_path: str,
         annotation_status: Optional[str] = None,
         image_quality: Optional[str] = None,
     ):
@@ -271,7 +271,6 @@ class ImageUploadUseCas(BaseUseCase):
         self._images = images
         self._annotation_status = annotation_status
         self._image_quality = image_quality
-        self._upload_path = upload_path
 
     @property
     def image_quality(self):
@@ -293,7 +292,7 @@ class ImageUploadUseCas(BaseUseCase):
     def annotation_status_code(self):
         if not self._annotation_status:
             return constances.AnnotationStatus.NOT_STARTED.value
-        return constances.AnnotationStatus[self._annotation_status.upper()].value
+        return constances.AnnotationStatus.get_value(self._annotation_status)
 
     def execute(self):
         images = []
@@ -309,8 +308,6 @@ class ImageUploadUseCas(BaseUseCase):
             annotation_status_code=self.annotation_status_code,
             upload_state_code=self.upload_state_code,
             meta=meta,
-            annotation_json_path=self._upload_path + ".json",
-            annotation_bluemap_path=self._upload_path + ".png",
         )
 
     def validate_upload_state(self):
@@ -374,16 +371,14 @@ class UploadImageS3UseCas(BaseUseCase):
 
     @property
     def max_resolution(self) -> int:
-        if self._project.project_type == "Vector":
+        if self._project.project_type == ProjectType.VECTOR.value:
             return constances.MAX_VECTOR_RESOLUTION
-        elif self._project.project_type == "Pixel":
+        elif self._project.project_type == ProjectType.PIXEL.value:
             return constances.MAX_PIXEL_RESOLUTION
 
     def execute(self):
         image_name = Path(self._image_path).name
-
         image_processor = ImagePlugin(self._image, self.max_resolution)
-
         origin_width, origin_height = image_processor.get_size()
         thumb_image, _, _ = image_processor.generate_thumb()
         huge_image, huge_width, huge_height = image_processor.generate_huge()
@@ -412,13 +407,10 @@ class UploadImageS3UseCas(BaseUseCase):
             metadata={"height": huge_width, "weight": huge_height},
         )
         self._s3_repo.insert(huge_file_entity)
-
+        file_entity.data.seek(0)
         self._s3_repo.insert(file_entity)
         self._response.data = ImageInfoEntity(
-            name=image_name,
-            path=self._upload_path + image_key,
-            width=origin_width,
-            height=origin_height,
+            name=image_name, path=image_key, width=origin_width, height=origin_height,
         )
 
 
@@ -480,8 +472,6 @@ class AttachFileUrls(BaseUseCase):
             upload_state_code=constances.UploadState.EXTERNAL.value,
             # todo rewrite
             meta=None,
-            annotation_json_path=None,
-            annotation_bluemap_path=None,
         )
 
 

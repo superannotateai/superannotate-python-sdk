@@ -7,6 +7,7 @@ from typing import Optional
 import boto3
 import src.lib.core as constance
 from src.lib.core.conditions import Condition
+from src.lib.core.conditions import CONDITION_EQ as EQ
 from src.lib.core.entities import AnnotationClassEntity
 from src.lib.core.entities import ConfigEntity
 from src.lib.core.entities import FolderEntity
@@ -35,20 +36,24 @@ class ConfigRepository(BaseManageableRepository):
         config.add_section("default")
         with open(path, "w") as config_file:
             config.write(config_file)
+        return config
 
     def _get_config(self, path):
+        config = None
         if not os.path.exists(path):
-            self._create_config(path)
+            return config
         config = configparser.ConfigParser()
         config.read(constance.CONFIG_FILE_LOCATION)
         return config
 
     def get_one(self, uuid: str) -> Optional[ConfigEntity]:
         config = self._get_config(constance.CONFIG_FILE_LOCATION)
+        if not config:
+            return None
         try:
             return ConfigEntity(uuid=uuid, value=config[self.DEFAULT_SECTION][uuid])
         except KeyError:
-            return
+            return None
 
     def get_all(self, condition: Condition = None) -> List[ConfigEntity]:
         config = self._get_config(constance.CONFIG_FILE_LOCATION)
@@ -59,8 +64,10 @@ class ConfigRepository(BaseManageableRepository):
 
     def insert(self, entity: ConfigEntity) -> ConfigEntity:
         config = self._get_config(constance.CONFIG_FILE_LOCATION)
+        if not config:
+            config = self._create_config(constance.CONFIG_FILE_LOCATION)
         config.set("default", entity.uuid, entity.value)
-        with open(constance.CONFIG_FILE_LOCATION, "rw+") as config_file:
+        with open(constance.CONFIG_FILE_LOCATION, "w") as config_file:
             config.write(config_file)
         return entity
 
@@ -94,10 +101,16 @@ class ProjectRepository(BaseManageableRepository):
         return self.dict2entity(result)
 
     def update(self, entity: ProjectEntity):
-        self._service.update_project(entity.to_dict())
+        condition = Condition("team_id", entity.team_id, EQ)
+        self._service.update_project(
+            entity.to_dict(), query_string=condition.build_query()
+        )
 
-    def delete(self, uuid: int):
-        self._service.delete_project(uuid)
+    def delete(self, entity: ProjectEntity):
+        team_id = entity.team_id
+        uuid = entity.uuid
+        condition = Condition("team_id", team_id, EQ)
+        self._service.delete_project(uuid=uuid, query_string=condition.build_query())
 
     @staticmethod
     def dict2entity(data: dict):
@@ -138,10 +151,23 @@ class S3Repository(BaseManageableRepository):
         return ImageFileEntity(uuid=uuid, data=file)
 
     def insert(self, entity: ImageFileEntity) -> ImageFileEntity:
-        self.bucket.put_object(
-            Key=entity.uuid, Body=entity.data, Metadata=entity.metadata
-        )
+        data = {"Key": entity.uuid, "Body": entity.data}
+        if entity.metadata:
+            temp = entity.metadata
+            for k in temp:
+                temp[k] = str(temp[k])
+            data["Metadata"] = temp
+        self.bucket.put_object(**data)
         return entity
+
+    def update(self, entity: ProjectEntity):
+        self._service.update_project(entity.to_dict())
+
+    def delete(self, uuid: int):
+        self._service.delete_project(uuid)
+
+    def get_all(self, condition: Condition = None) -> List[ProjectEntity]:
+        pass
 
 
 class ProjectSettingsRepository(BaseProjectRelatedManageableRepository):
@@ -248,8 +274,13 @@ class FolderRepository(BaseManageableRepository):
             team_id=data["team_id"],
             project_id=data["project_id"],
             name=data["name"],
-            parent_id=data.get("parent_id"),
         )
+
+    def delete(self, uuid: int):
+        raise NotImplementedError
+
+    def update(self, entity: FolderEntity):
+        raise NotImplementedError
 
 
 class AnnotationClassRepository(BaseManageableRepository):
