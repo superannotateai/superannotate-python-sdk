@@ -7,7 +7,6 @@ from typing import Optional
 import boto3
 import src.lib.core as constance
 from src.lib.core.conditions import Condition
-from src.lib.core.conditions import CONDITION_EQ as EQ
 from src.lib.core.entities import AnnotationClassEntity
 from src.lib.core.entities import ConfigEntity
 from src.lib.core.entities import FolderEntity
@@ -36,24 +35,20 @@ class ConfigRepository(BaseManageableRepository):
         config.add_section("default")
         with open(path, "w") as config_file:
             config.write(config_file)
-        return config
 
     def _get_config(self, path):
-        config = None
         if not os.path.exists(path):
-            return config
+            self._create_config(path)
         config = configparser.ConfigParser()
         config.read(constance.CONFIG_FILE_LOCATION)
         return config
 
     def get_one(self, uuid: str) -> Optional[ConfigEntity]:
         config = self._get_config(constance.CONFIG_FILE_LOCATION)
-        if not config:
-            return None
         try:
             return ConfigEntity(uuid=uuid, value=config[self.DEFAULT_SECTION][uuid])
         except KeyError:
-            return None
+            return
 
     def get_all(self, condition: Condition = None) -> List[ConfigEntity]:
         config = self._get_config(constance.CONFIG_FILE_LOCATION)
@@ -64,10 +59,8 @@ class ConfigRepository(BaseManageableRepository):
 
     def insert(self, entity: ConfigEntity) -> ConfigEntity:
         config = self._get_config(constance.CONFIG_FILE_LOCATION)
-        if not config:
-            config = self._create_config(constance.CONFIG_FILE_LOCATION)
         config.set("default", entity.uuid, entity.value)
-        with open(constance.CONFIG_FILE_LOCATION, "w") as config_file:
+        with open(constance.CONFIG_FILE_LOCATION, "rw+") as config_file:
             config.write(config_file)
         return entity
 
@@ -101,16 +94,10 @@ class ProjectRepository(BaseManageableRepository):
         return self.dict2entity(result)
 
     def update(self, entity: ProjectEntity):
-        condition = Condition("team_id", entity.team_id, EQ)
-        self._service.update_project(
-            entity.to_dict(), query_string=condition.build_query()
-        )
+        self._service.update_project(entity.to_dict())
 
-    def delete(self, entity: ProjectEntity):
-        team_id = entity.team_id
-        uuid = entity.uuid
-        condition = Condition("team_id", team_id, EQ)
-        self._service.delete_project(uuid=uuid, query_string=condition.build_query())
+    def delete(self, uuid: int):
+        self._service.delete_project(uuid)
 
     @staticmethod
     def dict2entity(data: dict):
@@ -151,23 +138,10 @@ class S3Repository(BaseManageableRepository):
         return ImageFileEntity(uuid=uuid, data=file)
 
     def insert(self, entity: ImageFileEntity) -> ImageFileEntity:
-        data = {"Key": entity.uuid, "Body": entity.data}
-        if entity.metadata:
-            temp = entity.metadata
-            for k in temp:
-                temp[k] = str(temp[k])
-            data["Metadata"] = temp
-        self.bucket.put_object(**data)
+        self.bucket.put_object(
+            Key=entity.uuid, Body=entity.data, Metadata=entity.metadata
+        )
         return entity
-
-    def update(self, entity: ProjectEntity):
-        self._service.update_project(entity.to_dict())
-
-    def delete(self, uuid: int):
-        self._service.delete_project(uuid)
-
-    def get_all(self, condition: Condition = None) -> List[ProjectEntity]:
-        pass
 
 
 class ProjectSettingsRepository(BaseProjectRelatedManageableRepository):
@@ -241,22 +215,16 @@ class WorkflowRepository(BaseProjectRelatedManageableRepository):
         )
 
 
-class FolderRepository(BaseManageableRepository):
-    def __init__(self, service: SuperannotateBackendService):
-        self._service = service
-
+class FolderRepository(BaseProjectRelatedManageableRepository):
     def get_one(self, uuid: Condition) -> FolderEntity:
         condition = uuid.build_query()
         data = self._service.get_folder(condition)
-        return FolderEntity(
-            uuid=data["id"],
-            project_id=data["project_id"],
-            team_id=data["team_id"],
-            name=data["name"],
-        )
+        return self.dict2entity(data)
 
     def get_all(self, condition: Optional[Condition] = None) -> List[FolderEntity]:
-        raise NotImplementedError
+        condition = condition.build_query()
+        data = self._service.get_folders(condition)
+        return [self.dict2entity(image) for image in data]
 
     def insert(self, entity: FolderEntity) -> FolderEntity:
         res = self._service.create_folder(
@@ -266,6 +234,12 @@ class FolderRepository(BaseManageableRepository):
         )
         return self.dict2entity(res)
 
+    def update(self, entity: FolderEntity):
+        raise NotImplementedError
+
+    def delete(self, uuid: int):
+        self._service.delete_folders(self._project.uuid, self._project.team_id, [uuid])
+
     @staticmethod
     def dict2entity(data: dict):
         return FolderEntity(
@@ -273,13 +247,8 @@ class FolderRepository(BaseManageableRepository):
             team_id=data["team_id"],
             project_id=data["project_id"],
             name=data["name"],
+            parent_id=data.get("parent_id"),
         )
-
-    def delete(self, uuid: int):
-        raise NotImplementedError
-
-    def update(self, entity: FolderEntity):
-        raise NotImplementedError
 
 
 class AnnotationClassRepository(BaseManageableRepository):
@@ -332,6 +301,15 @@ class ImageRepositroy(BaseManageableRepository):
     def get_all(self, condition: Optional[Condition] = None) -> List[ImageEntity]:
         images = self._service.get_images(condition.build_query())
         return [self.dict2entity(image) for image in images]
+
+    def insert(self, entity: ImageEntity) -> ImageEntity:
+        raise NotImplementedError
+
+    def delete(self, uuid: int):
+        raise NotImplementedError
+
+    def update(self, entity: ImageEntity):
+        raise NotImplementedError
 
     @staticmethod
     def dict2entity(data: dict):

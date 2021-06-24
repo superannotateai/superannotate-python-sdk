@@ -70,3 +70,12 @@ class SuerannotateServiceProvider(ABC):
     @abstractmethod
     def set_project_workflow(self, project_id: int, team_id: int, data: Dict):
         raise NotImplementedError
+
+    def delete_folders(self, project_id: int, team_id: int, folder_ids: List[int]):
+        raise NotImplementedError
+
+    def get_folder(self, query_string: str):
+        raise NotImplementedError
+
+    def get_folders(self, query_string: str = None, params: dict = None):
+        raise NotImplementedError

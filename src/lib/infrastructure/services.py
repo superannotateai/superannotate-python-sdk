@@ -117,6 +117,8 @@ class SuperannotateBackendService(BaseBackendService):
     URL_GET_PROJECT = "project/{}"
     URL_GET_FOLDER_BY_NAME = "folder/getFolderByName"
     URL_CREATE_FOLDER = "folder"
+    URL_FOLDERS = "folder"
+    URL_DELETE_FOLDERS = "image/delete/images"
     URL_GET_PROJECT_SETTIGNS = "/project/{}/settings"
     URL_CREATE_IMAGE = "image/ext-create"
     URL_PROJECT_SETTIGNS = "project/{}/settings"
@@ -187,6 +189,23 @@ class SuperannotateBackendService(BaseBackendService):
             get_folder_url = f"{get_folder_url}?{query_string}"
         response = self._request(get_folder_url, "get")
         return response.json()
+
+    def get_folders(self, query_string: str = None, params: dict = None):
+        get_folder_url = urljoin(self.api_url, self.URL_FOLDERS_IMAGES)
+        if query_string:
+            get_folder_url = f"{get_folder_url}?{query_string}"
+        response = self._get_all_pages(
+            get_folder_url, params=params, key_field="folders"
+        )
+        return response
+
+    def delete_folders(self, project_id: int, team_id: int, folder_ids: List[int]):
+        delete_folders_url = urljoin(self.api_url, self.URL_DELETE_FOLDERS)
+        params = {"team_id": team_id, "project_id": project_id}
+        response = self._request(
+            delete_folders_url, "put", params=params, data={"folder_ids": folder_ids}
+        )
+        return response.ok
 
     def create_folder(self, project_id: int, team_id: int, folder_name: str):
         create_folder_url = urljoin(self.api_url, self.URL_CREATE_FOLDER)

@@ -16,9 +16,11 @@ from src.lib.core.usecases import CloneProjectUseCase
 from src.lib.core.usecases import CreateFolderUseCase
 from src.lib.core.usecases import CreateProjectUseCase
 from src.lib.core.usecases import DeleteContributorInvitationUseCase
+from src.lib.core.usecases import DeleteFolderUseCase
 from src.lib.core.usecases import DeleteProjectUseCase
 from src.lib.core.usecases import GetFolderUseCase
 from src.lib.core.usecases import GetImagesUseCase
+from src.lib.core.usecases import GetProjectFoldersUseCase
 from src.lib.core.usecases import GetProjectsUseCase
 from src.lib.core.usecases import GetTeamUseCase
 from src.lib.core.usecases import ImageUploadUseCas
@@ -66,10 +68,6 @@ class BaseController:
         return ConfigRepository()
 
     @property
-    def folders(self):
-        return FolderRepository(self._backend_client)
-
-    @property
     def team_id(self) -> int:
         return int(self.configs.get_one("token").value.split("=")[-1])
 
@@ -102,7 +100,8 @@ class Controller(BaseController):
         return projects[0]
 
     def _get_folder(self, project: ProjectEntity, name: str):
-        return self.folders.get_one(
+        folders = FolderRepository(self._backend_client, project)
+        return folders.get_one(
             Condition("name", name, EQ)
             & Condition("team_id", self.team_id, EQ)
             & Condition("project_id", project.uuid, EQ)
@@ -293,8 +292,35 @@ class Controller(BaseController):
         use_case = GetFolderUseCase(
             response=self.response,
             project=project,
-            folders=self.folders,
+            folders=FolderRepository(self._backend_client, project),
             folder_name=folder_name,
+        )
+        use_case.execute()
+        return self.response
+
+    def get_project_folders(
+        self, project_name: str,
+    ):
+        project = self._get_project(project_name)
+        use_case = GetProjectFoldersUseCase(
+            response=self.response,
+            project=project,
+            folders=FolderRepository(self._backend_client, project),
+        )
+        use_case.execute()
+        return self.response
+
+    def delete_folders(self, project_name: str, folder_names: List[str]):
+        project = self._get_project(project_name)
+        folders = self.get_project_folders(project_name).data
+
+        use_case = DeleteFolderUseCase(
+            response=self.response,
+            project=project,
+            folders=FolderRepository(self._backend_client, project),
+            folders_to_delete=[
+                folder for folder in folders if folder.name in folder_names
+            ],
         )
         use_case.execute()
         return self.response
