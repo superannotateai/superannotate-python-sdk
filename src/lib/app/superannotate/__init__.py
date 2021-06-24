@@ -16,6 +16,7 @@ from src.lib.app.interface.sdk_interface import create_project
 from src.lib.app.interface.sdk_interface import delete_contributor_to_team_invitation
 from src.lib.app.interface.sdk_interface import delete_folders
 from src.lib.app.interface.sdk_interface import get_folder_metadata
+from src.lib.app.interface.sdk_interface import get_project_and_folder_metadata
 from src.lib.app.interface.sdk_interface import get_team_metadata
 from src.lib.app.interface.sdk_interface import invite_contributor_to_team
 from src.lib.app.interface.sdk_interface import search_images
@@ -61,4 +62,5 @@ __all__ = [
     "create_folder",
     "get_folder_metadata",
     "delete_folders",
+    "get_project_and_folder_metadata",
 ]
