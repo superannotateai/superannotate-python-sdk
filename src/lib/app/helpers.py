@@ -1,6 +1,6 @@
-from typing import Tuple
-from typing import Optional
 from pathlib import Path
+from typing import Optional
+from typing import Tuple
 
 from lib.app.exceptions import PathError
 
