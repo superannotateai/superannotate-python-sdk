@@ -222,6 +222,11 @@ class FolderRepository(BaseProjectRelatedManageableRepository):
         return self.dict2entity(data)
 
     def get_all(self, condition: Optional[Condition] = None) -> List[FolderEntity]:
+        condition = (
+            condition
+            & Condition("project_id", self._project.uuid, EQ)
+            & Condition("team_id", self._project.team_id, EQ)
+        )
         condition = condition.build_query()
         data = self._service.get_folders(condition)
         return [self.dict2entity(image) for image in data]

@@ -581,6 +581,23 @@ class GetFolderUseCase(BaseUseCase):
         self._response.data = self._folders.get_one(condition)
 
 
+class SearchFolderUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        project: ProjectEntity,
+        folders: BaseReadOnlyRepository,
+        condition: Condition,
+    ):
+        super().__init__(response)
+        self._project = project
+        self._folders = folders
+        self._condition = condition
+
+    def execute(self):
+        self._response.data = self._folders.get_all(self._condition)
+
+
 class GetProjectFoldersUseCase(BaseUseCase):
     def __init__(
         self,

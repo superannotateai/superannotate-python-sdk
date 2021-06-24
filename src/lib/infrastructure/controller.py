@@ -27,6 +27,7 @@ from src.lib.core.usecases import ImageUploadUseCas
 from src.lib.core.usecases import InviteContributorUseCase
 from src.lib.core.usecases import PrepareExportUseCase
 from src.lib.core.usecases import SearchContributorsUseCase
+from src.lib.core.usecases import SearchFolderUseCase
 from src.lib.core.usecases import UpdateFolderUseCase
 from src.lib.core.usecases import UpdateProjectUseCase
 from src.lib.core.usecases import UploadImageS3UseCas
@@ -295,6 +296,25 @@ class Controller(BaseController):
             project=project,
             folders=FolderRepository(self._backend_client, project),
             folder_name=folder_name,
+        )
+        use_case.execute()
+        return self.response
+
+    def search_folder(self, project_name: str, **kwargs):
+        condition = None
+        if kwargs:
+            conditions_iter = iter(kwargs)
+            key = next(conditions_iter)
+            condition = Condition(key, kwargs[key], EQ)
+            for key, val in conditions_iter:
+                condition = condition & Condition(key, val, EQ)
+
+        project = self._get_project(project_name)
+        use_case = SearchFolderUseCase(
+            response=self.response,
+            project=project,
+            folders=FolderRepository(self._backend_client, project),
+            condition=condition,
         )
         use_case.execute()
         return self.response
