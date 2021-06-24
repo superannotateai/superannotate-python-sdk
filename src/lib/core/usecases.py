@@ -592,3 +592,25 @@ class SearchContributorsUseCase(BaseUseCase):
             self._team_id, self._condition.build_query()
         )
         self._response.data = res
+
+
+class GetFolderUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        project: ProjectEntity,
+        folders: BaseReadOnlyRepository,
+        folder_name: str,
+    ):
+        super().__init__(response)
+        self._project = project
+        self._folders = folders
+        self._folder_name = folder_name
+
+    def execute(self):
+        condition = (
+            Condition("name", self._folder_name, EQ)
+            & Condition("team_id", self._project.team_id, EQ)
+            & Condition("project_id", self._project.uuid, EQ)
+        )
+        self._response.data = self._folders.get_one(condition)

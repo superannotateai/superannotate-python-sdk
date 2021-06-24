@@ -2,6 +2,7 @@ import logging
 from pathlib import Path
 
 import lib.core as constances
+from lib.app.exceptions import EmptyOutputError
 from lib.app.exceptions import UserInputError
 from lib.app.serializers import ImageSerializer
 from lib.app.serializers import ProjectSerializer
@@ -275,3 +276,19 @@ def rename_project(project, new_name):
     :type new_name: str
     """
     controller.update_project(name=project, project_data={"name": new_name})
+
+def get_folder_metadata(project, folder_name):
+    """Returns folder metadata
+
+    :param project: project name
+    :type project: str
+    :param folder_name: folder's name
+    :type folder_name: str
+
+    :return: metadata of folder
+    :rtype: dict
+    """
+    result = controller.get_folder(project_name=project, folder_name=folder_name).data
+    if not result:
+        raise EmptyOutputError("Couldn't get folder metadata.")
+    return result.to_dict()
