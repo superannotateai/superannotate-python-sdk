@@ -299,3 +299,18 @@ def get_project_and_folder_metadata(project):
     if folder_name:
         folder = get_folder_metadata(project_name, folder_name)
     return project, folder
+
+
+def rename_folder(project, new_folder_name):
+    """Renames folder in project.
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param new_folder_name: folder's new name
+    :type new_folder_name: str
+    """
+    project_name, folder_name = split_project_path(project)
+    controller.update_folder(project_name, folder_name, {"name": new_folder_name})
+    logger.info(
+        f"Folder {folder_name} renamed to {new_folder_name} in project {project_name}"
+    )

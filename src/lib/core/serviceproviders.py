@@ -81,3 +81,9 @@ class SuerannotateServiceProvider(ABC):
 
     def get_folders(self, query_string: str = None, params: dict = None):
         raise NotImplementedError
+
+    def create_folder(self, project_id: int, team_id: int, folder_name: str):
+        raise NotImplementedError
+
+    def update_folder(self, project_id: int, team_id: int, folder_data: dict):
+        raise NotImplementedError

@@ -660,3 +660,19 @@ class DeleteFolderUseCase(BaseUseCase):
     def execute(self):
         for folder in self._folders_to_delete:
             self._folders.delete(folder.uuid)
+
+
+class UpdateFolderUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        folders: BaseManageableRepository,
+        folder: FolderEntity,
+    ):
+        super().__init__(response)
+        self._folders = folders
+        self._folder = folder
+
+    def execute(self):
+        self._folders.update(self._folder)
+        self._response.data = self._folder
