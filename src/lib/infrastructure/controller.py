@@ -26,6 +26,7 @@ from src.lib.core.usecases import ImageUploadUseCas
 from src.lib.core.usecases import InviteContributorUseCase
 from src.lib.core.usecases import PrepareExportUseCase
 from src.lib.core.usecases import SearchContributorsUseCase
+from src.lib.core.usecases import UpdateFolderUseCase
 from src.lib.core.usecases import UpdateProjectUseCase
 from src.lib.core.usecases import UploadImageS3UseCas
 from src.lib.infrastructure.repositories import AnnotationClassRepository
@@ -414,6 +415,19 @@ class Controller(BaseController):
             images=self.images,
             annotation_status=annotation_status,
             image_name_prefix=image_name_prefix,
+        )
+        use_case.execute()
+        return self.response
+
+    def update_folder(self, project_name: str, folder_name: str, folder_data: dict):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+        for field, value in folder_data.items():
+            setattr(folder, field, value)
+        use_case = UpdateFolderUseCase(
+            response=self.response,
+            folders=FolderRepository(self._backend_client, project),
+            folder=folder,
         )
         use_case.execute()
         return self.response

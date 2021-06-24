@@ -261,7 +261,9 @@ class FolderRepository(BaseProjectRelatedManageableRepository):
         return self.dict2entity(res)
 
     def update(self, entity: FolderEntity):
-        raise NotImplementedError
+        self._service.update_folder(
+            self._project.uuid, self._project.team_id, entity.to_dict()
+        )
 
     def delete(self, uuid: int):
         self._service.delete_folders(self._project.uuid, self._project.team_id, [uuid])

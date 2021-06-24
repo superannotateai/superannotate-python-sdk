@@ -117,6 +117,7 @@ class SuperannotateBackendService(BaseBackendService):
     URL_GET_PROJECT = "project/{}"
     URL_GET_FOLDER_BY_NAME = "folder/getFolderByName"
     URL_CREATE_FOLDER = "folder"
+    URL_UPDATE_FOLDER = "folder/{}"
     URL_FOLDERS = "folder"
     URL_DELETE_FOLDERS = "image/delete/images"
     URL_GET_PROJECT_SETTIGNS = "/project/{}/settings"
@@ -212,6 +213,14 @@ class SuperannotateBackendService(BaseBackendService):
         data = {"name": folder_name}
         params = {"project_id": project_id, "team_id": team_id}
         res = self._request(create_folder_url, "post", data=data, params=params)
+        return res.json()
+
+    def update_folder(self, project_id: int, team_id: int, folder_data: dict):
+        update_folder_url = urljoin(
+            self.api_url, self.URL_UPDATE_FOLDER.format(folder_data["id"])
+        )
+        params = {"project_id": project_id, "team_id": team_id}
+        res = self._request(update_folder_url, "put", data=folder_data, params=params)
         return res.json()
 
     def get_project_settings(self, project_id: int, team_id: int):

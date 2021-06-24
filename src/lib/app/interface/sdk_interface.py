@@ -1,9 +1,8 @@
 import logging
-from pathlib import Path
 
 import lib.core as constances
 from lib.app.exceptions import EmptyOutputError
-from lib.app.exceptions import UserInputError
+from lib.app.helpers import split_project_path
 from lib.app.serializers import ImageSerializer
 from lib.app.serializers import ProjectSerializer
 from lib.app.serializers import TeamSerializer
@@ -213,13 +212,8 @@ def search_images(
     :return: metadata of found images or image names
     :rtype: list of dicts or strs
     """
-    path = Path(project)
-    if len(path.parts) > 3:
-        raise UserInputError("There can be no subfolders in the project")
-    elif len(path.parts) == 2:
-        project_name, folder_name = path.parts
-    else:
-        project_name, folder_name = path.name, None
+
+    project_name, folder_name = split_project_path(project)
 
     result = controller.search_images(
         project_name=project_name,
@@ -305,3 +299,40 @@ def delete_folders(project, folder_names):
 
     controller.delete_folders(project_name=project, folder_names=folder_names)
     logger.info(f"Folders {folder_names} deleted in project {project}")
+
+
+def get_project_and_folder_metadata(project):
+    """Returns project and folder metadata tuple. If folder part is empty,
+    than returned folder part is set to None.
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param folder_name: folder's name
+    :type folder_name: str
+
+    :return: metadata of folder
+    :rtype: dict
+    """
+    project_name, folder_name = split_project_path(project)
+    project = ProjectSerializer(
+        controller.search_project(project_name).data[0]
+    ).serialize()
+    folder = None
+    if folder_name:
+        folder = get_folder_metadata(project_name, folder_name)
+    return project, folder
+
+
+def rename_folder(project, new_folder_name):
+    """Renames folder in project.
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param new_folder_name: folder's new name
+    :type new_folder_name: str
+    """
+    project_name, folder_name = split_project_path(project)
+    controller.update_folder(project_name, folder_name, {"name": new_folder_name})
+    logger.info(
+        f"Folder {folder_name} renamed to {new_folder_name} in project {project_name}"
+    )
