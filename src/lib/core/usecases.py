@@ -614,3 +614,39 @@ class GetFolderUseCase(BaseUseCase):
             & Condition("project_id", self._project.uuid, EQ)
         )
         self._response.data = self._folders.get_one(condition)
+
+
+class GetProjectFoldersUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        project: ProjectEntity,
+        folders: BaseReadOnlyRepository,
+    ):
+        super().__init__(response)
+        self._project = project
+        self._folders = folders
+
+    def execute(self):
+        condition = Condition("team_id", self._project.team_id, EQ) & Condition(
+            "project_id", self._project.uuid, EQ
+        )
+        self._response.data = self._folders.get_all(condition)
+
+
+class DeleteFolderUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        project: ProjectEntity,
+        folders: BaseManageableRepository,
+        folders_to_delete: List[FolderEntity],
+    ):
+        super().__init__(response)
+        self._project = project
+        self._folders = folders
+        self._folders_to_delete = folders_to_delete
+
+    def execute(self):
+        for folder in self._folders_to_delete:
+            self._folders.delete(folder.uuid)
