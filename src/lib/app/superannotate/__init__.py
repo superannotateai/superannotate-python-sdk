@@ -14,6 +14,7 @@ from src.lib.app.interface.sdk_interface import clone_project
 from src.lib.app.interface.sdk_interface import create_folder
 from src.lib.app.interface.sdk_interface import create_project
 from src.lib.app.interface.sdk_interface import delete_contributor_to_team_invitation
+from src.lib.app.interface.sdk_interface import delete_folders
 from src.lib.app.interface.sdk_interface import get_folder_metadata
 from src.lib.app.interface.sdk_interface import get_team_metadata
 from src.lib.app.interface.sdk_interface import invite_contributor_to_team
@@ -59,4 +60,5 @@ __all__ = [
     # Folders Section
     "create_folder",
     "get_folder_metadata",
+    "delete_folders",
 ]

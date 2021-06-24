@@ -215,17 +215,16 @@ class WorkflowRepository(BaseProjectRelatedManageableRepository):
         )
 
 
-class FolderRepository(BaseManageableRepository):
-    def __init__(self, service: SuperannotateBackendService):
-        self._service = service
-
+class FolderRepository(BaseProjectRelatedManageableRepository):
     def get_one(self, uuid: Condition) -> FolderEntity:
         condition = uuid.build_query()
         data = self._service.get_folder(condition)
         return self.dict2entity(data)
 
     def get_all(self, condition: Optional[Condition] = None) -> List[FolderEntity]:
-        raise NotImplementedError
+        condition = condition.build_query()
+        data = self._service.get_folders(condition)
+        return [self.dict2entity(image) for image in data]
 
     def insert(self, entity: FolderEntity) -> FolderEntity:
         res = self._service.create_folder(
@@ -239,7 +238,7 @@ class FolderRepository(BaseManageableRepository):
         raise NotImplementedError
 
     def delete(self, uuid: int):
-        raise NotImplementedError
+        self._service.delete_folders(self._project.uuid, self._project.team_id, [uuid])
 
     @staticmethod
     def dict2entity(data: dict):

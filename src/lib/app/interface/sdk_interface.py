@@ -270,3 +270,16 @@ def get_folder_metadata(project, folder_name):
     if not result:
         raise EmptyOutputError("Couldn't get folder metadata.")
     return result.to_dict()
+
+
+def delete_folders(project, folder_names):
+    """Delete folder in project.
+
+    :param project: project name
+    :type project: str
+    :param folder_names: to be deleted folders' names
+    :type folder_names: list of strs
+    """
+
+    controller.delete_folders(project_name=project, folder_names=folder_names)
+    logger.info(f"Folders {folder_names} deleted in project {project}")
