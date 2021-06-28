@@ -85,8 +85,8 @@ class ProjectRepository(BaseManageableRepository):
     def __init__(self, service: SuperannotateBackendService):
         self._service = service
 
-    def get_one(self, uuid: str) -> ProjectEntity:
-        pass
+    def get_one(self, uuid: int, team_id: int) -> ProjectEntity:
+        return self.dict2entity(self._service.get_project(uuid, team_id))
 
     def get_all(self, condition: Condition = None) -> List[ProjectEntity]:
         condition = condition.build_query() if condition else None

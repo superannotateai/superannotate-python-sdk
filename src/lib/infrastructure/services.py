@@ -130,6 +130,11 @@ class SuperannotateBackendService(BaseBackendService):
     URL_INVITE_CONTRIBUTOR = "team/{}/invite"
     URL_PREPARE_EXPORT = "export"
 
+    def get_project(self, uuid: int, team_id: int):
+        get_project_url = urljoin(self.api_url, self.URL_GET_PROJECT.format(uuid))
+        res = self._request(get_project_url, "get", params={"team_id": team_id})
+        return res.json()
+
     def get_s3_upload_auth_token(self, team_id: int, folder_id: int, project_id: int):
         auth_token_url = urljoin(
             self.api_url,
