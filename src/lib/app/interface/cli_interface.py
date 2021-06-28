@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 
 import src.lib.core as constances
+from lib.app.helpers import split_project_path
 from src.lib.app.interface.base_interface import BaseInterfaceFacade
 from src.lib.core.conditions import Condition
 from src.lib.core.conditions import CONDITION_EQ as EQ
@@ -111,3 +112,13 @@ class CLIFacade(BaseInterfaceFacade):
                     annotation_status=set_annotation_status,
                     image_quality=image_quality_in_editor,
                 )
+
+    def export_project(self, project, folder, include_fuse, annotation_statuses):
+        project_name, folder_name = split_project_path(project)
+        project = self.controller.search_project(project_name).data[0]
+        folders = []
+        if folder_name:
+            folders = [folder_name]
+        self.controller.prepare_export(
+            project, folders, include_fuse, False, annotation_statuses
+        )

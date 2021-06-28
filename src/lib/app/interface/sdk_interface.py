@@ -271,6 +271,7 @@ def rename_project(project, new_name):
     """
     controller.update_project(name=project, project_data={"name": new_name})
 
+
 def get_folder_metadata(project, folder_name):
     """Returns folder metadata
 
