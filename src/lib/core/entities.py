@@ -1,6 +1,5 @@
 from abc import ABC
 from abc import abstractmethod
-from io import BytesIO
 from typing import Any
 from typing import Iterable
 from typing import List
@@ -178,6 +177,21 @@ class FolderEntity(BaseEntity):
         }
 
 
+class ImageInfoEntity(BaseEntity):
+    def __init__(
+        self, uuid=None, width: float = None, height: float = None,
+    ):
+        super().__init__(uuid),
+        self.width = width
+        self.height = height
+
+    def to_dict(self):
+        return {
+            "width": self.width,
+            "height": self.height,
+        }
+
+
 class ImageEntity(BaseEntity):
     def __init__(
         self,
@@ -190,6 +204,8 @@ class ImageEntity(BaseEntity):
         folder_id: int = None,
         annotator_id: int = None,
         annotator_name: str = None,
+        is_pinned: bool = None,
+        meta: ImageInfoEntity = ImageInfoEntity(),
     ):
         super().__init__(uuid)
         self.team_id = team_id
@@ -201,6 +217,8 @@ class ImageEntity(BaseEntity):
         self.folder_id = folder_id
         self.annotator_id = annotator_id
         self.annotator_name = annotator_name
+        self.is_pinned = is_pinned
+        self.meta = meta
 
     def to_dict(self):
         return {
@@ -213,42 +231,19 @@ class ImageEntity(BaseEntity):
             "folder_id": self.folder_id,
             "annotator_id": self.annotator_id,
             "annotator_name": self.annotator_name,
+            "is_pinned": self.is_pinned,
+            "meta": self.meta.to_dict(),
         }
 
 
-class ImageFileEntity(BaseEntity):
-    def __init__(self, uuid, data: BytesIO, metadata: dict = None):
+class S3FileEntity(BaseEntity):
+    def __init__(self, uuid, data, metadata: dict = None):
         super().__init__(uuid)
         self.data = data
         self.metadata = metadata
 
     def to_dict(self):
         return {"uuid": self.uuid, "bytes": self.data, "metadata": self.metadata}
-
-
-class ImageInfoEntity(BaseEntity):
-    def __init__(
-        self,
-        uuid=None,
-        name: str = None,
-        path: str = None,
-        width: float = None,
-        height: float = None,
-    ):
-        super().__init__(uuid),
-        self.name = name
-        self.path = path
-        self.width = width
-        self.height = height
-
-    def to_dict(self):
-        return {
-            "id": self.uuid,
-            "name": self.name,
-            "path": self.path,
-            "width": self.width,
-            "height": self.height,
-        }
 
 
 class AnnotationClassEntity(BaseEntity):

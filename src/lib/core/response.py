@@ -25,5 +25,5 @@ class Response:
         return self._errors
 
     @errors.setter
-    def errors(self, errors: list):
-        self._errors = errors
+    def errors(self, error: list):
+        self._errors.append(error)

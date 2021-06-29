@@ -4,6 +4,7 @@ from typing import Any
 from typing import List
 from typing import Optional
 
+import boto3
 from src.lib.core.conditions import Condition
 from src.lib.core.entities import BaseEntity
 from src.lib.core.entities import ProjectEntity
@@ -26,7 +27,7 @@ class BaseManageableRepository(BaseReadOnlyRepository):
         raise NotImplementedError
 
     @abstractmethod
-    def update(self, entity: BaseEntity):
+    def update(self, entity: BaseEntity) -> BaseEntity:
         raise NotImplementedError
 
     @abstractmethod
@@ -45,3 +46,18 @@ class BaseProjectRelatedManageableRepository(BaseManageableRepository):
     def __init__(self, service: SuerannotateServiceProvider, project: ProjectEntity):
         self._service = service
         self._project = project
+
+
+class BaseS3Repository(BaseManageableRepository):
+    def __init__(
+        self, access_key: str, secret_key: str, session_token: str, bucket: str,
+    ):
+        self._session = boto3.Session(
+            aws_access_key_id=access_key,
+            aws_secret_access_key=secret_key,
+            aws_session_token=session_token,
+        )
+
+        self._resource = self._session.resource("s3")
+        self._bucket = bucket
+        self.bucket = self._resource.Bucket(bucket)

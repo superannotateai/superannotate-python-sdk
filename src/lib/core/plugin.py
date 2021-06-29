@@ -54,7 +54,9 @@ class ImagePlugin:
         width, height = im.size
         buffer = io.BytesIO()
         h_size = int(height * base_width / width)
-        im.resize((base_width, h_size), Image.ANTIALIAS).save(buffer, "JPEG")
+        im.resize((base_width, h_size), Image.ANTIALIAS).convert("RGB").save(
+            buffer, "JPEG"
+        )
         buffer.seek(0)
         width, height = im.size
         return buffer, width, height

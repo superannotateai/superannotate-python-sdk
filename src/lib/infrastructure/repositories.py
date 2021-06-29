@@ -4,7 +4,6 @@ import os
 from typing import List
 from typing import Optional
 
-import boto3
 import src.lib.core as constance
 from src.lib.core.conditions import Condition
 from src.lib.core.conditions import CONDITION_EQ as EQ
@@ -12,15 +11,16 @@ from src.lib.core.entities import AnnotationClassEntity
 from src.lib.core.entities import ConfigEntity
 from src.lib.core.entities import FolderEntity
 from src.lib.core.entities import ImageEntity
-from src.lib.core.entities import ImageFileEntity
 from src.lib.core.entities import ProjectEntity
 from src.lib.core.entities import ProjectSettingEntity
+from src.lib.core.entities import S3FileEntity
 from src.lib.core.entities import TeamEntity
 from src.lib.core.entities import UserEntity
 from src.lib.core.entities import WorkflowEntity
 from src.lib.core.repositories import BaseManageableRepository
 from src.lib.core.repositories import BaseProjectRelatedManageableRepository
 from src.lib.core.repositories import BaseReadOnlyRepository
+from src.lib.core.repositories import BaseS3Repository
 from src.lib.infrastructure.services import SuperannotateBackendService
 
 
@@ -126,31 +126,13 @@ class ProjectRepository(BaseManageableRepository):
         )
 
 
-class S3Repository(BaseManageableRepository):
-    def __init__(
-        self,
-        access_key: str,
-        secret_key: str,
-        session_token: str,
-        bucket: str,
-        region: str = None,
-    ):
-        self._session = boto3.Session(
-            aws_access_key_id=access_key,
-            aws_secret_access_key=secret_key,
-            aws_session_token=session_token,
-        )
-
-        self._resource = self._session.resource("s3")
-        self._bucket = bucket
-        self.bucket = self._resource.Bucket(bucket)
-
-    def get_one(self, uuid: str) -> ImageFileEntity:
+class S3Repository(BaseS3Repository):
+    def get_one(self, uuid: str) -> S3FileEntity:
         file = io.BytesIO()
         self._resource.Object(self._bucket, uuid).download_fileobj(file)
-        return ImageFileEntity(uuid=uuid, data=file)
+        return S3FileEntity(uuid=uuid, data=file)
 
-    def insert(self, entity: ImageFileEntity) -> ImageFileEntity:
+    def insert(self, entity: S3FileEntity) -> S3FileEntity:
         data = {"Key": entity.uuid, "Body": entity.data}
         if entity.metadata:
             temp = entity.metadata
@@ -323,7 +305,7 @@ class AnnotationClassRepository(BaseManageableRepository):
         )
 
 
-class ImageRepositroy(BaseManageableRepository):
+class ImageRepository(BaseManageableRepository):
     def __init__(self, service: SuperannotateBackendService):
         self._service = service
 
@@ -341,7 +323,13 @@ class ImageRepositroy(BaseManageableRepository):
         raise NotImplementedError
 
     def update(self, entity: ImageEntity):
-        raise NotImplementedError
+        self._service.update_image(
+            image_id=entity.uuid,
+            project_id=entity.project_id,
+            team_id=entity.team_id,
+            data=entity.to_dict(),
+        )
+        return entity
 
     @staticmethod
     def dict2entity(data: dict):
