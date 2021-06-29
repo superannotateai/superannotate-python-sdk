@@ -271,6 +271,7 @@ def rename_project(project, new_name):
     """
     controller.update_project(name=project, project_data={"name": new_name})
 
+
 def get_folder_metadata(project, folder_name):
     """Returns folder metadata
 
@@ -336,3 +337,26 @@ def rename_folder(project, new_folder_name):
     logger.info(
         f"Folder {folder_name} renamed to {new_folder_name} in project {project_name}"
     )
+
+
+def search_folders(project, folder_name=None, return_metadata=False):
+    """Folder name based case-insensitive search for folders in project.
+
+    :param project: project name
+    :type project: str
+    :param folder_name: the new folder's name
+    :type folder_name: str. If  None, all the folders in the project will be returned.
+    :param return_metadata: return metadata of folders instead of names
+    :type return_metadata: bool
+
+    :return: folder names or metadatas
+    :rtype: list of strs or dicts
+    """
+
+    if not folder_name:
+        data = controller.get_project_folders(project).data
+    else:
+        data = controller.search_folder(project_name=project, name=folder_name).data
+    if return_metadata:
+        return data.to_dict()
+    return [folder.name for folder in data]
