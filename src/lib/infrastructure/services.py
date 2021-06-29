@@ -128,6 +128,12 @@ class SuperannotateBackendService(BaseBackendService):
     URL_ANNOTATION_CLASSES = "classes"
     URL_TEAM = "team"
     URL_INVITE_CONTRIBUTOR = "team/{}/invite"
+    URL_PREPARE_EXPORT = "export"
+
+    def get_project(self, uuid: int, team_id: int):
+        get_project_url = urljoin(self.api_url, self.URL_GET_PROJECT.format(uuid))
+        res = self._request(get_project_url, "get", params={"team_id": team_id})
+        return res.json()
 
     def get_s3_upload_auth_token(self, team_id: int, folder_id: int, project_id: int):
         auth_token_url = urljoin(
@@ -328,14 +334,14 @@ class SuperannotateBackendService(BaseBackendService):
         include_fuse: bool,
         only_pinned: bool,
     ):
-        # todo add URL_PREPARE_EXPORT
         prepare_export_url = urljoin(self.api_url, self.URL_PREPARE_EXPORT)
-        annotation_status_codes = ",".join(
-            [constance.AnnotationStatus[status].value for status in annotation_statuses]
+
+        annotation_statuses = ",".join(
+            [str(constance.AnnotationStatus.get_value(i)) for i in annotation_statuses]
         )
 
         data = {
-            "include": annotation_status_codes,
+            "include": annotation_statuses,
             "fuse": int(include_fuse),
             "is_pinned": int(only_pinned),
             "coco": 0,
