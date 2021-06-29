@@ -12,6 +12,6 @@ def split_project_path(project_path: str) -> Tuple[str, Optional[str]]:
     elif len(path.parts) == 2:
         project_name, folder_name = path.parts
     else:
-        project_name, folder_name = path.name, None
+        project_name, folder_name = path.name, ""
 
     return project_name, folder_name

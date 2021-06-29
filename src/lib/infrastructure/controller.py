@@ -3,23 +3,26 @@ import io
 from typing import Iterable
 from typing import List
 
-import src.lib.core as constances
 from src.lib.core.conditions import Condition
 from src.lib.core.conditions import CONDITION_EQ as EQ
 from src.lib.core.entities import FolderEntity
+from src.lib.core.entities import ImageEntity
 from src.lib.core.entities import ImageInfoEntity
 from src.lib.core.entities import ProjectEntity
 from src.lib.core.exceptions import AppException
 from src.lib.core.response import Response
 from src.lib.core.usecases import AttachFileUrls
 from src.lib.core.usecases import CloneProjectUseCase
+from src.lib.core.usecases import CopyImageAnnotationClasses
 from src.lib.core.usecases import CreateFolderUseCase
 from src.lib.core.usecases import CreateProjectUseCase
 from src.lib.core.usecases import DeleteContributorInvitationUseCase
 from src.lib.core.usecases import DeleteFolderUseCase
 from src.lib.core.usecases import DeleteProjectUseCase
+from src.lib.core.usecases import DownloadImageUseCase
 from src.lib.core.usecases import GetFolderUseCase
 from src.lib.core.usecases import GetImagesUseCase
+from src.lib.core.usecases import GetImageUseCase
 from src.lib.core.usecases import GetProjectFoldersUseCase
 from src.lib.core.usecases import GetProjectsUseCase
 from src.lib.core.usecases import GetTeamUseCase
@@ -29,12 +32,13 @@ from src.lib.core.usecases import PrepareExportUseCase
 from src.lib.core.usecases import SearchContributorsUseCase
 from src.lib.core.usecases import SearchFolderUseCase
 from src.lib.core.usecases import UpdateFolderUseCase
+from src.lib.core.usecases import UpdateImageUseCase
 from src.lib.core.usecases import UpdateProjectUseCase
 from src.lib.core.usecases import UploadImageS3UseCas
 from src.lib.infrastructure.repositories import AnnotationClassRepository
 from src.lib.infrastructure.repositories import ConfigRepository
 from src.lib.infrastructure.repositories import FolderRepository
-from src.lib.infrastructure.repositories import ImageRepositroy
+from src.lib.infrastructure.repositories import ImageRepository
 from src.lib.infrastructure.repositories import ProjectRepository
 from src.lib.infrastructure.repositories import ProjectSettingsRepository
 from src.lib.infrastructure.repositories import S3Repository
@@ -48,6 +52,7 @@ class BaseController:
         self._backend_client = backend_client
         self._s3_upload_auth_data = None
         self._response = response
+        self._project = None
 
     @property
     def response(self):
@@ -63,7 +68,7 @@ class BaseController:
 
     @property
     def images(self):
-        return ImageRepositroy(self._backend_client)
+        return ImageRepository(self._backend_client)
 
     @property
     def configs(self):
@@ -79,7 +84,7 @@ class BaseController:
         )
 
     def get_s3_repository(
-        self, team_id: int, project_id: int, folder_id: int, bucket: str
+        self, team_id: int, project_id: int, folder_id: int, bucket: str = None
     ):
         if not self._s3_upload_auth_data:
             self._s3_upload_auth_data = self.get_auth_data(
@@ -90,18 +95,29 @@ class BaseController:
             self._s3_upload_auth_data["accessKeyId"],
             self._s3_upload_auth_data["secretAccessKey"],
             self._s3_upload_auth_data["sessionToken"],
-            bucket,
+            self._s3_upload_auth_data["bucket"],
         )
+
+    @property
+    def s3_repo(self):
+        return S3Repository
 
 
 class Controller(BaseController):
     def _get_project(self, name: str):
-        projects = self.projects.get_all(
-            Condition("name", name, EQ) & Condition("team_id", self.team_id, EQ)
-        )
-        return projects[0]
+        if not self._project:
+            self._project = self.projects.get_all(
+                Condition("name", name, EQ) & Condition("team_id", self.team_id, EQ)
+            )[0]
+        elif self._project.name != name:
+            self._project = self.projects.get_all(
+                Condition("name", name, EQ) & Condition("team_id", self.team_id, EQ)
+            )[0]
+        return self._project
 
     def _get_folder(self, project: ProjectEntity, name: str):
+        if not name:
+            name = "root"
         folders = FolderRepository(self._backend_client, project)
         return folders.get_one(
             Condition("name", name, EQ)
@@ -132,7 +148,6 @@ class Controller(BaseController):
         annotation_classes: Iterable = (),
         workflows: Iterable = (),
     ) -> Response:
-        project_type = constances.ProjectType[project_type.upper()].value
         entity = ProjectEntity(
             name=name,
             description=description,
@@ -161,21 +176,23 @@ class Controller(BaseController):
 
     def delete_project(self, name: str):
         entities = self.projects.get_all(
-            Condition("teams_id", self.team_id, EQ) & Condition("name", name, EQ)
+            Condition("team_id", self.team_id, EQ) & Condition("name", name, EQ)
         )
         if entities and len(entities) == 1:
             use_case = DeleteProjectUseCase(self.response, entities[0], self.projects)
             use_case.execute()
             return self.response
-        raise AppException("There are duplicated names.")
+        if entities and len(entities) > 1:
+            raise AppException("There are duplicated names.")
 
     def update_project(self, name: str, project_data: dict) -> Response:
         entities = self.projects.get_all(
-            Condition("teams_id", self.team_id, EQ) & Condition("name", name, EQ)
+            Condition("team_id", self.team_id, EQ) & Condition("name", name, EQ)
         )
+        project = entities[0]
         if entities and len(entities) == 1:
-            entity = ProjectEntity(name=name, **project_data)
-            use_case = UpdateProjectUseCase(self.response, entity, self.projects)
+            project.name = project_data["name"]
+            use_case = UpdateProjectUseCase(self.response, project, self.projects)
             use_case.execute()
             return self.response
         raise AppException("There are duplicated names.")
@@ -193,7 +210,6 @@ class Controller(BaseController):
             project_settings=ProjectSettingsRepository(self._backend_client, project),
             backend_service_provider=self._backend_client,
             images=images,
-            upload_path=self._s3_upload_auth_data["filePath"],
             annotation_status=annotation_status,
             image_quality=image_quality,
         )
@@ -202,20 +218,19 @@ class Controller(BaseController):
 
     def upload_image_to_s3(
         self,
-        project: ProjectEntity,
+        project_name: str,
         image_path: str,  # image path to upload
-        image: io.BytesIO,
+        image_bytes: io.BytesIO,
         folder_id: int = None,  # project folder path
     ):
-        s3_repo = self.get_s3_repository(
-            self.team_id, project.uuid, folder_id, self._s3_upload_auth_data["bucket"],
-        )
+        project = self._get_project(project_name)
+        s3_repo = self.get_s3_repository(self.team_id, project.uuid, folder_id,)
         use_case = UploadImageS3UseCas(
             response=self.response,
             project=project,
             project_settings=ProjectSettingsRepository(self._backend_client, project),
             image_path=image_path,
-            image=image,
+            image=image_bytes,
             s3_repo=s3_repo,
             upload_path=self._s3_upload_auth_data["filePath"],
         )
@@ -260,26 +275,32 @@ class Controller(BaseController):
 
     def attach_urls(
         self,
-        project: ProjectEntity,
-        attachments: List[str],
-        folder: FolderEntity,
+        project_name: str,
+        files: List[ImageEntity],
+        folder_name: str,
         annotation_status: int = None,
     ):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
         auth_data = self.get_auth_data(project.uuid, project.team_id, folder.uuid)
 
         limit = auth_data["availableImageCount"]
         use_case = AttachFileUrls(
             response=self.response,
             project=project,
-            attachments=attachments,
+            attachments=files,
             limit=limit,
             backend_service_provider=self._backend_client,
             annotation_status=annotation_status,
         )
         use_case.execute()
 
-    def create_folder(self, project_name: str, folder_name: str):
-        project = self._get_project(project_name)
+    def create_folder(self, project: str, folder_name: str):
+        projects = ProjectRepository(service=self._backend_client).get_all(
+            condition=Condition("name", project, EQ)
+            & Condition("team_id", self.team_id, EQ)
+        )
+        project = projects[0]
         folder = FolderEntity(
             name=folder_name, project_id=project.uuid, team_id=project.team_id
         )
@@ -418,7 +439,7 @@ class Controller(BaseController):
     def search_images(
         self,
         project_name: str,
-        folder_path: str,
+        folder_path: str = None,
         annotation_status: str = None,
         image_name_prefix: str = None,
     ):
@@ -438,6 +459,26 @@ class Controller(BaseController):
         use_case.execute()
         return self.response
 
+    def _get_image(
+        self, project: ProjectEntity, image_name: str, folder_path: str = None,
+    ) -> ImageEntity:
+        response = Response()
+        folder = self._get_folder(project, folder_path)
+        use_case = GetImageUseCase(
+            response=response,
+            project=project,
+            folder=folder,
+            image_name=image_name,
+            images=self.images,
+        )
+        use_case.execute()
+        return response.data
+
+    def get_image(
+        self, project_name: str, image_name: str, folder_path: str = None
+    ) -> ImageEntity:
+        return self._get_image(self._get_project(project_name), image_name, folder_path)
+
     def update_folder(self, project_name: str, folder_name: str, folder_data: dict):
         project = self._get_project(project_name)
         folder = self._get_folder(project, folder_name)
@@ -450,3 +491,66 @@ class Controller(BaseController):
         )
         use_case.execute()
         return self.response
+
+    def download_image(
+        self,
+        project_name: str,
+        image_name: str,
+        folder_name: str = None,
+        image_variant: str = None,
+    ):
+        project = self._get_project(project_name)
+        image = self._get_image(project, image_name, folder_name)
+        use_case = DownloadImageUseCase(
+            response=self.response,
+            image=image,
+            backend_service_provider=self._backend_client,
+            image_variant=image_variant,
+        )
+        use_case.execute()
+        return self.response
+
+    def copy_image_annotation_classes(
+        self, from_project_name: str, to_project_name: str, image_name: str
+    ):
+        from_project = self._get_project(from_project_name)
+        image = self._get_image(from_project, image_name)
+        to_project = self._get_project(to_project_name)
+        uploaded_image = self._get_image(to_project, image_name)
+
+        use_case = CopyImageAnnotationClasses(
+            response=self.response,
+            from_project=from_project,
+            to_project=to_project,
+            from_image=image,
+            to_image=uploaded_image,
+            from_project_annotation_classes=AnnotationClassRepository(
+                self._backend_client, from_project
+            ),
+            to_project_annotation_classes=AnnotationClassRepository(
+                self._backend_client, to_project
+            ),
+            from_project_s3_repo=self.get_s3_repository(
+                image.team_id, image.project_id, image.folder_id
+            ),
+            to_project_s3_repo=self.get_s3_repository(
+                uploaded_image.team_id,
+                uploaded_image.project_id,
+                uploaded_image.folder_id,
+            ),
+            backend_service_provider=self._backend_client,
+        )
+        use_case.execute()
+
+    def update_image(
+        self, project_name: str, image_name: str, folder_name: str = None, **kwargs
+    ):
+        image = self.get_image(
+            project_name=project_name, image_name=image_name, folder_path=folder_name
+        )
+        for item, val in kwargs.items():
+            setattr(image, item, val)
+        use_case = UpdateImageUseCase(
+            response=self.response, image=image, images=self.images
+        )
+        use_case.execute()

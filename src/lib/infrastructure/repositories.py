@@ -4,22 +4,23 @@ import os
 from typing import List
 from typing import Optional
 
-import boto3
 import src.lib.core as constance
 from src.lib.core.conditions import Condition
+from src.lib.core.conditions import CONDITION_EQ as EQ
 from src.lib.core.entities import AnnotationClassEntity
 from src.lib.core.entities import ConfigEntity
 from src.lib.core.entities import FolderEntity
 from src.lib.core.entities import ImageEntity
-from src.lib.core.entities import ImageFileEntity
 from src.lib.core.entities import ProjectEntity
 from src.lib.core.entities import ProjectSettingEntity
+from src.lib.core.entities import S3FileEntity
 from src.lib.core.entities import TeamEntity
 from src.lib.core.entities import UserEntity
 from src.lib.core.entities import WorkflowEntity
 from src.lib.core.repositories import BaseManageableRepository
 from src.lib.core.repositories import BaseProjectRelatedManageableRepository
 from src.lib.core.repositories import BaseReadOnlyRepository
+from src.lib.core.repositories import BaseS3Repository
 from src.lib.infrastructure.services import SuperannotateBackendService
 
 
@@ -35,20 +36,24 @@ class ConfigRepository(BaseManageableRepository):
         config.add_section("default")
         with open(path, "w") as config_file:
             config.write(config_file)
+        return config
 
     def _get_config(self, path):
+        config = None
         if not os.path.exists(path):
-            self._create_config(path)
+            return config
         config = configparser.ConfigParser()
         config.read(constance.CONFIG_FILE_LOCATION)
         return config
 
     def get_one(self, uuid: str) -> Optional[ConfigEntity]:
         config = self._get_config(constance.CONFIG_FILE_LOCATION)
+        if not config:
+            return None
         try:
             return ConfigEntity(uuid=uuid, value=config[self.DEFAULT_SECTION][uuid])
         except KeyError:
-            return
+            return None
 
     def get_all(self, condition: Condition = None) -> List[ConfigEntity]:
         config = self._get_config(constance.CONFIG_FILE_LOCATION)
@@ -59,8 +64,10 @@ class ConfigRepository(BaseManageableRepository):
 
     def insert(self, entity: ConfigEntity) -> ConfigEntity:
         config = self._get_config(constance.CONFIG_FILE_LOCATION)
+        if not config:
+            config = self._create_config(constance.CONFIG_FILE_LOCATION)
         config.set("default", entity.uuid, entity.value)
-        with open(constance.CONFIG_FILE_LOCATION, "rw+") as config_file:
+        with open(constance.CONFIG_FILE_LOCATION, "w") as config_file:
             config.write(config_file)
         return entity
 
@@ -78,8 +85,8 @@ class ProjectRepository(BaseManageableRepository):
     def __init__(self, service: SuperannotateBackendService):
         self._service = service
 
-    def get_one(self, uuid: int, team_id: int) -> ProjectEntity:
-        return self.dict2entity(self._service.get_project(uuid, team_id))
+    def get_one(self, uuid: str) -> ProjectEntity:
+        pass
 
     def get_all(self, condition: Condition = None) -> List[ProjectEntity]:
         condition = condition.build_query() if condition else None
@@ -94,10 +101,16 @@ class ProjectRepository(BaseManageableRepository):
         return self.dict2entity(result)
 
     def update(self, entity: ProjectEntity):
-        self._service.update_project(entity.to_dict())
+        condition = Condition("team_id", entity.team_id, EQ)
+        self._service.update_project(
+            entity.to_dict(), query_string=condition.build_query()
+        )
 
-    def delete(self, uuid: int):
-        self._service.delete_project(uuid)
+    def delete(self, entity: ProjectEntity):
+        team_id = entity.team_id
+        uuid = entity.uuid
+        condition = Condition("team_id", team_id, EQ)
+        self._service.delete_project(uuid=uuid, query_string=condition.build_query())
 
     @staticmethod
     def dict2entity(data: dict):
@@ -113,35 +126,30 @@ class ProjectRepository(BaseManageableRepository):
         )
 
 
-class S3Repository(BaseManageableRepository):
-    def __init__(
-        self,
-        access_key: str,
-        secret_key: str,
-        session_token: str,
-        bucket: str,
-        region: str = None,
-    ):
-        self._session = boto3.Session(
-            aws_access_key_id=access_key,
-            aws_secret_access_key=secret_key,
-            aws_session_token=session_token,
-        )
-
-        self._resource = self._session.resource("s3")
-        self._bucket = bucket
-        self.bucket = self._resource.Bucket(bucket)
-
-    def get_one(self, uuid: str) -> ImageFileEntity:
+class S3Repository(BaseS3Repository):
+    def get_one(self, uuid: str) -> S3FileEntity:
         file = io.BytesIO()
         self._resource.Object(self._bucket, uuid).download_fileobj(file)
-        return ImageFileEntity(uuid=uuid, data=file)
+        return S3FileEntity(uuid=uuid, data=file)
 
-    def insert(self, entity: ImageFileEntity) -> ImageFileEntity:
-        self.bucket.put_object(
-            Key=entity.uuid, Body=entity.data, Metadata=entity.metadata
-        )
+    def insert(self, entity: S3FileEntity) -> S3FileEntity:
+        data = {"Key": entity.uuid, "Body": entity.data}
+        if entity.metadata:
+            temp = entity.metadata
+            for k in temp:
+                temp[k] = str(temp[k])
+            data["Metadata"] = temp
+        self.bucket.put_object(**data)
         return entity
+
+    def update(self, entity: ProjectEntity):
+        self._service.update_project(entity.to_dict())
+
+    def delete(self, uuid: int):
+        self._service.delete_project(uuid)
+
+    def get_all(self, condition: Condition = None) -> List[ProjectEntity]:
+        pass
 
 
 class ProjectSettingsRepository(BaseProjectRelatedManageableRepository):
@@ -254,7 +262,6 @@ class FolderRepository(BaseProjectRelatedManageableRepository):
             team_id=data["team_id"],
             project_id=data["project_id"],
             name=data["name"],
-            parent_id=data.get("parent_id"),
         )
 
 
@@ -298,7 +305,7 @@ class AnnotationClassRepository(BaseManageableRepository):
         )
 
 
-class ImageRepositroy(BaseManageableRepository):
+class ImageRepository(BaseManageableRepository):
     def __init__(self, service: SuperannotateBackendService):
         self._service = service
 
@@ -316,7 +323,13 @@ class ImageRepositroy(BaseManageableRepository):
         raise NotImplementedError
 
     def update(self, entity: ImageEntity):
-        raise NotImplementedError
+        self._service.update_image(
+            image_id=entity.uuid,
+            project_id=entity.project_id,
+            team_id=entity.team_id,
+            data=entity.to_dict(),
+        )
+        return entity
 
     @staticmethod
     def dict2entity(data: dict):
