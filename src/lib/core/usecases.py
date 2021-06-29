@@ -1,5 +1,6 @@
 import copy
 import io
+import json
 import uuid
 from abc import ABC
 from abc import abstractmethod
@@ -8,15 +9,17 @@ from typing import Iterable
 from typing import List
 from typing import Optional
 
+import requests
 import src.lib.core as constances
 from src.lib.core.conditions import Condition
 from src.lib.core.conditions import CONDITION_EQ as EQ
 from src.lib.core.entities import AnnotationClassEntity
 from src.lib.core.entities import FolderEntity
-from src.lib.core.entities import ImageFileEntity
+from src.lib.core.entities import ImageEntity
 from src.lib.core.entities import ImageInfoEntity
 from src.lib.core.entities import ProjectEntity
 from src.lib.core.entities import ProjectSettingEntity
+from src.lib.core.entities import S3FileEntity
 from src.lib.core.entities import TeamEntity
 from src.lib.core.entities import WorkflowEntity
 from src.lib.core.enums import ProjectType
@@ -350,6 +353,31 @@ class GetImagesUseCase(BaseUseCase):
         self._response.data = self._images.get_all(condition)
 
 
+class GetImageUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        image_name: str,
+        images: BaseReadOnlyRepository,
+    ):
+        super().__init__(response)
+        self._project = project
+        self._folder = folder
+        self._images = images
+        self._image_name = image_name
+
+    def execute(self):
+        condition = (
+            Condition("team_id", self._project.team_id, EQ)
+            & Condition("project_id", self._project.uuid, EQ)
+            & Condition("folder_id", self._folder.uuid, EQ)
+            & Condition("name", self._image_name, EQ)
+        )
+        self._response.data = self._images.get_all(condition)[0]
+
+
 class UploadImageS3UseCas(BaseUseCase):
     def __init__(
         self,
@@ -388,20 +416,20 @@ class UploadImageS3UseCas(BaseUseCase):
             self._upload_path + str(uuid.uuid4()) + Path(self._image_path).suffix
         )
 
-        file_entity = ImageFileEntity(uuid=image_key, data=self._image)
+        file_entity = S3FileEntity(uuid=image_key, data=self._image)
 
         thumb_image_name = image_key + "___thumb.jpg"
-        thumb_image_entity = ImageFileEntity(uuid=thumb_image_name, data=thumb_image)
+        thumb_image_entity = S3FileEntity(uuid=thumb_image_name, data=thumb_image)
         self._s3_repo.insert(thumb_image_entity)
 
         low_resolution_image_name = image_key + "___lores.jpg"
-        low_resolution_file_entity = ImageFileEntity(
+        low_resolution_file_entity = S3FileEntity(
             uuid=low_resolution_image_name, data=low_resolution_image
         )
         self._s3_repo.insert(low_resolution_file_entity)
 
         huge_image_name = image_key + "___huge.jpg"
-        huge_file_entity = ImageFileEntity(
+        huge_file_entity = S3FileEntity(
             uuid=huge_image_name,
             data=huge_image,
             metadata={"height": huge_width, "weight": huge_height},
@@ -409,8 +437,10 @@ class UploadImageS3UseCas(BaseUseCase):
         self._s3_repo.insert(huge_file_entity)
         file_entity.data.seek(0)
         self._s3_repo.insert(file_entity)
-        self._response.data = ImageInfoEntity(
-            name=image_name, path=image_key, width=origin_width, height=origin_height,
+        self._response.data = ImageEntity(
+            name=image_name,
+            path=image_key,
+            meta=ImageInfoEntity(width=origin_width, height=origin_height),
         )
 
 
@@ -445,7 +475,7 @@ class AttachFileUrls(BaseUseCase):
         self,
         response: Response,
         project: ProjectEntity,
-        attachments: List[str],
+        attachments: List[ImageEntity],
         limit: int,
         backend_service_provider: SuerannotateServiceProvider,
         annotation_status: int = constances.AnnotationStatus.NOT_STARTED.value,
@@ -457,21 +487,27 @@ class AttachFileUrls(BaseUseCase):
         self._backend_service = backend_service_provider
         self._annotation_status_code = annotation_status
 
+    @property
+    def annotation_status(self):
+        if self._annotation_status_code:
+            return self._annotation_status_code
+        return constances.AnnotationStatus.NOT_STARTED.value
+
     def execute(self):
-        attachments_to_upload = self._attachments[: self._limit]
-        attachments_data = []
-        for attachment in attachments_to_upload:
-            attachments_data.append(
-                {"name": Path(attachment).suffix, "path": attachment}
-            )
+        files = [
+            {"name": entity.name, "path": entity.name} for entity in self._attachments
+        ]
+        meta = {
+            entity.name: {"height": entity.meta.height, "width": entity.meta.width}
+            for entity in self._attachments
+        }
         self._backend_service.attach_files(
             project_id=self._project.uuid,
             team_id=self._project.team_id,
-            files=attachments_data,
-            annotation_status_code=self._annotation_status_code,
+            files=files[: self._limit],
+            annotation_status_code=self.annotation_status,
             upload_state_code=constances.UploadState.EXTERNAL.value,
-            # todo rewrite
-            meta=None,
+            meta=meta,
         )
 
 
@@ -683,3 +719,214 @@ class UpdateFolderUseCase(BaseUseCase):
     def execute(self):
         self._folders.update(self._folder)
         self._response.data = self._folder
+
+
+class DownloadImageUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        image: ImageEntity,
+        backend_service_provider: SuerannotateServiceProvider,
+        image_variant: str = "original",
+    ):
+        super().__init__(response)
+        self._image = image
+        self._backend_service = backend_service_provider
+        self._image_variant = image_variant
+
+    def execute(self):
+        auth_data = self._backend_service.get_download_token(
+            project_id=self._image.project_id,
+            team_id=self._image.team_id,
+            folder_id=self._image.folder_id,
+            image_id=self._image.uuid,
+            include_original=1,
+        )
+        download_url = auth_data[self._image_variant]["url"]
+        headers = auth_data[self._image_variant]["headers"]
+        response = requests.get(url=download_url, headers=headers)
+        self._response.data = io.BytesIO(response.content)
+
+
+class CopyImageAnnotationClasses(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        from_project: ProjectEntity,
+        to_project: ProjectEntity,
+        from_image: ImageEntity,
+        to_image: ImageEntity,
+        from_project_s3_repo: BaseManageableRepository,
+        to_project_s3_repo: BaseManageableRepository,
+        to_project_annotation_classes: BaseReadOnlyRepository,
+        from_project_annotation_classes: BaseReadOnlyRepository,
+        backend_service_provider: SuerannotateServiceProvider,
+        from_folder: FolderEntity = None,
+        to_folder: FolderEntity = None,
+        annotation_type: str = "MAIN",
+    ):
+        super().__init__(response)
+        self._from_project = from_project
+        self._to_project = to_project
+        self._from_folder = from_folder
+        self._to_folder = to_folder
+        self._from_project_annotation_classes = from_project_annotation_classes
+        self._to_project_annotation_classes = to_project_annotation_classes
+        self._from_project_s3_repo = from_project_s3_repo
+        self.to_project_s3_repo = to_project_s3_repo
+        self._from_image = from_image
+        self._to_image = to_image
+        self._backend_service = backend_service_provider
+        self._annotation_type = annotation_type
+
+    @property
+    def default_annotation(self):
+        return {
+            "annotation_json": None,
+            "annotation_json_filename": None,
+            "annotation_mask": None,
+            "annotation_mask_filename": None,
+        }
+
+    @property
+    def annotation_json_name(self):
+        if self._project.project_type == constances.ProjectType.VECTOR.value:
+            return f"{self._image.name}___objects.json"
+        elif self._project.project_type == constances.ProjectType.PIXEL.value:
+            return f"{self._image.name}___pixel.json"
+
+    @property
+    def download_auth_data(self):
+        return self._backend_service.get_download_token(
+            project_id=self._from_image.project_id,
+            team_id=self._from_image.team_id,
+            folder_id=self._from_image.folder_id,
+            image_id=self._from_image.uuid,
+            include_original=1,
+        )
+
+    @property
+    def upload_auth_data(self):
+        return self._backend_service.get_upload_token(
+            project_id=self._to_image.project_id,
+            team_id=self._to_image.team_id,
+            folder_id=self._to_image.folder_id,
+            image_id=self._to_image.uuid,
+        )
+
+    def validate_project_type(self):
+        if self._from_project.project_type != self._to_project.project_type:
+            raise AppValidationException("Projects are different.")
+
+    def execute(self):
+        if self._annotation_type not in self.download_auth_data["annotations"]:
+            self._response.data = self.default_annotation
+            return
+        annotations = self.download_auth_data["annotations"][self._annotation_type][0]
+        response = requests.get(
+            url=annotations["annotation_json_path"]["url"],
+            headers=annotations["annotation_json_path"]["headers"],
+        )
+        if not response.ok:
+            raise AppException(f"Couldn't load annotations {response.text}")
+
+        image_annotation_classes = response.json()
+        from_project_annotation_classes = (
+            self._from_project_annotation_classes.get_all()
+        )
+        to_project_annotation_classes = self._to_project_annotation_classes.get_all()
+
+        annotations_classes_from_copy = {
+            from_annotation.uuid: from_annotation
+            for from_annotation in from_project_annotation_classes
+            for to_annotation in to_project_annotation_classes
+            if from_annotation.name == to_annotation.name
+        }
+
+        annotations_classes_to_copy = {
+            to_annotation.name: to_annotation
+            for to_annotation in to_project_annotation_classes
+            for from_annotation in from_project_annotation_classes
+            if from_annotation.name == to_annotation.name
+        }
+
+        for annotation_class in image_annotation_classes["instances"]:
+            project_annotation = annotations_classes_from_copy[
+                annotation_class["classId"]
+            ]
+            annotation_class["className"] = project_annotation.name
+            if annotation_class.get("attributes"):
+                for attribute in annotation_class["attributes"]:
+                    attribute_group = None
+                    if attribute.get("groupId"):
+                        for group in project_annotation.attribute_groups:
+                            if group["id"] == attribute["groupId"]:
+                                attribute["groupName"] = group["name"]
+                                attribute_group = group
+                        if attribute.get("id") and attribute_group:
+                            for attr in attribute_group["attributes"]:
+                                if attr["id"] == attribute["id"]:
+                                    attribute["name"] = attr["name"]
+
+        for instance in image_annotation_classes["instances"]:
+            if (
+                "className" not in instance
+                and instance["className"] not in annotations_classes_to_copy
+            ):
+                continue
+            annotation_class = annotations_classes_to_copy[instance["className"]]
+            attribute_groups_map = {
+                group["name"]: group for group in annotation_class.attribute_groups
+            }
+            instance["classId"] = annotation_class.uuid
+            for attribute in instance["attributes"]:
+                if attribute.get("groupName"):
+                    attribute["groupId"] = attribute_groups_map[attribute["groupName"]][
+                        "id"
+                    ]
+                    attr_map = {
+                        attr["name"]: attr
+                        for attr in attribute_groups_map[attribute["groupName"]][
+                            "attributes"
+                        ]
+                    }
+                    if attribute["name"] not in attr_map:
+                        del attribute["groupId"]
+                        continue
+                    attribute["id"] = attr_map[attribute["name"]]["id"]
+
+        auth_data = self.upload_auth_data
+        file = S3FileEntity(
+            uuid=auth_data["annotation_json_path"]["filePath"],
+            data=json.dumps(image_annotation_classes),
+        )
+        self.to_project_s3_repo.insert(file)
+
+        if (
+            self._to_project.project_type == constances.ProjectType.PIXEL.value
+            and annotations.get("annotation_bluemap_path")
+            and annotations["annotation_bluemap_path"]["exist"]
+        ):
+            response = requests.get(
+                url=annotations["annotation_bluemap_path"]["url"],
+                headers=annotations["annotation_bluemap_path"]["headers"],
+            )
+            if not response.ok:
+                raise AppException(f"Couldn't load annotations {response.text}")
+            self.to_project_s3_repo.insert(
+                S3FileEntity(
+                    auth_data["annotation_bluemap_path"]["filePath"], response.content
+                )
+            )
+
+
+class UpdateImageUseCase(BaseUseCase):
+    def __init__(
+        self, response: Response, image: ImageEntity, images: BaseManageableRepository
+    ):
+        super().__init__(response)
+        self._image = image
+        self._images = images
+
+    def execute(self):
+        self._images.update(self._image)

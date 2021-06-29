@@ -85,3 +85,21 @@ class SuerannotateServiceProvider(ABC):
 
     def update_folder(self, project_id: int, team_id: int, folder_data: dict):
         raise NotImplementedError
+
+    def get_download_token(
+        self,
+        project_id: int,
+        team_id: int,
+        folder_id: int,
+        image_id: int,
+        include_original: int = 1,
+    ) -> dict:
+        raise NotImplementedError
+
+    def get_upload_token(
+        self, project_id: int, team_id: int, folder_id: int, image_id: int,
+    ) -> dict:
+        raise NotImplementedError
+
+    def update_image(self, image_id: int, team_id: int, project_id: int, data: dict):
+        raise None

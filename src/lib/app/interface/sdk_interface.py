@@ -360,3 +360,100 @@ def search_folders(project, folder_name=None, return_metadata=False):
     if return_metadata:
         return data.to_dict()
     return [folder.name for folder in data]
+
+
+def get_image_bytes(project, image_name, variant="original"):
+    """Returns an io.BytesIO() object of the image. Suitable for creating
+    PIL.Image out of it.
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param image_name: image name
+    :type image: str
+    :param variant: which resolution to get, can be 'original' or 'lores'
+     (low resolution)
+    :type variant: str
+
+    :return: io.BytesIO() of the image
+    :rtype: io.BytesIO()
+    """
+    project_name, folder_name = split_project_path(project)
+    image = controller.download_image(
+        project_name=project_name,
+        image_name=image_name,
+        folder_name=folder_name,
+        image_variant=variant,
+    ).data
+    return image
+
+
+def copy_image(
+    source_project,
+    image_name,
+    destination_project,
+    include_annotations=False,
+    copy_annotation_status=False,
+    copy_pin=False,
+):
+    """Copy image to a project. The image's project is the same as destination
+    project then the name will be changed to <image_name>_(<num>).<image_ext>,
+    where <num> is the next available number deducted from project image list.
+
+    :param source_project: project name plus optional subfolder in the project (e.g., "project1/folder1") or
+                           metadata of the project of source project
+    :type source_project: str or dict
+    :param image_name: image name
+    :type image: str
+    :param destination_project: project name or metadata of the project of destination project
+    :type destination_project: str or dict
+    :param include_annotations: enables annotations copy
+    :type include_annotations: bool
+    :param copy_annotation_status: enables annotations status copy
+    :type copy_annotation_status: bool
+    :param copy_pin: enables image pin status copy
+    :type copy_pin: bool
+    """
+    source_project_name, source_folder_name = split_project_path(source_project)
+
+    destination_project, destination_folder = split_project_path(destination_project)
+
+    img_bytes = get_image_bytes(project=source_project, image_name=image_name)
+    image_path = destination_folder + image_name
+
+    image_entity = controller.upload_image_to_s3(
+        project_name=destination_project, image_path=image_path, image_bytes=img_bytes
+    ).data
+
+    del img_bytes
+
+    if copy_annotation_status:
+        res = controller.get_image(
+            project_name=source_project,
+            image_name=image_name,
+            folder_path=source_folder_name,
+        )
+        image_entity.annotation_status_code = res.annotation_status_code
+
+    controller.attach_urls(
+        project_name=destination_project,
+        files=[image_entity],
+        folder_name=destination_folder,
+    )
+
+    if include_annotations:
+        controller.copy_image_annotation_classes(
+            from_project_name=source_project_name,
+            to_project_name=destination_project,
+            image_name=image_name,
+        )
+    if copy_pin:
+        controller.update_image(
+            project_name=destination_project,
+            folder_name=destination_folder,
+            image_name=image_name,
+            is_pinned=1,
+        )
+    logger.info(
+        f"Copied image {source_project_name}/{source_folder_name}"
+        f" to {destination_project}/{destination_folder}/{image_name}."
+    )

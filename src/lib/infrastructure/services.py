@@ -119,6 +119,7 @@ class SuperannotateBackendService(BaseBackendService):
     URL_CREATE_FOLDER = "folder"
     URL_UPDATE_FOLDER = "folder/{}"
     URL_FOLDERS = "folder"
+    URL_GET_IMAGE = "image/{}"
     URL_DELETE_FOLDERS = "image/delete/images"
     URL_GET_PROJECT_SETTIGNS = "/project/{}/settings"
     URL_CREATE_IMAGE = "image/ext-create"
@@ -136,6 +137,50 @@ class SuperannotateBackendService(BaseBackendService):
         )
         response = self._request(
             auth_token_url, "get", params={"team_id": team_id, "folder_id": folder_id}
+        )
+        return response.json()
+
+    def get_download_token(
+        self,
+        project_id: int,
+        team_id: int,
+        folder_id: int,
+        image_id: int,
+        include_original: int = 1,
+    ):
+        download_token_url = urljoin(
+            self.api_url,
+            self.URL_GET_IMAGE.format(image_id)
+            + "/annotation/getAnnotationDownloadToken",
+        )
+        response = self._request(
+            download_token_url,
+            "get",
+            params={
+                "project_id": project_id,
+                "team_id": team_id,
+                "folder_id": folder_id,
+                "include_original": include_original,
+            },
+        )
+        return response.json()
+
+    def get_upload_token(
+        self, project_id: int, team_id: int, folder_id: int, image_id: int,
+    ):
+        download_token_url = urljoin(
+            self.api_url,
+            self.URL_GET_IMAGE.format(image_id)
+            + "/annotation/getAnnotationUploadToken",
+        )
+        response = self._request(
+            download_token_url,
+            "get",
+            params={
+                "project_id": project_id,
+                "team_id": team_id,
+                "folder_id": folder_id,
+            },
         )
         return response.json()
 
@@ -374,5 +419,16 @@ class SuperannotateBackendService(BaseBackendService):
         )
         res = self._request(
             invite_contributor_url, "delete", data={"token": token, "e_mail": email}
+        )
+        return res.ok
+
+    def update_image(self, image_id: int, team_id: int, project_id: int, data: dict):
+        update_image_url = urljoin(self.api_url, self.URL_GET_IMAGE.format(image_id))
+
+        res = self._request(
+            update_image_url,
+            "put",
+            data=data,
+            params={"team_id": team_id, "project_id": project_id},
         )
         return res.ok
