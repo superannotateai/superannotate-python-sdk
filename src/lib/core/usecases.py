@@ -456,7 +456,7 @@ class PrepareExportUseCase(BaseUseCase):
         self._folder_names = folder_names
         self._backend_service = backend_service_provider
         self._annotation_statuses = annotation_statuses
-        self._include_fuse = (include_fuse,)
+        self._include_fuse = include_fuse
         self._only_pinned = only_pinned
 
     def execute(self):

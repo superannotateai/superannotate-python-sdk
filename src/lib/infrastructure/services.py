@@ -342,8 +342,7 @@ class SuperannotateBackendService(BaseBackendService):
 
         data = {
             "include": annotation_statuses,
-            # TODO: include fuse is tuple
-            "fuse": include_fuse,
+            "fuse": int(include_fuse),
             "is_pinned": int(only_pinned),
             "coco": 0,
             "time": datetime.now().strftime("%b %d %Y %H:%M"),
