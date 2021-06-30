@@ -930,3 +930,32 @@ class UpdateImageUseCase(BaseUseCase):
 
     def execute(self):
         self._images.update(self._image)
+
+
+class DownloadImageFromPublicUrlUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        project: ProjectEntity,
+        image_url: str,
+        image_name: str = None,
+    ):
+        super().__init__(response)
+        self._project = project
+        self._image_url = image_url
+        self._image_name = image_name
+
+    def validate_project_type(self):
+        if self._project.upload_state == constances.UploadState.EXTERNAL.value:
+            raise AppValidationException(
+                "The function does not support projects containing images attached with URLs"
+            )
+
+    def execute(self):
+        try:
+            response = requests.get(url=self._image_url)
+            self._response.data = io.BytesIO(response.content)
+        except requests.exceptions.RequestException as e:
+            self._response.errors = AppException(
+                f"Couldn't download image {self._image_url}, {e}"
+            )

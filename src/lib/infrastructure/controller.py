@@ -19,6 +19,7 @@ from src.lib.core.usecases import CreateProjectUseCase
 from src.lib.core.usecases import DeleteContributorInvitationUseCase
 from src.lib.core.usecases import DeleteFolderUseCase
 from src.lib.core.usecases import DeleteProjectUseCase
+from src.lib.core.usecases import DownloadImageFromPublicUrlUseCase
 from src.lib.core.usecases import DownloadImageUseCase
 from src.lib.core.usecases import GetFolderUseCase
 from src.lib.core.usecases import GetImagesUseCase
@@ -199,11 +200,12 @@ class Controller(BaseController):
 
     def upload_images(
         self,
-        project: ProjectEntity,
+        project_name: str,
         images: List[ImageInfoEntity],
         annotation_status: str = None,
         image_quality: str = None,
     ):
+        project = self._get_project(project_name)
         use_case = ImageUploadUseCas(
             response=self.response,
             project=project,
@@ -221,10 +223,11 @@ class Controller(BaseController):
         project_name: str,
         image_path: str,  # image path to upload
         image_bytes: io.BytesIO,
-        folder_id: int = None,  # project folder path
+        folder_name: str = None,  # project folder path
     ):
         project = self._get_project(project_name)
-        s3_repo = self.get_s3_repository(self.team_id, project.uuid, folder_id,)
+        folder = self._get_folder(project, folder_name)
+        s3_repo = self.get_s3_repository(self.team_id, project.uuid, folder.uuid,)
         use_case = UploadImageS3UseCas(
             response=self.response,
             project=project,
@@ -554,3 +557,16 @@ class Controller(BaseController):
             response=self.response, image=image, images=self.images
         )
         use_case.execute()
+
+    def download_image_from_public_url(
+        self, project_name: str, image_url: str, image_name: str = None
+    ):
+        response = Response()
+        use_case = DownloadImageFromPublicUrlUseCase(
+            response=response,
+            project=self._get_project(project_name),
+            image_url=image_url,
+            image_name=image_name,
+        )
+        use_case.execute()
+        return response
