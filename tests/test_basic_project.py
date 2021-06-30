@@ -94,3 +94,25 @@ def test_basic_project(project_type, name, description, from_folder, tmpdir):
                     found = True
                     break
             assert found, mask_in_folder
+
+
+def test_upload_annotations():
+    FROM_FOLDER = Path("./tests/sample_annotation_no_class")
+    PROJECT_NAME = "testnoclass"
+    projects_found = sa.search_projects(PROJECT_NAME, return_metadata=True)
+    for pr in projects_found:
+        sa.delete_project(pr)
+    project = sa.create_project(PROJECT_NAME, 'test', 'Vector')
+    project = project["name"]
+    sa.upload_images_from_folder_to_project(
+        project, FROM_FOLDER, annotation_status="InProgress"
+    )
+    sa.create_annotation_classes_from_classes_json(
+        project, FROM_FOLDER / "classes" / "classes.json"
+    )
+    sa.upload_annotations_from_folder_to_project(project, FROM_FOLDER)
+    annot = sa.get_image_annotations(project, "example_image_1.jpg")
+    truth_path = FROM_FOLDER / "truth.json"
+    with open(truth_path, 'r') as f:
+        data = json.loads(f.read())
+    assert data == annot
