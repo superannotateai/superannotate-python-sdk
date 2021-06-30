@@ -1,4 +1,7 @@
+import concurrent.futures
 import logging
+import os
+from urllib.parse import urlparse
 
 import lib.core as constances
 from lib.app.exceptions import EmptyOutputError
@@ -457,3 +460,86 @@ def copy_image(
         f"Copied image {source_project_name}/{source_folder_name}"
         f" to {destination_project}/{destination_folder}/{image_name}."
     )
+
+
+def upload_images_from_public_urls_to_project(
+    project,
+    img_urls,
+    img_names=None,
+    annotation_status="NotStarted",
+    image_quality_in_editor=None,
+):
+    """Uploads all images given in the list of URL strings in img_urls to the project.
+    Sets status of all the uploaded images to annotation_status if it is not None.
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param img_urls: list of str objects to upload
+    :type img_urls: list
+    :param img_names: list of str names for each urls in img_url list
+    :type img_names: list
+    :param annotation_status: value to set the annotation statuses of the uploaded images
+     NotStarted InProgress QualityCheck Returned Completed Skipped
+    :type annotation_status: str
+    :param image_quality_in_editor: image quality be seen in SuperAnnotate web annotation editor.
+           Can be either "compressed" or "original".  If None then the default value in project settings will be used.
+    :type image_quality_in_editor: str
+
+    :return: uploaded images' urls, uploaded images' filenames, duplicate images' filenames
+     and not-uploaded images' urls
+    :rtype: tuple of list of strs
+    """
+
+    if img_names is not None and len(img_names) != len(img_urls):
+        raise AppException("Not all image URLs have corresponding names.")
+
+    project_name, folder_name = split_project_path(project)
+    existing_images = controller.search_images(
+        project_name=project_name, folder_path=folder_name
+    ).data
+    if not img_names:
+        image_name_url_map = {
+            url: (os.path.basename(urlparse(url).path)) for url in img_urls
+        }
+    duplicate_images = list(
+        {image.name for image in existing_images} & set(image_name_url_map.keys())
+    )
+    images_to_upload = []
+
+    def _upload_image(image_url, image_path) -> str:
+        download_response = controller.download_image_from_public_url(
+            project_name=project_name, image_url=image_url
+        )
+        if not download_response.errors:
+            upload_response = controller.upload_image_to_s3(
+                project_name=project_name,
+                image_path=image_path,
+                image_bytes=download_response.data,
+                folder_name=folder_name,
+            )
+            if not upload_response.errors:
+                images_to_upload.append(upload_response.data)
+        else:
+            logger.warning(download_response.errors)
+        return image_url
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        failed_images = []
+        for i, img_url in enumerate(img_urls):
+            if img_names[i] not in duplicate_images:
+                failed_images.append(
+                    executor.submit(_upload_image, img_url, img_names[i])
+                )
+
+    for i in range(0, len(images_to_upload), 500):
+        controller.upload_images(
+            project_name=project_name,
+            images=images_to_upload[i : i + 500],  # noqa: E203
+            annotation_status=annotation_status,
+            image_quality=image_quality_in_editor,
+        )
+
+    uploaded_image_names = set(image_name_url_map.keys()) - set(failed_images)
+    uploaded_image_urls = [image_name_url_map[name] for name in uploaded_image_names]
+
+    return uploaded_image_urls, uploaded_image_names, duplicate_images, failed_images
