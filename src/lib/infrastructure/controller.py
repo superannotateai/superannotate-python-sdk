@@ -9,6 +9,7 @@ from src.lib.core.entities import FolderEntity
 from src.lib.core.entities import ImageEntity
 from src.lib.core.entities import ImageInfoEntity
 from src.lib.core.entities import ProjectEntity
+from src.lib.core.entities import ProjectSettingEntity
 from src.lib.core.exceptions import AppException
 from src.lib.core.response import Response
 from src.lib.core.usecases import AttachFileUrls
@@ -18,15 +19,20 @@ from src.lib.core.usecases import CreateFolderUseCase
 from src.lib.core.usecases import CreateProjectUseCase
 from src.lib.core.usecases import DeleteContributorInvitationUseCase
 from src.lib.core.usecases import DeleteFolderUseCase
+from src.lib.core.usecases import DeleteImageUseCase
 from src.lib.core.usecases import DeleteProjectUseCase
 from src.lib.core.usecases import DownloadImageFromPublicUrlUseCase
 from src.lib.core.usecases import DownloadImageUseCase
+from src.lib.core.usecases import GetAnnotationClassesUseCase
 from src.lib.core.usecases import GetFolderUseCase
+from src.lib.core.usecases import GetImageMetadataUseCase
 from src.lib.core.usecases import GetImagesUseCase
 from src.lib.core.usecases import GetImageUseCase
 from src.lib.core.usecases import GetProjectFoldersUseCase
 from src.lib.core.usecases import GetProjectsUseCase
+from src.lib.core.usecases import GetSettingsUseCase
 from src.lib.core.usecases import GetTeamUseCase
+from src.lib.core.usecases import GetWorkflowsUsecase
 from src.lib.core.usecases import ImagesBulkCopyUseCase
 from src.lib.core.usecases import ImagesBulkMoveUseCase
 from src.lib.core.usecases import ImageUploadUseCas
@@ -37,6 +43,7 @@ from src.lib.core.usecases import SearchFolderUseCase
 from src.lib.core.usecases import UpdateFolderUseCase
 from src.lib.core.usecases import UpdateImageUseCase
 from src.lib.core.usecases import UpdateProjectUseCase
+from src.lib.core.usecases import UpdateSettingsUseCase
 from src.lib.core.usecases import UploadImageS3UseCas
 from src.lib.infrastructure.repositories import AnnotationClassRepository
 from src.lib.infrastructure.repositories import ConfigRepository
@@ -618,3 +625,163 @@ class Controller(BaseController):
         )
         use_case.execute()
         return self.response
+
+    def get_project_metadata(
+        self,
+        project_name: str,
+        include_annotation_classes: bool = False,
+        include_settings: bool = False,
+        include_workflow: bool = False,
+        include_contributors: bool = False,
+        include_complete_image_count: bool = False,
+    ):
+        res = {}
+        project_entity = self._get_project(project_name)
+        if include_annotation_classes:
+            classes_res = Response()
+            annotation_classes_use_case = GetAnnotationClassesUseCase(
+                response=classes_res,
+                classes=AnnotationClassRepository(
+                    service=self._backend_client, project=project_entity
+                ),
+            )
+            annotation_classes_use_case.execute()
+            res["classes"] = classes_res
+
+        if include_settings:
+            settings_res = Response()
+            settings_use_case = GetSettingsUseCase(
+                response=settings_res,
+                settings=ProjectSettingsRepository(
+                    service=self._backend_client, project=project_entity
+                ),
+            )
+            settings_use_case.execute()
+            res["settings"] = settings_res
+
+        if include_workflow:
+            workflow_res = Response()
+            workflow_use_case = GetWorkflowsUsecase(
+                response=workflow_res,
+                workflows=WorkflowRepository(
+                    service=self._backend_client, project=project_entity
+                ),
+            )
+            workflow_use_case.execute()
+            res["workflow"] = workflow_res
+
+        if include_contributors:
+            res["contributors"] = project_entity.users
+
+        if include_complete_image_count:
+            projects_repo = ProjectRepository(service=self._backend_client)
+            res["project"] = projects_repo.get_all(
+                condition=(
+                    Condition("completeImagesCount", "true", EQ)
+                    & Condition("name", self._project.name, EQ)
+                    & Condition("team_id", self._project.team_id, EQ)
+                )
+            )
+
+        return res
+
+    def get_project_settings(self, project_name: str):
+        project_entity = self._get_project(project_name)
+        settings_use_case = GetSettingsUseCase(
+            response=self.response,
+            settings=ProjectSettingsRepository(
+                service=self._backend_client, project=project_entity
+            ),
+        )
+        settings_use_case.execute()
+        return self.response.data
+
+    def get_project_workflow(self, project_name: str):
+        project_entity = self._get_project(project_name)
+        workflows_use_case = GetWorkflowsUsecase(
+            response=self.response,
+            settings=ProjectSettingsRepository(
+                service=self._backend_client, project=project_entity
+            ),
+        )
+        workflows_use_case.execute()
+        return self.response.data
+
+    def search_annotation_classes(self, project_name: str, name_prefix: str = None):
+        project_entity = self._get_project(project_name)
+        annotation_classes_use_case = GetAnnotationClassesUseCase(
+            response=self.response,
+            classes=AnnotationClassRepository(
+                service=self._backend_client, project=project_entity
+            ),
+            condition=Condition("name", name_prefix, EQ),
+        )
+        annotation_classes_use_case.execute()
+        return self.response.data
+
+    def set_project_settings(self, project_name: str, new_settings: List[dict]):
+        project_entity = self._get_project(project_name)
+        old_settings_response = Response()
+        settings_use_case = GetSettingsUseCase(
+            response=old_settings_response,
+            settings=ProjectSettingsRepository(
+                service=self._backend_client, project=project_entity
+            ),
+        )
+        settings_use_case.execute()
+
+        attr_id_mapping = {}
+        for setting in old_settings_response.data:
+            if setting.attribute:
+                attr_id_mapping[setting.attribute] = setting.uuid
+
+        new_settings_to_update = []
+        for new_setting in new_settings:
+            new_settings_to_update.append(
+                ProjectSettingEntity(
+                    uuid=attr_id_mapping[new_setting["attribute"]],
+                    attribute=new_setting["attribute"],
+                    value=new_setting["value"],
+                )
+            )
+
+        new_settings_response = Response()
+        update_settings_use_case = UpdateSettingsUseCase(
+            response=new_settings_response,
+            settings=ProjectSettingsRepository(
+                service=self._backend_client, project=project_entity
+            ),
+            to_update=new_settings_to_update,
+            backend_service_provider=self._backend_client,
+            project_id=project_entity.uuid,
+            team_id=project_entity.team_id,
+        )
+        update_settings_use_case.execute()
+
+        return old_settings_response
+
+    def delete_image(self, image_name, project_name):
+        image = self.get_image(project_name=project_name, image_name=image_name)
+        project_entity = self._get_project(project_name)
+        delete_image_user_case = DeleteImageUseCase(
+            response=self.response,
+            images=ImageRepository(service=self._backend_client),
+            image=image,
+            team_id=project_entity.team_id,
+            project_id=project_entity.uuid,
+        )
+        delete_image_user_case.execute()
+        return self._response
+
+    def get_image_metadata(self, project_name, image_names):
+        project_entity = self._get_project(project_name)
+
+        get_image_metadata_use_case = GetImageMetadataUseCase(
+            response=self.response,
+            image_names=image_names,
+            team_id=project_entity.team_id,
+            project_id=project_entity.uuid,
+            service=self._backend_client,
+        )
+        get_image_metadata_use_case.execute()
+        return self.response.data

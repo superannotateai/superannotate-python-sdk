@@ -660,3 +660,187 @@ def move_images(
     )
 
     return len(image_names) - moved_count
+
+
+def get_project_metadata(
+    project,
+    include_annotation_classes=False,
+    include_settings=False,
+    include_workflow=False,
+    include_contributors=False,
+    include_complete_image_count=False,
+):
+    """Returns project metadata
+
+    :param project: project name
+    :type project: str
+    :param include_annotation_classes: enables project annotation classes output under
+                                       the key "annotation_classes"
+    :type include_annotation_classes: bool
+    :param include_settings: enables project settings output under
+                             the key "settings"
+    :type include_settings: bool
+    :param include_workflow: enables project workflow output under
+                             the key "workflow"
+    :type include_workflow: bool
+    :param include_contributors: enables project contributors output under
+                             the key "contributors"
+    :type include_contributors: bool
+
+    :return: metadata of project
+    :rtype: dict
+    """
+    project_name, folder_name = split_project_path(project)
+    metadata = controller.get_project_metadata(
+        project_name,
+        include_annotation_classes,
+        include_settings,
+        include_workflow,
+        include_contributors,
+        include_complete_image_count,
+    )
+    return metadata
+
+
+def get_project_settings(project):
+    """Gets project's settings.
+
+    Return value example: [{ "attribute" : "Brightness", "value" : 10, ...},...]
+
+    :param project: project name or metadata
+    :type project: str or dict
+
+    :return: project settings
+    :rtype: list of dicts
+    """
+    project_name, folder_name = split_project_path(project)
+    settings = controller.get_project_settings(project_name=project_name)
+    return settings
+
+
+def get_project_workflow(project):
+    """Gets project's workflow.
+
+    Return value example: [{ "step" : <step_num>, "className" : <annotation_class>, "tool" : <tool_num>, ...},...]
+
+    :param project: project name or metadata
+    :type project: str or dict
+
+    :return: project workflow
+    :rtype: list of dicts
+    """
+    project_name, folder_name = split_project_path(project)
+    workflow = controller.get_project_workflow(project_name=project_name)
+    return workflow
+
+
+def search_annotation_classes(project, name_prefix=None):
+    """Searches annotation classes by name_prefix (case-insensitive)
+
+    :param project: project name
+    :type project: str
+    :param name_prefix: name prefix for search. If None all annotation classes
+     will be returned
+    :type name_prefix: str
+
+    :return: annotation classes of the project
+    :rtype: list of dicts
+    """
+    project_name, folder_name = split_project_path(project)
+    classes = controller.search_annotation_classes(project_name, name_prefix)
+    return classes
+
+
+def set_project_settings(project, new_settings):
+    """Sets project's settings.
+
+    New settings format example: [{ "attribute" : "Brightness", "value" : 10, ...},...]
+
+    :param project: project name or metadata
+    :type project: str or dict
+    :param new_settings: new settings list of dicts
+    :type new_settings: list of dicts
+
+    :return: updated part of project's settings
+    :rtype: list of dicts
+    """
+    project_name, folder_name = split_project_path(project)
+    updated = controller.set_project_settings(project_name, new_settings)
+    return updated
+
+
+def get_project_default_image_quality_in_editor(project):
+    """Gets project's default image quality in editor setting.
+
+    :param project: project name or metadata
+    :type project: str or dict
+
+    :return: "original" or "compressed" setting value
+    :rtype: str
+    """
+    project_name, folder_name = split_project_path(project)
+    settings = controller.get_project_settings(project_name)
+    for setting in settings:
+        if setting.attribute == "ImageQuality":
+            return setting.value
+
+
+def set_project_default_image_quality_in_editor(project, image_quality_in_editor):
+    """Sets project's default image quality in editor setting.
+
+    :param project: project name or metadata
+    :type project: str or dict
+    :param image_quality_in_editor: new setting value, should be "original" or "compressed"
+    :type image_quality_in_editor: str
+    """
+    project_name, folder_name = split_project_path(project)
+    controller.set_project_settings(
+        project_name=project_name,
+        new_settings=[{"attribute": "ImageQuality", "value": image_quality_in_editor}],
+    )
+
+
+def pin_image(project, image_name, pin=True):
+    """Pins (or unpins) image
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param image_name: image name
+    :type image: str
+    :param pin: sets to pin if True, else unpins image
+    :type pin: bool
+    """
+    project_name, folder_name = split_project_path(project)
+    controller.update_image(
+        project_name=project_name,
+        image_name=image_name,
+        folder_name=folder_name,
+        is_pinned=int(pin),
+    )
+
+
+def delete_image(project, image_name):
+    """Deletes image
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param image_name: image name
+    :type image: str
+    """
+    project_name, folder_name = split_project_path(project)
+    controller.delete_image(image_name=image_name, project_name=project_name)
+
+
+def get_image_metadata(project, image_names, return_dict_on_single_output=True):
+    """Returns image metadata
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param image_name: image name
+    :type image: str
+
+    :return: metadata of image
+    :rtype: dict
+    """
+    project_name, folder_name = split_project_path(project)
+    return controller.get_image_metadata(project_name, image_names)
