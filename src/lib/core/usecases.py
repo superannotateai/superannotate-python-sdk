@@ -1139,15 +1139,12 @@ class UpdateSettingsUseCase(BaseUseCase):
             new_settings_to_update.append(
                 {
                     "id": attr_id_mapping[new_setting["attribute"]],
-                    "attribute": new_setting["attribute"],
-                    "value": new_setting["value"],
-                }
-            )
+                    "attribute":new_setting["attribute"],
+                    "value":new_setting["value"]
+            })
 
         self._response.data = self._backend_service_provider.set_project_settings(
-            project_id=self._project_id,
-            team_id=self._team_id,
-            data=new_settings_to_update,
+            project_id=self._project_id, team_id=self._team_id, data=new_settings_to_update,
         )
 
 
@@ -1230,3 +1227,35 @@ class ImagesBulkMoveUseCase(BaseUseCase):
                 )
             )
         self._response.data = moved_images
+
+
+class SetImageAnnotationStatuses(BaseUseCase):
+    CHUNK_SIZE = 500
+
+    def __init__(
+            self,
+            response: Response,
+            service: SuerannotateServiceProvider,
+            image_names: list,
+            team_id: int,
+            project_id: int,
+            folder_id: int,
+            annotation_status: int
+    ):
+        super().__init__(response)
+        self._service = service
+        self._image_names = image_names
+        self._team_id = team_id
+        self._project_id = project_id
+        self._folder_id = folder_id
+        self._annotation_status = annotation_status
+
+    def execute(self):
+        for i in range(0, len(self._image_names), self.CHUNK_SIZE):
+            self._response.data = self._service.set_images_statuse_bulk(
+                image_names=self._image_names,
+                team_id=self._team_id,
+                project_id=self._project_id,
+                folder_id=self._folder_id,
+                annotation_status=self._annotation_status
+            )
