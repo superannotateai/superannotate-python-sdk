@@ -1139,12 +1139,15 @@ class UpdateSettingsUseCase(BaseUseCase):
             new_settings_to_update.append(
                 {
                     "id": attr_id_mapping[new_setting["attribute"]],
-                    "attribute":new_setting["attribute"],
-                    "value":new_setting["value"]
-            })
+                    "attribute": new_setting["attribute"],
+                    "value": new_setting["value"],
+                }
+            )
 
         self._response.data = self._backend_service_provider.set_project_settings(
-            project_id=self._project_id, team_id=self._team_id, data=new_settings_to_update,
+            project_id=self._project_id,
+            team_id=self._team_id,
+            data=new_settings_to_update,
         )
 
 

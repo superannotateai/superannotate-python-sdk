@@ -6,10 +6,10 @@ from urllib.parse import urlparse
 import lib.core as constances
 from lib.app.exceptions import EmptyOutputError
 from lib.app.helpers import split_project_path
+from lib.app.serializers import BaseSerializers
 from lib.app.serializers import ImageSerializer
 from lib.app.serializers import ProjectSerializer
 from lib.app.serializers import TeamSerializer
-from lib.app.serializers import BaseSerializers
 from lib.core.exceptions import AppException
 from lib.core.response import Response
 from lib.infrastructure.controller import Controller
@@ -21,7 +21,7 @@ ENTITY_SERIALIZERS = {
     "settings": BaseSerializers,
     "workflow": BaseSerializers,
     "classes": BaseSerializers,
-    "project": ProjectSerializer
+    "project": ProjectSerializer,
 }
 
 logger = logging.getLogger()
@@ -710,7 +710,9 @@ def get_project_metadata(
     metadata = metadata.data
     for elem in "settings", "classes", "workflow":
         if metadata.get(elem):
-            metadata[elem] = [BaseSerializers(attribute).serialize() for attribute in metadata[elem]]
+            metadata[elem] = [
+                BaseSerializers(attribute).serialize() for attribute in metadata[elem]
+            ]
 
     if metadata.get("project"):
         metadata["project"] = ProjectSerializer(metadata["project"]).serialize()

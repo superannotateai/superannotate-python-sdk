@@ -95,7 +95,7 @@ class ProjectEntity(BaseEntity):
             "folder_id": self.folder_id,
             "upload_state": self.upload_state,
             "users": self.users,
-            "rootFolderCompletedImagesCount" :self.root_folder_completed_images_count
+            "rootFolderCompletedImagesCount": self.root_folder_completed_images_count,
         }
 
 

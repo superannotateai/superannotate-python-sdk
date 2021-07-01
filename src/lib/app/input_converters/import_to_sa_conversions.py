@@ -16,13 +16,13 @@ def _load_files(path_to_imgs, ptype, extensions):
         extensions = ["jpg", "jpeg", "png", "tif", "tiff", "webp", "bmp"]
 
     logger.info(
-        'All files with following extensions %s will be copied to output folder',
-        extensions
+        "All files with following extensions %s will be copied to output folder",
+        extensions,
     )
 
     images = []
     for extension in extensions:
-        rec_search = str(Path('**') / ('*.' + extension))
+        rec_search = str(Path("**") / ("*." + extension))
         images_gen = Path(path_to_imgs).glob(rec_search)
         images.extend(list(images_gen))
 
@@ -33,7 +33,7 @@ def _load_files(path_to_imgs, ptype, extensions):
 
 
 def _move_files(imgs, output_dir):
-    (output_dir / 'classes').mkdir(parents=True, exist_ok=True)
+    (output_dir / "classes").mkdir(parents=True, exist_ok=True)
     output_path = output_dir
 
     for im in imgs:
@@ -47,14 +47,13 @@ def import_to_sa(args):
     """
 
     images = _load_files(
-        args.input_dir / args.images_root, args.project_type,
-        args.images_extensions
+        args.input_dir / args.images_root, args.project_type, args.images_extensions
     )
     _move_files(images, args.output_dir)
 
-    args.__dict__.update({'direction': 'from', 'export_root': args.input_dir})
+    args.__dict__.update({"direction": "from", "export_root": args.input_dir})
     converter = Converter(args)
 
     converter.convert_to_sa()
 
-    logger.info('Conversion completed')
+    logger.info("Conversion completed")

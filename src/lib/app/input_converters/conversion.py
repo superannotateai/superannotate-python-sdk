@@ -5,75 +5,79 @@ from argparse import Namespace
 from pathlib import Path
 
 from lib.app.exceptions import AppException
-from .export_from_sa_conversions import export_from_sa
-from .import_to_sa_conversions import import_to_sa
-from .sa_conversion import (
-    degrade_json, sa_convert_project_type, split_coco, upgrade_json
-)
 
 from ..mixp.decorators import Trackable
+from .export_from_sa_conversions import export_from_sa
+from .import_to_sa_conversions import import_to_sa
+from .sa_conversion import degrade_json
+from .sa_conversion import sa_convert_project_type
+from .sa_conversion import split_coco
+from .sa_conversion import upgrade_json
 
 ALLOWED_TASK_TYPES = [
-    'panoptic_segmentation', 'instance_segmentation', 'keypoint_detection',
-    'object_detection', 'vector_annotation'
+    "panoptic_segmentation",
+    "instance_segmentation",
+    "keypoint_detection",
+    "object_detection",
+    "vector_annotation",
 ]
 
-ALLOWED_PROJECT_TYPES = ['Pixel', 'Vector']
+ALLOWED_PROJECT_TYPES = ["Pixel", "Vector"]
 
 ALLOWED_ANNOTATION_IMPORT_FORMATS = {
-    'COCO':
-        [
-            ('Pixel', 'panoptic_segmentation'),
-            ('Pixel', 'instance_segmentation'),
-            ('Vector', 'keypoint_detection'),
-            ('Vector', 'instance_segmentation'), ('Vector', 'object_detection')
-        ],
-    'VOC':
-        [
-            ('Vector', 'object_detection'), ('Vector', 'instance_segmentation'),
-            ('Pixel', 'instance_segmentation')
-        ],
-    'LabelBox':
-        [
-            ('Vector', 'object_detection'), ('Vector', 'instance_segmentation'),
-            ('Vector', 'vector_annotation'), ('Pixel', 'instance_segmentation')
-        ],
-    'DataLoop':
-        [
-            ('Vector', 'object_detection'), ('Vector', 'instance_segmentation'),
-            ('Vector', 'vector_annotation')
-        ],
-    'Supervisely':
-        [
-            ('Vector', 'vector_annotation'), ('Vector', 'object_detection'),
-            ('Vector', 'instance_segmentation'),
-            ('Pixel', 'instance_segmentation'),
-            ('Vector', 'keypoint_detection')
-        ],
-    'VoTT':
-        [
-            ('Vector', 'object_detection'), ('Vector', 'instance_segmentation'),
-            ('Vector', 'vector_annotation')
-        ],
-    'SageMaker':
-        [('Pixel', 'instance_segmentation'), ('Vector', 'object_detection')],
-    'VGG':
-        [
-            ('Vector', 'object_detection'), ('Vector', 'instance_segmentation'),
-            ('Vector', 'vector_annotation')
-        ],
-    'GoogleCloud': [('Vector', 'object_detection')],
-    'YOLO': [('Vector', 'object_detection')]
+    "COCO": [
+        ("Pixel", "panoptic_segmentation"),
+        ("Pixel", "instance_segmentation"),
+        ("Vector", "keypoint_detection"),
+        ("Vector", "instance_segmentation"),
+        ("Vector", "object_detection"),
+    ],
+    "VOC": [
+        ("Vector", "object_detection"),
+        ("Vector", "instance_segmentation"),
+        ("Pixel", "instance_segmentation"),
+    ],
+    "LabelBox": [
+        ("Vector", "object_detection"),
+        ("Vector", "instance_segmentation"),
+        ("Vector", "vector_annotation"),
+        ("Pixel", "instance_segmentation"),
+    ],
+    "DataLoop": [
+        ("Vector", "object_detection"),
+        ("Vector", "instance_segmentation"),
+        ("Vector", "vector_annotation"),
+    ],
+    "Supervisely": [
+        ("Vector", "vector_annotation"),
+        ("Vector", "object_detection"),
+        ("Vector", "instance_segmentation"),
+        ("Pixel", "instance_segmentation"),
+        ("Vector", "keypoint_detection"),
+    ],
+    "VoTT": [
+        ("Vector", "object_detection"),
+        ("Vector", "instance_segmentation"),
+        ("Vector", "vector_annotation"),
+    ],
+    "SageMaker": [("Pixel", "instance_segmentation"), ("Vector", "object_detection")],
+    "VGG": [
+        ("Vector", "object_detection"),
+        ("Vector", "instance_segmentation"),
+        ("Vector", "vector_annotation"),
+    ],
+    "GoogleCloud": [("Vector", "object_detection")],
+    "YOLO": [("Vector", "object_detection")],
 }
 
 ALLOWED_ANNOTATION_EXPORT_FORMATS = {
-    'COCO':
-        [
-            ('Pixel', 'panoptic_segmentation'),
-            ('Pixel', 'instance_segmentation'),
-            ('Vector', 'instance_segmentation'),
-            ('Vector', 'keypoint_detection'), ('Vector', 'object_detection')
-        ]
+    "COCO": [
+        ("Pixel", "panoptic_segmentation"),
+        ("Pixel", "instance_segmentation"),
+        ("Vector", "instance_segmentation"),
+        ("Vector", "keypoint_detection"),
+        ("Vector", "object_detection"),
+    ]
 }
 
 
@@ -88,8 +92,10 @@ def _change_type(input_dir, output_dir):
 def _passes_type_sanity(params_info):
     for param in params_info:
         if not isinstance(param[0], param[2]):
-            raise AppException( "'%s' should be %s type, not %s" %
-                (param[1], param[2], type(param[0]))
+            raise AppException(
+                "'{}' should be {} type, not {}".format(
+                    param[1], param[2], type(param[0])
+                )
             )
 
 
@@ -97,8 +103,9 @@ def _passes_list_members_type_sanity(lists_info):
     for _list in lists_info:
         for _list_member in _list[0]:
             if not isinstance(_list_member, _list[2]):
-                raise AppException("'%s' should be list of '%s', but contains '%s'" %
-                    (_list[1], _list[2], type(_list_member))
+                raise AppException(
+                    "'%s' should be list of '%s', but contains '%s'"
+                    % (_list[1], _list[2], type(_list_member))
                 )
 
 
@@ -106,25 +113,23 @@ def _passes_value_sanity(values_info):
     for value in values_info:
         if value[0] not in value[2]:
             raise AppException(
-                 "'%s' should be one of the following '%s'" %
-                (value[1], value[2])
+                "'{}' should be one of the following '{}'".format(value[1], value[2])
             )
 
 
 def _passes_converter_sanity(args, direction):
     converter_values = (args.project_type, args.task)
     test_passed = False
-    if direction == 'import':
-        if converter_values in ALLOWED_ANNOTATION_IMPORT_FORMATS[
-            args.dataset_format]:
+    if direction == "import":
+        if converter_values in ALLOWED_ANNOTATION_IMPORT_FORMATS[args.dataset_format]:
             test_passed = True
     else:
-        if converter_values in ALLOWED_ANNOTATION_EXPORT_FORMATS[
-            args.dataset_format]:
+        if converter_values in ALLOWED_ANNOTATION_EXPORT_FORMATS[args.dataset_format]:
             test_passed = True
 
     if not test_passed:
-        raise AppException("Please enter valid converter values. You can check available candidates in the documentation (https://superannotate.readthedocs.io/en/stable/index.html)."
+        raise AppException(
+            "Please enter valid converter values. You can check available candidates in the documentation (https://superannotate.readthedocs.io/en/stable/index.html)."
         )
 
 
@@ -175,22 +180,24 @@ def export_annotation(
     """
 
     params_info = [
-        (input_dir, 'input_dir', (str, Path)),
-        (output_dir, 'output_dir', (str, Path)),
-        (dataset_name, 'dataset_name', str),
-        (dataset_format, 'dataset_format', str),
-        (project_type, 'project_type', str), (task, 'task', str)
+        (input_dir, "input_dir", (str, Path)),
+        (output_dir, "output_dir", (str, Path)),
+        (dataset_name, "dataset_name", str),
+        (dataset_format, "dataset_format", str),
+        (project_type, "project_type", str),
+        (task, "task", str),
     ]
     _passes_type_sanity(params_info)
     input_dir, output_dir = _change_type(input_dir, output_dir)
 
     values_info = [
-        (project_type, 'project_type', ALLOWED_PROJECT_TYPES),
-        (task, 'task', ALLOWED_TASK_TYPES),
+        (project_type, "project_type", ALLOWED_PROJECT_TYPES),
+        (task, "task", ALLOWED_TASK_TYPES),
         (
-            dataset_format, 'dataset_format',
-            list(ALLOWED_ANNOTATION_EXPORT_FORMATS.keys())
-        )
+            dataset_format,
+            "dataset_format",
+            list(ALLOWED_ANNOTATION_EXPORT_FORMATS.keys()),
+        ),
     ]
     _passes_value_sanity(values_info)
 
@@ -203,7 +210,7 @@ def export_annotation(
         task=task,
     )
 
-    _passes_converter_sanity(args, 'export')
+    _passes_converter_sanity(args, "export")
 
     export_from_sa(args)
 
@@ -213,11 +220,11 @@ def import_annotation(
     input_dir,
     output_dir,
     dataset_format,
-    dataset_name='',
+    dataset_name="",
     project_type="Vector",
     task="object_detection",
-    images_root='',
-    images_extensions=None
+    images_root="",
+    images_extensions=None,
 ):
     """Converts other annotation formats to SuperAnnotate annotation format. Currently available (project_type, task) combinations for converter
     presented below:
@@ -350,26 +357,28 @@ def import_annotation(
     """
 
     params_info = [
-        (input_dir, 'input_dir', (str, Path)),
-        (output_dir, 'output_dir', (str, Path)),
-        (dataset_name, 'dataset_name', str),
-        (dataset_format, 'dataset_format', str),
-        (project_type, 'project_type', str), (task, 'task', str),
-        (images_root, 'images_root', str)
+        (input_dir, "input_dir", (str, Path)),
+        (output_dir, "output_dir", (str, Path)),
+        (dataset_name, "dataset_name", str),
+        (dataset_format, "dataset_format", str),
+        (project_type, "project_type", str),
+        (task, "task", str),
+        (images_root, "images_root", str),
     ]
 
     if images_extensions is not None:
-        params_info.append((images_extensions, 'image_extensions', list))
+        params_info.append((images_extensions, "image_extensions", list))
 
     _passes_type_sanity(params_info)
 
     values_info = [
-        (project_type, 'project_type', ALLOWED_PROJECT_TYPES),
-        (task, 'task', ALLOWED_TASK_TYPES),
+        (project_type, "project_type", ALLOWED_PROJECT_TYPES),
+        (task, "task", ALLOWED_TASK_TYPES),
         (
-            dataset_format, 'dataset_format',
-            list(ALLOWED_ANNOTATION_IMPORT_FORMATS.keys())
-        )
+            dataset_format,
+            "dataset_format",
+            list(ALLOWED_ANNOTATION_IMPORT_FORMATS.keys()),
+        ),
     ]
     _passes_value_sanity(values_info)
 
@@ -382,10 +391,10 @@ def import_annotation(
         project_type=project_type,
         task=task,
         images_root=images_root,
-        images_extensions=images_extensions
+        images_extensions=images_extensions,
     )
 
-    _passes_converter_sanity(args, 'import')
+    _passes_converter_sanity(args, "import")
 
     import_to_sa(args)
 
@@ -401,8 +410,8 @@ def convert_project_type(input_dir, output_dir):
 
     """
     params_info = [
-        (input_dir, 'input_dir', (str, Path)),
-        (output_dir, 'output_dir', (str, Path)),
+        (input_dir, "input_dir", (str, Path)),
+        (output_dir, "output_dir", (str, Path)),
     ]
     _passes_type_sanity(params_info)
     input_dir, output_dir = _change_type(input_dir, output_dir)
@@ -428,17 +437,17 @@ def coco_split_dataset(
     :type ratio_list: list
     """
     params_info = [
-        (coco_json_path, 'coco_json_path', (str, Path)),
-        (image_dir, 'image_dir', (str, Path)),
-        (output_dir, 'output_dir', (str, Path)),
-        (dataset_list_name, 'dataset_list_name', list),
-        (ratio_list, 'ratio_list', list)
+        (coco_json_path, "coco_json_path", (str, Path)),
+        (image_dir, "image_dir", (str, Path)),
+        (output_dir, "output_dir", (str, Path)),
+        (dataset_list_name, "dataset_list_name", list),
+        (ratio_list, "ratio_list", list),
     ]
     _passes_type_sanity(params_info)
 
     lists_info = [
-        (dataset_list_name, 'dataset_name', str),
-        (ratio_list, 'ratio_list', (int, float))
+        (dataset_list_name, "dataset_name", str),
+        (ratio_list, "ratio_list", (int, float)),
     ]
 
     _passes_list_members_type_sanity(lists_info)
@@ -448,7 +457,7 @@ def coco_split_dataset(
 
     if len(dataset_list_name) != len(ratio_list):
         raise AppException(
-             "'dataset_list_name' and 'ratio_list' should have same lenght"
+            "'dataset_list_name' and 'ratio_list' should have same lenght"
         )
 
     if isinstance(coco_json_path, str):
@@ -458,9 +467,7 @@ def coco_split_dataset(
     if isinstance(output_dir, str):
         output_dir = Path(output_dir)
 
-    split_coco(
-        coco_json_path, image_dir, output_dir, dataset_list_name, ratio_list
-    )
+    split_coco(coco_json_path, image_dir, output_dir, dataset_list_name, ratio_list)
 
 
 #  @Trackable
@@ -480,8 +487,9 @@ def convert_json_version(input_dir, output_dir, version=2):
     """
 
     params_info = [
-        (input_dir, 'input_dir', (str, Path)),
-        (output_dir, 'output_dir', (str, Path)), (version, 'version', int)
+        (input_dir, "input_dir", (str, Path)),
+        (output_dir, "output_dir", (str, Path)),
+        (version, "version", int),
     ]
     _passes_type_sanity(params_info)
     input_dir, output_dir = _change_type(input_dir, output_dir)
@@ -492,6 +500,6 @@ def convert_json_version(input_dir, output_dir, version=2):
     elif version == 1:
         converted_files = degrade_json(input_dir, output_dir)
     else:
-        raise AppException( "'version' is either 1 or 2.")
+        raise AppException("'version' is either 1 or 2.")
 
     return converted_files
