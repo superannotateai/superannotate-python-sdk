@@ -22,7 +22,10 @@ from ..parameter_decorators import model_metadata, project_metadata
 from .defaults import DEFAULT_HYPERPARAMETERS, NON_PLOTABLE_KEYS
 from .utils import log_process, make_plotly_specs, reformat_metrics_json
 from ..db.utils import _get_boto_session_by_credentials
+from ..db.project_api import get_project_metadata_bare, get_folder_metadata
 from ..mixp.decorators import Trackable
+from ..db.images import get_project_root_folder_id
+from .ml_models import search_models
 
 logger = logging.getLogger("superannotate-python-sdk")
 _api = API.get_instance()
@@ -182,30 +185,60 @@ def run_segmentation(project, images_list, model):
     return (succeded_imgs, failed_imgs)
 
 
+def _path_to_folder_id_project(path):
+    parts = path.split('/')
+    folder_id = None
+    project = None
+    if len(parts) == 1:
+        project_name = parts[0]
+        project = get_project_metadata_bare(project_name)
+        folder_id = get_project_root_folder_id(project)
+    elif len(parts) == 2:
+        project_name, folder_name = parts
+        project = get_project_metadata_bare(project_name)
+        folder = get_folder_metadata(project=project_name, folder_name=folder_name)
+        folder_id = folder['id']
+    return folder_id, project
+
+
+def _get_completed_images_counts(project_ids):
+    params = {
+        "team_id": _api.team_id,
+        "completedImagesCount": True
+    }
+    response = _api.send_request(
+        req_type="PUT",
+        path="/foldersByTeam",
+        json_req={"project_ids": project_ids},
+        params=params
+    )
+    return response.json()
+
+
 @Trackable
-@project_metadata
-@model_metadata
 def run_training(
-    project,
-    base_model,
-    model_name,
-    model_description,
-    task,
-    hyperparameters,
-    log=False
+        model_name,
+        model_description,
+        task,
+        base_model,
+        train_data,
+        test_data,
+        hyperparameters=None,
+        log=False
 ):
     """Runs neural network training
-
-    :param project: project or list of projects that contain the training images
-    :type  project: str, dict or list of dict
-    :param base_model: base model on which the new network will be trained
-    :type  base_model: str or dict
     :param model_name: name of the new model
     :type  model_name: str
     :param model_description: description of the new model
     :type  model_description: str
     :param task: The model training task
     :type  task: str
+    :param base_model: base model on which the new network will be trained
+    :type  base_model: str or dict
+    :param train_data: train data folder id
+    :type  train_data: list of int
+    :param test_data: test data folder id
+    :type  test_data: list of int
     :param hyperparameters: hyperparameters that should be used in training
     :type  hyperparameters: dict
     :param log: If true will log training metrics in the stdout
@@ -214,36 +247,53 @@ def run_training(
     :rtype: dict
     """
 
-    project_ids = None
-    project_type = None
+    train_folder_ids = []
+    test_folder_ids = []
+    projects = []
 
-    if isinstance(project, dict):
-        project_ids = [project["id"]]
-        project_type = project["type"]
-        project = [project]
-    else:
-        project_ids = [x["id"] for x in project]
-        types = (x["type"] for x in project)
-        types = set(types)
-        if len(types) != 1:
-            logger.error(
-                "All projects have to be of the same type. Either vector or pixel"
-            )
-            raise SABaseException(0, "Invalid project types")
-        project_type = types.pop()
+    for path in train_data:
+        folder_id, project = _path_to_folder_id_project(path)
+        train_folder_ids.append(folder_id)
+        projects.append(project)
 
-    for single_project in project:
-        upload_state = upload_state_int_to_str(
-            single_project.get("upload_state")
+    for path in test_data:
+        folder_id, project = _path_to_folder_id_project(path)
+        test_folder_ids.append(folder_id)
+        projects.append(project)
+
+    if set(train_folder_ids) & set(test_folder_ids):
+        raise SABaseException(
+            0,
+            "Avoid overlapping between training and test data."
         )
-        if upload_state == "External":
-            raise SABaseException(
-                0,
-                "The function does not support projects containing images attached with URLs"
-            )
 
-    base_model = base_model.get(project_type, None)
-    if not base_model:
+    types = [i["type"] for i in projects]
+    if len(set(types)) != 1:
+        logger.error(
+            "All projects have to be of the same type. Either vector or pixel"
+        )
+        raise SABaseException(0, "Invalid project types")
+
+    upload_states = set(i["upload_state"] for i in projects)
+    if any([True for state in upload_states if "External" == upload_state_int_to_str(state)]):
+        raise SABaseException(
+            0,
+            "The function does not support projects containing images attached with URLs"
+        )
+    if isinstance(base_model, dict):
+        base_model = base_model['name']
+    models = search_models(
+        include_global=True, name=base_model
+    )
+    if not models:
+        raise SABaseException(
+            0,
+            "The specifed model does not exist."
+        )
+    base_model = models[0]
+    base_model_id = base_model['id']
+    project_type = types[0]
+    if not base_model['type'] == project_type:
         logger.error(
             "The base model has to be of the same type (vector or pixel) as the projects"
         )
@@ -251,25 +301,27 @@ def run_training(
             0,
             f"The type of provided projects is {project_type}, and does not correspond to the type of provided model"
         )
-
     for item in DEFAULT_HYPERPARAMETERS:
         if item not in hyperparameters:
             hyperparameters[item] = DEFAULT_HYPERPARAMETERS[item]
-    complete_image_count = 0
-    for proj in project:
-        complete_image_count += proj['rootFolderCompletedImagesCount']
 
+    project_ids = [i['id'] for i in projects]
+    completed_images_data = _get_completed_images_counts(project_ids)
+    complete_image_count = 0
+    for folder in completed_images_data['data']:
+        if folder['id'] in train_folder_ids:
+            complete_image_count += folder['completedCount']
     hyperparameters["name"] = model_name
     hyperparameters["description"] = model_description
     hyperparameters["task"] = _MODEL_TRAINING_TASKS[task]
-    hyperparameters["base_model_id"] = base_model["id"]
-    hyperparameters["project_ids"] = project_ids
+    hyperparameters["base_model_id"] = base_model_id
     hyperparameters["image_count"] = complete_image_count
     hyperparameters["project_type"] = project_type_str_to_int(project_type)
+    hyperparameters["test_folder_ids"] = test_folder_ids
+    hyperparameters["train_folder_ids"] = train_folder_ids
     params = {
         "team_id": _api.team_id,
     }
-
     response = _api.send_request(
         req_type="POST",
         path="/ml_models",
@@ -332,7 +384,7 @@ def run_training(
                     if answer in ['Y', 'y']:
                         params = {'team_id': _api.team_id}
                         json_req = {'training_status': 6}
-                        response = _api.send_request(
+                        _api.send_request(
                             req_type='PUT',
                             path=f'ml_model/{new_model_id}',
                             params=params,
@@ -341,7 +393,7 @@ def run_training(
                         logger.info("Model was successfully saved")
                         pass
                     else:
-                        delete_model(name)
+                        delete_model(model_name)
                         logger.info('The model was not saved')
                 is_training_finished = True
 
@@ -380,6 +432,7 @@ def plot_model_metrics(metric_json_list):
        :param metric_json_list: list of <model_name>.json files
        :type  metric_json_list: list of str
     """
+
     def plot_df(df, plottable_cols, figure, start_index=1):
         for row, metric in enumerate(plottable_cols, start_index):
             for model_df in df:
@@ -401,7 +454,7 @@ def plot_model_metrics(metric_json_list):
             plottable_cols += [
                 col_name
                 for col_name in col_names if col_name not in plottable_cols and
-                col_name not in NON_PLOTABLE_KEYS
+                                             col_name not in NON_PLOTABLE_KEYS
             ]
         return plottable_cols
 
