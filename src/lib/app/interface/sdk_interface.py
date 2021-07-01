@@ -6,10 +6,10 @@ from urllib.parse import urlparse
 import lib.core as constances
 from lib.app.exceptions import EmptyOutputError
 from lib.app.helpers import split_project_path
-from lib.app.serializers import BaseSerializers
 from lib.app.serializers import ImageSerializer
 from lib.app.serializers import ProjectSerializer
 from lib.app.serializers import TeamSerializer
+from lib.app.serializers import BaseSerializers
 from lib.core.exceptions import AppException
 from lib.core.response import Response
 from lib.infrastructure.controller import Controller
@@ -21,7 +21,7 @@ ENTITY_SERIALIZERS = {
     "settings": BaseSerializers,
     "workflow": BaseSerializers,
     "classes": BaseSerializers,
-    "project": ProjectSerializer,
+    "project": ProjectSerializer
 }
 
 logger = logging.getLogger()
@@ -710,9 +710,7 @@ def get_project_metadata(
     metadata = metadata.data
     for elem in "settings", "classes", "workflow":
         if metadata.get(elem):
-            metadata[elem] = [
-                BaseSerializers(attribute).serialize() for attribute in metadata[elem]
-            ]
+            metadata[elem] = [BaseSerializers(attribute).serialize() for attribute in metadata[elem]]
 
     if metadata.get("project"):
         metadata["project"] = ProjectSerializer(metadata["project"]).serialize()
@@ -880,20 +878,5 @@ def set_images_annotation_statuses(project, image_names, annotation_status):
     """
     project_name, folder_name = split_project_path(project)
     controller.set_images_annotation_statuses(project_name,folder_name,image_names,annotation_status)
-
-def assign_images(project, image_names, user):
-    """Assigns images to a user. The assignment role, QA or Annotator, will
-    be deduced from the user's role in the project. With SDK, the user can be
-    assigned to a role in the project with the share_project function.
-
-    :param project: project name or folder path (e.g., "project1/folder1")
-    :type project: str
-    :param image_names: list of image names to assign
-    :type image_names: list of str
-    :param user: user email
-    :type user: str
-    """
-    controller.assign_images(project, image_names, user)
-
 
 
