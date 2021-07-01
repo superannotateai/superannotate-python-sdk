@@ -85,8 +85,8 @@ class ProjectRepository(BaseManageableRepository):
     def __init__(self, service: SuperannotateBackendService):
         self._service = service
 
-    def get_one(self, uuid: str) -> ProjectEntity:
-        pass
+    def get_one(self, uuid: int, team_id: int) -> ProjectEntity:
+        return self.dict2entity(self._service.get_project(uuid, team_id))
 
     def get_all(self, condition: Condition = None) -> List[ProjectEntity]:
         condition = condition.build_query() if condition else None
@@ -123,7 +123,7 @@ class ProjectRepository(BaseManageableRepository):
             description=data["description"],
             folder_id=data.get("folder_id"),
             users=data.get("users", ()),
-            root_folder_completed_images_count=data.get("rootFolderCompletedImagesCount"),
+            rootFolderCompletedImagesCount=data.get("rootFolderCompletedImagesCount"),
         )
 
 
@@ -277,9 +277,9 @@ class AnnotationClassRepository(BaseManageableRepository):
     def get_all(
         self, condition: Optional[Condition] = None
     ) -> List[AnnotationClassEntity]:
-        query = condition.build_query() if condition else None
+
         res = self._service.get_annotation_classes(
-            self.project.uuid, self.project.team_id, query
+            self.project.uuid, self.project.team_id, condition.build_query()
         )
         return [self.dict2entity(data) for data in res]
 

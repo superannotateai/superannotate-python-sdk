@@ -134,8 +134,6 @@ class SuperannotateBackendService(BaseBackendService):
     URL_PREPARE_EXPORT = "export"
     URL_COPY_IMAGES_FROM_FOLDER = "images/copy-image-or-folders"
     URL_GET_COPY_PROGRESS = "/images/copy-image-progress"
-    URL_GET_IMAGES_BULK = "images/getBulk"
-    URL_MOVE_IMAGES_FROM_FOLDER = "image/move"
 
     def get_project(self, uuid: int, team_id: int):
         get_project_url = urljoin(self.api_url, self.URL_GET_PROJECT.format(uuid))
@@ -294,7 +292,7 @@ class SuperannotateBackendService(BaseBackendService):
         res = self._request(
             set_project_settings_url,
             "put",
-            data={"settings": data},
+            data={"settings": [data]},
             params={"team_id": team_id},
         )
         return res.json()
@@ -455,9 +453,6 @@ class SuperannotateBackendService(BaseBackendService):
         include_annotations: bool = False,
         include_pin: bool = False,
     ) -> int:
-        """
-        Returns poll id.
-        """
         copy_images_url = urljoin(self.api_url, self.URL_COPY_IMAGES_FROM_FOLDER)
         res = self._request(
             copy_images_url,
@@ -474,29 +469,6 @@ class SuperannotateBackendService(BaseBackendService):
         )
         if res.ok:
             return res.json()["poll_id"]
-
-    def move_images_between_folders(
-        self,
-        team_id: int,
-        project_id: int,
-        from_folder_id: int,
-        to_folder_id: int,
-        images: List[str],
-    ) -> List[str]:
-        move_images_url = urljoin(self.api_url, self.URL_MOVE_IMAGES_FROM_FOLDER)
-        res = self._request(
-            move_images_url,
-            "post",
-            params={"team_id": team_id, "project_id": project_id},
-            data={
-                "image_names": images,
-                "destination_folder_id": to_folder_id,
-                "source_folder_id": from_folder_id,
-            },
-        )
-        if res.ok:
-            return res.json()["done"]
-        return []
 
     def get_progress(
         self, project_id: int, team_id: int, poll_id: int
@@ -545,4 +517,4 @@ class SuperannotateBackendService(BaseBackendService):
             "post",
             data={"names": image_names, "team_id": team_id, "project_id": project_id},
         )
-        return res
+        return res.json()

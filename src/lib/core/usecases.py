@@ -528,7 +528,7 @@ class PrepareExportUseCase(BaseUseCase):
         self._folder_names = folder_names
         self._backend_service = backend_service_provider
         self._annotation_statuses = annotation_statuses
-        self._include_fuse = (include_fuse,)
+        self._include_fuse = include_fuse
         self._only_pinned = only_pinned
 
     def execute(self):
@@ -1052,7 +1052,7 @@ class GetSettingsUseCase(BaseUseCase):
         self._response.data = self._settings.get_all()
 
 
-class GetWorkflowsUseCase(BaseUseCase):
+class GetWorkflowsUsecase(BaseUseCase):
     def __init__(self, response: Response, workflows: BaseManageableRepository):
         super().__init__(response)
         self._workflows = workflows
@@ -1128,23 +1128,8 @@ class UpdateSettingsUseCase(BaseUseCase):
         self._team_id = team_id
 
     def execute(self):
-
-        old_settings = self._settings.get_all()
-        attr_id_mapping = {}
-        for setting in old_settings:
-            attr_id_mapping[setting.attribute] = setting.uuid
-
-        new_settings_to_update = []
-        for new_setting in self._to_update:
-            new_settings_to_update.append(
-                {
-                    "id": attr_id_mapping[new_setting["attribute"]],
-                    "attribute":new_setting["attribute"],
-                    "value":new_setting["value"]
-            })
-
         self._response.data = self._backend_service_provider.set_project_settings(
-            project_id=self._project_id, team_id=self._team_id, data=new_settings_to_update,
+            project_id=self._project_id, team_id=self._team_id, data=self._to_update,
         )
 
 
@@ -1188,42 +1173,3 @@ class GetImageMetadataUseCase(BaseUseCase):
             team_id=self._team_id,
             project_id=self._project_id,
         )
-
-
-class ImagesBulkMoveUseCase(BaseUseCase):
-    """
-    Copy images in bulk between folders in a project.
-    Return skipped image names.
-    """
-
-    CHUNK_SIZE = 1000
-
-    def __init__(
-        self,
-        response: Response,
-        project: ProjectEntity,
-        from_folder: FolderEntity,
-        to_folder: FolderEntity,
-        image_names: List[str],
-        backend_service_provider: SuerannotateServiceProvider,
-    ):
-        super().__init__(response)
-        self._project = project
-        self._from_folder = from_folder
-        self._to_folder = to_folder
-        self._image_names = image_names
-        self._backend_service = backend_service_provider
-
-    def execute(self):
-        moved_images = []
-        for i in range(0, len(self._image_names), self.CHUNK_SIZE):
-            moved_images.append(
-                self._backend_service.move_images_between_folders(
-                    team_id=self._project.team_id,
-                    project_id=self._project.uuid,
-                    from_folder_id=self._from_folder.uuid,
-                    to_folder_id=self._to_folder.uuid,
-                    images=self._image_names[i : i + self.CHUNK_SIZE],  # noqa: E203
-                )
-            )
-        self._response.data = moved_images
