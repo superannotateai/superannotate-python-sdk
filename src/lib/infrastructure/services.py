@@ -525,3 +525,23 @@ class SuperannotateBackendService(BaseBackendService):
             },
         )
         return [image["name"] for image in res.json()]
+
+    def delete_image(self, image_id, team_id: int, project_id: int):
+        delete_image_url = urljoin(self.api_url, self.URL_GET_IMAGE.format(image_id))
+
+        res = self._request(
+            delete_image_url,
+            "delete",
+            params={"team_id": team_id, "project_id": project_id},
+        )
+        return res.ok
+
+    def get_images_bulk(self, image_names, team_id: int, project_id: int):
+        get_images_bulk_url = urljoin(self.api_url, self.URL_GET_IMAGES_BULK)
+
+        res = self._request(
+            get_images_bulk_url,
+            "post",
+            data={"names": image_names, "team_id": team_id, "project_id": project_id},
+        )
+        return res.json()

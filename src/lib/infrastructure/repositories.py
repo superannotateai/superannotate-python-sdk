@@ -123,6 +123,7 @@ class ProjectRepository(BaseManageableRepository):
             description=data["description"],
             folder_id=data.get("folder_id"),
             users=data.get("users", ()),
+            rootFolderCompletedImagesCount=data.get("rootFolderCompletedImagesCount"),
         )
 
 
@@ -276,8 +277,9 @@ class AnnotationClassRepository(BaseManageableRepository):
     def get_all(
         self, condition: Optional[Condition] = None
     ) -> List[AnnotationClassEntity]:
+
         res = self._service.get_annotation_classes(
-            self.project.uuid, self.project.team_id
+            self.project.uuid, self.project.team_id, condition.build_query()
         )
         return [self.dict2entity(data) for data in res]
 
@@ -319,8 +321,10 @@ class ImageRepository(BaseManageableRepository):
     def insert(self, entity: ImageEntity) -> ImageEntity:
         raise NotImplementedError
 
-    def delete(self, uuid: int):
-        raise NotImplementedError
+    def delete(self, uuid: int, team_id: int, project_id: int):
+        self._service.delete_image(
+            image_id=uuid, team_id=team_id, project_id=project_id
+        )
 
     def update(self, entity: ImageEntity):
         self._service.update_image(

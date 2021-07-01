@@ -1028,6 +1028,153 @@ class ImagesBulkCopyUseCase(BaseUseCase):
         self._response.data = skipped_images
 
 
+class GetAnnotationClassesUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        classes: BaseManageableRepository,
+        condition: Condition = None,
+    ):
+        super().__init__(response)
+        self._classes = classes
+        self._condition = condition
+
+    def execute(self):
+        self._response.data = self._classes.get_all(condition=self._condition)
+
+
+class GetSettingsUseCase(BaseUseCase):
+    def __init__(self, response: Response, settings: BaseManageableRepository):
+        super().__init__(response)
+        self._settings = settings
+
+    def execute(self):
+        self._response.data = self._settings.get_all()
+
+
+class GetWorkflowsUsecase(BaseUseCase):
+    def __init__(self, response: Response, workflows: BaseManageableRepository):
+        super().__init__(response)
+        self._workflows = workflows
+
+    def execute(self):
+        self._response.data = self._workflows.get_all()
+
+
+class GetProjectMetaDataUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        project: ProjectEntity,
+        include_annotation_classes: bool,
+        include_settings: bool,
+        include_workflow: bool,
+        include_contributors: bool,
+        include_complete_image_count: bool,
+        annotation_classes_repo: BaseManageableRepository,
+        project_settings_repo: BaseManageableRepository,
+        workflow_repo: BaseManageableRepository,
+        projects_repo: BaseManageableRepository,
+    ):
+        super().__init__(response)
+        self._project = project
+        self._include_annotation_classes = include_annotation_classes
+        self._include_settings = include_settings
+        self._include_workflow = include_workflow
+        self._annotation_classes_repo = annotation_classes_repo
+        self._project_settings_repo = project_settings_repo
+        self._workflow_repo = workflow_repo
+        self._projects_repo = projects_repo
+        self._include_contributors = include_contributors
+        self._include_complete_image_count = include_complete_image_count
+
+    def execute(self):
+        res = {"project": self._project}
+        if self._include_annotation_classes:
+            res["annotation_classes"] = self._annotation_classes_repo.get_all()
+        if self._include_settings:
+            res["settings"] = self._project_settings_repo.get_all()
+        if self._include_workflow:
+            res["workflow"] = self._workflow_repo.get_all()
+        if self._include_contributors:
+            res["contributors"] = self._project.users
+        if self._include_complete_image_count:
+            res["project"] = self._projects_repo.get_all(
+                condition=(
+                    Condition("completeImagesCount", "true", EQ)
+                    & Condition("name", self._project.name, EQ)
+                    & Condition("team_id", self._project.team_id, EQ)
+                )
+            )
+
+        self._response.data = res
+
+
+class UpdateSettingsUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        settings: BaseManageableRepository,
+        to_update: List,
+        backend_service_provider: SuerannotateServiceProvider,
+        project_id: int,
+        team_id: int,
+    ):
+        super().__init__(response)
+        self._settings = settings
+        self._to_update = to_update
+        self._backend_service_provider = backend_service_provider
+        self._project_id = project_id
+        self._team_id = team_id
+
+    def execute(self):
+        self._response.data = self._backend_service_provider.set_project_settings(
+            project_id=self._project_id, team_id=self._team_id, data=self._to_update,
+        )
+
+
+class DeleteImageUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        images: BaseManageableRepository,
+        image: ImageEntity,
+        team_id: int,
+        project_id: int,
+    ):
+        super().__init__(response)
+        self._images = images
+        self._image = image
+        self._team_id = team_id
+        self._project_id = project_id
+
+    def execute(self):
+        self._images.delete(self._image.uuid, self._team_id, self._project_id)
+
+
+class GetImageMetadataUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        image_names: list,
+        team_id: int,
+        project_id: int,
+        service: SuerannotateServiceProvider,
+    ):
+        super().__init__(response)
+        self._image_names = image_names
+        self._project_id = project_id
+        self._service = service
+        self._team_id = team_id
+
+    def execute(self):
+        self._response.data = self._service.get_images_bulk(
+            image_names=self._image_names,
+            team_id=self._team_id,
+            project_id=self._project_id,
+        )
+
+
 class ImagesBulkMoveUseCase(BaseUseCase):
     """
     Copy images in bulk between folders in a project.
