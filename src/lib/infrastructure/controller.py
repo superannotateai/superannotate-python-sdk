@@ -2,7 +2,7 @@ import copy
 import io
 from typing import Iterable
 from typing import List
-
+import lib.core as constances
 from src.lib.core.conditions import Condition
 from src.lib.core.conditions import CONDITION_EQ as EQ
 from src.lib.core.entities import FolderEntity
@@ -45,6 +45,7 @@ from src.lib.core.usecases import UpdateImageUseCase
 from src.lib.core.usecases import UpdateProjectUseCase
 from src.lib.core.usecases import UpdateSettingsUseCase
 from src.lib.core.usecases import UploadImageS3UseCas
+from src.lib.core.usecases import SetImageAnnotationStatuses
 from src.lib.infrastructure.repositories import AnnotationClassRepository
 from src.lib.infrastructure.repositories import ConfigRepository
 from src.lib.infrastructure.repositories import FolderRepository
@@ -766,3 +767,24 @@ class Controller(BaseController):
         )
         get_image_metadata_use_case.execute()
         return self.response
+
+    def set_images_annotation_statuses(
+            self,
+            project_name: str,
+            folder_name: str,
+            image_names: list,
+            annotation_status: str
+    ):
+        project_entity = self._get_project(project_name)
+        folder_entity = self._get_folder(project_entity,folder_name)
+        set_images_annotation_statuses_use_case = SetImageAnnotationStatuses(
+            response= self._response,
+            service= self._backend_client,
+            image_names=image_names,
+            team_id=project_entity.team_id,
+            project_id= project_entity.uuid,
+            folder_id=folder_entity.uuid,
+            annotation_status= constances.AnnotationStatus.get_value(annotation_status)
+        )
+        set_images_annotation_statuses_use_case.execute()
+        return self._response

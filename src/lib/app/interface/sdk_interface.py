@@ -864,3 +864,19 @@ def get_image_metadata(project, image_names, return_dict_on_single_output=True):
     project_name, folder_name = split_project_path(project)
     images = controller.get_image_metadata(project_name, image_names)
     return images.data.json()
+
+def set_images_annotation_statuses(project, image_names, annotation_status):
+    """Sets annotation statuses of images
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param image_names: image names. If None, all the images in the project will be used
+    :type image_names: list of str
+    :param annotation_status: annotation status to set,
+           should be one of NotStarted InProgress QualityCheck Returned Completed Skipped
+    :type annotation_status: str
+    """
+    project_name, folder_name = split_project_path(project)
+    controller.set_images_annotation_statuses(project_name,folder_name,image_names,annotation_status)
+
+
