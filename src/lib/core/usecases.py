@@ -1128,8 +1128,23 @@ class UpdateSettingsUseCase(BaseUseCase):
         self._team_id = team_id
 
     def execute(self):
+
+        old_settings = self._settings.get_all()
+        attr_id_mapping = {}
+        for setting in old_settings:
+            attr_id_mapping[setting.attribute] = setting.uuid
+
+        new_settings_to_update = []
+        for new_setting in self._to_update:
+            new_settings_to_update.append(
+                {
+                    "id": attr_id_mapping[new_setting["attribute"]],
+                    "attribute":new_setting["attribute"],
+                    "value":new_setting["value"]
+            })
+
         self._response.data = self._backend_service_provider.set_project_settings(
-            project_id=self._project_id, team_id=self._team_id, data=self._to_update,
+            project_id=self._project_id, team_id=self._team_id, data=new_settings_to_update,
         )
 
 

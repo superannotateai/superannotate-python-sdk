@@ -133,8 +133,9 @@ class SuperannotateBackendService(BaseBackendService):
     URL_INVITE_CONTRIBUTOR = "team/{}/invite"
     URL_PREPARE_EXPORT = "export"
     URL_COPY_IMAGES_FROM_FOLDER = "images/copy-image-or-folders"
+    URL_GET_COPY_PROGRESS = "/images/copy-image-progress"
+    URL_GET_IMAGES_BULK = "images/getBulk"
     URL_MOVE_IMAGES_FROM_FOLDER = "image/move"
-    URL_GET_COPY_PROGRESS = "images/copy-image-progress"
 
     def get_project(self, uuid: int, team_id: int):
         get_project_url = urljoin(self.api_url, self.URL_GET_PROJECT.format(uuid))
@@ -293,7 +294,7 @@ class SuperannotateBackendService(BaseBackendService):
         res = self._request(
             set_project_settings_url,
             "put",
-            data={"settings": [data]},
+            data={"settings": data},
             params={"team_id": team_id},
         )
         return res.json()
@@ -544,4 +545,4 @@ class SuperannotateBackendService(BaseBackendService):
             "post",
             data={"names": image_names, "team_id": team_id, "project_id": project_id},
         )
-        return res.json()
+        return res

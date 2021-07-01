@@ -730,6 +730,7 @@ def get_project_settings(project):
     """
     project_name, folder_name = split_project_path(project)
     settings = controller.get_project_settings(project_name=project_name)
+    settings = [BaseSerializers(attribute).serialize() for attribute in settings.data]
     return settings
 
 
@@ -746,6 +747,7 @@ def get_project_workflow(project):
     """
     project_name, folder_name = split_project_path(project)
     workflow = controller.get_project_workflow(project_name=project_name)
+    workflow = [BaseSerializers(attribute).serialize() for attribute in workflow.data]
     return workflow
 
 
@@ -763,6 +765,7 @@ def search_annotation_classes(project, name_prefix=None):
     """
     project_name, folder_name = split_project_path(project)
     classes = controller.search_annotation_classes(project_name, name_prefix)
+    classes = [BaseSerializers(attribute).serialize() for attribute in classes.data]
     return classes
 
 
@@ -781,7 +784,7 @@ def set_project_settings(project, new_settings):
     """
     project_name, folder_name = split_project_path(project)
     updated = controller.set_project_settings(project_name, new_settings)
-    return updated
+    return updated.data
 
 
 def get_project_default_image_quality_in_editor(project):
@@ -809,10 +812,11 @@ def set_project_default_image_quality_in_editor(project, image_quality_in_editor
     :type image_quality_in_editor: str
     """
     project_name, folder_name = split_project_path(project)
-    controller.set_project_settings(
+    updated = controller.set_project_settings(
         project_name=project_name,
         new_settings=[{"attribute": "ImageQuality", "value": image_quality_in_editor}],
     )
+    return updated.data
 
 
 def pin_image(project, image_name, pin=True):
@@ -842,7 +846,6 @@ def delete_image(project, image_name):
     :param image_name: image name
     :type image: str
     """
-    #TODO
     project_name, _ = split_project_path(project)
     controller.delete_image(image_name=image_name, project_name=project_name)
 
@@ -859,4 +862,5 @@ def get_image_metadata(project, image_names, return_dict_on_single_output=True):
     :rtype: dict
     """
     project_name, folder_name = split_project_path(project)
-    return controller.get_image_metadata(project_name, image_names)
+    images = controller.get_image_metadata(project_name, image_names)
+    return images.data.json()
