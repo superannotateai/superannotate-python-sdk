@@ -123,7 +123,7 @@ class ProjectRepository(BaseManageableRepository):
             description=data["description"],
             folder_id=data.get("folder_id"),
             users=data.get("users", ()),
-            rootFolderCompletedImagesCount=data.get("rootFolderCompletedImagesCount"),
+            root_folder_completed_images_count=data.get("rootFolderCompletedImagesCount"),
         )
 
 
