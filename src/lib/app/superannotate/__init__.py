@@ -12,6 +12,7 @@ from src.lib.app.annotation_helpers import add_annotation_polyline_to_json
 from src.lib.app.annotation_helpers import add_annotation_template_to_json
 from src.lib.app.interface.sdk_interface import clone_project
 from src.lib.app.interface.sdk_interface import copy_image
+from src.lib.app.interface.sdk_interface import copy_images
 from src.lib.app.interface.sdk_interface import create_folder
 from src.lib.app.interface.sdk_interface import create_project
 from src.lib.app.interface.sdk_interface import delete_contributor_to_team_invitation
@@ -69,8 +70,5 @@ __all__ = [
     "get_project_and_folder_metadata",
     "rename_folder",
     "search_folders",
+    "copy_images",
 ]
-
-copy_image(
-    "Pixel Project", "Cars.png", "qweert", include_annotations=True, copy_pin=True
-)

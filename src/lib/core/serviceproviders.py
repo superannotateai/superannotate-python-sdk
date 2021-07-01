@@ -4,6 +4,7 @@ from typing import Any
 from typing import Dict
 from typing import Iterable
 from typing import List
+from typing import Tuple
 
 
 class SuerannotateServiceProvider(ABC):
@@ -102,4 +103,26 @@ class SuerannotateServiceProvider(ABC):
         raise NotImplementedError
 
     def update_image(self, image_id: int, team_id: int, project_id: int, data: dict):
-        raise None
+        raise NotImplementedError
+
+    def copy_images_between_folders_transaction(
+        self,
+        team_id: int,
+        project_id: int,
+        from_folder_id: int,
+        to_folder_id: int,
+        images: List[str],
+        include_annotations: bool = False,
+        include_pin: bool = False,
+    ) -> int:
+        raise NotImplementedError
+
+    def get_duplicated_images(
+        self, project_id: int, team_id: int, folder_id: int, images: List[str]
+    ):
+        raise NotImplementedError
+
+    def get_progress(
+        self, project_id: int, team_id: int, poll_id: int
+    ) -> Tuple[int, int]:
+        raise NotImplementedError

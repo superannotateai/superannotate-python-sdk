@@ -543,3 +543,63 @@ def upload_images_from_public_urls_to_project(
     uploaded_image_urls = [image_name_url_map[name] for name in uploaded_image_names]
 
     return uploaded_image_urls, uploaded_image_names, duplicate_images, failed_images
+
+
+def copy_images(
+    source_project,
+    image_names,
+    destination_project,
+    include_annotations=True,
+    copy_annotation_status=True,
+    copy_pin=True,
+):
+    """Copy images in bulk between folders in a project
+
+    :param source_project: project name or folder path (e.g., "project1/folder1")
+    :type source_project: str
+    :param image_names: image names. If None, all images from source project will be copied
+    :type image: list of str
+    :param destination_project: project name or folder path (e.g., "project1/folder2")
+    :type destination_project: str
+    :param include_annotations: enables annotations copy
+    :type include_annotations: bool
+    :param copy_annotation_status: enables annotations status copy
+    :type copy_annotation_status: bool
+    :param copy_pin: enables image pin status copy
+    :type copy_pin: bool
+    :return: list of skipped image names
+    :rtype: list of strs
+    """
+
+    project_name, source_folder_name = split_project_path(source_project)
+
+    _, destination_folder_name = split_project_path(destination_project)
+
+    if not image_names:
+        images = controller.search_images(
+            project_name=project_name, folder_path=source_folder_name
+        )
+        image_names = [image.name for image in images]
+
+    res = controller.bulk_copy_images(
+        project_name=project_name,
+        from_folder_name=source_folder_name,
+        to_folder_name=destination_folder_name,
+        image_names=image_names,
+        include_annotations=include_annotations,
+        include_pin=copy_pin,
+    )
+    skipped_images = res.data
+    done_count = len(image_names) - len(skipped_images)
+    message_postfix = "{from_path} to {to_path}."
+    message_prefix = "Copied images from "
+    if done_count > 1 or done_count == 0:
+        message_prefix = f"Copied {done_count}/{len(image_names)} images from"
+    elif done_count == 1:
+        message_prefix = "Copied an image from "
+    logger.info(
+        message_prefix
+        + message_postfix.format(from_path=source_project, to_path=destination_project)
+    )
+
+    return skipped_images

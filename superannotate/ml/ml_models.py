@@ -16,6 +16,22 @@ def search_models(
     task=None,
     include_global=True,
 ):
+    """Search for ML models.
+
+    :param name: search string
+    :type name: str
+    :param type_: ml model type string
+    :type type_: str
+    :param project_id: project id
+    :type project_id: str
+    :param task: training task
+    :type task: str
+    :param include_global: include global ml models
+    :type include_global: bool
+
+    :return: ml model metadata
+    :rtype: list of dicts
+    """
     params = {
         "name": name,
         "team_id": _api.team_id,
