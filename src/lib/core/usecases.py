@@ -1,6 +1,7 @@
 import copy
 import io
 import json
+import time
 import uuid
 from abc import ABC
 from abc import abstractmethod
@@ -959,3 +960,69 @@ class DownloadImageFromPublicUrlUseCase(BaseUseCase):
             self._response.errors = AppException(
                 f"Couldn't download image {self._image_url}, {e}"
             )
+
+
+class ImagesBulkCopyUseCase(BaseUseCase):
+    """
+    Copy images in bulk between folders in a project.
+    Return skipped image names.
+    """
+
+    CHUNK_SIZE = 1000
+
+    def __init__(
+        self,
+        response: Response,
+        project: ProjectEntity,
+        from_folder: FolderEntity,
+        to_folder: FolderEntity,
+        image_names: List[str],
+        backend_service_provider: SuerannotateServiceProvider,
+        include_annotations: bool,
+        include_pin: bool,
+    ):
+        super().__init__(response)
+        self._project = project
+        self._from_folder = from_folder
+        self._to_folder = to_folder
+        self._image_names = image_names
+        self._backend_service = backend_service_provider
+        self._include_annotations = include_annotations
+        self._include_pin = include_pin
+
+    def execute(self):
+        duplications = self._backend_service.get_duplicated_images(
+            project_id=self._project.uuid,
+            team_id=self._project.team_id,
+            folder_id=self._to_folder.uuid,
+            images=self._image_names,
+        )
+        images_to_copy = set(self._image_names) - set(duplications)
+        skipped_images = duplications
+        for i in range(0, len(images_to_copy), self.CHUNK_SIZE):
+            poll_id = self._backend_service.copy_images_between_folders_transaction(
+                team_id=self._project.team_id,
+                project_id=self._project.uuid,
+                from_folder_id=self._from_folder.uuid,
+                to_folder_id=self._to_folder.uuid,
+                images=self._image_names[i : i + self.CHUNK_SIZE],  # noqa: E203
+                include_annotations=self._include_annotations,
+                include_pin=self._include_pin,
+            )
+            if not poll_id:
+                skipped_images.append(
+                    self._image_names[i : i + self.CHUNK_SIZE]  # noqa: E203
+                )
+                continue
+
+            await_time = len(images_to_copy) * 0.3
+            timeout_start = time.time()
+            while time.time() < timeout_start + await_time:
+                done_count, skipped_count = self._backend_service.get_progress(
+                    self._project.uuid, self._project.team_id, poll_id
+                )
+                if done_count + skipped_count == len(images_to_copy):
+                    break
+                time.sleep(4)
+
+        self._response.data = skipped_images

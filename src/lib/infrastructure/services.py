@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Dict
 from typing import Iterable
 from typing import List
+from typing import Tuple
 from urllib.parse import urljoin
 
 import requests
@@ -120,6 +121,7 @@ class SuperannotateBackendService(BaseBackendService):
     URL_UPDATE_FOLDER = "folder/{}"
     URL_FOLDERS = "folder"
     URL_GET_IMAGE = "image/{}"
+    URL_BULK_GET_IMAGES = "images/getBulk"
     URL_DELETE_FOLDERS = "image/delete/images"
     URL_GET_PROJECT_SETTIGNS = "/project/{}/settings"
     URL_CREATE_IMAGE = "image/ext-create"
@@ -130,6 +132,8 @@ class SuperannotateBackendService(BaseBackendService):
     URL_TEAM = "team"
     URL_INVITE_CONTRIBUTOR = "team/{}/invite"
     URL_PREPARE_EXPORT = "export"
+    URL_COPY_IMAGES_FROM_FOLDER = "images/copy-image-or-folders"
+    URL_GET_COPY_PROGRESS = "/images/copy-image-progress"
 
     def get_project(self, uuid: int, team_id: int):
         get_project_url = urljoin(self.api_url, self.URL_GET_PROJECT.format(uuid))
@@ -438,3 +442,59 @@ class SuperannotateBackendService(BaseBackendService):
             params={"team_id": team_id, "project_id": project_id},
         )
         return res.ok
+
+    def copy_images_between_folders_transaction(
+        self,
+        team_id: int,
+        project_id: int,
+        from_folder_id: int,
+        to_folder_id: int,
+        images: List[str],
+        include_annotations: bool = False,
+        include_pin: bool = False,
+    ) -> int:
+        copy_images_url = urljoin(self.api_url, self.URL_COPY_IMAGES_FROM_FOLDER)
+        res = self._request(
+            copy_images_url,
+            "post",
+            params={"team_id": team_id, "project_id": project_id},
+            data={
+                "is_folder_copy": False,
+                "image_names": images,
+                "destination_folder_id": to_folder_id,
+                "source_folder_id": from_folder_id,
+                "include_annotations": include_annotations,
+                "keep_pin_status": include_pin,
+            },
+        )
+        if res.ok:
+            return res.json()["poll_id"]
+
+    def get_progress(
+        self, project_id: int, team_id: int, poll_id: int
+    ) -> Tuple[int, int]:
+        get_progress_url = urljoin(self.api_url, self.URL_GET_COPY_PROGRESS)
+
+        res = self._request(
+            get_progress_url,
+            "get",
+            params={"team_id": team_id, "project_id": project_id, "poll_id": poll_id},
+        ).json()
+        return res["done"], res["skipped"]
+
+    def get_duplicated_images(
+        self, project_id: int, team_id: int, folder_id: int, images: List[str]
+    ) -> List[str]:
+        get_duplications_url = urljoin(self.api_url, self.URL_BULK_GET_IMAGES)
+
+        res = self._request(
+            get_duplications_url,
+            "post",
+            data={
+                "project_id": project_id,
+                "team_id": team_id,
+                "folder_id": folder_id,
+                "names": images,
+            },
+        )
+        return [image["name"] for image in res.json()]
