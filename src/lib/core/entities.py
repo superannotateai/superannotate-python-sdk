@@ -55,6 +55,7 @@ class ProjectEntity(BaseEntity):
         settings: List = None,
         annotation_classes: List = None,
         workflow: List = None,
+        #TODO
         rootFolderCompletedImagesCount: int = None,
     ):
         super().__init__(uuid)
