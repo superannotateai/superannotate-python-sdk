@@ -28,6 +28,7 @@ from src.lib.core.usecases import GetProjectFoldersUseCase
 from src.lib.core.usecases import GetProjectsUseCase
 from src.lib.core.usecases import GetTeamUseCase
 from src.lib.core.usecases import ImagesBulkCopyUseCase
+from src.lib.core.usecases import ImagesBulkMoveUseCase
 from src.lib.core.usecases import ImageUploadUseCas
 from src.lib.core.usecases import InviteContributorUseCase
 from src.lib.core.usecases import PrepareExportUseCase
@@ -593,6 +594,27 @@ class Controller(BaseController):
             backend_service_provider=self._backend_client,
             include_annotations=include_annotations,
             include_pin=include_pin,
+        )
+        use_case.execute()
+        return self.response
+
+    def bulk_move_images(
+        self,
+        project_name: str,
+        from_folder_name: str,
+        to_folder_name: str,
+        image_names: List[str],
+    ):
+        project = self._get_project(project_name)
+        from_folder = self._get_folder(project, from_folder_name)
+        to_folder = self._get_folder(project, to_folder_name)
+        use_case = ImagesBulkMoveUseCase(
+            response=self.response,
+            project=project,
+            from_folder=from_folder,
+            to_folder=to_folder,
+            image_names=image_names,
+            backend_service_provider=self._backend_client,
         )
         use_case.execute()
         return self.response
