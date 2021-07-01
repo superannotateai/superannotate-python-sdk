@@ -117,6 +117,19 @@ class SuerannotateServiceProvider(ABC):
     ) -> int:
         raise NotImplementedError
 
+    def move_images_between_folders(
+        self,
+        team_id: int,
+        project_id: int,
+        from_folder_id: int,
+        to_folder_id: int,
+        images: List[str],
+    ) -> List[str]:
+        """
+        Returns list of moved images.
+        """
+        raise NotImplementedError
+
     def get_duplicated_images(
         self, project_id: int, team_id: int, folder_id: int, images: List[str]
     ):

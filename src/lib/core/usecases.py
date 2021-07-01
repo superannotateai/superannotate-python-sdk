@@ -1026,3 +1026,42 @@ class ImagesBulkCopyUseCase(BaseUseCase):
                 time.sleep(4)
 
         self._response.data = skipped_images
+
+
+class ImagesBulkMoveUseCase(BaseUseCase):
+    """
+    Copy images in bulk between folders in a project.
+    Return skipped image names.
+    """
+
+    CHUNK_SIZE = 1000
+
+    def __init__(
+        self,
+        response: Response,
+        project: ProjectEntity,
+        from_folder: FolderEntity,
+        to_folder: FolderEntity,
+        image_names: List[str],
+        backend_service_provider: SuerannotateServiceProvider,
+    ):
+        super().__init__(response)
+        self._project = project
+        self._from_folder = from_folder
+        self._to_folder = to_folder
+        self._image_names = image_names
+        self._backend_service = backend_service_provider
+
+    def execute(self):
+        moved_images = []
+        for i in range(0, len(self._image_names), self.CHUNK_SIZE):
+            moved_images.append(
+                self._backend_service.move_images_between_folders(
+                    team_id=self._project.team_id,
+                    project_id=self._project.uuid,
+                    from_folder_id=self._from_folder.uuid,
+                    to_folder_id=self._to_folder.uuid,
+                    images=self._image_names[i : i + self.CHUNK_SIZE],  # noqa: E203
+                )
+            )
+        self._response.data = moved_images

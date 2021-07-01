@@ -498,9 +498,9 @@ def upload_images_from_public_urls_to_project(
         project_name=project_name, folder_path=folder_name
     ).data
     if not img_names:
-        image_name_url_map = {
-            url: (os.path.basename(urlparse(url).path)) for url in img_urls
-        }
+        img_names = [os.path.basename(urlparse(url).path) for url in img_urls]
+
+    image_name_url_map = {img_urls[i]: img_names[i] for i in range(len(img_names))}
     duplicate_images = list(
         {image.name for image in existing_images} & set(image_name_url_map.keys())
     )
@@ -603,3 +603,60 @@ def copy_images(
     )
 
     return skipped_images
+
+
+def move_images(
+    source_project,
+    image_names,
+    destination_project,
+    include_annotations=True,
+    copy_annotation_status=True,
+    copy_pin=True,
+):
+    """Move images in bulk between folders in a project
+
+    :param source_project: project name or folder path (e.g., "project1/folder1")
+    :type source_project: str
+    :param image_names: image names. If None, all images from source project will be moved
+    :type image: list of str
+    :param destination_project: project name or folder path (e.g., "project1/folder2")
+    :type destination_project: str
+    :param include_annotations: enables annotations copy
+    :type include_annotations: bool
+    :param copy_annotation_status: enables annotations status copy
+    :type copy_annotation_status: bool
+    :param copy_pin: enables image pin status copy
+    :type copy_pin: bool
+    :return: list of skipped image names
+    :rtype: list of strs
+    """
+    project_name, source_folder_name = split_project_path(source_project)
+
+    _, destination_folder_name = split_project_path(destination_project)
+
+    if not image_names:
+        images = controller.search_images(
+            project_name=project_name, folder_path=source_folder_name
+        )
+        image_names = [image.name for image in images]
+
+    moved_images = controller.bulk_move_images(
+        project_name=project_name,
+        from_folder_name=source_folder_name,
+        to_folder_name=destination_folder_name,
+        image_names=image_names,
+    ).data
+    moved_count = len(moved_images)
+    message_postfix = "{from_path} to {to_path}."
+    message_prefix = "Copied images from "
+    if moved_count > 1 or moved_count == 0:
+        message_prefix = f"Moved {moved_count}/{len(image_names)} images from "
+    elif moved_count == 1:
+        message_prefix = f"Moved an image from"
+
+    logger.info(
+        message_prefix
+        + message_postfix.format(from_path=source_project, to_path=destination_project)
+    )
+
+    return len(image_names) - moved_count

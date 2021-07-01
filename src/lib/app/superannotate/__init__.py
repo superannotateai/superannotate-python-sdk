@@ -21,6 +21,7 @@ from src.lib.app.interface.sdk_interface import get_folder_metadata
 from src.lib.app.interface.sdk_interface import get_project_and_folder_metadata
 from src.lib.app.interface.sdk_interface import get_team_metadata
 from src.lib.app.interface.sdk_interface import invite_contributor_to_team
+from src.lib.app.interface.sdk_interface import move_images
 from src.lib.app.interface.sdk_interface import rename_folder
 from src.lib.app.interface.sdk_interface import search_folders
 from src.lib.app.interface.sdk_interface import search_images
@@ -71,4 +72,6 @@ __all__ = [
     "rename_folder",
     "search_folders",
     "copy_images",
+    "move_images",
 ]
+
