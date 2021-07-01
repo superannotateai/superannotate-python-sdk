@@ -1052,7 +1052,7 @@ class GetSettingsUseCase(BaseUseCase):
         self._response.data = self._settings.get_all()
 
 
-class GetWorkflowsUsecase(BaseUseCase):
+class GetWorkflowsUseCase(BaseUseCase):
     def __init__(self, response: Response, workflows: BaseManageableRepository):
         super().__init__(response)
         self._workflows = workflows

@@ -9,12 +9,20 @@ from lib.app.helpers import split_project_path
 from lib.app.serializers import ImageSerializer
 from lib.app.serializers import ProjectSerializer
 from lib.app.serializers import TeamSerializer
+from lib.app.serializers import BaseSerializers
 from lib.core.exceptions import AppException
 from lib.core.response import Response
 from lib.infrastructure.controller import Controller
 from lib.infrastructure.repositories import ConfigRepository
 from lib.infrastructure.services import SuperannotateBackendService
 
+
+ENTITY_SERIALIZERS = {
+    "settings": BaseSerializers,
+    "workflow": BaseSerializers,
+    "classes": BaseSerializers,
+    "project": ProjectSerializer
+}
 
 logger = logging.getLogger()
 
@@ -699,6 +707,13 @@ def get_project_metadata(
         include_contributors,
         include_complete_image_count,
     )
+    metadata = metadata.data
+    for elem in "settings", "classes", "workflow":
+        if metadata.get(elem):
+            metadata[elem] = [BaseSerializers(attribute).serialize() for attribute in metadata[elem]]
+
+    if metadata.get("project"):
+        metadata["project"] = ProjectSerializer(metadata["project"]).serialize()
     return metadata
 
 
@@ -827,7 +842,8 @@ def delete_image(project, image_name):
     :param image_name: image name
     :type image: str
     """
-    project_name, folder_name = split_project_path(project)
+    #TODO
+    project_name, _ = split_project_path(project)
     controller.delete_image(image_name=image_name, project_name=project_name)
 
 

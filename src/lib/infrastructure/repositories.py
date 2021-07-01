@@ -277,9 +277,9 @@ class AnnotationClassRepository(BaseManageableRepository):
     def get_all(
         self, condition: Optional[Condition] = None
     ) -> List[AnnotationClassEntity]:
-
+        query = condition.build_query() if condition else None
         res = self._service.get_annotation_classes(
-            self.project.uuid, self.project.team_id, condition.build_query()
+            self.project.uuid, self.project.team_id, query
         )
         return [self.dict2entity(data) for data in res]
 

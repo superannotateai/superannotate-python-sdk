@@ -32,7 +32,7 @@ from src.lib.core.usecases import GetProjectFoldersUseCase
 from src.lib.core.usecases import GetProjectsUseCase
 from src.lib.core.usecases import GetSettingsUseCase
 from src.lib.core.usecases import GetTeamUseCase
-from src.lib.core.usecases import GetWorkflowsUsecase
+from src.lib.core.usecases import GetWorkflowsUseCase
 from src.lib.core.usecases import ImagesBulkCopyUseCase
 from src.lib.core.usecases import ImagesBulkMoveUseCase
 from src.lib.core.usecases import ImageUploadUseCas
@@ -635,7 +635,7 @@ class Controller(BaseController):
         include_contributors: bool = False,
         include_complete_image_count: bool = False,
     ):
-        res = {}
+        data = {}
         project_entity = self._get_project(project_name)
         if include_annotation_classes:
             classes_res = Response()
@@ -646,7 +646,7 @@ class Controller(BaseController):
                 ),
             )
             annotation_classes_use_case.execute()
-            res["classes"] = classes_res
+            data["classes"] = classes_res.data
 
         if include_settings:
             settings_res = Response()
@@ -657,33 +657,35 @@ class Controller(BaseController):
                 ),
             )
             settings_use_case.execute()
-            res["settings"] = settings_res
+            data["settings"] = settings_res.data
 
         if include_workflow:
             workflow_res = Response()
-            workflow_use_case = GetWorkflowsUsecase(
+            workflow_use_case = GetWorkflowsUseCase(
                 response=workflow_res,
                 workflows=WorkflowRepository(
                     service=self._backend_client, project=project_entity
                 ),
             )
             workflow_use_case.execute()
-            res["workflow"] = workflow_res
+            data["workflow"] = workflow_res.data
 
         if include_contributors:
-            res["contributors"] = project_entity.users
+            data["contributors"] = project_entity.users
 
         if include_complete_image_count:
             projects_repo = ProjectRepository(service=self._backend_client)
-            res["project"] = projects_repo.get_all(
+            projects = projects_repo.get_all(
                 condition=(
                     Condition("completeImagesCount", "true", EQ)
                     & Condition("name", self._project.name, EQ)
                     & Condition("team_id", self._project.team_id, EQ)
                 )
             )
+            if projects:
+                data["project"] = projects[0]
 
-        return res
+        return Response(data=data)
 
     def get_project_settings(self, project_name: str):
         project_entity = self._get_project(project_name)
@@ -698,7 +700,7 @@ class Controller(BaseController):
 
     def get_project_workflow(self, project_name: str):
         project_entity = self._get_project(project_name)
-        workflows_use_case = GetWorkflowsUsecase(
+        workflows_use_case = GetWorkflowsUseCase(
             response=self.response,
             settings=ProjectSettingsRepository(
                 service=self._backend_client, project=project_entity
