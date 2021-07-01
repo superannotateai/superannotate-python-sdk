@@ -32,8 +32,9 @@ from src.lib.core.usecases import GetProjectFoldersUseCase
 from src.lib.core.usecases import GetProjectsUseCase
 from src.lib.core.usecases import GetSettingsUseCase
 from src.lib.core.usecases import GetTeamUseCase
-from src.lib.core.usecases import GetWorkflowsUsecase
+from src.lib.core.usecases import GetWorkflowsUseCase
 from src.lib.core.usecases import ImagesBulkCopyUseCase
+from src.lib.core.usecases import ImagesBulkMoveUseCase
 from src.lib.core.usecases import ImageUploadUseCas
 from src.lib.core.usecases import InviteContributorUseCase
 from src.lib.core.usecases import PrepareExportUseCase
@@ -604,6 +605,27 @@ class Controller(BaseController):
         use_case.execute()
         return self.response
 
+    def bulk_move_images(
+        self,
+        project_name: str,
+        from_folder_name: str,
+        to_folder_name: str,
+        image_names: List[str],
+    ):
+        project = self._get_project(project_name)
+        from_folder = self._get_folder(project, from_folder_name)
+        to_folder = self._get_folder(project, to_folder_name)
+        use_case = ImagesBulkMoveUseCase(
+            response=self.response,
+            project=project,
+            from_folder=from_folder,
+            to_folder=to_folder,
+            image_names=image_names,
+            backend_service_provider=self._backend_client,
+        )
+        use_case.execute()
+        return self.response
+
     def get_project_metadata(
         self,
         project_name: str,
@@ -613,8 +635,9 @@ class Controller(BaseController):
         include_contributors: bool = False,
         include_complete_image_count: bool = False,
     ):
-        res = {}
+
         project_entity = self._get_project(project_name)
+        data = {"project": project_entity}
         if include_annotation_classes:
             classes_res = Response()
             annotation_classes_use_case = GetAnnotationClassesUseCase(
@@ -624,7 +647,7 @@ class Controller(BaseController):
                 ),
             )
             annotation_classes_use_case.execute()
-            res["classes"] = classes_res
+            data["classes"] = classes_res.data
 
         if include_settings:
             settings_res = Response()
@@ -635,33 +658,35 @@ class Controller(BaseController):
                 ),
             )
             settings_use_case.execute()
-            res["settings"] = settings_res
+            data["settings"] = settings_res.data
 
         if include_workflow:
             workflow_res = Response()
-            workflow_use_case = GetWorkflowsUsecase(
+            workflow_use_case = GetWorkflowsUseCase(
                 response=workflow_res,
                 workflows=WorkflowRepository(
                     service=self._backend_client, project=project_entity
                 ),
             )
             workflow_use_case.execute()
-            res["workflow"] = workflow_res
+            data["workflow"] = workflow_res.data
 
         if include_contributors:
-            res["contributors"] = project_entity.users
+            data["contributors"] = project_entity.users
 
         if include_complete_image_count:
             projects_repo = ProjectRepository(service=self._backend_client)
-            res["project"] = projects_repo.get_all(
+            projects = projects_repo.get_all(
                 condition=(
                     Condition("completeImagesCount", "true", EQ)
                     & Condition("name", self._project.name, EQ)
                     & Condition("team_id", self._project.team_id, EQ)
                 )
             )
+            if projects:
+                data["project"] = projects[0]
 
-        return res
+        return Response(data=data)
 
     def get_project_settings(self, project_name: str):
         project_entity = self._get_project(project_name)
@@ -672,18 +697,18 @@ class Controller(BaseController):
             ),
         )
         settings_use_case.execute()
-        return self.response.data
+        return self.response
 
     def get_project_workflow(self, project_name: str):
         project_entity = self._get_project(project_name)
-        workflows_use_case = GetWorkflowsUsecase(
-            response=self.response,
-            settings=ProjectSettingsRepository(
+        workflows_use_case = GetWorkflowsUseCase(
+            workflows=WorkflowRepository(
                 service=self._backend_client, project=project_entity
             ),
+            response=self.response,
         )
         workflows_use_case.execute()
-        return self.response.data
+        return self.response
 
     def search_annotation_classes(self, project_name: str, name_prefix: str = None):
         project_entity = self._get_project(project_name)
@@ -695,48 +720,24 @@ class Controller(BaseController):
             condition=Condition("name", name_prefix, EQ),
         )
         annotation_classes_use_case.execute()
-        return self.response.data
+        return self.response
 
     def set_project_settings(self, project_name: str, new_settings: List[dict]):
         project_entity = self._get_project(project_name)
-        old_settings_response = Response()
-        settings_use_case = GetSettingsUseCase(
-            response=old_settings_response,
-            settings=ProjectSettingsRepository(
-                service=self._backend_client, project=project_entity
-            ),
-        )
-        settings_use_case.execute()
-
-        attr_id_mapping = {}
-        for setting in old_settings_response.data:
-            if setting.attribute:
-                attr_id_mapping[setting.attribute] = setting.uuid
-
-        new_settings_to_update = []
-        for new_setting in new_settings:
-            new_settings_to_update.append(
-                ProjectSettingEntity(
-                    uuid=attr_id_mapping[new_setting["attribute"]],
-                    attribute=new_setting["attribute"],
-                    value=new_setting["value"],
-                )
-            )
-
         new_settings_response = Response()
         update_settings_use_case = UpdateSettingsUseCase(
             response=new_settings_response,
             settings=ProjectSettingsRepository(
                 service=self._backend_client, project=project_entity
             ),
-            to_update=new_settings_to_update,
+            to_update=new_settings,
             backend_service_provider=self._backend_client,
             project_id=project_entity.uuid,
             team_id=project_entity.team_id,
         )
         update_settings_use_case.execute()
 
-        return old_settings_response
+        return new_settings_response
 
     def delete_image(self, image_name, project_name):
         image = self.get_image(project_name=project_name, image_name=image_name)
@@ -762,4 +763,4 @@ class Controller(BaseController):
             service=self._backend_client,
         )
         get_image_metadata_use_case.execute()
-        return self.response.data
+        return self.response

@@ -47,7 +47,7 @@ def dicom_to_rgb_sequence(
         image.save(
             path,
             subsampling=0 if output_image_quality == "original" else 2,
-            quality=100 if output_image_quality == "original" else 60
+            quality=100 if output_image_quality == "original" else 60,
         )
         output_paths.append(str(path))
 
