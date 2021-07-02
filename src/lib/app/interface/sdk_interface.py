@@ -930,3 +930,16 @@ def unassign_images(project, image_names):
     controller.unassign_images(
         project_name=project_name, folder_name=folder_name, image_names=image_names
     )
+
+
+def unassign_folder(project_name, folder_name):
+    """Removes assignment of given folder for all assignees.
+    With SDK, the user can be assigned to a role in the project
+    with the share_project function.
+
+    :param project_name: project name
+    :type project_name: str
+    :param folder_name: folder name to remove assignees
+    :type folder_name: str
+    """
+    controller.unassign_folder(project_name=project_name, folder_name=folder_name)
