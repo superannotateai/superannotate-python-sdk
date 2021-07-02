@@ -47,6 +47,7 @@ from src.lib.core.usecases import SetImageAnnotationStatuses
 from src.lib.core.usecases import ShareProjectUseCase
 from src.lib.core.usecases import UnAssignFolderUseCase
 from src.lib.core.usecases import UnAssignImagesUseCase
+from src.lib.core.usecases import UnShareProjectUseCase
 from src.lib.core.usecases import UpdateFolderUseCase
 from src.lib.core.usecases import UpdateImageUseCase
 from src.lib.core.usecases import UpdateProjectUseCase
@@ -816,7 +817,7 @@ class Controller(BaseController):
         return self.response
 
     def assign_images(
-        self, project_name: str, folder_name: str, image_names: list, user: list
+        self, project_name: str, folder_name: str, image_names: list, user: str
     ):
         project_entity = self._get_project(project_name)
         assign_images_use_case = AssignImagesUseCase(
@@ -872,3 +873,13 @@ class Controller(BaseController):
             user_role=user_role,
         )
         share_project_use_case.execute()
+
+    def un_share_project(self, project_name: str, user: str):
+        project_entity = self._get_project(project_name)
+        use_case = UnShareProjectUseCase(
+            response=self.response,
+            service=self._backend_client,
+            project_entity=project_entity,
+            user_id=user,
+        )
+        use_case.execute()

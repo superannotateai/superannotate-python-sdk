@@ -182,3 +182,8 @@ class SuerannotateServiceProvider(ABC):
         self, team_id: int, project_id: int, folder_name: str, image_names: list,
     ):
         raise NotImplementedError
+
+    def un_share_project(
+        self, team_id: int, project_id: int, user_id: str,
+    ):
+        raise NotImplementedError
