@@ -6,7 +6,6 @@ from pathlib import Path
 
 from lib.app.exceptions import AppException
 
-from ..mixp.decorators import Trackable
 from .export_from_sa_conversions import export_from_sa
 from .import_to_sa_conversions import import_to_sa
 from .sa_conversion import degrade_json

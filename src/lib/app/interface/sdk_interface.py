@@ -17,13 +17,6 @@ from lib.infrastructure.repositories import ConfigRepository
 from lib.infrastructure.services import SuperannotateBackendService
 
 
-ENTITY_SERIALIZERS = {
-    "settings": BaseSerializers,
-    "workflow": BaseSerializers,
-    "classes": BaseSerializers,
-    "project": ProjectSerializer,
-}
-
 logger = logging.getLogger()
 
 
@@ -660,7 +653,7 @@ def move_images(
     if moved_count > 1 or moved_count == 0:
         message_prefix = f"Moved {moved_count}/{len(image_names)} images from "
     elif moved_count == 1:
-        message_prefix = f"Moved an image from"
+        message_prefix = "Moved an image from"
 
     logger.info(
         message_prefix
@@ -867,6 +860,7 @@ def get_image_metadata(project, image_names, return_dict_on_single_output=True):
     images = controller.get_image_metadata(project_name, image_names)
     return images.data.json()
 
+
 def set_images_annotation_statuses(project, image_names, annotation_status):
     """Sets annotation statuses of images
 
@@ -879,6 +873,25 @@ def set_images_annotation_statuses(project, image_names, annotation_status):
     :type annotation_status: str
     """
     project_name, folder_name = split_project_path(project)
-    controller.set_images_annotation_statuses(project_name,folder_name,image_names,annotation_status)
+    controller.set_images_annotation_statuses(
+        project_name, folder_name, image_names, annotation_status
+    )
 
 
+def delete_images(project, image_names=None):
+    """Delete images in project.
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param image_names: to be deleted images' names. If None, all the images will be deleted
+    :type image_names: list of strs
+    """
+    project_name, folder_name = split_project_path(project)
+
+    controller.delete_images(
+        project_name=project_name, folder_name=folder_name, image_names=image_names
+    )
+
+    logger.info(
+        f"Images deleted in project {project_name}{'' if folder_name else '/' + folder_name}"
+    )

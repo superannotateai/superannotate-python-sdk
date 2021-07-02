@@ -23,7 +23,7 @@ def sagemaker_instance_segmentation_to_sa_pixel(data_path, output_dir):
     img_mapping = {}
     try:
         img_map_file = open(data_path / "output.manifest")
-    except Exception as e:
+    except Exception:
         raise Exception("'output.manifest' file doesn't exist")
 
     for line in img_map_file:
@@ -60,7 +60,7 @@ def sagemaker_instance_segmentation_to_sa_pixel(data_path, output_dir):
             try:
                 img = cv2.imread(str(data_path / mask_name.replace(":", "_")))
                 H, W, _ = img.shape
-            except Exception as e:
+            except Exception:
                 logger.warning("Can't open %s mask", mask_name.replace(":", "_"))
                 images_not_converted.append(mask_name.replace(":", "_"))
                 continue
@@ -102,7 +102,7 @@ def sagemaker_instance_segmentation_to_sa_pixel(data_path, output_dir):
                     contour = contour.flatten().tolist()
                     pts = np.array(
                         [
-                            contour[2 * i : 2 * (i + 1)]
+                            contour[2 * i : 2 * (i + 1)]  # noqa: E203
                             for i in range(len(contour) // 2)
                         ],
                         dtype=np.int32,

@@ -1,8 +1,6 @@
 import os
 import xml.etree.ElementTree as ET
 
-import numpy as np
-
 
 def _get_voc_instances_from_xml(file_path):
     with open(os.path.splitext(file_path)[0] + ".xml") as f:
