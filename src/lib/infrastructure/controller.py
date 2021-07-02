@@ -43,6 +43,7 @@ from src.lib.core.usecases import PrepareExportUseCase
 from src.lib.core.usecases import SearchContributorsUseCase
 from src.lib.core.usecases import SearchFolderUseCase
 from src.lib.core.usecases import SetImageAnnotationStatuses
+from src.lib.core.usecases import UnAssignImagesUseCase
 from src.lib.core.usecases import UpdateFolderUseCase
 from src.lib.core.usecases import UpdateImageUseCase
 from src.lib.core.usecases import UpdateProjectUseCase
@@ -129,14 +130,19 @@ class Controller(BaseController):
         return self._project
 
     def _get_folder(self, project: ProjectEntity, name: str = None):
-        if not name:
-            name = "root"
+        name = self.get_folder_name(name)
         folders = FolderRepository(self._backend_client, project)
         return folders.get_one(
             Condition("name", name, EQ)
             & Condition("team_id", self.team_id, EQ)
             & Condition("project_id", project.uuid, EQ)
         )
+
+    @staticmethod
+    def get_folder_name(self, name: str = None):
+        if not name:
+            return "root"
+        return name
 
     def search_project(self, name: str, **kwargs) -> Response:
         condition = Condition("name", name, EQ)
@@ -819,3 +825,15 @@ class Controller(BaseController):
             user=user,
         )
         assign_images_use_case.execute()
+
+    def unassign_images(self, project_name, folder_name, image_names):
+        project = self._get_project(project_name)
+        folder_name = self.get_folder_name(folder_name)
+        unassign_images_use_case = UnAssignImagesUseCase(
+            response=self.response,
+            project_entity=project,
+            service=self._backend_client,
+            folder_name=folder_name,
+            image_names=image_names,
+        )
+        unassign_images_use_case.execute()

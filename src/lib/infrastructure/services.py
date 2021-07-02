@@ -620,3 +620,19 @@ class SuperannotateBackendService(BaseBackendService):
             },
         )
         return res.ok
+
+    def un_assign_images(
+        self, team_id: int, project_id: int, folder_name: str, image_names: List[str],
+    ):
+        un_assign_images_url = urljoin(self.api_url, self.URL_ASSIGN_IMAGES)
+        res = self._request(
+            un_assign_images_url,
+            "put",
+            params={"team_id": team_id, "project_id": project_id},
+            data={
+                "image_names": image_names,
+                "remove_user_ids": ["all"],
+                "folder_name": folder_name,
+            },
+        )
+        return res.ok
