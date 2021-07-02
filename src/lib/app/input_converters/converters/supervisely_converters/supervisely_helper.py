@@ -1,5 +1,6 @@
-import zlib
 import base64
+import zlib
+
 import cv2
 import numpy as np
 
@@ -25,7 +26,7 @@ def _base64_to_polygon(bitmap):
 def _create_attribute_list(sv_attributes, class_name, class_id_map):
     attributes = []
     for tag in sv_attributes:
-        group_name = class_id_map[class_name]['attr_group']['group_name']
-        attr_name = tag['name']
-        attributes.append({'name': attr_name, 'groupName': group_name})
+        group_name = class_id_map[class_name]["attr_group"]["group_name"]
+        attr_name = tag["name"]
+        attributes.append({"name": attr_name, "groupName": group_name})
     return attributes

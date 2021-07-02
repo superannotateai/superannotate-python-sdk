@@ -55,6 +55,7 @@ class ProjectEntity(BaseEntity):
         settings: List = None,
         annotation_classes: List = None,
         workflow: List = None,
+        root_folder_completed_images_count: int = None,
     ):
         super().__init__(uuid)
         self.team_id = team_id
@@ -69,6 +70,7 @@ class ProjectEntity(BaseEntity):
         self.settings = settings
         self.annotation_classes = annotation_classes
         self.workflow = workflow
+        self.root_folder_completed_images_count = root_folder_completed_images_count
 
     def __copy__(self):
         return ProjectEntity(
@@ -93,6 +95,7 @@ class ProjectEntity(BaseEntity):
             "folder_id": self.folder_id,
             "upload_state": self.upload_state,
             "users": self.users,
+            "rootFolderCompletedImagesCount": self.root_folder_completed_images_count,
         }
 
 

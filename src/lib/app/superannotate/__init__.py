@@ -13,9 +13,9 @@ from src.lib.app.annotation_helpers import add_annotation_template_to_json
 from src.lib.app.convertors.dicom_converter import dicom_to_rgb_sequence
 from src.lib.app.input_converters.conversion import coco_split_dataset
 from src.lib.app.input_converters.conversion import convert_json_version
-from src.lib.app.input_converters.conversion import import_annotation
-from src.lib.app.input_converters.conversion import export_annotation
 from src.lib.app.input_converters.conversion import convert_project_type
+from src.lib.app.input_converters.conversion import export_annotation
+from src.lib.app.input_converters.conversion import import_annotation
 from src.lib.app.interface.sdk_interface import clone_project
 from src.lib.app.interface.sdk_interface import copy_image
 from src.lib.app.interface.sdk_interface import copy_images
@@ -87,4 +87,3 @@ __all__ = [
     "copy_images",
     "move_images",
 ]
-
