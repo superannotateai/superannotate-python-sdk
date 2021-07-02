@@ -61,7 +61,7 @@ class SuerannotateServiceProvider(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def set_project_settings(self, project_id: int, team_id: int, data: List):
+    def set_project_settings(self, project_id: int, team_id: int, data: Dict):
         raise NotImplementedError
 
     @abstractmethod
@@ -140,7 +140,7 @@ class SuerannotateServiceProvider(ABC):
     ) -> Tuple[int, int]:
         raise NotImplementedError
 
-    def set_images_statuse_bulk(
+    def set_images_statuses_bulk(
         self,
         image_names: List[str],
         team_id: int,
@@ -151,4 +151,14 @@ class SuerannotateServiceProvider(ABC):
         raise NotImplementedError
 
     def delete_images(self, project_id: int, team_id: int, image_ids: List[int]):
+        raise NotImplementedError
+
+    def assign_images(
+        self,
+        team_id: int,
+        project_id: int,
+        folder_name: str,
+        user: str,
+        image_names: list,
+    ):
         raise NotImplementedError

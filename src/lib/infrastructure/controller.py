@@ -4,6 +4,7 @@ from typing import Iterable
 from typing import List
 
 import lib.core as constances
+from lib.app.helpers import split_project_path
 from src.lib.core.conditions import Condition
 from src.lib.core.conditions import CONDITION_EQ as EQ
 from src.lib.core.entities import FolderEntity
@@ -12,6 +13,7 @@ from src.lib.core.entities import ImageInfoEntity
 from src.lib.core.entities import ProjectEntity
 from src.lib.core.exceptions import AppException
 from src.lib.core.response import Response
+from src.lib.core.usecases import AssignImagesUseCase
 from src.lib.core.usecases import AttachFileUrls
 from src.lib.core.usecases import CloneProjectUseCase
 from src.lib.core.usecases import CopyImageAnnotationClasses
@@ -639,9 +641,7 @@ class Controller(BaseController):
     ):
 
         project_entity = self._get_project(project_name)
-        data = {
-            "project": project_entity
-        }
+        data = {"project": project_entity}
         if include_annotation_classes:
             classes_res = Response()
             annotation_classes_use_case = GetAnnotationClassesUseCase(
@@ -707,9 +707,9 @@ class Controller(BaseController):
         project_entity = self._get_project(project_name)
         workflows_use_case = GetWorkflowsUseCase(
             workflows=WorkflowRepository(
-                    service=self._backend_client, project=project_entity
+                service=self._backend_client, project=project_entity
             ),
-            response=self.response
+            response=self.response,
         )
         workflows_use_case.execute()
         return self.response
@@ -806,3 +806,20 @@ class Controller(BaseController):
         )
         use_case.execute()
         return self.response
+
+    def assign_images(self, project: str, image_names: list, user: list):
+        project_name, folder_name = split_project_path(project)
+        project_entity = self._get_project(project_name)
+
+        if not folder_name:
+            folder_name = "root"
+
+        assign_images_use_case = AssignImagesUseCase(
+            response=self.response,
+            project_entity=project_entity,
+            service=self._backend_client,
+            folder_name=folder_name,
+            image_names=image_names,
+            user=user,
+        )
+        assign_images_use_case.execute()

@@ -133,8 +133,11 @@ class SuperannotateBackendService(BaseBackendService):
     URL_INVITE_CONTRIBUTOR = "team/{}/invite"
     URL_PREPARE_EXPORT = "export"
     URL_COPY_IMAGES_FROM_FOLDER = "images/copy-image-or-folders"
+    URL_GET_COPY_PROGRESS = "/images/copy-image-progress"
+    URL_GET_IMAGES_BULK = "images/getBulk"
     URL_MOVE_IMAGES_FROM_FOLDER = "image/move"
     URL_GET_COPY_PROGRESS = "images/copy-image-progress"
+    URL_ASSIGN_IMAGES = "images/editAssignment"
 
     def get_project(self, uuid: int, team_id: int):
         get_project_url = urljoin(self.api_url, self.URL_GET_PROJECT.format(uuid))
@@ -546,7 +549,7 @@ class SuperannotateBackendService(BaseBackendService):
         )
         return res
 
-    def set_images_statuse_bulk(
+    def set_images_statuses_bulk(
         self,
         image_names: list,
         team_id: int,
@@ -596,3 +599,24 @@ class SuperannotateBackendService(BaseBackendService):
             data={"image_ids": image_ids},
         )
         return res.json()
+
+    def assign_images(
+        self,
+        team_id: int,
+        project_id: int,
+        folder_name: str,
+        user: str,
+        image_names: list,
+    ):
+        assign_images_url = urljoin(self.api_url, self.URL_ASSIGN_IMAGES)
+        res = self._request(
+            assign_images_url,
+            "put",
+            params={"team_id": team_id, "project_id": project_id},
+            data={
+                "image_names": image_names,
+                "assign_user_id": user,
+                "folder_name": folder_name,
+            },
+        )
+        return res

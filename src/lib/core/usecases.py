@@ -1254,7 +1254,7 @@ class SetImageAnnotationStatuses(BaseUseCase):
 
     def execute(self):
         for i in range(0, len(self._image_names), self.CHUNK_SIZE):
-            self._response.data = self._service.set_images_statuse_bulk(
+            self._response.data = self._service.set_images_statuses_bulk(
                 image_names=self._image_names,
                 team_id=self._team_id,
                 project_id=self._project_id,
@@ -1306,4 +1306,36 @@ class DeleteImagesUseCase(BaseUseCase):
                 project_id=self._project.uuid,
                 team_id=self._project.team_id,
                 image_ids=image_ids[i : i + self.CHUNK_SIZE],  # noqa: E203
+            )
+
+
+class AssignImagesUseCase(BaseUseCase):
+
+    CHUNK_SIZE = 500
+
+    def __init__(
+        self,
+        response: Response,
+        service: SuerannotateServiceProvider,
+        project_entity: ProjectEntity,
+        folder_name: str,
+        image_names: list,
+        user: str,
+    ):
+        super().__init__(response)
+        self._response = response
+        self._project_entity = project_entity
+        self._folder_name = folder_name
+        self._image_names = image_names
+        self._user = user
+        self._service = service
+
+    def execute(self):
+        for i in range(0, len(self._image_names), self.CHUNK_SIZE):
+            self._response.data = self._service.assign_images(
+                team_id=self._project_entity.team_id,
+                project_id=self._project_entity.uuid,
+                folder_name=self._folder_name,
+                user=self._user,
+                image_names=self._image_names[i : i + self.CHUNK_SIZE],  # noqa: E203
             )
