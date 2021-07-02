@@ -45,7 +45,7 @@ def vgg_to_sa(json_data, task, output_dir):
     for _, img in images.items():
         try:
             H, W, _ = cv2.imread(str(output_dir / img["filename"])).shape
-        except Exception as e:
+        except Exception:
             logger.warning(
                 "Can't open %s image. 'height' and 'width' for SA JSON metadata will set to zero",
                 img["filename"],

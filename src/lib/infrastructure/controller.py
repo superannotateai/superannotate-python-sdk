@@ -9,7 +9,6 @@ from src.lib.core.entities import FolderEntity
 from src.lib.core.entities import ImageEntity
 from src.lib.core.entities import ImageInfoEntity
 from src.lib.core.entities import ProjectEntity
-from src.lib.core.entities import ProjectSettingEntity
 from src.lib.core.exceptions import AppException
 from src.lib.core.response import Response
 from src.lib.core.usecases import AttachFileUrls
@@ -19,6 +18,7 @@ from src.lib.core.usecases import CreateFolderUseCase
 from src.lib.core.usecases import CreateProjectUseCase
 from src.lib.core.usecases import DeleteContributorInvitationUseCase
 from src.lib.core.usecases import DeleteFolderUseCase
+from src.lib.core.usecases import DeleteImagesUseCase
 from src.lib.core.usecases import DeleteImageUseCase
 from src.lib.core.usecases import DeleteProjectUseCase
 from src.lib.core.usecases import DownloadImageFromPublicUrlUseCase
@@ -40,6 +40,7 @@ from src.lib.core.usecases import InviteContributorUseCase
 from src.lib.core.usecases import PrepareExportUseCase
 from src.lib.core.usecases import SearchContributorsUseCase
 from src.lib.core.usecases import SearchFolderUseCase
+from src.lib.core.usecases import SetImageAnnotationStatuses
 from src.lib.core.usecases import UpdateFolderUseCase
 from src.lib.core.usecases import UpdateImageUseCase
 from src.lib.core.usecases import UpdateProjectUseCase
@@ -788,6 +789,23 @@ class Controller(BaseController):
         )
         set_images_annotation_statuses_use_case.execute()
         return self._response
+
+    def delete_images(
+        self, project_name: str, folder_name: str, image_names: List[str] = None,
+    ):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+
+        use_case = DeleteImagesUseCase(
+            response=self.response,
+            project=project,
+            folder=folder,
+            images=self.images,
+            image_names=image_names,
+            backend_service_provider=self._backend_client,
+        )
+        use_case.execute()
+        return self.response
 
     def assign_images(
             self,

@@ -991,12 +991,13 @@ class ImagesBulkCopyUseCase(BaseUseCase):
         self._include_pin = include_pin
 
     def execute(self):
-        duplications = self._backend_service.get_duplicated_images(
+        images = self._backend_service.get_bulk_images(
             project_id=self._project.uuid,
             team_id=self._project.team_id,
             folder_id=self._to_folder.uuid,
             images=self._image_names,
         )
+        duplications = [image["name"] for image in images]
         images_to_copy = set(self._image_names) - set(duplications)
         skipped_images = duplications
         for i in range(0, len(images_to_copy), self.CHUNK_SIZE):
@@ -1005,14 +1006,12 @@ class ImagesBulkCopyUseCase(BaseUseCase):
                 project_id=self._project.uuid,
                 from_folder_id=self._from_folder.uuid,
                 to_folder_id=self._to_folder.uuid,
-                images=self._image_names[i : i + self.CHUNK_SIZE],  # noqa: E203
+                images=self._image_names[i : i + self.CHUNK_SIZE],
                 include_annotations=self._include_annotations,
                 include_pin=self._include_pin,
             )
             if not poll_id:
-                skipped_images.append(
-                    self._image_names[i : i + self.CHUNK_SIZE]  # noqa: E203
-                )
+                skipped_images.append(self._image_names[i : i + self.CHUNK_SIZE])
                 continue
 
             await_time = len(images_to_copy) * 0.3
@@ -1139,12 +1138,15 @@ class UpdateSettingsUseCase(BaseUseCase):
             new_settings_to_update.append(
                 {
                     "id": attr_id_mapping[new_setting["attribute"]],
-                    "attribute":new_setting["attribute"],
-                    "value":new_setting["value"]
-            })
+                    "attribute": new_setting["attribute"],
+                    "value": new_setting["value"],
+                }
+            )
 
         self._response.data = self._backend_service_provider.set_project_settings(
-            project_id=self._project_id, team_id=self._team_id, data=new_settings_to_update,
+            project_id=self._project_id,
+            team_id=self._team_id,
+            data=new_settings_to_update,
         )
 
 
@@ -1233,14 +1235,14 @@ class SetImageAnnotationStatuses(BaseUseCase):
     CHUNK_SIZE = 500
 
     def __init__(
-            self,
-            response: Response,
-            service: SuerannotateServiceProvider,
-            image_names: list,
-            team_id: int,
-            project_id: int,
-            folder_id: int,
-            annotation_status: int
+        self,
+        response: Response,
+        service: SuerannotateServiceProvider,
+        image_names: list,
+        team_id: int,
+        project_id: int,
+        folder_id: int,
+        annotation_status: int,
     ):
         super().__init__(response)
         self._service = service
@@ -1253,11 +1255,57 @@ class SetImageAnnotationStatuses(BaseUseCase):
     def execute(self):
         for i in range(0, len(self._image_names), self.CHUNK_SIZE):
             self._response.data = self._service.set_images_statuse_bulk(
-                image_names=self._image_names[i: i + self.CHUNK_SIZE],  # noqa: E203,
+                image_names=self._image_names,
                 team_id=self._team_id,
                 project_id=self._project_id,
                 folder_id=self._folder_id,
-                annotation_status=self._annotation_status
+                annotation_status=self._annotation_status,
+            )
+
+
+class DeleteImagesUseCase(BaseUseCase):
+    CHUNK_SIZE = 1000
+
+    def __init__(
+        self,
+        response: Response,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        backend_service_provider: SuerannotateServiceProvider,
+        images: BaseReadOnlyRepository,
+        image_names: List[str] = None,
+    ):
+        super().__init__(response)
+        self._project = project
+        self._folder = folder
+        self._images = images
+        self._backend_service = backend_service_provider
+        self._image_names = image_names
+
+    def execute(self):
+        if self._image_names:
+            image_ids = [
+                image["id"]
+                for image in self._backend_service.get_bulk_images(
+                    project_id=self._project.uuid,
+                    team_id=self._project.team_id,
+                    folder_id=self._folder.uuid,
+                    images=self._image_names,
+                )
+            ]
+        else:
+            condition = (
+                Condition("team_id", self._project.team_id, EQ)
+                & Condition("project_id", self._project.uuid, EQ)
+                & Condition("folder_id", self._folder.uuid, EQ)
+            )
+            image_ids = [image.uuid for image in self._images.get_all(condition)]
+
+        for i in range(0, len(image_ids), self.CHUNK_SIZE):
+            self._backend_service.delete_images(
+                project_id=self._project.uuid,
+                team_id=self._project.team_id,
+                image_ids=image_ids[i : i + self.CHUNK_SIZE],  # noqa: E203
             )
 
 

@@ -44,7 +44,7 @@ def _create_vector_instance(
     elif instance_type == "cuboid":
         sa_instance["points"] = {
             "f1": {"x": points[0], "y": points[1]},
-            "f2": {"x": points[2], "y": points[3],},
+            "f2": {"x": points[2], "y": points[3]},
             "r1": {"x": points[4], "y": points[5]},
             "r2": {"x": points[6], "y": points[7]},
         }

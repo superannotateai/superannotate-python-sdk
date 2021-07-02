@@ -1,6 +1,3 @@
-import numpy as np
-
-
 def _update_classes_dict(classes, new_class, new_attributes):
     if new_class not in classes.keys():
         classes[new_class] = {"attribute_group": {}}
