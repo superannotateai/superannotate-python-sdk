@@ -949,8 +949,8 @@ def assign_folder(project_name, folder_name, users):
     """Assigns folder to users. With SDK, the user can be
     assigned to a role in the project with the share_project function.
 
-    :param project: project name or metadata of the project
-    :type project: str or dict
+    :param project_name: project name or metadata of the project
+    :type project_name: str or dict
     :param folder_name: folder name to assign
     :type folder_name: str
     :param users: list of user emails
@@ -959,3 +959,16 @@ def assign_folder(project_name, folder_name, users):
     controller.assign_folder(
         project_name=project_name, folder_name=folder_name, users=users
     )
+
+
+def share_project(project_name, user, user_role):
+    """Share project with user.
+
+    :param project_name: project name
+    :type project_name: str
+    :param user: user email or metadata of the user to share project with
+    :type user: str or dict
+    :param user_role: user role to apply, one of Admin , Annotator , QA , Customer , Viewer
+    :type user_role: str
+    """
+    controller.share_project(project_name=project_name, user=user, user_role=user_role)
