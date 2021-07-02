@@ -148,3 +148,14 @@ class SuerannotateServiceProvider(ABC):
             folder_id: int,
             annotation_status: int):
         raise NotImplementedError
+
+    def assign_images(
+            self,
+            team_id: int,
+            project_id: int,
+            folder_name: str,
+            user: str,
+            image_names: list,
+    ):
+        raise NotImplementedError
+
