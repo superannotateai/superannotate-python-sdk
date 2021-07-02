@@ -187,3 +187,8 @@ class SuerannotateServiceProvider(ABC):
         self, team_id: int, project_id: int, folder_name: str,
     ):
         raise NotImplementedError
+
+    def assign_folder(
+        self, team_id: int, project_id: int, folder_name: str, users: list
+    ):
+        raise NotImplementedError
