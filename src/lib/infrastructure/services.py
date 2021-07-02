@@ -619,4 +619,4 @@ class SuperannotateBackendService(BaseBackendService):
                 "folder_name": folder_name,
             },
         )
-        return res
+        return res.ok
