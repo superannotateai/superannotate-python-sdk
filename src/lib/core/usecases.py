@@ -1444,25 +1444,3 @@ class ShareProjectUseCase(BaseUseCase):
             user_id=self._user_id,
             user_role=self.user_role,
         )
-
-
-class UnShareProjectUseCase(BaseUseCase):
-    def __init__(
-        self,
-        response: Response,
-        service: SuerannotateServiceProvider,
-        project_entity: ProjectEntity,
-        user_id: str,
-    ):
-        super().__init__(response)
-        self._response = response
-        self._service = service
-        self._project_entity = project_entity
-        self._user_id = user_id
-
-    def execute(self):
-        self._response.data = self._service.un_share_project(
-            team_id=self._project_entity.team_id,
-            project_id=self._project_entity.uuid,
-            user_id=self._user_id,
-        )
