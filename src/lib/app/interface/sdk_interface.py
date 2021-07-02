@@ -653,7 +653,7 @@ def move_images(
     if moved_count > 1 or moved_count == 0:
         message_prefix = f"Moved {moved_count}/{len(image_names)} images from "
     elif moved_count == 1:
-        message_prefix = f"Moved an image from"
+        message_prefix = "Moved an image from"
 
     logger.info(
         message_prefix
@@ -910,5 +910,3 @@ def assign_images(project, image_names, user):
     :type user: str
     """
     controller.assign_images(project, image_names, user)
-
-

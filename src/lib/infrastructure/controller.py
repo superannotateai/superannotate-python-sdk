@@ -2,7 +2,9 @@ import copy
 import io
 from typing import Iterable
 from typing import List
+
 import lib.core as constances
+from lib.app.helpers import split_project_path
 from src.lib.core.conditions import Condition
 from src.lib.core.conditions import CONDITION_EQ as EQ
 from src.lib.core.entities import FolderEntity
@@ -11,6 +13,7 @@ from src.lib.core.entities import ImageInfoEntity
 from src.lib.core.entities import ProjectEntity
 from src.lib.core.exceptions import AppException
 from src.lib.core.response import Response
+from src.lib.core.usecases import AssignImagesUseCase
 from src.lib.core.usecases import AttachFileUrls
 from src.lib.core.usecases import CloneProjectUseCase
 from src.lib.core.usecases import CopyImageAnnotationClasses
@@ -46,8 +49,6 @@ from src.lib.core.usecases import UpdateImageUseCase
 from src.lib.core.usecases import UpdateProjectUseCase
 from src.lib.core.usecases import UpdateSettingsUseCase
 from src.lib.core.usecases import UploadImageS3UseCas
-from src.lib.core.usecases import SetImageAnnotationStatuses
-from src.lib.core.usecases import AssignImagesUseCase
 from src.lib.infrastructure.repositories import AnnotationClassRepository
 from src.lib.infrastructure.repositories import ConfigRepository
 from src.lib.infrastructure.repositories import FolderRepository
@@ -58,7 +59,6 @@ from src.lib.infrastructure.repositories import S3Repository
 from src.lib.infrastructure.repositories import TeamRepository
 from src.lib.infrastructure.repositories import WorkflowRepository
 from src.lib.infrastructure.services import SuperannotateBackendService
-from lib.app.helpers import split_project_path
 
 
 class BaseController:
@@ -770,22 +770,22 @@ class Controller(BaseController):
         return self.response
 
     def set_images_annotation_statuses(
-            self,
-            project_name: str,
-            folder_name: str,
-            image_names: list,
-            annotation_status: str
+        self,
+        project_name: str,
+        folder_name: str,
+        image_names: list,
+        annotation_status: str,
     ):
         project_entity = self._get_project(project_name)
-        folder_entity = self._get_folder(project_entity,folder_name)
+        folder_entity = self._get_folder(project_entity, folder_name)
         set_images_annotation_statuses_use_case = SetImageAnnotationStatuses(
-            response= self._response,
-            service= self._backend_client,
+            response=self._response,
+            service=self._backend_client,
             image_names=image_names,
             team_id=project_entity.team_id,
-            project_id= project_entity.uuid,
+            project_id=project_entity.uuid,
             folder_id=folder_entity.uuid,
-            annotation_status= constances.AnnotationStatus.get_value(annotation_status)
+            annotation_status=constances.AnnotationStatus.get_value(annotation_status),
         )
         set_images_annotation_statuses_use_case.execute()
         return self._response
@@ -807,25 +807,19 @@ class Controller(BaseController):
         use_case.execute()
         return self.response
 
-    def assign_images(
-            self,
-            project: str,
-            image_names: list,
-            user: list
-    ):
-        # TODO : here  or in use case?
+    def assign_images(self, project: str, image_names: list, user: list):
         project_name, folder_name = split_project_path(project)
         project_entity = self._get_project(project_name)
 
         if not folder_name:
-            folder_name = 'root'
+            folder_name = "root"
 
         assign_images_use_case = AssignImagesUseCase(
-            response= self.response,
-            project_entity= project_entity,
+            response=self.response,
+            project_entity=project_entity,
             service=self._backend_client,
-            folder_name= folder_name,
-            image_names= image_names,
-            user= user
+            folder_name=folder_name,
+            image_names=image_names,
+            user=user,
         )
         assign_images_use_case.execute()
