@@ -638,9 +638,7 @@ class Controller(BaseController):
     ):
 
         project_entity = self._get_project(project_name)
-        data = {
-            "project": project_entity
-        }
+        data = {"project": project_entity}
         if include_annotation_classes:
             classes_res = Response()
             annotation_classes_use_case = GetAnnotationClassesUseCase(
@@ -706,9 +704,9 @@ class Controller(BaseController):
         project_entity = self._get_project(project_name)
         workflows_use_case = GetWorkflowsUseCase(
             workflows=WorkflowRepository(
-                    service=self._backend_client, project=project_entity
+                service=self._backend_client, project=project_entity
             ),
-            response=self.response
+            response=self.response,
         )
         workflows_use_case.execute()
         return self.response

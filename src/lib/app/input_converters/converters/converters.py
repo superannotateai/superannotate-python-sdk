@@ -1,10 +1,12 @@
-'''
+"""
 
 This object will receive the strategy from outside and will convert according to
    said strategy.
 
-'''
-from .coco_converters.coco_strategies import CocoObjectDetectionStrategy, CocoKeypointDetectionStrategy, CocoPanopticConverterStrategy
+"""
+from .coco_converters.coco_strategies import CocoKeypointDetectionStrategy
+from .coco_converters.coco_strategies import CocoObjectDetectionStrategy
+from .coco_converters.coco_strategies import CocoPanopticConverterStrategy
 from .dataloop_converters.dataloop_strategies import DataLoopStrategy
 from .googlecloud_converters.googlecloud_strategies import GoogleCloudStrategy
 from .labelbox_converters.labelbox_strategies import LabelBoxStrategy
@@ -16,7 +18,7 @@ from .vott_converters.vott_strategies import VoTTStrategy
 from .yolo_converters.yolo_strategies import YoloStrategy
 
 
-class Converter(object):
+class Converter:
     def __init__(self, args):
         self.output_dir = args.output_dir
         self._select_strategy(args)
@@ -32,11 +34,11 @@ class Converter(object):
 
     def _select_strategy(self, args):
         if args.dataset_format == "COCO":
-            if args.task == 'instance_segmentation' or args.task == 'object_detection':
+            if args.task == "instance_segmentation" or args.task == "object_detection":
                 c_strategy = CocoObjectDetectionStrategy(args)
-            if args.task == 'keypoint_detection':
+            if args.task == "keypoint_detection":
                 c_strategy = CocoKeypointDetectionStrategy(args)
-            if args.task == 'panoptic_segmentation':
+            if args.task == "panoptic_segmentation":
                 c_strategy = CocoPanopticConverterStrategy(args)
         elif args.dataset_format == "DataLoop":
             c_strategy = DataLoopStrategy(args)
@@ -55,7 +57,7 @@ class Converter(object):
         elif args.dataset_format == "VoTT":
             c_strategy = VoTTStrategy(args)
         elif args.dataset_format == "YOLO":
-            if args.task == 'object_detection':
+            if args.task == "object_detection":
                 c_strategy = YoloStrategy(args)
         else:
             pass
