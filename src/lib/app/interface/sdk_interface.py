@@ -909,4 +909,7 @@ def assign_images(project, image_names, user):
     :param user: user email
     :type user: str
     """
-    controller.assign_images(project, image_names, user)
+    project_name, folder_name = split_project_path(project)
+    if not folder_name:
+        folder_name = "root"
+    controller.assign_images(project_name, folder_name, image_names, user)

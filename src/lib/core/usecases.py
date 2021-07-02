@@ -1305,7 +1305,7 @@ class DeleteImagesUseCase(BaseUseCase):
             self._backend_service.delete_images(
                 project_id=self._project.uuid,
                 team_id=self._project.team_id,
-                image_ids=image_ids[i : i + self.CHUNK_SIZE],  # noqa: E203
+                image_ids=image_ids[i : i + self.CHUNK_SIZE],
             )
 
 
@@ -1337,5 +1337,5 @@ class AssignImagesUseCase(BaseUseCase):
                 project_id=self._project_entity.uuid,
                 folder_name=self._folder_name,
                 user=self._user,
-                image_names=self._image_names[i : i + self.CHUNK_SIZE],  # noqa: E203
+                image_names=self._image_names[i : i + self.CHUNK_SIZE],
             )

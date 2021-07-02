@@ -4,7 +4,6 @@ from typing import Iterable
 from typing import List
 
 import lib.core as constances
-from lib.app.helpers import split_project_path
 from src.lib.core.conditions import Condition
 from src.lib.core.conditions import CONDITION_EQ as EQ
 from src.lib.core.entities import FolderEntity
@@ -129,7 +128,7 @@ class Controller(BaseController):
             )[0]
         return self._project
 
-    def _get_folder(self, project: ProjectEntity, name: str):
+    def _get_folder(self, project: ProjectEntity, name: str = None):
         if not name:
             name = "root"
         folders = FolderRepository(self._backend_client, project)
@@ -807,13 +806,10 @@ class Controller(BaseController):
         use_case.execute()
         return self.response
 
-    def assign_images(self, project: str, image_names: list, user: list):
-        project_name, folder_name = split_project_path(project)
+    def assign_images(
+        self, project_name: str, folder_name: str, image_names: list, user: list
+    ):
         project_entity = self._get_project(project_name)
-
-        if not folder_name:
-            folder_name = "root"
-
         assign_images_use_case = AssignImagesUseCase(
             response=self.response,
             project_entity=project_entity,
