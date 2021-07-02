@@ -1339,3 +1339,32 @@ class AssignImagesUseCase(BaseUseCase):
                 user=self._user,
                 image_names=self._image_names[i : i + self.CHUNK_SIZE],
             )
+
+
+class UnAssignImagesUseCase(BaseUseCase):
+
+    CHUNK_SIZE = 500
+
+    def __init__(
+        self,
+        response: Response,
+        service: SuerannotateServiceProvider,
+        project_entity: ProjectEntity,
+        folder_name: str,
+        image_names: list,
+    ):
+        super().__init__(response)
+        self._response = response
+        self._project_entity = project_entity
+        self._folder_name = folder_name
+        self._image_names = image_names
+        self._service = service
+
+    def execute(self):
+        for i in range(0, len(self._image_names), self.CHUNK_SIZE):
+            self._response.data = self._service.un_assign_images_url(
+                team_id=self._project_entity.team_id,
+                project_id=self._project_entity.uuid,
+                folder_name=self._folder_name,
+                image_names=self._image_names[i : i + self.CHUNK_SIZE],
+            )

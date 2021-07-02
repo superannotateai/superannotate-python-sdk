@@ -163,6 +163,11 @@ class SuerannotateServiceProvider(ABC):
     ):
         raise NotImplementedError
 
+    def un_assign_images_url(
+        self, team_id: int, project_id: int, folder_name: str, image_names: list,
+    ):
+        raise NotImplementedError
+
     def get_bulk_images(
             self, project_id: int, team_id: int, folder_id: int, images: List[str]
     ) -> List[str]:
