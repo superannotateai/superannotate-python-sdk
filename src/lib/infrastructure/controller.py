@@ -12,6 +12,7 @@ from src.lib.core.entities import ImageInfoEntity
 from src.lib.core.entities import ProjectEntity
 from src.lib.core.exceptions import AppException
 from src.lib.core.response import Response
+from src.lib.core.usecases import AssignImagesUseCase
 from src.lib.core.usecases import AttachFileUrls
 from src.lib.core.usecases import CloneProjectUseCase
 from src.lib.core.usecases import CopyImageAnnotationClasses
@@ -127,7 +128,7 @@ class Controller(BaseController):
             )[0]
         return self._project
 
-    def _get_folder(self, project: ProjectEntity, name: str):
+    def _get_folder(self, project: ProjectEntity, name: str = None):
         if not name:
             name = "root"
         folders = FolderRepository(self._backend_client, project)
@@ -804,3 +805,17 @@ class Controller(BaseController):
         )
         use_case.execute()
         return self.response
+
+    def assign_images(
+        self, project_name: str, folder_name: str, image_names: list, user: list
+    ):
+        project_entity = self._get_project(project_name)
+        assign_images_use_case = AssignImagesUseCase(
+            response=self.response,
+            project_entity=project_entity,
+            service=self._backend_client,
+            folder_name=folder_name,
+            image_names=image_names,
+            user=user,
+        )
+        assign_images_use_case.execute()

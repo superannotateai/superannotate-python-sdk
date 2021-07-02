@@ -895,3 +895,21 @@ def delete_images(project, image_names=None):
     logger.info(
         f"Images deleted in project {project_name}{'' if folder_name else '/' + folder_name}"
     )
+
+
+def assign_images(project, image_names, user):
+    """Assigns images to a user. The assignment role, QA or Annotator, will
+    be deduced from the user's role in the project. With SDK, the user can be
+    assigned to a role in the project with the share_project function.
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param image_names: list of image names to assign
+    :type image_names: list of str
+    :param user: user email
+    :type user: str
+    """
+    project_name, folder_name = split_project_path(project)
+    if not folder_name:
+        folder_name = "root"
+    controller.assign_images(project_name, folder_name, image_names, user)
