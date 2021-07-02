@@ -7,11 +7,11 @@ from pathlib import Path
 
 import cv2
 import numpy as np
+from lib.app.exceptions import AppException
 
 from ..common import blue_color_generator
 from ..common import hex_to_rgb
 from ..common import write_to_json
-from ..exceptions import SABaseException
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -181,8 +181,7 @@ def sa_convert_project_type(input_dir, output_dir):
     elif "__objects.json" in json_paths[0].name:
         img_names = from_vector_to_pixel(json_paths, output_dir)
     else:
-        raise SABaseException(
-            0,
+        raise AppException(
             "'input_dir' should contain JSON files with '[IMAGE_NAME]___objects.json' or '[IMAGE_NAME]___pixel.json' names structure.",
         )
 

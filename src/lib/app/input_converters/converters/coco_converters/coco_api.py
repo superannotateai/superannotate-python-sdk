@@ -128,7 +128,9 @@ def _polytoMask(polygons, height, width):
     for polygon in polygons:
         polygon = np.array(polygon, dtype=np.uint16)
         pts = np.array(
-            [polygon[2 * i : 2 * (i + 1)] for i in range(len(polygon) // 2)],
+            [
+                polygon[2 * i : 2 * (i + 1)] for i in range(len(polygon) // 2)
+            ],  # noqa: E203
             dtype=np.int32,
         )
         bitmask = np.zeros((height, width)).astype(np.uint8)

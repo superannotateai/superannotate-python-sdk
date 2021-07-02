@@ -1,6 +1,3 @@
-import numpy as np
-
-
 def _create_attribute_list(attribute_dict, class_name, class_id_map):
     attr_keys = attribute_dict.keys()
     attributes = []

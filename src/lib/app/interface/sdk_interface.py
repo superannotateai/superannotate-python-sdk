@@ -17,13 +17,6 @@ from lib.infrastructure.repositories import ConfigRepository
 from lib.infrastructure.services import SuperannotateBackendService
 
 
-ENTITY_SERIALIZERS = {
-    "settings": BaseSerializers,
-    "workflow": BaseSerializers,
-    "classes": BaseSerializers,
-    "project": ProjectSerializer,
-}
-
 logger = logging.getLogger()
 
 
@@ -882,3 +875,20 @@ def set_images_annotation_statuses(project, image_names, annotation_status):
     controller.set_images_annotation_statuses(project_name,folder_name,image_names,annotation_status)
 
 
+def delete_images(project, image_names=None):
+    """Delete images in project.
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param image_names: to be deleted images' names. If None, all the images will be deleted
+    :type image_names: list of strs
+    """
+    project_name, folder_name = split_project_path(project)
+
+    controller.delete_images(
+        project_name=project_name, folder_name=folder_name, image_names=image_names
+    )
+
+    logger.info(
+        f"Images deleted in project {project_name}{'' if folder_name else '/' + folder_name}"
+    )
