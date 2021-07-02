@@ -29,12 +29,12 @@ class ProjectType(Enum):
     PIXEL = 2
 
 
-class UserRole(Enum):
-    ADMIN = 2
-    ANNOTATOR = 3
-    QA = 4
-    CUSTOMER = 5
-    VIEWER = 6
+class UserRole(BaseTitledEnum):
+    ADMIN = "Admin", 2
+    ANNOTATOR = "Annotator", 3
+    QA = "QA", 4
+    CUSTOMER = "Customer", 5
+    VIEWER = "Viewer", 6
 
 
 class UploadState(Enum):

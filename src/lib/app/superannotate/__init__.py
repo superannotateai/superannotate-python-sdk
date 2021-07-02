@@ -36,6 +36,7 @@ from src.lib.app.interface.sdk_interface import search_folders
 from src.lib.app.interface.sdk_interface import search_images
 from src.lib.app.interface.sdk_interface import search_projects
 from src.lib.app.interface.sdk_interface import search_team_contributors
+from src.lib.app.interface.sdk_interface import share_project
 from src.lib.app.interface.sdk_interface import unassign_folder
 from src.lib.app.interface.sdk_interface import unassign_images
 
@@ -79,6 +80,7 @@ __all__ = [
     "search_projects",
     "create_project",
     "clone_project",
+    "share_project",
     # Images Section
     "search_images",
     "copy_image",
