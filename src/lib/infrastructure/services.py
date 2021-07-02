@@ -62,7 +62,7 @@ class BaseBackendService(SuerannotateServiceProvider):
             return self.PAGINATE_BY
 
     def _request(
-            self, url, method="get", data=None, headers=None, params=None,
+        self, url, method="get", data=None, headers=None, params=None,
     ) -> requests.Response:
         kwargs = {"json": data} if data else {}
         headers_dict = self.default_headers.copy()
@@ -133,10 +133,8 @@ class SuperannotateBackendService(BaseBackendService):
     URL_INVITE_CONTRIBUTOR = "team/{}/invite"
     URL_PREPARE_EXPORT = "export"
     URL_COPY_IMAGES_FROM_FOLDER = "images/copy-image-or-folders"
-    URL_GET_COPY_PROGRESS = "/images/copy-image-progress"
-    URL_GET_IMAGES_BULK = "images/getBulk"
     URL_MOVE_IMAGES_FROM_FOLDER = "image/move"
-    URL_SET_IMAGES_STATUSES_BULK = "image/updateAnnotationStatusBulk"
+    URL_GET_COPY_PROGRESS = "images/copy-image-progress"
 
     def get_project(self, uuid: int, team_id: int):
         get_project_url = urljoin(self.api_url, self.URL_GET_PROJECT.format(uuid))
@@ -154,12 +152,12 @@ class SuperannotateBackendService(BaseBackendService):
         return response.json()
 
     def get_download_token(
-            self,
-            project_id: int,
-            team_id: int,
-            folder_id: int,
-            image_id: int,
-            include_original: int = 1,
+        self,
+        project_id: int,
+        team_id: int,
+        folder_id: int,
+        image_id: int,
+        include_original: int = 1,
     ):
         download_token_url = urljoin(
             self.api_url,
@@ -179,7 +177,7 @@ class SuperannotateBackendService(BaseBackendService):
         return response.json()
 
     def get_upload_token(
-            self, project_id: int, team_id: int, folder_id: int, image_id: int,
+        self, project_id: int, team_id: int, folder_id: int, image_id: int,
     ):
         download_token_url = urljoin(
             self.api_url,
@@ -219,17 +217,17 @@ class SuperannotateBackendService(BaseBackendService):
         url = urljoin(self.api_url, self.URL_GET_PROJECT.format(data["id"]))
         if query_string:
             url = f"{url}?{query_string}"
-        res = self._request(url, "put", data, )
+        res = self._request(url, "put", data)
         return res.ok
 
     def attach_files(
-            self,
-            project_id: int,
-            team_id: int,
-            files: List[Dict],
-            annotation_status_code,
-            upload_state_code,
-            meta,
+        self,
+        project_id: int,
+        team_id: int,
+        files: List[Dict],
+        annotation_status_code,
+        upload_state_code,
+        meta,
     ):
         data = {
             "project_id": project_id,
@@ -301,7 +299,7 @@ class SuperannotateBackendService(BaseBackendService):
         return res.json()
 
     def get_annotation_classes(
-            self, project_id: int, team_id: int, query_string: str = None
+        self, project_id: int, team_id: int, query_string: str = None
     ):
         get_annotation_classes_url = urljoin(self.api_url, self.URL_ANNOTATION_CLASSES)
         if query_string:
@@ -341,7 +339,7 @@ class SuperannotateBackendService(BaseBackendService):
         return res.json()
 
     def share_project(
-            self, project_id: int, team_id: int, user_id: int, user_role: int
+        self, project_id: int, team_id: int, user_id: int, user_role: int
     ):
         share_project_url = urljoin(
             self.api_url, self.URL_SHARE_PROJECT.format(project_id)
@@ -378,13 +376,13 @@ class SuperannotateBackendService(BaseBackendService):
         return [image for image in pages]
 
     def prepare_export(
-            self,
-            project_id: int,
-            team_id: int,
-            folders: List[str],
-            annotation_statuses: Iterable[str],
-            include_fuse: bool,
-            only_pinned: bool,
+        self,
+        project_id: int,
+        team_id: int,
+        folders: List[str],
+        annotation_statuses: Iterable[str],
+        include_fuse: bool,
+        only_pinned: bool,
     ):
         prepare_export_url = urljoin(self.api_url, self.URL_PREPARE_EXPORT)
 
@@ -447,14 +445,14 @@ class SuperannotateBackendService(BaseBackendService):
         return res.ok
 
     def copy_images_between_folders_transaction(
-            self,
-            team_id: int,
-            project_id: int,
-            from_folder_id: int,
-            to_folder_id: int,
-            images: List[str],
-            include_annotations: bool = False,
-            include_pin: bool = False,
+        self,
+        team_id: int,
+        project_id: int,
+        from_folder_id: int,
+        to_folder_id: int,
+        images: List[str],
+        include_annotations: bool = False,
+        include_pin: bool = False,
     ) -> int:
         """
         Returns poll id.
@@ -477,12 +475,12 @@ class SuperannotateBackendService(BaseBackendService):
             return res.json()["poll_id"]
 
     def move_images_between_folders(
-            self,
-            team_id: int,
-            project_id: int,
-            from_folder_id: int,
-            to_folder_id: int,
-            images: List[str],
+        self,
+        team_id: int,
+        project_id: int,
+        from_folder_id: int,
+        to_folder_id: int,
+        images: List[str],
     ) -> List[str]:
         move_images_url = urljoin(self.api_url, self.URL_MOVE_IMAGES_FROM_FOLDER)
         res = self._request(
@@ -500,7 +498,7 @@ class SuperannotateBackendService(BaseBackendService):
         return []
 
     def get_progress(
-            self, project_id: int, team_id: int, poll_id: int
+        self, project_id: int, team_id: int, poll_id: int
     ) -> Tuple[int, int]:
         get_progress_url = urljoin(self.api_url, self.URL_GET_COPY_PROGRESS)
 
@@ -512,7 +510,7 @@ class SuperannotateBackendService(BaseBackendService):
         return res["done"], res["skipped"]
 
     def get_duplicated_images(
-            self, project_id: int, team_id: int, folder_id: int, images: List[str]
+        self, project_id: int, team_id: int, folder_id: int, images: List[str]
     ) -> List[str]:
         get_duplications_url = urljoin(self.api_url, self.URL_BULK_GET_IMAGES)
 
@@ -549,19 +547,52 @@ class SuperannotateBackendService(BaseBackendService):
         return res
 
     def set_images_statuse_bulk(
-            self,
-            image_names: list,
-            team_id: int,
-            project_id: int,
-            folder_id: int,
-            annotation_status:int
+        self,
+        image_names: list,
+        team_id: int,
+        project_id: int,
+        folder_id: int,
+        annotation_status: int,
     ):
-        set_images_statuses_bulk_url = urljoin(self.api_url,  self.URL_SET_IMAGES_STATUSES_BULK)
+        set_images_statuses_bulk_url = urljoin(
+            self.api_url, self.URL_SET_IMAGES_STATUSES_BULK
+        )
 
         res = self._request(
             set_images_statuses_bulk_url,
-            'put',
+            "put",
             params={"team_id": team_id, "project_id": project_id},
-            data={"folder_id": folder_id, "annotation_status": annotation_status, "image_names": image_names}
+            data={
+                "folder_id": folder_id,
+                "annotation_status": annotation_status,
+                "image_names": image_names,
+            },
         )
         return res
+
+    def get_bulk_images(
+        self, project_id: int, team_id: int, folder_id: int, images: List[str]
+    ) -> List[str]:
+        get_duplications_url = urljoin(self.api_url, self.URL_BULK_GET_IMAGES)
+
+        res = self._request(
+            get_duplications_url,
+            "post",
+            data={
+                "project_id": project_id,
+                "team_id": team_id,
+                "folder_id": folder_id,
+                "names": images,
+            },
+        )
+        return res.json()
+
+    def delete_images(self, project_id: int, team_id: int, image_ids: List[int]):
+        delete_images_url = urljoin(self.api_url, self.URL_DELETE_IMAGES)
+        res = self._request(
+            delete_images_url,
+            "put",
+            params={"team_id": team_id, "project_id": project_id},
+            data={"image_ids": image_ids},
+        )
+        return res.json()

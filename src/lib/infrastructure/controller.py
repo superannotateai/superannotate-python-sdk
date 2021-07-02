@@ -2,6 +2,7 @@ import copy
 import io
 from typing import Iterable
 from typing import List
+
 import lib.core as constances
 from src.lib.core.conditions import Condition
 from src.lib.core.conditions import CONDITION_EQ as EQ
@@ -9,7 +10,6 @@ from src.lib.core.entities import FolderEntity
 from src.lib.core.entities import ImageEntity
 from src.lib.core.entities import ImageInfoEntity
 from src.lib.core.entities import ProjectEntity
-from src.lib.core.entities import ProjectSettingEntity
 from src.lib.core.exceptions import AppException
 from src.lib.core.response import Response
 from src.lib.core.usecases import AttachFileUrls
@@ -19,6 +19,7 @@ from src.lib.core.usecases import CreateFolderUseCase
 from src.lib.core.usecases import CreateProjectUseCase
 from src.lib.core.usecases import DeleteContributorInvitationUseCase
 from src.lib.core.usecases import DeleteFolderUseCase
+from src.lib.core.usecases import DeleteImagesUseCase
 from src.lib.core.usecases import DeleteImageUseCase
 from src.lib.core.usecases import DeleteProjectUseCase
 from src.lib.core.usecases import DownloadImageFromPublicUrlUseCase
@@ -40,12 +41,12 @@ from src.lib.core.usecases import InviteContributorUseCase
 from src.lib.core.usecases import PrepareExportUseCase
 from src.lib.core.usecases import SearchContributorsUseCase
 from src.lib.core.usecases import SearchFolderUseCase
+from src.lib.core.usecases import SetImageAnnotationStatuses
 from src.lib.core.usecases import UpdateFolderUseCase
 from src.lib.core.usecases import UpdateImageUseCase
 from src.lib.core.usecases import UpdateProjectUseCase
 from src.lib.core.usecases import UpdateSettingsUseCase
 from src.lib.core.usecases import UploadImageS3UseCas
-from src.lib.core.usecases import SetImageAnnotationStatuses
 from src.lib.infrastructure.repositories import AnnotationClassRepository
 from src.lib.infrastructure.repositories import ConfigRepository
 from src.lib.infrastructure.repositories import FolderRepository
@@ -769,22 +770,39 @@ class Controller(BaseController):
         return self.response
 
     def set_images_annotation_statuses(
-            self,
-            project_name: str,
-            folder_name: str,
-            image_names: list,
-            annotation_status: str
+        self,
+        project_name: str,
+        folder_name: str,
+        image_names: list,
+        annotation_status: str,
     ):
         project_entity = self._get_project(project_name)
-        folder_entity = self._get_folder(project_entity,folder_name)
+        folder_entity = self._get_folder(project_entity, folder_name)
         set_images_annotation_statuses_use_case = SetImageAnnotationStatuses(
-            response= self._response,
-            service= self._backend_client,
+            response=self._response,
+            service=self._backend_client,
             image_names=image_names,
             team_id=project_entity.team_id,
-            project_id= project_entity.uuid,
+            project_id=project_entity.uuid,
             folder_id=folder_entity.uuid,
-            annotation_status= constances.AnnotationStatus.get_value(annotation_status)
+            annotation_status=constances.AnnotationStatus.get_value(annotation_status),
         )
         set_images_annotation_statuses_use_case.execute()
         return self._response
+
+    def delete_images(
+        self, project_name: str, folder_name: str, image_names: List[str] = None,
+    ):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+
+        use_case = DeleteImagesUseCase(
+            response=self.response,
+            project=project,
+            folder=folder,
+            images=self.images,
+            image_names=image_names,
+            backend_service_provider=self._backend_client,
+        )
+        use_case.execute()
+        return self.response
