@@ -112,6 +112,7 @@ class SuperannotateBackendService(BaseBackendService):
     """
 
     URL_USERS = "users"
+    URL_ASSIGN_IMAGES = "images/editAssignment"
     URL_LIST_PROJECTS = "projects"
     URL_FOLDERS_IMAGES = "images-folders"
     URL_CREATE_PROJECT = "project"
@@ -563,5 +564,22 @@ class SuperannotateBackendService(BaseBackendService):
             'put',
             params={"team_id": team_id, "project_id": project_id},
             data={"folder_id": folder_id, "annotation_status": annotation_status, "image_names": image_names}
+        )
+        return res
+
+    def assign_images(
+            self,
+            team_id:int,
+            project_id:int,
+            folder_name: str,
+            user:str,
+            image_names:list,
+    ):
+        assign_images_url = urljoin(self.api_url,  self.URL_ASSIGN_IMAGES)
+        res = self._request(
+            assign_images_url,
+            'put',
+            params={"team_id": team_id, "project_id": project_id},
+            data={"image_names": folder_name, "assign_user_id": user, "folder_name": folder_name}
         )
         return res
