@@ -28,7 +28,7 @@ class SuerannotateServiceProvider(ABC):
 
     @abstractmethod
     def share_project(
-        self, project_id: int, team_id: int, user_id: str, user_role: int
+        self, project_id: int, team_id: int, user_id: int, user_role: int
     ):
         raise NotImplementedError
 
@@ -183,7 +183,7 @@ class SuerannotateServiceProvider(ABC):
     ):
         raise NotImplementedError
 
-    def un_share_project(
-        self, team_id: int, project_id: int, user_id: str,
+    def unassign_folder(
+        self, team_id: int, project_id: int, folder_name: str,
     ):
         raise NotImplementedError
