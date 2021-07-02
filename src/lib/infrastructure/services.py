@@ -133,12 +133,14 @@ class SuperannotateBackendService(BaseBackendService):
     URL_INVITE_CONTRIBUTOR = "team/{}/invite"
     URL_PREPARE_EXPORT = "export"
     URL_COPY_IMAGES_FROM_FOLDER = "images/copy-image-or-folders"
-    URL_GET_COPY_PROGRESS = "/images/copy-image-progress"
     URL_GET_IMAGES_BULK = "images/getBulk"
     URL_MOVE_IMAGES_FROM_FOLDER = "image/move"
     URL_GET_COPY_PROGRESS = "images/copy-image-progress"
     URL_ASSIGN_IMAGES = "images/editAssignment"
     URL_ASSIGN_FOLDER = "folder/editAssignment"
+    # todo add urls
+    URL_DELETE_IMAGES = ""
+    URL_SET_IMAGES_STATUSES_BULK = ""
 
     def get_project(self, uuid: int, team_id: int):
         get_project_url = urljoin(self.api_url, self.URL_GET_PROJECT.format(uuid))
@@ -638,14 +640,26 @@ class SuperannotateBackendService(BaseBackendService):
         )
         return res.ok
 
-    def unassign_folder(
+    def un_assign_folder(
         self, team_id: int, project_id: int, folder_name: str,
     ):
-        unassign_folder_url = urljoin(self.api_url, self.URL_ASSIGN_FOLDER)
+        un_assign_folder_url = urljoin(self.api_url, self.URL_ASSIGN_FOLDER)
         res = self._request(
-            unassign_folder_url,
+            un_assign_folder_url,
             "post",
             params={"team_id": team_id, "project_id": project_id},
             data={"folder_name": folder_name, "remove_user_ids": ["all"]},
+        )
+        return res.ok
+
+    def assign_folder(
+        self, team_id: int, project_id: int, folder_name: str, users: list
+    ):
+        assign_folder_url = urljoin(self.api_url, self.URL_ASSIGN_FOLDER)
+        res = self._request(
+            assign_folder_url,
+            "post",
+            params={"team_id": team_id, "project_id": project_id},
+            data={"folder_name": folder_name, "assign_user_ids": users},
         )
         return res.ok

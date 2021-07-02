@@ -927,7 +927,7 @@ def unassign_images(project, image_names):
     """
     project_name, folder_name = split_project_path(project)
 
-    controller.unassign_images(
+    controller.un_assign_images(
         project_name=project_name, folder_name=folder_name, image_names=image_names
     )
 
@@ -942,4 +942,20 @@ def unassign_folder(project_name, folder_name):
     :param folder_name: folder name to remove assignees
     :type folder_name: str
     """
-    controller.unassign_folder(project_name=project_name, folder_name=folder_name)
+    controller.un_assign_folder(project_name=project_name, folder_name=folder_name)
+
+
+def assign_folder(project_name, folder_name, users):
+    """Assigns folder to users. With SDK, the user can be
+    assigned to a role in the project with the share_project function.
+
+    :param project: project name or metadata of the project
+    :type project: str or dict
+    :param folder_name: folder name to assign
+    :type folder_name: str
+    :param users: list of user emails
+    :type user: list of str
+    """
+    controller.assign_folder(
+        project_name=project_name, folder_name=folder_name, users=users
+    )

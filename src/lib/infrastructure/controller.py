@@ -12,6 +12,7 @@ from src.lib.core.entities import ImageInfoEntity
 from src.lib.core.entities import ProjectEntity
 from src.lib.core.exceptions import AppException
 from src.lib.core.response import Response
+from src.lib.core.usecases import AssignFolderUseCase
 from src.lib.core.usecases import AssignImagesUseCase
 from src.lib.core.usecases import AttachFileUrls
 from src.lib.core.usecases import CloneProjectUseCase
@@ -814,7 +815,7 @@ class Controller(BaseController):
         return self.response
 
     def assign_images(
-        self, project_name: str, folder_name: str, image_names: list, user: list
+        self, project_name: str, folder_name: str, image_names: list, user: str
     ):
         project_entity = self._get_project(project_name)
         assign_images_use_case = AssignImagesUseCase(
@@ -827,24 +828,35 @@ class Controller(BaseController):
         )
         assign_images_use_case.execute()
 
-    def unassign_images(self, project_name, folder_name, image_names):
+    def un_assign_images(self, project_name, folder_name, image_names):
         project = self._get_project(project_name)
         folder_name = self.get_folder_name(folder_name)
-        unassign_images_use_case = UnAssignImagesUseCase(
+        use_case = UnAssignImagesUseCase(
             response=self.response,
             project_entity=project,
             service=self._backend_client,
             folder_name=folder_name,
             image_names=image_names,
         )
-        unassign_images_use_case.execute()
+        use_case.execute()
 
-    def unassign_folder(self, project_name: str, folder_name: str):
+    def un_assign_folder(self, project_name: str, folder_name: str):
         project_entity = self._get_project(project_name)
-        unassign_folder_use_case = UnAssignFolderUseCase(
+        use_case = UnAssignFolderUseCase(
             response=self.response,
             service=self._backend_client,
             project_entity=project_entity,
             folder_name=folder_name,
         )
-        unassign_folder_use_case.execute()
+        use_case.execute()
+
+    def assign_folder(self, project_name: str, folder_name: str, users: List[str]):
+        project_entity = self._get_project(project_name)
+        use_case = AssignFolderUseCase(
+            response=self.response,
+            service=self._backend_client,
+            project_entity=project_entity,
+            folder_name=folder_name,
+            users=users,
+        )
+        use_case.execute()
