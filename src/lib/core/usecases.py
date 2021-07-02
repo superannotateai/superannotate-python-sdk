@@ -1415,3 +1415,32 @@ class AssignFolderUseCase(BaseUseCase):
             folder_name=self._folder_name,
             users=self._users,
         )
+
+
+class ShareProjectUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        service: SuerannotateServiceProvider,
+        project_entity: ProjectEntity,
+        user_id: str,
+        user_role: str,
+    ):
+        super().__init__(response)
+        self._response = response
+        self._service = service
+        self._project_entity = project_entity
+        self._user_id = user_id
+        self._user_role = user_role
+
+    @property
+    def user_role(self):
+        return constances.UserRole.get_value(self._user_role)
+
+    def execute(self):
+        self._response.data = self._service.share_project(
+            team_id=self._project_entity.team_id,
+            project_id=self._project_entity.uuid,
+            user_id=self._user_id,
+            user_role=self.user_role,
+        )

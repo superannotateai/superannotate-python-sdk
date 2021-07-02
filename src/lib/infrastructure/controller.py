@@ -44,6 +44,7 @@ from src.lib.core.usecases import PrepareExportUseCase
 from src.lib.core.usecases import SearchContributorsUseCase
 from src.lib.core.usecases import SearchFolderUseCase
 from src.lib.core.usecases import SetImageAnnotationStatuses
+from src.lib.core.usecases import ShareProjectUseCase
 from src.lib.core.usecases import UnAssignFolderUseCase
 from src.lib.core.usecases import UnAssignImagesUseCase
 from src.lib.core.usecases import UpdateFolderUseCase
@@ -860,3 +861,14 @@ class Controller(BaseController):
             users=users,
         )
         use_case.execute()
+
+    def share_project(self, project_name: str, user: str, user_role: str):
+        project_entity = self._get_project(project_name)
+        share_project_use_case = ShareProjectUseCase(
+            response=self.response,
+            service=self._backend_client,
+            project_entity=project_entity,
+            user_id=user,
+            user_role=user_role,
+        )
+        share_project_use_case.execute()
