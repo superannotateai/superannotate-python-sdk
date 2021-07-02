@@ -172,3 +172,8 @@ class SuerannotateServiceProvider(ABC):
             self, project_id: int, team_id: int, folder_id: int, images: List[str]
     ) -> List[str]:
         raise NotImplementedError
+
+    def unassign_folder(
+        self, team_id: int, project_id: int, folder_name: str,
+    ):
+        raise NotImplementedError

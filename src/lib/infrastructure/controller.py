@@ -43,6 +43,7 @@ from src.lib.core.usecases import PrepareExportUseCase
 from src.lib.core.usecases import SearchContributorsUseCase
 from src.lib.core.usecases import SearchFolderUseCase
 from src.lib.core.usecases import SetImageAnnotationStatuses
+from src.lib.core.usecases import UnAssignFolderUseCase
 from src.lib.core.usecases import UnAssignImagesUseCase
 from src.lib.core.usecases import UpdateFolderUseCase
 from src.lib.core.usecases import UpdateImageUseCase
@@ -837,3 +838,13 @@ class Controller(BaseController):
             image_names=image_names,
         )
         unassign_images_use_case.execute()
+
+    def unassign_folder(self, project_name: str, folder_name: str):
+        project_entity = self._get_project(project_name)
+        unassign_folder_use_case = UnAssignFolderUseCase(
+            response=self.response,
+            service=self._backend_client,
+            project_entity=project_entity,
+            folder_name=folder_name,
+        )
+        unassign_folder_use_case.execute()
