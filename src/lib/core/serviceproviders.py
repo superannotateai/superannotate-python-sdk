@@ -169,6 +169,16 @@ class SuerannotateServiceProvider(ABC):
         raise NotImplementedError
 
     def get_bulk_images(
-            self, project_id: int, team_id: int, folder_id: int, images: List[str]
+        self, project_id: int, team_id: int, folder_id: int, images: List[str]
     ) -> List[str]:
+        raise NotImplementedError
+
+    def un_assign_folder(
+        self, team_id: int, project_id: int, folder_name: str,
+    ):
+        raise NotImplementedError
+
+    def assign_folder(
+        self, team_id: int, project_id: int, folder_name: str, users: list
+    ):
         raise NotImplementedError

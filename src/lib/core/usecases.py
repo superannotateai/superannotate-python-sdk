@@ -1368,3 +1368,50 @@ class UnAssignImagesUseCase(BaseUseCase):
                 folder_name=self._folder_name,
                 image_names=self._image_names[i : i + self.CHUNK_SIZE],
             )
+
+
+class UnAssignFolderUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        service: SuerannotateServiceProvider,
+        project_entity: ProjectEntity,
+        folder_name: str,
+    ):
+        super().__init__(response)
+        self._response = response
+        self._service = service
+        self._project_entity = project_entity
+        self._folder_name = folder_name
+
+    def execute(self):
+        self._response.data = self._service.un_assign_folder(
+            team_id=self._project_entity.team_id,
+            project_id=self._project_entity.uuid,
+            folder_name=self._folder_name,
+        )
+
+
+class AssignFolderUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        service: SuerannotateServiceProvider,
+        project_entity: ProjectEntity,
+        folder_name: str,
+        users: List[str],
+    ):
+        super().__init__(response)
+        self._response = response
+        self._service = service
+        self._project_entity = project_entity
+        self._folder_name = folder_name
+        self._users = users
+
+    def execute(self):
+        self._response.data = self._service.assign_folder(
+            team_id=self._project_entity.team_id,
+            project_id=self._project_entity.uuid,
+            folder_name=self._folder_name,
+            users=self._users,
+        )

@@ -34,6 +34,10 @@ from src.lib.app.interface.sdk_interface import search_folders
 from src.lib.app.interface.sdk_interface import search_images
 from src.lib.app.interface.sdk_interface import search_projects
 from src.lib.app.interface.sdk_interface import search_team_contributors
+from src.lib.app.interface.sdk_interface import assign_folder
+from src.lib.app.interface.sdk_interface import assign_images
+from src.lib.app.interface.sdk_interface import unassign_images
+from src.lib.app.interface.sdk_interface import unassign_folder
 
 
 __author__ = "Superannotate"
@@ -85,8 +89,12 @@ __all__ = [
     "get_project_and_folder_metadata",
     "rename_folder",
     "search_folders",
+    "assign_folder",
+    "unassign_folder",
     # Image Section
     "copy_images",
     "move_images",
     "delete_images",
+    "assign_images",
+    "unassign_images"
 ]
