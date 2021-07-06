@@ -972,3 +972,15 @@ def share_project(project_name, user, user_role):
     :type user_role: str
     """
     controller.share_project(project_name=project_name, user=user, user_role=user_role)
+
+
+def unshare_project(project_name, user):
+    """Unshare (remove) user from project.
+
+    :param project_name: project name
+    :type project_name: str
+    :param user: user email or metadata of the user to unshare project
+    :type user: str or dict
+    """
+    controller.unshare_project(project_name=project_name, user=user)
+
