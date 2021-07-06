@@ -987,7 +987,6 @@ def unshare_project(project_name, user):
     controller.unshare_project(project_name=project_name, user=user)
 
 
-
 def upload_images_from_google_cloud_to_project(
     project,
     google_project,
@@ -1061,3 +1060,25 @@ def upload_images_from_google_cloud_to_project(
     uploaded_image_names = [image.name for image in uploaded_image_entities]
     # todo return uploaded images' urls
     return uploaded_image_names, duplicated_images, failed_images
+
+
+def get_image_annotations(project, image_name):
+    """Get annotations of the image.
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param image_name: image name
+    :type image: str
+
+    :return: dict object with following keys:
+        "annotation_json": dict object of the annotation,
+        "annotation_json_filename": filename on server,
+        "annotation_mask": mask (for pixel),
+        "annotation_mask_filename": mask filename on server
+    :rtype: dict
+    """
+    project_name, folder_name = split_project_path(project)
+    res = controller.get_image_annotations(
+        project_name=project_name, folder_name=folder_name, image_name=image_name
+    )
+    return res
