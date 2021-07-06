@@ -1518,3 +1518,89 @@ class DownloadGoogleCloudImages(BaseUseCase):
             "downloaded_images": downloaded_images,
             "duplicated_images": duplicated_images,
         }
+
+
+class GetProjectMetadataUseCase(BaseUseCase):
+    def __init__(
+        self,
+        project: ProjectEntity,
+        response: Response,
+        service: SuerannotateServiceProvider,
+        annotation_classes: BaseManageableRepository,
+        settings: BaseManageableRepository,
+        workflows: BaseManageableRepository,
+        projects: BaseManageableRepository,
+        include_annotation_classes: bool,
+        include_settings: bool,
+        include_workflow: bool,
+        include_contributors: bool,
+        include_complete_image_count: bool,
+    ):
+        super().__init__(response)
+        self._project = project
+        self._response = response
+        self._service = service
+
+        self._annotation_classes = annotation_classes
+        self._settings = settings
+        self._workflows = workflows
+        self._projects = projects
+
+        self._include_annotation_classes = include_annotation_classes
+        self._include_settings = include_settings
+        self._include_workflow = include_workflow
+        self._include_contributors = include_contributors
+        self._include_complete_image_count = include_complete_image_count
+
+        self._annotation_classes_response = Response()
+        self._settings_response = Response()
+        self._workflows_response = Response()
+
+    @property
+    def annotation_classes_use_case(self):
+        return GetAnnotationClassesUseCase(
+            response=self._annotation_classes_response, classes=self._annotation_classes
+        )
+
+    @property
+    def settings_use_case(self):
+        return GetSettingsUseCase(
+            response=self._settings_response, settings=self._settings
+        )
+
+    @property
+    def work_flow_use_case(self):
+        return GetWorkflowsUseCase(
+            response=self._workflows_response, workflows=self._workflows
+        )
+
+    def execute(self):
+        data = {"project": self._project}
+
+        if self._include_annotation_classes:
+            self.annotation_classes_use_case.execute()
+            data["classes"] = self._annotation_classes_response.data
+
+        if self._include_settings:
+            self.settings_use_case.execute()
+            data["settings"] = self._settings_response.data
+
+        if self._include_workflow:
+            self.work_flow_use_case.execute()
+            data["workflows"] = self._settings_response.data
+
+        if self._include_contributors:
+            data["contributors"] = self._project.users
+
+        if self._include_complete_image_count:
+            projects = self._projects.get_all(
+                condition=(
+                    Condition("completeImagesCount", "true", EQ)
+                    & Condition("name", self._project.name, EQ)
+                    & Condition("team_id", self._project.team_id, EQ)
+                )
+            )
+            if projects:
+                data["project"] = projects[0]
+
+        self._response.data = data

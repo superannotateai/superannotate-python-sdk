@@ -987,7 +987,6 @@ def unshare_project(project_name, user):
     controller.unshare_project(project_name=project_name, user=user)
 
 
-
 def upload_images_from_google_cloud_to_project(
     project,
     google_project,
