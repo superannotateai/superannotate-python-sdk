@@ -913,3 +913,20 @@ def assign_images(project, image_names, user):
     if not folder_name:
         folder_name = "root"
     controller.assign_images(project_name, folder_name, image_names, user)
+
+
+def unassign_images(project, image_names):
+    """Removes assignment of given images for all assignees.With SDK,
+    the user can be assigned to a role in the project with the share_project
+    function.
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param image_names: list of image unassign
+    :type image_names: list of str
+    """
+    project_name, folder_name = split_project_path(project)
+
+    controller.unassign_images(
+        project_name=project_name, folder_name=folder_name, image_names=image_names
+    )
