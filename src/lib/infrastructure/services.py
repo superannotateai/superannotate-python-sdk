@@ -127,7 +127,7 @@ class SuperannotateBackendService(BaseBackendService):
     URL_CREATE_IMAGE = "image/ext-create"
     URL_PROJECT_SETTIGNS = "project/{}/settings"
     URL_PROJECT_WORKFLOW = "project/{}/workflow"
-    URL_SHARE_PROJECT = "project/{}/workflow"
+    URL_SHARE_PROJECT = "project/{}/share"
     URL_ANNOTATION_CLASSES = "classes"
     URL_TEAM = "team"
     URL_INVITE_CONTRIBUTOR = "team/{}/invite"
