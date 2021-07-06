@@ -13,6 +13,8 @@ from typing import Optional
 
 import requests
 import src.lib.core as constances
+from azure.core.exceptions import AzureError
+from azure.storage.blob import BlobServiceClient
 from google.api_core.exceptions import GoogleAPIError
 from google.cloud import storage as google_storage
 from src.lib.core.conditions import Condition
@@ -1517,4 +1519,65 @@ class DownloadGoogleCloudImages(BaseUseCase):
         self._response.data = {
             "downloaded_images": downloaded_images,
             "duplicated_images": duplicated_images,
+            "failed_images": failed_images,
+        }
+
+
+class DownloadAzureCloudImages(BaseUseCase):
+    STORAGE_KEY_NAME = "AZURE_STORAGE_CONNECTION_STRING"
+
+    def __init__(
+        self, response: Response, container: str, folder_name: str, download_path: str,
+    ):
+        super().__init__(response)
+        self._container = container
+        self._folder_name = folder_name
+        self._download_path = download_path
+
+    @property
+    def get_blobs(self):
+        bucket = self.client.get_container_client(self._container)
+        return bucket.list_blobs(name_starts_with=self._folder_name)
+
+    @property
+    def connect_key(self):
+        return os.getenv(self.STORAGE_KEY_NAME)
+
+    @property
+    def client(self):
+        return BlobServiceClient.from_connection_string(self.connect_key)
+
+    def execute(self):
+        blob_client = self.client
+        image_blobs = self.get_blobs()
+        downloaded_images = []
+        duplicated_images = []
+        failed_images = []
+        path = Path(self._download_path)
+        for image_blob in image_blobs:
+            if image_blobs.content_type.startswith("image"):
+                image_name = os.path.basename(image_blob.name)
+                image_path = path / image_name
+                if image_name not in downloaded_images:
+                    try:
+                        image_blob_client = blob_client.get_blob_client(
+                            container=self._container, blob=image_blob
+                        )
+                        image_stream = image_blob_client.download_blob()
+                    except AzureError as e:
+                        self._response.errors = (
+                            f"Couldn't download image {image_name} {e}"
+                        )
+                        failed_images.append(image_name)
+                    else:
+                        with open(image_path, "wb") as image_file:
+                            image_file.write(image_stream.readall())
+                        downloaded_images.append(image_name)
+                else:
+                    duplicated_images.append(image_name)
+
+        self._response.data = {
+            "downloaded_images": downloaded_images,
+            "duplicated_images": duplicated_images,
+            "failed_images": failed_images,
         }

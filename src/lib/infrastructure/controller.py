@@ -24,6 +24,7 @@ from src.lib.core.usecases import DeleteFolderUseCase
 from src.lib.core.usecases import DeleteImagesUseCase
 from src.lib.core.usecases import DeleteImageUseCase
 from src.lib.core.usecases import DeleteProjectUseCase
+from src.lib.core.usecases import DownloadAzureCloudImages
 from src.lib.core.usecases import DownloadGoogleCloudImages
 from src.lib.core.usecases import DownloadImageFromPublicUrlUseCase
 from src.lib.core.usecases import DownloadImageUseCase
@@ -892,6 +893,18 @@ class Controller(BaseController):
             response=self.response,
             project_name=project_name,
             bucket_name=bucket_name,
+            folder_name=folder_name,
+            download_path=download_path,
+        )
+        use_case.execute()
+        return self.response
+
+    def download_images_from_azure_cloud(
+        self, container_name: str, folder_name: str, download_path: str
+    ):
+        use_case = DownloadAzureCloudImages(
+            response=self.response,
+            container=container_name,
             folder_name=folder_name,
             download_path=download_path,
         )
