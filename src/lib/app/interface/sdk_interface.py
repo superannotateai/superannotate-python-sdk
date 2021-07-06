@@ -983,3 +983,4 @@ def unshare_project(project_name, user):
     :type user: str or dict
     """
     controller.unshare_project(project_name=project_name, user=user)
+

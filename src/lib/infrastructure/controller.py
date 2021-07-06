@@ -817,7 +817,7 @@ class Controller(BaseController):
         return self.response
 
     def assign_images(
-        self, project_name: str, folder_name: str, image_names: list, user: str
+        self, project_name: str, folder_name: str, image_names: list, user: list
     ):
         project_entity = self._get_project(project_name)
         assign_images_use_case = AssignImagesUseCase(
@@ -883,3 +883,4 @@ class Controller(BaseController):
             user_id=user,
         )
         use_case.execute()
+
