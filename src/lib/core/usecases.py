@@ -1362,7 +1362,7 @@ class UnAssignImagesUseCase(BaseUseCase):
 
     def execute(self):
         for i in range(0, len(self._image_names), self.CHUNK_SIZE):
-            self._response.data = self._service.un_assign_images_url(
+            self._response.data = self._service.unassign_images(
                 team_id=self._project_entity.team_id,
                 project_id=self._project_entity.uuid,
                 folder_name=self._folder_name,
