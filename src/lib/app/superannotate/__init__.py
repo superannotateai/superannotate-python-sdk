@@ -39,6 +39,7 @@ from src.lib.app.interface.sdk_interface import search_team_contributors
 from src.lib.app.interface.sdk_interface import share_project
 from src.lib.app.interface.sdk_interface import unassign_folder
 from src.lib.app.interface.sdk_interface import unassign_images
+from src.lib.app.interface.sdk_interface import upload_images_from_google_cloud_to_project
 
 
 __author__ = "Superannotate"
@@ -99,4 +100,5 @@ __all__ = [
     "delete_images",
     "assign_images",
     "unassign_images",
+    "upload_images_from_google_cloud_to_project",
 ]
