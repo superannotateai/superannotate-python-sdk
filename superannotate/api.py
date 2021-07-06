@@ -51,7 +51,7 @@ class API:
             self._api_config = json.load(open(config_location))
 
             try:
-                self._token = self._api_config["token"]
+                self._token = self._api_config["token"].strip()
             except KeyError:
                 raise SABaseException(
                     0,
