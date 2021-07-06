@@ -1,6 +1,8 @@
 import concurrent.futures
 import logging
 import os
+import tempfile
+from io import BytesIO
 from urllib.parse import urlparse
 
 import lib.core as constances
@@ -984,3 +986,78 @@ def unshare_project(project_name, user):
     """
     controller.unshare_project(project_name=project_name, user=user)
 
+
+
+def upload_images_from_google_cloud_to_project(
+    project,
+    google_project,
+    bucket_name,
+    folder_path,
+    annotation_status="NotStarted",
+    image_quality_in_editor=None,
+):
+    """Uploads all images present in folder_path at bucket_name in google_project to the project.
+    Sets status of all the uploaded images to set_status if it is not None.
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param google_project: the project name on google cloud, where the bucket resides
+    :type google_project: str
+    :param bucket_name: the name of the bucket where the images are stored
+    :type bucket_name: str
+    :param folder_path: path of the folder on the bucket where the images are stored
+    :type folder_path: str
+    :param annotation_status: value to set the annotation statuses of the uploaded images NotStarted InProgress QualityCheck Returned Completed Skipped
+    :type annotation_status: str
+    :param image_quality_in_editor: image quality be seen in SuperAnnotate web annotation editor.
+           Can be either "compressed" or "original".  If None then the default value in project settings will be used.
+    :type image_quality_in_editor: str
+
+    :return: uploaded images' urls, uploaded images' filenames, duplicate images' filenames and not-uploaded images' urls
+    :rtype: tuple of list of strs
+    """
+    uploaded_image_entities = []
+    project_name, folder_name = split_project_path(project)
+
+    def _upload_image(image_path: str) -> str:
+        with open(image_path, "rb") as image:
+            image_bytes = BytesIO(image.read())
+            upload_response = controller.upload_image_to_s3(
+                project_name=project_name,
+                image_path=image_path,
+                image_bytes=image_bytes,
+                folder_name=folder_name,
+            )
+            if not upload_response.errors:
+                uploaded_image_entities.append(upload_response.data)
+            else:
+                return image_path
+
+    with tempfile.TemporaryDirectory() as save_dir_name:
+        response = controller.download_images_from_google_clout(
+            project_name=google_project,
+            bucket_name=bucket_name,
+            folder_name=folder_path,
+            download_path=save_dir_name,
+        )
+        if response.errors:
+            for error in response.errors:
+                logger.warning(error)
+        images_to_upload = response.data.get("downloaded_images")
+        duplicated_images = response.data.get("duplicated_images")
+        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+            failed_images = []
+            for image_path in enumerate(images_to_upload):
+                failed_images.append(executor.submit(_upload_image, image_path))
+
+    for i in range(0, len(images_to_upload), 500):
+        controller.upload_images(
+            project_name=project_name,
+            images=images_to_upload[i : i + 500],
+            annotation_status=annotation_status,
+            image_quality=image_quality_in_editor,
+        )
+
+    uploaded_image_names = [image.name for image in uploaded_image_entities]
+    # todo return uploaded images' urls
+    return uploaded_image_names, duplicated_images, failed_images

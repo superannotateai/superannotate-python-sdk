@@ -24,6 +24,7 @@ from src.lib.core.usecases import DeleteFolderUseCase
 from src.lib.core.usecases import DeleteImagesUseCase
 from src.lib.core.usecases import DeleteImageUseCase
 from src.lib.core.usecases import DeleteProjectUseCase
+from src.lib.core.usecases import DownloadGoogleCloudImages
 from src.lib.core.usecases import DownloadImageFromPublicUrlUseCase
 from src.lib.core.usecases import DownloadImageUseCase
 from src.lib.core.usecases import GetAnnotationClassesUseCase
@@ -817,7 +818,7 @@ class Controller(BaseController):
         return self.response
 
     def assign_images(
-        self, project_name: str, folder_name: str, image_names: list, user: list
+        self, project_name: str, folder_name: str, image_names: list, user: str
     ):
         project_entity = self._get_project(project_name)
         assign_images_use_case = AssignImagesUseCase(
@@ -884,3 +885,15 @@ class Controller(BaseController):
         )
         use_case.execute()
 
+    def download_images_from_google_clout(
+        self, project_name: str, bucket_name: str, folder_name: str, download_path: str
+    ):
+        use_case = DownloadGoogleCloudImages(
+            response=self.response,
+            project_name=project_name,
+            bucket_name=bucket_name,
+            folder_name=folder_name,
+            download_path=download_path,
+        )
+        use_case.execute()
+        return self.response
