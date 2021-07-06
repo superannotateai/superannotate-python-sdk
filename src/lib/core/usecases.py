@@ -1,6 +1,7 @@
 import copy
 import io
 import json
+import os.path
 import time
 import uuid
 from abc import ABC
@@ -12,6 +13,8 @@ from typing import Optional
 
 import requests
 import src.lib.core as constances
+from google.api_core.exceptions import GoogleAPIError
+from google.cloud import storage as google_storage
 from src.lib.core.conditions import Condition
 from src.lib.core.conditions import CONDITION_EQ as EQ
 from src.lib.core.entities import AnnotationClassEntity
@@ -264,7 +267,7 @@ class ImageUploadUseCas(BaseUseCase):
         project: ProjectEntity,
         project_settings: BaseReadOnlyRepository,
         backend_service_provider: SuerannotateServiceProvider,
-        images: List[ImageInfoEntity],
+        images: List[ImageEntity],
         annotation_status: Optional[str] = None,
         image_quality: Optional[str] = None,
     ):
@@ -303,7 +306,7 @@ class ImageUploadUseCas(BaseUseCase):
         meta = {}
         for image in self._images:
             images.append({"name": image.name, "path": image.path})
-            meta[image.name] = {"width": image.width, "height": image.height}
+            meta[image.name] = {"width": image.meta.width, "height": image.meta.height}
 
         self._backend.attach_files(
             project_id=self._project.uuid,
@@ -1466,3 +1469,52 @@ class UnShareProjectUseCase(BaseUseCase):
             project_id=self._project_entity.uuid,
             user_id=self._user_id,
         )
+
+
+class DownloadGoogleCloudImages(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        project_name: str,
+        bucket_name: str,
+        folder_name: str,
+        download_path: str,
+    ):
+        super().__init__(response)
+        self._project_name = project_name
+        self._bucket_name = bucket_name
+        self._folder_name = folder_name
+        self._download_path = download_path
+
+    @property
+    def client(self):
+        return google_storage.Client(project=self._project_name)
+
+    def execute(self):
+        bucket = self.client.get_bucket(self._bucket_name)
+        image_blobs = bucket.list_blobs(prefix=self._folder_name)
+        downloaded_images = []
+        duplicated_images = []
+        failed_images = []
+        path = Path(self._download_path)
+        for image_blob in image_blobs:
+            if image_blobs.content_type.startswith("image"):
+                image_name = os.path.basename(image_blob.name)
+                image_path = path / image_name
+                if image_name not in downloaded_images:
+                    try:
+                        image_blob.download_to_filename(image_path)
+                    except GoogleAPIError as e:
+                        self._response.errors = (
+                            f"Couldn't download image {image_name} {e}"
+                        )
+                        failed_images.append(image_name)
+                    else:
+                        downloaded_images.append(image_name)
+                else:
+                    duplicated_images.append(image_name)
+
+        self._response.data = {
+            "downloaded_images": downloaded_images,
+            "duplicated_images": duplicated_images,
+        }
