@@ -187,3 +187,6 @@ class SuerannotateServiceProvider(ABC):
         self, team_id: int, project_id: int, user_id: str,
     ):
         raise NotImplementedError
+
+    def get_project_images_count(self, team_id: int, project_id: int):
+        raise NotImplementedError

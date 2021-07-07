@@ -1293,3 +1293,25 @@ def upload_images_from_folder_to_project(
         duplicated_images,
         failed_images,
     )
+
+
+def get_project_image_count(project, with_all_subfolders=False):
+    """Returns number of images in the project.
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param with_all_subfolders: enables recursive folder counting
+    :type with_all_subfolders: bool
+
+    :return: number of images in the project
+    :rtype: int
+    """
+
+    project_name, folder_name = split_project_path(project)
+
+    data = controller.get_project_image_count(
+        project_name=project_name,
+        folder_name=folder_name,
+        with_all_subfolders=with_all_subfolders,
+    )
+    return data
