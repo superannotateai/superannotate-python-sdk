@@ -8,7 +8,6 @@ from src.lib.core.conditions import Condition
 from src.lib.core.conditions import CONDITION_EQ as EQ
 from src.lib.core.entities import FolderEntity
 from src.lib.core.entities import ImageEntity
-from src.lib.core.entities import ImageInfoEntity
 from src.lib.core.entities import ProjectEntity
 from src.lib.core.exceptions import AppException
 from src.lib.core.response import Response
