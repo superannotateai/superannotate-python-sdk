@@ -1295,6 +1295,98 @@ def upload_images_from_folder_to_project(
     )
 
 
+def get_project_image_count(project, with_all_subfolders=False):
+    """Returns number of images in the project.
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param with_all_subfolders: enables recursive folder counting
+    :type with_all_subfolders: bool
+
+    :return: number of images in the project
+    :rtype: int
+    """
+
+    project_name, folder_name = split_project_path(project)
+
+    data = controller.get_project_image_count(
+        project_name=project_name,
+        folder_name=folder_name,
+        with_all_subfolders=with_all_subfolders,
+    )
+    return data
+
+
+def get_image_preannotations(project, image_name):
+    """Get pre-annotations of the image. Only works for "vector" projects.
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param image_name: image name
+    :type image: str
+
+    :return: dict object with following keys:
+        "preannotation_json": dict object of the annotation,
+        "preannotation_json_filename": filename on server,
+        "preannotation_mask": mask (for pixel),
+        "preannotation_mask_filename": mask filename on server
+    :rtype: dict
+    """
+    project_name, folder_name = split_project_path(project)
+    res = controller.get_image_pre_annotations(
+        project_name=project_name, folder_name=folder_name, image_name=image_name
+    )
+    return res.data
+
+
+def download_image_annotations(project, image_name, local_dir_path):
+    """Downloads annotations of the image (JSON and mask if pixel type project)
+    to local_dir_path.
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param image_name: image name
+    :type image: str
+    :param local_dir_path: local directory path to download to
+    :type local_dir_path: Pathlike (str or Path)
+
+    :return: paths of downloaded annotations
+    :rtype: tuple
+    """
+    project_name, folder_name = split_project_path(project)
+    res = controller.download_image_annotations(
+        project_name=project_name,
+        folder_name=folder_name,
+        image_name=image_name,
+        destination=local_dir_path,
+    )
+    return res.data
+
+
+def download_image_preannotations(project, image_name, local_dir_path):
+    """Downloads pre-annotations of the image to local_dir_path.
+    Only works for "vector" projects.
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param image_name: image name
+    :type image: str
+    :param local_dir_path: local directory path to download to
+    :type local_dir_path: Pathlike (str or Path)
+
+    :return: paths of downloaded pre-annotations
+    :rtype: tuple
+    """
+    project_name, folder_name = split_project_path(project)
+    res = controller.download_image_pre_annotations(
+        project_name=project_name,
+        folder_name=folder_name,
+        image_name=image_name,
+        destination=local_dir_path,
+    )
+    return res.data
+
+
 def get_exports(project, return_metadata=False):
     """Get all prepared exports of the project.
 

@@ -1863,3 +1863,33 @@ class UploadS3ImagesBackendUseCase(BaseUseCase):
                 team_id=self._project.team_id,
                 data=[old_setting.to_dict()],
             )
+
+
+class GetProjectImageCountUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        service: SuerannotateServiceProvider,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        with_all_subfolders: bool,
+    ):
+        super().__init__(response)
+        self._service = service
+        self._project = project
+        self._folder = folder
+        self._with_all_subfolders = with_all_subfolders
+
+    def execute(self):
+        data = self._service.get_project_images_count(
+            project_id=self._project.uuid, team_id=self._project.team_id
+        )
+        count = 0
+        if self._with_all_subfolders:
+            for i in data["data"]:
+                count += i["imagesCount"]
+        else:
+            for i in data["data"]:
+                if i["name"] == self._folder.name:
+                    count = i["imagesCount"]
+        self._response.data = count
