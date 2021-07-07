@@ -1309,12 +1309,12 @@ def get_project_image_count(project, with_all_subfolders=False):
 
     project_name, folder_name = split_project_path(project)
 
-    response = controller.get_project_image_count(
+    data = controller.get_project_image_count(
         project_name=project_name,
         folder_name=folder_name,
         with_all_subfolders=with_all_subfolders,
     )
-    return response.data
+    return data
 
 
 def get_image_preannotations(project, image_name):
@@ -1402,39 +1402,3 @@ def get_exports(project, return_metadata=False):
         project_name=project, return_metadata=return_metadata
     )
     return response.data
-
-
-def upload_images_from_s3_bucket_to_project(
-    project,
-    accessKeyId,
-    secretAccessKey,
-    bucket_name,
-    folder_path,
-    image_quality_in_editor=None,
-):
-    """Uploads all images from AWS S3 bucket to the project.
-
-    :param project: project name or folder path (e.g., "project1/folder1")
-    :type project: str
-    :param accessKeyId: AWS S3 access key ID
-    :type accessKeyId: str
-    :param secretAccessKey: AWS S3 secret access key
-    :type secretAccessKey: str
-    :param bucket_name: AWS S3 bucket
-    :type bucket_name: str
-    :param folder_path: from which folder to upload the images
-    :type folder_path: str
-    :param image_quality_in_editor: image quality be seen in SuperAnnotate web annotation editor.
-           Can be either "compressed" or "original".  If None then the default value in project settings will be used.
-    :type image_quality_in_editor: str
-    """
-    project_name, folder_name = split_project_path(project)
-    controller.backend_upload_from_s3(
-        project_name=project_name,
-        folder_name=folder_name,
-        folder_path=folder_path,
-        access_key=accessKeyId,
-        secret_key=secretAccessKey,
-        bucket_name=bucket_name,
-        image_quality=image_quality_in_editor,
-    )
