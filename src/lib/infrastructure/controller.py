@@ -34,6 +34,7 @@ from src.lib.core.usecases import GetImageMetadataUseCase
 from src.lib.core.usecases import GetImagesUseCase
 from src.lib.core.usecases import GetImageUseCase
 from src.lib.core.usecases import GetProjectFoldersUseCase
+from src.lib.core.usecases import GetProjectMetadataUseCase
 from src.lib.core.usecases import GetProjectsUseCase
 from src.lib.core.usecases import GetSettingsUseCase
 from src.lib.core.usecases import GetTeamUseCase
@@ -650,58 +651,27 @@ class Controller(BaseController):
         include_contributors: bool = False,
         include_complete_image_count: bool = False,
     ):
-
-        project_entity = self._get_project(project_name)
-        data = {"project": project_entity}
-        if include_annotation_classes:
-            classes_res = Response()
-            annotation_classes_use_case = GetAnnotationClassesUseCase(
-                response=classes_res,
-                classes=AnnotationClassRepository(
-                    service=self._backend_client, project=project_entity
-                ),
-            )
-            annotation_classes_use_case.execute()
-            data["classes"] = classes_res.data
-
-        if include_settings:
-            settings_res = Response()
-            settings_use_case = GetSettingsUseCase(
-                response=settings_res,
-                settings=ProjectSettingsRepository(
-                    service=self._backend_client, project=project_entity
-                ),
-            )
-            settings_use_case.execute()
-            data["settings"] = settings_res.data
-
-        if include_workflow:
-            workflow_res = Response()
-            workflow_use_case = GetWorkflowsUseCase(
-                response=workflow_res,
-                workflows=WorkflowRepository(
-                    service=self._backend_client, project=project_entity
-                ),
-            )
-            workflow_use_case.execute()
-            data["workflow"] = workflow_res.data
-
-        if include_contributors:
-            data["contributors"] = project_entity.users
-
-        if include_complete_image_count:
-            projects_repo = ProjectRepository(service=self._backend_client)
-            projects = projects_repo.get_all(
-                condition=(
-                    Condition("completeImagesCount", "true", EQ)
-                    & Condition("name", self._project.name, EQ)
-                    & Condition("team_id", self._project.team_id, EQ)
-                )
-            )
-            if projects:
-                data["project"] = projects[0]
-
-        return Response(data=data)
+        project = self._get_project(project_name)
+        use_case = GetProjectMetadataUseCase(
+            project=project,
+            response=self.response,
+            service=self._backend_client,
+            annotation_classes=AnnotationClassRepository(
+                service=self._backend_client, project=project
+            ),
+            settings=ProjectSettingsRepository(
+                service=self._backend_client, project=project
+            ),
+            workflows=WorkflowRepository(service=self._backend_client, project=project),
+            projects=ProjectRepository(service=self._backend_client),
+            include_annotation_classes=include_annotation_classes,
+            include_settings=include_settings,
+            include_workflow=include_workflow,
+            include_contributors=include_contributors,
+            include_complete_image_count=include_complete_image_count,
+        )
+        use_case.execute()
+        return self.response
 
     def get_project_settings(self, project_name: str):
         project_entity = self._get_project(project_name)
