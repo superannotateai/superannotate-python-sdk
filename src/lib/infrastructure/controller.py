@@ -26,16 +26,13 @@ from src.lib.core.usecases import DeleteImageUseCase
 from src.lib.core.usecases import DeleteProjectUseCase
 from src.lib.core.usecases import DownloadAzureCloudImages
 from src.lib.core.usecases import DownloadGoogleCloudImages
-from src.lib.core.usecases import DownloadImageAnnotationsUseCase
 from src.lib.core.usecases import DownloadImageFromPublicUrlUseCase
-from src.lib.core.usecases import DownloadImagePreAnnotationsUseCase
 from src.lib.core.usecases import DownloadImageUseCase
 from src.lib.core.usecases import GetAnnotationClassesUseCase
 from src.lib.core.usecases import GetExportsUseCase
 from src.lib.core.usecases import GetFolderUseCase
 from src.lib.core.usecases import GetImageAnnotationsUseCase
 from src.lib.core.usecases import GetImageMetadataUseCase
-from src.lib.core.usecases import GetImagePreAnnotationsUseCase
 from src.lib.core.usecases import GetImagesUseCase
 from src.lib.core.usecases import GetImageUseCase
 from src.lib.core.usecases import GetProjectFoldersUseCase
@@ -901,41 +898,7 @@ class Controller(BaseController):
             images=ImageRepository(service=self._backend_client),
         )
         user_case.execute()
-        return self.response
-
-    def download_image_annotations(
-        self, project_name: str, folder_name: str, image_name: str, destination: str
-    ):
-        project = self._get_project(project_name)
-        folder = self._get_folder(project=project, name=folder_name)
-        user_case = DownloadImageAnnotationsUseCase(
-            response=self.response,
-            service=self._backend_client,
-            project=project,
-            folder=folder,
-            image_name=image_name,
-            images=ImageRepository(service=self._backend_client),
-            destination=destination,
-        )
-        user_case.execute()
-        return self.response
-
-    def download_image_pre_annotations(
-        self, project_name: str, folder_name: str, image_name: str, destination: str
-    ):
-        project = self._get_project(project_name)
-        folder = self._get_folder(project=project, name=folder_name)
-        user_case = DownloadImagePreAnnotationsUseCase(
-            response=self.response,
-            service=self._backend_client,
-            project=project,
-            folder=folder,
-            image_name=image_name,
-            images=ImageRepository(service=self._backend_client),
-            destination=destination,
-        )
-        user_case.execute()
-        return self.response
+        return self.response.data
 
     def get_image_from_s3(self, s3_bucket, image_path: str):
         use_case = GetS3ImageUseCase(
@@ -943,23 +906,6 @@ class Controller(BaseController):
         )
         use_case.execute()
         return use_case
-
-    def get_image_pre_annotations(
-        self, project_name: str, folder_name: str, image_name: str
-    ):
-        project = self._get_project(project_name)
-        folder = self._get_folder(project=project, name=folder_name)
-
-        user_case = GetImagePreAnnotationsUseCase(
-            response=self.response,
-            service=self._backend_client,
-            project=project,
-            folder=folder,
-            image_name=image_name,
-            images=ImageRepository(service=self._backend_client),
-        )
-        user_case.execute()
-        return self.response
 
     def get_exports(self, project_name: str, return_metadata: bool):
         project = self._get_project(project_name)
@@ -972,4 +918,4 @@ class Controller(BaseController):
         )
         use_case.execute()
 
-        return self.response
+        return self.response.data
