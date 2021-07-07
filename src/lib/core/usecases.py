@@ -11,9 +11,10 @@ from typing import Iterable
 from typing import List
 from typing import Optional
 
-import boto3
 import requests
 import src.lib.core as constances
+from azure.core.exceptions import AzureError
+from azure.storage.blob import BlobServiceClient
 from google.api_core.exceptions import GoogleAPIError
 from google.cloud import storage as google_storage
 from src.lib.core.conditions import Condition
@@ -261,11 +262,7 @@ class CloneProjectUseCase(BaseUseCase):
                 self._workflows.insert(workflow_copy)
 
 
-class AttachImagesUseCase(BaseUseCase):
-    """
-    Attach urls
-    """
-
+class ImageUploadUseCas(BaseUseCase):
     def __init__(
         self,
         response: Response,
@@ -479,7 +476,7 @@ class CreateFolderUseCase(BaseUseCase):
             raise AppValidationException("New folder name has special characters.")
 
 
-class AttachFileUrlsUseCase(BaseUseCase):
+class AttachFileUrls(BaseUseCase):
     def __init__(
         self,
         response: Response,
@@ -1522,7 +1519,154 @@ class DownloadGoogleCloudImages(BaseUseCase):
         self._response.data = {
             "downloaded_images": downloaded_images,
             "duplicated_images": duplicated_images,
+            "failed_images": failed_images,
         }
+
+
+class DownloadAzureCloudImages(BaseUseCase):
+    STORAGE_KEY_NAME = "AZURE_STORAGE_CONNECTION_STRING"
+
+    def __init__(
+        self, response: Response, container: str, folder_name: str, download_path: str,
+    ):
+        super().__init__(response)
+        self._container = container
+        self._folder_name = folder_name
+        self._download_path = download_path
+
+    @property
+    def get_blobs(self):
+        bucket = self.client.get_container_client(self._container)
+        return bucket.list_blobs(name_starts_with=self._folder_name)
+
+    @property
+    def connect_key(self):
+        return os.getenv(self.STORAGE_KEY_NAME)
+
+    @property
+    def client(self):
+        return BlobServiceClient.from_connection_string(self.connect_key)
+
+    def execute(self):
+        blob_client = self.client
+        image_blobs = self.get_blobs()
+        downloaded_images = []
+        duplicated_images = []
+        failed_images = []
+        path = Path(self._download_path)
+        for image_blob in image_blobs:
+            if image_blobs.content_type.startswith("image"):
+                image_name = os.path.basename(image_blob.name)
+                image_path = path / image_name
+                if image_name not in downloaded_images:
+                    try:
+                        image_blob_client = blob_client.get_blob_client(
+                            container=self._container, blob=image_blob
+                        )
+                        image_stream = image_blob_client.download_blob()
+                    except AzureError as e:
+                        self._response.errors = (
+                            f"Couldn't download image {image_name} {e}"
+                        )
+                        failed_images.append(image_name)
+                    else:
+                        with open(image_path, "wb") as image_file:
+                            image_file.write(image_stream.readall())
+                        downloaded_images.append(image_name)
+                else:
+                    duplicated_images.append(image_name)
+
+        self._response.data = {
+            "downloaded_images": downloaded_images,
+            "duplicated_images": duplicated_images,
+            "failed_images": failed_images,
+        }
+
+
+class GetProjectMetadataUseCase(BaseUseCase):
+    def __init__(
+        self,
+        project: ProjectEntity,
+        response: Response,
+        service: SuerannotateServiceProvider,
+        annotation_classes: BaseManageableRepository,
+        settings: BaseManageableRepository,
+        workflows: BaseManageableRepository,
+        projects: BaseManageableRepository,
+        include_annotation_classes: bool,
+        include_settings: bool,
+        include_workflow: bool,
+        include_contributors: bool,
+        include_complete_image_count: bool,
+    ):
+        super().__init__(response)
+        self._project = project
+        self._response = response
+        self._service = service
+
+        self._annotation_classes = annotation_classes
+        self._settings = settings
+        self._workflows = workflows
+        self._projects = projects
+
+        self._include_annotation_classes = include_annotation_classes
+        self._include_settings = include_settings
+        self._include_workflow = include_workflow
+        self._include_contributors = include_contributors
+        self._include_complete_image_count = include_complete_image_count
+
+        self._annotation_classes_response = Response()
+        self._settings_response = Response()
+        self._workflows_response = Response()
+
+    @property
+    def annotation_classes_use_case(self):
+        return GetAnnotationClassesUseCase(
+            response=self._annotation_classes_response, classes=self._annotation_classes
+        )
+
+    @property
+    def settings_use_case(self):
+        return GetSettingsUseCase(
+            response=self._settings_response, settings=self._settings
+        )
+
+    @property
+    def work_flow_use_case(self):
+        return GetWorkflowsUseCase(
+            response=self._workflows_response, workflows=self._workflows
+        )
+
+    def execute(self):
+        data = {"project": self._project}
+
+        if self._include_annotation_classes:
+            self.annotation_classes_use_case.execute()
+            data["classes"] = self._annotation_classes_response.data
+
+        if self._include_settings:
+            self.settings_use_case.execute()
+            data["settings"] = self._settings_response.data
+
+        if self._include_workflow:
+            self.work_flow_use_case.execute()
+            data["workflows"] = self._settings_response.data
+
+        if self._include_contributors:
+            data["contributors"] = self._project.users
+
+        if self._include_complete_image_count:
+            projects = self._projects.get_all(
+                condition=(
+                    Condition("completeImagesCount", "true", EQ)
+                    & Condition("name", self._project.name, EQ)
+                    & Condition("team_id", self._project.team_id, EQ)
+                )
+            )
+            if projects:
+                data["project"] = projects[0]
+
+        self._response.data = data
 
 
 class GetImageAnnotationsUseCase(BaseUseCase):
@@ -1544,7 +1688,7 @@ class GetImageAnnotationsUseCase(BaseUseCase):
         self._images = images
 
     @property
-    def image_use_case(self):
+    def get_image_use_case(self):
         return GetImageUseCase(
             response=self._image_response,
             project=self._project,
@@ -1560,7 +1704,7 @@ class GetImageAnnotationsUseCase(BaseUseCase):
             "annotation_mask": None,
             "annotation_mask_filename": None,
         }
-        self.image_use_case.execute()
+        self.get_image_use_case.execute()
         token = self._service.get_download_token(
             project_id=self._project.uuid,
             team_id=self._project.team_id,
@@ -1591,26 +1735,6 @@ class GetImageAnnotationsUseCase(BaseUseCase):
             data["annotation_mask_filename"] = f"{self._image_name}___save.png"
 
         self._response.data = data
-
-
-class GetS3ImageUseCase(BaseUseCase):
-    def __init__(
-        self, response: Response, s3_bucket, image_path: str,
-    ):
-        super().__init__(response)
-        self._s3_bucket = s3_bucket
-        self._image_path = image_path
-
-    def execute(self):
-        image = io.BytesIO()
-        session = boto3.Session()
-        resource = session.resource("s3")
-        image_object = resource.Object(self._s3_bucket, self._image_path)
-        if image_object.content_length > constances.MAX_IMAGE_SIZE:
-            raise AppValidationException(f"File size is {image_object.content_length}")
-        image_object.download_fileobj(image)
-
-        self._response.data = image
 
 
 class GetImagePreAnnotationsUseCase(BaseUseCase):
@@ -1679,161 +1803,3 @@ class GetImagePreAnnotationsUseCase(BaseUseCase):
             data["preannotation_mask_filename"] = f"{self._image_name}___save.png"
 
         self._response.data = data
-
-
-class DownloadImageAnnotationsUseCase(BaseUseCase):
-    def __init__(
-        self,
-        response: Response,
-        service: SuerannotateServiceProvider,
-        project: ProjectEntity,
-        folder: FolderEntity,
-        image_name: str,
-        images: BaseManageableRepository,
-        destination: str,
-    ):
-        super().__init__(response)
-        self._service = service
-        self._project = project
-        self._folder = folder
-        self._image_name = image_name
-        self._image_response = Response()
-        self._images = images
-        self._destination = destination
-
-    @property
-    def image_use_case(self):
-        return GetImageUseCase(
-            response=self._image_response,
-            project=self._project,
-            folder=self._folder,
-            image_name=self._image_name,
-            images=self._images,
-        )
-
-    def execute(self):
-        data = {
-            "annotation_json": None,
-            "annotation_json_filename": None,
-            "annotation_mask": None,
-            "annotation_mask_filename": None,
-        }
-        self.image_use_case.execute()
-        token = self._service.get_download_token(
-            project_id=self._project.uuid,
-            team_id=self._project.team_id,
-            folder_id=self._folder.uuid,
-            image_id=self._image_response.data.uuid,
-        )
-        annotation_json_creds = token["annotations"]["MAIN"][0]["annotation_json_path"]
-        if self._project.project_type == constances.ProjectType.VECTOR.value:
-            file_postfix = "___objects.json"
-        else:
-            file_postfix = "___pixel.json"
-
-        response = requests.get(
-            url=annotation_json_creds["url"], headers=annotation_json_creds["headers"],
-        )
-        if not response.ok:
-            raise AppException(f"Couldn't load annotations {response.text}")
-        data["annotation_json"] = response.json()
-        data["annotation_json_filename"] = f"{self._image_name}{file_postfix}"
-        if self._project.project_type == constances.ProjectType.PIXEL.value:
-            annotation_blue_map_creds = token["annotations"]["MAIN"][0][
-                "annotation_bluemap_path"
-            ]
-            response = requests.get(
-                url=annotation_blue_map_creds["url"],
-                headers=annotation_blue_map_creds["headers"],
-            )
-            data["annotation_mask"] = io.BytesIO(response.content)
-            data["annotation_mask_filename"] = f"{self._image_name}___save.png"
-            mask_path = Path(self._destination) / data["annotation_mask_filename"]
-            with open(mask_path, "wb") as f:
-                f.write(data["annotation_mask"].getbuffer())
-
-        json_path = Path(self._destination) / data["annotation_json_filename"]
-        with open(json_path, "w") as f:
-            json.dump(data["annotation_json"], f, indent=4)
-
-        self._response.data = (str(json_path), str(mask_path))
-
-
-class DownloadImagePreAnnotationsUseCase(BaseUseCase):
-    def __init__(
-        self,
-        response: Response,
-        service: SuerannotateServiceProvider,
-        project: ProjectEntity,
-        folder: FolderEntity,
-        image_name: str,
-        images: BaseManageableRepository,
-        destination: str,
-    ):
-        super().__init__(response)
-        self._service = service
-        self._project = project
-        self._folder = folder
-        self._image_name = image_name
-        self._image_response = Response()
-        self._images = images
-        self._destination = destination
-
-    @property
-    def image_use_case(self):
-        return GetImageUseCase(
-            response=self._image_response,
-            project=self._project,
-            folder=self._folder,
-            image_name=self._image_name,
-            images=self._images,
-        )
-
-    def execute(self):
-        data = {
-            "preannotation_json": None,
-            "preannotation_json_filename": None,
-            "preannotation_mask": None,
-            "preannotation_mask_filename": None,
-        }
-        self.image_use_case.execute()
-        token = self._service.get_download_token(
-            project_id=self._project.uuid,
-            team_id=self._project.team_id,
-            folder_id=self._folder.uuid,
-            image_id=self._image_response.data.uuid,
-        )
-        annotation_json_creds = token["annotations"]["PREANNOTATION"][0][
-            "annotation_json_path"
-        ]
-        if self._project.project_type == constances.ProjectType.VECTOR.value:
-            file_postfix = "___objects.json"
-        else:
-            file_postfix = "___pixel.json"
-
-        response = requests.get(
-            url=annotation_json_creds["url"], headers=annotation_json_creds["headers"],
-        )
-        if not response.ok:
-            raise AppException(f"Couldn't load annotations {response.text}")
-        data["preannotation_json"] = response.json()
-        data["preannotation_json_filename"] = f"{self._image_name}{file_postfix}"
-        if self._project.project_type == constances.ProjectType.PIXEL.value:
-            annotation_blue_map_creds = token["annotations"]["MAIN"][0][
-                "annotation_bluemap_path"
-            ]
-            response = requests.get(
-                url=annotation_blue_map_creds["url"],
-                headers=annotation_blue_map_creds["headers"],
-            )
-            data["preannotation_mask"] = io.BytesIO(response.content)
-            data["preannotation_mask_filename"] = f"{self._image_name}___save.png"
-            mask_path = Path(self._destination) / data["preannotation_mask_filename"]
-            with open(mask_path, "wb") as f:
-                f.write(data["preannotation_mask"].getbuffer())
-
-        json_path = Path(self._destination) / data["preannotation_json_filename"]
-        with open(json_path, "w") as f:
-            json.dump(data["preannotation_json"], f, indent=4)
-
-        self._response.data = (str(json_path), str(mask_path))

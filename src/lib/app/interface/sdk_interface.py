@@ -2,12 +2,9 @@ import concurrent.futures
 import logging
 import os
 import tempfile
-from collections import Counter
 from io import BytesIO
-from pathlib import Path
 from urllib.parse import urlparse
 
-import boto3
 import lib.core as constances
 from lib.app.exceptions import EmptyOutputError
 from lib.app.helpers import split_project_path
@@ -16,11 +13,11 @@ from lib.app.serializers import ImageSerializer
 from lib.app.serializers import ProjectSerializer
 from lib.app.serializers import TeamSerializer
 from lib.core.exceptions import AppException
-from lib.core.exceptions import AppValidationException
 from lib.core.response import Response
 from lib.infrastructure.controller import Controller
 from lib.infrastructure.repositories import ConfigRepository
 from lib.infrastructure.services import SuperannotateBackendService
+
 
 logger = logging.getLogger()
 
@@ -1065,6 +1062,77 @@ def upload_images_from_google_cloud_to_project(
     return uploaded_image_names, duplicated_images, failed_images
 
 
+def upload_images_from_azure_blob_to_project(
+    project,
+    container_name,
+    folder_path,
+    annotation_status="NotStarted",
+    image_quality_in_editor=None,
+):
+    """Uploads all images present in folder_path at container_name Azure blob storage to the project.
+    Sets status of all the uploaded images to set_status if it is not None.
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param container_name: container name of the Azure blob storage
+    :type container_name: str
+    :param folder_path: path of the folder on the bucket where the images are stored
+    :type folder_path: str
+    :param annotation_status: value to set the annotation statuses of the uploaded images NotStarted InProgress QualityCheck Returned Completed Skipped
+    :type annotation_status: str
+    :param image_quality_in_editor: image quality be seen in SuperAnnotate web annotation editor.
+           Can be either "compressed" or "original".  If None then the default value in project settings will be used.
+    :type image_quality_in_editor: str
+
+    :return: uploaded images' urls, uploaded images' filenames, duplicate images' filenames and not-uploaded images' urls
+    :rtype: tuple of list of strs
+    """
+    uploaded_image_entities = []
+    project_name, folder_name = split_project_path(project)
+
+    def _upload_image(image_path: str) -> str:
+        with open(image_path, "rb") as image:
+            image_bytes = BytesIO(image.read())
+            upload_response = controller.upload_image_to_s3(
+                project_name=project_name,
+                image_path=image_path,
+                image_bytes=image_bytes,
+                folder_name=folder_name,
+            )
+            if not upload_response.errors:
+                uploaded_image_entities.append(upload_response.data)
+            else:
+                return image_path
+
+    with tempfile.TemporaryDirectory() as save_dir_name:
+        response = controller.download_images_from_azure_cloud(
+            container_name=container_name,
+            folder_name=folder_path,
+            download_path=save_dir_name,
+        )
+        if response.errors:
+            for error in response.errors:
+                logger.warning(error)
+        images_to_upload = response.data.get("downloaded_images")
+        duplicated_images = response.data.get("duplicated_images")
+        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+            failed_images = []
+            for image_path in enumerate(images_to_upload):
+                failed_images.append(executor.submit(_upload_image, image_path))
+
+    for i in range(0, len(images_to_upload), 500):
+        controller.upload_images(
+            project_name=project_name,
+            images=images_to_upload[i : i + 500],
+            annotation_status=annotation_status,
+            image_quality=image_quality_in_editor,
+        )
+
+    uploaded_image_names = [image.name for image in uploaded_image_entities]
+    # todo return uploaded images' urls
+    return uploaded_image_names, duplicated_images, failed_images
+
+
 def get_image_annotations(project, image_name):
     """Get annotations of the image.
 
@@ -1087,143 +1155,6 @@ def get_image_annotations(project, image_name):
     return res
 
 
-def upload_images_from_folder_to_project(
-    project,
-    folder_path,
-    extensions=constances.DEFAULT_IMAGE_EXTENSIONS,
-    annotation_status="NotStarted",
-    from_s3_bucket=None,
-    exclude_file_patterns=constances.DEFAULT_FILE_EXCLUDE_PATTERNS,
-    recursive_subfolders=False,
-    image_quality_in_editor=None,
-):
-    """Uploads all images with given extensions from folder_path to the project.
-    Sets status of all the uploaded images to set_status if it is not None.
-
-    If an image with existing name already exists in the project it won't be uploaded,
-    and its path will be appended to the third member of return value of this
-    function.
-
-    :param project: project name or folder path (e.g., "project1/folder1")
-    :type project: str
-    :param folder_path: from which folder to upload the images
-    :type folder_path: Pathlike (str or Path)
-    :param extensions: tuple or list of filename extensions to include from folder
-    :type extensions: tuple or list of strs
-    :param annotation_status: value to set the annotation statuses of the uploaded images NotStarted InProgress QualityCheck Returned Completed Skipped
-    :type annotation_status: str
-    :param from_s3_bucket: AWS S3 bucket to use. If None then folder_path is in local filesystem
-    :type from_s3_bucket: str
-    :param exclude_file_patterns: filename patterns to exclude from uploading,
-                                 default value is to exclude SuperAnnotate export related ["___save.png", "___fuse.png"]
-    :type exclude_file_patterns: list or tuple of strs
-    :param recursive_subfolders: enable recursive subfolder parsing
-    :type recursive_subfolders: bool
-    :param image_quality_in_editor: image quality be seen in SuperAnnotate web annotation editor.
-           Can be either "compressed" or "original".  If None then the default value in project settings will be used.
-    :type image_quality_in_editor: str
-
-    :return: uploaded, could-not-upload, existing-images filepaths
-    :rtype: tuple (3 members) of list of strs
-    """
-    uploaded_image_entities = []
-    project_name, folder_name = split_project_path(project)
-
-    def _upload_local_image(image_path: str) -> str:
-        with open(image_path, "rb") as image:
-            image_bytes = BytesIO(image.read())
-            upload_response = controller.upload_image_to_s3(
-                project_name=project_name,
-                image_path=image_path,
-                image_bytes=image_bytes,
-                folder_name=folder_name,
-            )
-            if not upload_response.errors:
-                uploaded_image_entities.append(upload_response.data)
-            else:
-                return image_path
-
-    def _upload_s3_image(image_path: str) -> str:
-        try:
-            image_bytes = controller.get_image_from_s3(
-                s3_bucket=from_s3_bucket, image_path=image_path
-            ).data
-        except AppValidationException as e:
-            logger.warning(e)
-            return image_path
-        upload_response = controller.upload_image_to_s3(
-            project_name=project_name,
-            image_path=image_path,
-            image_bytes=image_bytes,
-            folder_name=folder_name,
-        )
-        if not response.errors:
-            uploaded_image_entities.append(upload_response.data)
-        else:
-            return image_path
-
-    paths = []
-    if from_s3_bucket is None:
-        for extension in extensions:
-            if recursive_subfolders:
-                paths += list(Path(folder_path).rglob(f"*.{extension.lower()}"))
-                if os.name != "nt":
-                    paths += list(Path(folder_path).rglob(f"*.{extension.upper()}"))
-            else:
-                paths += list(Path(folder_path).glob(f"*.{extension.lower()}"))
-                if os.name != "nt":
-                    paths += list(Path(folder_path).glob(f"*.{extension.upper()}"))
-
-    else:
-        s3_client = boto3.client("s3")
-        paginator = s3_client.get_paginator("list_objects_v2")
-        response_iterator = paginator.paginate(
-            Bucket=from_s3_bucket, Prefix=folder_path
-        )
-        for response in response_iterator:
-            for object_data in response["Contents"]:
-                key = object_data["Key"]
-                if not recursive_subfolders and "/" in key[len(folder_path) + 1 :]:
-                    continue
-                for extension in extensions:
-                    if key.endswith(f".{extension.lower()}") or key.endswith(
-                        f".{extension.upper()}"
-                    ):
-                        paths.append(key)
-                        break
-
-    filtered_paths = []
-    for path in paths:
-        not_in_exclude_list = [x not in Path(path).name for x in exclude_file_patterns]
-        if all(not_in_exclude_list):
-            filtered_paths.append(path)
-
-    duplication_counter = Counter(filtered_paths)
-    images_to_upload, duplicated_images = (
-        set(filtered_paths),
-        [item for item in duplication_counter if duplication_counter[item] > 1],
-    )
-    upload_method = _upload_s3_image if from_s3_bucket else _upload_local_image
-    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-        failed_images = []
-        for image_path in enumerate(images_to_upload):
-            failed_images.append(executor.submit(upload_method, image_path))
-
-    for i in range(0, len(uploaded_image_entities), 500):
-        controller.upload_images(
-            project_name=project_name,
-            images=uploaded_image_entities[i : i + 500],  # noqa: E203
-            annotation_status=annotation_status,
-            image_quality=image_quality_in_editor,
-        )
-
-    return (
-        [image.path for image in uploaded_image_entities],
-        duplicated_images,
-        failed_images,
-    )
-
-
 def get_image_preannotations(project, image_name):
     """Get pre-annotations of the image. Only works for "vector" projects.
 
@@ -1242,53 +1173,5 @@ def get_image_preannotations(project, image_name):
     project_name, folder_name = split_project_path(project)
     res = controller.get_image_pre_annotations(
         project_name=project_name, folder_name=folder_name, image_name=image_name
-    )
-    return res
-
-
-def download_image_annotations(project, image_name, local_dir_path):
-    """Downloads annotations of the image (JSON and mask if pixel type project)
-    to local_dir_path.
-
-    :param project: project name or folder path (e.g., "project1/folder1")
-    :type project: str
-    :param image_name: image name
-    :type image: str
-    :param local_dir_path: local directory path to download to
-    :type local_dir_path: Pathlike (str or Path)
-
-    :return: paths of downloaded annotations
-    :rtype: tuple
-    """
-    project_name, folder_name = split_project_path(project)
-    res = controller.download_image_annotations(
-        project_name=project_name,
-        folder_name=folder_name,
-        image_name=image_name,
-        destination=local_dir_path,
-    )
-    return res
-
-
-def download_image_preannotations(project, image_name, local_dir_path):
-    """Downloads pre-annotations of the image to local_dir_path.
-    Only works for "vector" projects.
-
-    :param project: project name or folder path (e.g., "project1/folder1")
-    :type project: str
-    :param image_name: image name
-    :type image: str
-    :param local_dir_path: local directory path to download to
-    :type local_dir_path: Pathlike (str or Path)
-
-    :return: paths of downloaded pre-annotations
-    :rtype: tuple
-    """
-    project_name, folder_name = split_project_path(project)
-    res = controller.download_image_pre_annotations(
-        project_name=project_name,
-        folder_name=folder_name,
-        image_name=image_name,
-        destination=local_dir_path,
     )
     return res
