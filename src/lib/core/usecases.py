@@ -1688,7 +1688,7 @@ class GetImageAnnotationsUseCase(BaseUseCase):
         self._images = images
 
     @property
-    def get_image_use_case(self):
+    def image_use_case(self):
         return GetImageUseCase(
             response=self._image_response,
             project=self._project,
@@ -1704,7 +1704,7 @@ class GetImageAnnotationsUseCase(BaseUseCase):
             "annotation_mask": None,
             "annotation_mask_filename": None,
         }
-        self.get_image_use_case.execute()
+        self.image_use_case.execute()
         token = self._service.get_download_token(
             project_id=self._project.uuid,
             team_id=self._project.team_id,
@@ -1826,7 +1826,7 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
         self._destination = destination
 
     @property
-    def get_image_use_case(self):
+    def image_use_case(self):
         return GetImageUseCase(
             response=self._image_response,
             project=self._project,
@@ -1842,7 +1842,7 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
             "annotation_mask": None,
             "annotation_mask_filename": None,
         }
-        self.get_image_use_case.execute()
+        self.image_use_case.execute()
         token = self._service.get_download_token(
             project_id=self._project.uuid,
             team_id=self._project.team_id,
@@ -1904,7 +1904,7 @@ class DownloadImagePreAnnotationsUseCase(BaseUseCase):
         self._destination = destination
 
     @property
-    def get_image_use_case(self):
+    def image_use_case(self):
         return GetImageUseCase(
             response=self._image_response,
             project=self._project,
@@ -1920,7 +1920,7 @@ class DownloadImagePreAnnotationsUseCase(BaseUseCase):
             "preannotation_mask": None,
             "preannotation_mask_filename": None,
         }
-        self.get_image_use_case.execute()
+        self.image_use_case.execute()
         token = self._service.get_download_token(
             project_id=self._project.uuid,
             team_id=self._project.team_id,
