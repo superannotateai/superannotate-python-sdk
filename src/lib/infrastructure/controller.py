@@ -952,6 +952,40 @@ class Controller(BaseController):
         user_case.execute()
         return self.response
 
+    def download_image_annotations(
+        self, project_name: str, folder_name: str, image_name: str, destination: str
+    ):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project=project, name=folder_name)
+        user_case = DownloadImageAnnotationsUseCase(
+            response=self.response,
+            service=self._backend_client,
+            project=project,
+            folder=folder,
+            image_name=image_name,
+            images=ImageRepository(service=self._backend_client),
+            destination=destination,
+        )
+        user_case.execute()
+        return self.response.data
+
+    def download_image_pre_annotations(
+        self, project_name: str, folder_name: str, image_name: str, destination: str
+    ):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project=project, name=folder_name)
+        user_case = DownloadImagePreAnnotationsUseCase(
+            response=self.response,
+            service=self._backend_client,
+            project=project,
+            folder=folder,
+            image_name=image_name,
+            images=ImageRepository(service=self._backend_client),
+            destination=destination,
+        )
+        user_case.execute()
+        return self.response.data
+
     def get_image_from_s3(self, s3_bucket, image_path: str):
         use_case = GetS3ImageUseCase(
             response=self.response, s3_bucket=s3_bucket, image_path=image_path
