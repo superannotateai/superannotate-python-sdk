@@ -26,12 +26,17 @@ from src.lib.core.usecases import DeleteImageUseCase
 from src.lib.core.usecases import DeleteProjectUseCase
 from src.lib.core.usecases import DownloadAzureCloudImages
 from src.lib.core.usecases import DownloadGoogleCloudImages
+from src.lib.core.usecases import DownloadImageAnnotationsUseCase
 from src.lib.core.usecases import DownloadImageFromPublicUrlUseCase
+from src.lib.core.usecases import DownloadImagePreAnnotationsUseCase
 from src.lib.core.usecases import DownloadImageUseCase
+from src.lib.core.usecases import ExtractFramesUseCase
 from src.lib.core.usecases import GetAnnotationClassesUseCase
+from src.lib.core.usecases import GetExportsUseCase
 from src.lib.core.usecases import GetFolderUseCase
 from src.lib.core.usecases import GetImageAnnotationsUseCase
 from src.lib.core.usecases import GetImageMetadataUseCase
+from src.lib.core.usecases import GetImagePreAnnotationsUseCase
 from src.lib.core.usecases import GetImagesUseCase
 from src.lib.core.usecases import GetImageUseCase
 from src.lib.core.usecases import GetProjectFoldersUseCase
@@ -58,6 +63,7 @@ from src.lib.core.usecases import UpdateImageUseCase
 from src.lib.core.usecases import UpdateProjectUseCase
 from src.lib.core.usecases import UpdateSettingsUseCase
 from src.lib.core.usecases import UploadImageS3UseCas
+from src.lib.core.usecases import UploadS3ImagesBackendUseCase
 from src.lib.infrastructure.repositories import AnnotationClassRepository
 from src.lib.infrastructure.repositories import ConfigRepository
 from src.lib.infrastructure.repositories import FolderRepository
@@ -898,7 +904,41 @@ class Controller(BaseController):
             images=ImageRepository(service=self._backend_client),
         )
         user_case.execute()
-        return self.response.data
+        return self.response
+
+    def download_image_annotations(
+        self, project_name: str, folder_name: str, image_name: str, destination: str
+    ):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project=project, name=folder_name)
+        user_case = DownloadImageAnnotationsUseCase(
+            response=self.response,
+            service=self._backend_client,
+            project=project,
+            folder=folder,
+            image_name=image_name,
+            images=ImageRepository(service=self._backend_client),
+            destination=destination,
+        )
+        user_case.execute()
+        return self.response
+
+    def download_image_pre_annotations(
+        self, project_name: str, folder_name: str, image_name: str, destination: str
+    ):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project=project, name=folder_name)
+        user_case = DownloadImagePreAnnotationsUseCase(
+            response=self.response,
+            service=self._backend_client,
+            project=project,
+            folder=folder,
+            image_name=image_name,
+            images=ImageRepository(service=self._backend_client),
+            destination=destination,
+        )
+        user_case.execute()
+        return self.response
 
     def get_image_from_s3(self, s3_bucket, image_path: str):
         use_case = GetS3ImageUseCase(
@@ -906,6 +946,63 @@ class Controller(BaseController):
         )
         use_case.execute()
         return use_case
+
+    def get_image_pre_annotations(
+        self, project_name: str, folder_name: str, image_name: str
+    ):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project=project, name=folder_name)
+
+        user_case = GetImagePreAnnotationsUseCase(
+            response=self.response,
+            service=self._backend_client,
+            project=project,
+            folder=folder,
+            image_name=image_name,
+            images=ImageRepository(service=self._backend_client),
+        )
+        user_case.execute()
+        return self.response
+
+    def get_exports(self, project_name: str, return_metadata: bool):
+        project = self._get_project(project_name)
+
+        use_case = GetExportsUseCase(
+            response=self.response,
+            service=self._backend_client,
+            project=project,
+            return_metadata=return_metadata,
+        )
+        use_case.execute()
+
+        return self.response
+
+    def backend_upload_from_s3(
+        self,
+        project_name: str,
+        folder_name: str,
+        access_key: str,
+        secret_key: str,
+        bucket_name: str,
+        folder_path: str,
+        image_quality: str,
+    ):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+        use_case = UploadS3ImagesBackendUseCase(
+            response=self.response,
+            backend_service_provider=self._backend_client,
+            project=project,
+            settings=ProjectSettingsRepository(self._backend_client, project),
+            folder=folder,
+            access_key=access_key,
+            secret_key=secret_key,
+            bucket_name=bucket_name,
+            folder_path=folder_path,
+            image_quality=image_quality,
+        )
+        use_case.execute()
+        return self.response
 
     def get_project_image_count(
         self, project_name: str, folder_name: str, with_all_subfolders: bool
@@ -923,4 +1020,39 @@ class Controller(BaseController):
         )
 
         use_case.execute()
-        return self.response.data
+        return self.response
+
+    def extract_video_frames(
+        self,
+        project_name: str,
+        folder_name: str,
+        video_path: str,
+        extract_path: str,
+        start_time: float,
+        end_time: float = None,
+        target_fps: float = None,
+        annotation_status: str = None,
+        image_quality_in_editor: str = None,
+    ):
+        annotation_status_code = (
+            constances.AnnotationStatus.get_value(annotation_status)
+            if annotation_status
+            else None
+        )
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+        use_case = ExtractFramesUseCase(
+            response=self.response,
+            backend_service_provider=self._backend_client,
+            project=project,
+            folder=folder,
+            video_path=video_path,
+            extract_path=extract_path,
+            start_time=start_time,
+            end_time=end_time,
+            target_fps=target_fps,
+            annotation_status_code=annotation_status_code,
+            image_quality_in_editor=image_quality_in_editor,
+        )
+        use_case.execute()
+        return self.response

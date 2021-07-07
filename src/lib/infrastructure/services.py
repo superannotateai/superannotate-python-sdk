@@ -293,7 +293,7 @@ class SuperannotateBackendService(BaseBackendService):
         res = self._request(get_settings_url, "get", params={"team_id": team_id})
         return res.json()
 
-    def set_project_settings(self, project_id: int, team_id: int, data: Dict):
+    def set_project_settings(self, project_id: int, team_id: int, data: List):
         set_project_settings_url = urljoin(
             self.api_url, self.URL_PROJECT_SETTIGNS.format(project_id)
         )

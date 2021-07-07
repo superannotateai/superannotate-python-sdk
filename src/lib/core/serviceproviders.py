@@ -190,3 +190,6 @@ class SuerannotateServiceProvider(ABC):
 
     def get_project_images_count(self, team_id: int, project_id: int):
         raise NotImplementedError
+
+    def get_s3_upload_auth_token(self, team_id: int, folder_id: int, project_id: int):
+        raise NotImplementedError

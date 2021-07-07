@@ -33,6 +33,7 @@ from src.lib.core.enums import ProjectType
 from src.lib.core.exceptions import AppException
 from src.lib.core.exceptions import AppValidationException
 from src.lib.core.plugin import ImagePlugin
+from src.lib.core.plugin import VideoPlugin
 from src.lib.core.repositories import BaseManageableRepository
 from src.lib.core.repositories import BaseProjectRelatedManageableRepository
 from src.lib.core.repositories import BaseReadOnlyRepository
@@ -1791,3 +1792,94 @@ class GetProjectImageCountUseCase(BaseUseCase):
                 if i["name"] == self._folder.name:
                     count = i["imagesCount"]
         self._response.data = count
+
+
+class UploadVideoUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        settings: BaseManageableRepository,
+        s3_repo: BaseManageableRepository,
+        video_path: str,
+        start_time: float,
+        end_time: float = None,
+        annotation_status_code: int = constances.AnnotationStatus.NOT_STARTED.value,
+        image_quality_in_editor: str = None,
+    ):
+        super().__init__(response)
+        self._project = project
+        self._folder = folder
+        self._settings = settings
+        self._s3_repo = s3_repo
+        self._video_path = video_path
+        self._start_time = start_time
+        self._end_time = end_time
+        self._annotation_status_code = annotation_status_code
+        self._image_quality_in_editor = image_quality_in_editor
+
+    def get_upload_s3_use_case(self, image, image_path, upload_path):
+        return UploadImageS3UseCas(
+            response=Response(),
+            project=self._project,
+            project_settings=self._settings,
+            image_path=image_path,
+            image=image,
+            s3_repo=self._s3_repo,
+            upload_path=upload_path,
+        )
+
+    def execute(self):
+        pass
+
+
+class ExtractFramesUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        backend_service_provider: SuerannotateServiceProvider,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        video_path: str,
+        extract_path: str,
+        start_time: float,
+        end_time: float = None,
+        target_fps: float = None,
+        annotation_status_code: int = constances.AnnotationStatus.NOT_STARTED.value,
+        image_quality_in_editor: str = None,
+    ):
+        super().__init__(response)
+        self._backend_service = backend_service_provider
+        self._project = project
+        self._folder = folder
+        self._video_path = video_path
+        self._extract_path = extract_path
+        self._start_time = start_time
+        self._end_time = end_time
+        self._target_fps = target_fps
+        self._annotation_status_code = annotation_status_code
+        self._image_quality_in_editor = image_quality_in_editor
+
+    @property
+    def upload_auth_data(self):
+        return self._backend_service.get_s3_upload_auth_token(
+            project_id=self._project.uuid,
+            team_id=self._project.team_id,
+            folder_id=self._folder.uuid,
+        )
+
+    @property
+    def limit(self):
+        return self.upload_auth_data.get("availableImageCount")
+
+    def execute(self):
+        extracted_paths = VideoPlugin.extract_frames(
+            video_path=self._video_path,
+            start_time=self._start_time,
+            end_time=self._end_time,
+            extract_path=self._extract_path,
+            limit=self.limit,
+            target_fps=self._target_fps,
+        )
+        self._response.data = extracted_paths
