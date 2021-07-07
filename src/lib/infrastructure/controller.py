@@ -8,7 +8,6 @@ from src.lib.core.conditions import Condition
 from src.lib.core.conditions import CONDITION_EQ as EQ
 from src.lib.core.entities import FolderEntity
 from src.lib.core.entities import ImageEntity
-from src.lib.core.entities import ImageInfoEntity
 from src.lib.core.entities import ProjectEntity
 from src.lib.core.exceptions import AppException
 from src.lib.core.response import Response
@@ -30,7 +29,6 @@ from src.lib.core.usecases import DownloadGoogleCloudImages
 from src.lib.core.usecases import DownloadImageFromPublicUrlUseCase
 from src.lib.core.usecases import DownloadImageUseCase
 from src.lib.core.usecases import GetAnnotationClassesUseCase
-from src.lib.core.usecases import GetExportsUseCase
 from src.lib.core.usecases import GetFolderUseCase
 from src.lib.core.usecases import GetImageAnnotationsUseCase
 from src.lib.core.usecases import GetImageMetadataUseCase
@@ -909,46 +907,6 @@ class Controller(BaseController):
         use_case.execute()
         return use_case
 
-    def get_exports(self, project_name: str, return_metadata: bool):
-        project = self._get_project(project_name)
-
-        use_case = GetExportsUseCase(
-            response=self.response,
-            service=self._backend_client,
-            project=project,
-            return_metadata=return_metadata,
-        )
-        use_case.execute()
-
-        return self.response
-
-    def backend_upload_from_s3(
-        self,
-        project_name: str,
-        folder_name: str,
-        access_key: str,
-        secret_key: str,
-        bucket_name: str,
-        folder_path: str,
-        image_quality: str,
-    ):
-        project = self._get_project(project_name)
-        folder = self._get_folder(project, folder_name)
-        use_case = UploadS3ImagesBackendUseCase(
-            response=self.response,
-            backend_service_provider=self._backend_client,
-            project=project,
-            settings=ProjectSettingsRepository(self._backend_client, project),
-            folder=folder,
-            access_key=access_key,
-            secret_key=secret_key,
-            bucket_name=bucket_name,
-            folder_path=folder_path,
-            image_quality=image_quality,
-        )
-        use_case.execute()
-        return self.response
-
     def get_project_image_count(
         self, project_name: str, folder_name: str, with_all_subfolders: bool
     ):
@@ -965,22 +923,4 @@ class Controller(BaseController):
         )
 
         use_case.execute()
-        return self.response
-
-    def get_project_image_count(
-        self, project_name: str, folder_name: str, with_all_subfolders: bool
-    ):
-
-        project = self._get_project(project_name)
-        folder = self._get_folder(project=project, name=folder_name)
-
-        use_case = GetProjectImageCountUseCase(
-            response=self.response,
-            service=self._backend_client,
-            project=project,
-            folder=folder,
-            with_all_subfolders=with_all_subfolders,
-        )
-
-        use_case.execute()
-        return self.response
+        return self.response.data

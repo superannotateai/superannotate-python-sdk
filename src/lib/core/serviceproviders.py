@@ -188,23 +188,5 @@ class SuerannotateServiceProvider(ABC):
     ):
         raise NotImplementedError
 
-    def upload_form_s3(
-        self,
-        project_id: int,
-        team_id: int,
-        access_key: str,
-        secret_key: str,
-        bucket_name: str,
-        from_folder_name: str,
-        to_folder_id: int,
-    ):
-        raise NotImplementedError
-
-    def get_upload_status(self, project_id: int, team_id: int, folder_id: int):
-        raise NotImplementedError
-
-    def get_exports(self, team_id: int, project_id: int):
-        raise NotImplementedError
-
     def get_project_images_count(self, team_id: int, project_id: int):
         raise NotImplementedError
