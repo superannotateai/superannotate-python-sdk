@@ -139,6 +139,7 @@ class SuperannotateBackendService(BaseBackendService):
     URL_ASSIGN_IMAGES = "images/editAssignment"
     URL_ASSIGN_FOLDER = "folder/editAssignment"
     URL_GET_EXPORTS = "exports"
+    URL_IMAGES_COUNT = "images/folders-list"
     # todo add urls
     URL_DELETE_IMAGES = ""
     URL_SET_IMAGES_STATUSES_BULK = ""
@@ -669,5 +670,14 @@ class SuperannotateBackendService(BaseBackendService):
         exports_url = urljoin(self.api_url, self.URL_GET_EXPORTS)
         res = self._request(
             exports_url, "get", params={"team_id": team_id, "project_id": project_id}
+        )
+        return res.json()
+
+    def get_project_images_count(self, team_id: int, project_id: int):
+        get_images_count_url = urljoin(self.api_url, self.URL_IMAGES_COUNT)
+        res = self._request(
+            get_images_count_url,
+            "get",
+            params={"team_id": team_id, "project_id": project_id},
         )
         return res.json()
