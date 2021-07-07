@@ -1688,7 +1688,7 @@ class GetImageAnnotationsUseCase(BaseUseCase):
         self._images = images
 
     @property
-    def image_use_case(self):
+    def get_image_use_case(self):
         return GetImageUseCase(
             response=self._image_response,
             project=self._project,
@@ -1704,15 +1704,14 @@ class GetImageAnnotationsUseCase(BaseUseCase):
             "annotation_mask": None,
             "annotation_mask_filename": None,
         }
-        self.image_use_case.execute()
+        self.get_image_use_case.execute()
         token = self._service.get_download_token(
             project_id=self._project.uuid,
             team_id=self._project.team_id,
             folder_id=self._folder.uuid,
             image_id=self._image_response.data.uuid,
         )
-        credentials = token["annotations"]["MAIN"][0]
-        annotation_json_creds = credentials["annotation_json_path"]
+        annotation_json_creds = token["annotations"]["MAIN"][0]["annotation_json_path"]
         if self._project.project_type == constances.ProjectType.VECTOR.value:
             file_postfix = "___objects.json"
         else:
@@ -1726,81 +1725,15 @@ class GetImageAnnotationsUseCase(BaseUseCase):
         data["annotation_json"] = response.json()
         data["annotation_json_filename"] = f"{self._image_name}{file_postfix}.json"
         if self._project.project_type == constances.ProjectType.PIXEL.value:
-            annotation_blue_map_creds = credentials["annotation_bluemap_path"]
+            annotation_blue_map_creds = token["annotations"]["MAIN"][0][
+                "annotation_bluemap_path"
+            ]
             response = requests.get(
                 url=annotation_blue_map_creds["url"],
                 headers=annotation_blue_map_creds["headers"],
             )
             data["annotation_mask"] = io.BytesIO(response.content)
             data["annotation_mask_filename"] = f"{self._image_name}___save.png"
-
-        self._response.data = data
-
-
-class GetImagePreAnnotationsUseCase(BaseUseCase):
-    def __init__(
-        self,
-        response: Response,
-        service: SuerannotateServiceProvider,
-        project: ProjectEntity,
-        folder: FolderEntity,
-        image_name: str,
-        images: BaseManageableRepository,
-    ):
-        super().__init__(response)
-        self._service = service
-        self._project = project
-        self._folder = folder
-        self._image_name = image_name
-        self._image_response = Response()
-        self._images = images
-
-    @property
-    def get_image_use_case(self):
-        return GetImageUseCase(
-            response=self._image_response,
-            project=self._project,
-            folder=self._folder,
-            image_name=self._image_name,
-            images=self._images,
-        )
-
-    def execute(self):
-        data = {
-            "preannotation_json": None,
-            "preannotation_json_filename": None,
-            "preannotation_mask": None,
-            "preannotation_mask_filename": None,
-        }
-        self.get_image_use_case.execute()
-        token = self._service.get_download_token(
-            project_id=self._project.uuid,
-            team_id=self._project.team_id,
-            folder_id=self._folder.uuid,
-            image_id=self._image_response.data.uuid,
-        )
-        credentials = token["annotations"]["PREANNOTATION"][0]
-        annotation_json_creds = credentials["annotation_json_path"]
-        if self._project.project_type == constances.ProjectType.VECTOR.value:
-            file_postfix = "___objects.json"
-        else:
-            file_postfix = "___pixel.json"
-
-        response = requests.get(
-            url=annotation_json_creds["url"], headers=annotation_json_creds["headers"],
-        )
-        if not response.ok:
-            raise AppException(f"Couldn't load annotations {response.text}")
-        data["preannotation_json"] = response.json()
-        data["preannotation_json_filename"] = f"{self._image_name}{file_postfix}.json"
-        if self._project.project_type == constances.ProjectType.PIXEL.value:
-            annotation_blue_map_creds = credentials["annotation_bluemap_path"]
-            response = requests.get(
-                url=annotation_blue_map_creds["url"],
-                headers=annotation_blue_map_creds["headers"],
-            )
-            data["preannotation_mask"] = io.BytesIO(response.content)
-            data["preannotation_mask_filename"] = f"{self._image_name}___save.png"
 
         self._response.data = data
 
@@ -1826,7 +1759,7 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
         self._destination = destination
 
     @property
-    def image_use_case(self):
+    def get_image_use_case(self):
         return GetImageUseCase(
             response=self._image_response,
             project=self._project,
@@ -1842,7 +1775,7 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
             "annotation_mask": None,
             "annotation_mask_filename": None,
         }
-        self.image_use_case.execute()
+        self.get_image_use_case.execute()
         token = self._service.get_download_token(
             project_id=self._project.uuid,
             team_id=self._project.team_id,
@@ -1904,7 +1837,7 @@ class DownloadImagePreAnnotationsUseCase(BaseUseCase):
         self._destination = destination
 
     @property
-    def image_use_case(self):
+    def get_image_use_case(self):
         return GetImageUseCase(
             response=self._image_response,
             project=self._project,
@@ -1920,7 +1853,7 @@ class DownloadImagePreAnnotationsUseCase(BaseUseCase):
             "preannotation_mask": None,
             "preannotation_mask_filename": None,
         }
-        self.image_use_case.execute()
+        self.get_image_use_case.execute()
         token = self._service.get_download_token(
             project_id=self._project.uuid,
             team_id=self._project.team_id,

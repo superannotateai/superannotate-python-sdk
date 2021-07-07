@@ -1155,28 +1155,6 @@ def get_image_annotations(project, image_name):
     return res
 
 
-def get_image_preannotations(project, image_name):
-    """Get pre-annotations of the image. Only works for "vector" projects.
-
-    :param project: project name or folder path (e.g., "project1/folder1")
-    :type project: str
-    :param image_name: image name
-    :type image: str
-
-    :return: dict object with following keys:
-        "preannotation_json": dict object of the annotation,
-        "preannotation_json_filename": filename on server,
-        "preannotation_mask": mask (for pixel),
-        "preannotation_mask_filename": mask filename on server
-    :rtype: dict
-    """
-    project_name, folder_name = split_project_path(project)
-    res = controller.get_image_pre_annotations(
-        project_name=project_name, folder_name=folder_name, image_name=image_name
-    )
-    return res
-
-
 def download_image_annotations(project, image_name, local_dir_path):
     """Downloads annotations of the image (JSON and mask if pixel type project)
     to local_dir_path.
