@@ -8,7 +8,6 @@ from src.lib.core.conditions import Condition
 from src.lib.core.conditions import CONDITION_EQ as EQ
 from src.lib.core.entities import FolderEntity
 from src.lib.core.entities import ImageEntity
-from src.lib.core.entities import ImageInfoEntity
 from src.lib.core.entities import ProjectEntity
 from src.lib.core.exceptions import AppException
 from src.lib.core.response import Response
@@ -30,6 +29,7 @@ from src.lib.core.usecases import DownloadGoogleCloudImages
 from src.lib.core.usecases import DownloadImageFromPublicUrlUseCase
 from src.lib.core.usecases import DownloadImageUseCase
 from src.lib.core.usecases import GetAnnotationClassesUseCase
+from src.lib.core.usecases import GetExportsUseCase
 from src.lib.core.usecases import GetFolderUseCase
 from src.lib.core.usecases import GetImageAnnotationsUseCase
 from src.lib.core.usecases import GetImageMetadataUseCase
@@ -906,3 +906,16 @@ class Controller(BaseController):
         )
         use_case.execute()
         return use_case
+
+    def get_exports(self, project_name: str, return_metadata: bool):
+        project = self._get_project(project_name)
+
+        use_case = GetExportsUseCase(
+            response=self.response,
+            service=self._backend_client,
+            project=project,
+            return_metadata=return_metadata,
+        )
+        use_case.execute()
+
+        return self.response.data

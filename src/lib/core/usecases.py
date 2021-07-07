@@ -1759,5 +1759,26 @@ class GetS3ImageUseCase(BaseUseCase):
         if image_object.content_length > constances.MAX_IMAGE_SIZE:
             raise AppValidationException(f"File size is {image_object.content_length}")
         image_object.download_fileobj(image)
-
         self._response.data = image
+
+
+class GetExportsUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        service: SuerannotateServiceProvider,
+        project: ProjectEntity,
+        return_metadata: bool,
+    ):
+        super().__init__(response)
+        self._service = service
+        self._project = project
+        self._return_metadata = return_metadata
+
+    def execute(self):
+        data = self._service.get_exports(
+            team_id=self._project.team_id, project_id=self._project.uuid
+        )
+        self._response.data = data
+        if not self._return_metadata:
+            self._response.data = [i["name"] for i in data]
