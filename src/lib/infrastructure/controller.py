@@ -40,6 +40,7 @@ from src.lib.core.usecases import GetImagePreAnnotationsUseCase
 from src.lib.core.usecases import GetImagesUseCase
 from src.lib.core.usecases import GetImageUseCase
 from src.lib.core.usecases import GetProjectFoldersUseCase
+from src.lib.core.usecases import GetProjectImageCountUseCase
 from src.lib.core.usecases import GetProjectMetadataUseCase
 from src.lib.core.usecases import GetProjectsUseCase
 from src.lib.core.usecases import GetS3ImageUseCase
@@ -1001,3 +1002,21 @@ class Controller(BaseController):
         )
         use_case.execute()
         return self.response
+
+    def get_project_image_count(
+        self, project_name: str, folder_name: str, with_all_subfolders: bool
+    ):
+
+        project = self._get_project(project_name)
+        folder = self._get_folder(project=project, name=folder_name)
+
+        use_case = GetProjectImageCountUseCase(
+            response=self.response,
+            service=self._backend_client,
+            project=project,
+            folder=folder,
+            with_all_subfolders=with_all_subfolders,
+        )
+
+        use_case.execute()
+        return self.response.data
