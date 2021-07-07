@@ -1153,3 +1153,51 @@ def get_image_annotations(project, image_name):
         project_name=project_name, folder_name=folder_name, image_name=image_name
     )
     return res
+
+
+def download_image_annotations(project, image_name, local_dir_path):
+    """Downloads annotations of the image (JSON and mask if pixel type project)
+    to local_dir_path.
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param image_name: image name
+    :type image: str
+    :param local_dir_path: local directory path to download to
+    :type local_dir_path: Pathlike (str or Path)
+
+    :return: paths of downloaded annotations
+    :rtype: tuple
+    """
+    project_name, folder_name = split_project_path(project)
+    res = controller.download_image_annotations(
+        project_name=project_name,
+        folder_name=folder_name,
+        image_name=image_name,
+        destination=local_dir_path,
+    )
+    return res
+
+
+def download_image_preannotations(project, image_name, local_dir_path):
+    """Downloads pre-annotations of the image to local_dir_path.
+    Only works for "vector" projects.
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param image_name: image name
+    :type image: str
+    :param local_dir_path: local directory path to download to
+    :type local_dir_path: Pathlike (str or Path)
+
+    :return: paths of downloaded pre-annotations
+    :rtype: tuple
+    """
+    project_name, folder_name = split_project_path(project)
+    res = controller.download_image_pre_annotations(
+        project_name=project_name,
+        folder_name=folder_name,
+        image_name=image_name,
+        destination=local_dir_path,
+    )
+    return res
