@@ -42,6 +42,7 @@ from src.lib.app.interface.sdk_interface import unassign_images
 from src.lib.app.interface.sdk_interface import (
     upload_images_from_google_cloud_to_project,
 )
+from src.lib.app.interface.sdk_interface import upload_images_from_s3_bucket_to_project
 
 
 __author__ = "Superannotate"
@@ -103,4 +104,5 @@ __all__ = [
     "assign_images",
     "unassign_images",
     "upload_images_from_google_cloud_to_project",
+    "upload_images_from_s3_bucket_to_project",
 ]

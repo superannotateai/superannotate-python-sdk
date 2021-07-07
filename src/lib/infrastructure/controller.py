@@ -8,6 +8,7 @@ from src.lib.core.conditions import Condition
 from src.lib.core.conditions import CONDITION_EQ as EQ
 from src.lib.core.entities import FolderEntity
 from src.lib.core.entities import ImageEntity
+from src.lib.core.entities import ImageInfoEntity
 from src.lib.core.entities import ProjectEntity
 from src.lib.core.exceptions import AppException
 from src.lib.core.response import Response
@@ -972,4 +973,31 @@ class Controller(BaseController):
         )
         use_case.execute()
 
+        return self.response
+
+    def backend_upload_from_s3(
+        self,
+        project_name: str,
+        folder_name: str,
+        access_key: str,
+        secret_key: str,
+        bucket_name: str,
+        folder_path: str,
+        image_quality: str,
+    ):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+        use_case = UploadS3ImagesBackendUseCase(
+            response=self.response,
+            backend_service_provider=self._backend_client,
+            project=project,
+            settings=ProjectSettingsRepository(self._backend_client, project),
+            folder=folder,
+            access_key=access_key,
+            secret_key=secret_key,
+            bucket_name=bucket_name,
+            folder_path=folder_path,
+            image_quality=image_quality,
+        )
+        use_case.execute()
         return self.response
