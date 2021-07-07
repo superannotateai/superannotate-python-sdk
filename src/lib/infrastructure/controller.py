@@ -32,6 +32,7 @@ from src.lib.core.usecases import GetAnnotationClassesUseCase
 from src.lib.core.usecases import GetFolderUseCase
 from src.lib.core.usecases import GetImageAnnotationsUseCase
 from src.lib.core.usecases import GetImageMetadataUseCase
+from src.lib.core.usecases import GetImagePreAnnotationsUseCase
 from src.lib.core.usecases import GetImagesUseCase
 from src.lib.core.usecases import GetImageUseCase
 from src.lib.core.usecases import GetProjectFoldersUseCase
@@ -889,6 +890,23 @@ class Controller(BaseController):
         folder = self._get_folder(project=project, name=folder_name)
 
         user_case = GetImageAnnotationsUseCase(
+            response=self.response,
+            service=self._backend_client,
+            project=project,
+            folder=folder,
+            image_name=image_name,
+            images=ImageRepository(service=self._backend_client),
+        )
+        user_case.execute()
+        return self.response.data
+
+    def get_image_pre_annotations(
+        self, project_name: str, folder_name: str, image_name: str
+    ):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project=project, name=folder_name)
+
+        user_case = GetImagePreAnnotationsUseCase(
             response=self.response,
             service=self._backend_client,
             project=project,
