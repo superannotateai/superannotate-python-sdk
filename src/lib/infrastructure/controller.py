@@ -14,7 +14,8 @@ from src.lib.core.exceptions import AppException
 from src.lib.core.response import Response
 from src.lib.core.usecases import AssignFolderUseCase
 from src.lib.core.usecases import AssignImagesUseCase
-from src.lib.core.usecases import AttachFileUrls
+from src.lib.core.usecases import AttachFileUrlsUseCase
+from src.lib.core.usecases import AttachImagesUseCase
 from src.lib.core.usecases import CloneProjectUseCase
 from src.lib.core.usecases import CopyImageAnnotationClasses
 from src.lib.core.usecases import CreateFolderUseCase
@@ -35,12 +36,12 @@ from src.lib.core.usecases import GetImagesUseCase
 from src.lib.core.usecases import GetImageUseCase
 from src.lib.core.usecases import GetProjectFoldersUseCase
 from src.lib.core.usecases import GetProjectsUseCase
+from src.lib.core.usecases import GetS3ImageUseCase
 from src.lib.core.usecases import GetSettingsUseCase
 from src.lib.core.usecases import GetTeamUseCase
 from src.lib.core.usecases import GetWorkflowsUseCase
 from src.lib.core.usecases import ImagesBulkCopyUseCase
 from src.lib.core.usecases import ImagesBulkMoveUseCase
-from src.lib.core.usecases import ImageUploadUseCas
 from src.lib.core.usecases import InviteContributorUseCase
 from src.lib.core.usecases import PrepareExportUseCase
 from src.lib.core.usecases import SearchContributorsUseCase
@@ -225,12 +226,12 @@ class Controller(BaseController):
     def upload_images(
         self,
         project_name: str,
-        images: List[ImageInfoEntity],
+        images: List[ImageEntity],
         annotation_status: str = None,
         image_quality: str = None,
     ):
         project = self._get_project(project_name)
-        use_case = ImageUploadUseCas(
+        use_case = AttachImagesUseCase(
             response=self.response,
             project=project,
             project_settings=ProjectSettingsRepository(self._backend_client, project),
@@ -312,7 +313,7 @@ class Controller(BaseController):
         auth_data = self.get_auth_data(project.uuid, project.team_id, folder.uuid)
 
         limit = auth_data["availableImageCount"]
-        use_case = AttachFileUrls(
+        use_case = AttachFileUrlsUseCase(
             response=self.response,
             project=project,
             attachments=files,
@@ -915,3 +916,10 @@ class Controller(BaseController):
         )
         user_case.execute()
         return self.response.data
+
+    def get_image_from_s3(self, s3_bucket, image_path: str):
+        use_case = GetS3ImageUseCase(
+            response=self.response, s3_bucket=s3_bucket, image_path=image_path
+        )
+        use_case.execute()
+        return use_case

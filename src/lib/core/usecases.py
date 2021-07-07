@@ -11,6 +11,7 @@ from typing import Iterable
 from typing import List
 from typing import Optional
 
+import boto3
 import requests
 import src.lib.core as constances
 from google.api_core.exceptions import GoogleAPIError
@@ -260,7 +261,11 @@ class CloneProjectUseCase(BaseUseCase):
                 self._workflows.insert(workflow_copy)
 
 
-class ImageUploadUseCas(BaseUseCase):
+class AttachImagesUseCase(BaseUseCase):
+    """
+    Attach urls
+    """
+
     def __init__(
         self,
         response: Response,
@@ -474,7 +479,7 @@ class CreateFolderUseCase(BaseUseCase):
             raise AppValidationException("New folder name has special characters.")
 
 
-class AttachFileUrls(BaseUseCase):
+class AttachFileUrlsUseCase(BaseUseCase):
     def __init__(
         self,
         response: Response,
@@ -1587,3 +1592,23 @@ class GetImageAnnotationsUseCase(BaseUseCase):
             data["annotation_mask_filename"] = f"{self._image_name}___save.png"
 
         self._response.data = data
+
+
+class GetS3ImageUseCase(BaseUseCase):
+    def __init__(
+        self, response: Response, s3_bucket, image_path: str,
+    ):
+        super().__init__(response)
+        self._s3_bucket = s3_bucket
+        self._image_path = image_path
+
+    def execute(self):
+        image = io.BytesIO()
+        session = boto3.Session()
+        resource = session.resource("s3")
+        image_object = resource.Object(self._s3_bucket, self._image_path)
+        if image_object.content_length > constances.MAX_IMAGE_SIZE:
+            raise AppValidationException(f"File size is {image_object.content_length}")
+        image_object.download_fileobj(image)
+
+        self._response.data = image
