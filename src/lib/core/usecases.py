@@ -1782,3 +1782,84 @@ class GetExportsUseCase(BaseUseCase):
         self._response.data = data
         if not self._return_metadata:
             self._response.data = [i["name"] for i in data]
+
+
+class UploadS3ImagesBackendUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        backend_service_provider: SuerannotateServiceProvider,
+        settings: BaseReadOnlyRepository,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        access_key: str,
+        secret_key: str,
+        bucket_name: str,
+        folder_path: str,
+        image_quality: str,
+    ):
+        super().__init__(response)
+        self._backend_service = backend_service_provider
+        self._settings = settings
+        self._project = project
+        self._folder = folder
+        self._access_key = access_key
+        self._secret_key = secret_key
+        self._bucket_name = bucket_name
+        self._folder_path = folder_path
+        self._image_quality = image_quality
+
+    def validate_image_quality(self):
+        if self._image_quality and self._image_quality not in (
+            "compressed",
+            "original",
+        ):
+            raise AppValidationException("Invalid value for image_quality")
+
+    def execute(self):
+        old_setting = None
+        if self._image_quality:
+            settings = self._settings.get_all()
+            for setting in settings:
+                if setting.attribute == "ImageQuality":
+                    if setting.value == "compressed":
+                        setting.value = 60
+                    else:
+                        setting.value = 100
+                    self._backend_service.set_project_settings(
+                        project_id=self._project.uuid,
+                        team_id=self._project.team_id,
+                        data=[setting.to_dict()],
+                    )
+                    break
+            else:
+                raise AppException("Cant find settings.")
+
+        in_progress = self._backend_service.upload_form_s3(
+            project_id=self._project.uuid,
+            team_id=self._project.team_id,
+            access_key=self._access_key,
+            secret_key=self._secret_key,
+            bucket_name=self._bucket_name,
+            from_folder_name=self._folder_path,
+            to_folder_id=self._folder.uuid,
+        )
+        if in_progress:
+            while True:
+                time.sleep(4)
+                progress = self._backend_service.get_upload_status(
+                    project_id=self._project.uuid,
+                    team_id=self._project.team_id,
+                    folder_id=self._folder.uuid,
+                )
+                if progress == "2":
+                    break
+                elif progress == "1":
+                    raise AppException("Couldn't upload to project from S3.")
+
+        if old_setting:
+            self._backend_service.set_project_settings(
+                project_id=self._project.uuid,
+                team_id=self._project.team_id,
+                data=[old_setting.to_dict()],
+            )
