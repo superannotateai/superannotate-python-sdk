@@ -1440,6 +1440,43 @@ def upload_images_from_s3_bucket_to_project(
     )
 
 
+def prepare_export(
+    project,
+    folder_names=None,
+    annotation_statuses=None,
+    include_fuse=False,
+    only_pinned=False,
+):
+    """Prepare annotations and classes.json for export. Original and fused images for images with
+    annotations can be included with include_fuse flag.
+
+    :param project: project name
+    :type project: str
+    :param folder_names: names of folders to include in the export. If None, whole project will be exported
+    :type folder_names: list of str
+    :param annotation_statuses: images with which status to include, if None, [ "InProgress", "QualityCheck", "Returned", "Completed"] will be chose
+           list elements should be one of NotStarted InProgress QualityCheck Returned Completed Skipped
+    :type annotation_statuses: list of strs
+    :param include_fuse: enables fuse images in the export
+    :type include_fuse: bool
+    :param only_pinned: enable only pinned output in export. This option disables all other types of output.
+    :type only_pinned: bool
+
+    :return: metadata object of the prepared export
+    :rtype: dict
+    """
+    project_name = project
+    project = controller.search_project(project_name).data[0]
+    response = controller.prepare_export(
+        project=project,
+        folder_names=folder_names,
+        include_fuse=include_fuse,
+        only_pinned=only_pinned,
+        annotation_statuses=annotation_statuses,
+    )
+    return response.data
+
+
 def upload_videos_from_folder_to_project(
     project,
     folder_path,
