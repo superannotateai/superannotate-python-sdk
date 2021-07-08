@@ -1314,7 +1314,7 @@ def get_image_preannotations(project, image_name):
     res = controller.get_image_pre_annotations(
         project_name=project_name, folder_name=folder_name, image_name=image_name
     )
-    return res
+    return res.data
 
 
 def download_image_annotations(project, image_name, local_dir_path):
@@ -1338,7 +1338,7 @@ def download_image_annotations(project, image_name, local_dir_path):
         image_name=image_name,
         destination=local_dir_path,
     )
-    return res
+    return res.data
 
 
 def download_image_preannotations(project, image_name, local_dir_path):
@@ -1362,4 +1362,4 @@ def download_image_preannotations(project, image_name, local_dir_path):
         image_name=image_name,
         destination=local_dir_path,
     )
-    return res
+    return res.data
