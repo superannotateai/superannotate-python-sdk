@@ -1782,7 +1782,9 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
             folder_id=self._folder.uuid,
             image_id=self._image_response.data.uuid,
         )
-        annotation_json_creds = token["annotations"]["MAIN"][0]["annotation_json_path"]
+        credentials = token["annotations"]["MAIN"][0]
+
+        annotation_json_creds = credentials["annotation_json_path"]
         if self._project.project_type == constances.ProjectType.VECTOR.value:
             file_postfix = "___objects.json"
         else:
@@ -1796,9 +1798,7 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
         data["annotation_json"] = response.json()
         data["annotation_json_filename"] = f"{self._image_name}{file_postfix}"
         if self._project.project_type == constances.ProjectType.PIXEL.value:
-            annotation_blue_map_creds = token["annotations"]["MAIN"][0][
-                "annotation_bluemap_path"
-            ]
+            annotation_blue_map_creds = credentials["annotation_bluemap_path"]
             response = requests.get(
                 url=annotation_blue_map_creds["url"],
                 headers=annotation_blue_map_creds["headers"],
@@ -1860,9 +1860,8 @@ class DownloadImagePreAnnotationsUseCase(BaseUseCase):
             folder_id=self._folder.uuid,
             image_id=self._image_response.data.uuid,
         )
-        annotation_json_creds = token["annotations"]["PREANNOTATION"][0][
-            "annotation_json_path"
-        ]
+        credentials = token["annotations"]["PREANNOTATION"][0]
+        annotation_json_creds = credentials["annotation_json_path"]
         if self._project.project_type == constances.ProjectType.VECTOR.value:
             file_postfix = "___objects.json"
         else:
@@ -1876,9 +1875,7 @@ class DownloadImagePreAnnotationsUseCase(BaseUseCase):
         data["preannotation_json"] = response.json()
         data["preannotation_json_filename"] = f"{self._image_name}{file_postfix}"
         if self._project.project_type == constances.ProjectType.PIXEL.value:
-            annotation_blue_map_creds = token["annotations"]["MAIN"][0][
-                "annotation_bluemap_path"
-            ]
+            annotation_blue_map_creds = credentials["annotation_bluemap_path"]
             response = requests.get(
                 url=annotation_blue_map_creds["url"],
                 headers=annotation_blue_map_creds["headers"],
