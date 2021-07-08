@@ -1309,12 +1309,12 @@ def get_project_image_count(project, with_all_subfolders=False):
 
     project_name, folder_name = split_project_path(project)
 
-    data = controller.get_project_image_count(
+    response = controller.get_project_image_count(
         project_name=project_name,
         folder_name=folder_name,
         with_all_subfolders=with_all_subfolders,
     )
-    return data
+    return response.data
 
 
 def get_image_preannotations(project, image_name):
