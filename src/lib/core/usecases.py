@@ -2013,7 +2013,7 @@ class GetProjectImageCountUseCase(BaseUseCase):
         service: SuerannotateServiceProvider,
         project: ProjectEntity,
         folder: FolderEntity,
-        with_all_subfolders: bool,
+        with_all_subfolders: bool = False,
     ):
         super().__init__(response)
         self._service = service
