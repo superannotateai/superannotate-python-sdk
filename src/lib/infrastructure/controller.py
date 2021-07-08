@@ -1019,4 +1019,4 @@ class Controller(BaseController):
         )
 
         use_case.execute()
-        return self.response.data
+        return self.response
