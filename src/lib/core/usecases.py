@@ -1768,7 +1768,7 @@ class GetExportsUseCase(BaseUseCase):
         response: Response,
         service: SuerannotateServiceProvider,
         project: ProjectEntity,
-        return_metadata: bool,
+        return_metadata: bool = False,
     ):
         super().__init__(response)
         self._service = service

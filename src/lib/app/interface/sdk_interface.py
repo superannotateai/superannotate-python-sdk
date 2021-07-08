@@ -1309,4 +1309,4 @@ def get_exports(project, return_metadata=False):
     response = controller.get_exports(
         project_name=project, return_metadata=return_metadata
     )
-    return response
+    return response.data
