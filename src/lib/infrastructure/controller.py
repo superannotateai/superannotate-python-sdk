@@ -31,6 +31,7 @@ from src.lib.core.usecases import DownloadImageFromPublicUrlUseCase
 from src.lib.core.usecases import DownloadImagePreAnnotationsUseCase
 from src.lib.core.usecases import DownloadImageUseCase
 from src.lib.core.usecases import GetAnnotationClassesUseCase
+from src.lib.core.usecases import GetExportsUseCase
 from src.lib.core.usecases import GetFolderUseCase
 from src.lib.core.usecases import GetImageAnnotationsUseCase
 from src.lib.core.usecases import GetImageMetadataUseCase
@@ -958,4 +959,17 @@ class Controller(BaseController):
             images=ImageRepository(service=self._backend_client),
         )
         user_case.execute()
+        return self.response
+
+    def get_exports(self, project_name: str, return_metadata: bool):
+        project = self._get_project(project_name)
+
+        use_case = GetExportsUseCase(
+            response=self.response,
+            service=self._backend_client,
+            project=project,
+            return_metadata=return_metadata,
+        )
+        use_case.execute()
+
         return self.response

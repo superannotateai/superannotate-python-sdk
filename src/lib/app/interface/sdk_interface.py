@@ -1363,3 +1363,20 @@ def download_image_preannotations(project, image_name, local_dir_path):
         destination=local_dir_path,
     )
     return res.data
+
+
+def get_exports(project, return_metadata=False):
+    """Get all prepared exports of the project.
+
+    :param project: project name
+    :type project: str
+    :param return_metadata: return metadata of images instead of names
+    :type return_metadata: bool
+
+    :return: names or metadata objects of the all prepared exports of the project
+    :rtype: list of strs or dicts
+    """
+    response = controller.get_exports(
+        project_name=project, return_metadata=return_metadata
+    )
+    return response.data
