@@ -1672,3 +1672,4 @@ def upload_video_to_project(
         if image.name not in failed_images
     ]
     return uploaded_images
+
