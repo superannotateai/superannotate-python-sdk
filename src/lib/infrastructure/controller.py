@@ -406,7 +406,7 @@ class Controller(BaseController):
     def prepare_export(
         self,
         project: ProjectEntity,
-        folders: List[str],
+        folder_names: List[str],
         include_fuse: bool,
         only_pinned: bool,
         annotation_statuses: List[str] = None,
@@ -415,7 +415,7 @@ class Controller(BaseController):
         use_case = PrepareExportUseCase(
             response=self.response,
             project=project,
-            folder_names=folders,
+            folder_names=folder_names,
             backend_service_provider=self._backend_client,
             include_fuse=include_fuse,
             only_pinned=only_pinned,
