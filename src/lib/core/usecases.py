@@ -1883,3 +1883,19 @@ class ExtractFramesUseCase(BaseUseCase):
             target_fps=self._target_fps,
         )
         self._response.data = extracted_paths
+
+
+class CreateAnnotationClassUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        annotation_classes: BaseManageableRepository,
+        annotation_class: AnnotationClassEntity,
+    ):
+        super().__init__(response)
+        self._annotation_classes = annotation_classes
+        self._annotation_class = annotation_class
+
+    def execute(self):
+        created = self._annotation_classes.insert(entity=self._annotation_class)
+        self._response.data = created.to_dict()

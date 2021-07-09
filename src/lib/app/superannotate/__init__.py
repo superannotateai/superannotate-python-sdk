@@ -10,16 +10,15 @@ from src.lib.app.annotation_helpers import add_annotation_point_to_json
 from src.lib.app.annotation_helpers import add_annotation_polygon_to_json
 from src.lib.app.annotation_helpers import add_annotation_polyline_to_json
 from src.lib.app.annotation_helpers import add_annotation_template_to_json
+from src.lib.app.convertors.df_converter import filter_annotation_instances
+from src.lib.app.convertors.df_converter import filter_images_by_comments
+from src.lib.app.convertors.df_converter import filter_images_by_tags
 from src.lib.app.convertors.dicom_converter import dicom_to_rgb_sequence
 from src.lib.app.input_converters.conversion import coco_split_dataset
 from src.lib.app.input_converters.conversion import convert_json_version
 from src.lib.app.input_converters.conversion import convert_project_type
 from src.lib.app.input_converters.conversion import export_annotation
 from src.lib.app.input_converters.conversion import import_annotation
-from src.lib.app.convertors.df_converter import filter_images_by_comments
-from src.lib.app.convertors.df_converter import filter_images_by_tags
-from src.lib.app.convertors.df_converter import filter_annotation_instances
-from src.lib.app.convertors.df_converter import df_to_annotations
 from src.lib.app.interface.sdk_interface import assign_folder
 from src.lib.app.interface.sdk_interface import assign_images
 from src.lib.app.interface.sdk_interface import clone_project
@@ -69,7 +68,6 @@ __all__ = [
     "filter_images_by_comments",
     "filter_images_by_tags",
     "filter_annotation_instances",
-    "df_to_annotations",
     # helpers
     "add_annotation_bbox_to_json",
     "add_annotation_comment_to_json",

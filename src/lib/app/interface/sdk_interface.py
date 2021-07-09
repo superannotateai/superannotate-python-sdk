@@ -1673,3 +1673,25 @@ def upload_video_to_project(
     ]
     return uploaded_images
 
+
+def create_annotation_class(project, name, color, attribute_groups=None):
+    """Create annotation class in project
+
+    :param project: project name
+    :type project: str
+    :param name: name for the class
+    :type name: str
+    :param color: RGB hex color value, e.g., "#FFFFAA"
+    :type color: str
+    :param attribute_groups: example:
+     [ { "name": "tall", "is_multiselect": 0, "attributes": [ { "name": "yes" }, { "name": "no" } ] },
+     { "name": "age", "is_multiselect": 0, "attributes": [ { "name": "young" }, { "name": "old" } ] } ]
+    :type attribute_groups: list of dicts
+
+    :return: new class metadata
+    :rtype: dict
+    """
+    response = controller.create_annotation_class(
+        project_name=project, name=name, color=color, attribute_groups=attribute_groups
+    )
+    return response.data
