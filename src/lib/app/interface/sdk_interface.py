@@ -1672,3 +1672,86 @@ def upload_video_to_project(
         if image.name not in failed_images
     ]
     return uploaded_images
+
+
+def df_to_annotations(df, output_dir):
+    """Converts and saves pandas DataFrame annotation info (see aggregate_annotations_as_df)
+    in output_dir.
+    The DataFrame should have columns: "imageName", "className", "attributeGroupName",
+    "attributeName", "type", "error", "locked", "visible", trackingId", "probability",
+    "pointLabels", "meta", "commentResolved", "classColor", "groupId"
+
+    Currently only works for Vector projects.
+
+    :param df: pandas DataFrame of annotations possibly created by aggregate_annotations_as_df
+    :type df: pandas.DataFrame
+    :param output_dir: output dir for annotations and classes.json
+    :type output_dir: str or Pathlike
+
+    """
+    pass
+
+
+def filter_annotation_instances(annotations_df, include=None, exclude=None):
+    """Filter annotation instances from project annotations pandas DataFrame.
+
+    include and exclude rules should be a list of rules of the following type:
+    [{"className": "<className>", "type" : "<bbox, polygon,...>",
+    "error": <True or False>, "attributes" : [{"name" : "<attribute_value>",
+    "groupName" : "<attribute_group_name>"},...]},...]
+
+
+    :param annotations_df: pandas DataFrame of project annotations
+    :type annotations_df: pandas.DataFrame
+    :param include: include rules
+    :type include: list of dicts
+    :param exclude: exclude rules
+    :type exclude: list of dicts
+
+    :return: filtered DataFrame
+    :rtype: pandas.DataFrame
+
+    """
+    pass
+
+
+def filter_images_by_comments(
+    annotations_df,
+    include_unresolved_comments=True,
+    include_resolved_comments=False,
+    include_without_comments=False
+):
+    """Filter images on comment resolve status and comment existence
+
+    :param annotations_df: pandas DataFrame of project annotations
+    :type annotations_df: pandas.DataFrame
+    :param include_unresolved_comments: include images with unresolved state
+    :type include_unresolved_comments: bool
+    :param include_resolved_comments: include images with resolved state
+    :type include_resolved_comments: bool
+    :param include_without_comments: include images without any comments
+    :type include_without_comments: bool
+
+    :return: filtered image names
+    :rtype: list of strs
+
+    """
+    pass
+
+
+def filter_images_by_tags(annotations_df, include=None, exclude=None):
+    """Filter images on tags
+
+    :param annotations_df: pandas DataFrame of project annotations
+    :type annotations_df: pandas.DataFrame
+    :param include: include images with given tags
+    :type include: list of strs
+    :param exclude: exclude images with given tags
+    :type exclude: list of strs
+
+    :return: filtered image names
+    :rtype: list of strs
+
+    """
+    pass
+
