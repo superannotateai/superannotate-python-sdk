@@ -1,15 +1,15 @@
-import numpy as np
 import cv2
+import numpy as np
 
 
 def encode(bitmask):
     rle = _masktoRLE(bitmask)
-    rle['counts'] = _toString(rle['counts'])
+    rle["counts"] = _toString(rle["counts"])
     return rle
 
 
 def decode(coco_dict):
-    coco_dict['counts'] = _frString(coco_dict['counts'])
+    coco_dict["counts"] = _frString(coco_dict["counts"])
     return _maskfrRLE(coco_dict)
 
 
@@ -17,7 +17,7 @@ def _masktoRLE(bitmask):
     shape = bitmask.shape
     bitmask = bitmask.T.flatten()
     N = len(bitmask)
-    diff_index = np.where(np.array(bitmask[:N - 1]) - np.array(bitmask[1:]))[0]
+    diff_index = np.where(np.array(bitmask[: N - 1]) - np.array(bitmask[1:]))[0]
     diff = np.array(diff_index[1:]) - np.array(diff_index[:-1])
 
     counts = np.zeros(len(diff) + 3, dtype=np.int32)
@@ -28,18 +28,18 @@ def _masktoRLE(bitmask):
     if bitmask[0] == 0:
         counts = counts[1:]
 
-    return {'counts': counts, 'size': list(shape)}
+    return {"counts": counts, "size": list(shape)}
 
 
 def _maskfrRLE(rle):
-    x = np.arange(len(rle['counts']), dtype=np.uint8) % 2
-    bitmask = np.repeat(x, rle['counts'], axis=0)
+    x = np.arange(len(rle["counts"]), dtype=np.uint8) % 2
+    bitmask = np.repeat(x, rle["counts"], axis=0)
 
-    return bitmask.reshape((rle['size'][1], rle['size'][0])).T
+    return bitmask.reshape((rle["size"][1], rle["size"][0])).T
 
 
 def _toString(rle_counts):
-    rle_string = ''
+    rle_string = ""
     for i, count in enumerate(rle_counts):
         if i > 2:
             count -= rle_counts[i - 2]
@@ -49,8 +49,9 @@ def _toString(rle_counts):
             if count > 0:
                 count_binary = bin(count)
                 if len(count_binary[2:]) % 5 != 0:
-                    count_binary = '0b' + '0' * (5 - len(count_binary[2:]) %
-                                                 5) + count_binary[2:]
+                    count_binary = (
+                        "0b" + "0" * (5 - len(count_binary[2:]) % 5) + count_binary[2:]
+                    )
             else:
                 count_binary = bin(((1 << 35) - 1) & count)
 
@@ -58,7 +59,7 @@ def _toString(rle_counts):
             last_bits = count_binary[-5:]
 
             value = int(last_bits, 2)
-            if last_bits[0] == '1':
+            if last_bits[0] == "1":
                 more = count != -1
             else:
                 more = count != 0
@@ -82,7 +83,7 @@ def _frString(rle_string):
         count = 0
         while more:
             value = ord(rle_string[i]) - 48
-            count |= (value & 0x1f) << 5 * k
+            count |= (value & 0x1F) << 5 * k
             more = value & 0x20
             i += 1
             k += 1
@@ -127,8 +128,8 @@ def _polytoMask(polygons, height, width):
     for polygon in polygons:
         polygon = np.array(polygon, dtype=np.uint16)
         pts = np.array(
-            [polygon[2 * i:2 * (i + 1)] for i in range(len(polygon) // 2)],
-            dtype=np.int32
+            [polygon[2 * i : 2 * (i + 1)] for i in range(len(polygon) // 2)],
+            dtype=np.int32,
         )
         bitmask = np.zeros((height, width)).astype(np.uint8)
         cv2.fillPoly(bitmask, [pts], 1)

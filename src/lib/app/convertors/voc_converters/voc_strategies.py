@@ -1,8 +1,7 @@
 import numpy as np
 
-from ..baseStrategy import baseStrategy
-
 from ....common import write_to_json
+from ..baseStrategy import baseStrategy
 
 
 class VocStrategy(baseStrategy):
@@ -12,17 +11,17 @@ class VocStrategy(baseStrategy):
     def to_sa_format(self):
         classes = self.conversion_algorithm(self.export_root, self.output_dir)
         sa_classes = self._create_classes(classes)
-        (self.output_dir / 'classes').mkdir(exist_ok=True)
-        write_to_json(self.output_dir / 'classes' / 'classes.json', sa_classes)
+        (self.output_dir / "classes").mkdir(exist_ok=True)
+        write_to_json(self.output_dir / "classes" / "classes.json", sa_classes)
 
         # if self.project_type == 'Pixel':
         #     all_files = self.output_dir.glob('*.png')
         #     for file in all_files:
         #         if '___save.png' not in str(file.name):
         #             (self.output_dir / file.name).unlink()
-        all_files = self.output_dir.glob('*.png')
+        all_files = self.output_dir.glob("*.png")
         for file in all_files:
-            if '___save.png' not in str(file.name):
+            if "___save.png" not in str(file.name):
                 (self.output_dir / file.name).unlink()
 
     def _create_classes(self, instances):
@@ -33,10 +32,10 @@ class VocStrategy(baseStrategy):
                     classes[class_] = {}
 
                 for attr in value:
-                    if attr['groupName'] in classes[class_]:
-                        classes[class_][attr['groupName']].append(attr['name'])
+                    if attr["groupName"] in classes[class_]:
+                        classes[class_][attr["groupName"]].append(attr["name"])
                     else:
-                        classes[class_][attr['groupName']] = [attr['name']]
+                        classes[class_][attr["groupName"]] = [attr["name"]]
 
         sa_classes = []
         for class_ in classes:
@@ -46,19 +45,15 @@ class VocStrategy(baseStrategy):
             for attr_group, value in classes[class_].items():
                 attributes = []
                 for attr in set(value):
-                    attributes.append({'name': attr})
+                    attributes.append({"name": attr})
 
                 attribute_groups.append(
-                    {
-                        'name': attr_group,
-                        'is_multiselect': 0,
-                        'attributes': attributes
-                    }
+                    {"name": attr_group, "is_multiselect": 0, "attributes": attributes}
                 )
             sa_class = {
                 "name": class_,
                 "color": hexcolor,
-                "attribute_groups": attribute_groups
+                "attribute_groups": attribute_groups,
             }
             sa_classes.append(sa_class)
         return sa_classes

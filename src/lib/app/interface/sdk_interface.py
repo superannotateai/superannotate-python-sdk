@@ -1549,3 +1549,89 @@ def upload_videos_from_folder_to_project(
         if image.name not in failed_images
     ]
     return uploaded_images, failed_images
+
+
+def upload_video_to_project(
+    project,
+    video_path,
+    target_fps=None,
+    start_time=0.0,
+    end_time=None,
+    annotation_status="NotStarted",
+    image_quality_in_editor=None,
+):
+    """Uploads image frames from video to platform. Uploaded images will have
+    names "<video_name>_<frame_no>.jpg".
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param video_path: video to upload
+    :type video_path: Pathlike (str or Path)
+    :param target_fps: how many frames per second need to extract from the video (approximate).
+                       If None, all frames will be uploaded
+    :type target_fps: float
+    :param start_time: Time (in seconds) from which to start extracting frames
+    :type start_time: float
+    :param end_time: Time (in seconds) up to which to extract frames. If None up to end
+    :type end_time: float
+    :param annotation_status: value to set the annotation statuses of the uploaded
+                              video frames NotStarted InProgress QualityCheck Returned Completed Skipped
+    :type annotation_status: str
+    :param image_quality_in_editor: image quality be seen in SuperAnnotate web annotation editor.
+           Can be either "compressed" or "original".  If None then the default value in project settings will be used.
+    :type image_quality_in_editor: str
+
+    :return: filenames of uploaded images
+    :rtype: list of strs
+    """
+
+    project_name, folder_name = split_project_path(project)
+
+    uploaded_image_entities = []
+    failed_images = []
+
+    def _upload_image(image_path: str) -> str:
+        with open(image_path, "rb") as image:
+            image_bytes = BytesIO(image.read())
+            upload_response = controller.upload_image_to_s3(
+                project_name=project_name,
+                image_path=image_path,
+                image_bytes=image_bytes,
+                folder_name=folder_name,
+            )
+            if not upload_response.errors:
+                uploaded_image_entities.append(upload_response.data)
+            else:
+                return image_path
+
+    with tempfile.TemporaryDirectory() as temp_path:
+        res = controller.extract_video_frames(
+            project_name=project_name,
+            folder_name=folder_name,
+            video_path=video_path,
+            extract_path=temp_path,
+            target_fps=target_fps,
+            start_time=start_time,
+            end_time=end_time,
+            annotation_status=annotation_status,
+            image_quality_in_editor=image_quality_in_editor,
+        )
+        if not res.errors:
+            extracted_frame_paths = res.data
+            with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+                for image_path in extracted_frame_paths:
+                    failed_images.append(executor.submit(_upload_image, image_path))
+
+    for i in range(0, len(uploaded_image_entities), 500):
+        controller.upload_images(
+            project_name=project_name,
+            images=uploaded_image_entities[i : i + 500],  # noqa: E203
+            annotation_status=annotation_status,
+            image_quality=image_quality_in_editor,
+        )
+    uploaded_images = [
+        image.name
+        for image in uploaded_image_entities
+        if image.name not in failed_images
+    ]
+    return uploaded_images
