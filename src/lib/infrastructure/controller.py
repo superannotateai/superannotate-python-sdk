@@ -8,7 +8,6 @@ from src.lib.core.conditions import Condition
 from src.lib.core.conditions import CONDITION_EQ as EQ
 from src.lib.core.entities import FolderEntity
 from src.lib.core.entities import ImageEntity
-from src.lib.core.entities import ImageInfoEntity
 from src.lib.core.entities import ProjectEntity
 from src.lib.core.exceptions import AppException
 from src.lib.core.response import Response
@@ -31,6 +30,7 @@ from src.lib.core.usecases import DownloadImageAnnotationsUseCase
 from src.lib.core.usecases import DownloadImageFromPublicUrlUseCase
 from src.lib.core.usecases import DownloadImagePreAnnotationsUseCase
 from src.lib.core.usecases import DownloadImageUseCase
+from src.lib.core.usecases import ExtractFramesUseCase
 from src.lib.core.usecases import GetAnnotationClassesUseCase
 from src.lib.core.usecases import GetExportsUseCase
 from src.lib.core.usecases import GetFolderUseCase
@@ -63,6 +63,7 @@ from src.lib.core.usecases import UpdateImageUseCase
 from src.lib.core.usecases import UpdateProjectUseCase
 from src.lib.core.usecases import UpdateSettingsUseCase
 from src.lib.core.usecases import UploadImageS3UseCas
+from src.lib.core.usecases import UploadS3ImagesBackendUseCase
 from src.lib.infrastructure.repositories import AnnotationClassRepository
 from src.lib.infrastructure.repositories import ConfigRepository
 from src.lib.infrastructure.repositories import FolderRepository
@@ -1018,5 +1019,40 @@ class Controller(BaseController):
             with_all_subfolders=with_all_subfolders,
         )
 
+        use_case.execute()
+        return self.response
+
+    def extract_video_frames(
+        self,
+        project_name: str,
+        folder_name: str,
+        video_path: str,
+        extract_path: str,
+        start_time: float,
+        end_time: float = None,
+        target_fps: float = None,
+        annotation_status: str = None,
+        image_quality_in_editor: str = None,
+    ):
+        annotation_status_code = (
+            constances.AnnotationStatus.get_value(annotation_status)
+            if annotation_status
+            else None
+        )
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+        use_case = ExtractFramesUseCase(
+            response=self.response,
+            backend_service_provider=self._backend_client,
+            project=project,
+            folder=folder,
+            video_path=video_path,
+            extract_path=extract_path,
+            start_time=start_time,
+            end_time=end_time,
+            target_fps=target_fps,
+            annotation_status_code=annotation_status_code,
+            image_quality_in_editor=image_quality_in_editor,
+        )
         use_case.execute()
         return self.response

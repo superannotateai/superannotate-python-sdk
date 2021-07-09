@@ -43,6 +43,7 @@ from src.lib.app.interface.sdk_interface import (
     upload_images_from_google_cloud_to_project,
 )
 from src.lib.app.interface.sdk_interface import upload_images_from_s3_bucket_to_project
+from src.lib.app.interface.sdk_interface import upload_videos_from_folder_to_project
 
 
 __author__ = "Superannotate"
@@ -105,4 +106,6 @@ __all__ = [
     "unassign_images",
     "upload_images_from_google_cloud_to_project",
     "upload_images_from_s3_bucket_to_project",
+    # Video Section
+    "upload_videos_from_folder_to_project",
 ]
