@@ -1708,14 +1708,18 @@ def delete_annotation_class(project, annotation_class):
         project_name=project, annotation_class_name=annotation_class
     )
 
-def delete_annotation_class(project, annotation_class):
-    """Deletes annotation class from project
+def get_annotation_class_metadata(project, annotation_class_name):
+    """Returns annotation class metadata
 
     :param project: project name
     :type project: str
-    :param annotation_class: annotation class name or  metadata
-    :type annotation_class: str or dict
+    :param annotation_class_name: annotation class name
+    :type annotation_class_name: str
+
+    :return: metadata of annotation class
+    :rtype: dict
     """
-    controller.delete_annotation_class(
-        project_name=project, annotation_class_name=annotation_class
+    response = controller.get_annotation_class(
+        project_name=project, annotation_class_name=annotation_class_name
     )
+    return response.data

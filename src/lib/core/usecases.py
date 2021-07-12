@@ -2249,3 +2249,21 @@ class DeleteAnnotationClassUseCase(BaseUseCase):
         )
         self._annotation_class = annotation_classes[0]
         self._annotation_classes_repo.delete(uuid=self.uuid)
+
+
+class GetAnnotationClassUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        annotation_classes_repo: BaseManageableRepository,
+        annotation_class_name: str,
+    ):
+        super().__init__(response)
+        self._annotation_classes_repo = annotation_classes_repo
+        self._annotation_class_name = annotation_class_name
+
+    def execute(self):
+        classes = self._annotation_classes_repo.get_all(
+            condition=Condition("name", self._annotation_class_name, EQ)
+        )
+        self._response.data = classes[0].to_dict()
