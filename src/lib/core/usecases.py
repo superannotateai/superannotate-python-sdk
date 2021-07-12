@@ -2209,32 +2209,6 @@ class ExtractFramesUseCase(BaseUseCase):
         self._response.data = extracted_paths
 
 
-class DeleteAnnotationClassUseCase(BaseUseCase):
-    def __init__(
-        self,
-        response: Response,
-        annotation_classes_repo: BaseManageableRepository,
-        annotation_class_name: str,
-    ):
-        super().__init__(response)
-        self._annotation_classes_repo = annotation_classes_repo
-        self._annotation_class_name = annotation_class_name
-        self._annotation_class = None
-
-    @property
-    def uuid(self):
-        if self._annotation_class:
-            return self._annotation_class.uuid
-
-    def execute(self):
-        annotation_classes = self._annotation_classes_repo.get_all(
-            condition=Condition("name", self._annotation_class_name, EQ)
-            & Condition("pattern", True, EQ)
-        )
-        self._annotation_class = annotation_classes[0]
-        self._annotation_classes_repo.delete(uuid=self.uuid)
-
-
 class GetAnnotationClassUseCase(BaseUseCase):
     def __init__(
         self,
@@ -2250,4 +2224,4 @@ class GetAnnotationClassUseCase(BaseUseCase):
         classes = self._annotation_classes_repo.get_all(
             condition=Condition("name", self._annotation_class_name, EQ)
         )
-        self._response.data = classes[0]
+        self._response.data = classes[0].to_dict()
