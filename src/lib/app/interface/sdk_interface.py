@@ -1673,3 +1673,19 @@ def upload_video_to_project(
     ]
     return uploaded_images
 
+
+def download_annotation_classes_json(project, folder):
+    """Downloads project classes.json to folder
+
+    :param project: project name
+    :type project: str
+    :param folder: folder to download to
+    :type folder: Pathlike (str or Path)
+
+    :return: path of the download file
+    :rtype: str
+    """
+    response = controller.download_annotation_classes(
+        project_name=project, destination=folder
+    )
+    return response.data

@@ -26,12 +26,7 @@ def df_to_annotations(df, output_dir):
         image_height = None
         image_width = None
         image_df = df[df["imageName"] == image]
-        image_annotation = {
-            "instances": [],
-            "metadata": {},
-            "tags": [],
-            "comments": []
-        }
+        image_annotation = {"instances": [], "metadata": {}, "tags": [], "comments": []}
         instances = image_df["instanceId"].dropna().unique()
         for instance in instances:
             instance_df = image_df[image_df["instanceId"] == instance]
@@ -43,18 +38,15 @@ def df_to_annotations(df, output_dir):
                 "type": annotation_type,
                 "attributes": [],
                 "probability": instance_df.iloc[0]["probability"],
-                "error": instance_df.iloc[0]["error"]
+                "error": instance_df.iloc[0]["error"],
             }
             point_labels = instance_df.iloc[0]["pointLabels"]
             if point_labels is None:
                 point_labels = []
             instance_annotation["pointLabels"] = point_labels
             instance_annotation["locked"] = bool(instance_df.iloc[0]["locked"])
-            instance_annotation["visible"] = bool(
-                instance_df.iloc[0]["visible"]
-            )
-            instance_annotation["trackingId"] = instance_df.iloc[0]["trackingId"
-                                                                   ]
+            instance_annotation["visible"] = bool(instance_df.iloc[0]["visible"])
+            instance_annotation["trackingId"] = instance_df.iloc[0]["trackingId"]
             instance_annotation["groupId"] = int(instance_df.iloc[0]["groupId"])
             instance_annotation.update(annotation_meta)
             for _, row in instance_df.iterrows():
@@ -62,7 +54,7 @@ def df_to_annotations(df, output_dir):
                     instance_annotation["attributes"].append(
                         {
                             "groupName": row["attributeGroupName"],
-                            "name": row["attributeName"]
+                            "name": row["attributeName"],
                         }
                     )
             image_annotation["instances"].append(instance_annotation)
@@ -88,12 +80,12 @@ def df_to_annotations(df, output_dir):
             "width": int(image_width),
             "height": int(image_height),
             "status": image_status,
-            "pinned": bool(image_pinned)
+            "pinned": bool(image_pinned),
         }
         json.dump(
             image_annotation,
             open(output_dir / f"{image}___{project_suffix}", "w"),
-            indent=4
+            indent=4,
         )
 
     annotation_classes = []
@@ -108,7 +100,7 @@ def df_to_annotations(df, output_dir):
                 {
                     "name": row["className"],
                     "color": row["classColor"],
-                    "attribute_groups": []
+                    "attribute_groups": [],
                 }
             )
             annotation_class = annotation_classes[-1]
@@ -119,10 +111,7 @@ def df_to_annotations(df, output_dir):
                 break
         else:
             annotation_class["attribute_groups"].append(
-                {
-                    "name": row["attributeGroupName"],
-                    "attributes": []
-                }
+                {"name": row["attributeGroupName"], "attributes": []}
             )
             attribute_group = annotation_class["attribute_groups"][-1]
         for attribute in attribute_group["attributes"]:
@@ -133,10 +122,9 @@ def df_to_annotations(df, output_dir):
 
     Path(output_dir / "classes").mkdir(exist_ok=True)
     json.dump(
-        annotation_classes,
-        open(output_dir / "classes" / "classes.json", "w"),
-        indent=4
+        annotation_classes, open(output_dir / "classes" / "classes.json", "w"), indent=4
     )
+
 
 def filter_annotation_instances(annotations_df, include=None, exclude=None):
     """Filter annotation instances from project annotations pandas DataFrame.
@@ -165,13 +153,13 @@ def filter_annotation_instances(annotations_df, include=None, exclude=None):
         for include_rule in include:
             df_new = df.copy()
             if "className" in include_rule:
-                df_new = df_new[df_new["className"] == include_rule["className"]
-                               ]
+                df_new = df_new[df_new["className"] == include_rule["className"]]
             if "attributes" in include_rule:
                 for attribute in include_rule["attributes"]:
-                    df_new = df_new[(
-                        df_new["attributeGroupName"] == attribute["groupName"]
-                    ) & (df_new["attributeName"] == attribute["name"])]
+                    df_new = df_new[
+                        (df_new["attributeGroupName"] == attribute["groupName"])
+                        & (df_new["attributeName"] == attribute["name"])
+                    ]
             if "type" in include_rule:
                 df_new = df_new[df_new["type"] == include_rule["type"]]
             if "error" in include_rule:
@@ -186,13 +174,13 @@ def filter_annotation_instances(annotations_df, include=None, exclude=None):
             # with pd.option_context('display.max_rows', None):
             #     print("#", df_new["className"])
             if "className" in exclude_rule:
-                df_new = df_new[df_new["className"] == exclude_rule["className"]
-                               ]
+                df_new = df_new[df_new["className"] == exclude_rule["className"]]
             if "attributes" in exclude_rule:
                 for attribute in exclude_rule["attributes"]:
                     df_new = df_new[
-                        (df_new["attributeGroup"] == attribute["groupName"]) &
-                        (df_new["attributeName"] == attribute["name"])]
+                        (df_new["attributeGroup"] == attribute["groupName"])
+                        & (df_new["attributeName"] == attribute["name"])
+                    ]
             if "type" in exclude_rule:
                 df_new = df_new[df_new["type"] == exclude_rule["type"]]
             if "error" in exclude_rule:
@@ -203,11 +191,12 @@ def filter_annotation_instances(annotations_df, include=None, exclude=None):
     result = annotations_df.loc[df.index]
     return result
 
+
 def filter_images_by_comments(
     annotations_df,
     include_unresolved_comments=True,
     include_resolved_comments=False,
-    include_without_comments=False
+    include_without_comments=False,
 ):
     """Filter images on comment resolve status and comment existence
 
@@ -227,13 +216,9 @@ def filter_images_by_comments(
     images = set()
     df = annotations_df[annotations_df["type"] == "comment"]
     if include_unresolved_comments:
-        images.update(
-            df[df["commentResolved"] == False]["imageName"].dropna().unique()
-        )
+        images.update(df[df["commentResolved"] == False]["imageName"].dropna().unique())
     if include_resolved_comments:
-        images.update(
-            df[df["commentResolved"] == True]["imageName"].dropna().unique()
-        )
+        images.update(df[df["commentResolved"] == True]["imageName"].dropna().unique())
     if include_without_comments:
         all_images = set(annotations_df["imageName"].dropna().unique())
         with_comments = set(df["imageName"].dropna().unique())
@@ -261,15 +246,11 @@ def filter_images_by_tags(annotations_df, include=None, exclude=None):
     images = set(df["imageName"].dropna().unique())
 
     if include:
-        include_images = set(
-            df[df["tag"].isin(include)]["imageName"].dropna().unique()
-        )
+        include_images = set(df[df["tag"].isin(include)]["imageName"].dropna().unique())
         images = images.intersection(include_images)
 
     if exclude:
-        exclude_images = set(
-            df[df["tag"].isin(exclude)]["imageName"].dropna().unique()
-        )
+        exclude_images = set(df[df["tag"].isin(exclude)]["imageName"].dropna().unique())
 
         images = images.difference(exclude_images)
 

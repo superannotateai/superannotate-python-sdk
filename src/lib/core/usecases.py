@@ -2207,3 +2207,23 @@ class ExtractFramesUseCase(BaseUseCase):
             target_fps=self._target_fps,
         )
         self._response.data = extracted_paths
+
+
+class DownlaodAnnotationClassesUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        annotation_classes_repo: BaseManageableRepository,
+        destination: str,
+    ):
+        super().__init__(response)
+        self._annotation_classes_repo = annotation_classes_repo
+        self._destination = destination
+
+    def execute(self):
+        classes = self._annotation_classes_repo.get_all()
+        classes = [entity.to_dict() for entity in classes]
+        json.dump(
+            classes, open(Path(self._destination) / "classes.json", "w"), indent=4
+        )
+        self._response.data = self._destination
