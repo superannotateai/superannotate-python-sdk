@@ -688,3 +688,16 @@ class SuperannotateBackendService(BaseBackendService):
             params={"team_id": team_id, "project_id": project_id},
         )
         return res.json()
+
+    def delete_annotation_class(
+        self, team_id: int, project_id: int, annotation_class_id: int
+    ):
+        delete_image_url = urljoin(
+            self.api_url, self.URL_GET_CLASS.format(annotation_class_id)
+        )
+        res = self._request(
+            delete_image_url,
+            "delete",
+            params={"team_id": team_id, "project_id": project_id},
+        )
+        return res.json()
