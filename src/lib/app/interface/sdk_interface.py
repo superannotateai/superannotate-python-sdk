@@ -1695,3 +1695,15 @@ def create_annotation_class(project, name, color, attribute_groups=None):
         project_name=project, name=name, color=color, attribute_groups=attribute_groups
     )
     return response.data.to_dict()
+
+def delete_annotation_class(project, annotation_class):
+    """Deletes annotation class from project
+
+    :param project: project name
+    :type project: str
+    :param annotation_class: annotation class name or  metadata
+    :type annotation_class: str or dict
+    """
+    controller.delete_annotation_class(
+        project_name=project, annotation_class_name=annotation_class
+    )

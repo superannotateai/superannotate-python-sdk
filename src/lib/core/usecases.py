@@ -2223,3 +2223,29 @@ class CreateAnnotationClassUseCase(BaseUseCase):
     def execute(self):
         created = self._annotation_classes.insert(entity=self._annotation_class)
         self._response.data = created
+
+
+class DeleteAnnotationClassUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        annotation_classes_repo: BaseManageableRepository,
+        annotation_class_name: str,
+    ):
+        super().__init__(response)
+        self._annotation_classes_repo = annotation_classes_repo
+        self._annotation_class_name = annotation_class_name
+        self._annotation_class = None
+
+    @property
+    def uuid(self):
+        if self._annotation_class:
+            return self._annotation_class.uuid
+
+    def execute(self):
+        annotation_classes = self._annotation_classes_repo.get_all(
+            condition=Condition("name", self._annotation_class_name, EQ)
+            & Condition("pattern", True, EQ)
+        )
+        self._annotation_class = annotation_classes[0]
+        self._annotation_classes_repo.delete(uuid=self.uuid)
