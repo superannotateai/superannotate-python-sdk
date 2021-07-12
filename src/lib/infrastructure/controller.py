@@ -65,6 +65,7 @@ from src.lib.core.usecases import UpdateProjectUseCase
 from src.lib.core.usecases import UpdateSettingsUseCase
 from src.lib.core.usecases import UploadImageS3UseCas
 from src.lib.core.usecases import UploadS3ImagesBackendUseCase
+from src.lib.core.usecases import CreateAnnotationClassesJson
 from src.lib.infrastructure.repositories import AnnotationClassRepository
 from src.lib.infrastructure.repositories import ConfigRepository
 from src.lib.infrastructure.repositories import FolderRepository
@@ -1069,3 +1070,26 @@ class Controller(BaseController):
         )
         use_case.execute()
         return self.response
+
+    def create_annotation_classes_from_json(
+            self,
+            project_name: str,
+            annotation_classes: list,
+            from_s3_bucket: bool = False
+    ):
+        project = self._get_project(project_name)
+        use_case = CreateAnnotationClassesJson(
+            response=self.response,
+            annotation_classes_repo=AnnotationClassRepository(
+                service=self._backend_client, project=project,
+            ),
+            annotation_classes=annotation_classes,
+            from_s3_bucket=from_s3_bucket
+        )
+        use_case.execute()
+
+
+
+
+
+
