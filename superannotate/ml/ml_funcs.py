@@ -235,10 +235,10 @@ def run_training(
     :type  task: str
     :param base_model: base model on which the new network will be trained
     :type  base_model: str or dict
-    :param train_data: train data folder id
-    :type  train_data: list of int
-    :param test_data: test data folder id
-    :type  test_data: list of int
+    :param train_data: train data folders (e.g., "project1/folder1")
+    :type  train_data: list of str
+    :param test_data: test data folders (e.g., "project1/folder1")
+    :type  test_data: list of str
     :param hyperparameters: hyperparameters that should be used in training
     :type  hyperparameters: dict
     :param log: If true will log training metrics in the stdout
