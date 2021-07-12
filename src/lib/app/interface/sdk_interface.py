@@ -1673,3 +1673,15 @@ def upload_video_to_project(
     ]
     return uploaded_images
 
+
+def delete_annotation_class(project, annotation_class):
+    """Deletes annotation class from project
+
+    :param project: project name
+    :type project: str
+    :param annotation_class: annotation class name or  metadata
+    :type annotation_class: str or dict
+    """
+    controller.delete_annotation_class(
+        project_name=project, annotation_class_name=annotation_class
+    )
