@@ -1689,3 +1689,19 @@ def get_annotation_class_metadata(project, annotation_class_name):
         project_name=project, annotation_class_name=annotation_class_name
     )
     return response.data.to_dict()
+
+def download_annotation_classes_json(project, folder):
+    """Downloads project classes.json to folder
+
+    :param project: project name
+    :type project: str
+    :param folder: folder to download to
+    :type folder: Pathlike (str or Path)
+
+    :return: path of the download file
+    :rtype: str
+    """
+    response = controller.download_annotation_classes(
+        project_name=project, destination=folder
+    )
+    return response.data
