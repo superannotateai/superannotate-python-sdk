@@ -1,5 +1,4 @@
 import concurrent.futures
-import json
 import logging
 import os
 import tempfile
@@ -1675,59 +1674,6 @@ def upload_video_to_project(
     return uploaded_images
 
 
-def create_annotation_class(project, name, color, attribute_groups=None):
-    """Create annotation class in project
-
-    :param project: project name
-    :type project: str
-    :param name: name for the class
-    :type name: str
-    :param color: RGB hex color value, e.g., "#FFFFAA"
-    :type color: str
-    :param attribute_groups: example:
-     [ { "name": "tall", "is_multiselect": 0, "attributes": [ { "name": "yes" }, { "name": "no" } ] },
-     { "name": "age", "is_multiselect": 0, "attributes": [ { "name": "young" }, { "name": "old" } ] } ]
-    :type attribute_groups: list of dicts
-
-    :return: new class metadata
-    :rtype: dict
-    """
-    response = controller.create_annotation_class(
-        project_name=project, name=name, color=color, attribute_groups=attribute_groups
-    )
-    return response.data.to_dict()
-
-
-def delete_annotation_class(project, annotation_class):
-    """Deletes annotation class from project
-
-    :param project: project name
-    :type project: str
-    :param annotation_class: annotation class name or  metadata
-    :type annotation_class: str or dict
-    """
-    controller.delete_annotation_class(
-        project_name=project, annotation_class_name=annotation_class
-    )
-
-
-def get_annotation_class_metadata(project, annotation_class_name):
-    """Returns annotation class metadata
-
-    :param project: project name
-    :type project: str
-    :param annotation_class_name: annotation class name
-    :type annotation_class_name: str
-
-    :return: metadata of annotation class
-    :rtype: dict
-    """
-    response = controller.get_annotation_class(
-        project_name=project, annotation_class_name=annotation_class_name
-    )
-    return response.data.to_dict()
-
-
 def download_annotation_classes_json(project, folder):
     """Downloads project classes.json to folder
 
@@ -1740,13 +1686,13 @@ def download_annotation_classes_json(project, folder):
     :rtype: str
     """
     response = controller.download_annotation_classes(
-        project_name=project, download_path=folder
+        project_name=project, destination=folder
     )
     return response.data
 
 
 def create_annotation_classes_from_classes_json(
-    project, classes_json, from_s3_bucket=False
+    project, classes_json, from_s3_bucket=None
 ):
     """Creates annotation classes in project from a SuperAnnotate format
     annotation classes.json.
@@ -1756,21 +1702,11 @@ def create_annotation_classes_from_classes_json(
     :param classes_json: JSON itself or path to the JSON file
     :type classes_json: list or Pathlike (str or Path)
     :param from_s3_bucket: AWS S3 bucket to use. If None then classes_json is in local filesystem
-    :type from_s3_bucket: bool
+    :type from_s3_bucket: str
 
     :return: list of created annotation class metadatas
     :rtype: list of dicts
     """
-    annotation_classes = []
-    if not isinstance(classes_json, list):
-        if from_s3_bucket:
-            # TODO:
-            pass
-        else:
-            annotation_classes = json.load(open(classes_json))
-    else:
-        annotation_classes = classes_json
-    response = controller.create_annotation_classes(
-        project_name=project, annotation_classes=annotation_classes,
-    )
-    return response.data
+
+    # TODO: open json path here
+    controller.create_annotation_classes_from_json(project_name=project,annotation_classes=classes_json,from_s3_bucket=from_s3_bucket)

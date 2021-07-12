@@ -2214,54 +2214,18 @@ class DownlaodAnnotationClassesUseCase(BaseUseCase):
         self,
         response: Response,
         annotation_classes_repo: BaseManageableRepository,
-        download_path: str,
+        destination: str,
     ):
         super().__init__(response)
         self._annotation_classes_repo = annotation_classes_repo
-        self._download_path = download_path
+        self._destination = destination
 
     def execute(self):
         classes = self._annotation_classes_repo.get_all()
         classes = [entity.to_dict() for entity in classes]
         json.dump(
-            classes, open(Path(self._download_path) / "classes.json", "w"), indent=4
+            classes, open(Path(self._destination) / "classes.json", "w"), indent=4
         )
-        self._response.data = self._download_path
+        self._response.data = self._destination
 
 
-class CreateAnnotationClassesUseCase(BaseUseCase):
-
-    CHUNK_SIZE = 500
-
-    def __init__(
-        self,
-        response: Response,
-        service: SuerannotateServiceProvider,
-        annotation_classes_repo: BaseManageableRepository,
-        annotation_classes: list,
-        project: ProjectEntity,
-    ):
-        super().__init__(response)
-        self._service = service
-        self._annotation_classes_repo = annotation_classes_repo
-        self._annotation_classes = annotation_classes
-        self._project = project
-
-    def execute(self):
-        existing_annotation_classes = self._annotation_classes_repo.get_all()
-        existing_classes_name = [i.name for i in existing_annotation_classes]
-        unique_annotation_classes = []
-        for annotation_class in self._annotation_classes:
-            if annotation_class["name"] in existing_classes_name:
-                continue
-            else:
-                unique_annotation_classes.append(annotation_class)
-
-        created = []
-        for i in range(0, len(unique_annotation_classes), self.CHUNK_SIZE):
-            created += self._service.set_annotation_classes(
-                project_id=self._project.uuid,
-                team_id=self._project.team_id,
-                data=unique_annotation_classes[i : i + self.CHUNK_SIZE],
-            )
-        self._response.data = created
