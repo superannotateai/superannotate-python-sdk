@@ -33,7 +33,6 @@ from src.lib.core.usecases import DownloadImagePreAnnotationsUseCase
 from src.lib.core.usecases import DownloadImageUseCase
 from src.lib.core.usecases import ExtractFramesUseCase
 from src.lib.core.usecases import GetAnnotationClassesUseCase
-from src.lib.core.usecases import GetAnnotationClassUseCase
 from src.lib.core.usecases import GetExportsUseCase
 from src.lib.core.usecases import GetFolderUseCase
 from src.lib.core.usecases import GetImageAnnotationsUseCase
@@ -1059,26 +1058,14 @@ class Controller(BaseController):
         use_case.execute()
         return self.response
 
-    def get_annotation_class(self, project_name: str, annotation_class_name: str):
-        project = self._get_project(project_name)
-        use_case = GetAnnotationClassUseCase(
-            response=self.response,
-            annotation_class_name=annotation_class_name,
-            annotation_classes_repo=AnnotationClassRepository(
-                service=self._backend_client, project=project,
-            ),
-        )
-        use_case.execute()
-        return self.response
-
-    def download_annotation_classes(self, project_name: str, download_path: str):
+    def download_annotation_classes(self, project_name: str, destination: str):
         project = self._get_project(project_name)
         use_case = DownlaodAnnotationClassesUseCase(
             response=self.response,
             annotation_classes_repo=AnnotationClassRepository(
                 service=self._backend_client, project=project,
             ),
-            download_path=download_path,
+            destination=destination,
         )
         use_case.execute()
         return self.response

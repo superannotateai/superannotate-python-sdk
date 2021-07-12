@@ -1674,22 +1674,6 @@ def upload_video_to_project(
     return uploaded_images
 
 
-def get_annotation_class_metadata(project, annotation_class_name):
-    """Returns annotation class metadata
-
-    :param project: project name
-    :type project: str
-    :param annotation_class_name: annotation class name
-    :type annotation_class_name: str
-
-    :return: metadata of annotation class
-    :rtype: dict
-    """
-    response = controller.get_annotation_class(
-        project_name=project, annotation_class_name=annotation_class_name
-    )
-    return response.data.to_dict()
-
 def download_annotation_classes_json(project, folder):
     """Downloads project classes.json to folder
 
@@ -1702,6 +1686,6 @@ def download_annotation_classes_json(project, folder):
     :rtype: str
     """
     response = controller.download_annotation_classes(
-        project_name=project, download_path=folder
+        project_name=project, destination=folder
     )
     return response.data
