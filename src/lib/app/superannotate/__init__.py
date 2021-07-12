@@ -10,6 +10,7 @@ from src.lib.app.annotation_helpers import add_annotation_point_to_json
 from src.lib.app.annotation_helpers import add_annotation_polygon_to_json
 from src.lib.app.annotation_helpers import add_annotation_polyline_to_json
 from src.lib.app.annotation_helpers import add_annotation_template_to_json
+from src.lib.app.convertors.df_converter import df_to_annotations
 from src.lib.app.convertors.df_converter import filter_annotation_instances
 from src.lib.app.convertors.df_converter import filter_images_by_comments
 from src.lib.app.convertors.df_converter import filter_images_by_tags

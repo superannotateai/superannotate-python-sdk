@@ -193,3 +193,8 @@ class SuerannotateServiceProvider(ABC):
 
     def get_s3_upload_auth_token(self, team_id: int, folder_id: int, project_id: int):
         raise NotImplementedError
+
+    def delete_annotation_class(
+        self, team_id: int, project_id: int, annotation_class_id: int
+    ):
+        raise NotImplementedError

@@ -21,6 +21,7 @@ from src.lib.core.usecases import CopyImageAnnotationClasses
 from src.lib.core.usecases import CreateAnnotationClassUseCase
 from src.lib.core.usecases import CreateFolderUseCase
 from src.lib.core.usecases import CreateProjectUseCase
+from src.lib.core.usecases import DeleteAnnotationClassUseCase
 from src.lib.core.usecases import DeleteContributorInvitationUseCase
 from src.lib.core.usecases import DeleteFolderUseCase
 from src.lib.core.usecases import DeleteImagesUseCase
@@ -1076,3 +1077,14 @@ class Controller(BaseController):
         )
         use_case.execute()
         return self.response
+
+    def delete_annotation_class(self, project_name: str, annotation_class_name: str):
+        project = self._get_project(project_name)
+        use_case = DeleteAnnotationClassUseCase(
+            response=self.response,
+            annotation_class_name=annotation_class_name,
+            annotation_classes_repo=AnnotationClassRepository(
+                service=self._backend_client, project=project,
+            ),
+        )
+        use_case.execute()
