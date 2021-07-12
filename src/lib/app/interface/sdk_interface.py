@@ -1739,3 +1739,24 @@ def download_annotation_classes_json(project, folder):
         project_name=project, download_path=folder
     )
     return response.data
+
+
+def create_annotation_classes_from_classes_json(
+    project, classes_json, from_s3_bucket=None
+):
+    """Creates annotation classes in project from a SuperAnnotate format
+    annotation classes.json.
+
+    :param project: project name
+    :type project: str
+    :param classes_json: JSON itself or path to the JSON file
+    :type classes_json: list or Pathlike (str or Path)
+    :param from_s3_bucket: AWS S3 bucket to use. If None then classes_json is in local filesystem
+    :type from_s3_bucket: str
+
+    :return: list of created annotation class metadatas
+    :rtype: list of dicts
+    """
+
+    # TODO: open json path here
+    controller.create_annotation_classes_from_json(project_name=project,annotation_classes=classes_json,from_s3_bucket=from_s3_bucket)
