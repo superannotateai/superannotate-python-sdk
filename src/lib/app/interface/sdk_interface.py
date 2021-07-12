@@ -1673,3 +1673,40 @@ def upload_video_to_project(
     ]
     return uploaded_images
 
+
+def download_annotation_classes_json(project, folder):
+    """Downloads project classes.json to folder
+
+    :param project: project name
+    :type project: str
+    :param folder: folder to download to
+    :type folder: Pathlike (str or Path)
+
+    :return: path of the download file
+    :rtype: str
+    """
+    response = controller.download_annotation_classes(
+        project_name=project, destination=folder
+    )
+    return response.data
+
+
+def create_annotation_classes_from_classes_json(
+    project, classes_json, from_s3_bucket=None
+):
+    """Creates annotation classes in project from a SuperAnnotate format
+    annotation classes.json.
+
+    :param project: project name
+    :type project: str
+    :param classes_json: JSON itself or path to the JSON file
+    :type classes_json: list or Pathlike (str or Path)
+    :param from_s3_bucket: AWS S3 bucket to use. If None then classes_json is in local filesystem
+    :type from_s3_bucket: str
+
+    :return: list of created annotation class metadatas
+    :rtype: list of dicts
+    """
+
+    # TODO: open json path here
+    controller.create_annotation_classes_from_json(project_name=project,annotation_classes=classes_json,from_s3_bucket=from_s3_bucket)

@@ -24,6 +24,7 @@ from src.lib.core.usecases import DeleteFolderUseCase
 from src.lib.core.usecases import DeleteImagesUseCase
 from src.lib.core.usecases import DeleteImageUseCase
 from src.lib.core.usecases import DeleteProjectUseCase
+from src.lib.core.usecases import DownlaodAnnotationClassesUseCase
 from src.lib.core.usecases import DownloadAzureCloudImages
 from src.lib.core.usecases import DownloadGoogleCloudImages
 from src.lib.core.usecases import DownloadImageAnnotationsUseCase
@@ -64,6 +65,7 @@ from src.lib.core.usecases import UpdateProjectUseCase
 from src.lib.core.usecases import UpdateSettingsUseCase
 from src.lib.core.usecases import UploadImageS3UseCas
 from src.lib.core.usecases import UploadS3ImagesBackendUseCase
+from src.lib.core.usecases import CreateAnnotationClassesJson
 from src.lib.infrastructure.repositories import AnnotationClassRepository
 from src.lib.infrastructure.repositories import ConfigRepository
 from src.lib.infrastructure.repositories import FolderRepository
@@ -1056,3 +1058,38 @@ class Controller(BaseController):
         )
         use_case.execute()
         return self.response
+
+    def download_annotation_classes(self, project_name: str, destination: str):
+        project = self._get_project(project_name)
+        use_case = DownlaodAnnotationClassesUseCase(
+            response=self.response,
+            annotation_classes_repo=AnnotationClassRepository(
+                service=self._backend_client, project=project,
+            ),
+            destination=destination,
+        )
+        use_case.execute()
+        return self.response
+
+    def create_annotation_classes_from_json(
+            self,
+            project_name: str,
+            annotation_classes: list,
+            from_s3_bucket: bool = False
+    ):
+        project = self._get_project(project_name)
+        use_case = CreateAnnotationClassesJson(
+            response=self.response,
+            annotation_classes_repo=AnnotationClassRepository(
+                service=self._backend_client, project=project,
+            ),
+            annotation_classes=annotation_classes,
+            from_s3_bucket=from_s3_bucket
+        )
+        use_case.execute()
+
+
+
+
+
+
