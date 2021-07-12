@@ -1673,3 +1673,19 @@ def upload_video_to_project(
     ]
     return uploaded_images
 
+
+def get_annotation_class_metadata(project, annotation_class_name):
+    """Returns annotation class metadata
+
+    :param project: project name
+    :type project: str
+    :param annotation_class_name: annotation class name
+    :type annotation_class_name: str
+
+    :return: metadata of annotation class
+    :rtype: dict
+    """
+    response = controller.get_annotation_class(
+        project_name=project, annotation_class_name=annotation_class_name
+    )
+    return response.data
