@@ -2232,16 +2232,16 @@ class DownlaodAnnotationClassesUseCase(BaseUseCase):
         self,
         response: Response,
         annotation_classes_repo: BaseManageableRepository,
-        destination: str,
+        download_path: str,
     ):
         super().__init__(response)
         self._annotation_classes_repo = annotation_classes_repo
-        self._destination = destination
+        self._download_path = download_path
 
     def execute(self):
         classes = self._annotation_classes_repo.get_all()
         classes = [entity.to_dict() for entity in classes]
         json.dump(
-            classes, open(Path(self._destination) / "classes.json", "w"), indent=4
+            classes, open(Path(self._download_path) / "classes.json", "w"), indent=4
         )
-        self._response.data = self._destination
+        self._response.data = self._download_path
