@@ -287,7 +287,7 @@ class AnnotationClassRepository(BaseManageableRepository):
 
     def insert(self, entity: AnnotationClassEntity):
         res = self._service.set_annotation_classes(
-            entity.project_id, self.project.team_id, [entity.to_dict()]
+            self.project.uuid, self.project.team_id, [entity.to_dict()]
         )
         return self.dict2entity(res[0])
 
