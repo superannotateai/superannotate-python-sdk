@@ -1226,13 +1226,3 @@ class Controller(BaseController):
         use_case.execute()
         return self.response
 
-    def delete_annotation_class(self, project_name: str, annotation_class_name: str):
-        project = self._get_project(project_name)
-        use_case = DeleteAnnotationClassUseCase(
-            response=self.response,
-            annotation_class_name=annotation_class_name,
-            annotation_classes_repo=AnnotationClassRepository(
-                service=self._backend_client, project=project,
-            ),
-        )
-        use_case.execute()
