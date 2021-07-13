@@ -1736,6 +1736,6 @@ def download_annotation_classes_json(project, folder):
     :rtype: str
     """
     response = controller.download_annotation_classes(
-        project_name=project, destination=folder
+        project_name=project, download_path=folder
     )
     return response.data

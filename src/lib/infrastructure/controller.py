@@ -1104,14 +1104,14 @@ class Controller(BaseController):
         use_case.execute()
         return self.response
 
-    def download_annotation_classes(self, project_name: str, destination: str):
+    def download_annotation_classes(self, project_name: str, download_path: str):
         project = self._get_project(project_name)
         use_case = DownlaodAnnotationClassesUseCase(
             response=self.response,
             annotation_classes_repo=AnnotationClassRepository(
                 service=self._backend_client, project=project,
             ),
-            destination=destination,
+            download_path=download_path,
         )
         use_case.execute()
         return self.response
