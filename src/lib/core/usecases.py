@@ -1898,4 +1898,4 @@ class CreateAnnotationClassUseCase(BaseUseCase):
 
     def execute(self):
         created = self._annotation_classes.insert(entity=self._annotation_class)
-        self._response.data = created.to_dict()
+        self._response.data = created
