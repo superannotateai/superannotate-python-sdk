@@ -6,6 +6,7 @@ from typing import List
 import lib.core as constances
 from src.lib.core.conditions import Condition
 from src.lib.core.conditions import CONDITION_EQ as EQ
+from src.lib.core.entities import AnnotationClassEntity
 from src.lib.core.entities import FolderEntity
 from src.lib.core.entities import ImageEntity
 from src.lib.core.entities import ProjectEntity
@@ -17,6 +18,7 @@ from src.lib.core.usecases import AttachFileUrlsUseCase
 from src.lib.core.usecases import AttachImagesUseCase
 from src.lib.core.usecases import CloneProjectUseCase
 from src.lib.core.usecases import CopyImageAnnotationClasses
+from src.lib.core.usecases import CreateAnnotationClassUseCase
 from src.lib.core.usecases import CreateFolderUseCase
 from src.lib.core.usecases import CreateProjectUseCase
 from src.lib.core.usecases import DeleteAnnotationClassUseCase
@@ -1058,6 +1060,24 @@ class Controller(BaseController):
         use_case.execute()
         return self.response
 
+    def create_annotation_class(
+        self, project_name: str, name: str, color: str, attribute_groups: List[dict]
+    ):
+        project = self._get_project(project_name)
+        annotation_classes = AnnotationClassRepository(
+            project=project, service=self._backend_client
+        )
+        annotation_class = AnnotationClassEntity(
+            name=name, color=color, attribute_groups=attribute_groups
+        )
+        use_case = CreateAnnotationClassUseCase(
+            response=self.response,
+            annotation_classes=annotation_classes,
+            annotation_class=annotation_class,
+        )
+        use_case.execute()
+        return self.response
+
     def delete_annotation_class(self, project_name: str, annotation_class_name: str):
         project = self._get_project(project_name)
         use_case = DeleteAnnotationClassUseCase(
@@ -1068,3 +1088,4 @@ class Controller(BaseController):
             ),
         )
         use_case.execute()
+
