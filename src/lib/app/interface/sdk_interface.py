@@ -1694,4 +1694,4 @@ def create_annotation_class(project, name, color, attribute_groups=None):
     response = controller.create_annotation_class(
         project_name=project, name=name, color=color, attribute_groups=attribute_groups
     )
-    return response.data
+    return response.data.to_dict()
