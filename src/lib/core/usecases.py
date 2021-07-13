@@ -2224,4 +2224,4 @@ class GetAnnotationClassUseCase(BaseUseCase):
         classes = self._annotation_classes_repo.get_all(
             condition=Condition("name", self._annotation_class_name, EQ)
         )
-        self._response.data = classes[0].to_dict()
+        self._response.data = classes[0]
