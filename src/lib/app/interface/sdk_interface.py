@@ -1722,4 +1722,4 @@ def get_annotation_class_metadata(project, annotation_class_name):
     response = controller.get_annotation_class(
         project_name=project, annotation_class_name=annotation_class_name
     )
-    return response.data
+    return response.data.to_dict()
