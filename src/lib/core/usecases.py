@@ -2267,3 +2267,23 @@ class GetAnnotationClassUseCase(BaseUseCase):
             condition=Condition("name", self._annotation_class_name, EQ)
         )
         self._response.data = classes[0]
+
+
+class DownlaodAnnotationClassesUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        annotation_classes_repo: BaseManageableRepository,
+        download_path: str,
+    ):
+        super().__init__(response)
+        self._annotation_classes_repo = annotation_classes_repo
+        self._download_path = download_path
+
+    def execute(self):
+        classes = self._annotation_classes_repo.get_all()
+        classes = [entity.to_dict() for entity in classes]
+        json.dump(
+            classes, open(Path(self._download_path) / "classes.json", "w"), indent=4
+        )
+        self._response.data = self._download_path
