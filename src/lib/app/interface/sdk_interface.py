@@ -1,4 +1,5 @@
 import concurrent.futures
+import json
 import logging
 import os
 import tempfile
@@ -6,7 +7,6 @@ from collections import Counter
 from io import BytesIO
 from pathlib import Path
 from urllib.parse import urlparse
-import json
 
 import boto3
 import lib.core as constances
@@ -1697,6 +1697,7 @@ def create_annotation_class(project, name, color, attribute_groups=None):
     )
     return response.data.to_dict()
 
+
 def delete_annotation_class(project, annotation_class):
     """Deletes annotation class from project
 
@@ -1708,6 +1709,7 @@ def delete_annotation_class(project, annotation_class):
     controller.delete_annotation_class(
         project_name=project, annotation_class_name=annotation_class
     )
+
 
 def get_annotation_class_metadata(project, annotation_class_name):
     """Returns annotation class metadata
@@ -1724,6 +1726,7 @@ def get_annotation_class_metadata(project, annotation_class_name):
         project_name=project, annotation_class_name=annotation_class_name
     )
     return response.data.to_dict()
+
 
 def download_annotation_classes_json(project, folder):
     """Downloads project classes.json to folder
@@ -1768,7 +1771,6 @@ def create_annotation_classes_from_classes_json(
     else:
         annotation_classes = classes_json
     response = controller.create_annotation_classes(
-        project_name=project,
-        annotation_classes=annotation_classes,
+        project_name=project, annotation_classes=annotation_classes,
     )
     return response.data
