@@ -1239,3 +1239,21 @@ class Controller(BaseController):
         )
         use_case.execute()
         return self.response
+
+    def create_fuse_image(
+        self,
+        project_type: str,
+        image_path: str,
+        in_memory: bool,
+        generate_overlay: bool,
+    ):
+
+        use_case = CreateFuseImageUseCase(
+            response=self.response,
+            project_type=project_type,
+            image_path=image_path,
+            in_memory=in_memory,
+            generate_overlay=generate_overlay,
+        )
+        use_case.execute()
+        return self.response
