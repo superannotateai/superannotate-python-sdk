@@ -301,6 +301,8 @@ def run_training(
             0,
             f"The type of provided projects is {project_type}, and does not correspond to the type of provided model"
         )
+    if not hyperparameters:
+        hyperparameters = {}
     for item in DEFAULT_HYPERPARAMETERS:
         if item not in hyperparameters:
             hyperparameters[item] = DEFAULT_HYPERPARAMETERS[item]
