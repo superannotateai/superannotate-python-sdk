@@ -2,6 +2,7 @@ from abc import ABC
 
 import src.lib.core as constance
 from lib.core.entities import BaseEntity
+from lib.core.entities import ImageEntity
 
 
 class BaseSerializers(ABC):
@@ -49,3 +50,9 @@ class ImageSerializer(BaseSerializers):
             data["annotation_status"]
         )
         return data
+
+    @staticmethod
+    def deserialize(data):
+        if isinstance(data, list):
+            return [ImageEntity(**image) for image in data]
+        return ImageEntity(**data)

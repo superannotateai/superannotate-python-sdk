@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import tempfile
+import uuid
 from collections import Counter
 from io import BytesIO
 from pathlib import Path
@@ -10,6 +11,8 @@ from urllib.parse import urlparse
 
 import boto3
 import lib.core as constances
+import pandas as pd
+from lib.app.exceptions import AppException
 from lib.app.exceptions import AppException
 from lib.app.exceptions import EmptyOutputError
 from lib.app.helpers import split_project_path
@@ -1913,3 +1916,135 @@ def download_image(
         include_overlay=include_overlay,
     )
     return response.data
+
+
+def create_fuse_image(
+    image, classes_json, project_type, in_memory=False, output_overlay=False
+):
+    """Creates fuse for locally located image and annotations
+
+    :param image: path to image
+    :type image: str or Pathlike
+    :param image_name: annotation classes or path to their JSON
+    :type image: list or Pathlike
+    :param project_type: project type, "Vector" or "Pixel"
+    :type project_type: str
+    :param in_memory: enables pillow Image return instead of saving the image
+    :type in_memory: bool
+
+    :return: path to created fuse image or pillow Image object if in_memory enabled
+    :rtype: str of PIL.Image
+    """
+
+    response = controller.create_fuse_image(
+        image_path=image,
+        project_type=project_type,
+        in_memory=in_memory,
+        generate_overlay=output_overlay,
+    )
+
+    return response.data
+
+
+def download_image(
+    project,
+    image_name,
+    local_dir_path=".",
+    include_annotations=False,
+    include_fuse=False,
+    include_overlay=False,
+    variant="original",
+):
+    """Downloads the image (and annotation if not None) to local_dir_path
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param image_name: image name
+    :type image: str
+    :param local_dir_path: where to download the image
+    :type local_dir_path: Pathlike (str or Path)
+    :param include_annotations: enables annotation download with the image
+    :type include_annotations: bool
+    :param include_fuse: enables fuse image download with the image
+    :type include_fuse: bool
+    :param variant: which resolution to download, can be 'original' or 'lores'
+     (low resolution used in web editor)
+    :type variant: str
+
+    :return: paths of downloaded image and annotations if included
+    :rtype: tuple
+    """
+    project_name, folder_name = split_project_path(project)
+    response = controller.download_image(
+        project_name=project_name,
+        folder_name=folder_name,
+        image_name=image_name,
+        download_path=local_dir_path,
+        image_variant=variant,
+        include_annotations=include_annotations,
+        include_fuse=include_fuse,
+        include_overlay=include_overlay,
+    )
+    return response.data
+
+
+def attach_image_urls_to_project(project, attachments, annotation_status="NotStarted"):
+    """Link images on external storage to SuperAnnotate.
+
+    :param project: project name or project folder path
+    :type project: str or dict
+    :param attachments: path to csv file on attachments metadata
+    :type attachments: Pathlike (str or Path)
+    :param annotation_status: value to set the annotation statuses of the linked images: NotStarted InProgress QualityCheck Returned Completed Skipped
+    :type annotation_status: str
+
+    :return: list of linked image names, list of failed image names, list of duplicate image names
+    :rtype: tuple
+    """
+    project_name, folder_name = split_project_path(project)
+
+    image_data = pd.read_csv(attachments, dtype=str)
+    image_data = image_data[~image_data["url"].isnull()]
+    for ind, _ in image_data[image_data["name"].isnull()].iterrows():
+        image_data.at[ind, "name"] = str(uuid.uuid4())
+
+    image_data = pd.DataFrame(image_data, columns=["name", "url"])
+    img_names_urls = image_data.rename(columns={"url": "path"}).to_dict(
+        orient="records"
+    )
+    list_of_not_uploaded = []
+    duplicate_images = []
+    for i in range(0, len(img_names_urls), 500):
+        response = controller.attach_urls(
+            project_name=project_name,
+            folder_name=folder_name,
+            files=ImageSerializer.deserialize(
+                img_names_urls[i : i + 500]
+            ),  # noqa: E203
+            annotation_status=annotation_status,
+        )
+        if response.errors:
+            list_of_not_uploaded.append(response.data[0])
+            duplicate_images.append(response.data[1])
+
+    list_of_uploaded = [
+        image["name"]
+        for image in img_names_urls
+        if image["name"] not in list_of_not_uploaded
+    ]
+
+    return list_of_uploaded, list_of_not_uploaded, duplicate_images
+
+
+def attach_video_urls_to_project(project, attachments, annotation_status="NotStarted"):
+    """Link videos on external storage to SuperAnnotate.
+    :param project: project name or project folder path
+    :type project: str or dict
+    :param attachments: path to csv file on attachments metadata
+    :type attachments: Path-like (str or Path)
+    :param annotation_status: value to set the annotation statuses of the linked videos: NotStarted InProgress QualityCheck Returned Completed Skipped
+    :type annotation_status: str
+    :return: attached videos, failed videos, skipped videos
+    :rtype: (list, list, list)
+    """
+    return attach_image_urls_to_project(project, attachments, annotation_status)
