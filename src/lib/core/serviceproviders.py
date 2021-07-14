@@ -199,5 +199,5 @@ class SuerannotateServiceProvider(ABC):
     ):
         raise NotImplementedError
 
-    def set_annotation_classes(self,team_id: int, project_id: int, data: list):
+    def set_annotation_classes(self, team_id: int, project_id: int, data: list):
         raise NotImplementedError

@@ -6,6 +6,7 @@ from typing import List
 import lib.core as constances
 from src.lib.core.conditions import Condition
 from src.lib.core.conditions import CONDITION_EQ as EQ
+from src.lib.core.entities import AnnotationClassEntity
 from src.lib.core.entities import FolderEntity
 from src.lib.core.entities import ImageEntity
 from src.lib.core.entities import ProjectEntity
@@ -17,8 +18,11 @@ from src.lib.core.usecases import AttachFileUrlsUseCase
 from src.lib.core.usecases import AttachImagesUseCase
 from src.lib.core.usecases import CloneProjectUseCase
 from src.lib.core.usecases import CopyImageAnnotationClasses
+from src.lib.core.usecases import CreateAnnotationClassesUseCase
+from src.lib.core.usecases import CreateAnnotationClassUseCase
 from src.lib.core.usecases import CreateFolderUseCase
 from src.lib.core.usecases import CreateProjectUseCase
+from src.lib.core.usecases import DeleteAnnotationClassUseCase
 from src.lib.core.usecases import DeleteContributorInvitationUseCase
 from src.lib.core.usecases import DeleteFolderUseCase
 from src.lib.core.usecases import DeleteImagesUseCase
@@ -33,6 +37,7 @@ from src.lib.core.usecases import DownloadImagePreAnnotationsUseCase
 from src.lib.core.usecases import DownloadImageUseCase
 from src.lib.core.usecases import ExtractFramesUseCase
 from src.lib.core.usecases import GetAnnotationClassesUseCase
+from src.lib.core.usecases import GetAnnotationClassUseCase
 from src.lib.core.usecases import GetExportsUseCase
 from src.lib.core.usecases import GetFolderUseCase
 from src.lib.core.usecases import GetImageAnnotationsUseCase
@@ -65,7 +70,6 @@ from src.lib.core.usecases import UpdateProjectUseCase
 from src.lib.core.usecases import UpdateSettingsUseCase
 from src.lib.core.usecases import UploadImageS3UseCas
 from src.lib.core.usecases import UploadS3ImagesBackendUseCase
-from src.lib.core.usecases import CreateAnnotationClassesUseCase
 from src.lib.infrastructure.repositories import AnnotationClassRepository
 from src.lib.infrastructure.repositories import ConfigRepository
 from src.lib.infrastructure.repositories import FolderRepository
@@ -1061,6 +1065,47 @@ class Controller(BaseController):
         use_case.execute()
         return self.response
 
+    def create_annotation_class(
+        self, project_name: str, name: str, color: str, attribute_groups: List[dict]
+    ):
+        project = self._get_project(project_name)
+        annotation_classes = AnnotationClassRepository(
+            project=project, service=self._backend_client
+        )
+        annotation_class = AnnotationClassEntity(
+            name=name, color=color, attribute_groups=attribute_groups
+        )
+        use_case = CreateAnnotationClassUseCase(
+            response=self.response,
+            annotation_classes=annotation_classes,
+            annotation_class=annotation_class,
+        )
+        use_case.execute()
+        return self.response
+
+    def delete_annotation_class(self, project_name: str, annotation_class_name: str):
+        project = self._get_project(project_name)
+        use_case = DeleteAnnotationClassUseCase(
+            response=self.response,
+            annotation_class_name=annotation_class_name,
+            annotation_classes_repo=AnnotationClassRepository(
+                service=self._backend_client, project=project,
+            ),
+        )
+        use_case.execute()
+
+    def get_annotation_class(self, project_name: str, annotation_class_name: str):
+        project = self._get_project(project_name)
+        use_case = GetAnnotationClassUseCase(
+            response=self.response,
+            annotation_class_name=annotation_class_name,
+            annotation_classes_repo=AnnotationClassRepository(
+                service=self._backend_client, project=project,
+            ),
+        )
+        use_case.execute()
+        return self.response
+
     def download_annotation_classes(self, project_name: str, download_path: str):
         project = self._get_project(project_name)
         use_case = DownlaodAnnotationClassesUseCase(
@@ -1073,19 +1118,17 @@ class Controller(BaseController):
         use_case.execute()
         return self.response
 
-    def create_annotation_classes(
-        self, project_name: str, annotation_classes: list
-    ):
+    def create_annotation_classes(self, project_name: str, annotation_classes: list):
         project = self._get_project(project_name)
 
         use_case = CreateAnnotationClassesUseCase(
             response=self.response,
-            service = self._backend_client,
+            service=self._backend_client,
             annotation_classes_repo=AnnotationClassRepository(
                 service=self._backend_client, project=project,
             ),
             annotation_classes=annotation_classes,
-            project=project
+            project=project,
         )
         use_case.execute()
         return self.response
