@@ -345,3 +345,14 @@ class TeamEntity(BaseEntity):
             "users": [user.to_dict() for user in self.users],
             "pending_invitations": self.pending_invitations,
         }
+
+
+class AttachmentEntity(BaseEntity):
+    def __init__(
+        self, uuid: int = None, path: str = None,
+    ):
+        super().__init__(uuid=uuid)
+        self.path = path
+
+    def to_dict(self):
+        return {"name": self.uuid, "path": self.path}
