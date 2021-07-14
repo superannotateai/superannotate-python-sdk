@@ -1,5 +1,4 @@
 import concurrent.futures
-import json
 import logging
 import os
 import tempfile
@@ -1709,7 +1708,6 @@ def delete_annotation_class(project, annotation_class):
         project_name=project, annotation_class_name=annotation_class
     )
 
-
 def get_annotation_class_metadata(project, annotation_class_name):
     """Returns annotation class metadata
 
@@ -1726,7 +1724,6 @@ def get_annotation_class_metadata(project, annotation_class_name):
     )
     return response.data.to_dict()
 
-
 def download_annotation_classes_json(project, folder):
     """Downloads project classes.json to folder
 
@@ -1740,37 +1737,6 @@ def download_annotation_classes_json(project, folder):
     """
     response = controller.download_annotation_classes(
         project_name=project, download_path=folder
-    )
-    return response.data
-
-
-def create_annotation_classes_from_classes_json(
-    project, classes_json, from_s3_bucket=False
-):
-    """Creates annotation classes in project from a SuperAnnotate format
-    annotation classes.json.
-
-    :param project: project name
-    :type project: str
-    :param classes_json: JSON itself or path to the JSON file
-    :type classes_json: list or Pathlike (str or Path)
-    :param from_s3_bucket: AWS S3 bucket to use. If None then classes_json is in local filesystem
-    :type from_s3_bucket: bool
-
-    :return: list of created annotation class metadatas
-    :rtype: list of dicts
-    """
-    annotation_classes = []
-    if not isinstance(classes_json, list):
-        if from_s3_bucket:
-            # TODO:
-            pass
-        else:
-            annotation_classes = json.load(open(classes_json))
-    else:
-        annotation_classes = classes_json
-    response = controller.create_annotation_classes(
-        project_name=project, annotation_classes=annotation_classes,
     )
     return response.data
 
@@ -1840,7 +1806,5 @@ def move_image(
             image_name=image_name,
             is_pinned=1,
         )
-
-    controller.delete_image(image_name,source_project_name)
 
 
