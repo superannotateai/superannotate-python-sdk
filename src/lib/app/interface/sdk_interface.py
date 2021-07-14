@@ -6,6 +6,7 @@ from collections import Counter
 from io import BytesIO
 from pathlib import Path
 from urllib.parse import urlparse
+import json
 
 import boto3
 import lib.core as constances
@@ -1692,7 +1693,7 @@ def download_annotation_classes_json(project, folder):
 
 
 def create_annotation_classes_from_classes_json(
-    project, classes_json, from_s3_bucket=None
+    project, classes_json, from_s3_bucket=False
 ):
     """Creates annotation classes in project from a SuperAnnotate format
     annotation classes.json.
@@ -1702,11 +1703,22 @@ def create_annotation_classes_from_classes_json(
     :param classes_json: JSON itself or path to the JSON file
     :type classes_json: list or Pathlike (str or Path)
     :param from_s3_bucket: AWS S3 bucket to use. If None then classes_json is in local filesystem
-    :type from_s3_bucket: str
+    :type from_s3_bucket: bool
 
     :return: list of created annotation class metadatas
     :rtype: list of dicts
     """
-
-    # TODO: open json path here
-    controller.create_annotation_classes_from_json(project_name=project,annotation_classes=classes_json,from_s3_bucket=from_s3_bucket)
+    annotation_classes = []
+    if not isinstance(classes_json, list):
+        if from_s3_bucket:
+            # TODO:
+            pass
+        else:
+            annotation_classes = json.load(open(classes_json))
+    else:
+        annotation_classes = classes_json
+    response = controller.create_annotation_classes(
+        project_name=project,
+        annotation_classes=annotation_classes,
+    )
+    return response.data
