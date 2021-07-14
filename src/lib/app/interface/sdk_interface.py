@@ -1,4 +1,5 @@
 import concurrent.futures
+import json
 import logging
 import os
 import tempfile
@@ -6,7 +7,6 @@ from collections import Counter
 from io import BytesIO
 from pathlib import Path
 from urllib.parse import urlparse
-import json
 
 import boto3
 import lib.core as constances
@@ -1675,6 +1675,58 @@ def upload_video_to_project(
     return uploaded_images
 
 
+def create_annotation_class(project, name, color, attribute_groups=None):
+    """Create annotation class in project
+
+    :param project: project name
+    :type project: str
+    :param name: name for the class
+    :type name: str
+    :param color: RGB hex color value, e.g., "#FFFFAA"
+    :type color: str
+    :param attribute_groups: example:
+     [ { "name": "tall", "is_multiselect": 0, "attributes": [ { "name": "yes" }, { "name": "no" } ] },
+     { "name": "age", "is_multiselect": 0, "attributes": [ { "name": "young" }, { "name": "old" } ] } ]
+    :type attribute_groups: list of dicts
+
+    :return: new class metadata
+    :rtype: dict
+    """
+    response = controller.create_annotation_class(
+        project_name=project, name=name, color=color, attribute_groups=attribute_groups
+    )
+    return response.data.to_dict()
+
+def delete_annotation_class(project, annotation_class):
+    """Deletes annotation class from project
+
+    :param project: project name
+    :type project: str
+    :param annotation_class: annotation class name or  metadata
+    :type annotation_class: str or dict
+    """
+    controller.delete_annotation_class(
+        project_name=project, annotation_class_name=annotation_class
+    )
+
+
+def get_annotation_class_metadata(project, annotation_class_name):
+    """Returns annotation class metadata
+
+    :param project: project name
+    :type project: str
+    :param annotation_class_name: annotation class name
+    :type annotation_class_name: str
+
+    :return: metadata of annotation class
+    :rtype: dict
+    """
+    response = controller.get_annotation_class(
+        project_name=project, annotation_class_name=annotation_class_name
+    )
+    return response.data.to_dict()
+
+
 def download_annotation_classes_json(project, folder):
     """Downloads project classes.json to folder
 
@@ -1687,7 +1739,7 @@ def download_annotation_classes_json(project, folder):
     :rtype: str
     """
     response = controller.download_annotation_classes(
-        project_name=project, destination=folder
+        project_name=project, download_path=folder
     )
     return response.data
 
@@ -1718,7 +1770,75 @@ def create_annotation_classes_from_classes_json(
     else:
         annotation_classes = classes_json
     response = controller.create_annotation_classes(
-        project_name=project,
-        annotation_classes=annotation_classes,
+        project_name=project, annotation_classes=annotation_classes,
     )
     return response.data
+
+
+def move_image(
+        source_project,
+        image_name,
+        destination_project,
+        include_annotations=True,
+        copy_annotation_status=True,
+        copy_pin=True
+):
+    """Move image from source_project to destination_project. source_project
+    and destination_project cannot be the same.
+
+    :param source_project: project name or metadata of the project of source project
+    :type source_project: str or dict
+    :param image_name: image name
+    :type image: str
+    :param destination_project: project name or metadata of the project of destination project
+    :type destination_project: str or dict
+    :param include_annotations: enables annotations move
+    :type include_annotations: bool
+    :param copy_annotation_status: enables annotations status copy
+    :type copy_annotation_status: bool
+    :param copy_pin: enables image pin status copy
+    :type copy_pin: bool
+    """
+
+    source_project_name, source_folder_name = split_project_path(source_project)
+
+    destination_project, destination_folder = split_project_path(destination_project)
+
+    img_bytes = get_image_bytes(project=source_project, image_name=image_name)
+    image_path = destination_folder + image_name
+
+    image_entity = controller.upload_image_to_s3(
+        project_name=destination_project, image_path=image_path, image_bytes=img_bytes
+    ).data
+
+    del img_bytes
+
+    if copy_annotation_status:
+        res = controller.get_image(
+            project_name=source_project,
+            image_name=image_name,
+            folder_path=source_folder_name,
+        )
+        image_entity.annotation_status_code = res.annotation_status_code
+
+    controller.attach_urls(
+        project_name=destination_project,
+        files=[image_entity],
+        folder_name=destination_folder,
+    )
+
+    if include_annotations:
+        controller.copy_image_annotation_classes(
+            from_project_name=source_project_name,
+            to_project_name=destination_project,
+            image_name=image_name,
+        )
+    if copy_pin:
+        controller.update_image(
+            project_name=destination_project,
+            folder_name=destination_folder,
+            image_name=image_name,
+            is_pinned=1,
+        )
+
+
