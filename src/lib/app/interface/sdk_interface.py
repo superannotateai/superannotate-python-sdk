@@ -1841,4 +1841,6 @@ def move_image(
             is_pinned=1,
         )
 
+    controller.delete_image(image_name,source_project_name)
+
 
