@@ -18,6 +18,7 @@ from src.lib.core.usecases import AttachImagesUseCase
 from src.lib.core.usecases import CloneProjectUseCase
 from src.lib.core.usecases import CopyImageAnnotationClasses
 from src.lib.core.usecases import CreateFolderUseCase
+from src.lib.core.usecases import CreateFuseImageUseCase
 from src.lib.core.usecases import CreateProjectUseCase
 from src.lib.core.usecases import DeleteContributorInvitationUseCase
 from src.lib.core.usecases import DeleteFolderUseCase
@@ -156,7 +157,7 @@ class Controller(BaseController):
         )
 
     @staticmethod
-    def get_folder_name(self, name: str = None):
+    def get_folder_name(name: str = None):
         if not name:
             return "root"
         return name
@@ -343,7 +344,9 @@ class Controller(BaseController):
             name=folder_name, project_id=project.uuid, team_id=project.team_id
         )
         use_case = CreateFolderUseCase(
-            response=self.response, folder=folder, folders=self.folders
+            response=self.response,
+            folder=folder,
+            folders=FolderRepository(self._backend_client, project),
         )
         use_case.execute()
         return self.response
@@ -1084,6 +1087,24 @@ class Controller(BaseController):
             ),
             annotation_classes=annotation_classes,
             project=project
+        )
+        use_case.execute()
+        return self.response
+
+    def create_fuse_image(
+        self,
+        project_type: str,
+        image_path: str,
+        in_memory: bool,
+        generate_overlay: bool,
+    ):
+
+        use_case = CreateFuseImageUseCase(
+            response=self.response,
+            project_type=project_type,
+            image_path=image_path,
+            in_memory=in_memory,
+            generate_overlay=generate_overlay,
         )
         use_case.execute()
         return self.response

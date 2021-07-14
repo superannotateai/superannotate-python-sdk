@@ -6,12 +6,15 @@ import time
 import uuid
 from abc import ABC
 from abc import abstractmethod
+from collections import namedtuple
 from pathlib import Path
 from typing import Iterable
 from typing import List
 from typing import Optional
 
 import boto3
+import cv2
+import numpy as np
 import requests
 import src.lib.core as constances
 from azure.core.exceptions import AzureError
@@ -2209,36 +2212,97 @@ class ExtractFramesUseCase(BaseUseCase):
         self._response.data = extracted_paths
 
 
+class CreateAnnotationClassUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        annotation_classes: BaseManageableRepository,
+        annotation_class: AnnotationClassEntity,
+    ):
+        super().__init__(response)
+        self._annotation_classes = annotation_classes
+        self._annotation_class = annotation_class
+
+    def execute(self):
+        created = self._annotation_classes.insert(entity=self._annotation_class)
+        self._response.data = created
+
+
+class DeleteAnnotationClassUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        annotation_classes_repo: BaseManageableRepository,
+        annotation_class_name: str,
+    ):
+        super().__init__(response)
+        self._annotation_classes_repo = annotation_classes_repo
+        self._annotation_class_name = annotation_class_name
+        self._annotation_class = None
+
+    @property
+    def uuid(self):
+        if self._annotation_class:
+            return self._annotation_class.uuid
+
+    def execute(self):
+        annotation_classes = self._annotation_classes_repo.get_all(
+            condition=Condition("name", self._annotation_class_name, EQ)
+            & Condition("pattern", True, EQ)
+        )
+        self._annotation_class = annotation_classes[0]
+        self._annotation_classes_repo.delete(uuid=self.uuid)
+
+
+class GetAnnotationClassUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        annotation_classes_repo: BaseManageableRepository,
+        annotation_class_name: str,
+    ):
+        super().__init__(response)
+        self._annotation_classes_repo = annotation_classes_repo
+        self._annotation_class_name = annotation_class_name
+
+    def execute(self):
+        classes = self._annotation_classes_repo.get_all(
+            condition=Condition("name", self._annotation_class_name, EQ)
+        )
+        self._response.data = classes[0]
+
+
 class DownlaodAnnotationClassesUseCase(BaseUseCase):
     def __init__(
         self,
         response: Response,
         annotation_classes_repo: BaseManageableRepository,
-        destination: str,
+        download_path: str,
     ):
         super().__init__(response)
         self._annotation_classes_repo = annotation_classes_repo
-        self._destination = destination
+        self._download_path = download_path
 
     def execute(self):
         classes = self._annotation_classes_repo.get_all()
         classes = [entity.to_dict() for entity in classes]
         json.dump(
-            classes, open(Path(self._destination) / "classes.json", "w"), indent=4
+            classes, open(Path(self._download_path) / "classes.json", "w"), indent=4
         )
-        self._response.data = self._destination
+        self._response.data = self._download_path
 
 
 class CreateAnnotationClassesUseCase(BaseUseCase):
 
     CHUNK_SIZE = 500
+
     def __init__(
         self,
         response: Response,
         service: SuerannotateServiceProvider,
         annotation_classes_repo: BaseManageableRepository,
         annotation_classes: list,
-        project: ProjectEntity
+        project: ProjectEntity,
     ):
         super().__init__(response)
         self._service = service
@@ -2251,23 +2315,186 @@ class CreateAnnotationClassesUseCase(BaseUseCase):
         existing_classes_name = [i.name for i in existing_annotation_classes]
         unique_annotation_classes = []
         for annotation_class in self._annotation_classes:
-            if annotation_class['name'] in existing_classes_name:
+            if annotation_class["name"] in existing_classes_name:
                 continue
             else:
                 unique_annotation_classes.append(annotation_class)
 
         created = []
         for i in range(0, len(unique_annotation_classes), self.CHUNK_SIZE):
-            created += self._service.set_annotation_classes(project_id=self._project.uuid , team_id=self._project.team_id
-                                                           ,data=unique_annotation_classes[i: i + self.CHUNK_SIZE])
+            created += self._service.set_annotation_classes(
+                project_id=self._project.uuid,
+                team_id=self._project.team_id,
+                data=unique_annotation_classes[i : i + self.CHUNK_SIZE],
+            )
         self._response.data = created
 
 
+class CreateFuseImageUseCase(BaseUseCase):
+    TRANSPARENCY = 128
 
+    def __init__(
+        self,
+        response: Response,
+        project_type: str,
+        image_path: str,
+        in_memory: bool = False,
+        generate_overlay: bool = False,
+    ):
+        super().__init__(response)
+        self._project_type = project_type
+        self._image_path = image_path
+        self._annotations = None
+        self._classes = None
+        self._annotation_mask_path = None
+        self._in_memory = in_memory
+        self._generate_overlay = generate_overlay
 
+    @staticmethod
+    def generate_color(value: str):
+        return tuple(int(value.lstrip("#")[i : i + 2], 16) for i in (0, 2, 4))
 
+    @property
+    def annotations(self):
+        if not self._annotations:
+            image_path = Path(self._image_path)
+            if self._project_type == constances.ProjectType.PIXEL.name:
+                self._annotations = json.load(
+                    open(image_path.parent / f"{image_path.name}___pixel.json")
+                )
+            else:
+                self._annotations = json.load(
+                    open(image_path.parent / f"{image_path.name}___objects.json")
+                )
+        return self._annotations
 
+    @property
+    def blue_mask_path(self):
+        image_path = Path(self._image_path)
+        if self._project_type == constances.ProjectType.PIXEL.name:
+            self._annotation_mask_path = str(
+                image_path.parent / f"{image_path.name}___save.png"
+            )
+        else:
+            raise AppException("Vector project doesn't have blue mask.")
 
+        return self._annotation_mask_path
 
+    def execute(self):
+        with open(self._image_path, "rb") as file:
+            class_color_map = {}
+            Image = namedtuple("Image", ["type", "path", "content"])
+            for annotation_class in self._classes:
+                class_color_map[annotation_class] = self.generate_color(
+                    annotation_class["color"]
+                )
+                # class_color_map[annotaiotn_class] = self.generate_color(instance["className"])
+            if self._project_type == constances.ProjectType.VECTOR.name:
+                image = ImagePlugin(io.BytesIO(file.read()))
 
+                fuse_image = ImagePlugin.empty_image
+                images = [Image("fuse", f"{self._image_path}___fuse.png", fuse_image)]
+                if self._generate_overlay:
+                    images.append(
+                        Image("overlay", f"{self._image_path}___overlay.png", image)
+                    )
 
+                outline_color = 4 * (255,)
+                for instance in self._annotations["instances"]:
+                    fill_color = (
+                        *class_color_map[instance["className"]],
+                        self.TRANSPARENCY,
+                    )
+                    for image in images:
+                        if instance["type"] == "bbox":
+                            image.content.draw_bbox(
+                                **instance["points"],
+                                fill_color=fill_color,
+                                outline_color=outline_color,
+                            )
+                        elif instance["type"] == "polygon":
+                            image.content.draw_polygon(
+                                instance["points"],
+                                fill_color=fill_color,
+                                outline_color=outline_color,
+                            )
+                        elif instance["type"] == "ellipse":
+                            image.content.draw_ellipse(
+                                instance["cx"],
+                                instance["cy"],
+                                instance["rx"],
+                                instance["ry"],
+                                fill_color=fill_color,
+                                outline_color=outline_color,
+                            )
+                        elif instance["type"] == "polyline":
+                            image.content.draw_polyline(
+                                points=instance["points"], fill_color=fill_color
+                            )
+                        elif instance["type"] == "point":
+                            image.content.draw_point(
+                                x=instance["x"],
+                                y=instance["y"],
+                                fill_color=fill_color,
+                                outline_color=outline_color,
+                            )
+                        elif instance["type"] == "template":
+                            point_set = instance["points"]
+                            points_id_map = {}
+                            for points in point_set:
+                                points_id_map[points["id"]] = (points["x"], points["y"])
+                                points = (
+                                    points["x"] - 2,
+                                    points["y"] - 2,
+                                    points["x"] + 2,
+                                    points["y"] + 2,
+                                )
+                                image.content.draw_ellipse(
+                                    points, fill_color, fill_color
+                                )
+                            for connection in instance["connections"]:
+                                image.content.draw_line(
+                                    points_id_map[connection["from"]]
+                                    + points_id_map[connection["to"]]
+                                )
+            else:
+                image = ImagePlugin(io.BytesIO(file.read()))
+                annotation_mask = np.array(
+                    ImagePlugin(
+                        io.BytesIO(open(self.blue_mask_path, "rb").read())
+                    ).content
+                )
+                empty_image_arr = np.full(
+                    (image.get_size(), 4), [0, 0, 0, 255], np.uint8
+                )
+                for annotation in self._annotations["instances"]:
+                    fill_color = *class_color_map[annotation["className"]], 255
+                    for part in annotation["parts"]:
+                        part_color = *self.generate_color(part["color"]), 255
+                        temp_mask = np.alltrue(annotation_mask == part_color, axis=2)
+                        empty_image_arr[temp_mask] = fill_color
+
+                images = [
+                    Image(
+                        "fuse",
+                        f"{self._image_path}___fuse.png",
+                        ImagePlugin.from_array(empty_image_arr),
+                    )
+                ]
+
+                fuse_image = ImagePlugin.from_array(empty_image_arr)
+                if self._generate_overlay:
+                    alpha = 0.5  # transparency measure
+                    overlay = copy.copy(empty_image_arr)
+                    overlay[:, :, :3] = np.array(image.content)
+                    overlay = ImagePlugin.from_array(
+                        cv2.addWeighted(fuse_image, alpha, overlay, 1 - alpha, 0)
+                    )
+                    images.append(
+                        Image("overlay", f"{self._image_path}___overlay.png", overlay)
+                    )
+
+            if not self._in_memory:
+                for image in images:
+                    image.content.save(image.path)
+            self._response.data = (image.content for image in images)
