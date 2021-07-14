@@ -211,3 +211,6 @@ class SuerannotateServiceProvider(ABC):
 
     def get_s3_upload_auth_token(self, team_id: int, folder_id: int, project_id: int):
         raise NotImplementedError
+
+    def set_annotation_classes(self,team_id: int, project_id: int, data: list):
+        raise NotImplementedError
