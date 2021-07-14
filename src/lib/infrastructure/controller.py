@@ -81,8 +81,6 @@ from src.lib.infrastructure.repositories import TeamRepository
 from src.lib.infrastructure.repositories import WorkflowRepository
 from src.lib.infrastructure.services import SuperannotateBackendService
 
-# from src.lib.core.usecases import CreateAnnotationClassesJson
-
 
 class BaseController:
     def __init__(self, backend_client: SuperannotateBackendService, response: Response):
