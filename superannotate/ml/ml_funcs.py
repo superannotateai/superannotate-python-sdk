@@ -283,7 +283,7 @@ def run_training(
     if isinstance(base_model, dict):
         base_model = base_model['name']
     models = search_models(
-        include_global=True, name=base_model
+        include_global=True, name=base_model,type_= project_type_str_to_int(types[0]), task=_MODEL_TRAINING_TASKS[task]
     )
     if not models:
         raise SABaseException(
@@ -301,11 +301,13 @@ def run_training(
             0,
             f"The type of provided projects is {project_type}, and does not correspond to the type of provided model"
         )
+
     if not hyperparameters:
-        hyperparameters = {}
-    for item in DEFAULT_HYPERPARAMETERS:
-        if item not in hyperparameters:
-            hyperparameters[item] = DEFAULT_HYPERPARAMETERS[item]
+        hyperparameters = DEFAULT_HYPERPARAMETERS
+    else:
+        for item in DEFAULT_HYPERPARAMETERS:
+            if item not in hyperparameters:
+                hyperparameters[item] = DEFAULT_HYPERPARAMETERS[item]
 
     project_ids = [i['id'] for i in projects]
     completed_images_data = _get_completed_images_counts(project_ids)
