@@ -18,6 +18,7 @@ from src.lib.core.usecases import AttachFileUrlsUseCase
 from src.lib.core.usecases import AttachImagesUseCase
 from src.lib.core.usecases import CloneProjectUseCase
 from src.lib.core.usecases import CopyImageAnnotationClasses
+from src.lib.core.usecases import CreateAnnotationClassesUseCase
 from src.lib.core.usecases import CreateAnnotationClassUseCase
 from src.lib.core.usecases import CreateFolderUseCase
 from src.lib.core.usecases import CreateProjectUseCase
@@ -1091,7 +1092,6 @@ class Controller(BaseController):
         )
         use_case.execute()
 
-
     def get_annotation_class(self, project_name: str, annotation_class_name: str):
         project = self._get_project(project_name)
         use_case = GetAnnotationClassUseCase(
@@ -1112,6 +1112,21 @@ class Controller(BaseController):
                 service=self._backend_client, project=project,
             ),
             download_path=download_path,
+        )
+        use_case.execute()
+        return self.response
+
+    def create_annotation_classes(self, project_name: str, annotation_classes: list):
+        project = self._get_project(project_name)
+
+        use_case = CreateAnnotationClassesUseCase(
+            response=self.response,
+            service=self._backend_client,
+            annotation_classes_repo=AnnotationClassRepository(
+                service=self._backend_client, project=project,
+            ),
+            annotation_classes=annotation_classes,
+            project=project,
         )
         use_case.execute()
         return self.response
