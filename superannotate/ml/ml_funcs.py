@@ -239,7 +239,7 @@ def run_training(
     :type  train_data: list of str
     :param test_data: test data folders (e.g., "project1/folder1")
     :type  test_data: list of str
-    :param hyperparameters: hyperparameters that should be used in training
+    :param hyperparameters: hyperparameters that should be used in training. If None use defualt hyperparameters for the training.
     :type  hyperparameters: dict
     :param log: If true will log training metrics in the stdout
     :type log: boolean
