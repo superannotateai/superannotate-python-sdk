@@ -12,7 +12,6 @@ import boto3
 import lib.core as constances
 from lib.app.exceptions import AppException
 from lib.app.exceptions import EmptyOutputError
-from lib.app.exceptions import UserInputError
 from lib.app.helpers import split_project_path
 from lib.app.serializers import BaseSerializers
 from lib.app.serializers import ImageSerializer
@@ -387,7 +386,7 @@ def get_image_bytes(project, image_name, variant="original"):
     :rtype: io.BytesIO()
     """
     project_name, folder_name = split_project_path(project)
-    image = controller.download_image(
+    image = controller.get_image_bytes(
         project_name=project_name,
         image_name=image_name,
         folder_name=folder_name,
@@ -1696,6 +1695,7 @@ def create_annotation_class(project, name, color, attribute_groups=None):
     )
     return response.data.to_dict()
 
+
 def delete_annotation_class(project, annotation_class):
     """Deletes annotation class from project
 
@@ -1707,6 +1707,7 @@ def delete_annotation_class(project, annotation_class):
     controller.delete_annotation_class(
         project_name=project, annotation_class_name=annotation_class
     )
+
 
 def get_annotation_class_metadata(project, annotation_class_name):
     """Returns annotation class metadata
@@ -1900,51 +1901,15 @@ def download_image(
     :return: paths of downloaded image and annotations if included
     :rtype: tuple
     """
-    if (include_fuse or include_overlay) and not include_annotations:
-        raise UserInputError(
-            "To download fuse or overlay image need to set include_annotations=True in download_image"
-        )
-
-    if not Path(local_dir_path).is_dir():
-        raise UserInputError(
-            f"local_dir_path {local_dir_path} is not an existing directory"
-        )
-
-    if variant not in ["original", "lores"]:
-        raise UserInputError(
-            "Image download variant should be either original or lores"
-        )
-
     project_name, folder_name = split_project_path(project)
-    image = controller.download_image(
+    response = controller.download_image(
         project_name=project_name,
-        image_name=image_name,
         folder_name=folder_name,
+        image_name=image_name,
+        download_path=local_dir_path,
         image_variant=variant,
-    ).data
-    filepath_save = image_name
-    if variant == "lores":
-        filepath_save += "___lores.jpg"
-    filepath_save = Path(local_dir_path) / filepath_save
-
-    with open(filepath_save, "wb") as f:
-        f.write(image.getbuffer())
-
-    annotations_filepaths = None
-
-    fuse_path = None
-    if include_annotations:
-        annotation_path, mask_path = controller.download_image_annotations(
-            project_name=project_name,
-            folder_name=folder_name,
-            image_name=image_name,
-            destination=local_dir_path,
-        ).data
-        if (annotation_path, mask_path) and (include_fuse or include_overlay):
-            classes = search_annotation_classes(project)
-            fuse_path = create_fuse_image(
-                filepath_save, classes, project["type"], output_overlay=include_overlay
-            )
-    logger.info("Downloaded image %s to %s.", image_name, filepath_save)
-
-    return (str(filepath_save), annotations_filepaths, fuse_path)
+        include_annotations=include_annotations,
+        include_fuse=include_fuse,
+        include_overlay=include_overlay,
+    )
+    return response.data

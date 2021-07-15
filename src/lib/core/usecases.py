@@ -736,7 +736,7 @@ class UpdateFolderUseCase(BaseUseCase):
         self._response.data = self._folder
 
 
-class DownloadImageUseCase(BaseUseCase):
+class GetImageBytesUseCase(BaseUseCase):
     def __init__(
         self,
         response: Response,
@@ -2338,6 +2338,7 @@ class CreateFuseImageUseCase(BaseUseCase):
         response: Response,
         project_type: str,
         image_path: str,
+        classes: list = None,
         in_memory: bool = False,
         generate_overlay: bool = False,
     ):
@@ -2345,7 +2346,7 @@ class CreateFuseImageUseCase(BaseUseCase):
         self._project_type = project_type
         self._image_path = image_path
         self._annotations = None
-        self._classes = None
+        self._classes = classes
         self._annotation_mask_path = None
         self._in_memory = in_memory
         self._generate_overlay = generate_overlay
@@ -2495,6 +2496,87 @@ class CreateFuseImageUseCase(BaseUseCase):
                     )
 
             if not self._in_memory:
+                paths = []
                 for image in images:
                     image.content.save(image.path)
-            self._response.data = (image.content for image in images)
+                    paths.append(image.path)
+                self._response.data = paths
+            else:
+                self._response.data = (image.content for image in images)
+
+
+class DownloadImageUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        image: ImageEntity,
+        images: BaseManageableRepository,
+        classes: BaseManageableRepository,
+        backend_service_provider: SuerannotateServiceProvider,
+        download_path: str,
+        image_variant: str = "original",
+        include_annotations: bool = False,
+        include_fuse: bool = False,
+        include_overlay: bool = False,
+    ):
+        super().__init__(response)
+        self._image_bytes_response = Response()
+        self._image_annotation_response = Response()
+        self._annotation_classes_response = Response()
+        self._fuse_image_response = Response()
+        self._project = project
+        self._image = image
+        self._download_path = download_path
+        self._image_variant = image_variant
+        self._include_fuse = include_fuse
+        self._include_overlay = include_overlay
+        self._include_annotations = include_annotations
+        self.get_image_use_case = GetImageBytesUseCase(
+            response=self._image_bytes_response,
+            image=image,
+            backend_service_provider=backend_service_provider,
+            image_variant=image_variant,
+        )
+        self.download_annotation_use_case = DownloadImageAnnotationsUseCase(
+            response=self._image_annotation_response,
+            service=backend_service_provider,
+            project=project,
+            folder=folder,
+            image_name=self._image.name,
+            images=images,
+            destination=download_path,
+        )
+        self.get_annotation_classes_ues_case = GetAnnotationClassesUseCase(
+            response=self._annotation_classes_response, classes=classes,
+        )
+
+    def execute(self):
+        self.get_image_use_case.execute()
+        image_bytes = self._image_bytes_response.data
+        download_path = self._download_path + self._image.name
+        if self._image_variant == "lores":
+            download_path = download_path + "__lores.jpg"
+        with open(download_path) as image_file:
+            image_file.write(image_bytes)
+
+        if self._include_annotations:
+            self.download_annotation_use_case.execute()
+
+        if self._include_annotations and self._include_fuse:
+            self.get_annotation_classes_ues_case.execute()
+            classes = self._annotation_classes_response.data
+            CreateFuseImageUseCase(
+                response=self._fuse_image_response,
+                project_type=constances.ProjectType(self._project.project_type).name,
+                image_path=download_path,
+                classes=[annotation_class.to_dict() for annotation_class in classes],
+                generate_overlay=self._include_overlay,
+            )
+
+        self._response.data = (
+            download_path,
+            self._image_annotation_response.data,
+            self._fuse_image_response.data,
+        )

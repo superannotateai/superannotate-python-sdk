@@ -1,7 +1,6 @@
 from src.lib.app.analytics.class_analytics import aggregate_annotations_as_df
 from src.lib.app.analytics.class_analytics import attribute_distribution
 from src.lib.app.analytics.class_analytics import class_distribution
-from src.lib.app.analytics.common import df_to_annotations
 from src.lib.app.annotation_helpers import add_annotation_bbox_to_json
 from src.lib.app.annotation_helpers import add_annotation_comment_to_json
 from src.lib.app.annotation_helpers import add_annotation_cuboid_to_json
@@ -48,6 +47,9 @@ from src.lib.app.interface.sdk_interface import (
 )
 from src.lib.app.interface.sdk_interface import upload_images_from_s3_bucket_to_project
 from src.lib.app.interface.sdk_interface import upload_videos_from_folder_to_project
+
+# todo is it correct df_to_annotations ?
+# from src.lib.app.analytics.common import df_to_annotations
 
 
 __author__ = "Superannotate"
