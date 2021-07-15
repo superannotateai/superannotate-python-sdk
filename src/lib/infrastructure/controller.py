@@ -37,6 +37,7 @@ from src.lib.core.usecases import GetAnnotationClassesUseCase
 from src.lib.core.usecases import GetExportsUseCase
 from src.lib.core.usecases import GetFolderUseCase
 from src.lib.core.usecases import GetImageAnnotationsUseCase
+from src.lib.core.usecases import GetImageBytesUseCase
 from src.lib.core.usecases import GetImageMetadataUseCase
 from src.lib.core.usecases import GetImagePreAnnotationsUseCase
 from src.lib.core.usecases import GetImagesUseCase
@@ -533,7 +534,7 @@ class Controller(BaseController):
         use_case.execute()
         return self.response
 
-    def download_image(
+    def get_image_bytes(
         self,
         project_name: str,
         image_name: str,
@@ -542,7 +543,7 @@ class Controller(BaseController):
     ):
         project = self._get_project(project_name)
         image = self._get_image(project, image_name, folder_name)
-        use_case = DownloadImageUseCase(
+        use_case = GetImageBytesUseCase(
             response=self.response,
             image=image,
             backend_service_provider=self._backend_client,
@@ -1105,6 +1106,38 @@ class Controller(BaseController):
             image_path=image_path,
             in_memory=in_memory,
             generate_overlay=generate_overlay,
+        )
+        use_case.execute()
+        return self.response
+
+    def download_image(
+        self,
+        project_name: str,
+        image_name: str,
+        download_path: str,
+        folder_name: str = None,
+        image_variant: str = None,
+        include_annotations: bool = None,
+        include_fuse: bool = None,
+        include_overlay: bool = None,
+    ):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+        image = self._get_image(project, image_name, folder_name)
+
+        use_case = DownloadImageUseCase(
+            response=self.response,
+            project=project,
+            folder=folder,
+            image=image,
+            images=self.images,
+            classes=AnnotationClassRepository(self._backend_client, project),
+            backend_service_provider=self._backend_client,
+            download_path=download_path,
+            image_variant=image_variant,
+            include_annotations=include_annotations,
+            include_fuse=include_fuse,
+            include_overlay=include_overlay,
         )
         use_case.execute()
         return self.response

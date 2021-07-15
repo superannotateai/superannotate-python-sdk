@@ -7,7 +7,7 @@ repos:
         name: Style Guide Enforcement (flake8)
         args:
           - '--max-line-length=120'
-          - --ignore=D100,D203,D405,W503,E203,E501,F841,E126
+          - --ignore=D100,D203,D405,W503,E203,E501,F841,E126,E712
   - repo: 'https://github.com/asottile/pyupgrade'
     rev: v2.4.3
     hooks:
