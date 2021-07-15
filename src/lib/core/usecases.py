@@ -2348,6 +2348,74 @@ class CreateAnnotationClassesUseCase(BaseUseCase):
         self._response.data = created
 
 
+class SetWorkflowUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        service: SuerannotateServiceProvider,
+        annotation_classes_repo: BaseManageableRepository,
+        workflow_repo: BaseManageableRepository,
+        steps: list,
+        project: ProjectEntity,
+    ):
+        super().__init__(response)
+        self._service = service
+        self._annotation_classes_repo = annotation_classes_repo
+        self._workflow_repo = workflow_repo
+        self._steps = steps
+        self._project = project
+
+    def execute(self):
+        annotation_classes = self._annotation_classes_repo.get_all()
+        annotation_classes_map = {}
+        annotations_classes_attributes_map = {}
+        for annnotation_class in annotation_classes:
+            annotation_classes_map[annnotation_class.name] = annnotation_class.uuid
+            for attribute_group in annnotation_class.attribute_groups:
+                for attribute in attribute_group["attributes"]:
+                    annotations_classes_attributes_map[
+                        f"{annnotation_class.name}__{attribute_group['name']}__{attribute['name']}"
+                    ] = attribute["id"]
+
+        for step in self._steps:
+            if "className" not in step:
+                continue
+            if "id" in step:
+                del step["id"]
+            step["class_id"] = annotation_classes_map[step["className"]]
+
+        self._service.set_project_workflow_bulk(
+            team_id=self._project.team_id,
+            project_id=self._project.uuid,
+            steps=self._steps,
+        )
+        existing_workflows = self._workflow_repo.get_all()
+        existing_workflows_map = {}
+        for workflow in existing_workflows:
+            existing_workflows_map[workflow.step] = workflow.uuid
+
+        req_data = []
+        for step in self._steps:
+            annotation_class_name = step["className"]
+            for attribute in step["attribute"]:
+                attribute_name = attribute["attribute"]["name"]
+                attribute_group_name = attribute["attribute"]["attribute_group"]["name"]
+                req_data.append(
+                    {
+                        "workflow_id": existing_workflows_map[step["step"]],
+                        "attribute_id": annotations_classes_attributes_map[
+                            f"{annotation_class_name}__{attribute_group_name}__{attribute_name}"
+                        ],
+                    }
+                )
+
+        self._service.set_project_workflow_attributes_bulk(
+            project_id=self._project.uuid,
+            team_id=self._project.team_id,
+            attributes=req_data,
+        )
+
+
 class CreateFuseImageUseCase(BaseUseCase):
     TRANSPARENCY = 128
 

@@ -140,6 +140,7 @@ class SuperannotateBackendService(BaseBackendService):
     URL_ASSIGN_FOLDER = "folder/editAssignment"
     URL_IMAGES_COUNT = "images/folders-list"
     URL_GET_CLASS = "class/{}"
+    URL_PROJECT_WORKFLOW_ATTRIBUTE = "project/{}/workflow_attribute"
 
     # todo add urls
     URL_DELETE_IMAGES = ""
@@ -343,6 +344,18 @@ class SuperannotateBackendService(BaseBackendService):
             set_project_workflow_url,
             "post",
             data={"steps": [data]},
+            params={"team_id": team_id},
+        )
+        return res.json()
+
+    def set_project_workflow_bulk(self, project_id: int, team_id: int, steps: list):
+        set_project_workflow_url = urljoin(
+            self.api_url, self.URL_PROJECT_WORKFLOW.format(project_id)
+        )
+        res = self._request(
+            set_project_workflow_url,
+            "post",
+            data={"steps": steps},
             params={"team_id": team_id},
         )
         return res.json()
@@ -699,5 +712,19 @@ class SuperannotateBackendService(BaseBackendService):
             delete_image_url,
             "delete",
             params={"team_id": team_id, "project_id": project_id},
+        )
+        return res.json()
+
+    def set_project_workflow_attributes_bulk(
+        self, project_id: int, team_id: int, attributes: list
+    ):
+        set_project_workflow_attribute_url = urljoin(
+            self.api_url, self.URL_PROJECT_WORKFLOW_ATTRIBUTE.format(project_id)
+        )
+        res = self._request(
+            set_project_workflow_attribute_url,
+            "post",
+            data={"data": attributes},
+            params={"team_id": team_id},
         )
         return res.json()
