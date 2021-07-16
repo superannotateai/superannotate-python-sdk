@@ -147,6 +147,7 @@ class SuperannotateBackendService(BaseBackendService):
     URL_PRE_ANNOTATION_UPLOAD_PATH_TOKEN = "images/getPreAnnotationsPathsAndTokens"
     URL_GET_TEMPLATES = "templates"
     URL_PROJECT_WORKFLOW_ATTRIBUTE = "project/{}/workflow_attribute"
+    URL_GET_EXPORT = "export/{}"
 
     # todo add urls
     URL_DELETE_IMAGES = ""
@@ -692,6 +693,15 @@ class SuperannotateBackendService(BaseBackendService):
             exports_url, "get", params={"team_id": team_id, "project_id": project_id}
         )
         return res.json()
+
+    def get_export(self, team_id: int, project_id: int, export_id: int):
+        exports_url = urljoin(self.api_url, self.URL_GET_EXPORT.format(export_id))
+        res = self._request(
+            exports_url, "get", params={"team_id": team_id, "project_id": project_id}
+        )
+        return res.json()
+
+
 
     def upload_form_s3(
         self,

@@ -12,6 +12,10 @@ from pathlib import Path
 from typing import Iterable
 from typing import List
 from typing import Optional
+import shutil
+import tempfile
+import zipfile
+
 
 import boto3
 import cv2
@@ -34,6 +38,7 @@ from src.lib.core.entities import S3FileEntity
 from src.lib.core.entities import TeamEntity
 from src.lib.core.entities import WorkflowEntity
 from src.lib.core.enums import ProjectType
+from src.lib.core.enums import ExportStatus
 from src.lib.core.exceptions import AppException
 from src.lib.core.exceptions import AppValidationException
 from src.lib.core.plugin import ImagePlugin
@@ -2924,3 +2929,56 @@ class UploadAnnotationsUseCase(BaseUseCase):
                 bucket.put_object(Key=image_info["annotation_bluemap_path"], Body=file)
 
         self._response.data = annotations_to_upload, missing_annotations
+
+
+
+
+class DownloadExportUseCase(BaseUseCase):
+
+    def __init__(
+            self,
+            response: Response,
+            service: SuerannotateServiceProvider,
+            project: ProjectEntity,
+            export_name: str,
+            folder_path: str,
+            extract_zip_contents: bool,
+            to_s3_bucket: bool
+    ):
+        super().__init__(response)
+        self._service = service
+        self._project = project
+        self._export_name = export_name
+        self._folder_path = folder_path
+        self._extract_zip_contents = extract_zip_contents
+        self._to_s3_bucket = to_s3_bucket
+
+    def execute(self):
+        exports = self._service.get_exports(team_id=self._project.team_id,project_id=self._project.uuid)
+        export = None
+        for _export in exports:
+            if _export['name'] == self._export_name and _export['status'] == ExportStatus.COMPLETE.value:
+                export = _export
+                break
+        export = self._service.get_export(team_id=self._project.team_id,project_id=self._project.uuid,export_id=export['id'])
+        filename = Path(export['path']).name
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_filepath = Path(temp_dir) / filename
+            with requests.get(export['download'], stream=True) as r:
+                r.raise_for_status()
+                with open(temp_filepath, 'wb') as f:
+                    for chunk in r.iter_content(chunk_size=8192):
+                        f.write(chunk)
+            if self._to_s3_bucket is None:
+                filepath = Path(self._folder_path) / filename
+                shutil.copyfile(temp_filepath, filepath)
+                if self._extract_zip_contents:
+                    with zipfile.ZipFile(filepath, 'r') as f:
+                        f.extractall(self._folder_path)
+                    Path.unlink(filepath)
+            else:
+                # TODO: handle s3
+                pass
+
+
+
