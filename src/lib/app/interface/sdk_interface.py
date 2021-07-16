@@ -13,7 +13,6 @@ import boto3
 import lib.core as constances
 import pandas as pd
 from lib.app.exceptions import AppException
-from lib.app.exceptions import AppException
 from lib.app.exceptions import EmptyOutputError
 from lib.app.helpers import split_project_path
 from lib.app.serializers import BaseSerializers
@@ -1845,6 +1844,26 @@ def move_image(
 
     controller.delete_image(image_name, source_project_name)
 
+def set_image_annotation_status(project, image_name, annotation_status):
+    """Sets the image annotation status
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param image_name: image name
+    :type image_name: str
+    :param annotation_status: annotation status to set,
+           should be one of NotStarted InProgress QualityCheck Returned Completed Skipped
+    :type annotation_status: str
+
+    :return: metadata of the updated image
+    :rtype: dict
+    """
+    project_name, folder_name = split_project_path(project)
+    controller.set_images_annotation_statuses(
+        project_name, folder_name, [image_name], annotation_status
+    )
+
+
 
 def set_project_workflow(project, new_workflow):
     """Sets project's workflow.
@@ -1861,76 +1880,6 @@ def set_project_workflow(project, new_workflow):
     """
 
     controller.set_project_workflow(project_name=project, steps=new_workflow)
-
-
-def create_fuse_image(
-    image, classes_json, project_type, in_memory=False, output_overlay=False
-):
-    """Creates fuse for locally located image and annotations
-
-    :param image: path to image
-    :type image: str or Pathlike
-    :param image_name: annotation classes or path to their JSON
-    :type image: list or Pathlike
-    :param project_type: project type, "Vector" or "Pixel"
-    :type project_type: str
-    :param in_memory: enables pillow Image return instead of saving the image
-    :type in_memory: bool
-
-    :return: path to created fuse image or pillow Image object if in_memory enabled
-    :rtype: str of PIL.Image
-    """
-
-    response = controller.create_fuse_image(
-        image_path=image,
-        project_type=project_type,
-        in_memory=in_memory,
-        generate_overlay=output_overlay,
-    )
-
-    return response.data
-
-
-def download_image(
-    project,
-    image_name,
-    local_dir_path=".",
-    include_annotations=False,
-    include_fuse=False,
-    include_overlay=False,
-    variant="original",
-):
-    """Downloads the image (and annotation if not None) to local_dir_path
-
-    :param project: project name or folder path (e.g., "project1/folder1")
-    :type project: str
-    :param image_name: image name
-    :type image: str
-    :param local_dir_path: where to download the image
-    :type local_dir_path: Pathlike (str or Path)
-    :param include_annotations: enables annotation download with the image
-    :type include_annotations: bool
-    :param include_fuse: enables fuse image download with the image
-    :type include_fuse: bool
-    :param variant: which resolution to download, can be 'original' or 'lores'
-     (low resolution used in web editor)
-    :type variant: str
-
-    :return: paths of downloaded image and annotations if included
-    :rtype: tuple
-    """
-    project_name, folder_name = split_project_path(project)
-    response = controller.download_image(
-        project_name=project_name,
-        folder_name=folder_name,
-        image_name=image_name,
-        download_path=local_dir_path,
-        image_variant=variant,
-        include_annotations=include_annotations,
-        include_fuse=include_fuse,
-        include_overlay=include_overlay,
-    )
-    return response.data
 
 
 def create_fuse_image(

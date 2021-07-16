@@ -147,7 +147,7 @@ class SuperannotateBackendService(BaseBackendService):
 
     # todo add urls
     URL_DELETE_IMAGES = ""
-    URL_SET_IMAGES_STATUSES_BULK = ""
+    URL_SET_IMAGES_STATUSES_BULK = "image/updateAnnotationStatusBulk"
 
     def get_project(self, uuid: int, team_id: int):
         get_project_url = urljoin(self.api_url, self.URL_GET_PROJECT.format(uuid))
