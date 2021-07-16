@@ -1843,4 +1843,24 @@ def move_image(
 
     controller.delete_image(image_name,source_project_name)
 
+def set_image_annotation_status(project, image_name, annotation_status):
+    """Sets the image annotation status
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param image_name: image name
+    :type image_name: str
+    :param annotation_status: annotation status to set,
+           should be one of NotStarted InProgress QualityCheck Returned Completed Skipped
+    :type annotation_status: str
+
+    :return: metadata of the updated image
+    :rtype: dict
+    """
+    project_name, folder_name = split_project_path(project)
+    controller.set_images_annotation_statuses(
+        project_name, folder_name, [image_name], annotation_status
+    )
+
+
 

@@ -141,13 +141,20 @@ class BaseController:
 class Controller(BaseController):
     def _get_project(self, name: str):
         if not self._project:
-            self._project = self.projects.get_all(
+            projects = self.projects.get_all(
                 Condition("name", name, EQ) & Condition("team_id", self.team_id, EQ)
-            )[0]
+            )
+            for project in projects:
+                if project.name == name:
+                    self._project = project
+
         elif self._project.name != name:
-            self._project = self.projects.get_all(
+            projects = self.projects.get_all(
                 Condition("name", name, EQ) & Condition("team_id", self.team_id, EQ)
-            )[0]
+            )
+            for project in projects:
+                if project.name == name:
+                    self._project = project
         return self._project
 
     def _get_folder(self, project: ProjectEntity, name: str = None):
