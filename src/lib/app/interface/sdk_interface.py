@@ -1954,6 +1954,76 @@ def download_image(
     return response.data
 
 
+def create_fuse_image(
+    image, classes_json, project_type, in_memory=False, output_overlay=False
+):
+    """Creates fuse for locally located image and annotations
+
+    :param image: path to image
+    :type image: str or Pathlike
+    :param image_name: annotation classes or path to their JSON
+    :type image: list or Pathlike
+    :param project_type: project type, "Vector" or "Pixel"
+    :type project_type: str
+    :param in_memory: enables pillow Image return instead of saving the image
+    :type in_memory: bool
+
+    :return: path to created fuse image or pillow Image object if in_memory enabled
+    :rtype: str of PIL.Image
+    """
+
+    response = controller.create_fuse_image(
+        image_path=image,
+        project_type=project_type,
+        in_memory=in_memory,
+        generate_overlay=output_overlay,
+    )
+
+    return response.data
+
+
+def download_image(
+    project,
+    image_name,
+    local_dir_path=".",
+    include_annotations=False,
+    include_fuse=False,
+    include_overlay=False,
+    variant="original",
+):
+    """Downloads the image (and annotation if not None) to local_dir_path
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param image_name: image name
+    :type image: str
+    :param local_dir_path: where to download the image
+    :type local_dir_path: Pathlike (str or Path)
+    :param include_annotations: enables annotation download with the image
+    :type include_annotations: bool
+    :param include_fuse: enables fuse image download with the image
+    :type include_fuse: bool
+    :param variant: which resolution to download, can be 'original' or 'lores'
+     (low resolution used in web editor)
+    :type variant: str
+
+    :return: paths of downloaded image and annotations if included
+    :rtype: tuple
+    """
+    project_name, folder_name = split_project_path(project)
+    response = controller.download_image(
+        project_name=project_name,
+        folder_name=folder_name,
+        image_name=image_name,
+        download_path=local_dir_path,
+        image_variant=variant,
+        include_annotations=include_annotations,
+        include_fuse=include_fuse,
+        include_overlay=include_overlay,
+    )
+    return response.data
+
+
 def attach_image_urls_to_project(project, attachments, annotation_status="NotStarted"):
     """Link images on external storage to SuperAnnotate.
 
