@@ -47,6 +47,7 @@ from src.lib.core.usecases import GetImageMetadataUseCase
 from src.lib.core.usecases import GetImagePreAnnotationsUseCase
 from src.lib.core.usecases import GetImagesUseCase
 from src.lib.core.usecases import GetImageUseCase
+from src.lib.core.usecases import GetProjectByNameUseCase
 from src.lib.core.usecases import GetProjectFoldersUseCase
 from src.lib.core.usecases import GetProjectImageCountUseCase
 from src.lib.core.usecases import GetProjectMetadataUseCase
@@ -145,14 +146,16 @@ class BaseController:
 
 class Controller(BaseController):
     def _get_project(self, name: str):
-        if not self._project:
-            self._project = self.projects.get_all(
-                Condition("name", name, EQ) & Condition("team_id", self.team_id, EQ)
-            )[0]
-        elif self._project.name != name:
-            self._project = self.projects.get_all(
-                Condition("name", name, EQ) & Condition("team_id", self.team_id, EQ)
-            )[0]
+        if not self._project or self._project.name != name:
+            response = Response()
+            use_case = GetProjectByNameUseCase(
+                response=response,
+                name=name,
+                team_id=self.team_id,
+                projects=ProjectRepository(service=self._backend_client),
+            )
+            use_case.execute()
+            self._project = response.data
         return self._project
 
     def _get_folder(self, project: ProjectEntity, name: str = None):
