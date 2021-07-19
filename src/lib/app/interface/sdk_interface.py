@@ -1846,6 +1846,7 @@ def move_image(
 
     controller.delete_image(image_name, source_project_name)
 
+
 def download_export(
     project, export, folder_path, extract_zip_contents=True, to_s3_bucket=None
 ):
@@ -2151,3 +2152,10 @@ def upload_preannotations_from_folder_to_project(
             progress_bar.update(chunk_size)
 
     return uploaded_annotations, failed_annotations, missing_annotations
+    controller.download_export(
+        project_name=project,
+        export_name=export,
+        folder_path=folder_path,
+        extract_zip_contents=extract_zip_contents,
+        to_s3_bucket=to_s3_bucket,
+    )

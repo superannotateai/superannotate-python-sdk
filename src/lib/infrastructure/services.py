@@ -701,8 +701,6 @@ class SuperannotateBackendService(BaseBackendService):
         )
         return res.json()
 
-
-
     def upload_form_s3(
         self,
         project_id: int,

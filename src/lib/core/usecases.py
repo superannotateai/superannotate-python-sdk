@@ -2,8 +2,11 @@ import copy
 import io
 import json
 import os.path
+import shutil
+import tempfile
 import time
 import uuid
+import zipfile
 from abc import ABC
 from abc import abstractmethod
 from collections import defaultdict
@@ -12,10 +15,6 @@ from pathlib import Path
 from typing import Iterable
 from typing import List
 from typing import Optional
-import shutil
-import tempfile
-import zipfile
-
 
 import boto3
 import cv2
@@ -37,8 +36,8 @@ from src.lib.core.entities import ProjectSettingEntity
 from src.lib.core.entities import S3FileEntity
 from src.lib.core.entities import TeamEntity
 from src.lib.core.entities import WorkflowEntity
-from src.lib.core.enums import ProjectType
 from src.lib.core.enums import ExportStatus
+from src.lib.core.enums import ProjectType
 from src.lib.core.exceptions import AppException
 from src.lib.core.exceptions import AppValidationException
 from src.lib.core.plugin import ImagePlugin
@@ -522,7 +521,6 @@ class AttachFileUrlsUseCase(BaseUseCase):
         self,
         response: Response,
         project: ProjectEntity,
-        folder: FolderEntity,
         attachments: List[ImageEntity],
         limit: int,
         backend_service_provider: SuerannotateServiceProvider,
@@ -2934,16 +2932,15 @@ class UploadAnnotationsUseCase(BaseUseCase):
 
 
 class DownloadExportUseCase(BaseUseCase):
-
     def __init__(
-            self,
-            response: Response,
-            service: SuerannotateServiceProvider,
-            project: ProjectEntity,
-            export_name: str,
-            folder_path: str,
-            extract_zip_contents: bool,
-            to_s3_bucket: bool
+        self,
+        response: Response,
+        service: SuerannotateServiceProvider,
+        project: ProjectEntity,
+        export_name: str,
+        folder_path: str,
+        extract_zip_contents: bool,
+        to_s3_bucket: bool,
     ):
         super().__init__(response)
         self._service = service
@@ -2954,31 +2951,35 @@ class DownloadExportUseCase(BaseUseCase):
         self._to_s3_bucket = to_s3_bucket
 
     def execute(self):
-        exports = self._service.get_exports(team_id=self._project.team_id,project_id=self._project.uuid)
-        export = None
-        for _export in exports:
-            if _export['name'] == self._export_name and _export['status'] == ExportStatus.COMPLETE.value:
-                export = _export
+        exports = self._service.get_exports(
+            team_id=self._project.team_id, project_id=self._project.uuid
+        )
+        export_id = None
+        for export in exports:
+            if (
+                export["name"] == self._export_name
+                and export["status"] == ExportStatus.COMPLETE.value
+            ):
+                export_id = export["id"]
                 break
-        export = self._service.get_export(team_id=self._project.team_id,project_id=self._project.uuid,export_id=export['id'])
-        filename = Path(export['path']).name
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_filepath = Path(temp_dir) / filename
-            with requests.get(export['download'], stream=True) as r:
-                r.raise_for_status()
-                with open(temp_filepath, 'wb') as f:
-                    for chunk in r.iter_content(chunk_size=8192):
-                        f.write(chunk)
-            if self._to_s3_bucket is None:
-                filepath = Path(self._folder_path) / filename
-                shutil.copyfile(temp_filepath, filepath)
-                if self._extract_zip_contents:
-                    with zipfile.ZipFile(filepath, 'r') as f:
-                        f.extractall(self._folder_path)
-                    Path.unlink(filepath)
-            else:
-                # TODO: handle s3
-                pass
-
-
+        export = self._service.get_export(
+            team_id=self._project.team_id,
+            project_id=self._project.uuid,
+            export_id=export_id,
+        )
+        filename = Path(export["path"]).name
+        filepath = Path(self._folder_path) / filename
+        with requests.get(export["download"], stream=True) as r:
+            r.raise_for_status()
+            with open(filepath, "wb") as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    f.write(chunk)
+        if self._to_s3_bucket is None:
+            if self._extract_zip_contents:
+                with zipfile.ZipFile(filepath, "r") as f:
+                    f.extractall(self._folder_path)
+                Path.unlink(filepath)
+        else:
+            pass
+            # TODO: handle s3
 
