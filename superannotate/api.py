@@ -145,13 +145,6 @@ class API:
             self._session = self._create_session()
         prepared = self._session.prepare_request(req)
         resp = self._session.send(request=prepared, verify=self._verify)
-        if resp.status_code not in [200,201]:
-            time.sleep(4)
-            resp = self._session.send(request=prepared, verify=self._verify)
-
-        if req_type.lower() == "get" and not resp.text:
-            time.sleep(4)
-            resp = self._session.send(request=prepared, verify=self._verify)
         return resp
 
     def _create_session(self):
