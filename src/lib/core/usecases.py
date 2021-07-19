@@ -84,6 +84,30 @@ class GetProjectsUseCase(BaseUseCase):
         self._response.errors = self._errors
 
 
+class GetProjectByNameUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        name: str,
+        team_id: int,
+        projects: BaseManageableRepository,
+    ):
+        super().__init__(response)
+        self._name = name
+        self._projects = projects
+        self._team_id = team_id
+
+    def execute(self):
+        if self.is_valid():
+            condition = Condition("name", self._name, EQ) & Condition("team_id", self._team_id, EQ)
+            projects = self._projects.get_all(condition)
+            for project in projects:
+                if project.name == self._name:
+                    self._response.data = project
+                    break
+        self._response.errors = self._errors
+
+
 class CreateProjectUseCase(BaseUseCase):
     def __init__(
         self,
