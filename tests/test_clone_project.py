@@ -2,19 +2,14 @@ from pathlib import Path
 import time
 
 import superannotate as sa
-
-PROJECT_NAME = "test create like project from"
-PROJECT_NAME2 = "test create like project to"
+from .test_assign_images import safe_create_project
 
 
 def test_create_like_project(tmpdir):
     tmpdir = Path(tmpdir)
-
-    projects = sa.search_projects(PROJECT_NAME, return_metadata=True)
-    for project in projects:
-        sa.delete_project(project)
-
-    sa.create_project(PROJECT_NAME, "tt", "Vector")
+    PROJECT_NAME = "test_create_like_project"
+    PROJECT_NAME2 = "test_create_like_project_1"
+    safe_create_project(PROJECT_NAME,'tt','Vector')
     sa.create_annotation_class(
         PROJECT_NAME, "rrr", "#FFAAFF", [
             {
@@ -86,6 +81,7 @@ def test_create_like_project(tmpdir):
     projects = sa.search_projects(PROJECT_NAME2, return_metadata=True)
     for project in projects:
         sa.delete_project(project)
+    time.sleep(3)
 
     new_project = sa.clone_project(
         PROJECT_NAME2, PROJECT_NAME, copy_contributors=True

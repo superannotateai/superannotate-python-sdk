@@ -1,3 +1,4 @@
+import time
 from pathlib import Path
 
 import cv2
@@ -14,9 +15,10 @@ def test_meta_init(tmpdir):
     projects = sa.search_projects(name, return_metadata=True)
     for project in projects:
         sa.delete_project(project)
+    time.sleep(2)
 
     project = sa.create_project(name, description, project_type)
-
+    time.sleep(2)
     sa.upload_images_from_folder_to_project(
         project, from_folder, annotation_status="InProgress"
     )

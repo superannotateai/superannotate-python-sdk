@@ -2,6 +2,7 @@ import os
 import json
 import logging
 import sys
+import time
 from pathlib import Path
 
 import requests
@@ -137,7 +138,6 @@ class API:
             for key, value in params.items():
                 if isinstance(value, str):
                     params[key] = value.replace("\\", "\\\\")
-
         req = requests.Request(
             method=req_type, url=url, json=json_req, params=params
         )
@@ -145,6 +145,13 @@ class API:
             self._session = self._create_session()
         prepared = self._session.prepare_request(req)
         resp = self._session.send(request=prepared, verify=self._verify)
+        if resp.status_code not in [200,201]:
+            time.sleep(4)
+            resp = self._session.send(request=prepared, verify=self._verify)
+
+        if req_type.lower() == "get" and not resp.text:
+            time.sleep(4)
+            resp = self._session.send(request=prepared, verify=self._verify)
         return resp
 
     def _create_session(self):
@@ -153,11 +160,11 @@ class API:
             total=5,
             read=5,
             connect=5,
-            backoff_factor=0.3,
+            backoff_factor=2,
             # use on any request type
             method_whitelist=False,
             # force retry on those status responses
-            status_forcelist=(501, 502, 503, 504, 505, 506, 507, 508, 510, 511),
+            status_forcelist=(501, 502, 503, 504, 505, 506, 507, 508, 510, 511, 403, 400),
             raise_on_status=False
         )
         adapter = requests.adapters.HTTPAdapter(

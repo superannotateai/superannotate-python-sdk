@@ -1,6 +1,8 @@
+import time
 from pathlib import Path
 
 import superannotate as sa
+from .test_assign_images import safe_create_project
 
 PROJECT_NAME_CPY = "test image copy 1"
 PROJECT_NAME_CPY_MULT = "test image copy mult 2"
@@ -9,15 +11,7 @@ PROJECT_NAME_CPY_FOLDER = "test image copy folder 4"
 
 
 def test_image_copy_mult(tmpdir):
-    tmpdir = Path(tmpdir)
-
-    projects_found = sa.search_projects(
-        PROJECT_NAME_CPY_MULT, return_metadata=True
-    )
-    for pr in projects_found:
-        sa.delete_project(pr)
-
-    project = sa.create_project(PROJECT_NAME_CPY_MULT, "test", "Vector")
+    project = safe_create_project(PROJECT_NAME_CPY_MULT)
 
     sa.upload_image_to_project(
         project,
@@ -27,6 +21,7 @@ def test_image_copy_mult(tmpdir):
     sa.create_annotation_classes_from_classes_json(
         project, "./tests/sample_project_vector/classes/classes.json"
     )
+    time.sleep(2)
     sa.upload_image_annotations(
         project, "example_image_1.jpg",
         "./tests/sample_project_vector/example_image_1.jpg___objects.json"
@@ -36,8 +31,9 @@ def test_image_copy_mult(tmpdir):
         "./tests/sample_project_vector/example_image_2.jpg",
         annotation_status="InProgress"
     )
+    time.sleep(2)
     sa.pin_image(project, "example_image_1.jpg")
-
+    time.sleep(2)
     images = sa.search_images(project)
     assert len(images) == 2
     image = images[0]
@@ -51,6 +47,7 @@ def test_image_copy_mult(tmpdir):
             copy_annotation_status=True,
             copy_pin=True
         )
+    time.sleep(2)
     assert len(sa.search_images(project)) == 5
     images = sa.search_images(project)
     for i in range(3):
@@ -63,13 +60,7 @@ def test_image_copy_mult(tmpdir):
 
 
 def test_image_copy(tmpdir):
-    tmpdir = Path(tmpdir)
-
-    projects_found = sa.search_projects(PROJECT_NAME_CPY, return_metadata=True)
-    for pr in projects_found:
-        sa.delete_project(pr)
-
-    project = sa.create_project(PROJECT_NAME_CPY, "test", "Vector")
+    project = safe_create_project(PROJECT_NAME_CPY)
 
     sa.upload_image_to_project(
         project,
@@ -82,17 +73,21 @@ def test_image_copy(tmpdir):
         annotation_status="InProgress"
     )
 
+    time.sleep(2)
+
     images = sa.search_images(project)
     assert len(images) == 2
     image = images[0]
 
     sa.copy_image(project, image, project)
+    time.sleep(2)
     images = sa.search_images(project)
     assert len(images) == 3
 
     image = "example_image_1_(1).jpg"
     assert len(sa.search_images(project, image)) == 1
     sa.copy_image(project, image, project)
+    time.sleep(2)
 
     image = "example_image_1_(2).jpg"
     assert len(sa.search_images(project, image)) == 1
@@ -103,21 +98,18 @@ def test_image_copy(tmpdir):
     for pr in projects_found:
         sa.delete_project(pr)
 
+    time.sleep(2)
     dest_project = sa.create_project(PROJECT_NAME_CPY + "dif", "test", "Vector")
+    time.sleep(2)
     sa.copy_image(project, image, dest_project)
+    time.sleep(2)
     di = sa.search_images(dest_project, image)
     assert len(di) == 1
     assert di[0] == image
 
 
 def test_image_move(tmpdir):
-    tmpdir = Path(tmpdir)
-
-    projects_found = sa.search_projects(PROJECT_NAME_MOVE, return_metadata=True)
-    for pr in projects_found:
-        sa.delete_project(pr)
-
-    project = sa.create_project(PROJECT_NAME_MOVE, "test", "Vector")
+    project = safe_create_project(PROJECT_NAME_MOVE)
 
     sa.upload_image_to_project(
         project,
@@ -129,12 +121,14 @@ def test_image_move(tmpdir):
         "./tests/sample_project_vector/example_image_2.jpg",
         annotation_status="InProgress"
     )
+    time.sleep(2)
 
     images = sa.search_images(project)
     assert len(images) == 2
     image = images[0]
     try:
         sa.move_image(project, image, project)
+        time.sleep(2)
     except sa.SABaseException as e:
         assert e.message == "Cannot move image if source_project == destination_project."
     else:
@@ -146,10 +140,14 @@ def test_image_move(tmpdir):
     for pr in projects_found:
         sa.delete_project(pr)
 
+    time.sleep(2)
+
     dest_project = sa.create_project(
         PROJECT_NAME_MOVE + "dif", "test", "Vector"
     )
+    time.sleep(2)
     sa.move_image(project, image, dest_project)
+    time.sleep(2)
     di = sa.search_images(dest_project, image)
     assert len(di) == 1
     assert di[0] == image

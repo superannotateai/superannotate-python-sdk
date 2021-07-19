@@ -1,23 +1,19 @@
+import time
 from pathlib import Path
 import json
 
 import superannotate as sa
-
-PROJECT_NAME = "Example Project test annotation add"
-PROJECT_NAME_NOINIT = "Example Project test annotation add no init"
-PROJECT_DESCRIPTION = "test vector"
-PATH_TO_SAMPLE_PROJECT = Path("./tests/sample_project_vector")
+from .test_assign_images import safe_create_project
 
 
 def test_add_bbox(tmpdir):
     tmpdir = Path(tmpdir)
 
-    projects_found = sa.search_projects(PROJECT_NAME, return_metadata=True)
-    for pr in projects_found:
-        if pr["name"] == PROJECT_NAME:
-            sa.delete_project(pr)
+    PROJECT_NAME = "Example Project test annotation add"
+    PROJECT_DESCRIPTION = "test vector"
+    PATH_TO_SAMPLE_PROJECT = Path("./tests/sample_project_vector")
 
-    project = sa.create_project(PROJECT_NAME, PROJECT_DESCRIPTION, "Vector")
+    project = safe_create_project(PROJECT_NAME,PROJECT_DESCRIPTION,"Vector")
     sa.upload_images_from_folder_to_project(
         PROJECT_NAME, PATH_TO_SAMPLE_PROJECT, annotation_status="InProgress"
     )
@@ -40,8 +36,8 @@ def test_add_bbox(tmpdir):
         project, PATH_TO_SAMPLE_PROJECT
     )
 
+    time.sleep(2)
     images = sa.search_images(project, "example_image_1")
-
     image_name = images[0]
     annotations = sa.get_image_annotations(project,
                                            image_name)["annotation_json"]
@@ -77,10 +73,10 @@ def test_add_bbox(tmpdir):
         project, image_name, "hey", [100, 100], "hovnatan@superannotate.com",
         True
     )
+    time.sleep(2)
     annotations_new = sa.get_image_annotations(project,
                                                image_name)["annotation_json"]
     json.dump(annotations_new, open(tmpdir / "new_anns.json", "w"))
-
     assert len(annotations_new["instances"]) + len(
         annotations_new["comments"]
     ) == len(annotations["instances"]) + len(annotations["comments"]) + 8
@@ -101,19 +97,15 @@ def test_add_bbox(tmpdir):
 
 def test_add_bbox_noinit(tmpdir):
     tmpdir = Path(tmpdir)
+    PROJECT_NAME_NOINIT = "Example Project test annotation add no init"
+    PROJECT_DESCRIPTION = "tt"
+    PATH_TO_SAMPLE_PROJECT = Path("./tests/sample_project_vector")
 
-    projects_found = sa.search_projects(
-        PROJECT_NAME_NOINIT, return_metadata=True
-    )
-    for pr in projects_found:
-        sa.delete_project(pr)
-
-    project = sa.create_project(
-        PROJECT_NAME_NOINIT, PROJECT_DESCRIPTION, "Vector"
-    )
+    project = safe_create_project(PROJECT_NAME_NOINIT,PROJECT_DESCRIPTION,"Vector")
     sa.upload_images_from_folder_to_project(
         project, PATH_TO_SAMPLE_PROJECT, annotation_status="InProgress"
     )
+    time.sleep(2)
     sa.create_annotation_classes_from_classes_json(
         project, PATH_TO_SAMPLE_PROJECT / "classes" / "classes.json"
     )
@@ -127,11 +119,13 @@ def test_add_bbox_noinit(tmpdir):
     sa.add_annotation_polygon_to_image(
         project, image_name, [100, 100, 500, 500, 200, 300], "test_add"
     )
+    time.sleep(2)
     annotations_new = sa.get_image_annotations(project,
                                                image_name)["annotation_json"]
 
     assert len(annotations_new["instances"]) == 2
     export = sa.prepare_export(project, include_fuse=True)
+    time.sleep(2)
     sa.download_export(project, export, tmpdir)
 
     non_empty_annotations = 0

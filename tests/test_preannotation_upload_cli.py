@@ -24,14 +24,17 @@ def test_preannotation_folder_upload_download_cli(
     projects_found = sa.search_projects(name, return_metadata=True)
     for pr in projects_found:
         sa.delete_project(pr)
+    time.sleep(2)
 
     project = sa.create_project(name, description, project_type)
+    time.sleep(2)
     sa.upload_images_from_folder_to_project(
         project, from_folder, annotation_status="InProgress"
     )
     sa.create_annotation_classes_from_classes_json(
         project, from_folder / "classes" / "classes.json"
     )
+    time.sleep(2)
     subprocess.run(
         f'superannotatecli upload-preannotations --project "{name}" --folder "{from_folder}"',
         check=True,
@@ -60,11 +63,13 @@ def test_annotation_folder_upload_download_cli_vector_COCO(tmpdir):
     projects_found = sa.search_projects(name, return_metadata=True)
     for pr in projects_found:
         sa.delete_project(pr)
-
+    time.sleep(2)
     project = sa.create_project(name, description, project_type)
+    time.sleep(2)
     sa.upload_images_from_folder_to_project(
         project, from_folder, annotation_status="InProgress"
     )
+    time.sleep(2)
     subprocess.run(
         f'superannotatecli upload-annotations --project "{name}" --folder "{from_folder}" --format COCO --task {task} --dataset-name {dataset_name}',
         check=True,
@@ -93,11 +98,14 @@ def test_preannotation_folder_upload_download_cli_vector_COCO(tmpdir):
     projects_found = sa.search_projects(name, return_metadata=True)
     for pr in projects_found:
         sa.delete_project(pr)
+    time.sleep(2)
 
     project = sa.create_project(name, description, project_type)
+    time.sleep(2)
     sa.upload_images_from_folder_to_project(
         project, from_folder, annotation_status="InProgress"
     )
+    time.sleep(2)
     subprocess.run(
         f'superannotatecli upload-preannotations --project "{name}" --folder "{from_folder}" --format COCO --task {task} --dataset-name {dataset_name}',
         check=True,
@@ -122,15 +130,17 @@ def test_preannotation_folder_upload_download_cli_vector_object_COCO(tmpdir):
     from_folder = "./tests/converter_test/COCO/input/toSuperAnnotate/instance_segmentation"
     task = "instance_segmentation"
     dataset_name = "instances_test"
-
     projects_found = sa.search_projects(name, return_metadata=True)
     for pr in projects_found:
         sa.delete_project(pr)
+    time.sleep(2)
 
     project = sa.create_project(name, description, project_type)
+    time.sleep(2)
     sa.upload_images_from_folder_to_project(
         project, from_folder, annotation_status="InProgress"
     )
+    time.sleep(2)
     subprocess.run(
         f'superannotatecli upload-preannotations --project "{name}" --folder "{from_folder}" --format COCO --task {task} --dataset-name {dataset_name}',
         check=True,
@@ -155,15 +165,17 @@ def test_preannotation_folder_upload_download_cli_pixel_object_COCO(tmpdir):
     from_folder = "./tests/converter_test/COCO/input/toSuperAnnotate/panoptic_segmentation"
     task = "panoptic_segmentation"
     dataset_name = "panoptic_test"
-
     projects_found = sa.search_projects(name, return_metadata=True)
     for pr in projects_found:
         sa.delete_project(pr)
+    time.sleep(2)
 
     project = sa.create_project(name, description, project_type)
+    time.sleep(2)
     sa.upload_images_from_folder_to_project(
         project, from_folder, annotation_status="InProgress"
     )
+    time.sleep(2)
     subprocess.run(
         f'superannotatecli upload-preannotations --project "{name}" --folder "{from_folder}" --format COCO --task {task} --dataset-name {dataset_name}',
         check=True,
@@ -194,13 +206,17 @@ def test_preannotation_folder_upload_download_cli_pixel_object_COCO_folder(
     projects_found = sa.search_projects(name, return_metadata=True)
     for pr in projects_found:
         sa.delete_project(pr)
+    time.sleep(2)
 
     project = sa.create_project(name, description, project_type)
+    time.sleep(2)
     sa.create_folder(project, "folder1")
     project_with_folder = project["name"] + "/folder1"
+    time.sleep(2)
     sa.upload_images_from_folder_to_project(
         project_with_folder, from_folder, annotation_status="InProgress"
     )
+    time.sleep(2)
     subprocess.run(
         f'superannotatecli upload-preannotations --project "{project_with_folder}" --folder "{from_folder}" --format COCO --task {task} --dataset-name {dataset_name}',
         check=True,

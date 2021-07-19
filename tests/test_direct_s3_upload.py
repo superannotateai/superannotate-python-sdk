@@ -1,3 +1,4 @@
+import time
 from pathlib import Path
 import os
 
@@ -5,21 +6,16 @@ import pytest
 import boto3
 
 import superannotate as sa
+from .test_assign_images import safe_create_project
+
 
 TEST_PROJECT_NAME = "test_direct_s3_upload1"
-TEST_PROJECT_NAME2 = "test_direct_s3_upload_folder_2"
 S3_BUCKET = 'superannotate-python-sdk-test'
 S3_FOLDER = 'sample_project_vector'
 
 
 def test_direct_s3_upload():
-    projects_found = sa.search_projects(TEST_PROJECT_NAME, return_metadata=True)
-    for pr in projects_found:
-        sa.delete_project(pr)
-
-    project = sa.create_project(TEST_PROJECT_NAME, "a", "Vector")
-    print(project["id"])
-
+    project = safe_create_project(TEST_PROJECT_NAME,"a","Vector")
     csv = (Path.home() / ".aws" / "credentials").read_text().splitlines()
 
     access_key_id = csv[1].split(" = ")[1]
@@ -43,14 +39,8 @@ def test_direct_s3_upload():
 
 
 def test_direct_s3_upload_folder():
-    projects_found = sa.search_projects(
-        TEST_PROJECT_NAME2, return_metadata=True
-    )
-    for pr in projects_found:
-        sa.delete_project(pr)
-
-    project = sa.create_project(TEST_PROJECT_NAME2, "a", "Vector")
-    print(project["id"])
+    TEST_PROJECT_NAME2 = "test_direct_s3_upload_folder_2"
+    project = safe_create_project(TEST_PROJECT_NAME2,"a","Vector")
 
     csv = (Path.home() / ".aws" / "credentials").read_text().splitlines()
 
@@ -59,6 +49,8 @@ def test_direct_s3_upload_folder():
 
     sa.create_folder(project, "folder1")
     project_folder = project["name"] + "/folder1"
+
+    time.sleep(2)
     sa.upload_images_from_s3_bucket_to_project(
         project_folder, access_key_id, access_secret, S3_BUCKET, S3_FOLDER
     )

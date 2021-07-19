@@ -1,3 +1,4 @@
+import time
 from pathlib import Path
 
 import pytest
@@ -22,8 +23,10 @@ def test_preannotation_folder_upload_download(
     projects_found = sa.search_projects(name, return_metadata=True)
     for pr in projects_found:
         sa.delete_project(pr)
+    time.sleep(2)
 
     project = sa.create_project(name, description, project_type)
+    time.sleep(2)
     sa.upload_images_from_folder_to_project(
         project, from_folder, annotation_status="InProgress"
     )
@@ -32,7 +35,7 @@ def test_preannotation_folder_upload_download(
     )
     sa.upload_preannotations_from_folder_to_project(project, from_folder)
     count_in = len(list(from_folder.glob("*.json")))
-
+    time.sleep(2)
     images = sa.search_images(project)
     for image_name in images:
         sa.download_image_preannotations(project, image_name, tmpdir)

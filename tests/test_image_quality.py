@@ -1,3 +1,4 @@
+import time
 from pathlib import Path
 import filecmp
 
@@ -13,9 +14,9 @@ def test_image_quality_setting1(tmpdir):
     projects = sa.search_projects(PROJECT_NAME1, return_metadata=True)
     for project in projects:
         sa.delete_project(project)
-
+    time.sleep(2)
     project = sa.create_project(PROJECT_NAME1, "test", "Vector")
-
+    time.sleep(2)
     sa.upload_images_from_folder_to_project(
         project, "./tests/sample_project_vector"
     )
@@ -35,14 +36,16 @@ def test_image_quality_setting2(tmpdir):
     projects = sa.search_projects(PROJECT_NAME2, return_metadata=True)
     for project in projects:
         sa.delete_project(project)
+    time.sleep(2)
 
     project = sa.create_project(PROJECT_NAME2, "test", "Vector")
-
+    time.sleep(2)
     sa.set_project_default_image_quality_in_editor(project, "original")
-
+    time.sleep(2)
     sa.upload_images_from_folder_to_project(
         project, "./tests/sample_project_vector"
     )
+    time.sleep(2)
 
     sa.download_image(project, "example_image_1.jpg", tmpdir, variant="lores")
 
