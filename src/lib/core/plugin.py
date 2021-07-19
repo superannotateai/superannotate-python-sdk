@@ -5,16 +5,42 @@ from typing import Tuple
 
 import cv2
 import ffmpeg
-from lib.core.exceptions import ImageProcessingException
 from PIL import Image
+from PIL import ImageDraw
 from PIL import ImageOps
 
 
 class ImagePlugin:
-    def __init__(self, image_bytes: io.BytesIO, max_resolution: int):
+    def __init__(self, image_bytes: io.BytesIO, max_resolution: int = 4096):
         self._image_bytes = image_bytes
         self._max_resolution = max_resolution
-        self._image = Image.open(self._image_bytes)
+        self._image = Image.open(self._image_bytes).convert("RGBA")
+        self._draw = None
+
+    @staticmethod
+    def from_array(arr):
+        return Image.fromarray(arr)
+
+    @staticmethod
+    def Draw(image):
+        return ImageDraw.Draw(image)
+
+    @property
+    def content(self):
+        return self._image
+
+    def show(self):
+        self._image.show()
+
+    @property
+    def empty_image(self):
+        return Image.new("RGBA", self._image.size)
+
+    @property
+    def draw(self):
+        if not self._draw:
+            self._draw = ImageDraw.Draw(self._image)
+        return self._draw
 
     def _get_image(self):
         Image.MAX_IMAGE_PIXELS = None
@@ -27,7 +53,7 @@ class ImagePlugin:
         resolution = width * height
 
         if resolution > self._max_resolution:
-            raise ImageProcessingException(
+            raise Exception(
                 f"Image resolution {resolution} too large. Max supported for resolution is {self._max_resolution}"
             )
         return im
@@ -76,6 +102,52 @@ class ImagePlugin:
         buffer.seek(0)
         width, height = im.size
         return buffer, width, height
+
+    def draw_bbox(self, x1, x2, y1, y2, fill_color, outline_color):
+        image = self.empty_image
+        draw = ImageDraw.Draw(image)
+        draw.rectangle(((x1, y1), (x2, y2)), fill_color, outline_color)
+        self._image.convert("RGBA")
+        self._image = Image.alpha_composite(self._image, image)
+
+    def draw_polygon(self, points: List, fill_color, outline_color):
+        image = self.empty_image
+        draw = ImageDraw.Draw(image)
+        draw.polygon(points, fill_color, outline_color)
+        self._image.convert("RGBA")
+        self._image = Image.alpha_composite(self._image, image)
+
+    def draw_polyline(self, points: List, fill_color, width=2):
+        image = self.empty_image
+        draw = ImageDraw.Draw(image)
+        draw.lint(points, fill_color, width=width)
+        self._image.convert("RGBA")
+        self._image = Image.alpha_composite(self._image, image)
+
+    def draw_point(self, x, y, fill_color, outline_color, size=2):
+        image = self.empty_image
+        draw = ImageDraw.Draw(image)
+        draw.ellipse(
+            (x - size, y - size, x + size, y + size), fill_color, outline_color
+        )
+        self._image.convert("RGBA")
+        self._image = Image.alpha_composite(self._image, image)
+
+    def draw_ellipse(self, cx, cy, rx, ry, fill_color, outline_color):
+        image = self.empty_image
+        draw = ImageDraw.Draw(image)
+        draw.ellipse(
+            (cx - rx, cy - ry, cx + rx, cy + ry), fill=fill_color, outline=outline_color
+        )
+        self._image.convert("RGBA")
+        self._image = Image.alpha_composite(self._image, image)
+
+    def draw_line(self, x, y, fill_color, width=1):
+        image = self.empty_image
+        draw = ImageDraw.Draw(image)
+        draw.line((x, y), fill_color=fill_color, width=width)
+        self._image.convert("RGBA")
+        self._image = Image.alpha_composite(self._image, image)
 
 
 class VideoPlugin:

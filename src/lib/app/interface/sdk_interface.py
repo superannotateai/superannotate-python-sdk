@@ -10,13 +10,13 @@ from urllib.parse import urlparse
 
 import boto3
 import lib.core as constances
+from lib.app.exceptions import AppException
 from lib.app.exceptions import EmptyOutputError
 from lib.app.helpers import split_project_path
 from lib.app.serializers import BaseSerializers
 from lib.app.serializers import ImageSerializer
 from lib.app.serializers import ProjectSerializer
 from lib.app.serializers import TeamSerializer
-from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
 from lib.core.response import Response
 from lib.infrastructure.controller import Controller
@@ -248,9 +248,7 @@ def create_folder(project, folder_name):
     :rtype: dict
     """
 
-    result = controller.create_folder(
-        project_name=project, folder_name=folder_name
-    ).data
+    result = controller.create_folder(project=project, folder_name=folder_name).data
     if result.name != folder_name:
         logger.warning(
             f"Created folder has name {result.name}, since folder with name {folder_name} already existed.",
@@ -388,7 +386,7 @@ def get_image_bytes(project, image_name, variant="original"):
     :rtype: io.BytesIO()
     """
     project_name, folder_name = split_project_path(project)
-    image = controller.download_image(
+    image = controller.get_image_bytes(
         project_name=project_name,
         image_name=image_name,
         folder_name=folder_name,
@@ -1697,6 +1695,7 @@ def create_annotation_class(project, name, color, attribute_groups=None):
     )
     return response.data.to_dict()
 
+
 def delete_annotation_class(project, annotation_class):
     """Deletes annotation class from project
 
@@ -1844,3 +1843,73 @@ def move_image(
     controller.delete_image(image_name,source_project_name)
 
 
+
+
+def create_fuse_image(
+    image, classes_json, project_type, in_memory=False, output_overlay=False
+):
+    """Creates fuse for locally located image and annotations
+
+    :param image: path to image
+    :type image: str or Pathlike
+    :param image_name: annotation classes or path to their JSON
+    :type image: list or Pathlike
+    :param project_type: project type, "Vector" or "Pixel"
+    :type project_type: str
+    :param in_memory: enables pillow Image return instead of saving the image
+    :type in_memory: bool
+
+    :return: path to created fuse image or pillow Image object if in_memory enabled
+    :rtype: str of PIL.Image
+    """
+
+    response = controller.create_fuse_image(
+        image_path=image,
+        project_type=project_type,
+        in_memory=in_memory,
+        generate_overlay=output_overlay,
+    )
+
+    return response.data
+
+
+def download_image(
+    project,
+    image_name,
+    local_dir_path=".",
+    include_annotations=False,
+    include_fuse=False,
+    include_overlay=False,
+    variant="original",
+):
+    """Downloads the image (and annotation if not None) to local_dir_path
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param image_name: image name
+    :type image: str
+    :param local_dir_path: where to download the image
+    :type local_dir_path: Pathlike (str or Path)
+    :param include_annotations: enables annotation download with the image
+    :type include_annotations: bool
+    :param include_fuse: enables fuse image download with the image
+    :type include_fuse: bool
+    :param variant: which resolution to download, can be 'original' or 'lores'
+     (low resolution used in web editor)
+    :type variant: str
+
+    :return: paths of downloaded image and annotations if included
+    :rtype: tuple
+    """
+    project_name, folder_name = split_project_path(project)
+    response = controller.download_image(
+        project_name=project_name,
+        folder_name=folder_name,
+        image_name=image_name,
+        download_path=local_dir_path,
+        image_variant=variant,
+        include_annotations=include_annotations,
+        include_fuse=include_fuse,
+        include_overlay=include_overlay,
+    )
+    return response.data
