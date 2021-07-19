@@ -73,6 +73,8 @@ from src.lib.core.usecases import UpdateProjectUseCase
 from src.lib.core.usecases import UpdateSettingsUseCase
 from src.lib.core.usecases import UploadAnnotationsUseCase
 from src.lib.core.usecases import UploadImageS3UseCas
+from src.lib.core.usecases import GetProjectByNameUseCase
+
 from src.lib.core.usecases import UploadS3ImagesBackendUseCase
 from src.lib.infrastructure.repositories import AnnotationClassRepository
 from src.lib.infrastructure.repositories import ConfigRepository
@@ -145,21 +147,16 @@ class BaseController:
 
 class Controller(BaseController):
     def _get_project(self, name: str):
-        if not self._project:
-            projects = self.projects.get_all(
-                Condition("name", name, EQ) & Condition("team_id", self.team_id, EQ)
+        if not self._project or self._project.name != name:
+            response = Response()
+            use_case = GetProjectByNameUseCase(
+                response=response,
+                name=name,
+                team_id=self.team_id,
+                projects=ProjectRepository(service=self._backend_client)
             )
-            for project in projects:
-                if project.name == name:
-                    self._project = project
-
-        elif self._project.name != name:
-            projects = self.projects.get_all(
-                Condition("name", name, EQ) & Condition("team_id", self.team_id, EQ)
-            )
-            for project in projects:
-                if project.name == name:
-                    self._project = project
+            use_case.execute()
+            self._project = response.data
         return self._project
 
     def _get_folder(self, project: ProjectEntity, name: str = None):
