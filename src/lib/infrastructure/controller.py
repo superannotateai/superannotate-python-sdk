@@ -47,6 +47,7 @@ from src.lib.core.usecases import GetImageMetadataUseCase
 from src.lib.core.usecases import GetImagePreAnnotationsUseCase
 from src.lib.core.usecases import GetImagesUseCase
 from src.lib.core.usecases import GetImageUseCase
+from src.lib.core.usecases import GetProjectByNameUseCase
 from src.lib.core.usecases import GetProjectFoldersUseCase
 from src.lib.core.usecases import GetProjectImageCountUseCase
 from src.lib.core.usecases import GetProjectMetadataUseCase
@@ -73,8 +74,6 @@ from src.lib.core.usecases import UpdateProjectUseCase
 from src.lib.core.usecases import UpdateSettingsUseCase
 from src.lib.core.usecases import UploadAnnotationsUseCase
 from src.lib.core.usecases import UploadImageS3UseCas
-from src.lib.core.usecases import GetProjectByNameUseCase
-
 from src.lib.core.usecases import UploadS3ImagesBackendUseCase
 from src.lib.infrastructure.repositories import AnnotationClassRepository
 from src.lib.infrastructure.repositories import ConfigRepository
@@ -153,7 +152,7 @@ class Controller(BaseController):
                 response=response,
                 name=name,
                 team_id=self.team_id,
-                projects=ProjectRepository(service=self._backend_client)
+                projects=ProjectRepository(service=self._backend_client),
             )
             use_case.execute()
             self._project = response.data

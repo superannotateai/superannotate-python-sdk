@@ -103,7 +103,9 @@ class GetProjectByNameUseCase(BaseUseCase):
 
     def execute(self):
         if self.is_valid():
-            condition = Condition("name", self._name, EQ) & Condition("team_id", self._team_id, EQ)
+            condition = Condition("name", self._name, EQ) & Condition(
+                "team_id", self._team_id, EQ
+            )
             projects = self._projects.get_all(condition)
             for project in projects:
                 if project.name == self._name:
