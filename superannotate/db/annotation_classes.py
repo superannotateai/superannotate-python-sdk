@@ -347,9 +347,9 @@ def fill_class_and_attribute_ids(annotation_json, annotation_classes_dict):
     annotation_classes_dict = {**annotation_classes_dict, **unknown_classes}
     templates_map = get_templates_mapping()
     for ann in (
-        i for i in annotation_json["instances"] if i['type'] == 'template'
+        i for i in annotation_json["instances"] if i.get('type', None) == 'template'
     ):
-        ann['templateId'] = templates_map.get(ann['templateName'], -1)
+        ann['templateId'] = templates_map.get(ann.get('templateName', ''), -1)
     for ann in annotation_json["instances"]:
         if "className" not in ann:
             logger.warning("No className in annotation instance")

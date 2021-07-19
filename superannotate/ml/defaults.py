@@ -1,7 +1,6 @@
 DEFAULT_HYPERPARAMETERS = {
     "instance_type": "1 x T4 16 GB",
     "num_epochs": 12,
-    "dataset_split_ratio": 80,
     "base_lr": 0.02,
     "gamma": 0.5,
     "images_per_batch": 4,
