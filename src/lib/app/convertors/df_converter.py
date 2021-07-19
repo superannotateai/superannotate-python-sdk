@@ -218,9 +218,9 @@ def filter_images_by_comments(
     images = set()
     df = annotations_df[annotations_df["type"] == "comment"]
     if include_unresolved_comments:
-        images.update(df[df["commentResolved"] == False]["imageName"].dropna().unique())
+        images.update(df[df["commentResolved"] is False]["imageName"].dropna().unique())
     if include_resolved_comments:
-        images.update(df[df["commentResolved"] == True]["imageName"].dropna().unique())
+        images.update(df[df["commentResolved"] is True]["imageName"].dropna().unique())
     if include_without_comments:
         all_images = set(annotations_df["imageName"].dropna().unique())
         with_comments = set(df["imageName"].dropna().unique())

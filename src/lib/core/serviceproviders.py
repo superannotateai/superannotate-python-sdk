@@ -227,3 +227,19 @@ class SuerannotateServiceProvider(ABC):
         self, project_id: int, team_id: int, attributes: list
     ):
         raise NotImplementedError
+
+    def get_images_bulk(self, image_names, team_id: int, project_id: int):
+        raise NotImplementedError
+
+    def get_pre_annotation_upload_data(
+        self, project_id: int, team_id: int, image_ids: List[int], folder_id: int
+    ):
+        raise NotImplementedError
+
+    def get_annotation_upload_data(
+        self, project_id: int, team_id: int, image_ids: List[int], folder_id: int
+    ):
+        raise NotImplementedError
+
+    def get_templates(self, team_id: int):
+        raise NotImplementedError

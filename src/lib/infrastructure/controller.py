@@ -29,7 +29,7 @@ from src.lib.core.usecases import DeleteFolderUseCase
 from src.lib.core.usecases import DeleteImagesUseCase
 from src.lib.core.usecases import DeleteImageUseCase
 from src.lib.core.usecases import DeleteProjectUseCase
-from src.lib.core.usecases import DownlaodAnnotationClassesUseCase
+from src.lib.core.usecases import DownloadAnnotationClassesUseCase
 from src.lib.core.usecases import DownloadAzureCloudImages
 from src.lib.core.usecases import DownloadGoogleCloudImages
 from src.lib.core.usecases import DownloadImageAnnotationsUseCase
@@ -71,6 +71,7 @@ from src.lib.core.usecases import UpdateFolderUseCase
 from src.lib.core.usecases import UpdateImageUseCase
 from src.lib.core.usecases import UpdateProjectUseCase
 from src.lib.core.usecases import UpdateSettingsUseCase
+from src.lib.core.usecases import UploadAnnotationsUseCase
 from src.lib.core.usecases import UploadImageS3UseCas
 from src.lib.core.usecases import UploadS3ImagesBackendUseCase
 from src.lib.infrastructure.repositories import AnnotationClassRepository
@@ -94,7 +95,8 @@ class BaseController:
 
     @property
     def response(self):
-        return self._response
+        # return self._response
+        return Response()
 
     @property
     def projects(self):
@@ -1114,7 +1116,7 @@ class Controller(BaseController):
 
     def download_annotation_classes(self, project_name: str, download_path: str):
         project = self._get_project(project_name)
-        use_case = DownlaodAnnotationClassesUseCase(
+        use_case = DownloadAnnotationClassesUseCase(
             response=self.response,
             annotation_classes_repo=AnnotationClassRepository(
                 service=self._backend_client, project=project,
@@ -1189,56 +1191,6 @@ class Controller(BaseController):
         use_case.execute()
         return self.response
 
-    def create_fuse_image(
-        self,
-        project_type: str,
-        image_path: str,
-        in_memory: bool,
-        generate_overlay: bool,
-    ):
-
-        use_case = CreateFuseImageUseCase(
-            response=self.response,
-            project_type=project_type,
-            image_path=image_path,
-            in_memory=in_memory,
-            generate_overlay=generate_overlay,
-        )
-        use_case.execute()
-        return self.response
-
-    def download_image(
-        self,
-        project_name: str,
-        image_name: str,
-        download_path: str,
-        folder_name: str = None,
-        image_variant: str = None,
-        include_annotations: bool = None,
-        include_fuse: bool = None,
-        include_overlay: bool = None,
-    ):
-        project = self._get_project(project_name)
-        folder = self._get_folder(project, folder_name)
-        image = self._get_image(project, image_name, folder_name)
-
-        use_case = DownloadImageUseCase(
-            response=self.response,
-            project=project,
-            folder=folder,
-            image=image,
-            images=self.images,
-            classes=AnnotationClassRepository(self._backend_client, project),
-            backend_service_provider=self._backend_client,
-            download_path=download_path,
-            image_variant=image_variant,
-            include_annotations=include_annotations,
-            include_fuse=include_fuse,
-            include_overlay=include_overlay,
-        )
-        use_case.execute()
-        return self.response
-
     def set_project_workflow(self, project_name: str, steps: list):
         project = self._get_project(project_name)
         use_case = SetWorkflowUseCase(
@@ -1254,3 +1206,30 @@ class Controller(BaseController):
             project=project,
         )
         use_case.execute()
+
+    def upload_annotations_from_folder(
+        self,
+        project_name: str,
+        folder_name: str,
+        folder_path: str,
+        annotation_paths: List[str],
+        client_s3_bucket=None,
+        is_pre_annotations: bool = False,
+    ):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+        use_case = UploadAnnotationsUseCase(
+            response=self.response,
+            project=project,
+            folder=folder,
+            folder_path=folder_path,
+            annotation_paths=annotation_paths,
+            backend_service_provider=self._backend_client,
+            annotation_classes=AnnotationClassRepository(
+                service=self._backend_client, project=project
+            ),
+            pre_annotation=is_pre_annotations,
+            client_s3_bucket=client_s3_bucket,
+        )
+        use_case.execute()
+        return self.response

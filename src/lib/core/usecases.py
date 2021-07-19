@@ -6,6 +6,7 @@ import time
 import uuid
 from abc import ABC
 from abc import abstractmethod
+from collections import defaultdict
 from collections import namedtuple
 from pathlib import Path
 from typing import Iterable
@@ -111,7 +112,7 @@ class CreateProjectUseCase(BaseUseCase):
 
     def execute(self):
         if self.is_valid():
-            # todo add status in the constanses
+            # todo add status in the constants
             self._project.status = 0
             entity = self._projects.insert(self._project)
             self._response.data = entity
@@ -2290,7 +2291,7 @@ class GetAnnotationClassUseCase(BaseUseCase):
         self._response.data = classes[0]
 
 
-class DownlaodAnnotationClassesUseCase(BaseUseCase):
+class DownloadAnnotationClassesUseCase(BaseUseCase):
     def __init__(
         self,
         response: Response,
@@ -2668,253 +2669,232 @@ class DownloadImageUseCase(BaseUseCase):
         )
 
 
-class CreateFuseImageUseCase(BaseUseCase):
-    TRANSPARENCY = 128
+class UploadAnnotationsUseCase(BaseUseCase):
+    VECTOR_ANNOTATION_POSTFIX = "___objects.json"
+    PIXEL_ANNOTATION_POSTFIX = "___pixel.json"
+    ANNOTATION_MASK_POSTFIX = "___save.png"
+    CHUNK_SIZE = 500
 
-    def __init__(
-        self,
-        response: Response,
-        project_type: str,
-        image_path: str,
-        classes: list = None,
-        in_memory: bool = False,
-        generate_overlay: bool = False,
-    ):
-        super().__init__(response)
-        self._project_type = project_type
-        self._image_path = image_path
-        self._annotations = None
-        self._classes = classes
-        self._annotation_mask_path = None
-        self._in_memory = in_memory
-        self._generate_overlay = generate_overlay
-
-    @staticmethod
-    def generate_color(value: str):
-        return tuple(int(value.lstrip("#")[i : i + 2], 16) for i in (0, 2, 4))
-
-    @property
-    def annotations(self):
-        if not self._annotations:
-            image_path = Path(self._image_path)
-            if self._project_type == constances.ProjectType.PIXEL.name:
-                self._annotations = json.load(
-                    open(image_path.parent / f"{image_path.name}___pixel.json")
-                )
-            else:
-                self._annotations = json.load(
-                    open(image_path.parent / f"{image_path.name}___objects.json")
-                )
-        return self._annotations
-
-    @property
-    def blue_mask_path(self):
-        image_path = Path(self._image_path)
-        if self._project_type == constances.ProjectType.PIXEL.name:
-            self._annotation_mask_path = str(
-                image_path.parent / f"{image_path.name}___save.png"
-            )
-        else:
-            raise AppException("Vector project doesn't have blue mask.")
-
-        return self._annotation_mask_path
-
-    def execute(self):
-        with open(self._image_path, "rb") as file:
-            class_color_map = {}
-            Image = namedtuple("Image", ["type", "path", "content"])
-            for annotation_class in self._classes:
-                class_color_map[annotation_class] = self.generate_color(
-                    annotation_class["color"]
-                )
-                # class_color_map[annotaiotn_class] = self.generate_color(instance["className"])
-            if self._project_type == constances.ProjectType.VECTOR.name:
-                image = ImagePlugin(io.BytesIO(file.read()))
-
-                fuse_image = ImagePlugin.empty_image
-                images = [Image("fuse", f"{self._image_path}___fuse.png", fuse_image)]
-                if self._generate_overlay:
-                    images.append(
-                        Image("overlay", f"{self._image_path}___overlay.png", image)
-                    )
-
-                outline_color = 4 * (255,)
-                for instance in self._annotations["instances"]:
-                    fill_color = (
-                        *class_color_map[instance["className"]],
-                        self.TRANSPARENCY,
-                    )
-                    for image in images:
-                        if instance["type"] == "bbox":
-                            image.content.draw_bbox(
-                                **instance["points"],
-                                fill_color=fill_color,
-                                outline_color=outline_color,
-                            )
-                        elif instance["type"] == "polygon":
-                            image.content.draw_polygon(
-                                instance["points"],
-                                fill_color=fill_color,
-                                outline_color=outline_color,
-                            )
-                        elif instance["type"] == "ellipse":
-                            image.content.draw_ellipse(
-                                instance["cx"],
-                                instance["cy"],
-                                instance["rx"],
-                                instance["ry"],
-                                fill_color=fill_color,
-                                outline_color=outline_color,
-                            )
-                        elif instance["type"] == "polyline":
-                            image.content.draw_polyline(
-                                points=instance["points"], fill_color=fill_color
-                            )
-                        elif instance["type"] == "point":
-                            image.content.draw_point(
-                                x=instance["x"],
-                                y=instance["y"],
-                                fill_color=fill_color,
-                                outline_color=outline_color,
-                            )
-                        elif instance["type"] == "template":
-                            point_set = instance["points"]
-                            points_id_map = {}
-                            for points in point_set:
-                                points_id_map[points["id"]] = (points["x"], points["y"])
-                                points = (
-                                    points["x"] - 2,
-                                    points["y"] - 2,
-                                    points["x"] + 2,
-                                    points["y"] + 2,
-                                )
-                                image.content.draw_ellipse(
-                                    points, fill_color, fill_color
-                                )
-                            for connection in instance["connections"]:
-                                image.content.draw_line(
-                                    points_id_map[connection["from"]]
-                                    + points_id_map[connection["to"]]
-                                )
-            else:
-                image = ImagePlugin(io.BytesIO(file.read()))
-                annotation_mask = np.array(
-                    ImagePlugin(
-                        io.BytesIO(open(self.blue_mask_path, "rb").read())
-                    ).content
-                )
-                empty_image_arr = np.full(
-                    (image.get_size(), 4), [0, 0, 0, 255], np.uint8
-                )
-                for annotation in self._annotations["instances"]:
-                    fill_color = *class_color_map[annotation["className"]], 255
-                    for part in annotation["parts"]:
-                        part_color = *self.generate_color(part["color"]), 255
-                        temp_mask = np.alltrue(annotation_mask == part_color, axis=2)
-                        empty_image_arr[temp_mask] = fill_color
-
-                images = [
-                    Image(
-                        "fuse",
-                        f"{self._image_path}___fuse.png",
-                        ImagePlugin.from_array(empty_image_arr),
-                    )
-                ]
-
-                fuse_image = ImagePlugin.from_array(empty_image_arr)
-                if self._generate_overlay:
-                    alpha = 0.5  # transparency measure
-                    overlay = copy.copy(empty_image_arr)
-                    overlay[:, :, :3] = np.array(image.content)
-                    overlay = ImagePlugin.from_array(
-                        cv2.addWeighted(fuse_image, alpha, overlay, 1 - alpha, 0)
-                    )
-                    images.append(
-                        Image("overlay", f"{self._image_path}___overlay.png", overlay)
-                    )
-
-            if not self._in_memory:
-                paths = []
-                for image in images:
-                    image.content.save(image.path)
-                    paths.append(image.path)
-                self._response.data = paths
-            else:
-                self._response.data = (image.content for image in images)
-
-
-class DownloadImageUseCase(BaseUseCase):
     def __init__(
         self,
         response: Response,
         project: ProjectEntity,
         folder: FolderEntity,
-        image: ImageEntity,
-        images: BaseManageableRepository,
-        classes: BaseManageableRepository,
+        annotation_classes: BaseReadOnlyRepository,
+        folder_path: str,
+        annotation_paths: List[str],
         backend_service_provider: SuerannotateServiceProvider,
-        download_path: str,
-        image_variant: str = "original",
-        include_annotations: bool = False,
-        include_fuse: bool = False,
-        include_overlay: bool = False,
+        pre_annotation: bool = False,
+        client_s3_bucket=None,
     ):
         super().__init__(response)
-        self._image_bytes_response = Response()
-        self._image_annotation_response = Response()
-        self._annotation_classes_response = Response()
-        self._fuse_image_response = Response()
         self._project = project
-        self._image = image
-        self._download_path = download_path
-        self._image_variant = image_variant
-        self._include_fuse = include_fuse
-        self._include_overlay = include_overlay
-        self._include_annotations = include_annotations
-        self.get_image_use_case = GetImageBytesUseCase(
-            response=self._image_bytes_response,
-            image=image,
-            backend_service_provider=backend_service_provider,
-            image_variant=image_variant,
+        self._folder = folder
+        self._backend_service = backend_service_provider
+        self._annotation_classes = annotation_classes
+        self._folder_path = folder_path
+        self._annotation_paths = annotation_paths
+        self._client_s3_bucket = client_s3_bucket
+        self._pre_annotation = pre_annotation
+
+    @property
+    def s3_client(self):
+        return boto3.client("s3")
+
+    @property
+    def annotation_classes_name_map(self) -> dict:
+        classes_data = defaultdict(dict)
+        annotation_classes = self._annotation_classes.get_all(
+            Condition("project_id", self._project.uuid, EQ)
+            & Condition("team_id", self._project.team_id, EQ)
         )
-        self.download_annotation_use_case = DownloadImageAnnotationsUseCase(
-            response=self._image_annotation_response,
-            service=backend_service_provider,
-            project=project,
-            folder=folder,
-            image_name=self._image.name,
-            images=images,
-            destination=download_path,
-        )
-        self.get_annotation_classes_ues_case = GetAnnotationClassesUseCase(
-            response=self._annotation_classes_response, classes=classes,
+        for annotation_class in annotation_classes:
+            class_info = {"id": annotation_class.uuid}
+            if annotation_class.attribute_groups:
+                for attribute_group in annotation_class.attribute_groups:
+                    attribute_group_data = defaultdict(dict)
+                    for attribute in attribute_group["attributes"]:
+                        attribute_group_data[attribute["name"]] = attribute["id"]
+                    class_info["attribute_groups"][attribute_group["name"]] = {
+                        "id": attribute_group["id"],
+                        "attributes": attribute_group_data,
+                    }
+            classes_data[annotation_class.name] = class_info
+        return annotation_classes
+
+    @property
+    def annotation_postfix(self):
+        return (
+            self.VECTOR_ANNOTATION_POSTFIX
+            if self._project.project_type == constances.ProjectType.VECTOR.name
+            else self.PIXEL_ANNOTATION_POSTFIX
         )
 
-    def execute(self):
-        self.get_image_use_case.execute()
-        image_bytes = self._image_bytes_response.data
-        download_path = self._download_path + self._image.name
-        if self._image_variant == "lores":
-            download_path = download_path + "__lores.jpg"
-        with open(download_path) as image_file:
-            image_file.write(image_bytes)
+    def get_templates_mapping(self):
+        templates = self._backend_service.get_templates(
+            team_id=self._project.team_id
+        ).get("data", [])
+        templates_map = {}
+        for template in templates:
+            templates_map[template["name"]] = template["id"]
+        return templates_map
 
-        if self._include_annotations:
-            self.download_annotation_use_case.execute()
-
-        if self._include_annotations and self._include_fuse:
-            self.get_annotation_classes_ues_case.execute()
-            classes = self._annotation_classes_response.data
-            CreateFuseImageUseCase(
-                response=self._fuse_image_response,
-                project_type=constances.ProjectType(self._project.project_type).name,
-                image_path=download_path,
-                classes=[annotation_class.to_dict() for annotation_class in classes],
-                generate_overlay=self._include_overlay,
+    def fill_classes_data(self, annotations: dict):
+        annotation_classes = self.annotation_classes_name_map
+        if "instances" not in annotations:
+            return
+        unknown_classes = {}
+        for annotation in [i for i in annotations["instances"] if "className" in i]:
+            if "className" not in annotation:
+                return
+            annotation_class_name = annotation["className"]
+            if annotation_class_name not in annotation_classes:
+                if annotation_class_name not in unknown_classes:
+                    unknown_classes[annotation_class_name] = {
+                        "id": -(len(unknown_classes) + 1),
+                        "attribute_groups": {},
+                    }
+        annotation_classes.update(unknown_classes)
+        templates = self.get_templates_mapping()
+        for annotation in (
+            i for i in annotations["instances"] if i.get("type", None) == "template"
+        ):
+            annotation["templateId"] = templates.get(
+                annotation.get("templateName", ""), -1
             )
 
-        self._response.data = (
-            download_path,
-            self._image_annotation_response.data,
-            self._fuse_image_response.data,
+        for annotation in [i for i in annotations["instances"] if "className" in i]:
+            annotation_class_name = annotation["className"]
+            if annotation_class_name not in annotation_classes:
+                continue
+            annotation["classId"] = annotation_classes[annotation_class_name]["id"]
+            for attribute in annotation["attributes"]:
+                if (
+                    attribute["groupName"]
+                    not in annotation_classes[annotation_class_name]["attribute_groups"]
+                ):
+                    continue
+                attribute["groupId"] = annotation_classes[annotation_class_name][
+                    attribute["groupName"]
+                ]["id"]
+                if (
+                    attribute["name"]
+                    not in annotation_classes[annotation_class_name][
+                        "attribute_groups"
+                    ][attribute["groupName"]]["attributes"]
+                ):
+                    del attribute["groupId"]
+                    continue
+                attribute["id"] = annotation_classes[annotation_class_name][
+                    "attribute_groups"
+                ][attribute["groupName"]]["attributes"]
+
+    def execute(self):
+        annotation_paths = self._annotation_paths
+        ImageInfo = namedtuple("ImageInfo", ["path", "name", "id"])
+        images_detail = []
+        for annotation_path in annotation_paths:
+            images_detail.append(
+                ImageInfo(
+                    id=None,
+                    path=annotation_path,
+                    name=annotation_path.replace(
+                        self.PIXEL_ANNOTATION_POSTFIX, ""
+                    ).replace(self.VECTOR_ANNOTATION_POSTFIX, ""),
+                )
+            )
+        image_names = [
+            annotation_path.replace(self.PIXEL_ANNOTATION_POSTFIX, "").replace(
+                self.VECTOR_ANNOTATION_POSTFIX, ""
+            )
+            for annotation_path in annotation_paths
+        ]
+        images_data = self._backend_service.get_images_bulk(
+            image_names=[image.name for image in images_detail],
+            team_id=self._project.team_id,
+            project_id=self._project.uuid,
         )
+        for image_data in images_data:
+            for detail in images_detail:
+                if detail.name == image_data["name"]:
+                    detail.id = images_data["id"]
+
+        missing_annotations = list(
+            filter(lambda detail: detail.id is None, images_detail)
+        )
+        annotations_to_upload = list(
+            filter(lambda detail: detail.id is not None, images_detail)
+        )
+        if len(images_data) < (len(image_names)):
+            self._response.errors = AppException(
+                "Couldn't find image %s for annotation upload "
+                "".join(missing_annotations)
+            )
+
+        if self._pre_annotation:
+            auth_data = self._backend_service.get_pre_annotation_upload_data(
+                project_id=self._project.uuid,
+                team_id=self._project.team_id,
+                folder_id=self._folder.uuid,
+                image_ids=[int(image.id) for image in annotations_to_upload],
+            )
+        else:
+            auth_data = self._backend_service.get_annotation_upload_data(
+                project_id=self._project.uuid,
+                team_id=self._project.team_id,
+                folder_id=self._folder.uuid,
+                image_ids=[int(image.id) for image in annotations_to_upload],
+            )
+        session = boto3.Session(
+            aws_access_key_id=auth_data["creds"]["accessKeyId"],
+            aws_secret_access_key=auth_data["creds"]["secretAccessKey"],
+            aws_session_token=auth_data["creds"]["sessionToken"],
+            region_name=auth_data["creds"]["region"],
+        )
+        resource = session.resource("s3")
+        bucket = resource.Bucket(auth_data["bucket"])
+        image_id_name_map = {image.id: image for image in annotations_to_upload}
+        if self._client_s3_bucket:
+            from_session = boto3.Session()
+            from_s3 = from_session.resource("s3")
+        else:
+            from_s3 = None
+
+        for image_id, image_info in auth_data["images"].items():
+            annotation_name = image_id_name_map[image_id] + self.annotation_postfix
+            if from_s3:
+                file = io.BytesIO()
+                s3_object = from_s3.Object(self._client_s3_bucket, annotation_name)
+                s3_object.download_file(file)
+                file.seek(0)
+                annotation_json = json.load(file)
+            else:
+                annotation_json = json.load(
+                    open(f"{self._folder_path}/{annotation_name}")
+                )
+
+            self.fill_classes_data(annotation_json)
+            bucket.put_object(
+                Key=image_info["annotation_json_path"],
+                Body=json.dumps(annotation_json),
+            )
+            if self._project.project_type == constances.ProjectType.PIXEL.value:
+                mask_filename = (
+                    image_id_name_map[image_id] + self.ANNOTATION_MASK_POSTFIX
+                )
+                if from_s3:
+                    file = io.BytesIO()
+                    s3_object = self._client_s3_bucket.Objcect(
+                        self._client_s3_bucket, self._folder_path + mask_filename
+                    )
+                    s3_object.download_file(file)
+                    file.seek(0)
+                else:
+                    with open(
+                        f"{self._folder_path}/{mask_filename}", "rb"
+                    ) as mask_file:
+                        file = io.BytesIO(mask_file.read())
+
+                bucket.put_object(Key=image_info["annotation_bluemap_path"], Body=file)
+
+        self._response.data = annotations_to_upload, missing_annotations
