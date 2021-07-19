@@ -62,6 +62,7 @@ from src.lib.core.usecases import PrepareExportUseCase
 from src.lib.core.usecases import SearchContributorsUseCase
 from src.lib.core.usecases import SearchFolderUseCase
 from src.lib.core.usecases import SetImageAnnotationStatuses
+from src.lib.core.usecases import SetWorkflowUseCase
 from src.lib.core.usecases import ShareProjectUseCase
 from src.lib.core.usecases import UnAssignFolderUseCase
 from src.lib.core.usecases import UnAssignImagesUseCase
@@ -243,16 +244,13 @@ class Controller(BaseController):
         self,
         project_name: str,
         images: List[ImageEntity],
-        folder_name: str = None,
         annotation_status: str = None,
         image_quality: str = None,
     ):
         project = self._get_project(project_name)
-        folder = self._get_folder(project, folder_name)
         use_case = AttachImagesUseCase(
             response=self.response,
             project=project,
-            folder=folder,
             project_settings=ProjectSettingsRepository(self._backend_client, project),
             backend_service_provider=self._backend_client,
             images=images,
@@ -1240,3 +1238,19 @@ class Controller(BaseController):
         )
         use_case.execute()
         return self.response
+
+    def set_project_workflow(self, project_name: str, steps: list):
+        project = self._get_project(project_name)
+        use_case = SetWorkflowUseCase(
+            response=self.response,
+            service=self._backend_client,
+            annotation_classes_repo=AnnotationClassRepository(
+                service=self._backend_client, project=project
+            ),
+            workflow_repo=WorkflowRepository(
+                service=self._backend_client, project=project
+            ),
+            steps=steps,
+            project=project,
+        )
+        use_case.execute()

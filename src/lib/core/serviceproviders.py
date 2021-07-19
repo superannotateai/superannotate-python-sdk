@@ -219,3 +219,11 @@ class SuerannotateServiceProvider(ABC):
 
     def set_annotation_classes(self, team_id: int, project_id: int, data: list):
         raise NotImplementedError
+
+    def set_project_workflow_bulk(self, project_id: int, team_id: int, steps: list):
+        raise NotImplementedError
+
+    def set_project_workflow_attributes_bulk(
+        self, project_id: int, team_id: int, attributes: list
+    ):
+        raise NotImplementedError
