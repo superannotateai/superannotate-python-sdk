@@ -143,6 +143,9 @@ class SuperannotateBackendService(BaseBackendService):
     URL_GET_EXPORTS = "exports"
     URL_IMAGES_COUNT = "images/folders-list"
     URL_GET_CLASS = "class/{}"
+    URL_ANNOTATION_UPLOAD_PATH_TOKEN = "images/getAnnotationsPathsAndTokens"
+    URL_PRE_ANNOTATION_UPLOAD_PATH_TOKEN = "images/getPreAnnotationsPathsAndTokens"
+    URL_GET_TEMPLATES = "templates"
     URL_PROJECT_WORKFLOW_ATTRIBUTE = "project/{}/workflow_attribute"
 
     # todo add urls
@@ -763,3 +766,44 @@ class SuperannotateBackendService(BaseBackendService):
             params={"team_id": team_id},
         )
         return res.json()
+
+    def get_annotation_upload_data(
+        self, project_id: int, team_id: int, image_ids: List[int], folder_id: int
+    ):
+        get_annotation_upload_data_url = urljoin(
+            self.api_url, self.URL_ANNOTATION_UPLOAD_PATH_TOKEN
+        )
+        response = self._request(
+            get_annotation_upload_data_url,
+            "post",
+            data={
+                "project_id": project_id,
+                "team_id": team_id,
+                "ids": image_ids,
+                "folder_id": folder_id,
+            },
+        )
+        return response.json()
+
+    def get_pre_annotation_upload_data(
+        self, project_id: int, team_id: int, image_ids: List[int], folder_id: int
+    ):
+        get_annotation_upload_data_url = urljoin(
+            self.api_url, self.URL_PRE_ANNOTATION_UPLOAD_PATH_TOKEN
+        )
+        response = self._request(
+            get_annotation_upload_data_url,
+            "post",
+            data={
+                "project_id": project_id,
+                "team_id": team_id,
+                "ids": image_ids,
+                "folder_id": folder_id,
+            },
+        )
+        return response.json()
+
+    def get_templates(self, team_id: int):
+        get_templates_url = urljoin(self.api_url, self.URL_GET_TEMPLATES)
+        response = self._request(get_templates_url, "get", params={"team_id": team_id})
+        return response.json()

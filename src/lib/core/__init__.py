@@ -16,6 +16,10 @@ BACKEND_URL = "https://api.devsuperannotate.com"
 DEFAULT_IMAGE_EXTENSIONS = ("jpg", "jpeg", "png", "tif", "tiff", "webp", "bmp")
 DEFAULT_FILE_EXCLUDE_PATTERNS = ("___save.png", "___fuse.png")
 DEFAULT_VIDEO_EXTENSIONS = ("mp4", "avi", "mov", "webm", "flv", "mpg", "ogg")
+
+VECTOR_ANNOTATION_POSTFIX = "___objects.json"
+PIXEL_ANNOTATION_POSTFIX = "___pixel.json"
+
 SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES = set('/\\:*?"<>|')
 MAX_PIXEL_RESOLUTION = 4_000_000
 MAX_VECTOR_RESOLUTION = 100_000_000
