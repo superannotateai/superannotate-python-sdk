@@ -12,8 +12,8 @@ import boto3
 import lib.core as constances
 import pandas as pd
 from lib.app.exceptions import AppException
-from lib.app.exceptions import AppException
 from lib.app.exceptions import EmptyOutputError
+from lib.app.helpers import get_annotation_paths
 from lib.app.helpers import split_project_path
 from lib.app.serializers import BaseSerializers
 from lib.app.serializers import ImageSerializer
@@ -24,6 +24,7 @@ from lib.core.response import Response
 from lib.infrastructure.controller import Controller
 from lib.infrastructure.repositories import ConfigRepository
 from lib.infrastructure.services import SuperannotateBackendService
+from tqdm import tqdm
 
 logger = logging.getLogger()
 
@@ -1745,12 +1746,12 @@ def download_annotation_classes_json(project, folder):
 
 
 def move_image(
-        source_project,
-        image_name,
-        destination_project,
-        include_annotations=True,
-        copy_annotation_status=True,
-        copy_pin=True
+    source_project,
+    image_name,
+    destination_project,
+    include_annotations=True,
+    copy_annotation_status=True,
+    copy_pin=True,
 ):
     """Move image from source_project to destination_project. source_project
     and destination_project cannot be the same.
@@ -1900,76 +1901,6 @@ def download_image(
     return response.data
 
 
-def create_fuse_image(
-    image, classes_json, project_type, in_memory=False, output_overlay=False
-):
-    """Creates fuse for locally located image and annotations
-
-    :param image: path to image
-    :type image: str or Pathlike
-    :param image_name: annotation classes or path to their JSON
-    :type image: list or Pathlike
-    :param project_type: project type, "Vector" or "Pixel"
-    :type project_type: str
-    :param in_memory: enables pillow Image return instead of saving the image
-    :type in_memory: bool
-
-    :return: path to created fuse image or pillow Image object if in_memory enabled
-    :rtype: str of PIL.Image
-    """
-
-    response = controller.create_fuse_image(
-        image_path=image,
-        project_type=project_type,
-        in_memory=in_memory,
-        generate_overlay=output_overlay,
-    )
-
-    return response.data
-
-
-def download_image(
-    project,
-    image_name,
-    local_dir_path=".",
-    include_annotations=False,
-    include_fuse=False,
-    include_overlay=False,
-    variant="original",
-):
-    """Downloads the image (and annotation if not None) to local_dir_path
-
-    :param project: project name or folder path (e.g., "project1/folder1")
-    :type project: str
-    :param image_name: image name
-    :type image: str
-    :param local_dir_path: where to download the image
-    :type local_dir_path: Pathlike (str or Path)
-    :param include_annotations: enables annotation download with the image
-    :type include_annotations: bool
-    :param include_fuse: enables fuse image download with the image
-    :type include_fuse: bool
-    :param variant: which resolution to download, can be 'original' or 'lores'
-     (low resolution used in web editor)
-    :type variant: str
-
-    :return: paths of downloaded image and annotations if included
-    :rtype: tuple
-    """
-    project_name, folder_name = split_project_path(project)
-    response = controller.download_image(
-        project_name=project_name,
-        folder_name=folder_name,
-        image_name=image_name,
-        download_path=local_dir_path,
-        image_variant=variant,
-        include_annotations=include_annotations,
-        include_fuse=include_fuse,
-        include_overlay=include_overlay,
-    )
-    return response.data
-
-
 def attach_image_urls_to_project(project, attachments, annotation_status="NotStarted"):
     """Link images on external storage to SuperAnnotate.
 
@@ -2030,3 +1961,113 @@ def attach_video_urls_to_project(project, attachments, annotation_status="NotSta
     :rtype: (list, list, list)
     """
     return attach_image_urls_to_project(project, attachments, annotation_status)
+
+
+def upload_annotations_from_folder_to_project(
+    project, folder_path, from_s3_bucket=None, recursive_subfolders=False
+):
+    """Finds and uploads all JSON files in the folder_path as annotations to the project.
+
+    The JSON files should follow specific naming convention. For Vector
+    projects they should be named "<image_filename>___objects.json" (e.g., if
+    image is cats.jpg the annotation filename should be cats.jpg___objects.json), for Pixel projects
+    JSON file should be named "<image_filename>___pixel.json" and also second mask
+    image file should be present with the name "<image_name>___save.png". In both cases
+    image with <image_name> should be already present on the platform.
+
+    Existing annotations will be overwritten.
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param from_s3_bucket: AWS S3 bucket to use. If None then folder_path is in local filesystem
+    :type from_s3_bucket: str
+    :param recursive_subfolders: enable recursive subfolder parsing
+    :type recursive_subfolders: bool
+
+    :return: paths to annotations uploaded, could-not-upload, missing-images
+    :rtype: tuple of list of strs
+    """
+
+    project_name, folder_name = split_project_path(project)
+
+    annotation_paths = get_annotation_paths(
+        folder_path, from_s3_bucket, recursive_subfolders
+    )
+    uploaded_annotations = []
+    failed_annotations = []
+    missing_annotations = []
+    chunk_size = 10
+    with tqdm(total=len(annotation_paths)) as progress_bar:
+        for i in range(0, len(annotation_paths), chunk_size):
+            response = controller.upload_annotations_from_folder(
+                project_name=project_name,
+                folder_name=folder_name,
+                folder_path=folder_path,
+                annotation_paths=annotation_paths[i : i + chunk_size],
+                client_s3_bucket=from_s3_bucket,
+            )
+            if response.errors:
+                failed_annotations.append(annotation_paths[i : i + chunk_size])
+                logger.warning(response.errors)
+            else:
+                uploaded_annotations.append(response.data[0])
+                missing_annotations.append(response.data[1])
+            progress_bar.update(chunk_size)
+
+    return uploaded_annotations, failed_annotations, missing_annotations
+
+
+def upload_preannotations_from_folder_to_project(
+    project, folder_path, from_s3_bucket=None, recursive_subfolders=False
+):
+    """Finds and uploads all JSON files in the folder_path as pre-annotations to the project.
+
+    The JSON files should follow specific naming convention. For Vector
+    projects they should be named "<image_filename>___objects.json" (e.g., if
+    image is cats.jpg the annotation filename should be cats.jpg___objects.json), for Pixel projects
+    JSON file should be named "<image_filename>___pixel.json" and also second mask
+    image file should be present with the name "<image_name>___save.png". In both cases
+    image with <image_name> should be already present on the platform.
+
+    Existing pre-annotations will be overwritten.
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param folder_path: from which folder to upload the pre-annotations
+    :type folder_path: Pathlike (str or Path)
+    :param from_s3_bucket: AWS S3 bucket to use. If None then folder_path is in local filesystem
+    :type from_s3_bucket: str
+    :param recursive_subfolders: enable recursive subfolder parsing
+    :type recursive_subfolders: bool
+
+    :return: paths to pre-annotations uploaded and could-not-upload
+    :rtype: tuple of list of strs
+    """
+    project_name, folder_name = split_project_path(project)
+
+    annotation_paths = get_annotation_paths(
+        folder_path, from_s3_bucket, recursive_subfolders
+    )
+    uploaded_annotations = []
+    failed_annotations = []
+    missing_annotations = []
+    chunk_size = 10
+    with tqdm(total=len(annotation_paths)) as progress_bar:
+        for i in range(0, len(annotation_paths), chunk_size):
+            response = controller.upload_annotations_from_folder(
+                project_name=project_name,
+                folder_name=folder_name,
+                folder_path=folder_path,
+                annotation_paths=annotation_paths[i : i + chunk_size],
+                client_s3_bucket=from_s3_bucket,
+                is_pre_annotations=True,
+            )
+            if response.errors:
+                failed_annotations.append(annotation_paths[i : i + chunk_size])
+                logger.warning(response.errors)
+            else:
+                uploaded_annotations.append(response.data[0])
+                missing_annotations.append(response.data[1])
+            progress_bar.update(chunk_size)
+
+    return uploaded_annotations, failed_annotations, missing_annotations
