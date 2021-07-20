@@ -2071,3 +2071,39 @@ def upload_preannotations_from_folder_to_project(
             progress_bar.update(chunk_size)
 
     return uploaded_annotations, failed_annotations, missing_annotations
+
+
+def upload_image_annotations(
+    project, image_name, annotation_json, mask=None, verbose=True
+):
+    """Upload annotations from JSON (also mask for pixel annotations)
+    to the image.
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param image_name: image name
+    :type image: str
+    :param annotation_json: annotations in SuperAnnotate format JSON dict or path to JSON file
+    :type annotation_json: dict or Pathlike (str or Path)
+    :param mask: BytesIO object or filepath to mask annotation for pixel projects in SuperAnnotate format
+    :type mask: BytesIO or Pathlike (str or Path)
+    """
+
+    if isinstance(annotation_json, list):
+        raise AppException(
+            "Annotation JSON should be a dict object. You are using list object."
+            " If this is an old annotation format you can convert it to new format with superannotate."
+            "update_json_format SDK function"
+        )
+    if not isinstance(annotation_json, dict):
+        if verbose:
+            logger.info("Uploading annotations from %s.", annotation_json)
+        annotation_json = json.load(open(annotation_json))
+    project_name, folder_name = split_project_path(project)
+    controller.upload_image_annotations(
+        project_name=project_name,
+        folder_name=folder_name,
+        image_name=image_name,
+        annotations=annotation_json,
+        mask=mask,
+    )

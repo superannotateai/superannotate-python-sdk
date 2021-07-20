@@ -19,6 +19,7 @@ DEFAULT_VIDEO_EXTENSIONS = ("mp4", "avi", "mov", "webm", "flv", "mpg", "ogg")
 
 VECTOR_ANNOTATION_POSTFIX = "___objects.json"
 PIXEL_ANNOTATION_POSTFIX = "___pixel.json"
+ANNOTATION_MASK_POSTFIX = "___save.png"
 
 SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES = set('/\\:*?"<>|')
 MAX_PIXEL_RESOLUTION = 4_000_000

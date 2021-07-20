@@ -2669,12 +2669,132 @@ class DownloadImageUseCase(BaseUseCase):
         )
 
 
-class UploadAnnotationsUseCase(BaseUseCase):
-    VECTOR_ANNOTATION_POSTFIX = "___objects.json"
-    PIXEL_ANNOTATION_POSTFIX = "___pixel.json"
-    ANNOTATION_MASK_POSTFIX = "___save.png"
-    CHUNK_SIZE = 500
+class UploadImageAnnotationsUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        annotation_classes: BaseReadOnlyRepository,
+        image_name: str,
+        annotations: dict,
+        backend_service_provider: SuerannotateServiceProvider,
+        mask=None,
+    ):
+        super().__init__(response)
+        self._project = project
+        self._folder = folder
+        self._backend_service = backend_service_provider
+        self._annotation_classes = annotation_classes
+        self._image_name = image_name
+        self._annotations = annotations
+        self._mask = mask
 
+    @property
+    def annotation_classes_name_map(self) -> dict:
+        classes_data = defaultdict(dict)
+        annotation_classes = self._annotation_classes.get_all(
+            Condition("project_id", self._project.uuid, EQ)
+            & Condition("team_id", self._project.team_id, EQ)
+        )
+        for annotation_class in annotation_classes:
+            class_info = {"id": annotation_class.uuid}
+            if annotation_class.attribute_groups:
+                for attribute_group in annotation_class.attribute_groups:
+                    attribute_group_data = defaultdict(dict)
+                    for attribute in attribute_group["attributes"]:
+                        attribute_group_data[attribute["name"]] = attribute["id"]
+                    class_info["attribute_groups"][attribute_group["name"]] = {
+                        "id": attribute_group["id"],
+                        "attributes": attribute_group_data,
+                    }
+            classes_data[annotation_class.name] = class_info
+        return classes_data
+
+    def fill_classes_data(self, annotations: dict):
+        annotation_classes = self.annotation_classes_name_map
+        if "instances" not in annotations:
+            return
+        unknown_classes = {}
+        for annotation in [i for i in annotations["instances"] if "className" in i]:
+            if "className" not in annotation:
+                return
+            annotation_class_name = annotation["className"]
+            if annotation_class_name not in annotation_classes:
+                if annotation_class_name not in unknown_classes:
+                    unknown_classes[annotation_class_name] = {
+                        "id": -(len(unknown_classes) + 1),
+                        "attribute_groups": {},
+                    }
+        annotation_classes.update(unknown_classes)
+        templates = self.get_templates_mapping()
+        for annotation in (
+            i for i in annotations["instances"] if i.get("type", None) == "template"
+        ):
+            annotation["templateId"] = templates.get(
+                annotation.get("templateName", ""), -1
+            )
+
+        for annotation in [i for i in annotations["instances"] if "className" in i]:
+            annotation_class_name = annotation["className"]
+            if annotation_class_name not in annotation_classes:
+                continue
+            annotation["classId"] = annotation_classes[annotation_class_name]["id"]
+            for attribute in annotation["attributes"]:
+                if (
+                    attribute["groupName"]
+                    not in annotation_classes[annotation_class_name]["attribute_groups"]
+                ):
+                    continue
+                attribute["groupId"] = annotation_classes[annotation_class_name][
+                    attribute["groupName"]
+                ]["id"]
+                if (
+                    attribute["name"]
+                    not in annotation_classes[annotation_class_name][
+                        "attribute_groups"
+                    ][attribute["groupName"]]["attributes"]
+                ):
+                    del attribute["groupId"]
+                    continue
+                attribute["id"] = annotation_classes[annotation_class_name][
+                    "attribute_groups"
+                ][attribute["groupName"]]["attributes"]
+
+    def execute(self):
+
+        image_data = self._backend_service.get_images_bulk(
+            image_names=[self._image_name],
+            team_id=self._project.team_id,
+            project_id=self._project.uuid,
+        )[0]
+
+        auth_data = self._backend_service.get_annotation_upload_data(
+            project_id=self._project.uuid,
+            team_id=self._project.team_id,
+            folder_id=self._folder.uuid,
+            image_ids=[image_data["id"]],
+        )
+
+        session = boto3.Session(
+            aws_access_key_id=auth_data["creds"]["accessKeyId"],
+            aws_secret_access_key=auth_data["creds"]["secretAccessKey"],
+            aws_session_token=auth_data["creds"]["sessionToken"],
+            region_name=auth_data["creds"]["region"],
+        )
+        resource = session.resource("s3")
+        bucket = resource.Bucket(auth_data["bucket"])
+
+        self.fill_classes_data(self._annotations)
+
+        bucket.put_object(
+            Key=auth_data["filePath"], Body=json.dumps(self._annotations),
+        )
+        if self._project.project_type == constances.ProjectType.PIXEL.value:
+            bucket.put_object(Key=auth_data["annotation_bluemap_path"], Body=self._mask)
+
+
+class UploadAnnotationsUseCase(BaseUseCase):
     def __init__(
         self,
         response: Response,
@@ -2687,7 +2807,7 @@ class UploadAnnotationsUseCase(BaseUseCase):
         pre_annotation: bool = False,
         client_s3_bucket=None,
     ):
-        super().__init__(response)
+        super().__init__(response=response)
         self._project = project
         self._folder = folder
         self._backend_service = backend_service_provider
@@ -2720,14 +2840,14 @@ class UploadAnnotationsUseCase(BaseUseCase):
                         "attributes": attribute_group_data,
                     }
             classes_data[annotation_class.name] = class_info
-        return annotation_classes
+        return classes_data
 
     @property
     def annotation_postfix(self):
         return (
-            self.VECTOR_ANNOTATION_POSTFIX
+            constances.VECTOR_ANNOTATION_POSTFIX
             if self._project.project_type == constances.ProjectType.VECTOR.name
-            else self.PIXEL_ANNOTATION_POSTFIX
+            else constances.PIXEL_ANNOTATION_POSTFIX
         )
 
     def get_templates_mapping(self):
@@ -2799,13 +2919,13 @@ class UploadAnnotationsUseCase(BaseUseCase):
                     id=None,
                     path=annotation_path,
                     name=annotation_path.replace(
-                        self.PIXEL_ANNOTATION_POSTFIX, ""
-                    ).replace(self.VECTOR_ANNOTATION_POSTFIX, ""),
+                        constances.PIXEL_ANNOTATION_POSTFIX, ""
+                    ).replace(constances.VECTOR_ANNOTATION_POSTFIX, ""),
                 )
             )
         image_names = [
-            annotation_path.replace(self.PIXEL_ANNOTATION_POSTFIX, "").replace(
-                self.VECTOR_ANNOTATION_POSTFIX, ""
+            annotation_path.replace(constances.PIXEL_ANNOTATION_POSTFIX, "").replace(
+                constances.VECTOR_ANNOTATION_POSTFIX, ""
             )
             for annotation_path in annotation_paths
         ]
@@ -2880,7 +3000,7 @@ class UploadAnnotationsUseCase(BaseUseCase):
             )
             if self._project.project_type == constances.ProjectType.PIXEL.value:
                 mask_filename = (
-                    image_id_name_map[image_id] + self.ANNOTATION_MASK_POSTFIX
+                    image_id_name_map[image_id] + constances.ANNOTATION_MASK_POSTFIX
                 )
                 if from_s3:
                     file = io.BytesIO()
