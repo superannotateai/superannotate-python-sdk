@@ -425,13 +425,14 @@ class Controller(BaseController):
 
     def prepare_export(
         self,
-        project: ProjectEntity,
+        project_name: str,
         folder_names: List[str],
         include_fuse: bool,
         only_pinned: bool,
         annotation_statuses: List[str] = None,
     ):
 
+        project = self._get_project(project_name)
         use_case = PrepareExportUseCase(
             response=self.response,
             project=project,
@@ -1243,8 +1244,8 @@ class Controller(BaseController):
         project_name: str,
         export_name: str,
         folder_path: str,
-        extract_zip_contents: bool,
-        to_s3_bucket: bool,
+        extract_zip_contents: bool = False,
+        to_s3_bucket: bool = False,
     ):
         project = self._get_project(project_name)
         use_case = DownloadExportUseCase(
