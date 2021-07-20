@@ -1,10 +1,13 @@
 import io
 import logging
 import os
+import uuid
 from pathlib import Path
 
+import pandas as pd
 import src.lib.core as constances
 from lib.app.helpers import split_project_path
+from lib.app.serializers import ImageSerializer
 from src.lib.app.interface.base_interface import BaseInterfaceFacade
 from src.lib.core.conditions import Condition
 from src.lib.core.conditions import CONDITION_EQ as EQ
@@ -122,3 +125,38 @@ class CLIFacade(BaseInterfaceFacade):
         self.controller.prepare_export(
             project, folders, include_fuse, False, annotation_statuses
         )
+
+    def attach_image_urls(self, project: str, attachments: str, annotation_status):
+        project_name, folder_name = split_project_path(project)
+
+        image_data = pd.read_csv(attachments, dtype=str)
+        image_data = image_data[~image_data["url"].isnull()]
+        for ind, _ in image_data[image_data["name"].isnull()].iterrows():
+            image_data.at[ind, "name"] = str(uuid.uuid4())
+
+        image_data = pd.DataFrame(image_data, columns=["name", "url"])
+        img_names_urls = image_data.rename(columns={"url": "path"}).to_dict(
+            orient="records"
+        )
+        list_of_not_uploaded = []
+        duplicate_images = []
+        for i in range(0, len(img_names_urls), 500):
+            response = self.controller.attach_urls(
+                project_name=project_name,
+                folder_name=folder_name,
+                files=ImageSerializer.deserialize(
+                    img_names_urls[i : i + 500]
+                ),  # noqa: E203
+                annotation_status=annotation_status,
+            )
+            if response.errors:
+                list_of_not_uploaded.append(response.data[0])
+                duplicate_images.append(response.data[1])
+
+        list_of_uploaded = [
+            image["name"]
+            for image in img_names_urls
+            if image["name"] not in list_of_not_uploaded
+        ]
+
+        return list_of_uploaded, list_of_not_uploaded, duplicate_images
