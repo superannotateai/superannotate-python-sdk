@@ -356,3 +356,42 @@ class AttachmentEntity(BaseEntity):
 
     def to_dict(self):
         return {"name": self.uuid, "path": self.path}
+
+
+class MLModelEntity(BaseEntity):
+    def __init__(
+        self,
+        uuid: int = None,
+        name: str = None,
+        description: str = None,
+        task: str = None,
+        base_model_id: int = None,
+        image_count: int = None,
+        project_type: int = None,
+        training_status: int = None,
+        test_folder_ids: List[int] = None,
+        train_folder_ids: List[int] = None,
+    ):
+        super().__init__(uuid=uuid)
+        self.name = name
+        self.description = description
+        self.task = task
+        self.base_model_id = base_model_id
+        self.image_count = image_count
+        self.project_type = project_type
+        self.training_status = training_status
+        self.test_folder_ids = test_folder_ids
+        self.train_folder_ids = train_folder_ids
+
+    def to_dict(self):
+        return {
+            "id": self.uuid,
+            "description": self.description,
+            "task": self.task,
+            "base_model_id": self.base_model_id,
+            "image_count": self.image_count,
+            "project_type": self.project_type,
+            "training_status": self.training_status,
+            "test_folder_ids": self.test_folder_ids,
+            "train_folder_ids": self.train_folder_ids,
+        }

@@ -28,6 +28,7 @@ from src.lib.core.entities import AnnotationClassEntity
 from src.lib.core.entities import FolderEntity
 from src.lib.core.entities import ImageEntity
 from src.lib.core.entities import ImageInfoEntity
+from src.lib.core.entities import MLModelEntity
 from src.lib.core.entities import ProjectEntity
 from src.lib.core.entities import ProjectSettingEntity
 from src.lib.core.entities import S3FileEntity
@@ -464,14 +465,17 @@ class CreateFolderUseCase(BaseUseCase):
     def __init__(
         self,
         response: Response,
+        project: ProjectEntity,
         folder: FolderEntity,
         folders: BaseManageableRepository,
     ):
         super().__init__(response)
+        self._project = project
         self._folder = folder
         self._folders = folders
 
     def execute(self):
+        self._folder.project_id = self._project.uuid
         self._response.data = self._folders.insert(self._folder)
 
     def validate_folder_name(self):
@@ -3018,3 +3022,198 @@ class UploadAnnotationsUseCase(BaseUseCase):
                 bucket.put_object(Key=image_info["annotation_bluemap_path"], Body=file)
 
         self._response.data = annotations_to_upload, missing_annotations
+
+
+class CreateModelUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        base_model_name: str,
+        model_name: str,
+        model_description: str,
+        task: str,
+        team_id: int,
+        train_data_paths: List[str],
+        test_data_paths: List[str],
+        backend_service_provider: SuerannotateServiceProvider,
+        projects: BaseReadOnlyRepository,
+        folders: BaseReadOnlyRepository,
+        ml_models: BaseManageableRepository,
+        hyper_parameters: dict = None,
+    ):
+        super().__init__(response)
+        self._base_model_name = base_model_name
+        self._model_name = model_name
+        self._model_description = model_description
+        self._task = task
+        self._team_id = team_id
+        self._hyper_parameters = hyper_parameters
+        self._train_data_paths = train_data_paths
+        self._test_data_paths = test_data_paths
+        self._backend_service = backend_service_provider
+        self._ml_models = ml_models
+        self._projects = projects
+        self._folders = folders
+
+    @property
+    def hyper_parameters(self):
+        if self._hyper_parameters:
+            for parameter in constances.DEFAULT_HYPER_PARAMETERS:
+                if parameter not in self._hyper_parameters:
+                    self._hyper_parameters[
+                        parameter
+                    ] = constances.DEFAULT_HYPER_PARAMETERS[parameter]
+        else:
+            self._hyper_parameters = constances.DEFAULT_HYPER_PARAMETERS
+        return self._hyper_parameters
+
+    @staticmethod
+    def split_path(path: str):
+        if "/" in path:
+            return path.split("/")
+        return path, "root"
+
+    def execute(self):
+        train_folder_ids = []
+        test_folder_ids = []
+        projects = []
+
+        for path in self._train_data_paths:
+            project_name, folder_name = self.split_path(path)
+            projects = self._projects.get_all(
+                Condition("name", project_name, EQ)
+                & Condition("team_id", self._team_id, EQ)
+            )
+
+            projects.extend(projects)
+            folders = self._folders.get_all(
+                Condition("folder_name", folder_name, EQ)
+                & Condition("team_id", self._team_id, EQ)
+                & Condition("project_id", projects[0].uuid, EQ)
+            )
+            train_folder_ids.append(folders[0].uuid)
+
+        project_types = [project.project_type for project in projects]
+
+        if set(train_folder_ids) & set(test_folder_ids):
+            self._response.errors = AppException(
+                "Avoid overlapping between training and test data."
+            )
+            return
+        if len(set(project_types)) != 1:
+            self._response.errors = AppException(
+                "All projects have to be of the same type. Either vector or pixel"
+            )
+            return
+        if any(
+            {
+                True
+                for project in projects
+                if project.upload_state == constances.UploadState.EXTERNAL.value
+            }
+        ):
+            self._response.errors = AppException(
+                "The function does not support projects containing images attached with URLs"
+            )
+            return
+
+        for path in self._test_data_paths:
+            project_name, folder_name = self.split_path(path)
+            projects.extend(
+                self._projects.get_all(
+                    Condition("name", project_name, EQ)
+                    & Condition("team_id", self._team_id, EQ)
+                )
+            )
+            folders = self._folders.get_all(
+                Condition("folder_name", folder_name, EQ)
+                & Condition("team_id", self._team_id, EQ)
+                & Condition("project_id", projects[0].uuid, EQ)
+            )
+            test_folder_ids.append(folders[0].uuid)
+
+        base_model = self._ml_models.get_all(
+            Condition("name", self._base_model_name, EQ)
+            & Condition("team_id", self._team_id, EQ)
+            & Condition("task", constances.MODEL_TRAINING_TASKS[self._task], EQ)
+            & Condition("model_type", project_types[0], EQ)
+        )[0]
+
+        if base_model.project_type != project_types[0]:
+            self._response.errors = AppException(
+                f"The type of provided projects is {project_types[0]}, "
+                "and does not correspond to the type of provided model"
+            )
+            return
+
+        completed_images_data = self._backend_service.bulk_get_folders(
+            self._team_id, [project.uuid for project in projects]
+        )
+        complete_image_count = sum(
+            [
+                folder["completedCount"]
+                for folder in completed_images_data["data"]
+                if folder["id"] in train_folder_ids
+            ]
+        )
+        ml_model = MLModelEntity(
+            name=self._model_name,
+            description=self._model_description,
+            task=constances.MODEL_TRAINING_TASKS[self._task],
+            base_model_id=base_model.uuid,
+            image_count=complete_image_count,
+            project_type=project_types[0],
+            train_folder_ids=train_folder_ids,
+            test_folder_ids=test_folder_ids,
+        )
+        new_model_data = self._ml_models.insert(ml_model)
+
+        self._response.data = new_model_data
+
+
+class GetModelMetricsUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        model_id: int,
+        team_id: int,
+        backend_service_provider: SuerannotateServiceProvider,
+    ):
+        super().__init__(response)
+        self._model_id = model_id
+        self._team_id = team_id
+        self._backend_service = backend_service_provider
+
+    def execute(self):
+        metrics = self._backend_service.get_model_metrics(
+            team_id=self._team_id, model_id=self._model_id
+        )
+        self._response.data = metrics
+
+
+class UpdateModelUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        model: MLModelEntity,
+        models: BaseManageableRepository,
+    ):
+        super().__init__(response)
+        self._models = models
+        self._model = model
+
+    def execute(self):
+        model = self._models.update(self._model)
+        self._response.data = model
+
+
+class DeleteMLModel(BaseUseCase):
+    def __init__(
+        self, response: Response, model_id: int, models: BaseManageableRepository
+    ):
+        super().__init__(response)
+        self._model_id = model_id
+        self._models = models
+
+    def execute(self):
+        self._models.delete(self._model_id)

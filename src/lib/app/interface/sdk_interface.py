@@ -1,7 +1,9 @@
 import concurrent.futures
+import json
 import logging
 import os
 import tempfile
+import time
 import uuid
 from collections import Counter
 from io import BytesIO
@@ -564,7 +566,7 @@ def copy_images(
     """Copy images in bulk between folders in a project
 
     :param source_project: project name or folder path (e.g., "project1/folder1")
-    :type source_project: str
+    :type source_project: str`
     :param image_names: image names. If None, all images from source project will be copied
     :type image: list of str
     :param destination_project: project name or folder path (e.g., "project1/folder2")
@@ -1728,6 +1730,7 @@ def get_annotation_class_metadata(project, annotation_class_name):
     )
     return response.data.to_dict()
 
+
 def download_annotation_classes_json(project, folder):
     """Downloads project classes.json to folder
 
@@ -2107,3 +2110,103 @@ def upload_image_annotations(
         annotations=annotation_json,
         mask=mask,
     )
+
+
+def run_training(
+    model_name,
+    model_description,
+    task,
+    base_model,
+    train_data,
+    test_data,
+    hyperparameters=None,
+    log=False,
+):
+    """Runs neural network training
+    :param model_name: name of the new model
+    :type  model_name: str
+    :param model_description: description of the new model
+    :type  model_description: str
+    :param task: The model training task
+    :type  task: str
+    :param base_model: base model on which the new network will be trained
+    :type  base_model: str or dict
+    :param train_data: train data folders (e.g., "project1/folder1")
+    :type  train_data: list of str
+    :param test_data: test data folders (e.g., "project1/folder1")
+    :type  test_data: list of str
+    :param hyperparameters: hyperparameters that should be used in training. If None use defualt hyperparameters for the training.
+    :type  hyperparameters: dict
+    :param log: If true will log training metrics in the stdout
+    :type log: boolean
+    :return: the metadata of the newly created model
+    :rtype: dict
+    """
+    if isinstance(base_model, dict):
+        base_model = base_model["name"]
+
+    model = controller.create_model(
+        model_name=model_name,
+        model_description=model_description,
+        task=task,
+        base_model_name=base_model,
+        train_data_paths=train_data,
+        test_data_paths=test_data,
+        hyper_parameters=hyperparameters,
+    )
+    if log:
+        logger.info(
+            "We are firing up servers to run model training."
+            " Depending on the number of training images and the task it may take up to 15"
+            " minutes until you will start seeing metric reports"
+            " \n "
+            "Terminating the function will not terminate model training. "
+            "If you wish to stop the training please use the stop_model_training function"
+        )
+        training_finished = False
+
+        while not training_finished:
+            response = controller.get_model_metrics(model_id=model.uuid)
+            metrics = response.data
+            if len(metrics) == 1:
+                logger.info("Starting up servers")
+                time.sleep(30)
+            if "continuous_metrics" in metrics:
+                logger.info(metrics["continuous_metrics"])
+            if "per_evaluation_metrics" in metrics:
+                for item, value in metrics["per_evaluation_metrics"].items():
+                    logger.info(value)
+            if "training_status" in metrics:
+                status_str = constances.TrainingStatus.get_name(
+                    metrics["training_status"]
+                )
+                if status_str == "Completed":
+                    logger.info("Model Training Successfully completed")
+                    training_finished = True
+                elif (
+                    status_str == "FailedBeforeEvaluation"
+                    or status_str == "FailedAfterEvaluation"
+                ):
+                    logger.info("Failed to train model")
+                    training_finished = True
+                elif status_str == "FailedAfterEvaluationWithSavedModel":
+                    logger.info(
+                        "Model training failed, but we have a checkpoint that can be saved"
+                    )
+                    logger.info("Do you wish to save checkpoint (Y/N)?")
+                    user_input = None
+                    while user_input not in ["Y", "N", "y", "n"]:
+                        user_input = input()
+                        if user_input in ["Y", "y"]:
+                            controller.update_model_status(
+                                model_id=model.uuid,
+                                status=constances.TrainingStatus.FAILED_AFTER_EVALUATION_WITH_SAVE_MODEL.value,
+                            )
+                            logger.info("Model was successfully saved")
+                            pass
+                        else:
+                            controller.delete_model(model_id=model.uuid)
+                            logger.info("The model was not saved")
+                    training_finished = True
+            time.sleep(5)
+    return BaseSerializers(model).serialize()

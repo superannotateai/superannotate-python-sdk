@@ -144,7 +144,9 @@ class SuperannotateBackendService(BaseBackendService):
     URL_PRE_ANNOTATION_UPLOAD_PATH_TOKEN = "images/getPreAnnotationsPathsAndTokens"
     URL_GET_TEMPLATES = "templates"
     URL_PROJECT_WORKFLOW_ATTRIBUTE = "project/{}/workflow_attribute"
-
+    URL_MODELS = "ml_models"
+    URL_GET_MODEL_METRICS = "ml_models/{}/getCurrentMetrics"
+    URL_BULK_GET_FOLDERS = "foldersByTeam"
     # todo add urls
     URL_DELETE_IMAGES = ""
     URL_SET_IMAGES_STATUSES_BULK = ""
@@ -705,19 +707,6 @@ class SuperannotateBackendService(BaseBackendService):
         )
         return res.json()
 
-    def delete_annotation_class(
-        self, team_id: int, project_id: int, annotation_class_id: int
-    ):
-        delete_image_url = urljoin(
-            self.api_url, self.URL_GET_CLASS.format(annotation_class_id)
-        )
-        res = self._request(
-            delete_image_url,
-            "delete",
-            params={"team_id": team_id, "project_id": project_id},
-        )
-        return res.json()
-
     def set_project_workflow_attributes_bulk(
         self, project_id: int, team_id: int, attributes: list
     ):
@@ -772,3 +761,61 @@ class SuperannotateBackendService(BaseBackendService):
         get_templates_url = urljoin(self.api_url, self.URL_GET_TEMPLATES)
         response = self._request(get_templates_url, "get", params={"team_id": team_id})
         return response.json()
+
+    def start_model_training(self, team_id: int, hyper_parameters: dict) -> dict:
+        start_training_url = urljoin(self.api_url, self.URL_MODELS)
+
+        res = self._request(
+            start_training_url,
+            "post",
+            params={"team_id", team_id},
+            data=hyper_parameters,
+        )
+        return res.json()
+
+    def get_model_metrics(self, team_id: int, model_id: int) -> dict:
+        get_metrics_url = urljoin(
+            self.api_url, self.URL_GET_MODEL_METRICS.format(model_id)
+        )
+        res = self._request(get_metrics_url, "get", params={"team_id": team_id})
+        return res.json()
+
+    def get_models(
+        self, name: str, team_id: int, project_id: int, model_type: str
+    ) -> List:
+        search_model_url = urljoin(self.api_url, self.URL_MODELS)
+        res = self._request(
+            search_model_url,
+            "get",
+            params={"team_id": team_id, "project_id": project_id, "name": name},
+        )
+        return res.json()
+
+    def search_models(self, query_string: str):
+        search_model_url = urljoin(self.api_url, self.URL_MODELS)
+        if query_string:
+            search_model_url = f"{search_model_url}?{query_string}"
+        response = self._request(search_model_url, "get",)
+        return response.json()
+
+    def bulk_get_folders(self, team_id: int, project_ids: List[int]):
+        get_folders_url = urljoin(self.api_url, self.URL_BULK_GET_FOLDERS)
+        res = self._request(
+            get_folders_url,
+            "put",
+            params={"team_id": team_id, "completedImagesCount": True},
+            data={"project_ids": project_ids},
+        )
+        return res.json()
+
+    def update_model(self, team_id: int, model_id: int, data: dict):
+        update_model_url = urljoin(self.api_url, f"{self.URL_MODELS}/{model_id}")
+        res = self._request(
+            update_model_url, "put", data=data, params={"team_id": team_id}
+        )
+        return res.json()
+
+    def delete_model(self, team_id: int, model_id: int):
+        delete_model_url = urljoin(self.api_url, f"{self.URL_MODELS}/{model_id}")
+        res = self._request(delete_model_url, "delete", params={"team_id": team_id})
+        return res.ok

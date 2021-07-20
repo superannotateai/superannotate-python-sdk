@@ -4,78 +4,21 @@ from typing import Iterable
 from typing import List
 
 import lib.core as constances
+from src.lib.core import usecases
 from src.lib.core.conditions import Condition
 from src.lib.core.conditions import CONDITION_EQ as EQ
+from src.lib.core.entities import AnnotationClassEntity
 from src.lib.core.entities import FolderEntity
 from src.lib.core.entities import ImageEntity
+from src.lib.core.entities import MLModelEntity
 from src.lib.core.entities import ProjectEntity
 from src.lib.core.exceptions import AppException
 from src.lib.core.response import Response
-from src.lib.core.usecases import AssignFolderUseCase
-from src.lib.core.usecases import AssignImagesUseCase
-from src.lib.core.usecases import AttachFileUrlsUseCase
-from src.lib.core.usecases import AttachImagesUseCase
-from src.lib.core.usecases import CloneProjectUseCase
-from src.lib.core.usecases import CopyImageAnnotationClasses
-from src.lib.core.usecases import CreateFolderUseCase
-from src.lib.core.usecases import CreateFuseImageUseCase
-from src.lib.core.usecases import CreateProjectUseCase
-from src.lib.core.usecases import DeleteAnnotationClassUseCase
-from src.lib.core.usecases import DeleteContributorInvitationUseCase
-from src.lib.core.usecases import DeleteFolderUseCase
-from src.lib.core.usecases import DeleteImagesUseCase
-from src.lib.core.usecases import DeleteImageUseCase
-from src.lib.core.usecases import DeleteProjectUseCase
-from src.lib.core.usecases import DownloadAnnotationClassesUseCase
-from src.lib.core.usecases import DownloadAzureCloudImages
-from src.lib.core.usecases import DownloadGoogleCloudImages
-from src.lib.core.usecases import DownloadImageAnnotationsUseCase
-from src.lib.core.usecases import DownloadImageFromPublicUrlUseCase
-from src.lib.core.usecases import DownloadImagePreAnnotationsUseCase
-from src.lib.core.usecases import DownloadImageUseCase
-from src.lib.core.usecases import ExtractFramesUseCase
-from src.lib.core.usecases import GetAnnotationClassesUseCase
-from src.lib.core.usecases import GetAnnotationClassUseCase
-from src.lib.core.usecases import GetExportsUseCase
-from src.lib.core.usecases import GetFolderUseCase
-from src.lib.core.usecases import GetImageAnnotationsUseCase
-from src.lib.core.usecases import GetImageBytesUseCase
-from src.lib.core.usecases import GetImageMetadataUseCase
-from src.lib.core.usecases import GetImagePreAnnotationsUseCase
-from src.lib.core.usecases import GetImagesUseCase
-from src.lib.core.usecases import GetImageUseCase
-from src.lib.core.usecases import GetProjectFoldersUseCase
-from src.lib.core.usecases import GetProjectImageCountUseCase
-from src.lib.core.usecases import GetProjectMetadataUseCase
-from src.lib.core.usecases import GetProjectsUseCase
-from src.lib.core.usecases import GetS3ImageUseCase
-from src.lib.core.usecases import GetSettingsUseCase
-from src.lib.core.usecases import GetTeamUseCase
-from src.lib.core.usecases import GetWorkflowsUseCase
-from src.lib.core.usecases import ImagesBulkCopyUseCase
-from src.lib.core.usecases import ImagesBulkMoveUseCase
-from src.lib.core.usecases import InviteContributorUseCase
-from src.lib.core.usecases import PrepareExportUseCase
-from src.lib.core.usecases import SearchContributorsUseCase
-from src.lib.core.usecases import SearchFolderUseCase
-from src.lib.core.usecases import SetImageAnnotationStatuses
-from src.lib.core.usecases import SetWorkflowUseCase
-from src.lib.core.usecases import ShareProjectUseCase
-from src.lib.core.usecases import UnAssignFolderUseCase
-from src.lib.core.usecases import UnAssignImagesUseCase
-from src.lib.core.usecases import UnShareProjectUseCase
-from src.lib.core.usecases import UpdateFolderUseCase
-from src.lib.core.usecases import UpdateImageUseCase
-from src.lib.core.usecases import UpdateProjectUseCase
-from src.lib.core.usecases import UpdateSettingsUseCase
-from src.lib.core.usecases import UploadAnnotationsUseCase
-from src.lib.core.usecases import UploadImageS3UseCas
-from src.lib.core.usecases import UploadS3ImagesBackendUseCase
-from src.lib.core.usecases import CreateAnnotationClassesUseCase
 from src.lib.infrastructure.repositories import AnnotationClassRepository
 from src.lib.infrastructure.repositories import ConfigRepository
 from src.lib.infrastructure.repositories import FolderRepository
 from src.lib.infrastructure.repositories import ImageRepository
+from src.lib.infrastructure.repositories import MLModelRepository
 from src.lib.infrastructure.repositories import ProjectRepository
 from src.lib.infrastructure.repositories import ProjectSettingsRepository
 from src.lib.infrastructure.repositories import S3Repository
@@ -93,12 +36,20 @@ class BaseController:
 
     @property
     def response(self):
-        # return self._response
-        return Response()
+        self._response = Response()
+        return self._response
 
     @property
     def projects(self):
         return ProjectRepository(self._backend_client)
+
+    @property
+    def folders(self):
+        return FolderRepository(self._backend_client)
+
+    @property
+    def ml_models(self):
+        return MLModelRepository(self._backend_client, self.team_id)
 
     @property
     def teams(self):
@@ -155,7 +106,7 @@ class Controller(BaseController):
 
     def _get_folder(self, project: ProjectEntity, name: str = None):
         name = self.get_folder_name(name)
-        folders = FolderRepository(self._backend_client, project)
+        folders = self.folders
         return folders.get_one(
             Condition("name", name, EQ)
             & Condition("team_id", self.team_id, EQ)
@@ -172,14 +123,14 @@ class Controller(BaseController):
         condition = Condition("name", name, EQ)
         for key, val in kwargs.items():
             condition = condition & Condition(key, val, EQ)
-        use_case = GetProjectsUseCase(
+        use_case = usecases.GetProjectsUseCase(
             response=self.response,
             condition=condition,
             projects=self.projects,
             team_id=self.team_id,
         )
         use_case.execute()
-        return self.response
+        return self._response
 
     def create_project(
         self,
@@ -194,10 +145,10 @@ class Controller(BaseController):
         entity = ProjectEntity(
             name=name,
             description=description,
-            project_type=project_type,
+            project_type=constances.ProjectType[project_type.upper()].value,
             team_id=self.team_id,
         )
-        use_case = CreateProjectUseCase(
+        use_case = usecases.CreateProjectUseCase(
             response=self.response,
             project=entity,
             projects=self.projects,
@@ -215,16 +166,18 @@ class Controller(BaseController):
             contributors=contributors,
         )
         use_case.execute()
-        return self.response
+        return self._response
 
     def delete_project(self, name: str):
         entities = self.projects.get_all(
             Condition("team_id", self.team_id, EQ) & Condition("name", name, EQ)
         )
         if entities and len(entities) == 1:
-            use_case = DeleteProjectUseCase(self.response, entities[0], self.projects)
+            use_case = usecases.DeleteProjectUseCase(
+                self.response, entities[0], self.projects
+            )
             use_case.execute()
-            return self.response
+            return self._response
         if entities and len(entities) > 1:
             raise AppException("There are duplicated names.")
 
@@ -235,9 +188,11 @@ class Controller(BaseController):
         project = entities[0]
         if entities and len(entities) == 1:
             project.name = project_data["name"]
-            use_case = UpdateProjectUseCase(self.response, project, self.projects)
+            use_case = usecases.UpdateProjectUseCase(
+                self.response, project, self.projects
+            )
             use_case.execute()
-            return self.response
+            return self._response
         raise AppException("There are duplicated names.")
 
     def upload_images(
@@ -248,7 +203,7 @@ class Controller(BaseController):
         image_quality: str = None,
     ):
         project = self._get_project(project_name)
-        use_case = AttachImagesUseCase(
+        use_case = usecases.AttachImagesUseCase(
             response=self.response,
             project=project,
             project_settings=ProjectSettingsRepository(self._backend_client, project),
@@ -258,7 +213,7 @@ class Controller(BaseController):
             image_quality=image_quality,
         )
         use_case.execute()
-        return self.response
+        return self._response
 
     def upload_image_to_s3(
         self,
@@ -270,7 +225,7 @@ class Controller(BaseController):
         project = self._get_project(project_name)
         folder = self._get_folder(project, folder_name)
         s3_repo = self.get_s3_repository(self.team_id, project.uuid, folder.uuid,)
-        use_case = UploadImageS3UseCas(
+        use_case = usecases.UploadImageS3UseCas(
             response=self.response,
             project=project,
             project_settings=ProjectSettingsRepository(self._backend_client, project),
@@ -280,7 +235,7 @@ class Controller(BaseController):
             upload_path=self._s3_upload_auth_data["filePath"],
         )
         use_case.execute()
-        return self.response
+        return self._response
 
     def clone_project(
         self,
@@ -299,7 +254,7 @@ class Controller(BaseController):
             project_to_create = copy.copy(projects[0])
             project_to_create.name = name
             project_to_create.description = project_description
-            use_case = CloneProjectUseCase(
+            use_case = usecases.CloneProjectUseCase(
                 self.response,
                 project=projects[0],
                 project_to_create=project_to_create,
@@ -316,7 +271,7 @@ class Controller(BaseController):
                 include_annotation_classes=copy_annotation_classes,
             )
             use_case.execute()
-        return self.response
+        return self._response
 
     def attach_urls(
         self,
@@ -331,7 +286,7 @@ class Controller(BaseController):
 
         limit = auth_data["availableImageCount"]
 
-        use_case = AttachFileUrlsUseCase(
+        use_case = usecases.AttachFileUrlsUseCase(
             response=self.response,
             project=project,
             folder=folder,
@@ -341,7 +296,7 @@ class Controller(BaseController):
             annotation_status=annotation_status,
         )
         use_case.execute()
-        return self.response
+        return self._response
 
     def create_folder(self, project: str, folder_name: str):
         projects = ProjectRepository(service=self._backend_client).get_all(
@@ -352,24 +307,25 @@ class Controller(BaseController):
         folder = FolderEntity(
             name=folder_name, project_id=project.uuid, team_id=project.team_id
         )
-        use_case = CreateFolderUseCase(
+        use_case = usecases.CreateFolderUseCase(
             response=self.response,
+            project=project,
             folder=folder,
-            folders=FolderRepository(self._backend_client, project),
+            folders=self.folders,
         )
         use_case.execute()
-        return self.response
+        return self._response
 
     def get_folder(self, project_name: str, folder_name: str):
         project = self._get_project(project_name)
-        use_case = GetFolderUseCase(
+        use_case = usecases.GetFolderUseCase(
             response=self.response,
             project=project,
-            folders=FolderRepository(self._backend_client, project),
+            folders=self.folders,
             folder_name=folder_name,
         )
         use_case.execute()
-        return self.response
+        return self._response
 
     def search_folder(self, project_name: str, **kwargs):
         condition = None
@@ -381,41 +337,39 @@ class Controller(BaseController):
                 condition = condition & Condition(key, val, EQ)
 
         project = self._get_project(project_name)
-        use_case = SearchFolderUseCase(
+        use_case = usecases.SearchFolderUseCase(
             response=self.response,
             project=project,
-            folders=FolderRepository(self._backend_client, project),
+            folders=self.folders,
             condition=condition,
         )
         use_case.execute()
-        return self.response
+        return self._response
 
     def get_project_folders(
         self, project_name: str,
     ):
         project = self._get_project(project_name)
-        use_case = GetProjectFoldersUseCase(
-            response=self.response,
-            project=project,
-            folders=FolderRepository(self._backend_client, project),
+        use_case = usecases.GetProjectFoldersUseCase(
+            response=self.response, project=project, folders=self.folders,
         )
         use_case.execute()
-        return self.response
+        return self._response
 
     def delete_folders(self, project_name: str, folder_names: List[str]):
         project = self._get_project(project_name)
         folders = self.get_project_folders(project_name).data
 
-        use_case = DeleteFolderUseCase(
+        use_case = usecases.DeleteFolderUseCase(
             response=self.response,
             project=project,
-            folders=FolderRepository(self._backend_client, project),
+            folders=self.folders,
             folders_to_delete=[
                 folder for folder in folders if folder.name in folder_names
             ],
         )
         use_case.execute()
-        return self.response
+        return self._response
 
     def prepare_export(
         self,
@@ -426,7 +380,7 @@ class Controller(BaseController):
         annotation_statuses: List[str] = None,
     ):
 
-        use_case = PrepareExportUseCase(
+        use_case = usecases.PrepareExportUseCase(
             response=self.response,
             project=project,
             folder_names=folder_names,
@@ -437,17 +391,17 @@ class Controller(BaseController):
         )
         use_case.execute()
 
-        return self.response
+        return self._response
 
     def get_team(self):
-        use_case = GetTeamUseCase(
+        use_case = usecases.GetTeamUseCase(
             response=self.response, teams=self.teams, team_id=self.team_id
         )
         use_case.execute()
-        return self.response
+        return self._response
 
     def invite_contributor(self, email: str, is_admin: bool):
-        use_case = InviteContributorUseCase(
+        use_case = usecases.InviteContributorUseCase(
             response=self.response,
             backend_service_provider=self._backend_client,
             email=email,
@@ -455,20 +409,21 @@ class Controller(BaseController):
             is_admin=is_admin,
         )
         use_case.execute()
-        return self.response
+        return self._response
 
     def delete_contributor_invitation(self, email: str):
         team = self.teams.get_one(self.team_id)
-        use_case = DeleteContributorInvitationUseCase(
+        use_case = usecases.DeleteContributorInvitationUseCase(
             response=self.response,
             backend_service_provider=self._backend_client,
             email=email,
             team=team,
         )
         use_case.execute()
-        return self.response
+        return self._response
 
     def search_team_contributors(self, **kwargs):
+
         condition = None
         if kwargs:
             conditions_iter = iter(kwargs)
@@ -477,14 +432,14 @@ class Controller(BaseController):
             for key, val in conditions_iter:
                 condition = condition & Condition(key, val, EQ)
 
-        use_case = SearchContributorsUseCase(
+        use_case = usecases.SearchContributorsUseCase(
             response=self.response,
             backend_service_provider=self._backend_client,
             team_id=self.team_id,
             condition=condition,
         )
         use_case.execute()
-        return self.response
+        return self._response
 
     def search_images(
         self,
@@ -498,7 +453,7 @@ class Controller(BaseController):
             folder = self._get_folder(project, "root")
         else:
             folder = self._get_folder(project, folder_path)
-        use_case = GetImagesUseCase(
+        use_case = usecases.GetImagesUseCase(
             response=self.response,
             project=project,
             folder=folder,
@@ -507,14 +462,14 @@ class Controller(BaseController):
             image_name_prefix=image_name_prefix,
         )
         use_case.execute()
-        return self.response
+        return self._response
 
     def _get_image(
         self, project: ProjectEntity, image_name: str, folder_path: str = None,
     ) -> ImageEntity:
         response = Response()
         folder = self._get_folder(project, folder_path)
-        use_case = GetImageUseCase(
+        use_case = usecases.GetImageUseCase(
             response=response,
             project=project,
             folder=folder,
@@ -534,13 +489,11 @@ class Controller(BaseController):
         folder = self._get_folder(project, folder_name)
         for field, value in folder_data.items():
             setattr(folder, field, value)
-        use_case = UpdateFolderUseCase(
-            response=self.response,
-            folders=FolderRepository(self._backend_client, project),
-            folder=folder,
+        use_case = usecases.UpdateFolderUseCase(
+            response=self.response, folders=self.folders, folder=folder,
         )
         use_case.execute()
-        return self.response
+        return self._response
 
     def get_image_bytes(
         self,
@@ -551,14 +504,14 @@ class Controller(BaseController):
     ):
         project = self._get_project(project_name)
         image = self._get_image(project, image_name, folder_name)
-        use_case = GetImageBytesUseCase(
+        use_case = usecases.GetImageBytesUseCase(
             response=self.response,
             image=image,
             backend_service_provider=self._backend_client,
             image_variant=image_variant,
         )
         use_case.execute()
-        return self.response
+        return self._response
 
     def copy_image_annotation_classes(
         self, from_project_name: str, to_project_name: str, image_name: str
@@ -568,7 +521,7 @@ class Controller(BaseController):
         to_project = self._get_project(to_project_name)
         uploaded_image = self._get_image(to_project, image_name)
 
-        use_case = CopyImageAnnotationClasses(
+        use_case = usecases.CopyImageAnnotationClasses(
             response=self.response,
             from_project=from_project,
             to_project=to_project,
@@ -600,7 +553,7 @@ class Controller(BaseController):
         )
         for item, val in kwargs.items():
             setattr(image, item, val)
-        use_case = UpdateImageUseCase(
+        use_case = usecases.UpdateImageUseCase(
             response=self.response, image=image, images=self.images
         )
         use_case.execute()
@@ -609,7 +562,7 @@ class Controller(BaseController):
         self, project_name: str, image_url: str, image_name: str = None
     ):
         response = Response()
-        use_case = DownloadImageFromPublicUrlUseCase(
+        use_case = usecases.DownloadImageFromPublicUrlUseCase(
             response=response,
             project=self._get_project(project_name),
             image_url=image_url,
@@ -630,7 +583,7 @@ class Controller(BaseController):
         project = self._get_project(project_name)
         from_folder = self._get_folder(project, from_folder_name)
         to_folder = self._get_folder(project, to_folder_name)
-        use_case = ImagesBulkCopyUseCase(
+        use_case = usecases.ImagesBulkCopyUseCase(
             response=self.response,
             project=project,
             from_folder=from_folder,
@@ -641,7 +594,7 @@ class Controller(BaseController):
             include_pin=include_pin,
         )
         use_case.execute()
-        return self.response
+        return self._response
 
     def bulk_move_images(
         self,
@@ -653,7 +606,7 @@ class Controller(BaseController):
         project = self._get_project(project_name)
         from_folder = self._get_folder(project, from_folder_name)
         to_folder = self._get_folder(project, to_folder_name)
-        use_case = ImagesBulkMoveUseCase(
+        use_case = usecases.ImagesBulkMoveUseCase(
             response=self.response,
             project=project,
             from_folder=from_folder,
@@ -662,7 +615,7 @@ class Controller(BaseController):
             backend_service_provider=self._backend_client,
         )
         use_case.execute()
-        return self.response
+        return self._response
 
     def get_project_metadata(
         self,
@@ -674,7 +627,7 @@ class Controller(BaseController):
         include_complete_image_count: bool = False,
     ):
         project = self._get_project(project_name)
-        use_case = GetProjectMetadataUseCase(
+        use_case = usecases.GetProjectMetadataUseCase(
             project=project,
             response=self.response,
             service=self._backend_client,
@@ -693,33 +646,33 @@ class Controller(BaseController):
             include_complete_image_count=include_complete_image_count,
         )
         use_case.execute()
-        return self.response
+        return self._response
 
     def get_project_settings(self, project_name: str):
         project_entity = self._get_project(project_name)
-        settings_use_case = GetSettingsUseCase(
+        settings_use_case = usecases.GetSettingsUseCase(
             response=self.response,
             settings=ProjectSettingsRepository(
                 service=self._backend_client, project=project_entity
             ),
         )
         settings_use_case.execute()
-        return self.response
+        return self._response
 
     def get_project_workflow(self, project_name: str):
         project_entity = self._get_project(project_name)
-        workflows_use_case = GetWorkflowsUseCase(
+        workflows_use_case = usecases.GetWorkflowsUseCase(
             workflows=WorkflowRepository(
                 service=self._backend_client, project=project_entity
             ),
             response=self.response,
         )
         workflows_use_case.execute()
-        return self.response
+        return self._response
 
     def search_annotation_classes(self, project_name: str, name_prefix: str = None):
         project_entity = self._get_project(project_name)
-        annotation_classes_use_case = GetAnnotationClassesUseCase(
+        annotation_classes_use_case = usecases.GetAnnotationClassesUseCase(
             response=self.response,
             classes=AnnotationClassRepository(
                 service=self._backend_client, project=project_entity
@@ -727,12 +680,12 @@ class Controller(BaseController):
             condition=Condition("name", name_prefix, EQ),
         )
         annotation_classes_use_case.execute()
-        return self.response
+        return self._response
 
     def set_project_settings(self, project_name: str, new_settings: List[dict]):
         project_entity = self._get_project(project_name)
         new_settings_response = Response()
-        update_settings_use_case = UpdateSettingsUseCase(
+        update_settings_use_case = usecases.UpdateSettingsUseCase(
             response=new_settings_response,
             settings=ProjectSettingsRepository(
                 service=self._backend_client, project=project_entity
@@ -749,7 +702,7 @@ class Controller(BaseController):
     def delete_image(self, image_name, project_name):
         image = self.get_image(project_name=project_name, image_name=image_name)
         project_entity = self._get_project(project_name)
-        delete_image_user_case = DeleteImageUseCase(
+        delete_image_user_case = usecases.DeleteImageUseCase(
             response=self.response,
             images=ImageRepository(service=self._backend_client),
             image=image,
@@ -762,7 +715,7 @@ class Controller(BaseController):
     def get_image_metadata(self, project_name, image_names):
         project_entity = self._get_project(project_name)
 
-        get_image_metadata_use_case = GetImageMetadataUseCase(
+        get_image_metadata_use_case = usecases.GetImageMetadataUseCase(
             response=self.response,
             image_names=image_names,
             team_id=project_entity.team_id,
@@ -770,7 +723,7 @@ class Controller(BaseController):
             service=self._backend_client,
         )
         get_image_metadata_use_case.execute()
-        return self.response
+        return self._response
 
     def set_images_annotation_statuses(
         self,
@@ -781,7 +734,7 @@ class Controller(BaseController):
     ):
         project_entity = self._get_project(project_name)
         folder_entity = self._get_folder(project_entity, folder_name)
-        set_images_annotation_statuses_use_case = SetImageAnnotationStatuses(
+        set_images_annotation_statuses_use_case = usecases.SetImageAnnotationStatuses(
             response=self._response,
             service=self._backend_client,
             image_names=image_names,
@@ -799,7 +752,7 @@ class Controller(BaseController):
         project = self._get_project(project_name)
         folder = self._get_folder(project, folder_name)
 
-        use_case = DeleteImagesUseCase(
+        use_case = usecases.DeleteImagesUseCase(
             response=self.response,
             project=project,
             folder=folder,
@@ -808,13 +761,13 @@ class Controller(BaseController):
             backend_service_provider=self._backend_client,
         )
         use_case.execute()
-        return self.response
+        return self._response
 
     def assign_images(
         self, project_name: str, folder_name: str, image_names: list, user: str
     ):
         project_entity = self._get_project(project_name)
-        assign_images_use_case = AssignImagesUseCase(
+        assign_images_use_case = usecases.AssignImagesUseCase(
             response=self.response,
             project_entity=project_entity,
             service=self._backend_client,
@@ -827,7 +780,7 @@ class Controller(BaseController):
     def un_assign_images(self, project_name, folder_name, image_names):
         project = self._get_project(project_name)
         folder_name = self.get_folder_name(folder_name)
-        use_case = UnAssignImagesUseCase(
+        use_case = usecases.UnAssignImagesUseCase(
             response=self.response,
             project_entity=project,
             service=self._backend_client,
@@ -838,7 +791,7 @@ class Controller(BaseController):
 
     def un_assign_folder(self, project_name: str, folder_name: str):
         project_entity = self._get_project(project_name)
-        use_case = UnAssignFolderUseCase(
+        use_case = usecases.UnAssignFolderUseCase(
             response=self.response,
             service=self._backend_client,
             project_entity=project_entity,
@@ -848,7 +801,7 @@ class Controller(BaseController):
 
     def assign_folder(self, project_name: str, folder_name: str, users: List[str]):
         project_entity = self._get_project(project_name)
-        use_case = AssignFolderUseCase(
+        use_case = usecases.AssignFolderUseCase(
             response=self.response,
             service=self._backend_client,
             project_entity=project_entity,
@@ -859,7 +812,7 @@ class Controller(BaseController):
 
     def share_project(self, project_name: str, user: str, user_role: str):
         project_entity = self._get_project(project_name)
-        share_project_use_case = ShareProjectUseCase(
+        share_project_use_case = usecases.ShareProjectUseCase(
             response=self.response,
             service=self._backend_client,
             project_entity=project_entity,
@@ -870,7 +823,7 @@ class Controller(BaseController):
 
     def un_share_project(self, project_name: str, user: str):
         project_entity = self._get_project(project_name)
-        use_case = UnShareProjectUseCase(
+        use_case = usecases.UnShareProjectUseCase(
             response=self.response,
             service=self._backend_client,
             project_entity=project_entity,
@@ -881,7 +834,7 @@ class Controller(BaseController):
     def download_images_from_google_clout(
         self, project_name: str, bucket_name: str, folder_name: str, download_path: str
     ):
-        use_case = DownloadGoogleCloudImages(
+        use_case = usecases.DownloadGoogleCloudImages(
             response=self.response,
             project_name=project_name,
             bucket_name=bucket_name,
@@ -889,19 +842,19 @@ class Controller(BaseController):
             download_path=download_path,
         )
         use_case.execute()
-        return self.response
+        return self._response
 
     def download_images_from_azure_cloud(
         self, container_name: str, folder_name: str, download_path: str
     ):
-        use_case = DownloadAzureCloudImages(
+        use_case = usecases.DownloadAzureCloudImages(
             response=self.response,
             container=container_name,
             folder_name=folder_name,
             download_path=download_path,
         )
         use_case.execute()
-        return self.response
+        return self._response
 
     def get_image_annotations(
         self, project_name: str, folder_name: str, image_name: str
@@ -909,7 +862,7 @@ class Controller(BaseController):
         project = self._get_project(project_name)
         folder = self._get_folder(project=project, name=folder_name)
 
-        user_case = GetImageAnnotationsUseCase(
+        user_case = usecases.GetImageAnnotationsUseCase(
             response=self.response,
             service=self._backend_client,
             project=project,
@@ -918,14 +871,14 @@ class Controller(BaseController):
             images=ImageRepository(service=self._backend_client),
         )
         user_case.execute()
-        return self.response
+        return self._response
 
     def download_image_annotations(
         self, project_name: str, folder_name: str, image_name: str, destination: str
     ):
         project = self._get_project(project_name)
         folder = self._get_folder(project=project, name=folder_name)
-        user_case = DownloadImageAnnotationsUseCase(
+        user_case = usecases.DownloadImageAnnotationsUseCase(
             response=self.response,
             service=self._backend_client,
             project=project,
@@ -935,14 +888,14 @@ class Controller(BaseController):
             destination=destination,
         )
         user_case.execute()
-        return self.response
+        return self._response
 
     def download_image_pre_annotations(
         self, project_name: str, folder_name: str, image_name: str, destination: str
     ):
         project = self._get_project(project_name)
         folder = self._get_folder(project=project, name=folder_name)
-        user_case = DownloadImagePreAnnotationsUseCase(
+        user_case = usecases.DownloadImagePreAnnotationsUseCase(
             response=self.response,
             service=self._backend_client,
             project=project,
@@ -952,44 +905,10 @@ class Controller(BaseController):
             destination=destination,
         )
         user_case.execute()
-        return self.response
-
-    def download_image_annotations(
-        self, project_name: str, folder_name: str, image_name: str, destination: str
-    ):
-        project = self._get_project(project_name)
-        folder = self._get_folder(project=project, name=folder_name)
-        user_case = DownloadImageAnnotationsUseCase(
-            response=self.response,
-            service=self._backend_client,
-            project=project,
-            folder=folder,
-            image_name=image_name,
-            images=ImageRepository(service=self._backend_client),
-            destination=destination,
-        )
-        user_case.execute()
-        return self.response.data
-
-    def download_image_pre_annotations(
-        self, project_name: str, folder_name: str, image_name: str, destination: str
-    ):
-        project = self._get_project(project_name)
-        folder = self._get_folder(project=project, name=folder_name)
-        user_case = DownloadImagePreAnnotationsUseCase(
-            response=self.response,
-            service=self._backend_client,
-            project=project,
-            folder=folder,
-            image_name=image_name,
-            images=ImageRepository(service=self._backend_client),
-            destination=destination,
-        )
-        user_case.execute()
-        return self.response.data
+        return self._response
 
     def get_image_from_s3(self, s3_bucket, image_path: str):
-        use_case = GetS3ImageUseCase(
+        use_case = usecases.GetS3ImageUseCase(
             response=self.response, s3_bucket=s3_bucket, image_path=image_path
         )
         use_case.execute()
@@ -1001,7 +920,7 @@ class Controller(BaseController):
         project = self._get_project(project_name)
         folder = self._get_folder(project=project, name=folder_name)
 
-        user_case = GetImagePreAnnotationsUseCase(
+        user_case = usecases.GetImagePreAnnotationsUseCase(
             response=self.response,
             service=self._backend_client,
             project=project,
@@ -1010,12 +929,12 @@ class Controller(BaseController):
             images=ImageRepository(service=self._backend_client),
         )
         user_case.execute()
-        return self.response
+        return self._response
 
     def get_exports(self, project_name: str, return_metadata: bool):
         project = self._get_project(project_name)
 
-        use_case = GetExportsUseCase(
+        use_case = usecases.GetExportsUseCase(
             response=self.response,
             service=self._backend_client,
             project=project,
@@ -1023,7 +942,7 @@ class Controller(BaseController):
         )
         use_case.execute()
 
-        return self.response
+        return self._response
 
     def backend_upload_from_s3(
         self,
@@ -1037,7 +956,7 @@ class Controller(BaseController):
     ):
         project = self._get_project(project_name)
         folder = self._get_folder(project, folder_name)
-        use_case = UploadS3ImagesBackendUseCase(
+        use_case = usecases.UploadS3ImagesBackendUseCase(
             response=self.response,
             backend_service_provider=self._backend_client,
             project=project,
@@ -1050,7 +969,7 @@ class Controller(BaseController):
             image_quality=image_quality,
         )
         use_case.execute()
-        return self.response
+        return self._response
 
     def get_project_image_count(
         self, project_name: str, folder_name: str, with_all_subfolders: bool
@@ -1059,7 +978,7 @@ class Controller(BaseController):
         project = self._get_project(project_name)
         folder = self._get_folder(project=project, name=folder_name)
 
-        use_case = GetProjectImageCountUseCase(
+        use_case = usecases.GetProjectImageCountUseCase(
             response=self.response,
             service=self._backend_client,
             project=project,
@@ -1068,7 +987,7 @@ class Controller(BaseController):
         )
 
         use_case.execute()
-        return self.response
+        return self._response
 
     def extract_video_frames(
         self,
@@ -1089,7 +1008,7 @@ class Controller(BaseController):
         )
         project = self._get_project(project_name)
         folder = self._get_folder(project, folder_name)
-        use_case = ExtractFramesUseCase(
+        use_case = usecases.ExtractFramesUseCase(
             response=self.response,
             backend_service_provider=self._backend_client,
             project=project,
@@ -1103,36 +1022,75 @@ class Controller(BaseController):
             image_quality_in_editor=image_quality_in_editor,
         )
         use_case.execute()
-        return self.response
+        return self._response
 
-    def download_annotation_classes(self, project_name: str, destination: str):
+    def create_annotation_class(
+        self, project_name: str, name: str, color: str, attribute_groups: List[dict]
+    ):
         project = self._get_project(project_name)
-        use_case = DownloadAnnotationClassesUseCase(
+        annotation_classes = AnnotationClassRepository(
+            project=project, service=self._backend_client
+        )
+        annotation_class = AnnotationClassEntity(
+            name=name, color=color, attribute_groups=attribute_groups
+        )
+        use_case = usecases.CreateAnnotationClassUseCase(
+            response=self.response,
+            annotation_classes=annotation_classes,
+            annotation_class=annotation_class,
+        )
+        use_case.execute()
+        return self._response
+
+    def delete_annotation_class(self, project_name: str, annotation_class_name: str):
+        project = self._get_project(project_name)
+        use_case = usecases.DeleteAnnotationClassUseCase(
+            response=self.response,
+            annotation_class_name=annotation_class_name,
+            annotation_classes_repo=AnnotationClassRepository(
+                service=self._backend_client, project=project,
+            ),
+        )
+        use_case.execute()
+
+    def get_annotation_class(self, project_name: str, annotation_class_name: str):
+        project = self._get_project(project_name)
+        use_case = usecases.GetAnnotationClassUseCase(
+            response=self.response,
+            annotation_class_name=annotation_class_name,
+            annotation_classes_repo=AnnotationClassRepository(
+                service=self._backend_client, project=project,
+            ),
+        )
+        use_case.execute()
+        return self._response
+
+    def download_annotation_classes(self, project_name: str, download_path: str):
+        project = self._get_project(project_name)
+        use_case = usecases.DownloadAnnotationClassesUseCase(
             response=self.response,
             annotation_classes_repo=AnnotationClassRepository(
                 service=self._backend_client, project=project,
             ),
-            destination=destination,
+            download_path=download_path,
         )
         use_case.execute()
-        return self.response
+        return self._response
 
-    def create_annotation_classes(
-        self, project_name: str, annotation_classes: list
-    ):
+    def create_annotation_classes(self, project_name: str, annotation_classes: list):
         project = self._get_project(project_name)
 
-        use_case = CreateAnnotationClassesUseCase(
+        use_case = usecases.CreateAnnotationClassesUseCase(
             response=self.response,
-            service = self._backend_client,
+            service=self._backend_client,
             annotation_classes_repo=AnnotationClassRepository(
                 service=self._backend_client, project=project,
             ),
             annotation_classes=annotation_classes,
-            project=project
+            project=project,
         )
         use_case.execute()
-        return self.response
+        return self._response
 
     def create_fuse_image(
         self,
@@ -1142,7 +1100,7 @@ class Controller(BaseController):
         generate_overlay: bool,
     ):
 
-        use_case = CreateFuseImageUseCase(
+        use_case = usecases.CreateFuseImageUseCase(
             response=self.response,
             project_type=project_type,
             image_path=image_path,
@@ -1150,7 +1108,7 @@ class Controller(BaseController):
             generate_overlay=generate_overlay,
         )
         use_case.execute()
-        return self.response
+        return self._response
 
     def download_image(
         self,
@@ -1167,7 +1125,7 @@ class Controller(BaseController):
         folder = self._get_folder(project, folder_name)
         image = self._get_image(project, image_name, folder_name)
 
-        use_case = DownloadImageUseCase(
+        use_case = usecases.DownloadImageUseCase(
             response=self.response,
             project=project,
             folder=folder,
@@ -1182,11 +1140,11 @@ class Controller(BaseController):
             include_overlay=include_overlay,
         )
         use_case.execute()
-        return self.response
+        return self._response
 
     def set_project_workflow(self, project_name: str, steps: list):
         project = self._get_project(project_name)
-        use_case = SetWorkflowUseCase(
+        use_case = usecases.SetWorkflowUseCase(
             response=self.response,
             service=self._backend_client,
             annotation_classes_repo=AnnotationClassRepository(
@@ -1211,7 +1169,7 @@ class Controller(BaseController):
     ):
         project = self._get_project(project_name)
         folder = self._get_folder(project, folder_name)
-        use_case = UploadAnnotationsUseCase(
+        use_case = usecases.UploadAnnotationsUseCase(
             response=self.response,
             project=project,
             folder=folder,
@@ -1225,35 +1183,80 @@ class Controller(BaseController):
             client_s3_bucket=client_s3_bucket,
         )
         use_case.execute()
-        return self.response
+        return self._response
 
-
-    def get_annotation_class(self, project_name: str, annotation_class_name: str):
-        project = self._get_project(project_name)
-        use_case = GetAnnotationClassUseCase(
-            response=self.response,
-            annotation_class_name=annotation_class_name,
-            annotation_classes_repo=AnnotationClassRepository(
-                service=self._backend_client, project=project,
-            ),
-        )
-        use_case.execute()
-        return self.response
-
-    def create_fuse_image(
+    def upload_image_annotations(
         self,
-        project_type: str,
-        image_path: str,
-        in_memory: bool,
-        generate_overlay: bool,
+        project_name: str,
+        folder_name: str,
+        image_name: str,
+        annotations: dict,
+        mask: io.BytesIO = None,
     ):
-
-        use_case = CreateFuseImageUseCase(
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+        use_case = usecases.UploadImageAnnotationsUseCase(
             response=self.response,
-            project_type=project_type,
-            image_path=image_path,
-            in_memory=in_memory,
-            generate_overlay=generate_overlay,
+            project=project,
+            folder=folder,
+            annotation_classes=AnnotationClassRepository(
+                service=self._backend_client, project=project
+            ),
+            image_name=image_name,
+            annotations=annotations,
+            backend_service_provider=self._backend_client,
+            mask=mask,
         )
         use_case.execute()
-        return self.response
+
+    def create_model(
+        self,
+        model_name: str,
+        model_description: str,
+        task: str,
+        base_model_name: str,
+        train_data_paths: List[str],
+        test_data_paths: List[str],
+        hyper_parameters: dict,
+    ):
+        use_case = usecases.CreateModelUseCase(
+            response=self.response,
+            base_model_name=base_model_name,
+            model_name=model_name,
+            model_description=model_description,
+            task=task,
+            team_id=self.team_id,
+            backend_service_provider=self._backend_client,
+            projects=self.projects,
+            folders=self.folders,
+            ml_models=self.ml_models,
+            train_data_paths=train_data_paths,
+            test_data_paths=test_data_paths,
+            hyper_parameters=hyper_parameters,
+        )
+        use_case.execute()
+        return self._response
+
+    def get_model_metrics(self, model_id: int):
+        use_case = usecases.GetModelMetricsUseCase(
+            response=self.response,
+            model_id=model_id,
+            team_id=self.team_id,
+            backend_service_provider=self._backend_client,
+        )
+        use_case.execute()
+        return self._response
+
+    def update_model_status(self, model_id: int, status: int):
+        model = MLModelEntity(uuid=model_id, training_status=status)
+        use_case = usecases.UpdateModelUseCase(
+            response=self.response, model=model, models=self.ml_models
+        )
+        use_case.execute()
+        return self._response
+
+    def delete_model(self, model_id: int):
+        use_case = usecases.DeleteMLModel(
+            response=self.response, model_id=model_id, models=self.ml_models
+        )
+        use_case.execute()
