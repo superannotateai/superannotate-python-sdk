@@ -17,19 +17,26 @@ class Trackable(object):
     def __init__(self, function):
         lock = Lock()
         self.function = function
+        self._success = None
+        self._caller_name = None
+        self._func_name_to_track = None
         with lock:
             Trackable.registered.add(function.__name__)
         functools.update_wrapper(self, function)
 
-    def __call__(self, *args, **kwargs):
+    def should_track(self):
+        if self._caller_name not in Trackable.registered or self._func_name_to_track in always_trackable_func_names:
+            return True
+        return False
+
+    def track(self, *args, **kwargs):
         try:
-            func_name_to_track = self.function.__name__
-            caller_name = sys._getframe(1).f_code.co_name
-            if caller_name not in Trackable.registered or func_name_to_track in always_trackable_func_names:
-                data = getattr(parsers, func_name_to_track)(*args, **kwargs)
+            if self.should_track():
+                data = getattr(parsers, self._func_name_to_track)(*args, **kwargs)
                 user_id = _api.user_id
                 event_name = data['event_name']
                 properties = data['properties']
+                properties['Success'] = self._success
                 default = get_default(
                     _api.team_name,
                     _api.user_id,
@@ -39,6 +46,19 @@ class Trackable(object):
                 properties = {**default, **properties}
                 if "pytest" not in sys.modules:
                     mp.track(user_id, event_name, properties)
-        except:
+        except Exception as e:
             pass
-        return self.function(*args, **kwargs)
+
+
+    def __call__(self, *args, **kwargs):
+        try:
+            self._caller_name = sys._getframe(1).f_code.co_name
+            self._func_name_to_track = self.function.__name__
+            ret = self.function(*args, **kwargs)
+            self._success = True
+            self.track(*args, **kwargs)
+        except Exception as e:
+            self._success = False
+            self.track(*args, **kwargs)
+            raise e
+        return ret

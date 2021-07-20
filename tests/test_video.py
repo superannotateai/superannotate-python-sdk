@@ -14,12 +14,14 @@ PROJECT_NAME2 = "test video upload2"
 
 def test_video(tmpdir):
     tmpdir = Path(tmpdir)
-
     projects = sa.search_projects(PROJECT_NAME1, return_metadata=True)
     for project in projects:
         sa.delete_project(project)
 
+    time.sleep(2)
+
     project = sa.create_project(PROJECT_NAME1, "test", "Vector")
+    print(project)
     time.sleep(1)
     sa.create_annotation_class(project, "fr", "#FFAAAA")
     time.sleep(1)
@@ -32,9 +34,10 @@ def test_video(tmpdir):
     projects = sa.search_projects(PROJECT_NAME2, return_metadata=True)
     for project in projects:
         sa.delete_project(project)
+    time.sleep(2)
 
     project = sa.create_project(PROJECT_NAME2, "test", "Vector")
-
+    time.sleep(2)
     subprocess.run(
         f'superannotatecli upload-videos --project "{PROJECT_NAME2}" --folder ./tests/sample_videos --target-fps 2',
         check=True,

@@ -1,5 +1,6 @@
 import filecmp
 import json
+import time
 from pathlib import Path
 
 import pytest
@@ -42,6 +43,7 @@ def test_annotation_download_upload(
 
     project = upload_project(from_folder, name, description, project_type)
 
+    time.sleep(2)
     image = sa.search_images(project)[0]
     paths = sa.download_image_annotations(project, image, tmpdir)
 

@@ -2,20 +2,15 @@ from pathlib import Path
 import time
 
 import superannotate as sa
-
+from .test_assign_images import safe_create_project
 PROJECT_NAME = "test get set project settings"
 
 
 def test_get_set_settings(tmpdir):
-    tmpdir = Path(tmpdir)
-
-    projects = sa.search_projects(PROJECT_NAME, return_metadata=True)
-    for project in projects:
-        sa.delete_project(project)
-
-    sa.create_project(PROJECT_NAME, "tt", "Vector")
-
+    safe_create_project(PROJECT_NAME,"tt", "Vector")
+    time.sleep(2)
     old_settings = sa.get_project_settings(PROJECT_NAME)
+
     print(old_settings)
     for setting in old_settings:
         if "attribute" in setting and setting["attribute"] == "Brightness":
@@ -29,7 +24,7 @@ def test_get_set_settings(tmpdir):
     )
     assert new_settings[0]["value"] == brightness_value + 10
 
-    time.sleep(1)
+    time.sleep(2)
     new_settings = sa.get_project_settings(PROJECT_NAME)
     for setting in new_settings:
         if "attribute" in setting and setting["attribute"] == "Brightness":

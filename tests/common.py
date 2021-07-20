@@ -1,3 +1,4 @@
+import time
 from pathlib import Path
 import superannotate as sa
 
@@ -14,11 +15,8 @@ def upload_project(
     if isinstance(project_path, str):
         project_path = Path(project_path)
 
-    projects = sa.search_projects(project_name, return_metadata=True)
-    for project in projects:
-        sa.delete_project(project)
-
-    project = sa.create_project(project_name, description, ptype)
+    from .test_assign_images import safe_create_project
+    project = safe_create_project(project_name,description,ptype)
 
     sa.create_annotation_classes_from_classes_json(
         project,
@@ -35,5 +33,5 @@ def upload_project(
     sa.upload_annotations_from_folder_to_project(
         project, project_path, from_s3_bucket=from_s3_bucket
     )
-
+    time.sleep(2)
     return project

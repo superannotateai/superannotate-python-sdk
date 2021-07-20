@@ -1183,33 +1183,44 @@ def coco_split_dataset(*args, **kwargs):
 
 
 def run_training(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0][0]
+
     task = kwargs.get("task", None)
     if not task:
-        task = args[4]
-    hyperparameters = kwargs.get("hyperparameters", None)
-    if not hyperparameters:
-        hyperparameters = args[4]
-    from superannotate.db.projects import get_project_metadata as sa_get_project_metadata
-    project_name = get_project_name(project)
-    project_metadata = sa_get_project_metadata(project_name)
+        task = args[2]
     log = kwargs.get("log", "empty")
     if log == "empty":
-        log = args[6:7]
+        log = args[7:8]
         if not log:
             log = False
         else:
-            log = args[6]
+            log = args[7]
+
+    train_data = kwargs.get("train_data", None)
+    if not train_data:
+        train_data = args[4]
+
+    test_data = kwargs.get("test_data", None)
+    if not test_data:
+        test_data = args[5]
+
+    data_structure = "Project"
+
+    for path in train_data + test_data:
+        if "/" in path:
+            data_structure = "Folder"
+            break
+
+    from superannotate.db.projects import get_project_metadata as sa_get_project_metadata
+    project_name = get_project_name(train_data[0])
+    project_metadata = sa_get_project_metadata(project_name)
+
     return {
         "event_name": "run_training",
         "properties":
             {
                 "Project Type": project_metadata['type'],
                 "Task": task,
-                "Learning Rate": hyperparameters['base_lr'],
-                "Batch Size": hyperparameters['images_per_batch'],
+                "Data Structure": data_structure,
                 "Log": log
             }
     }
@@ -1673,6 +1684,7 @@ def assign_folder(*args, **kwargs):
         }
     }
 
+
 def unassign_images(*args, **kwargs):
     image_names = kwargs.get("image_names", None)
     if not image_names:
@@ -1690,19 +1702,9 @@ def unassign_images(*args, **kwargs):
 
     return {
         "event_name": "unassign_images",
-        "properties": {
-            "Assign Folder": is_root,
-            "Image Count": len(image_names)
-        }
+        "properties":
+            {
+                "Assign Folder": is_root,
+                "Image Count": len(image_names)
+            }
     }
-
-
-
-
-# def unassign_images(project, image_names):
-
-
-
-#
-# Assign Folder: IsRoot(project) ,
-# Image Count: len(image_names),

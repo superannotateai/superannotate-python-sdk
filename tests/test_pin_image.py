@@ -17,13 +17,16 @@ def test_pin_image(tmpdir):
     for project in projects:
         sa.delete_project(project)
 
-    project = sa.create_project(PROJECT_NAME1, "test", "Vector")
+    time.sleep(2)
 
+    project = sa.create_project(PROJECT_NAME1, "test", "Vector")
+    time.sleep(2)
     sa.upload_images_from_folder_to_project(
         project,
         "./tests/sample_project_vector",
         annotation_status="QualityCheck"
     )
+    time.sleep(2)
 
     img_metadata0 = sa.get_image_metadata(project, "example_image_1.jpg")
     assert img_metadata0["is_pinned"] == 0
@@ -57,9 +60,12 @@ def test_pin_image_in_folder(tmpdir):
     projects = sa.search_projects(PROJECT_NAME2, return_metadata=True)
     for project in projects:
         sa.delete_project(project)
+    time.sleep(2)
 
     project = sa.create_project(PROJECT_NAME2, "test", "Vector")
+    time.sleep(2)
     sa.create_folder(project, FOLDER2)
+    time.sleep(2)
 
     project_folder = project["name"] + "/" + FOLDER2
     sa.upload_images_from_folder_to_project(
@@ -67,6 +73,7 @@ def test_pin_image_in_folder(tmpdir):
         "./tests/sample_project_vector",
         annotation_status="QualityCheck"
     )
+    time.sleep(2)
 
     img_metadata0 = sa.get_image_metadata(project_folder, "example_image_1.jpg")
     assert img_metadata0["is_pinned"] == 0

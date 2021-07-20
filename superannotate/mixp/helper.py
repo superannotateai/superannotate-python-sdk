@@ -1,1 +1,1 @@
-CALLERS_TO_IGNORE = ["get_project_metadata_bare"]
+CALLERS_TO_IGNORE = ["get_project_metadata_bare", "_path_to_folder_id_project"]

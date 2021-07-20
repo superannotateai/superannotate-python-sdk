@@ -1,3 +1,4 @@
+import time
 from pathlib import Path
 
 import superannotate as sa
@@ -17,6 +18,7 @@ def test_get_exports(tmpdir):
         'Vector',
         annotation_status='QualityCheck'
     )
+    time.sleep(2)
     # projects_found = sa.search_projects(PROJECT_NAME1, return_metadata=True)
     # for pr in projects_found:
     #     sa.delete_project(pr)
@@ -35,8 +37,8 @@ def test_get_exports(tmpdir):
     #     "./tests/sample_project_vector/",
     # )
     exports_old = sa.get_exports(project)
-
     export = sa.prepare_export(project)
+    time.sleep(2)
     sa.download_export(project, export["name"], tmpdir)
     js = list(tmpdir.glob("*.json"))
 
