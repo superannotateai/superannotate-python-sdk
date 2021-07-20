@@ -160,3 +160,11 @@ class CLIFacade(BaseInterfaceFacade):
         ]
 
         return list_of_uploaded, list_of_not_uploaded, duplicate_images
+
+    def attach_video_urls(self, project: str, attachments: str, annotation_status):
+        (
+            list_of_uploaded,
+            list_of_not_uploaded,
+            duplicate_images,
+        ) = self.attach_image_urls(project, attachments, annotation_status)
+        return list_of_uploaded, list_of_not_uploaded, duplicate_images
