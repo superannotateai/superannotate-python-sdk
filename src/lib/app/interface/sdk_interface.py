@@ -1847,6 +1847,34 @@ def move_image(
     controller.delete_image(image_name, source_project_name)
 
 
+def download_export(
+    project, export, folder_path, extract_zip_contents=True, to_s3_bucket=None
+):
+    """Download prepared export.
+
+    WARNING: Starting from version 1.9.0 :ref:`download_export <ref_download_export>` additionally
+    requires :py:obj:`project` as first argument.
+
+    :param project: project name
+    :type project: str
+    :param export: export name
+    :type export: str
+    :param folder_path: where to download the export
+    :type folder_path: Pathlike (str or Path)
+    :param extract_zip_contents: if False then a zip file will be downloaded,
+     if True the zip file will be extracted at folder_path
+    :type extract_zip_contents: bool
+    :param to_s3_bucket: AWS S3 bucket to use for download. If None then folder_path is in local filesystem.
+    :type tofrom_s3_bucket: str
+    """
+
+    controller.download_export(project_name=project,
+                               export_name=export,
+                               folder_path=folder_path,
+                               extract_zip_contents=extract_zip_contents,
+                               to_s3_bucket=to_s3_bucket)
+
+
 def set_image_annotation_status(project, image_name, annotation_status):
     """Sets the image annotation status
 

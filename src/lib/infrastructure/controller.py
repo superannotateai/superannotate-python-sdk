@@ -31,6 +31,7 @@ from src.lib.core.usecases import DeleteImageUseCase
 from src.lib.core.usecases import DeleteProjectUseCase
 from src.lib.core.usecases import DownloadAnnotationClassesUseCase
 from src.lib.core.usecases import DownloadAzureCloudImages
+from src.lib.core.usecases import DownloadExportUseCase
 from src.lib.core.usecases import DownloadGoogleCloudImages
 from src.lib.core.usecases import DownloadImageAnnotationsUseCase
 from src.lib.core.usecases import DownloadImageFromPublicUrlUseCase
@@ -1236,3 +1237,23 @@ class Controller(BaseController):
         )
         use_case.execute()
         return self.response
+
+    def download_export(
+        self,
+        project_name: str,
+        export_name: str,
+        folder_path: str,
+        extract_zip_contents: bool,
+        to_s3_bucket: bool,
+    ):
+        project = self._get_project(project_name)
+        use_case = DownloadExportUseCase(
+            response=self.response,
+            service=self._backend_client,
+            project=project,
+            export_name=export_name,
+            folder_path=folder_path,
+            extract_zip_contents=extract_zip_contents,
+            to_s3_bucket=to_s3_bucket,
+        )
+        use_case.execute()
