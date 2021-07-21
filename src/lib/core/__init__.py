@@ -16,9 +16,32 @@ BACKEND_URL = "https://api.devsuperannotate.com"
 DEFAULT_IMAGE_EXTENSIONS = ("jpg", "jpeg", "png", "tif", "tiff", "webp", "bmp")
 DEFAULT_FILE_EXCLUDE_PATTERNS = ("___save.png", "___fuse.png")
 DEFAULT_VIDEO_EXTENSIONS = ("mp4", "avi", "mov", "webm", "flv", "mpg", "ogg")
+DEFAULT_HYPER_PARAMETERS = {
+    "instance_type": "1 x T4 16 GB",
+    "num_epochs": 12,
+    "dataset_split_ratio": 80,
+    "base_lr": 0.02,
+    "gamma": 0.5,
+    "images_per_batch": 4,
+    "batch_per_image": 512,
+    "steps": [5],
+    "evaluation_period": 12,
+    "runtime_seconds": 600,
+    "estimated_remaining_time": 600,
+    "template_id": None,
+}
+
+MODEL_TRAINING_TASKS = {
+    "Instance Segmentation for Pixel Projects": "instance_segmentation_pixel",
+    "Instance Segmentation for Vector Projects": "instance_segmentation_vector",
+    "Keypoint Detection for Vector Projects": "keypoint_detection_vector",
+    "Object Detection for Vector Projects": "object_detection_vector",
+    "Semantic Segmentation for Pixel Projects": "semantic_segmentation_pixel",
+}
 
 VECTOR_ANNOTATION_POSTFIX = "___objects.json"
 PIXEL_ANNOTATION_POSTFIX = "___pixel.json"
+ANNOTATION_MASK_POSTFIX = "___save.png"
 
 SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES = set('/\\:*?"<>|')
 MAX_PIXEL_RESOLUTION = 4_000_000
