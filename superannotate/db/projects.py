@@ -215,6 +215,7 @@ def _get_target_frames_count(video_path, target_fps):
     """
     Get video frames count
     """
+    # deprecated : because cv2.CAP_PROP_FPS in not reliable
     video = cv2.VideoCapture(str(video_path), cv2.CAP_FFMPEG)
     total_num_of_frames = 0
     flag = True
@@ -225,7 +226,7 @@ def _get_target_frames_count(video_path, target_fps):
         else:
             break
 
-    return math.ceil((total_num_of_frames*target_fps) / video.get(cv2.CAP_PROP_FPS))
+    return math.ceil((total_num_of_frames * target_fps) / video.get(cv2.CAP_PROP_FPS))
 
 
 def _get_video_frames_count(video_path):
@@ -244,22 +245,22 @@ def _get_video_frames_count(video_path):
     return total_num_of_frames
 
 
-def _get_video_fps_ration(target_fps, video, ratio):
+def _get_video_fps_ration(target_fps, video, ratio, log):
     """
     Get video fps / target fps ratio
     """
     video_fps = float(video.get(cv2.CAP_PROP_FPS))
-    if target_fps >= video_fps:
+    if target_fps >= video_fps and log:
         logger.warning(
             "Video frame rate %s smaller than target frame rate %s. Cannot change frame rate.",
             video_fps, target_fps
         )
     else:
-
-        logger.info(
-            "Changing video frame rate from %s to target frame rate %s.",
-            video_fps, target_fps
-        )
+        if log:
+            logger.info(
+                "Changing video frame rate from %s to target frame rate %s.",
+                video_fps, target_fps
+            )
         ratio = video_fps / target_fps
     return ratio
 
@@ -274,7 +275,7 @@ def _get_available_image_counts(project, folder):
     return res['availableImageCount']
 
 
-def _get_video_rotate_code(video_path):
+def _get_video_rotate_code(video_path, log=True):
     rotate_code = None
     try:
         cv2_rotations = {
@@ -286,42 +287,43 @@ def _get_video_rotate_code(video_path):
         meta_dict = ffmpeg.probe(str(video_path))
         rot = int(meta_dict['streams'][0]['tags']['rotate'])
         rotate_code = cv2_rotations[rot]
-        if rot != 0:
+        if rot != 0 and log:
             logger.info(
                 "Frame rotation of %s found. Output images will be rotated accordingly.",
                 rot
             )
     except Exception as e:
         warning_str = ""
-        if "ffprobe" in str(e):
+        if "ffprobe" in str(e) and log:
             warning_str = "This could be because ffmpeg package is not installed. To install it, run: sudo apt install ffmpeg"
 
-        logger.warning(
-            "Couldn't read video metadata to determine rotation. %s",
-            warning_str
-        )
+        if log:
+            logger.warning(
+                "Couldn't read video metadata to determine rotation. %s",
+                warning_str
+            )
     return rotate_code
 
 
 def _extract_frames_from_video(
-        start_time, end_time, video_path, tempdir, limit, target_fps, chunk_size
+        start_time, end_time, video_path, tempdir, limit, target_fps, chunk_size, save
 ):
     video = cv2.VideoCapture(str(video_path), cv2.CAP_FFMPEG)
     if not video.isOpened():
         raise SABaseException(0, "Couldn't open video file " + str(video_path))
     total_num_of_frames = _get_video_frames_count(video_path)
-
-    logger.info("Video frame count is %s.", total_num_of_frames)
+    if save:
+        logger.info("Video frame count is %s.", total_num_of_frames)
     ratio = 1.0
     if target_fps:
-        ratio = _get_video_fps_ration(target_fps, video, ratio)
-    rotate_code = _get_video_rotate_code(video_path)
+        ratio = _get_video_fps_ration(target_fps, video, ratio, log=save)
+    rotate_code = _get_video_rotate_code(video_path, log=save)
     video_name = Path(video_path).stem
     frame_no = 0
     frame_no_with_change = 1.0
     extracted_frame_no = 1
-
-    logger.info("Extracting frames from video to %s.", tempdir.name)
+    if save:
+        logger.info("Extracting frames from video to %s.", tempdir.name)
     zero_fill_count = len(str(total_num_of_frames))
     extracted_frames_paths = []
     all_paths = []
@@ -346,8 +348,8 @@ def _extract_frames_from_video(
                     str(extracted_frame_no).zfill(zero_fill_count) + ".jpg"
             )
         )
-
-        cv2.imwrite(path, frame)
+        if save:
+            cv2.imwrite(path, frame)
         extracted_frames_paths.append(path)
         extracted_frame_no += 1
         if len(extracted_frames_paths) % chunk_size == 0:
@@ -361,6 +363,7 @@ def _extract_frames_from_video(
         extracted_frames_paths = []
         yield q
     return extracted_frames_paths
+
 
 @Trackable
 def upload_video_to_project(
@@ -420,10 +423,16 @@ def upload_video_to_project(
     tempdir = tempfile.TemporaryDirectory()
     upload_file_names = []
     chunk_size = 100
-    all_frames_count = _get_target_frames_count(video_path, target_fps)
+    all_frames_count = 0
+
+    for frames_path in _extract_frames_from_video(
+            start_time, end_time, video_path, tempdir, limit, target_fps, chunk_size, False
+    ):
+        all_frames_count += len(frames_path)
+
     pbar = None
     for _ in _extract_frames_from_video(
-            start_time, end_time, video_path, tempdir, limit, target_fps, chunk_size
+            start_time, end_time, video_path, tempdir, limit, target_fps, chunk_size, save=True
     ):
         if not pbar:
             pbar = tqdm(total=all_frames_count)
@@ -471,7 +480,7 @@ def upload_videos_from_folder_to_project(
     :type project: str
     :param folder_path: from which folder to upload the videos
     :type folder_path: Pathlike (str or Path)
-    :param extensions: tuple or list of filename extensions to include from folder 
+    :param extensions: tuple or list of filename extensions to include from folder
     :type extensions: tuple or list of strs
     :param exclude_file_patterns: filename patterns to exclude from uploading
     :type exclude_file_patterns: listlike of strs
@@ -751,7 +760,7 @@ def attach_image_urls_to_project(
         project, attachments, annotation_status="NotStarted"
 ):
     """Link images on external storage to SuperAnnotate.
-    
+
     :param project: project name or project folder path
     :type project: str or dict
     :param attachments: path to csv file on attachments metadata
