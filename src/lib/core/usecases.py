@@ -3272,17 +3272,25 @@ class DownloadExportUseCase(BaseUseCase):
         )
         export_id = None
         for export in exports:
-            if (
-                export["name"] == self._export_name
-                and export["status"] == ExportStatus.COMPLETE.value
-            ):
+            if export["name"] == self._export_name:
                 export_id = export["id"]
                 break
-        export = self._service.get_export(
-            team_id=self._project.team_id,
-            project_id=self._project.uuid,
-            export_id=export_id,
-        )
+
+        while True:
+            export = self._service.get_export(
+                team_id=self._project.team_id,
+                project_id=self._project.uuid,
+                export_id=export_id,
+            )
+            if export["status"] == ExportStatus.IN_PROGRESS.value:
+                print("Waiting 5 seconds for export to finish on server.")
+                time.sleep(5)
+                continue
+            if export["status"] == ExportStatus.ERROR.value:
+                # raise SABaseException(0, "Couldn't download export.")
+                pass
+            break
+
         filename = Path(export["path"]).name
         filepath = Path(self._folder_path) / filename
         with requests.get(export["download"], stream=True) as r:

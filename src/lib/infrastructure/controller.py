@@ -375,13 +375,14 @@ class Controller(BaseController):
 
     def prepare_export(
         self,
-        project: ProjectEntity,
+        project_name: str,
         folder_names: List[str],
         include_fuse: bool,
         only_pinned: bool,
         annotation_statuses: List[str] = None,
     ):
 
+        project = self._get_project(project_name)
         use_case = usecases.PrepareExportUseCase(
             response=self.response,
             project=project,
