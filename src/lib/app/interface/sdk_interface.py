@@ -1870,11 +1870,13 @@ def download_export(
     :type tofrom_s3_bucket: str
     """
 
-    controller.download_export(project_name=project,
-                               export_name=export,
-                               folder_path=folder_path,
-                               extract_zip_contents=extract_zip_contents,
-                               to_s3_bucket=to_s3_bucket)
+    controller.download_export(
+        project_name=project,
+        export_name=export,
+        folder_path=folder_path,
+        extract_zip_contents=extract_zip_contents,
+        to_s3_bucket=to_s3_bucket,
+    )
 
 
 def set_image_annotation_status(project, image_name, annotation_status):

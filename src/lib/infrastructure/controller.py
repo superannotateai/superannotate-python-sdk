@@ -97,8 +97,8 @@ class BaseController:
 
     @property
     def response(self):
-        # return self._response
-        return Response()
+        self._response = Response()
+        return self._response
 
     @property
     def projects(self):
@@ -444,7 +444,7 @@ class Controller(BaseController):
         )
         use_case.execute()
 
-        return self.response
+        return self._response
 
     def get_team(self):
         use_case = GetTeamUseCase(
