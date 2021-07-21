@@ -1,9 +1,11 @@
+import time
 from pathlib import Path
 import json
 
 import pytest
 
 import superannotate as sa
+
 
 sa.init(Path.home() / ".superannotate" / "config.json")
 
@@ -26,6 +28,8 @@ def test_basic_project(project_type, name, description, from_folder, tmpdir):
     projects_found = sa.search_projects(name, return_metadata=True)
     for pr in projects_found:
         sa.delete_project(pr)
+
+    time.sleep(2)
 
     projects_found = sa.search_projects(name, return_metadata=True)
     assert len(projects_found) == 0

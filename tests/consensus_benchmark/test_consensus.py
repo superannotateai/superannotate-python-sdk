@@ -1,3 +1,4 @@
+import time
 from pathlib import Path
 
 import superannotate as sa
@@ -16,13 +17,15 @@ def test_consensus():
     export_path = test_root / 'consensus_benchmark' / 'consensus_test_data'
     if len(sa.search_projects(project_name)) != 0:
         sa.delete_project(project_name)
-
+    time.sleep(2)
     sa.create_project(project_name, "test bench", "Vector")
+    time.sleep(2)
     for i in range(1, 4):
         sa.create_folder(project_name, "consensus_" + str(i))
     sa.create_annotation_classes_from_classes_json(
         project_name, export_path / 'classes' / 'classes.json'
     )
+    time.sleep(2)
     sa.upload_images_from_folder_to_project(
         project_name, export_path / "images", annotation_status="Completed"
     )

@@ -1,15 +1,16 @@
-import superannotate as sa
+import time
 
-PROJECT_NAME1 = "test create from full info1"
-PROJECT_NAME2 = "test create from full info2"
+import superannotate as sa
+from .test_assign_images import safe_create_project
+
+
 
 
 def test_create_from_full_info():
-    projects = sa.search_projects(PROJECT_NAME1, return_metadata=True)
-    for project in projects:
-        sa.delete_project(project)
+    PROJECT_NAME1 = "test create from full info1"
+    PROJECT_NAME2 = "test create from full info2"
 
-    project = sa.create_project(PROJECT_NAME1, "test", "Vector")
+    project = safe_create_project(PROJECT_NAME1,"test","Vector")
 
     sa.upload_images_from_folder_to_project(
         project, "./tests/sample_project_vector"
@@ -17,7 +18,9 @@ def test_create_from_full_info():
     sa.create_annotation_classes_from_classes_json(
         project, "./tests/sample_project_vector/classes/classes.json"
     )
+    time.sleep(2)
     old_settings = sa.get_project_settings(PROJECT_NAME1)
+
     for setting in old_settings:
         if "attribute" in setting and setting["attribute"] == "Brightness":
             brightness_value = setting["value"]
@@ -46,7 +49,9 @@ def test_create_from_full_info():
     projects = sa.search_projects(PROJECT_NAME2, return_metadata=True)
     for project in projects:
         sa.delete_project(project)
+    time.sleep(2)
     sa.create_project_from_metadata(project_metadata)
+    time.sleep(2)
     new_project_metadata = sa.get_project_metadata(
         PROJECT_NAME2,
         include_annotation_classes=True,

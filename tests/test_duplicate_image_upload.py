@@ -3,18 +3,14 @@ from pathlib import Path
 import pytest
 
 import superannotate as sa
+from .test_assign_images import safe_create_project
 
 PROJECT_NAME_VECTOR = "test duplicate upload images"
 
 
 def test_duplicate_upload_images(tmpdir):
-    tmpdir = Path(tmpdir)
 
-    projects = sa.search_projects(PROJECT_NAME_VECTOR, return_metadata=True)
-    for project in projects:
-        sa.delete_project(project)
-
-    project = sa.create_project(PROJECT_NAME_VECTOR, "test", "Vector")
+    project = safe_create_project(PROJECT_NAME_VECTOR)
 
     uploaded, could_not_upload, existing_images = sa.upload_images_from_folder_to_project(
         project, "./tests/sample_project_vector"
