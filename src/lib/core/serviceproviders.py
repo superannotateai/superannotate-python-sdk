@@ -266,3 +266,6 @@ class SuerannotateServiceProvider(ABC):
 
     def delete_model(self, team_id: int, model_id: int):
         raise NotImplementedError
+
+    def stop_model_training(self, team_id: int, model_id: int):
+        raise NotImplementedError

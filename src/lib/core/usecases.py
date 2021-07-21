@@ -3247,6 +3247,28 @@ class DeleteMLModel(BaseUseCase):
         self._models.delete(self._model_id)
 
 
+class StopModelTraining(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        model_id: int,
+        team_id: int,
+        backend_service_provider: SuerannotateServiceProvider,
+    ):
+        super().__init__(response)
+
+        self._model_id = model_id
+        self._team_id = team_id
+        self._backend_service = backend_service_provider
+
+    def execute(self):
+        is_stopped = self._backend_service.stop_model_training(
+            self._team_id, self._model_id
+        )
+        if not is_stopped:
+            self._response.errors = AppException("Something went wrong.")
+
+
 class DownloadExportUseCase(BaseUseCase):
     def __init__(
         self,
