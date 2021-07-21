@@ -11,6 +11,7 @@ from src.lib.core.entities import AnnotationClassEntity
 from src.lib.core.entities import ConfigEntity
 from src.lib.core.entities import FolderEntity
 from src.lib.core.entities import ImageEntity
+from src.lib.core.entities import MLModelEntity
 from src.lib.core.entities import ProjectEntity
 from src.lib.core.entities import ProjectSettingEntity
 from src.lib.core.entities import S3FileEntity
@@ -226,7 +227,10 @@ class WorkflowRepository(BaseProjectRelatedManageableRepository):
         )
 
 
-class FolderRepository(BaseProjectRelatedManageableRepository):
+class FolderRepository(BaseManageableRepository):
+    def __init__(self, service: SuperannotateBackendService):
+        self._service = service
+
     def get_one(self, uuid: Condition) -> FolderEntity:
         condition = uuid.build_query()
         data = self._service.get_folder(condition)
@@ -251,9 +255,9 @@ class FolderRepository(BaseProjectRelatedManageableRepository):
         return self.dict2entity(res)
 
     def update(self, entity: FolderEntity):
-        self._service.update_folder(
-            self._project.uuid, self._project.team_id, entity.to_dict()
-        )
+        project_id = entity.project_id
+        team_id = entity.team_id
+        self._service.update_folder(project_id, team_id, entity.to_dict())
 
     def delete(self, uuid: int):
         self._service.delete_folders(self._project.uuid, self._project.team_id, [uuid])
@@ -391,4 +395,45 @@ class TeamRepository(BaseReadOnlyRepository):
             is_default=data["is_default"],
             users=[UserRepository.dict2entity(user) for user in data["users"]],
             pending_invitations=data["pending_invitations"],
+        )
+
+
+class MLModelRepository(BaseManageableRepository):
+    def __init__(self, service: SuperannotateBackendService, team_id: int):
+        self._team_id = team_id
+        self._service = service
+
+    def get_one(self, uuid: int) -> MLModelEntity:
+        raise NotImplementedError
+
+    def get_all(self, condition: Optional[Condition] = None) -> List[MLModelEntity]:
+        models = self._service.search_models(condition.build_query())
+        return [self.dict2entity(model) for model in models]
+
+    def insert(self, entity: MLModelEntity) -> MLModelEntity:
+        data = self._service.start_model_training(self._team_id, entity.to_dict())
+        return self.dict2entity(data)
+
+    def delete(self, uuid: int):
+        self._service.delete_model(self._team_id, uuid)
+
+    def update(self, entity: MLModelEntity):
+        model_data = {k: v for k, v in entity.to_dict().items() if v}
+        data = self._service.update_model(
+            team_id=self._team_id, model_id=entity.uuid, data=model_data
+        )
+        return self.dict2entity(data)
+
+    @staticmethod
+    def dict2entity(data: dict):
+        return MLModelEntity(
+            uuid=data["id"],
+            name=data["name"],
+            description=data["description"],
+            base_model_id=data["base_model_id"],
+            project_type=data["project_type"],
+            task=data["task"],
+            image_count=data["image_count"],
+            test_folder_ids=data["test_folder_ids"],
+            train_folder_ids=data["train_folder_ids"],
         )

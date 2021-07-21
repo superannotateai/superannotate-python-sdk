@@ -246,3 +246,23 @@ class SuerannotateServiceProvider(ABC):
 
     def get_templates(self, team_id: int):
         raise NotImplementedError
+
+    def start_model_training(self, team_id: int, hyper_parameters: dict) -> dict:
+        raise NotImplementedError
+
+    def get_model_metrics(self, team_id: int, model_id: int) -> dict:
+        raise NotImplementedError
+
+    def get_models(
+        self, name: str, team_id: int, project_id: int, model_type: str
+    ) -> List:
+        raise NotImplementedError
+
+    def bulk_get_folders(self, team_id: int, project_ids: List[int]):
+        raise NotImplementedError
+
+    def update_model(self, team_id: int, model_id: int, data: dict):
+        raise NotImplementedError
+
+    def delete_model(self, team_id: int, model_id: int):
+        raise NotImplementedError

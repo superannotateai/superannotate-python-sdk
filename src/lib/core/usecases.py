@@ -29,6 +29,7 @@ from src.lib.core.entities import AnnotationClassEntity
 from src.lib.core.entities import FolderEntity
 from src.lib.core.entities import ImageEntity
 from src.lib.core.entities import ImageInfoEntity
+from src.lib.core.entities import MLModelEntity
 from src.lib.core.entities import ProjectEntity
 from src.lib.core.entities import ProjectSettingEntity
 from src.lib.core.entities import S3FileEntity
@@ -492,14 +493,17 @@ class CreateFolderUseCase(BaseUseCase):
     def __init__(
         self,
         response: Response,
+        project: ProjectEntity,
         folder: FolderEntity,
         folders: BaseManageableRepository,
     ):
         super().__init__(response)
+        self._project = project
         self._folder = folder
         self._folders = folders
 
     def execute(self):
+        self._folder.project_id = self._project.uuid
         self._response.data = self._folders.insert(self._folder)
 
     def validate_folder_name(self):
@@ -519,6 +523,7 @@ class AttachFileUrlsUseCase(BaseUseCase):
         self,
         response: Response,
         project: ProjectEntity,
+        folder: FolderEntity,
         attachments: List[ImageEntity],
         limit: int,
         backend_service_provider: SuerannotateServiceProvider,
@@ -2696,12 +2701,132 @@ class DownloadImageUseCase(BaseUseCase):
         )
 
 
-class UploadAnnotationsUseCase(BaseUseCase):
-    VECTOR_ANNOTATION_POSTFIX = "___objects.json"
-    PIXEL_ANNOTATION_POSTFIX = "___pixel.json"
-    ANNOTATION_MASK_POSTFIX = "___save.png"
-    CHUNK_SIZE = 500
+class UploadImageAnnotationsUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        annotation_classes: BaseReadOnlyRepository,
+        image_name: str,
+        annotations: dict,
+        backend_service_provider: SuerannotateServiceProvider,
+        mask=None,
+    ):
+        super().__init__(response)
+        self._project = project
+        self._folder = folder
+        self._backend_service = backend_service_provider
+        self._annotation_classes = annotation_classes
+        self._image_name = image_name
+        self._annotations = annotations
+        self._mask = mask
 
+    @property
+    def annotation_classes_name_map(self) -> dict:
+        classes_data = defaultdict(dict)
+        annotation_classes = self._annotation_classes.get_all(
+            Condition("project_id", self._project.uuid, EQ)
+            & Condition("team_id", self._project.team_id, EQ)
+        )
+        for annotation_class in annotation_classes:
+            class_info = {"id": annotation_class.uuid}
+            if annotation_class.attribute_groups:
+                for attribute_group in annotation_class.attribute_groups:
+                    attribute_group_data = defaultdict(dict)
+                    for attribute in attribute_group["attributes"]:
+                        attribute_group_data[attribute["name"]] = attribute["id"]
+                    class_info["attribute_groups"][attribute_group["name"]] = {
+                        "id": attribute_group["id"],
+                        "attributes": attribute_group_data,
+                    }
+            classes_data[annotation_class.name] = class_info
+        return classes_data
+
+    def fill_classes_data(self, annotations: dict):
+        annotation_classes = self.annotation_classes_name_map
+        if "instances" not in annotations:
+            return
+        unknown_classes = {}
+        for annotation in [i for i in annotations["instances"] if "className" in i]:
+            if "className" not in annotation:
+                return
+            annotation_class_name = annotation["className"]
+            if annotation_class_name not in annotation_classes:
+                if annotation_class_name not in unknown_classes:
+                    unknown_classes[annotation_class_name] = {
+                        "id": -(len(unknown_classes) + 1),
+                        "attribute_groups": {},
+                    }
+        annotation_classes.update(unknown_classes)
+        templates = self.get_templates_mapping()
+        for annotation in (
+            i for i in annotations["instances"] if i.get("type", None) == "template"
+        ):
+            annotation["templateId"] = templates.get(
+                annotation.get("templateName", ""), -1
+            )
+
+        for annotation in [i for i in annotations["instances"] if "className" in i]:
+            annotation_class_name = annotation["className"]
+            if annotation_class_name not in annotation_classes:
+                continue
+            annotation["classId"] = annotation_classes[annotation_class_name]["id"]
+            for attribute in annotation["attributes"]:
+                if (
+                    attribute["groupName"]
+                    not in annotation_classes[annotation_class_name]["attribute_groups"]
+                ):
+                    continue
+                attribute["groupId"] = annotation_classes[annotation_class_name][
+                    attribute["groupName"]
+                ]["id"]
+                if (
+                    attribute["name"]
+                    not in annotation_classes[annotation_class_name][
+                        "attribute_groups"
+                    ][attribute["groupName"]]["attributes"]
+                ):
+                    del attribute["groupId"]
+                    continue
+                attribute["id"] = annotation_classes[annotation_class_name][
+                    "attribute_groups"
+                ][attribute["groupName"]]["attributes"]
+
+    def execute(self):
+
+        image_data = self._backend_service.get_images_bulk(
+            image_names=[self._image_name],
+            team_id=self._project.team_id,
+            project_id=self._project.uuid,
+        )[0]
+
+        auth_data = self._backend_service.get_annotation_upload_data(
+            project_id=self._project.uuid,
+            team_id=self._project.team_id,
+            folder_id=self._folder.uuid,
+            image_ids=[image_data["id"]],
+        )
+
+        session = boto3.Session(
+            aws_access_key_id=auth_data["creds"]["accessKeyId"],
+            aws_secret_access_key=auth_data["creds"]["secretAccessKey"],
+            aws_session_token=auth_data["creds"]["sessionToken"],
+            region_name=auth_data["creds"]["region"],
+        )
+        resource = session.resource("s3")
+        bucket = resource.Bucket(auth_data["bucket"])
+
+        self.fill_classes_data(self._annotations)
+
+        bucket.put_object(
+            Key=auth_data["filePath"], Body=json.dumps(self._annotations),
+        )
+        if self._project.project_type == constances.ProjectType.PIXEL.value:
+            bucket.put_object(Key=auth_data["annotation_bluemap_path"], Body=self._mask)
+
+
+class UploadAnnotationsUseCase(BaseUseCase):
     def __init__(
         self,
         response: Response,
@@ -2714,7 +2839,7 @@ class UploadAnnotationsUseCase(BaseUseCase):
         pre_annotation: bool = False,
         client_s3_bucket=None,
     ):
-        super().__init__(response)
+        super().__init__(response=response)
         self._project = project
         self._folder = folder
         self._backend_service = backend_service_provider
@@ -2747,14 +2872,14 @@ class UploadAnnotationsUseCase(BaseUseCase):
                         "attributes": attribute_group_data,
                     }
             classes_data[annotation_class.name] = class_info
-        return annotation_classes
+        return classes_data
 
     @property
     def annotation_postfix(self):
         return (
-            self.VECTOR_ANNOTATION_POSTFIX
+            constances.VECTOR_ANNOTATION_POSTFIX
             if self._project.project_type == constances.ProjectType.VECTOR.name
-            else self.PIXEL_ANNOTATION_POSTFIX
+            else constances.PIXEL_ANNOTATION_POSTFIX
         )
 
     def get_templates_mapping(self):
@@ -2826,13 +2951,13 @@ class UploadAnnotationsUseCase(BaseUseCase):
                     id=None,
                     path=annotation_path,
                     name=annotation_path.replace(
-                        self.PIXEL_ANNOTATION_POSTFIX, ""
-                    ).replace(self.VECTOR_ANNOTATION_POSTFIX, ""),
+                        constances.PIXEL_ANNOTATION_POSTFIX, ""
+                    ).replace(constances.VECTOR_ANNOTATION_POSTFIX, ""),
                 )
             )
         image_names = [
-            annotation_path.replace(self.PIXEL_ANNOTATION_POSTFIX, "").replace(
-                self.VECTOR_ANNOTATION_POSTFIX, ""
+            annotation_path.replace(constances.PIXEL_ANNOTATION_POSTFIX, "").replace(
+                constances.VECTOR_ANNOTATION_POSTFIX, ""
             )
             for annotation_path in annotation_paths
         ]
@@ -2907,7 +3032,7 @@ class UploadAnnotationsUseCase(BaseUseCase):
             )
             if self._project.project_type == constances.ProjectType.PIXEL.value:
                 mask_filename = (
-                    image_id_name_map[image_id] + self.ANNOTATION_MASK_POSTFIX
+                    image_id_name_map[image_id] + constances.ANNOTATION_MASK_POSTFIX
                 )
                 if from_s3:
                     file = io.BytesIO()
@@ -2925,6 +3050,201 @@ class UploadAnnotationsUseCase(BaseUseCase):
                 bucket.put_object(Key=image_info["annotation_bluemap_path"], Body=file)
 
         self._response.data = annotations_to_upload, missing_annotations
+
+
+class CreateModelUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        base_model_name: str,
+        model_name: str,
+        model_description: str,
+        task: str,
+        team_id: int,
+        train_data_paths: List[str],
+        test_data_paths: List[str],
+        backend_service_provider: SuerannotateServiceProvider,
+        projects: BaseReadOnlyRepository,
+        folders: BaseReadOnlyRepository,
+        ml_models: BaseManageableRepository,
+        hyper_parameters: dict = None,
+    ):
+        super().__init__(response)
+        self._base_model_name = base_model_name
+        self._model_name = model_name
+        self._model_description = model_description
+        self._task = task
+        self._team_id = team_id
+        self._hyper_parameters = hyper_parameters
+        self._train_data_paths = train_data_paths
+        self._test_data_paths = test_data_paths
+        self._backend_service = backend_service_provider
+        self._ml_models = ml_models
+        self._projects = projects
+        self._folders = folders
+
+    @property
+    def hyper_parameters(self):
+        if self._hyper_parameters:
+            for parameter in constances.DEFAULT_HYPER_PARAMETERS:
+                if parameter not in self._hyper_parameters:
+                    self._hyper_parameters[
+                        parameter
+                    ] = constances.DEFAULT_HYPER_PARAMETERS[parameter]
+        else:
+            self._hyper_parameters = constances.DEFAULT_HYPER_PARAMETERS
+        return self._hyper_parameters
+
+    @staticmethod
+    def split_path(path: str):
+        if "/" in path:
+            return path.split("/")
+        return path, "root"
+
+    def execute(self):
+        train_folder_ids = []
+        test_folder_ids = []
+        projects = []
+
+        for path in self._train_data_paths:
+            project_name, folder_name = self.split_path(path)
+            projects = self._projects.get_all(
+                Condition("name", project_name, EQ)
+                & Condition("team_id", self._team_id, EQ)
+            )
+
+            projects.extend(projects)
+            folders = self._folders.get_all(
+                Condition("folder_name", folder_name, EQ)
+                & Condition("team_id", self._team_id, EQ)
+                & Condition("project_id", projects[0].uuid, EQ)
+            )
+            train_folder_ids.append(folders[0].uuid)
+
+        project_types = [project.project_type for project in projects]
+
+        if set(train_folder_ids) & set(test_folder_ids):
+            self._response.errors = AppException(
+                "Avoid overlapping between training and test data."
+            )
+            return
+        if len(set(project_types)) != 1:
+            self._response.errors = AppException(
+                "All projects have to be of the same type. Either vector or pixel"
+            )
+            return
+        if any(
+            {
+                True
+                for project in projects
+                if project.upload_state == constances.UploadState.EXTERNAL.value
+            }
+        ):
+            self._response.errors = AppException(
+                "The function does not support projects containing images attached with URLs"
+            )
+            return
+
+        for path in self._test_data_paths:
+            project_name, folder_name = self.split_path(path)
+            projects.extend(
+                self._projects.get_all(
+                    Condition("name", project_name, EQ)
+                    & Condition("team_id", self._team_id, EQ)
+                )
+            )
+            folders = self._folders.get_all(
+                Condition("folder_name", folder_name, EQ)
+                & Condition("team_id", self._team_id, EQ)
+                & Condition("project_id", projects[0].uuid, EQ)
+            )
+            test_folder_ids.append(folders[0].uuid)
+
+        base_model = self._ml_models.get_all(
+            Condition("name", self._base_model_name, EQ)
+            & Condition("team_id", self._team_id, EQ)
+            & Condition("task", constances.MODEL_TRAINING_TASKS[self._task], EQ)
+            & Condition("model_type", project_types[0], EQ)
+        )[0]
+
+        if base_model.project_type != project_types[0]:
+            self._response.errors = AppException(
+                f"The type of provided projects is {project_types[0]}, "
+                "and does not correspond to the type of provided model"
+            )
+            return
+
+        completed_images_data = self._backend_service.bulk_get_folders(
+            self._team_id, [project.uuid for project in projects]
+        )
+        complete_image_count = sum(
+            [
+                folder["completedCount"]
+                for folder in completed_images_data["data"]
+                if folder["id"] in train_folder_ids
+            ]
+        )
+        ml_model = MLModelEntity(
+            name=self._model_name,
+            description=self._model_description,
+            task=constances.MODEL_TRAINING_TASKS[self._task],
+            base_model_id=base_model.uuid,
+            image_count=complete_image_count,
+            project_type=project_types[0],
+            train_folder_ids=train_folder_ids,
+            test_folder_ids=test_folder_ids,
+        )
+        new_model_data = self._ml_models.insert(ml_model)
+
+        self._response.data = new_model_data
+
+
+class GetModelMetricsUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        model_id: int,
+        team_id: int,
+        backend_service_provider: SuerannotateServiceProvider,
+    ):
+        super().__init__(response)
+        self._model_id = model_id
+        self._team_id = team_id
+        self._backend_service = backend_service_provider
+
+    def execute(self):
+        metrics = self._backend_service.get_model_metrics(
+            team_id=self._team_id, model_id=self._model_id
+        )
+        self._response.data = metrics
+
+
+class UpdateModelUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        model: MLModelEntity,
+        models: BaseManageableRepository,
+    ):
+        super().__init__(response)
+        self._models = models
+        self._model = model
+
+    def execute(self):
+        model = self._models.update(self._model)
+        self._response.data = model
+
+
+class DeleteMLModel(BaseUseCase):
+    def __init__(
+        self, response: Response, model_id: int, models: BaseManageableRepository
+    ):
+        super().__init__(response)
+        self._model_id = model_id
+        self._models = models
+
+    def execute(self):
+        self._models.delete(self._model_id)
 
 
 class DownloadExportUseCase(BaseUseCase):
@@ -2952,25 +3272,17 @@ class DownloadExportUseCase(BaseUseCase):
         )
         export_id = None
         for export in exports:
-            if export["name"] == self._export_name:
+            if (
+                export["name"] == self._export_name
+                and export["status"] == ExportStatus.COMPLETE.value
+            ):
                 export_id = export["id"]
                 break
-
-        while True:
-            export = self._service.get_export(
-                team_id=self._project.team_id,
-                project_id=self._project.uuid,
-                export_id=export_id,
-            )
-            if export["status"] == ExportStatus.IN_PROGRESS.value:
-                print("Waiting 5 seconds for export to finish on server.")
-                time.sleep(5)
-                continue
-            if export["status"] == ExportStatus.ERROR.value:
-                # raise SABaseException(0, "Couldn't download export.")
-                pass
-            break
-
+        export = self._service.get_export(
+            team_id=self._project.team_id,
+            project_id=self._project.uuid,
+            export_id=export_id,
+        )
         filename = Path(export["path"]).name
         filepath = Path(self._folder_path) / filename
         with requests.get(export["download"], stream=True) as r:

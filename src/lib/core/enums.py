@@ -64,6 +64,7 @@ class TrainingStatus(BaseTitledEnum):
     COMPLETED = "Completed", 3
     FAILED_BEFORE_EVALUATION = "FailedBeforeEvaluation", 4
     FAILED_AFTER_EVALUATION = "FailedAfterEvaluation", 5
+    FAILED_AFTER_EVALUATION_WITH_SAVE_MODEL = "FailedAfterEvaluationWithSavedModel", 6
 
 
 class SegmentationStatus(BaseTitledEnum):
