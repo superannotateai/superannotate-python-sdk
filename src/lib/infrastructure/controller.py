@@ -96,7 +96,7 @@ class Controller(BaseController):
     def _get_project(self, name: str):
         if not self._project or self._project.name != name:
             response = Response()
-            use_case = GetProjectByNameUseCase(
+            use_case = usecases.GetProjectByNameUseCase(
                 response=response,
                 name=name,
                 team_id=self.team_id,

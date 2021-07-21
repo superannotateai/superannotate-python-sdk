@@ -2,8 +2,6 @@ import copy
 import io
 import json
 import os.path
-import shutil
-import tempfile
 import time
 import uuid
 import zipfile
@@ -3249,8 +3247,6 @@ class DeleteMLModel(BaseUseCase):
         self._models.delete(self._model_id)
 
 
-
-
 class DownloadExportUseCase(BaseUseCase):
     def __init__(
         self,
@@ -3302,4 +3298,3 @@ class DownloadExportUseCase(BaseUseCase):
         else:
             pass
             # TODO: handle s3
-
