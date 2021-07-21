@@ -94,14 +94,16 @@ class BaseController:
 
 class Controller(BaseController):
     def _get_project(self, name: str):
-        if not self._project:
-            self._project = self.projects.get_all(
-                Condition("name", name, EQ) & Condition("team_id", self.team_id, EQ)
-            )[0]
-        elif self._project.name != name:
-            self._project = self.projects.get_all(
-                Condition("name", name, EQ) & Condition("team_id", self.team_id, EQ)
-            )[0]
+        if not self._project or self._project.name != name:
+            response = Response()
+            use_case = GetProjectByNameUseCase(
+                response=response,
+                name=name,
+                team_id=self.team_id,
+                projects=ProjectRepository(service=self._backend_client),
+            )
+            use_case.execute()
+            self._project = response.data
         return self._project
 
     def _get_folder(self, project: ProjectEntity, name: str = None):
@@ -1258,5 +1260,25 @@ class Controller(BaseController):
     def delete_model(self, model_id: int):
         use_case = usecases.DeleteMLModel(
             response=self.response, model_id=model_id, models=self.ml_models
+        )
+        use_case.execute()
+
+    def download_export(
+        self,
+        project_name: str,
+        export_name: str,
+        folder_path: str,
+        extract_zip_contents: bool,
+        to_s3_bucket: bool,
+    ):
+        project = self._get_project(project_name)
+        use_case = usecases.DownloadExportUseCase(
+            response=self.response,
+            service=self._backend_client,
+            project=project,
+            export_name=export_name,
+            folder_path=folder_path,
+            extract_zip_contents=extract_zip_contents,
+            to_s3_bucket=to_s3_bucket,
         )
         use_case.execute()

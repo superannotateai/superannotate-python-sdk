@@ -2,8 +2,11 @@ import copy
 import io
 import json
 import os.path
+import shutil
+import tempfile
 import time
 import uuid
+import zipfile
 from abc import ABC
 from abc import abstractmethod
 from collections import defaultdict
@@ -34,6 +37,7 @@ from src.lib.core.entities import ProjectSettingEntity
 from src.lib.core.entities import S3FileEntity
 from src.lib.core.entities import TeamEntity
 from src.lib.core.entities import WorkflowEntity
+from src.lib.core.enums import ExportStatus
 from src.lib.core.enums import ProjectType
 from src.lib.core.exceptions import AppException
 from src.lib.core.exceptions import AppValidationException
@@ -86,6 +90,32 @@ class GetProjectsUseCase(BaseUseCase):
         if self.is_valid():
             condition = self._condition & Condition("team_id", self._team_id, EQ)
             self._response.data = self._projects.get_all(condition)
+        self._response.errors = self._errors
+
+
+class GetProjectByNameUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        name: str,
+        team_id: int,
+        projects: BaseManageableRepository,
+    ):
+        super().__init__(response)
+        self._name = name
+        self._projects = projects
+        self._team_id = team_id
+
+    def execute(self):
+        if self.is_valid():
+            condition = Condition("name", self._name, EQ) & Condition(
+                "team_id", self._team_id, EQ
+            )
+            projects = self._projects.get_all(condition)
+            for project in projects:
+                if project.name == self._name:
+                    self._response.data = project
+                    break
         self._response.errors = self._errors
 
 
@@ -3217,3 +3247,59 @@ class DeleteMLModel(BaseUseCase):
 
     def execute(self):
         self._models.delete(self._model_id)
+
+
+
+
+class DownloadExportUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        service: SuerannotateServiceProvider,
+        project: ProjectEntity,
+        export_name: str,
+        folder_path: str,
+        extract_zip_contents: bool,
+        to_s3_bucket: bool,
+    ):
+        super().__init__(response)
+        self._service = service
+        self._project = project
+        self._export_name = export_name
+        self._folder_path = folder_path
+        self._extract_zip_contents = extract_zip_contents
+        self._to_s3_bucket = to_s3_bucket
+
+    def execute(self):
+        exports = self._service.get_exports(
+            team_id=self._project.team_id, project_id=self._project.uuid
+        )
+        export_id = None
+        for export in exports:
+            if (
+                export["name"] == self._export_name
+                and export["status"] == ExportStatus.COMPLETE.value
+            ):
+                export_id = export["id"]
+                break
+        export = self._service.get_export(
+            team_id=self._project.team_id,
+            project_id=self._project.uuid,
+            export_id=export_id,
+        )
+        filename = Path(export["path"]).name
+        filepath = Path(self._folder_path) / filename
+        with requests.get(export["download"], stream=True) as r:
+            r.raise_for_status()
+            with open(filepath, "wb") as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    f.write(chunk)
+        if self._to_s3_bucket is None:
+            if self._extract_zip_contents:
+                with zipfile.ZipFile(filepath, "r") as f:
+                    f.extractall(self._folder_path)
+                Path.unlink(filepath)
+        else:
+            pass
+            # TODO: handle s3
+

@@ -43,6 +43,13 @@ class UploadState(Enum):
     EXTERNAL = 3
 
 
+class ExportStatus(BaseTitledEnum):
+    IN_PROGRESS = "inProgress", 1
+    COMPLETE = "complete", 2
+    CANCELED = "canceled", 3
+    ERROR = "error", 4
+
+
 class AnnotationStatus(BaseTitledEnum):
     NOT_STARTED = "NotStarted", 1
     IN_PROGRESS = "InProgress", 2

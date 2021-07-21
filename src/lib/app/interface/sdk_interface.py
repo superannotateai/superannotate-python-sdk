@@ -1748,6 +1748,37 @@ def download_annotation_classes_json(project, folder):
     return response.data
 
 
+def create_annotation_classes_from_classes_json(
+    project, classes_json, from_s3_bucket=False
+):
+    """Creates annotation classes in project from a SuperAnnotate format
+    annotation classes.json.
+
+    :param project: project name
+    :type project: str
+    :param classes_json: JSON itself or path to the JSON file
+    :type classes_json: list or Pathlike (str or Path)
+    :param from_s3_bucket: AWS S3 bucket to use. If None then classes_json is in local filesystem
+    :type from_s3_bucket: bool
+
+    :return: list of created annotation class metadatas
+    :rtype: list of dicts
+    """
+    annotation_classes = []
+    if not isinstance(classes_json, list):
+        if from_s3_bucket:
+            # TODO:
+            pass
+        else:
+            annotation_classes = json.load(open(classes_json))
+    else:
+        annotation_classes = classes_json
+    response = controller.create_annotation_classes(
+        project_name=project, annotation_classes=annotation_classes,
+    )
+    return response.data
+
+
 def move_image(
     source_project,
     image_name,
@@ -1815,6 +1846,54 @@ def move_image(
         )
 
     controller.delete_image(image_name, source_project_name)
+
+
+def download_export(
+    project, export, folder_path, extract_zip_contents=True, to_s3_bucket=None
+):
+    """Download prepared export.
+
+    WARNING: Starting from version 1.9.0 :ref:`download_export <ref_download_export>` additionally
+    requires :py:obj:`project` as first argument.
+
+    :param project: project name
+    :type project: str
+    :param export: export name
+    :type export: str
+    :param folder_path: where to download the export
+    :type folder_path: Pathlike (str or Path)
+    :param extract_zip_contents: if False then a zip file will be downloaded,
+     if True the zip file will be extracted at folder_path
+    :type extract_zip_contents: bool
+    :param to_s3_bucket: AWS S3 bucket to use for download. If None then folder_path is in local filesystem.
+    :type tofrom_s3_bucket: str
+    """
+
+    controller.download_export(project_name=project,
+                               export_name=export,
+                               folder_path=folder_path,
+                               extract_zip_contents=extract_zip_contents,
+                               to_s3_bucket=to_s3_bucket)
+
+
+def set_image_annotation_status(project, image_name, annotation_status):
+    """Sets the image annotation status
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param image_name: image name
+    :type image_name: str
+    :param annotation_status: annotation status to set,
+           should be one of NotStarted InProgress QualityCheck Returned Completed Skipped
+    :type annotation_status: str
+
+    :return: metadata of the updated image
+    :rtype: dict
+    """
+    project_name, folder_name = split_project_path(project)
+    controller.set_images_annotation_statuses(
+        project_name, folder_name, [image_name], annotation_status
+    )
 
 
 def set_project_workflow(project, new_workflow):

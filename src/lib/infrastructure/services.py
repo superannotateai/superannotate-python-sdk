@@ -138,6 +138,9 @@ class SuperannotateBackendService(BaseBackendService):
     URL_GET_COPY_PROGRESS = "images/copy-image-progress"
     URL_ASSIGN_IMAGES = "images/editAssignment"
     URL_ASSIGN_FOLDER = "folder/editAssignment"
+    URL_S3_ACCESS_POINT = "/project/{}/get-image-s3-access-point"
+    URL_S3_UPLOAD_STATUS = "/project/{}/getS3UploadStatus"
+    URL_GET_EXPORTS = "exports"
     URL_IMAGES_COUNT = "images/folders-list"
     URL_GET_CLASS = "class/{}"
     URL_ANNOTATION_UPLOAD_PATH_TOKEN = "images/getAnnotationsPathsAndTokens"
@@ -149,7 +152,7 @@ class SuperannotateBackendService(BaseBackendService):
     URL_BULK_GET_FOLDERS = "foldersByTeam"
     # todo add urls
     URL_DELETE_IMAGES = ""
-    URL_SET_IMAGES_STATUSES_BULK = ""
+    URL_SET_IMAGES_STATUSES_BULK = "image/updateAnnotationStatusBulk"
 
     def get_project(self, uuid: int, team_id: int):
         get_project_url = urljoin(self.api_url, self.URL_GET_PROJECT.format(uuid))
@@ -684,6 +687,58 @@ class SuperannotateBackendService(BaseBackendService):
             data={"folder_name": folder_name, "assign_user_ids": users},
         )
         return res.ok
+
+    def get_exports(self, team_id: int, project_id: int):
+        exports_url = urljoin(self.api_url, self.URL_GET_EXPORTS)
+        res = self._request(
+            exports_url, "get", params={"team_id": team_id, "project_id": project_id}
+        )
+        return res.json()
+
+    def get_export(self, team_id: int, project_id: int, export_id: int):
+        exports_url = urljoin(self.api_url, self.URL_GET_EXPORT.format(export_id))
+        res = self._request(
+            exports_url, "get", params={"team_id": team_id, "project_id": project_id}
+        )
+        return res.json()
+
+    def upload_form_s3(
+        self,
+        project_id: int,
+        team_id: int,
+        access_key: str,
+        secret_key: str,
+        bucket_name: str,
+        from_folder_name: str,
+        to_folder_id: int,
+    ):
+        upload_from_s3_url = urljoin(
+            self.api_url, self.URL_S3_ACCESS_POINT.format(project_id)
+        )
+        response = self._request(
+            upload_from_s3_url,
+            "post",
+            params={"team_id": team_id},
+            data={
+                "accessKeyID": access_key,
+                "secretAccessKey": secret_key,
+                "bucketName": bucket_name,
+                "folderName": from_folder_name,
+                "folder_id": to_folder_id,
+            },
+        )
+        return response.ok
+
+    def get_upload_status(self, project_id: int, team_id: int, folder_id: int):
+        get_upload_status_url = urljoin(
+            self.api_url, self.URL_S3_UPLOAD_STATUS.format(project_id)
+        )
+        res = self._request(
+            get_upload_status_url,
+            "get",
+            params={"team_id": team_id, "folder_id": folder_id},
+        )
+        return res.json().get("progress")
 
     def get_project_images_count(self, team_id: int, project_id: int):
         get_images_count_url = urljoin(self.api_url, self.URL_IMAGES_COUNT)
