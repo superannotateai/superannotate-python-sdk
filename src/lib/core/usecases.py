@@ -21,6 +21,7 @@ import requests
 import src.lib.core as constances
 from azure.core.exceptions import AzureError
 from azure.storage.blob import BlobServiceClient
+from boto3.exceptions import Boto3Error
 from google.api_core.exceptions import GoogleAPIError
 from google.cloud import storage as google_storage
 from src.lib.core.conditions import Condition
@@ -3328,3 +3329,56 @@ class DownloadExportUseCase(BaseUseCase):
         else:
             pass
             # TODO: handle s3
+
+
+class DownloadMLModelUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        model: MLModelEntity,
+        download_path: str,
+        backend_service_provider: SuerannotateServiceProvider,
+    ):
+        super().__init__(response)
+        self._model = model
+        self._download_path = download_path
+        self._backend_service = backend_service_provider
+
+    def execute(self):
+        metrics_name = os.path.basename(self._model.path).replace(".pth", ".json")
+        mapper_path = self._model.config_path.replace(
+            os.path.basename(self._model.config_path), "classes_mapper.json"
+        )
+        metrics_path = self._model.config_path.replace(
+            os.path.basename(self._model.config_path), metrics_name
+        )
+
+        download_token = self._backend_service.get_ml_model_download_tokens(
+            self._team_id, self._model.uuid
+        )
+        s3_session = boto3.Session(
+            aws_access_key_id=download_token["tokens"]["accessKeyId"],
+            aws_secret_access_key=download_token["tokens"]["secretAccessKey"],
+            aws_session_token=download_token["tokens"]["sessionToken"],
+            region_name=download_token["tokens"]["region"],
+        )
+        bucket = s3_session.resource("s3").Bucket(download_token["tokens"]["bucket"])
+
+        bucket.download_file(
+            self._model.config_path, os.path.join(self._download_path, "config.yaml")
+        )
+        bucket.download_file(
+            self._model.path,
+            os.path.join(self._download_path, os.path.basename(self._model.path)),
+        )
+        try:
+            bucket.download_file(
+                metrics_path, os.path.join(self._download_path, metrics_name)
+            )
+            bucket.download_file(
+                mapper_path, os.path.join(self._download_path, "classes_mapper.json")
+            )
+        except Boto3Error:
+            self._response.errors = AppException(
+                "The specified model does not contain a classes_mapper and/or a metrics file."
+            )

@@ -269,3 +269,6 @@ class SuerannotateServiceProvider(ABC):
 
     def stop_model_training(self, team_id: int, model_id: int):
         raise NotImplementedError
+
+    def get_ml_model_download_tokens(self, team_id: int, model_id: int):
+        raise NotImplementedError

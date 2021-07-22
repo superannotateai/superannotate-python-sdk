@@ -2328,3 +2328,22 @@ def stop_model_training(model):
     else:
         logger.info("Failed to stop model training please try again")
     return model
+
+
+def download_model(model, output_dir):
+    """Downloads the neural network and related files
+    which are the <model_name>.pth/pkl. <model_name>.json, <model_name>.yaml, classes_mapper.json
+
+    :param model: the model that needs to be downloaded
+    :type  model: dict
+    :param output_dir: the directiory in which the files will be saved
+    :type output_dir: str
+    :return: the metadata of the model
+    :rtype: dict
+    """
+
+    res = controller.download_ml_model(model_data=model, download_path=output_dir)
+    if res.errors:
+        logger.error("\n".join([str(error) for error in res.errors]))
+    else:
+        return res.data

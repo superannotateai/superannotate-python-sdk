@@ -24,17 +24,23 @@ from src.lib.app.interface.sdk_interface import assign_images
 from src.lib.app.interface.sdk_interface import clone_project
 from src.lib.app.interface.sdk_interface import copy_image
 from src.lib.app.interface.sdk_interface import copy_images
+from src.lib.app.interface.sdk_interface import create_annotation_class
+from src.lib.app.interface.sdk_interface import (
+    create_annotation_classes_from_classes_json,
+)
 from src.lib.app.interface.sdk_interface import create_folder
 from src.lib.app.interface.sdk_interface import create_project
 from src.lib.app.interface.sdk_interface import delete_contributor_to_team_invitation
 from src.lib.app.interface.sdk_interface import delete_folders
 from src.lib.app.interface.sdk_interface import delete_images
+from src.lib.app.interface.sdk_interface import delete_project
 from src.lib.app.interface.sdk_interface import get_folder_metadata
 from src.lib.app.interface.sdk_interface import get_project_and_folder_metadata
 from src.lib.app.interface.sdk_interface import get_team_metadata
 from src.lib.app.interface.sdk_interface import invite_contributor_to_team
 from src.lib.app.interface.sdk_interface import move_images
 from src.lib.app.interface.sdk_interface import rename_folder
+from src.lib.app.interface.sdk_interface import search_annotation_classes
 from src.lib.app.interface.sdk_interface import search_folders
 from src.lib.app.interface.sdk_interface import search_images
 from src.lib.app.interface.sdk_interface import search_projects
@@ -95,6 +101,7 @@ __all__ = [
     "create_project",
     "clone_project",
     "share_project",
+    "delete_project",
     # Images Section
     "search_images",
     "copy_image",
@@ -117,4 +124,8 @@ __all__ = [
     "upload_images_from_s3_bucket_to_project",
     # Video Section
     "upload_videos_from_folder_to_project",
+    # Annotation Section
+    "create_annotation_class",
+    "search_annotation_classes",
+    "create_annotation_classes_from_classes_json",
 ]

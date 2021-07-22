@@ -257,7 +257,7 @@ class AnnotationClassEntity(BaseEntity):
         count: int = None,
         name: str = None,
         project_id: int = None,
-        attribute_groups: Iterable = (),
+        attribute_groups: Iterable = [],
     ):
         super().__init__(uuid)
         self.color = color
@@ -362,36 +362,54 @@ class MLModelEntity(BaseEntity):
     def __init__(
         self,
         uuid: int = None,
+        team_id: int = None,
         name: str = None,
+        path: str = None,
+        config_path: str = None,
+        model_type: int = None,
         description: str = None,
+        output_path: str = None,
         task: str = None,
         base_model_id: int = None,
         image_count: int = None,
-        project_type: int = None,
         training_status: int = None,
         test_folder_ids: List[int] = None,
         train_folder_ids: List[int] = None,
+        is_trainable: bool = None,
+        is_global: bool = None,
     ):
         super().__init__(uuid=uuid)
         self.name = name
+        self.path = path
+        self.team_id = team_id
+        self.config_path = config_path
+        self.output_path = output_path
+        self.model_type = model_type
         self.description = description
         self.task = task
         self.base_model_id = base_model_id
         self.image_count = image_count
-        self.project_type = project_type
         self.training_status = training_status
         self.test_folder_ids = test_folder_ids
         self.train_folder_ids = train_folder_ids
+        self.is_trainable = is_trainable
+        self.is_global = is_global
 
     def to_dict(self):
         return {
             "id": self.uuid,
+            "team_id": self.team_id,
             "description": self.description,
             "task": self.task,
+            "type": self.model_type,
+            "path": self.path,
+            "config_path": self.config_path,
+            "output_path": self.output_path,
             "base_model_id": self.base_model_id,
             "image_count": self.image_count,
-            "project_type": self.project_type,
             "training_status": self.training_status,
             "test_folder_ids": self.test_folder_ids,
             "train_folder_ids": self.train_folder_ids,
+            "is_trainable": self.is_trainable,
+            "is_global": self.is_global,
         }

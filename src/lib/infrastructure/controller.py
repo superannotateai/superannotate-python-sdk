@@ -1267,7 +1267,10 @@ class Controller(BaseController):
     def stop_model_training(self, model_id: int):
 
         use_case = usecases.StopModelTraining(
-            response=self.response, model_id=model_id, team_id=self.team_id
+            response=self.response,
+            model_id=model_id,
+            team_id=self.team_id,
+            backend_service_provider=self._backend_client,
         )
         use_case.execute()
         return self._response
@@ -1291,3 +1294,19 @@ class Controller(BaseController):
             to_s3_bucket=to_s3_bucket,
         )
         use_case.execute()
+
+    def download_ml_model(self, model_data: dict, download_path: str):
+        model = MLModelEntity(
+            uuid=model_data["id"],
+            path=model_data["path"],
+            config_path=model_data["config_path"],
+            team_id=model_data["team_id"],
+        )
+        use_case = usecases.DownloadMLModelUseCase(
+            response=self.response,
+            model=model,
+            download_path=download_path,
+            backend_service_provider=self._backend_client,
+        )
+        use_case.execute()
+        return self._response
