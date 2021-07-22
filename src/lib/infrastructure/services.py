@@ -152,6 +152,7 @@ class SuperannotateBackendService(BaseBackendService):
     URL_GET_MODEL_METRICS = "ml_models/{}/getCurrentMetrics"
     URL_BULK_GET_FOLDERS = "foldersByTeam"
     URL_GET_EXPORT = "export/{}"
+    URL_GET_ML_MODEL_DOWNLOAD_TOKEN = "ml_model/getMyModelDownloadToken/{}"
     # todo add urls
     URL_DELETE_IMAGES = ""
     URL_SET_IMAGES_STATUSES_BULK = "image/updateAnnotationStatusBulk"
@@ -883,3 +884,10 @@ class SuperannotateBackendService(BaseBackendService):
         )
         res = self._request(stop_training_url, "post", params={"team_id": team_id})
         return res.ok
+
+    def get_ml_model_download_tokens(self, team_id: int, model_id: int):
+        get_token_url = urljoin(
+            self.api_url, self.URL_GET_ML_MODEL_DOWNLOAD_TOKEN.format(model_id)
+        )
+        res = self._request(get_token_url, "get", params={"team_id": team_id})
+        return res.json()
