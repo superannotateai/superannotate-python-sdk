@@ -2347,3 +2347,47 @@ def download_model(model, output_dir):
         logger.error("\n".join([str(error) for error in res.errors]))
     else:
         return res.data
+
+
+def benchmark(
+    project,
+    gt_folder,
+    folder_names,
+    export_root=None,
+    image_list=None,
+    annot_type="bbox",
+    show_plots=False,
+):
+    """Computes benchmark score for each instance of given images that are present both gt_project_name project and projects in folder_names list:
+
+    :param project: project name or metadata of the project
+    :type project: str or dict
+    :param gt_folder: project folder name that contains the ground truth annotations
+    :type gt_folder: str
+    :param folder_names: list of folder names in the project for which the scores will be computed
+    :type folder_names: list of str
+    :param export_root: root export path of the projects
+    :type export_root: Pathlike (str or Path)
+    :param image_list: List of image names from the projects list that must be used. If None, then all images from the projects list will be used. Default: None
+    :type image_list: list
+    :param annot_type: Type of annotation instances to consider. Available candidates are: ["bbox", "polygon", "point"]
+    :type annot_type: str
+    :param show_plots: If True, show plots based on results of consensus computation. Default: False
+    :type show_plots: bool
+
+    :return: Pandas DateFrame with columns (creatorEmail, QA, imageName, instanceId, className, area, attribute, folderName, score)
+    :rtype: pandas DataFrame
+    """
+    project_name = project
+    if isinstance(project, dict):
+        project_name = project["name"]
+    response = controller.benchmark(
+        project_name=project_name,
+        ground_truth_folder_name=gt_folder,
+        folder_names=folder_names,
+        export_root=export_root,
+        image_list=image_list,
+        annot_type=annot_type,
+        show_plots=show_plots,
+    )
+    return response

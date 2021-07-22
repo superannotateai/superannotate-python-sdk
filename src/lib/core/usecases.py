@@ -17,6 +17,7 @@ from typing import Optional
 import boto3
 import cv2
 import numpy as np
+import pandas as pd
 import requests
 import src.lib.core as constances
 from azure.core.exceptions import AzureError
@@ -24,6 +25,9 @@ from azure.storage.blob import BlobServiceClient
 from boto3.exceptions import Boto3Error
 from google.api_core.exceptions import GoogleAPIError
 from google.cloud import storage as google_storage
+from src.lib.app.analytics.common import aggregate_annotations_as_df
+from src.lib.app.analytics.common import consensus_plot
+from src.lib.app.analytics.common import image_consensus
 from src.lib.core.conditions import Condition
 from src.lib.core.conditions import CONDITION_EQ as EQ
 from src.lib.core.entities import AnnotationClassEntity
@@ -3382,3 +3386,96 @@ class DownloadMLModelUseCase(BaseUseCase):
             self._response.errors = AppException(
                 "The specified model does not contain a classes_mapper and/or a metrics file."
             )
+
+
+class BenchmarkUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        project: ProjectEntity,
+        ground_truth_folder_name: str,
+        folder_names: list,
+        export_dir: str,
+        image_list: list,
+        annot_type: list,
+        show_plots: bool,
+    ):
+        super().__init__(response)
+        self._project = project
+        self._ground_truth_folder_name = ground_truth_folder_name
+        self._folder_names = folder_names
+        self._export_dir = export_dir
+        self._image_list = image_list
+        self._annot_type = annot_type
+        self._show_plots = show_plots
+
+    def execute(self):
+        project_df = aggregate_annotations_as_df(self._export_dir)
+        gt_project_df = project_df[
+            project_df["folderName"] == self._ground_truth_folder_name
+        ]
+        benchmark_dfs = []
+        for folder_name in self._folder_names:
+            folder_df = project_df[project_df["folderName"] == folder_name]
+            project_gt_df = pd.concat([folder_df, gt_project_df])
+            project_gt_df = project_gt_df[project_gt_df["instanceId"].notna()]
+
+            if self._image_list is not None:
+                project_gt_df = project_gt_df.loc[
+                    project_gt_df["imageName"].isin(self._image_list)
+                ]
+
+            project_gt_df.query("type == '" + self._annot_type + "'", inplace=True)
+
+            project_gt_df = project_gt_df.groupby(
+                ["imageName", "instanceId", "folderName"]
+            )
+
+            def aggregate_attributes(instance_df):
+                def attribute_to_list(attribute_df):
+                    attribute_names = list(attribute_df["attributeName"])
+                    attribute_df["attributeNames"] = len(attribute_df) * [
+                        attribute_names
+                    ]
+                    return attribute_df
+
+                attributes = None
+                if not instance_df["attributeGroupName"].isna().all():
+                    attrib_group_name = instance_df.groupby("attributeGroupName")[
+                        ["attributeGroupName", "attributeName"]
+                    ].apply(attribute_to_list)
+                    attributes = dict(
+                        zip(
+                            attrib_group_name["attributeGroupName"],
+                            attrib_group_name["attributeNames"],
+                        )
+                    )
+
+                instance_df.drop(
+                    ["attributeGroupName", "attributeName"], axis=1, inplace=True
+                )
+                instance_df.drop_duplicates(
+                    subset=["imageName", "instanceId", "folderName"], inplace=True
+                )
+                instance_df["attributes"] = [attributes]
+                return instance_df
+
+            project_gt_df = project_gt_df.apply(aggregate_attributes).reset_index(
+                drop=True
+            )
+            unique_images = set(project_gt_df["imageName"])
+            all_benchmark_data = []
+            for image_name in unique_images:
+                image_data = image_consensus(
+                    project_gt_df, image_name, self._annot_type
+                )
+                all_benchmark_data.append(pd.DataFrame(image_data))
+            benchmark_project_df = pd.concat(all_benchmark_data, ignore_index=True)
+            benchmark_project_df = benchmark_project_df[
+                benchmark_project_df["folderName"] == folder_name
+            ]
+            benchmark_dfs.append(benchmark_project_df)
+        benchmark_df = pd.concat(benchmark_dfs, ignore_index=True)
+        if self._show_plots:
+            consensus_plot(benchmark_df, self._folder_names)
+        self._response.data = benchmark_df
