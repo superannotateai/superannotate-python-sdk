@@ -2309,3 +2309,20 @@ def delete_model(model):
         logger.info("Model successfully deleted")
         raise AppException("Failed to delete model")
     return model
+
+
+def stop_model_training(model):
+    """This function will stop training model provided by either name or metadata, and return the ID
+
+    :param model: The name or the metadata of the model the training of which the user needs to terminate
+    :type model: dict
+    :return: the metadata of the now, stopped model
+    :rtype: dict
+    """
+    response = controller.stop_model_training(model["id"])
+
+    if not response.errors:
+        logger.info("Stopped model training")
+    else:
+        logger.info("Failed to stop model training please try again")
+    return model

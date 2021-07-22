@@ -1263,6 +1263,14 @@ class Controller(BaseController):
         )
         use_case.execute()
 
+    def stop_model_training(self, model_id: int):
+
+        use_case = usecases.StopModelTraining(
+            response=self.response, model_id=model_id, team_id=self.team_id
+        )
+        use_case.execute()
+        return self._response
+
     def download_export(
         self,
         project_name: str,
