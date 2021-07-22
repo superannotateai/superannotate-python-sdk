@@ -1469,11 +1469,13 @@ def prepare_export(
     :return: metadata object of the prepared export
     :rtype: dict
     """
-    project_name = project
-    project = controller.search_project(project_name).data[0]
+    project_name, folder_name = split_project_path(project)
+    folders = None
+    if folder_name:
+        folders = [folder_name]
     response = controller.prepare_export(
-        project=project,
-        folder_names=folder_names,
+        project_name=project_name,
+        folder_names=folders,
         include_fuse=include_fuse,
         only_pinned=only_pinned,
         annotation_statuses=annotation_statuses,

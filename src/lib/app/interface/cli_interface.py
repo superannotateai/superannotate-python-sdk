@@ -116,14 +116,28 @@ class CLIFacade(BaseInterfaceFacade):
                     image_quality=image_quality_in_editor,
                 )
 
-    def export_project(self, project, folder, include_fuse, annotation_statuses):
+    def export_project(
+        self,
+        project,
+        folder,
+        include_fuse=False,
+        disable_extract_zip_contents=True,
+        annotation_statuses=None,
+    ):
         project_name, folder_name = split_project_path(project)
-        project = self.controller.search_project(project_name).data[0]
-        folders = []
+        folders = None
         if folder_name:
             folders = [folder_name]
-        self.controller.prepare_export(
-            project, folders, include_fuse, False, annotation_statuses
+        export_res = self.controller.prepare_export(
+            project_name, folders, include_fuse, False, annotation_statuses
+        )
+        export_name = export_res.data["name"]
+        self.controller.download_export(
+            project_name=project_name,
+            export_name=export_name,
+            folder_path=folder,
+            extract_zip_contents=not disable_extract_zip_contents,
+            to_s3_bucket=False,
         )
 
     def attach_image_urls(self, project: str, attachments: str, annotation_status):

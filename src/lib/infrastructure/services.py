@@ -151,6 +151,7 @@ class SuperannotateBackendService(BaseBackendService):
     URL_STOP_MODEL_TRAINING = "ml_models/{}/stopTrainingJob"
     URL_GET_MODEL_METRICS = "ml_models/{}/getCurrentMetrics"
     URL_BULK_GET_FOLDERS = "foldersByTeam"
+    URL_GET_EXPORT = "export/{}"
     # todo add urls
     URL_DELETE_IMAGES = ""
     URL_SET_IMAGES_STATUSES_BULK = "image/updateAnnotationStatusBulk"
