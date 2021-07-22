@@ -2291,3 +2291,21 @@ def run_training(
                     training_finished = True
             time.sleep(5)
     return BaseSerializers(model).serialize()
+
+
+def delete_model(model):
+    """This function deletes the provided model
+
+       :param model: the model to be deleted
+       :type model: dict
+       :return: the metadata of the model that was deleted
+       :rtype: dict
+    """
+    response = controller.delete_model(model_id=model["id"])
+
+    if response.errors:
+        logger.info("Failed to delete model, please try again")
+    else:
+        logger.info("Model successfully deleted")
+        raise AppException("Failed to delete model")
+    return model
