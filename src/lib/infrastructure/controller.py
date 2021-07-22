@@ -1343,3 +1343,33 @@ class Controller(BaseController):
         )
         use_case.execute()
         return self.response
+
+    def consensus(
+        self,
+        project_name: str,
+        folder_names: list,
+        export_root: str,
+        image_list: list,
+        annot_type: str,
+        show_plots: bool,
+    ):
+        project = self._get_project(project_name)
+        if export_root is None:
+            with tempfile.TemporaryDirectory() as export_dir:
+                export = self.prepare_export(project.name)
+                self.download_export(
+                    project_name=project.name,
+                    export_name=export["name"],
+                    folder_path=export_dir,
+                )
+        use_case = usecases.ConsensusUseCase(
+            response=self.response,
+            project=project,
+            folder_names=folder_names,
+            export_dir=export_dir,
+            image_list=image_list,
+            annot_type=annot_type,
+            show_plots=show_plots,
+        )
+        use_case.execute()
+        return self.response

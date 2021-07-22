@@ -3397,7 +3397,7 @@ class BenchmarkUseCase(BaseUseCase):
         folder_names: list,
         export_dir: str,
         image_list: list,
-        annot_type: list,
+        annot_type: str,
         show_plots: bool,
     ):
         super().__init__(response)
@@ -3479,3 +3479,83 @@ class BenchmarkUseCase(BaseUseCase):
         if self._show_plots:
             consensus_plot(benchmark_df, self._folder_names)
         self._response.data = benchmark_df
+
+
+class ConsensusUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        project: ProjectEntity,
+        folder_names: list,
+        export_dir: str,
+        image_list: list,
+        annot_type: str,
+        show_plots: bool,
+    ):
+        super().__init__(response)
+        self._project = project
+        self._folder_names = folder_names
+        self._export_dir = export_dir
+        self._image_list = image_list
+        self._annot_type = annot_type
+        self._show_plots = show_plots
+
+    def execute(self):
+        project_df = aggregate_annotations_as_df(self._export_dir)
+        all_projects_df = project_df[project_df["instanceId"].notna()]
+        all_projects_df = all_projects_df.loc[
+            all_projects_df["folderName"].isin(self._folder_names)
+        ]
+
+        if self._image_list is not None:
+            all_projects_df = all_projects_df.loc[
+                all_projects_df["imageName"].isin(self._image_list)
+            ]
+
+        all_projects_df.query("type == '" + self._annot_type + "'", inplace=True)
+
+        def aggregate_attributes(instance_df):
+            def attribute_to_list(attribute_df):
+                attribute_names = list(attribute_df["attributeName"])
+                attribute_df["attributeNames"] = len(attribute_df) * [attribute_names]
+                return attribute_df
+
+            attributes = None
+            if not instance_df["attributeGroupName"].isna().all():
+                attrib_group_name = instance_df.groupby("attributeGroupName")[
+                    ["attributeGroupName", "attributeName"]
+                ].apply(attribute_to_list)
+                attributes = dict(
+                    zip(
+                        attrib_group_name["attributeGroupName"],
+                        attrib_group_name["attributeNames"],
+                    )
+                )
+
+            instance_df.drop(
+                ["attributeGroupName", "attributeName"], axis=1, inplace=True
+            )
+            instance_df.drop_duplicates(
+                subset=["imageName", "instanceId", "folderName"], inplace=True
+            )
+            instance_df["attributes"] = [attributes]
+            return instance_df
+
+        all_projects_df = all_projects_df.groupby(
+            ["imageName", "instanceId", "folderName"]
+        )
+        all_projects_df = all_projects_df.apply(aggregate_attributes).reset_index(
+            drop=True
+        )
+        unique_images = set(all_projects_df["imageName"])
+        all_consensus_data = []
+        for image_name in unique_images:
+            image_data = image_consensus(all_projects_df, image_name, self._annot_type)
+            all_consensus_data.append(pd.DataFrame(image_data))
+
+        consensus_df = pd.concat(all_consensus_data, ignore_index=True)
+
+        if self._show_plots:
+            consensus_plot(consensus_df, self._folder_names)
+
+        return consensus_df

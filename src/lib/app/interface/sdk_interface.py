@@ -2390,4 +2390,41 @@ def benchmark(
         annot_type=annot_type,
         show_plots=show_plots,
     )
-    return response
+    return response.data
+
+
+def consensus(
+    project,
+    folder_names,
+    export_root=None,
+    image_list=None,
+    annot_type="bbox",
+    show_plots=False,
+):
+    """Computes consensus score for each instance of given images that are present in at least 2 of the given projects:
+
+    :param project: project name
+    :type project: str
+    :param folder_names: list of folder names in the project for which the scores will be computed
+    :type folder_names: list of str
+    :param export_root: root export path of the projects
+    :type export_root: Pathlike (str or Path)
+    :param image_list: List of image names from the projects list that must be used. If None, then all images from the projects list will be used. Default: None
+    :type image_list: list
+    :param annot_type: Type of annotation instances to consider. Available candidates are: ["bbox", "polygon", "point"]
+    :type annot_type: str
+    :param show_plots: If True, show plots based on results of consensus computation. Default: False
+    :type show_plots: bool
+
+    :return: Pandas DateFrame with columns (creatorEmail, QA, imageName, instanceId, className, area, attribute, folderName, score)
+    :rtype: pandas DataFrame
+    """
+    response = controller.consensus(
+        project_name=project,
+        folder_names=folder_names,
+        export_root=export_root,
+        image_list=image_list,
+        annot_type=annot_type,
+        show_plots=show_plots,
+    )
+    return response.data
