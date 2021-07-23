@@ -277,3 +277,8 @@ class SuerannotateServiceProvider(ABC):
         self, team_id: int, project_id: int, model_name: str, image_ids: list
     ):
         raise NotImplementedError
+
+    def run_prediction(
+        self, team_id: int, project_id: int, ml_model_id: int, image_ids: list
+    ):
+        raise NotImplementedError

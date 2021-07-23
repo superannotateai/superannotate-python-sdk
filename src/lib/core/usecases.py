@@ -3611,3 +3611,49 @@ class RunSegmentationUseCase(BaseUseCase):
             model_name=self._ml_model_name,
             image_ids=image_ids,
         )
+
+
+class RunPredictionUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        project: ProjectEntity,
+        ml_model_repo: BaseManageableRepository,
+        ml_model_name: str,
+        images_list: list,
+        service: SuerannotateServiceProvider,
+        folder: FolderEntity,
+    ):
+        super().__init__(response)
+        self._project = project
+        self._ml_model_repo = ml_model_repo
+        self._ml_model_name = ml_model_name
+        self._images_list = images_list
+        self._service = service
+        self._folder = folder
+
+
+    def execute(self):
+        images = self._service.get_duplicated_images(
+            project_id=self._project.uuid,
+            team_id=self._project.team_id,
+            folder_id=self._folder.uuid,
+            images=self._images_list,
+        )
+
+        image_ids = [image["id"] for image in images]
+
+        ml_models = self._ml_model_repo.get_all(condition=Condition("name",self._ml_model_name,EQ) &
+                                                          Condition("include_global", True,EQ) &
+                                                          Condition("team_id", self._project.team_id,EQ))
+        ml_model = None
+        for model in ml_models:
+            if model.name == self._ml_model_name:
+                ml_model = model
+
+        self._service.run_prediction(
+            team_id=self._project.team_id,
+            project_id=self._project.uuid,
+            ml_model_id=ml_model.uuid,
+            image_ids=image_ids,
+        )
