@@ -153,6 +153,7 @@ class SuperannotateBackendService(BaseBackendService):
     URL_BULK_GET_FOLDERS = "foldersByTeam"
     URL_GET_EXPORT = "export/{}"
     URL_GET_ML_MODEL_DOWNLOAD_TOKEN = "ml_model/getMyModelDownloadToken/{}"
+    URL_SEGMENTATION = "images/segmentation"
     # todo add urls
     URL_DELETE_IMAGES = ""
     URL_SET_IMAGES_STATUSES_BULK = "image/updateAnnotationStatusBulk"
@@ -557,7 +558,7 @@ class SuperannotateBackendService(BaseBackendService):
                 "names": images,
             },
         )
-        return [image["name"] for image in res.json()]
+        return res.json()
 
     def delete_image(self, image_id, team_id: int, project_id: int):
         delete_image_url = urljoin(self.api_url, self.URL_GET_IMAGE.format(image_id))
@@ -890,4 +891,16 @@ class SuperannotateBackendService(BaseBackendService):
             self.api_url, self.URL_GET_ML_MODEL_DOWNLOAD_TOKEN.format(model_id)
         )
         res = self._request(get_token_url, "get", params={"team_id": team_id})
+        return res.json()
+
+    def run_segmentation(
+        self, team_id: int, project_id: int, model_name: str, image_ids: list
+    ):
+        segmentation_url = urljoin(self.api_url, self.URL_SEGMENTATION)
+        res = self._request(
+            segmentation_url,
+            "post",
+            params={"team_id": team_id, "project_id": project_id},
+            data={"model_name": model_name, "image_ids": image_ids},
+        )
         return res.json()

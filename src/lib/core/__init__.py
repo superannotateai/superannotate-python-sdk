@@ -39,6 +39,9 @@ MODEL_TRAINING_TASKS = {
     "Semantic Segmentation for Pixel Projects": "semantic_segmentation_pixel",
 }
 
+AVAILABLE_SEGMENTATION_MODELS = ["autonomous", "generic"]
+
+
 VECTOR_ANNOTATION_POSTFIX = "___objects.json"
 PIXEL_ANNOTATION_POSTFIX = "___pixel.json"
 ANNOTATION_MASK_POSTFIX = "___save.png"
