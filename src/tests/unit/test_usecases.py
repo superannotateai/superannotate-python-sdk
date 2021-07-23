@@ -1,9 +1,9 @@
 from unittest import TestCase
 from unittest.mock import Mock
 
-from src.lib.core.usecases import BaseUseCase
 from src.lib.core.exceptions import AppValidationException
 from src.lib.core.response import Response
+from src.lib.core.usecases import BaseUseCase
 
 
 class TestBaseUseCase(TestCase):
@@ -11,7 +11,6 @@ class TestBaseUseCase(TestCase):
         self._response = Response()
 
         class UseCase(BaseUseCase):
-
             def execute(self):
                 self.is_valid()
 
@@ -31,4 +30,4 @@ class TestBaseUseCase(TestCase):
 
     def test_validate_should_fill_errors(self):
         self.use_case.execute()
-        assert(len(self.use_case._errors) == 2)
+        assert len(self.use_case._errors) == 2

@@ -35,6 +35,7 @@ from src.lib.app.interface.sdk_interface import delete_folders
 from src.lib.app.interface.sdk_interface import delete_images
 from src.lib.app.interface.sdk_interface import delete_project
 from src.lib.app.interface.sdk_interface import get_folder_metadata
+from src.lib.app.interface.sdk_interface import get_image_metadata
 from src.lib.app.interface.sdk_interface import get_project_and_folder_metadata
 from src.lib.app.interface.sdk_interface import get_team_metadata
 from src.lib.app.interface.sdk_interface import invite_contributor_to_team
@@ -48,6 +49,8 @@ from src.lib.app.interface.sdk_interface import search_team_contributors
 from src.lib.app.interface.sdk_interface import share_project
 from src.lib.app.interface.sdk_interface import unassign_folder
 from src.lib.app.interface.sdk_interface import unassign_images
+from src.lib.app.interface.sdk_interface import unshare_project
+from src.lib.app.interface.sdk_interface import upload_images_from_folder_to_project
 from src.lib.app.interface.sdk_interface import (
     upload_images_from_google_cloud_to_project,
 )
@@ -100,6 +103,7 @@ __all__ = [
     "search_projects",
     "create_project",
     "clone_project",
+    "unshare_project",
     "share_project",
     "delete_project",
     # Images Section
@@ -118,10 +122,12 @@ __all__ = [
     "copy_images",
     "move_images",
     "delete_images",
+    "get_image_metadata",
     "assign_images",
     "unassign_images",
     "upload_images_from_google_cloud_to_project",
     "upload_images_from_s3_bucket_to_project",
+    "upload_images_from_folder_to_project",
     # Video Section
     "upload_videos_from_folder_to_project",
     # Annotation Section

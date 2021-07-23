@@ -6,6 +6,7 @@ import tempfile
 import time
 import uuid
 from collections import Counter
+from collections import namedtuple
 from io import BytesIO
 from pathlib import Path
 from urllib.parse import urlparse
@@ -369,9 +370,11 @@ def search_folders(project, folder_name=None, return_metadata=False):
     if not folder_name:
         data = controller.get_project_folders(project).data
     else:
-        data = controller.search_folder(project_name=project, name=folder_name).data
+        data = controller.search_folder(
+            project_name=project, name=folder_name, include_users=return_metadata
+        ).data
     if return_metadata:
-        return data.to_dict()
+        return [BaseSerializers(folder).serialize() for folder in data]
     return [folder.name for folder in data]
 
 
@@ -544,6 +547,7 @@ def upload_images_from_public_urls_to_project(
     for i in range(0, len(images_to_upload), 500):
         controller.upload_images(
             project_name=project_name,
+            folder_name=folder_name,
             images=images_to_upload[i : i + 500],  # noqa: E203
             annotation_status=annotation_status,
             image_quality=image_quality_in_editor,
@@ -854,7 +858,7 @@ def delete_image(project, image_name):
     controller.delete_image(image_name=image_name, project_name=project_name)
 
 
-def get_image_metadata(project, image_names, return_dict_on_single_output=True):
+def get_image_metadata(project, image_name, return_dict_on_single_output=True):
     """Returns image metadata
 
     :param project: project name or folder path (e.g., "project1/folder1")
@@ -866,8 +870,8 @@ def get_image_metadata(project, image_names, return_dict_on_single_output=True):
     :rtype: dict
     """
     project_name, folder_name = split_project_path(project)
-    images = controller.get_image_metadata(project_name, image_names)
-    return images.data.json()
+    images = controller.get_image_metadata(project_name, folder_name, image_name)
+    return images.data
 
 
 def set_images_annotation_statuses(project, image_names, annotation_status):
@@ -980,7 +984,13 @@ def share_project(project_name, user, user_role):
     :param user_role: user role to apply, one of Admin , Annotator , QA , Customer , Viewer
     :type user_role: str
     """
-    controller.share_project(project_name=project_name, user=user, user_role=user_role)
+    if isinstance(user, dict):
+        user_id = user["id"]
+    else:
+        user_id = controller.search_team_contributors(email=user).data[0]["id"]
+    controller.share_project(
+        project_name=project_name, user_id=user_id, user_role=user_role
+    )
 
 
 def unshare_project(project_name, user):
@@ -991,7 +1001,11 @@ def unshare_project(project_name, user):
     :param user: user email or metadata of the user to unshare project
     :type user: str or dict
     """
-    controller.unshare_project(project_name=project_name, user=user)
+    if isinstance(user, dict):
+        user_id = user["id"]
+    else:
+        user_id = controller.search_team_contributors(email=user).data[0]["id"]
+    controller.un_share_project(project_name=project_name, user_id=user_id)
 
 
 def upload_images_from_google_cloud_to_project(
@@ -1059,6 +1073,7 @@ def upload_images_from_google_cloud_to_project(
     for i in range(0, len(images_to_upload), 500):
         controller.upload_images(
             project_name=project_name,
+            folder_name=folder_name,
             images=images_to_upload[i : i + 500],
             annotation_status=annotation_status,
             image_quality=image_quality_in_editor,
@@ -1130,6 +1145,7 @@ def upload_images_from_azure_blob_to_project(
     for i in range(0, len(images_to_upload), 500):
         controller.upload_images(
             project_name=project_name,
+            folder_name=folder_name,
             images=images_to_upload[i : i + 500],
             annotation_status=annotation_status,
             image_quality=image_quality_in_editor,
@@ -1202,9 +1218,11 @@ def upload_images_from_folder_to_project(
     :rtype: tuple (3 members) of list of strs
     """
     uploaded_image_entities = []
+    failed_images = []
     project_name, folder_name = split_project_path(project)
+    ProcessedImage = namedtuple("ProcessedImage", ["uploaded", "path", "entity"])
 
-    def _upload_local_image(image_path: str) -> str:
+    def _upload_local_image(image_path: str):
         with open(image_path, "rb") as image:
             image_bytes = BytesIO(image.read())
             upload_response = controller.upload_image_to_s3(
@@ -1213,12 +1231,13 @@ def upload_images_from_folder_to_project(
                 image_bytes=image_bytes,
                 folder_name=folder_name,
             )
-            if not upload_response.errors:
-                uploaded_image_entities.append(upload_response.data)
+            if not upload_response.errors and upload_response.data:
+                entity = upload_response.data
+                return ProcessedImage(uploaded=True, path=entity.path, entity=entity)
             else:
-                return image_path
+                return ProcessedImage(uploaded=False, path=image_path, entity=None)
 
-    def _upload_s3_image(image_path: str) -> str:
+    def _upload_s3_image(image_path: str):
         try:
             image_bytes = controller.get_image_from_s3(
                 s3_bucket=from_s3_bucket, image_path=image_path
@@ -1232,10 +1251,10 @@ def upload_images_from_folder_to_project(
             image_bytes=image_bytes,
             folder_name=folder_name,
         )
-        if not response.errors:
+        if not upload_response.errors and upload_response.data:
             uploaded_image_entities.append(upload_response.data)
         else:
-            return image_path
+            failed_images.append(str(image_path))
 
     paths = []
     if from_s3_bucket is None:
@@ -1279,14 +1298,22 @@ def upload_images_from_folder_to_project(
         [item for item in duplication_counter if duplication_counter[item] > 1],
     )
     upload_method = _upload_s3_image if from_s3_bucket else _upload_local_image
-    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-        failed_images = []
-        for image_path in enumerate(images_to_upload):
-            failed_images.append(executor.submit(upload_method, image_path))
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+        results = [
+            executor.submit(upload_method, image_path)
+            for image_path in images_to_upload
+        ]
+        for future in concurrent.futures.as_completed(results):
+            processed_image = future.result()
+            if processed_image.uploaded and processed_image.entity:
+                uploaded_image_entities.append(processed_image.entity)
+            else:
+                failed_images.append(processed_image.path)
 
     for i in range(0, len(uploaded_image_entities), 500):
         controller.upload_images(
             project_name=project_name,
+            folder_name=folder_name,
             images=uploaded_image_entities[i : i + 500],  # noqa: E203
             annotation_status=annotation_status,
             image_quality=image_quality_in_editor,
@@ -1582,6 +1609,7 @@ def upload_videos_from_folder_to_project(
     for i in range(0, len(uploaded_image_entities), 500):
         controller.upload_images(
             project_name=project_name,
+            folder_name=folder_name,
             images=uploaded_image_entities[i : i + 500],  # noqa: E203
             annotation_status=annotation_status,
             image_quality=image_quality_in_editor,
@@ -1668,6 +1696,7 @@ def upload_video_to_project(
     for i in range(0, len(uploaded_image_entities), 500):
         controller.upload_images(
             project_name=project_name,
+            folder_name=folder_name,
             images=uploaded_image_entities[i : i + 500],  # noqa: E203
             annotation_status=annotation_status,
             image_quality=image_quality_in_editor,

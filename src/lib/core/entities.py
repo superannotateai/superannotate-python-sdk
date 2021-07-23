@@ -163,12 +163,14 @@ class FolderEntity(BaseEntity):
         parent_id: int = None,
         team_id: int = None,
         name: str = None,
+        folder_users: List[dict] = None,
     ):
         super().__init__(uuid)
         self.team_id = team_id
         self.project_id = project_id
         self.name = name
         self.parent_id = parent_id
+        self.folder_users = folder_users
 
     def to_dict(self):
         return {
@@ -177,6 +179,7 @@ class FolderEntity(BaseEntity):
             "name": self.name,
             "parent_id": self.parent_id,
             "project_id": self.project_id,
+            "folder_users": self.folder_users,
         }
 
 
@@ -257,7 +260,7 @@ class AnnotationClassEntity(BaseEntity):
         count: int = None,
         name: str = None,
         project_id: int = None,
-        attribute_groups: Iterable = [],
+        attribute_groups: Iterable = None,
     ):
         super().__init__(uuid)
         self.color = color
@@ -281,7 +284,7 @@ class AnnotationClassEntity(BaseEntity):
             "count": self.count,
             "name": self.name,
             "project_id": self.project_id,
-            "attribute_groups": self.attribute_groups,
+            "attribute_groups": self.attribute_groups if self.attribute_groups else [],
         }
 
 

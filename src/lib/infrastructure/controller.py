@@ -1,5 +1,7 @@
 import copy
 import io
+from functools import cached_property
+from functools import lru_cache
 from typing import Iterable
 from typing import List
 
@@ -32,34 +34,33 @@ class BaseController:
         self._backend_client = backend_client
         self._s3_upload_auth_data = None
         self._response = response
-        self._project = None
 
     @property
     def response(self):
         self._response = Response()
         return self._response
 
-    @property
+    @cached_property
     def projects(self):
         return ProjectRepository(self._backend_client)
 
-    @property
+    @cached_property
     def folders(self):
         return FolderRepository(self._backend_client)
 
-    @property
+    @cached_property
     def ml_models(self):
         return MLModelRepository(self._backend_client, self.team_id)
 
-    @property
+    @cached_property
     def teams(self):
         return TeamRepository(self._backend_client)
 
-    @property
+    @cached_property
     def images(self):
         return ImageRepository(self._backend_client)
 
-    @property
+    @cached_property
     def configs(self):
         return ConfigRepository()
 
@@ -67,6 +68,8 @@ class BaseController:
     def team_id(self) -> int:
         return int(self.configs.get_one("token").value.split("=")[-1])
 
+    # todo set timed cache
+    @lru_cache
     def get_auth_data(self, project_id: int, team_id: int, folder_id: int):
         return self._backend_client.get_s3_upload_auth_token(
             team_id, folder_id, project_id
@@ -75,16 +78,12 @@ class BaseController:
     def get_s3_repository(
         self, team_id: int, project_id: int, folder_id: int, bucket: str = None
     ):
-        if not self._s3_upload_auth_data:
-            self._s3_upload_auth_data = self.get_auth_data(
-                project_id, team_id, folder_id
-            )
-
+        auth_data = self.get_auth_data(project_id, team_id, folder_id)
         return S3Repository(
-            self._s3_upload_auth_data["accessKeyId"],
-            self._s3_upload_auth_data["secretAccessKey"],
-            self._s3_upload_auth_data["sessionToken"],
-            self._s3_upload_auth_data["bucket"],
+            auth_data["accessKeyId"],
+            auth_data["secretAccessKey"],
+            auth_data["sessionToken"],
+            auth_data["bucket"],
         )
 
     @property
@@ -93,23 +92,21 @@ class BaseController:
 
 
 class Controller(BaseController):
+    @lru_cache(maxsize=2)
     def _get_project(self, name: str):
-        if not self._project or self._project.name != name:
-            response = Response()
-            use_case = usecases.GetProjectByNameUseCase(
-                response=response,
-                name=name,
-                team_id=self.team_id,
-                projects=ProjectRepository(service=self._backend_client),
-            )
-            use_case.execute()
-            self._project = response.data
-        return self._project
+        response = Response()
+        use_case = usecases.GetProjectByNameUseCase(
+            response=response,
+            name=name,
+            team_id=self.team_id,
+            projects=ProjectRepository(service=self._backend_client),
+        )
+        use_case.execute()
+        return response.data
 
     def _get_folder(self, project: ProjectEntity, name: str = None):
         name = self.get_folder_name(name)
-        folders = self.folders
-        return folders.get_one(
+        return self.folders.get_one(
             Condition("name", name, EQ)
             & Condition("team_id", self.team_id, EQ)
             & Condition("project_id", project.uuid, EQ)
@@ -125,14 +122,15 @@ class Controller(BaseController):
         condition = Condition("name", name, EQ)
         for key, val in kwargs.items():
             condition = condition & Condition(key, val, EQ)
+        response = self.response
         use_case = usecases.GetProjectsUseCase(
-            response=self.response,
+            response=response,
             condition=condition,
             projects=self.projects,
             team_id=self.team_id,
         )
         use_case.execute()
-        return self._response
+        return response
 
     def create_project(
         self,
@@ -171,17 +169,14 @@ class Controller(BaseController):
         return self._response
 
     def delete_project(self, name: str):
-        entities = self.projects.get_all(
-            Condition("team_id", self.team_id, EQ) & Condition("name", name, EQ)
+        use_case = usecases.DeleteProjectUseCase(
+            response=self.response,
+            project_name=name,
+            team_id=self.team_id,
+            projects=self.projects,
         )
-        if entities and len(entities) == 1:
-            use_case = usecases.DeleteProjectUseCase(
-                self.response, entities[0], self.projects
-            )
-            use_case.execute()
-            return self._response
-        if entities and len(entities) > 1:
-            raise AppException("There are duplicated names.")
+        use_case.execute()
+        return self._response
 
     def update_project(self, name: str, project_data: dict) -> Response:
         entities = self.projects.get_all(
@@ -200,14 +195,17 @@ class Controller(BaseController):
     def upload_images(
         self,
         project_name: str,
+        folder_name: str,
         images: List[ImageEntity],
         annotation_status: str = None,
         image_quality: str = None,
     ):
         project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
         use_case = usecases.AttachImagesUseCase(
             response=self.response,
             project=project,
+            folder=folder,
             project_settings=ProjectSettingsRepository(self._backend_client, project),
             backend_service_provider=self._backend_client,
             images=images,
@@ -226,18 +224,20 @@ class Controller(BaseController):
     ):
         project = self._get_project(project_name)
         folder = self._get_folder(project, folder_name)
-        s3_repo = self.get_s3_repository(self.team_id, project.uuid, folder.uuid,)
+        s3_repo = self.get_s3_repository(self.team_id, project.uuid, folder.uuid)
+        auth_data = self.get_auth_data(project.uuid, self.team_id, folder.uuid)
+        response = self.response
         use_case = usecases.UploadImageS3UseCas(
-            response=self.response,
+            response=response,
             project=project,
             project_settings=ProjectSettingsRepository(self._backend_client, project),
             image_path=image_path,
             image=image_bytes,
             s3_repo=s3_repo,
-            upload_path=self._s3_upload_auth_data["filePath"],
+            upload_path=auth_data["filePath"],
         )
         use_case.execute()
-        return self._response
+        return response
 
     def clone_project(
         self,
@@ -329,7 +329,7 @@ class Controller(BaseController):
         use_case.execute()
         return self._response
 
-    def search_folder(self, project_name: str, **kwargs):
+    def search_folder(self, project_name: str, include_users=False, **kwargs):
         condition = None
         if kwargs:
             conditions_iter = iter(kwargs)
@@ -344,6 +344,7 @@ class Controller(BaseController):
             project=project,
             folders=self.folders,
             condition=condition,
+            include_users=include_users,
         )
         use_case.execute()
         return self._response
@@ -426,7 +427,6 @@ class Controller(BaseController):
         return self._response
 
     def search_team_contributors(self, **kwargs):
-
         condition = None
         if kwargs:
             conditions_iter = iter(kwargs)
@@ -715,17 +715,17 @@ class Controller(BaseController):
         delete_image_user_case.execute()
         return self._response
 
-    def get_image_metadata(self, project_name, image_names):
-        project_entity = self._get_project(project_name)
-
-        get_image_metadata_use_case = usecases.GetImageMetadataUseCase(
+    def get_image_metadata(self, project_name: str, folder_name: str, image_name: str):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+        use_case = usecases.GetImageMetadataUseCase(
             response=self.response,
-            image_names=image_names,
-            team_id=project_entity.team_id,
-            project_id=project_entity.uuid,
+            image_name=image_name,
+            project=project,
+            folder=folder,
             service=self._backend_client,
         )
-        get_image_metadata_use_case.execute()
+        use_case.execute()
         return self._response
 
     def set_images_annotation_statuses(
@@ -813,24 +813,24 @@ class Controller(BaseController):
         )
         use_case.execute()
 
-    def share_project(self, project_name: str, user: str, user_role: str):
+    def share_project(self, project_name: str, user_id: str, user_role: str):
         project_entity = self._get_project(project_name)
         share_project_use_case = usecases.ShareProjectUseCase(
             response=self.response,
             service=self._backend_client,
             project_entity=project_entity,
-            user_id=user,
+            user_id=user_id,
             user_role=user_role,
         )
         share_project_use_case.execute()
 
-    def un_share_project(self, project_name: str, user: str):
+    def un_share_project(self, project_name: str, user_id: str):
         project_entity = self._get_project(project_name)
         use_case = usecases.UnShareProjectUseCase(
             response=self.response,
             service=self._backend_client,
             project_entity=project_entity,
-            user_id=user,
+            user_id=user_id,
         )
         use_case.execute()
 
@@ -898,8 +898,9 @@ class Controller(BaseController):
     ):
         project = self._get_project(project_name)
         folder = self._get_folder(project=project, name=folder_name)
+        response = self.response
         user_case = usecases.DownloadImagePreAnnotationsUseCase(
-            response=self.response,
+            response=response,
             service=self._backend_client,
             project=project,
             folder=folder,
@@ -908,14 +909,15 @@ class Controller(BaseController):
             destination=destination,
         )
         user_case.execute()
-        return self._response
+        return response
 
     def get_image_from_s3(self, s3_bucket, image_path: str):
+        response = self.response
         use_case = usecases.GetS3ImageUseCase(
-            response=self.response, s3_bucket=s3_bucket, image_path=image_path
+            response=response, s3_bucket=s3_bucket, image_path=image_path
         )
         use_case.execute()
-        return use_case
+        return response
 
     def get_image_pre_annotations(
         self, project_name: str, folder_name: str, image_name: str
