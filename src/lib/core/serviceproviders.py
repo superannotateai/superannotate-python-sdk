@@ -272,3 +272,13 @@ class SuerannotateServiceProvider(ABC):
 
     def get_ml_model_download_tokens(self, team_id: int, model_id: int):
         raise NotImplementedError
+
+    def run_segmentation(
+        self, team_id: int, project_id: int, model_name: str, image_ids: list
+    ):
+        raise NotImplementedError
+
+    def run_prediction(
+        self, team_id: int, project_id: int, ml_model_id: int, image_ids: list
+    ):
+        raise NotImplementedError

@@ -1373,3 +1373,45 @@ class Controller(BaseController):
         )
         use_case.execute()
         return self.response
+
+    def run_segmentation(
+        self, project_name: str, images_list: list, model_name: str, folder_name: str
+    ):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+        ml_model_repo = MLModelRepository(
+            team_id=project.uuid, service=self._backend_client
+        )
+        use_case = usecases.RunSegmentationUseCase(
+            response=self.response,
+            project=project,
+            ml_model_repo=ml_model_repo,
+            ml_model_name=model_name,
+            images_list=images_list,
+            service=self._backend_client,
+            folder=folder,
+        )
+        use_case.execute()
+        return self.response
+
+    def run_prediction(
+        self, project_name: str, images_list: list, model_name: str, folder_name: str
+    ):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+        ml_model_repo = MLModelRepository(
+            team_id=project.uuid, service=self._backend_client
+        )
+        use_case = usecases.RunPredictionUseCase(
+            response=self.response,
+            project=project,
+            ml_model_repo=ml_model_repo,
+            ml_model_name=model_name,
+            images_list=images_list,
+            service=self._backend_client,
+            folder=folder,
+        )
+        use_case.execute()
+        return self.response
+
+

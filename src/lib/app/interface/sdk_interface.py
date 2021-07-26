@@ -2432,6 +2432,69 @@ def consensus(
         show_plots=show_plots,
     )
     return response.data
+
+
+def run_segmentation(project, images_list, model):
+    """Starts smart segmentation on a list of images using the specified model
+
+    :param project: project name of metadata of the project
+    :type  project: str or dict
+    :param model  : The model name or metadata of the model
+    :type  model  : str or dict
+    :return: tupe of two lists, list of images on which the segmentation has succeeded and failed respectively
+    :rtype res: tuple
+    """
+
+    project_name = None
+    folder_name = None
+    if isinstance(project, dict):
+        project_name = project["name"]
+    if isinstance(project, str):
+        project_name, folder_name = split_project_path(project)
+
+    model_name = model
+    if isinstance(model, dict):
+        model_name = model["name"]
+
+    response = controller.run_segmentation(
+        project_name=project_name,
+        images_list=images_list,
+        model_name=model_name,
+        folder_name=folder_name,
+    )
+    return response.data
+
+
+def run_prediction(project, images_list, model):
+    """This function runs smart prediction on given list of images from a given project using the neural network of your choice
+
+    :param project: the project in which the target images are uploaded.
+    :type project: str or dict
+    :param images_list: the list of image names on which smart prediction has to be run
+    :type images_list: list of str
+    :param model: the name of the model that should be used for running smart prediction
+    :type model: str or dict
+    :return: tupe of two lists, list of images on which the prediction has succeded and failed respectively
+    :rtype: tuple
+    """
+    project_name = None
+    folder_name = None
+    if isinstance(project, dict):
+        project_name = project["name"]
+    if isinstance(project, str):
+        project_name, folder_name = split_project_path(project)
+
+    model_name = model
+    if isinstance(model, dict):
+        model_name = model["name"]
+
+    response = controller.run_prediction(
+        project_name=project_name,
+        images_list=images_list,
+        model_name=model_name,
+        folder_name=folder_name,
+    )
+    return response.data
   
   
 

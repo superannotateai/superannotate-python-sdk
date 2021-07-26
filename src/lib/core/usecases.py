@@ -3559,3 +3559,101 @@ class ConsensusUseCase(BaseUseCase):
             consensus_plot(consensus_df, self._folder_names)
 
         return consensus_df
+
+
+class RunSegmentationUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        project: ProjectEntity,
+        ml_model_repo: BaseManageableRepository,
+        ml_model_name: str,
+        images_list: list,
+        service: SuerannotateServiceProvider,
+        folder: FolderEntity,
+    ):
+        super().__init__(response)
+        self._project = project
+        self._ml_model_repo = ml_model_repo
+        self._ml_model_name = ml_model_name
+        self._images_list = images_list
+        self._service = service
+        self._folder = folder
+
+    def validate_project_type(self):
+        if self._project.project_type is not ProjectType.PIXEL:
+            raise AppValidationException(
+                "Operation not supported for given project type"
+            )
+
+    def validate_model(self):
+        if self._ml_model_name not in constances.AVAILABLE_SEGMENTATION_MODELS:
+            raise AppValidationException("Model Does not exist")
+
+    def validate_upload_state(self):
+        if self._project.upload_state is constances.UploadState.EXTERNAL:
+            raise AppValidationException(
+                "The function does not support projects containing images attached with URLs"
+            )
+
+    def execute(self):
+        images = self._service.get_duplicated_images(
+            project_id=self._project.uuid,
+            team_id=self._project.team_id,
+            folder_id=self._folder.uuid,
+            images=self._images_list,
+        )
+
+        image_ids = [image["id"] for image in images]
+        self._service.run_segmentation(
+            self._project.team_id,
+            self._project.uuid,
+            model_name=self._ml_model_name,
+            image_ids=image_ids,
+        )
+
+
+class RunPredictionUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        project: ProjectEntity,
+        ml_model_repo: BaseManageableRepository,
+        ml_model_name: str,
+        images_list: list,
+        service: SuerannotateServiceProvider,
+        folder: FolderEntity,
+    ):
+        super().__init__(response)
+        self._project = project
+        self._ml_model_repo = ml_model_repo
+        self._ml_model_name = ml_model_name
+        self._images_list = images_list
+        self._service = service
+        self._folder = folder
+
+
+    def execute(self):
+        images = self._service.get_duplicated_images(
+            project_id=self._project.uuid,
+            team_id=self._project.team_id,
+            folder_id=self._folder.uuid,
+            images=self._images_list,
+        )
+
+        image_ids = [image["id"] for image in images]
+
+        ml_models = self._ml_model_repo.get_all(condition=Condition("name",self._ml_model_name,EQ) &
+                                                          Condition("include_global", True,EQ) &
+                                                          Condition("team_id", self._project.team_id,EQ))
+        ml_model = None
+        for model in ml_models:
+            if model.name == self._ml_model_name:
+                ml_model = model
+
+        self._service.run_prediction(
+            team_id=self._project.team_id,
+            project_id=self._project.uuid,
+            ml_model_id=ml_model.uuid,
+            image_ids=image_ids,
+        )
