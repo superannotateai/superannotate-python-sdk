@@ -246,6 +246,7 @@ class SuperannotateBackendService(BaseBackendService):
     def attach_files(
         self,
         project_id: int,
+        folder_id: int,
         team_id: int,
         files: List[Dict],
         annotation_status_code,
@@ -254,6 +255,7 @@ class SuperannotateBackendService(BaseBackendService):
     ):
         data = {
             "project_id": project_id,
+            "folder_id": folder_id,
             "team_id": team_id,
             "images": files,
             "annotation_status": annotation_status_code,
@@ -396,7 +398,7 @@ class SuperannotateBackendService(BaseBackendService):
         return self._get_all_pages(list_users_url, params=params)
 
     def un_share_project(self, project_id: int, team_id: int, user_id: int):
-        users_url = urljoin(self.api_url, self.URL_USERS.format(project_id))
+        users_url = urljoin(self.api_url, self.URL_SHARE_PROJECT.format(project_id))
 
         res = self._request(
             users_url, "delete", data={"user_id": user_id}, params={"team_id": team_id}
@@ -571,16 +573,6 @@ class SuperannotateBackendService(BaseBackendService):
         )
         return res.ok
 
-    def get_images_bulk(self, image_names, team_id: int, project_id: int):
-        get_images_bulk_url = urljoin(self.api_url, self.URL_GET_IMAGES_BULK)
-
-        res = self._request(
-            get_images_bulk_url,
-            "post",
-            data={"names": image_names, "team_id": team_id, "project_id": project_id},
-        )
-        return res
-
     def set_images_statuses_bulk(
         self,
         image_names: list,
@@ -608,10 +600,10 @@ class SuperannotateBackendService(BaseBackendService):
     def get_bulk_images(
         self, project_id: int, team_id: int, folder_id: int, images: List[str]
     ) -> List[str]:
-        get_duplications_url = urljoin(self.api_url, self.URL_BULK_GET_IMAGES)
+        bulk_get_images_url = urljoin(self.api_url, self.URL_BULK_GET_IMAGES)
 
         res = self._request(
-            get_duplications_url,
+            bulk_get_images_url,
             "post",
             data={
                 "project_id": project_id,
@@ -852,7 +844,7 @@ class SuperannotateBackendService(BaseBackendService):
         return res.json()
 
     def search_models(self, query_string: str):
-        search_model_url = urljoin(self.api_url, self.URL_MODELS )
+        search_model_url = urljoin(self.api_url, self.URL_MODELS)
         if query_string:
             search_model_url = f"{search_model_url}?{query_string}"
         response = self._request(search_model_url, "get",)
@@ -907,12 +899,17 @@ class SuperannotateBackendService(BaseBackendService):
         return res.json()
 
     def run_prediction(
-            self, team_id: int, project_id: int, ml_model_id: int, image_ids: list
+        self, team_id: int, project_id: int, ml_model_id: int, image_ids: list
     ):
         prediction_url = urljoin(self.api_url, self.URL_PREDICTION)
         res = self._request(
             prediction_url,
             "post",
-            data={"team_id": team_id, "project_id": project_id , "ml_model_id": ml_model_id, "image_ids": image_ids},
+            data={
+                "team_id": team_id,
+                "project_id": project_id,
+                "ml_model_id": ml_model_id,
+                "image_ids": image_ids,
+            },
         )
         return res.json()

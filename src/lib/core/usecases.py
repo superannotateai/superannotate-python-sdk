@@ -118,8 +118,7 @@ class GetProjectByNameUseCase(BaseUseCase):
             for project in projects:
                 if project.name == self._name:
                     self._response.data = project
-                    break
-        self._response.errors = self._errors
+                    return
 
 
 class CreateProjectUseCase(BaseUseCase):
@@ -206,19 +205,25 @@ class DeleteProjectUseCase(BaseUseCase):
     def __init__(
         self,
         response: Response,
-        project: ProjectEntity,
+        project_name: str,
+        team_id: int,
         projects: BaseManageableRepository,
     ):
 
         super().__init__(response)
-        self._project = project
+        self._project_name = project_name
+        self._team_id = team_id
         self._projects = projects
 
     def execute(self):
-        if self.is_valid():
-            self._projects.delete(self._project)
-        else:
-            self._response.errors = self._errors
+        project_response = Response()
+        GetProjectByNameUseCase(
+            response=project_response,
+            name=self._project_name,
+            team_id=self._team_id,
+            projects=self._projects,
+        ).execute()
+        self._projects.delete(project_response.data)
 
 
 class UpdateProjectUseCase(BaseUseCase):
@@ -311,6 +316,7 @@ class AttachImagesUseCase(BaseUseCase):
         self,
         response: Response,
         project: ProjectEntity,
+        folder: FolderEntity,
         project_settings: BaseReadOnlyRepository,
         backend_service_provider: SuerannotateServiceProvider,
         images: List[ImageEntity],
@@ -319,6 +325,7 @@ class AttachImagesUseCase(BaseUseCase):
     ):
         super().__init__(response)
         self._project = project
+        self._folder = folder
         self._project_settings = project_settings
         self._backend = backend_service_provider
         self._images = images
@@ -356,6 +363,7 @@ class AttachImagesUseCase(BaseUseCase):
 
         self._backend.attach_files(
             project_id=self._project.uuid,
+            folder_id=self._folder.uuid,
             team_id=self._project.team_id,
             files=images,
             annotation_status_code=self.annotation_status_code,
@@ -508,8 +516,9 @@ class CreateFolderUseCase(BaseUseCase):
         self._folders = folders
 
     def execute(self):
-        self._folder.project_id = self._project.uuid
-        self._response.data = self._folders.insert(self._folder)
+        if self.is_valid():
+            self._folder.project_id = self._project.uuid
+            self._response.data = self._folders.insert(self._folder)
 
     def validate_folder_name(self):
         if (
@@ -572,6 +581,7 @@ class AttachFileUrlsUseCase(BaseUseCase):
 
         self._backend_service.attach_files(
             project_id=self._project.uuid,
+            folder_id=self._folder.uuid,
             team_id=self._project.team_id,
             files=attachments,
             annotation_status_code=self.annotation_status_code,
@@ -730,14 +740,22 @@ class SearchFolderUseCase(BaseUseCase):
         project: ProjectEntity,
         folders: BaseReadOnlyRepository,
         condition: Condition,
+        include_users=False,
     ):
         super().__init__(response)
         self._project = project
         self._folders = folders
         self._condition = condition
+        self._include_users = include_users
 
     def execute(self):
-        self._response.data = self._folders.get_all(self._condition)
+        condition = (
+            self._condition
+            & Condition("project_id", self._project.uuid, EQ)
+            & Condition("team_id", self._project.team_id, EQ)
+            & Condition("includeUsers", self._include_users, EQ)
+        )
+        self._response.data = self._folders.get_all(condition)
 
 
 class GetProjectFoldersUseCase(BaseUseCase):
@@ -1243,23 +1261,28 @@ class GetImageMetadataUseCase(BaseUseCase):
     def __init__(
         self,
         response: Response,
-        image_names: list,
-        team_id: int,
-        project_id: int,
+        image_name: str,
+        project: ProjectEntity,
+        folder: FolderEntity,
         service: SuerannotateServiceProvider,
     ):
         super().__init__(response)
-        self._image_names = image_names
-        self._project_id = project_id
+        self._image_name = image_name
+        self._project = project
         self._service = service
-        self._team_id = team_id
+        self._folder = folder
 
     def execute(self):
-        self._response.data = self._service.get_images_bulk(
-            image_names=self._image_names,
-            team_id=self._team_id,
-            project_id=self._project_id,
+        data = self._service.get_bulk_images(
+            images=[self._image_name],
+            team_id=self._project.team_id,
+            project_id=self._project.uuid,
+            folder_id=self._folder.uuid,
         )
+        if data:
+            self._response.data = data[0]
+        else:
+            self._response.errors = AppException("Image not found.")
 
 
 class ImagesBulkMoveUseCase(BaseUseCase):
@@ -1432,7 +1455,7 @@ class UnAssignImagesUseCase(BaseUseCase):
 
     def execute(self):
         for i in range(0, len(self._image_names), self.CHUNK_SIZE):
-            self._response.data = self._service.unassign_images(
+            self._response.data = self._service.un_assign_images(
                 team_id=self._project_entity.team_id,
                 project_id=self._project_entity.uuid,
                 folder_name=self._folder_name,
@@ -2279,9 +2302,19 @@ class CreateAnnotationClassUseCase(BaseUseCase):
         self._annotation_classes = annotation_classes
         self._annotation_class = annotation_class
 
+    def validate_uniqueness(self):
+        annotation_classes = self._annotation_classes.get_all(
+            Condition("name", self._annotation_class.name, EQ)
+        )
+        if annotation_classes:
+            raise AppValidationException("Annotation class already exits.")
+
     def execute(self):
-        created = self._annotation_classes.insert(entity=self._annotation_class)
-        self._response.data = created
+        if self.is_valid():
+            created = self._annotation_classes.insert(entity=self._annotation_class)
+            self._response.data = created
+        else:
+            self._response.data = self._annotation_class
 
 
 class DeleteAnnotationClassUseCase(BaseUseCase):
@@ -2800,8 +2833,8 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
 
     def execute(self):
 
-        image_data = self._backend_service.get_images_bulk(
-            image_names=[self._image_name],
+        image_data = self._backend_service.get_bulk_images(
+            images=[self._image_name],
             team_id=self._project.team_id,
             project_id=self._project.uuid,
         )[0]
@@ -2966,8 +2999,8 @@ class UploadAnnotationsUseCase(BaseUseCase):
             )
             for annotation_path in annotation_paths
         ]
-        images_data = self._backend_service.get_images_bulk(
-            image_names=[image.name for image in images_detail],
+        images_data = self._backend_service.get_bulk_images(
+            images=[image.name for image in images_detail],
             team_id=self._project.team_id,
             project_id=self._project.uuid,
         )
@@ -3358,7 +3391,7 @@ class DownloadMLModelUseCase(BaseUseCase):
         )
 
         download_token = self._backend_service.get_ml_model_download_tokens(
-            self._team_id, self._model.uuid
+            self._model.team_id, self._model.uuid
         )
         s3_session = boto3.Session(
             aws_access_key_id=download_token["tokens"]["accessKeyId"],
@@ -3632,7 +3665,6 @@ class RunPredictionUseCase(BaseUseCase):
         self._service = service
         self._folder = folder
 
-
     def execute(self):
         images = self._service.get_duplicated_images(
             project_id=self._project.uuid,
@@ -3643,9 +3675,11 @@ class RunPredictionUseCase(BaseUseCase):
 
         image_ids = [image["id"] for image in images]
 
-        ml_models = self._ml_model_repo.get_all(condition=Condition("name",self._ml_model_name,EQ) &
-                                                          Condition("include_global", True,EQ) &
-                                                          Condition("team_id", self._project.team_id,EQ))
+        ml_models = self._ml_model_repo.get_all(
+            condition=Condition("name", self._ml_model_name, EQ)
+            & Condition("include_global", True, EQ)
+            & Condition("team_id", self._project.team_id, EQ)
+        )
         ml_model = None
         for model in ml_models:
             if model.name == self._ml_model_name:

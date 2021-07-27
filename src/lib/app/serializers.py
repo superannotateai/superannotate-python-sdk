@@ -25,11 +25,11 @@ class TeamSerializer(BaseSerializers):
         data = super().serialize()
         users = []
         for user in data["users"]:
-            user["user_role"] = constance.UserRole(data["user_role"]).name
+            user["user_role"] = constance.UserRole.get_name(data["user_role"])
             users.append(user)
         data["users"] = users
         for user in data["pending_invitations"]:
-            user["user_role"] = constance.UserRole(data["user_role"]).name
+            user["user_role"] = constance.UserRole.get_name(data["user_role"])
         return data
 
 

@@ -237,12 +237,7 @@ class FolderRepository(BaseManageableRepository):
         return self.dict2entity(data)
 
     def get_all(self, condition: Optional[Condition] = None) -> List[FolderEntity]:
-        condition = (
-            condition
-            & Condition("project_id", self._project.uuid, EQ)
-            & Condition("team_id", self._project.team_id, EQ)
-        )
-        condition = condition.build_query()
+        condition = condition.build_query() if condition else None
         data = self._service.get_folders(condition)
         return [self.dict2entity(image) for image in data]
 
@@ -269,6 +264,7 @@ class FolderRepository(BaseManageableRepository):
             team_id=data["team_id"],
             project_id=data["project_id"],
             name=data["name"],
+            folder_users=data.get("folder_users"),
         )
 
 
@@ -407,7 +403,7 @@ class MLModelRepository(BaseManageableRepository):
         raise NotImplementedError
 
     def get_all(self, condition: Optional[Condition] = None) -> List[MLModelEntity]:
-        models = self._service.search_models(condition.build_query())['data']
+        models = self._service.search_models(condition.build_query())["data"]
         return [self.dict2entity(model) for model in models]
 
     def insert(self, entity: MLModelEntity) -> MLModelEntity:

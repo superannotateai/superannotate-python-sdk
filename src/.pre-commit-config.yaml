@@ -40,5 +40,5 @@ repos:
 #    rev: v1.3.0
 #    hooks:
 #      - id: dead
-files: src/lib/
+files: src/
 exclude: lib/app/analytics | lib/app/converters | lib/app/input_convertors

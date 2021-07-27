@@ -12,6 +12,7 @@ class SuerannotateServiceProvider(ABC):
     def attach_files(
         self,
         project_id: int,
+        folder_id: int,
         team_id: int,
         files: List[Dict],
         annotation_status_code: int,
@@ -229,9 +230,6 @@ class SuerannotateServiceProvider(ABC):
     def set_project_workflow_attributes_bulk(
         self, project_id: int, team_id: int, attributes: list
     ):
-        raise NotImplementedError
-
-    def get_images_bulk(self, image_names, team_id: int, project_id: int):
         raise NotImplementedError
 
     def get_pre_annotation_upload_data(
