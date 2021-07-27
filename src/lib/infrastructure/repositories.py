@@ -403,7 +403,7 @@ class MLModelRepository(BaseManageableRepository):
         raise NotImplementedError
 
     def get_all(self, condition: Optional[Condition] = None) -> List[MLModelEntity]:
-        models = self._service.search_models(condition.build_query())
+        models = self._service.search_models(condition.build_query())['data']
         return [self.dict2entity(model) for model in models]
 
     def insert(self, entity: MLModelEntity) -> MLModelEntity:
@@ -427,9 +427,7 @@ class MLModelRepository(BaseManageableRepository):
             name=data["name"],
             description=data["description"],
             base_model_id=data["base_model_id"],
-            project_type=data["project_type"],
+            model_type=data["type"],
             task=data["task"],
             image_count=data["image_count"],
-            test_folder_ids=data["test_folder_ids"],
-            train_folder_ids=data["train_folder_ids"],
         )

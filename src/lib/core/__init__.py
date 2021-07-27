@@ -39,9 +39,14 @@ MODEL_TRAINING_TASKS = {
     "Semantic Segmentation for Pixel Projects": "semantic_segmentation_pixel",
 }
 
+AVAILABLE_SEGMENTATION_MODELS = ["autonomous", "generic"]
+
+
 VECTOR_ANNOTATION_POSTFIX = "___objects.json"
 PIXEL_ANNOTATION_POSTFIX = "___pixel.json"
 ANNOTATION_MASK_POSTFIX = "___save.png"
+
+NON_PLOTABLE_KEYS = ["eta_seconds", "iteration", "data_time", "time", "model"]
 
 SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES = set('/\\:*?"<>|')
 MAX_PIXEL_RESOLUTION = 4_000_000

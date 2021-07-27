@@ -2,6 +2,7 @@ import copy
 import io
 from functools import cached_property
 from functools import lru_cache
+import tempfile
 from typing import Iterable
 from typing import List
 
@@ -1312,3 +1313,107 @@ class Controller(BaseController):
         )
         use_case.execute()
         return self._response
+
+    def benchmark(
+        self,
+        project_name: str,
+        ground_truth_folder_name: str,
+        folder_names: List[str],
+        export_root: str,
+        image_list: List[str],
+        annot_type: str,
+        show_plots: bool,
+    ):
+        project = self._get_project(project_name)
+        if export_root is None:
+            with tempfile.TemporaryDirectory() as export_dir:
+                export = self.prepare_export(project.name)
+                self.download_export(
+                    project_name=project.name,
+                    export_name=export["name"],
+                    folder_path=export_dir,
+                )
+        use_case = usecases.BenchmarkUseCase(
+            response=self.response,
+            project=project,
+            ground_truth_folder_name=ground_truth_folder_name,
+            folder_names=folder_names,
+            export_dir=export_dir,
+            image_list=image_list,
+            annot_type=annot_type,
+            show_plots=show_plots,
+        )
+        use_case.execute()
+        return self.response
+
+    def consensus(
+        self,
+        project_name: str,
+        folder_names: list,
+        export_root: str,
+        image_list: list,
+        annot_type: str,
+        show_plots: bool,
+    ):
+        project = self._get_project(project_name)
+        if export_root is None:
+            with tempfile.TemporaryDirectory() as export_dir:
+                export = self.prepare_export(project.name)
+                self.download_export(
+                    project_name=project.name,
+                    export_name=export["name"],
+                    folder_path=export_dir,
+                )
+        use_case = usecases.ConsensusUseCase(
+            response=self.response,
+            project=project,
+            folder_names=folder_names,
+            export_dir=export_dir,
+            image_list=image_list,
+            annot_type=annot_type,
+            show_plots=show_plots,
+        )
+        use_case.execute()
+        return self.response
+
+    def run_segmentation(
+        self, project_name: str, images_list: list, model_name: str, folder_name: str
+    ):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+        ml_model_repo = MLModelRepository(
+            team_id=project.uuid, service=self._backend_client
+        )
+        use_case = usecases.RunSegmentationUseCase(
+            response=self.response,
+            project=project,
+            ml_model_repo=ml_model_repo,
+            ml_model_name=model_name,
+            images_list=images_list,
+            service=self._backend_client,
+            folder=folder,
+        )
+        use_case.execute()
+        return self.response
+
+    def run_prediction(
+        self, project_name: str, images_list: list, model_name: str, folder_name: str
+    ):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+        ml_model_repo = MLModelRepository(
+            team_id=project.uuid, service=self._backend_client
+        )
+        use_case = usecases.RunPredictionUseCase(
+            response=self.response,
+            project=project,
+            ml_model_repo=ml_model_repo,
+            ml_model_name=model_name,
+            images_list=images_list,
+            service=self._backend_client,
+            folder=folder,
+        )
+        use_case.execute()
+        return self.response
+
+

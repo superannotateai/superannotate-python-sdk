@@ -17,6 +17,7 @@ from typing import Optional
 import boto3
 import cv2
 import numpy as np
+import pandas as pd
 import requests
 import src.lib.core as constances
 from azure.core.exceptions import AzureError
@@ -24,6 +25,9 @@ from azure.storage.blob import BlobServiceClient
 from boto3.exceptions import Boto3Error
 from google.api_core.exceptions import GoogleAPIError
 from google.cloud import storage as google_storage
+from src.lib.app.analytics.common import aggregate_annotations_as_df
+from src.lib.app.analytics.common import consensus_plot
+from src.lib.app.analytics.common import image_consensus
 from src.lib.core.conditions import Condition
 from src.lib.core.conditions import CONDITION_EQ as EQ
 from src.lib.core.entities import AnnotationClassEntity
@@ -3414,3 +3418,274 @@ class DownloadMLModelUseCase(BaseUseCase):
             self._response.errors = AppException(
                 "The specified model does not contain a classes_mapper and/or a metrics file."
             )
+
+
+class BenchmarkUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        project: ProjectEntity,
+        ground_truth_folder_name: str,
+        folder_names: list,
+        export_dir: str,
+        image_list: list,
+        annot_type: str,
+        show_plots: bool,
+    ):
+        super().__init__(response)
+        self._project = project
+        self._ground_truth_folder_name = ground_truth_folder_name
+        self._folder_names = folder_names
+        self._export_dir = export_dir
+        self._image_list = image_list
+        self._annot_type = annot_type
+        self._show_plots = show_plots
+
+    def execute(self):
+        project_df = aggregate_annotations_as_df(self._export_dir)
+        gt_project_df = project_df[
+            project_df["folderName"] == self._ground_truth_folder_name
+        ]
+        benchmark_dfs = []
+        for folder_name in self._folder_names:
+            folder_df = project_df[project_df["folderName"] == folder_name]
+            project_gt_df = pd.concat([folder_df, gt_project_df])
+            project_gt_df = project_gt_df[project_gt_df["instanceId"].notna()]
+
+            if self._image_list is not None:
+                project_gt_df = project_gt_df.loc[
+                    project_gt_df["imageName"].isin(self._image_list)
+                ]
+
+            project_gt_df.query("type == '" + self._annot_type + "'", inplace=True)
+
+            project_gt_df = project_gt_df.groupby(
+                ["imageName", "instanceId", "folderName"]
+            )
+
+            def aggregate_attributes(instance_df):
+                def attribute_to_list(attribute_df):
+                    attribute_names = list(attribute_df["attributeName"])
+                    attribute_df["attributeNames"] = len(attribute_df) * [
+                        attribute_names
+                    ]
+                    return attribute_df
+
+                attributes = None
+                if not instance_df["attributeGroupName"].isna().all():
+                    attrib_group_name = instance_df.groupby("attributeGroupName")[
+                        ["attributeGroupName", "attributeName"]
+                    ].apply(attribute_to_list)
+                    attributes = dict(
+                        zip(
+                            attrib_group_name["attributeGroupName"],
+                            attrib_group_name["attributeNames"],
+                        )
+                    )
+
+                instance_df.drop(
+                    ["attributeGroupName", "attributeName"], axis=1, inplace=True
+                )
+                instance_df.drop_duplicates(
+                    subset=["imageName", "instanceId", "folderName"], inplace=True
+                )
+                instance_df["attributes"] = [attributes]
+                return instance_df
+
+            project_gt_df = project_gt_df.apply(aggregate_attributes).reset_index(
+                drop=True
+            )
+            unique_images = set(project_gt_df["imageName"])
+            all_benchmark_data = []
+            for image_name in unique_images:
+                image_data = image_consensus(
+                    project_gt_df, image_name, self._annot_type
+                )
+                all_benchmark_data.append(pd.DataFrame(image_data))
+            benchmark_project_df = pd.concat(all_benchmark_data, ignore_index=True)
+            benchmark_project_df = benchmark_project_df[
+                benchmark_project_df["folderName"] == folder_name
+            ]
+            benchmark_dfs.append(benchmark_project_df)
+        benchmark_df = pd.concat(benchmark_dfs, ignore_index=True)
+        if self._show_plots:
+            consensus_plot(benchmark_df, self._folder_names)
+        self._response.data = benchmark_df
+
+
+class ConsensusUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        project: ProjectEntity,
+        folder_names: list,
+        export_dir: str,
+        image_list: list,
+        annot_type: str,
+        show_plots: bool,
+    ):
+        super().__init__(response)
+        self._project = project
+        self._folder_names = folder_names
+        self._export_dir = export_dir
+        self._image_list = image_list
+        self._annot_type = annot_type
+        self._show_plots = show_plots
+
+    def execute(self):
+        project_df = aggregate_annotations_as_df(self._export_dir)
+        all_projects_df = project_df[project_df["instanceId"].notna()]
+        all_projects_df = all_projects_df.loc[
+            all_projects_df["folderName"].isin(self._folder_names)
+        ]
+
+        if self._image_list is not None:
+            all_projects_df = all_projects_df.loc[
+                all_projects_df["imageName"].isin(self._image_list)
+            ]
+
+        all_projects_df.query("type == '" + self._annot_type + "'", inplace=True)
+
+        def aggregate_attributes(instance_df):
+            def attribute_to_list(attribute_df):
+                attribute_names = list(attribute_df["attributeName"])
+                attribute_df["attributeNames"] = len(attribute_df) * [attribute_names]
+                return attribute_df
+
+            attributes = None
+            if not instance_df["attributeGroupName"].isna().all():
+                attrib_group_name = instance_df.groupby("attributeGroupName")[
+                    ["attributeGroupName", "attributeName"]
+                ].apply(attribute_to_list)
+                attributes = dict(
+                    zip(
+                        attrib_group_name["attributeGroupName"],
+                        attrib_group_name["attributeNames"],
+                    )
+                )
+
+            instance_df.drop(
+                ["attributeGroupName", "attributeName"], axis=1, inplace=True
+            )
+            instance_df.drop_duplicates(
+                subset=["imageName", "instanceId", "folderName"], inplace=True
+            )
+            instance_df["attributes"] = [attributes]
+            return instance_df
+
+        all_projects_df = all_projects_df.groupby(
+            ["imageName", "instanceId", "folderName"]
+        )
+        all_projects_df = all_projects_df.apply(aggregate_attributes).reset_index(
+            drop=True
+        )
+        unique_images = set(all_projects_df["imageName"])
+        all_consensus_data = []
+        for image_name in unique_images:
+            image_data = image_consensus(all_projects_df, image_name, self._annot_type)
+            all_consensus_data.append(pd.DataFrame(image_data))
+
+        consensus_df = pd.concat(all_consensus_data, ignore_index=True)
+
+        if self._show_plots:
+            consensus_plot(consensus_df, self._folder_names)
+
+        return consensus_df
+
+
+class RunSegmentationUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        project: ProjectEntity,
+        ml_model_repo: BaseManageableRepository,
+        ml_model_name: str,
+        images_list: list,
+        service: SuerannotateServiceProvider,
+        folder: FolderEntity,
+    ):
+        super().__init__(response)
+        self._project = project
+        self._ml_model_repo = ml_model_repo
+        self._ml_model_name = ml_model_name
+        self._images_list = images_list
+        self._service = service
+        self._folder = folder
+
+    def validate_project_type(self):
+        if self._project.project_type is not ProjectType.PIXEL:
+            raise AppValidationException(
+                "Operation not supported for given project type"
+            )
+
+    def validate_model(self):
+        if self._ml_model_name not in constances.AVAILABLE_SEGMENTATION_MODELS:
+            raise AppValidationException("Model Does not exist")
+
+    def validate_upload_state(self):
+        if self._project.upload_state is constances.UploadState.EXTERNAL:
+            raise AppValidationException(
+                "The function does not support projects containing images attached with URLs"
+            )
+
+    def execute(self):
+        images = self._service.get_duplicated_images(
+            project_id=self._project.uuid,
+            team_id=self._project.team_id,
+            folder_id=self._folder.uuid,
+            images=self._images_list,
+        )
+
+        image_ids = [image["id"] for image in images]
+        self._service.run_segmentation(
+            self._project.team_id,
+            self._project.uuid,
+            model_name=self._ml_model_name,
+            image_ids=image_ids,
+        )
+
+
+class RunPredictionUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        project: ProjectEntity,
+        ml_model_repo: BaseManageableRepository,
+        ml_model_name: str,
+        images_list: list,
+        service: SuerannotateServiceProvider,
+        folder: FolderEntity,
+    ):
+        super().__init__(response)
+        self._project = project
+        self._ml_model_repo = ml_model_repo
+        self._ml_model_name = ml_model_name
+        self._images_list = images_list
+        self._service = service
+        self._folder = folder
+
+
+    def execute(self):
+        images = self._service.get_duplicated_images(
+            project_id=self._project.uuid,
+            team_id=self._project.team_id,
+            folder_id=self._folder.uuid,
+            images=self._images_list,
+        )
+
+        image_ids = [image["id"] for image in images]
+
+        ml_models = self._ml_model_repo.get_all(condition=Condition("name",self._ml_model_name,EQ) &
+                                                          Condition("include_global", True,EQ) &
+                                                          Condition("team_id", self._project.team_id,EQ))
+        ml_model = None
+        for model in ml_models:
+            if model.name == self._ml_model_name:
+                ml_model = model
+
+        self._service.run_prediction(
+            team_id=self._project.team_id,
+            project_id=self._project.uuid,
+            ml_model_id=ml_model.uuid,
+            image_ids=image_ids,
+        )

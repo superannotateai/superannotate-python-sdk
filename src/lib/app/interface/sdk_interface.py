@@ -14,9 +14,11 @@ from urllib.parse import urlparse
 import boto3
 import lib.core as constances
 import pandas as pd
+import plotly.graph_objects as go
 from lib.app.exceptions import AppException
 from lib.app.exceptions import EmptyOutputError
 from lib.app.helpers import get_annotation_paths
+from lib.app.helpers import reformat_metrics_json
 from lib.app.helpers import split_project_path
 from lib.app.serializers import BaseSerializers
 from lib.app.serializers import ImageSerializer
@@ -27,6 +29,7 @@ from lib.core.response import Response
 from lib.infrastructure.controller import Controller
 from lib.infrastructure.repositories import ConfigRepository
 from lib.infrastructure.services import SuperannotateBackendService
+from plotly.subplots import make_subplots
 from tqdm import tqdm
 
 logger = logging.getLogger()
@@ -2376,3 +2379,208 @@ def download_model(model, output_dir):
         logger.error("\n".join([str(error) for error in res.errors]))
     else:
         return res.data
+
+
+
+def benchmark(
+    project,
+    gt_folder,
+    folder_names,
+    export_root=None,
+    image_list=None,
+    annot_type="bbox",
+    show_plots=False,
+):
+    """Computes benchmark score for each instance of given images that are present both gt_project_name project and projects in folder_names list:
+
+    :param project: project name or metadata of the project
+    :type project: str or dict
+    :param gt_folder: project folder name that contains the ground truth annotations
+    :type gt_folder: str
+    :param folder_names: list of folder names in the project for which the scores will be computed
+    :type folder_names: list of str
+    :param export_root: root export path of the projects
+    :type export_root: Pathlike (str or Path)
+    :param image_list: List of image names from the projects list that must be used. If None, then all images from the projects list will be used. Default: None
+    :type image_list: list
+    :param annot_type: Type of annotation instances to consider. Available candidates are: ["bbox", "polygon", "point"]
+    :type annot_type: str
+    :param show_plots: If True, show plots based on results of consensus computation. Default: False
+    :type show_plots: bool
+
+    :return: Pandas DateFrame with columns (creatorEmail, QA, imageName, instanceId, className, area, attribute, folderName, score)
+    :rtype: pandas DataFrame
+    """
+    project_name = project
+    if isinstance(project, dict):
+        project_name = project["name"]
+    response = controller.benchmark(
+        project_name=project_name,
+        ground_truth_folder_name=gt_folder,
+        folder_names=folder_names,
+        export_root=export_root,
+        image_list=image_list,
+        annot_type=annot_type,
+        show_plots=show_plots,
+    )
+    return response.data
+
+
+def consensus(
+    project,
+    folder_names,
+    export_root=None,
+    image_list=None,
+    annot_type="bbox",
+    show_plots=False,
+):
+    """Computes consensus score for each instance of given images that are present in at least 2 of the given projects:
+
+    :param project: project name
+    :type project: str
+    :param folder_names: list of folder names in the project for which the scores will be computed
+    :type folder_names: list of str
+    :param export_root: root export path of the projects
+    :type export_root: Pathlike (str or Path)
+    :param image_list: List of image names from the projects list that must be used. If None, then all images from the projects list will be used. Default: None
+    :type image_list: list
+    :param annot_type: Type of annotation instances to consider. Available candidates are: ["bbox", "polygon", "point"]
+    :type annot_type: str
+    :param show_plots: If True, show plots based on results of consensus computation. Default: False
+    :type show_plots: bool
+
+    :return: Pandas DateFrame with columns (creatorEmail, QA, imageName, instanceId, className, area, attribute, folderName, score)
+    :rtype: pandas DataFrame
+    """
+    response = controller.consensus(
+        project_name=project,
+        folder_names=folder_names,
+        export_root=export_root,
+        image_list=image_list,
+        annot_type=annot_type,
+        show_plots=show_plots,
+    )
+    return response.data
+
+
+def run_segmentation(project, images_list, model):
+    """Starts smart segmentation on a list of images using the specified model
+
+    :param project: project name of metadata of the project
+    :type  project: str or dict
+    :param model  : The model name or metadata of the model
+    :type  model  : str or dict
+    :return: tupe of two lists, list of images on which the segmentation has succeeded and failed respectively
+    :rtype res: tuple
+    """
+
+    project_name = None
+    folder_name = None
+    if isinstance(project, dict):
+        project_name = project["name"]
+    if isinstance(project, str):
+        project_name, folder_name = split_project_path(project)
+
+    model_name = model
+    if isinstance(model, dict):
+        model_name = model["name"]
+
+    response = controller.run_segmentation(
+        project_name=project_name,
+        images_list=images_list,
+        model_name=model_name,
+        folder_name=folder_name,
+    )
+    return response.data
+
+
+def run_prediction(project, images_list, model):
+    """This function runs smart prediction on given list of images from a given project using the neural network of your choice
+
+    :param project: the project in which the target images are uploaded.
+    :type project: str or dict
+    :param images_list: the list of image names on which smart prediction has to be run
+    :type images_list: list of str
+    :param model: the name of the model that should be used for running smart prediction
+    :type model: str or dict
+    :return: tupe of two lists, list of images on which the prediction has succeded and failed respectively
+    :rtype: tuple
+    """
+    project_name = None
+    folder_name = None
+    if isinstance(project, dict):
+        project_name = project["name"]
+    if isinstance(project, str):
+        project_name, folder_name = split_project_path(project)
+
+    model_name = model
+    if isinstance(model, dict):
+        model_name = model["name"]
+
+    response = controller.run_prediction(
+        project_name=project_name,
+        images_list=images_list,
+        model_name=model_name,
+        folder_name=folder_name,
+    )
+    return response.data
+  
+  
+
+def plot_model_metrics(metric_json_list):
+    """plots the metrics generated by neural network using plotly
+
+       :param metric_json_list: list of <model_name>.json files
+       :type  metric_json_list: list of str
+    """
+
+    def plot_df(df, plottable_cols, figure, start_index=1):
+        for row, metric in enumerate(plottable_cols, start_index):
+            for model_df in df:
+                name = model_df["model"].iloc[0]
+                x_ = model_df.loc[model_df["model"] == name, "iteration"]
+                y_ = model_df.loc[model_df["model"] == name, metric]
+                figure.add_trace(
+                    go.Scatter(x=x_, y=y_, name=name + " " + metric), row=row, col=1
+                )
+
+        return figure
+
+    def get_plottable_cols(df):
+        plottable_cols = []
+        for sub_df in df:
+            col_names = sub_df.columns.values.tolist()
+            plottable_cols += [
+                col_name
+                for col_name in col_names
+                if col_name not in plottable_cols
+                and col_name not in constances.NON_PLOTABLE_KEYS
+            ]
+        return plottable_cols
+
+    if not isinstance(metric_json_list, list):
+        metric_json_list = [metric_json_list]
+
+    full_c_metrics = []
+    full_pe_metrics = []
+    for metric_json in metric_json_list:
+        with open(metric_json) as fp:
+            data = json.load(fp)
+        name = metric_json.split(".")[0]
+        c_metrics, pe_metrics = reformat_metrics_json(data, name)
+        full_c_metrics.append(c_metrics)
+        full_pe_metrics.append(pe_metrics)
+
+    plottable_c_cols = get_plottable_cols(full_c_metrics)
+    plottable_pe_cols = get_plottable_cols(full_pe_metrics)
+    num_rows = len(plottable_c_cols) + len(plottable_pe_cols)
+    figure_specs = [[{"secondary_y": True}] for _ in range(num_rows)]
+    plottable_cols = plottable_c_cols + plottable_pe_cols
+    figure = make_subplots(
+        rows=num_rows, cols=1, specs=figure_specs, subplot_titles=plottable_cols,
+    )
+    figure.update_layout(height=1000 * num_rows)
+
+    plot_df(full_c_metrics, plottable_c_cols, figure)
+    plot_df(full_pe_metrics, plottable_pe_cols, figure, len(plottable_c_cols) + 1)
+    figure.show()
