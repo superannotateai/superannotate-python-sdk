@@ -581,6 +581,7 @@ class AttachFileUrlsUseCase(BaseUseCase):
 
         self._backend_service.attach_files(
             project_id=self._project.uuid,
+            folder_id=self._folder.uuid,
             team_id=self._project.team_id,
             files=attachments,
             annotation_status_code=self.annotation_status_code,
@@ -3664,7 +3665,6 @@ class RunPredictionUseCase(BaseUseCase):
         self._service = service
         self._folder = folder
 
-
     def execute(self):
         images = self._service.get_duplicated_images(
             project_id=self._project.uuid,
@@ -3675,9 +3675,11 @@ class RunPredictionUseCase(BaseUseCase):
 
         image_ids = [image["id"] for image in images]
 
-        ml_models = self._ml_model_repo.get_all(condition=Condition("name",self._ml_model_name,EQ) &
-                                                          Condition("include_global", True,EQ) &
-                                                          Condition("team_id", self._project.team_id,EQ))
+        ml_models = self._ml_model_repo.get_all(
+            condition=Condition("name", self._ml_model_name, EQ)
+            & Condition("include_global", True, EQ)
+            & Condition("team_id", self._project.team_id, EQ)
+        )
         ml_model = None
         for model in ml_models:
             if model.name == self._ml_model_name:

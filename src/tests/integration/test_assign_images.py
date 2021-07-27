@@ -33,7 +33,6 @@ class TestAnnotationClasses(TestCase):
         return os.path.join(dirname(dirname(__file__)), self.TEST_FOLDER_PATH)
 
     def test_assign_images(self):
-
         email = sa.get_team_metadata()["users"][0]["email"]
         sa.share_project(self._project["name"], email, "QA")
 

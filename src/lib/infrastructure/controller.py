@@ -1,8 +1,8 @@
 import copy
 import io
+import tempfile
 from functools import cached_property
 from functools import lru_cache
-import tempfile
 from typing import Iterable
 from typing import List
 
@@ -65,11 +65,11 @@ class BaseController:
     def configs(self):
         return ConfigRepository()
 
-    @property
+    @cached_property
     def team_id(self) -> int:
         return int(self.configs.get_one("token").value.split("=")[-1])
 
-    # todo set timed cache
+    # todo set timed cache 1 hour with expiration time
     @lru_cache
     def get_auth_data(self, project_id: int, team_id: int, folder_id: int):
         return self._backend_client.get_s3_upload_auth_token(
@@ -93,7 +93,6 @@ class BaseController:
 
 
 class Controller(BaseController):
-    @lru_cache(maxsize=2)
     def _get_project(self, name: str):
         response = Response()
         use_case = usecases.GetProjectByNameUseCase(
@@ -1415,5 +1414,3 @@ class Controller(BaseController):
         )
         use_case.execute()
         return self.response
-
-

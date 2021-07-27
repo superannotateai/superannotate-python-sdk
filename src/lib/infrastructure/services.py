@@ -844,7 +844,7 @@ class SuperannotateBackendService(BaseBackendService):
         return res.json()
 
     def search_models(self, query_string: str):
-        search_model_url = urljoin(self.api_url, self.URL_MODELS )
+        search_model_url = urljoin(self.api_url, self.URL_MODELS)
         if query_string:
             search_model_url = f"{search_model_url}?{query_string}"
         response = self._request(search_model_url, "get",)
@@ -899,12 +899,17 @@ class SuperannotateBackendService(BaseBackendService):
         return res.json()
 
     def run_prediction(
-            self, team_id: int, project_id: int, ml_model_id: int, image_ids: list
+        self, team_id: int, project_id: int, ml_model_id: int, image_ids: list
     ):
         prediction_url = urljoin(self.api_url, self.URL_PREDICTION)
         res = self._request(
             prediction_url,
             "post",
-            data={"team_id": team_id, "project_id": project_id , "ml_model_id": ml_model_id, "image_ids": image_ids},
+            data={
+                "team_id": team_id,
+                "project_id": project_id,
+                "ml_model_id": ml_model_id,
+                "image_ids": image_ids,
+            },
         )
         return res.json()

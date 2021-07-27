@@ -21,6 +21,7 @@ from src.lib.app.input_converters.conversion import export_annotation
 from src.lib.app.input_converters.conversion import import_annotation
 from src.lib.app.interface.sdk_interface import assign_folder
 from src.lib.app.interface.sdk_interface import assign_images
+from src.lib.app.interface.sdk_interface import attach_image_urls_to_project
 from src.lib.app.interface.sdk_interface import clone_project
 from src.lib.app.interface.sdk_interface import copy_image
 from src.lib.app.interface.sdk_interface import copy_images
@@ -128,6 +129,7 @@ __all__ = [
     "upload_images_from_google_cloud_to_project",
     "upload_images_from_s3_bucket_to_project",
     "upload_images_from_folder_to_project",
+    "attach_image_urls_to_project",
     # Video Section
     "upload_videos_from_folder_to_project",
     # Annotation Section
