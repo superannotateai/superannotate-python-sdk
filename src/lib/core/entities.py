@@ -132,7 +132,7 @@ class WorkflowEntity(BaseEntity):
         class_id: int = None,
         step: int = None,
         tool: int = None,
-        attribute: Iterable = (),
+        attribute: Iterable = tuple(),
     ):
         super().__init__(uuid)
         self.project_id = project_id

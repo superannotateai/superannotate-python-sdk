@@ -1,4 +1,5 @@
 import concurrent.futures
+import io
 import json
 import logging
 import os
@@ -15,6 +16,14 @@ import boto3
 import lib.core as constances
 import pandas as pd
 import plotly.graph_objects as go
+from lib.app.annotation_helpers import add_annotation_bbox_to_json
+from lib.app.annotation_helpers import add_annotation_comment_to_json
+from lib.app.annotation_helpers import add_annotation_cuboid_to_json
+from lib.app.annotation_helpers import add_annotation_ellipse_to_json
+from lib.app.annotation_helpers import add_annotation_point_to_json
+from lib.app.annotation_helpers import add_annotation_polygon_to_json
+from lib.app.annotation_helpers import add_annotation_polyline_to_json
+from lib.app.annotation_helpers import add_annotation_template_to_json
 from lib.app.exceptions import AppException
 from lib.app.exceptions import EmptyOutputError
 from lib.app.helpers import get_annotation_paths
@@ -94,7 +103,7 @@ def search_team_contributors(
 
     contributors = controller.search_team_contributors(
         email=email, first_name=first_name, last_name=last_name
-    )
+    ).data
     if not return_metadata:
         return [contributor["email"] for contributor in contributors]
     return contributors
@@ -157,17 +166,18 @@ def create_project_from_metadata(project_metadata):
     :return: dict object metadata the new project
     :rtype: dict
     """
-    project = controller.create_project(
-        name=project_metadata["name"],
-        description=project_metadata["description"],
-        project_type=project_metadata["type"],
-        contributors=project_metadata["contributors"],
-        settings=project_metadata["settings"],
-        annotation_classes=project_metadata["annotation_classes"],
-        workflows=project_metadata["workflow"],
-    ).data
-
-    return project
+    response = controller.create_project(
+        name=project_metadata["project"]["name"],
+        description=project_metadata["project"]["description"],
+        project_type=project_metadata["project"]["type"],
+        contributors=project_metadata.get("contributors", []),
+        settings=project_metadata.get("settings", []),
+        annotation_classes=project_metadata.get("classes", []),
+        workflows=project_metadata.get("workflow", []),
+    )
+    if response.errors:
+        raise Exception(response.errors)
+    return response.data
 
 
 def clone_project(
@@ -209,7 +219,7 @@ def clone_project(
         copy_workflow=copy_workflow,
         copy_contributors=copy_contributors,
     ).data
-    return result
+    return ProjectSerializer(result).serialize()
 
 
 def search_images(
@@ -257,13 +267,17 @@ def create_folder(project, folder_name):
     :rtype: dict
     """
 
-    result = controller.create_folder(project=project, folder_name=folder_name).data
-    if result.name != folder_name:
-        logger.warning(
-            f"Created folder has name {result.name}, since folder with name {folder_name} already existed.",
-        )
-    logger.info(f"Folder {result.name} created in project {project}")
-    return result.to_dict()
+    res = controller.create_folder(project=project, folder_name=folder_name)
+    if not res.errors:
+        folder = res.data
+        if folder and folder.name != folder_name:
+            logger.warning(
+                f"Created folder has name {folder.name}, since folder with name {folder_name} already existed.",
+            )
+        logger.info(f"Folder {folder_name} created in project {project}")
+        return folder.to_dict()
+    else:
+        logger.error(res.errors)
 
 
 def delete_project(project):
@@ -302,7 +316,7 @@ def get_folder_metadata(project, folder_name):
     """
     result = controller.get_folder(project_name=project, folder_name=folder_name).data
     if not result:
-        raise EmptyOutputError("Couldn't get folder metadata.")
+        raise EmptyOutputError("Folder not found.")
     return result.to_dict()
 
 
@@ -595,7 +609,7 @@ def copy_images(
     if not image_names:
         images = controller.search_images(
             project_name=project_name, folder_path=source_folder_name
-        )
+        ).data
         image_names = [image.name for image in images]
 
     res = controller.bulk_copy_images(
@@ -758,8 +772,7 @@ def get_project_workflow(project):
     """
     project_name, folder_name = split_project_path(project)
     workflow = controller.get_project_workflow(project_name=project_name)
-    workflow = [BaseSerializers(attribute).serialize() for attribute in workflow.data]
-    return workflow
+    return workflow.data
 
 
 def search_annotation_classes(project, name_prefix=None):
@@ -873,8 +886,11 @@ def get_image_metadata(project, image_name, return_dict_on_single_output=True):
     :rtype: dict
     """
     project_name, folder_name = split_project_path(project)
-    images = controller.get_image_metadata(project_name, folder_name, image_name)
-    return images.data
+    res_data = controller.get_image_metadata(project_name, folder_name, image_name).data
+    res_data["annotation_status"] = constances.AnnotationStatus.get_name(
+        res_data["annotation_status"]
+    )
+    return res_data
 
 
 def set_images_annotation_statuses(project, image_names, annotation_status):
@@ -1178,7 +1194,7 @@ def get_image_annotations(project, image_name):
     res = controller.get_image_annotations(
         project_name=project_name, folder_name=folder_name, image_name=image_name
     )
-    return res
+    return res.data
 
 
 def upload_images_from_folder_to_project(
@@ -1301,7 +1317,7 @@ def upload_images_from_folder_to_project(
         [item for item in duplication_counter if duplication_counter[item] > 1],
     )
     upload_method = _upload_s3_image if from_s3_bucket else _upload_local_image
-    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
         results = [
             executor.submit(upload_method, image_path)
             for image_path in images_to_upload
@@ -1902,9 +1918,9 @@ def download_export(
     :param to_s3_bucket: AWS S3 bucket to use for download. If None then folder_path is in local filesystem.
     :type tofrom_s3_bucket: str
     """
-
+    project_name, folder_name = split_project_path(project)
     controller.download_export(
-        project_name=project,
+        project_name=project_name,
         export_name=export,
         folder_path=folder_path,
         extract_zip_contents=extract_zip_contents,
@@ -1966,10 +1982,11 @@ def create_fuse_image(
     :return: path to created fuse image or pillow Image object if in_memory enabled
     :rtype: str of PIL.Image
     """
-
+    annotation_classes = json.load(open(classes_json))
     response = controller.create_fuse_image(
         image_path=image,
         project_type=project_type,
+        annotation_classes=annotation_classes,
         in_memory=in_memory,
         generate_overlay=output_overlay,
     )
@@ -2010,7 +2027,7 @@ def download_image(
         project_name=project_name,
         folder_name=folder_name,
         image_name=image_name,
-        download_path=local_dir_path,
+        download_path=str(local_dir_path),
         image_variant=variant,
         include_annotations=include_annotations,
         include_fuse=include_fuse,
@@ -2582,3 +2599,349 @@ def plot_model_metrics(metric_json_list):
     plot_df(full_c_metrics, plottable_c_cols, figure)
     plot_df(full_pe_metrics, plottable_pe_cols, figure, len(plottable_c_cols) + 1)
     figure.show()
+
+
+def add_annotation_bbox_to_image(
+    project,
+    image_name,
+    bbox,
+    annotation_class_name,
+    annotation_class_attributes=None,
+    error=None,
+):
+    """Add a bounding box annotation to image annotations
+
+    annotation_class_attributes has the form [ {"name" : "<attribute_value>" }, "groupName" : "<attribute_group>"} ], ... ]
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param image_name: image name
+    :type image: str
+    :param bbox: 4 element list of top-left x,y and bottom-right x, y coordinates
+    :type bbox: list of floats
+    :param annotation_class_name: annotation class name
+    :type annotation_class_name: str
+    :param annotation_class_attributes: list of annotation class attributes
+    :type annotation_class_attributes: list of 2 element dicts
+    :param error: if not None, marks annotation as error (True) or no-error (False)
+    :type error: bool
+    """
+    annotations = get_image_annotations(project, image_name)["annotation_json"]
+    annotations = add_annotation_bbox_to_json(
+        annotations, bbox, annotation_class_name, annotation_class_attributes, error,
+    )
+    upload_image_annotations(project, image_name, annotations, verbose=False)
+
+
+def add_annotation_polyline_to_image(
+    project,
+    image_name,
+    polyline,
+    annotation_class_name,
+    annotation_class_attributes=None,
+    error=None,
+):
+    """Add a polyline annotation to image annotations
+
+    annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param image_name: image name
+    :type image: str
+    :param polyline: [x1,y1,x2,y2,...] list of coordinates
+    :type polyline: list of floats
+    :param annotation_class_name: annotation class name
+    :type annotation_class_name: str
+    :param annotation_class_attributes: list of annotation class attributes
+    :type annotation_class_attributes: list of 2 element dicts
+    :param error: if not None, marks annotation as error (True) or no-error (False)
+    :type error: bool
+    """
+    annotations = get_image_annotations(project, image_name)["annotation_json"]
+    annotations = add_annotation_polyline_to_json(
+        annotations, polyline, annotation_class_name, annotation_class_attributes, error
+    )
+    upload_image_annotations(project, image_name, annotations, verbose=False)
+
+
+def add_annotation_polygon_to_image(
+    project,
+    image_name,
+    polygon,
+    annotation_class_name,
+    annotation_class_attributes=None,
+    error=None,
+):
+    """Add a polygon annotation to image annotations
+
+    annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param image_name: image name
+    :type image: str
+    :param polygon: [x1,y1,x2,y2,...] list of coordinates
+    :type polygon: list of floats
+    :param annotation_class_name: annotation class name
+    :type annotation_class_name: str
+    :param annotation_class_attributes: list of annotation class attributes
+    :type annotation_class_attributes: list of 2 element dicts
+    :param error: if not None, marks annotation as error (True) or no-error (False)
+    :type error: bool
+    """
+
+    annotations = get_image_annotations(project, image_name)["annotation_json"]
+    annotations = add_annotation_polygon_to_json(
+        annotations, polygon, annotation_class_name, annotation_class_attributes, error
+    )
+    upload_image_annotations(project, image_name, annotations, verbose=False)
+
+
+def add_annotation_point_to_image(
+    project,
+    image_name,
+    point,
+    annotation_class_name,
+    annotation_class_attributes=None,
+    error=None,
+):
+    """Add a point annotation to image annotations
+
+    annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param image_name: image name
+    :type image: str
+    :param point: [x,y] list of coordinates
+    :type point: list of floats
+    :param annotation_class_name: annotation class name
+    :type annotation_class_name: str
+    :param annotation_class_attributes: list of annotation class attributes
+    :type annotation_class_attributes: list of 2 element dicts
+    :param error: if not None, marks annotation as error (True) or no-error (False)
+    :type error: bool
+    """
+    annotations = get_image_annotations(project, image_name)["annotation_json"]
+    annotations = add_annotation_point_to_json(
+        annotations, point, annotation_class_name, annotation_class_attributes, error
+    )
+    upload_image_annotations(project, image_name, annotations, verbose=False)
+
+
+def add_annotation_ellipse_to_image(
+    project,
+    image_name,
+    ellipse,
+    annotation_class_name,
+    annotation_class_attributes=None,
+    error=None,
+):
+    """Add an ellipse annotation to image annotations
+
+    annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param image_name: image name
+    :type image: str
+    :param ellipse: [center_x, center_y, r_x, r_y, angle] list of coordinates and angle
+    :type ellipse: list of floats
+    :param annotation_class_name: annotation class name
+    :type annotation_class_name: str
+    :param annotation_class_attributes: list of annotation class attributes
+    :type annotation_class_attributes: list of 2 element dicts
+    :param error: if not None, marks annotation as error (True) or no-error (False)
+    :type error: bool
+    """
+    annotations = get_image_annotations(project, image_name)["annotation_json"]
+    annotations = add_annotation_ellipse_to_json(
+        annotations, ellipse, annotation_class_name, annotation_class_attributes, error
+    )
+    upload_image_annotations(project, image_name, annotations, verbose=False)
+
+
+def add_annotation_template_to_image(
+    project,
+    image_name,
+    template_points,
+    template_connections,
+    annotation_class_name,
+    annotation_class_attributes=None,
+    error=None,
+):
+    """Add a template annotation to image annotations
+
+    annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param image_name: image name
+    :type image: str
+    :param template_points: [x1,y1,x2,y2,...] list of coordinates
+    :type template_points: list of floats
+    :param template_connections: [from_id_1,to_id_1,from_id_2,to_id_2,...]
+                                 list of indexes from -> to. Indexes are based
+                                 on template_points. E.g., to have x1,y1 to connect
+                                 to x2,y2 and x1,y1 to connect to x4,y4,
+                                 need: [1,2,1,4,...]
+    :type template_connections: list of ints
+    :param annotation_class_name: annotation class name
+    :type annotation_class_name: str
+    :param annotation_class_attributes: list of annotation class attributes
+    :type annotation_class_attributes: list of 2 element dicts
+    :param error: if not None, marks annotation as error (True) or no-error (False)
+    :type error: bool
+    """
+    annotations = get_image_annotations(project, image_name)["annotation_json"]
+    annotations = add_annotation_template_to_json(
+        annotations,
+        template_points,
+        template_connections,
+        annotation_class_name,
+        annotation_class_attributes,
+        error,
+    )
+    upload_image_annotations(project, image_name, annotations, verbose=False)
+
+
+def add_annotation_cuboid_to_image(
+    project,
+    image_name,
+    cuboid,
+    annotation_class_name,
+    annotation_class_attributes=None,
+    error=None,
+):
+    """Add a cuboid annotation to image annotations
+
+    annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param image_name: image name
+    :type image: str
+    :param cuboid: [x_front_tl,y_front_tl,x_front_br,y_front_br,
+                    x_back_tl,y_back_tl,x_back_br,y_back_br] list of coordinates
+                    of front rectangle and back rectangle, in top-left and
+                    bottom-right format
+    :type cuboid: list of floats
+    :param annotation_class_name: annotation class name
+    :type annotation_class_name: str
+    :param annotation_class_attributes: list of annotation class attributes
+    :type annotation_class_attributes: list of 2 element dicts
+    :param error: if not None, marks annotation as error (True) or no-error (False)
+    :type error: bool
+    """
+    annotations = get_image_annotations(project, image_name)["annotation_json"]
+    annotations = add_annotation_cuboid_to_json(
+        annotations, cuboid, annotation_class_name, annotation_class_attributes, error
+    )
+    upload_image_annotations(project, image_name, annotations, verbose=False)
+
+
+def add_annotation_comment_to_image(
+    project, image_name, comment_text, comment_coords, comment_author, resolved=False
+):
+    """Add a comment to SuperAnnotate format annotation JSON
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param image_name: image name
+    :type image: str
+    :param comment_text: comment text
+    :type comment_text: str
+    :param comment_coords: [x, y] coords
+    :type comment_coords: list
+    :param comment_author: comment author email
+    :type comment_author: str
+    :param resolved: comment resolve status
+    :type resolved: bool
+    """
+    annotations = get_image_annotations(project, image_name)["annotation_json"]
+    annotations = add_annotation_comment_to_json(
+        annotations, comment_text, comment_coords, comment_author, resolved=resolved
+    )
+    upload_image_annotations(project, image_name, annotations, verbose=False)
+
+
+def search_images_all_folders(
+    project, image_name_prefix=None, annotation_status=None, return_metadata=False
+):
+    """Search images by name_prefix (case-insensitive) and annotation status in
+    project and all of its folders
+
+    :param project: project name
+    :type project: str
+    :param image_name_prefix: image name prefix for search
+    :type image_name_prefix: str
+    :param annotation_status: if not None, annotation statuses of images to filter,
+                              should be one of NotStarted InProgress QualityCheck Returned Completed Skipped
+    :type annotation_status: str
+
+    :param return_metadata: return metadata of images instead of names
+    :type return_metadata: bool
+
+    :return: metadata of found images or image names
+    :rtype: list of dicts or strs
+    """
+
+    res = controller.list_images(
+        project_name=project,
+        name_prefix=image_name_prefix,
+        annotation_status=annotation_status,
+    )
+    if return_metadata:
+        return res.data
+    return [image["name"] for image in res.data]
+
+
+def upload_image_to_project(
+    project,
+    img,
+    image_name=None,
+    annotation_status="NotStarted",
+    from_s3_bucket=None,
+    image_quality_in_editor=None,
+):
+    """Uploads image (io.BytesIO() or filepath to image) to project.
+    Sets status of the uploaded image to set_status if it is not None.
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param img: image to upload
+    :type img: io.BytesIO() or Pathlike (str or Path)
+    :param image_name: image name to set on platform. If None and img is filepath,
+                       image name will be set to filename of the path
+    :type image_name: str
+    :param annotation_status: value to set the annotation statuses of the uploaded image NotStarted InProgress QualityCheck Returned Completed Skipped
+    :type annotation_status: str
+    :param from_s3_bucket: AWS S3 bucket to use. If None then folder_path is in local filesystem
+    :type from_s3_bucket: str
+    :param image_quality_in_editor: image quality be seen in SuperAnnotate web annotation editor.
+           Can be either "compressed" or "original".  If None then the default value in project settings will be used.
+    :type image_quality_in_editor: str
+    """
+    project_name, folder_name = split_project_path(project)
+
+    if not isinstance(img, io.BytesIO):
+        if from_s3_bucket:
+            image_bytes = controller.get_image_from_s3(from_s3_bucket, image_name)
+        else:
+            image_bytes = io.BytesIO(open(img, "rb").read())
+    else:
+        image_bytes = img
+    upload_response = controller.upload_image_to_s3(
+        project_name=project_name,
+        image_path=image_name if image_name else Path(img).name,
+        image_bytes=image_bytes,
+        folder_name=folder_name,
+    )
+    controller.upload_images(
+        project_name=project_name,
+        folder_name=folder_name,
+        images=[upload_response.data],  # noqa: E203
+        annotation_status=annotation_status,
+        image_quality=image_quality_in_editor,
+    )

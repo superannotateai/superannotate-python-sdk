@@ -169,8 +169,10 @@ class ProjectSettingsRepository(BaseProjectRelatedManageableRepository):
         return [self.dict2entity(setting) for setting in data]
 
     def insert(self, entity: ProjectSettingEntity) -> ProjectSettingEntity:
+        entity = entity.to_dict()
+        entity.pop("key", None)
         res = self._service.set_project_settings(
-            entity.project_id, self._project.team_id, entity.to_dict()
+            self._project.uuid, self._project.team_id, [entity]
         )
         return self.dict2entity(res[0])
 
@@ -178,7 +180,10 @@ class ProjectSettingsRepository(BaseProjectRelatedManageableRepository):
         raise NotImplementedError
 
     def update(self, entity: ProjectSettingEntity):
-        raise NotImplementedError
+        res = self._service.set_project_settings(
+            self._project.uuid, self._project.team_id, [entity.to_dict()]
+        )
+        return self.dict2entity(res[0])
 
     @staticmethod
     def dict2entity(data: dict):
@@ -223,7 +228,7 @@ class WorkflowRepository(BaseProjectRelatedManageableRepository):
             class_id=data["class_id"],
             step=data["step"],
             tool=data["tool"],
-            attribute=data.get("attribute"),
+            attribute=data.get("attribute", []),
         )
 
 
@@ -234,7 +239,8 @@ class FolderRepository(BaseManageableRepository):
     def get_one(self, uuid: Condition) -> FolderEntity:
         condition = uuid.build_query()
         data = self._service.get_folder(condition)
-        return self.dict2entity(data)
+        if data:
+            return self.dict2entity(data)
 
     def get_all(self, condition: Optional[Condition] = None) -> List[FolderEntity]:
         condition = condition.build_query() if condition else None
@@ -254,8 +260,8 @@ class FolderRepository(BaseManageableRepository):
         team_id = entity.team_id
         self._service.update_folder(project_id, team_id, entity.to_dict())
 
-    def delete(self, uuid: int):
-        self._service.delete_folders(self._project.uuid, self._project.team_id, [uuid])
+    def delete(self, entity: FolderEntity):
+        self._service.delete_folders(entity.project_id, entity.team_id, [entity.uuid])
 
     @staticmethod
     def dict2entity(data: dict):

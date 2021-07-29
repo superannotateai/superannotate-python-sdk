@@ -1,32 +1,19 @@
 import os
 import time
 from os.path import dirname
-from unittest import TestCase
 
 import src.lib.app.superannotate as sa
+from src.tests.integration.base import BaseTestCase
 
 
-class TestAnnotationClasses(TestCase):
+class TestAnnotationClasses(BaseTestCase):
     PROJECT_NAME = "test_assign_images"
-    TEST_FOLDER_PATH = "sample_project_vector"
+    TEST_FOLDER_PATH = "data_set/sample_project_vector"
+    TEST_FOLDER_NAME = "test_folder"
     PROJECT_DESCRIPTION = "desc"
     PROJECT_TYPE = "Vector"
     EXAMPLE_IMAGE_1 = "example_image_1.jpg"
     EXAMPLE_IMAGE_2 = "example_image_2.jpg"
-
-    @classmethod
-    def setUp(cls):
-        cls.tearDownClass()
-        time.sleep(2)
-        cls._project = sa.create_project(
-            cls.PROJECT_NAME, cls.PROJECT_DESCRIPTION, cls.PROJECT_TYPE
-        )
-
-    @classmethod
-    def tearDownClass(cls) -> None:
-        projects = sa.search_projects(cls.PROJECT_NAME, return_metadata=True)
-        for project in projects:
-            sa.delete_project(project)
 
     @property
     def folder_path(self):
@@ -36,7 +23,7 @@ class TestAnnotationClasses(TestCase):
         email = sa.get_team_metadata()["users"][0]["email"]
         sa.share_project(self._project["name"], email, "QA")
 
-        res = sa.upload_images_from_folder_to_project(
+        sa.upload_images_from_folder_to_project(
             project=self._project["name"], folder_path=self.folder_path
         )
 
@@ -77,11 +64,11 @@ class TestAnnotationClasses(TestCase):
         email = sa.get_team_metadata()["users"][0]["email"]
 
         sa.share_project(self.PROJECT_NAME, email, "QA")
-        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_PATH)
+        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME)
 
         time.sleep(1)
 
-        project_folder = self._project["name"] + "/" + self.TEST_FOLDER_PATH
+        project_folder = self._project["name"] + "/" + self.TEST_FOLDER_NAME
 
         sa.upload_images_from_folder_to_project(project_folder, self.folder_path)
 
@@ -143,8 +130,8 @@ class TestAnnotationClasses(TestCase):
         self.assertIsNone(im1_metadata["qa_id"])
         self.assertIsNone(im2_metadata["qa_id"])
 
-        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_PATH)
-        project = self.PROJECT_NAME + "/" + self.TEST_FOLDER_PATH
+        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME)
+        project = self.PROJECT_NAME + "/" + self.TEST_FOLDER_NAME
 
         sa.move_images(
             self.PROJECT_NAME, [self.EXAMPLE_IMAGE_1, self.EXAMPLE_IMAGE_2], project
@@ -164,52 +151,53 @@ class TestAnnotationClasses(TestCase):
         self.assertIsNone(im2_metadata["qa_id"])
 
     def test_assign_folder(self):
-        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_PATH)
+        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME)
         email = sa.get_team_metadata()["users"][0]["email"]
         sa.share_project(self.PROJECT_NAME, email, "QA")
         time.sleep(2)
-        sa.assign_folder(self.PROJECT_NAME, self.TEST_FOLDER_PATH, [email])
+        sa.assign_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME, [email])
         time.sleep(2)
         folders = sa.search_folders(
-            self.PROJECT_NAME, self.TEST_FOLDER_PATH, return_metadata=True
+            self.PROJECT_NAME, self.TEST_FOLDER_NAME, return_metadata=True
         )
         self.assertGreater(len(folders[0]["folder_users"]), 0)
 
     def test_un_assign_folder(self):
-        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_PATH)
+        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME)
         time.sleep(1)
         email = sa.get_team_metadata()["users"][0]["email"]
         time.sleep(1)
         sa.share_project(self.PROJECT_NAME, email, "QA")
         time.sleep(1)
-        sa.assign_folder(self.PROJECT_NAME, self.TEST_FOLDER_PATH, [email])
+        sa.assign_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME, [email])
         time.sleep(1)
         folders = sa.search_folders(
-            self.PROJECT_NAME, folder_name=self.TEST_FOLDER_PATH, return_metadata=True
+            self.PROJECT_NAME, folder_name=self.TEST_FOLDER_NAME, return_metadata=True
         )
         self.assertGreater(len(folders[0]["folder_users"]), 0)
-        sa.unassign_folder(self.PROJECT_NAME, self.TEST_FOLDER_PATH)
+        sa.unassign_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME)
         time.sleep(1)
 
         folders = sa.search_folders(
-            self.PROJECT_NAME, self.TEST_FOLDER_PATH, return_metadata=True
+            self.PROJECT_NAME, self.TEST_FOLDER_NAME, return_metadata=True
         )
         time.sleep(1)
         self.assertEqual(len(folders[0]["folder_users"]), 0)
 
     def test_assign_folder_unverified_users(self):
 
-        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_PATH)
+        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME)
         email = "unverified_user@mail.com"
         try:
-            sa.assign_folder(self.PROJECT_NAME, self.TEST_FOLDER_PATH, [email])
+            sa.assign_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME, [email])
         except Exception:
             pass
+
         # assert "Skipping unverified_user@mail.com from assignees." in caplog.text
 
     def test_assign_images_unverified_user(self):
-        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_PATH)
-        project_folder = self.PROJECT_NAME + "/" + self.TEST_FOLDER_PATH
+        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME)
+        project_folder = self.PROJECT_NAME + "/" + self.TEST_FOLDER_NAME
         sa.upload_images_from_folder_to_project(project_folder, self.folder_path)
         email = "unverified_user@email.com"
         try:

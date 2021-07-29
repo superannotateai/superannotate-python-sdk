@@ -1,7 +1,9 @@
 from ast import literal_eval
 from pathlib import Path
+from typing import List
 from typing import Optional
 from typing import Tuple
+from typing import Union
 
 import boto3
 import pandas as pd
@@ -13,7 +15,7 @@ from lib.core import VECTOR_ANNOTATION_POSTFIX
 def split_project_path(project_path: str) -> Tuple[str, Optional[str]]:
     path = Path(project_path)
     if len(path.parts) > 3:
-        raise PathError("There can be no subfolders in the project")
+        raise PathError("There can be no sub folders in the project")
     elif len(path.parts) == 2:
         project_name, folder_name = path.parts
     else:
@@ -31,7 +33,9 @@ def get_annotation_paths(folder_path, s3_bucket=None, recursive=False):
     return get_local_annotation_paths(folder_path, annotation_paths, recursive)
 
 
-def get_local_annotation_paths(folder_path, annotation_paths, recursive):
+def get_local_annotation_paths(
+    folder_path: Union[str, Path], annotation_paths: List, recursive: bool
+) -> List[str]:
     for path in Path(folder_path).glob("*"):
         if recursive and path.is_dir():
             return get_local_annotation_paths(path, annotation_paths, recursive)
@@ -39,7 +43,7 @@ def get_local_annotation_paths(folder_path, annotation_paths, recursive):
             if annotation_path.name.endswith(
                 VECTOR_ANNOTATION_POSTFIX
             ) or annotation_path.name.endswith(PIXEL_ANNOTATION_POSTFIX):
-                annotation_paths.append(annotation_path)
+                annotation_paths.append(str(annotation_path))
         return annotation_paths
 
 

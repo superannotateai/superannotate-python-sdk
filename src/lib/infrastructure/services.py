@@ -89,7 +89,7 @@ class BaseBackendService(SuerannotateServiceProvider):
             if isinstance(data, dict):
                 if key_field:
                     data = data[key_field]
-                return data, data.get("count") - offset
+                return data, data.get("count", 0) - offset
             if isinstance(data, list):
                 return {"data": data}, 0
         return {"data": []}, 0
@@ -121,6 +121,7 @@ class SuperannotateBackendService(BaseBackendService):
     URL_UPDATE_FOLDER = "folder/{}"
     URL_FOLDERS = "folder"
     URL_GET_IMAGE = "image/{}"
+    URL_GET_IMAGES = "images"
     URL_BULK_GET_IMAGES = "images/getBulk"
     URL_DELETE_FOLDERS = "image/delete/images"
     URL_GET_PROJECT_SETTIGNS = "/project/{}/settings"
@@ -133,7 +134,6 @@ class SuperannotateBackendService(BaseBackendService):
     URL_INVITE_CONTRIBUTOR = "team/{}/invite"
     URL_PREPARE_EXPORT = "export"
     URL_COPY_IMAGES_FROM_FOLDER = "images/copy-image-or-folders"
-    URL_GET_IMAGES_BULK = "images/getBulk"
     URL_MOVE_IMAGES_FROM_FOLDER = "image/move"
     URL_GET_COPY_PROGRESS = "images/copy-image-progress"
     URL_ASSIGN_IMAGES = "images/editAssignment"
@@ -156,7 +156,7 @@ class SuperannotateBackendService(BaseBackendService):
     URL_SEGMENTATION = "images/segmentation"
     URL_PREDICTION = "images/prediction"
     # todo add urls
-    URL_DELETE_IMAGES = ""
+    URL_DELETE_IMAGES = URL_DELETE_FOLDERS
     URL_SET_IMAGES_STATUSES_BULK = "image/updateAnnotationStatusBulk"
 
     def get_project(self, uuid: int, team_id: int):
@@ -270,7 +270,8 @@ class SuperannotateBackendService(BaseBackendService):
         if query_string:
             get_folder_url = f"{get_folder_url}?{query_string}"
         response = self._request(get_folder_url, "get")
-        return response.json()
+        if response.ok:
+            return response.json()
 
     def get_folders(self, query_string: str = None, params: dict = None):
         get_folder_url = urljoin(self.api_url, self.URL_FOLDERS_IMAGES)
@@ -411,6 +412,12 @@ class SuperannotateBackendService(BaseBackendService):
             url = f"{url}?{query_string}"
         pages = self._get_all_pages(url, key_field="images")
         return [image for image in pages]
+
+    def list_images(self, query_string):
+        url = urljoin(self.api_url, self.URL_GET_IMAGES)
+        if query_string:
+            url = f"{url}?{query_string}"
+        return self._get_all_pages(url)
 
     def prepare_export(
         self,
@@ -599,7 +606,7 @@ class SuperannotateBackendService(BaseBackendService):
 
     def get_bulk_images(
         self, project_id: int, team_id: int, folder_id: int, images: List[str]
-    ) -> List[str]:
+    ) -> List[dict]:
         bulk_get_images_url = urljoin(self.api_url, self.URL_BULK_GET_IMAGES)
 
         res = self._request(

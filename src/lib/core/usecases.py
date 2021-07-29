@@ -47,7 +47,6 @@ from src.lib.core.exceptions import AppValidationException
 from src.lib.core.plugin import ImagePlugin
 from src.lib.core.plugin import VideoPlugin
 from src.lib.core.repositories import BaseManageableRepository
-from src.lib.core.repositories import BaseProjectRelatedManageableRepository
 from src.lib.core.repositories import BaseReadOnlyRepository
 from src.lib.core.response import Response
 from src.lib.core.serviceproviders import SuerannotateServiceProvider
@@ -128,6 +127,9 @@ class CreateProjectUseCase(BaseUseCase):
         project: ProjectEntity,
         projects: BaseManageableRepository,
         backend_service_provider: SuerannotateServiceProvider,
+        settings_repo: BaseManageableRepository,
+        annotation_classes_repo: BaseManageableRepository,
+        workflows_repo: BaseManageableRepository,
         settings: List[ProjectSettingEntity] = None,
         workflows: List[WorkflowEntity] = None,
         annotation_classes: List[AnnotationClassEntity] = None,
@@ -138,6 +140,9 @@ class CreateProjectUseCase(BaseUseCase):
         self._project = project
         self._projects = projects
         self._settings = settings
+        self._settings_repo = settings_repo
+        self._annotation_classes_repo = annotation_classes_repo
+        self._workflows_repo = workflows_repo
         self._workflows = workflows
         self._annotation_classes = annotation_classes
         self._contributors = contributors
@@ -149,16 +154,20 @@ class CreateProjectUseCase(BaseUseCase):
             self._project.status = 0
             entity = self._projects.insert(self._project)
             self._response.data = entity
+            data = {}
             if self._settings:
-                settings_repo = BaseProjectRelatedManageableRepository(
-                    self._backend_service, entity
-                )
+                settings_repo = self._settings_repo(self._backend_service, entity)
                 for setting in self._settings:
-                    settings_repo.insert(setting)
-                self._response.data.settings = self._settings
+                    for new_setting in settings_repo.get_all():
+                        if new_setting.attribute == setting.attribute:
+                            setting_copy = copy.copy(setting)
+                            setting_copy.uuid = new_setting.uuid
+                            setting_copy.project_id = entity.uuid
+                            settings_repo.update(setting_copy)
+                data["settings"] = self._settings
             annotation_classes_mapping = {}
             if self._annotation_classes:
-                annotation_repo = BaseProjectRelatedManageableRepository(
+                annotation_repo = self._annotation_classes_repo(
                     self._backend_service, entity
                 )
                 for annotation_class in self._annotation_classes:
@@ -167,26 +176,24 @@ class CreateProjectUseCase(BaseUseCase):
                     ] = annotation_repo.insert(annotation_class)
                 self._response.data.annotation_classes = self._annotation_classes
             if self._workflows:
-                workflow_repo = BaseProjectRelatedManageableRepository(
-                    self._backend_service, entity
-                )
+                workflow_repo = self._workflows_repo(self._backend_service, entity)
                 for workflow in self._workflows:
                     workflow.project_id = entity.uuid
                     workflow.class_id = annotation_classes_mapping.get(
                         workflow.class_id
                     )
                     workflow_repo.insert(workflow)
-                self._response.data.workflows = self._workflows
+                data["workflows"] = self._workflows
 
             if self._contributors:
-                for contributor in self.contributors:
+                for contributor in self._contributors:
                     self._backend_service.share_project(
                         entity.uuid,
                         entity.team_id,
-                        contributor.get("id"),
-                        contributor.get("role"),
+                        contributor["user_id"],
+                        constances.UserRole.get_value(contributor["user_role"]),
                     )
-                self._response.data.contributors = self._contributors
+                data["contributors"] = self._contributors
         else:
             self._response.errors = self._errors
 
@@ -223,7 +230,8 @@ class DeleteProjectUseCase(BaseUseCase):
             team_id=self._team_id,
             projects=self._projects,
         ).execute()
-        self._projects.delete(project_response.data)
+        if project_response.data:
+            self._projects.delete(project_response.data)
 
 
 class UpdateProjectUseCase(BaseUseCase):
@@ -252,9 +260,9 @@ class CloneProjectUseCase(BaseUseCase):
         project: ProjectEntity,
         project_to_create: ProjectEntity,
         projects: BaseManageableRepository,
-        settings: BaseManageableRepository,
-        workflows: BaseManageableRepository,
-        annotation_classes: BaseManageableRepository,
+        settings_repo,
+        workflows_repo,
+        annotation_classes_repo,
         backend_service_provider: SuerannotateServiceProvider,
         include_annotation_classes: bool = True,
         include_settings: bool = True,
@@ -265,46 +273,107 @@ class CloneProjectUseCase(BaseUseCase):
         self._project = project
         self._project_to_create = project_to_create
         self._projects = projects
-        self._settings = settings
-        self._workflows = workflows
-        self._annotation_classes = annotation_classes
+        self._settings_repo = settings_repo
+        self._workflows_repo = workflows_repo
+        self._annotation_classes_repo = annotation_classes_repo
         self._backend_service = backend_service_provider
         self._include_annotation_classes = include_annotation_classes
         self._include_settings = include_settings
         self._include_workflow = include_workflow
         self._include_contributors = include_contributors
 
+    @property
+    def annotation_classes(self):
+        return self._annotation_classes_repo(self._backend_service, self._project)
+
+    @property
+    def settings(self):
+        return self._settings_repo(self._backend_service, self._project)
+
+    @property
+    def workflows(self):
+        return self._workflows_repo(self._backend_service, self._project)
+
     def execute(self):
+        self._project_to_create.description = self._project.description
         project = self._projects.insert(self._project_to_create)
-        self._response.data = project
+
         annotation_classes_mapping = {}
+        new_project_annotation_classes = self._annotation_classes_repo(
+            self._backend_service, project
+        )
         if self._include_annotation_classes:
-            annotation_classes = self._annotation_classes.get_all()
+            annotation_classes = self.annotation_classes.get_all()
             for annotation_class in annotation_classes:
                 annotation_class_copy = copy.copy(annotation_class)
-                annotation_class_copy.project_id = project.uuid
                 annotation_classes_mapping[
                     annotation_class.uuid
-                ] = self._annotation_classes.insert(annotation_class_copy).uuid
+                ] = new_project_annotation_classes.insert(annotation_class_copy)
 
         if self._include_contributors:
             for user in self._project.users:
                 self._backend_service.share_project(
-                    project.uuid, project.team_id, user.get("id"), user.get("role")
+                    project.uuid,
+                    project.team_id,
+                    user.get("user_id"),
+                    user.get("user_role"),
                 )
 
         if self._include_settings:
-            for setting in self._settings.get_all():
-                setting_copy = copy.copy(setting)
-                setting_copy.project_id = project.uuid
-                self._settings.insert(setting)
+            new_settings = self._settings_repo(self._backend_service, project)
+            for setting in self.settings.get_all():
+                for new_setting in new_settings.get_all():
+                    if new_setting.attribute == setting.attribute:
+                        setting_copy = copy.copy(setting)
+                        setting_copy.uuid = new_setting.uuid
+                        setting_copy.project_id = project.uuid
+                        new_settings.update(setting_copy)
 
         if self._include_workflow:
-            for workflow in self._workflows.get_all():
-                workflow_copy = copy.copy(workflow)
-                workflow_copy.project_id = project.uuid
-                workflow_copy.class_id = annotation_classes_mapping[workflow.class_id]
-                self._workflows.insert(workflow_copy)
+            new_workflows = self._workflows_repo(self._backend_service, project)
+            workflow_attributes = []
+            for workflow in self.workflows.get_all():
+                workflow_data = copy.copy(workflow)
+                workflow_data.project_id = project.uuid
+                workflow_data.class_id = annotation_classes_mapping[
+                    workflow.class_id
+                ].uuid
+                new_workflow = new_workflows.insert(workflow_data)
+                for attribute in workflow_data.attribute:
+                    for annotation_attribute in annotation_classes_mapping[
+                        workflow.class_id
+                    ].attribute_groups:
+                        if (
+                            attribute["attribute"]["attribute_group"]["name"]
+                            == annotation_attribute["name"]
+                        ):
+                            for annotation_attribute_value in annotation_attribute[
+                                "attributes"
+                            ]:
+                                if (
+                                    annotation_attribute_value["name"]
+                                    == attribute["attribute"]["name"]
+                                ):
+                                    workflow_attributes.append(
+                                        {
+                                            "workflow_id": new_workflow.uuid,
+                                            "attribute_id": annotation_attribute_value[
+                                                "id"
+                                            ],
+                                        }
+                                    )
+                                    break
+
+                if workflow_attributes:
+                    self._backend_service.set_project_workflow_attributes_bulk(
+                        project_id=project.uuid,
+                        team_id=project.team_id,
+                        attributes=workflow_attributes,
+                    )
+
+        self._response.data = self._projects.get_one(
+            uuid=project.uuid, team_id=project.team_id
+        )
 
 
 class AttachImagesUseCase(BaseUseCase):
@@ -704,9 +773,14 @@ class SearchContributorsUseCase(BaseUseCase):
         self._team_id = team_id
         self._condition = condition
 
+    @property
+    def condition(self):
+        if self._condition:
+            return self._condition.build_query()
+
     def execute(self):
         res = self._backend_service.search_team_contributors(
-            self._team_id, self._condition.build_query()
+            self._team_id, self.condition
         )
         self._response.data = res
 
@@ -791,7 +865,7 @@ class DeleteFolderUseCase(BaseUseCase):
 
     def execute(self):
         for folder in self._folders_to_delete:
-            self._folders.delete(folder.uuid)
+            self._folders.delete(folder)
 
 
 class UpdateFolderUseCase(BaseUseCase):
@@ -1140,12 +1214,30 @@ class GetSettingsUseCase(BaseUseCase):
 
 
 class GetWorkflowsUseCase(BaseUseCase):
-    def __init__(self, response: Response, workflows: BaseManageableRepository):
+    def __init__(
+        self,
+        response: Response,
+        annotation_classes: BaseReadOnlyRepository,
+        workflows: BaseManageableRepository,
+        fill_classes=True,
+    ):
         super().__init__(response)
         self._workflows = workflows
+        self._annotation_classes = annotation_classes
+        self._fill_classes = fill_classes
 
     def execute(self):
-        self._response.data = self._workflows.get_all()
+        data = []
+        workflows = self._workflows.get_all()
+        for workflow in workflows:
+            workflow_data = workflow.to_dict()
+            if self._fill_classes:
+                annotation_classes = self._annotation_classes.get_all()
+                for annotation_class in annotation_classes:
+                    annotation_class.uuid = workflow.class_id
+                    workflow_data["className"] = annotation_class.name
+            data.append(workflow_data)
+        self._response.data = data
 
 
 class GetProjectMetaDataUseCase(BaseUseCase):
@@ -1722,7 +1814,9 @@ class GetProjectMetadataUseCase(BaseUseCase):
     @property
     def work_flow_use_case(self):
         return GetWorkflowsUseCase(
-            response=self._workflows_response, workflows=self._workflows
+            response=self._workflows_response,
+            workflows=self._workflows,
+            annotation_classes=self._annotation_classes,
         )
 
     def execute(self):
@@ -1800,14 +1894,14 @@ class GetImageAnnotationsUseCase(BaseUseCase):
             image_id=self._image_response.data.uuid,
         )
         credentials = token["annotations"]["MAIN"][0]
-        annotation_json_creds = credentials["annotation_json_path"]
         if self._project.project_type == constances.ProjectType.VECTOR.value:
             file_postfix = "___objects.json"
         else:
             file_postfix = "___pixel.json"
 
         response = requests.get(
-            url=annotation_json_creds["url"], headers=annotation_json_creds["headers"],
+            url=credentials["annotation_json_path"]["url"],
+            headers=credentials["annotation_json_path"]["headers"],
         )
         if not response.ok:
             raise AppException(f"Couldn't load annotations {response.text}")
@@ -2306,7 +2400,13 @@ class CreateAnnotationClassUseCase(BaseUseCase):
         annotation_classes = self._annotation_classes.get_all(
             Condition("name", self._annotation_class.name, EQ)
         )
-        if annotation_classes:
+        if any(
+            [
+                True
+                for annotation_class in annotation_classes
+                if annotation_class.name == self._annotation_class.name
+            ]
+        ):
             raise AppValidationException("Annotation class already exits.")
 
     def execute(self):
@@ -2543,22 +2643,26 @@ class CreateFuseImageUseCase(BaseUseCase):
             class_color_map = {}
             Image = namedtuple("Image", ["type", "path", "content"])
             for annotation_class in self._classes:
-                class_color_map[annotation_class] = self.generate_color(
+                class_color_map[annotation_class["name"]] = self.generate_color(
                     annotation_class["color"]
                 )
-                # class_color_map[annotaiotn_class] = self.generate_color(instance["className"])
-            if self._project_type == constances.ProjectType.VECTOR.name:
+            if self._project_type.upper() == constances.ProjectType.VECTOR.name:
                 image = ImagePlugin(io.BytesIO(file.read()))
 
-                fuse_image = ImagePlugin.empty_image
-                images = [Image("fuse", f"{self._image_path}___fuse.png", fuse_image)]
+                images = [
+                    Image(
+                        "fuse",
+                        f"{self._image_path}___fuse.png",
+                        ImagePlugin.get_empty_image(),
+                    )
+                ]
                 if self._generate_overlay:
                     images.append(
                         Image("overlay", f"{self._image_path}___overlay.png", image)
                     )
 
                 outline_color = 4 * (255,)
-                for instance in self._annotations["instances"]:
+                for instance in self.annotations["instances"]:
                     fill_color = (
                         *class_color_map[instance["className"]],
                         self.TRANSPARENCY,
@@ -2715,8 +2819,8 @@ class DownloadImageUseCase(BaseUseCase):
         download_path = self._download_path + self._image.name
         if self._image_variant == "lores":
             download_path = download_path + "__lores.jpg"
-        with open(download_path) as image_file:
-            image_file.write(image_bytes)
+        with open(download_path, "wb") as image_file:
+            image_file.write(image_bytes.getbuffer())
 
         if self._include_annotations:
             self.download_annotation_use_case.execute()
@@ -2763,10 +2867,7 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
     @property
     def annotation_classes_name_map(self) -> dict:
         classes_data = defaultdict(dict)
-        annotation_classes = self._annotation_classes.get_all(
-            Condition("project_id", self._project.uuid, EQ)
-            & Condition("team_id", self._project.team_id, EQ)
-        )
+        annotation_classes = self._annotation_classes.get_all()
         for annotation_class in annotation_classes:
             class_info = {"id": annotation_class.uuid}
             if annotation_class.attribute_groups:
@@ -2774,12 +2875,23 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
                     attribute_group_data = defaultdict(dict)
                     for attribute in attribute_group["attributes"]:
                         attribute_group_data[attribute["name"]] = attribute["id"]
-                    class_info["attribute_groups"][attribute_group["name"]] = {
-                        "id": attribute_group["id"],
-                        "attributes": attribute_group_data,
+                    class_info["attribute_groups"] = {
+                        attribute_group["name"]: {
+                            "id": attribute_group["id"],
+                            "attributes": attribute_group_data,
+                        }
                     }
             classes_data[annotation_class.name] = class_info
         return classes_data
+
+    def get_templates_mapping(self):
+        templates = self._backend_service.get_templates(
+            team_id=self._project.team_id
+        ).get("data", [])
+        templates_map = {}
+        for template in templates:
+            templates_map[template["name"]] = template["id"]
+        return templates_map
 
     def fill_classes_data(self, annotations: dict):
         annotation_classes = self.annotation_classes_name_map
@@ -2817,8 +2929,8 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
                 ):
                     continue
                 attribute["groupId"] = annotation_classes[annotation_class_name][
-                    attribute["groupName"]
-                ]["id"]
+                    "attribute_groups"
+                ][attribute["groupName"]]["id"]
                 if (
                     attribute["name"]
                     not in annotation_classes[annotation_class_name][
@@ -2832,20 +2944,18 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
                 ][attribute["groupName"]]["attributes"]
 
     def execute(self):
-
         image_data = self._backend_service.get_bulk_images(
             images=[self._image_name],
+            folder_id=self._folder.uuid,
             team_id=self._project.team_id,
             project_id=self._project.uuid,
         )[0]
-
         auth_data = self._backend_service.get_annotation_upload_data(
             project_id=self._project.uuid,
             team_id=self._project.team_id,
             folder_id=self._folder.uuid,
             image_ids=[image_data["id"]],
         )
-
         session = boto3.Session(
             aws_access_key_id=auth_data["creds"]["accessKeyId"],
             aws_secret_access_key=auth_data["creds"]["secretAccessKey"],
@@ -2853,15 +2963,19 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
             region_name=auth_data["creds"]["region"],
         )
         resource = session.resource("s3")
-        bucket = resource.Bucket(auth_data["bucket"])
-
+        bucket = resource.Bucket(auth_data["creds"]["bucket"])
         self.fill_classes_data(self._annotations)
-
         bucket.put_object(
-            Key=auth_data["filePath"], Body=json.dumps(self._annotations),
+            Key=auth_data["images"][str(image_data["id"])]["annotation_json_path"],
+            Body=json.dumps(self._annotations),
         )
         if self._project.project_type == constances.ProjectType.PIXEL.value:
-            bucket.put_object(Key=auth_data["annotation_bluemap_path"], Body=self._mask)
+            bucket.put_object(
+                Key=auth_data["images"][str(image_data["id"])][
+                    "annotation_bluemap_path"
+                ],
+                Body=self._mask,
+            )
 
 
 class UploadAnnotationsUseCase(BaseUseCase):
@@ -2894,10 +3008,7 @@ class UploadAnnotationsUseCase(BaseUseCase):
     @property
     def annotation_classes_name_map(self) -> dict:
         classes_data = defaultdict(dict)
-        annotation_classes = self._annotation_classes.get_all(
-            Condition("project_id", self._project.uuid, EQ)
-            & Condition("team_id", self._project.team_id, EQ)
-        )
+        annotation_classes = self._annotation_classes.get_all()
         for annotation_class in annotation_classes:
             class_info = {"id": annotation_class.uuid}
             if annotation_class.attribute_groups:
@@ -2905,9 +3016,11 @@ class UploadAnnotationsUseCase(BaseUseCase):
                     attribute_group_data = defaultdict(dict)
                     for attribute in attribute_group["attributes"]:
                         attribute_group_data[attribute["name"]] = attribute["id"]
-                    class_info["attribute_groups"][attribute_group["name"]] = {
-                        "id": attribute_group["id"],
-                        "attributes": attribute_group_data,
+                    class_info["attribute_groups"] = {
+                        attribute_group["name"]: {
+                            "id": attribute_group["id"],
+                            "attributes": attribute_group_data,
+                        }
                     }
             classes_data[annotation_class.name] = class_info
         return classes_data
@@ -2916,7 +3029,7 @@ class UploadAnnotationsUseCase(BaseUseCase):
     def annotation_postfix(self):
         return (
             constances.VECTOR_ANNOTATION_POSTFIX
-            if self._project.project_type == constances.ProjectType.VECTOR.name
+            if self._project.project_type == constances.ProjectType.VECTOR.value
             else constances.PIXEL_ANNOTATION_POSTFIX
         )
 
@@ -2965,8 +3078,8 @@ class UploadAnnotationsUseCase(BaseUseCase):
                 ):
                     continue
                 attribute["groupId"] = annotation_classes[annotation_class_name][
-                    attribute["groupName"]
-                ]["id"]
+                    "attribute_groups"
+                ][attribute["groupName"]]["id"]
                 if (
                     attribute["name"]
                     not in annotation_classes[annotation_class_name][
@@ -2988,9 +3101,11 @@ class UploadAnnotationsUseCase(BaseUseCase):
                 ImageInfo(
                     id=None,
                     path=annotation_path,
-                    name=annotation_path.replace(
-                        constances.PIXEL_ANNOTATION_POSTFIX, ""
-                    ).replace(constances.VECTOR_ANNOTATION_POSTFIX, ""),
+                    name=os.path.basename(
+                        annotation_path.replace(
+                            constances.PIXEL_ANNOTATION_POSTFIX, ""
+                        ).replace(constances.VECTOR_ANNOTATION_POSTFIX, ""),
+                    ),
                 )
             )
         image_names = [
@@ -3001,13 +3116,14 @@ class UploadAnnotationsUseCase(BaseUseCase):
         ]
         images_data = self._backend_service.get_bulk_images(
             images=[image.name for image in images_detail],
+            folder_id=self._folder.uuid,
             team_id=self._project.team_id,
             project_id=self._project.uuid,
         )
         for image_data in images_data:
-            for detail in images_detail:
-                if detail.name == image_data["name"]:
-                    detail.id = images_data["id"]
+            for idx, detail in enumerate(images_detail):
+                if detail.name == image_data.get("name"):
+                    images_detail[idx] = detail._replace(id=image_data["id"])
 
         missing_annotations = list(
             filter(lambda detail: detail.id is None, images_detail)
@@ -3017,8 +3133,7 @@ class UploadAnnotationsUseCase(BaseUseCase):
         )
         if len(images_data) < (len(image_names)):
             self._response.errors = AppException(
-                "Couldn't find image %s for annotation upload "
-                "".join(missing_annotations)
+                f"Couldn't find image {','.join(map(lambda x: x.path, missing_annotations))} for annotation upload."
             )
 
         if self._pre_annotation:
@@ -3042,8 +3157,10 @@ class UploadAnnotationsUseCase(BaseUseCase):
             region_name=auth_data["creds"]["region"],
         )
         resource = session.resource("s3")
-        bucket = resource.Bucket(auth_data["bucket"])
-        image_id_name_map = {image.id: image for image in annotations_to_upload}
+        bucket = resource.Bucket(auth_data["creds"]["bucket"])
+        image_id_name_map = {
+            str(image.id): image.name for image in annotations_to_upload
+        }
         if self._client_s3_bucket:
             from_session = boto3.Session()
             from_s3 = from_session.resource("s3")
@@ -3228,7 +3345,7 @@ class CreateModelUseCase(BaseUseCase):
             task=constances.MODEL_TRAINING_TASKS[self._task],
             base_model_id=base_model.uuid,
             image_count=complete_image_count,
-            project_type=project_types[0],
+            # project_type=project_types[0],
             train_folder_ids=train_folder_ids,
             test_folder_ids=test_folder_ids,
         )
@@ -3690,4 +3807,38 @@ class RunPredictionUseCase(BaseUseCase):
             project_id=self._project.uuid,
             ml_model_id=ml_model.uuid,
             image_ids=image_ids,
+        )
+
+
+class GetAllImagesUseCase(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        project: ProjectEntity,
+        service_provider: SuerannotateServiceProvider,
+        annotation_status: str = None,
+        name_prefix: str = None,
+    ):
+        super().__init__(response)
+        self._project = project
+        self._service_provider = service_provider
+        self._annotation_status = annotation_status
+        self._name_prefix = name_prefix
+
+    @property
+    def annotation_status(self):
+        return constances.AnnotationStatus.get_value(self._annotation_status)
+
+    def execute(self):
+        condition = (
+            Condition("team_id", self._project.team_id, EQ)
+            & Condition("project_id", self._project.uuid, EQ)
+            & Condition("folder_id", 0, EQ)
+        )
+        if self._annotation_status:
+            condition &= Condition("annotation_status", self.annotation_status, EQ)
+        if self._name_prefix:
+            condition &= Condition("name", self._name_prefix, EQ)
+        self._response.data = self._service_provider.list_images(
+            query_string=condition.build_query()
         )

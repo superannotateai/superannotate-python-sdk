@@ -36,7 +36,8 @@ class TestAnnotationClasses(TestCase):
     @property
     def classes_json(self):
         return os.path.join(
-            dirname(dirname(__file__)), "sample_project_vector/classes/classes.json"
+            dirname(dirname(__file__)),
+            "data_set/sample_project_vector/classes/classes.json",
         )
 
     def test_create_annotation_class(self):
