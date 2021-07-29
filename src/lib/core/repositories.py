@@ -20,6 +20,10 @@ class BaseReadOnlyRepository(ABC):
     def get_all(self, condition: Optional[Condition] = None) -> List[BaseEntity]:
         raise NotImplementedError
 
+    @staticmethod
+    def dict2entity(data: dict) -> BaseEntity:
+        raise NotImplementedError
+
 
 class BaseManageableRepository(BaseReadOnlyRepository):
     @abstractmethod

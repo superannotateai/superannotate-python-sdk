@@ -105,18 +105,19 @@ class Controller(BaseController):
         return response.data
 
     def _get_folder(self, project: ProjectEntity, name: str = None):
+        response = Response()
         name = self.get_folder_name(name)
-        return self.folders.get_one(
-            Condition("name", name, EQ)
-            & Condition("team_id", self.team_id, EQ)
-            & Condition("project_id", project.uuid, EQ)
+        use_case = usecases.GetFolderUseCase(
+            response=response, project=project, folders=self.folders, folder_name=name,
         )
+        use_case.execute()
+        return response.data
 
     @staticmethod
     def get_folder_name(name: str = None):
-        if not name:
-            return "root"
-        return name
+        if name:
+            return name
+        return "root"
 
     def search_project(self, name: str, **kwargs) -> Response:
         condition = Condition("name", name, EQ)
@@ -137,10 +138,10 @@ class Controller(BaseController):
         name: str,
         description: str,
         project_type: str,
-        contributors: Iterable = (),
-        settings: Iterable = (),
-        annotation_classes: Iterable = (),
-        workflows: Iterable = (),
+        contributors: Iterable = tuple(),
+        settings: Iterable = tuple(),
+        annotation_classes: Iterable = tuple(),
+        workflows: Iterable = tuple(),
     ) -> Response:
         entity = ProjectEntity(
             name=name,
@@ -153,6 +154,9 @@ class Controller(BaseController):
             project=entity,
             projects=self.projects,
             backend_service_provider=self._backend_client,
+            settings_repo=ProjectSettingsRepository,
+            workflows_repo=WorkflowRepository,
+            annotation_classes_repo=AnnotationClassRepository,
             settings=[
                 ProjectSettingsRepository.dict2entity(setting) for setting in settings
             ],
@@ -249,30 +253,26 @@ class Controller(BaseController):
         copy_workflow=True,
         copy_contributors=False,
     ):
-        projects = self.projects.get_all(
-            Condition("name", from_name, EQ) & Condition("team_id", self.team_id, EQ)
+
+        project = self._get_project(from_name)
+        project_to_create = copy.copy(project)
+        project_to_create.name = name
+        project_to_create.description = project_description
+        use_case = usecases.CloneProjectUseCase(
+            response=self.response,
+            project=project,
+            project_to_create=project_to_create,
+            projects=self.projects,
+            settings_repo=ProjectSettingsRepository,
+            workflows_repo=WorkflowRepository,
+            annotation_classes_repo=AnnotationClassRepository,
+            backend_service_provider=self._backend_client,
+            include_contributors=copy_contributors,
+            include_settings=copy_settings,
+            include_workflow=copy_workflow,
+            include_annotation_classes=copy_annotation_classes,
         )
-        if projects:
-            project_to_create = copy.copy(projects[0])
-            project_to_create.name = name
-            project_to_create.description = project_description
-            use_case = usecases.CloneProjectUseCase(
-                self.response,
-                project=projects[0],
-                project_to_create=project_to_create,
-                projects=self.projects,
-                settings=ProjectSettingsRepository(self._backend_client, projects[0]),
-                workflows=WorkflowRepository(self._backend_client, projects[0]),
-                annotation_classes=AnnotationClassRepository(
-                    self._backend_client, projects[0]
-                ),
-                backend_service_provider=self._backend_client,
-                include_contributors=copy_contributors,
-                include_settings=copy_settings,
-                include_workflow=copy_workflow,
-                include_annotation_classes=copy_annotation_classes,
-            )
-            use_case.execute()
+        use_case.execute()
         return self._response
 
     def attach_urls(
@@ -428,12 +428,13 @@ class Controller(BaseController):
 
     def search_team_contributors(self, **kwargs):
         condition = None
-        if kwargs:
+        if any(kwargs.values()):
             conditions_iter = iter(kwargs)
             key = next(conditions_iter)
-            condition = Condition(key, kwargs[key], EQ)
-            for key, val in conditions_iter:
-                condition = condition & Condition(key, val, EQ)
+            if kwargs[key]:
+                condition = Condition(key, kwargs[key], EQ)
+                for key, val in conditions_iter:
+                    condition = condition & Condition(key, val, EQ)
 
         use_case = usecases.SearchContributorsUseCase(
             response=self.response,
@@ -452,10 +453,8 @@ class Controller(BaseController):
         image_name_prefix: str = None,
     ):
         project = self._get_project(project_name)
-        if not folder_path:
-            folder = self._get_folder(project, "root")
-        else:
-            folder = self._get_folder(project, folder_path)
+        folder = self._get_folder(project, folder_path)
+
         use_case = usecases.GetImagesUseCase(
             response=self.response,
             project=project,
@@ -629,7 +628,9 @@ class Controller(BaseController):
         include_contributors: bool = False,
         include_complete_image_count: bool = False,
     ):
-        project = self._get_project(project_name)
+        project = self.projects.get_one(
+            uuid=self._get_project(project_name).uuid, team_id=self.team_id
+        )
         use_case = usecases.GetProjectMetadataUseCase(
             project=project,
             response=self.response,
@@ -666,6 +667,9 @@ class Controller(BaseController):
         project_entity = self._get_project(project_name)
         workflows_use_case = usecases.GetWorkflowsUseCase(
             workflows=WorkflowRepository(
+                service=self._backend_client, project=project_entity
+            ),
+            annotation_classes=AnnotationClassRepository(
                 service=self._backend_client, project=project_entity
             ),
             response=self.response,
@@ -1101,6 +1105,7 @@ class Controller(BaseController):
         self,
         project_type: str,
         image_path: str,
+        annotation_classes: List,
         in_memory: bool,
         generate_overlay: bool,
     ):
@@ -1109,6 +1114,7 @@ class Controller(BaseController):
             response=self.response,
             project_type=project_type,
             image_path=image_path,
+            classes=annotation_classes,
             in_memory=in_memory,
             generate_overlay=generate_overlay,
         )
@@ -1326,6 +1332,7 @@ class Controller(BaseController):
         project = self._get_project(project_name)
         if export_root is None:
             with tempfile.TemporaryDirectory() as export_dir:
+                # todo fix prepare_export & download_export calls
                 export = self.prepare_export(project.name)
                 self.download_export(
                     project_name=project.name,
@@ -1414,3 +1421,18 @@ class Controller(BaseController):
         )
         use_case.execute()
         return self.response
+
+    def list_images(
+        self, project_name: str, annotation_status: str = None, name_prefix: str = None,
+    ):
+        project = self._get_project(project_name)
+
+        use_case = usecases.GetAllImagesUseCase(
+            response=self.response,
+            project=project,
+            service_provider=self._backend_client,
+            annotation_status=annotation_status,
+            name_prefix=name_prefix,
+        )
+        use_case.execute()
+        return self._response

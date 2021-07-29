@@ -62,11 +62,19 @@ class SuerannotateServiceProvider(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def set_project_settings(self, project_id: int, team_id: int, data: Dict):
+    def set_project_settings(self, project_id: int, team_id: int, data: List):
         raise NotImplementedError
 
     @abstractmethod
     def get_project_workflows(self, project_id: int, team_id: int):
+        raise NotImplementedError
+
+    @abstractmethod
+    def list_images(self, query_string):
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_project(self, uuid: int, team_id: int):
         raise NotImplementedError
 
     @abstractmethod
@@ -166,7 +174,7 @@ class SuerannotateServiceProvider(ABC):
 
     def get_bulk_images(
         self, project_id: int, team_id: int, folder_id: int, images: List[str]
-    ) -> List[str]:
+    ) -> List[dict]:
         raise NotImplementedError
 
     def un_assign_folder(

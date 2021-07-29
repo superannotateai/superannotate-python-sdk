@@ -9,6 +9,7 @@ from src.lib.app.annotation_helpers import add_annotation_point_to_json
 from src.lib.app.annotation_helpers import add_annotation_polygon_to_json
 from src.lib.app.annotation_helpers import add_annotation_polyline_to_json
 from src.lib.app.annotation_helpers import add_annotation_template_to_json
+from src.lib.app.common import image_path_to_annotation_paths
 from src.lib.app.convertors.df_converter import df_to_annotations
 from src.lib.app.convertors.df_converter import filter_annotation_instances
 from src.lib.app.convertors.df_converter import filter_images_by_comments
@@ -19,6 +20,14 @@ from src.lib.app.input_converters.conversion import convert_json_version
 from src.lib.app.input_converters.conversion import convert_project_type
 from src.lib.app.input_converters.conversion import export_annotation
 from src.lib.app.input_converters.conversion import import_annotation
+from src.lib.app.interface.sdk_interface import add_annotation_bbox_to_image
+from src.lib.app.interface.sdk_interface import add_annotation_comment_to_image
+from src.lib.app.interface.sdk_interface import add_annotation_cuboid_to_image
+from src.lib.app.interface.sdk_interface import add_annotation_ellipse_to_image
+from src.lib.app.interface.sdk_interface import add_annotation_point_to_image
+from src.lib.app.interface.sdk_interface import add_annotation_polygon_to_image
+from src.lib.app.interface.sdk_interface import add_annotation_polyline_to_image
+from src.lib.app.interface.sdk_interface import add_annotation_template_to_image
 from src.lib.app.interface.sdk_interface import assign_folder
 from src.lib.app.interface.sdk_interface import assign_images
 from src.lib.app.interface.sdk_interface import attach_image_urls_to_project
@@ -30,27 +39,50 @@ from src.lib.app.interface.sdk_interface import (
     create_annotation_classes_from_classes_json,
 )
 from src.lib.app.interface.sdk_interface import create_folder
+from src.lib.app.interface.sdk_interface import create_fuse_image
 from src.lib.app.interface.sdk_interface import create_project
+from src.lib.app.interface.sdk_interface import create_project_from_metadata
+from src.lib.app.interface.sdk_interface import delete_annotation_class
 from src.lib.app.interface.sdk_interface import delete_contributor_to_team_invitation
 from src.lib.app.interface.sdk_interface import delete_folders
 from src.lib.app.interface.sdk_interface import delete_images
 from src.lib.app.interface.sdk_interface import delete_project
+from src.lib.app.interface.sdk_interface import download_annotation_classes_json
+from src.lib.app.interface.sdk_interface import download_export
+from src.lib.app.interface.sdk_interface import download_image
+from src.lib.app.interface.sdk_interface import download_image_annotations
 from src.lib.app.interface.sdk_interface import get_folder_metadata
+from src.lib.app.interface.sdk_interface import get_image_annotations
 from src.lib.app.interface.sdk_interface import get_image_metadata
 from src.lib.app.interface.sdk_interface import get_project_and_folder_metadata
+from src.lib.app.interface.sdk_interface import get_project_image_count
+from src.lib.app.interface.sdk_interface import get_project_metadata
+from src.lib.app.interface.sdk_interface import get_project_settings
+from src.lib.app.interface.sdk_interface import get_project_workflow
 from src.lib.app.interface.sdk_interface import get_team_metadata
 from src.lib.app.interface.sdk_interface import invite_contributor_to_team
 from src.lib.app.interface.sdk_interface import move_images
+from src.lib.app.interface.sdk_interface import pin_image
+from src.lib.app.interface.sdk_interface import prepare_export
 from src.lib.app.interface.sdk_interface import rename_folder
 from src.lib.app.interface.sdk_interface import search_annotation_classes
 from src.lib.app.interface.sdk_interface import search_folders
 from src.lib.app.interface.sdk_interface import search_images
+from src.lib.app.interface.sdk_interface import search_images_all_folders
 from src.lib.app.interface.sdk_interface import search_projects
 from src.lib.app.interface.sdk_interface import search_team_contributors
+from src.lib.app.interface.sdk_interface import set_images_annotation_statuses
+from src.lib.app.interface.sdk_interface import set_project_settings
+from src.lib.app.interface.sdk_interface import set_project_workflow
 from src.lib.app.interface.sdk_interface import share_project
 from src.lib.app.interface.sdk_interface import unassign_folder
 from src.lib.app.interface.sdk_interface import unassign_images
 from src.lib.app.interface.sdk_interface import unshare_project
+from src.lib.app.interface.sdk_interface import (
+    upload_annotations_from_folder_to_project,
+)
+from src.lib.app.interface.sdk_interface import upload_image_annotations
+from src.lib.app.interface.sdk_interface import upload_image_to_project
 from src.lib.app.interface.sdk_interface import upload_images_from_folder_to_project
 from src.lib.app.interface.sdk_interface import (
     upload_images_from_google_cloud_to_project,
@@ -71,6 +103,7 @@ __all__ = [
     "aggregate_annotations_as_df",
     # common
     "df_to_annotations",
+    "image_path_to_annotation_paths",
     # convertors
     "dicom_to_rgb_sequence",
     "coco_split_dataset",
@@ -101,6 +134,12 @@ __all__ = [
     "delete_contributor_to_team_invitation",
     "search_team_contributors",
     # Projects Section
+    "create_project_from_metadata",
+    "get_project_settings",
+    "set_project_settings",
+    "get_project_metadata",
+    "get_project_workflow",
+    "set_project_workflow",
     "search_projects",
     "create_project",
     "clone_project",
@@ -123,9 +162,17 @@ __all__ = [
     "copy_images",
     "move_images",
     "delete_images",
+    "download_image",
+    "create_fuse_image",
+    "pin_image",
     "get_image_metadata",
+    "get_project_image_count",
+    "search_images_all_folders",
     "assign_images",
     "unassign_images",
+    "download_image_annotations",
+    "upload_image_to_project",
+    "upload_image_annotations",
     "upload_images_from_google_cloud_to_project",
     "upload_images_from_s3_bucket_to_project",
     "upload_images_from_folder_to_project",
@@ -134,6 +181,21 @@ __all__ = [
     "upload_videos_from_folder_to_project",
     # Annotation Section
     "create_annotation_class",
+    "delete_annotation_class",
+    "prepare_export",
+    "download_export",
+    "set_images_annotation_statuses",
+    "add_annotation_bbox_to_image",
+    "add_annotation_polyline_to_image",
+    "add_annotation_polygon_to_image",
+    "add_annotation_point_to_image",
+    "add_annotation_ellipse_to_image",
+    "add_annotation_template_to_image",
+    "add_annotation_cuboid_to_image",
+    "add_annotation_comment_to_image",
+    "get_image_annotations",
     "search_annotation_classes",
     "create_annotation_classes_from_classes_json",
+    "upload_annotations_from_folder_to_project",
+    "download_annotation_classes_json",
 ]
