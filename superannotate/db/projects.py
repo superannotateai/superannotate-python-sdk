@@ -250,11 +250,12 @@ def _get_video_fps_ration(target_fps, video, ratio, log):
     Get video fps / target fps ratio
     """
     video_fps = float(video.get(cv2.CAP_PROP_FPS))
-    if target_fps >= video_fps and log:
-        logger.warning(
-            "Video frame rate %s smaller than target frame rate %s. Cannot change frame rate.",
-            video_fps, target_fps
-        )
+    if target_fps >= video_fps:
+        if log:
+            logger.warning(
+                "Video frame rate %s smaller than target frame rate %s. Cannot change frame rate.",
+                video_fps, target_fps
+            )
     else:
         if log:
             logger.info(
