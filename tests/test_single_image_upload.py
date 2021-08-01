@@ -1,8 +1,9 @@
+import time
 from pathlib import Path
 import io
 
 import superannotate as sa
-
+from .test_assign_images import safe_create_project
 PROJECT_NAME = "test single image upload 1"
 PROJECT_NAME_S3 = "test single image upload s3 2"
 PROJECT_NAME_S3_CHANGE_NAME = "test single image upload s3 change name 3"
@@ -10,14 +11,7 @@ PROJECT_NAME_BYTES = "test single image upload bytes 4"
 
 
 def test_single_image_upload(tmpdir):
-    tmpdir = Path(tmpdir)
-
-    projects_found = sa.search_projects(PROJECT_NAME, return_metadata=True)
-    print(projects_found)
-    for pr in projects_found:
-        sa.delete_project(pr)
-
-    project = sa.create_project(PROJECT_NAME, "test", "Vector")
+    project = safe_create_project(PROJECT_NAME)
 
     sa.upload_image_to_project(
         project,
@@ -25,6 +19,7 @@ def test_single_image_upload(tmpdir):
         annotation_status="InProgress"
     )
 
+    time.sleep(2)
     images = sa.search_images(project)
     assert len(images) == 1
     image = images[0]
@@ -34,13 +29,7 @@ def test_single_image_upload(tmpdir):
 
 
 def test_single_image_upload_s3(tmpdir):
-    tmpdir = Path(tmpdir)
-
-    projects_found = sa.search_projects(PROJECT_NAME_S3, return_metadata=True)
-    for pr in projects_found:
-        sa.delete_project(pr)
-
-    project = sa.create_project(PROJECT_NAME_S3, "test", "Vector")
+    project = safe_create_project(PROJECT_NAME_S3)
 
     sa.upload_image_to_project(
         project,
@@ -48,6 +37,7 @@ def test_single_image_upload_s3(tmpdir):
         annotation_status="InProgress",
         from_s3_bucket="superannotate-python-sdk-test"
     )
+    time.sleep(2)
 
     images = sa.search_images(project)
     assert len(images) == 1
@@ -57,15 +47,7 @@ def test_single_image_upload_s3(tmpdir):
 
 
 def test_single_image_upload_s3_change_name(tmpdir):
-    tmpdir = Path(tmpdir)
-
-    projects_found = sa.search_projects(
-        PROJECT_NAME_S3_CHANGE_NAME, return_metadata=True
-    )
-    for pr in projects_found:
-        sa.delete_project(pr)
-
-    project = sa.create_project(PROJECT_NAME_S3_CHANGE_NAME, "test", "Vector")
+    project = safe_create_project(PROJECT_NAME_S3_CHANGE_NAME)
 
     sa.upload_image_to_project(
         project,
@@ -74,6 +56,8 @@ def test_single_image_upload_s3_change_name(tmpdir):
         annotation_status="InProgress",
         from_s3_bucket="superannotate-python-sdk-test"
     )
+
+    time.sleep(2)
 
     images = sa.search_images(project)
     assert len(images) == 1
@@ -84,15 +68,7 @@ def test_single_image_upload_s3_change_name(tmpdir):
 
 
 def test_single_image_upload_bytesio(tmpdir):
-    tmpdir = Path(tmpdir)
-
-    projects_found = sa.search_projects(
-        PROJECT_NAME_BYTES, return_metadata=True
-    )
-    for pr in projects_found:
-        sa.delete_project(pr)
-
-    project = sa.create_project(PROJECT_NAME_BYTES, "test", "Vector")
+    project = safe_create_project(PROJECT_NAME_BYTES)
 
     with open("./tests/sample_project_vector/example_image_1.jpg", "rb") as f:
         img = io.BytesIO(f.read())
@@ -106,6 +82,7 @@ def test_single_image_upload_bytesio(tmpdir):
     sa.upload_image_to_project(
         project, img, image_name="rr.jpg", annotation_status="InProgress"
     )
+    time.sleep(2)
     images = sa.search_images(project)
     assert len(images) == 1
     image = images[0]

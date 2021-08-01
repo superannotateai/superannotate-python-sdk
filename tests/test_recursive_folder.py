@@ -3,20 +3,16 @@ from pathlib import Path
 import time
 
 import superannotate as sa
+from .test_assign_images import safe_create_project
+
 
 TEMP_PROJECT_NAME = "test_recursive"
 
 
 def test_nonrecursive_annotations_folder(tmpdir):
     tmpdir = Path(tmpdir)
-    projects_found = sa.search_projects(
-        TEMP_PROJECT_NAME + "0", return_metadata=True
-    )
-    for pr in projects_found:
-        sa.delete_project(pr)
 
-    project = sa.create_project(TEMP_PROJECT_NAME + "0", "test", "Vector")
-
+    project = safe_create_project(TEMP_PROJECT_NAME + "0", "test", "Vector")
     sa.upload_images_from_folder_to_project(
         project,
         "./tests/sample_recursive_test",
@@ -36,7 +32,7 @@ def test_nonrecursive_annotations_folder(tmpdir):
 
     export = sa.prepare_export(project)
 
-    time.sleep(1)
+    time.sleep(2)
     sa.download_export(project, export, tmpdir)
 
     non_empty_annotations = 0
@@ -51,14 +47,8 @@ def test_nonrecursive_annotations_folder(tmpdir):
 
 def test_recursive_annotations_folder(tmpdir):
     tmpdir = Path(tmpdir)
-    projects_found = sa.search_projects(
-        TEMP_PROJECT_NAME + "1", return_metadata=True
-    )
-    for pr in projects_found:
-        sa.delete_project(pr)
 
-    project = sa.create_project(TEMP_PROJECT_NAME + "1", "test", "Vector")
-
+    project = safe_create_project(TEMP_PROJECT_NAME + "1", "test", "Vector")
     sa.upload_images_from_folder_to_project(
         project,
         "./tests/sample_recursive_test",
@@ -86,13 +76,8 @@ def test_recursive_annotations_folder(tmpdir):
 
 def test_recursive_preannotations_folder(tmpdir):
     tmpdir = Path(tmpdir)
-    projects_found = sa.search_projects(
-        TEMP_PROJECT_NAME + "2", return_metadata=True
-    )
-    for pr in projects_found:
-        sa.delete_project(pr)
 
-    project = sa.create_project(TEMP_PROJECT_NAME + "2", "test", "Vector")
+    project = safe_create_project(TEMP_PROJECT_NAME + "2", "test", "Vector")
 
     sa.upload_images_from_folder_to_project(
         project,
@@ -111,6 +96,8 @@ def test_recursive_preannotations_folder(tmpdir):
         project, "./tests/sample_recursive_test", recursive_subfolders=True
     )
 
+    time.sleep(2)
+
     for image in sa.search_images(project):
         sa.download_image_preannotations(project, image, tmpdir)
 
@@ -119,13 +106,8 @@ def test_recursive_preannotations_folder(tmpdir):
 
 def test_nonrecursive_preannotations_folder(tmpdir):
     tmpdir = Path(tmpdir)
-    projects_found = sa.search_projects(
-        TEMP_PROJECT_NAME + "3", return_metadata=True
-    )
-    for pr in projects_found:
-        sa.delete_project(pr)
 
-    project = sa.create_project(TEMP_PROJECT_NAME + "3", "test", "Vector")
+    project = safe_create_project(TEMP_PROJECT_NAME + "3", "test", "Vector")
 
     sa.upload_images_from_folder_to_project(
         project,
@@ -144,6 +126,7 @@ def test_nonrecursive_preannotations_folder(tmpdir):
         project, "./tests/sample_recursive_test", recursive_subfolders=False
     )
 
+    time.sleep(2)
     for image in sa.search_images(project):
         sa.download_image_preannotations(project, image, tmpdir)
 
@@ -152,13 +135,8 @@ def test_nonrecursive_preannotations_folder(tmpdir):
 
 def test_annotations_recursive_s3_folder(tmpdir):
     tmpdir = Path(tmpdir)
-    projects_found = sa.search_projects(
-        TEMP_PROJECT_NAME + "4", return_metadata=True
-    )
-    for pr in projects_found:
-        sa.delete_project(pr)
 
-    project = sa.create_project(TEMP_PROJECT_NAME + "4", "test", "Vector")
+    project = safe_create_project(TEMP_PROJECT_NAME + "4", "test", "Vector")
 
     sa.upload_images_from_folder_to_project(
         project,
@@ -182,10 +160,11 @@ def test_annotations_recursive_s3_folder(tmpdir):
         recursive_subfolders=True,
         from_s3_bucket="superannotate-python-sdk-test"
     )
+    time.sleep(2)
 
     export = sa.prepare_export(project)
 
-    time.sleep(1)
+    time.sleep(2)
     sa.download_export(project, export, tmpdir)
 
     assert len(list(tmpdir.glob("*.json"))) == 2
@@ -193,13 +172,8 @@ def test_annotations_recursive_s3_folder(tmpdir):
 
 def test_annotations_nonrecursive_s3_folder(tmpdir):
     tmpdir = Path(tmpdir)
-    projects_found = sa.search_projects(
-        TEMP_PROJECT_NAME + "5", return_metadata=True
-    )
-    for pr in projects_found:
-        sa.delete_project(pr)
 
-    project = sa.create_project(TEMP_PROJECT_NAME + "5", "test", "Vector")
+    project = safe_create_project(TEMP_PROJECT_NAME + "5", "test", "Vector")
 
     sa.upload_images_from_folder_to_project(
         project,
@@ -228,7 +202,6 @@ def test_annotations_nonrecursive_s3_folder(tmpdir):
 
     time.sleep(1)
     sa.download_export(project, export, tmpdir)
-
     non_empty_annotations = 0
     json_files = tmpdir.glob("*.json")
     for json_file in json_files:
@@ -241,13 +214,10 @@ def test_annotations_nonrecursive_s3_folder(tmpdir):
 
 def test_preannotations_recursive_s3_folder(tmpdir):
     tmpdir = Path(tmpdir)
-    projects_found = sa.search_projects(
-        TEMP_PROJECT_NAME + "6", return_metadata=True
-    )
-    for pr in projects_found:
-        sa.delete_project(pr)
 
-    project = sa.create_project(TEMP_PROJECT_NAME + "6", "test", "Vector")
+
+    project = safe_create_project(TEMP_PROJECT_NAME + "6", "test", "Vector")
+
 
     sa.upload_images_from_folder_to_project(
         project,
@@ -255,6 +225,7 @@ def test_preannotations_recursive_s3_folder(tmpdir):
         from_s3_bucket="superannotate-python-sdk-test",
         recursive_subfolders=True
     )
+    time.sleep(2)
 
     assert len(sa.search_images(project)) == 2
 
@@ -270,6 +241,7 @@ def test_preannotations_recursive_s3_folder(tmpdir):
         recursive_subfolders=True,
         from_s3_bucket="superannotate-python-sdk-test"
     )
+    time.sleep(2)
 
     for image in sa.search_images(project):
         sa.download_image_preannotations(project, image, tmpdir)
@@ -279,13 +251,8 @@ def test_preannotations_recursive_s3_folder(tmpdir):
 
 def test_preannotations_nonrecursive_s3_folder(tmpdir):
     tmpdir = Path(tmpdir)
-    projects_found = sa.search_projects(
-        TEMP_PROJECT_NAME + "7", return_metadata=True
-    )
-    for pr in projects_found:
-        sa.delete_project(pr)
 
-    project = sa.create_project(TEMP_PROJECT_NAME + "7", "test", "Vector")
+    project = safe_create_project(TEMP_PROJECT_NAME + "7", "test", "Vector")
 
     sa.upload_images_from_folder_to_project(
         project,
@@ -293,6 +260,7 @@ def test_preannotations_nonrecursive_s3_folder(tmpdir):
         from_s3_bucket="superannotate-python-sdk-test",
         recursive_subfolders=True
     )
+    time.sleep(2)
 
     assert len(sa.search_images(project)) == 2
 
@@ -308,20 +276,15 @@ def test_preannotations_nonrecursive_s3_folder(tmpdir):
         recursive_subfolders=False,
         from_s3_bucket="superannotate-python-sdk-test"
     )
+    time.sleep(2)
 
     for image in sa.search_images(project):
         sa.download_image_preannotations(project, image, tmpdir)
 
 
 def test_images_nonrecursive_s3(tmpdir):
-    tmpdir = Path(tmpdir)
-    projects_found = sa.search_projects(
-        TEMP_PROJECT_NAME + "8", return_metadata=True
-    )
-    for pr in projects_found:
-        sa.delete_project(pr)
 
-    project = sa.create_project(TEMP_PROJECT_NAME + "8", "test", "Vector")
+    project = safe_create_project(TEMP_PROJECT_NAME + "8", "test", "Vector")
 
     sa.upload_images_from_folder_to_project(
         project,
@@ -329,22 +292,16 @@ def test_images_nonrecursive_s3(tmpdir):
         from_s3_bucket="superannotate-python-sdk-test",
         recursive_subfolders=False
     )
+    time.sleep(2)
 
     assert len(sa.search_images(project)) == 1
 
 
 def test_images_nonrecursive(tmpdir):
-    tmpdir = Path(tmpdir)
-    projects_found = sa.search_projects(
-        TEMP_PROJECT_NAME + "9", return_metadata=True
-    )
-    for pr in projects_found:
-        sa.delete_project(pr)
-
-    project = sa.create_project(TEMP_PROJECT_NAME + "9", "test", "Vector")
+    project = safe_create_project(TEMP_PROJECT_NAME + "9", "test", "Vector")
 
     sa.upload_images_from_folder_to_project(
         project, "./tests/sample_recursive_test", recursive_subfolders=False
     )
-
+    time.sleep(2)
     assert len(sa.search_images(project)) == 1

@@ -1,42 +1,41 @@
+import time
 from pathlib import Path
 import pytest
 import superannotate as sa
-
-PROJECT_NAME = "test annotation class new 1"
-PROJECT_NAME_JSON = "test annotation class new json 2"
+from .test_assign_images import safe_create_project
 
 
 def test_anntotation_class_new():
-    projects = sa.search_projects(PROJECT_NAME, return_metadata=True)
-    for project in projects:
-        sa.delete_project(project)
 
-    sa.create_project(PROJECT_NAME, "tt", "Vector")
-
+    PROJECT_NAME = "test_anntotation_class_new"
+    safe_create_project(PROJECT_NAME,'test','Vector')
+    time.sleep(2)
     sa.create_annotation_class(PROJECT_NAME, "tt", "#FFFFFF")
+
+    time.sleep(2)
 
     assert len(sa.search_annotation_classes(PROJECT_NAME)) == 1
 
     sa.create_annotation_class(PROJECT_NAME, "tt", "#FFFFFF")
-
+    time.sleep(2)
     assert len(sa.search_annotation_classes(PROJECT_NAME)) == 1
 
 
 def test_anntotation_class_new_json():
-    projects = sa.search_projects(PROJECT_NAME_JSON, return_metadata=True)
-    for project in projects:
-        sa.delete_project(project)
 
-    sa.create_project(PROJECT_NAME_JSON, "tt", "Vector")
+    PROJECT_NAME_JSON = "test_anntotation_class_new_json"
+    safe_create_project(PROJECT_NAME_JSON,'test','Vector')
 
     sa.create_annotation_classes_from_classes_json(
         PROJECT_NAME_JSON, "./tests/sample_project_vector/classes/classes.json"
     )
 
+    time.sleep(2)
     assert len(sa.search_annotation_classes(PROJECT_NAME_JSON)) == 4
 
     sa.create_annotation_classes_from_classes_json(
         PROJECT_NAME_JSON, "./tests/sample_project_vector/classes/classes.json"
     )
+    time.sleep(2)
 
     assert len(sa.search_annotation_classes(PROJECT_NAME_JSON)) == 4

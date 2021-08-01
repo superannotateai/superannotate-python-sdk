@@ -1,3 +1,4 @@
+import time
 from pathlib import Path
 
 import numpy as np
@@ -16,6 +17,7 @@ def test_fuse_image_create_vector(tmpdir):
     projects = sa.search_projects(PROJECT_NAME_VECTOR, return_metadata=True)
     for project in projects:
         sa.delete_project(project)
+    time.sleep(2)
 
     project = sa.create_project(PROJECT_NAME_VECTOR, "test", "Vector")
 
@@ -57,6 +59,7 @@ def test_fuse_image_create_vector(tmpdir):
         "Human"
     )
 
+    time.sleep(2)
     export = sa.prepare_export(project, include_fuse=True)
     (tmpdir / "export").mkdir()
     sa.download_export(project, export, (tmpdir / "export"))
@@ -90,7 +93,7 @@ def test_fuse_image_create_pixel(tmpdir):
     projects = sa.search_projects(PROJECT_NAME_PIXEL, return_metadata=True)
     for project in projects:
         sa.delete_project(project)
-
+    time.sleep(2)
     project = sa.create_project(PROJECT_NAME_PIXEL, "test", "Pixel")
 
     sa.upload_image_to_project(
