@@ -127,6 +127,14 @@ def prepare_export(
     """
     if not isinstance(project, dict):
         project = get_project_metadata_bare(project)
+    if project["type"] == "Video":
+        if include_fuse or only_pinned:
+            raise SABaseException(
+                0,
+                "The function does not support include fuse and pin arguments "
+                "for projects containing videos attached with URLs"
+            )
+
     upload_state = upload_state_int_to_str(project.get("upload_state"))
     if upload_state == "External" and include_fuse == True:
         logger.info(
@@ -144,11 +152,14 @@ def prepare_export(
     current_time = datetime.now().strftime("%b %d %Y %H:%M")
     json_req = {
         "include": annotation_statuses,
-        "fuse": int(include_fuse),
-        "is_pinned": int(only_pinned),
         "coco": 0,
         "time": current_time
     }
+    if project["type"] != "Video":
+        json_req["fuse"] = int(include_fuse)
+        json_req["is_pinned"] = int(only_pinned)
+        json_req["coco"] = 0
+
     if folder_names is not None:
         json_req["folder_names"] = folder_names
     params = {'team_id': team_id, 'project_id': project_id}
