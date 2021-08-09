@@ -183,12 +183,12 @@ class TestAnnotationClasses(BaseTestCase):
 
         self.assertEqual(len(sa.search_folders(self.PROJECT_NAME)), 3)
 
-        sa.rename_folder(f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_1}", "folder5")
+        sa.rename_folder(f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_1}", "folder_5")
         time.sleep(2)
         self.assertEqual(len(sa.search_folders(self.PROJECT_NAME)), 3)
 
-        self.assertTrue("folder5" in sa.search_folders(self.PROJECT_NAME))
-        self.assertTrue("folder1" not in sa.search_folders(self.PROJECT_NAME))
+        self.assertTrue("folder_5" in sa.search_folders(self.PROJECT_NAME))
+        self.assertTrue("folder_1" not in sa.search_folders(self.PROJECT_NAME))
 
     def test_project_folder_image_count(self):
         sa.upload_images_from_folder_to_project(
@@ -255,7 +255,7 @@ class TestAnnotationClasses(BaseTestCase):
         sa.upload_images_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
         )
-        sa.create_folder(f"{self.PROJECT_NAME}_1", "folder1")
+        sa.create_folder(f"{self.PROJECT_NAME}_1", self.TEST_FOLDER_NAME_1)
         time.sleep(2)
         sa.copy_images(
             f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_1}",
@@ -266,7 +266,7 @@ class TestAnnotationClasses(BaseTestCase):
             copy_pin=False,
         )
         assert (
-            "Copied 2/2 images from test copy3 folder images to test copy3 folder images/folder1"
+            "Copied 2/2 images from test copy3 folder images to test copy3 folder images/folder_1"
             # todo add in caplog.text
         )
 
@@ -281,7 +281,7 @@ class TestAnnotationClasses(BaseTestCase):
         sa.upload_images_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
         )
-        sa.create_folder(self.PROJECT_NAME, "folder1")
+        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1)
         project = f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_1}"
         time.sleep(2)
 
@@ -297,7 +297,7 @@ class TestAnnotationClasses(BaseTestCase):
         self.assertEqual(num_images, 4)
 
     def test_copy_images(self):
-        sa.create_folder(self.PROJECT_NAME, "folder1")
+        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1)
         project = f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_1}"
         sa.upload_images_from_folder_to_project(
             project, self.folder_path, annotation_status="InProgress"

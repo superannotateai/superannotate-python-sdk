@@ -1,4 +1,3 @@
-import time
 from unittest import TestCase
 
 import src.lib.app.superannotate as sa
@@ -16,12 +15,10 @@ class BaseTestCase(TestCase):
 
     def setUp(self, *args, **kwargs):
         self.tearDown()
-        time.sleep(2)
         self._project = sa.create_project(
             self.PROJECT_NAME, self.PROJECT_DESCRIPTION, self.PROJECT_TYPE
         )
         # todo check is it required
-        time.sleep(1)
 
     def tearDown(self) -> None:
         projects = sa.search_projects(self.PROJECT_NAME, return_metadata=True)

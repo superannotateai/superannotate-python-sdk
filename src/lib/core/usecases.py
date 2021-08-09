@@ -2400,7 +2400,13 @@ class CreateAnnotationClassUseCase(BaseUseCase):
         annotation_classes = self._annotation_classes.get_all(
             Condition("name", self._annotation_class.name, EQ)
         )
-        if annotation_classes:
+        if any(
+            [
+                True
+                for annotation_class in annotation_classes
+                if annotation_class.name == self._annotation_class.name
+            ]
+        ):
             raise AppValidationException("Annotation class already exits.")
 
     def execute(self):
