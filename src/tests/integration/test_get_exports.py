@@ -1,9 +1,9 @@
+import glob
 import os
-from os.path import dirname
-from pathlib import Path
 import tempfile
 import time
-import  glob
+from os.path import dirname
+
 import src.lib.app.superannotate as sa
 from src.tests.integration.base import BaseTestCase
 
@@ -24,7 +24,9 @@ class TestGetExports(BaseTestCase):
         sa.upload_images_from_folder_to_project(
             project=self._project["name"], folder_path=self.folder_path
         )
-        sa.upload_annotations_from_folder_to_project(project=self._project["name"], folder_path=self.folder_path)
+        sa.upload_annotations_from_folder_to_project(
+            project=self._project["name"], folder_path=self.folder_path
+        )
 
     def test_get_exports(self):
         tmpdir = tempfile.TemporaryDirectory()
@@ -40,8 +42,3 @@ class TestGetExports(BaseTestCase):
         exports_new = sa.get_exports(self.PROJECT_NAME)
 
         assert len(exports_new) == len(exports_old) + 1
-
-
-
-
-
