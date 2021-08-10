@@ -89,7 +89,6 @@ class API:
                 req_type='GET',
                 path=f'/team/{self.team_id}',
             )
-
             self.user_id = response.json().get('creator_id', None)
             self.team_name = response.json().get('name', None)
 
