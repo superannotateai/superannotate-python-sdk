@@ -301,11 +301,7 @@ class Controller(BaseController):
         return self._response
 
     def create_folder(self, project: str, folder_name: str):
-        projects = ProjectRepository(service=self._backend_client).get_all(
-            condition=Condition("name", project, EQ)
-            & Condition("team_id", self.team_id, EQ)
-        )
-        project = projects[0]
+        project = self._get_project(project)
         folder = FolderEntity(
             name=folder_name, project_id=project.uuid, team_id=project.team_id
         )

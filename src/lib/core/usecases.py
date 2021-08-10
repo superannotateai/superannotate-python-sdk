@@ -55,7 +55,6 @@ from src.lib.core.serviceproviders import SuerannotateServiceProvider
 class BaseUseCase(ABC):
     def __init__(self, response: Response):
         self._response = response
-        self._errors = []
 
     @abstractmethod
     def execute(self):
@@ -68,11 +67,11 @@ class BaseUseCase(ABC):
                     method = getattr(self, name)
                     method()
             except AppValidationException as e:
-                self._errors.append(e)
+                self._response.errors = e
 
     def is_valid(self):
         self._validate()
-        return not self._errors
+        return not self._response.errors
 
 
 class GetProjectsUseCase(BaseUseCase):
@@ -92,7 +91,6 @@ class GetProjectsUseCase(BaseUseCase):
         if self.is_valid():
             condition = self._condition & Condition("team_id", self._team_id, EQ)
             self._response.data = self._projects.get_all(condition)
-        self._response.errors = self._errors
 
 
 class GetProjectByNameUseCase(BaseUseCase):
@@ -194,8 +192,6 @@ class CreateProjectUseCase(BaseUseCase):
                         constances.UserRole.get_value(contributor["user_role"]),
                     )
                 data["contributors"] = self._contributors
-        else:
-            self._response.errors = self._errors
 
     def validate_project_name_uniqueness(self):
         condition = Condition("name", self._project.name, EQ) & Condition(
@@ -249,8 +245,6 @@ class UpdateProjectUseCase(BaseUseCase):
     def execute(self):
         if self.is_valid():
             self._projects.update(self._project)
-        else:
-            self._response.errors = self._errors
 
 
 class CloneProjectUseCase(BaseUseCase):
@@ -473,7 +467,7 @@ class GetImagesUseCase(BaseUseCase):
         if self._annotation_status:
             condition = condition & Condition(
                 "annotation_status",
-                constances.AnnotationStatus[self._annotation_status.upper()].value,
+                constances.AnnotationStatus.get_value(self._annotation_status),
                 EQ,
             )
 
@@ -593,9 +587,15 @@ class CreateFolderUseCase(BaseUseCase):
         self._folders = folders
 
     def execute(self):
-        if self.is_valid():
-            self._folder.project_id = self._project.uuid
-            self._response.data = self._folders.insert(self._folder)
+        if not self.is_valid():
+            self._folder.name = "".join(
+                "_"
+                if char in constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
+                else char
+                for char in self._folder.name
+            )
+        self._folder.project_id = self._project.uuid
+        self._response.data = self._folders.insert(self._folder)
 
     def validate_folder_name(self):
         if (
@@ -1125,7 +1125,10 @@ class DownloadImageFromPublicUrlUseCase(BaseUseCase):
     def execute(self):
         try:
             response = requests.get(url=self._image_url)
-            self._response.data = io.BytesIO(response.content)
+            if response.ok:
+                self._response.data = io.BytesIO(response.content)
+            else:
+                raise requests.exceptions.RequestException()
         except requests.exceptions.RequestException as e:
             self._response.errors = AppException(
                 f"Couldn't download image {self._image_url}, {e}"
@@ -1906,7 +1909,7 @@ class GetImageAnnotationsUseCase(BaseUseCase):
             file_postfix = "___objects.json"
         else:
             file_postfix = "___pixel.json"
-
+        # todo fix
         response = requests.get(
             url=credentials["annotation_json_path"]["url"],
             headers=credentials["annotation_json_path"]["headers"],

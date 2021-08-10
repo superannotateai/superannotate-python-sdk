@@ -269,7 +269,7 @@ def create_folder(project, folder_name):
     """
 
     res = controller.create_folder(project=project, folder_name=folder_name)
-    if not res.errors:
+    if res.data:
         folder = res.data
         if folder and folder.name != folder_name:
             logger.warning(
@@ -277,8 +277,8 @@ def create_folder(project, folder_name):
             )
         logger.info(f"Folder {folder_name} created in project {project}")
         return folder.to_dict()
-    else:
-        logger.error(res.errors)
+    if res.errors:
+        logger.warning(res.errors)
 
 
 def delete_project(project):
@@ -528,53 +528,82 @@ def upload_images_from_public_urls_to_project(
     existing_images = controller.search_images(
         project_name=project_name, folder_path=folder_name
     ).data
-    if not img_names:
-        img_names = [os.path.basename(urlparse(url).path) for url in img_urls]
 
-    image_name_url_map = {img_urls[i]: img_names[i] for i in range(len(img_names))}
-    duplicate_images = list(
-        {image.name for image in existing_images} & set(image_name_url_map.keys())
-    )
+    image_name_url_map = {}
+    duplicate_images = []
+    for idx, url in enumerate(img_urls):
+        if url:
+            if img_names:
+                image_name = img_names[idx]
+            elif os.path.basename(urlparse(url).path):
+                image_name = os.path.basename(urlparse(url).path)
+            else:
+                image_name = f"{uuid.uuid4()}.jpeg"
+            if (image_name in existing_images) or (url in image_name_url_map):
+                duplicate_images.append(image_name)
+                continue
+            image_name_url_map[url] = image_name
+
     images_to_upload = []
+    ProcessedImage = namedtuple("ProcessedImage", ["uploaded", "path", "entity"])
 
-    def _upload_image(image_url, image_path) -> str:
+    def _upload_image(image_url, image_path) -> ProcessedImage:
         download_response = controller.download_image_from_public_url(
             project_name=project_name, image_url=image_url
         )
-        if not download_response.errors:
-            upload_response = controller.upload_image_to_s3(
-                project_name=project_name,
-                image_path=image_path,
-                image_bytes=download_response.data,
-                folder_name=folder_name,
-            )
-            if not upload_response.errors:
-                images_to_upload.append(upload_response.data)
-        else:
+        if download_response.errors:
             logger.warning(download_response.errors)
-        return image_url
+            return ProcessedImage(uploaded=False, path=image_path, entity=None)
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        upload_response = controller.upload_image_to_s3(
+            project_name=project_name,
+            image_path=image_path,
+            image_bytes=download_response.data,
+            folder_name=folder_name,
+        )
+        if upload_response.errors:
+            logger.warning(upload_response.errors)
+        else:
+            return ProcessedImage(
+                uploaded=True, path=image_url, entity=upload_response.data
+            )
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
         failed_images = []
-        for i, img_url in enumerate(img_urls):
-            if img_names[i] not in duplicate_images:
-                failed_images.append(
-                    executor.submit(_upload_image, img_url, img_names[i])
-                )
+
+        results = [
+            executor.submit(_upload_image, image_url, image_name)
+            for image_url, image_name in image_name_url_map.items()
+            if image_name not in duplicate_images
+        ]
+
+        for future in concurrent.futures.as_completed(results):
+            processed_image = future.result()
+            if processed_image.uploaded and processed_image.entity:
+                images_to_upload.append(processed_image)
+            else:
+                failed_images.append(processed_image)
 
     for i in range(0, len(images_to_upload), 500):
         controller.upload_images(
             project_name=project_name,
             folder_name=folder_name,
-            images=images_to_upload[i : i + 500],  # noqa: E203
+            images=[
+                image.entity for image in images_to_upload[i : i + 500]
+            ],  # noqa: E203
             annotation_status=annotation_status,
             image_quality=image_quality_in_editor,
         )
+    uploaded_image_urls = [image.path for image in images_to_upload]
+    uploaded_image_names = [image.entity.name for image in images_to_upload]
+    failed_image_urls = [image.path for image in failed_images] + duplicate_images
 
-    uploaded_image_names = set(image_name_url_map.keys()) - set(failed_images)
-    uploaded_image_urls = [image_name_url_map[name] for name in uploaded_image_names]
-
-    return uploaded_image_urls, uploaded_image_names, duplicate_images, failed_images
+    return (
+        uploaded_image_urls,
+        uploaded_image_names,
+        duplicate_images,
+        failed_image_urls,
+    )
 
 
 def copy_images(

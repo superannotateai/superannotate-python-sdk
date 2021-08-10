@@ -10,7 +10,7 @@ from PIL import Image
 from src.tests.integration.base import BaseTestCase
 
 
-class TestAnnotationClasses(BaseTestCase):
+class TestFolders(BaseTestCase):
     PROJECT_NAME = "test fuse"
     TEST_VECTOR_FOLDER_PATH = "data_set/sample_project_vector"
     TEST_PIXEL_FOLDER_PATH = "data_set/sample_project_pixel"
