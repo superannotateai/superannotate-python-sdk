@@ -89,6 +89,8 @@ from src.lib.app.interface.sdk_interface import (
 )
 from src.lib.app.interface.sdk_interface import upload_images_from_s3_bucket_to_project
 from src.lib.app.interface.sdk_interface import upload_videos_from_folder_to_project
+from src.lib.app.interface.sdk_interface import set_project_default_image_quality_in_editor
+
 
 # todo is it correct df_to_annotations ?
 # from src.lib.app.analytics.common import df_to_annotations
@@ -198,4 +200,5 @@ __all__ = [
     "create_annotation_classes_from_classes_json",
     "upload_annotations_from_folder_to_project",
     "download_annotation_classes_json",
+    "set_project_default_image_quality_in_editor"
 ]

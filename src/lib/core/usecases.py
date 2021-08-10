@@ -537,7 +537,15 @@ class UploadImageS3UseCas(BaseUseCase):
         origin_width, origin_height = image_processor.get_size()
         thumb_image, _, _ = image_processor.generate_thumb()
         huge_image, huge_width, huge_height = image_processor.generate_huge()
-        low_resolution_image, _, _ = image_processor.generate_low_resolution()
+        quality = 60
+        subsampling = -1
+        for setting in self._project_settings.get_all():
+            if setting.attribute == "ImageQuality":
+                quality = setting.value
+
+        if quality == 100:
+            subsampling = 0
+        low_resolution_image, _, _ = image_processor.generate_low_resolution(quality=quality,subsampling=subsampling)
 
         image_key = (
             self._upload_path + str(uuid.uuid4()) + Path(self._image_path).suffix
@@ -2818,7 +2826,7 @@ class DownloadImageUseCase(BaseUseCase):
         image_bytes = self._image_bytes_response.data
         download_path = self._download_path + self._image.name
         if self._image_variant == "lores":
-            download_path = download_path + "__lores.jpg"
+            download_path = download_path + "___lores.jpg"
         with open(download_path, "wb") as image_file:
             image_file.write(image_bytes.getbuffer())
 

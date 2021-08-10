@@ -836,6 +836,11 @@ def set_project_default_image_quality_in_editor(project, image_quality_in_editor
     :type image_quality_in_editor: str
     """
     project_name, folder_name = split_project_path(project)
+    if image_quality_in_editor == 'original':
+        image_quality_in_editor = 100
+    else:
+        image_quality_in_editor = 60
+
     updated = controller.set_project_settings(
         project_name=project_name,
         new_settings=[{"attribute": "ImageQuality", "value": image_quality_in_editor}],
