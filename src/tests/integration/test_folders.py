@@ -8,8 +8,8 @@ import src.lib.app.superannotate as sa
 from src.tests.integration.base import BaseTestCase
 
 
-class TestAnnotationClasses(BaseTestCase):
-    PROJECT_NAME = "test_assign_images"
+class TestFolders(BaseTestCase):
+    PROJECT_NAME = "test_folders"
     TEST_FOLDER_PATH = "data_set/sample_project_vector"
     PROJECT_DESCRIPTION = "desc"
     PROJECT_TYPE = "Vector"
@@ -27,11 +27,9 @@ class TestAnnotationClasses(BaseTestCase):
         return f"{self.folder_path}/classes/classes.json"
 
     def test_basic_folders(self):
-
         sa.upload_images_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
         )
-
         time.sleep(2)
         images = sa.search_images(self.PROJECT_NAME, self.EXAMPLE_IMAGE_1)
         self.assertEqual(len(images), 1)

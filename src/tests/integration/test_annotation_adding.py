@@ -9,7 +9,7 @@ import src.lib.app.superannotate as sa
 from src.tests.integration.base import BaseTestCase
 
 
-class TestAnnotationClasses(BaseTestCase):
+class TestAnnotationAdding(BaseTestCase):
     PROJECT_NAME = "test_annotations_adding"
     TEST_FOLDER_PATH = "data_set/sample_project_vector"
     PROJECT_DESCRIPTION = "desc"
@@ -124,7 +124,7 @@ class TestAnnotationClasses(BaseTestCase):
             self.PROJECT_NAME, self.classes_json_path
         )
         sa.create_annotation_class(self.PROJECT_NAME, "test_add", "#FF0000")
-
+        time.sleep(2)
         sa.add_annotation_bbox_to_image(
             self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, [10, 10, 500, 100], "test_add"
         )
