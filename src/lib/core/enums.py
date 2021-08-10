@@ -43,6 +43,11 @@ class UploadState(Enum):
     EXTERNAL = 3
 
 
+class ImageQuality(BaseTitledEnum):
+    ORIGINAl = "original", 60
+    COMPRESSED = "compressed", 100
+
+
 class ExportStatus(BaseTitledEnum):
     IN_PROGRESS = "inProgress", 1
     COMPLETE = "complete", 2
