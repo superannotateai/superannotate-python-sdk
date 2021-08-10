@@ -1519,6 +1519,14 @@ def prepare_export(
     folders = None
     if folder_name:
         folders = [folder_name]
+    if not annotation_statuses:
+        annotation_statuses = [
+            constances.AnnotationStatus.NOT_STARTED.name,
+            constances.AnnotationStatus.IN_PROGRESS.name,
+            constances.AnnotationStatus.QUALITY_CHECK.name,
+            constances.AnnotationStatus.RETURNED.name,
+            constances.AnnotationStatus.COMPLETED.name,
+        ]
     response = controller.prepare_export(
         project_name=project_name,
         folder_names=folders,

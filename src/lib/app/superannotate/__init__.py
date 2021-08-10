@@ -77,6 +77,7 @@ from src.lib.app.interface.sdk_interface import set_project_workflow
 from src.lib.app.interface.sdk_interface import share_project
 from src.lib.app.interface.sdk_interface import unassign_folder
 from src.lib.app.interface.sdk_interface import unassign_images
+from src.lib.app.interface.sdk_interface import get_exports
 from src.lib.app.interface.sdk_interface import unshare_project
 from src.lib.app.interface.sdk_interface import (
     upload_annotations_from_folder_to_project,
@@ -101,6 +102,7 @@ __all__ = [
     "attribute_distribution",
     "class_distribution",
     "aggregate_annotations_as_df",
+    "get_exports",
     # common
     "df_to_annotations",
     "image_path_to_annotation_paths",
