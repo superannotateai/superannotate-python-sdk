@@ -14,7 +14,6 @@ from urllib.parse import urlparse
 
 import boto3
 import lib.core as constances
-from src.lib.core.enums import ImageQuality
 import pandas as pd
 import plotly.graph_objects as go
 from lib.app.annotation_helpers import add_annotation_bbox_to_json
@@ -40,6 +39,7 @@ from lib.infrastructure.controller import Controller
 from lib.infrastructure.repositories import ConfigRepository
 from lib.infrastructure.services import SuperannotateBackendService
 from plotly.subplots import make_subplots
+from src.lib.core.enums import ImageQuality
 from tqdm import tqdm
 
 logger = logging.getLogger()

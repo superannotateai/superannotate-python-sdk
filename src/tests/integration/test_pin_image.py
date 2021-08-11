@@ -1,8 +1,10 @@
 import os
-from os.path import dirname
 import time
+from os.path import dirname
+
 import src.lib.app.superannotate as sa
 from src.tests.integration.base import BaseTestCase
+
 
 class TestPinImage(BaseTestCase):
     PROJECT_NAME = "pin_i"
