@@ -68,6 +68,7 @@ from src.lib.app.interface.sdk_interface import prepare_export
 from src.lib.app.interface.sdk_interface import rename_folder
 from src.lib.app.interface.sdk_interface import search_annotation_classes
 from src.lib.app.interface.sdk_interface import search_folders
+from src.lib.app.interface.sdk_interface import rename_project
 from src.lib.app.interface.sdk_interface import search_images
 from src.lib.app.interface.sdk_interface import search_images_all_folders
 from src.lib.app.interface.sdk_interface import search_projects
@@ -209,4 +210,5 @@ __all__ = [
     "upload_annotations_from_folder_to_project",
     "download_annotation_classes_json",
     "set_project_default_image_quality_in_editor",
+    "rename_project"
 ]
