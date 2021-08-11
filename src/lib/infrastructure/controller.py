@@ -230,9 +230,8 @@ class Controller(BaseController):
         folder = self._get_folder(project, folder_name)
         s3_repo = self.get_s3_repository(self.team_id, project.uuid, folder.uuid)
         auth_data = self.get_auth_data(project.uuid, self.team_id, folder.uuid)
-        response = self.response
         use_case = usecases.UploadImageS3UseCas(
-            response=response,
+            response=self.response,
             project=project,
             project_settings=ProjectSettingsRepository(self._backend_client, project),
             image_path=image_path,
@@ -241,7 +240,7 @@ class Controller(BaseController):
             upload_path=auth_data["filePath"],
         )
         use_case.execute()
-        return response
+        return self._response
 
     def clone_project(
         self,
@@ -512,12 +511,21 @@ class Controller(BaseController):
         return self._response
 
     def copy_image_annotation_classes(
-        self, from_project_name: str, to_project_name: str, image_name: str
+        self,
+        from_project_name: str,
+        from_folder_name: str,
+        to_project_name: str,
+        to_folder_name: str,
+        image_name: str,
     ):
         from_project = self._get_project(from_project_name)
-        image = self._get_image(from_project, image_name)
+        image = self._get_image(
+            from_project, folder_path=from_folder_name, image_name=image_name
+        )
         to_project = self._get_project(to_project_name)
-        uploaded_image = self._get_image(to_project, image_name)
+        uploaded_image = self._get_image(
+            to_project, folder_path=to_folder_name, image_name=image_name
+        )
 
         use_case = usecases.CopyImageAnnotationClasses(
             response=self.response,
@@ -1005,6 +1013,7 @@ class Controller(BaseController):
         target_fps: float = None,
         annotation_status: str = None,
         image_quality_in_editor: str = None,
+        limit: int = None,
     ):
         annotation_status_code = (
             constances.AnnotationStatus.get_value(annotation_status)
@@ -1025,6 +1034,7 @@ class Controller(BaseController):
             target_fps=target_fps,
             annotation_status_code=annotation_status_code,
             image_quality_in_editor=image_quality_in_editor,
+            limit=limit,
         )
         use_case.execute()
         return self._response

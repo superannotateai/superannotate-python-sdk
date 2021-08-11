@@ -520,10 +520,9 @@ class UploadImageS3UseCas(BaseUseCase):
 
     @property
     def max_resolution(self) -> int:
-        if self._project.project_type == ProjectType.VECTOR.value:
-            return constances.MAX_VECTOR_RESOLUTION
-        elif self._project.project_type == ProjectType.PIXEL.value:
+        if self._project.project_type == ProjectType.PIXEL.value:
             return constances.MAX_PIXEL_RESOLUTION
+        return constances.MAX_VECTOR_RESOLUTION
 
     def execute(self):
         image_name = Path(self._image_path).name
@@ -1003,7 +1002,7 @@ class CopyImageAnnotationClasses(BaseUseCase):
         if not response.ok:
             raise AppException(f"Couldn't load annotations {response.text}")
 
-        image_annotation_classes = response.json()
+        image_annotations = response.json()
         from_project_annotation_classes = (
             self._from_project_annotation_classes.get_all()
         )
@@ -1023,16 +1022,20 @@ class CopyImageAnnotationClasses(BaseUseCase):
             if from_annotation.name == to_annotation.name
         }
 
-        for annotation_class in image_annotation_classes["instances"]:
-            project_annotation = annotations_classes_from_copy[
-                annotation_class["classId"]
+        for instance in image_annotations["instances"]:
+            if instance["classId"] < 0 or not annotations_classes_from_copy.get(
+                instance["classId"]
+            ):
+                continue
+            project_annotation_class = annotations_classes_from_copy[
+                instance["classId"]
             ]
-            annotation_class["className"] = project_annotation.name
-            if annotation_class.get("attributes"):
-                for attribute in annotation_class["attributes"]:
+            instance["className"] = project_annotation_class.name
+            if instance.get("attributes"):
+                for attribute in instance["attributes"]:
                     attribute_group = None
                     if attribute.get("groupId"):
-                        for group in project_annotation.attribute_groups:
+                        for group in project_annotation_class.attribute_groups:
                             if group["id"] == attribute["groupId"]:
                                 attribute["groupName"] = group["name"]
                                 attribute_group = group
@@ -1041,19 +1044,22 @@ class CopyImageAnnotationClasses(BaseUseCase):
                                 if attr["id"] == attribute["id"]:
                                     attribute["name"] = attr["name"]
 
-        for instance in image_annotation_classes["instances"]:
+        for instance in image_annotations["instances"]:
             if (
                 "className" not in instance
                 and instance["className"] not in annotations_classes_to_copy
             ):
                 continue
-            annotation_class = annotations_classes_to_copy[instance["className"]]
+            annotation_class = annotations_classes_to_copy.get(instance["className"])
+            if not annotation_class:
+                instance["classId"] = -1
+                continue
             attribute_groups_map = {
                 group["name"]: group for group in annotation_class.attribute_groups
             }
             instance["classId"] = annotation_class.uuid
             for attribute in instance["attributes"]:
-                if attribute.get("groupName"):
+                if attribute_groups_map.get(attribute["groupName"]):
                     attribute["groupId"] = attribute_groups_map[attribute["groupName"]][
                         "id"
                     ]
@@ -1071,7 +1077,7 @@ class CopyImageAnnotationClasses(BaseUseCase):
         auth_data = self.upload_auth_data
         file = S3FileEntity(
             uuid=auth_data["annotation_json_path"]["filePath"],
-            data=json.dumps(image_annotation_classes),
+            data=json.dumps(image_annotations),
         )
         self.to_project_s3_repo.insert(file)
 
@@ -2361,6 +2367,7 @@ class ExtractFramesUseCase(BaseUseCase):
         target_fps: float = None,
         annotation_status_code: int = constances.AnnotationStatus.NOT_STARTED.value,
         image_quality_in_editor: str = None,
+        limit: int = None,
     ):
         super().__init__(response)
         self._backend_service = backend_service_provider
@@ -2373,6 +2380,7 @@ class ExtractFramesUseCase(BaseUseCase):
         self._target_fps = target_fps
         self._annotation_status_code = annotation_status_code
         self._image_quality_in_editor = image_quality_in_editor
+        self._limit = limit
 
     @property
     def upload_auth_data(self):
@@ -2384,7 +2392,9 @@ class ExtractFramesUseCase(BaseUseCase):
 
     @property
     def limit(self):
-        return self.upload_auth_data.get("availableImageCount")
+        if not self._limit:
+            return self.upload_auth_data.get("availableImageCount")
+        return self._limit
 
     def execute(self):
         extracted_paths = VideoPlugin.extract_frames(

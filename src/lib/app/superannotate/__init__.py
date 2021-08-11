@@ -62,13 +62,14 @@ from src.lib.app.interface.sdk_interface import get_project_settings
 from src.lib.app.interface.sdk_interface import get_project_workflow
 from src.lib.app.interface.sdk_interface import get_team_metadata
 from src.lib.app.interface.sdk_interface import invite_contributor_to_team
+from src.lib.app.interface.sdk_interface import move_image
 from src.lib.app.interface.sdk_interface import move_images
 from src.lib.app.interface.sdk_interface import pin_image
 from src.lib.app.interface.sdk_interface import prepare_export
 from src.lib.app.interface.sdk_interface import rename_folder
+from src.lib.app.interface.sdk_interface import rename_project
 from src.lib.app.interface.sdk_interface import search_annotation_classes
 from src.lib.app.interface.sdk_interface import search_folders
-from src.lib.app.interface.sdk_interface import rename_project
 from src.lib.app.interface.sdk_interface import search_images
 from src.lib.app.interface.sdk_interface import search_images_all_folders
 from src.lib.app.interface.sdk_interface import search_projects
@@ -171,6 +172,7 @@ __all__ = [
     # Image Section
     "copy_images",
     "move_images",
+    "move_image",
     "delete_images",
     "download_image",
     "create_fuse_image",
@@ -210,5 +212,5 @@ __all__ = [
     "upload_annotations_from_folder_to_project",
     "download_annotation_classes_json",
     "set_project_default_image_quality_in_editor",
-    "rename_project"
+    "rename_project",
 ]

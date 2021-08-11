@@ -24,7 +24,6 @@ from lib.app.annotation_helpers import add_annotation_point_to_json
 from lib.app.annotation_helpers import add_annotation_polygon_to_json
 from lib.app.annotation_helpers import add_annotation_polyline_to_json
 from lib.app.annotation_helpers import add_annotation_template_to_json
-from lib.app.exceptions import AppException
 from lib.app.exceptions import EmptyOutputError
 from lib.app.helpers import get_annotation_paths
 from lib.app.helpers import reformat_metrics_json
@@ -33,6 +32,7 @@ from lib.app.serializers import BaseSerializers
 from lib.app.serializers import ImageSerializer
 from lib.app.serializers import ProjectSerializer
 from lib.app.serializers import TeamSerializer
+from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
 from lib.core.response import Response
 from lib.infrastructure.controller import Controller
@@ -53,6 +53,10 @@ controller = Controller(
     ),
     response=Response(),
 )
+
+
+def init():
+    pass
 
 
 def get_team_metadata():
@@ -452,10 +456,9 @@ def copy_image(
     destination_project, destination_folder = split_project_path(destination_project)
 
     img_bytes = get_image_bytes(project=source_project, image_name=image_name)
-    image_path = destination_folder + image_name
 
     image_entity = controller.upload_image_to_s3(
-        project_name=destination_project, image_path=image_path, image_bytes=img_bytes
+        project_name=destination_project, image_path=image_name, image_bytes=img_bytes
     ).data
 
     del img_bytes
@@ -477,6 +480,8 @@ def copy_image(
     if include_annotations:
         controller.copy_image_annotation_classes(
             from_project_name=source_project_name,
+            from_folder_name=source_folder_name,
+            to_folder_name=destination_folder,
             to_project_name=destination_project,
             image_name=image_name,
         )
@@ -1661,10 +1666,11 @@ def upload_videos_from_folder_to_project(
             )
             if not res.errors:
                 extracted_frame_paths = res.data
-                with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-                    for image_path in extracted_frame_paths:
-                        failed_images.append(executor.submit(_upload_image, image_path))
-
+                # with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                #     for image_path in extracted_frame_paths:
+                #         failed_images.append(executor.submit(_upload_image, image_path))
+                for image_path in extracted_frame_paths:
+                    failed_images.append(_upload_image(image_path))
     for i in range(0, len(uploaded_image_entities), 500):
         controller.upload_images(
             project_name=project_name,
@@ -1894,6 +1900,11 @@ def move_image(
     :type copy_pin: bool
     """
 
+    if source_project == destination_project:
+        raise AppException(
+            "Cannot move image if source_project == destination_project."
+        )
+
     source_project_name, source_folder_name = split_project_path(source_project)
 
     destination_project, destination_folder = split_project_path(destination_project)
@@ -1924,6 +1935,8 @@ def move_image(
     if include_annotations:
         controller.copy_image_annotation_classes(
             from_project_name=source_project_name,
+            from_folder_name=source_folder_name,
+            to_folder_name=destination_folder,
             to_project_name=destination_project,
             image_name=image_name,
         )

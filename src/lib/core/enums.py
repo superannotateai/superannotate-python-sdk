@@ -27,6 +27,7 @@ class BaseTitledEnum(Enum):
 class ProjectType(Enum):
     VECTOR = 1
     PIXEL = 2
+    VIDEO = 3
 
 
 class UserRole(BaseTitledEnum):
