@@ -539,7 +539,9 @@ class UploadImageS3UseCas(BaseUseCase):
 
         if quality == 100:
             subsampling = 0
-        low_resolution_image, _, _ = image_processor.generate_low_resolution(quality=quality,subsampling=subsampling)
+        low_resolution_image, _, _ = image_processor.generate_low_resolution(
+            quality=quality, subsampling=subsampling
+        )
 
         image_key = (
             self._upload_path + str(uuid.uuid4()) + Path(self._image_path).suffix
