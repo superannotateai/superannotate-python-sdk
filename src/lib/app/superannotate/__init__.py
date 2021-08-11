@@ -51,6 +51,7 @@ from src.lib.app.interface.sdk_interface import download_annotation_classes_json
 from src.lib.app.interface.sdk_interface import download_export
 from src.lib.app.interface.sdk_interface import download_image
 from src.lib.app.interface.sdk_interface import download_image_annotations
+from src.lib.app.interface.sdk_interface import download_model
 from src.lib.app.interface.sdk_interface import get_exports
 from src.lib.app.interface.sdk_interface import get_folder_metadata
 from src.lib.app.interface.sdk_interface import get_image_annotations
@@ -66,11 +67,14 @@ from src.lib.app.interface.sdk_interface import move_images
 from src.lib.app.interface.sdk_interface import pin_image
 from src.lib.app.interface.sdk_interface import prepare_export
 from src.lib.app.interface.sdk_interface import rename_folder
+from src.lib.app.interface.sdk_interface import rename_project
+from src.lib.app.interface.sdk_interface import run_prediction
+from src.lib.app.interface.sdk_interface import run_segmentation
 from src.lib.app.interface.sdk_interface import search_annotation_classes
 from src.lib.app.interface.sdk_interface import search_folders
-from src.lib.app.interface.sdk_interface import rename_project
 from src.lib.app.interface.sdk_interface import search_images
 from src.lib.app.interface.sdk_interface import search_images_all_folders
+from src.lib.app.interface.sdk_interface import search_models
 from src.lib.app.interface.sdk_interface import search_projects
 from src.lib.app.interface.sdk_interface import search_team_contributors
 from src.lib.app.interface.sdk_interface import set_images_annotation_statuses
@@ -210,5 +214,9 @@ __all__ = [
     "upload_annotations_from_folder_to_project",
     "download_annotation_classes_json",
     "set_project_default_image_quality_in_editor",
-    "rename_project"
+    "rename_project",
+    "run_prediction",
+    "run_segmentation",
+    "search_models",
+    "download_model",
 ]

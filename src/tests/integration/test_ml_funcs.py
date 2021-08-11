@@ -1,12 +1,11 @@
+import os
+import tempfile
 import time
+from os.path import dirname
+
+import pytest
 import src.lib.app.superannotate as sa
 from src.tests.integration.base import BaseTestCase
-import os
-from os.path import dirname
-import pytest
-import tempfile
-from pathlib import Path
-
 
 
 class TestMlFuncs(BaseTestCase):
@@ -16,7 +15,7 @@ class TestMlFuncs(BaseTestCase):
     NEW_PROJECT_NAME = "new"
     TEST_FOLDER_PTH = "data_set"
     TEST_FOLDER_PATH = "data_set/sample_project_vector"
-    MODEL_NAME = 'Instance segmentation (trained on COCO)'
+    MODEL_NAME = "Instance segmentation (trained on COCO)"
 
     @property
     def folder_path(self):
@@ -24,11 +23,13 @@ class TestMlFuncs(BaseTestCase):
 
     def test_run_prediction_with_non_exist_images(self):
         with pytest.raises(Exception) as e:
-            sa.run_prediction(self.PROJECT_NAME, ["NonExistantImage.jpg"], self.MODEL_NAME)
+            sa.run_prediction(
+                self.PROJECT_NAME, ["NonExistantImage.jpg"], self.MODEL_NAME
+            )
 
     def test_run_prediction_for_all_images(self):
         sa.upload_images_from_folder_to_project(
-            project=self.PROJECT_NAME,folder_path=self.folder_path
+            project=self.PROJECT_NAME, folder_path=self.folder_path
         )
         time.sleep(2)
         image_names_vector = sa.search_images(self.PROJECT_NAME)
@@ -41,10 +42,9 @@ class TestMlFuncs(BaseTestCase):
         tmpdir = tempfile.TemporaryDirectory()
         ml_model = sa.search_models(include_global=True)[0]
         model = sa.download_model(ml_model, tmpdir.name)
-        assert model['name']
-        model = sa.download_model(ml_model['name'], tmpdir.name)
-        assert model['name']
-
+        assert model["name"]
+        model = sa.download_model(ml_model["name"], tmpdir.name)
+        assert model["name"]
 
 
 class TestSegmentation(BaseTestCase):
@@ -55,8 +55,6 @@ class TestSegmentation(BaseTestCase):
     TEST_FOLDER_PATH = "data_set/sample_project_vector"
     SEGMENTATION_MODEL_AUTONOMOUS = "autonomous"
     SEGMENTATION_MODEL_GENERIC = "generic"
-
-
 
     @property
     def folder_path(self):
@@ -69,12 +67,9 @@ class TestSegmentation(BaseTestCase):
         time.sleep(2)
         image_names_pixel = sa.search_images(self.PROJECT_NAME)
         succeeded_images, failed_images = sa.run_segmentation(
-                self.PROJECT_NAME, image_names_pixel,
-                self.SEGMENTATION_MODEL_AUTONOMOUS
-            )
+            self.PROJECT_NAME, image_names_pixel, self.SEGMENTATION_MODEL_AUTONOMOUS
+        )
         assert (len(succeeded_images) + len(failed_images)) == 4
-
-
 
 
 # from pathlib import Path

@@ -436,4 +436,7 @@ class MLModelRepository(BaseManageableRepository):
             model_type=data["type"],
             task=data["task"],
             image_count=data["image_count"],
+            path=data["path"],
+            config_path=data["config_path"],
+            is_global=data["is_global"],
         )

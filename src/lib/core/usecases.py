@@ -1,6 +1,7 @@
 import copy
 import io
 import json
+import logging
 import os.path
 import time
 import uuid
@@ -50,6 +51,8 @@ from src.lib.core.repositories import BaseManageableRepository
 from src.lib.core.repositories import BaseReadOnlyRepository
 from src.lib.core.response import Response
 from src.lib.core.serviceproviders import SuerannotateServiceProvider
+
+logger = logging.getLogger()
 
 
 class BaseUseCase(ABC):
@@ -3505,11 +3508,13 @@ class DownloadMLModelUseCase(BaseUseCase):
         model: MLModelEntity,
         download_path: str,
         backend_service_provider: SuerannotateServiceProvider,
+        team_id: int,
     ):
         super().__init__(response)
         self._model = model
         self._download_path = download_path
         self._backend_service = backend_service_provider
+        self._team_id = team_id
 
     def execute(self):
         metrics_name = os.path.basename(self._model.path).replace(".pth", ".json")
@@ -3521,7 +3526,7 @@ class DownloadMLModelUseCase(BaseUseCase):
         )
 
         download_token = self._backend_service.get_ml_model_download_tokens(
-            self._model.team_id, self._model.uuid
+            self._team_id, self._model.uuid
         )
         s3_session = boto3.Session(
             aws_access_key_id=download_token["tokens"]["accessKeyId"],
@@ -3768,12 +3773,42 @@ class RunSegmentationUseCase(BaseUseCase):
         )
 
         image_ids = [image["id"] for image in images]
+        image_names = [image["name"] for image in images]
+
         self._service.run_segmentation(
             self._project.team_id,
             self._project.uuid,
             model_name=self._ml_model_name,
             image_ids=image_ids,
         )
+        succeded_imgs = []
+        failed_imgs = []
+        while len(succeded_imgs) + len(failed_imgs) != len(image_ids):
+            images_metadata = self._service.get_bulk_images(
+                project_id=self._project.uuid,
+                team_id=self._project.team_id,
+                folder_id=self._folder.uuid,
+                images=image_names,
+            )
+
+            succeded_imgs = [
+                img["name"]
+                for img in images_metadata
+                if img["segmentation_status"] == 2
+            ]
+            failed_imgs = [
+                img["name"]
+                for img in images_metadata
+                if img["segmentation_status"] == 4
+            ]
+
+            complete_images = succeded_imgs + failed_imgs
+            logger.info(
+                f"prediction complete on {len(complete_images)} / {len(image_ids)} images"
+            )
+            time.sleep(5)
+
+        self._response.data = (succeded_imgs, failed_imgs)
 
 
 class RunPredictionUseCase(BaseUseCase):
@@ -3804,6 +3839,11 @@ class RunPredictionUseCase(BaseUseCase):
         )
 
         image_ids = [image["id"] for image in images]
+        image_names = [image["name"] for image in images]
+
+        if not image_ids:
+            self._response.errors = AppException("No valid image names were provided.")
+            return
 
         ml_models = self._ml_model_repo.get_all(
             condition=Condition("name", self._ml_model_name, EQ)
@@ -3821,6 +3861,31 @@ class RunPredictionUseCase(BaseUseCase):
             ml_model_id=ml_model.uuid,
             image_ids=image_ids,
         )
+
+        succeded_imgs = []
+        failed_imgs = []
+        while len(succeded_imgs) + len(failed_imgs) != len(image_ids):
+            images_metadata = self._service.get_bulk_images(
+                project_id=self._project.uuid,
+                team_id=self._project.team_id,
+                folder_id=self._folder.uuid,
+                images=image_names,
+            )
+
+            succeded_imgs = [
+                img["name"] for img in images_metadata if img["prediction_status"] == 2
+            ]
+            failed_imgs = [
+                img["name"] for img in images_metadata if img["prediction_status"] == 4
+            ]
+
+            complete_images = succeded_imgs + failed_imgs
+            logger.info(
+                f"prediction complete on {len(complete_images)} / {len(image_ids)} images"
+            )
+            time.sleep(5)
+
+        self._response.data = (succeded_imgs, failed_imgs)
 
 
 class GetAllImagesUseCase(BaseUseCase):
@@ -3855,3 +3920,20 @@ class GetAllImagesUseCase(BaseUseCase):
         self._response.data = self._service_provider.list_images(
             query_string=condition.build_query()
         )
+
+
+class SearchMLModels(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        ml_models_repo: BaseManageableRepository,
+        condition: Condition,
+    ):
+        super().__init__(response)
+        self._ml_models = ml_models_repo
+        self._condition = condition
+
+    def execute(self):
+        ml_models = self._ml_models.get_all(condition=self._condition)
+        ml_models = [ml_model.to_dict() for ml_model in ml_models]
+        self._response.data = ml_models

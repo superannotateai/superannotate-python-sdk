@@ -1,8 +1,6 @@
-import os
-from os.path import dirname
-import time
 import src.lib.app.superannotate as sa
 from src.tests.integration.base import BaseTestCase
+
 
 class TestProjectSettings(BaseTestCase):
     PROJECT_NAME = "settings"
@@ -16,9 +14,6 @@ class TestProjectSettings(BaseTestCase):
                 brightness_value = setting["value"]
         new_settings = sa.set_project_settings(
             self.PROJECT_NAME,
-            [{
-                "attribute": "Brightness",
-                "value": brightness_value + 10
-            }]
+            [{"attribute": "Brightness", "value": brightness_value + 10}],
         )
         assert new_settings[0]["value"] == brightness_value + 10
