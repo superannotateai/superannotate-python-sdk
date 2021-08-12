@@ -1,12 +1,10 @@
+import io
 import os
 import time
 from os.path import dirname
-import tempfile
+
 import src.lib.app.superannotate as sa
 from src.tests.integration.base import BaseTestCase
-import json
-import filecmp
-import io
 
 
 class TestSingleImageUpload(BaseTestCase):
@@ -22,14 +20,15 @@ class TestSingleImageUpload(BaseTestCase):
 
     @property
     def classes_path(self):
-        return os.path.join(dirname(dirname(__file__)), self.TEST_FOLDER_PATH, "classes/classes.json")
-
+        return os.path.join(
+            dirname(dirname(__file__)), self.TEST_FOLDER_PATH, "classes/classes.json"
+        )
 
     def test_single_image_upload(self):
         sa.upload_image_to_project(
-                    self.PROJECT_NAME,
-                    self.folder_path + "/example_image_1.jpg",
-                    annotation_status="InProgress"
+            self.PROJECT_NAME,
+            self.folder_path + "/example_image_1.jpg",
+            annotation_status="InProgress",
         )
         time.sleep(2)
         assert len(sa.search_images(self.PROJECT_NAME)) == 1

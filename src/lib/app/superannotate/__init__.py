@@ -71,7 +71,6 @@ from src.lib.app.interface.sdk_interface import rename_project
 from src.lib.app.interface.sdk_interface import run_prediction
 from src.lib.app.interface.sdk_interface import run_segmentation
 from src.lib.app.interface.sdk_interface import run_training
-from src.lib.app.interface.sdk_interface import rename_project
 from src.lib.app.interface.sdk_interface import search_annotation_classes
 from src.lib.app.interface.sdk_interface import search_folders
 from src.lib.app.interface.sdk_interface import search_images
