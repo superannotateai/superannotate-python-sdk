@@ -2081,6 +2081,7 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
             raise AppException(f"Couldn't load annotations {response.text}")
         data["annotation_json"] = response.json()
         data["annotation_json_filename"] = f"{self._image_name}{file_postfix}"
+        mask_path = None
         if self._project.project_type == constances.ProjectType.PIXEL.value:
             annotation_blue_map_creds = credentials["annotation_bluemap_path"]
             response = requests.get(

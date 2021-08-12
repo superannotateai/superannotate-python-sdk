@@ -215,7 +215,6 @@ __all__ = [
     "upload_annotations_from_folder_to_project",
     "download_annotation_classes_json",
     "set_project_default_image_quality_in_editor",
-    "rename_project",
     "run_prediction",
     "run_segmentation",
     "search_models",
