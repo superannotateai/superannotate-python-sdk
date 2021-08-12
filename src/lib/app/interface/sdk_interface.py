@@ -2317,7 +2317,7 @@ def run_training(
     if isinstance(base_model, dict):
         base_model = base_model["name"]
 
-    model = controller.create_model(
+    response = controller.create_model(
         model_name=model_name,
         model_description=model_description,
         task=task,
@@ -2326,6 +2326,7 @@ def run_training(
         test_data_paths=test_data,
         hyper_parameters=hyperparameters,
     )
+    model = response.data
     if log:
         logger.info(
             "We are firing up servers to run model training."
@@ -2381,7 +2382,7 @@ def run_training(
                             logger.info("The model was not saved")
                     training_finished = True
             time.sleep(5)
-    return BaseSerializers(model).serialize()
+    return response.data.to_dict()
 
 
 def delete_model(model):

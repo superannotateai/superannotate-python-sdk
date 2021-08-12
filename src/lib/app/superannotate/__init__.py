@@ -70,6 +70,8 @@ from src.lib.app.interface.sdk_interface import rename_folder
 from src.lib.app.interface.sdk_interface import rename_project
 from src.lib.app.interface.sdk_interface import run_prediction
 from src.lib.app.interface.sdk_interface import run_segmentation
+from src.lib.app.interface.sdk_interface import rename_project
+from src.lib.app.interface.sdk_interface import run_training
 from src.lib.app.interface.sdk_interface import search_annotation_classes
 from src.lib.app.interface.sdk_interface import search_folders
 from src.lib.app.interface.sdk_interface import search_images
@@ -219,4 +221,6 @@ __all__ = [
     "run_segmentation",
     "search_models",
     "download_model",
+    "rename_project",
+    "run_training",
 ]

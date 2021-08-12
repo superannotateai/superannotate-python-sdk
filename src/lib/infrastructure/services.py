@@ -827,7 +827,7 @@ class SuperannotateBackendService(BaseBackendService):
         res = self._request(
             start_training_url,
             "post",
-            params={"team_id", team_id},
+            params={"team_id": team_id},
             data=hyper_parameters,
         )
         return res.json()

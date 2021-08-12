@@ -3286,11 +3286,26 @@ class CreateModelUseCase(BaseUseCase):
 
             projects.extend(projects)
             folders = self._folders.get_all(
-                Condition("folder_name", folder_name, EQ)
+                Condition("name", folder_name, EQ)
                 & Condition("team_id", self._team_id, EQ)
                 & Condition("project_id", projects[0].uuid, EQ)
             )
             train_folder_ids.append(folders[0].uuid)
+
+        for path in self._test_data_paths:
+            project_name, folder_name = self.split_path(path)
+            projects.extend(
+                self._projects.get_all(
+                    Condition("name", project_name, EQ)
+                    & Condition("team_id", self._team_id, EQ)
+                )
+            )
+            folders = self._folders.get_all(
+                Condition("name", folder_name, EQ)
+                & Condition("team_id", self._team_id, EQ)
+                & Condition("project_id", projects[0].uuid, EQ)
+            )
+            test_folder_ids.append(folders[0].uuid)
 
         project_types = [project.project_type for project in projects]
 
@@ -3316,29 +3331,15 @@ class CreateModelUseCase(BaseUseCase):
             )
             return
 
-        for path in self._test_data_paths:
-            project_name, folder_name = self.split_path(path)
-            projects.extend(
-                self._projects.get_all(
-                    Condition("name", project_name, EQ)
-                    & Condition("team_id", self._team_id, EQ)
-                )
-            )
-            folders = self._folders.get_all(
-                Condition("folder_name", folder_name, EQ)
-                & Condition("team_id", self._team_id, EQ)
-                & Condition("project_id", projects[0].uuid, EQ)
-            )
-            test_folder_ids.append(folders[0].uuid)
-
         base_model = self._ml_models.get_all(
             Condition("name", self._base_model_name, EQ)
             & Condition("team_id", self._team_id, EQ)
             & Condition("task", constances.MODEL_TRAINING_TASKS[self._task], EQ)
-            & Condition("model_type", project_types[0], EQ)
+            & Condition("type", project_types[0], EQ)
+            & Condition("include_global", True, EQ)
         )[0]
 
-        if base_model.project_type != project_types[0]:
+        if base_model.model_type != project_types[0]:
             self._response.errors = AppException(
                 f"The type of provided projects is {project_types[0]}, "
                 "and does not correspond to the type of provided model"
@@ -3361,9 +3362,10 @@ class CreateModelUseCase(BaseUseCase):
             task=constances.MODEL_TRAINING_TASKS[self._task],
             base_model_id=base_model.uuid,
             image_count=complete_image_count,
-            # project_type=project_types[0],
+            model_type=project_types[0],
             train_folder_ids=train_folder_ids,
             test_folder_ids=test_folder_ids,
+            hyper_parameters=self.hyper_parameters,
         )
         new_model_data = self._ml_models.insert(ml_model)
 
