@@ -68,7 +68,6 @@ from src.lib.app.interface.sdk_interface import pin_image
 from src.lib.app.interface.sdk_interface import prepare_export
 from src.lib.app.interface.sdk_interface import rename_folder
 from src.lib.app.interface.sdk_interface import rename_project
-from src.lib.app.interface.sdk_interface import rename_project
 from src.lib.app.interface.sdk_interface import run_prediction
 from src.lib.app.interface.sdk_interface import run_segmentation
 from src.lib.app.interface.sdk_interface import run_training
@@ -222,5 +221,4 @@ __all__ = [
     "download_model",
     "rename_project",
     "run_training",
-    "rename_project",
 ]

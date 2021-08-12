@@ -1,11 +1,11 @@
+import filecmp
+import json
 import os
-import time
-from os.path import dirname
 import tempfile
+from os.path import dirname
+
 import src.lib.app.superannotate as sa
 from src.tests.integration.base import BaseTestCase
-import json
-import filecmp
 
 
 class TestSingleAnnotationDownloadUpload(BaseTestCase):
@@ -21,8 +21,9 @@ class TestSingleAnnotationDownloadUpload(BaseTestCase):
 
     @property
     def classes_path(self):
-        return os.path.join(dirname(dirname(__file__)), self.TEST_FOLDER_PATH, "classes/classes.json")
-
+        return os.path.join(
+            dirname(dirname(__file__)), self.TEST_FOLDER_PATH, "classes/classes.json"
+        )
 
     def test_annotation_download_upload_vector(self):
         sa.upload_images_from_folder_to_project(
@@ -31,14 +32,18 @@ class TestSingleAnnotationDownloadUpload(BaseTestCase):
         sa.create_annotation_classes_from_classes_json(
             self.PROJECT_NAME, self.classes_path
         )
-        sa.upload_annotations_from_folder_to_project(self.PROJECT_NAME, self.folder_path)
+        sa.upload_annotations_from_folder_to_project(
+            self.PROJECT_NAME, self.folder_path
+        )
         image = sa.search_images(self.PROJECT_NAME)[0]
 
         tempdir = tempfile.TemporaryDirectory()
         paths = sa.download_image_annotations(self.PROJECT_NAME, image, tempdir.name)
         downloaded_json = json.load(open(paths[0]))
 
-        uploaded_json = json.load(open(self.folder_path + "/example_image_1.jpg___objects.json"))
+        uploaded_json = json.load(
+            open(self.folder_path + "/example_image_1.jpg___objects.json")
+        )
         for i in downloaded_json["instances"]:
             i.pop("classId", None)
             for j in i["attributes"]:
@@ -65,8 +70,9 @@ class TestSingleAnnotationDownloadUploadPixel(BaseTestCase):
 
     @property
     def classes_path(self):
-        return os.path.join(dirname(dirname(__file__)), self.TEST_FOLDER_PATH, "classes/classes.json")
-
+        return os.path.join(
+            dirname(dirname(__file__)), self.TEST_FOLDER_PATH, "classes/classes.json"
+        )
 
     def test_annotation_download_upload_pixel(self):
         sa.upload_images_from_folder_to_project(
@@ -75,13 +81,17 @@ class TestSingleAnnotationDownloadUploadPixel(BaseTestCase):
         sa.create_annotation_classes_from_classes_json(
             self.PROJECT_NAME, self.classes_path
         )
-        sa.upload_annotations_from_folder_to_project(self.PROJECT_NAME, self.folder_path)
+        sa.upload_annotations_from_folder_to_project(
+            self.PROJECT_NAME, self.folder_path
+        )
         image = sa.search_images(self.PROJECT_NAME)[0]
 
         tempdir = tempfile.TemporaryDirectory()
         paths = sa.download_image_annotations(self.PROJECT_NAME, image, tempdir.name)
         downloaded_json = json.load(open(paths[0]))
-        uploaded_json = json.load(open(self.folder_path + "/example_image_1.jpg___pixel.json"))
+        uploaded_json = json.load(
+            open(self.folder_path + "/example_image_1.jpg___pixel.json")
+        )
         for i in downloaded_json["instances"]:
             i.pop("classId", None)
             for j in i["attributes"]:
