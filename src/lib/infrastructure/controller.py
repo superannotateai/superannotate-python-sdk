@@ -1311,6 +1311,7 @@ class Controller(BaseController):
             model=model,
             download_path=download_path,
             backend_service_provider=self._backend_client,
+            team_id=self.team_id,
         )
         use_case.execute()
         return self._response
@@ -1396,7 +1397,7 @@ class Controller(BaseController):
             folder=folder,
         )
         use_case.execute()
-        return self.response
+        return self._response
 
     def run_prediction(
         self, project_name: str, images_list: list, model_name: str, folder_name: str
@@ -1416,7 +1417,7 @@ class Controller(BaseController):
             folder=folder,
         )
         use_case.execute()
-        return self.response
+        return self._response
 
     def list_images(
         self, project_name: str, annotation_status: str = None, name_prefix: str = None,
@@ -1429,6 +1430,35 @@ class Controller(BaseController):
             service_provider=self._backend_client,
             annotation_status=annotation_status,
             name_prefix=name_prefix,
+        )
+        use_case.execute()
+        return self._response
+
+    def search_models(
+        self,
+        name: str,
+        model_type: str = None,
+        project_id: int = None,
+        task: str = None,
+        include_global: bool = True,
+    ):
+        ml_models_repo = MLModelRepository(
+            service=self._backend_client, team_id=self.team_id
+        )
+        condition = Condition("team_id", self.team_id, EQ)
+        if name:
+            condition &= Condition("name", name, EQ)
+        if model_type:
+            condition &= Condition("type", model_type, EQ)
+        if project_id:
+            condition &= Condition("project_id", project_id, EQ)
+        if task:
+            condition &= Condition("task", task, EQ)
+        if include_global:
+            condition &= Condition("include_global", include_global, EQ)
+
+        use_case = usecases.SearchMLModels(
+            response=self.response, ml_models_repo=ml_models_repo, condition=condition
         )
         use_case.execute()
         return self._response
