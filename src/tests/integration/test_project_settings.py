@@ -9,6 +9,7 @@ class TestProjectSettings(BaseTestCase):
 
     def test_project_settings(self):
         old_settings = sa.get_project_settings(self.PROJECT_NAME)
+        brightness_value = 0
         for setting in old_settings:
             if "attribute" in setting and setting["attribute"] == "Brightness":
                 brightness_value = setting["value"]

@@ -63,6 +63,7 @@ from src.lib.app.interface.sdk_interface import get_project_settings
 from src.lib.app.interface.sdk_interface import get_project_workflow
 from src.lib.app.interface.sdk_interface import get_team_metadata
 from src.lib.app.interface.sdk_interface import invite_contributor_to_team
+from src.lib.app.interface.sdk_interface import move_image
 from src.lib.app.interface.sdk_interface import move_images
 from src.lib.app.interface.sdk_interface import pin_image
 from src.lib.app.interface.sdk_interface import prepare_export
@@ -176,6 +177,7 @@ __all__ = [
     # Image Section
     "copy_images",
     "move_images",
+    "move_image",
     "delete_images",
     "download_image",
     "create_fuse_image",
