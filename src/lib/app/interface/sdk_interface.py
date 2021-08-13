@@ -2016,9 +2016,12 @@ def download_export(
     :type tofrom_s3_bucket: str
     """
     project_name, folder_name = split_project_path(project)
+
+    if isinstance(export, dict):
+        export_name = export['name']
     controller.download_export(
         project_name=project_name,
-        export_name=export,
+        export_name=export_name,
         folder_path=folder_path,
         extract_zip_contents=extract_zip_contents,
         to_s3_bucket=to_s3_bucket,
