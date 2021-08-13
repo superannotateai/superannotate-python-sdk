@@ -94,6 +94,7 @@ from src.lib.app.interface.sdk_interface import (
 )
 from src.lib.app.interface.sdk_interface import upload_image_annotations
 from src.lib.app.interface.sdk_interface import upload_image_to_project
+from src.lib.app.interface.sdk_interface import upload_images_from_azure_blob_to_project
 from src.lib.app.interface.sdk_interface import upload_images_from_folder_to_project
 from src.lib.app.interface.sdk_interface import (
     upload_images_from_google_cloud_to_project,
@@ -192,6 +193,7 @@ __all__ = [
     "upload_image_annotations",
     "upload_images_from_public_urls_to_project",
     "upload_images_from_google_cloud_to_project",
+    "upload_images_from_azure_blob_to_project",
     "upload_images_from_s3_bucket_to_project",
     "upload_images_from_folder_to_project",
     "attach_image_urls_to_project",

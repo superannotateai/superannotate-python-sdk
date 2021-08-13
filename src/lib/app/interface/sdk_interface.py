@@ -573,7 +573,7 @@ def upload_images_from_public_urls_to_project(
                 uploaded=True, path=image_url, entity=upload_response.data
             )
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
         failed_images = []
 
         results = [
@@ -594,8 +594,8 @@ def upload_images_from_public_urls_to_project(
             project_name=project_name,
             folder_name=folder_name,
             images=[
-                image.entity for image in images_to_upload[i : i + 500]
-            ],  # noqa: E203
+                image.entity for image in images_to_upload[i : i + 500]  # noqa: E203
+            ],
             annotation_status=annotation_status,
             image_quality=image_quality_in_editor,
         )
@@ -1092,10 +1092,13 @@ def upload_images_from_google_cloud_to_project(
     :return: uploaded images' urls, uploaded images' filenames, duplicate images' filenames and not-uploaded images' urls
     :rtype: tuple of list of strs
     """
-    uploaded_image_entities = []
-    project_name, folder_name = split_project_path(project)
 
-    def _upload_image(image_path: str) -> str:
+    failed_images = []
+    duplicated_images = []
+    project_name, folder_name = split_project_path(project)
+    ProcessedImage = namedtuple("ProcessedImage", ["uploaded", "path", "entity"])
+
+    def _upload_image(image_path: str) -> ProcessedImage:
         with open(image_path, "rb") as image:
             image_bytes = BytesIO(image.read())
             upload_response = controller.upload_image_to_s3(
@@ -1104,10 +1107,13 @@ def upload_images_from_google_cloud_to_project(
                 image_bytes=image_bytes,
                 folder_name=folder_name,
             )
-            if not upload_response.errors:
-                uploaded_image_entities.append(upload_response.data)
-            else:
-                return image_path
+            if upload_response.errors:
+                return ProcessedImage(
+                    uploaded=False, path=image_path, entity=upload_response.data
+                )
+            return ProcessedImage(
+                uploaded=True, path=image_path, entity=upload_response.data
+            )
 
     with tempfile.TemporaryDirectory() as save_dir_name:
         response = controller.download_images_from_google_clout(
@@ -1120,24 +1126,40 @@ def upload_images_from_google_cloud_to_project(
             for error in response.errors:
                 logger.warning(error)
         images_to_upload = response.data.get("downloaded_images")
-        duplicated_images = response.data.get("duplicated_images")
+        duplicated_images.extend(response.data.get("duplicated_images", []))
         with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-            failed_images = []
-            for image_path in enumerate(images_to_upload):
-                failed_images.append(executor.submit(_upload_image, image_path))
+            results = [
+                executor.submit(_upload_image, image_path)
+                for image_path in images_to_upload
+            ]
+            for future in concurrent.futures.as_completed(results):
+                processed_image = future.result()
+                if processed_image.uploaded and processed_image.entity:
+                    images_to_upload.append(processed_image)
+                else:
+                    failed_images.append(processed_image)
 
-    for i in range(0, len(images_to_upload), 500):
-        controller.upload_images(
-            project_name=project_name,
-            folder_name=folder_name,
-            images=images_to_upload[i : i + 500],
-            annotation_status=annotation_status,
-            image_quality=image_quality_in_editor,
+        for i in range(0, len(images_to_upload), 500):
+            controller.upload_images(
+                project_name=project_name,
+                folder_name=folder_name,
+                images=[
+                    image.entity
+                    for image in images_to_upload[i : i + 500]  # noqa: E203
+                ],
+                annotation_status=annotation_status,
+                image_quality=image_quality_in_editor,
+            )
+        uploaded_image_urls = [image.path for image in images_to_upload]
+        uploaded_image_names = [image.entity.name for image in images_to_upload]
+        failed_image_urls = [image.path for image in failed_images] + duplicated_images
+
+        return (
+            uploaded_image_urls,
+            uploaded_image_names,
+            duplicated_images,
+            failed_image_urls,
         )
-
-    uploaded_image_names = [image.name for image in uploaded_image_entities]
-    # todo return uploaded images' urls
-    return uploaded_image_names, duplicated_images, failed_images
 
 
 def upload_images_from_azure_blob_to_project(
@@ -1165,10 +1187,13 @@ def upload_images_from_azure_blob_to_project(
     :return: uploaded images' urls, uploaded images' filenames, duplicate images' filenames and not-uploaded images' urls
     :rtype: tuple of list of strs
     """
-    uploaded_image_entities = []
-    project_name, folder_name = split_project_path(project)
 
-    def _upload_image(image_path: str) -> str:
+    failed_images = []
+    duplicated_images = []
+    project_name, folder_name = split_project_path(project)
+    ProcessedImage = namedtuple("ProcessedImage", ["uploaded", "path", "entity"])
+
+    def _upload_image(image_path: str) -> ProcessedImage:
         with open(image_path, "rb") as image:
             image_bytes = BytesIO(image.read())
             upload_response = controller.upload_image_to_s3(
@@ -1177,10 +1202,13 @@ def upload_images_from_azure_blob_to_project(
                 image_bytes=image_bytes,
                 folder_name=folder_name,
             )
-            if not upload_response.errors:
-                uploaded_image_entities.append(upload_response.data)
-            else:
-                return image_path
+            if upload_response.errors:
+                return ProcessedImage(
+                    uploaded=False, path=image_path, entity=upload_response.data
+                )
+            return ProcessedImage(
+                uploaded=True, path=image_path, entity=upload_response.data
+            )
 
     with tempfile.TemporaryDirectory() as save_dir_name:
         response = controller.download_images_from_azure_cloud(
@@ -1192,24 +1220,40 @@ def upload_images_from_azure_blob_to_project(
             for error in response.errors:
                 logger.warning(error)
         images_to_upload = response.data.get("downloaded_images")
-        duplicated_images = response.data.get("duplicated_images")
+        duplicated_images.extend(response.data.get("duplicated_images", []))
         with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-            failed_images = []
-            for image_path in enumerate(images_to_upload):
-                failed_images.append(executor.submit(_upload_image, image_path))
+            results = [
+                executor.submit(_upload_image, image_path)
+                for image_path in images_to_upload
+            ]
+            for future in concurrent.futures.as_completed(results):
+                processed_image = future.result()
+                if processed_image.uploaded and processed_image.entity:
+                    images_to_upload.append(processed_image)
+                else:
+                    failed_images.append(processed_image)
 
-    for i in range(0, len(images_to_upload), 500):
-        controller.upload_images(
-            project_name=project_name,
-            folder_name=folder_name,
-            images=images_to_upload[i : i + 500],
-            annotation_status=annotation_status,
-            image_quality=image_quality_in_editor,
+        for i in range(0, len(images_to_upload), 500):
+            controller.upload_images(
+                project_name=project_name,
+                folder_name=folder_name,
+                images=[
+                    image.entity
+                    for image in images_to_upload[i : i + 500]  # noqa: E203
+                ],
+                annotation_status=annotation_status,
+                image_quality=image_quality_in_editor,
+            )
+        uploaded_image_urls = [image.path for image in images_to_upload]
+        uploaded_image_names = [image.entity.name for image in images_to_upload]
+        failed_image_urls = [image.path for image in failed_images] + duplicated_images
+
+        return (
+            uploaded_image_urls,
+            uploaded_image_names,
+            duplicated_images,
+            failed_image_urls,
         )
-
-    uploaded_image_names = [image.name for image in uploaded_image_entities]
-    # todo return uploaded images' urls
-    return uploaded_image_names, duplicated_images, failed_images
 
 
 def get_image_annotations(project, image_name):
