@@ -2330,7 +2330,7 @@ def run_training(
     if isinstance(base_model, dict):
         base_model = base_model["name"]
 
-    model = controller.create_model(
+    response = controller.create_model(
         model_name=model_name,
         model_description=model_description,
         task=task,
@@ -2339,6 +2339,7 @@ def run_training(
         test_data_paths=test_data,
         hyper_parameters=hyperparameters,
     )
+    model = response.data
     if log:
         logger.info(
             "We are firing up servers to run model training."
@@ -2394,7 +2395,7 @@ def run_training(
                             logger.info("The model was not saved")
                     training_finished = True
             time.sleep(5)
-    return BaseSerializers(model).serialize()
+    return response.data.to_dict()
 
 
 def delete_model(model):
@@ -2592,6 +2593,8 @@ def run_prediction(project, images_list, model):
         model_name=model_name,
         folder_name=folder_name,
     )
+    if response.errors:
+        raise Exception(response.errors)
     return response.data
 
 
@@ -2998,3 +3001,32 @@ def upload_image_to_project(
         annotation_status=annotation_status,
         image_quality=image_quality_in_editor,
     )
+
+
+def search_models(
+    name=None, type_=None, project_id=None, task=None, include_global=True,
+):
+    """Search for ML models.
+
+    :param name: search string
+    :type name: str
+    :param type_: ml model type string
+    :type type_: str
+    :param project_id: project id
+    :type project_id: int
+    :param task: training task
+    :type task: str
+    :param include_global: include global ml models
+    :type include_global: bool
+
+    :return: ml model metadata
+    :rtype: list of dicts
+    """
+    res = controller.search_models(
+        name=name,
+        model_type=type_,
+        project_id=project_id,
+        task=task,
+        include_global=include_global,
+    )
+    return res.data
