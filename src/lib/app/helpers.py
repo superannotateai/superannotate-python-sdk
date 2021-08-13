@@ -38,13 +38,14 @@ def get_local_annotation_paths(
 ) -> List[str]:
     for path in Path(folder_path).glob("*"):
         if recursive and path.is_dir():
-            return get_local_annotation_paths(path, annotation_paths, recursive)
+            get_local_annotation_paths(path, annotation_paths, recursive)
         for annotation_path in Path(folder_path).glob("*.json"):
-            if annotation_path.name.endswith(
-                VECTOR_ANNOTATION_POSTFIX
-            ) or annotation_path.name.endswith(PIXEL_ANNOTATION_POSTFIX):
+            if (
+                annotation_path.name.endswith(VECTOR_ANNOTATION_POSTFIX)
+                or annotation_path.name.endswith(PIXEL_ANNOTATION_POSTFIX)
+            ) and str(annotation_path) not in annotation_paths:
                 annotation_paths.append(str(annotation_path))
-        return annotation_paths
+    return annotation_paths
 
 
 def get_s3_annotation_paths(folder_path, s3_bucket, annotation_paths, recursive):

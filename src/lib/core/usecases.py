@@ -2165,6 +2165,7 @@ class DownloadImagePreAnnotationsUseCase(BaseUseCase):
             raise AppException(f"Couldn't load annotations {response.text}")
         data["preannotation_json"] = response.json()
         data["preannotation_json_filename"] = f"{self._image_name}{file_postfix}"
+        mask_path = None
         if self._project.project_type == constances.ProjectType.PIXEL.value:
             annotation_blue_map_creds = credentials["annotation_bluemap_path"]
             response = requests.get(
@@ -3185,9 +3186,7 @@ class UploadAnnotationsUseCase(BaseUseCase):
         )
         resource = session.resource("s3")
         bucket = resource.Bucket(auth_data["creds"]["bucket"])
-        image_id_name_map = {
-            str(image.id): image.name for image in annotations_to_upload
-        }
+        image_id_name_map = {str(image.id): image for image in annotations_to_upload}
         if self._client_s3_bucket:
             from_session = boto3.Session()
             from_s3 = from_session.resource("s3")
@@ -3195,7 +3194,7 @@ class UploadAnnotationsUseCase(BaseUseCase):
             from_s3 = None
 
         for image_id, image_info in auth_data["images"].items():
-            annotation_name = image_id_name_map[image_id] + self.annotation_postfix
+            annotation_name = image_id_name_map[image_id].name + self.annotation_postfix
             if from_s3:
                 file = io.BytesIO()
                 s3_object = from_s3.Object(self._client_s3_bucket, annotation_name)
@@ -3203,9 +3202,7 @@ class UploadAnnotationsUseCase(BaseUseCase):
                 file.seek(0)
                 annotation_json = json.load(file)
             else:
-                annotation_json = json.load(
-                    open(f"{self._folder_path}/{annotation_name}")
-                )
+                annotation_json = json.load(open(image_id_name_map[image_id].path))
 
             self.fill_classes_data(annotation_json)
             bucket.put_object(
@@ -3214,7 +3211,8 @@ class UploadAnnotationsUseCase(BaseUseCase):
             )
             if self._project.project_type == constances.ProjectType.PIXEL.value:
                 mask_filename = (
-                    image_id_name_map[image_id] + constances.ANNOTATION_MASK_POSTFIX
+                    image_id_name_map[image_id].name
+                    + constances.ANNOTATION_MASK_POSTFIX
                 )
                 if from_s3:
                     file = io.BytesIO()
