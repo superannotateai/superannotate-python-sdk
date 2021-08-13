@@ -1331,8 +1331,10 @@ def upload_images_from_folder_to_project(
                 image_bytes=image_bytes,
                 folder_name=folder_name,
             )
+
             if not upload_response.errors and upload_response.data:
                 entity = upload_response.data
+                print(444, entity.name, image_path)
                 return ProcessedImage(uploaded=True, path=entity.path, entity=entity)
             else:
                 return ProcessedImage(uploaded=False, path=image_path, entity=None)
@@ -1398,14 +1400,17 @@ def upload_images_from_folder_to_project(
         [item for item in duplication_counter if duplication_counter[item] > 1],
     )
     upload_method = _upload_s3_image if from_s3_bucket else _upload_local_image
-    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
         results = [
             executor.submit(upload_method, image_path)
             for image_path in images_to_upload
         ]
+        print(111, [(image_path) for image_path in images_to_upload])
         for future in concurrent.futures.as_completed(results):
             processed_image = future.result()
             if processed_image.uploaded and processed_image.entity:
+                print(222, processed_image.entity.name)
+
                 uploaded_image_entities.append(processed_image.entity)
             else:
                 failed_images.append(processed_image.path)
@@ -2008,12 +2013,12 @@ def download_export(
     :param export: export name
     :type export: str
     :param folder_path: where to download the export
-    :type folder_path: Pathlike (str or Path)
+    :type folder_path: Path-like (str or Path)
     :param extract_zip_contents: if False then a zip file will be downloaded,
      if True the zip file will be extracted at folder_path
     :type extract_zip_contents: bool
     :param to_s3_bucket: AWS S3 bucket to use for download. If None then folder_path is in local filesystem.
-    :type tofrom_s3_bucket: str
+    :type to_from_s3_bucket: str
     """
     project_name, folder_name = split_project_path(project)
     controller.download_export(
@@ -2164,8 +2169,8 @@ def attach_image_urls_to_project(project, attachments, annotation_status="NotSta
             project_name=project_name,
             folder_name=folder_name,
             files=ImageSerializer.deserialize(
-                img_names_urls[i : i + 500]
-            ),  # noqa: E203
+                img_names_urls[i : i + 500]  # noqa: E203
+            ),
             annotation_status=annotation_status,
         )
         if response.errors:
@@ -2235,11 +2240,13 @@ def upload_annotations_from_folder_to_project(
                 project_name=project_name,
                 folder_name=folder_name,
                 folder_path=folder_path,
-                annotation_paths=annotation_paths[i : i + chunk_size],
+                annotation_paths=annotation_paths[i : i + chunk_size],  # noqa: E203
                 client_s3_bucket=from_s3_bucket,
             )
             if response.errors:
-                failed_annotations.append(annotation_paths[i : i + chunk_size])
+                failed_annotations.append(
+                    annotation_paths[i : i + chunk_size]
+                )  # noqa: E203
                 logger.warning(response.errors)
             else:
                 uploaded_annotations.append(response.data[0])
@@ -2290,12 +2297,14 @@ def upload_preannotations_from_folder_to_project(
                 project_name=project_name,
                 folder_name=folder_name,
                 folder_path=folder_path,
-                annotation_paths=annotation_paths[i : i + chunk_size],
+                annotation_paths=annotation_paths[i : i + chunk_size],  # noqa: E203
                 client_s3_bucket=from_s3_bucket,
                 is_pre_annotations=True,
             )
             if response.errors:
-                failed_annotations.append(annotation_paths[i : i + chunk_size])
+                failed_annotations.append(
+                    annotation_paths[i : i + chunk_size]
+                )  # noqa: E203
                 logger.warning(response.errors)
             else:
                 uploaded_annotations.append(response.data[0])

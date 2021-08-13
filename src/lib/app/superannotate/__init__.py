@@ -51,6 +51,7 @@ from src.lib.app.interface.sdk_interface import download_annotation_classes_json
 from src.lib.app.interface.sdk_interface import download_export
 from src.lib.app.interface.sdk_interface import download_image
 from src.lib.app.interface.sdk_interface import download_image_annotations
+from src.lib.app.interface.sdk_interface import download_image_preannotations
 from src.lib.app.interface.sdk_interface import download_model
 from src.lib.app.interface.sdk_interface import get_exports
 from src.lib.app.interface.sdk_interface import get_folder_metadata
@@ -103,6 +104,9 @@ from src.lib.app.interface.sdk_interface import (
     upload_images_from_public_urls_to_project,
 )
 from src.lib.app.interface.sdk_interface import upload_images_from_s3_bucket_to_project
+from src.lib.app.interface.sdk_interface import (
+    upload_preannotations_from_folder_to_project,
+)
 from src.lib.app.interface.sdk_interface import upload_videos_from_folder_to_project
 
 
@@ -217,7 +221,9 @@ __all__ = [
     "search_annotation_classes",
     "create_annotation_classes_from_classes_json",
     "upload_annotations_from_folder_to_project",
+    "upload_preannotations_from_folder_to_project",
     "download_annotation_classes_json",
+    "download_image_preannotations",
     "set_project_default_image_quality_in_editor",
     "run_prediction",
     "run_segmentation",
