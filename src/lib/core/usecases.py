@@ -1,6 +1,7 @@
 import copy
 import io
 import json
+import logging
 import os.path
 import time
 import uuid
@@ -50,6 +51,8 @@ from src.lib.core.repositories import BaseManageableRepository
 from src.lib.core.repositories import BaseReadOnlyRepository
 from src.lib.core.response import Response
 from src.lib.core.serviceproviders import SuerannotateServiceProvider
+
+logger = logging.getLogger()
 
 
 class BaseUseCase(ABC):
@@ -520,10 +523,9 @@ class UploadImageS3UseCas(BaseUseCase):
 
     @property
     def max_resolution(self) -> int:
-        if self._project.project_type == ProjectType.VECTOR.value:
-            return constances.MAX_VECTOR_RESOLUTION
-        elif self._project.project_type == ProjectType.PIXEL.value:
+        if self._project.project_type == ProjectType.PIXEL.value:
             return constances.MAX_PIXEL_RESOLUTION
+        return constances.MAX_VECTOR_RESOLUTION
 
     def execute(self):
         image_name = Path(self._image_path).name
@@ -1003,7 +1005,7 @@ class CopyImageAnnotationClasses(BaseUseCase):
         if not response.ok:
             raise AppException(f"Couldn't load annotations {response.text}")
 
-        image_annotation_classes = response.json()
+        image_annotations = response.json()
         from_project_annotation_classes = (
             self._from_project_annotation_classes.get_all()
         )
@@ -1023,16 +1025,20 @@ class CopyImageAnnotationClasses(BaseUseCase):
             if from_annotation.name == to_annotation.name
         }
 
-        for annotation_class in image_annotation_classes["instances"]:
-            project_annotation = annotations_classes_from_copy[
-                annotation_class["classId"]
+        for instance in image_annotations["instances"]:
+            if instance["classId"] < 0 or not annotations_classes_from_copy.get(
+                instance["classId"]
+            ):
+                continue
+            project_annotation_class = annotations_classes_from_copy[
+                instance["classId"]
             ]
-            annotation_class["className"] = project_annotation.name
-            if annotation_class.get("attributes"):
-                for attribute in annotation_class["attributes"]:
+            instance["className"] = project_annotation_class.name
+            if instance.get("attributes"):
+                for attribute in instance["attributes"]:
                     attribute_group = None
                     if attribute.get("groupId"):
-                        for group in project_annotation.attribute_groups:
+                        for group in project_annotation_class.attribute_groups:
                             if group["id"] == attribute["groupId"]:
                                 attribute["groupName"] = group["name"]
                                 attribute_group = group
@@ -1041,19 +1047,22 @@ class CopyImageAnnotationClasses(BaseUseCase):
                                 if attr["id"] == attribute["id"]:
                                     attribute["name"] = attr["name"]
 
-        for instance in image_annotation_classes["instances"]:
+        for instance in image_annotations["instances"]:
             if (
                 "className" not in instance
                 and instance["className"] not in annotations_classes_to_copy
             ):
                 continue
-            annotation_class = annotations_classes_to_copy[instance["className"]]
+            annotation_class = annotations_classes_to_copy.get(instance["className"])
+            if not annotation_class:
+                instance["classId"] = -1
+                continue
             attribute_groups_map = {
                 group["name"]: group for group in annotation_class.attribute_groups
             }
             instance["classId"] = annotation_class.uuid
             for attribute in instance["attributes"]:
-                if attribute.get("groupName"):
+                if attribute_groups_map.get(attribute["groupName"]):
                     attribute["groupId"] = attribute_groups_map[attribute["groupName"]][
                         "id"
                     ]
@@ -1071,7 +1080,7 @@ class CopyImageAnnotationClasses(BaseUseCase):
         auth_data = self.upload_auth_data
         file = S3FileEntity(
             uuid=auth_data["annotation_json_path"]["filePath"],
-            data=json.dumps(image_annotation_classes),
+            data=json.dumps(image_annotations),
         )
         self.to_project_s3_repo.insert(file)
 
@@ -2078,6 +2087,7 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
             raise AppException(f"Couldn't load annotations {response.text}")
         data["annotation_json"] = response.json()
         data["annotation_json_filename"] = f"{self._image_name}{file_postfix}"
+        mask_path = None
         if self._project.project_type == constances.ProjectType.PIXEL.value:
             annotation_blue_map_creds = credentials["annotation_bluemap_path"]
             response = requests.get(
@@ -2361,6 +2371,7 @@ class ExtractFramesUseCase(BaseUseCase):
         target_fps: float = None,
         annotation_status_code: int = constances.AnnotationStatus.NOT_STARTED.value,
         image_quality_in_editor: str = None,
+        limit: int = None,
     ):
         super().__init__(response)
         self._backend_service = backend_service_provider
@@ -2373,6 +2384,7 @@ class ExtractFramesUseCase(BaseUseCase):
         self._target_fps = target_fps
         self._annotation_status_code = annotation_status_code
         self._image_quality_in_editor = image_quality_in_editor
+        self._limit = limit
 
     @property
     def upload_auth_data(self):
@@ -2384,7 +2396,9 @@ class ExtractFramesUseCase(BaseUseCase):
 
     @property
     def limit(self):
-        return self.upload_auth_data.get("availableImageCount")
+        if not self._limit:
+            return self.upload_auth_data.get("availableImageCount")
+        return self._limit
 
     def execute(self):
         extracted_paths = VideoPlugin.extract_frames(
@@ -3283,11 +3297,26 @@ class CreateModelUseCase(BaseUseCase):
 
             projects.extend(projects)
             folders = self._folders.get_all(
-                Condition("folder_name", folder_name, EQ)
+                Condition("name", folder_name, EQ)
                 & Condition("team_id", self._team_id, EQ)
                 & Condition("project_id", projects[0].uuid, EQ)
             )
             train_folder_ids.append(folders[0].uuid)
+
+        for path in self._test_data_paths:
+            project_name, folder_name = self.split_path(path)
+            projects.extend(
+                self._projects.get_all(
+                    Condition("name", project_name, EQ)
+                    & Condition("team_id", self._team_id, EQ)
+                )
+            )
+            folders = self._folders.get_all(
+                Condition("name", folder_name, EQ)
+                & Condition("team_id", self._team_id, EQ)
+                & Condition("project_id", projects[0].uuid, EQ)
+            )
+            test_folder_ids.append(folders[0].uuid)
 
         project_types = [project.project_type for project in projects]
 
@@ -3313,29 +3342,15 @@ class CreateModelUseCase(BaseUseCase):
             )
             return
 
-        for path in self._test_data_paths:
-            project_name, folder_name = self.split_path(path)
-            projects.extend(
-                self._projects.get_all(
-                    Condition("name", project_name, EQ)
-                    & Condition("team_id", self._team_id, EQ)
-                )
-            )
-            folders = self._folders.get_all(
-                Condition("folder_name", folder_name, EQ)
-                & Condition("team_id", self._team_id, EQ)
-                & Condition("project_id", projects[0].uuid, EQ)
-            )
-            test_folder_ids.append(folders[0].uuid)
-
         base_model = self._ml_models.get_all(
             Condition("name", self._base_model_name, EQ)
             & Condition("team_id", self._team_id, EQ)
             & Condition("task", constances.MODEL_TRAINING_TASKS[self._task], EQ)
-            & Condition("model_type", project_types[0], EQ)
+            & Condition("type", project_types[0], EQ)
+            & Condition("include_global", True, EQ)
         )[0]
 
-        if base_model.project_type != project_types[0]:
+        if base_model.model_type != project_types[0]:
             self._response.errors = AppException(
                 f"The type of provided projects is {project_types[0]}, "
                 "and does not correspond to the type of provided model"
@@ -3358,9 +3373,10 @@ class CreateModelUseCase(BaseUseCase):
             task=constances.MODEL_TRAINING_TASKS[self._task],
             base_model_id=base_model.uuid,
             image_count=complete_image_count,
-            # project_type=project_types[0],
+            model_type=project_types[0],
             train_folder_ids=train_folder_ids,
             test_folder_ids=test_folder_ids,
+            hyper_parameters=self.hyper_parameters,
         )
         new_model_data = self._ml_models.insert(ml_model)
 
@@ -3505,11 +3521,13 @@ class DownloadMLModelUseCase(BaseUseCase):
         model: MLModelEntity,
         download_path: str,
         backend_service_provider: SuerannotateServiceProvider,
+        team_id: int,
     ):
         super().__init__(response)
         self._model = model
         self._download_path = download_path
         self._backend_service = backend_service_provider
+        self._team_id = team_id
 
     def execute(self):
         metrics_name = os.path.basename(self._model.path).replace(".pth", ".json")
@@ -3521,7 +3539,7 @@ class DownloadMLModelUseCase(BaseUseCase):
         )
 
         download_token = self._backend_service.get_ml_model_download_tokens(
-            self._model.team_id, self._model.uuid
+            self._team_id, self._model.uuid
         )
         s3_session = boto3.Session(
             aws_access_key_id=download_token["tokens"]["accessKeyId"],
@@ -3768,12 +3786,42 @@ class RunSegmentationUseCase(BaseUseCase):
         )
 
         image_ids = [image["id"] for image in images]
+        image_names = [image["name"] for image in images]
+
         self._service.run_segmentation(
             self._project.team_id,
             self._project.uuid,
             model_name=self._ml_model_name,
             image_ids=image_ids,
         )
+        succeded_imgs = []
+        failed_imgs = []
+        while len(succeded_imgs) + len(failed_imgs) != len(image_ids):
+            images_metadata = self._service.get_bulk_images(
+                project_id=self._project.uuid,
+                team_id=self._project.team_id,
+                folder_id=self._folder.uuid,
+                images=image_names,
+            )
+
+            succeded_imgs = [
+                img["name"]
+                for img in images_metadata
+                if img["segmentation_status"] == 2
+            ]
+            failed_imgs = [
+                img["name"]
+                for img in images_metadata
+                if img["segmentation_status"] == 4
+            ]
+
+            complete_images = succeded_imgs + failed_imgs
+            logger.info(
+                f"prediction complete on {len(complete_images)} / {len(image_ids)} images"
+            )
+            time.sleep(5)
+
+        self._response.data = (succeded_imgs, failed_imgs)
 
 
 class RunPredictionUseCase(BaseUseCase):
@@ -3804,6 +3852,11 @@ class RunPredictionUseCase(BaseUseCase):
         )
 
         image_ids = [image["id"] for image in images]
+        image_names = [image["name"] for image in images]
+
+        if not image_ids:
+            self._response.errors = AppException("No valid image names were provided.")
+            return
 
         ml_models = self._ml_model_repo.get_all(
             condition=Condition("name", self._ml_model_name, EQ)
@@ -3821,6 +3874,31 @@ class RunPredictionUseCase(BaseUseCase):
             ml_model_id=ml_model.uuid,
             image_ids=image_ids,
         )
+
+        succeded_imgs = []
+        failed_imgs = []
+        while len(succeded_imgs) + len(failed_imgs) != len(image_ids):
+            images_metadata = self._service.get_bulk_images(
+                project_id=self._project.uuid,
+                team_id=self._project.team_id,
+                folder_id=self._folder.uuid,
+                images=image_names,
+            )
+
+            succeded_imgs = [
+                img["name"] for img in images_metadata if img["prediction_status"] == 2
+            ]
+            failed_imgs = [
+                img["name"] for img in images_metadata if img["prediction_status"] == 4
+            ]
+
+            complete_images = succeded_imgs + failed_imgs
+            logger.info(
+                f"prediction complete on {len(complete_images)} / {len(image_ids)} images"
+            )
+            time.sleep(5)
+
+        self._response.data = (succeded_imgs, failed_imgs)
 
 
 class GetAllImagesUseCase(BaseUseCase):
@@ -3855,3 +3933,20 @@ class GetAllImagesUseCase(BaseUseCase):
         self._response.data = self._service_provider.list_images(
             query_string=condition.build_query()
         )
+
+
+class SearchMLModels(BaseUseCase):
+    def __init__(
+        self,
+        response: Response,
+        ml_models_repo: BaseManageableRepository,
+        condition: Condition,
+    ):
+        super().__init__(response)
+        self._ml_models = ml_models_repo
+        self._condition = condition
+
+    def execute(self):
+        ml_models = self._ml_models.get_all(condition=self._condition)
+        ml_models = [ml_model.to_dict() for ml_model in ml_models]
+        self._response.data = ml_models

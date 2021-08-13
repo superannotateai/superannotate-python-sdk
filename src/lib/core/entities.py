@@ -380,6 +380,7 @@ class MLModelEntity(BaseEntity):
         train_folder_ids: List[int] = None,
         is_trainable: bool = None,
         is_global: bool = None,
+        hyper_parameters: dict = {},
     ):
         super().__init__(uuid=uuid)
         self.name = name
@@ -397,14 +398,16 @@ class MLModelEntity(BaseEntity):
         self.train_folder_ids = train_folder_ids
         self.is_trainable = is_trainable
         self.is_global = is_global
+        self.hyper_parameters = hyper_parameters
 
     def to_dict(self):
         return {
             "id": self.uuid,
+            "name": self.name,
             "team_id": self.team_id,
             "description": self.description,
             "task": self.task,
-            "type": self.model_type,
+            "project_type": self.model_type,
             "path": self.path,
             "config_path": self.config_path,
             "output_path": self.output_path,
@@ -415,4 +418,5 @@ class MLModelEntity(BaseEntity):
             "train_folder_ids": self.train_folder_ids,
             "is_trainable": self.is_trainable,
             "is_global": self.is_global,
+            **self.hyper_parameters,
         }

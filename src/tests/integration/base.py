@@ -8,7 +8,7 @@ class BaseTestCase(TestCase):
     PROJECT_NAME = ""
     PROJECT_DESCRIPTION = "Desc"
     PROJECT_TYPE = "Type"
-    TEST_FOLDER_PTH = "data_set"
+    TEST_FOLDER_PATH = "data_set"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
