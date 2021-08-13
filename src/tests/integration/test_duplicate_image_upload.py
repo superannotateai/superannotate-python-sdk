@@ -1,6 +1,4 @@
-import io
 import os
-import time
 from os.path import dirname
 
 import src.lib.app.superannotate as sa
@@ -25,24 +23,24 @@ class TestDuplicateImage(BaseTestCase):
         )
 
     def test_single_image_upload(self):
-        uploaded, could_not_upload, existing_images = sa.upload_images_from_folder_to_project(
-            self.PROJECT_NAME,
-            self.folder_path,
-            annotation_status="InProgress",
+        (
+            uploaded,
+            could_not_upload,
+            existing_images,
+        ) = sa.upload_images_from_folder_to_project(
+            self.PROJECT_NAME, self.folder_path, annotation_status="InProgress",
         )
         assert len(uploaded) == 4
         assert len(could_not_upload) == 0
         assert len(existing_images) == 0
 
-        uploaded, could_not_upload, existing_images = sa.upload_images_from_folder_to_project(
-            self.PROJECT_NAME,
-            self.folder_path,
-            annotation_status="InProgress",
+        (
+            uploaded,
+            could_not_upload,
+            existing_images,
+        ) = sa.upload_images_from_folder_to_project(
+            self.PROJECT_NAME, self.folder_path, annotation_status="InProgress",
         )
         assert len(uploaded) == 0
         assert len(could_not_upload) == 0
         assert len(existing_images) == 4
-
-
-
-

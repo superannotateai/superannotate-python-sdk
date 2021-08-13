@@ -1263,7 +1263,7 @@ def upload_images_from_folder_to_project(
     :type recursive_subfolders: bool
     :param image_quality_in_editor: image quality be seen in SuperAnnotate web annotation editor.
            Can be either "compressed" or "original".  If None then the default value in project settings will be used.
-    :type image_quality_in_editor: int
+    :type image_quality_in_editor: str
 
     :return: uploaded, could-not-upload, existing-images filepaths
     :rtype: tuple (3 members) of list of strs

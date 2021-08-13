@@ -222,7 +222,7 @@ class Controller(BaseController):
         image_path: str,  # image path to upload
         image_bytes: io.BytesIO,
         folder_name: str = None,  # project folder path
-        image_quality_in_editor: int = None,
+        image_quality_in_editor: str = None,
     ):
         project = self._get_project(project_name)
         folder = self._get_folder(project, folder_name)

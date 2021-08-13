@@ -41,6 +41,7 @@ from src.lib.core.entities import S3FileEntity
 from src.lib.core.entities import TeamEntity
 from src.lib.core.entities import WorkflowEntity
 from src.lib.core.enums import ExportStatus
+from src.lib.core.enums import ImageQuality
 from src.lib.core.enums import ProjectType
 from src.lib.core.exceptions import AppException
 from src.lib.core.exceptions import AppValidationException
@@ -442,7 +443,7 @@ class UploadImageS3UseCas(BaseUseCase):
         image: io.BytesIO,
         s3_repo: BaseManageableRepository,
         upload_path: str,
-        image_quality_in_editor: int,
+        image_quality_in_editor: str,
     ):
         super().__init__(response)
         self._project = project
@@ -466,12 +467,15 @@ class UploadImageS3UseCas(BaseUseCase):
         origin_width, origin_height = image_processor.get_size()
         thumb_image, _, _ = image_processor.generate_thumb()
         huge_image, huge_width, huge_height = image_processor.generate_huge()
-        quality = self._image_quality_in_editor
         subsampling = -1
-        if not quality:
+        quality = 60
+        if not self._image_quality_in_editor:
             for setting in self._project_settings.get_all():
                 if setting.attribute == "ImageQuality":
                     quality = setting.value
+        else:
+            quality = ImageQuality.get_value(self._image_quality_in_editor)
+
         if quality == 100:
             subsampling = 0
         low_resolution_image, _, _ = image_processor.generate_low_resolution(
