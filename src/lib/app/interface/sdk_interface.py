@@ -1263,7 +1263,7 @@ def upload_images_from_folder_to_project(
     :type recursive_subfolders: bool
     :param image_quality_in_editor: image quality be seen in SuperAnnotate web annotation editor.
            Can be either "compressed" or "original".  If None then the default value in project settings will be used.
-    :type image_quality_in_editor: str
+    :type image_quality_in_editor: int
 
     :return: uploaded, could-not-upload, existing-images filepaths
     :rtype: tuple (3 members) of list of strs
@@ -1281,6 +1281,7 @@ def upload_images_from_folder_to_project(
                 image_path=image_path,
                 image_bytes=image_bytes,
                 folder_name=folder_name,
+                image_quality_in_editor=image_quality_in_editor,
             )
             if not upload_response.errors and upload_response.data:
                 entity = upload_response.data
@@ -1301,6 +1302,7 @@ def upload_images_from_folder_to_project(
             image_path=image_path,
             image_bytes=image_bytes,
             folder_name=folder_name,
+            image_quality_in_editor=image_quality_in_editor,
         )
         if not upload_response.errors and upload_response.data:
             uploaded_image_entities.append(upload_response.data)
@@ -1360,20 +1362,22 @@ def upload_images_from_folder_to_project(
                 uploaded_image_entities.append(processed_image.entity)
             else:
                 failed_images.append(processed_image.path)
-
+    uploaded = []
     for i in range(0, len(uploaded_image_entities), 500):
-        controller.upload_images(
+        response = controller.upload_images(
             project_name=project_name,
             folder_name=folder_name,
             images=uploaded_image_entities[i : i + 500],  # noqa: E203
             annotation_status=annotation_status,
-            image_quality=image_quality_in_editor,
         )
+        attachments, duplications = response.data
+        duplicated_images.extend(duplications)
+        uploaded.extend(attachments)
 
     return (
-        [image.path for image in uploaded_image_entities],
-        duplicated_images,
+        attachments,
         failed_images,
+        duplicated_images,
     )
 
 

@@ -202,19 +202,16 @@ class Controller(BaseController):
         folder_name: str,
         images: List[ImageEntity],
         annotation_status: str = None,
-        image_quality: str = None,
     ):
         project = self._get_project(project_name)
         folder = self._get_folder(project, folder_name)
-        use_case = usecases.AttachImagesUseCase(
+        use_case = usecases.AttachFileUrlsUseCase(
             response=self.response,
             project=project,
             folder=folder,
-            project_settings=ProjectSettingsRepository(self._backend_client, project),
             backend_service_provider=self._backend_client,
-            images=images,
+            attachments=images,
             annotation_status=annotation_status,
-            image_quality=image_quality,
         )
         use_case.execute()
         return self._response
@@ -225,6 +222,7 @@ class Controller(BaseController):
         image_path: str,  # image path to upload
         image_bytes: io.BytesIO,
         folder_name: str = None,  # project folder path
+        image_quality_in_editor: int = None,
     ):
         project = self._get_project(project_name)
         folder = self._get_folder(project, folder_name)
@@ -239,6 +237,7 @@ class Controller(BaseController):
             image=image_bytes,
             s3_repo=s3_repo,
             upload_path=auth_data["filePath"],
+            image_quality_in_editor=image_quality_in_editor,
         )
         use_case.execute()
         return response
