@@ -2,6 +2,7 @@
 Main module for consensus computation
 """
 import logging
+from ..db.project_api import get_project_and_folder_metadata
 import tempfile
 import pandas as pd
 from pathlib import Path
@@ -44,6 +45,8 @@ def consensus(
     supported_types = ['polygon', 'bbox', 'point']
     if annot_type not in supported_types:
         raise NotImplementedError
+
+    get_project_and_folder_metadata(project)
 
     if export_root is None:
         with tempfile.TemporaryDirectory() as export_dir:
