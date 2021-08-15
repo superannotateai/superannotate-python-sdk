@@ -22,7 +22,7 @@ from .projects import (
 from .teams import get_team_metadata
 from ..mixp.decorators import Trackable
 from .utils import _unassign_images, _assign_images, _get_upload_auth_token, _get_boto_session_by_credentials, upload_image_array_to_s3, \
-    get_image_array_to_upload, __create_image, __copy_images, __move_images, get_project_folder_string
+    get_image_array_to_upload, __create_file, __copy_images, __move_images, get_project_folder_string
 
 logger = logging.getLogger("superannotate-python-sdk")
 _api = API.get_instance()
@@ -118,7 +118,7 @@ def upload_image_to_project(
     except Exception as e:
         raise SABaseException(0, "Couldn't upload to data server.") from e
 
-    __create_image(
+    __create_file(
         [img_name], [key],
         project,
         annotation_status,
@@ -640,8 +640,8 @@ def assign_folder(project, folder_name, users):
 
 @Trackable
 def unassign_folder(project, folder_name):
-    """Removes assignment of given folder for all assignees. 
-    With SDK, the user can be assigned to a role in the project 
+    """Removes assignment of given folder for all assignees.
+    With SDK, the user can be assigned to a role in the project
     with the share_project function.
 
     :param project: project name or folder path (e.g., "project1/folder1")

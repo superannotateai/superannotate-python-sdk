@@ -1,4 +1,5 @@
 import logging
+import inspect
 
 from .. import common
 from ..api import API
@@ -41,6 +42,19 @@ def get_project_metadata_bare(project_name, include_complete_image_count=False):
         res = results[0]
         res["type"] = common.project_type_int_to_str(res["type"])
         res["user_role"] = common.user_role_int_to_str(res["user_role"])
+        current_frame = inspect.currentframe()
+        outer_function = inspect.getframeinfo(current_frame.f_back).function
+        outer_outer_function = inspect.getframeinfo(
+            current_frame.f_back.f_back
+        ).function
+        if res.get("type") and res["type"] == "Video" and (
+            outer_function in common.VIDEO_DEPRICATED_FUNCTIONS or
+            outer_outer_function in common.VIDEO_DEPRICATED_FUNCTIONS
+        ):
+            raise SABaseException(
+                0,
+                "The function does not support projects containing videos attached with URLs"
+            )
         return res
     else:
         raise SANonExistingProjectNameException(
@@ -131,6 +145,18 @@ def get_project_and_folder_metadata(project):
             raise SAIncorrectProjectArgument(project)
     else:
         raise SAIncorrectProjectArgument(project)
+    current_frame = inspect.currentframe()
+    outer_function = inspect.getframeinfo(current_frame.f_back).function
+    outer_outer_function = inspect.getframeinfo(
+        current_frame.f_back.f_back
+    ).function
+    if project.get("type") and project["type"] == "Video" \
+            and (outer_function in common.VIDEO_DEPRICATED_FUNCTIONS
+                 or outer_outer_function in common.VIDEO_DEPRICATED_FUNCTIONS):
+        raise SABaseException(
+            0,
+            "The function does not support projects containing videos attached with URLs"
+        )
     return project, folder
 
 
