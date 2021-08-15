@@ -127,12 +127,21 @@ def prepare_export(
     """
     if not isinstance(project, dict):
         project = get_project_metadata_bare(project)
+
     upload_state = upload_state_int_to_str(project.get("upload_state"))
-    if upload_state == "External" and include_fuse == True:
-        logger.info(
-            "Include fuse functionality is not supported for  projects containing images attached with URLs"
+
+    if upload_state == "External" and include_fuse:
+        logger.warning(
+            "Include fuse functionality is not supported for projects containing  items attached with URLs"
         )
         include_fuse = False
+    if project["type"] == "Video":
+        if only_pinned:
+            logger.warning(
+                "Pin functionality is not supported for projects containing videos attached with URLs"
+            )
+        only_pinned, include_fuse = False, False
+
     team_id, project_id = project["team_id"], project["id"]
     if annotation_statuses is None:
         annotation_statuses = [2, 3, 4, 5]
@@ -144,9 +153,9 @@ def prepare_export(
     current_time = datetime.now().strftime("%b %d %Y %H:%M")
     json_req = {
         "include": annotation_statuses,
-        "fuse": int(include_fuse),
-        "is_pinned": int(only_pinned),
         "coco": 0,
+        "is_pinned": int(only_pinned),
+        "fuse": int(include_fuse),
         "time": current_time
     }
     if folder_names is not None:

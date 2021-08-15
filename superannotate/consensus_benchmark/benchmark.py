@@ -10,6 +10,7 @@ from .helpers import image_consensus, consensus_plot
 from ..db.exports import prepare_export, download_export
 from ..analytics.common import aggregate_annotations_as_df
 from ..mixp.decorators import Trackable
+from ..db.project_api import get_project_and_folder_metadata
 
 logger = logging.getLogger("superannotate-python-sdk")
 
@@ -44,6 +45,12 @@ def benchmark(
     :return: Pandas DateFrame with columns (creatorEmail, QA, imageName, instanceId, className, area, attribute, folderName, score)
     :rtype: pandas DataFrame
     """
+
+    if isinstance(project, dict):
+        get_project_and_folder_metadata(project['name'])
+    else:
+        get_project_and_folder_metadata(project)
+
     def aggregate_attributes(instance_df):
         def attribute_to_list(attribute_df):
             attribute_names = list(attribute_df["attributeName"])

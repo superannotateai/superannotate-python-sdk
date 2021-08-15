@@ -71,13 +71,13 @@ def create_project(project_name, project_description, project_type):
     else:
         raise SAExistingProjectNameException(
             0, "Project with name " + project_name +
-               " already exists. Please use unique names for projects to use with SDK."
+            " already exists. Please use unique names for projects to use with SDK."
         )
     project_type = common.project_type_str_to_int(project_type)
     if len(
-            set(project_name).intersection(
-                common.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
-            )
+        set(project_name).intersection(
+            common.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
+        )
     ) > 0:
         logger.warning(
             "New project name has special characters. Special characters will be replaced by underscores."
@@ -171,7 +171,7 @@ def rename_project(project, new_name):
     else:
         raise SAExistingProjectNameException(
             0, "Project with name " + new_name +
-               " already exists. Please use unique names for projects to use with SDK."
+            " already exists. Please use unique names for projects to use with SDK."
         )
     if not isinstance(project, dict):
         project = get_project_metadata_bare(project)
@@ -226,7 +226,9 @@ def _get_target_frames_count(video_path, target_fps):
         else:
             break
 
-    return math.ceil((total_num_of_frames * target_fps) / video.get(cv2.CAP_PROP_FPS))
+    return math.ceil(
+        (total_num_of_frames * target_fps) / video.get(cv2.CAP_PROP_FPS)
+    )
 
 
 def _get_video_frames_count(video_path):
@@ -307,7 +309,8 @@ def _get_video_rotate_code(video_path, log=True):
 
 
 def _extract_frames_from_video(
-        start_time, end_time, video_path, tempdir, limit, target_fps, chunk_size, save
+    start_time, end_time, video_path, tempdir, limit, target_fps, chunk_size,
+    save
 ):
     video = cv2.VideoCapture(str(video_path), cv2.CAP_FFMPEG)
     if not video.isOpened():
@@ -345,8 +348,8 @@ def _extract_frames_from_video(
             frame = cv2.rotate(frame, rotate_code)
         path = str(
             Path(tempdir.name) / (
-                    video_name + "_" +
-                    str(extracted_frame_no).zfill(zero_fill_count) + ".jpg"
+                video_name + "_" +
+                str(extracted_frame_no).zfill(zero_fill_count) + ".jpg"
             )
         )
         if save:
@@ -368,13 +371,13 @@ def _extract_frames_from_video(
 
 @Trackable
 def upload_video_to_project(
-        project,
-        video_path,
-        target_fps=None,
-        start_time=0.0,
-        end_time=None,
-        annotation_status="NotStarted",
-        image_quality_in_editor=None
+    project,
+    video_path,
+    target_fps=None,
+    start_time=0.0,
+    end_time=None,
+    annotation_status="NotStarted",
+    image_quality_in_editor=None
 ):
     """Uploads image frames from video to platform. Uploaded images will have
     names "<video_name>_<frame_no>.jpg".
@@ -427,30 +430,40 @@ def upload_video_to_project(
     all_frames_count = 0
 
     for frames_path in _extract_frames_from_video(
-            start_time, end_time, video_path, tempdir, limit, target_fps, chunk_size, False
+        start_time, end_time, video_path, tempdir, limit, target_fps,
+        chunk_size, False
     ):
         all_frames_count += len(frames_path)
 
     pbar = None
     for _ in _extract_frames_from_video(
-            start_time, end_time, video_path, tempdir, limit, target_fps, chunk_size, save=True
+        start_time,
+        end_time,
+        video_path,
+        tempdir,
+        limit,
+        target_fps,
+        chunk_size,
+        save=True
     ):
         if not pbar:
             pbar = tqdm(total=all_frames_count)
 
         files = os.listdir(tempdir.name)
         image_paths = [f'{tempdir.name}/{f}' for f in files]
-        uploaded = _upload_images(img_paths=image_paths,
-                                  team_id=project['team_id'],
-                                  folder_id=folder_id,
-                                  project_id=project['id'],
-                                  annotation_status=common.annotation_status_str_to_int(annotation_status),
-                                  image_quality_in_editor=image_quality_in_editor,
-                                  folder_name="folder_name",
-                                  project=project,
-                                  from_s3_bucket=None,
-                                  disable_loading=True
-                                  )
+        uploaded = _upload_images(
+            img_paths=image_paths,
+            team_id=project['team_id'],
+            folder_id=folder_id,
+            project_id=project['id'],
+            annotation_status=common.
+            annotation_status_str_to_int(annotation_status),
+            image_quality_in_editor=image_quality_in_editor,
+            folder_name="folder_name",
+            project=project,
+            from_s3_bucket=None,
+            disable_loading=True
+        )
         for path in image_paths:
             os.remove(path)
 
@@ -463,16 +476,16 @@ def upload_video_to_project(
 
 @Trackable
 def upload_videos_from_folder_to_project(
-        project,
-        folder_path,
-        extensions=common.DEFAULT_VIDEO_EXTENSIONS,
-        exclude_file_patterns=(),
-        recursive_subfolders=False,
-        target_fps=None,
-        start_time=0.0,
-        end_time=None,
-        annotation_status="NotStarted",
-        image_quality_in_editor=None
+    project,
+    folder_path,
+    extensions=common.DEFAULT_VIDEO_EXTENSIONS,
+    exclude_file_patterns=(),
+    recursive_subfolders=False,
+    target_fps=None,
+    start_time=0.0,
+    end_time=None,
+    annotation_status="NotStarted",
+    image_quality_in_editor=None
 ):
     """Uploads image frames from all videos with given extensions from folder_path to the project.
     Sets status of all the uploaded images to set_status if it is not None.
@@ -559,14 +572,14 @@ def upload_videos_from_folder_to_project(
 
 @Trackable
 def upload_images_from_folder_to_project(
-        project,
-        folder_path,
-        extensions=common.DEFAULT_IMAGE_EXTENSIONS,
-        annotation_status="NotStarted",
-        from_s3_bucket=None,
-        exclude_file_patterns=common.DEFAULT_FILE_EXCLUDE_PATTERNS,
-        recursive_subfolders=False,
-        image_quality_in_editor=None
+    project,
+    folder_path,
+    extensions=common.DEFAULT_IMAGE_EXTENSIONS,
+    annotation_status="NotStarted",
+    from_s3_bucket=None,
+    exclude_file_patterns=common.DEFAULT_FILE_EXCLUDE_PATTERNS,
+    recursive_subfolders=False,
+    image_quality_in_editor=None
 ):
     """Uploads all images with given extensions from folder_path to the project.
     Sets status of all the uploaded images to set_status if it is not None.
@@ -652,7 +665,7 @@ def upload_images_from_folder_to_project(
                     continue
                 for extension in extensions:
                     if key.endswith(f'.{extension.lower()}'
-                                    ) or key.endswith(f'.{extension.upper()}'):
+                                   ) or key.endswith(f'.{extension.upper()}'):
                         paths.append(key)
                         break
     filtered_paths = []
@@ -671,11 +684,11 @@ def upload_images_from_folder_to_project(
 
 @Trackable
 def upload_images_to_project(
-        project,
-        img_paths,
-        annotation_status="NotStarted",
-        from_s3_bucket=None,
-        image_quality_in_editor=None
+    project,
+    img_paths,
+    annotation_status="NotStarted",
+    from_s3_bucket=None,
+    image_quality_in_editor=None
 ):
     """Uploads all images given in list of path objects in img_paths to the project.
     Sets status of all the uploaded images to set_status if it is not None.
@@ -739,8 +752,8 @@ def upload_images_to_project(
 
 
 def _tqdm_download(
-        total_num, images_to_upload, images_not_uploaded,
-        duplicate_images_filenames, finish_event
+    total_num, images_to_upload, images_not_uploaded,
+    duplicate_images_filenames, finish_event
 ):
     with tqdm(total=total_num) as pbar:
         while True:
@@ -758,10 +771,10 @@ def _tqdm_download(
 
 @Trackable
 def attach_image_urls_to_project(
-        project, attachments, annotation_status="NotStarted"
+    project, attachments, annotation_status="NotStarted"
 ):
     """Link images on external storage to SuperAnnotate.
-
+    
     :param project: project name or project folder path
     :type project: str or dict
     :param attachments: path to csv file on attachments metadata
@@ -769,52 +782,20 @@ def attach_image_urls_to_project(
     :param annotation_status: value to set the annotation statuses of the linked images: NotStarted InProgress QualityCheck Returned Completed Skipped
     :type annotation_status: str
 
-    :return: list of linked image names, list of failed image names, list of duplicate image names
-    :rtype: tuple
+    :return: attached images, failed images, skipped images
+    :rtype: (list, list, list)
     """
-    project, folder = get_project_and_folder_metadata(project)
-    folder_name = project["name"] + (f'/{folder["name"]}' if folder else "")
-    upload_state = common.upload_state_int_to_str(project.get("upload_state"))
-    if upload_state == "Basic":
-        raise SABaseException(
-            0,
-            "You cannot attach URLs in this type of project. Please attach it in an external storage project"
-        )
-    annotation_status = common.annotation_status_str_to_int(annotation_status)
-    team_id, project_id = project["team_id"], project["id"]
-    image_data = pd.read_csv(attachments, dtype=str)
-    image_data = image_data[~image_data["url"].isnull()]
-    for ind, _ in image_data[image_data["name"].isnull()].iterrows():
-        name_try = str(uuid.uuid4())
-        image_data.at[ind, "name"] = name_try
-    image_data = pd.DataFrame(image_data, columns=["name", "url"])
-    img_names_urls = image_data.values.tolist()
-
-    if folder:
-        folder_id = folder["id"]
-    else:
-        folder_id = get_project_root_folder_id(project)
-
-    list_of_uploaded, list_of_not_uploaded, duplicate_images = _attach_urls(
-        img_names_urls=img_names_urls,
-        team_id=team_id,
-        folder_id=folder_id,
-        project_id=project_id,
-        annotation_status=annotation_status,
-        project=project,
-        folder_name=folder_name
-    )
-
-    return (list_of_uploaded, list_of_not_uploaded, duplicate_images)
+    get_project_and_folder_metadata(project)
+    return attach_file_urls_to_project(project, attachments, annotation_status)
 
 
 @Trackable
 def upload_images_from_public_urls_to_project(
-        project,
-        img_urls,
-        img_names=None,
-        annotation_status='NotStarted',
-        image_quality_in_editor=None
+    project,
+    img_urls,
+    img_names=None,
+    annotation_status='NotStarted',
+    image_quality_in_editor=None
 ):
     """Uploads all images given in the list of URL strings in img_urls to the project.
     Sets status of all the uploaded images to annotation_status if it is not None.
@@ -920,12 +901,12 @@ def upload_images_from_public_urls_to_project(
 
 @Trackable
 def upload_images_from_google_cloud_to_project(
-        project,
-        google_project,
-        bucket_name,
-        folder_path,
-        annotation_status='NotStarted',
-        image_quality_in_editor=None
+    project,
+    google_project,
+    bucket_name,
+    folder_path,
+    annotation_status='NotStarted',
+    image_quality_in_editor=None
 ):
     """Uploads all images present in folder_path at bucket_name in google_project to the project.
     Sets status of all the uploaded images to set_status if it is not None.
@@ -1007,11 +988,11 @@ def upload_images_from_google_cloud_to_project(
 
 @Trackable
 def upload_images_from_azure_blob_to_project(
-        project,
-        container_name,
-        folder_path,
-        annotation_status='NotStarted',
-        image_quality_in_editor=None
+    project,
+    container_name,
+    folder_path,
+    annotation_status='NotStarted',
+    image_quality_in_editor=None
 ):
     """Uploads all images present in folder_path at container_name Azure blob storage to the project.
     Sets status of all the uploaded images to set_status if it is not None.
@@ -1103,9 +1084,9 @@ def upload_images_from_azure_blob_to_project(
 
 
 def __upload_annotations_thread(
-        team_id, project_id, project_type, anns_filenames, folder_path,
-        annotation_classes_dict, pre, thread_id, chunksize, missing_images,
-        couldnt_upload, uploaded, from_s3_bucket, project_folder_id
+    team_id, project_id, project_type, anns_filenames, folder_path,
+    annotation_classes_dict, pre, thread_id, chunksize, missing_images,
+    couldnt_upload, uploaded, from_s3_bucket, project_folder_id
 ):
     NUM_TO_SEND = 500
     len_anns = len(anns_filenames)
@@ -1131,10 +1112,10 @@ def __upload_annotations_thread(
         try:
             metadatas = get_image_metadata(
                 ({
-                     "id": project_id
-                 }, {
-                     "id": project_folder_id
-                 }), names, False
+                    "id": project_id
+                }, {
+                    "id": project_folder_id
+                }), names, False
             )
         except SABaseException:
             metadatas = []
@@ -1219,7 +1200,7 @@ def __upload_annotations_thread(
 
 @Trackable
 def upload_annotations_from_folder_to_project(
-        project, folder_path, from_s3_bucket=None, recursive_subfolders=False
+    project, folder_path, from_s3_bucket=None, recursive_subfolders=False
 ):
     """Finds and uploads all JSON files in the folder_path as annotations to the project.
 
@@ -1242,13 +1223,14 @@ def upload_annotations_from_folder_to_project(
     :return: paths to annotations uploaded, could-not-upload, missing-images
     :rtype: tuple of list of strs
     """
+    get_project_and_folder_metadata(project)
     return _upload_pre_or_annotations_from_folder_to_project(
         project, folder_path, "", from_s3_bucket, recursive_subfolders
     )
 
 
 def _upload_pre_or_annotations_from_folder_to_project(
-        project, folder_path, pre, from_s3_bucket=None, recursive_subfolders=False
+    project, folder_path, pre, from_s3_bucket=None, recursive_subfolders=False
 ):
     if recursive_subfolders:
         logger.info(
@@ -1262,6 +1244,7 @@ def _upload_pre_or_annotations_from_folder_to_project(
 
     logger.info("Existing %sannotations will be overwritten.", pre)
     project, project_folder = get_project_and_folder_metadata(project)
+    project = get_project_metadata(project['name'])
 
     if project_folder is not None:
         project_folder_id = project_folder["id"]
@@ -1275,12 +1258,12 @@ def _upload_pre_or_annotations_from_folder_to_project(
 
 
 def _upload_annotations_from_folder_to_project(
-        project,
-        folder_path,
-        pre,
-        from_s3_bucket=None,
-        recursive_subfolders=False,
-        project_folder_id=None
+    project,
+    folder_path,
+    pre,
+    from_s3_bucket=None,
+    recursive_subfolders=False,
+    project_folder_id=None
 ):
     return_result = []
     if from_s3_bucket is not None:
@@ -1319,7 +1302,7 @@ def _upload_annotations_from_folder_to_project(
     if from_s3_bucket is None:
         for path in Path(folder_path).glob('*.json'):
             if path.name.endswith('___objects.json'
-                                  ) or path.name.endswith('___pixel.json'):
+                                 ) or path.name.endswith('___pixel.json'):
                 annotations_paths.append(path)
                 annotations_filenames.append(path.name)
     else:
@@ -1335,7 +1318,7 @@ def _upload_annotations_from_folder_to_project(
                 if '/' in key[len(folder_path) + 1:]:
                     continue
                 if key.endswith('___objects.json'
-                                ) or key.endswith('___pixel.json'):
+                               ) or key.endswith('___pixel.json'):
                     annotations_paths.append(key)
                     annotations_filenames.append(Path(key).name)
 
@@ -1407,7 +1390,7 @@ def _upload_annotations_from_folder_to_project(
 
 
 def __tqdm_thread_upload_annotations(
-        total_num, uploaded, couldnt_upload, missing_image, finish_event
+    total_num, uploaded, couldnt_upload, missing_image, finish_event
 ):
     with tqdm(total=total_num) as pbar:
         while True:
@@ -1428,7 +1411,7 @@ def __tqdm_thread_upload_annotations(
 
 @Trackable
 def upload_preannotations_from_folder_to_project(
-        project, folder_path, from_s3_bucket=None, recursive_subfolders=False
+    project, folder_path, from_s3_bucket=None, recursive_subfolders=False
 ):
     """Finds and uploads all JSON files in the folder_path as pre-annotations to the project.
 
@@ -1453,6 +1436,7 @@ def upload_preannotations_from_folder_to_project(
     :return: paths to pre-annotations uploaded and could-not-upload
     :rtype: tuple of list of strs
     """
+    get_project_and_folder_metadata(project)
     return _upload_pre_or_annotations_from_folder_to_project(
         project, folder_path, "pre", from_s3_bucket, recursive_subfolders
     )
@@ -1522,12 +1506,12 @@ def unshare_project(project, user):
 
 @Trackable
 def upload_images_from_s3_bucket_to_project(
-        project,
-        accessKeyId,
-        secretAccessKey,
-        bucket_name,
-        folder_path,
-        image_quality_in_editor=None
+    project,
+    accessKeyId,
+    secretAccessKey,
+    bucket_name,
+    folder_path,
+    image_quality_in_editor=None
 ):
     """Uploads all images from AWS S3 bucket to the project.
 
@@ -1721,7 +1705,7 @@ def set_project_workflow(project, new_workflow):
         for attribute in step["attribute"]:
             for att_class in an_class["attribute_groups"]:
                 if att_class["name"] == attribute["attribute"]["attribute_group"
-                ]["name"]:
+                                                              ]["name"]:
                     break
             else:
                 raise SABaseException(
@@ -1861,7 +1845,7 @@ def set_project_settings(project, new_settings):
 
 @Trackable
 def set_project_default_image_quality_in_editor(
-        project, image_quality_in_editor
+    project, image_quality_in_editor
 ):
     """Sets project's default image quality in editor setting.
 
@@ -1870,6 +1854,8 @@ def set_project_default_image_quality_in_editor(
     :param image_quality_in_editor: new setting value, should be "original" or "compressed"
     :type image_quality_in_editor: str
     """
+    if not isinstance(project, dict):
+        project = get_project_metadata_bare(project)
     set_project_settings(
         project,
         [{
@@ -1900,12 +1886,12 @@ def get_project_default_image_quality_in_editor(project):
 
 @Trackable
 def get_project_metadata(
-        project,
-        include_annotation_classes=False,
-        include_settings=False,
-        include_workflow=False,
-        include_contributors=False,
-        include_complete_image_count=False
+    project,
+    include_annotation_classes=False,
+    include_settings=False,
+    include_workflow=False,
+    include_contributors=False,
+    include_complete_image_count=False
 ):
     """Returns project metadata
 
@@ -1936,7 +1922,7 @@ def get_project_metadata(
         result["annotation_classes"] = search_annotation_classes(project)
     if include_contributors:
         result["contributors"] = get_project_metadata_with_users(project
-                                                                 )["users"]
+                                                                )["users"]
     if include_settings:
         result["settings"] = get_project_settings(project)
     if include_workflow:
@@ -1946,13 +1932,13 @@ def get_project_metadata(
 
 @Trackable
 def clone_project(
-        project_name,
-        from_project,
-        project_description=None,
-        copy_annotation_classes=True,
-        copy_settings=True,
-        copy_workflow=True,
-        copy_contributors=False
+    project_name,
+    from_project,
+    project_description=None,
+    copy_annotation_classes=True,
+    copy_settings=True,
+    copy_workflow=True,
+    copy_contributors=False
 ):
     """Create a new project in the team using annotation classes and settings from from_project.
 
@@ -1975,6 +1961,7 @@ def clone_project(
     :return: dict object metadata of the new project
     :rtype: dict
     """
+    get_project_metadata_bare(from_project)
     try:
         get_project_metadata_bare(project_name)
     except SANonExistingProjectNameException:
@@ -1982,8 +1969,9 @@ def clone_project(
     else:
         raise SAExistingProjectNameException(
             0, "Project with name " + project_name +
-               " already exists. Please use unique names for projects to use with SDK."
+            " already exists. Please use unique names for projects to use with SDK."
         )
+
     metadata = get_project_metadata(
         from_project, copy_annotation_classes, copy_settings, copy_workflow,
         copy_contributors
@@ -1993,3 +1981,80 @@ def clone_project(
         metadata["description"] = project_description
 
     return create_project_from_metadata(metadata)
+
+
+@Trackable
+def attach_video_urls_to_project(
+    project, attachments, annotation_status="NotStarted"
+):
+    """Link videos on external storage to SuperAnnotate.
+
+    :param project: project name or project folder path
+    :type project: str or dict
+
+    :param attachments: path to csv file on attachments metadata
+    :type attachments: Path-like (str or Path)
+
+    :param annotation_status: value to set the annotation statuses of the linked videos: NotStarted InProgress QualityCheck Returned Completed Skipped
+    :type annotation_status: str
+
+    :return: attached videos, failed videos, skipped videos
+    :rtype: (list, list, list)
+    """
+    return attach_file_urls_to_project(project, attachments, annotation_status)
+
+
+def attach_file_urls_to_project(project, attachments, annotation_status):
+    """Link files on external storage to SuperAnnotate.
+
+    :param project: project name or project folder path
+    :type project: str or dict
+
+    :param attachments: path to csv file on attachments metadata
+    :type attachments: Path-like (str or Path)
+
+    :param annotation_status: value to set the annotation statuses of the linked files: NotStarted InProgress QualityCheck Returned Completed Skipped
+    :type annotation_status: str
+
+    :return: attached files, failed files, skipped files
+    :rtype: (list, list, list)
+    """
+    project, folder = get_project_and_folder_metadata(project)
+    folder_name = project["name"] + (f'/{folder["name"]}' if folder else "")
+    upload_state = common.upload_state_int_to_str(project.get("upload_state"))
+    if upload_state == "Basic":
+        raise SABaseException(
+            0,
+            "You cannot attach URLs in this type of project. Please attach it in an external storage project"
+        )
+    annotation_status = common.annotation_status_str_to_int(annotation_status)
+    team_id, project_id = project["team_id"], project["id"]
+    df = pd.read_csv(attachments, dtype=str)
+    df = df[~df["url"].isnull()]
+
+    if "name" in df.columns:
+        df["name"] = df["name"].fillna("").apply(
+            lambda cell: cell if str(cell).strip() else str(uuid.uuid4())
+        )
+    else:
+        df["name"] = [str(uuid.uuid4()) for _ in range(len(df.index))]
+
+    df = pd.DataFrame(df, columns=["name", "url"])
+    df_names_urls = df.values.tolist()
+
+    if folder:
+        folder_id = folder["id"]
+    else:
+        folder_id = get_project_root_folder_id(project)
+
+    list_of_uploaded, list_of_not_uploaded, list_of_duplicated = _attach_urls(
+        file_urls=df_names_urls,
+        team_id=team_id,
+        folder_id=folder_id,
+        project_id=project_id,
+        annotation_status=annotation_status,
+        project=project,
+        folder_name=folder_name
+    )
+
+    return list_of_uploaded, list_of_not_uploaded, list_of_duplicated

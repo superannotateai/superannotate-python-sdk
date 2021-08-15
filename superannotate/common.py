@@ -19,7 +19,7 @@ DEFAULT_VIDEO_EXTENSIONS = ("mp4", "avi", "mov", "webm", "flv", "mpg", "ogg")
 
 SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES = set('/\\:*?"<>|')
 
-_PROJECT_TYPES = {"Vector": 1, "Pixel": 2}
+_PROJECT_TYPES = {"Vector": 1, "Pixel": 2, "Video": 3}
 
 _ANNOTATION_STATUSES = {
     "NotStarted": 1,
@@ -58,6 +58,46 @@ _MODEL_TRAINING_TASKS = {
     "Object Detection for Vector Projects": "object_detection_vector",
     "Semantic Segmentation for Pixel Projects": "semantic_segmentation_pixel"
 }
+
+VIDEO_DEPRICATED_FUNCTIONS = [
+    "upload_images_from_folder_to_project",
+    "get_image_metadata",
+    "search_images",
+    "upload_images_to_project",
+    "upload_annotations_from_folder_to_project",
+    "upload_image_annotations",
+    "download_image",
+    "download_image_annotations",
+    "get_image_annotations",
+    "set_image_annotation_status",
+    "aggregate_annotations_as_df",
+    "attach_image_urls_to_project",
+    "clone_project",
+    "copy_image",
+    "export_annotation",
+    "upload_image_to_project",
+    "upload_video_to_project",
+    "add_annotation_bbox_to_image",
+    "assign_images",
+    "delete_images",
+    "get_project_image_count",
+    "set_project_workflow",
+    "upload_preannotations_from_folder_to_project",
+    "upload_videos_from_folder_to_project",
+    "add_annotation_comment_to_image",
+    "add_annotation_point_to_image",
+    "benchmark",
+    "class_distribution",
+    "consensus",
+    "convert_project_type",
+    "copy_images",
+    "get_project_workflow",
+    "move_image",
+    "move_images",
+    "set_images_annotation_statuses",
+    "set_project_default_image_quality_in_editor",
+    "upload_images_from_google_cloud_to_project",
+]
 
 
 def prediction_segmentation_status_from_str_to_int(status):
@@ -109,10 +149,11 @@ def project_type_int_to_str(project_type):
     :return: 'Vector' or 'Pixel'
     :rtype: str
     """
+    if project_type not in _PROJECT_TYPES.values():
+        raise RuntimeError("NA Project type")
     for k, v in _PROJECT_TYPES.items():
         if v == project_type:
             return k
-    raise RuntimeError("NA Project type")
 
 
 def user_role_str_to_int(user_role):
@@ -323,7 +364,7 @@ MAX_IMAGE_RESOLUTION = {
 
 
 def tqdm_converter(
-    total_num, images_converted, images_not_converted, finish_event
+        total_num, images_converted, images_not_converted, finish_event
 ):
     with tqdm(total=total_num) as pbar:
         while True:
