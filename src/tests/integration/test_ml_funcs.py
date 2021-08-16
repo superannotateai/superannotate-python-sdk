@@ -9,7 +9,7 @@ from src.tests.integration.base import BaseTestCase
 
 
 class TestMlFuncs(BaseTestCase):
-    PROJECT_NAME = "rename"
+    PROJECT_NAME = "rename preoject"
     PROJECT_DESCRIPTION = "Desc"
     PROJECT_TYPE = "Vector"
     NEW_PROJECT_NAME = "new"
@@ -48,7 +48,7 @@ class TestMlFuncs(BaseTestCase):
 
 
 class TestSegmentation(BaseTestCase):
-    PROJECT_NAME = "segm"
+    PROJECT_NAME = "TestSegmentation"
     PROJECT_DESCRIPTION = "Desc"
     PROJECT_TYPE = "Pixel"
     TEST_FOLDER_PTH = "data_set"

@@ -7,7 +7,7 @@ from src.tests.integration.base import BaseTestCase
 
 
 class TestNeuralNetworks(BaseTestCase):
-    PROJECT_NAME = "nn"
+    PROJECT_NAME = "TestNeuralNetworks"
     PROJECT_DESCRIPTION = "Desc"
     PROJECT_TYPE = "Vector"
     TEST_FOLDER_PTH = "data_set"

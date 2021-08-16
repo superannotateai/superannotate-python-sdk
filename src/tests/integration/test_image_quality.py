@@ -9,7 +9,7 @@ from src.tests.integration.base import BaseTestCase
 
 
 class TestImageQuality(BaseTestCase):
-    PROJECT_NAME = "img_q"
+    PROJECT_NAME = "img quality"
     PROJECT_DESCRIPTION = "Desc"
     PROJECT_TYPE = "Vector"
     TEST_FOLDER_PTH = "data_set"

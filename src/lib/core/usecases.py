@@ -3229,7 +3229,18 @@ class UploadAnnotationsUseCase(BaseUseCase):
 
                 bucket.put_object(Key=image_info["annotation_bluemap_path"], Body=file)
 
-        self._response.data = annotations_to_upload, missing_annotations
+        uploaded_annotations = [annotation.path for annotation in annotations_to_upload]
+        missing_annotations = [annotation.path for annotation in missing_annotations]
+        failed_annotations = [
+            annotation
+            for annotation in annotation_paths
+            if annotation not in uploaded_annotations + missing_annotations
+        ]
+        self._response.data = (
+            uploaded_annotations,
+            missing_annotations,
+            failed_annotations,
+        )
 
 
 class CreateModelUseCase(BaseUseCase):

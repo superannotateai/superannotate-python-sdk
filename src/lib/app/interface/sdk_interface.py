@@ -1334,7 +1334,6 @@ def upload_images_from_folder_to_project(
 
             if not upload_response.errors and upload_response.data:
                 entity = upload_response.data
-                print(444, entity.name, image_path)
                 return ProcessedImage(uploaded=True, path=entity.path, entity=entity)
             else:
                 return ProcessedImage(uploaded=False, path=image_path, entity=None)
@@ -1405,12 +1404,9 @@ def upload_images_from_folder_to_project(
             executor.submit(upload_method, image_path)
             for image_path in images_to_upload
         ]
-        print(111, [(image_path) for image_path in images_to_upload])
         for future in concurrent.futures.as_completed(results):
             processed_image = future.result()
             if processed_image.uploaded and processed_image.entity:
-                print(222, processed_image.entity.name)
-
                 uploaded_image_entities.append(processed_image.entity)
             else:
                 failed_images.append(processed_image.path)
@@ -2245,15 +2241,12 @@ def upload_annotations_from_folder_to_project(
                 client_s3_bucket=from_s3_bucket,
             )
             if response.errors:
-                failed_annotations.append(
-                    annotation_paths[i : i + chunk_size]
-                )  # noqa: E203
                 logger.warning(response.errors)
-            else:
-                uploaded_annotations.append(response.data[0])
-                missing_annotations.append(response.data[1])
+            if response.data:
+                uploaded_annotations.extend(response.data[0])
+                missing_annotations.extend(response.data[1])
+                failed_annotations.extend(response.data[2])
             progress_bar.update(chunk_size)
-
     return uploaded_annotations, failed_annotations, missing_annotations
 
 
@@ -2303,13 +2296,11 @@ def upload_preannotations_from_folder_to_project(
                 is_pre_annotations=True,
             )
             if response.errors:
-                failed_annotations.append(
-                    annotation_paths[i : i + chunk_size]
-                )  # noqa: E203
                 logger.warning(response.errors)
-            else:
-                uploaded_annotations.append(response.data[0])
-                missing_annotations.append(response.data[1])
+            if response.data:
+                uploaded_annotations.extend(response.data[0])
+                missing_annotations.extend(response.data[1])
+                failed_annotations.extend(response.data[2])
             progress_bar.update(chunk_size)
 
     return uploaded_annotations, failed_annotations, missing_annotations

@@ -42,7 +42,6 @@ class TestAnnotationAdding(BaseTestCase):
             self.PROJECT_NAME, self.folder_path
         )
 
-        time.sleep(2)
         annotations = sa.get_image_annotations(self.PROJECT_NAME, self.EXAMPLE_IMAGE_1)[
             "annotation_json"
         ]
@@ -90,7 +89,6 @@ class TestAnnotationAdding(BaseTestCase):
             "superannotate",
             True,
         )
-        time.sleep(2)
         annotations_new = sa.get_image_annotations(
             self.PROJECT_NAME, self.EXAMPLE_IMAGE_1
         )["annotation_json"]
