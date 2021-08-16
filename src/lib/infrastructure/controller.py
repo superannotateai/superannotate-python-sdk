@@ -1308,6 +1308,7 @@ class Controller(BaseController):
             to_s3_bucket=to_s3_bucket,
         )
         use_case.execute()
+        return self._response
 
     def download_ml_model(self, model_data: dict, download_path: str):
         model = MLModelEntity(
@@ -1443,6 +1444,24 @@ class Controller(BaseController):
         )
         use_case.execute()
         return self._response
+
+    def upload_file_to_s3(
+            self,
+            to_s3_bucket,
+            path,
+            s3_key: str
+    ):
+        use_case = usecases.UploadFileToS3UseCase(
+            response=Response(),
+            to_s3_bucket=to_s3_bucket,
+            path=path,
+            s3_key=s3_key
+        )
+        use_case.execute()
+
+
+
+
 
     def search_models(
         self,

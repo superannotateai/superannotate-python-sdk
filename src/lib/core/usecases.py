@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Iterable
 from typing import List
 from typing import Optional
+import tempfile
 
 import boto3
 import cv2
@@ -3502,14 +3503,18 @@ class DownloadExportUseCase(BaseUseCase):
             with open(filepath, "wb") as f:
                 for chunk in r.iter_content(chunk_size=8192):
                     f.write(chunk)
-        if self._to_s3_bucket is None:
-            if self._extract_zip_contents:
-                with zipfile.ZipFile(filepath, "r") as f:
-                    f.extractall(self._folder_path)
-                Path.unlink(filepath)
-        else:
-            pass
-            # TODO: handle s3
+        if self._extract_zip_contents:
+            with zipfile.ZipFile(filepath, "r") as f:
+                f.extractall(self._folder_path)
+            Path.unlink(filepath)
+
+        self._response.data = self._folder_path
+
+
+
+
+
+
 
 
 class DownloadMLModelUseCase(BaseUseCase):
@@ -3948,3 +3953,23 @@ class SearchMLModels(BaseUseCase):
         ml_models = self._ml_models.get_all(condition=self._condition)
         ml_models = [ml_model.to_dict() for ml_model in ml_models]
         self._response.data = ml_models
+
+
+
+class UploadFileToS3UseCase(BaseUseCase):
+    def __init__(
+        self,
+            response: Response,
+            to_s3_bucket,
+            path,
+            s3_key: str
+    ):
+        super().__init__(response)
+        self._to_s3_bucket = to_s3_bucket
+        self._path = path
+        self._s3_key = s3_key
+
+    def execute(self):
+
+        self._to_s3_bucket.upload_file(str(self._path), self._s3_key)
+
