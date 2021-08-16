@@ -14,7 +14,6 @@ from pathlib import Path
 from typing import Iterable
 from typing import List
 from typing import Optional
-import tempfile
 
 import boto3
 import cv2
@@ -3511,12 +3510,6 @@ class DownloadExportUseCase(BaseUseCase):
         self._response.data = self._folder_path
 
 
-
-
-
-
-
-
 class DownloadMLModelUseCase(BaseUseCase):
     def __init__(
         self,
@@ -3955,15 +3948,8 @@ class SearchMLModels(BaseUseCase):
         self._response.data = ml_models
 
 
-
 class UploadFileToS3UseCase(BaseUseCase):
-    def __init__(
-        self,
-            response: Response,
-            to_s3_bucket,
-            path,
-            s3_key: str
-    ):
+    def __init__(self, response: Response, to_s3_bucket, path, s3_key: str):
         super().__init__(response)
         self._to_s3_bucket = to_s3_bucket
         self._path = path
@@ -3972,4 +3958,3 @@ class UploadFileToS3UseCase(BaseUseCase):
     def execute(self):
 
         self._to_s3_bucket.upload_file(str(self._path), self._s3_key)
-

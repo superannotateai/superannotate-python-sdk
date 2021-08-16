@@ -1,11 +1,11 @@
 import os
-import time
+import tempfile
 from os.path import dirname
+
 import boto3
 import src.lib.app.superannotate as sa
 from src.tests.integration.base import BaseTestCase
-import tempfile
-import pathlib
+
 
 class TestExportUploadS3(BaseTestCase):
     PROJECT_NAME = "export_upload_s3"
@@ -13,8 +13,8 @@ class TestExportUploadS3(BaseTestCase):
     PROJECT_TYPE = "Vector"
     TEST_FOLDER_PTH = "data_set"
     TEST_FOLDER_PATH = "data_set/sample_project_vector"
-    TEST_S3_BUCKET = 'superannotate-python-sdk-test'
-    S3_PREFIX2 = 'frex_temp'
+    TEST_S3_BUCKET = "superannotate-python-sdk-test"
+    S3_PREFIX2 = "frex_temp"
 
     @property
     def folder_path(self):
@@ -24,27 +24,35 @@ class TestExportUploadS3(BaseTestCase):
         # sa.upload_images_from_folder_to_project(
         #     project=self.PROJECT_NAME, folder_path=self.folder_path,annotation_status="QualityCheck"
         # )
-        s3_client = boto3.client('s3')
-        paginator = s3_client.get_paginator('list_objects_v2')
+        s3_client = boto3.client("s3")
+        paginator = s3_client.get_paginator("list_objects_v2")
 
         files = []
 
-
         with tempfile.TemporaryDirectory() as temp_dir:
             download_location = temp_dir
-            response_iterator = paginator.paginate(Bucket=self.TEST_S3_BUCKET, Prefix=self.S3_PREFIX2)
+            response_iterator = paginator.paginate(
+                Bucket=self.TEST_S3_BUCKET, Prefix=self.S3_PREFIX2
+            )
             for response in response_iterator:
-                if 'Contents' in response:
-                    for object_data in response['Contents']:
-                        key = object_data['Key']
+                if "Contents" in response:
+                    for object_data in response["Contents"]:
+                        key = object_data["Key"]
                         s3_client.delete_object(Bucket=self.TEST_S3_BUCKET, Key=key)
             new_export = sa.prepare_export(self.PROJECT_NAME, include_fuse=True)
-            sa.download_export(self.PROJECT_NAME, new_export,download_location, to_s3_bucket=self.TEST_S3_BUCKET)
-            response_iterator = paginator.paginate(Bucket=self.TEST_S3_BUCKET, Prefix=download_location)
+            sa.download_export(
+                self.PROJECT_NAME,
+                new_export,
+                download_location,
+                to_s3_bucket=self.TEST_S3_BUCKET,
+            )
+            response_iterator = paginator.paginate(
+                Bucket=self.TEST_S3_BUCKET, Prefix=download_location
+            )
             for response in response_iterator:
-                if 'Contents' in response:
-                    for object_data in response['Contents']:
-                        key = object_data['Key']
+                if "Contents" in response:
+                    for object_data in response["Contents"]:
+                        key = object_data["Key"]
                         files.append(key)
 
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -54,14 +62,6 @@ class TestExportUploadS3(BaseTestCase):
             local_files = os.listdir(output_path)
 
             assert len(local_files) == len(files)
-
-
-
-
-
-
-
-
 
 
 # import time
