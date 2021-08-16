@@ -1,4 +1,3 @@
-import time
 from unittest import TestCase
 
 import src.lib.app.superannotate as sa
@@ -12,7 +11,6 @@ class TestCloneProject(TestCase):
 
     def setUp(self, *args, **kwargs):
         self.tearDown()
-        time.sleep(1)
         self._project_1 = sa.create_project(
             self.PROJECT_NAME_1, self.PROJECT_DESCRIPTION, self.PROJECT_TYPE
         )
@@ -81,7 +79,6 @@ class TestCloneProject(TestCase):
         )
         self.assertEqual(new_project["description"], self.PROJECT_DESCRIPTION)
         self.assertEqual(new_project["type"].lower(), "vector")
-        time.sleep(1)
 
         ann_classes = sa.search_annotation_classes(self.PROJECT_NAME_2)
         self.assertEqual(len(ann_classes), 1)
