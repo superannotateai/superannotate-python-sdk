@@ -15,7 +15,6 @@ class BaseTestCase(TestCase):
         BaseTestCase.PROJECT_NAME = BaseTestCase.__class__.__name__
 
     def setUp(self, *args, **kwargs):
-        return
         self.tearDown()
         self._project = sa.create_project(
             self.PROJECT_NAME, self.PROJECT_DESCRIPTION, self.PROJECT_TYPE
@@ -23,7 +22,6 @@ class BaseTestCase(TestCase):
         time.sleep(1)
 
     def tearDown(self) -> None:
-        return
         projects = sa.search_projects(self.PROJECT_NAME, return_metadata=True)
         for project in projects:
             sa.delete_project(project)
