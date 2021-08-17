@@ -2022,13 +2022,37 @@ def download_export(
     """
     project_name, folder_name = split_project_path(project)
     export_name = export["name"] if isinstance(export, dict) else export
-    controller.download_export(
+    response = controller.download_export(
         project_name=project_name,
         export_name=export_name,
         folder_path=folder_path,
         extract_zip_contents=extract_zip_contents,
         to_s3_bucket=to_s3_bucket,
     )
+    downloaded_folder_path = response.data
+
+    if to_s3_bucket:
+        to_s3_bucket = boto3.Session().resource("s3").Bucket(to_s3_bucket)
+
+        files_to_upload = []
+        for file in Path(downloaded_folder_path).rglob("*.*"):
+            files_to_upload.append(file)
+
+        def _upload_file_to_s3(to_s3_bucket, path, s3_key) -> None:
+            controller.upload_file_to_s3(
+                to_s3_bucket=to_s3_bucket, path=path, s3_key=s3_key
+            )
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+            results = []
+            for path in files_to_upload:
+                s3_key = f"{path.as_posix()}"
+                results.append(
+                    executor.submit(_upload_file_to_s3, to_s3_bucket, str(path), s3_key)
+                )
+
+            for future in concurrent.futures.as_completed(results):
+                future.result()
 
 
 def set_image_annotation_status(project, image_name, annotation_status):
