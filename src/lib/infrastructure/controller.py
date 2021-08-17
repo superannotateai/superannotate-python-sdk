@@ -88,9 +88,7 @@ class BaseController:
 
 class Controller(BaseController):
     def _get_project(self, name: str):
-        response = Response()
         use_case = usecases.GetProjectByNameUseCase(
-            response=response,
             name=name,
             team_id=self.team_id,
             projects=ProjectRepository(service=self._backend_client),
@@ -413,7 +411,6 @@ class Controller(BaseController):
     def _get_image(
         self, project: ProjectEntity, image_name: str, folder_path: str = None,
     ) -> ImageEntity:
-        response = Response()
         folder = self._get_folder(project, folder_path)
         use_case = usecases.GetImageUseCase(
             project=project, folder=folder, image_name=image_name, images=self.images,
@@ -734,12 +731,11 @@ class Controller(BaseController):
             user_id=user_id,
             user_role=user_role,
         )
-        share_project_use_case.execute()
+        use_case.execute()
 
     def un_share_project(self, project_name: str, user_id: str):
         project_entity = self._get_project(project_name)
         use_case = usecases.UnShareProjectUseCase(
-            response=self.response,
             service=self._backend_client,
             project_entity=project_entity,
             user_id=user_id,
@@ -1290,7 +1286,7 @@ class Controller(BaseController):
 
     def upload_file_to_s3(self, to_s3_bucket, path, s3_key: str):
         use_case = usecases.UploadFileToS3UseCase(
-            response=Response(), to_s3_bucket=to_s3_bucket, path=path, s3_key=s3_key
+            to_s3_bucket=to_s3_bucket, path=path, s3_key=s3_key
         )
         return use_case.execute()
 

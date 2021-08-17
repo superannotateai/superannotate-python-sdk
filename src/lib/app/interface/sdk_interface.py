@@ -2014,7 +2014,7 @@ def download_export(
     :param project: project name
     :type project: str
     :param export: export name
-    :type export: str
+    :type export: str, dict
     :param folder_path: where to download the export
     :type folder_path: Path-like (str or Path)
     :param extract_zip_contents: if False then a zip file will be downloaded,

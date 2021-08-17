@@ -13,7 +13,6 @@ from collections import namedtuple
 from pathlib import Path
 from typing import Iterable
 from typing import List
-from typing import Optional
 
 import boto3
 import cv2
@@ -3397,6 +3396,7 @@ class DownloadExportUseCase(BaseUseCase):
         self._response.data = self._folder_path
         return self._response
 
+
 class DownloadMLModelUseCase(BaseUseCase):
     def __init__(
         self,
@@ -3833,7 +3833,7 @@ class SearchMLModels(BaseUseCase):
 
 
 class UploadFileToS3UseCase(BaseUseCase):
-    def __init__(self, response: Response, to_s3_bucket, path, s3_key: str):
+    def __init__(self, to_s3_bucket, path, s3_key: str):
         super().__init__()
         self._to_s3_bucket = to_s3_bucket
         self._path = path
