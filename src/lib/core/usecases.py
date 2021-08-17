@@ -2206,45 +2206,6 @@ class GetProjectImageCountUseCase(BaseUseCase):
         return self._response
 
 
-class UploadVideoUseCase(BaseUseCase):
-    def __init__(
-        self,
-        project: ProjectEntity,
-        folder: FolderEntity,
-        settings: BaseManageableRepository,
-        s3_repo: BaseManageableRepository,
-        video_path: str,
-        start_time: float,
-        end_time: float = None,
-        annotation_status_code: int = constances.AnnotationStatus.NOT_STARTED.value,
-        image_quality_in_editor: str = None,
-    ):
-        super().__init__()
-        self._project = project
-        self._folder = folder
-        self._settings = settings
-        self._s3_repo = s3_repo
-        self._video_path = video_path
-        self._start_time = start_time
-        self._end_time = end_time
-        self._annotation_status_code = annotation_status_code
-        self._image_quality_in_editor = image_quality_in_editor
-
-    def upload_s3_use_case(self, image, image_path, upload_path):
-        return UploadImageS3UseCas(
-            project=self._project,
-            project_settings=self._settings,
-            image_path=image_path,
-            image=image,
-            s3_repo=self._s3_repo,
-            upload_path=upload_path,
-        )
-
-    def execute(self):
-        # TODO
-        pass
-
-
 class ExtractFramesUseCase(BaseUseCase):
     def __init__(
         self,

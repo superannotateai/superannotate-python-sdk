@@ -1904,7 +1904,7 @@ def create_annotation_classes_from_classes_json(
     :param classes_json: JSON itself or path to the JSON file
     :type classes_json: list or Pathlike (str or Path)
     :param from_s3_bucket: AWS S3 bucket to use. If None then classes_json is in local filesystem
-    :type from_s3_bucket: bool
+    :type from_s3_bucket: str
 
     :return: list of created annotation class metadatas
     :rtype: list of dicts
@@ -1912,8 +1912,13 @@ def create_annotation_classes_from_classes_json(
     annotation_classes = []
     if not isinstance(classes_json, list):
         if from_s3_bucket:
-            # TODO:
-            pass
+            from_session = boto3.Session()
+            from_s3 = from_session.resource('s3')
+            file = io.BytesIO()
+            from_s3_object = from_s3.Object(from_s3_bucket, classes_json)
+            from_s3_object.download_fileobj(file)
+            file.seek(0)
+            annotation_classes = json.load(file)
         else:
             annotation_classes = json.load(open(classes_json))
     else:
