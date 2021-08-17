@@ -569,28 +569,28 @@ class AttachFileUrlsUseCase(BaseUseCase):
             images=[image.name for image in self._attachments],
         )
         duplications = [image["name"] for image in duplications]
-        attachments = []
+        self._attachments = self._attachments[: self._limit]
         meta = {}
-        attachments_to_upload = self._attachments[: self._limit]
+        to_upload = []
         for image in self._attachments:
             if image.name not in duplications:
-                attachments.append({"name": image.name, "path": image.path})
+                to_upload.append({"name": image.name, "path": image.path})
                 meta[image.name] = {
                     "width": image.meta.width,
                     "height": image.meta.height,
                 }
 
-        self._backend_service.attach_files(
+        uploaded = self._backend_service.attach_files(
             project_id=self._project.uuid,
             folder_id=self._folder.uuid,
             team_id=self._project.team_id,
-            files=attachments,
+            files=to_upload,
             annotation_status_code=self.annotation_status_code,
             upload_state_code=self.upload_state_code,
             meta=meta,
         )
 
-        self._response.data = attachments, duplications
+        self._response.data = uploaded, duplications
         return self._response
 
 

@@ -1415,7 +1415,7 @@ def upload_images_from_folder_to_project(
             else:
                 failed_images.append(processed_image.path)
     uploaded = []
-    attachments = []
+    duplicates = []
     for i in range(0, len(uploaded_image_entities), 500):
         response = controller.upload_images(
             project_name=project_name,
@@ -1424,9 +1424,8 @@ def upload_images_from_folder_to_project(
             annotation_status=annotation_status,
         )
         attachments, duplications = response.data
-        attachments.extend(attachments)
-        duplicated_images.extend(duplications)
         uploaded.extend(attachments)
+        duplicates.extend(duplications)
 
     return attachments, failed_images, duplicated_images
 

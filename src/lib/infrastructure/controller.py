@@ -284,7 +284,6 @@ class Controller(BaseController):
         use_case = usecases.CreateFolderUseCase(
             project=project, folder=folder, folders=self.folders,
         )
-        use_case.execute()
         return use_case.execute()
 
     def get_folder(self, project_name: str, folder_name: str):

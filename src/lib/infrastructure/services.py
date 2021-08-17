@@ -261,7 +261,8 @@ class SuperannotateBackendService(BaseBackendService):
             "meta": meta,
         }
         create_image_url = urljoin(self.api_url, self.URL_CREATE_IMAGE)
-        self._request(create_image_url, "post", data)
+        response = self._request(create_image_url, "post", data)
+        return response.json()
 
     def get_folder(self, query_string: str):
         get_folder_url = urljoin(self.api_url, self.URL_GET_FOLDER_BY_NAME)
