@@ -9,7 +9,7 @@ from src.tests.integration.base import BaseTestCase
 
 
 class TestProject(BaseTestCase):
-    PROJECT_NAME = "sample_project"
+    PROJECT_NAME = "sample_basic_project"
     PROJECT_TYPE = "Pixel"
     PROJECT_DESCRIPTION = "DESCRIPTION"
     TEST_IMAGE_NAME = "example_image_1.jpg"

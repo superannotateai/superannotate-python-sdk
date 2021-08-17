@@ -503,6 +503,7 @@ def upload_images_from_public_urls_to_project(
     img_urls,
     img_names=None,
     annotation_status="NotStarted",
+    # TODO check image_quality_in_editor
     image_quality_in_editor=None,
 ):
     """Uploads all images given in the list of URL strings in img_urls to the project.
@@ -597,7 +598,7 @@ def upload_images_from_public_urls_to_project(
                 image.entity for image in images_to_upload[i : i + 500]  # noqa: E203
             ],
             annotation_status=annotation_status,
-            image_quality=image_quality_in_editor,
+            # image_quality=image_quality_in_editor,
         )
     uploaded_image_urls = [image.path for image in images_to_upload]
     uploaded_image_names = [image.entity.name for image in images_to_upload]
@@ -1414,6 +1415,7 @@ def upload_images_from_folder_to_project(
             else:
                 failed_images.append(processed_image.path)
     uploaded = []
+    attachments = []
     for i in range(0, len(uploaded_image_entities), 500):
         response = controller.upload_images(
             project_name=project_name,
@@ -1422,14 +1424,11 @@ def upload_images_from_folder_to_project(
             annotation_status=annotation_status,
         )
         attachments, duplications = response.data
+        attachments.extend(attachments)
         duplicated_images.extend(duplications)
         uploaded.extend(attachments)
 
-    return (
-        attachments,
-        failed_images,
-        duplicated_images,
-    )
+    return attachments, failed_images, duplicated_images
 
 
 def get_project_image_count(project, with_all_subfolders=False):
@@ -1679,6 +1678,7 @@ def upload_videos_from_folder_to_project(
                 image_path=image_path,
                 image_bytes=image_bytes,
                 folder_name=folder_name,
+                image_quality_in_editor=image_quality_in_editor,
             )
             if not upload_response.errors:
                 uploaded_image_entities.append(upload_response.data)
@@ -1727,7 +1727,6 @@ def upload_videos_from_folder_to_project(
             folder_name=folder_name,
             images=uploaded_image_entities[i : i + 500],  # noqa: E203
             annotation_status=annotation_status,
-            image_quality=image_quality_in_editor,
         )
     uploaded_images = [
         image.path
@@ -2014,7 +2013,7 @@ def download_export(
     :param project: project name
     :type project: str
     :param export: export name
-    :type export: str
+    :type export: str, dict
     :param folder_path: where to download the export
     :type folder_path: Path-like (str or Path)
     :param extract_zip_contents: if False then a zip file will be downloaded,
@@ -3069,13 +3068,13 @@ def upload_image_to_project(
         image_path=image_name if image_name else Path(img).name,
         image_bytes=image_bytes,
         folder_name=folder_name,
+        image_quality_in_editor=image_quality_in_editor,
     )
     controller.upload_images(
         project_name=project_name,
         folder_name=folder_name,
         images=[upload_response.data],  # noqa: E203
         annotation_status=annotation_status,
-        image_quality=image_quality_in_editor,
     )
 
 

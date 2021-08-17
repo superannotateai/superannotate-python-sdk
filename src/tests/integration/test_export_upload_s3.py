@@ -22,7 +22,9 @@ class TestExportUploadS3(BaseTestCase):
 
     def test_export_upload(self):
         sa.upload_images_from_folder_to_project(
-            project=self.PROJECT_NAME, folder_path=self.folder_path,annotation_status="QualityCheck"
+            project=self.PROJECT_NAME,
+            folder_path=self.folder_path,
+            annotation_status="QualityCheck",
         )
         s3_client = boto3.client("s3")
         paginator = s3_client.get_paginator("list_objects_v2")
@@ -61,5 +63,4 @@ class TestExportUploadS3(BaseTestCase):
             sa.download_export(self.PROJECT_NAME, new_export, output_path)
             local_files = os.listdir(output_path)
 
-            assert len(local_files) == len(files)
-
+            self.assertEqual(len(local_files), len(files))
