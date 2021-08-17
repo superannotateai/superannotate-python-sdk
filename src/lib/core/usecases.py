@@ -2840,7 +2840,7 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
             Body=json.dumps(self._annotations),
         )
         if self._project.project_type == constances.ProjectType.PIXEL.value:
-            with open(self._mask, 'rb') as fin:
+            with open(self._mask, "rb") as fin:
                 file = io.BytesIO(fin.read())
             bucket.put_object(
                 Key=auth_data["images"][str(image_data["id"])][

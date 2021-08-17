@@ -1,6 +1,7 @@
+from urllib.parse import urlparse
+
 import src.lib.app.superannotate as sa
 from src.tests.integration.base import BaseTestCase
-from urllib.parse import urlparse
 
 
 class TestAnnotationClasses(BaseTestCase):
@@ -23,11 +24,12 @@ class TestAnnotationClasses(BaseTestCase):
     def test_annotation_classes_from_s3(self):
         annotation_classes = sa.search_annotation_classes(self.PROJECT_NAME)
         self.assertEqual(len(annotation_classes), 0)
-        f = urlparse(f"s3://superannotate-python-sdk-test/sample_project_pixel")
+        f = urlparse("s3://superannotate-python-sdk-test/sample_project_pixel")
 
         sa.create_annotation_classes_from_classes_json(
-            self.PROJECT_NAME, f.path[1:] + '/classes/classes.json', from_s3_bucket=f.netloc
+            self.PROJECT_NAME,
+            f.path[1:] + "/classes/classes.json",
+            from_s3_bucket=f.netloc,
         )
         annotation_classes = sa.search_annotation_classes(self.PROJECT_NAME)
-        self.assertEqual(len(annotation_classes),5)
-
+        self.assertEqual(len(annotation_classes), 5)

@@ -1913,7 +1913,7 @@ def create_annotation_classes_from_classes_json(
     if not isinstance(classes_json, list):
         if from_s3_bucket:
             from_session = boto3.Session()
-            from_s3 = from_session.resource('s3')
+            from_s3 = from_session.resource("s3")
             file = io.BytesIO()
             from_s3_object = from_s3.Object(from_s3_bucket, classes_json)
             from_s3_object.download_fileobj(file)

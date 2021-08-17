@@ -34,9 +34,11 @@ class TestPixelImages(BaseTestCase):
             self.assertEqual(len(images), 1)
 
             image_name = images[0]
-            downloaded = sa.download_image(self.PROJECT_NAME, image_name, temp_dir, True)
-            self.assertEqual(downloaded[1],(None,None))
-            self.assertGreater(len(downloaded[0]),0)
+            downloaded = sa.download_image(
+                self.PROJECT_NAME, image_name, temp_dir, True
+            )
+            self.assertEqual(downloaded[1], (None, None))
+            self.assertGreater(len(downloaded[0]), 0)
 
             sa.download_image_annotations(self.PROJECT_NAME, image_name, temp_dir)
             self.assertEqual(len(list(Path(temp_dir).glob("*"))), 0)
@@ -68,7 +70,7 @@ class TestPixelImages(BaseTestCase):
             sa.download_annotation_classes_json(self.PROJECT_NAME, temp_dir)
             downloaded_classes = json.load(open(f"{temp_dir}/classes.json"))
 
-            for a in annotation['instances']:
+            for a in annotation["instances"]:
                 if "className" not in a:
                     continue
                 for c1 in downloaded_classes:
