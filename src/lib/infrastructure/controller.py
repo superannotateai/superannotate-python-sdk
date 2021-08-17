@@ -88,7 +88,9 @@ class BaseController:
 
 class Controller(BaseController):
     def _get_project(self, name: str):
+        response = Response()
         use_case = usecases.GetProjectByNameUseCase(
+            response=response,
             name=name,
             team_id=self.team_id,
             projects=ProjectRepository(service=self._backend_client),
@@ -182,18 +184,15 @@ class Controller(BaseController):
         folder_name: str,
         images: List[ImageEntity],
         annotation_status: str = None,
-        image_quality: str = None,
     ):
         project = self._get_project(project_name)
         folder = self._get_folder(project, folder_name)
-        use_case = usecases.AttachImagesUseCase(
+        use_case = usecases.AttachFileUrlsUseCase(
             project=project,
             folder=folder,
-            project_settings=ProjectSettingsRepository(self._backend_client, project),
             backend_service_provider=self._backend_client,
-            images=images,
+            attachments=images,
             annotation_status=annotation_status,
-            image_quality=image_quality,
         )
         return use_case.execute()
 
@@ -203,6 +202,7 @@ class Controller(BaseController):
         image_path: str,  # image path to upload
         image_bytes: io.BytesIO,
         folder_name: str = None,  # project folder path
+        image_quality_in_editor: str = None,
     ):
         project = self._get_project(project_name)
         folder = self._get_folder(project, folder_name)
@@ -215,6 +215,7 @@ class Controller(BaseController):
             image=image_bytes,
             s3_repo=s3_repo,
             upload_path=auth_data["filePath"],
+            image_quality_in_editor=image_quality_in_editor,
         )
         use_case.execute()
         return use_case.execute()
@@ -733,11 +734,12 @@ class Controller(BaseController):
             user_id=user_id,
             user_role=user_role,
         )
-        return use_case.execute()
+        share_project_use_case.execute()
 
     def un_share_project(self, project_name: str, user_id: str):
         project_entity = self._get_project(project_name)
         use_case = usecases.UnShareProjectUseCase(
+            response=self.response,
             service=self._backend_client,
             project_entity=project_entity,
             user_id=user_id,
@@ -1283,6 +1285,12 @@ class Controller(BaseController):
             service_provider=self._backend_client,
             annotation_status=annotation_status,
             name_prefix=name_prefix,
+        )
+        return use_case.execute()
+
+    def upload_file_to_s3(self, to_s3_bucket, path, s3_key: str):
+        use_case = usecases.UploadFileToS3UseCase(
+            response=Response(), to_s3_bucket=to_s3_bucket, path=path, s3_key=s3_key
         )
         return use_case.execute()
 

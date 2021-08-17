@@ -42,6 +42,7 @@ from src.lib.core.entities import S3FileEntity
 from src.lib.core.entities import TeamEntity
 from src.lib.core.entities import WorkflowEntity
 from src.lib.core.enums import ExportStatus
+from src.lib.core.enums import ImageQuality
 from src.lib.core.enums import ProjectType
 from src.lib.core.exceptions import AppException
 from src.lib.core.exceptions import AppValidationException
@@ -357,74 +358,6 @@ class CloneProjectUseCase(BaseUseCase):
         return self._response
 
 
-class AttachImagesUseCase(BaseUseCase):
-    """
-    Attach urls
-    """
-
-    def __init__(
-        self,
-        project: ProjectEntity,
-        folder: FolderEntity,
-        project_settings: BaseReadOnlyRepository,
-        backend_service_provider: SuerannotateServiceProvider,
-        images: List[ImageEntity],
-        annotation_status: Optional[str] = None,
-        image_quality: Optional[str] = None,
-    ):
-        super().__init__()
-        self._project = project
-        self._folder = folder
-        self._project_settings = project_settings
-        self._backend = backend_service_provider
-        self._images = images
-        self._annotation_status = annotation_status
-        self._image_quality = image_quality
-
-    @property
-    def image_quality(self):
-        if not self._image_quality:
-            for setting in self._project_settings.get_all():
-                if setting.attribute == "ImageQuality":
-                    if setting.value == 60:
-                        return "compressed"
-                    elif setting.value == 100:
-                        return "original"
-                    raise AppException("NA ImageQuality value")
-        return self._image_quality
-
-    @property
-    def upload_state_code(self) -> int:
-        return constances.UploadState.BASIC.value
-
-    @property
-    def annotation_status_code(self):
-        if not self._annotation_status:
-            return constances.AnnotationStatus.NOT_STARTED.value
-        return constances.AnnotationStatus.get_value(self._annotation_status)
-
-    def execute(self):
-        images = []
-        meta = {}
-        for image in self._images:
-            images.append({"name": image.name, "path": image.path})
-            meta[image.name] = {"width": image.meta.width, "height": image.meta.height}
-
-        self._backend.attach_files(
-            project_id=self._project.uuid,
-            folder_id=self._folder.uuid,
-            team_id=self._project.team_id,
-            files=images,
-            annotation_status_code=self.annotation_status_code,
-            upload_state_code=self.upload_state_code,
-            meta=meta,
-        )
-
-    def validate_upload_state(self):
-        if self._project.upload_state == constances.UploadState.EXTERNAL.value:
-            raise AppValidationException("Invalid upload state.")
-
-
 class GetImagesUseCase(BaseUseCase):
     def __init__(
         self,
@@ -494,6 +427,7 @@ class UploadImageS3UseCas(BaseUseCase):
         image: io.BytesIO,
         s3_repo: BaseManageableRepository,
         upload_path: str,
+        image_quality_in_editor: str,
     ):
         super().__init__()
         self._project = project
@@ -502,6 +436,7 @@ class UploadImageS3UseCas(BaseUseCase):
         self._image = image
         self._s3_repo = s3_repo
         self._upload_path = upload_path
+        self._image_quality_in_editor = image_quality_in_editor
 
     @property
     def max_resolution(self) -> int:
@@ -515,11 +450,14 @@ class UploadImageS3UseCas(BaseUseCase):
         origin_width, origin_height = image_processor.get_size()
         thumb_image, _, _ = image_processor.generate_thumb()
         huge_image, huge_width, huge_height = image_processor.generate_huge()
-        quality = 60
         subsampling = -1
-        for setting in self._project_settings.get_all():
-            if setting.attribute == "ImageQuality":
-                quality = setting.value
+        quality = 60
+        if not self._image_quality_in_editor:
+            for setting in self._project_settings.get_all():
+                if setting.attribute == "ImageQuality":
+                    quality = setting.value
+        else:
+            quality = ImageQuality.get_value(self._image_quality_in_editor)
 
         if quality == 100:
             subsampling = 0
@@ -602,7 +540,6 @@ class AttachFileUrlsUseCase(BaseUseCase):
         project: ProjectEntity,
         folder: FolderEntity,
         attachments: List[ImageEntity],
-        limit: int,
         backend_service_provider: SuerannotateServiceProvider,
         annotation_status: str = None,
     ):
@@ -610,7 +547,6 @@ class AttachFileUrlsUseCase(BaseUseCase):
         self._attachments = attachments
         self._project = project
         self._folder = folder
-        self._limit = limit
         self._backend_service = backend_service_provider
         self._annotation_status = annotation_status
 
@@ -632,7 +568,10 @@ class AttachFileUrlsUseCase(BaseUseCase):
             images=[image.name for image in self._attachments],
         )
 
+        duplications = [image["name"] for image in duplications]
+
         attachments = []
+
         meta = {}
         for image in self._attachments:
             if image.name not in duplications:
@@ -652,7 +591,7 @@ class AttachFileUrlsUseCase(BaseUseCase):
             meta=meta,
         )
 
-        self._response.data = attachments[: self._limit], duplications
+        self._response.data = attachments, duplications
         return self._response
 
 
@@ -3450,16 +3389,13 @@ class DownloadExportUseCase(BaseUseCase):
             with open(filepath, "wb") as f:
                 for chunk in r.iter_content(chunk_size=8192):
                     f.write(chunk)
-        if self._to_s3_bucket is None:
-            if self._extract_zip_contents:
-                with zipfile.ZipFile(filepath, "r") as f:
-                    f.extractall(self._folder_path)
-                Path.unlink(filepath)
-        else:
-            pass
-            # TODO: handle s3
-        return self._response
+        if self._extract_zip_contents:
+            with zipfile.ZipFile(filepath, "r") as f:
+                f.extractall(self._folder_path)
+            Path.unlink(filepath)
 
+        self._response.data = self._folder_path
+        return self._response
 
 class DownloadMLModelUseCase(BaseUseCase):
     def __init__(
@@ -3894,3 +3830,14 @@ class SearchMLModels(BaseUseCase):
         ml_models = [ml_model.to_dict() for ml_model in ml_models]
         self._response.data = ml_models
         return self._response
+
+
+class UploadFileToS3UseCase(BaseUseCase):
+    def __init__(self, response: Response, to_s3_bucket, path, s3_key: str):
+        super().__init__()
+        self._to_s3_bucket = to_s3_bucket
+        self._path = path
+        self._s3_key = s3_key
+
+    def execute(self):
+        self._to_s3_bucket.upload_file(str(self._path), self._s3_key)
