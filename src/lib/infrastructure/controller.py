@@ -1015,7 +1015,7 @@ class Controller(BaseController):
     ):
         project = self._get_project(project_name)
         folder = self._get_folder(project, folder_name)
-        image = self._get_image(project, image_name, folder_name).data
+        image = self._get_image(project, image_name, folder_name)
 
         use_case = usecases.DownloadImageUseCase(
             project=project,

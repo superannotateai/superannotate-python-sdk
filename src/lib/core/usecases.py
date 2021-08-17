@@ -1972,7 +1972,9 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
             url=annotation_json_creds["url"], headers=annotation_json_creds["headers"],
         )
         if not response.ok:
-            raise AppException(f"Couldn't load annotations {response.text}")
+            logger.warning(f"Couldn't load annotations {response.text}")
+            self._response.data = (None, None)
+            return self._response
         data["annotation_json"] = response.json()
         data["annotation_json_filename"] = f"{self._image_name}{file_postfix}"
         mask_path = None
@@ -2709,6 +2711,7 @@ class DownloadImageUseCase(BaseUseCase):
             annotations,
             fuse_image,
         )
+        return self._response
 
 
 class UploadImageAnnotationsUseCase(BaseUseCase):
@@ -2837,11 +2840,13 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
             Body=json.dumps(self._annotations),
         )
         if self._project.project_type == constances.ProjectType.PIXEL.value:
+            with open(self._mask, 'rb') as fin:
+                file = io.BytesIO(fin.read())
             bucket.put_object(
                 Key=auth_data["images"][str(image_data["id"])][
                     "annotation_bluemap_path"
                 ],
-                Body=self._mask,
+                Body=file,
             )
         return self._response
 
