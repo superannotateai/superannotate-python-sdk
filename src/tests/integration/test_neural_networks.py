@@ -1,5 +1,4 @@
 import os
-import time
 from os.path import dirname
 
 import src.lib.app.superannotate as sa
@@ -57,7 +56,6 @@ class TestNeuralNetworks(BaseTestCase):
                 self.PROJECT_NAME + "/consensus_" + str(i),
                 self.annotations_path + "/consensus_" + str(i),
             )
-        time.sleep(2)
         new_model = sa.run_training(
             "some name",
             "some desc",

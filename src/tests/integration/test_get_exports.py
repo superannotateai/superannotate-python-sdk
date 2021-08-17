@@ -1,7 +1,6 @@
 import glob
 import os
 import tempfile
-import time
 from os.path import dirname
 
 import src.lib.app.superannotate as sa
@@ -30,10 +29,8 @@ class TestGetExports(BaseTestCase):
 
     def test_get_exports(self):
         tmpdir = tempfile.TemporaryDirectory()
-        time.sleep(2)
         exports_old = sa.get_exports(self.PROJECT_NAME)
         export = sa.prepare_export(self.PROJECT_NAME)
-        time.sleep(2)
         sa.download_export(self.PROJECT_NAME, export["name"], tmpdir.name)
         js = list(glob.glob(tmpdir.name + "/*.json"))
 

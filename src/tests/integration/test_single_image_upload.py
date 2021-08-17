@@ -1,6 +1,5 @@
 import io
 import os
-import time
 from os.path import dirname
 
 import src.lib.app.superannotate as sa
@@ -30,7 +29,6 @@ class TestSingleImageUpload(BaseTestCase):
             self.folder_path + "/example_image_1.jpg",
             annotation_status="InProgress",
         )
-        time.sleep(2)
         assert len(sa.search_images(self.PROJECT_NAME)) == 1
 
         with open(self.folder_path + "/example_image_1.jpg", "rb") as f:

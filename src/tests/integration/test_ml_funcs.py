@@ -1,6 +1,5 @@
 import os
 import tempfile
-import time
 from os.path import dirname
 
 import pytest
@@ -31,7 +30,6 @@ class TestMlFuncs(BaseTestCase):
         sa.upload_images_from_folder_to_project(
             project=self.PROJECT_NAME, folder_path=self.folder_path
         )
-        time.sleep(2)
         image_names_vector = sa.search_images(self.PROJECT_NAME)
         succeeded_images, failed_images = sa.run_prediction(
             self.PROJECT_NAME, image_names_vector, self.MODEL_NAME
@@ -64,7 +62,6 @@ class TestSegmentation(BaseTestCase):
         sa.upload_images_from_folder_to_project(
             project=self.PROJECT_NAME, folder_path=self.folder_path
         )
-        time.sleep(2)
         image_names_pixel = sa.search_images(self.PROJECT_NAME)
         succeeded_images, failed_images = sa.run_segmentation(
             self.PROJECT_NAME, image_names_pixel, self.SEGMENTATION_MODEL_AUTONOMOUS

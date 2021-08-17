@@ -1,6 +1,5 @@
 import os
 import tempfile
-import time
 from os.path import dirname
 from pathlib import Path
 
@@ -29,7 +28,6 @@ class TestVectorPreAnnotationImage(BaseTestCase):
             self.PROJECT_NAME, self.folder_path
         )
         count_in = len(list(Path(self.folder_path).glob("*.json")))
-        time.sleep(2)
         images = sa.search_images(self.PROJECT_NAME)
         with tempfile.TemporaryDirectory() as tmp_dir:
             for image_name in images:

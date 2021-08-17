@@ -155,8 +155,6 @@ class SuperannotateBackendService(BaseBackendService):
     URL_GET_ML_MODEL_DOWNLOAD_TOKEN = "ml_model/getMyModelDownloadToken/{}"
     URL_SEGMENTATION = "images/segmentation"
     URL_PREDICTION = "images/prediction"
-    # todo add urls
-    URL_DELETE_IMAGES = URL_DELETE_FOLDERS
     URL_SET_IMAGES_STATUSES_BULK = "image/updateAnnotationStatusBulk"
 
     def get_project(self, uuid: int, team_id: int):
@@ -622,7 +620,7 @@ class SuperannotateBackendService(BaseBackendService):
         return res.json()
 
     def delete_images(self, project_id: int, team_id: int, image_ids: List[int]):
-        delete_images_url = urljoin(self.api_url, self.URL_DELETE_IMAGES)
+        delete_images_url = urljoin(self.api_url, self.URL_DELETE_FOLDERS)
         res = self._request(
             delete_images_url,
             "put",

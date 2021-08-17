@@ -25,16 +25,15 @@ from lib.app.annotation_helpers import add_annotation_polygon_to_json
 from lib.app.annotation_helpers import add_annotation_polyline_to_json
 from lib.app.annotation_helpers import add_annotation_template_to_json
 from lib.app.exceptions import EmptyOutputError
+from lib.app.helpers import extract_project_folder
 from lib.app.helpers import get_annotation_paths
 from lib.app.helpers import reformat_metrics_json
-from lib.app.helpers import split_project_path
 from lib.app.serializers import BaseSerializers
 from lib.app.serializers import ImageSerializer
 from lib.app.serializers import ProjectSerializer
 from lib.app.serializers import TeamSerializer
 from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
-from lib.core.response import Response
 from lib.infrastructure.controller import Controller
 from lib.infrastructure.repositories import ConfigRepository
 from lib.infrastructure.services import SuperannotateBackendService
@@ -50,8 +49,7 @@ controller = Controller(
         api_url=constances.BACKEND_URL,
         auth_token=ConfigRepository().get_one("token"),
         logger=logger,
-    ),
-    response=Response(),
+    )
 )
 
 
@@ -247,7 +245,7 @@ def search_images(
     :rtype: list of dicts or strs
     """
 
-    project_name, folder_name = split_project_path(project)
+    project_name, folder_name = extract_project_folder(project)
 
     result = controller.search_images(
         project_name=project_name,
@@ -350,7 +348,7 @@ def get_project_and_folder_metadata(project):
     :return: metadata of folder
     :rtype: dict
     """
-    project_name, folder_name = split_project_path(project)
+    project_name, folder_name = extract_project_folder(project)
     project = ProjectSerializer(
         controller.search_project(project_name).data[0]
     ).serialize()
@@ -368,7 +366,7 @@ def rename_folder(project, new_folder_name):
     :param new_folder_name: folder's new name
     :type new_folder_name: str
     """
-    project_name, folder_name = split_project_path(project)
+    project_name, folder_name = extract_project_folder(project)
     controller.update_folder(project_name, folder_name, {"name": new_folder_name})
     logger.info(
         f"Folder {folder_name} renamed to {new_folder_name} in project {project_name}"
@@ -415,7 +413,7 @@ def get_image_bytes(project, image_name, variant="original"):
     :return: io.BytesIO() of the image
     :rtype: io.BytesIO()
     """
-    project_name, folder_name = split_project_path(project)
+    project_name, folder_name = extract_project_folder(project)
     image = controller.get_image_bytes(
         project_name=project_name,
         image_name=image_name,
@@ -451,9 +449,11 @@ def copy_image(
     :param copy_pin: enables image pin status copy
     :type copy_pin: bool
     """
-    source_project_name, source_folder_name = split_project_path(source_project)
+    source_project_name, source_folder_name = extract_project_folder(source_project)
 
-    destination_project, destination_folder = split_project_path(destination_project)
+    destination_project, destination_folder = extract_project_folder(
+        destination_project
+    )
 
     img_bytes = get_image_bytes(project=source_project, image_name=image_name)
 
@@ -529,7 +529,7 @@ def upload_images_from_public_urls_to_project(
     if img_names is not None and len(img_names) != len(img_urls):
         raise AppException("Not all image URLs have corresponding names.")
 
-    project_name, folder_name = split_project_path(project)
+    project_name, folder_name = extract_project_folder(project)
     existing_images = controller.search_images(
         project_name=project_name, folder_path=folder_name
     ).data
@@ -637,9 +637,9 @@ def copy_images(
     :rtype: list of strs
     """
 
-    project_name, source_folder_name = split_project_path(source_project)
+    project_name, source_folder_name = extract_project_folder(source_project)
 
-    _, destination_folder_name = split_project_path(destination_project)
+    _, destination_folder_name = extract_project_folder(destination_project)
 
     if not image_names:
         images = controller.search_images(
@@ -696,9 +696,9 @@ def move_images(
     :return: list of skipped image names
     :rtype: list of strs
     """
-    project_name, source_folder_name = split_project_path(source_project)
+    project_name, source_folder_name = extract_project_folder(source_project)
 
-    _, destination_folder_name = split_project_path(destination_project)
+    _, destination_folder_name = extract_project_folder(destination_project)
 
     if not image_names:
         images = controller.search_images(
@@ -756,7 +756,7 @@ def get_project_metadata(
     :return: metadata of project
     :rtype: dict
     """
-    project_name, folder_name = split_project_path(project)
+    project_name, folder_name = extract_project_folder(project)
     metadata = controller.get_project_metadata(
         project_name,
         include_annotation_classes,
@@ -788,7 +788,7 @@ def get_project_settings(project):
     :return: project settings
     :rtype: list of dicts
     """
-    project_name, folder_name = split_project_path(project)
+    project_name, folder_name = extract_project_folder(project)
     settings = controller.get_project_settings(project_name=project_name)
     settings = [BaseSerializers(attribute).serialize() for attribute in settings.data]
     return settings
@@ -805,7 +805,7 @@ def get_project_workflow(project):
     :return: project workflow
     :rtype: list of dicts
     """
-    project_name, folder_name = split_project_path(project)
+    project_name, folder_name = extract_project_folder(project)
     workflow = controller.get_project_workflow(project_name=project_name)
     return workflow.data
 
@@ -822,7 +822,7 @@ def search_annotation_classes(project, name_prefix=None):
     :return: annotation classes of the project
     :rtype: list of dicts
     """
-    project_name, folder_name = split_project_path(project)
+    project_name, folder_name = extract_project_folder(project)
     classes = controller.search_annotation_classes(project_name, name_prefix)
     classes = [BaseSerializers(attribute).serialize() for attribute in classes.data]
     return classes
@@ -841,7 +841,7 @@ def set_project_settings(project, new_settings):
     :return: updated part of project's settings
     :rtype: list of dicts
     """
-    project_name, folder_name = split_project_path(project)
+    project_name, folder_name = extract_project_folder(project)
     updated = controller.set_project_settings(project_name, new_settings)
     return updated.data
 
@@ -855,7 +855,7 @@ def get_project_default_image_quality_in_editor(project):
     :return: "original" or "compressed" setting value
     :rtype: str
     """
-    project_name, folder_name = split_project_path(project)
+    project_name, folder_name = extract_project_folder(project)
     settings = controller.get_project_settings(project_name)
     for setting in settings:
         if setting.attribute == "ImageQuality":
@@ -870,7 +870,7 @@ def set_project_default_image_quality_in_editor(project, image_quality_in_editor
     :param image_quality_in_editor: new setting value, should be "original" or "compressed"
     :type image_quality_in_editor: str
     """
-    project_name, folder_name = split_project_path(project)
+    project_name, folder_name = extract_project_folder(project)
     image_quality_in_editor = ImageQuality.get_value(image_quality_in_editor)
 
     updated = controller.set_project_settings(
@@ -890,7 +890,7 @@ def pin_image(project, image_name, pin=True):
     :param pin: sets to pin if True, else unpins image
     :type pin: bool
     """
-    project_name, folder_name = split_project_path(project)
+    project_name, folder_name = extract_project_folder(project)
     controller.update_image(
         project_name=project_name,
         image_name=image_name,
@@ -907,7 +907,7 @@ def delete_image(project, image_name):
     :param image_name: image name
     :type image: str
     """
-    project_name, _ = split_project_path(project)
+    project_name, _ = extract_project_folder(project)
     controller.delete_image(image_name=image_name, project_name=project_name)
 
 
@@ -922,7 +922,7 @@ def get_image_metadata(project, image_name, return_dict_on_single_output=True):
     :return: metadata of image
     :rtype: dict
     """
-    project_name, folder_name = split_project_path(project)
+    project_name, folder_name = extract_project_folder(project)
     res_data = controller.get_image_metadata(project_name, folder_name, image_name).data
     res_data["annotation_status"] = constances.AnnotationStatus.get_name(
         res_data["annotation_status"]
@@ -941,7 +941,7 @@ def set_images_annotation_statuses(project, image_names, annotation_status):
            should be one of NotStarted InProgress QualityCheck Returned Completed Skipped
     :type annotation_status: str
     """
-    project_name, folder_name = split_project_path(project)
+    project_name, folder_name = extract_project_folder(project)
     controller.set_images_annotation_statuses(
         project_name, folder_name, image_names, annotation_status
     )
@@ -955,7 +955,7 @@ def delete_images(project, image_names=None):
     :param image_names: to be deleted images' names. If None, all the images will be deleted
     :type image_names: list of strs
     """
-    project_name, folder_name = split_project_path(project)
+    project_name, folder_name = extract_project_folder(project)
 
     controller.delete_images(
         project_name=project_name, folder_name=folder_name, image_names=image_names
@@ -978,7 +978,7 @@ def assign_images(project, image_names, user):
     :param user: user email
     :type user: str
     """
-    project_name, folder_name = split_project_path(project)
+    project_name, folder_name = extract_project_folder(project)
     if not folder_name:
         folder_name = "root"
     controller.assign_images(project_name, folder_name, image_names, user)
@@ -994,7 +994,7 @@ def unassign_images(project, image_names):
     :param image_names: list of image unassign
     :type image_names: list of str
     """
-    project_name, folder_name = split_project_path(project)
+    project_name, folder_name = extract_project_folder(project)
 
     controller.un_assign_images(
         project_name=project_name, folder_name=folder_name, image_names=image_names
@@ -1095,7 +1095,7 @@ def upload_images_from_google_cloud_to_project(
 
     failed_images = []
     duplicated_images = []
-    project_name, folder_name = split_project_path(project)
+    project_name, folder_name = extract_project_folder(project)
     ProcessedImage = namedtuple("ProcessedImage", ["uploaded", "path", "entity"])
 
     def _upload_image(image_path: str) -> ProcessedImage:
@@ -1190,7 +1190,7 @@ def upload_images_from_azure_blob_to_project(
 
     failed_images = []
     duplicated_images = []
-    project_name, folder_name = split_project_path(project)
+    project_name, folder_name = extract_project_folder(project)
     ProcessedImage = namedtuple("ProcessedImage", ["uploaded", "path", "entity"])
 
     def _upload_image(image_path: str) -> ProcessedImage:
@@ -1271,7 +1271,7 @@ def get_image_annotations(project, image_name):
         "annotation_mask_filename": mask filename on server
     :rtype: dict
     """
-    project_name, folder_name = split_project_path(project)
+    project_name, folder_name = extract_project_folder(project)
     res = controller.get_image_annotations(
         project_name=project_name, folder_name=folder_name, image_name=image_name
     )
@@ -1319,7 +1319,7 @@ def upload_images_from_folder_to_project(
     """
     uploaded_image_entities = []
     failed_images = []
-    project_name, folder_name = split_project_path(project)
+    project_name, folder_name = extract_project_folder(project)
     ProcessedImage = namedtuple("ProcessedImage", ["uploaded", "path", "entity"])
 
     def _upload_local_image(image_path: str):
@@ -1353,9 +1353,10 @@ def upload_images_from_folder_to_project(
             folder_name=folder_name,
         )
         if not upload_response.errors and upload_response.data:
-            uploaded_image_entities.append(upload_response.data)
+            entity = upload_response.data
+            return ProcessedImage(uploaded=True, path=entity.path, entity=entity)
         else:
-            failed_images.append(str(image_path))
+            return ProcessedImage(uploaded=False, path=image_path, entity=None)
 
     paths = []
     if from_s3_bucket is None:
@@ -1399,7 +1400,7 @@ def upload_images_from_folder_to_project(
         [item for item in duplication_counter if duplication_counter[item] > 1],
     )
     upload_method = _upload_s3_image if from_s3_bucket else _upload_local_image
-    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
         results = [
             executor.submit(upload_method, image_path)
             for image_path in images_to_upload
@@ -1439,7 +1440,7 @@ def get_project_image_count(project, with_all_subfolders=False):
     :rtype: int
     """
 
-    project_name, folder_name = split_project_path(project)
+    project_name, folder_name = extract_project_folder(project)
 
     response = controller.get_project_image_count(
         project_name=project_name,
@@ -1464,7 +1465,7 @@ def get_image_preannotations(project, image_name):
         "preannotation_mask_filename": mask filename on server
     :rtype: dict
     """
-    project_name, folder_name = split_project_path(project)
+    project_name, folder_name = extract_project_folder(project)
     res = controller.get_image_pre_annotations(
         project_name=project_name, folder_name=folder_name, image_name=image_name
     )
@@ -1485,7 +1486,7 @@ def download_image_annotations(project, image_name, local_dir_path):
     :return: paths of downloaded annotations
     :rtype: tuple
     """
-    project_name, folder_name = split_project_path(project)
+    project_name, folder_name = extract_project_folder(project)
     res = controller.download_image_annotations(
         project_name=project_name,
         folder_name=folder_name,
@@ -1509,7 +1510,7 @@ def download_image_preannotations(project, image_name, local_dir_path):
     :return: paths of downloaded pre-annotations
     :rtype: tuple
     """
-    project_name, folder_name = split_project_path(project)
+    project_name, folder_name = extract_project_folder(project)
     res = controller.download_image_pre_annotations(
         project_name=project_name,
         folder_name=folder_name,
@@ -1560,7 +1561,7 @@ def upload_images_from_s3_bucket_to_project(
            Can be either "compressed" or "original".  If None then the default value in project settings will be used.
     :type image_quality_in_editor: str
     """
-    project_name, folder_name = split_project_path(project)
+    project_name, folder_name = extract_project_folder(project)
     controller.backend_upload_from_s3(
         project_name=project_name,
         folder_name=folder_name,
@@ -1597,7 +1598,7 @@ def prepare_export(
     :return: metadata object of the prepared export
     :rtype: dict
     """
-    project_name, folder_name = split_project_path(project)
+    project_name, folder_name = extract_project_folder(project)
     folders = None
     if folder_name:
         folders = [folder_name]
@@ -1661,7 +1662,7 @@ def upload_videos_from_folder_to_project(
     :rtype: tuple of list of strs
     """
 
-    project_name, folder_name = split_project_path(project)
+    project_name, folder_name = extract_project_folder(project)
 
     uploaded_image_entities = []
     failed_images = []
@@ -1766,7 +1767,7 @@ def upload_video_to_project(
     :rtype: list of strs
     """
 
-    project_name, folder_name = split_project_path(project)
+    project_name, folder_name = extract_project_folder(project)
 
     uploaded_image_entities = []
     failed_images = []
@@ -1950,9 +1951,11 @@ def move_image(
             "Cannot move image if source_project == destination_project."
         )
 
-    source_project_name, source_folder_name = split_project_path(source_project)
+    source_project_name, source_folder_name = extract_project_folder(source_project)
 
-    destination_project, destination_folder = split_project_path(destination_project)
+    destination_project, destination_folder = extract_project_folder(
+        destination_project
+    )
 
     img_bytes = get_image_bytes(project=source_project, image_name=image_name)
     image_path = destination_folder + image_name
@@ -2014,9 +2017,9 @@ def download_export(
      if True the zip file will be extracted at folder_path
     :type extract_zip_contents: bool
     :param to_s3_bucket: AWS S3 bucket to use for download. If None then folder_path is in local filesystem.
-    :type to_from_s3_bucket: str
+    :type to_from_s3_bucket: Bucket object
     """
-    project_name, folder_name = split_project_path(project)
+    project_name, folder_name = extract_project_folder(project)
     export_name = export["name"] if isinstance(export, dict) else export
     controller.download_export(
         project_name=project_name,
@@ -2041,7 +2044,7 @@ def set_image_annotation_status(project, image_name, annotation_status):
     :return: metadata of the updated image
     :rtype: dict
     """
-    project_name, folder_name = split_project_path(project)
+    project_name, folder_name = extract_project_folder(project)
     controller.set_images_annotation_statuses(
         project_name, folder_name, [image_name], annotation_status
     )
@@ -2121,7 +2124,7 @@ def download_image(
     :return: paths of downloaded image and annotations if included
     :rtype: tuple
     """
-    project_name, folder_name = split_project_path(project)
+    project_name, folder_name = extract_project_folder(project)
     response = controller.download_image(
         project_name=project_name,
         folder_name=folder_name,
@@ -2148,7 +2151,7 @@ def attach_image_urls_to_project(project, attachments, annotation_status="NotSta
     :return: list of linked image names, list of failed image names, list of duplicate image names
     :rtype: tuple
     """
-    project_name, folder_name = split_project_path(project)
+    project_name, folder_name = extract_project_folder(project)
 
     image_data = pd.read_csv(attachments, dtype=str)
     image_data = image_data[~image_data["url"].isnull()]
@@ -2222,7 +2225,7 @@ def upload_annotations_from_folder_to_project(
     :rtype: tuple of list of strs
     """
 
-    project_name, folder_name = split_project_path(project)
+    project_name, folder_name = extract_project_folder(project)
 
     annotation_paths = get_annotation_paths(
         folder_path, from_s3_bucket, recursive_subfolders
@@ -2276,7 +2279,7 @@ def upload_preannotations_from_folder_to_project(
     :return: paths to pre-annotations uploaded and could-not-upload
     :rtype: tuple of list of strs
     """
-    project_name, folder_name = split_project_path(project)
+    project_name, folder_name = extract_project_folder(project)
 
     annotation_paths = get_annotation_paths(
         folder_path, from_s3_bucket, recursive_subfolders
@@ -2332,7 +2335,7 @@ def upload_image_annotations(
         if verbose:
             logger.info("Uploading annotations from %s.", annotation_json)
         annotation_json = json.load(open(annotation_json))
-    project_name, folder_name = split_project_path(project)
+    project_name, folder_name = extract_project_folder(project)
     controller.upload_image_annotations(
         project_name=project_name,
         folder_name=folder_name,
@@ -2594,7 +2597,7 @@ def run_segmentation(project, images_list, model):
     if isinstance(project, dict):
         project_name = project["name"]
     if isinstance(project, str):
-        project_name, folder_name = split_project_path(project)
+        project_name, folder_name = extract_project_folder(project)
 
     model_name = model
     if isinstance(model, dict):
@@ -2626,7 +2629,7 @@ def run_prediction(project, images_list, model):
     if isinstance(project, dict):
         project_name = project["name"]
     if isinstance(project, str):
-        project_name, folder_name = split_project_path(project)
+        project_name, folder_name = extract_project_folder(project)
 
     model_name = model
     if isinstance(model, dict):
@@ -3024,7 +3027,7 @@ def upload_image_to_project(
            Can be either "compressed" or "original".  If None then the default value in project settings will be used.
     :type image_quality_in_editor: str
     """
-    project_name, folder_name = split_project_path(project)
+    project_name, folder_name = extract_project_folder(project)
 
     if not isinstance(img, io.BytesIO):
         if from_s3_bucket:

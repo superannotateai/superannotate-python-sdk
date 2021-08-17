@@ -1,7 +1,6 @@
 import os
 import pathlib
 import tempfile
-import time
 from os.path import dirname
 
 import src.lib.app.superannotate as sa
@@ -9,7 +8,7 @@ from src.tests.integration.base import BaseTestCase
 
 
 class TestFolders(BaseTestCase):
-    PROJECT_NAME = "test_folders"
+    PROJECT_NAME = "test folders"
     TEST_FOLDER_PATH = "data_set/sample_project_vector"
     PROJECT_DESCRIPTION = "desc"
     PROJECT_TYPE = "Vector"
@@ -30,7 +29,6 @@ class TestFolders(BaseTestCase):
         sa.upload_images_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
         )
-        time.sleep(2)
         images = sa.search_images(self.PROJECT_NAME, self.EXAMPLE_IMAGE_1)
         self.assertEqual(len(images), 1)
 
@@ -41,7 +39,6 @@ class TestFolders(BaseTestCase):
         self.assertEqual(folder_metadata["name"], self.TEST_FOLDER_NAME_1)
 
         folders = sa.search_folders(self.PROJECT_NAME, return_metadata=True)
-        time.sleep(2)
         self.assertEqual(len(folders), 1)
 
         self.assertEqual(folders[0]["name"], self.TEST_FOLDER_NAME_1)
@@ -73,7 +70,6 @@ class TestFolders(BaseTestCase):
             self.folder_path,
             annotation_status="InProgress",
         )
-        time.sleep(2)
         images = sa.search_images(
             f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_1}", self.EXAMPLE_IMAGE_1
         )
@@ -84,7 +80,6 @@ class TestFolders(BaseTestCase):
             self.folder_path,
             annotation_status="InProgress",
         )
-        time.sleep(2)
         images = sa.search_images(f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_1}")
         self.assertEqual(len(images), 4)
 
@@ -130,7 +125,6 @@ class TestFolders(BaseTestCase):
         )
         folder_metadata = sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1)
         self.assertEqual(folder_metadata["name"], self.TEST_FOLDER_NAME_1)
-        time.sleep(2)
         folders = sa.search_folders(self.PROJECT_NAME, return_metadata=True)
         self.assertEqual(len(folders), 1)
 
@@ -142,7 +136,6 @@ class TestFolders(BaseTestCase):
         sa.upload_annotations_from_folder_to_project(
             self.PROJECT_NAME + "/" + folders[0]["name"], self.folder_path
         )
-        time.sleep(2)
         annotations = sa.get_image_annotations(
             f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_1}",
             f"{self.EXAMPLE_IMAGE_1}.jpg",
@@ -153,23 +146,18 @@ class TestFolders(BaseTestCase):
 
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1)
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_2)
-        time.sleep(2)
 
         self.assertEqual(len(sa.search_folders(self.PROJECT_NAME)), 2)
 
         sa.delete_folders(self.PROJECT_NAME, [self.TEST_FOLDER_NAME_1])
-        time.sleep(2)
         self.assertEqual(len(sa.search_folders(self.PROJECT_NAME)), 1)
         sa.delete_folders(self.PROJECT_NAME, [self.TEST_FOLDER_NAME_2])
-        time.sleep(2)
         self.assertEqual(len(sa.search_folders(self.PROJECT_NAME)), 0)
         sa.create_folder(self.PROJECT_NAME, "folder5")
         sa.create_folder(self.PROJECT_NAME, "folder6")
-        time.sleep(2)
         self.assertEqual(len(sa.search_folders(self.PROJECT_NAME)), 2)
 
         sa.delete_folders(self.PROJECT_NAME, ["folder2", "folder5"])
-        time.sleep(2)
         self.assertEqual(len(sa.search_folders(self.PROJECT_NAME)), 1)
         self.assertEqual(sa.search_folders(self.PROJECT_NAME)[0], "folder6")
 
@@ -177,12 +165,9 @@ class TestFolders(BaseTestCase):
         sa.create_folder(self.PROJECT_NAME, "folder_1")
         sa.create_folder(self.PROJECT_NAME, "folder_2")
         sa.create_folder(self.PROJECT_NAME, "folder_3")
-        time.sleep(2)
-
         self.assertEqual(len(sa.search_folders(self.PROJECT_NAME)), 3)
 
         sa.rename_folder(f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_1}", "folder_5")
-        time.sleep(2)
         self.assertEqual(len(sa.search_folders(self.PROJECT_NAME)), 3)
 
         self.assertTrue("folder_5" in sa.search_folders(self.PROJECT_NAME))
@@ -196,7 +181,6 @@ class TestFolders(BaseTestCase):
         self.assertEqual(num_images, 4)
 
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1)
-        time.sleep(2)
         sa.upload_images_from_folder_to_project(
             self.PROJECT_NAME + f"/{self.TEST_FOLDER_NAME_1}",
             self.folder_path,
@@ -223,8 +207,7 @@ class TestFolders(BaseTestCase):
             self.folder_path,
             annotation_status="InProgress",
         )
-        time.sleep(2)
-        # todo added with_all_subfolders=True
+        # todo added with_all_sub_folders=True
         num_images = sa.get_project_image_count(
             self.PROJECT_NAME, with_all_subfolders=True
         )
@@ -234,7 +217,6 @@ class TestFolders(BaseTestCase):
             f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_1}",
             ["example_image_2.jpg", "example_image_3.jpg"],
         )
-        time.sleep(2)
         # todo added with_all_subfolders=True
         num_images = sa.get_project_image_count(
             self.PROJECT_NAME, with_all_subfolders=True
@@ -242,7 +224,6 @@ class TestFolders(BaseTestCase):
         self.assertEqual(num_images, 2)
 
         sa.delete_images(self.PROJECT_NAME, None)
-        time.sleep(2)
         # todo added with_all_subfolders=True
         num_images = sa.get_project_image_count(
             self.PROJECT_NAME, with_all_subfolders=True
@@ -254,7 +235,6 @@ class TestFolders(BaseTestCase):
             self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
         )
         sa.create_folder(f"{self.PROJECT_NAME}_1", self.TEST_FOLDER_NAME_1)
-        time.sleep(2)
         sa.copy_images(
             f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_1}",
             ["example_image_2.jpg", "example_image_3.jpg"],
@@ -268,7 +248,6 @@ class TestFolders(BaseTestCase):
             # todo add in caplog.text
         )
 
-        time.sleep(2)
         num_images = sa.get_project_image_count(f"{self.PROJECT_NAME}_1")
         assert num_images == 2
 
@@ -281,12 +260,10 @@ class TestFolders(BaseTestCase):
         )
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1)
         project = f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_1}"
-        time.sleep(2)
 
         sa.copy_images(
             self.PROJECT_NAME, ["example_image_2.jpg", "example_image_3.jpg"], project
         )
-        time.sleep(2)
 
         num_images = sa.get_project_image_count(project)
         self.assertEqual(num_images, 2)
@@ -351,22 +328,18 @@ class TestFolders(BaseTestCase):
     def test_move_images(self):
         sa.create_folder(self.PROJECT_NAME, "folder1")
         project = f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_1}"
-        time.sleep(2)
         sa.upload_images_from_folder_to_project(
             project, self.folder_path, annotation_status="InProgress"
         )
-        time.sleep(2)
         num_images = sa.get_project_image_count(project)
         self.assertEqual(num_images, 4)
 
         sa.create_folder(self.PROJECT_NAME, "folder2")
-        time.sleep(2)
         project2 = self.PROJECT_NAME + "/folder2"
         num_images = sa.get_project_image_count(project2)
         self.assertEqual(num_images, 0)
 
         sa.move_images(project, ["example_image_2.jpg"], project2)
-        time.sleep(2)
         num_images = sa.get_project_image_count(project2)
         self.assertEqual(num_images, 1)
 
@@ -392,22 +365,18 @@ class TestFolders(BaseTestCase):
     def test_move_images2(self):
         sa.create_folder(self.PROJECT_NAME, "folder1")
         project = f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_1}"
-        time.sleep(2)
         sa.upload_images_from_folder_to_project(
             project, self.folder_path, annotation_status="InProgress"
         )
-        time.sleep(2)
         num_images = sa.get_project_image_count(project)
         self.assertEqual(num_images, 4)
 
         sa.create_folder(self.PROJECT_NAME, "folder2")
-        time.sleep(2)
         project2 = self.PROJECT_NAME + "/folder2"
         num_images = sa.get_project_image_count(project2)
         self.assertEqual(num_images, 0)
 
         sa.move_images(project, None, project2)
-        time.sleep(2)
         num_images = sa.get_project_image_count(project2)
         self.assertEqual(num_images, 4)
 
@@ -418,26 +387,21 @@ class TestFolders(BaseTestCase):
         sa.create_annotation_classes_from_classes_json(
             self.PROJECT_NAME, self.classes_json
         )
-        sa.create_folder(self.PROJECT_NAME, "folder1")
+        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1)
         project = f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_1}"
-        time.sleep(2)
         sa.upload_images_from_folder_to_project(
             project, self.folder_path, annotation_status="InProgress"
         )
-        time.sleep(2)
         sa.upload_annotations_from_folder_to_project(project, self.folder_path)
-        time.sleep(2)
         num_images = sa.get_project_image_count(project)
         self.assertEqual(num_images, 4)
 
-        sa.create_folder(self.PROJECT_NAME, "folder2")
-        time.sleep(2)
-        project2 = self.PROJECT_NAME + "/folder2"
+        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_2)
+        project2 = f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_2}"
         num_images = sa.get_project_image_count(project2)
         self.assertEqual(num_images, 0)
 
         sa.pin_image(project, "example_image_2.jpg")
-        time.sleep(2)
 
         im1 = sa.get_image_metadata(project, "example_image_2.jpg")
         self.assertTrue(im1["is_pinned"])
@@ -446,7 +410,6 @@ class TestFolders(BaseTestCase):
         sa.copy_images(
             project, ["example_image_2.jpg", "example_image_3.jpg"], project2
         )
-        time.sleep(2)
 
         num_images = sa.get_project_image_count(project2)
         self.assertEqual(num_images, 2)
@@ -473,28 +436,26 @@ class TestFolders(BaseTestCase):
         )
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1)
         project = f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_1}"
-        time.sleep(2)
         sa.upload_images_from_folder_to_project(
             project, self.folder_path, annotation_status="InProgress"
         )
 
         sa.upload_annotations_from_folder_to_project(project, self.folder_path)
-        time.sleep(2)
         num_images = sa.get_project_image_count(project)
         self.assertEqual(num_images, 4)
 
-        sa.create_folder(self.PROJECT_NAME, "folder2")
-        project2 = self.PROJECT_NAME + "/folder2"
-        time.sleep(2)
+        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_2)
+        project2 = f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_2}"
         num_images = sa.get_project_image_count(project2)
         self.assertEqual(num_images, 0)
 
         sa.copy_images(
             project, ["example_image_2.jpg", "example_image_3.jpg"], project2
         )
-        time.sleep(2)
 
-        export = sa.prepare_export(self.PROJECT_NAME, ["folder1", "folder2"])
+        export = sa.prepare_export(
+            self.PROJECT_NAME, [self.TEST_FOLDER_NAME_2, self.TEST_FOLDER_NAME_1]
+        )
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_dir = pathlib.Path(temp_dir)
             sa.download_export(project, export, temp_dir)
@@ -517,16 +478,14 @@ class TestFolders(BaseTestCase):
         sa.upload_images_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
         )
-        sa.create_folder(self.PROJECT_NAME, "folder1")
+        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1)
         project = f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_1}"
-        time.sleep(2)
         sa.upload_images_from_folder_to_project(
             project, self.folder_path, annotation_status="InProgress"
         )
         sa.set_images_annotation_statuses(
             project, ["example_image_1.jpg", "example_image_2.jpg"], "QualityCheck"
         )
-        time.sleep(2)
         for image in ["example_image_1.jpg", "example_image_2.jpg"]:
             metadata = sa.get_image_metadata(project, image)
             self.assertEqual(metadata["annotation_status"], "QualityCheck")
@@ -537,21 +496,19 @@ class TestFolders(BaseTestCase):
 
         sa.set_images_annotation_statuses(self.PROJECT_NAME, None, "QualityCheck")
 
-        time.sleep(2)
         for image in sa.search_images(self.PROJECT_NAME):
             metadata = sa.get_image_metadata(self.PROJECT_NAME, image)
             self.assertEqual(metadata["annotation_status"], "QualityCheck")
 
     def test_folder_misnamed(self):
 
-        sa.create_folder(self.PROJECT_NAME, "folder1")
-        time.sleep(1)
+        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1)
         self.assertTrue("folder1" in sa.search_folders(self.PROJECT_NAME))
 
-        sa.create_folder(self.PROJECT_NAME, "folder1")
-        time.sleep(1)
+        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1)
         self.assertTrue("folder1 (1)" in sa.search_folders(self.PROJECT_NAME))
 
-        sa.create_folder(self.PROJECT_NAME, "folder2\\")
-        time.sleep(1)
-        self.assertTrue("folder2_" in sa.search_folders(self.PROJECT_NAME))
+        sa.create_folder(self.PROJECT_NAME, f"{self.TEST_FOLDER_NAME_2}\\")
+        self.assertTrue(
+            f"{self.TEST_FOLDER_NAME_2}_" in sa.search_folders(self.PROJECT_NAME)
+        )

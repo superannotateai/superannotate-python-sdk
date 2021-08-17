@@ -1,5 +1,4 @@
 import os
-import time
 from os.path import dirname
 from pathlib import Path
 
@@ -24,7 +23,6 @@ class TestImageCopy(BaseTestCase):
         self._second_project = sa.create_project(
             self.SECOND_PROJECT_NAME, self.PROJECT_DESCRIPTION, self.PROJECT_TYPE
         )
-        time.sleep(1)
 
     def tearDown(self) -> None:
         for project_name in (self.PROJECT_NAME, self.SECOND_PROJECT_NAME):
@@ -51,8 +49,6 @@ class TestImageCopy(BaseTestCase):
             annotation_status="InProgress",
         )
 
-        time.sleep(2)
-
         images = sa.search_images(self.PROJECT_NAME)
         self.assertEqual(len(images), 2)
         image = images[0]
@@ -60,17 +56,13 @@ class TestImageCopy(BaseTestCase):
         sa.copy_image(
             self.PROJECT_NAME, image, f"{self.PROJECT_NAME}/{self.TEST_FOLDER}"
         )
-        time.sleep(2)
         images = sa.search_images(f"{self.PROJECT_NAME}/{self.TEST_FOLDER}")
         self.assertEqual(len(images), 1)
 
-        time.sleep(2)
         dest_project = sa.create_project(
             self.SECOND_PROJECT_NAME + "dif", "test", "Vector"
         )
-        time.sleep(2)
         sa.copy_image(self.PROJECT_NAME, image, dest_project["name"])
-        time.sleep(2)
         images = sa.search_images(dest_project["name"], image)
         self.assertEqual(len(images), 1)
         self.assertEqual(images[0], image)
@@ -85,7 +77,6 @@ class TestImageCopy(BaseTestCase):
         sa.create_annotation_classes_from_classes_json(
             self.PROJECT_NAME, f"{self.folder_path}/classes/classes.json"
         )
-        time.sleep(2)
         sa.upload_image_annotations(
             self.PROJECT_NAME,
             "example_image_1.jpg",
@@ -96,9 +87,7 @@ class TestImageCopy(BaseTestCase):
             f"{self.folder_path}/example_image_2.jpg",
             annotation_status="InProgress",
         )
-        time.sleep(2)
         sa.pin_image(self.PROJECT_NAME, "example_image_1.jpg")
-        time.sleep(2)
         images = sa.search_images(self.PROJECT_NAME)
         self.assertEqual(len(images), 2)
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER)
@@ -110,7 +99,6 @@ class TestImageCopy(BaseTestCase):
             copy_annotation_status=True,
             copy_pin=True,
         )
-        time.sleep(2)
         self.assertEqual(
             len(sa.search_images(f"{self.PROJECT_NAME}/{self.TEST_FOLDER}")), 1
         )
@@ -133,7 +121,6 @@ class TestImageCopy(BaseTestCase):
         sa.create_annotation_classes_from_classes_json(
             self.PROJECT_NAME, f"{self.folder_path}/classes/classes.json"
         )
-        time.sleep(2)
         sa.upload_image_annotations(
             self.PROJECT_NAME,
             self.EXAMPLE_IMAGE,
@@ -144,18 +131,13 @@ class TestImageCopy(BaseTestCase):
             f"{self.folder_path}/example_image_2.jpg",
             annotation_status="InProgress",
         )
-        time.sleep(2)
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER)
         self.assertEqual(len(sa.search_images(self.PROJECT_NAME)), 2)
         with self.assertRaises(Exception):
             sa.move_image(self.PROJECT_NAME, self.EXAMPLE_IMAGE, f"{self.PROJECT_NAME}")
 
-        time.sleep(2)
-
         sa.create_project(self.SECOND_PROJECT_NAME + "dif", "test", "Vector")
-        time.sleep(2)
         sa.move_image(self.PROJECT_NAME, self.EXAMPLE_IMAGE, self.SECOND_PROJECT_NAME)
-        time.sleep(2)
         di = sa.search_images(self.SECOND_PROJECT_NAME, self.EXAMPLE_IMAGE)
         self.assertEqual(len(di), 1)
         self.assertEqual(di[0], self.EXAMPLE_IMAGE)

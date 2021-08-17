@@ -1,5 +1,3 @@
-import time
-
 import src.lib.app.superannotate as sa
 from src.tests.integration.base import BaseTestCase
 
@@ -41,7 +39,6 @@ class TestUploadImageFromPublicUrls(BaseTestCase):
             annotation_status="InProgress",
             image_quality_in_editor="original",
         )
-        time.sleep(3)
         images_in_project = sa.search_images(
             self.PROJECT_NAME, annotation_status="InProgress"
         )

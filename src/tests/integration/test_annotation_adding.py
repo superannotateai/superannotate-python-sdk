@@ -1,7 +1,6 @@
 import json
 import os
 import tempfile
-import time
 from os.path import dirname
 from pathlib import Path
 
@@ -117,12 +116,10 @@ class TestAnnotationAdding(BaseTestCase):
         sa.upload_images_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
         )
-        time.sleep(2)
         sa.create_annotation_classes_from_classes_json(
             self.PROJECT_NAME, self.classes_json_path
         )
         sa.create_annotation_class(self.PROJECT_NAME, "test_add", "#FF0000")
-        time.sleep(2)
         sa.add_annotation_bbox_to_image(
             self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, [10, 10, 500, 100], "test_add"
         )
@@ -132,7 +129,6 @@ class TestAnnotationAdding(BaseTestCase):
             [100, 100, 500, 500, 200, 300],
             "test_add",
         )
-        time.sleep(2)
         annotations_new = sa.get_image_annotations(
             self.PROJECT_NAME, self.EXAMPLE_IMAGE_1
         )["annotation_json"]
@@ -140,7 +136,6 @@ class TestAnnotationAdding(BaseTestCase):
         self.assertEqual(len(annotations_new["instances"]), 2)
 
         export = sa.prepare_export(self.PROJECT_NAME, include_fuse=True)
-        time.sleep(2)
         with tempfile.TemporaryDirectory() as tmpdir_name:
             sa.download_export(self.PROJECT_NAME, export["name"], tmpdir_name)
 

@@ -110,10 +110,6 @@ from src.lib.app.interface.sdk_interface import (
 from src.lib.app.interface.sdk_interface import upload_videos_from_folder_to_project
 
 
-# todo is it correct df_to_annotations ?
-# from src.lib.app.analytics.common import df_to_annotations
-
-
 __author__ = "Superannotate"
 __version__ = ""
 __all__ = [

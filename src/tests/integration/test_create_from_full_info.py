@@ -1,5 +1,4 @@
 import os
-import time
 from os.path import dirname
 from unittest import TestCase
 
@@ -24,7 +23,6 @@ class TestCloneProject(TestCase):
 
     def setUp(self, *args, **kwargs):
         self.tearDown()
-        time.sleep(1)
         self._project_1 = sa.create_project(
             self.PROJECT_NAME_1, self.PROJECT_DESCRIPTION, self.PROJECT_TYPE
         )
@@ -39,7 +37,6 @@ class TestCloneProject(TestCase):
         sa.create_annotation_classes_from_classes_json(
             self.PROJECT_NAME_1, self.classes_json
         )
-        time.sleep(2)
         old_settings = sa.get_project_settings(self.PROJECT_NAME_1)
         brightness_value = 0
         for setting in old_settings:
@@ -63,7 +60,6 @@ class TestCloneProject(TestCase):
         project_metadata["project"]["name"] = self.PROJECT_NAME_2
 
         sa.create_project_from_metadata(project_metadata)
-        time.sleep(2)
         new_project_metadata = sa.get_project_metadata(
             self.PROJECT_NAME_2,
             include_annotation_classes=True,

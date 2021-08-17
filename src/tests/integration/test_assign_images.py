@@ -1,5 +1,4 @@
 import os
-import time
 from os.path import dirname
 
 import src.lib.app.superannotate as sa
@@ -30,14 +29,12 @@ class TestAnnotationClasses(BaseTestCase):
         sa.assign_images(
             self._project["name"], [self.EXAMPLE_IMAGE_1, self.EXAMPLE_IMAGE_2], email
         )
-        time.sleep(1)
         image_metadata = sa.get_image_metadata(
             self._project["name"], self.EXAMPLE_IMAGE_1
         )
         self.assertEqual(image_metadata["qa_id"], email)
 
         sa.unshare_project(self._project["name"], email)
-        time.sleep(1)
         image_metadata = sa.get_image_metadata(
             self._project["name"], self.EXAMPLE_IMAGE_1
         )
@@ -51,7 +48,6 @@ class TestAnnotationClasses(BaseTestCase):
             self._project["name"], [self.EXAMPLE_IMAGE_1, self.EXAMPLE_IMAGE_2], email
         )
 
-        time.sleep(1)
         image_metadata = sa.get_image_metadata(
             self._project["name"], self.EXAMPLE_IMAGE_1
         )
@@ -66,8 +62,6 @@ class TestAnnotationClasses(BaseTestCase):
         sa.share_project(self.PROJECT_NAME, email, "QA")
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME)
 
-        time.sleep(1)
-
         project_folder = self._project["name"] + "/" + self.TEST_FOLDER_NAME
 
         sa.upload_images_from_folder_to_project(project_folder, self.folder_path)
@@ -76,7 +70,6 @@ class TestAnnotationClasses(BaseTestCase):
             project_folder, [self.EXAMPLE_IMAGE_1, self.EXAMPLE_IMAGE_2], email
         )
 
-        time.sleep(1)
         im1_metadata = sa.get_image_metadata(project_folder, self.EXAMPLE_IMAGE_1)
         im2_metadata = sa.get_image_metadata(project_folder, self.EXAMPLE_IMAGE_2)
 
@@ -84,8 +77,6 @@ class TestAnnotationClasses(BaseTestCase):
         self.assertEqual(im2_metadata["qa_id"], email)
 
         sa.unshare_project(self.PROJECT_NAME, email)
-
-        time.sleep(1)
 
         im1_metadata = sa.get_image_metadata(project_folder, self.EXAMPLE_IMAGE_1)
         im2_metadata = sa.get_image_metadata(project_folder, self.EXAMPLE_IMAGE_2)
@@ -97,13 +88,10 @@ class TestAnnotationClasses(BaseTestCase):
 
         sa.share_project(self.PROJECT_NAME, email, "Annotator")
 
-        time.sleep(2)
-
         sa.assign_images(
             project_folder, [self.EXAMPLE_IMAGE_1, self.EXAMPLE_IMAGE_2], email
         )
 
-        time.sleep(1)
         im1_metadata = sa.get_image_metadata(project_folder, self.EXAMPLE_IMAGE_1)
         im2_metadata = sa.get_image_metadata(project_folder, self.EXAMPLE_IMAGE_2)
 
@@ -137,7 +125,6 @@ class TestAnnotationClasses(BaseTestCase):
             self.PROJECT_NAME, [self.EXAMPLE_IMAGE_1, self.EXAMPLE_IMAGE_2], project
         )
         sa.assign_images(project, [self.EXAMPLE_IMAGE_1, self.EXAMPLE_IMAGE_2], email)
-        time.sleep(1)
         sa.unassign_images(
             project, ["example_image_1.jpg", "example_image_2.jpg"],
         )
@@ -154,9 +141,7 @@ class TestAnnotationClasses(BaseTestCase):
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME)
         email = sa.get_team_metadata()["users"][0]["email"]
         sa.share_project(self.PROJECT_NAME, email, "QA")
-        time.sleep(2)
         sa.assign_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME, [email])
-        time.sleep(2)
         folders = sa.search_folders(
             self.PROJECT_NAME, self.TEST_FOLDER_NAME, return_metadata=True
         )
@@ -164,24 +149,18 @@ class TestAnnotationClasses(BaseTestCase):
 
     def test_un_assign_folder(self):
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME)
-        time.sleep(1)
         email = sa.get_team_metadata()["users"][0]["email"]
-        time.sleep(1)
         sa.share_project(self.PROJECT_NAME, email, "QA")
-        time.sleep(1)
         sa.assign_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME, [email])
-        time.sleep(1)
         folders = sa.search_folders(
             self.PROJECT_NAME, folder_name=self.TEST_FOLDER_NAME, return_metadata=True
         )
         self.assertGreater(len(folders[0]["folder_users"]), 0)
         sa.unassign_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME)
-        time.sleep(1)
 
         folders = sa.search_folders(
             self.PROJECT_NAME, self.TEST_FOLDER_NAME, return_metadata=True
         )
-        time.sleep(1)
         self.assertEqual(len(folders[0]["folder_users"]), 0)
 
     def test_assign_folder_unverified_users(self):

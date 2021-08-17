@@ -1,7 +1,6 @@
 import os
 import pathlib
 import tempfile
-import time
 from os.path import dirname
 
 import numpy as np
@@ -89,7 +88,6 @@ class TestFolders(BaseTestCase):
                 "Human",
             )
 
-            time.sleep(2)
             export = sa.prepare_export(self.PROJECT_NAME, include_fuse=True)
             (temp_dir / "export").mkdir()
             sa.download_export(self.PROJECT_NAME, export, (temp_dir / "export"))
@@ -123,7 +121,6 @@ class TestFolders(BaseTestCase):
             projects = sa.search_projects(self.PROJECT_NAME, return_metadata=True)
             for project in projects:
                 sa.delete_project(project)
-            time.sleep(2)
             sa.create_project(self.PROJECT_NAME, "test", "Pixel")
 
             sa.upload_image_to_project(

@@ -1,5 +1,3 @@
-import time
-
 import src.lib.app.superannotate as sa
 from src.tests.integration.base import BaseTestCase
 
@@ -24,7 +22,6 @@ class TestUserRoles(BaseTestCase):
         self.assertTrue(found and user)
 
         sa.unshare_project(self.PROJECT_NAME, user)
-        time.sleep(2)
         project_users = sa.get_project_metadata(
             self.PROJECT_NAME, include_contributors=True
         )["contributors"]

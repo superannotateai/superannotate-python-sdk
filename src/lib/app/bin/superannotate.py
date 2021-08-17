@@ -12,7 +12,7 @@ from src.lib.infrastructure import controller
 
 
 class SABaseException(Exception):
-    # todo fix
+    # TODO fix
     pass
 
 
@@ -269,7 +269,7 @@ def main():
         type=float,
         help="Time (in seconds) from which to start extracting frames. Default is 0.0",
     )
-    # Todo merge with above one
+    # TODO merge with above one
     # parser.add_argument(
     #     '--start-time',
     #     required=False,

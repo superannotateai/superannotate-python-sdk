@@ -1,5 +1,4 @@
 import os
-import time
 from os.path import dirname
 
 import src.lib.app.superannotate as sa
@@ -24,7 +23,6 @@ class TestAnnotationUpload(BaseTestCase):
         sa.create_annotation_classes_from_classes_json(
             self.PROJECT_NAME, f"{self.folder_path}/classes/classes.json"
         )
-        time.sleep(2)
         (
             uploaded,
             could_not_upload,

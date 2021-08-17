@@ -1,5 +1,4 @@
 import os
-import time
 from os.path import dirname
 
 import src.lib.app.superannotate as sa
@@ -26,7 +25,6 @@ class TestVideo(BaseTestCase):
         self._second_project = sa.create_project(
             self.SECOND_PROJECT_NAME, self.PROJECT_DESCRIPTION, self.PROJECT_TYPE
         )
-        time.sleep(1)
 
     def tearDown(self) -> None:
         for project_name in (self.PROJECT_NAME, self.SECOND_PROJECT_NAME):
@@ -48,7 +46,6 @@ class TestVideo(BaseTestCase):
         )
 
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME)
-        time.sleep(1)
         sa.upload_videos_from_folder_to_project(
             f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME}",
             self.folder_path,

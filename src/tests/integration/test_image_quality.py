@@ -1,7 +1,6 @@
 import filecmp
 import os
 import tempfile
-import time
 from os.path import dirname
 
 import src.lib.app.superannotate as sa
@@ -41,11 +40,9 @@ class TestImageQuality(BaseTestCase):
             sa.set_project_default_image_quality_in_editor(
                 self.PROJECT_NAME, "original"
             )
-            time.sleep(2)
             sa.upload_images_from_folder_to_project(
                 project=self.PROJECT_NAME, folder_path=self.folder_path
             )
-            time.sleep(2)
 
             sa.download_image(
                 self.PROJECT_NAME,

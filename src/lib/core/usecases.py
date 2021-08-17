@@ -56,8 +56,8 @@ logger = logging.getLogger()
 
 
 class BaseUseCase(ABC):
-    def __init__(self, response: Response):
-        self._response = response
+    def __init__(self):
+        self._response = Response()
 
     @abstractmethod
     def execute(self):
@@ -79,13 +79,9 @@ class BaseUseCase(ABC):
 
 class GetProjectsUseCase(BaseUseCase):
     def __init__(
-        self,
-        response: Response,
-        condition: Condition,
-        team_id: int,
-        projects: BaseManageableRepository,
+        self, condition: Condition, team_id: int, projects: BaseManageableRepository,
     ):
-        super().__init__(response)
+        super().__init__()
         self._condition = condition
         self._projects = projects
         self._team_id = team_id
@@ -94,17 +90,14 @@ class GetProjectsUseCase(BaseUseCase):
         if self.is_valid():
             condition = self._condition & Condition("team_id", self._team_id, EQ)
             self._response.data = self._projects.get_all(condition)
+        return self._response
 
 
 class GetProjectByNameUseCase(BaseUseCase):
     def __init__(
-        self,
-        response: Response,
-        name: str,
-        team_id: int,
-        projects: BaseManageableRepository,
+        self, name: str, team_id: int, projects: BaseManageableRepository,
     ):
-        super().__init__(response)
+        super().__init__()
         self._name = name
         self._projects = projects
         self._team_id = team_id
@@ -118,13 +111,13 @@ class GetProjectByNameUseCase(BaseUseCase):
             for project in projects:
                 if project.name == self._name:
                     self._response.data = project
-                    return
+                    break
+        return self._response
 
 
 class CreateProjectUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         project: ProjectEntity,
         projects: BaseManageableRepository,
         backend_service_provider: SuerannotateServiceProvider,
@@ -137,7 +130,7 @@ class CreateProjectUseCase(BaseUseCase):
         contributors: Iterable[dict] = None,
     ):
 
-        super().__init__(response)
+        super().__init__()
         self._project = project
         self._projects = projects
         self._settings = settings
@@ -151,7 +144,7 @@ class CreateProjectUseCase(BaseUseCase):
 
     def execute(self):
         if self.is_valid():
-            # todo add status in the constants
+            # TODO add status in the constants
             self._project.status = 0
             entity = self._projects.insert(self._project)
             self._response.data = entity
@@ -195,6 +188,7 @@ class CreateProjectUseCase(BaseUseCase):
                         constances.UserRole.get_value(contributor["user_role"]),
                     )
                 data["contributors"] = self._contributors
+        return self._response
 
     def validate_project_name_uniqueness(self):
         condition = Condition("name", self._project.name, EQ) & Condition(
@@ -209,39 +203,29 @@ class CreateProjectUseCase(BaseUseCase):
 
 class DeleteProjectUseCase(BaseUseCase):
     def __init__(
-        self,
-        response: Response,
-        project_name: str,
-        team_id: int,
-        projects: BaseManageableRepository,
+        self, project_name: str, team_id: int, projects: BaseManageableRepository,
     ):
 
-        super().__init__(response)
+        super().__init__()
         self._project_name = project_name
         self._team_id = team_id
         self._projects = projects
 
     def execute(self):
-        project_response = Response()
-        GetProjectByNameUseCase(
-            response=project_response,
-            name=self._project_name,
-            team_id=self._team_id,
-            projects=self._projects,
-        ).execute()
+        use_case = GetProjectByNameUseCase(
+            name=self._project_name, team_id=self._team_id, projects=self._projects,
+        )
+        project_response = use_case.execute()
         if project_response.data:
             self._projects.delete(project_response.data)
 
 
 class UpdateProjectUseCase(BaseUseCase):
     def __init__(
-        self,
-        response: Response,
-        project: ProjectEntity,
-        projects: BaseManageableRepository,
+        self, project: ProjectEntity, projects: BaseManageableRepository,
     ):
 
-        super().__init__(response)
+        super().__init__()
         self._project = project
         self._projects = projects
 
@@ -253,7 +237,6 @@ class UpdateProjectUseCase(BaseUseCase):
 class CloneProjectUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         project: ProjectEntity,
         project_to_create: ProjectEntity,
         projects: BaseManageableRepository,
@@ -266,7 +249,7 @@ class CloneProjectUseCase(BaseUseCase):
         include_workflow: bool = True,
         include_contributors: bool = False,
     ):
-        super().__init__(response)
+        super().__init__()
         self._project = project
         self._project_to_create = project_to_create
         self._projects = projects
@@ -371,6 +354,7 @@ class CloneProjectUseCase(BaseUseCase):
         self._response.data = self._projects.get_one(
             uuid=project.uuid, team_id=project.team_id
         )
+        return self._response
 
 
 class AttachImagesUseCase(BaseUseCase):
@@ -380,7 +364,6 @@ class AttachImagesUseCase(BaseUseCase):
 
     def __init__(
         self,
-        response: Response,
         project: ProjectEntity,
         folder: FolderEntity,
         project_settings: BaseReadOnlyRepository,
@@ -389,7 +372,7 @@ class AttachImagesUseCase(BaseUseCase):
         annotation_status: Optional[str] = None,
         image_quality: Optional[str] = None,
     ):
-        super().__init__(response)
+        super().__init__()
         self._project = project
         self._folder = folder
         self._project_settings = project_settings
@@ -445,14 +428,13 @@ class AttachImagesUseCase(BaseUseCase):
 class GetImagesUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         project: ProjectEntity,
         folder: FolderEntity,
         images: BaseReadOnlyRepository,
         annotation_status: str = None,
         image_name_prefix: str = None,
     ):
-        super().__init__(response)
+        super().__init__()
         self._project = project
         self._folder = folder
         self._images = images
@@ -475,18 +457,18 @@ class GetImagesUseCase(BaseUseCase):
             )
 
         self._response.data = self._images.get_all(condition)
+        return self._response
 
 
 class GetImageUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         project: ProjectEntity,
         folder: FolderEntity,
         image_name: str,
         images: BaseReadOnlyRepository,
     ):
-        super().__init__(response)
+        super().__init__()
         self._project = project
         self._folder = folder
         self._images = images
@@ -500,12 +482,12 @@ class GetImageUseCase(BaseUseCase):
             & Condition("name", self._image_name, EQ)
         )
         self._response.data = self._images.get_all(condition)[0]
+        return self._response
 
 
 class UploadImageS3UseCas(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         project: ProjectEntity,
         project_settings: BaseReadOnlyRepository,
         image_path: str,
@@ -513,7 +495,7 @@ class UploadImageS3UseCas(BaseUseCase):
         s3_repo: BaseManageableRepository,
         upload_path: str,
     ):
-        super().__init__(response)
+        super().__init__()
         self._project = project
         self._project_settings = project_settings
         self._image_path = image_path
@@ -575,17 +557,17 @@ class UploadImageS3UseCas(BaseUseCase):
             path=image_key,
             meta=ImageInfoEntity(width=origin_width, height=origin_height),
         )
+        return self._response
 
 
 class CreateFolderUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         project: ProjectEntity,
         folder: FolderEntity,
         folders: BaseManageableRepository,
     ):
-        super().__init__(response)
+        super().__init__()
         self._project = project
         self._folder = folder
         self._folders = folders
@@ -600,6 +582,7 @@ class CreateFolderUseCase(BaseUseCase):
             )
         self._folder.project_id = self._project.uuid
         self._response.data = self._folders.insert(self._folder)
+        return self._response
 
     def validate_folder_name(self):
         if (
@@ -616,7 +599,6 @@ class CreateFolderUseCase(BaseUseCase):
 class AttachFileUrlsUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         project: ProjectEntity,
         folder: FolderEntity,
         attachments: List[ImageEntity],
@@ -624,7 +606,7 @@ class AttachFileUrlsUseCase(BaseUseCase):
         backend_service_provider: SuerannotateServiceProvider,
         annotation_status: str = None,
     ):
-        super().__init__(response)
+        super().__init__()
         self._attachments = attachments
         self._project = project
         self._folder = folder
@@ -671,12 +653,12 @@ class AttachFileUrlsUseCase(BaseUseCase):
         )
 
         self._response.data = attachments[: self._limit], duplications
+        return self._response
 
 
 class PrepareExportUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         project: ProjectEntity,
         folder_names: List[str],
         backend_service_provider: SuerannotateServiceProvider,
@@ -684,7 +666,7 @@ class PrepareExportUseCase(BaseUseCase):
         only_pinned: bool,
         annotation_statuses: List[str] = None,
     ):
-        super().__init__(response),
+        super().__init__(),
         self._project = project
         self._folder_names = folder_names
         self._backend_service = backend_service_provider
@@ -713,28 +695,29 @@ class PrepareExportUseCase(BaseUseCase):
             only_pinned=self._only_pinned,
         )
         self._response.data = res
+        return self._response
 
 
 class GetTeamUseCase(BaseUseCase):
-    def __init__(self, response: Response, teams: BaseReadOnlyRepository, team_id: int):
-        super().__init__(response)
+    def __init__(self, teams: BaseReadOnlyRepository, team_id: int):
+        super().__init__()
         self._teams = teams
         self._team_id = team_id
 
     def execute(self):
         self._response.data = self._teams.get_one(self._team_id)
+        return self._response
 
 
 class InviteContributorUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         backend_service_provider: SuerannotateServiceProvider,
         email: str,
         team_id: int,
         is_admin: bool = False,
     ):
-        super().__init__(response)
+        super().__init__()
         self._backend_service = backend_service_provider
         self._email = email
         self._team_id = team_id
@@ -754,12 +737,11 @@ class InviteContributorUseCase(BaseUseCase):
 class DeleteContributorInvitationUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         backend_service_provider: SuerannotateServiceProvider,
         team: TeamEntity,
         email: str,
     ):
-        super().__init__(response)
+        super().__init__()
         self._backend_service = backend_service_provider
         self._email = email
         self._team = team
@@ -770,17 +752,17 @@ class DeleteContributorInvitationUseCase(BaseUseCase):
                 self._backend_service.delete_team_invitation(
                     self._team.uuid, invite["token"], self._email
                 )
+        return self._response
 
 
 class SearchContributorsUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         backend_service_provider: SuerannotateServiceProvider,
         team_id: int,
         condition: Condition = None,
     ):
-        super().__init__(response)
+        super().__init__()
         self._backend_service = backend_service_provider
         self._team_id = team_id
         self._condition = condition
@@ -795,40 +777,42 @@ class SearchContributorsUseCase(BaseUseCase):
             self._team_id, self.condition
         )
         self._response.data = res
+        return self._response
 
 
 class GetFolderUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         project: ProjectEntity,
         folders: BaseReadOnlyRepository,
         folder_name: str,
+        team_id: int,
     ):
-        super().__init__(response)
+        super().__init__()
         self._project = project
         self._folders = folders
         self._folder_name = folder_name
+        self._team_id = team_id
 
     def execute(self):
         condition = (
             Condition("name", self._folder_name, EQ)
-            & Condition("team_id", self._project.team_id, EQ)
+            & Condition("team_id", self._team_id, EQ)
             & Condition("project_id", self._project.uuid, EQ)
         )
         self._response.data = self._folders.get_one(condition)
+        return self._response
 
 
 class SearchFolderUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         project: ProjectEntity,
         folders: BaseReadOnlyRepository,
         condition: Condition,
         include_users=False,
     ):
-        super().__init__(response)
+        super().__init__()
         self._project = project
         self._folders = folders
         self._condition = condition
@@ -842,16 +826,14 @@ class SearchFolderUseCase(BaseUseCase):
             & Condition("includeUsers", self._include_users, EQ)
         )
         self._response.data = self._folders.get_all(condition)
+        return self._response
 
 
 class GetProjectFoldersUseCase(BaseUseCase):
     def __init__(
-        self,
-        response: Response,
-        project: ProjectEntity,
-        folders: BaseReadOnlyRepository,
+        self, project: ProjectEntity, folders: BaseReadOnlyRepository,
     ):
-        super().__init__(response)
+        super().__init__()
         self._project = project
         self._folders = folders
 
@@ -860,17 +842,17 @@ class GetProjectFoldersUseCase(BaseUseCase):
             "project_id", self._project.uuid, EQ
         )
         self._response.data = self._folders.get_all(condition)
+        return self._response
 
 
 class DeleteFolderUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         project: ProjectEntity,
         folders: BaseManageableRepository,
         folders_to_delete: List[FolderEntity],
     ):
-        super().__init__(response)
+        super().__init__()
         self._project = project
         self._folders = folders
         self._folders_to_delete = folders_to_delete
@@ -882,29 +864,26 @@ class DeleteFolderUseCase(BaseUseCase):
 
 class UpdateFolderUseCase(BaseUseCase):
     def __init__(
-        self,
-        response: Response,
-        folders: BaseManageableRepository,
-        folder: FolderEntity,
+        self, folders: BaseManageableRepository, folder: FolderEntity,
     ):
-        super().__init__(response)
+        super().__init__()
         self._folders = folders
         self._folder = folder
 
     def execute(self):
         self._folders.update(self._folder)
         self._response.data = self._folder
+        return self._response
 
 
 class GetImageBytesUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         image: ImageEntity,
         backend_service_provider: SuerannotateServiceProvider,
         image_variant: str = "original",
     ):
-        super().__init__(response)
+        super().__init__()
         self._image = image
         self._backend_service = backend_service_provider
         self._image_variant = image_variant
@@ -921,12 +900,12 @@ class GetImageBytesUseCase(BaseUseCase):
         headers = auth_data[self._image_variant]["headers"]
         response = requests.get(url=download_url, headers=headers)
         self._response.data = io.BytesIO(response.content)
+        return self._response
 
 
 class CopyImageAnnotationClasses(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         from_project: ProjectEntity,
         to_project: ProjectEntity,
         from_image: ImageEntity,
@@ -940,7 +919,7 @@ class CopyImageAnnotationClasses(BaseUseCase):
         to_folder: FolderEntity = None,
         annotation_type: str = "MAIN",
     ):
-        super().__init__(response)
+        super().__init__()
         self._from_project = from_project
         self._to_project = to_project
         self._from_folder = from_folder
@@ -1100,13 +1079,12 @@ class CopyImageAnnotationClasses(BaseUseCase):
                     auth_data["annotation_bluemap_path"]["filePath"], response.content
                 )
             )
+        return self._response
 
 
 class UpdateImageUseCase(BaseUseCase):
-    def __init__(
-        self, response: Response, image: ImageEntity, images: BaseManageableRepository
-    ):
-        super().__init__(response)
+    def __init__(self, image: ImageEntity, images: BaseManageableRepository):
+        super().__init__()
         self._image = image
         self._images = images
 
@@ -1116,13 +1094,9 @@ class UpdateImageUseCase(BaseUseCase):
 
 class DownloadImageFromPublicUrlUseCase(BaseUseCase):
     def __init__(
-        self,
-        response: Response,
-        project: ProjectEntity,
-        image_url: str,
-        image_name: str = None,
+        self, project: ProjectEntity, image_url: str, image_name: str = None,
     ):
-        super().__init__(response)
+        super().__init__()
         self._project = project
         self._image_url = image_url
         self._image_name = image_name
@@ -1144,6 +1118,7 @@ class DownloadImageFromPublicUrlUseCase(BaseUseCase):
             self._response.errors = AppException(
                 f"Couldn't download image {self._image_url}, {e}"
             )
+        return self._response
 
 
 class ImagesBulkCopyUseCase(BaseUseCase):
@@ -1156,7 +1131,6 @@ class ImagesBulkCopyUseCase(BaseUseCase):
 
     def __init__(
         self,
-        response: Response,
         project: ProjectEntity,
         from_folder: FolderEntity,
         to_folder: FolderEntity,
@@ -1165,7 +1139,7 @@ class ImagesBulkCopyUseCase(BaseUseCase):
         include_annotations: bool,
         include_pin: bool,
     ):
-        super().__init__(response)
+        super().__init__()
         self._project = project
         self._from_folder = from_folder
         self._to_folder = to_folder
@@ -1209,41 +1183,40 @@ class ImagesBulkCopyUseCase(BaseUseCase):
                 time.sleep(4)
 
         self._response.data = skipped_images
+        return self._response
 
 
 class GetAnnotationClassesUseCase(BaseUseCase):
     def __init__(
-        self,
-        response: Response,
-        classes: BaseManageableRepository,
-        condition: Condition = None,
+        self, classes: BaseManageableRepository, condition: Condition = None,
     ):
-        super().__init__(response)
+        super().__init__()
         self._classes = classes
         self._condition = condition
 
     def execute(self):
         self._response.data = self._classes.get_all(condition=self._condition)
+        return self._response
 
 
 class GetSettingsUseCase(BaseUseCase):
-    def __init__(self, response: Response, settings: BaseManageableRepository):
-        super().__init__(response)
+    def __init__(self, settings: BaseManageableRepository):
+        super().__init__()
         self._settings = settings
 
     def execute(self):
         self._response.data = self._settings.get_all()
+        return self._response
 
 
 class GetWorkflowsUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         annotation_classes: BaseReadOnlyRepository,
         workflows: BaseManageableRepository,
         fill_classes=True,
     ):
-        super().__init__(response)
+        super().__init__()
         self._workflows = workflows
         self._annotation_classes = annotation_classes
         self._fill_classes = fill_classes
@@ -1260,12 +1233,12 @@ class GetWorkflowsUseCase(BaseUseCase):
                     workflow_data["className"] = annotation_class.name
             data.append(workflow_data)
         self._response.data = data
+        return self._response
 
 
 class GetProjectMetaDataUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         project: ProjectEntity,
         include_annotation_classes: bool,
         include_settings: bool,
@@ -1277,7 +1250,7 @@ class GetProjectMetaDataUseCase(BaseUseCase):
         workflow_repo: BaseManageableRepository,
         projects_repo: BaseManageableRepository,
     ):
-        super().__init__(response)
+        super().__init__()
         self._project = project
         self._include_annotation_classes = include_annotation_classes
         self._include_settings = include_settings
@@ -1309,19 +1282,19 @@ class GetProjectMetaDataUseCase(BaseUseCase):
             )
 
         self._response.data = res
+        return self._response
 
 
 class UpdateSettingsUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         settings: BaseManageableRepository,
         to_update: List,
         backend_service_provider: SuerannotateServiceProvider,
         project_id: int,
         team_id: int,
     ):
-        super().__init__(response)
+        super().__init__()
         self._settings = settings
         self._to_update = to_update
         self._backend_service_provider = backend_service_provider
@@ -1350,18 +1323,18 @@ class UpdateSettingsUseCase(BaseUseCase):
             team_id=self._team_id,
             data=new_settings_to_update,
         )
+        return self._response
 
 
 class DeleteImageUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         images: BaseManageableRepository,
         image: ImageEntity,
         team_id: int,
         project_id: int,
     ):
-        super().__init__(response)
+        super().__init__()
         self._images = images
         self._image = image
         self._team_id = team_id
@@ -1374,13 +1347,12 @@ class DeleteImageUseCase(BaseUseCase):
 class GetImageMetadataUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         image_name: str,
         project: ProjectEntity,
         folder: FolderEntity,
         service: SuerannotateServiceProvider,
     ):
-        super().__init__(response)
+        super().__init__()
         self._image_name = image_name
         self._project = project
         self._service = service
@@ -1397,6 +1369,7 @@ class GetImageMetadataUseCase(BaseUseCase):
             self._response.data = data[0]
         else:
             self._response.errors = AppException("Image not found.")
+        return self._response
 
 
 class ImagesBulkMoveUseCase(BaseUseCase):
@@ -1409,14 +1382,13 @@ class ImagesBulkMoveUseCase(BaseUseCase):
 
     def __init__(
         self,
-        response: Response,
         project: ProjectEntity,
         from_folder: FolderEntity,
         to_folder: FolderEntity,
         image_names: List[str],
         backend_service_provider: SuerannotateServiceProvider,
     ):
-        super().__init__(response)
+        super().__init__()
         self._project = project
         self._from_folder = from_folder
         self._to_folder = to_folder
@@ -1436,6 +1408,7 @@ class ImagesBulkMoveUseCase(BaseUseCase):
                 )
             )
         self._response.data = moved_images
+        return self._response
 
 
 class SetImageAnnotationStatuses(BaseUseCase):
@@ -1443,7 +1416,6 @@ class SetImageAnnotationStatuses(BaseUseCase):
 
     def __init__(
         self,
-        response: Response,
         service: SuerannotateServiceProvider,
         image_names: list,
         team_id: int,
@@ -1451,7 +1423,7 @@ class SetImageAnnotationStatuses(BaseUseCase):
         folder_id: int,
         annotation_status: int,
     ):
-        super().__init__(response)
+        super().__init__()
         self._service = service
         self._image_names = image_names
         self._team_id = team_id
@@ -1468,6 +1440,7 @@ class SetImageAnnotationStatuses(BaseUseCase):
                 folder_id=self._folder_id,
                 annotation_status=self._annotation_status,
             )
+        return self._response
 
 
 class DeleteImagesUseCase(BaseUseCase):
@@ -1475,14 +1448,13 @@ class DeleteImagesUseCase(BaseUseCase):
 
     def __init__(
         self,
-        response: Response,
         project: ProjectEntity,
         folder: FolderEntity,
         backend_service_provider: SuerannotateServiceProvider,
         images: BaseReadOnlyRepository,
         image_names: List[str] = None,
     ):
-        super().__init__(response)
+        super().__init__()
         self._project = project
         self._folder = folder
         self._images = images
@@ -1514,6 +1486,7 @@ class DeleteImagesUseCase(BaseUseCase):
                 team_id=self._project.team_id,
                 image_ids=image_ids[i : i + self.CHUNK_SIZE],
             )
+        return self._response
 
 
 class AssignImagesUseCase(BaseUseCase):
@@ -1522,15 +1495,13 @@ class AssignImagesUseCase(BaseUseCase):
 
     def __init__(
         self,
-        response: Response,
         service: SuerannotateServiceProvider,
         project_entity: ProjectEntity,
         folder_name: str,
         image_names: list,
         user: str,
     ):
-        super().__init__(response)
-        self._response = response
+        super().__init__()
         self._project_entity = project_entity
         self._folder_name = folder_name
         self._image_names = image_names
@@ -1547,6 +1518,8 @@ class AssignImagesUseCase(BaseUseCase):
                 image_names=self._image_names[i : i + self.CHUNK_SIZE],
             )
 
+        return self._response
+
 
 class UnAssignImagesUseCase(BaseUseCase):
 
@@ -1554,14 +1527,12 @@ class UnAssignImagesUseCase(BaseUseCase):
 
     def __init__(
         self,
-        response: Response,
         service: SuerannotateServiceProvider,
         project_entity: ProjectEntity,
         folder_name: str,
         image_names: list,
     ):
-        super().__init__(response)
-        self._response = response
+        super().__init__()
         self._project_entity = project_entity
         self._folder_name = folder_name
         self._image_names = image_names
@@ -1575,18 +1546,17 @@ class UnAssignImagesUseCase(BaseUseCase):
                 folder_name=self._folder_name,
                 image_names=self._image_names[i : i + self.CHUNK_SIZE],
             )
+        return self._response
 
 
 class UnAssignFolderUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         service: SuerannotateServiceProvider,
         project_entity: ProjectEntity,
         folder_name: str,
     ):
-        super().__init__(response)
-        self._response = response
+        super().__init__()
         self._service = service
         self._project_entity = project_entity
         self._folder_name = folder_name
@@ -1597,19 +1567,18 @@ class UnAssignFolderUseCase(BaseUseCase):
             project_id=self._project_entity.uuid,
             folder_name=self._folder_name,
         )
+        return self._response
 
 
 class AssignFolderUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         service: SuerannotateServiceProvider,
         project_entity: ProjectEntity,
         folder_name: str,
         users: List[str],
     ):
-        super().__init__(response)
-        self._response = response
+        super().__init__()
         self._service = service
         self._project_entity = project_entity
         self._folder_name = folder_name
@@ -1622,19 +1591,18 @@ class AssignFolderUseCase(BaseUseCase):
             folder_name=self._folder_name,
             users=self._users,
         )
+        return self._response
 
 
 class ShareProjectUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         service: SuerannotateServiceProvider,
         project_entity: ProjectEntity,
         user_id: str,
         user_role: str,
     ):
-        super().__init__(response)
-        self._response = response
+        super().__init__()
         self._service = service
         self._project_entity = project_entity
         self._user_id = user_id
@@ -1651,18 +1619,17 @@ class ShareProjectUseCase(BaseUseCase):
             user_id=self._user_id,
             user_role=self.user_role,
         )
+        return self._response
 
 
 class UnShareProjectUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         service: SuerannotateServiceProvider,
         project_entity: ProjectEntity,
         user_id: str,
     ):
-        super().__init__(response)
-        self._response = response
+        super().__init__()
         self._service = service
         self._project_entity = project_entity
         self._user_id = user_id
@@ -1673,18 +1640,14 @@ class UnShareProjectUseCase(BaseUseCase):
             project_id=self._project_entity.uuid,
             user_id=self._user_id,
         )
+        return self._response
 
 
 class DownloadGoogleCloudImages(BaseUseCase):
     def __init__(
-        self,
-        response: Response,
-        project_name: str,
-        bucket_name: str,
-        folder_name: str,
-        download_path: str,
+        self, project_name: str, bucket_name: str, folder_name: str, download_path: str,
     ):
-        super().__init__(response)
+        super().__init__()
         self._project_name = project_name
         self._bucket_name = bucket_name
         self._folder_name = folder_name
@@ -1723,15 +1686,16 @@ class DownloadGoogleCloudImages(BaseUseCase):
             "duplicated_images": duplicated_images,
             "failed_images": failed_images,
         }
+        return self._response
 
 
 class DownloadAzureCloudImages(BaseUseCase):
     STORAGE_KEY_NAME = "AZURE_STORAGE_CONNECTION_STRING"
 
     def __init__(
-        self, response: Response, container: str, folder_name: str, download_path: str,
+        self, container: str, folder_name: str, download_path: str,
     ):
-        super().__init__(response)
+        super().__init__()
         self._container = container
         self._folder_name = folder_name
         self._download_path = download_path
@@ -1783,13 +1747,13 @@ class DownloadAzureCloudImages(BaseUseCase):
             "duplicated_images": duplicated_images,
             "failed_images": failed_images,
         }
+        return self._response
 
 
 class GetProjectMetadataUseCase(BaseUseCase):
     def __init__(
         self,
         project: ProjectEntity,
-        response: Response,
         service: SuerannotateServiceProvider,
         annotation_classes: BaseManageableRepository,
         settings: BaseManageableRepository,
@@ -1801,9 +1765,8 @@ class GetProjectMetadataUseCase(BaseUseCase):
         include_contributors: bool,
         include_complete_image_count: bool,
     ):
-        super().__init__(response)
+        super().__init__()
         self._project = project
-        self._response = response
         self._service = service
 
         self._annotation_classes = annotation_classes
@@ -1817,28 +1780,18 @@ class GetProjectMetadataUseCase(BaseUseCase):
         self._include_contributors = include_contributors
         self._include_complete_image_count = include_complete_image_count
 
-        self._annotation_classes_response = Response()
-        self._settings_response = Response()
-        self._workflows_response = Response()
-
     @property
     def annotation_classes_use_case(self):
-        return GetAnnotationClassesUseCase(
-            response=self._annotation_classes_response, classes=self._annotation_classes
-        )
+        return GetAnnotationClassesUseCase(classes=self._annotation_classes)
 
     @property
     def settings_use_case(self):
-        return GetSettingsUseCase(
-            response=self._settings_response, settings=self._settings
-        )
+        return GetSettingsUseCase(settings=self._settings)
 
     @property
     def work_flow_use_case(self):
         return GetWorkflowsUseCase(
-            response=self._workflows_response,
-            workflows=self._workflows,
-            annotation_classes=self._annotation_classes,
+            workflows=self._workflows, annotation_classes=self._annotation_classes,
         )
 
     def execute(self):
@@ -1846,15 +1799,15 @@ class GetProjectMetadataUseCase(BaseUseCase):
 
         if self._include_annotation_classes:
             self.annotation_classes_use_case.execute()
-            data["classes"] = self._annotation_classes_response.data
+            data["classes"] = self.annotation_classes_use_case.execute().data
 
         if self._include_settings:
             self.settings_use_case.execute()
-            data["settings"] = self._settings_response.data
+            data["settings"] = self.settings_use_case.execute().data
 
         if self._include_workflow:
             self.work_flow_use_case.execute()
-            data["workflows"] = self._settings_response.data
+            data["workflows"] = self.work_flow_use_case.execute().data
 
         if self._include_contributors:
             data["contributors"] = self._project.users
@@ -1871,35 +1824,34 @@ class GetProjectMetadataUseCase(BaseUseCase):
                 data["project"] = projects[0]
 
         self._response.data = data
+        return self._response
 
 
 class GetImageAnnotationsUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         service: SuerannotateServiceProvider,
         project: ProjectEntity,
         folder: FolderEntity,
         image_name: str,
         images: BaseManageableRepository,
     ):
-        super().__init__(response)
+        super().__init__()
         self._service = service
         self._project = project
         self._folder = folder
         self._image_name = image_name
-        self._image_response = Response()
         self._images = images
 
     @property
     def image_use_case(self):
-        return GetImageUseCase(
-            response=self._image_response,
+        use_case = GetImageUseCase(
             project=self._project,
             folder=self._folder,
             image_name=self._image_name,
             images=self._images,
         )
+        return use_case
 
     def execute(self):
         data = {
@@ -1908,19 +1860,19 @@ class GetImageAnnotationsUseCase(BaseUseCase):
             "annotation_mask": None,
             "annotation_mask_filename": None,
         }
-        self.image_use_case.execute()
+        image_response = self.image_use_case.execute()
         token = self._service.get_download_token(
             project_id=self._project.uuid,
             team_id=self._project.team_id,
             folder_id=self._folder.uuid,
-            image_id=self._image_response.data.uuid,
+            image_id=image_response.data.uuid,
         )
         credentials = token["annotations"]["MAIN"][0]
         if self._project.project_type == constances.ProjectType.VECTOR.value:
             file_postfix = "___objects.json"
         else:
             file_postfix = "___pixel.json"
-        # todo fix
+        # TODO fix
         response = requests.get(
             url=credentials["annotation_json_path"]["url"],
             headers=credentials["annotation_json_path"]["headers"],
@@ -1940,12 +1892,14 @@ class GetImageAnnotationsUseCase(BaseUseCase):
 
         self._response.data = data
 
+        return self._response
+
 
 class GetS3ImageUseCase(BaseUseCase):
     def __init__(
-        self, response: Response, s3_bucket, image_path: str,
+        self, s3_bucket, image_path: str,
     ):
-        super().__init__(response)
+        super().__init__()
         self._s3_bucket = s3_bucket
         self._image_path = image_path
 
@@ -1958,30 +1912,28 @@ class GetS3ImageUseCase(BaseUseCase):
             raise AppValidationException(f"File size is {image_object.content_length}")
         image_object.download_fileobj(image)
         self._response.data = image
+        return self._response
 
 
 class GetImagePreAnnotationsUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         service: SuerannotateServiceProvider,
         project: ProjectEntity,
         folder: FolderEntity,
         image_name: str,
         images: BaseManageableRepository,
     ):
-        super().__init__(response)
+        super().__init__()
         self._service = service
         self._project = project
         self._folder = folder
         self._image_name = image_name
-        self._image_response = Response()
         self._images = images
 
     @property
-    def get_image_use_case(self):
+    def image_use_case(self):
         return GetImageUseCase(
-            response=self._image_response,
             project=self._project,
             folder=self._folder,
             image_name=self._image_name,
@@ -1995,12 +1947,12 @@ class GetImagePreAnnotationsUseCase(BaseUseCase):
             "preannotation_mask": None,
             "preannotation_mask_filename": None,
         }
-        self.get_image_use_case.execute()
+        image_response = self.image_use_case.execute()
         token = self._service.get_download_token(
             project_id=self._project.uuid,
             team_id=self._project.team_id,
             folder_id=self._folder.uuid,
-            image_id=self._image_response.data.uuid,
+            image_id=image_response.data.uuid,
         )
         credentials = token["annotations"]["PREANNOTATION"][0]
         annotation_json_creds = credentials["annotation_json_path"]
@@ -2026,12 +1978,12 @@ class GetImagePreAnnotationsUseCase(BaseUseCase):
             data["preannotation_mask_filename"] = f"{self._image_name}___save.png"
 
         self._response.data = data
+        return self._response
 
 
 class DownloadImageAnnotationsUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         service: SuerannotateServiceProvider,
         project: ProjectEntity,
         folder: FolderEntity,
@@ -2039,19 +1991,17 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
         images: BaseManageableRepository,
         destination: str,
     ):
-        super().__init__(response)
+        super().__init__()
         self._service = service
         self._project = project
         self._folder = folder
         self._image_name = image_name
-        self._image_response = Response()
         self._images = images
         self._destination = destination
 
     @property
     def image_use_case(self):
         return GetImageUseCase(
-            response=self._image_response,
             project=self._project,
             folder=self._folder,
             image_name=self._image_name,
@@ -2065,12 +2015,12 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
             "annotation_mask": None,
             "annotation_mask_filename": None,
         }
-        self.image_use_case.execute()
+        image_response = self.image_use_case.execute()
         token = self._service.get_download_token(
             project_id=self._project.uuid,
             team_id=self._project.team_id,
             folder_id=self._folder.uuid,
-            image_id=self._image_response.data.uuid,
+            image_id=image_response.data.uuid,
         )
         credentials = token["annotations"]["MAIN"][0]
 
@@ -2105,12 +2055,12 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
             json.dump(data["annotation_json"], f, indent=4)
 
         self._response.data = (str(json_path), str(mask_path))
+        return self._response
 
 
 class DownloadImagePreAnnotationsUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         service: SuerannotateServiceProvider,
         project: ProjectEntity,
         folder: FolderEntity,
@@ -2118,7 +2068,7 @@ class DownloadImagePreAnnotationsUseCase(BaseUseCase):
         images: BaseManageableRepository,
         destination: str,
     ):
-        super().__init__(response)
+        super().__init__()
         self._service = service
         self._project = project
         self._folder = folder
@@ -2130,7 +2080,6 @@ class DownloadImagePreAnnotationsUseCase(BaseUseCase):
     @property
     def image_use_case(self):
         return GetImageUseCase(
-            response=self._image_response,
             project=self._project,
             folder=self._folder,
             image_name=self._image_name,
@@ -2144,12 +2093,12 @@ class DownloadImagePreAnnotationsUseCase(BaseUseCase):
             "preannotation_mask": None,
             "preannotation_mask_filename": None,
         }
-        self.image_use_case.execute()
+        image_response = self.image_use_case.execute()
         token = self._service.get_download_token(
             project_id=self._project.uuid,
             team_id=self._project.team_id,
             folder_id=self._folder.uuid,
-            image_id=self._image_response.data.uuid,
+            image_id=image_response.data.uuid,
         )
         credentials = token["annotations"]["PREANNOTATION"][0]
         annotation_json_creds = credentials["annotation_json_path"]
@@ -2183,17 +2132,17 @@ class DownloadImagePreAnnotationsUseCase(BaseUseCase):
             json.dump(data["preannotation_json"], f, indent=4)
 
         self._response.data = (str(json_path), str(mask_path))
+        return self._response
 
 
 class GetExportsUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         service: SuerannotateServiceProvider,
         project: ProjectEntity,
         return_metadata: bool = False,
     ):
-        super().__init__(response)
+        super().__init__()
         self._service = service
         self._project = project
         self._return_metadata = return_metadata
@@ -2205,12 +2154,12 @@ class GetExportsUseCase(BaseUseCase):
         self._response.data = data
         if not self._return_metadata:
             self._response.data = [i["name"] for i in data]
+        return self._response
 
 
 class UploadS3ImagesBackendUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         backend_service_provider: SuerannotateServiceProvider,
         settings: BaseReadOnlyRepository,
         project: ProjectEntity,
@@ -2221,7 +2170,7 @@ class UploadS3ImagesBackendUseCase(BaseUseCase):
         folder_path: str,
         image_quality: str,
     ):
-        super().__init__(response)
+        super().__init__()
         self._backend_service = backend_service_provider
         self._settings = settings
         self._project = project
@@ -2277,7 +2226,7 @@ class UploadS3ImagesBackendUseCase(BaseUseCase):
                 )
                 if progress == "2":
                     break
-                elif progress == "1":
+                elif progress != "1":
                     raise AppException("Couldn't upload to project from S3.")
 
         if old_setting:
@@ -2286,29 +2235,29 @@ class UploadS3ImagesBackendUseCase(BaseUseCase):
                 team_id=self._project.team_id,
                 data=[old_setting.to_dict()],
             )
+        return self._response
 
 
 class GetProjectImageCountUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         service: SuerannotateServiceProvider,
         project: ProjectEntity,
         folder: FolderEntity,
-        with_all_subfolders: bool = False,
+        with_all_sub_folders: bool = False,
     ):
-        super().__init__(response)
+        super().__init__()
         self._service = service
         self._project = project
         self._folder = folder
-        self._with_all_subfolders = with_all_subfolders
+        self._with_all_sub_folders = with_all_sub_folders
 
     def execute(self):
         data = self._service.get_project_images_count(
             project_id=self._project.uuid, team_id=self._project.team_id
         )
         count = 0
-        if self._with_all_subfolders:
+        if self._with_all_sub_folders:
             for i in data["data"]:
                 count += i["imagesCount"]
         else:
@@ -2316,12 +2265,12 @@ class GetProjectImageCountUseCase(BaseUseCase):
                 if i["name"] == self._folder.name:
                     count = i["imagesCount"]
         self._response.data = count
+        return self._response
 
 
 class UploadVideoUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         project: ProjectEntity,
         folder: FolderEntity,
         settings: BaseManageableRepository,
@@ -2332,7 +2281,7 @@ class UploadVideoUseCase(BaseUseCase):
         annotation_status_code: int = constances.AnnotationStatus.NOT_STARTED.value,
         image_quality_in_editor: str = None,
     ):
-        super().__init__(response)
+        super().__init__()
         self._project = project
         self._folder = folder
         self._settings = settings
@@ -2343,9 +2292,8 @@ class UploadVideoUseCase(BaseUseCase):
         self._annotation_status_code = annotation_status_code
         self._image_quality_in_editor = image_quality_in_editor
 
-    def get_upload_s3_use_case(self, image, image_path, upload_path):
+    def upload_s3_use_case(self, image, image_path, upload_path):
         return UploadImageS3UseCas(
-            response=Response(),
             project=self._project,
             project_settings=self._settings,
             image_path=image_path,
@@ -2355,13 +2303,13 @@ class UploadVideoUseCase(BaseUseCase):
         )
 
     def execute(self):
+        # TODO
         pass
 
 
 class ExtractFramesUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         backend_service_provider: SuerannotateServiceProvider,
         project: ProjectEntity,
         folder: FolderEntity,
@@ -2374,7 +2322,7 @@ class ExtractFramesUseCase(BaseUseCase):
         image_quality_in_editor: str = None,
         limit: int = None,
     ):
-        super().__init__(response)
+        super().__init__()
         self._backend_service = backend_service_provider
         self._project = project
         self._folder = folder
@@ -2411,16 +2359,16 @@ class ExtractFramesUseCase(BaseUseCase):
             target_fps=self._target_fps,
         )
         self._response.data = extracted_paths
+        return self._response
 
 
 class CreateAnnotationClassUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         annotation_classes: BaseManageableRepository,
         annotation_class: AnnotationClassEntity,
     ):
-        super().__init__(response)
+        super().__init__()
         self._annotation_classes = annotation_classes
         self._annotation_class = annotation_class
 
@@ -2443,16 +2391,16 @@ class CreateAnnotationClassUseCase(BaseUseCase):
             self._response.data = created
         else:
             self._response.data = self._annotation_class
+        return self._response
 
 
 class DeleteAnnotationClassUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         annotation_classes_repo: BaseManageableRepository,
         annotation_class_name: str,
     ):
-        super().__init__(response)
+        super().__init__()
         self._annotation_classes_repo = annotation_classes_repo
         self._annotation_class_name = annotation_class_name
         self._annotation_class = None
@@ -2474,11 +2422,10 @@ class DeleteAnnotationClassUseCase(BaseUseCase):
 class GetAnnotationClassUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         annotation_classes_repo: BaseManageableRepository,
         annotation_class_name: str,
     ):
-        super().__init__(response)
+        super().__init__()
         self._annotation_classes_repo = annotation_classes_repo
         self._annotation_class_name = annotation_class_name
 
@@ -2487,16 +2434,14 @@ class GetAnnotationClassUseCase(BaseUseCase):
             condition=Condition("name", self._annotation_class_name, EQ)
         )
         self._response.data = classes[0]
+        return self._response
 
 
 class DownloadAnnotationClassesUseCase(BaseUseCase):
     def __init__(
-        self,
-        response: Response,
-        annotation_classes_repo: BaseManageableRepository,
-        download_path: str,
+        self, annotation_classes_repo: BaseManageableRepository, download_path: str,
     ):
-        super().__init__(response)
+        super().__init__()
         self._annotation_classes_repo = annotation_classes_repo
         self._download_path = download_path
 
@@ -2507,6 +2452,7 @@ class DownloadAnnotationClassesUseCase(BaseUseCase):
             classes, open(Path(self._download_path) / "classes.json", "w"), indent=4
         )
         self._response.data = self._download_path
+        return self._response
 
 
 class CreateAnnotationClassesUseCase(BaseUseCase):
@@ -2515,13 +2461,12 @@ class CreateAnnotationClassesUseCase(BaseUseCase):
 
     def __init__(
         self,
-        response: Response,
         service: SuerannotateServiceProvider,
         annotation_classes_repo: BaseManageableRepository,
         annotation_classes: list,
         project: ProjectEntity,
     ):
-        super().__init__(response)
+        super().__init__()
         self._service = service
         self._annotation_classes_repo = annotation_classes_repo
         self._annotation_classes = annotation_classes
@@ -2545,19 +2490,19 @@ class CreateAnnotationClassesUseCase(BaseUseCase):
                 data=unique_annotation_classes[i : i + self.CHUNK_SIZE],
             )
         self._response.data = created
+        return self._response
 
 
 class SetWorkflowUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         service: SuerannotateServiceProvider,
         annotation_classes_repo: BaseManageableRepository,
         workflow_repo: BaseManageableRepository,
         steps: list,
         project: ProjectEntity,
     ):
-        super().__init__(response)
+        super().__init__()
         self._service = service
         self._annotation_classes_repo = annotation_classes_repo
         self._workflow_repo = workflow_repo
@@ -2613,6 +2558,7 @@ class SetWorkflowUseCase(BaseUseCase):
             team_id=self._project.team_id,
             attributes=req_data,
         )
+        return self._response
 
 
 class CreateFuseImageUseCase(BaseUseCase):
@@ -2620,14 +2566,13 @@ class CreateFuseImageUseCase(BaseUseCase):
 
     def __init__(
         self,
-        response: Response,
         project_type: str,
         image_path: str,
         classes: list = None,
         in_memory: bool = False,
         generate_overlay: bool = False,
     ):
-        super().__init__(response)
+        super().__init__()
         self._project_type = project_type
         self._image_path = image_path
         self._annotations = None
@@ -2792,12 +2737,12 @@ class CreateFuseImageUseCase(BaseUseCase):
                 self._response.data = paths
             else:
                 self._response.data = (image.content for image in images)
+        return self._response
 
 
 class DownloadImageUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         project: ProjectEntity,
         folder: FolderEntity,
         image: ImageEntity,
@@ -2810,11 +2755,7 @@ class DownloadImageUseCase(BaseUseCase):
         include_fuse: bool = False,
         include_overlay: bool = False,
     ):
-        super().__init__(response)
-        self._image_bytes_response = Response()
-        self._image_annotation_response = Response()
-        self._annotation_classes_response = Response()
-        self._fuse_image_response = Response()
+        super().__init__()
         self._project = project
         self._image = image
         self._download_path = download_path
@@ -2823,13 +2764,11 @@ class DownloadImageUseCase(BaseUseCase):
         self._include_overlay = include_overlay
         self._include_annotations = include_annotations
         self.get_image_use_case = GetImageBytesUseCase(
-            response=self._image_bytes_response,
             image=image,
             backend_service_provider=backend_service_provider,
             image_variant=image_variant,
         )
         self.download_annotation_use_case = DownloadImageAnnotationsUseCase(
-            response=self._image_annotation_response,
             service=backend_service_provider,
             project=project,
             folder=folder,
@@ -2838,43 +2777,44 @@ class DownloadImageUseCase(BaseUseCase):
             destination=download_path,
         )
         self.get_annotation_classes_ues_case = GetAnnotationClassesUseCase(
-            response=self._annotation_classes_response, classes=classes,
+            classes=classes,
         )
 
     def execute(self):
         self.get_image_use_case.execute()
-        image_bytes = self._image_bytes_response.data
+        image_bytes = self.get_image_use_case.execute().data
         download_path = self._download_path + self._image.name
         if self._image_variant == "lores":
             download_path = download_path + "___lores.jpg"
         with open(download_path, "wb") as image_file:
             image_file.write(image_bytes.getbuffer())
 
+        annotations = None
         if self._include_annotations:
-            self.download_annotation_use_case.execute()
+            annotations = self.download_annotation_use_case.execute().data
 
+        fuse_image = None
         if self._include_annotations and self._include_fuse:
             self.get_annotation_classes_ues_case.execute()
-            classes = self._annotation_classes_response.data
-            CreateFuseImageUseCase(
-                response=self._fuse_image_response,
+            classes = self.get_annotation_classes_ues_case.execute().data
+            fuse_image_use_case = CreateFuseImageUseCase(
                 project_type=constances.ProjectType(self._project.project_type).name,
                 image_path=download_path,
                 classes=[annotation_class.to_dict() for annotation_class in classes],
                 generate_overlay=self._include_overlay,
             )
+            fuse_image = fuse_image_use_case.execute().data
 
         self._response.data = (
             download_path,
-            self._image_annotation_response.data,
-            self._fuse_image_response.data,
+            annotations,
+            fuse_image,
         )
 
 
 class UploadImageAnnotationsUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         project: ProjectEntity,
         folder: FolderEntity,
         annotation_classes: BaseReadOnlyRepository,
@@ -2883,7 +2823,7 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
         backend_service_provider: SuerannotateServiceProvider,
         mask=None,
     ):
-        super().__init__(response)
+        super().__init__()
         self._project = project
         self._folder = folder
         self._backend_service = backend_service_provider
@@ -3004,12 +2944,12 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
                 ],
                 Body=self._mask,
             )
+        return self._response
 
 
 class UploadAnnotationsUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         project: ProjectEntity,
         folder: FolderEntity,
         annotation_classes: BaseReadOnlyRepository,
@@ -3019,7 +2959,7 @@ class UploadAnnotationsUseCase(BaseUseCase):
         pre_annotation: bool = False,
         client_s3_bucket=None,
     ):
-        super().__init__(response=response)
+        super().__init__()
         self._project = project
         self._folder = folder
         self._backend_service = backend_service_provider
@@ -3194,11 +3134,12 @@ class UploadAnnotationsUseCase(BaseUseCase):
             from_s3 = None
 
         for image_id, image_info in auth_data["images"].items():
-            annotation_name = image_id_name_map[image_id].name + self.annotation_postfix
             if from_s3:
                 file = io.BytesIO()
-                s3_object = from_s3.Object(self._client_s3_bucket, annotation_name)
-                s3_object.download_file(file)
+                s3_object = from_s3.Object(
+                    self._client_s3_bucket, image_id_name_map[image_id].path
+                )
+                s3_object.download_fileobj(file)
                 file.seek(0)
                 annotation_json = json.load(file)
             else:
@@ -3241,12 +3182,12 @@ class UploadAnnotationsUseCase(BaseUseCase):
             missing_annotations,
             failed_annotations,
         )
+        return self._response
 
 
 class CreateModelUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         base_model_name: str,
         model_name: str,
         model_description: str,
@@ -3260,7 +3201,7 @@ class CreateModelUseCase(BaseUseCase):
         ml_models: BaseManageableRepository,
         hyper_parameters: dict = None,
     ):
-        super().__init__(response)
+        super().__init__()
         self._base_model_name = base_model_name
         self._model_name = model_name
         self._model_description = model_description
@@ -3364,7 +3305,7 @@ class CreateModelUseCase(BaseUseCase):
                 f"The type of provided projects is {project_types[0]}, "
                 "and does not correspond to the type of provided model"
             )
-            return
+            return self._response
 
         completed_images_data = self._backend_service.bulk_get_folders(
             self._team_id, [project.uuid for project in projects]
@@ -3390,17 +3331,17 @@ class CreateModelUseCase(BaseUseCase):
         new_model_data = self._ml_models.insert(ml_model)
 
         self._response.data = new_model_data
+        return self._response
 
 
 class GetModelMetricsUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         model_id: int,
         team_id: int,
         backend_service_provider: SuerannotateServiceProvider,
     ):
-        super().__init__(response)
+        super().__init__()
         self._model_id = model_id
         self._team_id = team_id
         self._backend_service = backend_service_provider
@@ -3410,29 +3351,26 @@ class GetModelMetricsUseCase(BaseUseCase):
             team_id=self._team_id, model_id=self._model_id
         )
         self._response.data = metrics
+        return self._response
 
 
 class UpdateModelUseCase(BaseUseCase):
     def __init__(
-        self,
-        response: Response,
-        model: MLModelEntity,
-        models: BaseManageableRepository,
+        self, model: MLModelEntity, models: BaseManageableRepository,
     ):
-        super().__init__(response)
+        super().__init__()
         self._models = models
         self._model = model
 
     def execute(self):
         model = self._models.update(self._model)
         self._response.data = model
+        return self._response
 
 
 class DeleteMLModel(BaseUseCase):
-    def __init__(
-        self, response: Response, model_id: int, models: BaseManageableRepository
-    ):
-        super().__init__(response)
+    def __init__(self, model_id: int, models: BaseManageableRepository):
+        super().__init__()
         self._model_id = model_id
         self._models = models
 
@@ -3443,12 +3381,11 @@ class DeleteMLModel(BaseUseCase):
 class StopModelTraining(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         model_id: int,
         team_id: int,
         backend_service_provider: SuerannotateServiceProvider,
     ):
-        super().__init__(response)
+        super().__init__()
 
         self._model_id = model_id
         self._team_id = team_id
@@ -3460,12 +3397,12 @@ class StopModelTraining(BaseUseCase):
         )
         if not is_stopped:
             self._response.errors = AppException("Something went wrong.")
+        return self._response
 
 
 class DownloadExportUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         service: SuerannotateServiceProvider,
         project: ProjectEntity,
         export_name: str,
@@ -3473,7 +3410,7 @@ class DownloadExportUseCase(BaseUseCase):
         extract_zip_contents: bool,
         to_s3_bucket: bool,
     ):
-        super().__init__(response)
+        super().__init__()
         self._service = service
         self._project = project
         self._export_name = export_name
@@ -3521,18 +3458,18 @@ class DownloadExportUseCase(BaseUseCase):
         else:
             pass
             # TODO: handle s3
+        return self._response
 
 
 class DownloadMLModelUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         model: MLModelEntity,
         download_path: str,
         backend_service_provider: SuerannotateServiceProvider,
         team_id: int,
     ):
-        super().__init__(response)
+        super().__init__()
         self._model = model
         self._download_path = download_path
         self._backend_service = backend_service_provider
@@ -3576,27 +3513,27 @@ class DownloadMLModelUseCase(BaseUseCase):
             self._response.errors = AppException(
                 "The specified model does not contain a classes_mapper and/or a metrics file."
             )
+        return self._response
 
 
 class BenchmarkUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         project: ProjectEntity,
         ground_truth_folder_name: str,
         folder_names: list,
         export_dir: str,
         image_list: list,
-        annot_type: str,
+        annotation_type: str,
         show_plots: bool,
     ):
-        super().__init__(response)
+        super().__init__()
         self._project = project
         self._ground_truth_folder_name = ground_truth_folder_name
         self._folder_names = folder_names
         self._export_dir = export_dir
         self._image_list = image_list
-        self._annot_type = annot_type
+        self._annotation_type = annotation_type
         self._show_plots = show_plots
 
     def execute(self):
@@ -3615,7 +3552,7 @@ class BenchmarkUseCase(BaseUseCase):
                     project_gt_df["imageName"].isin(self._image_list)
                 ]
 
-            project_gt_df.query("type == '" + self._annot_type + "'", inplace=True)
+            project_gt_df.query("type == '" + self._annotation_type + "'", inplace=True)
 
             project_gt_df = project_gt_df.groupby(
                 ["imageName", "instanceId", "folderName"]
@@ -3657,7 +3594,7 @@ class BenchmarkUseCase(BaseUseCase):
             all_benchmark_data = []
             for image_name in unique_images:
                 image_data = image_consensus(
-                    project_gt_df, image_name, self._annot_type
+                    project_gt_df, image_name, self._annotation_type
                 )
                 all_benchmark_data.append(pd.DataFrame(image_data))
             benchmark_project_df = pd.concat(all_benchmark_data, ignore_index=True)
@@ -3669,25 +3606,25 @@ class BenchmarkUseCase(BaseUseCase):
         if self._show_plots:
             consensus_plot(benchmark_df, self._folder_names)
         self._response.data = benchmark_df
+        return self._response
 
 
 class ConsensusUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         project: ProjectEntity,
         folder_names: list,
         export_dir: str,
         image_list: list,
-        annot_type: str,
+        annotation_type: str,
         show_plots: bool,
     ):
-        super().__init__(response)
+        super().__init__()
         self._project = project
         self._folder_names = folder_names
         self._export_dir = export_dir
         self._image_list = image_list
-        self._annot_type = annot_type
+        self._annota_type_type = annotation_type
         self._show_plots = show_plots
 
     def execute(self):
@@ -3702,7 +3639,7 @@ class ConsensusUseCase(BaseUseCase):
                 all_projects_df["imageName"].isin(self._image_list)
             ]
 
-        all_projects_df.query("type == '" + self._annot_type + "'", inplace=True)
+        all_projects_df.query("type == '" + self._annota_type_type + "'", inplace=True)
 
         def aggregate_attributes(instance_df):
             def attribute_to_list(attribute_df):
@@ -3740,7 +3677,9 @@ class ConsensusUseCase(BaseUseCase):
         unique_images = set(all_projects_df["imageName"])
         all_consensus_data = []
         for image_name in unique_images:
-            image_data = image_consensus(all_projects_df, image_name, self._annot_type)
+            image_data = image_consensus(
+                all_projects_df, image_name, self._annota_type_type
+            )
             all_consensus_data.append(pd.DataFrame(image_data))
 
         consensus_df = pd.concat(all_consensus_data, ignore_index=True)
@@ -3748,13 +3687,10 @@ class ConsensusUseCase(BaseUseCase):
         if self._show_plots:
             consensus_plot(consensus_df, self._folder_names)
 
-        return consensus_df
-
 
 class RunSegmentationUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         project: ProjectEntity,
         ml_model_repo: BaseManageableRepository,
         ml_model_name: str,
@@ -3762,7 +3698,7 @@ class RunSegmentationUseCase(BaseUseCase):
         service: SuerannotateServiceProvider,
         folder: FolderEntity,
     ):
-        super().__init__(response)
+        super().__init__()
         self._project = project
         self._ml_model_repo = ml_model_repo
         self._ml_model_name = ml_model_name
@@ -3831,12 +3767,12 @@ class RunSegmentationUseCase(BaseUseCase):
             time.sleep(5)
 
         self._response.data = (succeded_imgs, failed_imgs)
+        return self._response
 
 
 class RunPredictionUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         project: ProjectEntity,
         ml_model_repo: BaseManageableRepository,
         ml_model_name: str,
@@ -3844,7 +3780,7 @@ class RunPredictionUseCase(BaseUseCase):
         service: SuerannotateServiceProvider,
         folder: FolderEntity,
     ):
-        super().__init__(response)
+        super().__init__()
         self._project = project
         self._ml_model_repo = ml_model_repo
         self._ml_model_name = ml_model_name
@@ -3908,18 +3844,18 @@ class RunPredictionUseCase(BaseUseCase):
             time.sleep(5)
 
         self._response.data = (succeded_imgs, failed_imgs)
+        return self._response
 
 
 class GetAllImagesUseCase(BaseUseCase):
     def __init__(
         self,
-        response: Response,
         project: ProjectEntity,
         service_provider: SuerannotateServiceProvider,
         annotation_status: str = None,
         name_prefix: str = None,
     ):
-        super().__init__(response)
+        super().__init__()
         self._project = project
         self._service_provider = service_provider
         self._annotation_status = annotation_status
@@ -3942,16 +3878,14 @@ class GetAllImagesUseCase(BaseUseCase):
         self._response.data = self._service_provider.list_images(
             query_string=condition.build_query()
         )
+        return self._response
 
 
 class SearchMLModels(BaseUseCase):
     def __init__(
-        self,
-        response: Response,
-        ml_models_repo: BaseManageableRepository,
-        condition: Condition,
+        self, ml_models_repo: BaseManageableRepository, condition: Condition,
     ):
-        super().__init__(response)
+        super().__init__()
         self._ml_models = ml_models_repo
         self._condition = condition
 
@@ -3959,3 +3893,4 @@ class SearchMLModels(BaseUseCase):
         ml_models = self._ml_models.get_all(condition=self._condition)
         ml_models = [ml_model.to_dict() for ml_model in ml_models]
         self._response.data = ml_models
+        return self._response

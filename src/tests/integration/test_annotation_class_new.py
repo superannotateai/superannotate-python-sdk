@@ -1,5 +1,4 @@
 import os
-import time
 from os.path import dirname
 from unittest import TestCase
 
@@ -15,7 +14,6 @@ class TestAnnotationClasses(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.tearDownClass()
-        time.sleep(2)
         project = sa.create_project(
             cls.PROJECT_NAME, cls.PROJECT_DESCRIPTION, cls.PROJECT_TYPE
         )
@@ -42,21 +40,17 @@ class TestAnnotationClasses(TestCase):
 
     def test_create_annotation_class(self):
         sa.create_annotation_class(self.PROJECT_NAME, "tt", "#FFFFFF")
-        time.sleep(2)
         self.assertEqual(len(sa.search_annotation_classes(self.PROJECT_NAME)), 1)
         sa.create_annotation_class(self.PROJECT_NAME, "tt", "#FFFFFF")
-        time.sleep(2)
         self.assertEqual(len(sa.search_annotation_classes(self.PROJECT_NAME)), 1)
 
     def test_create_annotation_class_from_json(self):
         sa.create_annotation_classes_from_classes_json(
             self.PROJECT_NAME_JSON, self.classes_json
         )
-        time.sleep(2)
         self.assertEqual(len(sa.search_annotation_classes(self.PROJECT_NAME_JSON)), 4)
 
         sa.create_annotation_classes_from_classes_json(
             self.PROJECT_NAME_JSON, self.classes_json
         )
-        time.sleep(2)
         self.assertEqual(len(sa.search_annotation_classes(self.PROJECT_NAME_JSON)), 4)

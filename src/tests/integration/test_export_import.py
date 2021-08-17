@@ -1,6 +1,5 @@
 import os
 import tempfile
-import time
 from os.path import dirname
 
 import src.lib.app.superannotate as sa
@@ -28,7 +27,6 @@ class TestExportImport(BaseTestCase):
         sa.upload_images_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path, annotation_status="InProgress",
         )
-        time.sleep(2)
 
         with tempfile.TemporaryDirectory() as tmpdir_name:
             export = sa.prepare_export(self.PROJECT_NAME, include_fuse=True)
