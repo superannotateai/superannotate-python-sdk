@@ -51,39 +51,39 @@ class TestFolders(BaseTestCase):
             )
 
             sa.add_annotation_bbox_to_image(
-                self.PROJECT_NAME, "example_image_1.jpg", [20, 20, 40, 40], "Human"
+                self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, [20, 20, 40, 40], "Human"
             )
             sa.add_annotation_polygon_to_image(
                 self.PROJECT_NAME,
-                "example_image_1.jpg",
+                self.EXAMPLE_IMAGE_1,
                 [60, 60, 100, 100, 80, 100],
                 "Personal vehicle",
             )
             sa.add_annotation_polyline_to_image(
                 self.PROJECT_NAME,
-                "example_image_1.jpg",
+                self.EXAMPLE_IMAGE_1,
                 [200, 200, 300, 200, 350, 300],
                 "Personal vehicle",
             )
             sa.add_annotation_point_to_image(
-                self.PROJECT_NAME, "example_image_1.jpg", [400, 400], "Personal vehicle"
+                self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, [400, 400], "Personal vehicle"
             )
             sa.add_annotation_ellipse_to_image(
                 self.PROJECT_NAME,
-                "example_image_1.jpg",
+                self.EXAMPLE_IMAGE_1,
                 [600, 600, 50, 100, 20],
                 "Personal vehicle",
             )
             sa.add_annotation_template_to_image(
                 self.PROJECT_NAME,
-                "example_image_1.jpg",
+                self.EXAMPLE_IMAGE_1,
                 [600, 300, 600, 350, 550, 250, 650, 250, 550, 400, 650, 400],
                 [1, 2, 3, 1, 4, 1, 5, 2, 6, 2],
                 "Human",
             )
             sa.add_annotation_cuboid_to_image(
                 self.PROJECT_NAME,
-                "example_image_1.jpg",
+                self.EXAMPLE_IMAGE_1,
                 [60, 300, 200, 350, 120, 325, 250, 500],
                 "Human",
             )
@@ -99,13 +99,13 @@ class TestFolders(BaseTestCase):
 
             paths = sa.download_image(
                 self.PROJECT_NAME,
-                "example_image_1.jpg",
+                self.EXAMPLE_IMAGE_1,
                 temp_dir,
                 include_annotations=True,
                 include_fuse=True,
                 include_overlay=True,
             )
-            im1 = Image.open(temp_dir / "export" / "example_image_1.jpg___fuse.png")
+            im1 = Image.open(temp_dir / "export" / f"{self.EXAMPLE_IMAGE_1}___fuse.png")
             im1_array = np.array(im1)
 
             im2 = Image.open(paths[2][0])
@@ -134,7 +134,7 @@ class TestFolders(BaseTestCase):
             )
             sa.upload_image_annotations(
                 self.PROJECT_NAME,
-                "example_image_1.jpg",
+                self.EXAMPLE_IMAGE_1,
                 f"{self.pixel_folder_path}/{self.EXAMPLE_IMAGE_1}___pixel.json",
                 f"{self.pixel_folder_path}/{self.EXAMPLE_IMAGE_1}___save.png",
             )
@@ -144,20 +144,20 @@ class TestFolders(BaseTestCase):
             sa.download_export(self.PROJECT_NAME, export, (temp_dir / "export"))
 
             sa.create_fuse_image(
-                f"{self.vector_folder_path}/example_image_1.jpg",
+                f"{self.vector_folder_path}/{self.EXAMPLE_IMAGE_1}",
                 f"{self.vector_folder_path}/classes/classes.json",
                 "Vector",
             )
 
             paths = sa.download_image(
                 self.PROJECT_NAME,
-                "example_image_1.jpg",
+                self.EXAMPLE_IMAGE_1,
                 temp_dir,
                 include_annotations=True,
                 include_fuse=True,
             )
             print(paths, paths[2])
-            im1 = Image.open(temp_dir / "export" / "example_image_1.jpg___fuse.png")
+            im1 = Image.open(temp_dir / "export" / f"{self.EXAMPLE_IMAGE_1}___fuse.png")
             im1_array = np.array(im1)
 
             im2 = Image.open(paths[2][0])

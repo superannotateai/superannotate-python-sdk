@@ -538,6 +538,7 @@ class AttachFileUrlsUseCase(BaseUseCase):
         self,
         project: ProjectEntity,
         folder: FolderEntity,
+        limit: int,
         attachments: List[ImageEntity],
         backend_service_provider: SuerannotateServiceProvider,
         annotation_status: str = None,
@@ -545,6 +546,7 @@ class AttachFileUrlsUseCase(BaseUseCase):
         super().__init__()
         self._attachments = attachments
         self._project = project
+        self._limit = limit
         self._folder = folder
         self._backend_service = backend_service_provider
         self._annotation_status = annotation_status
@@ -566,12 +568,10 @@ class AttachFileUrlsUseCase(BaseUseCase):
             folder_id=self._folder.uuid,
             images=[image.name for image in self._attachments],
         )
-
         duplications = [image["name"] for image in duplications]
-
         attachments = []
-
         meta = {}
+        attachments_to_upload = self._attachments[: self._limit]
         for image in self._attachments:
             if image.name not in duplications:
                 attachments.append({"name": image.name, "path": image.path})
@@ -2564,7 +2564,7 @@ class CreateFuseImageUseCase(BaseUseCase):
                     Image(
                         "fuse",
                         f"{self._image_path}___fuse.png",
-                        ImagePlugin.get_empty_image(),
+                        image.get_empty_image(),
                     )
                 ]
                 if self._generate_overlay:

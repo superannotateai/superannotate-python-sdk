@@ -185,9 +185,14 @@ class Controller(BaseController):
     ):
         project = self._get_project(project_name)
         folder = self._get_folder(project, folder_name)
+        limit = self.get_auth_data(project.uuid, project.team_id, folder.uuid)[
+            "availableImageCount"
+        ]
+
         use_case = usecases.AttachFileUrlsUseCase(
             project=project,
             folder=folder,
+            limit=limit,
             backend_service_provider=self._backend_client,
             attachments=images,
             annotation_status=annotation_status,
@@ -415,7 +420,7 @@ class Controller(BaseController):
         use_case = usecases.GetImageUseCase(
             project=project, folder=folder, image_name=image_name, images=self.images,
         )
-        return use_case.execute()
+        return use_case.execute().data
 
     def get_image(
         self, project_name: str, image_name: str, folder_path: str = None
