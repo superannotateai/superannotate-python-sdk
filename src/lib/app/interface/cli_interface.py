@@ -22,7 +22,6 @@ from src.lib.core.entities import ConfigEntity
 from src.lib.infrastructure.repositories import ConfigRepository
 from tqdm import tqdm
 
-
 logger = logging.getLogger()
 
 
@@ -170,13 +169,25 @@ class CLIFacade(BaseInterfaceFacade):
     def upload_preannotations(
         self, project, folder, data_set_name=None, task=None, format=None
     ):
-        self._upload_annotations(project, folder, format, data_set_name, task, pre=True)
+        self._upload_annotations(
+            project=project,
+            folder=folder,
+            format=format,
+            data_set_name=data_set_name,
+            task=task,
+            pre=True,
+        )
 
     def upload_annotations(
         self, project, folder, data_set_name=None, task=None, format=None
     ):
         self._upload_annotations(
-            project, folder, format, data_set_name, task, pre=False
+            project=project,
+            folder=folder,
+            format=format,
+            data_set_name=data_set_name,
+            task=task,
+            pre=False,
         )
 
     def _upload_annotations(
@@ -190,7 +201,6 @@ class CLIFacade(BaseInterfaceFacade):
             raise Exception("Data-set name is required")
         elif not data_set_name:
             data_set_name = ""
-
         if not task:
             task = "object_detection"
 
@@ -273,3 +283,69 @@ class CLIFacade(BaseInterfaceFacade):
         ]
 
         return list_of_uploaded, list_of_not_uploaded, duplicate_images
+
+    def upload_videos(
+        self,
+        project,
+        folder,
+        target_fps=1,
+        recursive=False,
+        extensions=constances.DEFAULT_VIDEO_EXTENSIONS,
+        set_annotation_status=constances.AnnotationStatus.NOT_STARTED.name,
+        start_time=0.0,
+        end_time=None,
+    ):
+        project_name, folder_name = split_project_path(project)
+
+        uploaded_image_entities = []
+        failed_images = []
+
+        def _upload_image(image_path: str) -> str:
+            with open(image_path, "rb") as image:
+                image_bytes = BytesIO(image.read())
+                upload_response = self.controller.upload_image_to_s3(
+                    project_name=project_name,
+                    image_path=image_path,
+                    image_bytes=image_bytes,
+                    folder_name=folder_name,
+                )
+                if not upload_response.errors:
+                    uploaded_image_entities.append(upload_response.data)
+                else:
+                    return image_path
+
+        video_paths = []
+        for extension in extensions:
+            if not recursive:
+                video_paths += list(Path(folder).glob(f"*.{extension.lower()}"))
+                if os.name != "nt":
+                    video_paths += list(Path(folder).glob(f"*.{extension.upper()}"))
+            else:
+                video_paths += list(Path(folder).rglob(f"*.{extension.lower()}"))
+                if os.name != "nt":
+                    video_paths += list(Path(folder).rglob(f"*.{extension.upper()}"))
+        video_paths = [str(path) for path in video_paths]
+
+        for path in video_paths:
+            with tempfile.TemporaryDirectory() as temp_path:
+                res = self.controller.extract_video_frames(
+                    project_name=project_name,
+                    folder_name=folder_name,
+                    video_path=path,
+                    extract_path=temp_path,
+                    target_fps=int(target_fps),
+                    start_time=float(start_time),
+                    end_time=end_time if not end_time else float(end_time),
+                    annotation_status=set_annotation_status,
+                )
+                if not res.errors:
+                    extracted_frame_paths = res.data
+                    for image_path in extracted_frame_paths:
+                        failed_images.append(_upload_image(image_path))
+        for i in range(0, len(uploaded_image_entities), 500):
+            self.controller.upload_images(
+                project_name=project_name,
+                folder_name=folder_name,
+                images=uploaded_image_entities[i : i + 500],  # noqa: E203
+                annotation_status=set_annotation_status,
+            )

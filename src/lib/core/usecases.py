@@ -559,6 +559,8 @@ class AttachFileUrlsUseCase(BaseUseCase):
 
     @property
     def upload_state_code(self) -> int:
+        if self._project.project_type == constances.ProjectType.VIDEO.value:
+            return constances.UploadState.EXTERNAL.value
         return constances.UploadState.BASIC.value
 
     def execute(self):

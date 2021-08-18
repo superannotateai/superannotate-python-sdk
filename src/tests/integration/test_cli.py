@@ -21,6 +21,7 @@ class CLITest(TestCase):
     TEST_CONVERTOR_PATH = (
         "data_set/converter_test/COCO/input/toSuperAnnotate/instance_segmentation"
     )
+    TEST_VIDEO_PATH = "data_set/sample_videos/single"
     TEST_VECTOR_FOLDER_PATH = "data_set/sample_project_vector"
     TEST_PIXEL_FOLDER_PATH = "data_set/sample_project_pixel"
     TEST_RECURSIVE_FOLDER_PATH = "data_set/sample_recursive_test"
@@ -39,6 +40,12 @@ class CLITest(TestCase):
     def convertor_data_path(self):
         return Path(
             Path(os.path.join(dirname(dirname(__file__)), self.TEST_CONVERTOR_PATH))
+        )
+
+    @property
+    def video_folder_path(self):
+        return Path(
+            Path(os.path.join(dirname(dirname(__file__)), self.TEST_VIDEO_PATH))
         )
 
     @property
@@ -109,12 +116,6 @@ class CLITest(TestCase):
             check=True,
             shell=True,
         )
-        print(
-            f'python {SCRIPT_PATH} upload-images --project "{self.PROJECT_NAME}"'
-            f" --folder {self.recursive_folder_path} "
-            "--extensions=jpg "
-            "--set-annotation-status QualityCheck",
-        )
         self.assertEqual(1, len(sa.search_images(self.PROJECT_NAME)))
 
     def test_upload_export(self):
@@ -146,15 +147,14 @@ class CLITest(TestCase):
             shell=True,
         )
 
-        # from src.lib.app.interface.cli_interface import CLIFacade
-        # CLIFacade().upload_preannotations(project=self.PROJECT_NAME, folder=self.convertor_data_path, data_set_name="instances_test")
-        a = subprocess.run(
+        s = subprocess.run(
             f"python {SCRIPT_PATH} upload-preannotations "
             f'--project "{self.PROJECT_NAME}" '
             f'--folder "{self.convertor_data_path}" '
-            f'--date-set-name "instances_test"',
-            check=True,
+            f'--data-set-name "instances_test"',
             shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
         )
         count_in = len(list(self.vector_folder_path.glob("*.json")))
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -183,7 +183,7 @@ class CLITest(TestCase):
             f"python {SCRIPT_PATH} upload-annotations "
             f'--project "{self.PROJECT_NAME}" '
             f'--folder "{self.convertor_data_path}" '
-            f'--date-set-name "instances_test"',
+            f'--data-set-name "instances_test"',
             check=True,
             shell=True,
         )
@@ -216,3 +216,15 @@ class CLITest(TestCase):
             shell=True,
         )
         self.assertEqual(3, len(sa.search_images(self.PROJECT_NAME)))
+
+    def test_upload_videos(self):
+        self._create_project()
+        subprocess.run(
+            f"python {SCRIPT_PATH} upload-videos "
+            f'--project "{self.PROJECT_NAME}" '
+            f"--folder '{self.video_folder_path}' "
+            f"--target-fps 1",
+            check=True,
+            shell=True,
+        )
+        self.assertEqual(4, len(sa.search_images(self.PROJECT_NAME)))

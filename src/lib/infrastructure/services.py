@@ -269,7 +269,7 @@ class SuperannotateBackendService(BaseBackendService):
             "team_id": team_id,
             "images": files,
             "annotation_status": annotation_status_code,
-            "upload_state_code": upload_state_code,
+            "upload_state": upload_state_code,
             "meta": meta,
         }
         create_image_url = urljoin(self.api_url, self.URL_CREATE_IMAGE)
