@@ -34,23 +34,14 @@ class TestPixelImages(BaseTestCase):
             self.assertEqual(len(images), 1)
 
             image_name = images[0]
-            sa.download_image(self.PROJECT_NAME, image_name, temp_dir, True)
-            # assert sa.get_image_preannotations(project, image_name
-            #                                   )["preannotation_json_filename"] is None
-            self.assertEqual(
-                len(
-                    sa.get_image_annotations(self.PROJECT_NAME, image_name)[
-                        "annotation_json"
-                    ]["instances"]
-                ),
-                0,
+            downloaded = sa.download_image(
+                self.PROJECT_NAME, image_name, temp_dir, True
             )
-            sa.download_image_annotations(self.PROJECT_NAME, image_name, temp_dir)
-            self.assertEqual(len(list(Path(temp_dir).glob("*"))), 2)
-            # sa.download_image_preannotations(project, image_name, tmpdir)
-            # assert len(list(Path(tmpdir).glob("*"))) == 2
+            self.assertEqual(downloaded[1], (None, None))
+            self.assertGreater(len(downloaded[0]), 0)
 
-            self.assertTrue(Path(temp_dir) / image_name).is_file()
+            sa.download_image_annotations(self.PROJECT_NAME, image_name, temp_dir)
+            self.assertEqual(len(list(Path(temp_dir).glob("*"))), 0)
 
             sa.upload_image_annotations(
                 project=self.PROJECT_NAME,
@@ -79,7 +70,7 @@ class TestPixelImages(BaseTestCase):
             sa.download_annotation_classes_json(self.PROJECT_NAME, temp_dir)
             downloaded_classes = json.load(open(f"{temp_dir}/classes.json"))
 
-            for a in annotation:
+            for a in annotation["instances"]:
                 if "className" not in a:
                     continue
                 for c1 in downloaded_classes:

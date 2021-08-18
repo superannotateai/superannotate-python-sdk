@@ -569,28 +569,28 @@ class AttachFileUrlsUseCase(BaseUseCase):
             images=[image.name for image in self._attachments],
         )
         duplications = [image["name"] for image in duplications]
-        attachments = []
+        self._attachments = self._attachments[: self._limit]
         meta = {}
-        attachments_to_upload = self._attachments[: self._limit]
+        to_upload = []
         for image in self._attachments:
             if image.name not in duplications:
-                attachments.append({"name": image.name, "path": image.path})
+                to_upload.append({"name": image.name, "path": image.path})
                 meta[image.name] = {
                     "width": image.meta.width,
                     "height": image.meta.height,
                 }
 
-        self._backend_service.attach_files(
+        uploaded = self._backend_service.attach_files(
             project_id=self._project.uuid,
             folder_id=self._folder.uuid,
             team_id=self._project.team_id,
-            files=attachments,
+            files=to_upload,
             annotation_status_code=self.annotation_status_code,
             upload_state_code=self.upload_state_code,
             meta=meta,
         )
 
-        self._response.data = attachments, duplications
+        self._response.data = uploaded, duplications
         return self._response
 
 
@@ -1359,6 +1359,7 @@ class SetImageAnnotationStatuses(BaseUseCase):
         team_id: int,
         project_id: int,
         folder_id: int,
+        images_repo: BaseManageableRepository,
         annotation_status: int,
     ):
         super().__init__()
@@ -1368,8 +1369,18 @@ class SetImageAnnotationStatuses(BaseUseCase):
         self._project_id = project_id
         self._folder_id = folder_id
         self._annotation_status = annotation_status
+        self._images_repo = images_repo
 
     def execute(self):
+        if self._image_names is None:
+            condition = (
+                Condition("team_id", self._team_id, EQ)
+                & Condition("project_id", self._project_id, EQ)
+                & Condition("folder_id", self._folder_id, EQ)
+            )
+            self._image_names = [
+                image.name for image in self._images_repo.get_all(condition)
+            ]
         for i in range(0, len(self._image_names), self.CHUNK_SIZE):
             self._response.data = self._service.set_images_statuses_bulk(
                 image_names=self._image_names,
@@ -1972,7 +1983,9 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
             url=annotation_json_creds["url"], headers=annotation_json_creds["headers"],
         )
         if not response.ok:
-            raise AppException(f"Couldn't load annotations {response.text}")
+            logger.warning(f"Couldn't load annotations {response.text}")
+            self._response.data = (None, None)
+            return self._response
         data["annotation_json"] = response.json()
         data["annotation_json_filename"] = f"{self._image_name}{file_postfix}"
         mask_path = None
@@ -2204,45 +2217,6 @@ class GetProjectImageCountUseCase(BaseUseCase):
                     count = i["imagesCount"]
         self._response.data = count
         return self._response
-
-
-class UploadVideoUseCase(BaseUseCase):
-    def __init__(
-        self,
-        project: ProjectEntity,
-        folder: FolderEntity,
-        settings: BaseManageableRepository,
-        s3_repo: BaseManageableRepository,
-        video_path: str,
-        start_time: float,
-        end_time: float = None,
-        annotation_status_code: int = constances.AnnotationStatus.NOT_STARTED.value,
-        image_quality_in_editor: str = None,
-    ):
-        super().__init__()
-        self._project = project
-        self._folder = folder
-        self._settings = settings
-        self._s3_repo = s3_repo
-        self._video_path = video_path
-        self._start_time = start_time
-        self._end_time = end_time
-        self._annotation_status_code = annotation_status_code
-        self._image_quality_in_editor = image_quality_in_editor
-
-    def upload_s3_use_case(self, image, image_path, upload_path):
-        return UploadImageS3UseCas(
-            project=self._project,
-            project_settings=self._settings,
-            image_path=image_path,
-            image=image,
-            s3_repo=self._s3_repo,
-            upload_path=upload_path,
-        )
-
-    def execute(self):
-        # TODO
-        pass
 
 
 class ExtractFramesUseCase(BaseUseCase):
@@ -2750,6 +2724,7 @@ class DownloadImageUseCase(BaseUseCase):
             annotations,
             fuse_image,
         )
+        return self._response
 
 
 class UploadImageAnnotationsUseCase(BaseUseCase):
@@ -2878,11 +2853,13 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
             Body=json.dumps(self._annotations),
         )
         if self._project.project_type == constances.ProjectType.PIXEL.value:
+            with open(self._mask, "rb") as fin:
+                file = io.BytesIO(fin.read())
             bucket.put_object(
                 Key=auth_data["images"][str(image_data["id"])][
                     "annotation_bluemap_path"
                 ],
-                Body=self._mask,
+                Body=file,
             )
         return self._response
 
