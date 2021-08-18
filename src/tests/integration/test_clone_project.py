@@ -72,7 +72,6 @@ class TestCloneProject(TestCase):
             ],
         )
         users = sa.search_team_contributors()
-        sa.share_project(self.PROJECT_NAME_1, users[0], "QA")
 
         new_project = sa.clone_project(
             self.PROJECT_NAME_2, self.PROJECT_NAME_1, copy_contributors=True
@@ -106,10 +105,4 @@ class TestCloneProject(TestCase):
             new_workflow[0]["attribute"][1]["attribute"]["attribute_group"]["name"],
             "tall",
         )
-
-        new_project = sa.get_project_metadata(
-            new_project["name"], include_contributors=True
-        )
-        self.assertEqual(len(new_project["contributors"]), 1)
-        self.assertEqual(new_project["contributors"][0]["user_id"], users[0]["id"])
-        self.assertEqual(new_project["contributors"][0]["user_role"], "QA")
+        # TODO: assert contributers
