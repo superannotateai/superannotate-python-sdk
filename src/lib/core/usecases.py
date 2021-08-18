@@ -1827,7 +1827,9 @@ class GetImageAnnotationsUseCase(BaseUseCase):
             headers=credentials["annotation_json_path"]["headers"],
         )
         if not response.ok:
-            raise AppException(f"Couldn't load annotations {response.text}")
+            logger.warning(f"Couldn't load annotations {response.text}")
+            self._response.data = data
+            return self._response
         data["annotation_json"] = response.json()
         data["annotation_json_filename"] = f"{self._image_name}{file_postfix}.json"
         if self._project.project_type == constances.ProjectType.PIXEL.value:

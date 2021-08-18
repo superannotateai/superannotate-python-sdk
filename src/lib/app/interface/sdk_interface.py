@@ -1428,7 +1428,7 @@ def upload_images_from_folder_to_project(
         uploaded.extend(attachments)
         duplicates.extend(duplications)
 
-    return attachments, failed_images, duplicated_images
+    return uploaded, failed_images, duplicates
 
 
 def get_project_image_count(project, with_all_subfolders=False):

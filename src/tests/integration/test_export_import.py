@@ -31,4 +31,4 @@ class TestExportImport(BaseTestCase):
         with tempfile.TemporaryDirectory() as tmpdir_name:
             export = sa.prepare_export(self.PROJECT_NAME, include_fuse=True)
             sa.download_export(self.PROJECT_NAME, export, tmpdir_name)
-            self.assertEqual(len(os.listdir(tmpdir_name)), 4)
+            self.assertEqual(len(os.listdir(tmpdir_name)), 13)
