@@ -1,0 +1,172 @@
+{
+  "info": {
+    "description": "This is dataset.",
+    "url": "https://superannotate.ai",
+    "version": "1.0",
+    "year": 2021,
+    "contributor": "Superannotate AI",
+    "date_created": "01/06/2021"
+  },
+  "licenses": [
+    {
+      "url": "https://superannotate.ai",
+      "id": 1,
+      "name": "Superannotate AI"
+    }
+  ],
+  "images": [
+    {
+      "id": 1,
+      "file_name": "68307_47130_68308_47130_68307_47131_68308_47131_0.png",
+      "height": 1000,
+      "width": 1000,
+      "license": 1
+    }
+  ],
+  "annotations": [
+    {
+      "id": 1,
+      "image_id": 1,
+      "iscrowd": 0,
+      "bbox": [
+        271,
+        114,
+        182,
+        248
+      ],
+      "area": 45136,
+      "num_keypoints": 5,
+      "keypoints": [
+        271.99,
+        114.9,
+        2,
+        419.26,
+        137.22,
+        2,
+        279.01,
+        351.5,
+        2,
+        453.32,
+        362.66,
+        2,
+        349.13,
+        233.2,
+        2
+      ],
+      "category_id": 1
+    },
+    {
+      "id": 2,
+      "image_id": 1,
+      "iscrowd": 0,
+      "bbox": [
+        668,
+        208,
+        131,
+        208
+      ],
+      "area": 27248,
+      "num_keypoints": 4,
+      "keypoints": [
+        668.76,
+        219.62,
+        2,
+        763.61,
+        208.26,
+        2,
+        799.82,
+        377.39,
+        2,
+        713.64,
+        416.52,
+        2
+      ],
+      "category_id": 2
+    },
+    {
+      "id": 3,
+      "image_id": 1,
+      "iscrowd": 0,
+      "bbox": [
+        455,
+        522,
+        273,
+        194
+      ],
+      "area": 52962,
+      "num_keypoints": 4,
+      "keypoints": [
+        455.12,
+        533.02,
+        2,
+        652.62,
+        522.44,
+        2,
+        728.01,
+        679.91,
+        2,
+        548.56,
+        716.34,
+        2
+      ],
+      "category_id": 2
+    }
+  ],
+  "categories": [
+    {
+      "name": "custom",
+      "supercategory": "class1",
+      "skeleton": [
+        [
+          1,
+          5
+        ],
+        [
+          2,
+          5
+        ],
+        [
+          5,
+          3
+        ],
+        [
+          5,
+          4
+        ]
+      ],
+      "keypoints": [
+        "ca",
+        "cb",
+        "cd",
+        "cc",
+        "ce"
+      ],
+      "id": 1
+    },
+    {
+      "name": "template2",
+      "supercategory": "class1",
+      "skeleton": [
+        [
+          1,
+          4
+        ],
+        [
+          2,
+          4
+        ],
+        [
+          3,
+          4
+        ]
+      ],
+      "keypoints": [
+        "ta",
+        "tb",
+        "tc",
+        "td"
+      ],
+      "id": 2
+    }
+  ]
+}

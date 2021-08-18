@@ -7,9 +7,9 @@ from typing import Union
 
 import boto3
 import pandas as pd
-from lib.app.exceptions import PathError
-from lib.core import PIXEL_ANNOTATION_POSTFIX
-from lib.core import VECTOR_ANNOTATION_POSTFIX
+from src.lib.app.exceptions import PathError
+from src.lib.core import PIXEL_ANNOTATION_POSTFIX
+from src.lib.core import VECTOR_ANNOTATION_POSTFIX
 
 
 def split_project_path(project_path: str) -> Tuple[str, Optional[str]]:

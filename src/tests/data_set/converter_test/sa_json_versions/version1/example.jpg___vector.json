@@ -1,0 +1,206 @@
+[
+    {
+        "type": "comment",
+        "x": 648.65,
+        "y": 427.73,
+        "comments": [
+            {
+                "text": "text comment",
+                "id": "hasmik@superannotate.com"
+            }
+        ],
+        "resolved": false,
+        "createdAt": "2020-12-10T23:02:14.405Z",
+        "createdBy": {
+            "email": "hasmik@superannotate.com",
+            "role": "Admin"
+        },
+        "creationType": "Manual",
+        "updatedAt": "2020-12-10T23:02:22.294Z",
+        "updatedBy": {
+            "email": "hasmik@superannotate.com",
+            "role": "Admin"
+        }
+    },
+    {
+        "type": "polygon",
+        "classId": 97273,
+        "probability": 100,
+        "points": [
+            521.11,
+            346.34,
+            522.33,
+            337.84,
+            576.99,
+            235.81,
+            728.83,
+            159.28,
+            728.83,
+            158.06,
+            849.08,
+            164.14,
+            747.05,
+            267.39,
+            653.51,
+            258.88
+        ],
+        "groupId": 0,
+        "pointLabels": {},
+        "locked": false,
+        "visible": true,
+        "attributes": [],
+        "trackingId": null,
+        "error": null,
+        "createdAt": "2020-12-10T23:01:31.499Z",
+        "createdBy": {
+            "email": "hasmik@superannotate.com",
+            "role": "Admin"
+        },
+        "creationType": "Manual",
+        "updatedAt": "2020-12-10T23:02:01.622Z",
+        "updatedBy": {
+            "email": "hasmik@superannotate.com",
+            "role": "Admin"
+        },
+        "className": "Class 2"
+    },
+    {
+        "type": "polyline",
+        "classId": 97274,
+        "probability": 100,
+        "points": [
+            104.47,
+            257.67,
+            156.7,
+            128.91,
+            309.75,
+            102.19,
+            524.75,
+            100.97
+        ],
+        "groupId": 0,
+        "pointLabels": {},
+        "locked": false,
+        "visible": true,
+        "attributes": [],
+        "trackingId": null,
+        "error": null,
+        "createdAt": "2020-12-10T23:01:28.509Z",
+        "createdBy": {
+            "email": "hasmik@superannotate.com",
+            "role": "Admin"
+        },
+        "creationType": "Manual",
+        "updatedAt": "2020-12-10T23:01:58.592Z",
+        "updatedBy": {
+            "email": "hasmik@superannotate.com",
+            "role": "Admin"
+        },
+        "className": "Class 1"
+    },
+    {
+        "type": "bbox",
+        "classId": 97275,
+        "probability": 100,
+        "points": {
+            "x1": 60.74,
+            "x2": 166.42,
+            "y1": 351.2,
+            "y2": 475.1
+        },
+        "groupId": 0,
+        "pointLabels": {},
+        "locked": false,
+        "visible": true,
+        "attributes": [],
+        "trackingId": null,
+        "error": null,
+        "createdAt": "2020-12-10T23:01:35.169Z",
+        "createdBy": {
+            "email": "hasmik@superannotate.com",
+            "role": "Admin"
+        },
+        "creationType": "Manual",
+        "updatedAt": "2020-12-10T23:02:03.810Z",
+        "updatedBy": {
+            "email": "hasmik@superannotate.com",
+            "role": "Admin"
+        },
+        "className": "Class 3"
+    },
+    {
+        "type": "ellipse",
+        "classId": 97276,
+        "probability": 100,
+        "cx": 383.85,
+        "cy": 465.99,
+        "rx": 68.02,
+        "ry": 54.06,
+        "angle": -45.45951455378483,
+        "groupId": 0,
+        "pointLabels": {},
+        "locked": false,
+        "visible": true,
+        "attributes": [],
+        "trackingId": null,
+        "error": null,
+        "createdAt": "2020-12-10T23:01:37.745Z",
+        "createdBy": {
+            "email": "hasmik@superannotate.com",
+            "role": "Admin"
+        },
+        "creationType": "Manual",
+        "updatedAt": "2020-12-11T00:37:52.848Z",
+        "updatedBy": {
+            "email": "hasmik@superannotate.com",
+            "role": "Admin"
+        },
+        "className": "Class 4"
+    },
+    {
+        "type": "cuboid",
+        "classId": 97277,
+        "probability": 100,
+        "points": {
+            "f1": {
+                "x": 123.9,
+                "y": 626.94
+            },
+            "f2": {
+                "x": 178.56,
+                "y": 698.61
+            },
+            "r1": {
+                "x": 218.65,
+                "y": 600.22
+            },
+            "r2": {
+                "x": 273.31,
+                "y": 671.89
+            }
+        },
+        "groupId": 0,
+        "pointLabels": {},
+        "locked": false,
+        "visible": true,
+        "attributes": [],
+        "trackingId": null,
+        "error": null,
+        "createdAt": "2020-12-10T23:01:45.110Z",
+        "createdBy": {
+            "email": "hasmik@superannotate.com",
+            "role": "Admin"
+        },
+        "creationType": "Manual",
+        "updatedAt": "2020-12-10T23:02:10.438Z",
+        "className": "Class 5"
+    },
+    {
+        "type": "meta",
+        "name": "imageAttributes",
+        "width": 1024,
+        "height": 768,
+        "status": "Completed",
+        "pinned": false
+    }
+]

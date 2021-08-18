@@ -1,0 +1,50 @@
+{
+    "metadata": {
+        "lastAction": {
+            "email": "",
+            "timestamp": 1621320107809
+        },
+        "width": 1234,
+        "height": 1540,
+        "projectId": 76203,
+        "isPredicted": false,
+        "status": "Completed",
+        "pinned": false,
+        "annotatorEmail": null,
+        "qaEmail": null
+    },
+    "comments": [],
+    "tags": [],
+    "instances": [
+        {
+            "type": "bbox",
+            "classId": 599064,
+            "probability": 100,
+            "points": {
+                "x1": 312.52,
+                "x2": 1053.63,
+                "y1": 291.08,
+                "y2": 1405.83
+            },
+            "groupId": 0,
+            "pointLabels": {},
+            "locked": false,
+            "visible": true,
+            "attributes": [],
+            "trackingId": null,
+            "error": null,
+            "createdAt": "2021-05-18T06:41:55.965Z",
+            "createdBy": {
+                "email": "",
+                "role": "Admin"
+            },
+            "creationType": "Manual",
+            "updatedAt": "2021-05-18T06:42:30.415Z",
+            "updatedBy": {
+                "email": "",
+                "role": "Admin"
+            },
+            "className": "some"
+        }
+    ]
+}

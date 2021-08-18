@@ -1,0 +1,14 @@
+[
+  {
+    "classId": 1455,
+    "probability": 100,
+    "visible": true,
+    "attributes": [],
+    "parts": [
+      {
+        "color": "#00001e"
+      }
+    ],
+    "className": "Dog"
+  }
+]

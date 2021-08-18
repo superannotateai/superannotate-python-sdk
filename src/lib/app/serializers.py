@@ -1,8 +1,8 @@
 from abc import ABC
 
 import src.lib.core as constance
-from lib.core.entities import BaseEntity
-from lib.core.entities import ImageEntity
+from src.lib.core.entities import BaseEntity
+from src.lib.core.entities import ImageEntity
 
 
 class BaseSerializers(ABC):
@@ -36,7 +36,7 @@ class TeamSerializer(BaseSerializers):
 class ProjectSerializer(BaseSerializers):
     def serialize(self):
         data = super().serialize()
-        data["type"] = constance.ProjectType(data["type"]).name
+        data["type"] = constance.ProjectType.get_name(data["type"])
         if data.get("upload_state"):
             data["upload_state"] = constance.UploadState(data["upload_state"]).name
         if data.get("users"):

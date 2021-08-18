@@ -1,0 +1,44 @@
+{
+    "description": "",
+    "tags": [],
+    "size": {
+        "height": 2000,
+        "width": 2000
+    },
+    "objects": [
+        {
+            "id": 556892231,
+            "classId": 2707428,
+            "description": "",
+            "geometryType": "rectangle",
+            "labelerLogin": "Armen",
+            "createdAt": "2020-11-17T10:43:56.275Z",
+            "updatedAt": "2020-11-17T10:43:56.275Z",
+            "tags": [
+                {
+                    "id": 106961726,
+                    "tagId": 28789215,
+                    "name": "cat",
+                    "value": null,
+                    "labelerLogin": "Armen",
+                    "createdAt": "2020-11-17T10:44:08.366Z",
+                    "updatedAt": "2020-11-17T10:44:08.366Z"
+                }
+            ],
+            "classTitle": "cat",
+            "points": {
+                "exterior": [
+                    [
+                        501,
+                        18
+                    ],
+                    [
+                        1536,
+                        1868
+                    ]
+                ],
+                "interior": []
+            }
+        }
+    ]
+}

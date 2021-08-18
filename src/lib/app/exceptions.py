@@ -1,4 +1,4 @@
-from lib.core.exceptions import AppException
+from src.lib.core.exceptions import AppException
 
 
 class UserInputError(AppException):

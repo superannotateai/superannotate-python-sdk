@@ -2736,7 +2736,9 @@ class DownloadImageUseCase(BaseUseCase):
             self.get_annotation_classes_ues_case.execute()
             classes = self.get_annotation_classes_ues_case.execute().data
             fuse_image_use_case = CreateFuseImageUseCase(
-                project_type=constances.ProjectType(self._project.project_type).name,
+                project_type=constances.ProjectType.get_name(
+                    self._project.project_type
+                ).name,
                 image_path=download_path,
                 classes=[annotation_class.to_dict() for annotation_class in classes],
                 generate_overlay=self._include_overlay,

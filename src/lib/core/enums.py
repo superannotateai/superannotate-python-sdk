@@ -24,10 +24,10 @@ class BaseTitledEnum(Enum):
                 return enum.value
 
 
-class ProjectType(Enum):
-    VECTOR = 1
-    PIXEL = 2
-    VIDEO = 3
+class ProjectType(BaseTitledEnum):
+    VECTOR = "Vector", 1
+    PIXEL = "Pixel", 2
+    VIDEO = "Video", 3
 
 
 class UserRole(BaseTitledEnum):

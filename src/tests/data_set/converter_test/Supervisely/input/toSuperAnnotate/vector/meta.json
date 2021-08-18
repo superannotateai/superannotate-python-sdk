@@ -1,0 +1,60 @@
+{
+    "classes": [
+        {
+            "id": 2707428,
+            "title": "cat",
+            "shape": "rectangle",
+            "hotkey": "",
+            "color": "#319BD8"
+        },
+        {
+            "id": 2707429,
+            "title": "dog",
+            "shape": "cuboid",
+            "hotkey": "",
+            "color": "#EC6E0E"
+        },
+        {
+            "id": 2707430,
+            "title": "cat2",
+            "shape": "line",
+            "hotkey": "",
+            "color": "#9A69DD"
+        },
+        {
+            "id": 2707431,
+            "title": "dog2",
+            "shape": "polygon",
+            "hotkey": "",
+            "color": "#5954ED"
+        },
+        {
+            "id": 2707433,
+            "title": "test_point",
+            "shape": "point",
+            "hotkey": "",
+            "color": "#72E9C7"
+        }
+    ],
+    "tags": [
+        {
+            "id": 28789216,
+            "name": "dog",
+            "color": "#A9C153",
+            "value_type": "none",
+            "hotkey": "",
+            "applicable_type": "all",
+            "classes": []
+        },
+        {
+            "id": 28789215,
+            "name": "cat",
+            "color": "#2D58B4",
+            "value_type": "none",
+            "hotkey": "",
+            "applicable_type": "all",
+            "classes": []
+        }
+    ],
+    "projectType": "images"
+}
