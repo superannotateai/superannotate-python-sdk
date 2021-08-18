@@ -1,6 +1,7 @@
 import os
 import pathlib
 import tempfile
+import time
 from os.path import dirname
 
 import src.lib.app.superannotate as sa
@@ -207,7 +208,6 @@ class TestFolders(BaseTestCase):
             self.folder_path,
             annotation_status="InProgress",
         )
-        # todo added with_all_sub_folders=True
         num_images = sa.get_project_image_count(
             self.PROJECT_NAME, with_all_subfolders=True
         )
@@ -217,16 +217,15 @@ class TestFolders(BaseTestCase):
             f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_1}",
             ["example_image_2.jpg", "example_image_3.jpg"],
         )
-        # todo added with_all_subfolders=True
         num_images = sa.get_project_image_count(
             self.PROJECT_NAME, with_all_subfolders=True
         )
         self.assertEqual(num_images, 2)
 
         sa.delete_images(self.PROJECT_NAME, None)
-        # todo added with_all_subfolders=True
+        time.sleep(2)
         num_images = sa.get_project_image_count(
-            self.PROJECT_NAME, with_all_subfolders=True
+            self.PROJECT_NAME, with_all_subfolders=False
         )
         self.assertEqual(num_images, 0)
 
