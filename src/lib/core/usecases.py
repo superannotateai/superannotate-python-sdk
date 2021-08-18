@@ -1359,6 +1359,7 @@ class SetImageAnnotationStatuses(BaseUseCase):
         team_id: int,
         project_id: int,
         folder_id: int,
+        images_repo: BaseManageableRepository,
         annotation_status: int,
     ):
         super().__init__()
@@ -1368,8 +1369,18 @@ class SetImageAnnotationStatuses(BaseUseCase):
         self._project_id = project_id
         self._folder_id = folder_id
         self._annotation_status = annotation_status
+        self._images_repo = images_repo
 
     def execute(self):
+        if self._image_names is None:
+            condition = (
+                Condition("team_id", self._team_id, EQ)
+                & Condition("project_id", self._project_id, EQ)
+                & Condition("folder_id", self._folder_id, EQ)
+            )
+            self._image_names = [
+                image.name for image in self._images_repo.get_all(condition)
+            ]
         for i in range(0, len(self._image_names), self.CHUNK_SIZE):
             self._response.data = self._service.set_images_statuses_bulk(
                 image_names=self._image_names,
