@@ -6,7 +6,7 @@ from functools import lru_cache
 from typing import Iterable
 from typing import List
 
-import lib.core as constances
+import src.lib.core as constances
 from src.lib.core import usecases
 from src.lib.core.conditions import Condition
 from src.lib.core.conditions import CONDITION_EQ as EQ

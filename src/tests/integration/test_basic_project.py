@@ -13,13 +13,13 @@ class TestProject(BaseTestCase):
     PROJECT_TYPE = "Pixel"
     PROJECT_DESCRIPTION = "DESCRIPTION"
     TEST_IMAGE_NAME = "example_image_1.jpg"
-    TEST_FOLDER_PTH = "data_set/sample_project_pixel"
+    TEST_FOLDER_PATH = "data_set/sample_project_pixel"
     TEST_ANNOTATION_PATH = "data_set/sample_annotation_no_class"
 
     @property
     def folder_path(self):
         return Path(
-            Path(os.path.join(dirname(dirname(__file__)), self.TEST_FOLDER_PTH))
+            Path(os.path.join(dirname(dirname(__file__)), self.TEST_FOLDER_PATH))
         )
 
     @property

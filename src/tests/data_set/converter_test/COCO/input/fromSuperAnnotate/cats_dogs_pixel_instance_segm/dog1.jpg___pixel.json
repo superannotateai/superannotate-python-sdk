@@ -1,0 +1,30 @@
+{
+  "metadata": {
+    "name": "dog1.jpg",
+    "width": 782,
+    "height": 529,
+    "status": null,
+    "pinned": null,
+    "isPredicted": null,
+    "projectId": null,
+    "annotatorEmail": null,
+    "qaEmail": null,
+    "isSegmented": null
+  },
+  "instances": [
+    {
+      "classId": 1455,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#00001e"
+        }
+      ],
+      "className": "Dog"
+    }
+  ],
+  "tags": [],
+  "comments": []
+}

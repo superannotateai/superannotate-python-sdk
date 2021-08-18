@@ -1,0 +1,30 @@
+{
+  "metadata": {
+    "name": "cat2.jpg",
+    "width": 1100,
+    "height": 732,
+    "status": null,
+    "pinned": null,
+    "isPredicted": null,
+    "projectId": null,
+    "annotatorEmail": null,
+    "qaEmail": null,
+    "isSegmented": null
+  },
+  "instances": [
+    {
+      "classId": 1454,
+      "probability": 100,
+      "visible": true,
+      "attributes": [],
+      "parts": [
+        {
+          "color": "#00000f"
+        }
+      ],
+      "className": "Cat"
+    }
+  ],
+  "tags": [],
+  "comments": []
+}

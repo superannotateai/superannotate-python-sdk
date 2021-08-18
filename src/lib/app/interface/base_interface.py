@@ -1,8 +1,7 @@
 import logging
 
-import lib.core as constances
-from lib.infrastructure.controller import Controller
-from src.lib.core.response import Response
+import src.lib.core as constances
+from src.lib.infrastructure.controller import Controller
 from src.lib.infrastructure.repositories import ConfigRepository
 from src.lib.infrastructure.services import SuperannotateBackendService
 
@@ -21,5 +20,4 @@ class BaseInterfaceFacade:
                 auth_token=ConfigRepository().get_one("token"),
                 logger=logger,
             ),
-            response=Response(),
         )

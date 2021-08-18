@@ -1,0 +1,74 @@
+{
+    "classes": [
+        {
+            "title": "face",
+            "shape": "graph",
+            "color": "#E313F6",
+            "geometry_config": {
+                "edges": [
+                    {
+                        "dst": "e468d47f-a6a0-4b8e-8863-6bc31c848af9",
+                        "src": "60de16d5-7d27-4f2d-bf43-1ef9931e925d",
+                        "label": ""
+                    },
+                    {
+                        "dst": "e468d47f-a6a0-4b8e-8863-6bc31c848af9",
+                        "src": "fb7cef3a-de20-495c-a24d-70dedd9efa75",
+                        "label": ""
+                    },
+                    {
+                        "dst": "2a06bcbe-8595-4094-8d92-1325139c0aa4",
+                        "src": "e468d47f-a6a0-4b8e-8863-6bc31c848af9",
+                        "label": ""
+                    },
+                    {
+                        "dst": "2c02db5a-d2ba-426c-9e13-8723899c4320",
+                        "src": "e468d47f-a6a0-4b8e-8863-6bc31c848af9",
+                        "label": ""
+                    }
+                ],
+                "nodes": {
+                    "60de16d5-7d27-4f2d-bf43-1ef9931e925d": {
+                        "label": "1",
+                        "loc": [
+                            0,
+                            39
+                        ]
+                    },
+                    "fb7cef3a-de20-495c-a24d-70dedd9efa75": {
+                        "label": "2",
+                        "loc": [
+                            197,
+                            0
+                        ]
+                    },
+                    "e468d47f-a6a0-4b8e-8863-6bc31c848af9": {
+                        "label": "3",
+                        "loc": [
+                            137,
+                            127
+                        ]
+                    },
+                    "2a06bcbe-8595-4094-8d92-1325139c0aa4": {
+                        "label": "4",
+                        "loc": [
+                            78,
+                            242
+                        ]
+                    },
+                    "2c02db5a-d2ba-426c-9e13-8723899c4320": {
+                        "label": "5",
+                        "loc": [
+                            259,
+                            197
+                        ]
+                    }
+                }
+            },
+            "id": 2707580,
+            "hotkey": ""
+        }
+    ],
+    "tags": [],
+    "projectType": "images"
+}

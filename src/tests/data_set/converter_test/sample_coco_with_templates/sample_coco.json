@@ -1,0 +1,66 @@
+{
+    "info": {
+        "description": "This is dataset.",
+        "url": "https://superannotate.ai",
+        "version": "1.0",
+        "year": 2021,
+        "contributor": "Superannotate AI",
+        "date_created": "03/06/2021"
+    },
+    "licenses": [
+        {
+            "url": "https://superannotate.ai",
+            "id": 1,
+            "name": "Superannotate AI"
+        }
+    ],
+    "images": [
+        {
+            "id": 1,
+            "file_name": "t.png",
+            "height": 1540,
+            "width": 1234,
+            "license": 1
+        }
+    ],
+    "annotations": [
+        {
+            "id": 1,
+            "image_id": 1,
+            "iscrowd": 0,
+            "bbox": [
+                359,
+                694,
+                574,
+                542
+            ],
+            "area": 311108,
+            "num_keypoints": 3,
+            "keypoints": [
+                359.26,
+                912.51,
+                2,
+                817.11,
+                1236.6,
+                2,
+                933.52,
+                694.98,
+                2
+            ],
+            "category_id": 1
+        }
+    ],
+    "categories": [
+        {
+            "name": "template-9",
+            "supercategory": "dfgs",
+            "skeleton": [],
+            "keypoints": [
+                1,
+                2,
+                3
+            ],
+            "id": 1
+        }
+    ]
+}
