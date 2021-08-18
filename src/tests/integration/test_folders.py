@@ -325,7 +325,7 @@ class TestFolders(BaseTestCase):
         self.assertEqual(num_images, 2)
 
     def test_move_images(self):
-        sa.create_folder(self.PROJECT_NAME, "folder1")
+        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1)
         project = f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_1}"
         sa.upload_images_from_folder_to_project(
             project, self.folder_path, annotation_status="InProgress"
@@ -333,8 +333,8 @@ class TestFolders(BaseTestCase):
         num_images = sa.get_project_image_count(project)
         self.assertEqual(num_images, 4)
 
-        sa.create_folder(self.PROJECT_NAME, "folder2")
-        project2 = self.PROJECT_NAME + "/folder2"
+        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_2)
+        project2 = self.PROJECT_NAME + "/" + self.TEST_FOLDER_NAME_2
         num_images = sa.get_project_image_count(project2)
         self.assertEqual(num_images, 0)
 
@@ -362,7 +362,7 @@ class TestFolders(BaseTestCase):
         )
 
     def test_move_images2(self):
-        sa.create_folder(self.PROJECT_NAME, "folder1")
+        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1)
         project = f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_1}"
         sa.upload_images_from_folder_to_project(
             project, self.folder_path, annotation_status="InProgress"
@@ -370,8 +370,8 @@ class TestFolders(BaseTestCase):
         num_images = sa.get_project_image_count(project)
         self.assertEqual(num_images, 4)
 
-        sa.create_folder(self.PROJECT_NAME, "folder2")
-        project2 = self.PROJECT_NAME + "/folder2"
+        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_2)
+        project2 = self.PROJECT_NAME + "/" + self.TEST_FOLDER_NAME_2
         num_images = sa.get_project_image_count(project2)
         self.assertEqual(num_images, 0)
 
@@ -459,21 +459,26 @@ class TestFolders(BaseTestCase):
             temp_dir = pathlib.Path(temp_dir)
             sa.download_export(project, export, temp_dir)
             self.assertEqual(len(list((temp_dir / "classes").rglob("*"))), 1)
-            self.assertEqual(len(list((temp_dir / "folder1").rglob("*"))), 4)
-            self.assertEqual(len(list((temp_dir / "folder2").rglob("*"))), 2)
+            self.assertEqual(
+                len(list((temp_dir / self.TEST_FOLDER_NAME_1).rglob("*"))), 4
+            )
+            self.assertEqual(
+                len(list((temp_dir / self.TEST_FOLDER_NAME_2).rglob("*"))), 2
+            )
             self.assertEqual(len(list((temp_dir).glob("*.*"))), 0)
 
             export = sa.prepare_export(self.PROJECT_NAME)
             sa.download_export(project, export, temp_dir)
             self.assertEqual(len(list((temp_dir / "classes").rglob("*"))), 1)
-            self.assertEqual(len(list((temp_dir / "folder1").rglob("*"))), 4)
-            self.assertEqual(len(list((temp_dir / "folder2").rglob("*"))), 2)
+            self.assertEqual(
+                len(list((temp_dir / self.TEST_FOLDER_NAME_1).rglob("*"))), 4
+            )
+            self.assertEqual(
+                len(list((temp_dir / self.TEST_FOLDER_NAME_2).rglob("*"))), 2
+            )
             self.assertEqual(len(list((temp_dir).glob("*.*"))), 4)
 
     def test_folder_image_annotation_status(self):
-        sa.create_annotation_classes_from_classes_json(
-            self.PROJECT_NAME, self.classes_json
-        )
         sa.upload_images_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
         )
@@ -502,10 +507,12 @@ class TestFolders(BaseTestCase):
     def test_folder_misnamed(self):
 
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1)
-        self.assertTrue("folder1" in sa.search_folders(self.PROJECT_NAME))
+        self.assertTrue(self.TEST_FOLDER_NAME_1 in sa.search_folders(self.PROJECT_NAME))
 
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1)
-        self.assertTrue("folder1 (1)" in sa.search_folders(self.PROJECT_NAME))
+        self.assertTrue(
+            f"{self.TEST_FOLDER_NAME_1} (1)" in sa.search_folders(self.PROJECT_NAME)
+        )
 
         sa.create_folder(self.PROJECT_NAME, f"{self.TEST_FOLDER_NAME_2}\\")
         self.assertTrue(

@@ -659,12 +659,14 @@ class Controller(BaseController):
     ):
         project_entity = self._get_project(project_name)
         folder_entity = self._get_folder(project_entity, folder_name)
+        images_repo = ImageRepository(service=self._backend_client)
         use_case = usecases.SetImageAnnotationStatuses(
             service=self._backend_client,
             image_names=image_names,
             team_id=project_entity.team_id,
             project_id=project_entity.uuid,
             folder_id=folder_entity.uuid,
+            images_repo=images_repo,
             annotation_status=constances.AnnotationStatus.get_value(annotation_status),
         )
         return use_case.execute()

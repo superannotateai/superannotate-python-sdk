@@ -705,6 +705,7 @@ def move_images(
         images = controller.search_images(
             project_name=project_name, folder_path=source_folder_name
         )
+        images = images.data
         image_names = [image.name for image in images]
 
     moved_images = controller.bulk_move_images(
@@ -1601,9 +1602,10 @@ def prepare_export(
     :rtype: dict
     """
     project_name, folder_name = extract_project_folder(project)
-    folders = None
-    if folder_name:
+    if folder_names is None:
         folders = [folder_name]
+    else:
+        folders = folder_names
     if not annotation_statuses:
         annotation_statuses = [
             constances.AnnotationStatus.NOT_STARTED.name,
