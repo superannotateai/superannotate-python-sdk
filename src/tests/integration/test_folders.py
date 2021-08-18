@@ -1,6 +1,7 @@
 import os
 import pathlib
 import tempfile
+import time
 from os.path import dirname
 
 import src.lib.app.superannotate as sa
@@ -16,6 +17,8 @@ class TestFolders(BaseTestCase):
     TEST_FOLDER_NAME_2 = "folder_2"
     EXAMPLE_IMAGE_1 = "example_image_1"
     EXAMPLE_IMAGE_2 = "example_image_2"
+    EXAMPLE_IMAGE_3 = "example_image_3.jpg"
+    EXAMPLE_IMAGE_4 = "example_image_4.jpg"
 
     @property
     def folder_path(self):
@@ -207,7 +210,6 @@ class TestFolders(BaseTestCase):
             self.folder_path,
             annotation_status="InProgress",
         )
-        # todo added with_all_sub_folders=True
         num_images = sa.get_project_image_count(
             self.PROJECT_NAME, with_all_subfolders=True
         )
@@ -217,16 +219,15 @@ class TestFolders(BaseTestCase):
             f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_1}",
             ["example_image_2.jpg", "example_image_3.jpg"],
         )
-        # todo added with_all_subfolders=True
         num_images = sa.get_project_image_count(
             self.PROJECT_NAME, with_all_subfolders=True
         )
         self.assertEqual(num_images, 2)
 
         sa.delete_images(self.PROJECT_NAME, None)
-        # todo added with_all_subfolders=True
+        time.sleep(2)
         num_images = sa.get_project_image_count(
-            self.PROJECT_NAME, with_all_subfolders=True
+            self.PROJECT_NAME, with_all_subfolders=False
         )
         self.assertEqual(num_images, 0)
 
@@ -234,11 +235,11 @@ class TestFolders(BaseTestCase):
         sa.upload_images_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
         )
-        sa.create_folder(f"{self.PROJECT_NAME}_1", self.TEST_FOLDER_NAME_1)
+        sa.create_folder(f"{self.PROJECT_NAME}", self.TEST_FOLDER_NAME_1)
         sa.copy_images(
             f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_1}",
-            ["example_image_2.jpg", "example_image_3.jpg"],
-            f"{self.PROJECT_NAME}_1",
+            [self.EXAMPLE_IMAGE_2, self.EXAMPLE_IMAGE_3],
+            f"{self.PROJECT_NAME}",
             include_annotations=False,
             copy_annotation_status=False,
             copy_pin=False,
@@ -247,9 +248,6 @@ class TestFolders(BaseTestCase):
             "Copied 2/2 images from test copy3 folder images to test copy3 folder images/folder_1"
             # todo add in caplog.text
         )
-
-        num_images = sa.get_project_image_count(f"{self.PROJECT_NAME}_1")
-        assert num_images == 2
 
         num_images = sa.get_project_image_count(self.PROJECT_NAME)
         assert num_images == 4

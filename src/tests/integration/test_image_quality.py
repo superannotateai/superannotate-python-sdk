@@ -13,6 +13,7 @@ class TestImageQuality(BaseTestCase):
     PROJECT_TYPE = "Vector"
     TEST_FOLDER_PTH = "data_set"
     TEST_FOLDER_PATH = "data_set/sample_project_vector"
+    EXAMPLE_IMAGE_1 = "example_image_1.jpg"
 
     @property
     def folder_path(self):
@@ -25,13 +26,13 @@ class TestImageQuality(BaseTestCase):
         with tempfile.TemporaryDirectory() as tmpdirname:
             sa.download_image(
                 self.PROJECT_NAME,
-                "example_image_1.jpg",
+                self.EXAMPLE_IMAGE_1,
                 tmpdirname + "/",
                 variant="lores",
             )
             assert not filecmp.cmp(
-                tmpdirname + "/example_image_1.jpg___lores.jpg",
-                self.folder_path + "/example_image_1.jpg",
+                tmpdirname + "/" + self.EXAMPLE_IMAGE_1 + "___lores.jpg",
+                self.folder_path + "/" + self.EXAMPLE_IMAGE_1,
                 shallow=False,
             )
 
@@ -46,13 +47,14 @@ class TestImageQuality(BaseTestCase):
 
             sa.download_image(
                 self.PROJECT_NAME,
-                "example_image_1.jpg",
+                self.EXAMPLE_IMAGE_1,
                 tmpdir_name + "/",
                 variant="lores",
             )
 
+            # TODO
             assert filecmp.cmp(
-                tmpdir_name + "/example_image_1.jpg___lores.jpg",
-                self.folder_path + "/example_image_1.jpg",
+                tmpdir_name + "/" + self.EXAMPLE_IMAGE_1 + "___lores.jpg",
+                self.folder_path + "/" + self.EXAMPLE_IMAGE_1,
                 shallow=False,
             )

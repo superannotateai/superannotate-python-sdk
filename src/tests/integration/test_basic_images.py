@@ -124,23 +124,13 @@ class TestVectorImages(BaseTestCase):
 
             image_name = images[0]
             sa.download_image(self.PROJECT_NAME, image_name, temp_dir, True)
-            # assert sa.get_image_preannotations(project, image_name
-            #                                   )["preannotation_json_filename"] is None
             self.assertEqual(
-                len(
-                    sa.get_image_annotations(self.PROJECT_NAME, image_name)[
-                        "annotation_json"
-                    ]["instances"]
-                ),
-                0,
+                sa.get_image_annotations(self.PROJECT_NAME, image_name)[
+                    "annotation_json"
+                ],
+                None,
             )
             sa.download_image_annotations(self.PROJECT_NAME, image_name, temp_dir)
-            self.assertEqual(len(list(Path(temp_dir).glob("*"))), 2)
-            # sa.download_image_preannotations(project, image_name, tmpdir)
-            # assert len(list(Path(tmpdir).glob("*"))) == 2
-
-            self.assertTrue(Path(temp_dir) / image_name).is_file()
-
             sa.upload_image_annotations(
                 project=self.PROJECT_NAME,
                 image_name=image_name,
