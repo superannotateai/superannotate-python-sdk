@@ -1,3 +1,4 @@
+import time
 from contextlib import contextmanager
 from datetime import datetime
 from typing import Dict
@@ -62,15 +63,26 @@ class BaseBackendService(SuerannotateServiceProvider):
             return self.PAGINATE_BY
 
     def _request(
-        self, url, method="get", data=None, headers=None, params=None,
+        self, url, method="get", data=None, headers=None, params=None, retried=0
     ) -> requests.Response:
         kwargs = {"json": data} if data else {}
         headers_dict = self.default_headers.copy()
         headers_dict.update(headers if headers else {})
-
         method = getattr(requests, method)
         with self.safe_api():
-            response = method(url, **kwargs, headers=headers_dict, params=params)
+            response = method(
+                url, **kwargs, headers=headers_dict, params=params, timeout=60
+            )
+        if response.status_code == 404 and retried < 3:
+            time.sleep(1)
+            return self._request(
+                url,
+                method="get",
+                data=None,
+                headers=None,
+                params=None,
+                retried=retried + 1,
+            )
         if response.status_code > 299:
             self.logger.error(
                 f"Got {response.status_code} response for url {url}: {response.text}"
