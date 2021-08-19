@@ -291,7 +291,7 @@ Annotation JSON helper functions
 
 .. _ref_converter:
 
-Converting annotation format to and from SuperAnnotate format
+Converting annotation format to and from src.superannotate format
 _____________________________________________________________
 
 
