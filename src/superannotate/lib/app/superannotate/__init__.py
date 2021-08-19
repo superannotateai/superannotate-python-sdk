@@ -35,9 +35,7 @@ from lib.app.interface.sdk_interface import clone_project
 from lib.app.interface.sdk_interface import copy_image
 from lib.app.interface.sdk_interface import copy_images
 from lib.app.interface.sdk_interface import create_annotation_class
-from lib.app.interface.sdk_interface import (
-    create_annotation_classes_from_classes_json,
-)
+from lib.app.interface.sdk_interface import create_annotation_classes_from_classes_json
 from lib.app.interface.sdk_interface import create_folder
 from lib.app.interface.sdk_interface import create_fuse_image
 from lib.app.interface.sdk_interface import create_project
@@ -81,32 +79,22 @@ from lib.app.interface.sdk_interface import search_models
 from lib.app.interface.sdk_interface import search_projects
 from lib.app.interface.sdk_interface import search_team_contributors
 from lib.app.interface.sdk_interface import set_images_annotation_statuses
-from lib.app.interface.sdk_interface import (
-    set_project_default_image_quality_in_editor,
-)
+from lib.app.interface.sdk_interface import set_project_default_image_quality_in_editor
 from lib.app.interface.sdk_interface import set_project_settings
 from lib.app.interface.sdk_interface import set_project_workflow
 from lib.app.interface.sdk_interface import share_project
 from lib.app.interface.sdk_interface import unassign_folder
 from lib.app.interface.sdk_interface import unassign_images
 from lib.app.interface.sdk_interface import unshare_project
-from lib.app.interface.sdk_interface import (
-    upload_annotations_from_folder_to_project,
-)
+from lib.app.interface.sdk_interface import upload_annotations_from_folder_to_project
 from lib.app.interface.sdk_interface import upload_image_annotations
 from lib.app.interface.sdk_interface import upload_image_to_project
 from lib.app.interface.sdk_interface import upload_images_from_azure_blob_to_project
 from lib.app.interface.sdk_interface import upload_images_from_folder_to_project
-from lib.app.interface.sdk_interface import (
-    upload_images_from_google_cloud_to_project,
-)
-from lib.app.interface.sdk_interface import (
-    upload_images_from_public_urls_to_project,
-)
+from lib.app.interface.sdk_interface import upload_images_from_google_cloud_to_project
+from lib.app.interface.sdk_interface import upload_images_from_public_urls_to_project
 from lib.app.interface.sdk_interface import upload_images_from_s3_bucket_to_project
-from lib.app.interface.sdk_interface import (
-    upload_preannotations_from_folder_to_project,
-)
+from lib.app.interface.sdk_interface import upload_preannotations_from_folder_to_project
 from lib.app.interface.sdk_interface import upload_videos_from_folder_to_project
 
 __all__ = [

@@ -7,12 +7,6 @@ from unittest import TestCase
 
 import src.superannotate as sa
 
-SCRIPT_PATH = (
-    "/"
-    + "/".join(Path(os.path.expanduser(__file__)).parts[1:6])
-    + "/lib/app/bin/superannotate.py"
-)
-
 
 class CLITest(TestCase):
     PROJECT_NAME = "test_cli_image_upload"
@@ -83,7 +77,7 @@ class CLITest(TestCase):
 
     def _create_project(self, project_type="Vector"):
         subprocess.run(
-            f'python {SCRIPT_PATH} create-project --name "{self.PROJECT_NAME}" --description gg --type {project_type}',
+            f'superannotatecli create-project --name "{self.PROJECT_NAME}" --description gg --type {project_type}',
             check=True,
             shell=True,
         )
@@ -96,7 +90,7 @@ class CLITest(TestCase):
     def test_create_folder(self):
         self._create_project()
         subprocess.run(
-            f'python {SCRIPT_PATH} create-folder --project "{self.PROJECT_NAME}" --name {self.FOLDER_NAME}',
+            f'superannotatecli create-folder --project "{self.PROJECT_NAME}" --name {self.FOLDER_NAME}',
             check=True,
             shell=True,
         )
@@ -108,7 +102,7 @@ class CLITest(TestCase):
     def test_upload_images(self):
         self._create_project()
         subprocess.run(
-            f'python {SCRIPT_PATH} upload-images --project "{self.PROJECT_NAME}"'
+            f'superannotatecli upload-images --project "{self.PROJECT_NAME}"'
             f" --folder {self.recursive_folder_path} "
             "--extensions=jpg "
             "--set-annotation-status QualityCheck",
@@ -123,7 +117,7 @@ class CLITest(TestCase):
             test_dir = Path(temp_dir) / "test1"
             test_dir.mkdir()
             subprocess.run(
-                f'python {SCRIPT_PATH} export-project --project "{self.PROJECT_NAME}" --folder {test_dir}',
+                f'superannotatecli export-project --project "{self.PROJECT_NAME}" --folder {test_dir}',
                 check=True,
                 shell=True,
             )
@@ -138,7 +132,7 @@ class CLITest(TestCase):
             self.PROJECT_NAME, f"{self.vector_folder_path}/classes/classes.json"
         )
         subprocess.run(
-            f'python {SCRIPT_PATH} upload-images --project "{self.PROJECT_NAME}"'
+            f'superannotatecli upload-images --project "{self.PROJECT_NAME}"'
             f" --folder {self.convertor_data_path} "
             "--extensions=jpg "
             "--set-annotation-status QualityCheck",
@@ -147,7 +141,7 @@ class CLITest(TestCase):
         )
 
         s = subprocess.run(
-            f"python {SCRIPT_PATH} upload-preannotations "
+            f"superannotatecli upload-preannotations "
             f'--project "{self.PROJECT_NAME}" '
             f'--folder "{self.convertor_data_path}" '
             f'--data-set-name "instances_test"',
@@ -170,7 +164,7 @@ class CLITest(TestCase):
             self.PROJECT_NAME, f"{self.vector_folder_path}/classes/classes.json"
         )
         subprocess.run(
-            f"python {SCRIPT_PATH} upload-images"
+            f"superannotatecli upload-images"
             f' --project "{self.PROJECT_NAME}"'
             f" --folder {self.convertor_data_path} "
             "--extensions=jpg "
@@ -179,7 +173,7 @@ class CLITest(TestCase):
             shell=True,
         )
         subprocess.run(
-            f"python {SCRIPT_PATH} upload-annotations "
+            f"superannotatecli upload-annotations "
             f'--project "{self.PROJECT_NAME}" '
             f'--folder "{self.convertor_data_path}" '
             f'--data-set-name "instances_test"',
@@ -196,7 +190,7 @@ class CLITest(TestCase):
     def test_attach_image_urls(self):
         self._create_project()
         subprocess.run(
-            f"python {SCRIPT_PATH} attach-image-urls "
+            f"superannotatecli attach-image-urls "
             f'--project "{self.PROJECT_NAME}" '
             f"--attachments {self.image_csv_path}",
             check=True,
@@ -208,7 +202,7 @@ class CLITest(TestCase):
     def test_attach_video_urls(self):
         self._create_project("Video")
         subprocess.run(
-            f"python {SCRIPT_PATH} attach-video-urls "
+            f"superannotatecli attach-video-urls "
             f'--project "{self.PROJECT_NAME}" '
             f"--attachments {self.video_csv_path}",
             check=True,
@@ -219,7 +213,7 @@ class CLITest(TestCase):
     def test_upload_videos(self):
         self._create_project()
         subprocess.run(
-            f"python {SCRIPT_PATH} upload-videos "
+            f"superannotatecli upload-videos "
             f'--project "{self.PROJECT_NAME}" '
             f"--folder '{self.video_folder_path}' "
             f"--target-fps 1",

@@ -13,10 +13,9 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 import boto3
+import lib.core as constances
 import pandas as pd
 import plotly.graph_objects as go
-import  lib.core as constances
-from plotly.subplots import make_subplots
 from lib.app.annotation_helpers import add_annotation_bbox_to_json
 from lib.app.annotation_helpers import add_annotation_comment_to_json
 from lib.app.annotation_helpers import add_annotation_cuboid_to_json
@@ -37,24 +36,18 @@ from lib.core.enums import ImageQuality
 from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
 from lib.infrastructure.controller import Controller
-from lib.infrastructure.repositories import ConfigRepository
-from lib.infrastructure.services import SuperannotateBackendService
+from plotly.subplots import make_subplots
 from tqdm import tqdm
 
 logger = logging.getLogger()
 
 
-controller = Controller(
-    backend_client=SuperannotateBackendService(
-        api_url=constances.BACKEND_URL,
-        auth_token=ConfigRepository().get_one("token"),
-        logger=logger,
-    )
-)
+controller = Controller(logger)
 
 
-def init():
-    pass
+def init(path_to_config_json):
+    global controller
+    controller = Controller(logger, path_to_config_json)
 
 
 def get_team_metadata():

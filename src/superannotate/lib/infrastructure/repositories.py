@@ -1,10 +1,10 @@
-import configparser
 import io
+import json
 import os
 from typing import List
 from typing import Optional
 
-import  lib.core as constance
+import lib.core as constance
 from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.entities import AnnotationClassEntity
@@ -26,60 +26,52 @@ from lib.infrastructure.services import SuperannotateBackendService
 
 
 class ConfigRepository(BaseManageableRepository):
-    DEFAULT_SECTION = "default"
+    def __init__(self, config_path: str = constance.CONFIG_FILE_LOCATION):
+        self._config_path = config_path
 
-    @staticmethod
-    def _create_config(path):
+    def _create_config(self):
         """
         Create a config file
         """
-        config = configparser.ConfigParser()
-        config.add_section("default")
-        with open(path, "w") as config_file:
-            config.write(config_file)
-        return config
+        open(self._config_path, "w").close()
+        return {}
 
-    def _get_config(self, path):
-        config = None
-        if not os.path.exists(path):
-            return config
-        config = configparser.ConfigParser()
-        config.read(constance.CONFIG_FILE_LOCATION)
-        return config
+    def _get_config(self) -> Optional[dict]:
+        if not os.path.exists(self._config_path):
+            return
+        return json.load(open(self._config_path))
 
     def get_one(self, uuid: str) -> Optional[ConfigEntity]:
-        config = self._get_config(constance.CONFIG_FILE_LOCATION)
+        config = self._get_config()
         if not config:
             return None
         try:
-            return ConfigEntity(uuid=uuid, value=config[self.DEFAULT_SECTION][uuid])
+            return ConfigEntity(uuid=uuid, value=config.get(uuid))
         except KeyError:
             return None
 
     def get_all(self, condition: Condition = None) -> List[ConfigEntity]:
-        config = self._get_config(constance.CONFIG_FILE_LOCATION)
-        return [
-            ConfigEntity(uuid, value)
-            for uuid, value in config.items(self.DEFAULT_SECTION)
-        ]
+        config = self._get_config()
+        if config:
+            return [ConfigEntity(uuid, value) for uuid, value in config.items()]
 
     def insert(self, entity: ConfigEntity) -> ConfigEntity:
-        config = self._get_config(constance.CONFIG_FILE_LOCATION)
+        config = self._get_config()
         if not config:
-            config = self._create_config(constance.CONFIG_FILE_LOCATION)
-        config.set("default", entity.uuid, entity.value)
-        with open(constance.CONFIG_FILE_LOCATION, "w") as config_file:
-            config.write(config_file)
+            config = self._create_config()
+        config[entity.uuid] = entity.value
+        with open(self._config_path, "w") as config_file:
+            config_file.write(json.dumps(config))
         return entity
 
     def update(self, entity: ConfigEntity):
         self.insert(entity)
 
     def delete(self, uuid: str):
-        config = self._get_config(constance.CONFIG_FILE_LOCATION)
-        config.remove_option("default", uuid)
+        config = self._get_config()
+        del config["uuid"]
         with open(constance.CONFIG_FILE_LOCATION, "rw+") as config_file:
-            config.write(config_file)
+            config_file.write(json.dumps(config))
 
 
 class ProjectRepository(BaseManageableRepository):
@@ -166,7 +158,9 @@ class ProjectSettingsRepository(BaseProjectRelatedManageableRepository):
         data = self._service.get_project_settings(
             self._project.uuid, self._project.team_id
         )
-        return [self.dict2entity(setting) for setting in data]
+        if data:
+            return [self.dict2entity(setting) for setting in data]
+        return []
 
     def insert(self, entity: ProjectSettingEntity) -> ProjectSettingEntity:
         entity = entity.to_dict()

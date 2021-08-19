@@ -4,10 +4,10 @@ from pathlib import Path
 
 import pandas as pd
 import plotly.express as px
+from lib.app.exceptions import AppException
 from shapely.geometry import box
 from shapely.geometry import Point
 from shapely.geometry import Polygon
-from lib.app.exceptions import AppException
 
 
 logger = logging.getLogger("superannotate-python-sdk")

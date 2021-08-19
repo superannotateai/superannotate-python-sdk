@@ -11,8 +11,8 @@ from pathlib import Path
 from typing import Any
 from typing import Optional
 
+import lib.core as constances
 import pandas as pd
-import  lib.core as constances
 from lib.app.helpers import get_annotation_paths
 from lib.app.helpers import split_project_path
 from lib.app.input_converters.conversion import import_annotation

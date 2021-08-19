@@ -7,11 +7,11 @@ from typing import List
 from typing import Tuple
 from urllib.parse import urljoin
 
+import lib.core as constance
 import requests
-import  lib.core as constance
-from requests.exceptions import HTTPError
 from lib.core.exceptions import AppException
 from lib.core.serviceproviders import SuerannotateServiceProvider
+from requests.exceptions import HTTPError
 
 
 class BaseBackendService(SuerannotateServiceProvider):
@@ -22,12 +22,12 @@ class BaseBackendService(SuerannotateServiceProvider):
     Base service class
     """
 
-    def __init__(self, api_url, auth_token, logger, paginate_by=None):
+    def __init__(self, api_url: str, auth_token: str, logger, paginate_by=None):
         self.api_url = api_url
-        self._auth_token = auth_token.value
+        self._auth_token = auth_token
         self.logger = logger
         self._paginate_by = paginate_by
-        self.team_id = auth_token.value.split("=")[-1]
+        self.team_id = auth_token.split("=")[-1]
 
     @property
     def default_headers(self):

@@ -6,11 +6,12 @@ from functools import lru_cache
 from typing import Iterable
 from typing import List
 
-import  lib.core as constances
+import lib.core as constances
 from lib.core import usecases
 from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.entities import AnnotationClassEntity
+from lib.core.entities import ConfigEntity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
 from lib.core.entities import MLModelEntity
@@ -31,9 +32,28 @@ from lib.infrastructure.services import SuperannotateBackendService
 
 
 class BaseController:
-    def __init__(self, backend_client: SuperannotateBackendService):
-        self._backend_client = backend_client
+    def __init__(self, logger, config_path=constances.CONFIG_FILE_LOCATION):
+        self._config_path = config_path
+
+        token, main_endpoint = (
+            self.configs.get_one("token"),
+            self.configs.get_one("main_endpoint"),
+        )
+        if not main_endpoint:
+            self.configs.insert(ConfigEntity("main_endpoint", constances.BACKEND_URL))
+        if not token:
+            self.configs.insert(ConfigEntity("token", ""))
+            raise AppException("Fill config.json")
+
+        self._backend_client = SuperannotateBackendService(
+            api_url=self.configs.get_one("main_endpoint").value,
+            auth_token=ConfigRepository().get_one("token").value,
+            logger=logger,
+        )
         self._s3_upload_auth_data = None
+
+    def set_token(self, token):
+        self.configs.insert(ConfigEntity("token", token))
 
     @cached_property
     def projects(self):
@@ -57,7 +77,7 @@ class BaseController:
 
     @cached_property
     def configs(self):
-        return ConfigRepository()
+        return ConfigRepository(self._config_path)
 
     @cached_property
     def team_id(self) -> int:
@@ -431,7 +451,7 @@ class Controller(BaseController):
         folder = self._get_folder(project, folder_name)
         for field, value in folder_data.items():
             setattr(folder, field, value)
-        use_case = usecases.UpdateFolderUseCase(folders=self.folders, folder=folder, )
+        use_case = usecases.UpdateFolderUseCase(folders=self.folders, folder=folder,)
         return use_case.execute()
 
     def get_image_bytes(

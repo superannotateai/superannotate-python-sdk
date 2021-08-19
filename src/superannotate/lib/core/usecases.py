@@ -16,10 +16,10 @@ from typing import List
 
 import boto3
 import cv2
+import lib.core as constances
 import numpy as np
 import pandas as pd
 import requests
-import  lib.core as constances
 from azure.core.exceptions import AzureError
 from azure.storage.blob import BlobServiceClient
 from boto3.exceptions import Boto3Error
