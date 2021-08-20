@@ -1818,7 +1818,6 @@ def upload_video_to_project(
             folder_name=folder_name,
             images=uploaded_image_entities[i : i + 500],  # noqa: E203
             annotation_status=annotation_status,
-            image_quality=image_quality_in_editor,
         )
     uploaded_images = [
         image.name
