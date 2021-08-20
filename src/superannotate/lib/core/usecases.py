@@ -635,6 +635,8 @@ class PrepareExportUseCase(BaseUseCase):
                 constances.AnnotationStatus.COMPLETED.name,
                 constances.AnnotationStatus.QUALITY_CHECK.name,
                 constances.AnnotationStatus.RETURNED.name,
+                constances.AnnotationStatus.NOT_STARTED.name,
+                constances.AnnotationStatus.SKIPPED.name,
             )
 
         res = self._backend_service.prepare_export(

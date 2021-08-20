@@ -62,6 +62,7 @@ class AnnotationStatus(BaseTitledEnum):
     COMPLETED = "Completed", 3
     QUALITY_CHECK = "QualityCheck", 4
     RETURNED = "Returned", 5
+    SKIPPED = "Skipped", 6
 
 
 class TrainingStatus(BaseTitledEnum):

@@ -1594,7 +1594,7 @@ def prepare_export(
     :type project: str
     :param folder_names: names of folders to include in the export. If None, whole project will be exported
     :type folder_names: list of str
-    :param annotation_statuses: images with which status to include, if None, [ "InProgress", "QualityCheck", "Returned", "Completed"] will be chose
+    :param annotation_statuses: images with which status to include, if None, ["NotStarted", "InProgress", "QualityCheck", "Returned", "Completed", "Skipped"]  will be chose
            list elements should be one of NotStarted InProgress QualityCheck Returned Completed Skipped
     :type annotation_statuses: list of strs
     :param include_fuse: enables fuse images in the export
@@ -1617,6 +1617,7 @@ def prepare_export(
             constances.AnnotationStatus.QUALITY_CHECK.name,
             constances.AnnotationStatus.RETURNED.name,
             constances.AnnotationStatus.COMPLETED.name,
+            constances.AnnotationStatus.SKIPPED.name,
         ]
     response = controller.prepare_export(
         project_name=project_name,
@@ -2192,8 +2193,14 @@ def attach_image_urls_to_project(project, attachments, annotation_status="NotSta
 
     image_data = pd.read_csv(attachments, dtype=str)
     image_data = image_data[~image_data["url"].isnull()]
-    for ind, _ in image_data[image_data["name"].isnull()].iterrows():
-        image_data.at[ind, "name"] = str(uuid.uuid4())
+    if "name" in image_data.columns:
+        image_data["name"] = (
+            image_data["name"]
+            .fillna("")
+            .apply(lambda cell: cell if str(cell).strip() else str(uuid.uuid4()))
+        )
+    else:
+        image_data["name"] = [str(uuid.uuid4()) for _ in range(len(image_data.index))]
 
     image_data = pd.DataFrame(image_data, columns=["name", "url"])
     img_names_urls = image_data.rename(columns={"url": "path"}).to_dict(
