@@ -4,7 +4,7 @@ import tempfile
 from os.path import dirname
 from pathlib import Path
 
-from src.superannotate.lib.app import superannotate as sa
+import src.superannotate as sa
 from tests.integration.base import BaseTestCase
 
 

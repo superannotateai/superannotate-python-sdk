@@ -450,7 +450,6 @@ class UploadImageS3UseCas(BaseUseCase):
         origin_width, origin_height = image_processor.get_size()
         thumb_image, _, _ = image_processor.generate_thumb()
         huge_image, huge_width, huge_height = image_processor.generate_huge()
-        subsampling = -1
         quality = 60
         if not self._image_quality_in_editor:
             for setting in self._project_settings.get_all():
@@ -458,13 +457,22 @@ class UploadImageS3UseCas(BaseUseCase):
                     quality = setting.value
         else:
             quality = ImageQuality.get_value(self._image_quality_in_editor)
-
-        if quality == 100:
-            subsampling = 0
-        low_resolution_image, _, _ = image_processor.generate_low_resolution(
-            quality=quality, subsampling=subsampling
-        )
-
+        if Path(image_name).suffix.upper() in ("JPEG", "JPG"):
+            if quality == 100:
+                low_resolution_image = self._image
+            else:
+                low_resolution_image, _, _ = image_processor.generate_low_resolution(
+                    quality=quality
+                )
+        else:
+            if quality == 100:
+                low_resolution_image, _, _ = image_processor.generate_low_resolution(
+                    quality=quality, subsampling=0
+                )
+            else:
+                low_resolution_image, _, _ = image_processor.generate_low_resolution(
+                    quality=quality, subsampling=-1
+                )
         image_key = (
             self._upload_path + str(uuid.uuid4()) + Path(self._image_path).suffix
         )
@@ -576,6 +584,8 @@ class AttachFileUrlsUseCase(BaseUseCase):
         meta = {}
         to_upload = []
         for image in self._attachments:
+            if not image.name:
+                image.name = str(uuid.uuid4())
             if image.name not in duplications:
                 to_upload.append({"name": image.name, "path": image.path})
                 meta[image.name] = {
@@ -1824,7 +1834,6 @@ class GetImageAnnotationsUseCase(BaseUseCase):
             file_postfix = "___objects.json"
         else:
             file_postfix = "___pixel.json"
-        # TODO fix
         response = requests.get(
             url=credentials["annotation_json_path"]["url"],
             headers=credentials["annotation_json_path"]["headers"],
@@ -2501,27 +2510,29 @@ class CreateFuseImageUseCase(BaseUseCase):
     @staticmethod
     def generate_color(value: str = None):
         if not value:
-            return (random.randint(1, 255), random.randint(1, 255), random.randint(1, 255))
+            return (
+                random.randint(1, 255),
+                random.randint(1, 255),
+                random.randint(1, 255),
+            )
         return tuple(int(value.lstrip("#")[i : i + 2], 16) for i in (0, 2, 4))
 
     @property
     def annotations(self):
         if not self._annotations:
-            image_path = Path(self._image_path)
+            image_path = (
+                f"{Path(self._image_path).parent}/{Path(self._image_path).name}"
+            )
             if self._project_type.upper() == constances.ProjectType.PIXEL.name.upper():
-                self._annotations = json.load(
-                    open(image_path.parent / f"{image_path.name}___pixel.json")
-                )
+                self._annotations = json.load(open(f"{image_path}___pixel.json"))
             else:
-                self._annotations = json.load(
-                    open(image_path.parent / f"{image_path.name}___objects.json")
-                )
+                self._annotations = json.load(open(f"{image_path}___objects.json"))
         return self._annotations
 
     @property
     def blue_mask_path(self):
         image_path = Path(self._image_path)
-        if self._project_type.upper() == constances.ProjectType.PIXEL.name.upper:
+        if self._project_type.upper() == constances.ProjectType.PIXEL.name.upper():
             self._annotation_mask_path = str(
                 image_path.parent / f"{image_path.name}___save.png"
             )
@@ -2542,11 +2553,7 @@ class CreateFuseImageUseCase(BaseUseCase):
                 image = ImagePlugin(io.BytesIO(file.read()))
 
                 images = [
-                    Image(
-                        "fuse",
-                        f"{self._image_path}___fuse.png",
-                        image.get_empty(),
-                    )
+                    Image("fuse", f"{self._image_path}___fuse.png", image.get_empty(),)
                 ]
                 if self._generate_overlay:
                     images.append(
@@ -2557,7 +2564,7 @@ class CreateFuseImageUseCase(BaseUseCase):
                 for instance in self.annotations["instances"]:
                     color = class_color_map.get(instance["className"])
                     if not color:
-                        class_color_map[instance["className"]] = self.generate_color(instance["className"])
+                        class_color_map[instance["className"]] = self.generate_color()
                     fill_color = (
                         *class_color_map[instance["className"]],
                         self.TRANSPARENCY,
@@ -2607,12 +2614,13 @@ class CreateFuseImageUseCase(BaseUseCase):
                                     points["y"] + 2,
                                 )
                                 image.content.draw_ellipse(
-                                    points, fill_color, fill_color
+                                    *points, fill_color, fill_color
                                 )
                             for connection in instance["connections"]:
                                 image.content.draw_line(
-                                    points_id_map[connection["from"]]
-                                    + points_id_map[connection["to"]]
+                                    points_id_map[connection["from"]],
+                                    points_id_map[connection["to"]],
+                                    fill_color=fill_color,
                                 )
             else:
                 image = ImagePlugin(io.BytesIO(file.read()))
@@ -2621,10 +2629,9 @@ class CreateFuseImageUseCase(BaseUseCase):
                         io.BytesIO(open(self.blue_mask_path, "rb").read())
                     ).content
                 )
-                empty_image_arr = np.full(
-                    (image.get_size(), 4), [0, 0, 0, 255], np.uint8
-                )
-                for annotation in self._annotations["instances"]:
+                weight, height = image.get_size()
+                empty_image_arr = np.full((height, weight, 4), [0, 0, 0, 255], np.uint8)
+                for annotation in self.annotations["instances"]:
                     fill_color = *class_color_map[annotation["className"]], 255
                     for part in annotation["parts"]:
                         part_color = *self.generate_color(part["color"]), 255
@@ -2705,7 +2712,7 @@ class DownloadImageUseCase(BaseUseCase):
     def execute(self):
         self.get_image_use_case.execute()
         image_bytes = self.get_image_use_case.execute().data
-        download_path = self._download_path + self._image.name
+        download_path = f"{self._download_path}/{self._image.name}"
         if self._image_variant == "lores":
             download_path = download_path + "___lores.jpg"
         with open(download_path, "wb") as image_file:
@@ -2717,12 +2724,11 @@ class DownloadImageUseCase(BaseUseCase):
 
         fuse_image = None
         if self._include_annotations and self._include_fuse:
-            self.get_annotation_classes_ues_case.execute()
             classes = self.get_annotation_classes_ues_case.execute().data
             fuse_image_use_case = CreateFuseImageUseCase(
                 project_type=constances.ProjectType.get_name(
                     self._project.project_type
-                ).name,
+                ),
                 image_path=download_path,
                 classes=[annotation_class.to_dict() for annotation_class in classes],
                 generate_overlay=self._include_overlay,

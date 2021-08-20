@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from src.superannotate.lib.app import superannotate as sa
+import src.superannotate as sa
 
 
 class BaseTestCase(TestCase):
