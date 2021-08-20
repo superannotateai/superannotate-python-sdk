@@ -61,6 +61,7 @@ from lib.app.interface.sdk_interface import get_project_metadata
 from lib.app.interface.sdk_interface import get_project_settings
 from lib.app.interface.sdk_interface import get_project_workflow
 from lib.app.interface.sdk_interface import get_team_metadata
+from lib.app.interface.sdk_interface import init
 from lib.app.interface.sdk_interface import invite_contributor_to_team
 from lib.app.interface.sdk_interface import move_image
 from lib.app.interface.sdk_interface import move_images
@@ -78,6 +79,7 @@ from lib.app.interface.sdk_interface import search_images_all_folders
 from lib.app.interface.sdk_interface import search_models
 from lib.app.interface.sdk_interface import search_projects
 from lib.app.interface.sdk_interface import search_team_contributors
+from lib.app.interface.sdk_interface import set_auth_token
 from lib.app.interface.sdk_interface import set_images_annotation_statuses
 from lib.app.interface.sdk_interface import set_project_default_image_quality_in_editor
 from lib.app.interface.sdk_interface import set_project_settings
@@ -98,6 +100,8 @@ from lib.app.interface.sdk_interface import upload_preannotations_from_folder_to
 from lib.app.interface.sdk_interface import upload_videos_from_folder_to_project
 
 __all__ = [
+    "init",
+    "set_auth_token",
     # analytics
     "attribute_distribution",
     "class_distribution",

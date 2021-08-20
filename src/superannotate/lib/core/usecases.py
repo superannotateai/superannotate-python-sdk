@@ -3,6 +3,7 @@ import io
 import json
 import logging
 import os.path
+import random
 import time
 import uuid
 import zipfile
@@ -2498,14 +2499,16 @@ class CreateFuseImageUseCase(BaseUseCase):
         self._generate_overlay = generate_overlay
 
     @staticmethod
-    def generate_color(value: str):
+    def generate_color(value: str = None):
+        if not value:
+            return (random.randint(1, 255), random.randint(1, 255), random.randint(1, 255))
         return tuple(int(value.lstrip("#")[i : i + 2], 16) for i in (0, 2, 4))
 
     @property
     def annotations(self):
         if not self._annotations:
             image_path = Path(self._image_path)
-            if self._project_type == constances.ProjectType.PIXEL.name:
+            if self._project_type.upper() == constances.ProjectType.PIXEL.name.upper():
                 self._annotations = json.load(
                     open(image_path.parent / f"{image_path.name}___pixel.json")
                 )
@@ -2518,7 +2521,7 @@ class CreateFuseImageUseCase(BaseUseCase):
     @property
     def blue_mask_path(self):
         image_path = Path(self._image_path)
-        if self._project_type == constances.ProjectType.PIXEL.name:
+        if self._project_type.upper() == constances.ProjectType.PIXEL.name.upper:
             self._annotation_mask_path = str(
                 image_path.parent / f"{image_path.name}___save.png"
             )
@@ -2535,14 +2538,14 @@ class CreateFuseImageUseCase(BaseUseCase):
                 class_color_map[annotation_class["name"]] = self.generate_color(
                     annotation_class["color"]
                 )
-            if self._project_type.upper() == constances.ProjectType.VECTOR.name:
+            if self._project_type.upper() == constances.ProjectType.VECTOR.name.upper():
                 image = ImagePlugin(io.BytesIO(file.read()))
 
                 images = [
                     Image(
                         "fuse",
                         f"{self._image_path}___fuse.png",
-                        image.get_empty_image(),
+                        image.get_empty(),
                     )
                 ]
                 if self._generate_overlay:
@@ -2552,6 +2555,9 @@ class CreateFuseImageUseCase(BaseUseCase):
 
                 outline_color = 4 * (255,)
                 for instance in self.annotations["instances"]:
+                    color = class_color_map.get(instance["className"])
+                    if not color:
+                        class_color_map[instance["className"]] = self.generate_color(instance["className"])
                     fill_color = (
                         *class_color_map[instance["className"]],
                         self.TRANSPARENCY,

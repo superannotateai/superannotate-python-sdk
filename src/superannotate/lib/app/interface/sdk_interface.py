@@ -46,8 +46,19 @@ controller = Controller(logger)
 
 
 def init(path_to_config_json):
+    """
+    Initializes and authenticates to SuperAnnotate platform using the config file.
+    If not initialized then $HOME/.superannotate/config.json
+    will be used.
+    :param path_to_config_json: Location to config JSON file
+    :type path_to_config_json: str or Path
+    """
     global controller
     controller = Controller(logger, path_to_config_json)
+
+
+def set_auth_token(token: str):
+    controller.set_token(token)
 
 
 def get_team_metadata():
@@ -2100,8 +2111,8 @@ def create_fuse_image(
 
     :param image: path to image
     :type image: str or Pathlike
-    :param image_name: annotation classes or path to their JSON
-    :type image: list or Pathlike
+    :param classes_json: annotation classes or path to their JSON
+    :type classes_json: list or Pathlike
     :param project_type: project type, "Vector" or "Pixel"
     :type project_type: str
     :param in_memory: enables pillow Image return instead of saving the image

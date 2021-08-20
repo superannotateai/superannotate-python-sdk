@@ -26,8 +26,10 @@ from lib.infrastructure.services import SuperannotateBackendService
 
 
 class ConfigRepository(BaseManageableRepository):
+    CONFIG_NAME = "config.json"
+
     def __init__(self, config_path: str = constance.CONFIG_FILE_LOCATION):
-        self._config_path = config_path
+        self._config_path = f"{config_path}/{self.CONFIG_NAME}"
 
     def _create_config(self):
         """
@@ -39,7 +41,8 @@ class ConfigRepository(BaseManageableRepository):
     def _get_config(self) -> Optional[dict]:
         if not os.path.exists(self._config_path):
             return
-        return json.load(open(self._config_path))
+        with open(self._config_path) as config:
+            return json.load(config)
 
     def get_one(self, uuid: str) -> Optional[ConfigEntity]:
         config = self._get_config()
@@ -280,10 +283,12 @@ class AnnotationClassRepository(BaseManageableRepository):
         self, condition: Optional[Condition] = None
     ) -> List[AnnotationClassEntity]:
         query = condition.build_query() if condition else None
-        res = self._service.get_annotation_classes(
+        data = self._service.get_annotation_classes(
             self.project.uuid, self.project.team_id, query
         )
-        return [self.dict2entity(data) for data in res]
+        if data:
+            return [self.dict2entity(data) for data in data]
+        return []
 
     def insert(self, entity: AnnotationClassEntity):
         res = self._service.set_annotation_classes(

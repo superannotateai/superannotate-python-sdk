@@ -34,7 +34,7 @@ from lib.infrastructure.services import SuperannotateBackendService
 class BaseController:
     def __init__(self, logger, config_path=constances.CONFIG_FILE_LOCATION):
         self._config_path = config_path
-
+        self._logger = logger
         token, main_endpoint = (
             self.configs.get_one("token"),
             self.configs.get_one("main_endpoint"),
@@ -43,8 +43,8 @@ class BaseController:
             self.configs.insert(ConfigEntity("main_endpoint", constances.BACKEND_URL))
         if not token:
             self.configs.insert(ConfigEntity("token", ""))
-            raise AppException("Fill config.json")
-
+            logger.warning("Fill config.json")
+            return
         self._backend_client = SuperannotateBackendService(
             api_url=self.configs.get_one("main_endpoint").value,
             auth_token=ConfigRepository().get_one("token").value,
@@ -54,6 +54,11 @@ class BaseController:
 
     def set_token(self, token):
         self.configs.insert(ConfigEntity("token", token))
+        self._backend_client = SuperannotateBackendService(
+            api_url=self.configs.get_one("main_endpoint").value,
+            auth_token=ConfigRepository().get_one("token").value,
+            logger=self._logger,
+        )
 
     @cached_property
     def projects(self):
@@ -75,7 +80,7 @@ class BaseController:
     def images(self):
         return ImageRepository(self._backend_client)
 
-    @cached_property
+    @property
     def configs(self):
         return ConfigRepository(self._config_path)
 

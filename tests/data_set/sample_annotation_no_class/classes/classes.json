@@ -1,0 +1,157 @@
+[
+    {
+        "id": 55917,
+        "project_id": 11979,
+        "name": "Personal vehicle",
+        "color": "#ecb65f",
+        "count": 25,
+        "createdAt": "2020-10-12T11:35:20.000Z",
+        "updatedAt": "2020-10-12T11:48:19.000Z",
+        "attribute_groups": [
+            {
+                "id": 17245,
+                "class_id": 55917,
+                "name": "Num doors",
+                "is_multiselect": 0,
+                "createdAt": "2020-10-12T11:35:20.000Z",
+                "updatedAt": "2020-10-12T11:35:20.000Z",
+                "attributes": [
+                    {
+                        "id": 62792,
+                        "group_id": 17245,
+                        "project_id": 11979,
+                        "name": "2",
+                        "count": 1,
+                        "createdAt": "2020-10-12T11:35:20.000Z",
+                        "updatedAt": "2020-10-12T11:46:28.000Z"
+                    },
+                    {
+                        "id": 62793,
+                        "group_id": 17245,
+                        "project_id": 11979,
+                        "name": "4",
+                        "count": 1,
+                        "createdAt": "2020-10-12T11:35:20.000Z",
+                        "updatedAt": "2020-10-12T11:35:20.000Z"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "id": 55918,
+        "project_id": 11979,
+        "name": "Large vehicle",
+        "color": "#737b28",
+        "count": 1,
+        "createdAt": "2020-10-12T11:35:20.000Z",
+        "updatedAt": "2020-10-12T11:48:19.000Z",
+        "attribute_groups": [
+            {
+                "id": 17246,
+                "class_id": 55918,
+                "name": "swedish",
+                "is_multiselect": 0,
+                "createdAt": "2020-10-12T11:35:20.000Z",
+                "updatedAt": "2020-10-12T11:35:20.000Z",
+                "attributes": [
+                    {
+                        "id": 62794,
+                        "group_id": 17246,
+                        "project_id": 11979,
+                        "name": "yes",
+                        "count": 0,
+                        "createdAt": "2020-10-12T11:35:20.000Z",
+                        "updatedAt": "2020-10-12T11:35:20.000Z"
+                    },
+                    {
+                        "id": 62795,
+                        "group_id": 17246,
+                        "project_id": 11979,
+                        "name": "no",
+                        "count": 1,
+                        "createdAt": "2020-10-12T11:35:20.000Z",
+                        "updatedAt": "2020-10-12T11:46:28.000Z"
+                    }
+                ]
+            },
+            {
+                "id": 17247,
+                "class_id": 55918,
+                "name": "Num doors",
+                "is_multiselect": 0,
+                "createdAt": "2020-10-12T11:35:20.000Z",
+                "updatedAt": "2020-10-12T11:35:20.000Z",
+                "attributes": [
+                    {
+                        "id": 62796,
+                        "group_id": 17247,
+                        "project_id": 11979,
+                        "name": "2",
+                        "count": 0,
+                        "createdAt": "2020-10-12T11:35:20.000Z",
+                        "updatedAt": "2020-10-12T11:35:20.000Z"
+                    },
+                    {
+                        "id": 62797,
+                        "group_id": 17247,
+                        "project_id": 11979,
+                        "name": "4",
+                        "count": 1,
+                        "createdAt": "2020-10-12T11:35:20.000Z",
+                        "updatedAt": "2020-10-12T11:46:28.000Z"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "id": 55919,
+        "project_id": 11979,
+        "name": "Human",
+        "color": "#e4542b",
+        "count": 9,
+        "createdAt": "2020-10-12T11:35:20.000Z",
+        "updatedAt": "2020-10-12T11:48:14.000Z",
+        "attribute_groups": [
+            {
+                "id": 17248,
+                "class_id": 55919,
+                "name": "Height",
+                "is_multiselect": 0,
+                "createdAt": "2020-10-12T11:35:20.000Z",
+                "updatedAt": "2020-10-12T11:35:20.000Z",
+                "attributes": [
+                    {
+                        "id": 62798,
+                        "group_id": 17248,
+                        "project_id": 11979,
+                        "name": "Tall",
+                        "count": 0,
+                        "createdAt": "2020-10-12T11:35:20.000Z",
+                        "updatedAt": "2020-10-12T11:35:20.000Z"
+                    },
+                    {
+                        "id": 62799,
+                        "group_id": 17248,
+                        "project_id": 11979,
+                        "name": "Short",
+                        "count": 0,
+                        "createdAt": "2020-10-12T11:35:20.000Z",
+                        "updatedAt": "2020-10-12T11:35:20.000Z"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "id": 55920,
+        "project_id": 11979,
+        "name": "Plant",
+        "color": "#46ccb2",
+        "count": 0,
+        "createdAt": "2020-10-12T11:35:20.000Z",
+        "updatedAt": "2020-10-12T11:35:20.000Z",
+        "attribute_groups": []
+    }
+]

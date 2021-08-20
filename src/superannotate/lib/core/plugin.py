@@ -35,6 +35,12 @@ class ImagePlugin:
     def get_empty_image(self):
         return Image.new("RGBA", self._image.size)
 
+    def get_empty(self):
+        image_bytes = io.BytesIO()
+        Image.new("RGB", self._image.size).save(image_bytes, "jpeg")
+        image_bytes.seek(0)
+        return ImagePlugin(image_bytes=image_bytes)
+
     @property
     def draw(self):
         if not self._draw:
