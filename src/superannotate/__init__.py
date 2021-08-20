@@ -1,3 +1,17 @@
+from lib.app.interface.sdk_interface import init
+from lib.app.interface.sdk_interface import set_auth_token
+from lib.app.interface.sdk_interface import benchmark
+from lib.app.interface.sdk_interface import consensus
+from lib.app.interface.sdk_interface import delete_image
+from lib.app.interface.sdk_interface import delete_model
+from lib.app.interface.sdk_interface import get_annotation_class_metadata
+from lib.app.interface.sdk_interface import get_image_bytes
+from lib.app.interface.sdk_interface import get_image_preannotations
+from lib.app.interface.sdk_interface import get_project_default_image_quality_in_editor
+from lib.app.interface.sdk_interface import plot_model_metrics
+from lib.app.interface.sdk_interface import set_image_annotation_status
+from lib.app.interface.sdk_interface import stop_model_training
+from lib.app.interface.sdk_interface import upload_video_to_project
 from superannotate.lib.app.analytics.class_analytics import aggregate_annotations_as_df
 from superannotate.lib.app.analytics.class_analytics import attribute_distribution
 from superannotate.lib.app.analytics.class_analytics import class_distribution
@@ -60,9 +74,7 @@ from superannotate.lib.app.interface.sdk_interface import (
     delete_contributor_to_team_invitation,
 )
 from superannotate.lib.app.interface.sdk_interface import delete_folders
-from superannotate.lib.app.interface.sdk_interface import delete_image
 from superannotate.lib.app.interface.sdk_interface import delete_images
-from superannotate.lib.app.interface.sdk_interface import delete_model
 from superannotate.lib.app.interface.sdk_interface import delete_project
 from superannotate.lib.app.interface.sdk_interface import (
     download_annotation_classes_json,
@@ -72,30 +84,22 @@ from superannotate.lib.app.interface.sdk_interface import download_image
 from superannotate.lib.app.interface.sdk_interface import download_image_annotations
 from superannotate.lib.app.interface.sdk_interface import download_image_preannotations
 from superannotate.lib.app.interface.sdk_interface import download_model
-from superannotate.lib.app.interface.sdk_interface import get_annotation_class_metadata
 from superannotate.lib.app.interface.sdk_interface import get_exports
 from superannotate.lib.app.interface.sdk_interface import get_folder_metadata
 from superannotate.lib.app.interface.sdk_interface import get_image_annotations
-from superannotate.lib.app.interface.sdk_interface import get_image_bytes
 from superannotate.lib.app.interface.sdk_interface import get_image_metadata
-from superannotate.lib.app.interface.sdk_interface import get_image_preannotations
 from superannotate.lib.app.interface.sdk_interface import (
     get_project_and_folder_metadata,
-)
-from superannotate.lib.app.interface.sdk_interface import (
-    get_project_default_image_quality_in_editor,
 )
 from superannotate.lib.app.interface.sdk_interface import get_project_image_count
 from superannotate.lib.app.interface.sdk_interface import get_project_metadata
 from superannotate.lib.app.interface.sdk_interface import get_project_settings
 from superannotate.lib.app.interface.sdk_interface import get_project_workflow
 from superannotate.lib.app.interface.sdk_interface import get_team_metadata
-from superannotate.lib.app.interface.sdk_interface import init
 from superannotate.lib.app.interface.sdk_interface import invite_contributor_to_team
 from superannotate.lib.app.interface.sdk_interface import move_image
 from superannotate.lib.app.interface.sdk_interface import move_images
 from superannotate.lib.app.interface.sdk_interface import pin_image
-from superannotate.lib.app.interface.sdk_interface import plot_model_metrics
 from superannotate.lib.app.interface.sdk_interface import prepare_export
 from superannotate.lib.app.interface.sdk_interface import rename_folder
 from superannotate.lib.app.interface.sdk_interface import rename_project
@@ -109,8 +113,6 @@ from superannotate.lib.app.interface.sdk_interface import search_images_all_fold
 from superannotate.lib.app.interface.sdk_interface import search_models
 from superannotate.lib.app.interface.sdk_interface import search_projects
 from superannotate.lib.app.interface.sdk_interface import search_team_contributors
-from superannotate.lib.app.interface.sdk_interface import set_auth_token
-from superannotate.lib.app.interface.sdk_interface import set_image_annotation_status
 from superannotate.lib.app.interface.sdk_interface import set_images_annotation_statuses
 from superannotate.lib.app.interface.sdk_interface import (
     set_project_default_image_quality_in_editor,
@@ -118,7 +120,6 @@ from superannotate.lib.app.interface.sdk_interface import (
 from superannotate.lib.app.interface.sdk_interface import set_project_settings
 from superannotate.lib.app.interface.sdk_interface import set_project_workflow
 from superannotate.lib.app.interface.sdk_interface import share_project
-from superannotate.lib.app.interface.sdk_interface import stop_model_training
 from superannotate.lib.app.interface.sdk_interface import unassign_folder
 from superannotate.lib.app.interface.sdk_interface import unassign_images
 from superannotate.lib.app.interface.sdk_interface import unshare_project
@@ -146,7 +147,6 @@ from superannotate.lib.app.interface.sdk_interface import upload_images_to_proje
 from superannotate.lib.app.interface.sdk_interface import (
     upload_preannotations_from_folder_to_project,
 )
-from superannotate.lib.app.interface.sdk_interface import upload_video_to_project
 from superannotate.lib.app.interface.sdk_interface import (
     upload_videos_from_folder_to_project,
 )
@@ -234,7 +234,6 @@ __all__ = [
     "upload_images_from_s3_bucket_to_project",
     "upload_images_from_folder_to_project",
     "attach_image_urls_to_project",
-    "attach_video_urls_to_project",
     # Video Section
     "upload_videos_from_folder_to_project",
     # Annotation Section
