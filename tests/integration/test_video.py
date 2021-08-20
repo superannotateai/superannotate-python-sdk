@@ -11,7 +11,7 @@ class TestVideo(BaseTestCase):
     PROJECT_DESCRIPTION = "Desc"
     PROJECT_TYPE = "Vector"
     TEST_FOLDER_NAME = "new_folder"
-    TEST_VIDEO_FOLDER_PATH = "data_set/sample_videos"
+    TEST_VIDEO_FOLDER_PATH = "data_set/sample_videos/single"
 
     @property
     def folder_path(self):
@@ -36,14 +36,6 @@ class TestVideo(BaseTestCase):
         sa.upload_videos_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path, target_fps=1
         )
-        sa.upload_videos_from_folder_to_project(
-            self.SECOND_PROJECT_NAME, self.folder_path, target_fps=1
-        )
-
-        self.assertEqual(
-            len(sa.search_images(self.PROJECT_NAME)),
-            len(sa.search_images(self.SECOND_PROJECT_NAME)),
-        )
 
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME)
         sa.upload_videos_from_folder_to_project(
@@ -51,10 +43,10 @@ class TestVideo(BaseTestCase):
             self.folder_path,
             target_fps=1,
         )
-
+        self.assertEqual(sa.search_images(self.PROJECT_NAME), 4)
         self.assertEqual(
             len(sa.search_images(f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME}")),
-            len(sa.search_images(self.SECOND_PROJECT_NAME)),
+            len(sa.search_images(self.PROJECT_NAME)),
         )
 
     #  todo check

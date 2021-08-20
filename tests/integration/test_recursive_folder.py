@@ -8,7 +8,7 @@ import src.superannotate as sa
 from tests.integration.base import BaseTestCase
 
 
-class TestProjectSettings(BaseTestCase):
+class TestRecursiveFolder(BaseTestCase):
     PROJECT_NAME = "test_recursive"
     PROJECT_DESCRIPTION = "Desc"
     PROJECT_TYPE = "Vector"

@@ -138,11 +138,20 @@ class Controller(BaseController):
         return "root"
 
     def search_project(self, name: str, **kwargs) -> Response:
-        condition = Condition("name", name, EQ)
+        conditions = []
+        if name:
+            conditions.append(Condition("name", name, EQ))
         for key, val in kwargs.items():
-            condition = condition & Condition(key, val, EQ)
+            conditions.append(Condition(key, val, EQ))
+        condition_set = None
+        if conditions:
+            for condition in conditions:
+                if condition_set:
+                    condition_set &= condition
+                else:
+                    condition_set = condition
         use_case = usecases.GetProjectsUseCase(
-            condition=condition, projects=self.projects, team_id=self.team_id,
+            condition=condition_set, projects=self.projects, team_id=self.team_id,
         )
         return use_case.execute()
 
