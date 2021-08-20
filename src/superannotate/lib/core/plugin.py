@@ -17,6 +17,9 @@ class ImagePlugin:
         self._image = Image.open(self._image_bytes).convert("RGBA")
         self._draw = None
 
+    def save(self, *args, **kwargs):
+        self._image.save(*args, **kwargs)
+
     @staticmethod
     def from_array(arr):
         return Image.fromarray(arr)
@@ -125,7 +128,7 @@ class ImagePlugin:
     def draw_polyline(self, points: List, fill_color, width=2):
         image = self.get_empty_image()
         draw = ImageDraw.Draw(image)
-        draw.lint(points, fill_color, width=width)
+        draw.line(points, fill_color, width=width)
         self._image.convert("RGBA")
         self._image = Image.alpha_composite(self._image, image)
 
@@ -150,7 +153,7 @@ class ImagePlugin:
     def draw_line(self, x, y, fill_color, width=1):
         image = self.get_empty_image()
         draw = ImageDraw.Draw(image)
-        draw.line((x, y), fill_color=fill_color, width=width)
+        draw.line((x, y), fill=fill_color, width=width)
         self._image.convert("RGBA")
         self._image = Image.alpha_composite(self._image, image)
 

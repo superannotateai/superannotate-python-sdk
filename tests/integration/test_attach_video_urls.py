@@ -5,11 +5,11 @@ import src.superannotate as sa
 from tests.integration.base import BaseTestCase
 
 
-class TestImageUrls(BaseTestCase):
-    PROJECT_NAME = "test attach image urls"
+class TestVideoUrls(BaseTestCase):
+    PROJECT_NAME = "test attach video urls"
     PATH_TO_URLS = "data_set/attach_urls.csv"
     PROJECT_DESCRIPTION = "desc"
-    PROJECT_TYPE = "Vector"
+    PROJECT_TYPE = "Video"
 
     def test_attach_image_urls(self):
         uploaded, could_not_upload, existing_images = sa.attach_video_urls_to_project(

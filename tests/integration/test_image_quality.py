@@ -52,7 +52,6 @@ class TestImageQuality(BaseTestCase):
                 variant="lores",
             )
 
-            # TODO
             assert filecmp.cmp(
                 tmpdir_name + "/" + self.EXAMPLE_IMAGE_1 + "___lores.jpg",
                 self.folder_path + "/" + self.EXAMPLE_IMAGE_1,

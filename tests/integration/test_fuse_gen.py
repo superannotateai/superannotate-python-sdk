@@ -28,13 +28,13 @@ class TestFolders(TestCase):
             cls.VECTOR_PROJECT_NAME, cls.PROJECT_DESCRIPTION, "Vector"
         )
         cls._pixel_project = sa.create_project(
-            cls.TEST_PIXEL_FOLDER_PATH, cls.PROJECT_DESCRIPTION, "Pixel"
+            cls.PIXEL_PROJECT_NAME, cls.PROJECT_DESCRIPTION, "Pixel"
         )
 
     @classmethod
     def tearDownClass(cls) -> None:
         projects = (sa.search_projects(cls.VECTOR_PROJECT_NAME, return_metadata=True)
-                    + sa.search_projects(cls.TEST_PIXEL_FOLDER_PATH, return_metadata=True))
+                    + sa.search_projects(cls.PIXEL_PROJECT_NAME, return_metadata=True))
         for project in projects:
             sa.delete_project(project)
 
@@ -66,6 +66,11 @@ class TestFolders(TestCase):
 
             sa.create_annotation_classes_from_classes_json(
                 self.VECTOR_PROJECT_NAME, self.vector_classes_json
+            )
+            sa.upload_image_annotations(
+                project=self.VECTOR_PROJECT_NAME,
+                image_name=self.EXAMPLE_IMAGE_1,
+                annotation_json=f"{self.vector_folder_path}/{self.EXAMPLE_IMAGE_1}___objects.json",
             )
 
             sa.add_annotation_bbox_to_image(
@@ -111,7 +116,7 @@ class TestFolders(TestCase):
             sa.download_export(self.VECTOR_PROJECT_NAME, export, (temp_dir / "export"))
 
             sa.create_fuse_image(
-                image=f"{self.vector_folder_path}/example_image_1.jpg",
+                image=f"{self.vector_folder_path}/{self.EXAMPLE_IMAGE_1}",
                 classes_json=self.vector_classes_json,
                 project_type="Vector"
             )
@@ -147,10 +152,10 @@ class TestFolders(TestCase):
                 self.PIXEL_PROJECT_NAME, self.pixel_classes_json
             )
             sa.upload_image_annotations(
-                self.PIXEL_PROJECT_NAME,
-                self.EXAMPLE_IMAGE_1,
-                f"{self.pixel_folder_path}/{self.EXAMPLE_IMAGE_1}___pixel.json",
-                f"{self.pixel_folder_path}/{self.EXAMPLE_IMAGE_1}___save.png",
+                project=self.PIXEL_PROJECT_NAME,
+                image_name=self.EXAMPLE_IMAGE_1,
+                annotation_json=f"{self.pixel_folder_path}/{self.EXAMPLE_IMAGE_1}___pixel.json",
+                mask=f"{self.pixel_folder_path}/{self.EXAMPLE_IMAGE_1}___save.png",
             )
 
             export = sa.prepare_export(self.PIXEL_PROJECT_NAME, include_fuse=True)["name"]
@@ -160,7 +165,7 @@ class TestFolders(TestCase):
             sa.create_fuse_image(
                 f"{self.pixel_folder_path}/{self.EXAMPLE_IMAGE_1}",
                 f"{self.pixel_folder_path}/classes/classes.json",
-                "Vector",
+                "Pixel",
             )
             paths = sa.download_image(
                 self.PIXEL_PROJECT_NAME,
