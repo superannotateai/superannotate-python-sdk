@@ -13,7 +13,6 @@ _________________________________
 
 .. autofunction:: superannotate.init
 
-----------
 
 .. _ref_projects:
 
@@ -292,7 +291,7 @@ Annotation JSON helper functions
 .. _ref_converter:
 
 Converting annotation format to and from src.superannotate format
-_____________________________________________________________
+_________________________________________________________________
 
 
 .. _ref_import_annotation_format:
