@@ -2501,7 +2501,11 @@ class CreateFuseImageUseCase(BaseUseCase):
     @staticmethod
     def generate_color(value: str = None):
         if not value:
-            return (random.randint(1, 255), random.randint(1, 255), random.randint(1, 255))
+            return (
+                random.randint(1, 255),
+                random.randint(1, 255),
+                random.randint(1, 255),
+            )
         return tuple(int(value.lstrip("#")[i : i + 2], 16) for i in (0, 2, 4))
 
     @property
@@ -2542,11 +2546,7 @@ class CreateFuseImageUseCase(BaseUseCase):
                 image = ImagePlugin(io.BytesIO(file.read()))
 
                 images = [
-                    Image(
-                        "fuse",
-                        f"{self._image_path}___fuse.png",
-                        image.get_empty(),
-                    )
+                    Image("fuse", f"{self._image_path}___fuse.png", image.get_empty(),)
                 ]
                 if self._generate_overlay:
                     images.append(
@@ -2557,7 +2557,7 @@ class CreateFuseImageUseCase(BaseUseCase):
                 for instance in self.annotations["instances"]:
                     color = class_color_map.get(instance["className"])
                     if not color:
-                        class_color_map[instance["className"]] = self.generate_color(instance["className"])
+                        class_color_map[instance["className"]] = self.generate_color()
                     fill_color = (
                         *class_color_map[instance["className"]],
                         self.TRANSPARENCY,

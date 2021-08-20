@@ -3,8 +3,6 @@ from os.path import dirname
 from unittest import TestCase
 import src.superannotate as sa
 
-import src.superannotate as sa
-
 
 class TestAnnotationClasses(TestCase):
     PROJECT_NAME = "test_annotation_class_new"
