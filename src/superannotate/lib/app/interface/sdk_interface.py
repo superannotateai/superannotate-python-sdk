@@ -3115,3 +3115,114 @@ def search_models(
         include_global=include_global,
     )
     return res.data
+
+
+def upload_images_to_project(
+    project,
+    img_paths,
+    annotation_status="NotStarted",
+    from_s3_bucket=None,
+    image_quality_in_editor=None,
+):
+    """Uploads all images given in list of path objects in img_paths to the project.
+    Sets status of all the uploaded images to set_status if it is not None.
+
+    If an image with existing name already exists in the project it won't be uploaded,
+    and its path will be appended to the third member of return value of this
+    function.
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param img_paths: list of Pathlike (str or Path) objects to upload
+    :type img_paths: list
+    :param annotation_status: value to set the annotation statuses of the uploaded images NotStarted InProgress QualityCheck Returned Completed Skipped
+    :type annotation_status: str
+    :param from_s3_bucket: AWS S3 bucket to use. If None then folder_path is in local filesystem
+    :type from_s3_bucket: str
+    :param image_quality_in_editor: image quality be seen in SuperAnnotate web annotation editor.
+           Can be either "compressed" or "original".  If None then the default value in project settings will be used.
+    :type image_quality_in_editor: str
+
+    :return: uploaded, could-not-upload, existing-images filepaths
+    :rtype: tuple (3 members) of list of strs
+    """
+    uploaded_image_entities = []
+    failed_images = []
+    project_name, folder_name = extract_project_folder(project)
+    ProcessedImage = namedtuple("ProcessedImage", ["uploaded", "path", "entity"])
+
+    def _upload_local_image(image_path: str):
+        try:
+            with open(image_path, "rb") as image:
+                image_bytes = BytesIO(image.read())
+                upload_response = controller.upload_image_to_s3(
+                    project_name=project_name,
+                    image_path=image_path,
+                    image_bytes=image_bytes,
+                    folder_name=folder_name,
+                    image_quality_in_editor=image_quality_in_editor,
+                )
+
+                if not upload_response.errors and upload_response.data:
+                    entity = upload_response.data
+                    return ProcessedImage(
+                        uploaded=True, path=entity.path, entity=entity
+                    )
+                else:
+                    return ProcessedImage(uploaded=False, path=image_path, entity=None)
+        except FileNotFoundError:
+            return ProcessedImage(uploaded=False, path=image_path, entity=None)
+
+    def _upload_s3_image(image_path: str):
+        try:
+            image_bytes = controller.get_image_from_s3(
+                s3_bucket=from_s3_bucket, image_path=image_path
+            ).data
+        except AppValidationException as e:
+            logger.warning(e)
+            return image_path
+        upload_response = controller.upload_image_to_s3(
+            project_name=project_name,
+            image_path=image_path,
+            image_bytes=image_bytes,
+            folder_name=folder_name,
+            image_quality_in_editor=image_quality_in_editor,
+        )
+        if not upload_response.errors and upload_response.data:
+            entity = upload_response.data
+            return ProcessedImage(uploaded=True, path=entity.path, entity=entity)
+        else:
+            return ProcessedImage(uploaded=False, path=image_path, entity=None)
+
+    filtered_paths = img_paths
+    duplication_counter = Counter(filtered_paths)
+    images_to_upload, duplicated_images = (
+        set(filtered_paths),
+        [item for item in duplication_counter if duplication_counter[item] > 1],
+    )
+    upload_method = _upload_s3_image if from_s3_bucket else _upload_local_image
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        results = [
+            executor.submit(upload_method, image_path)
+            for image_path in images_to_upload
+        ]
+        for future in concurrent.futures.as_completed(results):
+            processed_image = future.result()
+            if processed_image.uploaded and processed_image.entity:
+                uploaded_image_entities.append(processed_image.entity)
+            else:
+                failed_images.append(processed_image.path)
+    uploaded = []
+    duplicates = []
+    for i in range(0, len(uploaded_image_entities), 500):
+        response = controller.upload_images(
+            project_name=project_name,
+            folder_name=folder_name,
+            images=uploaded_image_entities[i : i + 500],  # noqa: E203
+            annotation_status=annotation_status,
+        )
+        attachments, duplications = response.data
+        uploaded.extend(attachments)
+        duplicates.extend(duplications)
+
+    return uploaded, failed_images, duplicates

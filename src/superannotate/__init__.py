@@ -1,3 +1,15 @@
+from lib.app.interface.sdk_interface import benchmark
+from lib.app.interface.sdk_interface import consensus
+from lib.app.interface.sdk_interface import delete_image
+from lib.app.interface.sdk_interface import delete_model
+from lib.app.interface.sdk_interface import get_annotation_class_metadata
+from lib.app.interface.sdk_interface import get_image_bytes
+from lib.app.interface.sdk_interface import get_image_preannotations
+from lib.app.interface.sdk_interface import get_project_default_image_quality_in_editor
+from lib.app.interface.sdk_interface import plot_model_metrics
+from lib.app.interface.sdk_interface import set_image_annotation_status
+from lib.app.interface.sdk_interface import stop_model_training
+from lib.app.interface.sdk_interface import upload_video_to_project
 from superannotate.lib.app.analytics.class_analytics import aggregate_annotations_as_df
 from superannotate.lib.app.analytics.class_analytics import attribute_distribution
 from superannotate.lib.app.analytics.class_analytics import class_distribution
@@ -126,12 +138,14 @@ from superannotate.lib.app.interface.sdk_interface import (
 from superannotate.lib.app.interface.sdk_interface import (
     upload_images_from_s3_bucket_to_project,
 )
+from superannotate.lib.app.interface.sdk_interface import upload_images_to_project
 from superannotate.lib.app.interface.sdk_interface import (
     upload_preannotations_from_folder_to_project,
 )
 from superannotate.lib.app.interface.sdk_interface import (
     upload_videos_from_folder_to_project,
 )
+
 
 __all__ = [
     # analytics
@@ -243,6 +257,19 @@ __all__ = [
     "download_model",
     "rename_project",
     "run_training",
+    "get_project_default_image_quality_in_editor",
+    "get_image_bytes",
+    "set_image_annotation_status",
+    "get_image_preannotations",
+    "delete_image",
+    "get_annotation_class_metadata",
+    "delete_model",
+    "benchmark",
+    "consensus",
+    "plot_model_metrics",
+    "upload_video_to_project",
+    "stop_model_training",
+    "upload_images_to_project",
 ]
 
 __author__ = "Superannotate"
