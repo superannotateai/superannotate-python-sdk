@@ -144,3 +144,4 @@ tags
 temp
 debug_*
 *.idea
+*.DS_Store

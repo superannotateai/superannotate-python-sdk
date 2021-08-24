@@ -112,8 +112,8 @@ class TestAnnotationClasses(BaseTestCase):
             self.PROJECT_NAME, [self.EXAMPLE_IMAGE_1, self.EXAMPLE_IMAGE_2],
         )
 
-        im1_metadata = sa.get_image_metadata(self.PROJECT_NAME, "example_image_1.jpg")
-        im2_metadata = sa.get_image_metadata(self.PROJECT_NAME, "example_image_2.jpg")
+        im1_metadata = sa.get_image_metadata(self.PROJECT_NAME, self.EXAMPLE_IMAGE_1)
+        im2_metadata = sa.get_image_metadata(self.PROJECT_NAME, self.EXAMPLE_IMAGE_2)
 
         self.assertIsNone(im1_metadata["qa_id"])
         self.assertIsNone(im2_metadata["qa_id"])
@@ -126,7 +126,7 @@ class TestAnnotationClasses(BaseTestCase):
         )
         sa.assign_images(project, [self.EXAMPLE_IMAGE_1, self.EXAMPLE_IMAGE_2], email)
         sa.unassign_images(
-            project, ["example_image_1.jpg", "example_image_2.jpg"],
+            project, [self.EXAMPLE_IMAGE_1, self.EXAMPLE_IMAGE_2],
         )
 
         sa.search_images(project)

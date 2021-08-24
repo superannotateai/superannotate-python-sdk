@@ -17,6 +17,8 @@ class TestProject(BaseTestCase):
     TEST_IMAGE_NAME = "example_image_1.jpg"
     TEST_FOLDER_PATH = "data_set/sample_project_pixel"
     TEST_ANNOTATION_PATH = "data_set/sample_annotation_no_class"
+    PNG_POSTFIX = "*___save.png"
+    FUSE_PNG_POSTFIX = "*___fuse.png"
 
     @property
     def folder_path(self):
@@ -43,9 +45,8 @@ class TestProject(BaseTestCase):
         count_in_folder = len(list(self.folder_path.glob("*.jpg"))) + len(
             list(self.folder_path.glob("*.png"))
         )
-        count_in_folder -= len(list(self.folder_path.glob("*___fuse.png")))
-        if self.PROJECT_TYPE == "Pixel":
-            count_in_folder -= len(list(self.folder_path.glob("*___save.png")))
+        count_in_folder -= len(list(self.folder_path.glob(self.FUSE_PNG_POSTFIX)))
+        count_in_folder -= len(list(self.folder_path.glob(self.PNG_POSTFIX)))
         images = sa.search_images(self.PROJECT_NAME)
         assert count_in_folder == len(images)
 
@@ -57,16 +58,12 @@ class TestProject(BaseTestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             json.dump(classes_in_project, open(Path(temp_dir) / "tmp_c.json", "w"))
             self.assertEqual(len(classes_in_file), len(classes_in_project))
-            for cl_f in classes_in_file:
-                found = False
-                for cl_c in classes_in_project:
-                    if cl_f["name"] == cl_c["name"]:
-                        found = True
-                        break
-                assert found
+            classes_in_file_names = [annotation_class["name"] for annotation_class in classes_in_file]
+            classes_in_project_names = [annotation_class["name"] for annotation_class in classes_in_project]
+            self.assertTrue(set(classes_in_file_names) & set(classes_in_project_names))
 
             sa.upload_annotations_from_folder_to_project(
-                self.PROJECT_NAME, self.folder_path
+                self.PROJECT_NAME, str(self.folder_path)
             )
 
             export = sa.prepare_export(self.PROJECT_NAME)
@@ -88,9 +85,9 @@ class TestProject(BaseTestCase):
                         break
                 assert found, json_in_folder
             if self.PROJECT_TYPE == "Pixel":
-                for mask_in_folder in self.folder_path.glob("*___save.png"):
+                for mask_in_folder in self.folder_path.glob(self.PNG_POSTFIX):
                     found = False
-                    for mask_in_project in Path(temp_dir).glob("*___save.png"):
+                    for mask_in_project in Path(temp_dir).glob(self.PNG_POSTFIX):
                         if mask_in_folder.name == mask_in_project.name:
                             found = True
                             break
@@ -105,7 +102,7 @@ class TestProject(BaseTestCase):
             self.PROJECT_NAME, self.classes_json_path
         )
         sa.upload_annotations_from_folder_to_project(
-            self.PROJECT_NAME, self.folder_path
+            self.PROJECT_NAME, str(self.folder_path)
         )
         annotations = sa.get_image_annotations(
             self.PROJECT_NAME, self.TEST_IMAGE_NAME

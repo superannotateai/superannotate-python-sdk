@@ -15,8 +15,10 @@ class TestFolders(BaseTestCase):
     PROJECT_TYPE = "Vector"
     TEST_FOLDER_NAME_1 = "folder_1"
     TEST_FOLDER_NAME_2 = "folder_2"
-    EXAMPLE_IMAGE_1 = "example_image_1"
-    EXAMPLE_IMAGE_2 = "example_image_2"
+    EXAMPLE_IMAGE_1_NAME = "example_image_1"
+    EXAMPLE_IMAGE_2_NAME = "example_image_2"
+    EXAMPLE_IMAGE_1 = "example_image_1.jpg"
+    EXAMPLE_IMAGE_2 = "example_image_2.jpg"
     EXAMPLE_IMAGE_3 = "example_image_3.jpg"
     EXAMPLE_IMAGE_4 = "example_image_4.jpg"
 
@@ -141,7 +143,7 @@ class TestFolders(BaseTestCase):
         )
         annotations = sa.get_image_annotations(
             f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_1}",
-            f"{self.EXAMPLE_IMAGE_1}.jpg",
+            self.EXAMPLE_IMAGE_1,
         )
         self.assertGreater(len(annotations["annotation_json"]["instances"]), 0)
 
@@ -217,7 +219,7 @@ class TestFolders(BaseTestCase):
 
         sa.delete_images(
             f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_1}",
-            ["example_image_2.jpg", "example_image_3.jpg"],
+            [self.EXAMPLE_IMAGE_2, self.EXAMPLE_IMAGE_3],
         )
         num_images = sa.get_project_image_count(
             self.PROJECT_NAME, with_all_subfolders=True
@@ -260,7 +262,7 @@ class TestFolders(BaseTestCase):
         project = f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_1}"
 
         sa.copy_images(
-            self.PROJECT_NAME, ["example_image_2.jpg", "example_image_3.jpg"], project
+            self.PROJECT_NAME, [self.EXAMPLE_IMAGE_2, self.EXAMPLE_IMAGE_3], project
         )
 
         num_images = sa.get_project_image_count(project)
@@ -278,7 +280,7 @@ class TestFolders(BaseTestCase):
         num_images = sa.get_project_image_count(project)
         self.assertEqual(num_images, 4)
 
-        im1 = sa.get_image_metadata(project, "example_image_2.jpg")
+        im1 = sa.get_image_metadata(project, self.EXAMPLE_IMAGE_2)
         self.assertEqual(im1["annotation_status"], "InProgress")
 
         sa.create_folder(self.PROJECT_NAME, "folder2")
@@ -288,17 +290,17 @@ class TestFolders(BaseTestCase):
 
         sa.copy_images(
             project,
-            ["example_image_2.jpg", "example_image_3.jpg"],
+            [self.EXAMPLE_IMAGE_2, self.EXAMPLE_IMAGE_3],
             project2,
             include_annotations=False,
             copy_annotation_status=False,
             copy_pin=False,
         )
 
-        im1_copied = sa.get_image_metadata(project2, "example_image_2.jpg")
+        im1_copied = sa.get_image_metadata(project2, self.EXAMPLE_IMAGE_2)
         self.assertEqual(im1_copied["annotation_status"], "NotStarted")
 
-        ann2 = sa.get_image_annotations(project2, "example_image_2.jpg")
+        ann2 = sa.get_image_annotations(project2, self.EXAMPLE_IMAGE_2)
         # todo check
         # self.assertEqual(len(ann2["annotation_json"]["instances"]), 0)
 
@@ -314,7 +316,7 @@ class TestFolders(BaseTestCase):
 
         sa.copy_images(
             project,
-            ["example_image_2.jpg", "example_image_3.jpg"],
+            [self.EXAMPLE_IMAGE_2, self.EXAMPLE_IMAGE_3],
             self.PROJECT_NAME,
             include_annotations=False,
             copy_annotation_status=False,
@@ -337,7 +339,7 @@ class TestFolders(BaseTestCase):
         num_images = sa.get_project_image_count(project2)
         self.assertEqual(num_images, 0)
 
-        sa.move_images(project, ["example_image_2.jpg"], project2)
+        sa.move_images(project, [self.EXAMPLE_IMAGE_2], project2)
         num_images = sa.get_project_image_count(project2)
         self.assertEqual(num_images, 1)
 
@@ -353,10 +355,8 @@ class TestFolders(BaseTestCase):
         self.assertEqual(
             images,
             [
-                "example_image_1.jpg",
-                "example_image_2.jpg",
-                "example_image_3.jpg",
-                "example_image_4.jpg",
+                self.EXAMPLE_IMAGE_1, self.EXAMPLE_IMAGE_2, self.EXAMPLE_IMAGE_3, self.EXAMPLE_IMAGE_4
+
             ],
         )
 
@@ -399,28 +399,28 @@ class TestFolders(BaseTestCase):
         num_images = sa.get_project_image_count(project2)
         self.assertEqual(num_images, 0)
 
-        sa.pin_image(project, "example_image_2.jpg")
+        sa.pin_image(project, self.EXAMPLE_IMAGE_2)
 
-        im1 = sa.get_image_metadata(project, "example_image_2.jpg")
+        im1 = sa.get_image_metadata(project, self.EXAMPLE_IMAGE_2)
         self.assertTrue(im1["is_pinned"])
         self.assertEqual(im1["annotation_status"], "InProgress")
 
         sa.copy_images(
-            project, ["example_image_2.jpg", "example_image_3.jpg"], project2
+            project, [self.EXAMPLE_IMAGE_2, self.EXAMPLE_IMAGE_3], project2
         )
 
         num_images = sa.get_project_image_count(project2)
         self.assertEqual(num_images, 2)
 
-        ann1 = sa.get_image_annotations(project, "example_image_2.jpg")
-        ann2 = sa.get_image_annotations(project2, "example_image_2.jpg")
+        ann1 = sa.get_image_annotations(project, self.EXAMPLE_IMAGE_2)
+        ann2 = sa.get_image_annotations(project2, self.EXAMPLE_IMAGE_2)
         self.assertEqual(ann1, ann2)
 
-        im1_copied = sa.get_image_metadata(project2, "example_image_2.jpg")
+        im1_copied = sa.get_image_metadata(project2, self.EXAMPLE_IMAGE_2)
         self.assertTrue(im1_copied["is_pinned"])
         self.assertEqual(im1_copied["annotation_status"], "InProgress")
 
-        im2_copied = sa.get_image_metadata(project2, "example_image_3.jpg")
+        im2_copied = sa.get_image_metadata(project2, self.EXAMPLE_IMAGE_3)
         self.assertFalse(im2_copied["is_pinned"])
         self.assertEqual(im2_copied["annotation_status"], "InProgress")
 
@@ -448,7 +448,7 @@ class TestFolders(BaseTestCase):
         self.assertEqual(num_images, 0)
 
         sa.copy_images(
-            project, ["example_image_2.jpg", "example_image_3.jpg"], project2
+            project, [self.EXAMPLE_IMAGE_2, self.EXAMPLE_IMAGE_3], project2
         )
 
         export = sa.prepare_export(
@@ -487,13 +487,13 @@ class TestFolders(BaseTestCase):
             project, self.folder_path, annotation_status="InProgress"
         )
         sa.set_images_annotation_statuses(
-            project, ["example_image_1.jpg", "example_image_2.jpg"], "QualityCheck"
+            project, [self.EXAMPLE_IMAGE_1, self.EXAMPLE_IMAGE_2], "QualityCheck"
         )
-        for image in ["example_image_1.jpg", "example_image_2.jpg"]:
+        for image in [self.EXAMPLE_IMAGE_1, self.EXAMPLE_IMAGE_2]:
             metadata = sa.get_image_metadata(project, image)
             self.assertEqual(metadata["annotation_status"], "QualityCheck")
 
-        for image in ["example_image_3.jpg", "example_image_3.jpg"]:
+        for image in [self.EXAMPLE_IMAGE_3]:
             metadata = sa.get_image_metadata(project, image)
             self.assertEqual(metadata["annotation_status"], "InProgress")
 

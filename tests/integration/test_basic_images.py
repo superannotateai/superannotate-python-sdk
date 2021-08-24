@@ -85,14 +85,19 @@ class TestPixelImages(BaseTestCase):
 
             input_classes = json.load(open(self.classes_json_path))
             assert len(downloaded_classes) == len(input_classes)
-            for c1 in downloaded_classes:
-                found = False
-                for c2 in input_classes:
-                    if c1["name"] == c2["name"]:
-                        found = True
-                        break
-                assert found
 
+            downloaded_classes_names = [annotation_class["name"] for annotation_class in downloaded_classes]
+            input_classes_names = [annotation_class["name"] for annotation_class in input_classes]
+            self.assertTrue(set(downloaded_classes_names) & set(input_classes_names))
+            #
+            # for c1 in downloaded_classes:
+            #     found = False
+            #     for c2 in input_classes:
+            #         if c1["name"] == c2["name"]:
+            #             found = True
+            #             break
+            #     assert found
+            #
 
 class TestVectorImages(BaseTestCase):
     PROJECT_NAME = "sample_project_vector"
@@ -159,13 +164,11 @@ class TestVectorImages(BaseTestCase):
             sa.download_annotation_classes_json(self.PROJECT_NAME, temp_dir)
             downloaded_classes = json.load(open(f"{temp_dir}/classes.json"))
 
-            for a in annotation:
-                if "className" not in a:
-                    continue
-                for c1 in downloaded_classes:
+            for instance in [instance for instance in annotation if instance.get("className", False)]:
+                for downloaded_class in downloaded_classes:
                     if (
-                            a["className"] == c1["name"]
-                            or a["className"] == "Personal vehicle1"
+                            instance["className"] == downloaded_class["name"]
+                            or instance["className"] == "Personal vehicle1"
                     ):  # "Personal vehicle1" is not existing class in annotations
                         break
                 else:
