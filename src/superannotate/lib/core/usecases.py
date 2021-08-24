@@ -3621,6 +3621,9 @@ class ConsensusUseCase(BaseUseCase):
         if self._show_plots:
             consensus_plot(consensus_df, self._folder_names)
 
+        self._response.data = consensus_df
+        return self._response
+
 
 class RunSegmentationUseCase(BaseUseCase):
     def __init__(

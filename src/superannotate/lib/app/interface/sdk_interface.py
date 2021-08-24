@@ -2564,15 +2564,30 @@ def benchmark(
     project_name = project
     if isinstance(project, dict):
         project_name = project["name"]
-    response = controller.benchmark(
-        project_name=project_name,
-        ground_truth_folder_name=gt_folder,
-        folder_names=folder_names,
-        export_root=export_root,
-        image_list=image_list,
-        annot_type=annot_type,
-        show_plots=show_plots,
-    )
+
+    if export_root is None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            export_root = temp_dir
+            response = controller.benchmark(
+                project_name=project_name,
+                ground_truth_folder_name=gt_folder,
+                folder_names=folder_names,
+                export_root=export_root,
+                image_list=image_list,
+                annot_type=annot_type,
+                show_plots=show_plots,
+            )
+
+    else:
+        response = controller.benchmark(
+            project_name=project_name,
+            ground_truth_folder_name=gt_folder,
+            folder_names=folder_names,
+            export_root=export_root,
+            image_list=image_list,
+            annot_type=annot_type,
+            show_plots=show_plots,
+        )
     return response.data
 
 
@@ -2602,14 +2617,28 @@ def consensus(
     :return: Pandas DateFrame with columns (creatorEmail, QA, imageName, instanceId, className, area, attribute, folderName, score)
     :rtype: pandas DataFrame
     """
-    response = controller.consensus(
-        project_name=project,
-        folder_names=folder_names,
-        export_root=export_root,
-        image_list=image_list,
-        annot_type=annot_type,
-        show_plots=show_plots,
-    )
+
+    if export_root is None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            export_root = temp_dir
+            response = controller.consensus(
+                project_name=project,
+                folder_names=folder_names,
+                export_path=export_root,
+                image_list=image_list,
+                annot_type=annot_type,
+                show_plots=show_plots,
+            )
+
+    else:
+        response = controller.consensus(
+            project_name=project,
+            folder_names=folder_names,
+            export_path=export_root,
+            image_list=image_list,
+            annot_type=annot_type,
+            show_plots=show_plots,
+        )
     return response.data
 
 

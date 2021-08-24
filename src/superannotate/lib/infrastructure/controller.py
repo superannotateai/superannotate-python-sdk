@@ -1,6 +1,5 @@
 import copy
 import io
-import tempfile
 from functools import cached_property
 from typing import Iterable
 from typing import List
@@ -1224,20 +1223,25 @@ class Controller(BaseController):
         show_plots: bool,
     ):
         project = self._get_project(project_name)
-        if export_root is None:
-            with tempfile.TemporaryDirectory() as export_dir:
-                # TODO fix prepare_export & download_export calls
-                export = self.prepare_export(project.name)
-                self.download_export(
-                    project_name=project.name,
-                    export_name=export["name"],
-                    folder_path=export_dir,
-                )
+        export_response = self.prepare_export(
+            project.name,
+            folder_names=folder_names,
+            include_fuse=False,
+            only_pinned=False,
+        )
+        self.download_export(
+            project_name=project.name,
+            export_name=export_response.data["name"],
+            folder_path=export_root,
+            extract_zip_contents=True,
+            to_s3_bucket=False,
+        )
+
         use_case = usecases.BenchmarkUseCase(
             project=project,
             ground_truth_folder_name=ground_truth_folder_name,
             folder_names=folder_names,
-            export_dir=export_dir,
+            export_dir=export_root,
             image_list=image_list,
             annotation_type=annot_type,
             show_plots=show_plots,
@@ -1248,24 +1252,30 @@ class Controller(BaseController):
         self,
         project_name: str,
         folder_names: list,
-        export_root: str,
+        export_path: str,
         image_list: list,
         annot_type: str,
         show_plots: bool,
     ):
         project = self._get_project(project_name)
-        if export_root is None:
-            with tempfile.TemporaryDirectory() as export_dir:
-                export = self.prepare_export(project.name)
-                self.download_export(
-                    project_name=project.name,
-                    export_name=export["name"],
-                    folder_path=export_dir,
-                )
+
+        export_response = self.prepare_export(
+            project.name,
+            folder_names=folder_names,
+            include_fuse=False,
+            only_pinned=False,
+        )
+        self.download_export(
+            project_name=project.name,
+            export_name=export_response.data["name"],
+            folder_path=export_path,
+            extract_zip_contents=True,
+            to_s3_bucket=False,
+        )
         use_case = usecases.ConsensusUseCase(
             project=project,
             folder_names=folder_names,
-            export_dir=export_dir,
+            export_dir=export_path,
             image_list=image_list,
             annotation_type=annot_type,
             show_plots=show_plots,
