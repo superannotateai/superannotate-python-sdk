@@ -411,7 +411,7 @@ def get_image_bytes(project, image_name, variant="original"):
     :param project: project name or folder path (e.g., "project1/folder1")
     :type project: str
     :param image_name: image name
-    :type image: str
+    :type image_name: str
     :param variant: which resolution to get, can be 'original' or 'lores'
      (low resolution)
     :type variant: str
@@ -445,7 +445,7 @@ def copy_image(
                            metadata of the project of source project
     :type source_project: str or dict
     :param image_name: image name
-    :type image: str
+    :type image_name: str
     :param destination_project: project name or metadata of the project of destination project
     :type destination_project: str or dict
     :param include_annotations: enables annotations copy
@@ -622,8 +622,9 @@ def copy_images(
     image_names,
     destination_project,
     include_annotations=True,
-    copy_annotation_status=True,
     copy_pin=True,
+    *_,
+    **__,
 ):
     """Copy images in bulk between folders in a project
 
@@ -635,8 +636,6 @@ def copy_images(
     :type destination_project: str
     :param include_annotations: enables annotations copy
     :type include_annotations: bool
-    :param copy_annotation_status: enables annotations status copy
-    :type copy_annotation_status: bool
     :param copy_pin: enables image pin status copy
     :type copy_pin: bool
     :return: list of skipped image names
@@ -1256,7 +1255,7 @@ def get_image_annotations(project, image_name):
     :param project: project name or folder path (e.g., "project1/folder1")
     :type project: str
     :param image_name: image name
-    :type image: str
+    :type image_name: str
 
     :return: dict object with following keys:
         "annotation_json": dict object of the annotation,
@@ -1451,7 +1450,7 @@ def get_image_preannotations(project, image_name):
     :param project: project name or folder path (e.g., "project1/folder1")
     :type project: str
     :param image_name: image name
-    :type image: str
+    :type image_name: str
 
     :return: dict object with following keys:
         "preannotation_json": dict object of the annotation,
@@ -2141,6 +2140,8 @@ def download_image(
     :type include_annotations: bool
     :param include_fuse: enables fuse image download with the image
     :type include_fuse: bool
+    :param include_overlay: enables overlay image download with the image
+    :type include_overlay: bool
     :param variant: which resolution to download, can be 'original' or 'lores'
      (low resolution used in web editor)
     :type variant: str
@@ -2246,6 +2247,8 @@ def upload_annotations_from_folder_to_project(
 
     :param project: project name or folder path (e.g., "project1/folder1")
     :type project: str or dict
+    :param folder_path: from which folder to upload annotations
+    :type folder_path: str or dict
     :param from_s3_bucket: AWS S3 bucket to use. If None then folder_path is in local filesystem
     :type from_s3_bucket: str
     :param recursive_subfolders: enable recursive subfolder parsing
@@ -2746,7 +2749,8 @@ def add_annotation_bbox_to_image(
 ):
     """Add a bounding box annotation to image annotations
 
-    annotation_class_attributes has the form [ {"name" : "<attribute_value>" }, "groupName" : "<attribute_group>"} ], ... ]
+    annotation_class_attributes has the form
+    [ {"name" : "<attribute_value>" }, "groupName" : "<attribute_group>"} ], ... ]
 
     :param project: project name or folder path (e.g., "project1/folder1")
     :type project: str

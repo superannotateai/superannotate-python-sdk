@@ -36,42 +36,39 @@ class TestPixelImages(BaseTestCase):
             sa.create_annotation_classes_from_classes_json(
                 self.PROJECT_NAME, self.classes_json_path
             )
-            images = sa.search_images(self.PROJECT_NAME, "example_image_1")
-            self.assertEqual(len(images), 1)
 
-            image_name = images[0]
             downloaded = sa.download_image(
                 project=self.PROJECT_NAME,
-                image_name=image_name,
+                image_name=self.EXAMPLE_IMAGE_1,
                 local_dir_path=temp_dir,
                 include_annotations=True
             )
             self.assertNotEqual(downloaded[1], (None, None))
             self.assertGreater(len(downloaded[0]), 0)
 
-            sa.download_image_annotations(self.PROJECT_NAME, image_name, temp_dir)
-            self.assertEqual(len(list(Path(temp_dir).glob("*"))), 0)
+            sa.download_image_annotations(self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, temp_dir)
+            self.assertEqual(len(list(Path(temp_dir).glob("*"))), 3)
 
             sa.upload_image_annotations(
                 project=self.PROJECT_NAME,
-                image_name=image_name,
+                image_name=self.EXAMPLE_IMAGE_1,
                 annotation_json=sa.image_path_to_annotation_paths(
-                    f"{self.folder_path}/{image_name}", self.PROJECT_TYPE
+                    f"{self.folder_path}/{self.EXAMPLE_IMAGE_1}", self.PROJECT_TYPE
                 )[0],
                 mask=None
                 if self.PROJECT_TYPE == "Vector"
                 else sa.image_path_to_annotation_paths(
-                    f"{self.folder_path}/{image_name}", self.folder_path
+                    f"{self.folder_path}/{self.EXAMPLE_IMAGE_1}", self.folder_path
                 )[1],
             )
 
             self.assertIsNotNone(
-                sa.get_image_annotations(self.PROJECT_NAME, image_name)[
+                sa.get_image_annotations(self.PROJECT_NAME, self.EXAMPLE_IMAGE_1)[
                     "annotation_json_filename"
                 ]
             )
 
-            sa.download_image_annotations(self.PROJECT_NAME, image_name, temp_dir)
+            sa.download_image_annotations(self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, temp_dir)
             annotation = list(Path(temp_dir).glob("*.json"))
             self.assertEqual(len(annotation), 1)
             annotation = json.load(open(annotation[0]))
@@ -79,15 +76,10 @@ class TestPixelImages(BaseTestCase):
             sa.download_annotation_classes_json(self.PROJECT_NAME, temp_dir)
             downloaded_classes = json.load(open(f"{temp_dir}/classes.json"))
 
-            for a in annotation["instances"]:
-                if "className" not in a:
-                    continue
-                for c1 in downloaded_classes:
-                    if (
-                        a["className"] == c1["name"]
-                        or a["className"] == "Personal vehicle1"
-                    ):  # "Personal vehicle1" is not existing class in annotations
-                        break
+            for ann in (i for i in annotation["instances"] if i.get('className')):
+                if any([True for downloaded_class in downloaded_classes if
+                        ann["className"] in [downloaded_class["name"], "Personal vehicle1"]]):
+                    break
                 else:
                     assert False
 
@@ -172,8 +164,8 @@ class TestVectorImages(BaseTestCase):
                     continue
                 for c1 in downloaded_classes:
                     if (
-                        a["className"] == c1["name"]
-                        or a["className"] == "Personal vehicle1"
+                            a["className"] == c1["name"]
+                            or a["className"] == "Personal vehicle1"
                     ):  # "Personal vehicle1" is not existing class in annotations
                         break
                 else:
