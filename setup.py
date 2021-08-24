@@ -4,10 +4,8 @@ from setuptools import find_packages, setup
 
 
 with open('src/superannotate/version.py') as f:
-    Version = f.read()
+    version = f.read().rstrip()[15:-1]
 
-Version = Version.rstrip()
-Version = Version[15:-1]
 
 with open('requirements.txt') as f:
     requirements = f.read()
@@ -27,7 +25,7 @@ readme = "\n".join(readme.split('\n')[2:])
 
 setup(
     name='superannotate',
-    version=Version,
+    version=version,
     package_dir={"": "src"},
 
     packages=find_packages(where="src"),
