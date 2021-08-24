@@ -457,8 +457,9 @@ class UploadImageS3UseCas(BaseUseCase):
                     quality = setting.value
         else:
             quality = ImageQuality.get_value(self._image_quality_in_editor)
-        if Path(image_name).suffix.upper() in ("JPEG", "JPG"):
+        if Path(image_name).suffix[1:].upper() in ("JPEG", "JPG"):
             if quality == 100:
+                self._image.seek(0)
                 low_resolution_image = self._image
             else:
                 low_resolution_image, _, _ = image_processor.generate_low_resolution(
@@ -2870,7 +2871,10 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
             Key=auth_data["images"][str(image_data["id"])]["annotation_json_path"],
             Body=json.dumps(self._annotations),
         )
-        if self._project.project_type == constances.ProjectType.PIXEL.value:
+        if (
+            self._project.project_type == constances.ProjectType.PIXEL.value
+            and self._mask
+        ):
             with open(self._mask, "rb") as fin:
                 file = io.BytesIO(fin.read())
             bucket.put_object(
@@ -3435,17 +3439,19 @@ class DownloadMLModelUseCase(BaseUseCase):
             self._model.path,
             os.path.join(self._download_path, os.path.basename(self._model.path)),
         )
-        try:
-            bucket.download_file(
-                metrics_path, os.path.join(self._download_path, metrics_name)
-            )
-            bucket.download_file(
-                mapper_path, os.path.join(self._download_path, "classes_mapper.json")
-            )
-        except Boto3Error:
-            self._response.errors = AppException(
-                "The specified model does not contain a classes_mapper and/or a metrics file."
-            )
+        if self._model.is_global:
+            try:
+                bucket.download_file(
+                    metrics_path, os.path.join(self._download_path, metrics_name)
+                )
+                bucket.download_file(
+                    mapper_path,
+                    os.path.join(self._download_path, "classes_mapper.json"),
+                )
+            except Boto3Error:
+                self._response.errors = AppException(
+                    "The specified model does not contain a classes_mapper and/or a metrics file."
+                )
         self._response.data = self._model
         return self._response
 
@@ -3754,9 +3760,9 @@ class RunPredictionUseCase(BaseUseCase):
             image_ids=image_ids,
         )
 
-        succeded_imgs = []
-        failed_imgs = []
-        while len(succeded_imgs) + len(failed_imgs) != len(image_ids):
+        success_images = []
+        failed_images = []
+        while len(success_images) + len(failed_images) != len(image_ids):
             images_metadata = self._service.get_bulk_images(
                 project_id=self._project.uuid,
                 team_id=self._project.team_id,
@@ -3764,20 +3770,20 @@ class RunPredictionUseCase(BaseUseCase):
                 images=image_names,
             )
 
-            succeded_imgs = [
+            success_images = [
                 img["name"] for img in images_metadata if img["prediction_status"] == 2
             ]
-            failed_imgs = [
+            failed_images = [
                 img["name"] for img in images_metadata if img["prediction_status"] == 4
             ]
 
-            complete_images = succeded_imgs + failed_imgs
+            complete_images = success_images + failed_images
             logger.info(
                 f"prediction complete on {len(complete_images)} / {len(image_ids)} images"
             )
             time.sleep(5)
 
-        self._response.data = (succeded_imgs, failed_imgs)
+        self._response.data = (success_images, failed_images)
         return self._response
 
 

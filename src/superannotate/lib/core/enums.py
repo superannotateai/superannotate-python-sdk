@@ -45,8 +45,8 @@ class UploadState(Enum):
 
 
 class ImageQuality(BaseTitledEnum):
-    ORIGINAl = "original", 60
-    COMPRESSED = "compressed", 100
+    ORIGINAl = "original", 100
+    COMPRESSED = "compressed", 60
 
 
 class ExportStatus(BaseTitledEnum):
