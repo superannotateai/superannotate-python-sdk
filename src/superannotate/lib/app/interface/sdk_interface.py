@@ -350,8 +350,6 @@ def get_project_and_folder_metadata(project):
 
     :param project: project name or folder path (e.g., "project1/folder1")
     :type project: str
-    :param folder_name: folder's name
-    :type folder_name: str
 
     :return: metadata of folder
     :rtype: dict
@@ -907,7 +905,7 @@ def delete_image(project, image_name):
     controller.delete_image(image_name=image_name, project_name=project_name)
 
 
-def get_image_metadata(project, image_name, return_dict_on_single_output=True):
+def get_image_metadata(project, image_name, *_, **__):
     """Returns image metadata
 
     :param project: project name or folder path (e.g., "project1/folder1")

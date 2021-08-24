@@ -13,6 +13,7 @@ class TestPixelImages(BaseTestCase):
     PROJECT_TYPE = "Pixel"
     PROJECT_DESCRIPTION = "Example Project test pixel basic images"
     TEST_FOLDER_PTH = "data_set/sample_project_pixel"
+    EXAMPLE_IMAGE_1 = "example_image_1.jpg"
 
     @property
     def folder_path(self):
@@ -27,6 +28,11 @@ class TestPixelImages(BaseTestCase):
             sa.upload_images_from_folder_to_project(
                 self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
             )
+            sa.upload_image_annotations(
+                project=self.PROJECT_NAME,
+                image_name=self.EXAMPLE_IMAGE_1,
+                annotation_json=f"{self.folder_path}/{self.EXAMPLE_IMAGE_1}___pixel.json",
+            )
             sa.create_annotation_classes_from_classes_json(
                 self.PROJECT_NAME, self.classes_json_path
             )
@@ -35,9 +41,12 @@ class TestPixelImages(BaseTestCase):
 
             image_name = images[0]
             downloaded = sa.download_image(
-                self.PROJECT_NAME, image_name, temp_dir, True
+                project=self.PROJECT_NAME,
+                image_name=image_name,
+                local_dir_path=temp_dir,
+                include_annotations=True
             )
-            self.assertEqual(downloaded[1], (None, None))
+            self.assertNotEqual(downloaded[1], (None, None))
             self.assertGreater(len(downloaded[0]), 0)
 
             sa.download_image_annotations(self.PROJECT_NAME, image_name, temp_dir)

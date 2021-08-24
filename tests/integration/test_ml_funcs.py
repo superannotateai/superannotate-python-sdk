@@ -64,7 +64,7 @@ class TestSegmentation(BaseTestCase):
         succeeded_images, failed_images = sa.run_segmentation(
             self.PROJECT_NAME, image_names_pixel, self.SEGMENTATION_MODEL_AUTONOMOUS
         )
-        assert (len(succeeded_images) + len(failed_images)) == 4
+        self.assertEqual((len(succeeded_images) + len(failed_images)), 4)
 
 
 # def test_download_model(tmpdir):

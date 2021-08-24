@@ -251,7 +251,6 @@ class Controller(BaseController):
             upload_path=auth_data["filePath"],
             image_quality_in_editor=image_quality_in_editor,
         )
-        use_case.execute()
         return use_case.execute()
 
     def clone_project(
@@ -1201,6 +1200,7 @@ class Controller(BaseController):
     def download_ml_model(self, model_data: dict, download_path: str):
         model = MLModelEntity(
             uuid=model_data["id"],
+            name=model_data["name"],
             path=model_data["path"],
             config_path=model_data["config_path"],
             team_id=model_data["team_id"],
