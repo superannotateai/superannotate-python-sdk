@@ -3446,6 +3446,7 @@ class DownloadMLModelUseCase(BaseUseCase):
             self._response.errors = AppException(
                 "The specified model does not contain a classes_mapper and/or a metrics file."
             )
+        self._response.data = self._model
         return self._response
 
 

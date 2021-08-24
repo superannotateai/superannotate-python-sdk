@@ -2,7 +2,6 @@ import copy
 import io
 import tempfile
 from functools import cached_property
-from functools import lru_cache
 from typing import Iterable
 from typing import List
 
@@ -18,6 +17,7 @@ from lib.core.entities import MLModelEntity
 from lib.core.entities import ProjectEntity
 from lib.core.exceptions import AppException
 from lib.core.response import Response
+from lib.infrastructure.helpers import timed_lru_cache
 from lib.infrastructure.repositories import AnnotationClassRepository
 from lib.infrastructure.repositories import ConfigRepository
 from lib.infrastructure.repositories import FolderRepository
@@ -88,16 +88,13 @@ class BaseController:
     def team_id(self) -> int:
         return int(self.configs.get_one("token").value.split("=")[-1])
 
-    # TODO set timed cache 1 hour with expiration time
-    @lru_cache
+    @timed_lru_cache(seconds=3600)
     def get_auth_data(self, project_id: int, team_id: int, folder_id: int):
         return self._backend_client.get_s3_upload_auth_token(
             team_id, folder_id, project_id
         )
 
-    def get_s3_repository(
-        self, team_id: int, project_id: int, folder_id: int, bucket: str = None
-    ):
+    def get_s3_repository(self, team_id: int, project_id: int, folder_id: int):
         auth_data = self.get_auth_data(project_id, team_id, folder_id)
         return S3Repository(
             auth_data["accessKeyId"],
@@ -1324,7 +1321,8 @@ class Controller(BaseController):
         )
         return use_case.execute()
 
-    def upload_file_to_s3(self, to_s3_bucket, path, s3_key: str):
+    @staticmethod
+    def upload_file_to_s3(to_s3_bucket, path, s3_key: str):
         use_case = usecases.UploadFileToS3UseCase(
             to_s3_bucket=to_s3_bucket, path=path, s3_key=s3_key
         )

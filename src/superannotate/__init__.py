@@ -295,4 +295,3 @@ __all__ = [
 ]
 
 __author__ = "Superannotate"
-__version__ = "5.0.0"

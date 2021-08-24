@@ -13,6 +13,7 @@ from typing import Optional
 
 import lib.core as constances
 import pandas as pd
+from lib import __file__ as lib_path
 from lib.app.helpers import get_annotation_paths
 from lib.app.helpers import split_project_path
 from lib.app.input_converters.conversion import import_annotation
@@ -27,11 +28,26 @@ logger = logging.getLogger()
 
 class CLIFacade(BaseInterfaceFacade):
     """
-    Hello World!
+    With SuperAnnotate CLI, basic tasks can be accomplished using shell commands:
+    superannotatecli <command> <--arg1 val1> <--arg2 val2> [--optional_arg3 val3] [--optional_arg4] ...
     """
 
     @staticmethod
+    def version():
+        """
+        To show the version of the current SDK installation
+        """
+        with open(
+            f"{os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(lib_path))))}/version.py"
+        ) as f:
+            version = f.read().rstrip()[15:-1]
+            print(version)
+
+    @staticmethod
     def init():
+        """
+        To initialize CLI (and SDK) with team token
+        """
         repo = ConfigRepository()
         config = repo.get_one(uuid=constances.TOKEN_UUID)
         if config:
@@ -51,7 +67,7 @@ class CLIFacade(BaseInterfaceFacade):
 
     def create_project(self, name: str, description: str, type: str) -> dict:
         """
-        Create Project
+        To create a new project
         """
         response = self.controller.create_project(name, description, type)
         if response.errors:
@@ -59,6 +75,9 @@ class CLIFacade(BaseInterfaceFacade):
         return response.data
 
     def create_folder(self, project: str, name: str) -> dict:
+        """
+        To create a new folder
+        """
         response = self.controller.create_folder(project=project, folder_name=name)
         if response.errors:
             return response.errors
@@ -74,6 +93,12 @@ class CLIFacade(BaseInterfaceFacade):
         recursive_subfolders=False,
         image_quality_in_editor=None,
     ):
+        """
+        To upload images from folder to project use:
+
+        If optional argument recursive is given then subfolders of <folder_path> are also recursively scanned for available images.
+        Optional argument extensions accepts comma separated list of image extensions to look for. If the argument is not given then value jpg,jpeg,png,tif,tiff,webp,bmp is assumed.
+        """
         uploaded_image_entities = []
         failed_images = []
         project_name, folder_name = split_project_path(project)
@@ -169,6 +194,14 @@ class CLIFacade(BaseInterfaceFacade):
     def upload_preannotations(
         self, project, folder, data_set_name=None, task=None, format=None
     ):
+        """
+        To upload preannotations from folder to project use
+        Optional argument format accepts input annotation format. It can have COCO or SuperAnnotate values. If the argument is not given then SuperAnnotate (the native annotation format) is assumed.
+        Only when COCO format is specified dataset-name and task arguments are required.
+        dataset-name specifies JSON filename (without extension) in <folder_path>.
+        task specifies the COCO task for conversion. Please see import_annotation_format for more details.
+        The annotation classes will be created during the execution of this command.
+        """
         self._upload_annotations(
             project=project,
             folder=folder,
@@ -181,6 +214,15 @@ class CLIFacade(BaseInterfaceFacade):
     def upload_annotations(
         self, project, folder, data_set_name=None, task=None, format=None
     ):
+        """
+        To upload annotations from folder to project use
+        Optional argument format accepts input annotation format. It can have COCO or SuperAnnotate values.
+        If the argument is not given then SuperAnnotate (the native annotation format) is assumed.
+        Only when COCO format is specified dataset-name and task arguments are required.
+        dataset-name specifies JSON filename (without extension) in <folder_path>.
+        task specifies the COCO task for conversion. Please see import_annotation_format for more details.
+        The annotation classes will be created during the execution of this command.
+        """
         self._upload_annotations(
             project=project,
             folder=folder,
@@ -240,6 +282,9 @@ class CLIFacade(BaseInterfaceFacade):
     def attach_image_urls(
         self, project: str, attachments: str, annotation_status: Optional[Any] = None
     ):
+        """
+        To attach image URLs to project use:
+        """
         self._attach_urls(project, attachments, annotation_status)
 
     def attach_video_urls(
@@ -295,6 +340,14 @@ class CLIFacade(BaseInterfaceFacade):
         start_time=0.0,
         end_time=None,
     ):
+        """
+        To upload videos from folder to project use
+        If optional argument recursive is given then subfolders of <folder_path> are also recursively scanned for available videos.
+        Optional argument extensions accepts comma separated list of image extensions to look for. If the argument is not given then value mp4,avi,mov,webm,flv,mpg,ogg is assumed.
+        target-fps specifies how many frames per second need to extract from the videos (approximate). If not specified all frames will be uploaded.
+        start-time specifies time (in seconds) from which to start extracting frames, default is 0.0.
+        end-time specifies time (in seconds) up to which to extract frames. If it is not specified, then up to end is assumed.
+        """
         project_name, folder_name = split_project_path(project)
 
         uploaded_image_entities = []

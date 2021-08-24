@@ -103,6 +103,8 @@ def search_team_contributors(
     :type first_name: str
     :param last_name: filter by last name
     :type last_name: str
+    :param return_metadata: return metadata of contributors instead of names
+    :type return_metadata: bool
 
     :return: metadata of found users
     :rtype: list of dicts
@@ -126,6 +128,8 @@ def search_projects(
     :type name: str
     :param return_metadata: return metadata of projects instead of names
     :type return_metadata: bool
+    :param include_complete_image_count: include complete image count in response
+    :type include_complete_image_count: bool
 
     :return: project names or metadatas
     :rtype: list of strs or dicts
@@ -507,7 +511,6 @@ def upload_images_from_public_urls_to_project(
     img_urls,
     img_names=None,
     annotation_status="NotStarted",
-    # TODO check image_quality_in_editor
     image_quality_in_editor=None,
 ):
     """Uploads all images given in the list of URL strings in img_urls to the project.
@@ -570,6 +573,7 @@ def upload_images_from_public_urls_to_project(
             image_path=image_path,
             image_bytes=download_response.data,
             folder_name=folder_name,
+            image_quality_in_editor=image_quality_in_editor,
         )
         if upload_response.errors:
             logger.warning(upload_response.errors)
@@ -602,7 +606,6 @@ def upload_images_from_public_urls_to_project(
                 image.entity for image in images_to_upload[i : i + 500]  # noqa: E203
             ],
             annotation_status=annotation_status,
-            # image_quality=image_quality_in_editor,
         )
     uploaded_image_urls = [image.path for image in images_to_upload]
     uploaded_image_names = [image.entity.name for image in images_to_upload]
@@ -629,7 +632,7 @@ def copy_images(
     :param source_project: project name or folder path (e.g., "project1/folder1")
     :type source_project: str`
     :param image_names: image names. If None, all images from source project will be copied
-    :type image: list of str
+    :type image_names: list of str
     :param destination_project: project name or folder path (e.g., "project1/folder2")
     :type destination_project: str
     :param include_annotations: enables annotations copy
@@ -676,28 +679,15 @@ def copy_images(
     return skipped_images
 
 
-def move_images(
-    source_project,
-    image_names,
-    destination_project,
-    include_annotations=True,
-    copy_annotation_status=True,
-    copy_pin=True,
-):
+def move_images(source_project, image_names, destination_project, *_, **__):
     """Move images in bulk between folders in a project
 
     :param source_project: project name or folder path (e.g., "project1/folder1")
     :type source_project: str
     :param image_names: image names. If None, all images from source project will be moved
-    :type image: list of str
+    :type image_names: list of str
     :param destination_project: project name or folder path (e.g., "project1/folder2")
     :type destination_project: str
-    :param include_annotations: enables annotations copy
-    :type include_annotations: bool
-    :param copy_annotation_status: enables annotations status copy
-    :type copy_annotation_status: bool
-    :param copy_pin: enables image pin status copy
-    :type copy_pin: bool
     :return: list of skipped image names
     :rtype: list of strs
     """
@@ -892,7 +882,7 @@ def pin_image(project, image_name, pin=True):
     :param project: project name or folder path (e.g., "project1/folder1")
     :type project: str
     :param image_name: image name
-    :type image: str
+    :type image_name: str
     :param pin: sets to pin if True, else unpins image
     :type pin: bool
     """
@@ -911,7 +901,7 @@ def delete_image(project, image_name):
     :param project: project name or folder path (e.g., "project1/folder1")
     :type project: str
     :param image_name: image name
-    :type image: str
+    :type image_name: str
     """
     project_name, _ = extract_project_folder(project)
     controller.delete_image(image_name=image_name, project_name=project_name)
@@ -923,7 +913,7 @@ def get_image_metadata(project, image_name, return_dict_on_single_output=True):
     :param project: project name or folder path (e.g., "project1/folder1")
     :type project: str
     :param image_name: image name
-    :type image: str
+    :type image_name: str
 
     :return: metadata of image
     :rtype: dict
@@ -1029,7 +1019,7 @@ def assign_folder(project_name, folder_name, users):
     :param folder_name: folder name to assign
     :type folder_name: str
     :param users: list of user emails
-    :type user: list of str
+    :type users: list of str
     """
     controller.assign_folder(
         project_name=project_name, folder_name=folder_name, users=users
@@ -1112,6 +1102,7 @@ def upload_images_from_google_cloud_to_project(
                 image_path=image_path,
                 image_bytes=image_bytes,
                 folder_name=folder_name,
+                image_quality_in_editor=image_quality_in_editor,
             )
             if upload_response.errors:
                 return ProcessedImage(
@@ -1154,7 +1145,6 @@ def upload_images_from_google_cloud_to_project(
                     for image in images_to_upload[i : i + 500]  # noqa: E203
                 ],
                 annotation_status=annotation_status,
-                image_quality=image_quality_in_editor,
             )
         uploaded_image_urls = [image.path for image in images_to_upload]
         uploaded_image_names = [image.entity.name for image in images_to_upload]
@@ -1207,6 +1197,7 @@ def upload_images_from_azure_blob_to_project(
                 image_path=image_path,
                 image_bytes=image_bytes,
                 folder_name=folder_name,
+                image_quality_in_editor=image_quality_in_editor,
             )
             if upload_response.errors:
                 return ProcessedImage(
@@ -1248,7 +1239,6 @@ def upload_images_from_azure_blob_to_project(
                     for image in images_to_upload[i : i + 500]  # noqa: E203
                 ],
                 annotation_status=annotation_status,
-                image_quality=image_quality_in_editor,
             )
         uploaded_image_urls = [image.path for image in images_to_upload]
         uploaded_image_names = [image.entity.name for image in images_to_upload]
@@ -1304,7 +1294,7 @@ def upload_images_from_folder_to_project(
     :param project: project name or folder path (e.g., "project1/folder1")
     :type project: str or dict
     :param folder_path: from which folder to upload the images
-    :type folder_path: Pathlike (str or Path)
+    :type folder_path: Path-like (str or Path)
     :param extensions: tuple or list of filename extensions to include from folder
     :type extensions: tuple or list of strs
     :param annotation_status: value to set the annotation statuses of the uploaded images NotStarted InProgress QualityCheck Returned Completed Skipped
@@ -1486,9 +1476,9 @@ def download_image_annotations(project, image_name, local_dir_path):
     :param project: project name or folder path (e.g., "project1/folder1")
     :type project: str
     :param image_name: image name
-    :type image: str
+    :type image_name: str
     :param local_dir_path: local directory path to download to
-    :type local_dir_path: Pathlike (str or Path)
+    :type local_dir_path: Path-like (str or Path)
 
     :return: paths of downloaded annotations
     :rtype: tuple
@@ -1510,9 +1500,9 @@ def download_image_preannotations(project, image_name, local_dir_path):
     :param project: project name or folder path (e.g., "project1/folder1")
     :type project: str
     :param image_name: image name
-    :type image: str
+    :type image_name: str
     :param local_dir_path: local directory path to download to
-    :type local_dir_path: Pathlike (str or Path)
+    :type local_dir_path: Path-like (str or Path)
 
     :return: paths of downloaded pre-annotations
     :rtype: tuple
@@ -1647,7 +1637,7 @@ def upload_videos_from_folder_to_project(
     :param project: project name or folder path (e.g., "project1/folder1")
     :type project: str
     :param folder_path: from which folder to upload the videos
-    :type folder_path: Pathlike (str or Path)
+    :type folder_path: Path-like (str or Path)
     :param extensions: tuple or list of filename extensions to include from folder
     :type extensions: tuple or list of strs
     :param exclude_file_patterns: filename patterns to exclude from uploading
@@ -1757,7 +1747,7 @@ def upload_video_to_project(
     :param project: project name or folder path (e.g., "project1/folder1")
     :type project: str
     :param video_path: video to upload
-    :type video_path: Pathlike (str or Path)
+    :type video_path: Path-like (str or Path)
     :param target_fps: how many frames per second need to extract from the video (approximate).
                        If None, all frames will be uploaded
     :type target_fps: float
@@ -1887,7 +1877,7 @@ def download_annotation_classes_json(project, folder):
     :param project: project name
     :type project: str
     :param folder: folder to download to
-    :type folder: Pathlike (str or Path)
+    :type folder: Path-like (str or Path)
 
     :return: path of the download file
     :rtype: str
@@ -1907,14 +1897,13 @@ def create_annotation_classes_from_classes_json(
     :param project: project name
     :type project: str
     :param classes_json: JSON itself or path to the JSON file
-    :type classes_json: list or Pathlike (str or Path)
+    :type classes_json: list or Path-like (str or Path)
     :param from_s3_bucket: AWS S3 bucket to use. If None then classes_json is in local filesystem
     :type from_s3_bucket: str
 
     :return: list of created annotation class metadatas
     :rtype: list of dicts
     """
-    annotation_classes = []
     if not isinstance(classes_json, list):
         if from_s3_bucket:
             from_session = boto3.Session()
@@ -1948,7 +1937,7 @@ def move_image(
     :param source_project: project name or metadata of the project of source project
     :type source_project: str or dict
     :param image_name: image name
-    :type image: str
+    :type image_name: str
     :param destination_project: project name or metadata of the project of destination project
     :type destination_project: str or dict
     :param include_annotations: enables annotations move
@@ -2030,7 +2019,7 @@ def download_export(
      if True the zip file will be extracted at folder_path
     :type extract_zip_contents: bool
     :param to_s3_bucket: AWS S3 bucket to use for download. If None then folder_path is in local filesystem.
-    :type to_from_s3_bucket: Bucket object
+    :type to_s3_bucket: Bucket object
     """
     project_name, folder_name = extract_project_folder(project)
     export_name = export["name"] if isinstance(export, dict) else export
@@ -2097,11 +2086,11 @@ def set_project_workflow(project, new_workflow):
 
     :param project: project name or metadata
     :type project: str or dict
-    :param project: new workflow list of dicts
-    :type project: list of dicts
+    :param new_workflow: new workflow list of dicts
+    :type new_workflow: list of dicts
     """
-
-    controller.set_project_workflow(project_name=project, steps=new_workflow)
+    project_name, _ = extract_project_folder(project)
+    controller.set_project_workflow(project_name=project_name, steps=new_workflow)
 
 
 def create_fuse_image(
@@ -2110,9 +2099,9 @@ def create_fuse_image(
     """Creates fuse for locally located image and annotations
 
     :param image: path to image
-    :type image: str or Pathlike
+    :type image: str or Path-like
     :param classes_json: annotation classes or path to their JSON
-    :type classes_json: list or Pathlike
+    :type classes_json: list or Path-like
     :param project_type: project type, "Vector" or "Pixel"
     :type project_type: str
     :param in_memory: enables pillow Image return instead of saving the image
@@ -2147,9 +2136,9 @@ def download_image(
     :param project: project name or folder path (e.g., "project1/folder1")
     :type project: str
     :param image_name: image name
-    :type image: str
+    :type image_name: str
     :param local_dir_path: where to download the image
-    :type local_dir_path: Pathlike (str or Path)
+    :type local_dir_path: Path-like (str or Path)
     :param include_annotations: enables annotation download with the image
     :type include_annotations: bool
     :param include_fuse: enables fuse image download with the image
@@ -2181,7 +2170,7 @@ def attach_image_urls_to_project(project, attachments, annotation_status="NotSta
     :param project: project name or project folder path
     :type project: str or dict
     :param attachments: path to csv file on attachments metadata
-    :type attachments: Pathlike (str or Path)
+    :type attachments: Path-like (str or Path)
     :param annotation_status: value to set the annotation statuses of the linked images: NotStarted InProgress QualityCheck Returned Completed Skipped
     :type annotation_status: str
 
@@ -2313,7 +2302,7 @@ def upload_preannotations_from_folder_to_project(
     :param project: project name or folder path (e.g., "project1/folder1")
     :type project: str
     :param folder_path: from which folder to upload the pre-annotations
-    :type folder_path: Pathlike (str or Path)
+    :type folder_path: Path-like (str or Path)
     :param from_s3_bucket: AWS S3 bucket to use. If None then folder_path is in local filesystem
     :type from_s3_bucket: str
     :param recursive_subfolders: enable recursive subfolder parsing
@@ -2361,11 +2350,11 @@ def upload_image_annotations(
     :param project: project name or folder path (e.g., "project1/folder1")
     :type project: str
     :param image_name: image name
-    :type image: str
+    :type image_name: str
     :param annotation_json: annotations in SuperAnnotate format JSON dict or path to JSON file
-    :type annotation_json: dict or Pathlike (str or Path)
+    :type annotation_json: dict or Path-like (str or Path)
     :param mask: BytesIO object or filepath to mask annotation for pixel projects in SuperAnnotate format
-    :type mask: BytesIO or Pathlike (str or Path)
+    :type mask: BytesIO or Path-like (str or Path)
     """
 
     if isinstance(annotation_json, list):
@@ -2540,7 +2529,7 @@ def download_model(model, output_dir):
     if res.errors:
         logger.error("\n".join([str(error) for error in res.errors]))
     else:
-        return res.data
+        return BaseSerializers(res.data).serialize()
 
 
 def benchmark(
@@ -2561,7 +2550,7 @@ def benchmark(
     :param folder_names: list of folder names in the project for which the scores will be computed
     :type folder_names: list of str
     :param export_root: root export path of the projects
-    :type export_root: Pathlike (str or Path)
+    :type export_root: Path-like (str or Path)
     :param image_list: List of image names from the projects list that must be used. If None, then all images from the projects list will be used. Default: None
     :type image_list: list
     :param annot_type: Type of annotation instances to consider. Available candidates are: ["bbox", "polygon", "point"]
@@ -2602,7 +2591,7 @@ def consensus(
     :param folder_names: list of folder names in the project for which the scores will be computed
     :type folder_names: list of str
     :param export_root: root export path of the projects
-    :type export_root: Pathlike (str or Path)
+    :type export_root: Path-like (str or Path)
     :param image_list: List of image names from the projects list that must be used. If None, then all images from the projects list will be used. Default: None
     :type image_list: list
     :param annot_type: Type of annotation instances to consider. Available candidates are: ["bbox", "polygon", "point"]
@@ -2689,6 +2678,7 @@ def run_prediction(project, images_list, model):
     return response.data
 
 
+# todo test
 def plot_model_metrics(metric_json_list):
     """plots the metrics generated by neural network using plotly
 
@@ -2763,7 +2753,7 @@ def add_annotation_bbox_to_image(
     :param project: project name or folder path (e.g., "project1/folder1")
     :type project: str
     :param image_name: image name
-    :type image: str
+    :type image_name: str
     :param bbox: 4 element list of top-left x,y and bottom-right x, y coordinates
     :type bbox: list of floats
     :param annotation_class_name: annotation class name
@@ -2795,7 +2785,7 @@ def add_annotation_polyline_to_image(
     :param project: project name or folder path (e.g., "project1/folder1")
     :type project: str
     :param image_name: image name
-    :type image: str
+    :type image_name: str
     :param polyline: [x1,y1,x2,y2,...] list of coordinates
     :type polyline: list of floats
     :param annotation_class_name: annotation class name
@@ -2827,7 +2817,7 @@ def add_annotation_polygon_to_image(
     :param project: project name or folder path (e.g., "project1/folder1")
     :type project: str
     :param image_name: image name
-    :type image: str
+    :type image_name: str
     :param polygon: [x1,y1,x2,y2,...] list of coordinates
     :type polygon: list of floats
     :param annotation_class_name: annotation class name
@@ -2860,7 +2850,7 @@ def add_annotation_point_to_image(
     :param project: project name or folder path (e.g., "project1/folder1")
     :type project: str
     :param image_name: image name
-    :type image: str
+    :type image_name: str
     :param point: [x,y] list of coordinates
     :type point: list of floats
     :param annotation_class_name: annotation class name
@@ -2892,7 +2882,7 @@ def add_annotation_ellipse_to_image(
     :param project: project name or folder path (e.g., "project1/folder1")
     :type project: str
     :param image_name: image name
-    :type image: str
+    :type image_name: str
     :param ellipse: [center_x, center_y, r_x, r_y, angle] list of coordinates and angle
     :type ellipse: list of floats
     :param annotation_class_name: annotation class name
@@ -2925,7 +2915,7 @@ def add_annotation_template_to_image(
     :param project: project name or folder path (e.g., "project1/folder1")
     :type project: str
     :param image_name: image name
-    :type image: str
+    :type image_name: str
     :param template_points: [x1,y1,x2,y2,...] list of coordinates
     :type template_points: list of floats
     :param template_connections: [from_id_1,to_id_1,from_id_2,to_id_2,...]
@@ -2968,7 +2958,7 @@ def add_annotation_cuboid_to_image(
     :param project: project name or folder path (e.g., "project1/folder1")
     :type project: str
     :param image_name: image name
-    :type image: str
+    :type image_name: str
     :param cuboid: [x_front_tl,y_front_tl,x_front_br,y_front_br,
                     x_back_tl,y_back_tl,x_back_br,y_back_br] list of coordinates
                     of front rectangle and back rectangle, in top-left and
@@ -2996,7 +2986,7 @@ def add_annotation_comment_to_image(
     :param project: project name or folder path (e.g., "project1/folder1")
     :type project: str
     :param image_name: image name
-    :type image: str
+    :type image_name: str
     :param comment_text: comment text
     :type comment_text: str
     :param comment_coords: [x, y] coords
@@ -3058,7 +3048,7 @@ def upload_image_to_project(
     :param project: project name or folder path (e.g., "project1/folder1")
     :type project: str
     :param img: image to upload
-    :type img: io.BytesIO() or Pathlike (str or Path)
+    :type img: io.BytesIO() or Path-like (str or Path)
     :param image_name: image name to set on platform. If None and img is filepath,
                        image name will be set to filename of the path
     :type image_name: str
@@ -3139,7 +3129,7 @@ def upload_images_to_project(
 
     :param project: project name or folder path (e.g., "project1/folder1")
     :type project: str
-    :param img_paths: list of Pathlike (str or Path) objects to upload
+    :param img_paths: list of Path-like (str or Path) objects to upload
     :type img_paths: list
     :param annotation_status: value to set the annotation statuses of the uploaded images NotStarted InProgress QualityCheck Returned Completed Skipped
     :type annotation_status: str

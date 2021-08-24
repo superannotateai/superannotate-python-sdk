@@ -1,7 +1,13 @@
 import sys
 
 from setuptools import find_packages, setup
-# import src.superannotate
+
+
+with open('src/superannotate/version.py') as f:
+    Version = f.read()
+
+Version = Version.rstrip()
+Version = Version[15:-1]
 
 with open('requirements.txt') as f:
     requirements = f.read()
@@ -21,7 +27,7 @@ readme = "\n".join(readme.split('\n')[2:])
 
 setup(
     name='superannotate',
-    version=1,
+    version=Version,
     package_dir={"": "src"},
 
     packages=find_packages(where="src"),

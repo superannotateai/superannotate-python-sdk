@@ -37,12 +37,10 @@ class TestMlFuncs(BaseTestCase):
         assert (len(succeeded_images) + len(failed_images)) == len(image_names_vector)
 
     def test_download_model(self):
-        tmpdir = tempfile.TemporaryDirectory()
-        ml_model = sa.search_models(include_global=True)[0]
-        model = sa.download_model(ml_model, tmpdir.name)
-        assert model["name"]
-        model = sa.download_model(ml_model["name"], tmpdir.name)
-        assert model["name"]
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            ml_model = sa.search_models(include_global=True)[0]
+            model = sa.download_model(ml_model, tmp_dir)
+            self.assertIsNotNone(model["name"])
 
 
 class TestSegmentation(BaseTestCase):
