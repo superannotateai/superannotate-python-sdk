@@ -14,6 +14,7 @@ class TestRecursiveFolder(BaseTestCase):
     PROJECT_TYPE = "Vector"
     S3_FOLDER_PATH = "sample_recursive_test"
     TEST_FOLDER_PATH = "data_set/sample_recursive_test"
+    JSON_POSTFIX = "*.json"
 
     @property
     def folder_path(self):
@@ -94,7 +95,7 @@ class TestRecursiveFolder(BaseTestCase):
             for image in sa.search_images(self.PROJECT_NAME):
                 sa.download_image_preannotations(self.PROJECT_NAME, image, tmp_dir)
 
-            self.assertEqual(len(list(Path(tmp_dir).glob("*.json"))), 2)
+            self.assertEqual(len(list(Path(tmp_dir).glob(self.JSON_POSTFIX))), 2)
 
     def test_non_recursive_pre_annotations_folder(self):
         sa.upload_images_from_folder_to_project(
@@ -118,7 +119,7 @@ class TestRecursiveFolder(BaseTestCase):
             for image in sa.search_images(self.PROJECT_NAME):
                 sa.download_image_preannotations(self.PROJECT_NAME, image, tmp_dir)
 
-            self.assertEqual(len(list(Path(tmp_dir).glob("*.json"))), 2)
+            self.assertEqual(len(list(Path(tmp_dir).glob(self.JSON_POSTFIX))), 2)
 
     def test_annotations_recursive_s3_folder(self):
 
@@ -149,7 +150,7 @@ class TestRecursiveFolder(BaseTestCase):
         with tempfile.TemporaryDirectory() as tmp_dir:
             sa.download_export(self.PROJECT_NAME, export["name"], tmp_dir)
 
-            self.assertEqual(len(list(Path(tmp_dir).glob("*.json"))), 2)
+            self.assertEqual(len(list(Path(tmp_dir).glob(self.JSON_POSTFIX))), 2)
 
     def test_annotations_non_recursive_s3_folder(self):
         sa.upload_images_from_folder_to_project(
@@ -180,7 +181,7 @@ class TestRecursiveFolder(BaseTestCase):
         with tempfile.TemporaryDirectory() as tmp_dir:
             sa.download_export(self.PROJECT_NAME, export["name"], tmp_dir)
             non_empty_annotations = 0
-            json_files = Path(tmp_dir).glob("*.json")
+            json_files = Path(tmp_dir).glob(self.JSON_POSTFIX)
             for json_file in json_files:
                 json_ann = json.load(open(json_file))
                 if "instances" in json_ann and len(json_ann["instances"]) > 0:
@@ -214,7 +215,7 @@ class TestRecursiveFolder(BaseTestCase):
             for image in sa.search_images(self.PROJECT_NAME):
                 sa.download_image_preannotations(self.PROJECT_NAME, image, tmp_dir)
 
-            self.assertEqual(len(list(Path(tmp_dir).glob("*.json"))), 2)
+            self.assertEqual(len(list(Path(tmp_dir).glob(self.JSON_POSTFIX))), 2)
 
     def test_pre_annotations_non_recursive_s3_folder(self):
         sa.upload_images_from_folder_to_project(
@@ -241,7 +242,7 @@ class TestRecursiveFolder(BaseTestCase):
         with tempfile.TemporaryDirectory() as tmp_dir:
             for image in sa.search_images(self.PROJECT_NAME):
                 sa.download_image_preannotations(self.PROJECT_NAME, image, tmp_dir)
-            self.assertEqual(len(list(Path(tmp_dir).glob("*.json"))), 1)
+            self.assertEqual(len(list(Path(tmp_dir).glob(self.JSON_POSTFIX))), 1)
 
     def test_images_non_recursive_s3(self):
         sa.upload_images_from_folder_to_project(
