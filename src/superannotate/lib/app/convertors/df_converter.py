@@ -2,8 +2,10 @@ import json
 from pathlib import Path
 
 import pandas as pd
+from superannotate.lib.app.mixp.decorators import Trackable
 
 
+@Trackable
 def df_to_annotations(df, output_dir):
     """Converts and saves pandas DataFrame annotation info (see aggregate_annotations_as_df)
     in output_dir.
@@ -129,6 +131,7 @@ def df_to_annotations(df, output_dir):
     )
 
 
+@Trackable
 def filter_annotation_instances(annotations_df, include=None, exclude=None):
     """Filter annotation instances from project annotations pandas DataFrame.
 
@@ -195,6 +198,7 @@ def filter_annotation_instances(annotations_df, include=None, exclude=None):
     return result
 
 
+@Trackable
 def filter_images_by_comments(
     annotations_df,
     include_unresolved_comments=True,
@@ -230,6 +234,7 @@ def filter_images_by_comments(
     return list(images)
 
 
+@Trackable
 def filter_images_by_tags(annotations_df, include=None, exclude=None):
     """Filter images on tags
 

@@ -422,6 +422,7 @@ def search_folders(project, folder_name=None, return_metadata=False):
     return [folder.name for folder in data]
 
 
+@Trackable
 def get_image_bytes(project, image_name, variant="original"):
     """Returns an io.BytesIO() object of the image. Suitable for creating
     PIL.Image out of it.
@@ -637,6 +638,7 @@ def upload_images_from_public_urls_to_project(
     )
 
 
+@Trackable
 def copy_images(
     source_project,
     image_names,
@@ -972,6 +974,7 @@ def set_images_annotation_statuses(project, image_names, annotation_status):
     )
 
 
+@Trackable
 def delete_images(project, image_names=None):
     """Delete images in project.
 
@@ -1009,6 +1012,7 @@ def assign_images(project, image_names, user):
     controller.assign_images(project_name, folder_name, image_names, user)
 
 
+@Trackable
 def unassign_images(project, image_names):
     """Removes assignment of given images for all assignees.With SDK,
     the user can be assigned to a role in the project with the share_project
@@ -2290,6 +2294,7 @@ def attach_video_urls_to_project(project, attachments, annotation_status="NotSta
     return attach_image_urls_to_project(project, attachments, annotation_status)
 
 
+@Trackable
 def upload_annotations_from_folder_to_project(
     project, folder_path, from_s3_bucket=None, recursive_subfolders=False
 ):
@@ -2345,6 +2350,7 @@ def upload_annotations_from_folder_to_project(
     return uploaded_annotations, failed_annotations, missing_annotations
 
 
+@Trackable
 def upload_preannotations_from_folder_to_project(
     project, folder_path, from_s3_bucket=None, recursive_subfolders=False
 ):
@@ -2401,6 +2407,7 @@ def upload_preannotations_from_folder_to_project(
     return uploaded_annotations, failed_annotations, missing_annotations
 
 
+@Trackable
 def upload_image_annotations(
     project, image_name, annotation_json, mask=None, verbose=True
 ):
@@ -2437,6 +2444,7 @@ def upload_image_annotations(
     )
 
 
+@Trackable
 def run_training(
     model_name,
     model_description,
@@ -2595,6 +2603,7 @@ def download_model(model, output_dir):
         return BaseSerializers(res.data).serialize()
 
 
+@Trackable
 def benchmark(
     project,
     gt_folder,
@@ -2654,6 +2663,7 @@ def benchmark(
     return response.data
 
 
+@Trackable
 def consensus(
     project,
     folder_names,
@@ -2705,6 +2715,7 @@ def consensus(
     return response.data
 
 
+@Trackable
 def run_segmentation(project, images_list, model):
     """Starts smart segmentation on a list of images using the specified model
 
@@ -2736,6 +2747,7 @@ def run_segmentation(project, images_list, model):
     return response.data
 
 
+@Trackable
 def run_prediction(project, images_list, model):
     """This function runs smart prediction on given list of images from a given project using the neural network of your choice
 
