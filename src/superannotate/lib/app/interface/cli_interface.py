@@ -96,8 +96,10 @@ class CLIFacade(BaseInterfaceFacade):
         """
         To upload images from folder to project use:
 
-        If optional argument recursive is given then subfolders of <folder_path> are also recursively scanned for available images.
-        Optional argument extensions accepts comma separated list of image extensions to look for. If the argument is not given then value jpg,jpeg,png,tif,tiff,webp,bmp is assumed.
+        If optional argument recursive is given then subfolders of <folder_path> are also
+         recursively scanned for available images.
+        Optional argument extensions accepts comma separated list of image extensions to look for.
+        If the argument is not given then value jpg,jpeg,png,tif,tiff,webp,bmp is assumed.
         """
         uploaded_image_entities = []
         failed_images = []
@@ -196,7 +198,8 @@ class CLIFacade(BaseInterfaceFacade):
     ):
         """
         To upload preannotations from folder to project use
-        Optional argument format accepts input annotation format. It can have COCO or SuperAnnotate values. If the argument is not given then SuperAnnotate (the native annotation format) is assumed.
+        Optional argument format accepts input annotation format. It can have COCO or SuperAnnotate values.
+         If the argument is not given then SuperAnnotate (the native annotation format) is assumed.
         Only when COCO format is specified dataset-name and task arguments are required.
         dataset-name specifies JSON filename (without extension) in <folder_path>.
         task specifies the COCO task for conversion. Please see import_annotation_format for more details.
@@ -343,8 +346,10 @@ class CLIFacade(BaseInterfaceFacade):
         """
         To upload videos from folder to project use
         If optional argument recursive is given then subfolders of <folder_path> are also recursively scanned for available videos.
-        Optional argument extensions accepts comma separated list of image extensions to look for. If the argument is not given then value mp4,avi,mov,webm,flv,mpg,ogg is assumed.
-        target-fps specifies how many frames per second need to extract from the videos (approximate). If not specified all frames will be uploaded.
+        Optional argument extensions accepts comma separated list of image extensions to look for.
+        If the argument is not given then value mp4,avi,mov,webm,flv,mpg,ogg is assumed.
+        target-fps specifies how many frames per second need to extract from the videos (approximate).
+        If not specified all frames will be uploaded.
         start-time specifies time (in seconds) from which to start extracting frames, default is 0.0.
         end-time specifies time (in seconds) up to which to extract frames. If it is not specified, then up to end is assumed.
         """
