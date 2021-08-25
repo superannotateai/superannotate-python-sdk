@@ -327,6 +327,7 @@ class TeamEntity(BaseEntity):
         is_default: bool = None,
         users: List[UserEntity] = None,
         pending_invitations: List = None,
+        creator_id: str = None,
     ):
         super().__init__(uuid)
         self.name = name
@@ -336,6 +337,7 @@ class TeamEntity(BaseEntity):
         self.is_default = is_default
         self.users = users
         self.pending_invitations = pending_invitations
+        self.creator_id = creator_id
 
     def to_dict(self):
         return {
@@ -347,6 +349,7 @@ class TeamEntity(BaseEntity):
             "is_default": self.is_default,
             "users": [user.to_dict() for user in self.users],
             "pending_invitations": self.pending_invitations,
+            "creator_id": self.creator_id,
         }
 
 
