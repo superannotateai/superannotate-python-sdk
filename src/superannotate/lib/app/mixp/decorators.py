@@ -35,7 +35,7 @@ class Trackable:
         functools.update_wrapper(self, function)
 
     def track(self, *args, **kwargs):
-        if 1:
+        try:
             data = getattr(parsers, self.function.__name__)(*args, **kwargs)
             event_name = data["event_name"]
             properties = data["properties"]
@@ -49,11 +49,9 @@ class Trackable:
             properties = {**default, **properties}
 
             if "pytest" not in sys.modules:
-                print("=======track======",)
-                print(user_id, event_name, properties)
-                res = mp.track(user_id, event_name, properties)
-        # except Exception as _:
-        #     pass
+                mp.track(user_id, event_name, properties)
+        except Exception as _:
+            pass
 
     def __call__(self, *args, **kwargs):
         try:
