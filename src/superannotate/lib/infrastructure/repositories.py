@@ -396,6 +396,7 @@ class TeamRepository(BaseReadOnlyRepository):
             is_default=data["is_default"],
             users=[UserRepository.dict2entity(user) for user in data["users"]],
             pending_invitations=data["pending_invitations"],
+            creator_id=data["creator_id"],
         )
 
 

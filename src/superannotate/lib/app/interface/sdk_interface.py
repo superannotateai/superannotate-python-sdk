@@ -28,6 +28,7 @@ from lib.app.exceptions import EmptyOutputError
 from lib.app.helpers import extract_project_folder
 from lib.app.helpers import get_annotation_paths
 from lib.app.helpers import reformat_metrics_json
+from lib.app.mixp.decorators import Trackable
 from lib.app.serializers import BaseSerializers
 from lib.app.serializers import ImageSerializer
 from lib.app.serializers import ProjectSerializer
@@ -61,6 +62,7 @@ def set_auth_token(token: str):
     controller.set_token(token)
 
 
+@Trackable
 def get_team_metadata():
 
     """Returns team metadata
@@ -72,6 +74,7 @@ def get_team_metadata():
     return TeamSerializer(response.data).serialize()
 
 
+@Trackable
 def invite_contributor_to_team(email, admin=False):
     """Invites a contributor to team
 
@@ -83,6 +86,7 @@ def invite_contributor_to_team(email, admin=False):
     controller.invite_contributor(email, is_admin=admin)
 
 
+@Trackable
 def delete_contributor_to_team_invitation(email):
     """Deletes team contributor invitation
 
@@ -92,6 +96,7 @@ def delete_contributor_to_team_invitation(email):
     controller.delete_contributor_invitation(email)
 
 
+@Trackable
 def search_team_contributors(
     email=None, first_name=None, last_name=None, return_metadata=True
 ):
@@ -118,6 +123,7 @@ def search_team_contributors(
     return contributors
 
 
+@Trackable
 def search_projects(
     name=None, return_metadata=False, include_complete_image_count=False
 ):
@@ -143,6 +149,7 @@ def search_projects(
         return [project.name for project in result]
 
 
+@Trackable
 def create_project(project_name, project_description, project_type):
     """Create a new project in the team.
 
@@ -169,6 +176,7 @@ def create_project(project_name, project_description, project_type):
     return ProjectSerializer(result).serialize()
 
 
+@Trackable
 def create_project_from_metadata(project_metadata):
     """Create a new project in the team using project metadata object dict.
     Mandatory keys in project_metadata are "name", "description" and "type" (Vector or Pixel)
@@ -191,6 +199,7 @@ def create_project_from_metadata(project_metadata):
     return response.data
 
 
+@Trackable
 def clone_project(
     project_name,
     from_project,
@@ -233,6 +242,7 @@ def clone_project(
     return ProjectSerializer(result).serialize()
 
 
+@Trackable
 def search_images(
     project, image_name_prefix=None, annotation_status=None, return_metadata=False
 ):
@@ -266,6 +276,7 @@ def search_images(
     return [image.name for image in result]
 
 
+@Trackable
 def create_folder(project, folder_name):
     """Create a new folder in the project.
 
@@ -291,6 +302,7 @@ def create_folder(project, folder_name):
         logger.warning(res.errors)
 
 
+@Trackable
 def delete_project(project):
     """Deletes the project
 
@@ -303,6 +315,7 @@ def delete_project(project):
     controller.delete_project(name=name)
 
 
+@Trackable
 def rename_project(project, new_name):
     """Renames the project
 
@@ -314,6 +327,7 @@ def rename_project(project, new_name):
     controller.update_project(name=project, project_data={"name": new_name})
 
 
+@Trackable
 def get_folder_metadata(project, folder_name):
     """Returns folder metadata
 
@@ -331,6 +345,7 @@ def get_folder_metadata(project, folder_name):
     return result.to_dict()
 
 
+@Trackable
 def delete_folders(project, folder_names):
     """Delete folder in project.
 
@@ -344,6 +359,7 @@ def delete_folders(project, folder_names):
     logger.info(f"Folders {folder_names} deleted in project {project}")
 
 
+@Trackable
 def get_project_and_folder_metadata(project):
     """Returns project and folder metadata tuple. If folder part is empty,
     than returned folder part is set to None.
@@ -364,6 +380,7 @@ def get_project_and_folder_metadata(project):
     return project, folder
 
 
+@Trackable
 def rename_folder(project, new_folder_name):
     """Renames folder in project.
 
@@ -379,6 +396,7 @@ def rename_folder(project, new_folder_name):
     )
 
 
+@Trackable
 def search_folders(project, folder_name=None, return_metadata=False):
     """Folder name based case-insensitive search for folders in project.
 
@@ -429,6 +447,7 @@ def get_image_bytes(project, image_name, variant="original"):
     return image
 
 
+@Trackable
 def copy_image(
     source_project,
     image_name,
@@ -504,6 +523,7 @@ def copy_image(
     )
 
 
+@Trackable
 def upload_images_from_public_urls_to_project(
     project,
     img_urls,
@@ -676,6 +696,7 @@ def copy_images(
     return skipped_images
 
 
+@Trackable
 def move_images(source_project, image_names, destination_project, *_, **__):
     """Move images in bulk between folders in a project
 
@@ -721,6 +742,7 @@ def move_images(source_project, image_names, destination_project, *_, **__):
     return len(image_names) - moved_count
 
 
+@Trackable
 def get_project_metadata(
     project,
     include_annotation_classes=False,
@@ -770,6 +792,7 @@ def get_project_metadata(
     return metadata
 
 
+@Trackable
 def get_project_settings(project):
     """Gets project's settings.
 
@@ -787,6 +810,7 @@ def get_project_settings(project):
     return settings
 
 
+@Trackable
 def get_project_workflow(project):
     """Gets project's workflow.
 
@@ -803,6 +827,7 @@ def get_project_workflow(project):
     return workflow.data
 
 
+@Trackable
 def search_annotation_classes(project, name_prefix=None):
     """Searches annotation classes by name_prefix (case-insensitive)
 
@@ -821,6 +846,7 @@ def search_annotation_classes(project, name_prefix=None):
     return classes
 
 
+@Trackable
 def set_project_settings(project, new_settings):
     """Sets project's settings.
 
@@ -839,6 +865,7 @@ def set_project_settings(project, new_settings):
     return updated.data
 
 
+@Trackable
 def get_project_default_image_quality_in_editor(project):
     """Gets project's default image quality in editor setting.
 
@@ -855,6 +882,7 @@ def get_project_default_image_quality_in_editor(project):
             return setting.value
 
 
+@Trackable
 def set_project_default_image_quality_in_editor(project, image_quality_in_editor):
     """Sets project's default image quality in editor setting.
 
@@ -873,6 +901,7 @@ def set_project_default_image_quality_in_editor(project, image_quality_in_editor
     return updated.data
 
 
+@Trackable
 def pin_image(project, image_name, pin=True):
     """Pins (or unpins) image
 
@@ -892,6 +921,7 @@ def pin_image(project, image_name, pin=True):
     )
 
 
+@Trackable
 def delete_image(project, image_name):
     """Deletes image
 
@@ -904,6 +934,7 @@ def delete_image(project, image_name):
     controller.delete_image(image_name=image_name, project_name=project_name)
 
 
+@Trackable
 def get_image_metadata(project, image_name, *_, **__):
     """Returns image metadata
 
@@ -923,6 +954,7 @@ def get_image_metadata(project, image_name, *_, **__):
     return res_data
 
 
+@Trackable
 def set_images_annotation_statuses(project, image_names, annotation_status):
     """Sets annotation statuses of images
 
@@ -994,6 +1026,7 @@ def unassign_images(project, image_names):
     )
 
 
+@Trackable
 def unassign_folder(project_name, folder_name):
     """Removes assignment of given folder for all assignees.
     With SDK, the user can be assigned to a role in the project
@@ -1007,6 +1040,7 @@ def unassign_folder(project_name, folder_name):
     controller.un_assign_folder(project_name=project_name, folder_name=folder_name)
 
 
+@Trackable
 def assign_folder(project_name, folder_name, users):
     """Assigns folder to users. With SDK, the user can be
     assigned to a role in the project with the share_project function.
@@ -1023,6 +1057,7 @@ def assign_folder(project_name, folder_name, users):
     )
 
 
+@Trackable
 def share_project(project_name, user, user_role):
     """Share project with user.
 
@@ -1042,6 +1077,7 @@ def share_project(project_name, user, user_role):
     )
 
 
+@Trackable
 def unshare_project(project_name, user):
     """Unshare (remove) user from project.
 
@@ -1057,6 +1093,7 @@ def unshare_project(project_name, user):
     controller.un_share_project(project_name=project_name, user_id=user_id)
 
 
+@Trackable
 def upload_images_from_google_cloud_to_project(
     project,
     google_project,
@@ -1155,6 +1192,7 @@ def upload_images_from_google_cloud_to_project(
         )
 
 
+@Trackable
 def upload_images_from_azure_blob_to_project(
     project,
     container_name,
@@ -1249,6 +1287,7 @@ def upload_images_from_azure_blob_to_project(
         )
 
 
+@Trackable
 def get_image_annotations(project, image_name):
     """Get annotations of the image.
 
@@ -1422,6 +1461,7 @@ def upload_images_from_folder_to_project(
     return uploaded, failed_images, duplicates
 
 
+@Trackable
 def get_project_image_count(project, with_all_subfolders=False):
     """Returns number of images in the project.
 
@@ -1444,6 +1484,7 @@ def get_project_image_count(project, with_all_subfolders=False):
     return response.data
 
 
+@Trackable
 def get_image_preannotations(project, image_name):
     """Get pre-annotations of the image. Only works for "vector" projects.
 
@@ -1466,6 +1507,7 @@ def get_image_preannotations(project, image_name):
     return res.data
 
 
+@Trackable
 def download_image_annotations(project, image_name, local_dir_path):
     """Downloads annotations of the image (JSON and mask if pixel type project)
     to local_dir_path.
@@ -1490,6 +1532,7 @@ def download_image_annotations(project, image_name, local_dir_path):
     return res.data
 
 
+@Trackable
 def download_image_preannotations(project, image_name, local_dir_path):
     """Downloads pre-annotations of the image to local_dir_path.
     Only works for "vector" projects.
@@ -1514,6 +1557,7 @@ def download_image_preannotations(project, image_name, local_dir_path):
     return res.data
 
 
+@Trackable
 def get_exports(project, return_metadata=False):
     """Get all prepared exports of the project.
 
@@ -1531,6 +1575,7 @@ def get_exports(project, return_metadata=False):
     return response.data
 
 
+@Trackable
 def upload_images_from_s3_bucket_to_project(
     project,
     accessKeyId,
@@ -1567,6 +1612,7 @@ def upload_images_from_s3_bucket_to_project(
     )
 
 
+@Trackable
 def prepare_export(
     project,
     folder_names=None,
@@ -1616,6 +1662,7 @@ def prepare_export(
     return response.data
 
 
+@Trackable
 def upload_videos_from_folder_to_project(
     project,
     folder_path,
@@ -1729,6 +1776,7 @@ def upload_videos_from_folder_to_project(
     return uploaded_images, failed_images
 
 
+@Trackable
 def upload_video_to_project(
     project,
     video_path,
@@ -1815,6 +1863,7 @@ def upload_video_to_project(
     return uploaded_images
 
 
+@Trackable
 def create_annotation_class(project, name, color, attribute_groups=None):
     """Create annotation class in project
 
@@ -1838,6 +1887,7 @@ def create_annotation_class(project, name, color, attribute_groups=None):
     return response.data.to_dict()
 
 
+@Trackable
 def delete_annotation_class(project, annotation_class):
     """Deletes annotation class from project
 
@@ -1851,6 +1901,7 @@ def delete_annotation_class(project, annotation_class):
     )
 
 
+@Trackable
 def get_annotation_class_metadata(project, annotation_class_name):
     """Returns annotation class metadata
 
@@ -1868,6 +1919,7 @@ def get_annotation_class_metadata(project, annotation_class_name):
     return response.data.to_dict()
 
 
+@Trackable
 def download_annotation_classes_json(project, folder):
     """Downloads project classes.json to folder
 
@@ -1885,6 +1937,7 @@ def download_annotation_classes_json(project, folder):
     return response.data
 
 
+@Trackable
 def create_annotation_classes_from_classes_json(
     project, classes_json, from_s3_bucket=False
 ):
@@ -1998,6 +2051,7 @@ def move_image(
     controller.delete_image(image_name, source_project_name)
 
 
+@Trackable
 def download_export(
     project, export, folder_path, extract_zip_contents=True, to_s3_bucket=None
 ):
@@ -2053,6 +2107,7 @@ def download_export(
                 future.result()
 
 
+@Trackable
 def set_image_annotation_status(project, image_name, annotation_status):
     """Sets the image annotation status
 
@@ -2073,6 +2128,7 @@ def set_image_annotation_status(project, image_name, annotation_status):
     )
 
 
+@Trackable
 def set_project_workflow(project, new_workflow):
     """Sets project's workflow.
 
@@ -2090,6 +2146,7 @@ def set_project_workflow(project, new_workflow):
     controller.set_project_workflow(project_name=project_name, steps=new_workflow)
 
 
+@Trackable
 def create_fuse_image(
     image, classes_json, project_type, in_memory=False, output_overlay=False
 ):
@@ -2119,6 +2176,7 @@ def create_fuse_image(
     return response.data
 
 
+@Trackable
 def download_image(
     project,
     image_name,
@@ -2163,6 +2221,7 @@ def download_image(
     return response.data
 
 
+@Trackable
 def attach_image_urls_to_project(project, attachments, annotation_status="NotStarted"):
     """Link images on external storage to SuperAnnotate.
 
@@ -2479,6 +2538,7 @@ def run_training(
     return response.data.to_dict()
 
 
+@Trackable
 def delete_model(model):
     """This function deletes the provided model
 
@@ -2497,6 +2557,7 @@ def delete_model(model):
     return model
 
 
+@Trackable
 def stop_model_training(model):
     """This function will stop training model provided by either name or metadata, and return the ID
 
@@ -2514,6 +2575,7 @@ def stop_model_training(model):
     return model
 
 
+@Trackable
 def download_model(model, output_dir):
     """Downloads the neural network and related files
     which are the <model_name>.pth/pkl. <model_name>.json, <model_name>.yaml, classes_mapper.json
@@ -2708,6 +2770,7 @@ def run_prediction(project, images_list, model):
     return response.data
 
 
+@Trackable
 # todo test
 def plot_model_metrics(metric_json_list):
     """plots the metrics generated by neural network using plotly
@@ -2768,6 +2831,7 @@ def plot_model_metrics(metric_json_list):
     figure.show()
 
 
+@Trackable
 def add_annotation_bbox_to_image(
     project,
     image_name,
@@ -2801,6 +2865,7 @@ def add_annotation_bbox_to_image(
     upload_image_annotations(project, image_name, annotations, verbose=False)
 
 
+@Trackable
 def add_annotation_polyline_to_image(
     project,
     image_name,
@@ -2833,6 +2898,7 @@ def add_annotation_polyline_to_image(
     upload_image_annotations(project, image_name, annotations, verbose=False)
 
 
+@Trackable
 def add_annotation_polygon_to_image(
     project,
     image_name,
@@ -2866,6 +2932,7 @@ def add_annotation_polygon_to_image(
     upload_image_annotations(project, image_name, annotations, verbose=False)
 
 
+@Trackable
 def add_annotation_point_to_image(
     project,
     image_name,
@@ -2898,6 +2965,7 @@ def add_annotation_point_to_image(
     upload_image_annotations(project, image_name, annotations, verbose=False)
 
 
+@Trackable
 def add_annotation_ellipse_to_image(
     project,
     image_name,
@@ -2930,6 +2998,7 @@ def add_annotation_ellipse_to_image(
     upload_image_annotations(project, image_name, annotations, verbose=False)
 
 
+@Trackable
 def add_annotation_template_to_image(
     project,
     image_name,
@@ -2974,6 +3043,7 @@ def add_annotation_template_to_image(
     upload_image_annotations(project, image_name, annotations, verbose=False)
 
 
+@Trackable
 def add_annotation_cuboid_to_image(
     project,
     image_name,
@@ -3009,6 +3079,7 @@ def add_annotation_cuboid_to_image(
     upload_image_annotations(project, image_name, annotations, verbose=False)
 
 
+@Trackable
 def add_annotation_comment_to_image(
     project, image_name, comment_text, comment_coords, comment_author, resolved=False
 ):
@@ -3065,6 +3136,7 @@ def search_images_all_folders(
     return [image["name"] for image in res.data]
 
 
+@Trackable
 def upload_image_to_project(
     project,
     img,
@@ -3144,6 +3216,7 @@ def search_models(
     return res.data
 
 
+@Trackable
 def upload_images_to_project(
     project,
     img_paths,
