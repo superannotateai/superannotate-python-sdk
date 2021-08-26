@@ -148,7 +148,7 @@ class SuperannotateBackendService(BaseBackendService):
     URL_COPY_IMAGES_FROM_FOLDER = "images/copy-image-or-folders"
     URL_MOVE_IMAGES_FROM_FOLDER = "image/move"
     URL_GET_COPY_PROGRESS = "images/copy-image-progress"
-    URL_ASSIGN_IMAGES = "images/editAssignment"
+    URL_ASSIGN_IMAGES = "images/editAssignment/"
     URL_ASSIGN_FOLDER = "folder/editAssignment"
     URL_S3_ACCESS_POINT = "/project/{}/get-image-s3-access-point"
     URL_S3_UPLOAD_STATUS = "/project/{}/getS3UploadStatus"

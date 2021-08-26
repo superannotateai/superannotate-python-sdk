@@ -6,6 +6,7 @@ from pathlib import Path
 
 from lib.app.exceptions import AppException
 from lib.core.exceptions import AppValidationException
+from lib.app.mixp.decorators import Trackable
 
 from .export_from_sa_conversions import export_from_sa
 from .import_to_sa_conversions import import_to_sa
@@ -133,7 +134,7 @@ def _passes_converter_sanity(args, direction):
         )
 
 
-#  @Trackable
+@Trackable
 def export_annotation(
     input_dir,
     output_dir,
@@ -219,7 +220,7 @@ def export_annotation(
     export_from_sa(args)
 
 
-#  @Trackable
+@Trackable
 def import_annotation(
     input_dir,
     output_dir,
@@ -403,7 +404,7 @@ def import_annotation(
     import_to_sa(args)
 
 
-#  @Trackable
+@Trackable
 def convert_project_type(input_dir, output_dir):
     """ Converts SuperAnnotate 'Vector' project type to 'Pixel' or reverse.
 
@@ -423,7 +424,7 @@ def convert_project_type(input_dir, output_dir):
     sa_convert_project_type(input_dir, output_dir)
 
 
-#  @Trackable
+@Trackable
 def coco_split_dataset(
     coco_json_path, image_dir, output_dir, dataset_list_name, ratio_list
 ):
@@ -474,7 +475,7 @@ def coco_split_dataset(
     split_coco(coco_json_path, image_dir, output_dir, dataset_list_name, ratio_list)
 
 
-#  @Trackable
+@Trackable
 def convert_json_version(input_dir, output_dir, version=2):
     """
     Converts SuperAnnotate JSON versions. Newest JSON version is 2.

@@ -1,4 +1,3 @@
-from superannotate.lib.app.analytics.class_analytics import aggregate_annotations_as_df
 from superannotate.lib.app.analytics.class_analytics import attribute_distribution
 from superannotate.lib.app.analytics.class_analytics import class_distribution
 from superannotate.lib.app.annotation_helpers import add_annotation_bbox_to_json
@@ -38,6 +37,7 @@ from superannotate.lib.app.interface.sdk_interface import (
 from superannotate.lib.app.interface.sdk_interface import (
     add_annotation_template_to_image,
 )
+from superannotate.lib.app.interface.sdk_interface import aggregate_annotations_as_df
 from superannotate.lib.app.interface.sdk_interface import assign_folder
 from superannotate.lib.app.interface.sdk_interface import assign_images
 from superannotate.lib.app.interface.sdk_interface import attach_image_urls_to_project

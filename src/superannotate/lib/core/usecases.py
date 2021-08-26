@@ -3882,7 +3882,7 @@ class RunPredictionUseCase(BaseUseCase):
 
         if not image_ids:
             self._response.errors = AppException("No valid image names were provided.")
-            return
+            return self._response
 
         ml_models = self._ml_model_repo.get_all(
             condition=Condition("name", self._ml_model_name, EQ)
