@@ -1,3 +1,4 @@
+import concurrent.futures
 import copy
 import io
 import json
@@ -9,8 +10,10 @@ import uuid
 import zipfile
 from abc import ABC
 from abc import abstractmethod
+from collections import Counter
 from collections import defaultdict
 from collections import namedtuple
+from functools import cached_property
 from pathlib import Path
 from typing import Iterable
 from typing import List
@@ -61,7 +64,7 @@ class BaseUseCase(ABC):
         self._response = Response()
 
     @abstractmethod
-    def execute(self):
+    def execute(self) -> Response:
         raise NotImplementedError
 
     def _validate(self):
@@ -76,6 +79,20 @@ class BaseUseCase(ABC):
     def is_valid(self):
         self._validate()
         return not self._response.errors
+
+
+class BaseInteractiveUseCase(BaseUseCase):
+    @property
+    def response(self):
+        return self._response
+
+    @property
+    def data(self):
+        return self.response.data
+
+    @abstractmethod
+    def execute(self):
+        raise NotImplementedError
 
 
 class GetProjectsUseCase(BaseUseCase):
@@ -432,7 +449,7 @@ class GetImageUseCase(BaseUseCase):
         return self._response
 
 
-class UploadImageS3UseCas(BaseUseCase):
+class UploadImageS3UseCase(BaseUseCase):
     def __init__(
         self,
         project: ProjectEntity,
@@ -3994,3 +4011,203 @@ class UploadFileToS3UseCase(BaseUseCase):
 
     def execute(self):
         self._to_s3_bucket.upload_file(str(self._path), self._s3_key)
+
+
+class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
+    MAX_WORKERS = 10
+
+    def __init__(
+        self,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        settings: BaseManageableRepository,
+        s3_repo,
+        backend_client: SuerannotateServiceProvider,
+        folder_path: str,
+        extensions=constances.DEFAULT_IMAGE_EXTENSIONS,
+        annotation_status="NotStarted",
+        from_s3_bucket=None,
+        exclude_file_patterns=constances.DEFAULT_FILE_EXCLUDE_PATTERNS,
+        recursive_sub_folders: bool = False,
+        image_quality_in_editor=None,
+    ):
+        super().__init__()
+
+        self._auth_data = None
+
+        self._project = project
+        self._folder = folder
+        self._folder_path = folder_path
+        self._settings = settings
+        self._s3_repo = s3_repo
+        self._backend_client = backend_client
+        self._image_quality_in_editor = image_quality_in_editor
+        self._from_s3_bucket = from_s3_bucket
+        self._extensions = extensions
+        self._recursive_sub_folders = recursive_sub_folders
+        self._exclude_file_patterns = exclude_file_patterns
+        self._annotation_status = annotation_status
+
+    @property
+    def extensions(self):
+        if not self._extensions:
+            return constances.DEFAULT_IMAGE_EXTENSIONS
+
+    @property
+    def exclude_file_patterns(self):
+        if not self._exclude_file_patterns:
+            return constances.DEFAULT_FILE_EXCLUDE_PATTERNS
+
+    def validate_project_type(self):
+        if self._project.project_type == constances.ProjectType.VIDEO.value:
+            raise AppValidationException(
+                "The function does not support projects containing videos attached with URLs"
+            )
+
+    @cached_property
+    def auth_data(self):
+        return self._backend_client.get_s3_upload_auth_token(
+            team_id=self._project.team_id,
+            folder_id=self._folder.uuid,
+            project_id=self._project.uuid,
+        )
+
+    @cached_property
+    def s3_repository(self):
+        return self._s3_repo(
+            self.auth_data["accessKeyId"],
+            self.auth_data["secretAccessKey"],
+            self.auth_data["sessionToken"],
+            self.auth_data["bucket"],
+        )
+
+    def _upload_image(self, image_path: str):
+        ProcessedImage = namedtuple("ProcessedImage", ["uploaded", "path", "entity"])
+        if self._from_s3_bucket:
+            image_bytes = (
+                GetS3ImageUseCase(s3_bucket=self._from_s3_bucket, image_path=image_path)
+                .execute()
+                .data
+            )
+        else:
+            image_bytes = io.BytesIO(open(image_path, "rb").read())
+        upload_response = UploadImageS3UseCase(
+            project=self._project,
+            project_settings=self._settings,
+            image_path=image_path,
+            image=image_bytes,
+            s3_repo=self.s3_repository,
+            upload_path=self.auth_data["filePath"],
+            image_quality_in_editor=self._image_quality_in_editor,
+        ).execute()
+
+        if not upload_response.errors and upload_response.data:
+            entity = upload_response.data
+            return ProcessedImage(uploaded=True, path=entity.path, entity=entity)
+        else:
+            return ProcessedImage(uploaded=False, path=image_path, entity=None)
+
+    @property
+    def paths(self):
+        paths = []
+        if self._from_s3_bucket is None:
+            for extension in self.extensions:
+                if self._recursive_sub_folders:
+                    paths += list(
+                        Path(self._folder_path).rglob(f"*.{extension.lower()}")
+                    )
+                    if os.name != "nt":
+                        paths += list(
+                            Path(self._folder_path).rglob(f"*.{extension.upper()}")
+                        )
+                else:
+                    paths += list(
+                        Path(self._folder_path).glob(f"*.{extension.lower()}")
+                    )
+                    if os.name != "nt":
+                        paths += list(
+                            Path(self._folder_path).glob(f"*.{extension.upper()}")
+                        )
+
+        else:
+            s3_client = boto3.client("s3")
+            paginator = s3_client.get_paginator("list_objects_v2")
+            response_iterator = paginator.paginate(
+                Bucket=self._from_s3_bucket, Prefix=self._folder_path
+            )
+            for response in response_iterator:
+                for object_data in response["Contents"]:
+                    key = object_data["Key"]
+                    if (
+                        not self._recursive_sub_folders
+                        and "/" in key[len(self._folder_path) + 1 :]
+                    ):
+                        continue
+                    for extension in self._extensions:
+                        if key.endswith(f".{extension.lower()}") or key.endswith(
+                            f".{extension.upper()}"
+                        ):
+                            paths.append(key)
+                            break
+        return paths
+
+    @cached_property
+    def images_to_upload(self):
+        paths = self.paths
+        filtered_paths = []
+        duplicated_paths = []
+        images = self._backend_client.get_bulk_images(
+            project_id=self._project.uuid,
+            team_id=self._project.team_id,
+            folder_id=self._folder.uuid,
+            images=[Path(image).name for image in paths],
+        )
+        image_names = [image["name"] for image in images]
+
+        for path in paths:
+            not_in_exclude_list = [
+                x not in Path(path).name for x in self.exclude_file_patterns
+            ]
+            non_in_service_list = [x not in Path(path).name for x in image_names]
+            if all(not_in_exclude_list) and all(non_in_service_list):
+                filtered_paths.append(path)
+            if not all(non_in_service_list):
+                duplicated_paths.append(path)
+
+        return list(set(filtered_paths)), duplicated_paths
+
+    def execute(self):
+        images_to_upload, duplications = self.images_to_upload
+        images_to_upload = images_to_upload[: self.auth_data["availableImageCount"]]
+        uploaded_images = []
+        failed_images = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=self.MAX_WORKERS) as executor:
+            results = [
+                executor.submit(self._upload_image, image_path)
+                for image_path in images_to_upload
+            ]
+            for future in concurrent.futures.as_completed(results):
+                processed_image = future.result()
+                if processed_image.uploaded and processed_image.entity:
+                    uploaded_images.append(processed_image)
+                else:
+                    failed_images.append(processed_image)
+                yield
+
+        uploaded = []
+        # duplicates = []
+        for i in range(0, len(uploaded_images), 500):
+            response = AttachFileUrlsUseCase(
+                project=self._project,
+                folder=self._folder,
+                limit=self.auth_data["availableImageCount"],
+                backend_service_provider=self._backend_client,
+                attachments=[image.entity for image in uploaded_images],
+                annotation_status=self._annotation_status,
+            ).execute()
+
+            attachments, duplications = response.data
+            uploaded.extend(attachments)
+            # duplicates.extend(duplications)
+
+        self.response.data = uploaded, failed_images, duplications
