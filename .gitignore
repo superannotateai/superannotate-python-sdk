@@ -145,3 +145,4 @@ temp
 debug_*
 *.idea
 *.DS_Store
+htmlcov

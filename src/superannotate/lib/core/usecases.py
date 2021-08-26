@@ -275,86 +275,93 @@ class CloneProjectUseCase(BaseUseCase):
     def workflows(self):
         return self._workflows_repo(self._backend_service, self._project)
 
+    def validate_project_type(self):
+        if self._project.project_type == constances.ProjectType.VIDEO.value:
+            raise AppValidationException(
+                "The function does not support projects containing videos attached with URLs"
+            )
+
     def execute(self):
-        self._project_to_create.description = self._project.description
-        project = self._projects.insert(self._project_to_create)
+        if self.is_valid():
+            self._project_to_create.description = self._project.description
+            project = self._projects.insert(self._project_to_create)
 
-        annotation_classes_mapping = {}
-        new_project_annotation_classes = self._annotation_classes_repo(
-            self._backend_service, project
-        )
-        if self._include_annotation_classes:
-            annotation_classes = self.annotation_classes.get_all()
-            for annotation_class in annotation_classes:
-                annotation_class_copy = copy.copy(annotation_class)
-                annotation_classes_mapping[
-                    annotation_class.uuid
-                ] = new_project_annotation_classes.insert(annotation_class_copy)
+            annotation_classes_mapping = {}
+            new_project_annotation_classes = self._annotation_classes_repo(
+                self._backend_service, project
+            )
+            if self._include_annotation_classes:
+                annotation_classes = self.annotation_classes.get_all()
+                for annotation_class in annotation_classes:
+                    annotation_class_copy = copy.copy(annotation_class)
+                    annotation_classes_mapping[
+                        annotation_class.uuid
+                    ] = new_project_annotation_classes.insert(annotation_class_copy)
 
-        if self._include_contributors:
-            for user in self._project.users:
-                self._backend_service.share_project(
-                    project.uuid,
-                    project.team_id,
-                    user.get("user_id"),
-                    user.get("user_role"),
-                )
-
-        if self._include_settings:
-            new_settings = self._settings_repo(self._backend_service, project)
-            for setting in self.settings.get_all():
-                for new_setting in new_settings.get_all():
-                    if new_setting.attribute == setting.attribute:
-                        setting_copy = copy.copy(setting)
-                        setting_copy.uuid = new_setting.uuid
-                        setting_copy.project_id = project.uuid
-                        new_settings.update(setting_copy)
-
-        if self._include_workflow:
-            new_workflows = self._workflows_repo(self._backend_service, project)
-            workflow_attributes = []
-            for workflow in self.workflows.get_all():
-                workflow_data = copy.copy(workflow)
-                workflow_data.project_id = project.uuid
-                workflow_data.class_id = annotation_classes_mapping[
-                    workflow.class_id
-                ].uuid
-                new_workflow = new_workflows.insert(workflow_data)
-                for attribute in workflow_data.attribute:
-                    for annotation_attribute in annotation_classes_mapping[
-                        workflow.class_id
-                    ].attribute_groups:
-                        if (
-                            attribute["attribute"]["attribute_group"]["name"]
-                            == annotation_attribute["name"]
-                        ):
-                            for annotation_attribute_value in annotation_attribute[
-                                "attributes"
-                            ]:
-                                if (
-                                    annotation_attribute_value["name"]
-                                    == attribute["attribute"]["name"]
-                                ):
-                                    workflow_attributes.append(
-                                        {
-                                            "workflow_id": new_workflow.uuid,
-                                            "attribute_id": annotation_attribute_value[
-                                                "id"
-                                            ],
-                                        }
-                                    )
-                                    break
-
-                if workflow_attributes:
-                    self._backend_service.set_project_workflow_attributes_bulk(
-                        project_id=project.uuid,
-                        team_id=project.team_id,
-                        attributes=workflow_attributes,
+            if self._include_contributors:
+                for user in self._project.users:
+                    self._backend_service.share_project(
+                        project.uuid,
+                        project.team_id,
+                        user.get("user_id"),
+                        user.get("user_role"),
                     )
 
-        self._response.data = self._projects.get_one(
-            uuid=project.uuid, team_id=project.team_id
-        )
+            if self._include_settings:
+                new_settings = self._settings_repo(self._backend_service, project)
+                for setting in self.settings.get_all():
+                    for new_setting in new_settings.get_all():
+                        if new_setting.attribute == setting.attribute:
+                            setting_copy = copy.copy(setting)
+                            setting_copy.uuid = new_setting.uuid
+                            setting_copy.project_id = project.uuid
+                            new_settings.update(setting_copy)
+
+            if self._include_workflow:
+                new_workflows = self._workflows_repo(self._backend_service, project)
+                workflow_attributes = []
+                for workflow in self.workflows.get_all():
+                    workflow_data = copy.copy(workflow)
+                    workflow_data.project_id = project.uuid
+                    workflow_data.class_id = annotation_classes_mapping[
+                        workflow.class_id
+                    ].uuid
+                    new_workflow = new_workflows.insert(workflow_data)
+                    for attribute in workflow_data.attribute:
+                        for annotation_attribute in annotation_classes_mapping[
+                            workflow.class_id
+                        ].attribute_groups:
+                            if (
+                                attribute["attribute"]["attribute_group"]["name"]
+                                == annotation_attribute["name"]
+                            ):
+                                for annotation_attribute_value in annotation_attribute[
+                                    "attributes"
+                                ]:
+                                    if (
+                                        annotation_attribute_value["name"]
+                                        == attribute["attribute"]["name"]
+                                    ):
+                                        workflow_attributes.append(
+                                            {
+                                                "workflow_id": new_workflow.uuid,
+                                                "attribute_id": annotation_attribute_value[
+                                                    "id"
+                                                ],
+                                            }
+                                        )
+                                        break
+
+                    if workflow_attributes:
+                        self._backend_service.set_project_workflow_attributes_bulk(
+                            project_id=project.uuid,
+                            team_id=project.team_id,
+                            attributes=workflow_attributes,
+                        )
+
+            self._response.data = self._projects.get_one(
+                uuid=project.uuid, team_id=project.team_id
+            )
         return self._response
 
 
@@ -374,22 +381,29 @@ class GetImagesUseCase(BaseUseCase):
         self._annotation_status = annotation_status
         self._image_name_prefix = image_name_prefix
 
-    def execute(self):
-        condition = (
-            Condition("team_id", self._project.team_id, EQ)
-            & Condition("project_id", self._project.uuid, EQ)
-            & Condition("folder_id", self._folder.uuid, EQ)
-        )
-        if self._image_name_prefix:
-            condition = condition & Condition("name", self._image_name_prefix, EQ)
-        if self._annotation_status:
-            condition = condition & Condition(
-                "annotation_status",
-                constances.AnnotationStatus.get_value(self._annotation_status),
-                EQ,
+    def validate_project_type(self):
+        if self._project.project_type == constances.ProjectType.VIDEO.value:
+            raise AppValidationException(
+                "The function does not support projects containing videos attached with URLs"
             )
 
-        self._response.data = self._images.get_all(condition)
+    def execute(self):
+        if self.is_valid():
+            condition = (
+                Condition("team_id", self._project.team_id, EQ)
+                & Condition("project_id", self._project.uuid, EQ)
+                & Condition("folder_id", self._folder.uuid, EQ)
+            )
+            if self._image_name_prefix:
+                condition = condition & Condition("name", self._image_name_prefix, EQ)
+            if self._annotation_status:
+                condition = condition & Condition(
+                    "annotation_status",
+                    constances.AnnotationStatus.get_value(self._annotation_status),
+                    EQ,
+                )
+
+            self._response.data = self._images.get_all(condition)
         return self._response
 
 
@@ -581,7 +595,6 @@ class AttachFileUrlsUseCase(BaseUseCase):
             images=[image.name for image in self._attachments],
         )
         duplications = [image["name"] for image in duplications]
-        self._attachments = self._attachments[: self._limit]
         meta = {}
         to_upload = []
         for image in self._attachments:
@@ -598,7 +611,7 @@ class AttachFileUrlsUseCase(BaseUseCase):
             project_id=self._project.uuid,
             folder_id=self._folder.uuid,
             team_id=self._project.team_id,
-            files=to_upload,
+            files=to_upload[: self._limit],
             annotation_status_code=self.annotation_status_code,
             upload_state_code=self.upload_state_code,
             meta=meta,
@@ -626,29 +639,45 @@ class PrepareExportUseCase(BaseUseCase):
         self._include_fuse = include_fuse
         self._only_pinned = only_pinned
 
-    def execute(self):
-        if self._project.upload_state == constances.UploadState.EXTERNAL.value:
-            self._include_fuse = False
-
-        if not self._annotation_statuses:
-            self._annotation_statuses = (
-                constances.AnnotationStatus.IN_PROGRESS.name,
-                constances.AnnotationStatus.COMPLETED.name,
-                constances.AnnotationStatus.QUALITY_CHECK.name,
-                constances.AnnotationStatus.RETURNED.name,
-                constances.AnnotationStatus.NOT_STARTED.name,
-                constances.AnnotationStatus.SKIPPED.name,
+    def validate_project_type(self):
+        if self._project.project_type == constances.ProjectType.VIDEO.value:
+            raise AppValidationException(
+                "The function does not support projects containing videos attached with URLs"
             )
 
-        res = self._backend_service.prepare_export(
-            project_id=self._project.uuid,
-            team_id=self._project.team_id,
-            folders=self._folder_names,
-            annotation_statuses=self._annotation_statuses,
-            include_fuse=self._include_fuse,
-            only_pinned=self._only_pinned,
-        )
-        self._response.data = res
+    def validate_fuse(self):
+        if (
+            self._project.upload_state == constances.UploadState.EXTERNAL.value
+            and self._include_fuse
+        ):
+            raise AppValidationException(
+                "Include fuse functionality is not supported for  projects containing  items attached with URLs"
+            )
+
+    def execute(self):
+        if self.is_valid():
+            if self._project.upload_state == constances.UploadState.EXTERNAL.value:
+                self._include_fuse = False
+
+            if not self._annotation_statuses:
+                self._annotation_statuses = (
+                    constances.AnnotationStatus.IN_PROGRESS.name,
+                    constances.AnnotationStatus.COMPLETED.name,
+                    constances.AnnotationStatus.QUALITY_CHECK.name,
+                    constances.AnnotationStatus.RETURNED.name,
+                    constances.AnnotationStatus.NOT_STARTED.name,
+                    constances.AnnotationStatus.SKIPPED.name,
+                )
+
+            res = self._backend_service.prepare_export(
+                project_id=self._project.uuid,
+                team_id=self._project.team_id,
+                folders=self._folder_names,
+                annotation_statuses=self._annotation_statuses,
+                include_fuse=self._include_fuse,
+                only_pinned=self._only_pinned,
+            )
+            self._response.data = res
         return self._response
 
 
@@ -1102,41 +1131,48 @@ class ImagesBulkCopyUseCase(BaseUseCase):
         self._include_annotations = include_annotations
         self._include_pin = include_pin
 
-    def execute(self):
-        images = self._backend_service.get_bulk_images(
-            project_id=self._project.uuid,
-            team_id=self._project.team_id,
-            folder_id=self._to_folder.uuid,
-            images=self._image_names,
-        )
-        duplications = [image["name"] for image in images]
-        images_to_copy = set(self._image_names) - set(duplications)
-        skipped_images = duplications
-        for i in range(0, len(images_to_copy), self.CHUNK_SIZE):
-            poll_id = self._backend_service.copy_images_between_folders_transaction(
-                team_id=self._project.team_id,
-                project_id=self._project.uuid,
-                from_folder_id=self._from_folder.uuid,
-                to_folder_id=self._to_folder.uuid,
-                images=self._image_names[i : i + self.CHUNK_SIZE],
-                include_annotations=self._include_annotations,
-                include_pin=self._include_pin,
+    def validate_project_type(self):
+        if self._project.project_type == constances.ProjectType.VIDEO.value:
+            raise AppValidationException(
+                "The function does not support projects containing videos attached with URLs"
             )
-            if not poll_id:
-                skipped_images.append(self._image_names[i : i + self.CHUNK_SIZE])
-                continue
 
-            await_time = len(images_to_copy) * 0.3
-            timeout_start = time.time()
-            while time.time() < timeout_start + await_time:
-                done_count, skipped_count = self._backend_service.get_progress(
-                    self._project.uuid, self._project.team_id, poll_id
+    def execute(self):
+        if self.is_valid():
+            images = self._backend_service.get_bulk_images(
+                project_id=self._project.uuid,
+                team_id=self._project.team_id,
+                folder_id=self._to_folder.uuid,
+                images=self._image_names,
+            )
+            duplications = [image["name"] for image in images]
+            images_to_copy = set(self._image_names) - set(duplications)
+            skipped_images = duplications
+            for i in range(0, len(images_to_copy), self.CHUNK_SIZE):
+                poll_id = self._backend_service.copy_images_between_folders_transaction(
+                    team_id=self._project.team_id,
+                    project_id=self._project.uuid,
+                    from_folder_id=self._from_folder.uuid,
+                    to_folder_id=self._to_folder.uuid,
+                    images=self._image_names[i : i + self.CHUNK_SIZE],
+                    include_annotations=self._include_annotations,
+                    include_pin=self._include_pin,
                 )
-                if done_count + skipped_count == len(images_to_copy):
-                    break
-                time.sleep(4)
+                if not poll_id:
+                    skipped_images.append(self._image_names[i : i + self.CHUNK_SIZE])
+                    continue
 
-        self._response.data = skipped_images
+                await_time = len(images_to_copy) * 0.3
+                timeout_start = time.time()
+                while time.time() < timeout_start + await_time:
+                    done_count, skipped_count = self._backend_service.get_progress(
+                        self._project.uuid, self._project.team_id, poll_id
+                    )
+                    if done_count + skipped_count == len(images_to_copy):
+                        break
+                    time.sleep(4)
+
+            self._response.data = skipped_images
         return self._response
 
 
@@ -1166,27 +1202,36 @@ class GetSettingsUseCase(BaseUseCase):
 class GetWorkflowsUseCase(BaseUseCase):
     def __init__(
         self,
+        project: ProjectEntity,
         annotation_classes: BaseReadOnlyRepository,
         workflows: BaseManageableRepository,
         fill_classes=True,
     ):
         super().__init__()
+        self._project = project
         self._workflows = workflows
         self._annotation_classes = annotation_classes
         self._fill_classes = fill_classes
 
+    def validate_project_type(self):
+        if self._project.project_type == constances.ProjectType.VIDEO.value:
+            raise AppValidationException(
+                "The function does not support projects containing videos attached with URLs"
+            )
+
     def execute(self):
-        data = []
-        workflows = self._workflows.get_all()
-        for workflow in workflows:
-            workflow_data = workflow.to_dict()
-            if self._fill_classes:
-                annotation_classes = self._annotation_classes.get_all()
-                for annotation_class in annotation_classes:
-                    annotation_class.uuid = workflow.class_id
-                    workflow_data["className"] = annotation_class.name
-            data.append(workflow_data)
-        self._response.data = data
+        if self.is_valid():
+            data = []
+            workflows = self._workflows.get_all()
+            for workflow in workflows:
+                workflow_data = workflow.to_dict()
+                if self._fill_classes:
+                    annotation_classes = self._annotation_classes.get_all()
+                    for annotation_class in annotation_classes:
+                        annotation_class.uuid = workflow.class_id
+                        workflow_data["className"] = annotation_class.name
+                data.append(workflow_data)
+            self._response.data = data
         return self._response
 
 
@@ -1242,6 +1287,7 @@ class GetProjectMetaDataUseCase(BaseUseCase):
 class UpdateSettingsUseCase(BaseUseCase):
     def __init__(
         self,
+        projects: BaseReadOnlyRepository,
         settings: BaseManageableRepository,
         to_update: List,
         backend_service_provider: SuerannotateServiceProvider,
@@ -1249,11 +1295,23 @@ class UpdateSettingsUseCase(BaseUseCase):
         team_id: int,
     ):
         super().__init__()
+        self._projects = projects
         self._settings = settings
         self._to_update = to_update
         self._backend_service_provider = backend_service_provider
         self._project_id = project_id
         self._team_id = team_id
+
+    def validate_project_type(self):
+        project = self._projects.get_one(uuid=self._project_id, team_id=self._team_id)
+        for attribute in self._to_update:
+            if (
+                attribute.get("attribute", "") == "ImageQuality"
+                and project.project_type == constances.ProjectType.VIDEO.value
+            ):
+                raise AppValidationException(
+                    "The function does not support projects containing videos attached with URLs"
+                )
 
     def execute(self):
 
@@ -1312,17 +1370,24 @@ class GetImageMetadataUseCase(BaseUseCase):
         self._service = service
         self._folder = folder
 
+    def validate_project_type(self):
+        if self._project.project_type == constances.ProjectType.VIDEO.value:
+            raise AppValidationException(
+                "The function does not support projects containing videos attached with URLs"
+            )
+
     def execute(self):
-        data = self._service.get_bulk_images(
-            images=[self._image_name],
-            team_id=self._project.team_id,
-            project_id=self._project.uuid,
-            folder_id=self._folder.uuid,
-        )
-        if data:
-            self._response.data = data[0]
-        else:
-            self._response.errors = AppException("Image not found.")
+        if self.is_valid():
+            data = self._service.get_bulk_images(
+                images=[self._image_name],
+                team_id=self._project.team_id,
+                project_id=self._project.uuid,
+                folder_id=self._folder.uuid,
+            )
+            if data:
+                self._response.data = data[0]
+            else:
+                self._response.errors = AppException("Image not found.")
         return self._response
 
 
@@ -1371,6 +1436,7 @@ class SetImageAnnotationStatuses(BaseUseCase):
     def __init__(
         self,
         service: SuerannotateServiceProvider,
+        projects: BaseReadOnlyRepository,
         image_names: list,
         team_id: int,
         project_id: int,
@@ -1380,6 +1446,7 @@ class SetImageAnnotationStatuses(BaseUseCase):
     ):
         super().__init__()
         self._service = service
+        self._projects = projects
         self._image_names = image_names
         self._team_id = team_id
         self._project_id = project_id
@@ -1387,24 +1454,32 @@ class SetImageAnnotationStatuses(BaseUseCase):
         self._annotation_status = annotation_status
         self._images_repo = images_repo
 
+    def validate_project_type(self):
+        project = self._projects.get_one(uuid=self._project_id, team_id=self._team_id)
+        if project.project_type == constances.ProjectType.VIDEO.value:
+            raise AppValidationException(
+                "The function does not support projects containing videos attached with URLs"
+            )
+
     def execute(self):
-        if self._image_names is None:
-            condition = (
-                Condition("team_id", self._team_id, EQ)
-                & Condition("project_id", self._project_id, EQ)
-                & Condition("folder_id", self._folder_id, EQ)
-            )
-            self._image_names = [
-                image.name for image in self._images_repo.get_all(condition)
-            ]
-        for i in range(0, len(self._image_names), self.CHUNK_SIZE):
-            self._response.data = self._service.set_images_statuses_bulk(
-                image_names=self._image_names,
-                team_id=self._team_id,
-                project_id=self._project_id,
-                folder_id=self._folder_id,
-                annotation_status=self._annotation_status,
-            )
+        if self.is_valid():
+            if self._image_names is None:
+                condition = (
+                    Condition("team_id", self._team_id, EQ)
+                    & Condition("project_id", self._project_id, EQ)
+                    & Condition("folder_id", self._folder_id, EQ)
+                )
+                self._image_names = [
+                    image.name for image in self._images_repo.get_all(condition)
+                ]
+            for i in range(0, len(self._image_names), self.CHUNK_SIZE):
+                self._response.data = self._service.set_images_statuses_bulk(
+                    image_names=self._image_names,
+                    team_id=self._team_id,
+                    project_id=self._project_id,
+                    folder_id=self._folder_id,
+                    annotation_status=self._annotation_status,
+                )
         return self._response
 
 
@@ -1426,31 +1501,38 @@ class DeleteImagesUseCase(BaseUseCase):
         self._backend_service = backend_service_provider
         self._image_names = image_names
 
+    def validate_project_type(self):
+        if self._project.project_type == constances.ProjectType.VIDEO.value:
+            raise AppValidationException(
+                "The function does not support projects containing videos attached with URLs"
+            )
+
     def execute(self):
-        if self._image_names:
-            image_ids = [
-                image["id"]
-                for image in self._backend_service.get_bulk_images(
+        if self.is_valid():
+            if self._image_names:
+                image_ids = [
+                    image["id"]
+                    for image in self._backend_service.get_bulk_images(
+                        project_id=self._project.uuid,
+                        team_id=self._project.team_id,
+                        folder_id=self._folder.uuid,
+                        images=self._image_names,
+                    )
+                ]
+            else:
+                condition = (
+                    Condition("team_id", self._project.team_id, EQ)
+                    & Condition("project_id", self._project.uuid, EQ)
+                    & Condition("folder_id", self._folder.uuid, EQ)
+                )
+                image_ids = [image.uuid for image in self._images.get_all(condition)]
+
+            for i in range(0, len(image_ids), self.CHUNK_SIZE):
+                self._backend_service.delete_images(
                     project_id=self._project.uuid,
                     team_id=self._project.team_id,
-                    folder_id=self._folder.uuid,
-                    images=self._image_names,
+                    image_ids=image_ids[i : i + self.CHUNK_SIZE],
                 )
-            ]
-        else:
-            condition = (
-                Condition("team_id", self._project.team_id, EQ)
-                & Condition("project_id", self._project.uuid, EQ)
-                & Condition("folder_id", self._folder.uuid, EQ)
-            )
-            image_ids = [image.uuid for image in self._images.get_all(condition)]
-
-        for i in range(0, len(image_ids), self.CHUNK_SIZE):
-            self._backend_service.delete_images(
-                project_id=self._project.uuid,
-                team_id=self._project.team_id,
-                image_ids=image_ids[i : i + self.CHUNK_SIZE],
-            )
         return self._response
 
 
@@ -1461,27 +1543,36 @@ class AssignImagesUseCase(BaseUseCase):
     def __init__(
         self,
         service: SuerannotateServiceProvider,
-        project_entity: ProjectEntity,
+        project: ProjectEntity,
         folder_name: str,
         image_names: list,
         user: str,
     ):
         super().__init__()
-        self._project_entity = project_entity
+        self._project = project
         self._folder_name = folder_name
         self._image_names = image_names
         self._user = user
         self._service = service
 
-    def execute(self):
-        for i in range(0, len(self._image_names), self.CHUNK_SIZE):
-            self._response.data = self._service.assign_images(
-                team_id=self._project_entity.team_id,
-                project_id=self._project_entity.uuid,
-                folder_name=self._folder_name,
-                user=self._user,
-                image_names=self._image_names[i : i + self.CHUNK_SIZE],
+    def validate_project_type(self):
+        if self._project.project_type == constances.ProjectType.VIDEO.value:
+            raise AppValidationException(
+                "The function does not support projects containing videos attached with URLs"
             )
+
+    def execute(self):
+        if self.is_valid():
+            for i in range(0, len(self._image_names), self.CHUNK_SIZE):
+                self._response.data = self._service.assign_images(
+                    team_id=self._project.team_id,
+                    project_id=self._project.uuid,
+                    folder_name=self._folder_name,
+                    user=self._user,
+                    image_names=self._image_names[
+                        i : i + self.CHUNK_SIZE
+                    ],  # noqa: E203
+                )
 
         return self._response
 
@@ -1818,45 +1909,52 @@ class GetImageAnnotationsUseCase(BaseUseCase):
         )
         return use_case
 
-    def execute(self):
-        data = {
-            "annotation_json": None,
-            "annotation_json_filename": None,
-            "annotation_mask": None,
-            "annotation_mask_filename": None,
-        }
-        image_response = self.image_use_case.execute()
-        token = self._service.get_download_token(
-            project_id=self._project.uuid,
-            team_id=self._project.team_id,
-            folder_id=self._folder.uuid,
-            image_id=image_response.data.uuid,
-        )
-        credentials = token["annotations"]["MAIN"][0]
-        if self._project.project_type == constances.ProjectType.VECTOR.value:
-            file_postfix = "___objects.json"
-        else:
-            file_postfix = "___pixel.json"
-        response = requests.get(
-            url=credentials["annotation_json_path"]["url"],
-            headers=credentials["annotation_json_path"]["headers"],
-        )
-        if not response.ok:
-            logger.warning(f"Couldn't load annotations {response.text}")
-            self._response.data = data
-            return self._response
-        data["annotation_json"] = response.json()
-        data["annotation_json_filename"] = f"{self._image_name}{file_postfix}.json"
-        if self._project.project_type == constances.ProjectType.PIXEL.value:
-            annotation_blue_map_creds = credentials["annotation_bluemap_path"]
-            response = requests.get(
-                url=annotation_blue_map_creds["url"],
-                headers=annotation_blue_map_creds["headers"],
+    def validate_project_type(self):
+        if self._project.project_type == constances.ProjectType.VIDEO.value:
+            raise AppValidationException(
+                "The function does not support projects containing videos attached with URLs"
             )
-            data["annotation_mask"] = io.BytesIO(response.content)
-            data["annotation_mask_filename"] = f"{self._image_name}___save.png"
 
-        self._response.data = data
+    def execute(self):
+        if self.is_valid():
+            data = {
+                "annotation_json": None,
+                "annotation_json_filename": None,
+                "annotation_mask": None,
+                "annotation_mask_filename": None,
+            }
+            image_response = self.image_use_case.execute()
+            token = self._service.get_download_token(
+                project_id=self._project.uuid,
+                team_id=self._project.team_id,
+                folder_id=self._folder.uuid,
+                image_id=image_response.data.uuid,
+            )
+            credentials = token["annotations"]["MAIN"][0]
+            if self._project.project_type == constances.ProjectType.VECTOR.value:
+                file_postfix = "___objects.json"
+            else:
+                file_postfix = "___pixel.json"
+            response = requests.get(
+                url=credentials["annotation_json_path"]["url"],
+                headers=credentials["annotation_json_path"]["headers"],
+            )
+            if not response.ok:
+                logger.warning(f"Couldn't load annotations {response.text}")
+                self._response.data = data
+                return self._response
+            data["annotation_json"] = response.json()
+            data["annotation_json_filename"] = f"{self._image_name}{file_postfix}.json"
+            if self._project.project_type == constances.ProjectType.PIXEL.value:
+                annotation_blue_map_creds = credentials["annotation_bluemap_path"]
+                response = requests.get(
+                    url=annotation_blue_map_creds["url"],
+                    headers=annotation_blue_map_creds["headers"],
+                )
+                data["annotation_mask"] = io.BytesIO(response.content)
+                data["annotation_mask_filename"] = f"{self._image_name}___save.png"
+
+            self._response.data = data
 
         return self._response
 
@@ -1974,55 +2072,63 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
             images=self._images,
         )
 
-    def execute(self):
-        data = {
-            "annotation_json": None,
-            "annotation_json_filename": None,
-            "annotation_mask": None,
-            "annotation_mask_filename": None,
-        }
-        image_response = self.image_use_case.execute()
-        token = self._service.get_download_token(
-            project_id=self._project.uuid,
-            team_id=self._project.team_id,
-            folder_id=self._folder.uuid,
-            image_id=image_response.data.uuid,
-        )
-        credentials = token["annotations"]["MAIN"][0]
-
-        annotation_json_creds = credentials["annotation_json_path"]
-        if self._project.project_type == constances.ProjectType.VECTOR.value:
-            file_postfix = "___objects.json"
-        else:
-            file_postfix = "___pixel.json"
-
-        response = requests.get(
-            url=annotation_json_creds["url"], headers=annotation_json_creds["headers"],
-        )
-        if not response.ok:
-            logger.warning(f"Couldn't load annotations {response.text}")
-            self._response.data = (None, None)
-            return self._response
-        data["annotation_json"] = response.json()
-        data["annotation_json_filename"] = f"{self._image_name}{file_postfix}"
-        mask_path = None
-        if self._project.project_type == constances.ProjectType.PIXEL.value:
-            annotation_blue_map_creds = credentials["annotation_bluemap_path"]
-            response = requests.get(
-                url=annotation_blue_map_creds["url"],
-                headers=annotation_blue_map_creds["headers"],
+    def validate_project_type(self):
+        if self._project.project_type == constances.ProjectType.VIDEO.value:
+            raise AppValidationException(
+                "The function does not support projects containing videos attached with URLs"
             )
-            data["annotation_mask"] = io.BytesIO(response.content)
-            data["annotation_mask_filename"] = f"{self._image_name}___save.png"
-            mask_path = Path(self._destination) / data["annotation_mask_filename"]
-            with open(mask_path, "wb") as f:
-                f.write(data["annotation_mask"].getbuffer())
 
-        json_path = Path(self._destination) / data["annotation_json_filename"]
-        with open(json_path, "w") as f:
-            json.dump(data["annotation_json"], f, indent=4)
+    def execute(self):
+        if self.is_valid():
+            data = {
+                "annotation_json": None,
+                "annotation_json_filename": None,
+                "annotation_mask": None,
+                "annotation_mask_filename": None,
+            }
+            image_response = self.image_use_case.execute()
+            token = self._service.get_download_token(
+                project_id=self._project.uuid,
+                team_id=self._project.team_id,
+                folder_id=self._folder.uuid,
+                image_id=image_response.data.uuid,
+            )
+            credentials = token["annotations"]["MAIN"][0]
 
-        self._response.data = (str(json_path), str(mask_path))
+            annotation_json_creds = credentials["annotation_json_path"]
+            if self._project.project_type == constances.ProjectType.VECTOR.value:
+                file_postfix = "___objects.json"
+            else:
+                file_postfix = "___pixel.json"
+
+            response = requests.get(
+                url=annotation_json_creds["url"],
+                headers=annotation_json_creds["headers"],
+            )
+            if not response.ok:
+                logger.warning(f"Couldn't load annotations {response.text}")
+                self._response.data = (None, None)
+                return self._response
+            data["annotation_json"] = response.json()
+            data["annotation_json_filename"] = f"{self._image_name}{file_postfix}"
+            mask_path = None
+            if self._project.project_type == constances.ProjectType.PIXEL.value:
+                annotation_blue_map_creds = credentials["annotation_bluemap_path"]
+                response = requests.get(
+                    url=annotation_blue_map_creds["url"],
+                    headers=annotation_blue_map_creds["headers"],
+                )
+                data["annotation_mask"] = io.BytesIO(response.content)
+                data["annotation_mask_filename"] = f"{self._image_name}___save.png"
+                mask_path = Path(self._destination) / data["annotation_mask_filename"]
+                with open(mask_path, "wb") as f:
+                    f.write(data["annotation_mask"].getbuffer())
+
+            json_path = Path(self._destination) / data["annotation_json_filename"]
+            with open(json_path, "w") as f:
+                json.dump(data["annotation_json"], f, indent=4)
+
+            self._response.data = (str(json_path), str(mask_path))
         return self._response
 
 
@@ -2220,19 +2326,26 @@ class GetProjectImageCountUseCase(BaseUseCase):
         self._folder = folder
         self._with_all_sub_folders = with_all_sub_folders
 
+    def validate_project_type(self):
+        if self._project.project_type == constances.ProjectType.VIDEO.value:
+            raise AppValidationException(
+                "The function does not support projects containing videos attached with URLs"
+            )
+
     def execute(self):
-        data = self._service.get_project_images_count(
-            project_id=self._project.uuid, team_id=self._project.team_id
-        )
-        count = 0
-        if self._with_all_sub_folders:
-            for i in data["data"]:
-                count += i["imagesCount"]
-        else:
-            for i in data["data"]:
-                if i["name"] == self._folder.name:
-                    count = i["imagesCount"]
-        self._response.data = count
+        if self.is_valid():
+            data = self._service.get_project_images_count(
+                project_id=self._project.uuid, team_id=self._project.team_id
+            )
+            count = 0
+            if self._with_all_sub_folders:
+                for i in data["data"]:
+                    count += i["imagesCount"]
+            else:
+                for i in data["data"]:
+                    if i["name"] == self._folder.name:
+                        count = i["imagesCount"]
+            self._response.data = count
         return self._response
 
 
@@ -2438,55 +2551,64 @@ class SetWorkflowUseCase(BaseUseCase):
         self._steps = steps
         self._project = project
 
+    def validate_project_type(self):
+        if self._project.project_type == constances.ProjectType.VIDEO.value:
+            raise AppValidationException(
+                "The function does not support projects containing videos attached with URLs"
+            )
+
     def execute(self):
-        annotation_classes = self._annotation_classes_repo.get_all()
-        annotation_classes_map = {}
-        annotations_classes_attributes_map = {}
-        for annnotation_class in annotation_classes:
-            annotation_classes_map[annnotation_class.name] = annnotation_class.uuid
-            for attribute_group in annnotation_class.attribute_groups:
-                for attribute in attribute_group["attributes"]:
-                    annotations_classes_attributes_map[
-                        f"{annnotation_class.name}__{attribute_group['name']}__{attribute['name']}"
-                    ] = attribute["id"]
+        if self.is_valid():
+            annotation_classes = self._annotation_classes_repo.get_all()
+            annotation_classes_map = {}
+            annotations_classes_attributes_map = {}
+            for annnotation_class in annotation_classes:
+                annotation_classes_map[annnotation_class.name] = annnotation_class.uuid
+                for attribute_group in annnotation_class.attribute_groups:
+                    for attribute in attribute_group["attributes"]:
+                        annotations_classes_attributes_map[
+                            f"{annnotation_class.name}__{attribute_group['name']}__{attribute['name']}"
+                        ] = attribute["id"]
 
-        for step in self._steps:
-            if "className" not in step:
-                continue
-            if "id" in step:
-                del step["id"]
-            step["class_id"] = annotation_classes_map[step["className"]]
+            for step in self._steps:
+                if "className" not in step:
+                    continue
+                if "id" in step:
+                    del step["id"]
+                step["class_id"] = annotation_classes_map[step["className"]]
 
-        self._service.set_project_workflow_bulk(
-            team_id=self._project.team_id,
-            project_id=self._project.uuid,
-            steps=self._steps,
-        )
-        existing_workflows = self._workflow_repo.get_all()
-        existing_workflows_map = {}
-        for workflow in existing_workflows:
-            existing_workflows_map[workflow.step] = workflow.uuid
+            self._service.set_project_workflow_bulk(
+                team_id=self._project.team_id,
+                project_id=self._project.uuid,
+                steps=self._steps,
+            )
+            existing_workflows = self._workflow_repo.get_all()
+            existing_workflows_map = {}
+            for workflow in existing_workflows:
+                existing_workflows_map[workflow.step] = workflow.uuid
 
-        req_data = []
-        for step in self._steps:
-            annotation_class_name = step["className"]
-            for attribute in step["attribute"]:
-                attribute_name = attribute["attribute"]["name"]
-                attribute_group_name = attribute["attribute"]["attribute_group"]["name"]
-                req_data.append(
-                    {
-                        "workflow_id": existing_workflows_map[step["step"]],
-                        "attribute_id": annotations_classes_attributes_map[
-                            f"{annotation_class_name}__{attribute_group_name}__{attribute_name}"
-                        ],
-                    }
-                )
+            req_data = []
+            for step in self._steps:
+                annotation_class_name = step["className"]
+                for attribute in step["attribute"]:
+                    attribute_name = attribute["attribute"]["name"]
+                    attribute_group_name = attribute["attribute"]["attribute_group"][
+                        "name"
+                    ]
+                    req_data.append(
+                        {
+                            "workflow_id": existing_workflows_map[step["step"]],
+                            "attribute_id": annotations_classes_attributes_map[
+                                f"{annotation_class_name}__{attribute_group_name}__{attribute_name}"
+                            ],
+                        }
+                    )
 
-        self._service.set_project_workflow_attributes_bulk(
-            project_id=self._project.uuid,
-            team_id=self._project.team_id,
-            attributes=req_data,
-        )
+            self._service.set_project_workflow_attributes_bulk(
+                project_id=self._project.uuid,
+                team_id=self._project.team_id,
+                attributes=req_data,
+            )
         return self._response
 
 
@@ -2712,37 +2834,46 @@ class DownloadImageUseCase(BaseUseCase):
             classes=classes,
         )
 
-    def execute(self):
-        self.get_image_use_case.execute()
-        image_bytes = self.get_image_use_case.execute().data
-        download_path = f"{self._download_path}/{self._image.name}"
-        if self._image_variant == "lores":
-            download_path = download_path + "___lores.jpg"
-        with open(download_path, "wb") as image_file:
-            image_file.write(image_bytes.getbuffer())
-
-        annotations = None
-        if self._include_annotations:
-            annotations = self.download_annotation_use_case.execute().data
-
-        fuse_image = None
-        if self._include_annotations and self._include_fuse:
-            classes = self.get_annotation_classes_ues_case.execute().data
-            fuse_image_use_case = CreateFuseImageUseCase(
-                project_type=constances.ProjectType.get_name(
-                    self._project.project_type
-                ),
-                image_path=download_path,
-                classes=[annotation_class.to_dict() for annotation_class in classes],
-                generate_overlay=self._include_overlay,
+    def validate_project_type(self):
+        if self._project.project_type == constances.ProjectType.VIDEO.value:
+            raise AppValidationException(
+                "The function does not support projects containing videos attached with URLs"
             )
-            fuse_image = fuse_image_use_case.execute().data
 
-        self._response.data = (
-            download_path,
-            annotations,
-            fuse_image,
-        )
+    def execute(self):
+        if self.is_valid():
+            self.get_image_use_case.execute()
+            image_bytes = self.get_image_use_case.execute().data
+            download_path = f"{self._download_path}/{self._image.name}"
+            if self._image_variant == "lores":
+                download_path = download_path + "___lores.jpg"
+            with open(download_path, "wb") as image_file:
+                image_file.write(image_bytes.getbuffer())
+
+            annotations = None
+            if self._include_annotations:
+                annotations = self.download_annotation_use_case.execute().data
+
+            fuse_image = None
+            if self._include_annotations and self._include_fuse:
+                classes = self.get_annotation_classes_ues_case.execute().data
+                fuse_image_use_case = CreateFuseImageUseCase(
+                    project_type=constances.ProjectType.get_name(
+                        self._project.project_type
+                    ),
+                    image_path=download_path,
+                    classes=[
+                        annotation_class.to_dict() for annotation_class in classes
+                    ],
+                    generate_overlay=self._include_overlay,
+                )
+                fuse_image = fuse_image_use_case.execute().data
+
+            self._response.data = (
+                download_path,
+                annotations,
+                fuse_image,
+            )
         return self._response
 
 
@@ -2765,6 +2896,12 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
         self._image_name = image_name
         self._annotations = annotations
         self._mask = mask
+
+    def validate_project_type(self):
+        if self._project.project_type == constances.ProjectType.VIDEO.value:
+            raise AppValidationException(
+                "The function does not support projects containing videos attached with URLs"
+            )
 
     @property
     def annotation_classes_name_map(self) -> dict:
@@ -2846,43 +2983,44 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
                 ][attribute["groupName"]]["attributes"]
 
     def execute(self):
-        image_data = self._backend_service.get_bulk_images(
-            images=[self._image_name],
-            folder_id=self._folder.uuid,
-            team_id=self._project.team_id,
-            project_id=self._project.uuid,
-        )[0]
-        auth_data = self._backend_service.get_annotation_upload_data(
-            project_id=self._project.uuid,
-            team_id=self._project.team_id,
-            folder_id=self._folder.uuid,
-            image_ids=[image_data["id"]],
-        )
-        session = boto3.Session(
-            aws_access_key_id=auth_data["creds"]["accessKeyId"],
-            aws_secret_access_key=auth_data["creds"]["secretAccessKey"],
-            aws_session_token=auth_data["creds"]["sessionToken"],
-            region_name=auth_data["creds"]["region"],
-        )
-        resource = session.resource("s3")
-        bucket = resource.Bucket(auth_data["creds"]["bucket"])
-        self.fill_classes_data(self._annotations)
-        bucket.put_object(
-            Key=auth_data["images"][str(image_data["id"])]["annotation_json_path"],
-            Body=json.dumps(self._annotations),
-        )
-        if (
-            self._project.project_type == constances.ProjectType.PIXEL.value
-            and self._mask
-        ):
-            with open(self._mask, "rb") as fin:
-                file = io.BytesIO(fin.read())
-            bucket.put_object(
-                Key=auth_data["images"][str(image_data["id"])][
-                    "annotation_bluemap_path"
-                ],
-                Body=file,
+        if self.is_valid():
+            image_data = self._backend_service.get_bulk_images(
+                images=[self._image_name],
+                folder_id=self._folder.uuid,
+                team_id=self._project.team_id,
+                project_id=self._project.uuid,
+            )[0]
+            auth_data = self._backend_service.get_annotation_upload_data(
+                project_id=self._project.uuid,
+                team_id=self._project.team_id,
+                folder_id=self._folder.uuid,
+                image_ids=[image_data["id"]],
             )
+            session = boto3.Session(
+                aws_access_key_id=auth_data["creds"]["accessKeyId"],
+                aws_secret_access_key=auth_data["creds"]["secretAccessKey"],
+                aws_session_token=auth_data["creds"]["sessionToken"],
+                region_name=auth_data["creds"]["region"],
+            )
+            resource = session.resource("s3")
+            bucket = resource.Bucket(auth_data["creds"]["bucket"])
+            self.fill_classes_data(self._annotations)
+            bucket.put_object(
+                Key=auth_data["images"][str(image_data["id"])]["annotation_json_path"],
+                Body=json.dumps(self._annotations),
+            )
+            if (
+                self._project.project_type == constances.ProjectType.PIXEL.value
+                and self._mask
+            ):
+                with open(self._mask, "rb") as fin:
+                    file = io.BytesIO(fin.read())
+                bucket.put_object(
+                    Key=auth_data["images"][str(image_data["id"])][
+                        "annotation_bluemap_path"
+                    ],
+                    Body=file,
+                )
         return self._response
 
 

@@ -221,7 +221,7 @@ def clone_project(
     :return: dict object metadata of the new project
     :rtype: dict
     """
-    result = controller.clone_project(
+    response = controller.clone_project(
         name=project_name,
         from_name=from_project,
         project_description=project_description,
@@ -229,8 +229,10 @@ def clone_project(
         copy_settings=copy_settings,
         copy_workflow=copy_workflow,
         copy_contributors=copy_contributors,
-    ).data
-    return ProjectSerializer(result).serialize()
+    )
+    if response.errors:
+        raise AppValidationException(response.errors)
+    return ProjectSerializer(response.data).serialize()
 
 
 def search_images(
@@ -255,15 +257,18 @@ def search_images(
 
     project_name, folder_name = extract_project_folder(project)
 
-    result = controller.search_images(
+    response = controller.search_images(
         project_name=project_name,
         folder_path=folder_name,
         annotation_status=annotation_status,
         image_name_prefix=image_name_prefix,
-    ).data
+    )
+    if response.errors:
+        raise AppValidationException(response.errors)
+
     if return_metadata:
-        return [ImageSerializer(image).serialize() for image in result]
-    return [image.name for image in result]
+        return [ImageSerializer(image).serialize() for image in response.data]
+    return [image.name for image in response.data]
 
 
 def create_folder(project, folder_name):
@@ -460,6 +465,12 @@ def copy_image(
     destination_project, destination_folder = extract_project_folder(
         destination_project
     )
+
+    project = controller.get_project_metadata(destination_project).data
+    if project["project"].project_type == constances.ProjectType.VIDEO.value:
+        raise AppValidationException(
+            "The function does not support projects containing videos attached with URLs"
+        )
 
     img_bytes = get_image_bytes(project=source_project, image_name=image_name)
 
@@ -660,6 +671,8 @@ def copy_images(
         include_annotations=include_annotations,
         include_pin=copy_pin,
     )
+    if res.errors:
+        raise AppValidationException(res.errors)
     skipped_images = res.data
     done_count = len(image_names) - len(skipped_images)
     message_postfix = "{from_path} to {to_path}."
@@ -689,6 +702,12 @@ def move_images(source_project, image_names, destination_project, *_, **__):
     :rtype: list of strs
     """
     project_name, source_folder_name = extract_project_folder(source_project)
+
+    project = controller.get_project_metadata(project_name).data
+    if project["project"].project_type == constances.ProjectType.VIDEO.value:
+        raise AppValidationException(
+            "The function does not support projects containing videos attached with URLs"
+        )
 
     _, destination_folder_name = extract_project_folder(destination_project)
 
@@ -800,6 +819,8 @@ def get_project_workflow(project):
     """
     project_name, folder_name = extract_project_folder(project)
     workflow = controller.get_project_workflow(project_name=project_name)
+    if workflow.errors:
+        raise AppValidationException(workflow.errors)
     return workflow.data
 
 
@@ -866,11 +887,13 @@ def set_project_default_image_quality_in_editor(project, image_quality_in_editor
     project_name, folder_name = extract_project_folder(project)
     image_quality_in_editor = ImageQuality.get_value(image_quality_in_editor)
 
-    updated = controller.set_project_settings(
+    response = controller.set_project_settings(
         project_name=project_name,
         new_settings=[{"attribute": "ImageQuality", "value": image_quality_in_editor}],
     )
-    return updated.data
+    if response.errors:
+        raise AppValidationException(response.errors)
+    return response.data
 
 
 def pin_image(project, image_name, pin=True):
@@ -916,8 +939,12 @@ def get_image_metadata(project, image_name, *_, **__):
     :rtype: dict
     """
     project_name, folder_name = extract_project_folder(project)
-    res_data = controller.get_image_metadata(project_name, folder_name, image_name).data
-    res_data["annotation_status"] = constances.AnnotationStatus.get_name(
+    response = controller.get_image_metadata(project_name, folder_name, image_name)
+    if response.errors:
+        raise AppValidationException(response.errors)
+
+    res_data = response.data
+    res_data.data["annotation_status"] = constances.AnnotationStatus.get_name(
         res_data["annotation_status"]
     )
     return res_data
@@ -935,9 +962,11 @@ def set_images_annotation_statuses(project, image_names, annotation_status):
     :type annotation_status: str
     """
     project_name, folder_name = extract_project_folder(project)
-    controller.set_images_annotation_statuses(
+    response = controller.set_images_annotation_statuses(
         project_name, folder_name, image_names, annotation_status
     )
+    if response.errors:
+        raise AppValidationException(response.errors)
 
 
 def delete_images(project, image_names=None):
@@ -950,9 +979,11 @@ def delete_images(project, image_names=None):
     """
     project_name, folder_name = extract_project_folder(project)
 
-    controller.delete_images(
+    response = controller.delete_images(
         project_name=project_name, folder_name=folder_name, image_names=image_names
     )
+    if response.errors:
+        raise AppValidationException(response.errors)
 
     logger.info(
         f"Images deleted in project {project_name}{'' if folder_name else '/' + folder_name}"
@@ -974,7 +1005,9 @@ def assign_images(project, image_names, user):
     project_name, folder_name = extract_project_folder(project)
     if not folder_name:
         folder_name = "root"
-    controller.assign_images(project_name, folder_name, image_names, user)
+    response = controller.assign_images(project_name, folder_name, image_names, user)
+    if response.errors:
+        raise AppValidationException(response.errors)
 
 
 def unassign_images(project, image_names):
@@ -1089,6 +1122,11 @@ def upload_images_from_google_cloud_to_project(
     failed_images = []
     duplicated_images = []
     project_name, folder_name = extract_project_folder(project)
+    project = controller.get_project_metadata(project_name)
+    if project["project"].project_type == constances.ProjectType.VIDEO.value:
+        raise AppValidationException(
+            "The function does not support projects containing videos attached with URLs"
+        )
     ProcessedImage = namedtuple("ProcessedImage", ["uploaded", "path", "entity"])
 
     def _upload_image(image_path: str) -> ProcessedImage:
@@ -1268,6 +1306,8 @@ def get_image_annotations(project, image_name):
     res = controller.get_image_annotations(
         project_name=project_name, folder_name=folder_name, image_name=image_name
     )
+    if res.errors:
+        raise AppValidationException(res)
     return res.data
 
 
@@ -1400,12 +1440,14 @@ def upload_images_from_folder_to_project(
             executor.submit(upload_method, image_path)
             for image_path in images_to_upload
         ]
-        for future in concurrent.futures.as_completed(results):
-            processed_image = future.result()
-            if processed_image.uploaded and processed_image.entity:
-                uploaded_image_entities.append(processed_image.entity)
-            else:
-                failed_images.append(processed_image.path)
+        with tqdm(total=len(images_to_upload)) as progress_bar:
+            for future in concurrent.futures.as_completed(results):
+                processed_image = future.result()
+                if processed_image.uploaded and processed_image.entity:
+                    uploaded_image_entities.append(processed_image.entity)
+                else:
+                    failed_images.append(processed_image.path)
+                progress_bar.update(1)
     uploaded = []
     duplicates = []
     for i in range(0, len(uploaded_image_entities), 500):
@@ -1441,6 +1483,8 @@ def get_project_image_count(project, with_all_subfolders=False):
         folder_name=folder_name,
         with_all_subfolders=with_all_subfolders,
     )
+    if response.errors:
+        raise AppValidationException(response.errors)
     return response.data
 
 
@@ -1487,6 +1531,8 @@ def download_image_annotations(project, image_name, local_dir_path):
         image_name=image_name,
         destination=local_dir_path,
     )
+    if res.errors:
+        raise AppValidationException(res.errors)
     return res.data
 
 
@@ -1613,6 +1659,8 @@ def prepare_export(
         only_pinned=only_pinned,
         annotation_statuses=annotation_statuses,
     )
+    if response.errors:
+        raise AppValidationException(response.errors)
     return response.data
 
 
@@ -1659,7 +1707,11 @@ def upload_videos_from_folder_to_project(
     """
 
     project_name, folder_name = extract_project_folder(project)
-
+    project = controller.get_project_metadata(project_name)
+    if project["project"].project_type == constances.ProjectType.VIDEO.value:
+        raise AppValidationException(
+            "The function does not support projects containing videos attached with URLs"
+        )
     uploaded_image_entities = []
     failed_images = []
 
@@ -1764,7 +1816,11 @@ def upload_video_to_project(
     """
 
     project_name, folder_name = extract_project_folder(project)
-
+    project = controller.get_project_metadata(project_name)
+    if project["project"].project_type == constances.ProjectType.VIDEO.value:
+        raise AppValidationException(
+            "The function does not support projects containing videos attached with URLs"
+        )
     uploaded_image_entities = []
     failed_images = []
 
@@ -1951,6 +2007,11 @@ def move_image(
         )
 
     source_project_name, source_folder_name = extract_project_folder(source_project)
+    project = controller.get_project_metadata(source_project_name).data
+    if project["project"].project_type == constances.ProjectType.VIDEO.value:
+        raise AppValidationException(
+            "The function does not support projects containing videos attached with URLs"
+        )
 
     destination_project, destination_folder = extract_project_folder(
         destination_project
@@ -2068,9 +2129,11 @@ def set_image_annotation_status(project, image_name, annotation_status):
     :rtype: dict
     """
     project_name, folder_name = extract_project_folder(project)
-    controller.set_images_annotation_statuses(
+    response = controller.set_images_annotation_statuses(
         project_name, folder_name, [image_name], annotation_status
     )
+    if response.errors:
+        raise AppValidationException(response.errors)
 
 
 def set_project_workflow(project, new_workflow):
@@ -2087,7 +2150,11 @@ def set_project_workflow(project, new_workflow):
     :type new_workflow: list of dicts
     """
     project_name, _ = extract_project_folder(project)
-    controller.set_project_workflow(project_name=project_name, steps=new_workflow)
+    response = controller.set_project_workflow(
+        project_name=project_name, steps=new_workflow
+    )
+    if response.errors:
+        raise AppValidationException(response.errors)
 
 
 def create_fuse_image(
@@ -2160,6 +2227,8 @@ def download_image(
         include_fuse=include_fuse,
         include_overlay=include_overlay,
     )
+    if response.errors:
+        raise AppValidationException(response.errors)
     return response.data
 
 
@@ -2177,6 +2246,11 @@ def attach_image_urls_to_project(project, attachments, annotation_status="NotSta
     :rtype: tuple
     """
     project_name, folder_name = extract_project_folder(project)
+    project = controller.get_project_metadata(project_name).data
+    if project["project"].project_type == constances.ProjectType.VIDEO.value:
+        raise AppValidationException(
+            "The function does not support projects containing videos attached with URLs"
+        )
 
     image_data = pd.read_csv(attachments, dtype=str)
     image_data = image_data[~image_data["url"].isnull()]
@@ -2259,6 +2333,11 @@ def upload_annotations_from_folder_to_project(
     """
 
     project_name, folder_name = extract_project_folder(project)
+    project = controller.get_project_metadata(project_name)
+    if project["project"].project_type == constances.ProjectType.VIDEO.value:
+        raise AppValidationException(
+            "The function does not support projects containing videos attached with URLs"
+        )
 
     annotation_paths = get_annotation_paths(
         folder_path, from_s3_bucket, recursive_subfolders
@@ -2313,6 +2392,11 @@ def upload_preannotations_from_folder_to_project(
     :rtype: tuple of list of strs
     """
     project_name, folder_name = extract_project_folder(project)
+    project = controller.get_project_metadata(project_name)
+    if project["project"].project_type == constances.ProjectType.VIDEO.value:
+        raise AppValidationException(
+            "The function does not support projects containing videos attached with URLs"
+        )
 
     annotation_paths = get_annotation_paths(
         folder_path, from_s3_bucket, recursive_subfolders
@@ -2369,13 +2453,15 @@ def upload_image_annotations(
             logger.info("Uploading annotations from %s.", annotation_json)
         annotation_json = json.load(open(annotation_json))
     project_name, folder_name = extract_project_folder(project)
-    controller.upload_image_annotations(
+    response = controller.upload_image_annotations(
         project_name=project_name,
         folder_name=folder_name,
         image_name=image_name,
         annotations=annotation_json,
         mask=mask,
     )
+    if response.errors:
+        raise AppValidationException(response.errors)
 
 
 def run_training(
@@ -2589,6 +2675,8 @@ def benchmark(
             annot_type=annot_type,
             show_plots=show_plots,
         )
+        if response.errors:
+            raise AppValidationException(response.errors)
     return response.data
 
 
@@ -2640,6 +2728,8 @@ def consensus(
             annot_type=annot_type,
             show_plots=show_plots,
         )
+        if response.errors:
+            raise AppValidationException(response.errors)
     return response.data
 
 
@@ -3093,6 +3183,12 @@ def upload_image_to_project(
     """
     project_name, folder_name = extract_project_folder(project)
 
+    project = controller.get_project_metadata(project_name).data
+    if project["project"].project_type == constances.ProjectType.VIDEO.value:
+        raise AppValidationException(
+            "The function does not support projects containing videos attached with URLs"
+        )
+
     if not isinstance(img, io.BytesIO):
         if from_s3_bucket:
             image_bytes = controller.get_image_from_s3(from_s3_bucket, image_name)
@@ -3176,6 +3272,12 @@ def upload_images_to_project(
     uploaded_image_entities = []
     failed_images = []
     project_name, folder_name = extract_project_folder(project)
+    project = controller.get_project_metadata(project_name).data
+    if project["project"].project_type == constances.ProjectType.VIDEO.value:
+        raise AppValidationException(
+            "The function does not support projects containing videos attached with URLs"
+        )
+
     ProcessedImage = namedtuple("ProcessedImage", ["uploaded", "path", "entity"])
 
     def _upload_local_image(image_path: str):
@@ -3228,17 +3330,20 @@ def upload_images_to_project(
         [item for item in duplication_counter if duplication_counter[item] > 1],
     )
     upload_method = _upload_s3_image if from_s3_bucket else _upload_local_image
+
     with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
         results = [
             executor.submit(upload_method, image_path)
             for image_path in images_to_upload
         ]
-        for future in concurrent.futures.as_completed(results):
-            processed_image = future.result()
-            if processed_image.uploaded and processed_image.entity:
-                uploaded_image_entities.append(processed_image.entity)
-            else:
-                failed_images.append(processed_image.path)
+        with tqdm(total=len(images_to_upload)) as progress_bar:
+            for future in concurrent.futures.as_completed(results):
+                processed_image = future.result()
+                if processed_image.uploaded and processed_image.entity:
+                    uploaded_image_entities.append(processed_image.entity)
+                else:
+                    failed_images.append(processed_image.path)
+                progress_bar.update(1)
     uploaded = []
     duplicates = []
     for i in range(0, len(uploaded_image_entities), 500):

@@ -5,6 +5,7 @@ from argparse import Namespace
 from pathlib import Path
 
 from lib.app.exceptions import AppException
+from lib.core.exceptions import AppValidationException
 
 from .export_from_sa_conversions import export_from_sa
 from .import_to_sa_conversions import import_to_sa
@@ -141,6 +142,10 @@ def export_annotation(
     project_type="Vector",
     task="object_detection",
 ):
+    if project_type == "Video":
+        raise AppValidationException(
+            "The function does not support projects containing videos attached with URLs"
+        )
     """Converts SuperAnnotate annotation formate to the other annotation formats. Currently available (project_type, task) combinations for converter
     presented below:
 

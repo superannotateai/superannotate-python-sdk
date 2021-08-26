@@ -625,6 +625,7 @@ class Controller(BaseController):
     def get_project_workflow(self, project_name: str):
         project_entity = self._get_project(project_name)
         use_case = usecases.GetWorkflowsUseCase(
+            project=project_entity,
             workflows=WorkflowRepository(
                 service=self._backend_client, project=project_entity
             ),
@@ -647,6 +648,7 @@ class Controller(BaseController):
     def set_project_settings(self, project_name: str, new_settings: List[dict]):
         project_entity = self._get_project(project_name)
         use_case = usecases.UpdateSettingsUseCase(
+            projects=self.projects,
             settings=ProjectSettingsRepository(
                 service=self._backend_client, project=project_entity
             ),
@@ -691,6 +693,7 @@ class Controller(BaseController):
         images_repo = ImageRepository(service=self._backend_client)
         use_case = usecases.SetImageAnnotationStatuses(
             service=self._backend_client,
+            projects=self.projects,
             image_names=image_names,
             team_id=project_entity.team_id,
             project_id=project_entity.uuid,
@@ -720,7 +723,7 @@ class Controller(BaseController):
     ):
         project_entity = self._get_project(project_name)
         use_case = usecases.AssignImagesUseCase(
-            project_entity=project_entity,
+            project=project_entity,
             service=self._backend_client,
             folder_name=folder_name,
             image_names=image_names,
@@ -1229,6 +1232,9 @@ class Controller(BaseController):
             include_fuse=False,
             only_pinned=False,
         )
+        if export_response.errors:
+            return export_response
+
         self.download_export(
             project_name=project.name,
             export_name=export_response.data["name"],
@@ -1265,6 +1271,8 @@ class Controller(BaseController):
             include_fuse=False,
             only_pinned=False,
         )
+        if export_response.errors:
+            return export_response
         self.download_export(
             project_name=project.name,
             export_name=export_response.data["name"],
