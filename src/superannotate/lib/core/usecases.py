@@ -10,7 +10,6 @@ import uuid
 import zipfile
 from abc import ABC
 from abc import abstractmethod
-from collections import Counter
 from collections import defaultdict
 from collections import namedtuple
 from functools import cached_property
@@ -4052,11 +4051,13 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
     def extensions(self):
         if not self._extensions:
             return constances.DEFAULT_IMAGE_EXTENSIONS
+        return self._extensions
 
     @property
     def exclude_file_patterns(self):
         if not self._exclude_file_patterns:
             return constances.DEFAULT_FILE_EXCLUDE_PATTERNS
+        return self._exclude_file_patterns
 
     def validate_project_type(self):
         if self._project.project_type == constances.ProjectType.VIDEO.value:
@@ -4181,7 +4182,9 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
         images_to_upload = images_to_upload[: self.auth_data["availableImageCount"]]
         uploaded_images = []
         failed_images = []
-        with concurrent.futures.ThreadPoolExecutor(max_workers=self.MAX_WORKERS) as executor:
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=self.MAX_WORKERS
+        ) as executor:
             results = [
                 executor.submit(self._upload_image, image_path)
                 for image_path in images_to_upload
