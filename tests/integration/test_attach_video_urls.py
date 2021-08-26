@@ -20,8 +20,7 @@ class TestVideoUrls(BaseTestCase):
         self.assertEqual(len(uploaded), 8)
         self.assertEqual(len(could_not_upload), 0)
         self.assertEqual(len(existing_images), 0)
-        images = sa.search_images(project=self.PROJECT_NAME, return_metadata=True)
-        self.assertTrue(all([image["name"] for image in images]))
+
 
     def test_attach_video_urls_without_name_column(self):
         uploaded, could_not_upload, existing_images = sa.attach_video_urls_to_project(
@@ -31,5 +30,3 @@ class TestVideoUrls(BaseTestCase):
         self.assertEqual(len(uploaded), 8)
         self.assertEqual(len(could_not_upload), 0)
         self.assertEqual(len(existing_images), 0)
-        images = sa.search_images(project=self.PROJECT_NAME, return_metadata=True)
-        self.assertTrue(all([image["name"] for image in images]))

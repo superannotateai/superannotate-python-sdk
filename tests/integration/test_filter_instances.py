@@ -7,7 +7,7 @@ import src.superannotate as sa
 from tests.integration.base import BaseTestCase
 
 
-class TestFolders(BaseTestCase):
+class TestFilterInstances(BaseTestCase):
     PROJECT_NAME = "test filter instances"
     PROJECT_TYPE = "Vector"
     TEST_FOLDER_PATH = "data_set/sample_project_vector"

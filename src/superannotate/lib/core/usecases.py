@@ -381,11 +381,11 @@ class GetImagesUseCase(BaseUseCase):
         self._annotation_status = annotation_status
         self._image_name_prefix = image_name_prefix
 
-    def validate_project_type(self):
-        if self._project.project_type == constances.ProjectType.VIDEO.value:
-            raise AppValidationException(
-                "The function does not support projects containing videos attached with URLs"
-            )
+    # def validate_project_type(self):
+    #     if self._project.project_type == constances.ProjectType.VIDEO.value:
+    #         raise AppValidationException(
+    #             "The function does not support projects containing videos attached with URLs"
+    #         )
 
     def execute(self):
         if self.is_valid():
@@ -1847,7 +1847,9 @@ class GetProjectMetadataUseCase(BaseUseCase):
     @property
     def work_flow_use_case(self):
         return GetWorkflowsUseCase(
-            workflows=self._workflows, annotation_classes=self._annotation_classes,
+            project=self._project,
+            workflows=self._workflows,
+            annotation_classes=self._annotation_classes,
         )
 
     def execute(self):

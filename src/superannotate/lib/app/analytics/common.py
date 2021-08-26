@@ -173,7 +173,11 @@ def aggregate_annotations_as_df(
     """
 
     json_paths = list(Path(str(project_root)).glob("*.json"))
-    if json_paths and "___pixel.json" not in json_paths[0].name and "___objects.json" not in json_paths[0].name:
+    if (
+        json_paths
+        and "___pixel.json" not in json_paths[0].name
+        and "___objects.json" not in json_paths[0].name
+    ):
         raise AppException(
             "The function does not support projects containing videos attached with URLs"
         )

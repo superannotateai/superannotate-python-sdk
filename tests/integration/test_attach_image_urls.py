@@ -12,7 +12,7 @@ class TestImageUrls(BaseTestCase):
     PROJECT_TYPE = "Vector"
 
     def test_attach_image_urls(self):
-        uploaded, could_not_upload, existing_images = sa.attach_video_urls_to_project(
+        uploaded, could_not_upload, existing_images = sa.attach_image_urls_to_project(
             self.PROJECT_NAME,
             os.path.join(dirname(dirname(__file__)), self.PATH_TO_URLS),
         )

@@ -3,8 +3,8 @@ from pathlib import Path
 
 import pandas as pd
 import plotly.express as px
-from superannotate.lib.app.mixp.decorators import Trackable
 from superannotate.lib.app.exceptions import AppException
+from superannotate.lib.app.mixp.decorators import Trackable
 
 from .common import aggregate_annotations_as_df
 
@@ -26,7 +26,11 @@ def class_distribution(export_root, project_names, visualize=False):
     """
 
     json_paths = list(Path(str(export_root)).glob("*.json"))
-    if json_paths and "___pixel.json" not in json_paths[0].name and "___objects.json" not in json_paths[0].name:
+    if (
+        json_paths
+        and "___pixel.json" not in json_paths[0].name
+        and "___objects.json" not in json_paths[0].name
+    ):
         raise AppException(
             "The function does not support projects containing videos attached with URLs"
         )
