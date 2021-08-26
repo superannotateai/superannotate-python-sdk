@@ -1180,7 +1180,7 @@ def upload_images_from_google_cloud_to_project(
     failed_images = []
     duplicated_images = []
     project_name, folder_name = extract_project_folder(project)
-    project = controller.get_project_metadata(project_name)
+    project = controller.get_project_metadata(project_name).data
     if project["project"].project_type == constances.ProjectType.VIDEO.value:
         raise AppValidationException(
             "The function does not support projects containing videos attached with URLs"
@@ -1281,7 +1281,7 @@ def upload_images_from_azure_blob_to_project(
     failed_images = []
     duplicated_images = []
     project_name, folder_name = extract_project_folder(project)
-    project = controller.get_project_metadata(project_name)
+    project = controller.get_project_metadata(project_name).data
     if project["project"].project_type == constances.ProjectType.VIDEO.value:
         raise AppValidationException(
             "The function does not support projects containing videos attached with URLs"
@@ -1782,7 +1782,7 @@ def upload_videos_from_folder_to_project(
     """
 
     project_name, folder_name = extract_project_folder(project)
-    project = controller.get_project_metadata(project_name)
+    project = controller.get_project_metadata(project_name).data
     if project["project"].project_type == constances.ProjectType.VIDEO.value:
         raise AppValidationException(
             "The function does not support projects containing videos attached with URLs"
@@ -1892,7 +1892,7 @@ def upload_video_to_project(
     """
 
     project_name, folder_name = extract_project_folder(project)
-    project = controller.get_project_metadata(project_name)
+    project = controller.get_project_metadata(project_name).data
     if project["project"].project_type == constances.ProjectType.VIDEO.value:
         raise AppValidationException(
             "The function does not support projects containing videos attached with URLs"
@@ -2421,7 +2421,7 @@ def upload_annotations_from_folder_to_project(
     """
 
     project_name, folder_name = extract_project_folder(project)
-    project = controller.get_project_metadata(project_name)
+    project = controller.get_project_metadata(project_name).data
     if project["project"].project_type == constances.ProjectType.VIDEO.value:
         raise AppValidationException(
             "The function does not support projects containing videos attached with URLs"
@@ -2481,7 +2481,7 @@ def upload_preannotations_from_folder_to_project(
     :rtype: tuple of list of strs
     """
     project_name, folder_name = extract_project_folder(project)
-    project = controller.get_project_metadata(project_name)
+    project = controller.get_project_metadata(project_name).data
     if project["project"].project_type == constances.ProjectType.VIDEO.value:
         raise AppValidationException(
             "The function does not support projects containing videos attached with URLs"

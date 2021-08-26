@@ -18,3 +18,4 @@ google-cloud-storage>=1.33.0
 azure-storage-blob>=12.6.0
 fire==0.4.0
 Shapely>=1.7.1
+mixpanel>=4.8.3
