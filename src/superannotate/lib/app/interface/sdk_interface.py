@@ -1415,118 +1415,26 @@ def upload_images_from_folder_to_project(
     :return: uploaded, could-not-upload, existing-images filepaths
     :rtype: tuple (3 members) of list of strs
     """
-    uploaded_image_entities = []
-    failed_images = []
+
     project_name, folder_name = extract_project_folder(project)
-    ProcessedImage = namedtuple("ProcessedImage", ["uploaded", "path", "entity"])
-
-    def _upload_local_image(image_path: str):
-        with open(image_path, "rb") as image:
-            image_bytes = BytesIO(image.read())
-            upload_response = controller.upload_image_to_s3(
-                project_name=project_name,
-                image_path=image_path,
-                image_bytes=image_bytes,
-                folder_name=folder_name,
-                image_quality_in_editor=image_quality_in_editor,
-            )
-
-            if not upload_response.errors and upload_response.data:
-                entity = upload_response.data
-                return ProcessedImage(uploaded=True, path=entity.path, entity=entity)
-            else:
-                return ProcessedImage(uploaded=False, path=image_path, entity=None)
-
-    def _upload_s3_image(image_path: str):
-        try:
-            image_bytes = controller.get_image_from_s3(
-                s3_bucket=from_s3_bucket, image_path=image_path
-            ).data
-        except AppValidationException as e:
-            logger.warning(e)
-            return image_path
-        upload_response = controller.upload_image_to_s3(
-            project_name=project_name,
-            image_path=image_path,
-            image_bytes=image_bytes,
-            folder_name=folder_name,
-            image_quality_in_editor=image_quality_in_editor,
-        )
-        if not upload_response.errors and upload_response.data:
-            entity = upload_response.data
-            return ProcessedImage(uploaded=True, path=entity.path, entity=entity)
-        else:
-            return ProcessedImage(uploaded=False, path=image_path, entity=None)
-
-    paths = []
-    if from_s3_bucket is None:
-        for extension in extensions:
-            if recursive_subfolders:
-                paths += list(Path(folder_path).rglob(f"*.{extension.lower()}"))
-                if os.name != "nt":
-                    paths += list(Path(folder_path).rglob(f"*.{extension.upper()}"))
-            else:
-                paths += list(Path(folder_path).glob(f"*.{extension.lower()}"))
-                if os.name != "nt":
-                    paths += list(Path(folder_path).glob(f"*.{extension.upper()}"))
-
-    else:
-        s3_client = boto3.client("s3")
-        paginator = s3_client.get_paginator("list_objects_v2")
-        response_iterator = paginator.paginate(
-            Bucket=from_s3_bucket, Prefix=folder_path
-        )
-        for response in response_iterator:
-            for object_data in response["Contents"]:
-                key = object_data["Key"]
-                if not recursive_subfolders and "/" in key[len(folder_path) + 1 :]:
-                    continue
-                for extension in extensions:
-                    if key.endswith(f".{extension.lower()}") or key.endswith(
-                        f".{extension.upper()}"
-                    ):
-                        paths.append(key)
-                        break
-
-    filtered_paths = []
-    for path in paths:
-        not_in_exclude_list = [x not in Path(path).name for x in exclude_file_patterns]
-        if all(not_in_exclude_list):
-            filtered_paths.append(path)
-
-    duplication_counter = Counter(filtered_paths)
-    images_to_upload, duplicated_images = (
-        set(filtered_paths),
-        [item for item in duplication_counter if duplication_counter[item] > 1],
+    use_case = controller.upload_images_from_folder_to_project(
+        project_name=project_name,
+        folder_name=folder_name,
+        folder_path=folder_path,
+        extensions=extensions,
+        annotation_status=annotation_status,
+        from_s3_bucket=from_s3_bucket,
+        exclude_file_patterns=exclude_file_patterns,
+        recursive_sub_folders=recursive_subfolders,
+        image_quality_in_editor=image_quality_in_editor,
     )
-    upload_method = _upload_s3_image if from_s3_bucket else _upload_local_image
-    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-        results = [
-            executor.submit(upload_method, image_path)
-            for image_path in images_to_upload
-        ]
+    images_to_upload, _ = use_case.images_to_upload
+    if use_case.is_valid():
         with tqdm(total=len(images_to_upload)) as progress_bar:
-            for future in concurrent.futures.as_completed(results):
-                processed_image = future.result()
-                if processed_image.uploaded and processed_image.entity:
-                    uploaded_image_entities.append(processed_image.entity)
-                else:
-                    failed_images.append(processed_image.path)
+            for _ in use_case.execute():
                 progress_bar.update(1)
-    uploaded = []
-    duplicates = []
-    for i in range(0, len(uploaded_image_entities), 500):
-        response = controller.upload_images(
-            project_name=project_name,
-            folder_name=folder_name,
-            images=uploaded_image_entities[i : i + 500],  # noqa: E203
-            annotation_status=annotation_status,
-        )
-        attachments, duplications = response.data
-        uploaded.extend(attachments)
-        duplicates.extend(duplications)
-
-    return uploaded, failed_images, duplicates
+        return use_case.data
+    raise AppValidationException(use_case.response.errors)
 
 
 @Trackable
@@ -1782,28 +1690,6 @@ def upload_videos_from_folder_to_project(
     """
 
     project_name, folder_name = extract_project_folder(project)
-    project = controller.get_project_metadata(project_name).data
-    if project["project"].project_type == constances.ProjectType.VIDEO.value:
-        raise AppValidationException(
-            "The function does not support projects containing videos attached with URLs"
-        )
-    uploaded_image_entities = []
-    failed_images = []
-
-    def _upload_image(image_path: str) -> str:
-        with open(image_path, "rb") as image:
-            image_bytes = BytesIO(image.read())
-            upload_response = controller.upload_image_to_s3(
-                project_name=project_name,
-                image_path=image_path,
-                image_bytes=image_bytes,
-                folder_name=folder_name,
-                image_quality_in_editor=image_quality_in_editor,
-            )
-            if not upload_response.errors:
-                uploaded_image_entities.append(upload_response.data)
-            else:
-                return image_path
 
     video_paths = []
     for extension in extensions:
@@ -1821,7 +1707,9 @@ def upload_videos_from_folder_to_project(
         not_in_exclude_list = [x not in Path(path).name for x in exclude_file_patterns]
         if all(not_in_exclude_list):
             filtered_paths.append(path)
-    for path in video_paths:
+
+    uploaded_images, failed_images = [], []
+    for path in tqdm(video_paths):
         with tempfile.TemporaryDirectory() as temp_path:
             res = controller.extract_video_frames(
                 project_name=project_name,
@@ -1834,25 +1722,25 @@ def upload_videos_from_folder_to_project(
                 annotation_status=annotation_status,
                 image_quality_in_editor=image_quality_in_editor,
             )
-            if not res.errors:
-                extracted_frame_paths = res.data
-                # with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-                #     for image_path in extracted_frame_paths:
-                #         failed_images.append(executor.submit(_upload_image, image_path))
-                for image_path in extracted_frame_paths:
-                    failed_images.append(_upload_image(image_path))
-    for i in range(0, len(uploaded_image_entities), 500):
-        controller.upload_images(
-            project_name=project_name,
-            folder_name=folder_name,
-            images=uploaded_image_entities[i : i + 500],  # noqa: E203
-            annotation_status=annotation_status,
-        )
-    uploaded_images = [
-        image.path
-        for image in uploaded_image_entities
-        if image.name not in failed_images
-    ]
+            if res.errors:
+                raise AppException(res.errors)
+            use_case = controller.upload_images_from_folder_to_project(
+                project_name=project_name,
+                folder_name=folder_name,
+                folder_path=temp_path,
+                annotation_status=annotation_status,
+                image_quality_in_editor=image_quality_in_editor,
+            )
+            images_to_upload, _ = use_case.images_to_upload
+            if use_case.is_valid():
+                for _ in use_case.execute():
+                    pass
+                uploaded, failed_images, _ = use_case.data
+                uploaded_images.append(uploaded)
+                failed_images.append(failed_images)
+            else:
+                raise AppValidationException(use_case.response.errors)
+
     return uploaded_images, failed_images
 
 
@@ -1892,28 +1780,6 @@ def upload_video_to_project(
     """
 
     project_name, folder_name = extract_project_folder(project)
-    project = controller.get_project_metadata(project_name).data
-    if project["project"].project_type == constances.ProjectType.VIDEO.value:
-        raise AppValidationException(
-            "The function does not support projects containing videos attached with URLs"
-        )
-    uploaded_image_entities = []
-    failed_images = []
-
-    def _upload_image(image_path: str) -> str:
-        with open(image_path, "rb") as image:
-            image_bytes = BytesIO(image.read())
-            upload_response = controller.upload_image_to_s3(
-                project_name=project_name,
-                image_path=image_path,
-                image_bytes=image_bytes,
-                folder_name=folder_name,
-            )
-            if not upload_response.errors:
-                uploaded_image_entities.append(upload_response.data)
-            else:
-                return image_path
-
     with tempfile.TemporaryDirectory() as temp_path:
         res = controller.extract_video_frames(
             project_name=project_name,
@@ -1926,25 +1792,22 @@ def upload_video_to_project(
             annotation_status=annotation_status,
             image_quality_in_editor=image_quality_in_editor,
         )
-        if not res.errors:
-            extracted_frame_paths = res.data
-            with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-                for image_path in extracted_frame_paths:
-                    failed_images.append(executor.submit(_upload_image, image_path))
-
-    for i in range(0, len(uploaded_image_entities), 500):
-        controller.upload_images(
+        if res.errors:
+            raise AppException(res.errors)
+        use_case = controller.upload_images_from_folder_to_project(
             project_name=project_name,
             folder_name=folder_name,
-            images=uploaded_image_entities[i : i + 500],  # noqa: E203
+            folder_path=temp_path,
             annotation_status=annotation_status,
+            image_quality_in_editor=image_quality_in_editor,
         )
-    uploaded_images = [
-        image.name
-        for image in uploaded_image_entities
-        if image.name not in failed_images
-    ]
-    return uploaded_images
+        images_to_upload, _ = use_case.images_to_upload
+        if use_case.is_valid():
+            with tqdm(total=len(images_to_upload)) as progress_bar:
+                for _ in use_case.execute():
+                    progress_bar.update(1)
+            return use_case.data[0]
+        raise AppValidationException(use_case.response.errors)
 
 
 @Trackable

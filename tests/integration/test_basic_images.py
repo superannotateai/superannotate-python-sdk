@@ -81,7 +81,7 @@ class TestPixelImages(BaseTestCase):
                         ann["className"] in [downloaded_class["name"], "Personal vehicle1"]]):
                     break
                 else:
-                    assert False
+                    raise AssertionError
 
             input_classes = json.load(open(self.classes_json_path))
             assert len(downloaded_classes) == len(input_classes)
@@ -98,6 +98,7 @@ class TestPixelImages(BaseTestCase):
             #             break
             #     assert found
             #
+
 
 class TestVectorImages(BaseTestCase):
     PROJECT_NAME = "sample_project_vector"
@@ -155,7 +156,6 @@ class TestVectorImages(BaseTestCase):
                     "annotation_json_filename"
                 ]
             )
-
             sa.download_image_annotations(self.PROJECT_NAME, image_name, temp_dir)
             annotation = list(Path(temp_dir).glob("*.json"))
             self.assertEqual(len(annotation), 1)
@@ -164,7 +164,7 @@ class TestVectorImages(BaseTestCase):
             sa.download_annotation_classes_json(self.PROJECT_NAME, temp_dir)
             downloaded_classes = json.load(open(f"{temp_dir}/classes.json"))
 
-            for instance in [instance for instance in annotation if instance.get("className", False)]:
+            for instance in [instance for instance in annotation["instances"] if instance.get("className", False)]:
                 for downloaded_class in downloaded_classes:
                     if (
                             instance["className"] == downloaded_class["name"]
@@ -172,7 +172,7 @@ class TestVectorImages(BaseTestCase):
                     ):  # "Personal vehicle1" is not existing class in annotations
                         break
                 else:
-                    assert False
+                    raise AssertionError
 
             input_classes = json.load(open(self.classes_json_path))
             assert len(downloaded_classes) == len(input_classes)
