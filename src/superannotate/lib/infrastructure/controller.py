@@ -3,6 +3,7 @@ import io
 from functools import cached_property
 from typing import Iterable
 from typing import List
+from typing import Optional
 
 import lib.core as constances
 from lib.core import usecases
@@ -241,7 +242,7 @@ class Controller(BaseController):
         folder = self._get_folder(project, folder_name)
         s3_repo = self.get_s3_repository(self.team_id, project.uuid, folder.uuid)
         auth_data = self.get_auth_data(project.uuid, self.team_id, folder.uuid)
-        use_case = usecases.UploadImageS3UseCas(
+        use_case = usecases.UploadImageS3UseCase(
             project=project,
             project_settings=ProjectSettingsRepository(self._backend_client, project),
             image_path=image_path,
@@ -251,6 +252,38 @@ class Controller(BaseController):
             image_quality_in_editor=image_quality_in_editor,
         )
         return use_case.execute()
+
+    def upload_images_from_folder_to_project(
+        self,
+        project_name: str,
+        folder_name: str,
+        folder_path: str,
+        extensions: Optional[List[str]] = None,
+        annotation_status: str = None,
+        exclude_file_patterns: Optional[List[str]] = None,
+        recursive_sub_folders: Optional[bool] = None,
+        image_quality_in_editor: str = None,
+        from_s3_bucket=None,
+    ):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+
+        return usecases.UploadImagesFromFolderToProject(
+            project=project,
+            folder=folder,
+            settings=ProjectSettingsRepository(
+                service=self._backend_client, project=project
+            ),
+            s3_repo=self.s3_repo,
+            backend_client=self._backend_client,
+            folder_path=folder_path,
+            extensions=extensions,
+            annotation_status=annotation_status,
+            from_s3_bucket=from_s3_bucket,
+            exclude_file_patterns=exclude_file_patterns,
+            recursive_sub_folders=recursive_sub_folders,
+            image_quality_in_editor=image_quality_in_editor,
+        )
 
     def clone_project(
         self,

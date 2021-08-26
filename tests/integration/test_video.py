@@ -12,6 +12,7 @@ class TestVideo(BaseTestCase):
     PROJECT_TYPE = "Vector"
     TEST_FOLDER_NAME = "new_folder"
     TEST_VIDEO_FOLDER_PATH = "data_set/sample_videos/single"
+    TEST_VIDEO_NAME = "video.mp4"
 
     @property
     def folder_path(self):
@@ -32,7 +33,7 @@ class TestVideo(BaseTestCase):
             for project in projects:
                 sa.delete_project(project)
 
-    def test_video(self):
+    def test_video_upload_from_folder(self):
         sa.upload_videos_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path, target_fps=1
         )
@@ -48,6 +49,13 @@ class TestVideo(BaseTestCase):
             len(sa.search_images(f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME}")),
             len(sa.search_images(self.PROJECT_NAME)),
         )
+
+    def test_single_video_upload(self):
+        sa.upload_video_to_project(
+            self.PROJECT_NAME, f"{self.folder_path}/{self.TEST_VIDEO_NAME}", target_fps=1
+        )
+        self.assertEqual(len(sa.search_images(self.PROJECT_NAME)), 4)
+
 
     #  todo check
     # def test_video_deep(self):
