@@ -1102,20 +1102,24 @@ def assign_images(*args, **kwargs):
     user = kwargs.get("user", None)
     if not user:
         user = args[2]
-    from superannotate.db.users import get_team_contributor_metadata
 
-    res = get_team_contributor_metadata(user)
+    contributors = controller.get_project_metadata(
+        project_name=project, include_contributors=True
+    ).data["contributors"]
+    contributor = None
+    for c in contributors:
+        if c["user_id"] == user:
+            contributor = c
     user_role = "ADMIN"
-    if res["user_role"] == 3:
+    if contributor["user_role"] == 3:
         user_role = "ANNOTATOR"
-    if res["user_role"] == 4:
+    if contributor["user_role"] == 4:
         user_role = "QA"
-    from superannotate.db.project_api import get_project_and_folder_metadata
-
-    project, folder = get_project_and_folder_metadata(project)
+    _, folder_name = extract_project_folder(project)
     is_root = True
-    if folder:
+    if folder_name:
         is_root = False
+
     return {
         "event_name": "assign_images",
         "properties": {

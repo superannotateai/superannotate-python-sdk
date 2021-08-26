@@ -994,6 +994,7 @@ def delete_images(project, image_names=None):
     )
 
 
+@Trackable
 def assign_images(project, image_names, user):
     """Assigns images to a user. The assignment role, QA or Annotator, will
     be deduced from the user's role in the project. With SDK, the user can be
@@ -1009,6 +1010,21 @@ def assign_images(project, image_names, user):
     project_name, folder_name = extract_project_folder(project)
     if not folder_name:
         folder_name = "root"
+
+    contributors = controller.get_project_metadata(
+        project_name=project_name, include_contributors=True
+    ).data["contributors"]
+    contributor = None
+    for c in contributors:
+        if c["user_id"] == user:
+            contributor = user
+
+    if not contributor:
+        logger.warning(
+            f"Skipping {user}. {user} is not a verified contributor for the {project_name}"
+        )
+        return
+
     controller.assign_images(project_name, folder_name, image_names, user)
 
 
@@ -3338,3 +3354,49 @@ def upload_images_to_project(
         duplicates.extend(duplications)
 
     return uploaded, failed_images, duplicates
+
+
+@Trackable
+def aggregate_annotations_as_df(
+    project_root,
+    include_classes_wo_annotations=False,
+    include_comments=False,
+    include_tags=False,
+    verbose=True,
+    folder_names=None,
+):
+    """Aggregate annotations as pandas dataframe from project root.
+
+    :param project_root: export path of the project
+    :type project_root: Pathlike (str or Path)
+    :param include_classes_wo_annotations: enables inclusion of classes info
+                                           that have no instances in annotations
+    :type include_classes_wo_annotations: bool
+    :param include_comments: enables inclusion of comments info as commentResolved column
+    :type include_comments: bool
+    :param include_tags: enables inclusion of tags info as tag column
+    :type include_tags: bool
+    :param folder_names: Aggregate the specified folders from project_root.
+                                If None aggregate all folders in the project_root.
+    :type folder_names: (list of str)
+
+    :return: DataFrame on annotations with columns:
+                                        "imageName", "instanceId",
+                                        "className", "attributeGroupName", "attributeName", "type", "error", "locked",
+                                        "visible", "trackingId", "probability", "pointLabels",
+                                        "meta" (geometry information as string), "commentResolved", "classColor",
+                                        "groupId", "imageWidth", "imageHeight", "imageStatus", "imagePinned",
+                                        "createdAt", "creatorRole", "creationType", "creatorEmail", "updatedAt",
+                                        "updatorRole", "updatorEmail", "tag", "folderName"
+    :rtype: pandas DataFrame
+    """
+    from superannotate.lib.app.analytics.common import aggregate_annotations_as_df
+
+    aggregate_annotations_as_df(
+        project_root,
+        include_classes_wo_annotations,
+        include_comments,
+        include_tags,
+        verbose,
+        folder_names,
+    )
