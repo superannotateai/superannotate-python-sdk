@@ -1281,6 +1281,11 @@ def upload_images_from_azure_blob_to_project(
     failed_images = []
     duplicated_images = []
     project_name, folder_name = extract_project_folder(project)
+    project = controller.get_project_metadata(project_name)
+    if project["project"].project_type == constances.ProjectType.VIDEO.value:
+        raise AppValidationException(
+            "The function does not support projects containing videos attached with URLs"
+        )
     ProcessedImage = namedtuple("ProcessedImage", ["uploaded", "path", "entity"])
 
     def _upload_image(image_path: str) -> ProcessedImage:
@@ -1621,6 +1626,8 @@ def download_image_preannotations(project, image_name, local_dir_path):
         image_name=image_name,
         destination=local_dir_path,
     )
+    if res.errors:
+        raise AppValidationException(res.errors)
     return res.data
 
 

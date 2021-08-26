@@ -146,3 +146,4 @@ debug_*
 *.idea
 *.DS_Store
 htmlcov
+htmlcov

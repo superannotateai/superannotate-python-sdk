@@ -2004,6 +2004,12 @@ class GetImagePreAnnotationsUseCase(BaseUseCase):
             images=self._images,
         )
 
+    def validate_project_type(self):
+        if self._project.project_type == constances.ProjectType.VIDEO.value:
+            raise AppValidationException(
+                "The function does not support projects containing videos attached with URLs"
+            )
+
     def execute(self):
         data = {
             "preannotation_json": None,
@@ -2205,7 +2211,7 @@ class DownloadImagePreAnnotationsUseCase(BaseUseCase):
         with open(json_path, "w") as f:
             json.dump(data["preannotation_json"], f, indent=4)
 
-        self._response.data = (str(json_path), str(mask_path))
+            self._response.data = (str(json_path), str(mask_path))
         return self._response
 
 

@@ -263,7 +263,7 @@ def get_image_annotations(*args, **kwargs):
         project = args[0]
     return {
         "event_name": "get_image_annotations",
-        "properties": {"project_name": get_project_name(project),},
+        "properties": {"project_name": get_project_name(project)},
     }
 
 
@@ -273,7 +273,7 @@ def get_image_preannotations(*args, **kwargs):
         project = args[0]
     return {
         "event_name": "get_image_preannotations",
-        "properties": {"project_name": get_project_name(project),},
+        "properties": {"project_name": get_project_name(project)},
     }
 
 
@@ -283,7 +283,7 @@ def download_image_annotations(*args, **kwargs):
         project = args[0]
     return {
         "event_name": "download_image_annotations",
-        "properties": {"project_name": get_project_name(project),},
+        "properties": {"project_name": get_project_name(project)},
     }
 
 
@@ -293,7 +293,7 @@ def download_image_preannotations(*args, **kwargs):
         project = args[0]
     return {
         "event_name": "download_image_preannotations",
-        "properties": {"project_name": get_project_name(project),},
+        "properties": {"project_name": get_project_name(project)},
     }
 
 
@@ -303,7 +303,7 @@ def get_image_metadata(*args, **kwargs):
         project = args[0]
     return {
         "event_name": "get_image_metadata",
-        "properties": {"project_name": get_project_name(project),},
+        "properties": {"project_name": get_project_name(project)},
     }
 
 
@@ -313,7 +313,7 @@ def get_image_bytes(*args, **kwargs):
         project = args[0]
     return {
         "event_name": "get_image_bytes",
-        "properties": {"project_name": get_project_name(project),},
+        "properties": {"project_name": get_project_name(project)},
     }
 
 
@@ -323,7 +323,7 @@ def delete_image(*args, **kwargs):
         project = args[0]
     return {
         "event_name": "delete_image",
-        "properties": {"project_name": get_project_name(project),},
+        "properties": {"project_name": get_project_name(project)},
     }
 
 
@@ -333,7 +333,7 @@ def add_annotation_comment_to_image(*args, **kwargs):
         project = args[0]
     return {
         "event_name": "add_annotation_comment_to_image",
-        "properties": {"project_name": get_project_name(project),},
+        "properties": {"project_name": get_project_name(project)},
     }
 
 
@@ -343,7 +343,7 @@ def delete_annotation_class(*args, **kwargs):
         project = args[0]
     return {
         "event_name": "delete_annotation_class",
-        "properties": {"project_name": get_project_name(project),},
+        "properties": {"project_name": get_project_name(project)},
     }
 
 
@@ -353,7 +353,7 @@ def get_annotation_class_metadata(*args, **kwargs):
         project = args[0]
     return {
         "event_name": "get_annotation_class_metadata",
-        "properties": {"project_name": get_project_name(project),},
+        "properties": {"project_name": get_project_name(project)},
     }
 
 
@@ -363,7 +363,7 @@ def download_annotation_classes_json(*args, **kwargs):
         project = args[0]
     return {
         "event_name": "download_annotation_classes_json",
-        "properties": {"project_name": get_project_name(project),},
+        "properties": {"project_name": get_project_name(project)},
     }
 
 
@@ -373,7 +373,7 @@ def search_annotation_classes(*args, **kwargs):
         project = args[0]
     return {
         "event_name": "search_annotation_classes",
-        "properties": {"project_name": get_project_name(project),},
+        "properties": {"project_name": get_project_name(project)},
     }
 
 
@@ -383,7 +383,7 @@ def unshare_project(*args, **kwargs):
         project = args[0]
     return {
         "event_name": "unshare_project",
-        "properties": {"project_name": get_project_name(project),},
+        "properties": {"project_name": get_project_name(project)},
     }
 
 
@@ -393,7 +393,7 @@ def get_project_image_count(*args, **kwargs):
         project = args[0]
     return {
         "event_name": "get_project_image_count",
-        "properties": {"project_name": get_project_name(project),},
+        "properties": {"project_name": get_project_name(project)},
     }
 
 
@@ -403,7 +403,7 @@ def get_project_settings(*args, **kwargs):
         project = args[0]
     return {
         "event_name": "get_project_settings",
-        "properties": {"project_name": get_project_name(project),},
+        "properties": {"project_name": get_project_name(project)},
     }
 
 
@@ -413,7 +413,7 @@ def set_project_settings(*args, **kwargs):
         project = args[0]
     return {
         "event_name": "set_project_settings",
-        "properties": {"project_name": get_project_name(project),},
+        "properties": {"project_name": get_project_name(project)},
     }
 
 
@@ -423,7 +423,7 @@ def get_project_default_image_quality_in_editor(*args, **kwargs):
         project = args[0]
     return {
         "event_name": "get_project_default_image_quality_in_editor",
-        "properties": {"project_name": get_project_name(project),},
+        "properties": {"project_name": get_project_name(project)},
     }
 
 
@@ -433,7 +433,7 @@ def get_project_metadata(*args, **kwargs):
         project = args[0]
     return {
         "event_name": "get_project_metadata",
-        "properties": {"project_name": get_project_name(project),},
+        "properties": {"project_name": get_project_name(project)},
     }
 
 
@@ -443,7 +443,7 @@ def delete_project(*args, **kwargs):
         project = args[0]
     return {
         "event_name": "delete_project",
-        "properties": {"project_name": get_project_name(project),},
+        "properties": {"project_name": get_project_name(project)},
     }
 
 
@@ -453,7 +453,7 @@ def rename_project(*args, **kwargs):
         project = args[0]
     return {
         "event_name": "rename_project",
-        "properties": {"project_name": get_project_name(project),},
+        "properties": {"project_name": get_project_name(project)},
     }
 
 
@@ -464,7 +464,7 @@ def get_project_workflow(*args, **kwargs):
 
     return {
         "event_name": "get_project_workflow",
-        "properties": {"project_name": get_project_name(project),},
+        "properties": {"project_name": get_project_name(project)},
     }
 
 
@@ -474,7 +474,7 @@ def set_project_workflow(*args, **kwargs):
         project = args[0]
     return {
         "event_name": "set_project_workflow",
-        "properties": {"project_name": get_project_name(project),},
+        "properties": {"project_name": get_project_name(project)},
     }
 
 
@@ -484,7 +484,7 @@ def create_folder(*args, **kwargs):
         project = args[0]
     return {
         "event_name": "create_folder",
-        "properties": {"project_name": get_project_name(project),},
+        "properties": {"project_name": get_project_name(project)},
     }
 
 
@@ -494,7 +494,7 @@ def get_folder_metadata(*args, **kwargs):
         project = args[0]
     return {
         "event_name": "get_folder_metadata",
-        "properties": {"project_name": get_project_name(project),},
+        "properties": {"project_name": get_project_name(project)},
     }
 
 
@@ -504,7 +504,7 @@ def get_project_and_folder_metadata(*args, **kwargs):
         project = args[0]
     return {
         "event_name": "get_project_and_folder_metadata",
-        "properties": {"project_name": get_project_name(project),},
+        "properties": {"project_name": get_project_name(project)},
     }
 
 
@@ -514,7 +514,7 @@ def rename_folder(*args, **kwargs):
         project = args[0]
     return {
         "event_name": "rename_folder",
-        "properties": {"project_name": get_project_name(project),},
+        "properties": {"project_name": get_project_name(project)},
     }
 
 
@@ -524,7 +524,7 @@ def stop_model_training(*args, **kwargs):
         project = args[0]
     return {
         "event_name": "stop_model_training",
-        "properties": {"project_name": get_project_name(project),},
+        "properties": {"project_name": get_project_name(project)},
     }
 
 
@@ -534,7 +534,7 @@ def download_model(*args, **kwargs):
         project = args[0]
     return {
         "event_name": "download_model",
-        "properties": {"project_name": get_project_name(project),},
+        "properties": {"project_name": get_project_name(project)},
     }
 
 
@@ -544,7 +544,7 @@ def plot_model_metrics(*args, **kwargs):
         project = args[0]
     return {
         "event_name": "plot_model_metrics",
-        "properties": {"project_name": get_project_name(project),},
+        "properties": {"project_name": get_project_name(project)},
     }
 
 
@@ -554,7 +554,7 @@ def delete_model(*args, **kwargs):
         project = args[0]
     return {
         "event_name": "delete_model",
-        "properties": {"project_name": get_project_name(project),},
+        "properties": {"project_name": get_project_name(project)},
     }
 
 
@@ -564,7 +564,7 @@ def convert_project_type(*args, **kwargs):
         project = args[0]
     return {
         "event_name": "convert_project_type",
-        "properties": {"project_name": get_project_name(project),},
+        "properties": {"project_name": get_project_name(project)},
     }
 
 
@@ -574,7 +574,7 @@ def convert_json_version(*args, **kwargs):
         project = args[0]
     return {
         "event_name": "convert_json_version",
-        "properties": {"project_name": get_project_name(project),},
+        "properties": {"project_name": get_project_name(project)},
     }
 
 
@@ -584,7 +584,7 @@ def df_to_annotations(*args, **kwargs):
         project = args[0]
     return {
         "event_name": "df_to_annotations",
-        "properties": {"project_name": get_project_name(project),},
+        "properties": {"project_name": get_project_name(project)},
     }
 
 
@@ -686,7 +686,7 @@ def upload_videos_from_folder_to_project(*args, **kwargs):
     glob_iterator = Path(folder_path).glob("*")
     return {
         "event_name": "upload_videos_from_folder_to_project",
-        "properties": {"Video Count": sum(1 for _ in glob_iterator),},
+        "properties": {"Video Count": sum(1 for _ in glob_iterator)},
     }
 
 
@@ -1319,14 +1319,14 @@ def create_annotation_classes_from_classes_json(*args, **kwargs):
 def class_distribution(*args, **kwargs):
     return {
         "event_name": "class_distribution",
-        "properties": {"Plot": bool(args[2:3] or ("visualize" in kwargs)),},
+        "properties": {"Plot": bool(args[2:3] or ("visualize" in kwargs))},
     }
 
 
 def attribute_distribution(*args, **kwargs):
     return {
         "event_name": "attribute_distribution",
-        "properties": {"Plot": bool(args[2:3] or ("visualize" in kwargs)),},
+        "properties": {"Plot": bool(args[2:3] or ("visualize" in kwargs))},
     }
 
 
@@ -1434,7 +1434,7 @@ def aggregate_annotations_as_df(*args, **kwargs):
 
     return {
         "event_name": "aggregate_annotations_as_df",
-        "properties": {"Folder Count": len(folder_names),},
+        "properties": {"Folder Count": len(folder_names)},
     }
 
 
@@ -1481,7 +1481,7 @@ def assign_folder(*args, **kwargs):
     users = kwargs.get("users", None)
     if not users:
         users = args[2]
-    return {"event_name": "assign_folder", "properties": {"User Count": len(users),}}
+    return {"event_name": "assign_folder", "properties": {"User Count": len(users)}}
 
 
 def unassign_images(*args, **kwargs):
