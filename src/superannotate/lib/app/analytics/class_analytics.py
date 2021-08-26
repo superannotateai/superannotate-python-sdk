@@ -3,12 +3,14 @@ from pathlib import Path
 
 import pandas as pd
 import plotly.express as px
+from superannotate.lib.app.mixp.decorators import Trackable
 
 from .common import aggregate_annotations_as_df
 
 logger = logging.getLogger("superannotate-python-sdk")
 
 
+@Trackable
 def class_distribution(export_root, project_names, visualize=False):
     """Aggregate distribution of classes across multiple projects.
 
@@ -57,6 +59,7 @@ def class_distribution(export_root, project_names, visualize=False):
     return df
 
 
+@Trackable
 def attribute_distribution(export_root, project_names, visualize=False):
     """Aggregate distribution of attributes across multiple projects.
 
