@@ -3409,7 +3409,7 @@ def aggregate_annotations_as_df(
     """
     from superannotate.lib.app.analytics.common import aggregate_annotations_as_df
 
-    aggregate_annotations_as_df(
+    return aggregate_annotations_as_df(
         project_root,
         include_classes_wo_annotations,
         include_comments,
