@@ -1,9 +1,7 @@
 import os
-import tempfile
 import time
 from os.path import dirname
 
-import pytest
 import src.superannotate as sa
 from tests.integration.base import BaseTestCase
 
