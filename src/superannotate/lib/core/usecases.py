@@ -10,7 +10,6 @@ import uuid
 import zipfile
 from abc import ABC
 from abc import abstractmethod
-from collections import Counter
 from collections import defaultdict
 from collections import namedtuple
 from functools import cached_property
@@ -3178,12 +3177,6 @@ class UploadAnnotationsUseCase(BaseUseCase):
                     ),
                 )
             )
-        image_names = [
-            annotation_path.replace(constances.PIXEL_ANNOTATION_POSTFIX, "").replace(
-                constances.VECTOR_ANNOTATION_POSTFIX, ""
-            )
-            for annotation_path in annotation_paths
-        ]
         images_data = self._backend_service.get_bulk_images(
             images=[image.name for image in images_detail],
             folder_id=self._folder.uuid,
@@ -3201,7 +3194,7 @@ class UploadAnnotationsUseCase(BaseUseCase):
         annotations_to_upload = list(
             filter(lambda detail: detail.id is not None, images_detail)
         )
-        if len(images_data) < (len(image_names)):
+        if missing_annotations:
             self._response.errors = AppException(
                 f"Couldn't find image {','.join(map(lambda x: x.path, missing_annotations))} for annotation upload."
             )
@@ -4052,11 +4045,13 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
     def extensions(self):
         if not self._extensions:
             return constances.DEFAULT_IMAGE_EXTENSIONS
+        return self._extensions
 
     @property
     def exclude_file_patterns(self):
         if not self._exclude_file_patterns:
             return constances.DEFAULT_FILE_EXCLUDE_PATTERNS
+        return self._exclude_file_patterns
 
     def validate_project_type(self):
         if self._project.project_type == constances.ProjectType.VIDEO.value:
@@ -4181,7 +4176,9 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
         images_to_upload = images_to_upload[: self.auth_data["availableImageCount"]]
         uploaded_images = []
         failed_images = []
-        with concurrent.futures.ThreadPoolExecutor(max_workers=self.MAX_WORKERS) as executor:
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=self.MAX_WORKERS
+        ) as executor:
             results = [
                 executor.submit(self._upload_image, image_path)
                 for image_path in images_to_upload
@@ -4195,7 +4192,6 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
                 yield
 
         uploaded = []
-        # duplicates = []
         for i in range(0, len(uploaded_images), 500):
             response = AttachFileUrlsUseCase(
                 project=self._project,

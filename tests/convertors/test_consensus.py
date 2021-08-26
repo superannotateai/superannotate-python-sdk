@@ -26,11 +26,17 @@ class TestConsensus(BaseTestCase):
         return os.path.join(dirname(dirname(__file__)), self.TEST_EXPORT_ROOT)
 
     def test_consensus(self):
-        annot_types = ['polygon', 'bbox', 'point']
-        folder_names = ['consensus_1', 'consensus_2', 'consensus_3']
+        annot_types = ["polygon", "bbox", "point"]
+        folder_names = ["consensus_1", "consensus_2", "consensus_3"]
         df_column_names = [
-            'creatorEmail', 'imageName', 'instanceId', 'area', 'className',
-            'attributes', 'folderName', 'score'
+            "creatorEmail",
+            "imageName",
+            "instanceId",
+            "area",
+            "className",
+            "attributes",
+            "folderName",
+            "score",
         ]
         export_path = self.export_path
         for i in range(1, 4):
@@ -39,47 +45,53 @@ class TestConsensus(BaseTestCase):
             self.PROJECT_NAME, self.export_path + "/classes/classes.json"
         )
         sa.upload_images_from_folder_to_project(
-            self.PROJECT_NAME, self.export_path + "/images", annotation_status="Completed"
+            self.PROJECT_NAME,
+            self.export_path + "/images",
+            annotation_status="Completed",
         )
         for i in range(1, 4):
             sa.upload_images_from_folder_to_project(
-                self.PROJECT_NAME + f'/{self.CONSENSUS_PREFIX}' + str(i),
+                self.PROJECT_NAME + f"/{self.CONSENSUS_PREFIX}" + str(i),
                 self.export_path + "/images",
-                annotation_status="Completed"
+                annotation_status="Completed",
             )
         time.sleep(2)
-        sa.upload_annotations_from_folder_to_project(self.PROJECT_NAME, self.export_path)
+        sa.upload_annotations_from_folder_to_project(
+            self.PROJECT_NAME, self.export_path
+        )
         for i in range(1, 4):
             sa.upload_annotations_from_folder_to_project(
-                self.PROJECT_NAME + f'/{self.CONSENSUS_PREFIX}' + str(i),
-                self.export_path + f'/{self.CONSENSUS_PREFIX}' + str(i)
+                self.PROJECT_NAME + f"/{self.CONSENSUS_PREFIX}" + str(i),
+                self.export_path + f"/{self.CONSENSUS_PREFIX}" + str(i),
             )
 
         for annot_type in annot_types:
-            res_df = sa.consensus(self.PROJECT_NAME, folder_names, annot_type=annot_type)
-            #test content of projectName column
-            assert sorted(res_df['folderName'].unique()) == folder_names
+            res_df = sa.consensus(
+                self.PROJECT_NAME, folder_names, annot_type=annot_type
+            )
+            # test content of projectName column
+            assert sorted(res_df["folderName"].unique()) == folder_names
 
-            #test structure of resulting DataFrame
+            # test structure of resulting DataFrame
             assert sorted(res_df.columns) == sorted(df_column_names)
 
-            #test lower bound of the score
-            assert (res_df['score'] >= 0).all()
+            # test lower bound of the score
+            assert (res_df["score"] >= 0).all()
 
-            #test upper bound of the score
-            assert (res_df['score'] <= 1).all()
+            # test upper bound of the score
+            assert (res_df["score"] <= 1).all()
 
         image_names = [
-            'bonn_000000_000019_leftImg8bit.png',
-            'bielefeld_000000_000321_leftImg8bit.png'
+            "bonn_000000_000019_leftImg8bit.png",
+            "bielefeld_000000_000321_leftImg8bit.png",
         ]
 
-        #test filtering images with given image names list
+        # test filtering images with given image names list
         res_images = sa.consensus(
             self.PROJECT_NAME,
             folder_names,
             export_root=export_path,
-            image_list=image_names
+            image_list=image_names,
         )
 
-        assert sorted(res_images['imageName'].unique()) == sorted(image_names)
+        assert sorted(res_images["imageName"].unique()) == sorted(image_names)

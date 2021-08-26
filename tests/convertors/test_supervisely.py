@@ -1,8 +1,7 @@
 from pathlib import Path
 
-import superannotate as sa
-
 import pytest
+import superannotate as sa
 
 
 @pytest.mark.skip(reason="Need to adjust")
@@ -90,7 +89,10 @@ def test_supervisely_convert_keypoint(tmpdir):
     description = "supervisely keypoint"
     ptype = "Vector"
     # upload_project(out_dir, project_name, description, ptype)
+
+
 #
+
 
 @pytest.mark.skip(reason="Need to adjust")
 def test_supervisely_convert_instance_pixel(tmpdir):

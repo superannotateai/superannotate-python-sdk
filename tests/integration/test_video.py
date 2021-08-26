@@ -52,10 +52,11 @@ class TestVideo(BaseTestCase):
 
     def test_single_video_upload(self):
         sa.upload_video_to_project(
-            self.PROJECT_NAME, f"{self.folder_path}/{self.TEST_VIDEO_NAME}", target_fps=1
+            self.PROJECT_NAME,
+            f"{self.folder_path}/{self.TEST_VIDEO_NAME}",
+            target_fps=1,
         )
         self.assertEqual(len(sa.search_images(self.PROJECT_NAME)), 4)
-
 
     #  todo check
     # def test_video_deep(self):

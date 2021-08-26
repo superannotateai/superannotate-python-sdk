@@ -1,8 +1,8 @@
 from pathlib import Path
 
+import pytest
 import superannotate as sa
 
-import pytest
 
 @pytest.mark.skip(reason="Need to adjust")
 def test_googlecloud_convert_web(tmpdir):

@@ -1,6 +1,6 @@
 from pathlib import Path
-import pytest
 
+import pytest
 import superannotate as sa
 
 
@@ -19,6 +19,7 @@ def test_dataloop_convert_vector(tmpdir):
     description = "dataloop vector annotation"
     ptype = "Vector"
     # upload_project(out_dir, project_name, description, ptype)
+
 
 @pytest.mark.skip(reason="Need to adjust")
 def test_dataloop_convert_object(tmpdir):
