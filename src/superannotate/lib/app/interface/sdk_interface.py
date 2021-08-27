@@ -2739,8 +2739,8 @@ def run_segmentation(project, images_list, model):
 
     :param project: project name of metadata of the project
     :type  project: str or dict
-    :param model  : The model name or metadata of the model
-    :type  model  : str or dict
+    :param model: The model name or metadata of the model
+    :type  model: str or dict
     :return: tupe of two lists, list of images on which the segmentation has succeeded and failed respectively
     :rtype res: tuple
     """
