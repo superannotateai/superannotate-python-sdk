@@ -24,7 +24,7 @@ from lib.core.entities import ConfigEntity
 from lib.infrastructure.repositories import ConfigRepository
 from tqdm import tqdm
 
-logger = logging.getLogger()
+logger = logging.getLogger("superannotate-python-sdk")
 
 
 class CLIFacade(BaseInterfaceFacade):

@@ -1,12 +1,19 @@
 from ast import literal_eval
+from functools import wraps
+from inspect import getfullargspec
 from pathlib import Path
+from typing import get_args
+from typing import get_origin
+from typing import get_type_hints
 from typing import List
+from typing import Literal
 from typing import Optional
 from typing import Tuple
 from typing import Union
 
 import boto3
 import pandas as pd
+from lib.core.exceptions import AppValidationException
 from superannotate.lib.app.exceptions import PathError
 from superannotate.lib.core import PIXEL_ANNOTATION_POSTFIX
 from superannotate.lib.core import VECTOR_ANNOTATION_POSTFIX
@@ -117,3 +124,50 @@ def metric_is_plottable(key):
     if key == "total_loss" or "mIoU" in key or "mAP" in key or key == "iteration":
         return True
     return False
+
+
+def check_types(obj, **kwargs):
+    hints = get_type_hints(obj)
+
+    errors = []
+    for attr_name, attr_type in hints.items():
+        if attr_name == "return":
+            continue
+        try:
+            if get_origin(attr_type) is list:
+                if get_args(attr_type):
+                    for elem in kwargs[attr_name]:
+                        if type(elem) in get_args(attr_type):
+                            continue
+                        else:
+                            errors.append(f"Invalid input {attr_name}")
+                elif not isinstance(kwargs[attr_name], list):
+                    errors.append(f"Argument {attr_name} is not of type {attr_type}")
+            if get_origin(attr_type) is Literal:
+                if kwargs[attr_name] not in get_args(attr_type):
+                    errors.append(
+                        f'The value of {attr_name} should be {", ".join(get_args(attr_type))}'
+                    )
+            elif get_origin(attr_type) is Union:
+                if kwargs.get(attr_name) and not isinstance(
+                    kwargs[attr_name], get_args(attr_type)
+                ):
+                    errors.append(f"Argument {attr_name} is not of type {attr_type}")
+            elif kwargs.get(attr_name) and not isinstance(kwargs[attr_name], attr_type):
+                errors.append(f"Argument {attr_name} is not of type {attr_type}")
+        except:
+            pass
+    return errors
+
+
+def validate_input(decorator):
+    @wraps(decorator)
+    def wrapped_decorator(*args, **kwargs):
+        func_args = getfullargspec(decorator)[0]
+        kwargs.update(dict(zip(func_args, args)))
+        errors = check_types(decorator, **kwargs)
+        if errors:
+            raise AppValidationException("\n".join(errors))
+        return decorator(**kwargs)
+
+    return wrapped_decorator

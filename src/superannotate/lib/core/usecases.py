@@ -48,12 +48,14 @@ from lib.core.enums import ImageQuality
 from lib.core.enums import ProjectType
 from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
+from lib.core.exceptions import ImageProcessingException
 from lib.core.plugin import ImagePlugin
 from lib.core.plugin import VideoPlugin
 from lib.core.repositories import BaseManageableRepository
 from lib.core.repositories import BaseReadOnlyRepository
 from lib.core.response import Response
 from lib.core.serviceproviders import SuerannotateServiceProvider
+from PIL import UnidentifiedImageError
 
 logger = logging.getLogger()
 
@@ -125,9 +127,12 @@ class GetProjectByNameUseCase(BaseUseCase):
                 "team_id", self._team_id, EQ
             )
             projects = self._projects.get_all(condition)
-            for project in projects:
-                if project.name == self._name:
-                    self._response.data = project
+            if not projects:
+                self._response.errors = AppException("Project not found.")
+            else:
+                for project in projects:
+                    if project.name == self._name:
+                        self._response.data = project
                     break
         return self._response
 
@@ -459,7 +464,11 @@ class GetImageUseCase(BaseUseCase):
             & Condition("folder_id", self._folder.uuid, EQ)
             & Condition("name", self._image_name, EQ)
         )
-        self._response.data = self._images.get_all(condition)[0]
+        images = self._images.get_all(condition)
+        if images:
+            self._response.data = images[0]
+        else:
+            raise AppException("Image not found.")
         return self._response
 
 
@@ -491,64 +500,77 @@ class UploadImageS3UseCase(BaseUseCase):
 
     def execute(self):
         image_name = Path(self._image_path).name
-        image_processor = ImagePlugin(self._image, self.max_resolution)
-        origin_width, origin_height = image_processor.get_size()
-        thumb_image, _, _ = image_processor.generate_thumb()
-        huge_image, huge_width, huge_height = image_processor.generate_huge()
-        quality = 60
-        if not self._image_quality_in_editor:
-            for setting in self._project_settings.get_all():
-                if setting.attribute == "ImageQuality":
-                    quality = setting.value
-        else:
-            quality = ImageQuality.get_value(self._image_quality_in_editor)
-        if Path(image_name).suffix[1:].upper() in ("JPEG", "JPG"):
-            if quality == 100:
-                self._image.seek(0)
-                low_resolution_image = self._image
+        try:
+            image_processor = ImagePlugin(self._image, self.max_resolution)
+            origin_width, origin_height = image_processor.get_size()
+            thumb_image, _, _ = image_processor.generate_thumb()
+            huge_image, huge_width, huge_height = image_processor.generate_huge()
+            quality = 60
+            if not self._image_quality_in_editor:
+                for setting in self._project_settings.get_all():
+                    if setting.attribute == "ImageQuality":
+                        quality = setting.value
             else:
-                low_resolution_image, _, _ = image_processor.generate_low_resolution(
-                    quality=quality
-                )
-        else:
-            if quality == 100:
-                low_resolution_image, _, _ = image_processor.generate_low_resolution(
-                    quality=quality, subsampling=0
-                )
+                quality = ImageQuality.get_value(self._image_quality_in_editor)
+            if Path(image_name).suffix[1:].upper() in ("JPEG", "JPG"):
+                if quality == 100:
+                    self._image.seek(0)
+                    low_resolution_image = self._image
+                else:
+                    (
+                        low_resolution_image,
+                        _,
+                        _,
+                    ) = image_processor.generate_low_resolution(quality=quality)
             else:
-                low_resolution_image, _, _ = image_processor.generate_low_resolution(
-                    quality=quality, subsampling=-1
-                )
-        image_key = (
-            self._upload_path + str(uuid.uuid4()) + Path(self._image_path).suffix
-        )
+                if quality == 100:
+                    (
+                        low_resolution_image,
+                        _,
+                        _,
+                    ) = image_processor.generate_low_resolution(
+                        quality=quality, subsampling=0
+                    )
+                else:
+                    (
+                        low_resolution_image,
+                        _,
+                        _,
+                    ) = image_processor.generate_low_resolution(
+                        quality=quality, subsampling=-1
+                    )
+            image_key = (
+                self._upload_path + str(uuid.uuid4()) + Path(self._image_path).suffix
+            )
 
-        file_entity = S3FileEntity(uuid=image_key, data=self._image)
+            file_entity = S3FileEntity(uuid=image_key, data=self._image)
 
-        thumb_image_name = image_key + "___thumb.jpg"
-        thumb_image_entity = S3FileEntity(uuid=thumb_image_name, data=thumb_image)
-        self._s3_repo.insert(thumb_image_entity)
+            thumb_image_name = image_key + "___thumb.jpg"
+            thumb_image_entity = S3FileEntity(uuid=thumb_image_name, data=thumb_image)
+            self._s3_repo.insert(thumb_image_entity)
 
-        low_resolution_image_name = image_key + "___lores.jpg"
-        low_resolution_file_entity = S3FileEntity(
-            uuid=low_resolution_image_name, data=low_resolution_image
-        )
-        self._s3_repo.insert(low_resolution_file_entity)
+            low_resolution_image_name = image_key + "___lores.jpg"
+            low_resolution_file_entity = S3FileEntity(
+                uuid=low_resolution_image_name, data=low_resolution_image
+            )
+            self._s3_repo.insert(low_resolution_file_entity)
 
-        huge_image_name = image_key + "___huge.jpg"
-        huge_file_entity = S3FileEntity(
-            uuid=huge_image_name,
-            data=huge_image,
-            metadata={"height": huge_width, "weight": huge_height},
-        )
-        self._s3_repo.insert(huge_file_entity)
-        file_entity.data.seek(0)
-        self._s3_repo.insert(file_entity)
-        self._response.data = ImageEntity(
-            name=image_name,
-            path=image_key,
-            meta=ImageInfoEntity(width=origin_width, height=origin_height),
-        )
+            huge_image_name = image_key + "___huge.jpg"
+            huge_file_entity = S3FileEntity(
+                uuid=huge_image_name,
+                data=huge_image,
+                metadata={"height": huge_width, "weight": huge_height},
+            )
+            self._s3_repo.insert(huge_file_entity)
+            file_entity.data.seek(0)
+            self._s3_repo.insert(file_entity)
+            self._response.data = ImageEntity(
+                name=image_name,
+                path=image_key,
+                meta=ImageInfoEntity(width=origin_width, height=origin_height),
+            )
+        except (ImageProcessingException, UnidentifiedImageError) as e:
+            self._response.errors = e
         return self._response
 
 
@@ -819,7 +841,10 @@ class GetFolderUseCase(BaseUseCase):
             & Condition("team_id", self._team_id, EQ)
             & Condition("project_id", self._project.uuid, EQ)
         )
-        self._response.data = self._folders.get_one(condition)
+        try:
+            self._response.data = self._folders.get_one(condition)
+        except AppException as e:
+            self._response.errors = e
         return self._response
 
 
@@ -877,9 +902,12 @@ class DeleteFolderUseCase(BaseUseCase):
         self._folders_to_delete = folders_to_delete
 
     def execute(self):
-        is_deleted = self._folders.bulk_delete(self._folders_to_delete)
-        if not is_deleted:
-            self._response.errors = AppException("Couldn't delete folders.")
+        if self._folders_to_delete:
+            is_deleted = self._folders.bulk_delete(self._folders_to_delete)
+            if not is_deleted:
+                self._response.errors = AppException("Couldn't delete folders.")
+        else:
+            self._response.errors = AppException("There is no folder to delete.")
         return self._response
 
 
@@ -2635,10 +2663,8 @@ class SetWorkflowUseCase(BaseUseCase):
                             f"{annnotation_class.name}__{attribute_group['name']}__{attribute['name']}"
                         ] = attribute["id"]
 
-            for step in self._steps:
-                if "className" not in step:
-                    continue
-                if "id" in step:
+            for step in [step for step in self._steps if "className" in step]:
+                if step.get("id"):
                     del step["id"]
                 step["class_id"] = annotation_classes_map[step["className"]]
 

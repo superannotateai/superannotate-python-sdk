@@ -1,2 +1,5 @@
 Sphinx==3.1.2
 tox==3.24.2
+pytest==6.2.4
+pytest-xdist==2.3.0
+pytest-parallel==0.1.0

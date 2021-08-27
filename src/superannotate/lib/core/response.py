@@ -1,5 +1,7 @@
 from typing import Union
 
+from lib.core.exceptions import AppException
+
 
 class Response:
     def __init__(self, status: str = None, data: Union[dict, list] = None):
@@ -25,7 +27,13 @@ class Response:
 
     @property
     def errors(self):
-        return "\n".join([error.message for error in self._errors])
+        message = ""
+        for error in self._errors:
+            if isinstance(error, AppException):
+                message += error.message + "\n"
+            else:
+                message += str(error)
+        return message
 
     @errors.setter
     def errors(self, error: list):

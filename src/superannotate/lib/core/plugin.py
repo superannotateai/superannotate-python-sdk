@@ -5,6 +5,7 @@ from typing import Tuple
 
 import cv2
 import ffmpeg
+from lib.core.exceptions import ImageProcessingException
 from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageOps
@@ -13,6 +14,7 @@ from PIL import ImageOps
 class ImagePlugin:
     def __init__(self, image_bytes: io.BytesIO, max_resolution: int = 4096):
         self._image_bytes = image_bytes
+        self._image_bytes.seek(0)
         self._max_resolution = max_resolution
         self._image = Image.open(self._image_bytes).convert("RGBA")
         self._draw = None
@@ -61,7 +63,7 @@ class ImagePlugin:
         resolution = width * height
 
         if resolution > self._max_resolution:
-            raise Exception(
+            raise ImageProcessingException(
                 f"Image resolution {resolution} too large. Max supported for resolution is {self._max_resolution}"
             )
         return im
