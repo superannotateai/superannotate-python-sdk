@@ -2,6 +2,11 @@ import sys
 
 from setuptools import find_packages, setup
 
+
+with open('src/superannotate/version.py') as f:
+    version = f.read().rstrip()[15:-1]
+
+
 with open('requirements.txt') as f:
     requirements = f.read()
 requirements = requirements.splitlines()
@@ -17,17 +22,13 @@ with open('README.md') as f:
     readme = f.read()
 readme = "\n".join(readme.split('\n')[2:])
 
-packages = find_packages()
-
-with open('superannotate/version.py') as f:
-    Version = f.read()
-
-Version = Version.rstrip()
-Version = Version[15:-1]
 
 setup(
     name='superannotate',
-    version=Version,
+    version=version,
+    package_dir={"": "src"},
+
+    packages=find_packages(where="src"),
     description='Python SDK to SuperAnnotate platform',
     license='MIT',
     author='SuperAnnotate AI',
@@ -37,9 +38,9 @@ setup(
     long_description_content_type='text/markdown',
     install_requires=requirements,
     setup_requires=['wheel'],
-    packages=find_packages(exclude=('tests', )),
+    description_file="README.md",
     entry_points={
-        'console_scripts': ['superannotatecli = superannotate.__main__:main']
+        'console_scripts': ['superannotatecli = superannotate.lib.app.bin.superannotate:main']
     },
     python_requires='>=3.6'
 )

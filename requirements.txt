@@ -1,6 +1,6 @@
 pydicom>=2.0.0
 boto3>=1.14.53
-requests>=2.23.0
+requests>=2.25.1
 requests-toolbelt>=0.9.1
 tqdm>=4.48.2
 pillow>=7.2.0
@@ -16,4 +16,6 @@ plotly>=4.1.0
 ffmpeg-python>=0.2.0
 google-cloud-storage>=1.33.0
 azure-storage-blob>=12.6.0
+fire==0.4.0
+Shapely>=1.7.1
 mixpanel>=4.8.3

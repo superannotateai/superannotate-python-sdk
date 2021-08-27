@@ -2,6 +2,9 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*mypy*
+*.egg*
+*DS_Store*
 
 # C extensions
 *.so
@@ -14,7 +17,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
 lib64/
 parts/
 sdist/
@@ -54,7 +56,7 @@ coverage.xml
 # Translations
 *.mo
 *.pot
-
+.env
 # Django stuff:
 *.log
 local_settings.py
@@ -141,6 +143,7 @@ _mask.c
 tags
 temp
 debug_*
-
-# IDE
-.idea
+*.idea
+*.DS_Store
+htmlcov
+htmlcov
