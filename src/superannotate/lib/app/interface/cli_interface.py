@@ -2,6 +2,7 @@ import concurrent.futures
 import json
 import logging
 import os
+import sys
 import tempfile
 import uuid
 from collections import Counter
@@ -42,6 +43,7 @@ class CLIFacade(BaseInterfaceFacade):
         ) as f:
             version = f.read().rstrip()[15:-1]
             print(version)
+        sys.exit(0)
 
     @staticmethod
     def init():
@@ -64,8 +66,9 @@ class CLIFacade(BaseInterfaceFacade):
             print("Configuration file successfully updated.")
         else:
             print("Configuration file successfully created.")
+        sys.exit(0)
 
-    def create_project(self, name: str, description: str, type: str) -> dict:
+    def create_project(self, name: str, description: str, type: str):
         """
         To create a new project
         """
@@ -74,14 +77,14 @@ class CLIFacade(BaseInterfaceFacade):
             return response.errors
         return response.data
 
-    def create_folder(self, project: str, name: str) -> dict:
+    def create_folder(self, project: str, name: str):
         """
         To create a new folder
         """
         response = self.controller.create_folder(project=project, folder_name=name)
         if response.errors:
-            return response.errors
-        return response.data
+            logger.critical(response.errors)
+        sys.exit(0)
 
     def upload_images(
         self,
@@ -168,6 +171,7 @@ class CLIFacade(BaseInterfaceFacade):
                 images=uploaded_image_entities[i : i + 500],  # noqa: E203
                 annotation_status=set_annotation_status,
             )
+        sys.exit(0)
 
     def export_project(
         self,
@@ -192,6 +196,7 @@ class CLIFacade(BaseInterfaceFacade):
             extract_zip_contents=not disable_extract_zip_contents,
             to_s3_bucket=False,
         )
+        sys.exit(0)
 
     def upload_preannotations(
         self, project, folder, data_set_name=None, task=None, format=None
@@ -213,6 +218,7 @@ class CLIFacade(BaseInterfaceFacade):
             task=task,
             pre=True,
         )
+        sys.exit(0)
 
     def upload_annotations(
         self, project, folder, data_set_name=None, task=None, format=None
@@ -234,6 +240,7 @@ class CLIFacade(BaseInterfaceFacade):
             task=task,
             pre=False,
         )
+        sys.exit(0)
 
     def _upload_annotations(
         self, project, folder, format, data_set_name, task, pre=True
@@ -281,6 +288,7 @@ class CLIFacade(BaseInterfaceFacade):
                     if response.errors:
                         logger.warning(response.errors)
                     progress_bar.update()
+        sys.exit(0)
 
     def attach_image_urls(
         self, project: str, attachments: str, annotation_status: Optional[Any] = None
@@ -289,11 +297,13 @@ class CLIFacade(BaseInterfaceFacade):
         To attach image URLs to project use:
         """
         self._attach_urls(project, attachments, annotation_status)
+        sys.exit(0)
 
     def attach_video_urls(
         self, project: str, attachments: str, annotation_status: Optional[Any] = None
     ):
         self._attach_urls(project, attachments, annotation_status)
+        sys.exit(0)
 
     def _attach_urls(
         self, project: str, attachments: str, annotation_status: Optional[Any] = None
@@ -407,3 +417,4 @@ class CLIFacade(BaseInterfaceFacade):
                 images=uploaded_image_entities[i : i + 500],  # noqa: E203
                 annotation_status=set_annotation_status,
             )
+        sys.exit(0)

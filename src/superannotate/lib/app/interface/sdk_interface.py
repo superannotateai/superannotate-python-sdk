@@ -187,9 +187,9 @@ def create_project_from_metadata(project_metadata):
     :rtype: dict
     """
     response = controller.create_project(
-        name=project_metadata["project"]["name"],
-        description=project_metadata["project"]["description"],
-        project_type=project_metadata["project"]["type"],
+        name=project_metadata["name"],
+        description=project_metadata["description"],
+        project_type=project_metadata["type"],
         contributors=project_metadata.get("contributors", []),
         settings=project_metadata.get("settings", []),
         annotation_classes=project_metadata.get("classes", []),
@@ -305,7 +305,7 @@ def create_folder(project, folder_name):
         logger.info(f"Folder {folder_name} created in project {project}")
         return folder.to_dict()
     if res.errors:
-        logger.warning(res.errors)
+        raise AppException(res.errors)
 
 
 @Trackable
@@ -361,7 +361,9 @@ def delete_folders(project, folder_names):
     :type folder_names: list of strs
     """
 
-    controller.delete_folders(project_name=project, folder_names=folder_names)
+    res = controller.delete_folders(project_name=project, folder_names=folder_names)
+    if res.errors:
+        raise AppException(res.errors)
     logger.info(f"Folders {folder_names} deleted in project {project}")
 
 
@@ -396,7 +398,9 @@ def rename_folder(project, new_folder_name):
     :type new_folder_name: str
     """
     project_name, folder_name = extract_project_folder(project)
-    controller.update_folder(project_name, folder_name, {"name": new_folder_name})
+    res = controller.update_folder(project_name, folder_name, {"name": new_folder_name})
+    if res.errors:
+        raise AppException(res.errors)
     logger.info(
         f"Folder {folder_name} renamed to {new_folder_name} in project {project_name}"
     )
@@ -793,23 +797,24 @@ def get_project_metadata(
     :rtype: dict
     """
     project_name, folder_name = extract_project_folder(project)
-    metadata = controller.get_project_metadata(
+    response = controller.get_project_metadata(
         project_name,
         include_annotation_classes,
         include_settings,
         include_workflow,
         include_contributors,
         include_complete_image_count,
-    )
-    metadata = metadata.data
-    for elem in "settings", "classes", "workflow":
-        if metadata.get(elem):
-            metadata[elem] = [
-                BaseSerializers(attribute).serialize() for attribute in metadata[elem]
-            ]
+    ).data
 
-    if metadata.get("project"):
-        metadata["project"] = ProjectSerializer(metadata["project"]).serialize()
+    metadata = ProjectSerializer(response["project"]).serialize()
+
+    for elem in "settings", "classes", "workflows", "contributors":
+        if response.get(elem):
+            metadata[elem] = [
+                BaseSerializers(attribute).serialize() for attribute in response[elem]
+            ]
+        else:
+            metadata[elem] = []
     return metadata
 
 
@@ -899,7 +904,7 @@ def get_project_default_image_quality_in_editor(project):
     :rtype: str
     """
     project_name, folder_name = extract_project_folder(project)
-    settings = controller.get_project_settings(project_name)
+    settings = controller.get_project_settings(project_name).data
     for setting in settings:
         if setting.attribute == "ImageQuality":
             return setting.value
@@ -2343,22 +2348,20 @@ def upload_annotations_from_folder_to_project(
     failed_annotations = []
     missing_annotations = []
     chunk_size = 10
-    with tqdm(total=len(annotation_paths)) as progress_bar:
-        for i in range(0, len(annotation_paths), chunk_size):
-            response = controller.upload_annotations_from_folder(
-                project_name=project_name,
-                folder_name=folder_name,
-                folder_path=folder_path,
-                annotation_paths=annotation_paths[i : i + chunk_size],  # noqa: E203
-                client_s3_bucket=from_s3_bucket,
-            )
-            if response.errors:
-                logger.warning(response.errors)
-            if response.data:
-                uploaded_annotations.extend(response.data[0])
-                missing_annotations.extend(response.data[1])
-                failed_annotations.extend(response.data[2])
-            progress_bar.update(chunk_size)
+    for i in tqdm(range(0, len(annotation_paths), chunk_size)):
+        response = controller.upload_annotations_from_folder(
+            project_name=project_name,
+            folder_name=folder_name,
+            folder_path=folder_path,
+            annotation_paths=annotation_paths[i : i + chunk_size],  # noqa: E203
+            client_s3_bucket=from_s3_bucket,
+        )
+        if response.errors:
+            logger.warning(response.errors)
+        if response.data:
+            uploaded_annotations.extend(response.data[0])
+            missing_annotations.extend(response.data[1])
+            failed_annotations.extend(response.data[2])
     return uploaded_annotations, failed_annotations, missing_annotations
 
 

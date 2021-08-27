@@ -11,5 +11,4 @@ class TestProjectRename(BaseTestCase):
     def test_project_rename(self):
         sa.rename_project(self.PROJECT_NAME, self.NEW_PROJECT_NAME)
         meta = sa.get_project_metadata(self.NEW_PROJECT_NAME)
-        project = meta["project"]
-        assert project["name"] == self.NEW_PROJECT_NAME
+        assert meta["name"] == self.NEW_PROJECT_NAME

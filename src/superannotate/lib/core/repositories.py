@@ -38,6 +38,9 @@ class BaseManageableRepository(BaseReadOnlyRepository):
     def delete(self, uuid: Any):
         raise NotImplementedError
 
+    def bulk_delete(self, entities: List[BaseEntity]) -> bool:
+        raise NotImplementedError
+
     @staticmethod
     def _drop_nones(data: dict):
         for k, v in list(data.items()):
