@@ -25,7 +25,7 @@ class Response:
 
     @property
     def errors(self):
-        return self._errors
+        return "\n".join([error.message for error in self._errors])
 
     @errors.setter
     def errors(self, error: list):

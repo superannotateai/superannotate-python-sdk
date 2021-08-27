@@ -64,7 +64,7 @@ class ConfigRepository(BaseManageableRepository):
             config = self._create_config()
         config[entity.uuid] = entity.value
         with open(self._config_path, "w") as config_file:
-            config_file.write(json.dumps(config))
+            config_file.write(json.dumps(config, sort_keys=True, indent=4))
         return entity
 
     def update(self, entity: ConfigEntity):
@@ -74,7 +74,7 @@ class ConfigRepository(BaseManageableRepository):
         config = self._get_config()
         del config["uuid"]
         with open(constance.CONFIG_FILE_LOCATION, "rw+") as config_file:
-            config_file.write(json.dumps(config))
+            config_file.write(json.dumps(config, sort_keys=True, indent=4))
 
 
 class ProjectRepository(BaseManageableRepository):
@@ -106,7 +106,9 @@ class ProjectRepository(BaseManageableRepository):
         team_id = entity.team_id
         uuid = entity.uuid
         condition = Condition("team_id", team_id, EQ)
-        self._service.delete_project(uuid=uuid, query_string=condition.build_query())
+        return self._service.delete_project(
+            uuid=uuid, query_string=condition.build_query()
+        )
 
     @staticmethod
     def dict2entity(data: dict):
@@ -255,10 +257,17 @@ class FolderRepository(BaseManageableRepository):
     def update(self, entity: FolderEntity):
         project_id = entity.project_id
         team_id = entity.team_id
-        self._service.update_folder(project_id, team_id, entity.to_dict())
+        return self._service.update_folder(project_id, team_id, entity.to_dict())
 
     def delete(self, entity: FolderEntity):
-        self._service.delete_folders(entity.project_id, entity.team_id, [entity.uuid])
+        return self._service.delete_folders(
+            entity.project_id, entity.team_id, [entity.uuid]
+        )
+
+    def bulk_delete(self, entities: List[FolderEntity]):
+        entity = entities[0]
+        ids = [entity.uuid for entity in entities]
+        return self._service.delete_folders(entity.project_id, entity.team_id, ids)
 
     @staticmethod
     def dict2entity(data: dict):

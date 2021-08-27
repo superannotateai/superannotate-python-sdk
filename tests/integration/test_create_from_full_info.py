@@ -57,7 +57,7 @@ class TestCloneProject(TestCase):
             include_contributors=True,
         )
 
-        project_metadata["project"]["name"] = self.PROJECT_NAME_2
+        project_metadata["name"] = self.PROJECT_NAME_2
 
         sa.create_project_from_metadata(project_metadata)
         new_project_metadata = sa.get_project_metadata(

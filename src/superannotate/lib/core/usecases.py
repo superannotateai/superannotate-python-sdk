@@ -234,7 +234,11 @@ class DeleteProjectUseCase(BaseUseCase):
         )
         project_response = use_case.execute()
         if project_response.data:
-            self._projects.delete(project_response.data)
+            is_deleted = self._projects.delete(project_response.data)
+            if is_deleted:
+                logger.info("Successfully deleted project ")
+            else:
+                raise AppException("Couldn't delete project")
 
 
 class UpdateProjectUseCase(BaseUseCase):
@@ -245,6 +249,17 @@ class UpdateProjectUseCase(BaseUseCase):
         super().__init__()
         self._project = project
         self._projects = projects
+
+    def validate_project_name_uniqueness(self):
+        condition = Condition("name", self._project.name, EQ) & Condition(
+            "team_id", self._project.team_id, EQ
+        )
+        if self._projects.get_all(condition):
+            logger.error("There are duplicated names.")
+            raise AppValidationException(
+                f"Project name {self._project.name} is not unique. "
+                f"To use SDK please make project names unique."
+            )
 
     def execute(self):
         if self.is_valid():
@@ -549,28 +564,30 @@ class CreateFolderUseCase(BaseUseCase):
         self._folder = folder
         self._folders = folders
 
-    def execute(self):
-        if not self.is_valid():
-            self._folder.name = "".join(
-                "_"
-                if char in constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
-                else char
-                for char in self._folder.name
-            )
-        self._folder.project_id = self._project.uuid
-        self._response.data = self._folders.insert(self._folder)
-        return self._response
+    def validate_folder(self):
+        if not self._folder.name:
+            raise AppValidationException("Folder name cannot be empty.")
 
-    def validate_folder_name(self):
-        if (
-            len(
-                set(self._folder.name).intersection(
-                    constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
+    def execute(self):
+        if self.is_valid():
+            if (
+                len(
+                    set(self._folder.name).intersection(
+                        constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
+                    )
                 )
-            )
-            > 0
-        ):
-            raise AppValidationException("New folder name has special characters.")
+                > 0
+            ):
+                self._folder.name = "".join(
+                    "_"
+                    if char in constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
+                    else char
+                    for char in self._folder.name
+                )
+                logger.warning("New folder name has special characters.")
+            self._folder.project_id = self._project.uuid
+            self._response.data = self._folders.insert(self._folder)
+        return self._response
 
 
 class AttachFileUrlsUseCase(BaseUseCase):
@@ -704,7 +721,10 @@ class GetTeamUseCase(BaseUseCase):
         self._team_id = team_id
 
     def execute(self):
-        self._response.data = self._teams.get_one(self._team_id)
+        try:
+            self._response.data = self._teams.get_one(self._team_id)
+        except Exception:
+            raise AppException("Can't get team data.")
         return self._response
 
 
@@ -857,8 +877,10 @@ class DeleteFolderUseCase(BaseUseCase):
         self._folders_to_delete = folders_to_delete
 
     def execute(self):
-        for folder in self._folders_to_delete:
-            self._folders.delete(folder)
+        is_deleted = self._folders.bulk_delete(self._folders_to_delete)
+        if not is_deleted:
+            self._response.errors = AppException("Couldn't delete folders.")
+        return self._response
 
 
 class UpdateFolderUseCase(BaseUseCase):
@@ -870,7 +892,9 @@ class UpdateFolderUseCase(BaseUseCase):
         self._folder = folder
 
     def execute(self):
-        self._folders.update(self._folder)
+        is_updated = self._folders.update(self._folder)
+        if not is_updated:
+            self._response.errors = AppException("Couldn't rename folder.")
         self._response.data = self._folder
         return self._response
 
@@ -1702,6 +1726,9 @@ class ShareProjectUseCase(BaseUseCase):
             user_id=self._user_id,
             user_role=self.user_role,
         )
+        logger.info(
+            f"Shared project {self._project_entity.name} with user {self._user_id} and role {self.user_role}"
+        )
         return self._response
 
 
@@ -1722,6 +1749,9 @@ class UnShareProjectUseCase(BaseUseCase):
             team_id=self._project_entity.team_id,
             project_id=self._project_entity.uuid,
             user_id=self._user_id,
+        )
+        logger.info(
+            f"Unshared project {self._project_entity.name} from user ID {self._user_id}"
         )
         return self._response
 
@@ -2379,7 +2409,7 @@ class GetProjectImageCountUseCase(BaseUseCase):
             else:
                 for i in data["data"]:
                     if i["name"] == self._folder.name:
-                        count = i["imagesCount"]
+                        count += i["imagesCount"]
             self._response.data = count
         return self._response
 
@@ -3560,6 +3590,9 @@ class DownloadExportUseCase(BaseUseCase):
             with zipfile.ZipFile(filepath, "r") as f:
                 f.extractall(self._folder_path)
             Path.unlink(filepath)
+            logger.info(f"Extracted {filepath} to folder {self._folder_path}")
+        else:
+            logger.info(f"Downloaded export ID {export['id']} to {filepath}")
 
         self._response.data = self._folder_path
         return self._response

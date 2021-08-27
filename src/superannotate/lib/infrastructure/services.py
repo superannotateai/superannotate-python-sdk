@@ -312,7 +312,7 @@ class SuperannotateBackendService(BaseBackendService):
         )
         params = {"project_id": project_id, "team_id": team_id}
         res = self._request(update_folder_url, "put", data=folder_data, params=params)
-        return res.json()
+        return res.ok
 
     def get_project_settings(self, project_id: int, team_id: int):
         get_settings_url = urljoin(

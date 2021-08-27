@@ -59,9 +59,9 @@ class ExportStatus(BaseTitledEnum):
 class AnnotationStatus(BaseTitledEnum):
     NOT_STARTED = "NotStarted", 1
     IN_PROGRESS = "InProgress", 2
-    COMPLETED = "Completed", 3
-    QUALITY_CHECK = "QualityCheck", 4
-    RETURNED = "Returned", 5
+    QUALITY_CHECK = "QualityCheck", 3
+    RETURNED = "Returned", 4
+    COMPLETED = "Completed", 5
     SKIPPED = "Skipped", 6
 
 

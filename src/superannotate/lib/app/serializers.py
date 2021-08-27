@@ -10,6 +10,8 @@ class BaseSerializers(ABC):
         self._entity = entity
 
     def serialize(self):
+        if isinstance(self._entity, dict):
+            return self._entity
         return self._entity.to_dict()
 
 

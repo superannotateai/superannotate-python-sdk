@@ -14,6 +14,7 @@ class TestBenchmark(BaseTestCase):
     PROJECT_TYPE = "Vector"
     NEW_PROJECT_NAME = "new"
     TEST_FOLDER_PTH = "data_set"
+    TEST_FOLDER_NAME = "test_folder"
     TEST_FOLDER_PATH = "data_set/sample_project_vector"
     MODEL_NAME = "Instance segmentation (trained on COCO)"
     TEST_EXPORT_ROOT = "data_set/consensus_benchmark/consensus_test_data"
@@ -29,6 +30,7 @@ class TestBenchmark(BaseTestCase):
         return os.path.join(dirname(dirname(__file__)), self.TEST_EXPORT_ROOT)
 
     def test_benchmark(self):
+        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME)
         annotation_types = ["polygon", "bbox", "point"]
         folder_names = ["consensus_1", "consensus_2", "consensus_3"]
         df_column_names = [
