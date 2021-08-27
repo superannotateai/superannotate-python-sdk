@@ -18,6 +18,7 @@ from lib.core.entities import S3FileEntity
 from lib.core.entities import TeamEntity
 from lib.core.entities import UserEntity
 from lib.core.entities import WorkflowEntity
+from lib.core.exceptions import AppException
 from lib.core.repositories import BaseManageableRepository
 from lib.core.repositories import BaseProjectRelatedManageableRepository
 from lib.core.repositories import BaseReadOnlyRepository
@@ -26,10 +27,8 @@ from lib.infrastructure.services import SuperannotateBackendService
 
 
 class ConfigRepository(BaseManageableRepository):
-    CONFIG_NAME = "config.json"
-
     def __init__(self, config_path: str = constance.CONFIG_FILE_LOCATION):
-        self._config_path = f"{config_path}/{self.CONFIG_NAME}"
+        self._config_path = f"{config_path}"
 
     def _create_config(self):
         """
@@ -112,19 +111,22 @@ class ProjectRepository(BaseManageableRepository):
 
     @staticmethod
     def dict2entity(data: dict):
-        return ProjectEntity(
-            uuid=data["id"],
-            team_id=data["team_id"],
-            name=data["name"],
-            project_type=data["type"],
-            status=data["status"],
-            description=data["description"],
-            folder_id=data.get("folder_id"),
-            users=data.get("users", ()),
-            root_folder_completed_images_count=data.get(
-                "rootFolderCompletedImagesCount"
-            ),
-        )
+        try:
+            return ProjectEntity(
+                uuid=data["id"],
+                team_id=data["team_id"],
+                name=data["name"],
+                project_type=data["type"],
+                status=data["status"],
+                description=data["description"],
+                folder_id=data.get("folder_id"),
+                users=data.get("users", ()),
+                root_folder_completed_images_count=data.get(
+                    "rootFolderCompletedImagesCount"
+                ),
+            )
+        except KeyError:
+            raise AppException("Cant serialize project data")
 
 
 class S3Repository(BaseS3Repository):
@@ -271,13 +273,16 @@ class FolderRepository(BaseManageableRepository):
 
     @staticmethod
     def dict2entity(data: dict):
-        return FolderEntity(
-            uuid=data["id"],
-            team_id=data["team_id"],
-            project_id=data["project_id"],
-            name=data["name"],
-            folder_users=data.get("folder_users"),
-        )
+        try:
+            return FolderEntity(
+                uuid=data["id"],
+                team_id=data["team_id"],
+                project_id=data["project_id"],
+                name=data["name"],
+                folder_users=data.get("folder_users"),
+            )
+        except KeyError:
+            raise AppException("Cant serialize folder data")
 
 
 class AnnotationClassRepository(BaseManageableRepository):

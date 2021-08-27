@@ -9,4 +9,5 @@ class TestInterface(BaseTestCase):
     PROJECT_TYPE = "Vector"
 
     def test_get_project_default_image_quality_in_editor(self):
+        sa.invite_contributor_to_team(2, 2)
         self.assertIsNotNone(sa.get_project_default_image_quality_in_editor(self.PROJECT_NAME))

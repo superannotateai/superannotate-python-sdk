@@ -125,9 +125,12 @@ class GetProjectByNameUseCase(BaseUseCase):
                 "team_id", self._team_id, EQ
             )
             projects = self._projects.get_all(condition)
-            for project in projects:
-                if project.name == self._name:
-                    self._response.data = project
+            if not projects:
+                self._response.errors = AppException("Project not found.")
+            else:
+                for project in projects:
+                    if project.name == self._name:
+                        self._response.data = project
                     break
         return self._response
 
@@ -459,7 +462,11 @@ class GetImageUseCase(BaseUseCase):
             & Condition("folder_id", self._folder.uuid, EQ)
             & Condition("name", self._image_name, EQ)
         )
-        self._response.data = self._images.get_all(condition)[0]
+        images = self._images.get_all(condition)
+        if images:
+            self._response.data = images[0]
+        else:
+            raise AppException("Image not found.")
         return self._response
 
 
@@ -819,7 +826,10 @@ class GetFolderUseCase(BaseUseCase):
             & Condition("team_id", self._team_id, EQ)
             & Condition("project_id", self._project.uuid, EQ)
         )
-        self._response.data = self._folders.get_one(condition)
+        try:
+            self._response.data = self._folders.get_one(condition)
+        except AppException as e:
+            self._response.errors = e
         return self._response
 
 
@@ -877,9 +887,12 @@ class DeleteFolderUseCase(BaseUseCase):
         self._folders_to_delete = folders_to_delete
 
     def execute(self):
-        is_deleted = self._folders.bulk_delete(self._folders_to_delete)
-        if not is_deleted:
-            self._response.errors = AppException("Couldn't delete folders.")
+        if self._folders_to_delete:
+            is_deleted = self._folders.bulk_delete(self._folders_to_delete)
+            if not is_deleted:
+                self._response.errors = AppException("Couldn't delete folders.")
+        else:
+            self._response.errors = AppException("There is no folder to delete.")
         return self._response
 
 
@@ -2635,10 +2648,8 @@ class SetWorkflowUseCase(BaseUseCase):
                             f"{annnotation_class.name}__{attribute_group['name']}__{attribute['name']}"
                         ] = attribute["id"]
 
-            for step in self._steps:
-                if "className" not in step:
-                    continue
-                if "id" in step:
+            for step in [step for step in self._steps if "className" in step]:
+                if step.get("id"):
                     del step["id"]
                 step["class_id"] = annotation_classes_map[step["className"]]
 

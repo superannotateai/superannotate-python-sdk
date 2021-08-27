@@ -17,7 +17,7 @@ SDK is available on PyPI:
 
    pip install superannotate
 
-The package officially supports Python 3.6+ and was tested under Linux and
+The package officially supports Python 3.8+ and was tested under Linux and
 Windows (`Anaconda <https://www.anaconda.com/products/individual#windows>`_) platforms.
 
 For certain video related functions to work, ffmpeg package needs to be installed.
