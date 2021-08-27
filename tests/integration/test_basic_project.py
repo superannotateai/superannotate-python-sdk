@@ -5,7 +5,6 @@ from os.path import dirname
 from pathlib import Path
 
 import pytest
-
 import src.superannotate as sa
 from tests.integration.base import BaseTestCase
 
@@ -58,8 +57,12 @@ class TestProject(BaseTestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             json.dump(classes_in_project, open(Path(temp_dir) / "tmp_c.json", "w"))
             self.assertEqual(len(classes_in_file), len(classes_in_project))
-            classes_in_file_names = [annotation_class["name"] for annotation_class in classes_in_file]
-            classes_in_project_names = [annotation_class["name"] for annotation_class in classes_in_project]
+            classes_in_file_names = [
+                annotation_class["name"] for annotation_class in classes_in_file
+            ]
+            classes_in_project_names = [
+                annotation_class["name"] for annotation_class in classes_in_project
+            ]
             self.assertTrue(set(classes_in_file_names) & set(classes_in_project_names))
 
             sa.upload_annotations_from_folder_to_project(
@@ -104,9 +107,7 @@ class TestProject(BaseTestCase):
         sa.upload_annotations_from_folder_to_project(
             self.PROJECT_NAME, str(self.folder_path)
         )
-        annotations = sa.get_image_annotations(
-            self.PROJECT_NAME, self.TEST_IMAGE_NAME
-        )
+        annotations = sa.get_image_annotations(self.PROJECT_NAME, self.TEST_IMAGE_NAME)
         truth_path = self.annotations_path / "truth.json"
         with open(truth_path) as f:
             data = json.loads(f.read())

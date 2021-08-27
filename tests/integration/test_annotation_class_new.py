@@ -1,6 +1,7 @@
 import os
 from os.path import dirname
 from unittest import TestCase
+
 import src.superannotate as sa
 
 

@@ -2,11 +2,11 @@ import os
 import pathlib
 import tempfile
 from os.path import dirname
+from unittest import TestCase
 
 import numpy as np
 import src.superannotate as sa
 from PIL import Image
-from unittest import TestCase
 
 
 class TestFolders(TestCase):
@@ -33,8 +33,9 @@ class TestFolders(TestCase):
 
     @classmethod
     def tearDownClass(cls) -> None:
-        projects = (sa.search_projects(cls.VECTOR_PROJECT_NAME, return_metadata=True)
-                    + sa.search_projects(cls.PIXEL_PROJECT_NAME, return_metadata=True))
+        projects = sa.search_projects(
+            cls.VECTOR_PROJECT_NAME, return_metadata=True
+        ) + sa.search_projects(cls.PIXEL_PROJECT_NAME, return_metadata=True)
         for project in projects:
             sa.delete_project(project)
 
@@ -74,7 +75,10 @@ class TestFolders(TestCase):
             )
 
             sa.add_annotation_bbox_to_image(
-                self.VECTOR_PROJECT_NAME, self.EXAMPLE_IMAGE_1, [20, 20, 40, 40], "Human"
+                self.VECTOR_PROJECT_NAME,
+                self.EXAMPLE_IMAGE_1,
+                [20, 20, 40, 40],
+                "Human",
             )
             sa.add_annotation_polygon_to_image(
                 self.VECTOR_PROJECT_NAME,
@@ -89,7 +93,10 @@ class TestFolders(TestCase):
                 "Personal vehicle",
             )
             sa.add_annotation_point_to_image(
-                self.VECTOR_PROJECT_NAME, self.EXAMPLE_IMAGE_1, [400, 400], "Personal vehicle"
+                self.VECTOR_PROJECT_NAME,
+                self.EXAMPLE_IMAGE_1,
+                [400, 400],
+                "Personal vehicle",
             )
             sa.add_annotation_ellipse_to_image(
                 self.VECTOR_PROJECT_NAME,
@@ -118,7 +125,7 @@ class TestFolders(TestCase):
             sa.create_fuse_image(
                 image=f"{self.vector_folder_path}/{self.EXAMPLE_IMAGE_1}",
                 classes_json=self.vector_classes_json,
-                project_type="Vector"
+                project_type="Vector",
             )
 
             paths = sa.download_image(
@@ -158,7 +165,9 @@ class TestFolders(TestCase):
                 mask=f"{self.pixel_folder_path}/{self.EXAMPLE_IMAGE_1}___save.png",
             )
 
-            export = sa.prepare_export(self.PIXEL_PROJECT_NAME, include_fuse=True)["name"]
+            export = sa.prepare_export(self.PIXEL_PROJECT_NAME, include_fuse=True)[
+                "name"
+            ]
             (temp_dir / "export").mkdir()
             sa.download_export(self.PIXEL_PROJECT_NAME, export, (temp_dir / "export"))
 

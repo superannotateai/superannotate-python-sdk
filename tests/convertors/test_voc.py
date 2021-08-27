@@ -1,8 +1,7 @@
 from pathlib import Path
 
-import superannotate as sa
-
 import pytest
+import superannotate as sa
 
 
 @pytest.mark.skip(reason="Need to adjust")

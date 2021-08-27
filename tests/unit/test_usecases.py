@@ -1,7 +1,7 @@
 from unittest import TestCase
 from unittest.mock import Mock
-import pytest
 
+import pytest
 from src.superannotate.lib.core.exceptions import AppValidationException
 from src.superannotate.lib.core.usecases import BaseUseCase
 
@@ -9,7 +9,6 @@ from src.superannotate.lib.core.usecases import BaseUseCase
 @pytest.mark.skip(reason="Need to adjust")
 class TestBaseUseCase(TestCase):
     def setUp(self) -> None:
-
         class UseCase(BaseUseCase):
             def execute(self):
                 self.is_valid()

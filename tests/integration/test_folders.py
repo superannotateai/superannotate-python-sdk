@@ -142,8 +142,7 @@ class TestFolders(BaseTestCase):
             self.PROJECT_NAME + "/" + folders[0]["name"], self.folder_path
         )
         annotations = sa.get_image_annotations(
-            f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_1}",
-            self.EXAMPLE_IMAGE_1,
+            f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_1}", self.EXAMPLE_IMAGE_1,
         )
         self.assertGreater(len(annotations["annotation_json"]["instances"]), 0)
 
@@ -355,8 +354,10 @@ class TestFolders(BaseTestCase):
         self.assertEqual(
             images,
             [
-                self.EXAMPLE_IMAGE_1, self.EXAMPLE_IMAGE_2, self.EXAMPLE_IMAGE_3, self.EXAMPLE_IMAGE_4
-
+                self.EXAMPLE_IMAGE_1,
+                self.EXAMPLE_IMAGE_2,
+                self.EXAMPLE_IMAGE_3,
+                self.EXAMPLE_IMAGE_4,
             ],
         )
 
@@ -405,9 +406,7 @@ class TestFolders(BaseTestCase):
         self.assertTrue(im1["is_pinned"])
         self.assertEqual(im1["annotation_status"], "InProgress")
 
-        sa.copy_images(
-            project, [self.EXAMPLE_IMAGE_2, self.EXAMPLE_IMAGE_3], project2
-        )
+        sa.copy_images(project, [self.EXAMPLE_IMAGE_2, self.EXAMPLE_IMAGE_3], project2)
 
         num_images = sa.get_project_image_count(project2)
         self.assertEqual(num_images, 2)
@@ -447,9 +446,7 @@ class TestFolders(BaseTestCase):
         num_images = sa.get_project_image_count(project2)
         self.assertEqual(num_images, 0)
 
-        sa.copy_images(
-            project, [self.EXAMPLE_IMAGE_2, self.EXAMPLE_IMAGE_3], project2
-        )
+        sa.copy_images(project, [self.EXAMPLE_IMAGE_2, self.EXAMPLE_IMAGE_3], project2)
 
         export = sa.prepare_export(
             self.PROJECT_NAME, [self.TEST_FOLDER_NAME_2, self.TEST_FOLDER_NAME_1]

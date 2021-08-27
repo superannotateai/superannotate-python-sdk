@@ -21,7 +21,6 @@ class TestVideoUrls(BaseTestCase):
         self.assertEqual(len(could_not_upload), 0)
         self.assertEqual(len(existing_images), 0)
 
-
     def test_attach_video_urls_without_name_column(self):
         uploaded, could_not_upload, existing_images = sa.attach_video_urls_to_project(
             self.PROJECT_NAME,

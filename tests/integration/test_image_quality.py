@@ -52,8 +52,10 @@ class TestImageQuality(BaseTestCase):
                 variant="lores",
             )
 
-            self.assertTrue(filecmp.cmp(
-                tmpdir_name + "/" + self.EXAMPLE_IMAGE_1 + "___lores.jpg",
-                self.folder_path + "/" + self.EXAMPLE_IMAGE_1,
-                shallow=False,
-            ))
+            self.assertTrue(
+                filecmp.cmp(
+                    tmpdir_name + "/" + self.EXAMPLE_IMAGE_1 + "___lores.jpg",
+                    self.folder_path + "/" + self.EXAMPLE_IMAGE_1,
+                    shallow=False,
+                )
+            )

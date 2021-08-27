@@ -30,9 +30,9 @@ class TestDuplicateImage(BaseTestCase):
         ) = sa.upload_images_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path, annotation_status="InProgress",
         )
-        assert len(uploaded) == 4
-        assert len(could_not_upload) == 0
-        assert len(existing_images) == 0
+        self.assertEqual(len(uploaded), 4)
+        self.assertEqual(len(could_not_upload), 0)
+        self.assertEqual(len(existing_images), 0)
 
         (
             uploaded,
@@ -41,17 +41,14 @@ class TestDuplicateImage(BaseTestCase):
         ) = sa.upload_images_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path, annotation_status="InProgress",
         )
-        assert len(uploaded) == 0
-        assert len(could_not_upload) == 0
-        assert len(existing_images) == 4
+        self.assertEqual(len(uploaded), 0)
+        self.assertEqual(len(could_not_upload), 0)
+        self.assertEqual(len(existing_images), 8)
 
         uploaded, could_not_upload, existing_images = sa.upload_images_to_project(
-            self.PROJECT_NAME, [ f"{self.folder_path}/dd.jpg"]
+            self.PROJECT_NAME, [f"{self.folder_path}/dd.jpg"]
         )
 
-        assert len(uploaded) == 0
-        assert len(could_not_upload) == 1
-        assert len(existing_images) == 0
-
-
-
+        self.assertEqual(len(uploaded), 0)
+        self.assertEqual(len(could_not_upload), 1)
+        self.assertEqual(len(existing_images), 0)
