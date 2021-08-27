@@ -41,6 +41,7 @@ from plotly.subplots import make_subplots
 from tqdm import tqdm
 
 logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 
 controller = Controller(logger)
@@ -196,7 +197,7 @@ def create_project_from_metadata(project_metadata):
     )
     if response.errors:
         raise Exception(response.errors)
-    return response.data
+    return ProjectSerializer(response.data).serialize()
 
 
 @Trackable
@@ -530,8 +531,7 @@ def copy_image(
             is_pinned=1,
         )
     logger.info(
-        f"Copied image {source_project_name}/{source_folder_name}"
-        f" to {destination_project}/{destination_folder}/{image_name}."
+        f"Copied image {source_project}" f" to {destination_project}/{image_name}."
     )
 
 
@@ -760,7 +760,7 @@ def move_images(source_project, image_names, destination_project, *_, **__):
         + message_postfix.format(from_path=source_project, to_path=destination_project)
     )
 
-    return len(image_names) - moved_count
+    return list(set(image_names) - set(moved_images))
 
 
 @Trackable
@@ -956,7 +956,10 @@ def delete_image(project, image_name):
     :type image_name: str
     """
     project_name, _ = extract_project_folder(project)
-    controller.delete_image(image_name=image_name, project_name=project_name)
+    response = controller.delete_image(image_name=image_name, project_name=project_name)
+    if response.errors:
+        raise AppException("Couldn't delete image ")
+    logger.info(f"Successfully deleted image {image_name}.")
 
 
 @Trackable
@@ -1106,9 +1109,11 @@ def assign_folder(project_name, folder_name, users):
     :param users: list of user emails
     :type users: list of str
     """
-    controller.assign_folder(
+    response = controller.assign_folder(
         project_name=project_name, folder_name=folder_name, users=users
     )
+    if response.errors:
+        raise AppException(response.errors)
 
 
 @Trackable
@@ -2138,7 +2143,7 @@ def create_fuse_image(
 def download_image(
     project,
     image_name,
-    local_dir_path=".",
+    local_dir_path="./",
     include_annotations=False,
     include_fuse=False,
     include_overlay=False,

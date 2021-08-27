@@ -131,6 +131,11 @@ src/superannotate/lib/app/interface/sdk_interface.py
 src/superannotate/lib/app/interface/sdk/__init__.py
 src/superannotate/lib/app/interface/sdk/folders.py
 src/superannotate/lib/app/interface/sdk/project.py
+src/superannotate/lib/app/mixp/__init__.py
+src/superannotate/lib/app/mixp/config.py
+src/superannotate/lib/app/mixp/decorators.py
+src/superannotate/lib/app/mixp/utils/__init__.py
+src/superannotate/lib/app/mixp/utils/parsers.py
 src/superannotate/lib/app/superannotate/__init__.py
 src/superannotate/lib/core/__init__.py
 src/superannotate/lib/core/conditions.py

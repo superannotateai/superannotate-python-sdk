@@ -1,4 +1,3 @@
-import time
 from contextlib import contextmanager
 from datetime import datetime
 from typing import Dict
@@ -74,7 +73,6 @@ class BaseBackendService(SuerannotateServiceProvider):
                 url, **kwargs, headers=headers_dict, params=params, timeout=60
             )
         if response.status_code == 404 and retried < 3:
-            time.sleep(1)
             return self._request(
                 url,
                 method="get",

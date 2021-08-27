@@ -1370,6 +1370,7 @@ class DeleteImageUseCase(BaseUseCase):
 
     def execute(self):
         self._images.delete(self._image.uuid, self._team_id, self._project_id)
+        return self._response
 
 
 class GetImageMetadataUseCase(BaseUseCase):
@@ -1433,7 +1434,7 @@ class ImagesBulkMoveUseCase(BaseUseCase):
     def execute(self):
         moved_images = []
         for i in range(0, len(self._image_names), self.CHUNK_SIZE):
-            moved_images.append(
+            moved_images.extend(
                 self._backend_service.move_images_between_folders(
                     team_id=self._project.team_id,
                     project_id=self._project.uuid,
@@ -1580,15 +1581,17 @@ class AssignImagesUseCase(BaseUseCase):
     def execute(self):
         if self.is_valid():
             for i in range(0, len(self._image_names), self.CHUNK_SIZE):
-                self._response.data = self._service.assign_images(
+                is_assigned = self._service.assign_images(
                     team_id=self._project.team_id,
                     project_id=self._project.uuid,
                     folder_name=self._folder_name,
                     user=self._user,
                     image_names=self._image_names[
-                        i : i + self.CHUNK_SIZE
-                    ],  # noqa: E203
+                        i : i + self.CHUNK_SIZE  # noqa: E203
+                    ],
                 )
+                self._response.data = is_assigned
+            logger.info(f"Assign images to user {self._user}")
 
         return self._response
 
@@ -1657,12 +1660,20 @@ class AssignFolderUseCase(BaseUseCase):
         self._users = users
 
     def execute(self):
-        self._response.data = self._service.assign_folder(
+        is_assigned = self._service.assign_folder(
             team_id=self._project_entity.team_id,
             project_id=self._project_entity.uuid,
             folder_name=self._folder_name,
             users=self._users,
         )
+        if is_assigned:
+            logger.info(
+                f'Assigned {self._folder_name} to users: {", ".join(self._users)}'
+            )
+        else:
+            self._response.errors = AppException(
+                "Couldn't assign folder to users: {', '.join(self._users)"
+            )
         return self._response
 
 
@@ -1962,7 +1973,7 @@ class GetImageAnnotationsUseCase(BaseUseCase):
                 self._response.data = data
                 return self._response
             data["annotation_json"] = response.json()
-            data["annotation_json_filename"] = f"{self._image_name}{file_postfix}.json"
+            data["annotation_json_filename"] = f"{self._image_name}{file_postfix}"
             if self._project.project_type == constances.ProjectType.PIXEL.value:
                 annotation_blue_map_creds = credentials["annotation_bluemap_path"]
                 response = requests.get(
@@ -2055,7 +2066,7 @@ class GetImagePreAnnotationsUseCase(BaseUseCase):
         if not response.ok:
             raise AppException(f"Couldn't load annotations {response.text}")
         data["preannotation_json"] = response.json()
-        data["preannotation_json_filename"] = f"{self._image_name}{file_postfix}.json"
+        data["preannotation_json_filename"] = f"{self._image_name}{file_postfix}"
         if self._project.project_type == constances.ProjectType.PIXEL.value:
             annotation_blue_map_creds = credentials["annotation_bluemap_path"]
             response = requests.get(
@@ -4200,13 +4211,13 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
                 yield
 
         uploaded = []
-        for i in range(0, len(uploaded_images), 500):
+        for i in range(0, len(uploaded_images), 100):
             response = AttachFileUrlsUseCase(
                 project=self._project,
                 folder=self._folder,
                 limit=self.auth_data["availableImageCount"],
                 backend_service_provider=self._backend_client,
-                attachments=[image.entity for image in uploaded_images],
+                attachments=[image.entity for image in uploaded_images[i : i + 100]],
                 annotation_status=self._annotation_status,
             ).execute()
 
