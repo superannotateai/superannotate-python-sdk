@@ -76,7 +76,7 @@ def get_s3_annotation_paths(folder_path, s3_bucket, annotation_paths, recursive)
                 "Key"
             ].endswith(PIXEL_ANNOTATION_POSTFIX):
                 annotation_paths.append(annotation["Key"])
-    return annotation_paths
+    return list(set(annotation_paths))
 
 
 def reformat_metrics_json(data, name):

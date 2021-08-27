@@ -258,4 +258,4 @@ class TestCocoSplit(TestCase):
             )
             sa.upload_annotations_from_folder_to_project(project, out_path)
             image_metadata = sa.get_image_annotations(project_name, "t.png")
-            assert image_metadata["annotation_json"]["instances"][0]["templateId"] == -1
+            self.assertEqual(image_metadata["annotation_json"]["instances"][0]["templateId"], -1)
