@@ -125,9 +125,12 @@ class GetProjectByNameUseCase(BaseUseCase):
                 "team_id", self._team_id, EQ
             )
             projects = self._projects.get_all(condition)
-            for project in projects:
-                if project.name == self._name:
-                    self._response.data = project
+            if not projects:
+                self._response.errors = AppException("Project not found.")
+            else:
+                for project in projects:
+                    if project.name == self._name:
+                        self._response.data = project
                     break
         return self._response
 
