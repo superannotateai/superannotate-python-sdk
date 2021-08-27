@@ -115,7 +115,10 @@ class Controller(BaseController):
             team_id=self.team_id,
             projects=ProjectRepository(service=self._backend_client),
         )
-        return use_case.execute().data
+        response = use_case.execute()
+        if response.errors:
+            raise AppException(response.errors)
+        return response.data
 
     def _get_folder(self, project: ProjectEntity, name: str = None):
         name = self.get_folder_name(name)
@@ -624,9 +627,8 @@ class Controller(BaseController):
         include_contributors: bool = False,
         include_complete_image_count: bool = False,
     ):
-        project = self.projects.get_one(
-            uuid=self._get_project(project_name).uuid, team_id=self.team_id
-        )
+        project = self._get_project(project_name)
+
         use_case = usecases.GetProjectMetadataUseCase(
             project=project,
             service=self._backend_client,
