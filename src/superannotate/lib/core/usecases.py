@@ -4150,7 +4150,15 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
                         ):
                             paths.append(key)
                             break
-        return paths
+
+        paths = [str(path) for path in paths]
+        return [
+            path
+            for path in paths
+            if "___objects" not in path
+            and "___fuse" not in path
+            and "___pixel" not in path
+        ]
 
     @cached_property
     def images_to_upload(self):
