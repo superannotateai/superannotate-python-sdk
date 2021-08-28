@@ -11,7 +11,6 @@ from io import BytesIO
 from pathlib import Path
 from typing import Any
 from typing import Optional
-from tqdm import tqdm
 
 import lib.core as constances
 import pandas as pd
@@ -92,7 +91,7 @@ class CLIFacade(BaseInterfaceFacade):
         project: str,
         folder: str,
         extensions: str = constances.DEFAULT_IMAGE_EXTENSIONS,
-        set_annotation_status: str = constances.AnnotationStatus.NOT_STARTED.value,
+        set_annotation_status: str = constances.AnnotationStatus.NOT_STARTED.name,
         exclude_file_patterns=constances.DEFAULT_FILE_EXCLUDE_PATTERNS,
         recursive_subfolders=False,
         image_quality_in_editor=None,
@@ -130,7 +129,11 @@ class CLIFacade(BaseInterfaceFacade):
                     return ProcessedImage(uploaded=False, path=image_path, entity=None)
 
         paths = []
-        for extension in extensions.strip().split(","):
+
+        if isinstance(extensions,str):
+            extensions = extensions.strip().split(",")
+
+        for extension in extensions:
             if recursive_subfolders:
                 paths += list(Path(folder).rglob(f"*.{extension.lower()}"))
                 if os.name != "nt":
@@ -165,7 +168,7 @@ class CLIFacade(BaseInterfaceFacade):
                         uploaded_image_entities.append(processed_image.entity)
                     else:
                         failed_images.append(processed_image.path)
-                progress_bar.update(1)
+                    progress_bar.update(1)
 
         for i in range(0, len(uploaded_image_entities), 500):
             self.controller.upload_images(
