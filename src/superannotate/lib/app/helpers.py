@@ -2,11 +2,8 @@ from ast import literal_eval
 from functools import wraps
 from inspect import getfullargspec
 from pathlib import Path
-from typing import get_args
-from typing import get_origin
 from typing import get_type_hints
 from typing import List
-from typing import Literal
 from typing import Optional
 from typing import Tuple
 from typing import Union
@@ -134,23 +131,18 @@ def check_types(obj, **kwargs):
         if attr_name == "return":
             continue
         try:
-            if get_origin(attr_type) is list:
-                if get_args(attr_type):
+            if attr_type.__origin__ is list:
+                if attr_type.__args__:
                     for elem in kwargs[attr_name]:
-                        if type(elem) in get_args(attr_type):
+                        if type(elem) in attr_type.__args__:
                             continue
                         else:
                             errors.append(f"Invalid input {attr_name}")
                 elif not isinstance(kwargs[attr_name], list):
                     errors.append(f"Argument {attr_name} is not of type {attr_type}")
-            if get_origin(attr_type) is Literal:
-                if kwargs[attr_name] not in get_args(attr_type):
-                    errors.append(
-                        f'The value of {attr_name} should be {", ".join(get_args(attr_type))}'
-                    )
-            elif get_origin(attr_type) is Union:
+            elif attr_type.__origin__ is Union:
                 if kwargs.get(attr_name) and not isinstance(
-                    kwargs[attr_name], get_args(attr_type)
+                    kwargs[attr_name], attr_type.__args__
                 ):
                     errors.append(f"Argument {attr_name} is not of type {attr_type}")
             elif kwargs.get(attr_name) and not isinstance(kwargs[attr_name], attr_type):
