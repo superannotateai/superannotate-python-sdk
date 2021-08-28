@@ -11,7 +11,6 @@ from collections import namedtuple
 from io import BytesIO
 from pathlib import Path
 from typing import List
-from typing import Literal
 from typing import Optional
 from typing import Union
 from urllib.parse import urlparse
@@ -481,7 +480,7 @@ def search_folders(
 def get_image_bytes(
     project: Union[str, dict],
     image_name: str,
-    variant: Literal["original", "lores"] = "original",
+    variant: str = "original",
 ):
     """Returns an io.BytesIO() object of the image. Suitable for creating
     PIL.Image out of it.
@@ -597,17 +596,8 @@ def upload_images_from_public_urls_to_project(
     project: Union[str, dict],
     img_urls: List[str],
     img_names: Optional[List[str]] = None,
-    annotation_status: Optional[
-        Literal[
-            "NotStarted",
-            "InProgress",
-            "QualityCheck",
-            "Returned",
-            "Completed",
-            "Skipped",
-        ]
-    ] = "NotStarted",
-    image_quality_in_editor: Optional[Literal["compressed", "original"]] = None,
+    annotation_status: Optional[str] = "NotStarted",
+    image_quality_in_editor: Optional[str] = None,
 ):
     """Uploads all images given in the list of URL strings in img_urls to the project.
     Sets status of all the uploaded images to annotation_status if it is not None.
@@ -823,7 +813,7 @@ def move_images(
     ).data
     moved_count = len(moved_images)
     message_postfix = "{from_path} to {to_path}."
-    message_prefix = "Copied images from "
+    message_prefix = "Moved images from "
     if moved_count > 1 or moved_count == 0:
         message_prefix = f"Moved {moved_count}/{len(image_names)} images from "
     elif moved_count == 1:
@@ -992,7 +982,7 @@ def get_project_default_image_quality_in_editor(project: Union[str, dict]):
 @validate_input
 def set_project_default_image_quality_in_editor(
     project: Union[str, dict],
-    image_quality_in_editor: Optional[Literal["compressed", "original"]],
+    image_quality_in_editor: Optional[str],
 ):
     """Sets project's default image quality in editor setting.
 
@@ -1087,9 +1077,7 @@ def get_image_metadata(project: Union[str, dict], image_name: str, *_, **__):
 def set_images_annotation_statuses(
     project: Union[str, dict],
     image_names: List[str],
-    annotation_status: Literal[
-        "NotStarted", "InProgress", "QualityCheck", "Returned", "Completed", "Skipped",
-    ],
+    annotation_status: str,
 ):
     """Sets annotation statuses of images
 
@@ -1497,7 +1485,7 @@ def upload_images_from_folder_to_project(
     from_s3_bucket=None,
     exclude_file_patterns: Optional[str] = constances.DEFAULT_FILE_EXCLUDE_PATTERNS,
     recursive_subfolders: Optional[bool] = False,
-    image_quality_in_editor: Optional[Literal["compressed", "original"]] = None,
+    image_quality_in_editor: Optional[str] = None,
 ):
     """Uploads all images with given extensions from folder_path to the project.
     Sets status of all the uploaded images to set_status if it is not None.
@@ -1689,7 +1677,7 @@ def upload_images_from_s3_bucket_to_project(
     secretAccessKey: str,
     bucket_name: str,
     folder_path: str,
-    image_quality_in_editor: Optional[Literal["compressed", "original"]] = None,
+    image_quality_in_editor: Optional[str] = None,
 ):
     """Uploads all images from AWS S3 bucket to the project.
 

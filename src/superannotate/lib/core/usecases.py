@@ -12,7 +12,6 @@ from abc import ABC
 from abc import abstractmethod
 from collections import defaultdict
 from collections import namedtuple
-from functools import cached_property
 from pathlib import Path
 from typing import Iterable
 from typing import List
@@ -4102,6 +4101,8 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
         super().__init__()
 
         self._auth_data = None
+        self._s3_repo_instance = None
+        self._images_to_upload = None
 
         self._project = project
         self._folder = folder
@@ -4134,22 +4135,25 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
                 "The function does not support projects containing videos attached with URLs"
             )
 
-    @cached_property
+    @property
     def auth_data(self):
-        return self._backend_client.get_s3_upload_auth_token(
+        if not self._auth_data:
+            self._auth_data = self._backend_client.get_s3_upload_auth_token(
             team_id=self._project.team_id,
             folder_id=self._folder.uuid,
-            project_id=self._project.uuid,
-        )
+            project_id=self._project.uuid, )
+        return self._auth_data
 
-    @cached_property
+    @property
     def s3_repository(self):
-        return self._s3_repo(
+        if not self._s3_repo_instance:
+            self._s3_repo_instance =  self._s3_repo(
             self.auth_data["accessKeyId"],
             self.auth_data["secretAccessKey"],
             self.auth_data["sessionToken"],
             self.auth_data["bucket"],
         )
+        return self._s3_repo_instance
 
     def _upload_image(self, image_path: str):
         ProcessedImage = namedtuple("ProcessedImage", ["uploaded", "path", "entity"])
@@ -4229,30 +4233,32 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
             and "___pixel" not in path
         ]
 
-    @cached_property
+    @property
     def images_to_upload(self):
-        paths = self.paths
-        filtered_paths = []
-        duplicated_paths = []
-        images = self._backend_client.get_bulk_images(
-            project_id=self._project.uuid,
-            team_id=self._project.team_id,
-            folder_id=self._folder.uuid,
-            images=[Path(image).name for image in paths],
-        )
-        image_names = [image["name"] for image in images]
+        if not self._images_to_upload:
+            paths = self.paths
+            filtered_paths = []
+            duplicated_paths = []
+            images = self._backend_client.get_bulk_images(
+                project_id=self._project.uuid,
+                team_id=self._project.team_id,
+                folder_id=self._folder.uuid,
+                images=[Path(image).name for image in paths],
+            )
+            image_names = [image["name"] for image in images]
 
-        for path in paths:
-            not_in_exclude_list = [
-                x not in Path(path).name for x in self.exclude_file_patterns
-            ]
-            non_in_service_list = [x not in Path(path).name for x in image_names]
-            if all(not_in_exclude_list) and all(non_in_service_list):
-                filtered_paths.append(path)
-            if not all(non_in_service_list):
-                duplicated_paths.append(path)
+            for path in paths:
+                not_in_exclude_list = [
+                    x not in Path(path).name for x in self.exclude_file_patterns
+                ]
+                non_in_service_list = [x not in Path(path).name for x in image_names]
+                if all(not_in_exclude_list) and all(non_in_service_list):
+                    filtered_paths.append(path)
+                if not all(non_in_service_list):
+                    duplicated_paths.append(path)
 
-        return list(set(filtered_paths)), duplicated_paths
+            self._images_to_upload = list(set(filtered_paths)), duplicated_paths
+        return self._images_to_upload
 
     def execute(self):
         images_to_upload, duplications = self.images_to_upload
