@@ -11,6 +11,7 @@ from io import BytesIO
 from pathlib import Path
 from typing import Any
 from typing import Optional
+from tqdm import tqdm
 
 import lib.core as constances
 import pandas as pd
@@ -152,17 +153,19 @@ class CLIFacade(BaseInterfaceFacade):
             set(filtered_paths),
             [item for item in duplication_counter if duplication_counter[item] > 1],
         )
-        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-            results = [
-                executor.submit(upload_image, image_path)
-                for image_path in images_to_upload
-            ]
-            for future in concurrent.futures.as_completed(results):
-                processed_image = future.result()
-                if processed_image.uploaded and processed_image.entity:
-                    uploaded_image_entities.append(processed_image.entity)
-                else:
-                    failed_images.append(processed_image.path)
+        with tqdm(total=len(images_to_upload)) as progress_bar:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+                results = [
+                    executor.submit(upload_image, image_path)
+                    for image_path in images_to_upload
+                ]
+                for future in concurrent.futures.as_completed(results):
+                    processed_image = future.result()
+                    if processed_image.uploaded and processed_image.entity:
+                        uploaded_image_entities.append(processed_image.entity)
+                    else:
+                        failed_images.append(processed_image.path)
+                progress_bar.update(1)
 
         for i in range(0, len(uploaded_image_entities), 500):
             self.controller.upload_images(
@@ -248,7 +251,7 @@ class CLIFacade(BaseInterfaceFacade):
         project_name, folder_name = split_project_path(project)
         project = self.controller.get_project_metadata(project_name=project_name).data
         if not format:
-            format = "COCO"
+            format = "SuperAnnotate"
         if not data_set_name and format == "COCO":
             raise Exception("Data-set name is required")
         elif not data_set_name:
