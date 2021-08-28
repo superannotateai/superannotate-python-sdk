@@ -11,7 +11,7 @@ from .utils import parsers
 
 mp = Mixpanel(TOKEN)
 
-controller = Controller(logger=logging.getLogger())
+controller = Controller(logger=logging.getLogger("superannotate-python-sdk"))
 res = controller.get_team()
 user_id, team_name = res.data.creator_id, res.data.name
 

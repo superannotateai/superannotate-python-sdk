@@ -413,8 +413,8 @@ def get_project_and_folder_metadata(project: Union[str, dict]):
     :param project: project name or folder path (e.g., "project1/folder1")
     :type project: str
 
-    :return: metadata of folder
-    :rtype: dict
+    :return: tuple of project and folder
+    :rtype: tuple
     """
     project_name, folder_name = extract_project_folder(project)
     project = ProjectSerializer(

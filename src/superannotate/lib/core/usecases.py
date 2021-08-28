@@ -57,7 +57,7 @@ from lib.core.response import Response
 from lib.core.serviceproviders import SuerannotateServiceProvider
 from PIL import UnidentifiedImageError
 
-logger = logging.getLogger()
+logger = logging.getLogger("superannotate-python-sdk")
 
 
 class BaseUseCase(ABC):
@@ -1756,7 +1756,7 @@ class ShareProjectUseCase(BaseUseCase):
         )
         if not self._response.errors:
             logger.info(
-                f"Shared project {self._project_entity.name} with user {self._user_id} and role {self.user_role}"
+                f"Shared project {self._project_entity.name} with user {self._user_id} and role {constances.UserRole.get_name(self.user_role)}"
             )
         return self._response
 
