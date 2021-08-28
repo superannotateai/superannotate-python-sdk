@@ -1062,6 +1062,12 @@ def get_image_metadata(project: Union[str, dict], image_name: str, *_, **__):
     res_data["annotation_status"] = constances.AnnotationStatus.get_name(
         res_data["annotation_status"]
     )
+    res_data["prediction_status"] = constances.SegmentationStatus.get_name(
+        res_data["prediction_status"]
+    )
+    res_data["segmentation_status"] = constances.SegmentationStatus.get_name(
+        res_data["segmentation_status"]
+    )
     return res_data
 
 
@@ -1090,6 +1096,7 @@ def set_images_annotation_statuses(
     )
     if response.errors:
         raise AppValidationException(response.errors)
+    logger.info("Annotations status of images changed")
 
 
 @Trackable
@@ -1132,13 +1139,9 @@ def assign_images(project: Union[str, dict], image_names: List[str], user: str):
     project_name, folder_name = extract_project_folder(project)
     if not folder_name:
         folder_name = "root"
-    response = controller.assign_images(project_name, folder_name, image_names, user)
-    if response.errors:
-        raise AppValidationException(response.errors)
-
     contributors = controller.get_project_metadata(
         project_name=project_name, include_contributors=True
-    ).data["contributors"]
+    ).data["project"].users
     contributor = None
     for c in contributors:
         if c["user_id"] == user:

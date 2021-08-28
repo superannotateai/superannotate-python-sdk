@@ -1739,9 +1739,10 @@ class ShareProjectUseCase(BaseUseCase):
             user_id=self._user_id,
             user_role=self.user_role,
         )
-        logger.info(
-            f"Shared project {self._project_entity.name} with user {self._user_id} and role {self.user_role}"
-        )
+        if not self._response.errors:
+            logger.info(
+                f"Shared project {self._project_entity.name} with user {self._user_id} and role {self.user_role}"
+            )
         return self._response
 
 
@@ -1923,7 +1924,7 @@ class GetProjectMetadataUseCase(BaseUseCase):
         )
 
     def execute(self):
-        data = {"project": self._project}
+        data = {"project": self._projects.get_one(uuid=self._project.uuid,team_id=self._project.team_id) }
 
         if self._include_annotation_classes:
             self.annotation_classes_use_case.execute()
@@ -3893,6 +3894,7 @@ class RunSegmentationUseCase(BaseUseCase):
             model_name=self._ml_model_name,
             image_ids=image_ids,
         )
+
         succeded_imgs = []
         failed_imgs = []
         while len(succeded_imgs) + len(failed_imgs) != len(image_ids):
@@ -3906,7 +3908,7 @@ class RunSegmentationUseCase(BaseUseCase):
             succeded_imgs = [
                 img["name"]
                 for img in images_metadata
-                if img["segmentation_status"] == 2
+                if img["segmentation_status"] == 3
             ]
             failed_imgs = [
                 img["name"]
@@ -3916,7 +3918,7 @@ class RunSegmentationUseCase(BaseUseCase):
 
             complete_images = succeded_imgs + failed_imgs
             logger.info(
-                f"prediction complete on {len(complete_images)} / {len(image_ids)} images"
+                f"segmentation complete on {len(complete_images)} / {len(image_ids)} images"
             )
             time.sleep(5)
 
@@ -3985,7 +3987,7 @@ class RunPredictionUseCase(BaseUseCase):
             )
 
             success_images = [
-                img["name"] for img in images_metadata if img["prediction_status"] == 2
+                img["name"] for img in images_metadata if img["prediction_status"] == 3
             ]
             failed_images = [
                 img["name"] for img in images_metadata if img["prediction_status"] == 4

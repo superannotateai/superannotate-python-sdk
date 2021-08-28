@@ -208,7 +208,6 @@ class Controller(BaseController):
         if entities and len(entities) == 1:
             project.name = project_data["name"]
             use_case = usecases.UpdateProjectUseCase(project, self.projects)
-            use_case.execute()
             return use_case.execute()
         raise AppException("There are duplicated names.")
 
