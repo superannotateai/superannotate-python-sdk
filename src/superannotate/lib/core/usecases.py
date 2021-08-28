@@ -48,12 +48,14 @@ from lib.core.enums import ImageQuality
 from lib.core.enums import ProjectType
 from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
+from lib.core.exceptions import ImageProcessingException
 from lib.core.plugin import ImagePlugin
 from lib.core.plugin import VideoPlugin
 from lib.core.repositories import BaseManageableRepository
 from lib.core.repositories import BaseReadOnlyRepository
 from lib.core.response import Response
 from lib.core.serviceproviders import SuerannotateServiceProvider
+from PIL import UnidentifiedImageError
 
 logger = logging.getLogger()
 
@@ -498,64 +500,77 @@ class UploadImageS3UseCase(BaseUseCase):
 
     def execute(self):
         image_name = Path(self._image_path).name
-        image_processor = ImagePlugin(self._image, self.max_resolution)
-        origin_width, origin_height = image_processor.get_size()
-        thumb_image, _, _ = image_processor.generate_thumb()
-        huge_image, huge_width, huge_height = image_processor.generate_huge()
-        quality = 60
-        if not self._image_quality_in_editor:
-            for setting in self._project_settings.get_all():
-                if setting.attribute == "ImageQuality":
-                    quality = setting.value
-        else:
-            quality = ImageQuality.get_value(self._image_quality_in_editor)
-        if Path(image_name).suffix[1:].upper() in ("JPEG", "JPG"):
-            if quality == 100:
-                self._image.seek(0)
-                low_resolution_image = self._image
+        try:
+            image_processor = ImagePlugin(self._image, self.max_resolution)
+            origin_width, origin_height = image_processor.get_size()
+            thumb_image, _, _ = image_processor.generate_thumb()
+            huge_image, huge_width, huge_height = image_processor.generate_huge()
+            quality = 60
+            if not self._image_quality_in_editor:
+                for setting in self._project_settings.get_all():
+                    if setting.attribute == "ImageQuality":
+                        quality = setting.value
             else:
-                low_resolution_image, _, _ = image_processor.generate_low_resolution(
-                    quality=quality
-                )
-        else:
-            if quality == 100:
-                low_resolution_image, _, _ = image_processor.generate_low_resolution(
-                    quality=quality, subsampling=0
-                )
+                quality = ImageQuality.get_value(self._image_quality_in_editor)
+            if Path(image_name).suffix[1:].upper() in ("JPEG", "JPG"):
+                if quality == 100:
+                    self._image.seek(0)
+                    low_resolution_image = self._image
+                else:
+                    (
+                        low_resolution_image,
+                        _,
+                        _,
+                    ) = image_processor.generate_low_resolution(quality=quality)
             else:
-                low_resolution_image, _, _ = image_processor.generate_low_resolution(
-                    quality=quality, subsampling=-1
-                )
-        image_key = (
-            self._upload_path + str(uuid.uuid4()) + Path(self._image_path).suffix
-        )
+                if quality == 100:
+                    (
+                        low_resolution_image,
+                        _,
+                        _,
+                    ) = image_processor.generate_low_resolution(
+                        quality=quality, subsampling=0
+                    )
+                else:
+                    (
+                        low_resolution_image,
+                        _,
+                        _,
+                    ) = image_processor.generate_low_resolution(
+                        quality=quality, subsampling=-1
+                    )
+            image_key = (
+                self._upload_path + str(uuid.uuid4()) + Path(self._image_path).suffix
+            )
 
-        file_entity = S3FileEntity(uuid=image_key, data=self._image)
+            file_entity = S3FileEntity(uuid=image_key, data=self._image)
 
-        thumb_image_name = image_key + "___thumb.jpg"
-        thumb_image_entity = S3FileEntity(uuid=thumb_image_name, data=thumb_image)
-        self._s3_repo.insert(thumb_image_entity)
+            thumb_image_name = image_key + "___thumb.jpg"
+            thumb_image_entity = S3FileEntity(uuid=thumb_image_name, data=thumb_image)
+            self._s3_repo.insert(thumb_image_entity)
 
-        low_resolution_image_name = image_key + "___lores.jpg"
-        low_resolution_file_entity = S3FileEntity(
-            uuid=low_resolution_image_name, data=low_resolution_image
-        )
-        self._s3_repo.insert(low_resolution_file_entity)
+            low_resolution_image_name = image_key + "___lores.jpg"
+            low_resolution_file_entity = S3FileEntity(
+                uuid=low_resolution_image_name, data=low_resolution_image
+            )
+            self._s3_repo.insert(low_resolution_file_entity)
 
-        huge_image_name = image_key + "___huge.jpg"
-        huge_file_entity = S3FileEntity(
-            uuid=huge_image_name,
-            data=huge_image,
-            metadata={"height": huge_width, "weight": huge_height},
-        )
-        self._s3_repo.insert(huge_file_entity)
-        file_entity.data.seek(0)
-        self._s3_repo.insert(file_entity)
-        self._response.data = ImageEntity(
-            name=image_name,
-            path=image_key,
-            meta=ImageInfoEntity(width=origin_width, height=origin_height),
-        )
+            huge_image_name = image_key + "___huge.jpg"
+            huge_file_entity = S3FileEntity(
+                uuid=huge_image_name,
+                data=huge_image,
+                metadata={"height": huge_width, "weight": huge_height},
+            )
+            self._s3_repo.insert(huge_file_entity)
+            file_entity.data.seek(0)
+            self._s3_repo.insert(file_entity)
+            self._response.data = ImageEntity(
+                name=image_name,
+                path=image_key,
+                meta=ImageInfoEntity(width=origin_width, height=origin_height),
+            )
+        except (ImageProcessingException, UnidentifiedImageError) as e:
+            self._response.errors = e
         return self._response
 
 

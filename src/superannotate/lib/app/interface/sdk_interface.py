@@ -47,9 +47,18 @@ from tqdm import tqdm
 
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger()
+formatter = logging.Formatter(fmt='SA-PYTHON-SDK - %(levelname)s - %(message)s')
+
+handler = logging.StreamHandler()
+handler.setFormatter(formatter)
+
+logger = logging.getLogger("superannotate-python-sdk")
+logger.setLevel(logging.INFO)
+logger.addHandler(handler)
 
 controller = Controller(logger)
+
+
 
 
 @validate_input
@@ -540,10 +549,12 @@ def copy_image(
 
     img_bytes = get_image_bytes(project=source_project, image_name=image_name)
 
-    image_entity = controller.upload_image_to_s3(
+    s3_response = controller.upload_image_to_s3(
         project_name=destination_project, image_path=image_name, image_bytes=img_bytes
-    ).data
-
+    )
+    if s3_response.errors:
+        raise AppException(s3_response.errors)
+    image_entity = s3_response.data
     del img_bytes
 
     if copy_annotation_status:
@@ -756,7 +767,7 @@ def copy_images(
     message_postfix = "{from_path} to {to_path}."
     message_prefix = "Copied images from "
     if done_count > 1 or done_count == 0:
-        message_prefix = f"Copied {done_count}/{len(image_names)} images from"
+        message_prefix = f"Copied {done_count}/{len(image_names)} images from "
     elif done_count == 1:
         message_prefix = "Copied an image from "
     logger.info(
