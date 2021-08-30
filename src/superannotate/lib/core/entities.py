@@ -47,6 +47,11 @@ class ProjectEntity(BaseEntity):
         name: str = None,
         project_type: int = None,
         description: str = None,
+        attachment_name: str = None,
+        attachment_path: str = None,
+        creator_id: str = None,
+        entropy_status: int = None,
+        sharing_status: int = None,
         status: int = None,
         folder_id: int = None,
         upload_state: int = None,
@@ -62,6 +67,11 @@ class ProjectEntity(BaseEntity):
         self.name = name
         self.project_type = project_type
         self.description = description
+        self.attachment_name = attachment_name
+        self.attachment_path = attachment_path
+        self.creator_id = creator_id
+        self.entropy_status = entropy_status
+        self.sharing_status = sharing_status
         self.status = status
         self.folder_id = folder_id
         self.upload_state = upload_state
@@ -92,6 +102,11 @@ class ProjectEntity(BaseEntity):
             "type": self.project_type,
             "description": self.description,
             "status": self.status,
+            "attachment_path": self.attachment_path,
+            "attachment_name": self.attachment_name,
+            "entropy_status": self.entropy_status,
+            "sharing_status": self.sharing_status,
+            "creator_id": self.creator_id,
             "folder_id": self.folder_id,
             "upload_state": self.upload_state,
             "users": self.users,

@@ -33,6 +33,7 @@ class BaseBackendService(SuerannotateServiceProvider):
         return {
             "Authorization": self._auth_token,
             "authtype": self.AUTH_TYPE,
+            "Content-Type": "application/json",
             # "User-Agent": constance.__version__,
         }
 
@@ -70,7 +71,7 @@ class BaseBackendService(SuerannotateServiceProvider):
         method = getattr(requests, method)
         with self.safe_api():
             response = method(
-                url, **kwargs, headers=headers_dict, params=params, timeout=60
+                url, **kwargs, headers=headers_dict, params=params, timeout=60, verify=False
             )
         if response.status_code == 404 and retried < 3:
             return self._request(
@@ -151,14 +152,14 @@ class SuperannotateBackendService(BaseBackendService):
     URL_S3_ACCESS_POINT = "/project/{}/get-image-s3-access-point"
     URL_S3_UPLOAD_STATUS = "/project/{}/getS3UploadStatus"
     URL_GET_EXPORTS = "exports"
-    URL_IMAGES_COUNT = "images/folders-list"
+    URL_IMAGES_COUNT = "images/images-folders"
     URL_GET_CLASS = "class/{}"
     URL_ANNOTATION_UPLOAD_PATH_TOKEN = "images/getAnnotationsPathsAndTokens"
     URL_PRE_ANNOTATION_UPLOAD_PATH_TOKEN = "images/getPreAnnotationsPathsAndTokens"
     URL_GET_TEMPLATES = "templates"
     URL_PROJECT_WORKFLOW_ATTRIBUTE = "project/{}/workflow_attribute"
     URL_MODELS = "ml_models"
-    URL_STOP_MODEL_TRAINING = "ml_models/{}/stopTrainingJob"
+    URL_STOP_MODEL_TRAINING = "ml_model/{}/stopTrainingJob"
     URL_GET_MODEL_METRICS = "ml_models/{}/getCurrentMetrics"
     URL_BULK_GET_FOLDERS = "foldersByTeam"
     URL_GET_EXPORT = "export/{}"
@@ -754,7 +755,7 @@ class SuperannotateBackendService(BaseBackendService):
         return res.json().get("progress")
 
     def get_project_images_count(self, team_id: int, project_id: int):
-        get_images_count_url = urljoin(self.api_url, self.URL_IMAGES_COUNT)
+        get_images_count_url = urljoin(self.api_url, self.URL_FOLDERS_IMAGES)
         res = self._request(
             get_images_count_url,
             "get",

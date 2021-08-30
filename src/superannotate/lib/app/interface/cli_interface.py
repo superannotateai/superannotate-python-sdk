@@ -130,7 +130,7 @@ class CLIFacade(BaseInterfaceFacade):
 
         paths = []
 
-        if isinstance(extensions,str):
+        if isinstance(extensions, str):
             extensions = extensions.strip().split(",")
 
         for extension in extensions:
@@ -264,7 +264,7 @@ class CLIFacade(BaseInterfaceFacade):
 
         annotations_path = folder
         with tempfile.TemporaryDirectory() as temp_dir:
-            if format != 'SuperAnnotate':
+            if format != "SuperAnnotate":
                 import_annotation(
                     input_dir=folder,
                     output_dir=temp_dir,

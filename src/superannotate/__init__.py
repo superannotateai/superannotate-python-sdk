@@ -243,7 +243,6 @@ __all__ = [
     "upload_videos_from_folder_to_project",
     # Annotation Section
     "create_annotation_class",
-    "delete_annotation_class",
     "prepare_export",
     "download_export",
     "set_images_annotation_statuses",

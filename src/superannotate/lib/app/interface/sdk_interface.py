@@ -462,12 +462,12 @@ def search_folders(
     :rtype: list of strs or dicts
     """
 
-    if not folder_name:
-        data = controller.get_project_folders(project).data
-    else:
-        data = controller.search_folder(
-            project_name=project, name=folder_name, include_users=return_metadata
-        ).data
+    response = controller.search_folders(
+        project_name=project, folder_name=folder_name, include_users=return_metadata
+    )
+    if response.errors:
+        raise AppException(response.errors)
+    data = response.data
     if return_metadata:
         return [BaseSerializers(folder).serialize() for folder in data]
     return [folder.name for folder in data]
@@ -1166,9 +1166,11 @@ def unassign_images(project: Union[str, dict], image_names: List[str]):
     """
     project_name, folder_name = extract_project_folder(project)
 
-    controller.un_assign_images(
+    response = controller.un_assign_images(
         project_name=project_name, folder_name=folder_name, image_names=image_names
     )
+    if response.errors:
+        raise AppException(response.errors)
 
 
 @Trackable
@@ -1183,7 +1185,11 @@ def unassign_folder(project_name: str, folder_name: str):
     :param folder_name: folder name to remove assignees
     :type folder_name: str
     """
-    controller.un_assign_folder(project_name=project_name, folder_name=folder_name)
+    response = controller.un_assign_folder(
+        project_name=project_name, folder_name=folder_name
+    )
+    if response.errors:
+        raise AppException(response.errors)
 
 
 @Trackable
@@ -2697,7 +2703,18 @@ def stop_model_training(model):
     :return: the metadata of the now, stopped model
     :rtype: dict
     """
-    response = controller.stop_model_training(model["id"])
+
+    model_id = None
+    if isinstance(model, dict):
+        model_id = model['id']
+    else:
+        res = controller.search_models(name=model).data
+        if len(res):
+            model_id = res[0]['id']
+        else:
+            raise AppException("Model not found.")
+
+    response = controller.stop_model_training(model_id=model_id)
 
     if not response.errors:
         logger.info("Stopped model training")
