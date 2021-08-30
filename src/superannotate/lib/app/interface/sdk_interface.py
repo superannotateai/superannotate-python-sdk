@@ -2682,7 +2682,6 @@ def delete_model(model):
         logger.info("Failed to delete model, please try again")
     else:
         logger.info("Model successfully deleted")
-        raise AppException("Failed to delete model")
     return model
 
 

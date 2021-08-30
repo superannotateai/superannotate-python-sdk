@@ -162,6 +162,7 @@ class SuperannotateBackendService(BaseBackendService):
     URL_GET_TEMPLATES = "templates"
     URL_PROJECT_WORKFLOW_ATTRIBUTE = "project/{}/workflow_attribute"
     URL_MODELS = "ml_models"
+    URL_MODEL = "ml_model"
     URL_STOP_MODEL_TRAINING = "ml_model/{}/stopTrainingJob"
     URL_GET_MODEL_METRICS = "ml_models/{}/getCurrentMetrics"
     URL_BULK_GET_FOLDERS = "foldersByTeam"
@@ -888,7 +889,7 @@ class SuperannotateBackendService(BaseBackendService):
         return res.json()
 
     def delete_model(self, team_id: int, model_id: int):
-        delete_model_url = urljoin(self.api_url, f"{self.URL_MODELS}/{model_id}")
+        delete_model_url = urljoin(self.api_url, f"{self.URL_MODEL}/{model_id}")
         res = self._request(delete_model_url, "delete", params={"team_id": team_id})
         return res.ok
 

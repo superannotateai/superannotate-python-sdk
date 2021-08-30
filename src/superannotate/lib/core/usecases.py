@@ -3538,7 +3538,8 @@ class DeleteMLModel(BaseUseCase):
         self._models = models
 
     def execute(self):
-        self._models.delete(self._model_id)
+        self._response.data = self._models.delete(self._model_id)
+        return self._response
 
 
 class StopModelTraining(BaseUseCase):
