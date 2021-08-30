@@ -1600,13 +1600,13 @@ class AssignImagesUseCase(BaseUseCase):
         self,
         service: SuerannotateServiceProvider,
         project: ProjectEntity,
-        folder_name: str,
+        folder: FolderEntity,
         image_names: list,
         user: str,
     ):
         super().__init__()
         self._project = project
-        self._folder_name = folder_name
+        self._folder = folder
         self._image_names = image_names
         self._user = user
         self._service = service
@@ -1623,7 +1623,7 @@ class AssignImagesUseCase(BaseUseCase):
                 is_assigned = self._service.assign_images(
                     team_id=self._project.team_id,
                     project_id=self._project.uuid,
-                    folder_name=self._folder_name,
+                    folder_name=self._folder.name,
                     user=self._user,
                     image_names=self._image_names[
                         i : i + self.CHUNK_SIZE  # noqa: E203
@@ -1643,23 +1643,29 @@ class UnAssignImagesUseCase(BaseUseCase):
         self,
         service: SuerannotateServiceProvider,
         project_entity: ProjectEntity,
-        folder_name: str,
+        folder: FolderEntity,
         image_names: list,
     ):
         super().__init__()
         self._project_entity = project_entity
-        self._folder_name = folder_name
+        self._folder = folder
         self._image_names = image_names
         self._service = service
 
     def execute(self):
+        # todo handling to backend side
         for i in range(0, len(self._image_names), self.CHUNK_SIZE):
-            self._response.data = self._service.un_assign_images(
+            is_un_assigned = self._service.un_assign_images(
                 team_id=self._project_entity.team_id,
                 project_id=self._project_entity.uuid,
-                folder_name=self._folder_name,
-                image_names=self._image_names[i : i + self.CHUNK_SIZE],
+                folder_name=self._folder.name,
+                image_names=self._image_names[i : i + self.CHUNK_SIZE],  # noqa: E203
             )
+            if not is_un_assigned:
+                self._response.errors = AppException(
+                    f"Cant un assign {', '.join(self._image_names[i : i + self.CHUNK_SIZE])}"
+                )
+
         return self._response
 
 
@@ -1668,19 +1674,21 @@ class UnAssignFolderUseCase(BaseUseCase):
         self,
         service: SuerannotateServiceProvider,
         project_entity: ProjectEntity,
-        folder_name: str,
+        folder: FolderEntity,
     ):
         super().__init__()
         self._service = service
         self._project_entity = project_entity
-        self._folder_name = folder_name
+        self._folder = folder
 
     def execute(self):
-        self._response.data = self._service.un_assign_folder(
+        is_un_assigned = self._service.un_assign_folder(
             team_id=self._project_entity.team_id,
             project_id=self._project_entity.uuid,
-            folder_name=self._folder_name,
+            folder_name=self._folder.name,
         )
+        if not is_un_assigned:
+            self._response.errors = AppException(f"Cant un assign {self._folder.name}")
         return self._response
 
 
@@ -1689,29 +1697,29 @@ class AssignFolderUseCase(BaseUseCase):
         self,
         service: SuerannotateServiceProvider,
         project_entity: ProjectEntity,
-        folder_name: str,
+        folder: FolderEntity,
         users: List[str],
     ):
         super().__init__()
         self._service = service
         self._project_entity = project_entity
-        self._folder_name = folder_name
+        self._folder = folder
         self._users = users
 
     def execute(self):
         is_assigned = self._service.assign_folder(
             team_id=self._project_entity.team_id,
             project_id=self._project_entity.uuid,
-            folder_name=self._folder_name,
+            folder_name=self._folder.name,
             users=self._users,
         )
         if is_assigned:
             logger.info(
-                f'Assigned {self._folder_name} to users: {", ".join(self._users)}'
+                f'Assigned {self._folder.name} to users: {", ".join(self._users)}'
             )
         else:
             self._response.errors = AppException(
-                "Couldn't assign folder to users: {', '.join(self._users)"
+                f"Couldn't assign folder to users: {', '.join(self._users)}"
             )
         return self._response
 

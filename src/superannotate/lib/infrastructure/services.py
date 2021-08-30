@@ -33,6 +33,7 @@ class BaseBackendService(SuerannotateServiceProvider):
         return {
             "Authorization": self._auth_token,
             "authtype": self.AUTH_TYPE,
+            "Content-Type": "application/json",
             # "User-Agent": constance.__version__,
         }
 
@@ -70,7 +71,7 @@ class BaseBackendService(SuerannotateServiceProvider):
         method = getattr(requests, method)
         with self.safe_api():
             response = method(
-                url, **kwargs, headers=headers_dict, params=params, timeout=60
+                url, **kwargs, headers=headers_dict, params=params, timeout=60, verify=False
             )
         if response.status_code == 404 and retried < 3:
             return self._request(

@@ -1166,9 +1166,11 @@ def unassign_images(project: Union[str, dict], image_names: List[str]):
     """
     project_name, folder_name = extract_project_folder(project)
 
-    controller.un_assign_images(
+    response = controller.un_assign_images(
         project_name=project_name, folder_name=folder_name, image_names=image_names
     )
+    if response.errors:
+        raise AppException(response.errors)
 
 
 @Trackable
@@ -1183,7 +1185,11 @@ def unassign_folder(project_name: str, folder_name: str):
     :param folder_name: folder name to remove assignees
     :type folder_name: str
     """
-    controller.un_assign_folder(project_name=project_name, folder_name=folder_name)
+    response = controller.un_assign_folder(
+        project_name=project_name, folder_name=folder_name
+    )
+    if response.errors:
+        raise AppException(response.errors)
 
 
 @Trackable

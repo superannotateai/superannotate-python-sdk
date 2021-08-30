@@ -131,7 +131,7 @@ def check_types(obj, **kwargs):
         if attr_name == "return":
             continue
         try:
-            if attr_type.__origin__ is list:
+            if getattr(attr_type, "__origin__") and attr_type.__origin__ is list:
                 if attr_type.__args__:
                     for elem in kwargs[attr_name]:
                         if type(elem) in attr_type.__args__:
@@ -140,7 +140,7 @@ def check_types(obj, **kwargs):
                             errors.append(f"Invalid input {attr_name}")
                 elif not isinstance(kwargs[attr_name], list):
                     errors.append(f"Argument {attr_name} is not of type {attr_type}")
-            elif attr_type.__origin__ is Union:
+            elif getattr(attr_type, "__origin__") and attr_type.__origin__ is Union:
                 if kwargs.get(attr_name) and not isinstance(
                     kwargs[attr_name], attr_type.__args__
                 ):

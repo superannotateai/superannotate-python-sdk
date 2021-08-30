@@ -765,10 +765,11 @@ class Controller(BaseController):
         self, project_name: str, folder_name: str, image_names: list, user: str
     ):
         project_entity = self._get_project(project_name)
+        folder = self._get_folder(project_entity, folder_name)
         use_case = usecases.AssignImagesUseCase(
             project=project_entity,
             service=self._backend_client,
-            folder_name=folder_name,
+            folder=folder,
             image_names=image_names,
             user=user,
         )
@@ -776,30 +777,30 @@ class Controller(BaseController):
 
     def un_assign_images(self, project_name, folder_name, image_names):
         project = self._get_project(project_name)
-        folder_name = self.get_folder_name(folder_name)
+        folder = self._get_folder(folder_name)
         use_case = usecases.UnAssignImagesUseCase(
             project_entity=project,
             service=self._backend_client,
-            folder_name=folder_name,
+            folder=folder,
             image_names=image_names,
         )
         return use_case.execute()
 
     def un_assign_folder(self, project_name: str, folder_name: str):
         project_entity = self._get_project(project_name)
+        folder = self._get_folder(project_entity, folder_name)
         use_case = usecases.UnAssignFolderUseCase(
-            service=self._backend_client,
-            project_entity=project_entity,
-            folder_name=folder_name,
+            service=self._backend_client, project_entity=project_entity, folder=folder,
         )
         return use_case.execute()
 
     def assign_folder(self, project_name: str, folder_name: str, users: List[str]):
         project_entity = self._get_project(project_name)
+        folder = self._get_folder(project_entity, folder_name)
         use_case = usecases.AssignFolderUseCase(
             service=self._backend_client,
             project_entity=project_entity,
-            folder_name=folder_name,
+            folder=folder,
             users=users,
         )
         return use_case.execute()
