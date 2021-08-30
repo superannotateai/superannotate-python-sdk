@@ -2430,7 +2430,11 @@ class GetProjectImageCountUseCase(BaseUseCase):
             data = self._service.get_project_images_count(
                 project_id=self._project.uuid, team_id=self._project.team_id
             )
-            count = data["images"]["count"]
+            count = 0
+            for i in data["folders"]["data"]:
+                if i["id"] == self._folder.uuid:
+                    count = i["imagesCount"]
+
             if self._with_all_sub_folders:
                 for i in data["folders"]["data"]:
                     count += i["imagesCount"]
