@@ -2697,11 +2697,11 @@ def stop_model_training(model):
 
     model_id = None
     if isinstance(model, dict):
-        model_id = model['id']
+        model_id = model["id"]
     else:
         res = controller.search_models(name=model).data
         if len(res):
-            model_id = res[0]['id']
+            model_id = res[0]["id"]
         else:
             raise AppException("Model not found.")
 
