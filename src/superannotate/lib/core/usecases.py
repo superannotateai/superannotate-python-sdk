@@ -15,6 +15,7 @@ from collections import namedtuple
 from pathlib import Path
 from typing import Iterable
 from typing import List
+from typing import Optional
 
 import boto3
 import cv2
@@ -4482,3 +4483,41 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
 
             self._response.data = uploaded, failed_images, duplications
         return self._response
+
+
+class DeleteAnnotations(BaseUseCase):
+    POLL_AWAIT_TIME = 2
+    def __init__(
+            self,
+            project: ProjectEntity,
+            folder: FolderEntity,
+            backend_service: SuerannotateServiceProvider,
+            image_names: Optional[List[str]] = None,
+    ):
+        super().__init__()
+        self._project = project
+        self._folder = folder
+        self._image_names = image_names
+        self._backend_service = backend_service
+
+    def execute(self) -> Response:
+
+        if self._folder.name == "root" and not self._image_names:
+            poll_id = self._backend_service.delete_image_annotations(
+                project_id=self._project.uuid,
+                team_id=self._project.team_id,
+            )
+        else:
+            poll_id = self._backend_service.delete_image_annotations(
+                project_id=self._project.uuid,
+                team_id=self._project.team_id,
+                folder_id=self._folder.uuid,
+                image_names=self._image_names,
+                )
+
+        if poll_id:
+            timeout_start = time.time()
+            while time.time() < timeout_start + self.POLL_AWAIT_TIME:
+                 var = self._backend_service.get_annotations_delete_progress(
+                        self._project.uuid, self._project.team_id, poll_id)
+

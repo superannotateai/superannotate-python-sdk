@@ -296,3 +296,9 @@ class SuerannotateServiceProvider(metaclass=SingleInstanceMetaClass):
         self, team_id: int, project_id: int, ml_model_id: int, image_ids: list
     ):
         raise NotImplementedError
+
+    def delete_image_annotations(self, team_id: int, project_id: int, folder_id: int = None, image_names: List[str] = None) -> int:
+        raise NotImplementedError
+
+    def get_annotations_delete_progress(self, team_id: int, project_id: int, poll_id: int):
+        raise NotImplementedError

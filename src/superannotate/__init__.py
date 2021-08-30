@@ -89,6 +89,7 @@ from superannotate.lib.app.interface.sdk_interface import (
 from superannotate.lib.app.interface.sdk_interface import (
     get_project_default_image_quality_in_editor,
 )
+from superannotate.lib.app.interface.sdk_interface import delete_annotations
 from superannotate.lib.app.interface.sdk_interface import get_project_image_count
 from superannotate.lib.app.interface.sdk_interface import get_project_metadata
 from superannotate.lib.app.interface.sdk_interface import get_project_settings
@@ -235,6 +236,7 @@ __all__ = [
     "assign_images",
     "unassign_images",
     "download_image_annotations",
+    "delete_annotations",
     "upload_image_to_project",
     "upload_image_annotations",
     "upload_images_from_public_urls_to_project",

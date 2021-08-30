@@ -3593,3 +3593,20 @@ def aggregate_annotations_as_df(
         verbose,
         folder_names,
     )
+
+
+@Trackable
+@validate_input
+def delete_annotations(project: str, image_names: List[str] = None):
+    """
+    Delete image annotations from a given list of images.
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param image_names:  image names. If None, all image annotations from a given project/folder will be deleted.
+    :type image_names: list of strs
+    """
+
+    project_name, folder_name = extract_project_folder(project)
+
+    controller.delete_annotations(project_name=project, folder_name=folder_name, image_names=image_names)
