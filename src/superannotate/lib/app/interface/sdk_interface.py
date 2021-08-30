@@ -36,6 +36,7 @@ from lib.app.mixp.decorators import Trackable
 from lib.app.serializers import BaseSerializers
 from lib.app.serializers import ImageSerializer
 from lib.app.serializers import ProjectSerializer
+from lib.app.serializers import SettingsSerializer
 from lib.app.serializers import TeamSerializer
 from lib.core.enums import ImageQuality
 from lib.core.exceptions import AppException
@@ -45,15 +46,7 @@ from plotly.subplots import make_subplots
 from tqdm import tqdm
 
 
-logging.basicConfig(level=logging.INFO)
-formatter = logging.Formatter(fmt="SA-PYTHON-SDK - %(levelname)s - %(message)s")
-
-handler = logging.StreamHandler()
-handler.setFormatter(formatter)
-
 logger = logging.getLogger("superannotate-python-sdk")
-logger.setLevel(logging.INFO)
-logger.addHandler(handler)
 
 controller = Controller(logger)
 
@@ -864,8 +857,12 @@ def get_project_metadata(
     ).data
 
     metadata = ProjectSerializer(response["project"]).serialize()
+    if response.get("settings"):
+        metadata["settings"] = [
+            SettingsSerializer(setting).serialize() for setting in response["settings"]
+        ]
 
-    for elem in "settings", "classes", "workflows", "contributors":
+    for elem in "classes", "workflows", "contributors":
         if response.get(elem):
             metadata[elem] = [
                 BaseSerializers(attribute).serialize() for attribute in response[elem]
@@ -2690,7 +2687,6 @@ def delete_model(model):
         logger.info("Failed to delete model, please try again")
     else:
         logger.info("Model successfully deleted")
-        raise AppException("Failed to delete model")
     return model
 
 
@@ -2706,11 +2702,11 @@ def stop_model_training(model):
 
     model_id = None
     if isinstance(model, dict):
-        model_id = model['id']
+        model_id = model["id"]
     else:
         res = controller.search_models(name=model).data
         if len(res):
-            model_id = res[0]['id']
+            model_id = res[0]["id"]
         else:
             raise AppException("Model not found.")
 

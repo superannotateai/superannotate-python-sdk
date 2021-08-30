@@ -777,7 +777,7 @@ class Controller(BaseController):
 
     def un_assign_images(self, project_name, folder_name, image_names):
         project = self._get_project(project_name)
-        folder = self._get_folder(folder_name)
+        folder = self._get_folder(project, folder_name)
         use_case = usecases.UnAssignImagesUseCase(
             project_entity=project,
             service=self._backend_client,

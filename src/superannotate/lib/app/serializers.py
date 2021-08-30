@@ -62,3 +62,11 @@ class ImageSerializer(BaseSerializers):
         if isinstance(data, list):
             return [ImageEntity(**image) for image in data]
         return ImageEntity(**data)
+
+
+class SettingsSerializer(BaseSerializers):
+    def serialize(self):
+        data = super().serialize()
+        if data["attribute"] == "ImageQuality":
+            data["value"] = constance.ImageQuality.get_name(data["value"])
+        return data

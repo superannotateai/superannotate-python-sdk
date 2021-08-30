@@ -7,10 +7,12 @@ from typing import Tuple
 from urllib.parse import urljoin
 
 import lib.core as constance
-import requests
+import requests.packages.urllib3
 from lib.core.exceptions import AppException
 from lib.core.serviceproviders import SuerannotateServiceProvider
 from requests.exceptions import HTTPError
+
+requests.packages.urllib3.disable_warnings()
 
 
 class BaseBackendService(SuerannotateServiceProvider):
@@ -71,7 +73,12 @@ class BaseBackendService(SuerannotateServiceProvider):
         method = getattr(requests, method)
         with self.safe_api():
             response = method(
-                url, **kwargs, headers=headers_dict, params=params, timeout=60, verify=False
+                url,
+                **kwargs,
+                headers=headers_dict,
+                params=params,
+                timeout=60,
+                verify=False,
             )
         if response.status_code == 404 and retried < 3:
             return self._request(
@@ -159,6 +166,7 @@ class SuperannotateBackendService(BaseBackendService):
     URL_GET_TEMPLATES = "templates"
     URL_PROJECT_WORKFLOW_ATTRIBUTE = "project/{}/workflow_attribute"
     URL_MODELS = "ml_models"
+    URL_MODEL = "ml_model"
     URL_STOP_MODEL_TRAINING = "ml_model/{}/stopTrainingJob"
     URL_GET_MODEL_METRICS = "ml_models/{}/getCurrentMetrics"
     URL_BULK_GET_FOLDERS = "foldersByTeam"
@@ -885,7 +893,7 @@ class SuperannotateBackendService(BaseBackendService):
         return res.json()
 
     def delete_model(self, team_id: int, model_id: int):
-        delete_model_url = urljoin(self.api_url, f"{self.URL_MODELS}/{model_id}")
+        delete_model_url = urljoin(self.api_url, f"{self.URL_MODEL}/{model_id}")
         res = self._request(delete_model_url, "delete", params={"team_id": team_id})
         return res.ok
 

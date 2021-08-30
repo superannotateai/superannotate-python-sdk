@@ -1,3 +1,5 @@
+import logging.config
+
 from superannotate.lib.app.analytics.class_analytics import attribute_distribution
 from superannotate.lib.app.analytics.class_analytics import class_distribution
 from superannotate.lib.app.annotation_helpers import add_annotation_bbox_to_json
@@ -243,6 +245,7 @@ __all__ = [
     "upload_videos_from_folder_to_project",
     # Annotation Section
     "create_annotation_class",
+    "delete_annotation_class",
     "prepare_export",
     "download_export",
     "set_images_annotation_statuses",
@@ -284,3 +287,8 @@ __all__ = [
 ]
 
 __author__ = "Superannotate"
+import os
+
+file_dir = os.path.split(os.path.realpath(__file__))[0]
+
+logging.config.fileConfig(os.path.join(file_dir, "logging.conf"))
