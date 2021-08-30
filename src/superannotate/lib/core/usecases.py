@@ -1938,6 +1938,7 @@ class GetProjectMetadataUseCase(BaseUseCase):
         project = self._projects.get_one(
             uuid=self._project.uuid, team_id=self._project.team_id
         )
+        data["project"] = project
         if self._include_complete_image_count:
             projects = self._projects.get_all(
                 condition=(
@@ -1948,8 +1949,6 @@ class GetProjectMetadataUseCase(BaseUseCase):
             )
             if projects:
                 data["project"] = projects[0]
-        else:
-            data["project"] = project
 
         if self._include_annotation_classes:
             self.annotation_classes_use_case.execute()
@@ -2430,7 +2429,11 @@ class GetProjectImageCountUseCase(BaseUseCase):
             data = self._service.get_project_images_count(
                 project_id=self._project.uuid, team_id=self._project.team_id
             )
-            count = data["images"]["count"]
+            count = 0
+            for i in data["folders"]["data"]:
+                if i["id"] == self._folder.uuid:
+                    count = i["imagesCount"]
+
             if self._with_all_sub_folders:
                 for i in data["folders"]["data"]:
                     count += i["imagesCount"]
