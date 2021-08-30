@@ -1357,6 +1357,12 @@ class UpdateSettingsUseCase(BaseUseCase):
         self._project_id = project_id
         self._team_id = team_id
 
+    def validate_image_quality(self):
+        for setting in self._to_update:
+            if setting["attribute"].lower() == "imagequality" and isinstance(setting["value"], str):
+                setting["value"] = constances.ImageQuality.get_value(setting["value"])
+                return
+
     def validate_project_type(self):
         project = self._projects.get_one(uuid=self._project_id, team_id=self._team_id)
         for attribute in self._to_update:
@@ -1369,27 +1375,27 @@ class UpdateSettingsUseCase(BaseUseCase):
                 )
 
     def execute(self):
+        if self.is_valid():
+            old_settings = self._settings.get_all()
+            attr_id_mapping = {}
+            for setting in old_settings:
+                attr_id_mapping[setting.attribute] = setting.uuid
 
-        old_settings = self._settings.get_all()
-        attr_id_mapping = {}
-        for setting in old_settings:
-            attr_id_mapping[setting.attribute] = setting.uuid
+            new_settings_to_update = []
+            for new_setting in self._to_update:
+                new_settings_to_update.append(
+                    {
+                        "id": attr_id_mapping[new_setting["attribute"]],
+                        "attribute": new_setting["attribute"],
+                        "value": new_setting["value"],
+                    }
+                )
 
-        new_settings_to_update = []
-        for new_setting in self._to_update:
-            new_settings_to_update.append(
-                {
-                    "id": attr_id_mapping[new_setting["attribute"]],
-                    "attribute": new_setting["attribute"],
-                    "value": new_setting["value"],
-                }
+            self._response.data = self._backend_service_provider.set_project_settings(
+                project_id=self._project_id,
+                team_id=self._team_id,
+                data=new_settings_to_update,
             )
-
-        self._response.data = self._backend_service_provider.set_project_settings(
-            project_id=self._project_id,
-            team_id=self._team_id,
-            data=new_settings_to_update,
-        )
         return self._response
 
 
@@ -2418,6 +2424,10 @@ class GetProjectImageCountUseCase(BaseUseCase):
         self._folder = folder
         self._with_all_sub_folders = with_all_sub_folders
 
+    def validate_user_input(self):
+        if not self._folder.name == "root" and self._with_all_sub_folders:
+            raise AppValidationException("The folder does not contain any sub-folders.")
+
     def validate_project_type(self):
         if self._project.project_type == constances.ProjectType.VIDEO.value:
             raise AppValidationException(
@@ -2430,13 +2440,16 @@ class GetProjectImageCountUseCase(BaseUseCase):
                 project_id=self._project.uuid, team_id=self._project.team_id
             )
             count = 0
-            for i in data["folders"]["data"]:
-                if i["id"] == self._folder.uuid:
-                    count = i["imagesCount"]
-
-            if self._with_all_sub_folders:
+            if self._folder.name == "root":
+                count += data["images"]["count"]
+                if self._with_all_sub_folders:
+                    for i in data["folders"]["data"]:
+                        count += i["imagesCount"]
+            else:
                 for i in data["folders"]["data"]:
-                    count += i["imagesCount"]
+                    if i["id"] == self._folder.uuid:
+                        count = i["imagesCount"]
+
             self._response.data = count
         return self._response
 
