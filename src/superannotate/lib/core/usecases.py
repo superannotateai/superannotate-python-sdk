@@ -1377,8 +1377,6 @@ class UpdateSettingsUseCase(BaseUseCase):
 
         new_settings_to_update = []
         for new_setting in self._to_update:
-            if new_setting["attribute"] == 'ImageQuality':
-                new_setting["value"] = ImageQuality.get_value(new_setting["value"])
             new_settings_to_update.append(
                 {
                     "id": attr_id_mapping[new_setting["attribute"]],
