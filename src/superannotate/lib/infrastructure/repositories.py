@@ -190,7 +190,7 @@ class ProjectSettingsRepository(BaseProjectRelatedManageableRepository):
         res = self._service.set_project_settings(
             self._project.uuid, self._project.team_id, [entity.to_dict()]
         )
-        return self.dict2entity(res[0])
+        return entity
 
     @staticmethod
     def dict2entity(data: dict):

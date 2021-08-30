@@ -1359,7 +1359,9 @@ class UpdateSettingsUseCase(BaseUseCase):
 
     def validate_image_quality(self):
         for setting in self._to_update:
-            if setting["attribute"].lower() == "imagequality" and isinstance(setting["value"], str):
+            if setting["attribute"].lower() == "imagequality" and isinstance(
+                setting["value"], str
+            ):
                 setting["value"] = constances.ImageQuality.get_value(setting["value"])
                 return
 
@@ -1593,7 +1595,7 @@ class DeleteImagesUseCase(BaseUseCase):
                 self._backend_service.delete_images(
                     project_id=self._project.uuid,
                     team_id=self._project.team_id,
-                    image_ids=image_ids[i : i + self.CHUNK_SIZE],
+                    image_ids=image_ids[i : i + self.CHUNK_SIZE],  # noqa: E203
                 )
         return self._response
 
@@ -1941,9 +1943,9 @@ class GetProjectMetadataUseCase(BaseUseCase):
 
     def execute(self):
         data = {}
-
-        project = self._project
-
+        project = self._projects.get_one(
+            uuid=self._project.uuid, team_id=self._project.team_id
+        )
         data["project"] = project
         if self._include_complete_image_count:
             projects = self._projects.get_all(
@@ -4317,6 +4319,6 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
             attachments, duplications = response.data
             uploaded.extend(attachments)
         uploaded = [image["name"] for image in uploaded]
-        failed_images = [image.name for image in failed_images]
+        failed_images = [image.split("/")[-1] for image in failed_images]
 
         self._response.data = uploaded, failed_images, duplications

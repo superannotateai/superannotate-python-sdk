@@ -182,7 +182,7 @@ class TestFolders(BaseTestCase):
             self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
         )
         num_images = sa.get_project_image_count(self.PROJECT_NAME)
-        self.assertEqual(num_images, 0)
+        self.assertEqual(num_images, 4)
 
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1)
         sa.upload_images_from_folder_to_project(
@@ -191,7 +191,7 @@ class TestFolders(BaseTestCase):
             annotation_status="InProgress",
         )
         num_images = sa.get_project_image_count(self.PROJECT_NAME)
-        self.assertEqual(num_images, 0)
+        self.assertEqual(num_images, 4)
 
         num_images = sa.get_project_image_count(
             self.PROJECT_NAME + f"/{self.TEST_FOLDER_NAME_1}"
@@ -201,7 +201,7 @@ class TestFolders(BaseTestCase):
         num_images = sa.get_project_image_count(
             self.PROJECT_NAME, with_all_subfolders=True
         )
-        self.assertEqual(num_images, 4)
+        self.assertEqual(num_images, 8)
 
     def test_delete_images(self):
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1)
@@ -252,7 +252,7 @@ class TestFolders(BaseTestCase):
         )
 
         num_images = sa.get_project_image_count(self.PROJECT_NAME)
-        assert num_images == 0
+        assert num_images == 4
 
     def test_copy_images4(self):
         sa.upload_images_from_folder_to_project(
@@ -269,7 +269,7 @@ class TestFolders(BaseTestCase):
         self.assertEqual(num_images, 2)
 
         num_images = sa.get_project_image_count(self.PROJECT_NAME)
-        self.assertEqual(num_images, 0)
+        self.assertEqual(num_images, 4)
 
     def test_copy_images(self):
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1)

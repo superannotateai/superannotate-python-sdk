@@ -1,4 +1,3 @@
-from abc import ABC
 from abc import abstractmethod
 from typing import Any
 from typing import Dict
@@ -7,7 +6,16 @@ from typing import List
 from typing import Tuple
 
 
-class SuerannotateServiceProvider(ABC):
+class SingleInstanceMetaClass(type):
+    _instances = {}
+
+    def __call__(cls, *args, **kwargs):
+        if cls not in SingleInstanceMetaClass._instances:
+            SingleInstanceMetaClass._instances[cls] = super().__call__(*args, **kwargs)
+        return SingleInstanceMetaClass._instances[cls]
+
+
+class SuerannotateServiceProvider(metaclass=SingleInstanceMetaClass):
     @abstractmethod
     def attach_files(
         self,

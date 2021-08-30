@@ -29,6 +29,14 @@ class BaseBackendService(SuerannotateServiceProvider):
         self.logger = logger
         self._paginate_by = paginate_by
         self.team_id = auth_token.split("=")[-1]
+        self._session = None
+
+    @property
+    def session(self):
+        if not self._session:
+            self._session = requests.Session()
+            self._session.headers.update(self.default_headers)
+        return self._session
 
     @property
     def default_headers(self):
@@ -69,15 +77,11 @@ class BaseBackendService(SuerannotateServiceProvider):
     ) -> requests.Response:
         kwargs = {"json": data} if data else {}
         headers_dict = self.default_headers.copy()
-        headers_dict.update(headers if headers else {})
-        method = getattr(requests, method)
+        self.session.headers.update(headers if headers else {})
+        method = getattr(self.session, method)
         with self.safe_api():
             response = method(
-                url,
-                **kwargs,
-                headers=headers_dict,
-                params=params,
-                timeout=60,
+                url, **kwargs, headers=headers_dict, params=params, timeout=60,
             )
         if response.status_code == 404 and retried < 3:
             return self._request(
@@ -115,7 +119,6 @@ class BaseBackendService(SuerannotateServiceProvider):
         total = list()
 
         while True:
-            import time
             resources, remains_count = self._get_page(url, offset, params, key_field)
             total.extend(resources["data"])
             if remains_count <= 0:
