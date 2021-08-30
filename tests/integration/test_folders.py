@@ -303,11 +303,10 @@ class TestFolders(BaseTestCase):
         num_images = sa.get_project_image_count(project2)
         self.assertEqual(num_images, 2)
 
-        res = sa.copy_images(project, None, project2)
+        sa.copy_images(project, None, project2)
 
         num_images = sa.get_project_image_count(project2)
         self.assertEqual(num_images, 4)
-
 
         sa.copy_images(
             project,
@@ -318,7 +317,7 @@ class TestFolders(BaseTestCase):
             copy_pin=False,
         )
         num_images = sa.get_project_image_count(self.PROJECT_NAME)
-        self.assertEqual(num_images, 0)
+        self.assertEqual(num_images, 2)
 
     def test_move_images(self):
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1)
