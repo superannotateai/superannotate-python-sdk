@@ -1938,7 +1938,22 @@ class GetProjectMetadataUseCase(BaseUseCase):
         )
 
     def execute(self):
-        data = {"project": self._projects.get_one(uuid=self._project.uuid,team_id=self._project.team_id) }
+        data = {}
+        project = self._projects.get_one(
+            uuid=self._project.uuid, team_id=self._project.team_id
+        )
+        if self._include_complete_image_count:
+            projects = self._projects.get_all(
+                condition=(
+                    Condition("completeImagesCount", "true", EQ)
+                    & Condition("name", self._project.name, EQ)
+                    & Condition("team_id", self._project.team_id, EQ)
+                )
+            )
+            if projects:
+                data["project"] = projects[0]
+        else:
+            data["project"] = project
 
         if self._include_annotation_classes:
             self.annotation_classes_use_case.execute()
@@ -1953,18 +1968,7 @@ class GetProjectMetadataUseCase(BaseUseCase):
             data["workflows"] = self.work_flow_use_case.execute().data
 
         if self._include_contributors:
-            data["contributors"] = self._project.users
-
-        if self._include_complete_image_count:
-            projects = self._projects.get_all(
-                condition=(
-                    Condition("completeImagesCount", "true", EQ)
-                    & Condition("name", self._project.name, EQ)
-                    & Condition("team_id", self._project.team_id, EQ)
-                )
-            )
-            if projects:
-                data["project"] = projects[0]
+            data["contributors"] = project.users
 
         self._response.data = data
         return self._response
@@ -4135,20 +4139,21 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
     def auth_data(self):
         if not self._auth_data:
             self._auth_data = self._backend_client.get_s3_upload_auth_token(
-            team_id=self._project.team_id,
-            folder_id=self._folder.uuid,
-            project_id=self._project.uuid, )
+                team_id=self._project.team_id,
+                folder_id=self._folder.uuid,
+                project_id=self._project.uuid,
+            )
         return self._auth_data
 
     @property
     def s3_repository(self):
         if not self._s3_repo_instance:
-            self._s3_repo_instance =  self._s3_repo(
-            self.auth_data["accessKeyId"],
-            self.auth_data["secretAccessKey"],
-            self.auth_data["sessionToken"],
-            self.auth_data["bucket"],
-        )
+            self._s3_repo_instance = self._s3_repo(
+                self.auth_data["accessKeyId"],
+                self.auth_data["secretAccessKey"],
+                self.auth_data["sessionToken"],
+                self.auth_data["bucket"],
+            )
         return self._s3_repo_instance
 
     def _upload_image(self, image_path: str):

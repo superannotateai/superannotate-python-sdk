@@ -147,7 +147,7 @@ def check_types(obj, **kwargs):
                     errors.append(f"Argument {attr_name} is not of type {attr_type}")
             elif kwargs.get(attr_name) and not isinstance(kwargs[attr_name], attr_type):
                 errors.append(f"Argument {attr_name} is not of type {attr_type}")
-        except:
+        except Exception as _:
             pass
     return errors
 

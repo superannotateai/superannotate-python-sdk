@@ -46,7 +46,7 @@ from tqdm import tqdm
 
 
 logging.basicConfig(level=logging.INFO)
-formatter = logging.Formatter(fmt='SA-PYTHON-SDK - %(levelname)s - %(message)s')
+formatter = logging.Formatter(fmt="SA-PYTHON-SDK - %(levelname)s - %(message)s")
 
 handler = logging.StreamHandler()
 handler.setFormatter(formatter)
@@ -56,8 +56,6 @@ logger.setLevel(logging.INFO)
 logger.addHandler(handler)
 
 controller = Controller(logger)
-
-
 
 
 @validate_input
@@ -478,9 +476,7 @@ def search_folders(
 @Trackable
 @validate_input
 def get_image_bytes(
-    project: Union[str, dict],
-    image_name: str,
-    variant: str = "original",
+    project: Union[str, dict], image_name: str, variant: str = "original",
 ):
     """Returns an io.BytesIO() object of the image. Suitable for creating
     PIL.Image out of it.
@@ -981,8 +977,7 @@ def get_project_default_image_quality_in_editor(project: Union[str, dict]):
 @Trackable
 @validate_input
 def set_project_default_image_quality_in_editor(
-    project: Union[str, dict],
-    image_quality_in_editor: Optional[str],
+    project: Union[str, dict], image_quality_in_editor: Optional[str],
 ):
     """Sets project's default image quality in editor setting.
 
@@ -1075,9 +1070,7 @@ def get_image_metadata(project: Union[str, dict], image_name: str, *_, **__):
 @Trackable
 @validate_input
 def set_images_annotation_statuses(
-    project: Union[str, dict],
-    image_names: List[str],
-    annotation_status: str,
+    project: Union[str, dict], image_names: List[str], annotation_status: str,
 ):
     """Sets annotation statuses of images
 
@@ -1138,9 +1131,13 @@ def assign_images(project: Union[str, dict], image_names: List[str], user: str):
     project_name, folder_name = extract_project_folder(project)
     if not folder_name:
         folder_name = "root"
-    contributors = controller.get_project_metadata(
-        project_name=project_name, include_contributors=True
-    ).data["project"].users
+    contributors = (
+        controller.get_project_metadata(
+            project_name=project_name, include_contributors=True
+        )
+        .data["project"]
+        .users
+    )
     contributor = None
     for c in contributors:
         if c["user_id"] == user:

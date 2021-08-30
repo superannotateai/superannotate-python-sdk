@@ -276,7 +276,7 @@ class CLIFacade(BaseInterfaceFacade):
                     task=task,
                 )
                 annotations_path = temp_dir
-            classes_path = f"{folder}/classes/classes.json"
+            classes_path = f"{annotations_path}/classes/classes.json"
             self.controller.create_annotation_classes(
                 project_name=project_name,
                 annotation_classes=json.load(open(classes_path)),
@@ -296,7 +296,7 @@ class CLIFacade(BaseInterfaceFacade):
                     )
                     if response.errors:
                         logger.warning(response.errors)
-                    progress_bar.update()
+                    progress_bar.update(chunk_size)
         sys.exit(0)
 
     def attach_image_urls(
