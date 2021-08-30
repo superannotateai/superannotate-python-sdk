@@ -1940,6 +1940,7 @@ class GetProjectMetadataUseCase(BaseUseCase):
         project = self._projects.get_one(
             uuid=self._project.uuid, team_id=self._project.team_id
         )
+        data["project"] = project
         if self._include_complete_image_count:
             projects = self._projects.get_all(
                 condition=(
@@ -1950,8 +1951,6 @@ class GetProjectMetadataUseCase(BaseUseCase):
             )
             if projects:
                 data["project"] = projects[0]
-        else:
-            data["project"] = project
 
         if self._include_annotation_classes:
             self.annotation_classes_use_case.execute()

@@ -13,5 +13,5 @@ class TestInterface(BaseTestCase):
         self.assertIsNotNone(sa.get_project_default_image_quality_in_editor(self.PROJECT_NAME))
 
     def test_get_project_metadata(self):
-        metadata = sa.get_team_metadata()
+        metadata = sa.get_project_metadata(include_complete_image_count=True)
         pass

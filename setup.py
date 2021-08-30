@@ -27,7 +27,7 @@ setup(
     name='superannotate',
     version=version,
     package_dir={"": "src"},
-
+    package_data={"superannotate": ["logging.conf"]},
     packages=find_packages(where="src"),
     description='Python SDK to SuperAnnotate platform',
     license='MIT',

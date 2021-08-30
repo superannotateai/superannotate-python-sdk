@@ -6,11 +6,14 @@ from typing import List
 from typing import Tuple
 from urllib.parse import urljoin
 
-import lib.core as constance
 import requests
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+import lib.core as constance
 from lib.core.exceptions import AppException
 from lib.core.serviceproviders import SuerannotateServiceProvider
 from requests.exceptions import HTTPError
+
+requests.packages.urllib3.disable_warnings()
 
 
 class BaseBackendService(SuerannotateServiceProvider):

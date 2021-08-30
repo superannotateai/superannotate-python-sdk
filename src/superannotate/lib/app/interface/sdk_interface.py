@@ -45,15 +45,7 @@ from plotly.subplots import make_subplots
 from tqdm import tqdm
 
 
-logging.basicConfig(level=logging.INFO)
-formatter = logging.Formatter(fmt="SA-PYTHON-SDK - %(levelname)s - %(message)s")
-
-handler = logging.StreamHandler()
-handler.setFormatter(formatter)
-
 logger = logging.getLogger("superannotate-python-sdk")
-logger.setLevel(logging.INFO)
-logger.addHandler(handler)
 
 controller = Controller(logger)
 
