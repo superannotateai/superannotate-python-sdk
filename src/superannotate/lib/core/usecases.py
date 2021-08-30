@@ -1938,7 +1938,22 @@ class GetProjectMetadataUseCase(BaseUseCase):
         )
 
     def execute(self):
-        data = {"project": self._projects.get_one(uuid=self._project.uuid,team_id=self._project.team_id) }
+        data = {}
+        project = self._projects.get_one(
+            uuid=self._project.uuid, team_id=self._project.team_id
+        )
+        if self._include_complete_image_count:
+            projects = self._projects.get_all(
+                condition=(
+                    Condition("completeImagesCount", "true", EQ)
+                    & Condition("name", self._project.name, EQ)
+                    & Condition("team_id", self._project.team_id, EQ)
+                )
+            )
+            if projects:
+                data["project"] = projects[0]
+        else:
+            data["project"] = project
 
         if self._include_annotation_classes:
             self.annotation_classes_use_case.execute()
@@ -1953,18 +1968,7 @@ class GetProjectMetadataUseCase(BaseUseCase):
             data["workflows"] = self.work_flow_use_case.execute().data
 
         if self._include_contributors:
-            data["contributors"] = self._project.users
-
-        if self._include_complete_image_count:
-            projects = self._projects.get_all(
-                condition=(
-                    Condition("completeImagesCount", "true", EQ)
-                    & Condition("name", self._project.name, EQ)
-                    & Condition("team_id", self._project.team_id, EQ)
-                )
-            )
-            if projects:
-                data["project"] = projects[0]
+            data["contributors"] = project.users
 
         self._response.data = data
         return self._response

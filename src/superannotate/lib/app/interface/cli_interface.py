@@ -11,7 +11,6 @@ from io import BytesIO
 from pathlib import Path
 from typing import Any
 from typing import Optional
-from tqdm import tqdm
 
 import lib.core as constances
 import pandas as pd
