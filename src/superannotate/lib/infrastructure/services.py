@@ -6,12 +6,12 @@ from typing import List
 from typing import Tuple
 from urllib.parse import urljoin
 
-import requests
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
 import lib.core as constance
+import requests
 from lib.core.exceptions import AppException
 from lib.core.serviceproviders import SuerannotateServiceProvider
 from requests.exceptions import HTTPError
+import requests.packages.urllib3
 
 requests.packages.urllib3.disable_warnings()
 
@@ -74,7 +74,12 @@ class BaseBackendService(SuerannotateServiceProvider):
         method = getattr(requests, method)
         with self.safe_api():
             response = method(
-                url, **kwargs, headers=headers_dict, params=params, timeout=60, verify=False
+                url,
+                **kwargs,
+                headers=headers_dict,
+                params=params,
+                timeout=60,
+                verify=False,
             )
         if response.status_code == 404 and retried < 3:
             return self._request(

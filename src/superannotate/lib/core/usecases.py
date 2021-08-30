@@ -4156,7 +4156,7 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
         return self._s3_repo_instance
 
     def _upload_image(self, image_path: str):
-        ProcessedImage = namedtuple("ProcessedImage", ["uploaded", "path", "entity"])
+        ProcessedImage = namedtuple("ProcessedImage", ["uploaded", "path", "entity", "name"])
         if self._from_s3_bucket:
             image_bytes = (
                 GetS3ImageUseCase(s3_bucket=self._from_s3_bucket, image_path=image_path)
@@ -4177,9 +4177,9 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
 
         if not upload_response.errors and upload_response.data:
             entity = upload_response.data
-            return ProcessedImage(uploaded=True, path=entity.path, entity=entity)
+            return ProcessedImage(uploaded=True, path=entity.path, entity=entity, name=Path(image_path).name)
         else:
-            return ProcessedImage(uploaded=False, path=image_path, entity=None)
+            return ProcessedImage(uploaded=False, path=image_path, entity=None, name=Path(image_path).name)
 
     @property
     def paths(self):
@@ -4277,7 +4277,7 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
                 if processed_image.uploaded and processed_image.entity:
                     uploaded_images.append(processed_image)
                 else:
-                    failed_images.append(processed_image)
+                    failed_images.append(processed_image.path)
                 yield
 
         uploaded = []
@@ -4293,6 +4293,7 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
 
             attachments, duplications = response.data
             uploaded.extend(attachments)
-            # duplicates.extend(duplications)
+        uploaded = [image["name"] for image in uploaded]
+        failed_images = [image.name for image in failed_images]
 
-        self.response.data = uploaded, failed_images, duplications
+        self._response.data = uploaded, failed_images, duplications
