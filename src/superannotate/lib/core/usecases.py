@@ -847,17 +847,19 @@ class GetFolderUseCase(BaseUseCase):
         return self._response
 
 
-class SearchFolderUseCase(BaseUseCase):
+class SearchFoldersUseCase(BaseUseCase):
     def __init__(
         self,
         project: ProjectEntity,
         folders: BaseReadOnlyRepository,
         condition: Condition,
+        folder_name: str = None,
         include_users=False,
     ):
         super().__init__()
         self._project = project
         self._folders = folders
+        self._folder_name = folder_name
         self._condition = condition
         self._include_users = include_users
 
@@ -868,22 +870,8 @@ class SearchFolderUseCase(BaseUseCase):
             & Condition("team_id", self._project.team_id, EQ)
             & Condition("includeUsers", self._include_users, EQ)
         )
-        self._response.data = self._folders.get_all(condition)
-        return self._response
-
-
-class GetProjectFoldersUseCase(BaseUseCase):
-    def __init__(
-        self, project: ProjectEntity, folders: BaseReadOnlyRepository,
-    ):
-        super().__init__()
-        self._project = project
-        self._folders = folders
-
-    def execute(self):
-        condition = Condition("team_id", self._project.team_id, EQ) & Condition(
-            "project_id", self._project.uuid, EQ
-        )
+        if self._folder_name:
+            condition &= Condition("name", self._folder_name, EQ)
         self._response.data = self._folders.get_all(condition)
         return self._response
 

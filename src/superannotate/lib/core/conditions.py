@@ -20,6 +20,20 @@ class Condition:
         self._type = condition_type
         self._condition_set = []  # type: List[NamedTuple]
 
+    @staticmethod
+    def get_empty_condition():
+        class EmptyCondition:
+            def __or__(self, other):
+                return other
+
+            def __and__(self, other):
+                return other
+
+            def build_query(self):
+                return ""
+
+        return EmptyCondition()
+
     def __str__(self):
         return f"{self._key}{self._type}{self._value}"
 

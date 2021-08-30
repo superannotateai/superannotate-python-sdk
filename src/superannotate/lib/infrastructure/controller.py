@@ -379,36 +379,26 @@ class Controller(BaseController):
         )
         return use_case.execute()
 
-    def search_folder(self, project_name: str, include_users=False, **kwargs):
-        condition = None
+    def search_folders(
+        self, project_name: str, folder_name: str = None, include_users=False, **kwargs
+    ):
+        condition = Condition.get_empty_condition()
         if kwargs:
-            conditions_iter = iter(kwargs)
-            key = next(conditions_iter)
-            condition = Condition(key, kwargs[key], EQ)
-            for key, val in conditions_iter:
+            for key, val in kwargs:
                 condition = condition & Condition(key, val, EQ)
-
         project = self._get_project(project_name)
-        use_case = usecases.SearchFolderUseCase(
+        use_case = usecases.SearchFoldersUseCase(
             project=project,
             folders=self.folders,
             condition=condition,
+            folder_name=folder_name,
             include_users=include_users,
-        )
-        return use_case.execute()
-
-    def get_project_folders(
-        self, project_name: str,
-    ):
-        project = self._get_project(project_name)
-        use_case = usecases.GetProjectFoldersUseCase(
-            project=project, folders=self.folders,
         )
         return use_case.execute()
 
     def delete_folders(self, project_name: str, folder_names: List[str]):
         project = self._get_project(project_name)
-        folders = self.get_project_folders(project_name).data
+        folders = self.search_folders(project_name=project_name).data
 
         use_case = usecases.DeleteFolderUseCase(
             project=project,

@@ -462,12 +462,12 @@ def search_folders(
     :rtype: list of strs or dicts
     """
 
-    if not folder_name:
-        data = controller.get_project_folders(project).data
-    else:
-        data = controller.search_folder(
-            project_name=project, name=folder_name, include_users=return_metadata
-        ).data
+    response = controller.search_folders(
+        project_name=project, folder_name=folder_name, include_users=return_metadata
+    )
+    if response.errors:
+        raise AppException(response.errors)
+    data = response.data
     if return_metadata:
         return [BaseSerializers(folder).serialize() for folder in data]
     return [folder.name for folder in data]
