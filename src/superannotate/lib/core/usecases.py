@@ -4317,6 +4317,6 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
             attachments, duplications = response.data
             uploaded.extend(attachments)
         uploaded = [image["name"] for image in uploaded]
-        failed_images = [image.name for image in failed_images]
+        failed_images = [image.split("/")[-1] for image in failed_images]
 
         self._response.data = uploaded, failed_images, duplications
