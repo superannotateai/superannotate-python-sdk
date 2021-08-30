@@ -158,7 +158,7 @@ class SuperannotateBackendService(BaseBackendService):
     URL_GET_TEMPLATES = "templates"
     URL_PROJECT_WORKFLOW_ATTRIBUTE = "project/{}/workflow_attribute"
     URL_MODELS = "ml_models"
-    URL_STOP_MODEL_TRAINING = "ml_models/{}/stopTrainingJob"
+    URL_STOP_MODEL_TRAINING = "ml_model/{}/stopTrainingJob"
     URL_GET_MODEL_METRICS = "ml_models/{}/getCurrentMetrics"
     URL_BULK_GET_FOLDERS = "foldersByTeam"
     URL_GET_EXPORT = "export/{}"

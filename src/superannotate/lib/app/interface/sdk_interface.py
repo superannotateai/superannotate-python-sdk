@@ -2697,7 +2697,18 @@ def stop_model_training(model):
     :return: the metadata of the now, stopped model
     :rtype: dict
     """
-    response = controller.stop_model_training(model["id"])
+
+    model_id = None
+    if isinstance(model, dict):
+        model_id = model['id']
+    else:
+        res = controller.search_models(name=model).data
+        if len(res):
+            model_id = res[0]['id']
+        else:
+            raise AppException("Model not found.")
+
+    response = controller.stop_model_training(model_id=model_id)
 
     if not response.errors:
         logger.info("Stopped model training")
