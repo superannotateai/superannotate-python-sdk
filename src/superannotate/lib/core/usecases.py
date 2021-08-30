@@ -1377,7 +1377,7 @@ class UpdateSettingsUseCase(BaseUseCase):
 
         new_settings_to_update = []
         for new_setting in self._to_update:
-            if new_setting["attribute"] == 'ImageQuality':
+            if new_setting["attribute"] == "ImageQuality":
                 new_setting["value"] = ImageQuality.get_value(new_setting["value"])
             new_settings_to_update.append(
                 {
@@ -4159,7 +4159,9 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
         return self._s3_repo_instance
 
     def _upload_image(self, image_path: str):
-        ProcessedImage = namedtuple("ProcessedImage", ["uploaded", "path", "entity", "name"])
+        ProcessedImage = namedtuple(
+            "ProcessedImage", ["uploaded", "path", "entity", "name"]
+        )
         if self._from_s3_bucket:
             image_bytes = (
                 GetS3ImageUseCase(s3_bucket=self._from_s3_bucket, image_path=image_path)
@@ -4180,9 +4182,16 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
 
         if not upload_response.errors and upload_response.data:
             entity = upload_response.data
-            return ProcessedImage(uploaded=True, path=entity.path, entity=entity, name=Path(image_path).name)
+            return ProcessedImage(
+                uploaded=True,
+                path=entity.path,
+                entity=entity,
+                name=Path(image_path).name,
+            )
         else:
-            return ProcessedImage(uploaded=False, path=image_path, entity=None, name=Path(image_path).name)
+            return ProcessedImage(
+                uploaded=False, path=image_path, entity=None, name=Path(image_path).name
+            )
 
     @property
     def paths(self):

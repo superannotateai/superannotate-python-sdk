@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from superannotate.lib.core.enums import AnnotationStatus
+from superannotate.lib.core.enums import ImageQuality
 from superannotate.lib.core.enums import ProjectType
 from superannotate.lib.core.enums import SegmentationStatus
 from superannotate.lib.core.enums import TrainingStatus
@@ -63,6 +64,7 @@ __alL__ = (
     TrainingStatus,
     SegmentationStatus,
     TrainingTask,
+    ImageQuality,
     AnnotationStatus,
     CONFIG_FILE_LOCATION,
     BACKEND_URL,

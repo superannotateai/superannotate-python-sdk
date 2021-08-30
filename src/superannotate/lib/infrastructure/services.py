@@ -7,11 +7,10 @@ from typing import Tuple
 from urllib.parse import urljoin
 
 import lib.core as constance
-import requests
+import requests.packages.urllib3
 from lib.core.exceptions import AppException
 from lib.core.serviceproviders import SuerannotateServiceProvider
 from requests.exceptions import HTTPError
-import requests.packages.urllib3
 
 requests.packages.urllib3.disable_warnings()
 

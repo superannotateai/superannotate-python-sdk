@@ -18,5 +18,5 @@ class TestInterface(BaseTestCase):
         self.assertIsNotNone(sa.get_project_default_image_quality_in_editor(self.PROJECT_NAME))
 
     def test_get_project_metadata(self):
-        metadata = sa.upload_images_from_folder_to_project(self.PROJECT_NAME, self.folder_path)
-        pass
+        metadata = sa.get_project_metadata(self.PROJECT_NAME, include_settings=True)
+        print(metadata)

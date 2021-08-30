@@ -36,6 +36,7 @@ from lib.app.mixp.decorators import Trackable
 from lib.app.serializers import BaseSerializers
 from lib.app.serializers import ImageSerializer
 from lib.app.serializers import ProjectSerializer
+from lib.app.serializers import SettingsSerializer
 from lib.app.serializers import TeamSerializer
 from lib.core.enums import ImageQuality
 from lib.core.exceptions import AppException
@@ -856,8 +857,12 @@ def get_project_metadata(
     ).data
 
     metadata = ProjectSerializer(response["project"]).serialize()
+    if response.get("settings"):
+        metadata["settings"] = [
+            SettingsSerializer(setting).serialize() for setting in response["settings"]
+        ]
 
-    for elem in "settings", "classes", "workflows", "contributors":
+    for elem in "classes", "workflows", "contributors":
         if response.get(elem):
             metadata[elem] = [
                 BaseSerializers(attribute).serialize() for attribute in response[elem]
