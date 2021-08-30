@@ -151,7 +151,7 @@ class SuperannotateBackendService(BaseBackendService):
     URL_S3_ACCESS_POINT = "/project/{}/get-image-s3-access-point"
     URL_S3_UPLOAD_STATUS = "/project/{}/getS3UploadStatus"
     URL_GET_EXPORTS = "exports"
-    URL_IMAGES_COUNT = "images/folders-list"
+    URL_IMAGES_COUNT = "images/images-folders"
     URL_GET_CLASS = "class/{}"
     URL_ANNOTATION_UPLOAD_PATH_TOKEN = "images/getAnnotationsPathsAndTokens"
     URL_PRE_ANNOTATION_UPLOAD_PATH_TOKEN = "images/getPreAnnotationsPathsAndTokens"
@@ -754,7 +754,7 @@ class SuperannotateBackendService(BaseBackendService):
         return res.json().get("progress")
 
     def get_project_images_count(self, team_id: int, project_id: int):
-        get_images_count_url = urljoin(self.api_url, self.URL_IMAGES_COUNT)
+        get_images_count_url = urljoin(self.api_url, self.URL_FOLDERS_IMAGES)
         res = self._request(
             get_images_count_url,
             "get",
