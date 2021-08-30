@@ -4143,20 +4143,21 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
     def auth_data(self):
         if not self._auth_data:
             self._auth_data = self._backend_client.get_s3_upload_auth_token(
-            team_id=self._project.team_id,
-            folder_id=self._folder.uuid,
-            project_id=self._project.uuid, )
+                team_id=self._project.team_id,
+                folder_id=self._folder.uuid,
+                project_id=self._project.uuid,
+            )
         return self._auth_data
 
     @property
     def s3_repository(self):
         if not self._s3_repo_instance:
-            self._s3_repo_instance =  self._s3_repo(
-            self.auth_data["accessKeyId"],
-            self.auth_data["secretAccessKey"],
-            self.auth_data["sessionToken"],
-            self.auth_data["bucket"],
-        )
+            self._s3_repo_instance = self._s3_repo(
+                self.auth_data["accessKeyId"],
+                self.auth_data["secretAccessKey"],
+                self.auth_data["sessionToken"],
+                self.auth_data["bucket"],
+            )
         return self._s3_repo_instance
 
     def _upload_image(self, image_path: str):

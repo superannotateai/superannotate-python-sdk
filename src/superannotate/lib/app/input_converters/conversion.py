@@ -224,7 +224,7 @@ def export_annotation(
 def import_annotation(
     input_dir,
     output_dir,
-    dataset_format = "superannotate",
+    dataset_format="superannotate",
     dataset_name="",
     project_type="Vector",
     task="object_detection",
