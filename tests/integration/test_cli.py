@@ -140,10 +140,11 @@ class CLITest(TestCase):
             shell=True,
         )
 
-        s = subprocess.run(
+        subprocess.run(
             f"superannotatecli upload-preannotations "
             f'--project "{self.PROJECT_NAME}" '
             f'--folder "{self.convertor_data_path}" '
+            f'--format COCO '
             f'--data-set-name "instances_test"',
             shell=True,
             stdout=subprocess.PIPE,
@@ -176,6 +177,7 @@ class CLITest(TestCase):
             f"superannotatecli upload-annotations "
             f'--project "{self.PROJECT_NAME}" '
             f'--folder "{self.convertor_data_path}" '
+            f'--format COCO '
             f'--data-set-name "instances_test"',
             check=True,
             shell=True,

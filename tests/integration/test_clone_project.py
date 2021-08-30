@@ -71,8 +71,6 @@ class TestCloneProject(TestCase):
                 }
             ],
         )
-        users = sa.search_team_contributors()
-
         new_project = sa.clone_project(
             self.PROJECT_NAME_2, self.PROJECT_NAME_1, copy_contributors=True
         )

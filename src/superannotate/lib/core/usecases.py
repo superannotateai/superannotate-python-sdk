@@ -12,7 +12,6 @@ from abc import ABC
 from abc import abstractmethod
 from collections import defaultdict
 from collections import namedtuple
-from functools import cached_property
 from pathlib import Path
 from typing import Iterable
 from typing import List
@@ -48,14 +47,16 @@ from lib.core.enums import ImageQuality
 from lib.core.enums import ProjectType
 from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
+from lib.core.exceptions import ImageProcessingException
 from lib.core.plugin import ImagePlugin
 from lib.core.plugin import VideoPlugin
 from lib.core.repositories import BaseManageableRepository
 from lib.core.repositories import BaseReadOnlyRepository
 from lib.core.response import Response
 from lib.core.serviceproviders import SuerannotateServiceProvider
+from PIL import UnidentifiedImageError
 
-logger = logging.getLogger()
+logger = logging.getLogger("superannotate-python-sdk")
 
 
 class BaseUseCase(ABC):
@@ -462,7 +463,11 @@ class GetImageUseCase(BaseUseCase):
             & Condition("folder_id", self._folder.uuid, EQ)
             & Condition("name", self._image_name, EQ)
         )
-        self._response.data = self._images.get_all(condition)[0]
+        images = self._images.get_all(condition)
+        if images:
+            self._response.data = images[0]
+        else:
+            raise AppException("Image not found.")
         return self._response
 
 
@@ -494,64 +499,77 @@ class UploadImageS3UseCase(BaseUseCase):
 
     def execute(self):
         image_name = Path(self._image_path).name
-        image_processor = ImagePlugin(self._image, self.max_resolution)
-        origin_width, origin_height = image_processor.get_size()
-        thumb_image, _, _ = image_processor.generate_thumb()
-        huge_image, huge_width, huge_height = image_processor.generate_huge()
-        quality = 60
-        if not self._image_quality_in_editor:
-            for setting in self._project_settings.get_all():
-                if setting.attribute == "ImageQuality":
-                    quality = setting.value
-        else:
-            quality = ImageQuality.get_value(self._image_quality_in_editor)
-        if Path(image_name).suffix[1:].upper() in ("JPEG", "JPG"):
-            if quality == 100:
-                self._image.seek(0)
-                low_resolution_image = self._image
+        try:
+            image_processor = ImagePlugin(self._image, self.max_resolution)
+            origin_width, origin_height = image_processor.get_size()
+            thumb_image, _, _ = image_processor.generate_thumb()
+            huge_image, huge_width, huge_height = image_processor.generate_huge()
+            quality = 60
+            if not self._image_quality_in_editor:
+                for setting in self._project_settings.get_all():
+                    if setting.attribute == "ImageQuality":
+                        quality = setting.value
             else:
-                low_resolution_image, _, _ = image_processor.generate_low_resolution(
-                    quality=quality
-                )
-        else:
-            if quality == 100:
-                low_resolution_image, _, _ = image_processor.generate_low_resolution(
-                    quality=quality, subsampling=0
-                )
+                quality = ImageQuality.get_value(self._image_quality_in_editor)
+            if Path(image_name).suffix[1:].upper() in ("JPEG", "JPG"):
+                if quality == 100:
+                    self._image.seek(0)
+                    low_resolution_image = self._image
+                else:
+                    (
+                        low_resolution_image,
+                        _,
+                        _,
+                    ) = image_processor.generate_low_resolution(quality=quality)
             else:
-                low_resolution_image, _, _ = image_processor.generate_low_resolution(
-                    quality=quality, subsampling=-1
-                )
-        image_key = (
-            self._upload_path + str(uuid.uuid4()) + Path(self._image_path).suffix
-        )
+                if quality == 100:
+                    (
+                        low_resolution_image,
+                        _,
+                        _,
+                    ) = image_processor.generate_low_resolution(
+                        quality=quality, subsampling=0
+                    )
+                else:
+                    (
+                        low_resolution_image,
+                        _,
+                        _,
+                    ) = image_processor.generate_low_resolution(
+                        quality=quality, subsampling=-1
+                    )
+            image_key = (
+                self._upload_path + str(uuid.uuid4()) + Path(self._image_path).suffix
+            )
 
-        file_entity = S3FileEntity(uuid=image_key, data=self._image)
+            file_entity = S3FileEntity(uuid=image_key, data=self._image)
 
-        thumb_image_name = image_key + "___thumb.jpg"
-        thumb_image_entity = S3FileEntity(uuid=thumb_image_name, data=thumb_image)
-        self._s3_repo.insert(thumb_image_entity)
+            thumb_image_name = image_key + "___thumb.jpg"
+            thumb_image_entity = S3FileEntity(uuid=thumb_image_name, data=thumb_image)
+            self._s3_repo.insert(thumb_image_entity)
 
-        low_resolution_image_name = image_key + "___lores.jpg"
-        low_resolution_file_entity = S3FileEntity(
-            uuid=low_resolution_image_name, data=low_resolution_image
-        )
-        self._s3_repo.insert(low_resolution_file_entity)
+            low_resolution_image_name = image_key + "___lores.jpg"
+            low_resolution_file_entity = S3FileEntity(
+                uuid=low_resolution_image_name, data=low_resolution_image
+            )
+            self._s3_repo.insert(low_resolution_file_entity)
 
-        huge_image_name = image_key + "___huge.jpg"
-        huge_file_entity = S3FileEntity(
-            uuid=huge_image_name,
-            data=huge_image,
-            metadata={"height": huge_width, "weight": huge_height},
-        )
-        self._s3_repo.insert(huge_file_entity)
-        file_entity.data.seek(0)
-        self._s3_repo.insert(file_entity)
-        self._response.data = ImageEntity(
-            name=image_name,
-            path=image_key,
-            meta=ImageInfoEntity(width=origin_width, height=origin_height),
-        )
+            huge_image_name = image_key + "___huge.jpg"
+            huge_file_entity = S3FileEntity(
+                uuid=huge_image_name,
+                data=huge_image,
+                metadata={"height": huge_width, "weight": huge_height},
+            )
+            self._s3_repo.insert(huge_file_entity)
+            file_entity.data.seek(0)
+            self._s3_repo.insert(file_entity)
+            self._response.data = ImageEntity(
+                name=image_name,
+                path=image_key,
+                meta=ImageInfoEntity(width=origin_width, height=origin_height),
+            )
+        except (ImageProcessingException, UnidentifiedImageError) as e:
+            self._response.errors = e
         return self._response
 
 
@@ -822,7 +840,10 @@ class GetFolderUseCase(BaseUseCase):
             & Condition("team_id", self._team_id, EQ)
             & Condition("project_id", self._project.uuid, EQ)
         )
-        self._response.data = self._folders.get_one(condition)
+        try:
+            self._response.data = self._folders.get_one(condition)
+        except AppException as e:
+            self._response.errors = e
         return self._response
 
 
@@ -880,9 +901,12 @@ class DeleteFolderUseCase(BaseUseCase):
         self._folders_to_delete = folders_to_delete
 
     def execute(self):
-        is_deleted = self._folders.bulk_delete(self._folders_to_delete)
-        if not is_deleted:
-            self._response.errors = AppException("Couldn't delete folders.")
+        if self._folders_to_delete:
+            is_deleted = self._folders.bulk_delete(self._folders_to_delete)
+            if not is_deleted:
+                self._response.errors = AppException("Couldn't delete folders.")
+        else:
+            self._response.errors = AppException("There is no folder to delete.")
         return self._response
 
 
@@ -1729,9 +1753,10 @@ class ShareProjectUseCase(BaseUseCase):
             user_id=self._user_id,
             user_role=self.user_role,
         )
-        logger.info(
-            f"Shared project {self._project_entity.name} with user {self._user_id} and role {self.user_role}"
-        )
+        if not self._response.errors:
+            logger.info(
+                f"Shared project {self._project_entity.name} with user {self._user_id} and role {constances.UserRole.get_name(self.user_role)}"
+            )
         return self._response
 
 
@@ -1913,7 +1938,22 @@ class GetProjectMetadataUseCase(BaseUseCase):
         )
 
     def execute(self):
-        data = {"project": self._project}
+        data = {}
+        project = self._projects.get_one(
+            uuid=self._project.uuid, team_id=self._project.team_id
+        )
+        if self._include_complete_image_count:
+            projects = self._projects.get_all(
+                condition=(
+                    Condition("completeImagesCount", "true", EQ)
+                    & Condition("name", self._project.name, EQ)
+                    & Condition("team_id", self._project.team_id, EQ)
+                )
+            )
+            if projects:
+                data["project"] = projects[0]
+        else:
+            data["project"] = project
 
         if self._include_annotation_classes:
             self.annotation_classes_use_case.execute()
@@ -1928,18 +1968,7 @@ class GetProjectMetadataUseCase(BaseUseCase):
             data["workflows"] = self.work_flow_use_case.execute().data
 
         if self._include_contributors:
-            data["contributors"] = self._project.users
-
-        if self._include_complete_image_count:
-            projects = self._projects.get_all(
-                condition=(
-                    Condition("completeImagesCount", "true", EQ)
-                    & Condition("name", self._project.name, EQ)
-                    & Condition("team_id", self._project.team_id, EQ)
-                )
-            )
-            if projects:
-                data["project"] = projects[0]
+            data["contributors"] = project.users
 
         self._response.data = data
         return self._response
@@ -2638,10 +2667,8 @@ class SetWorkflowUseCase(BaseUseCase):
                             f"{annnotation_class.name}__{attribute_group['name']}__{attribute['name']}"
                         ] = attribute["id"]
 
-            for step in self._steps:
-                if "className" not in step:
-                    continue
-                if "id" in step:
+            for step in [step for step in self._steps if "className" in step]:
+                if step.get("id"):
                     del step["id"]
                 step["class_id"] = annotation_classes_map[step["className"]]
 
@@ -3566,6 +3593,8 @@ class DownloadExportUseCase(BaseUseCase):
             if export["name"] == self._export_name:
                 export_id = export["id"]
                 break
+        if not export_id:
+            raise AppException("Export not found.")
 
         while True:
             export = self._service.get_export(
@@ -3573,6 +3602,7 @@ class DownloadExportUseCase(BaseUseCase):
                 project_id=self._project.uuid,
                 export_id=export_id,
             )
+
             if export["status"] == ExportStatus.IN_PROGRESS.value:
                 print("Waiting 5 seconds for export to finish on server.")
                 time.sleep(5)
@@ -3885,6 +3915,7 @@ class RunSegmentationUseCase(BaseUseCase):
             model_name=self._ml_model_name,
             image_ids=image_ids,
         )
+
         succeded_imgs = []
         failed_imgs = []
         while len(succeded_imgs) + len(failed_imgs) != len(image_ids):
@@ -3898,7 +3929,7 @@ class RunSegmentationUseCase(BaseUseCase):
             succeded_imgs = [
                 img["name"]
                 for img in images_metadata
-                if img["segmentation_status"] == 2
+                if img["segmentation_status"] == 3
             ]
             failed_imgs = [
                 img["name"]
@@ -3908,7 +3939,7 @@ class RunSegmentationUseCase(BaseUseCase):
 
             complete_images = succeded_imgs + failed_imgs
             logger.info(
-                f"prediction complete on {len(complete_images)} / {len(image_ids)} images"
+                f"segmentation complete on {len(complete_images)} / {len(image_ids)} images"
             )
             time.sleep(5)
 
@@ -3977,7 +4008,7 @@ class RunPredictionUseCase(BaseUseCase):
             )
 
             success_images = [
-                img["name"] for img in images_metadata if img["prediction_status"] == 2
+                img["name"] for img in images_metadata if img["prediction_status"] == 3
             ]
             failed_images = [
                 img["name"] for img in images_metadata if img["prediction_status"] == 4
@@ -4074,6 +4105,8 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
         super().__init__()
 
         self._auth_data = None
+        self._s3_repo_instance = None
+        self._images_to_upload = None
 
         self._project = project
         self._folder = folder
@@ -4106,22 +4139,26 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
                 "The function does not support projects containing videos attached with URLs"
             )
 
-    @cached_property
+    @property
     def auth_data(self):
-        return self._backend_client.get_s3_upload_auth_token(
-            team_id=self._project.team_id,
-            folder_id=self._folder.uuid,
-            project_id=self._project.uuid,
-        )
+        if not self._auth_data:
+            self._auth_data = self._backend_client.get_s3_upload_auth_token(
+                team_id=self._project.team_id,
+                folder_id=self._folder.uuid,
+                project_id=self._project.uuid,
+            )
+        return self._auth_data
 
-    @cached_property
+    @property
     def s3_repository(self):
-        return self._s3_repo(
-            self.auth_data["accessKeyId"],
-            self.auth_data["secretAccessKey"],
-            self.auth_data["sessionToken"],
-            self.auth_data["bucket"],
-        )
+        if not self._s3_repo_instance:
+            self._s3_repo_instance = self._s3_repo(
+                self.auth_data["accessKeyId"],
+                self.auth_data["secretAccessKey"],
+                self.auth_data["sessionToken"],
+                self.auth_data["bucket"],
+            )
+        return self._s3_repo_instance
 
     def _upload_image(self, image_path: str):
         ProcessedImage = namedtuple("ProcessedImage", ["uploaded", "path", "entity"])
@@ -4201,30 +4238,32 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
             and "___pixel" not in path
         ]
 
-    @cached_property
+    @property
     def images_to_upload(self):
-        paths = self.paths
-        filtered_paths = []
-        duplicated_paths = []
-        images = self._backend_client.get_bulk_images(
-            project_id=self._project.uuid,
-            team_id=self._project.team_id,
-            folder_id=self._folder.uuid,
-            images=[Path(image).name for image in paths],
-        )
-        image_names = [image["name"] for image in images]
+        if not self._images_to_upload:
+            paths = self.paths
+            filtered_paths = []
+            duplicated_paths = []
+            images = self._backend_client.get_bulk_images(
+                project_id=self._project.uuid,
+                team_id=self._project.team_id,
+                folder_id=self._folder.uuid,
+                images=[Path(image).name for image in paths],
+            )
+            image_names = [image["name"] for image in images]
 
-        for path in paths:
-            not_in_exclude_list = [
-                x not in Path(path).name for x in self.exclude_file_patterns
-            ]
-            non_in_service_list = [x not in Path(path).name for x in image_names]
-            if all(not_in_exclude_list) and all(non_in_service_list):
-                filtered_paths.append(path)
-            if not all(non_in_service_list):
-                duplicated_paths.append(path)
+            for path in paths:
+                not_in_exclude_list = [
+                    x not in Path(path).name for x in self.exclude_file_patterns
+                ]
+                non_in_service_list = [x not in Path(path).name for x in image_names]
+                if all(not_in_exclude_list) and all(non_in_service_list):
+                    filtered_paths.append(path)
+                if not all(non_in_service_list):
+                    duplicated_paths.append(path)
 
-        return list(set(filtered_paths)), duplicated_paths
+            self._images_to_upload = list(set(filtered_paths)), duplicated_paths
+        return self._images_to_upload
 
     def execute(self):
         images_to_upload, duplications = self.images_to_upload

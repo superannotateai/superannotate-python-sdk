@@ -14,6 +14,7 @@ from superannotate.lib.app.convertors.df_converter import filter_annotation_inst
 from superannotate.lib.app.convertors.df_converter import filter_images_by_comments
 from superannotate.lib.app.convertors.df_converter import filter_images_by_tags
 from superannotate.lib.app.convertors.dicom_converter import dicom_to_rgb_sequence
+from superannotate.lib.app.exceptions import AppException
 from superannotate.lib.app.input_converters.conversion import coco_split_dataset
 from superannotate.lib.app.input_converters.conversion import convert_json_version
 from superannotate.lib.app.input_converters.conversion import convert_project_type
@@ -153,6 +154,9 @@ from superannotate.lib.app.interface.sdk_interface import (
 
 
 __all__ = [
+    # Utils
+    "AppException",
+    #
     "init",
     "set_auth_token",
     # analytics

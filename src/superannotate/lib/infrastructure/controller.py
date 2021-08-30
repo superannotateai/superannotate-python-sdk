@@ -1,6 +1,5 @@
 import copy
 import io
-from functools import cached_property
 from typing import Iterable
 from typing import List
 from typing import Optional
@@ -51,6 +50,12 @@ class BaseController:
             logger=logger,
         )
         self._s3_upload_auth_data = None
+        self._projects = None
+        self._folders = None
+        self._teams = None
+        self._images = None
+        self._ml_models = None
+        self._team_id = None
 
     def set_token(self, token):
         self.configs.insert(ConfigEntity("token", token))
@@ -60,33 +65,45 @@ class BaseController:
             logger=self._logger,
         )
 
-    @cached_property
+    @property
     def projects(self):
-        return ProjectRepository(self._backend_client)
+        if not self._projects:
+            self._projects = ProjectRepository(self._backend_client)
+        return self._projects
 
-    @cached_property
+    @property
     def folders(self):
-        return FolderRepository(self._backend_client)
+        if not self._folders:
+            self._folders = FolderRepository(self._backend_client)
+        return self._folders
 
-    @cached_property
+    @property
     def ml_models(self):
-        return MLModelRepository(self._backend_client, self.team_id)
+        if not self._ml_models:
+            self._ml_models = MLModelRepository(self._backend_client, self.team_id)
+        return self._ml_models
 
-    @cached_property
+    @property
     def teams(self):
-        return TeamRepository(self._backend_client)
+        if not self._teams:
+            self._teams = TeamRepository(self._backend_client)
+        return self._teams
 
-    @cached_property
+    @property
     def images(self):
-        return ImageRepository(self._backend_client)
+        if not self._images:
+            self._images = ImageRepository(self._backend_client)
+        return self._images
 
     @property
     def configs(self):
         return ConfigRepository(self._config_path)
 
-    @cached_property
+    @property
     def team_id(self) -> int:
-        return int(self.configs.get_one("token").value.split("=")[-1])
+        if not self._team_id:
+            self._team_id = int(self.configs.get_one("token").value.split("=")[-1])
+        return self._team_id
 
     @timed_lru_cache(seconds=3600)
     def get_auth_data(self, project_id: int, team_id: int, folder_id: int):
@@ -128,8 +145,10 @@ class Controller(BaseController):
             folder_name=name,
             team_id=self.team_id,
         )
-
-        return use_case.execute().data
+        response = use_case.execute()
+        if not response.data or response.errors:
+            raise AppException("Folder not found.")
+        return response.data
 
     @staticmethod
     def get_folder_name(name: str = None):
@@ -206,7 +225,6 @@ class Controller(BaseController):
         if entities and len(entities) == 1:
             project.name = project_data["name"]
             use_case = usecases.UpdateProjectUseCase(project, self.projects)
-            use_case.execute()
             return use_case.execute()
         raise AppException("There are duplicated names.")
 
