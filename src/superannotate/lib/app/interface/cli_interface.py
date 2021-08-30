@@ -91,7 +91,7 @@ class CLIFacade(BaseInterfaceFacade):
         project: str,
         folder: str,
         extensions: str = constances.DEFAULT_IMAGE_EXTENSIONS,
-        set_annotation_status: str = constances.AnnotationStatus.NOT_STARTED.value,
+        set_annotation_status: str = constances.AnnotationStatus.NOT_STARTED.name,
         exclude_file_patterns=constances.DEFAULT_FILE_EXCLUDE_PATTERNS,
         recursive_subfolders=False,
         image_quality_in_editor=None,
@@ -129,7 +129,11 @@ class CLIFacade(BaseInterfaceFacade):
                     return ProcessedImage(uploaded=False, path=image_path, entity=None)
 
         paths = []
-        for extension in extensions.strip().split(","):
+
+        if isinstance(extensions,str):
+            extensions = extensions.strip().split(",")
+
+        for extension in extensions:
             if recursive_subfolders:
                 paths += list(Path(folder).rglob(f"*.{extension.lower()}"))
                 if os.name != "nt":
@@ -164,7 +168,7 @@ class CLIFacade(BaseInterfaceFacade):
                         uploaded_image_entities.append(processed_image.entity)
                     else:
                         failed_images.append(processed_image.path)
-                progress_bar.update(1)
+                    progress_bar.update(1)
 
         for i in range(0, len(uploaded_image_entities), 500):
             self.controller.upload_images(
@@ -258,30 +262,33 @@ class CLIFacade(BaseInterfaceFacade):
         if not task:
             task = "object_detection"
 
+        annotations_path = folder
         with tempfile.TemporaryDirectory() as temp_dir:
-            import_annotation(
-                input_dir=folder,
-                output_dir=temp_dir,
-                dataset_format=format,
-                dataset_name=data_set_name,
-                project_type=constances.ProjectType.get_name(
-                    project["project"].project_type
-                ),
-                task=task,
-            )
-            classes_path = f"{temp_dir}/classes/classes.json"
+            if format != 'SuperAnnotate':
+                import_annotation(
+                    input_dir=folder,
+                    output_dir=temp_dir,
+                    dataset_format=format,
+                    dataset_name=data_set_name,
+                    project_type=constances.ProjectType.get_name(
+                        project["project"].project_type
+                    ),
+                    task=task,
+                )
+                annotations_path = temp_dir
+            classes_path = f"{folder}/classes/classes.json"
             self.controller.create_annotation_classes(
                 project_name=project_name,
                 annotation_classes=json.load(open(classes_path)),
             )
-            annotation_paths = get_annotation_paths(temp_dir)
+            annotation_paths = get_annotation_paths(annotations_path)
             chunk_size = 10
             with tqdm(total=len(annotation_paths)) as progress_bar:
                 for i in range(0, len(annotation_paths), chunk_size):
                     response = self.controller.upload_annotations_from_folder(
                         project_name=project["project"].name,
                         folder_name=folder_name,
-                        folder_path=temp_dir,
+                        folder_path=annotations_path,
                         annotation_paths=annotation_paths[
                             i : i + chunk_size  # noqa: E203
                         ],

@@ -3593,6 +3593,8 @@ class DownloadExportUseCase(BaseUseCase):
             if export["name"] == self._export_name:
                 export_id = export["id"]
                 break
+        if not export_id:
+            raise AppException("Export not found.")
 
         while True:
             export = self._service.get_export(
@@ -3600,6 +3602,7 @@ class DownloadExportUseCase(BaseUseCase):
                 project_id=self._project.uuid,
                 export_id=export_id,
             )
+
             if export["status"] == ExportStatus.IN_PROGRESS.value:
                 print("Waiting 5 seconds for export to finish on server.")
                 time.sleep(5)
