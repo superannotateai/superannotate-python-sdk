@@ -32,14 +32,12 @@ class BaseBackendService(SuerannotateServiceProvider):
         self.logger = logger
         self._paginate_by = paginate_by
         self.team_id = auth_token.split("=")[-1]
-        self._session = None
 
     @timed_lru_cache(seconds=360)
     def get_session(self):
-        if not self._session:
-            self._session = requests.Session()
-            self._session.headers.update(self.default_headers)
-        return self._session
+        session = requests.Session()
+        session.headers.update(self.default_headers)
+        return session
 
     @property
     def default_headers(self):
