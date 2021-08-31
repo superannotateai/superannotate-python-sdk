@@ -129,7 +129,10 @@ class GetProjectByNameUseCase(BaseUseCase):
             if not projects:
                 self._response.errors = AppException("Project not found.")
             else:
-                project = next((project for project in projects if project.name == self._name), None)
+                project = next(
+                    (project for project in projects if project.name == self._name),
+                    None,
+                )
                 if not project:
                     self._response.errors = AppException("Project not found")
                 self._response.data = project
@@ -3156,6 +3159,7 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
 
 class UploadAnnotationsUseCase(BaseUseCase):
     MAX_WORKERS = 10
+
     def __init__(
         self,
         project: ProjectEntity,
@@ -3335,9 +3339,18 @@ class UploadAnnotationsUseCase(BaseUseCase):
         else:
             from_s3 = None
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=self.MAX_WORKERS) as executor:
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=self.MAX_WORKERS
+        ) as executor:
             for image_id, image_info in auth_data["images"].items():
-                executor.submit(self.upload_to_s3, image_id, image_info, bucket, from_s3, image_id_name_map)
+                executor.submit(
+                    self.upload_to_s3,
+                    image_id,
+                    image_info,
+                    bucket,
+                    from_s3,
+                    image_id_name_map,
+                )
 
         uploaded_annotations = [annotation.path for annotation in annotations_to_upload]
         missing_annotations = [annotation.path for annotation in missing_annotations]
@@ -3353,7 +3366,9 @@ class UploadAnnotationsUseCase(BaseUseCase):
         )
         return self._response
 
-    def upload_to_s3(self, image_id: int, image_info, bucket, from_s3, image_id_name_map):
+    def upload_to_s3(
+        self, image_id: int, image_info, bucket, from_s3, image_id_name_map
+    ):
         if from_s3:
             file = io.BytesIO()
             s3_object = from_s3.Object(
@@ -3367,13 +3382,11 @@ class UploadAnnotationsUseCase(BaseUseCase):
 
         self.fill_classes_data(annotation_json)
         bucket.put_object(
-            Key=image_info["annotation_json_path"],
-            Body=json.dumps(annotation_json),
+            Key=image_info["annotation_json_path"], Body=json.dumps(annotation_json),
         )
         if self._project.project_type == constances.ProjectType.PIXEL.value:
             mask_filename = (
-                    image_id_name_map[image_id].name
-                    + constances.ANNOTATION_MASK_POSTFIX
+                image_id_name_map[image_id].name + constances.ANNOTATION_MASK_POSTFIX
             )
             if from_s3:
                 file = io.BytesIO()
@@ -3383,9 +3396,7 @@ class UploadAnnotationsUseCase(BaseUseCase):
                 s3_object.download_file(file)
                 file.seek(0)
             else:
-                with open(
-                        f"{self._folder_path}/{mask_filename}", "rb"
-                ) as mask_file:
+                with open(f"{self._folder_path}/{mask_filename}", "rb") as mask_file:
                     file = io.BytesIO(mask_file.read())
 
             bucket.put_object(Key=image_info["annotation_bluemap_path"], Body=file)
@@ -4347,7 +4358,9 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
                     folder=self._folder,
                     limit=self.auth_data["availableImageCount"],
                     backend_service_provider=self._backend_client,
-                    attachments=[image.entity for image in uploaded_images[i : i + 100]],
+                    attachments=[
+                        image.entity for image in uploaded_images[i : i + 100]
+                    ],
                     annotation_status=self._annotation_status,
                 ).execute()
 

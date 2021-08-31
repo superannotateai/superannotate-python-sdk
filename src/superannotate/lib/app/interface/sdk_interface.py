@@ -886,7 +886,9 @@ def get_project_settings(project: Union[str, dict]):
     """
     project_name, folder_name = extract_project_folder(project)
     settings = controller.get_project_settings(project_name=project_name)
-    settings = [BaseSerializers(attribute).serialize() for attribute in settings.data]
+    settings = [
+        SettingsSerializer(attribute).serialize() for attribute in settings.data
+    ]
     return settings
 
 
@@ -1143,9 +1145,6 @@ def assign_images(project: Union[str, dict], image_names: List[str], user: str):
         logger.warning(
             f"Skipping {user}. {user} is not a verified contributor for the {project_name}"
         )
-
-
-
         return
 
     controller.assign_images(project_name, folder_name, image_names, user)

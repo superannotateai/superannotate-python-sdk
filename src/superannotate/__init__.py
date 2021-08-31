@@ -1,7 +1,6 @@
-import os
 import logging.config
+import os
 
-from superannotate.version import __version__
 from superannotate.lib.app.analytics.class_analytics import attribute_distribution
 from superannotate.lib.app.analytics.class_analytics import class_distribution
 from superannotate.lib.app.annotation_helpers import add_annotation_bbox_to_json
@@ -155,6 +154,7 @@ from superannotate.lib.app.interface.sdk_interface import upload_video_to_projec
 from superannotate.lib.app.interface.sdk_interface import (
     upload_videos_from_folder_to_project,
 )
+from superannotate.version import __version__
 
 
 __all__ = [

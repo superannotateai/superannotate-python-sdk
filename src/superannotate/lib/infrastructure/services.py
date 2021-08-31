@@ -10,8 +10,8 @@ import lib.core as constance
 import requests.packages.urllib3
 from lib.core.exceptions import AppException
 from lib.core.serviceproviders import SuerannotateServiceProvider
-from requests.exceptions import HTTPError
 from lib.infrastructure.helpers import timed_lru_cache
+from requests.exceptions import HTTPError
 
 requests.packages.urllib3.disable_warnings()
 
