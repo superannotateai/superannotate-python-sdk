@@ -1,5 +1,7 @@
+import os
 import logging.config
 
+from version import __version__
 from superannotate.lib.app.analytics.class_analytics import attribute_distribution
 from superannotate.lib.app.analytics.class_analytics import class_distribution
 from superannotate.lib.app.annotation_helpers import add_annotation_bbox_to_json
@@ -156,6 +158,7 @@ from superannotate.lib.app.interface.sdk_interface import (
 
 
 __all__ = [
+    "__version__",
     # Utils
     "AppException",
     #
@@ -287,7 +290,7 @@ __all__ = [
 ]
 
 __author__ = "Superannotate"
-import os
+
 
 file_dir = os.path.split(os.path.realpath(__file__))[0]
 

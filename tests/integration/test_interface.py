@@ -45,3 +45,10 @@ class TestInterface(BaseTestCase):
         print(sa.search_folders(self.PROJECT_NAME))
         with self.assertRaises(AppException):
             sa.delete_folders(self.PROJECT_NAME, ["non-existing folder"])
+
+    def test_get_project_metadata(self):
+        metadata = sa.get_project_metadata(self.PROJECT_NAME)
+        self.assertIsNotNone(metadata["id"])
+        self.assertListEqual(metadata.get("contributors", []), [])
+        metadata_with_users = sa.get_project_metadata(self.PROJECT_NAME, include_contributors=True)
+        self.assertIsNotNone(metadata_with_users.get("contributors"))
