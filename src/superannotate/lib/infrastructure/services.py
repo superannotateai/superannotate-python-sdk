@@ -31,14 +31,12 @@ class BaseBackendService(SuerannotateServiceProvider):
         self.logger = logger
         self._paginate_by = paginate_by
         self.team_id = auth_token.split("=")[-1]
-        self._session = None
 
     @timed_lru_cache(seconds=360)
     def get_session(self):
-        if not self._session:
-            self._session = requests.Session()
-            self._session.headers.update(self.default_headers)
-        return self._session
+        session = requests.Session()
+        session.headers.update(self.default_headers)
+        return session
 
     @property
     def default_headers(self):
@@ -82,8 +80,8 @@ class BaseBackendService(SuerannotateServiceProvider):
         session.headers.update(headers if headers else {})
         with self.safe_api():
             req = requests.Request(method=method, url=url, **kwargs, params=params)
-            prepared = self._session.prepare_request(req)
-            response = self._session.send(request=prepared)
+            prepared = session.prepare_request(req)
+            response = session.send(request=prepared)
         if response.status_code == 404 and retried < 3:
             return self._request(
                 url,

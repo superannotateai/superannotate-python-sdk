@@ -7,7 +7,6 @@ from src.superannotate.lib.app.exceptions import AppException
 from tests.integration.base import BaseTestCase
 
 
-
 class TestInterface(BaseTestCase):
     PROJECT_NAME = "Interface test"
     TEST_FOLDER_PATH = "data_set/sample_project_vector"
