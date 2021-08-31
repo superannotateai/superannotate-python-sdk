@@ -8,9 +8,11 @@ from urllib.parse import urljoin
 
 import lib.core as constance
 import requests.packages.urllib3
+import requests.adapters
 from lib.core.exceptions import AppException
 from lib.core.serviceproviders import SuerannotateServiceProvider
 from requests.exceptions import HTTPError
+from lib.infrastructure.helpers import timed_lru_cache
 
 requests.packages.urllib3.disable_warnings()
 
@@ -18,6 +20,7 @@ requests.packages.urllib3.disable_warnings()
 class BaseBackendService(SuerannotateServiceProvider):
     AUTH_TYPE = "sdk"
     PAGINATE_BY = 100
+    MAX_RETRY = 3
 
     """
     Base service class
@@ -31,8 +34,8 @@ class BaseBackendService(SuerannotateServiceProvider):
         self.team_id = auth_token.split("=")[-1]
         self._session = None
 
-    @property
-    def session(self):
+    @timed_lru_cache(seconds=360)
+    def get_session(self):
         if not self._session:
             self._session = requests.Session()
             self._session.headers.update(self.default_headers)
@@ -77,8 +80,9 @@ class BaseBackendService(SuerannotateServiceProvider):
     ) -> requests.Response:
         kwargs = {"json": data} if data else {}
         headers_dict = self.default_headers.copy()
-        self.session.headers.update(headers if headers else {})
-        method = getattr(self.session, method)
+        session = self.get_session()
+        session.headers.update(headers if headers else {})
+        method = getattr(session, method)
         with self.safe_api():
             response = method(
                 url, **kwargs, headers=headers_dict, params=params, timeout=60,

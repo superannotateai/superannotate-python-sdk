@@ -129,10 +129,7 @@ class GetProjectByNameUseCase(BaseUseCase):
             if not projects:
                 self._response.errors = AppException("Project not found.")
             else:
-                for project in projects:
-                    if project.name == self._name:
-                        self._response.data = project
-                    break
+                self._response.data = next(project for project in projects if project.name == self._name)
         return self._response
 
 
@@ -1972,6 +1969,8 @@ class GetProjectMetadataUseCase(BaseUseCase):
 
         if self._include_contributors:
             data["contributors"] = project.users
+        else:
+            project.users = []
 
         self._response.data = data
         return self._response
