@@ -8,7 +8,6 @@ from urllib.parse import urljoin
 
 import lib.core as constance
 import requests.packages.urllib3
-import requests.adapters
 from lib.core.exceptions import AppException
 from lib.core.serviceproviders import SuerannotateServiceProvider
 from requests.exceptions import HTTPError
@@ -79,14 +78,12 @@ class BaseBackendService(SuerannotateServiceProvider):
         self, url, method="get", data=None, headers=None, params=None, retried=0
     ) -> requests.Response:
         kwargs = {"json": data} if data else {}
-        headers_dict = self.default_headers.copy()
         session = self.get_session()
         session.headers.update(headers if headers else {})
-        method = getattr(session, method)
         with self.safe_api():
-            response = method(
-                url, **kwargs, headers=headers_dict, params=params, timeout=60,
-            )
+            req = requests.Request(method=method, url=url, **kwargs, params=params)
+            prepared = self._session.prepare_request(req)
+            response = self._session.send(request=prepared)
         if response.status_code == 404 and retried < 3:
             return self._request(
                 url,
