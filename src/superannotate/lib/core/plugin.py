@@ -1,4 +1,5 @@
 import io
+import logging
 from pathlib import Path
 from typing import List
 from typing import Tuple
@@ -9,6 +10,8 @@ from lib.core.exceptions import ImageProcessingException
 from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageOps
+
+logger = logging.getLogger()
 
 
 class ImagePlugin:
@@ -185,8 +188,18 @@ class VideoPlugin:
             meta_dict = ffmpeg.probe(str(video_path))
             rot = int(meta_dict["streams"][0]["tags"]["rotate"])
             if rot:
+                logger.info(
+                    "Frame rotation of %s found. Output images will be rotated accordingly.",
+                    rot,
+                )
                 return cv2_rotations[rot]
-        except Exception:
+        except Exception as e:
+            warning_str = ""
+            if "ffprobe" in str(e):
+                warning_str = "This could be because ffmpeg package is not installed. To install it, run: sudo apt install ffmpeg"
+            logger.warning(
+                "Couldn't read video metadata to determine rotation. %s", warning_str
+            )
             return
 
     @staticmethod
@@ -202,8 +215,25 @@ class VideoPlugin:
         if not video.isOpened():
             return []
         frames_count = VideoPlugin.get_frames_count(video_path)
+        logger.info("Video frame count is %s.", frames_count)
+
         fps = video.get(cv2.CAP_PROP_FPS)
-        ratio = fps / target_fps if target_fps else 1
+        if target_fps > fps:
+            logger.warning(
+                "Video frame rate %s smaller than target frame rate %s. Cannot change frame rate.",
+                fps,
+                target_fps,
+            )
+            target_fps = fps
+
+        else:
+            logger.info(
+                "Changing video frame rate from %s to target frame rate %s.",
+                fps,
+                target_fps,
+            )
+
+        ratio = fps / target_fps
         extracted_frames_paths = []
         zero_fill_count = len(str(frames_count))
 
@@ -212,6 +242,8 @@ class VideoPlugin:
         frame_number = 0
         extracted_frame_number = 0
         extracted_frame_ratio = ratio
+        logger.info("Extracting frames from video to %s.", extracted_frames_paths)
+
         while len(extracted_frames_paths) < limit:
             success, frame = video.read()
             if success:

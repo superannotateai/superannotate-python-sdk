@@ -226,7 +226,6 @@ class Controller(BaseController):
             project.name = project_data["name"]
             use_case = usecases.UpdateProjectUseCase(project, self.projects)
             return use_case.execute()
-        raise AppException("There are duplicated names.")
 
     def upload_images(
         self,
@@ -1014,7 +1013,9 @@ class Controller(BaseController):
             name=name, color=color, attribute_groups=attribute_groups
         )
         use_case = usecases.CreateAnnotationClassUseCase(
-            annotation_classes=annotation_classes, annotation_class=annotation_class,
+            annotation_classes=annotation_classes,
+            annotation_class=annotation_class,
+            project_name=project_name,
         )
         use_case.execute()
         return use_case.execute()
@@ -1026,6 +1027,7 @@ class Controller(BaseController):
             annotation_classes_repo=AnnotationClassRepository(
                 service=self._backend_client, project=project,
             ),
+            project_name=project_name,
         )
         return use_case.execute()
 
@@ -1046,6 +1048,7 @@ class Controller(BaseController):
                 service=self._backend_client, project=project,
             ),
             download_path=download_path,
+            project_name=project_name,
         )
         return use_case.execute()
 
@@ -1156,6 +1159,7 @@ class Controller(BaseController):
         image_name: str,
         annotations: dict,
         mask: io.BytesIO = None,
+        verbose: bool = True,
     ):
         project = self._get_project(project_name)
         folder = self._get_folder(project, folder_name)
@@ -1169,6 +1173,7 @@ class Controller(BaseController):
             annotations=annotations,
             backend_service_provider=self._backend_client,
             mask=mask,
+            verbose=verbose,
         )
         return use_case.execute()
 
