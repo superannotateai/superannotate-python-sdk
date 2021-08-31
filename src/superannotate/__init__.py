@@ -1,7 +1,7 @@
 import os
 import logging.config
 
-from version import __version__
+from superannotate.version import __version__
 from superannotate.lib.app.analytics.class_analytics import attribute_distribution
 from superannotate.lib.app.analytics.class_analytics import class_distribution
 from superannotate.lib.app.annotation_helpers import add_annotation_bbox_to_json
