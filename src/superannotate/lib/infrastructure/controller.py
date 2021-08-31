@@ -107,9 +107,12 @@ class BaseController:
 
     @timed_lru_cache(seconds=3600)
     def get_auth_data(self, project_id: int, team_id: int, folder_id: int):
-        return self._backend_client.get_s3_upload_auth_token(
+        response = self._backend_client.get_s3_upload_auth_token(
             team_id, folder_id, project_id
         )
+        if "error" in response:
+            raise AppException(response.get("error"))
+        return response
 
     def get_s3_repository(self, team_id: int, project_id: int, folder_id: int):
         auth_data = self.get_auth_data(project_id, team_id, folder_id)

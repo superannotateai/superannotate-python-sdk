@@ -390,7 +390,7 @@ def delete_folders(project: str, folder_names: List[str]):
 
 
 @Trackable
-@validate_input
+# @validate_input
 def get_project_and_folder_metadata(project: Union[str, dict]):
     """Returns project and folder metadata tuple. If folder part is empty,
     than returned folder part is set to None.
@@ -884,7 +884,9 @@ def get_project_settings(project: Union[str, dict]):
     """
     project_name, folder_name = extract_project_folder(project)
     settings = controller.get_project_settings(project_name=project_name)
-    settings = [BaseSerializers(attribute).serialize() for attribute in settings.data]
+    settings = [
+        SettingsSerializer(attribute).serialize() for attribute in settings.data
+    ]
     return settings
 
 
@@ -2487,20 +2489,22 @@ def upload_annotations_from_folder_to_project(
     failed_annotations = []
     missing_annotations = []
     chunk_size = 10
-    for i in tqdm(range(0, len(annotation_paths), chunk_size)):
-        response = controller.upload_annotations_from_folder(
-            project_name=project_name,
-            folder_name=folder_name,
-            folder_path=folder_path,
-            annotation_paths=annotation_paths[i : i + chunk_size],  # noqa: E203
-            client_s3_bucket=from_s3_bucket,
-        )
-        if response.errors:
-            logger.warning(response.errors)
-        if response.data:
-            uploaded_annotations.extend(response.data[0])
-            missing_annotations.extend(response.data[1])
-            failed_annotations.extend(response.data[2])
+    with tqdm(total=len(annotation_paths)) as progress_bar:
+        for i in range(0, len(annotation_paths), chunk_size):
+            response = controller.upload_annotations_from_folder(
+                project_name=project_name,
+                folder_name=folder_name,
+                folder_path=folder_path,
+                annotation_paths=annotation_paths[i : i + chunk_size],  # noqa: E203
+                client_s3_bucket=from_s3_bucket,
+            )
+            if response.errors:
+                logger.warning(response.errors)
+            if response.data:
+                uploaded_annotations.extend(response.data[0])
+                missing_annotations.extend(response.data[1])
+                failed_annotations.extend(response.data[2])
+            progress_bar.update(chunk_size)
     return uploaded_annotations, failed_annotations, missing_annotations
 
 

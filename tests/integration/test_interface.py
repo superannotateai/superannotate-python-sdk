@@ -1,5 +1,7 @@
 import os
 from os.path import dirname
+import tempfile
+
 import src.superannotate as sa
 from src.superannotate.lib.app.exceptions import AppException
 from tests.integration.base import BaseTestCase
@@ -42,7 +44,6 @@ class TestInterface(BaseTestCase):
         self.assertEqual(num_images, 0)
 
     def test_delete_folder(self):
-        print(sa.search_folders(self.PROJECT_NAME))
         with self.assertRaises(AppException):
             sa.delete_folders(self.PROJECT_NAME, ["non-existing folder"])
 
@@ -52,3 +53,40 @@ class TestInterface(BaseTestCase):
         self.assertListEqual(metadata.get("contributors", []), [])
         metadata_with_users = sa.get_project_metadata(self.PROJECT_NAME, include_contributors=True)
         self.assertIsNotNone(metadata_with_users.get("contributors"))
+
+    def test_upload_annotations_from_folder_to_project(self):
+        sa.upload_images_from_folder_to_project(
+            self.PROJECT_NAME,
+            self.folder_path,
+            annotation_status="InProgress",
+        )
+        uploaded_annotations, _, _ = sa.upload_annotations_from_folder_to_project(
+            self.PROJECT_NAME, self.folder_path
+        )
+        self.assertEqual(len(uploaded_annotations), 4)
+
+    def test_get_images_metadata(self):
+        sa.upload_images_from_folder_to_project(self.PROJECT_NAME, self.folder_path)
+        metadata = sa.search_images(self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, return_metadata=True)
+        self.assertIn("qa_id", metadata[0])
+
+    def test_download_image_annotations(self):
+        sa.upload_images_from_folder_to_project(self.PROJECT_NAME, self.folder_path)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            sa.download_image_annotations(self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, temp_dir)
+
+    def test_search_folder(self):
+        team_users = sa.search_team_contributors()
+        sa.share_project(self.PROJECT_NAME, team_users[0], "QA")
+        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME)
+        data = sa.search_folders(self.PROJECT_NAME, return_metadata=True)
+        folder_data = sa.search_folders(self.PROJECT_NAME, self.TEST_FOLDER_NAME, return_metadata=True)
+        self.assertEqual(data, folder_data)
+
+    def test_get_project_settings(self):
+        sa.set_project_settings(self.PROJECT_NAME, [{'attribute': 'ImageQuality', 'value': 'original'}])
+        data = sa.get_project_settings(self.PROJECT_NAME)
+        for elem in data:
+            if elem["attribute"] == "ImageQuality":
+                self.assertEqual(elem["value"], "original")
+                break
