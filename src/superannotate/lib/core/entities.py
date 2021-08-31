@@ -225,6 +225,10 @@ class ImageEntity(BaseEntity):
         folder_id: int = None,
         annotator_id: int = None,
         annotator_name: str = None,
+        qa_id: str = None,
+        qa_name: str = None,
+        entropy_value: int = None,
+        approval_status: bool = None,
         is_pinned: bool = None,
         meta: ImageInfoEntity = ImageInfoEntity(),
     ):
@@ -236,7 +240,11 @@ class ImageEntity(BaseEntity):
         self.project_id = project_id
         self.annotation_status_code = annotation_status_code
         self.folder_id = folder_id
+        self.qa_id = qa_id
+        self.qa_name = qa_name
+        self.entropy_value = entropy_value
         self.annotator_id = annotator_id
+        self.approval_status = approval_status
         self.annotator_name = annotator_name
         self.is_pinned = is_pinned
         self.meta = meta
@@ -250,6 +258,10 @@ class ImageEntity(BaseEntity):
             "project_id": self.project_id,
             "annotation_status": self.annotation_status_code,
             "folder_id": self.folder_id,
+            "qa_id": self.qa_id,
+            "qa_name": self.qa_name,
+            "entropy_value": self.entropy_value,
+            "approval_status": self.approval_status,
             "annotator_id": self.annotator_id,
             "annotator_name": self.annotator_name,
             "is_pinned": self.is_pinned,
