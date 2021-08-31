@@ -2680,7 +2680,11 @@ class SetWorkflowUseCase(BaseUseCase):
             for step in [step for step in self._steps if "className" in step]:
                 if step.get("id"):
                     del step["id"]
-                step["class_id"] = annotation_classes_map[step["className"]]
+                step["class_id"] = annotation_classes_map.get(step["className"], None)
+                if not step["class_id"]:
+                    raise AppException(
+                        "Annotation class not found in set_project_workflow."
+                    )
 
             self._service.set_project_workflow_bulk(
                 team_id=self._project.team_id,
@@ -2700,6 +2704,17 @@ class SetWorkflowUseCase(BaseUseCase):
                     attribute_group_name = attribute["attribute"]["attribute_group"][
                         "name"
                     ]
+                    if not annotations_classes_attributes_map.get(
+                        f"{annotation_class_name}__{attribute_group_name}__{attribute_name}",
+                        None,
+                    ):
+                        raise AppException(
+                            "Attribute group name or attribute name not found in set_project_workflow."
+                        )
+
+                    if not existing_workflows_map.get(step["step"], None):
+                        raise AppException("Couldn't find step in workflow")
+
                     req_data.append(
                         {
                             "workflow_id": existing_workflows_map[step["step"]],
