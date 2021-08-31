@@ -13,7 +13,7 @@ from ..sa_json_helper import _create_vector_instance
 from .supervisely_helper import _base64_to_polygon
 from .supervisely_helper import _create_attribute_list
 
-logger = logging.getLogger("superannotate-python-sdk")
+logger = logging.getLogger()
 
 
 def supervisely_to_sa(json_files, class_id_map, task, output_dir):

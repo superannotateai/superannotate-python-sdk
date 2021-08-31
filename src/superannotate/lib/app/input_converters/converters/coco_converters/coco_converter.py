@@ -14,7 +14,7 @@ from ....common import id2rgb
 from ....common import write_to_json
 from ..baseStrategy import baseStrategy
 
-logger = logging.getLogger("superannotate-python-sdk")
+logger = logging.getLogger()
 
 
 class CocoBaseStrategy(baseStrategy):

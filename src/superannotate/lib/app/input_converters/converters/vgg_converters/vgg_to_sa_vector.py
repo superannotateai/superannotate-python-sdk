@@ -13,7 +13,7 @@ from ..sa_json_helper import _create_sa_json
 from ..sa_json_helper import _create_vector_instance
 from .vgg_helper import _create_attribute_list
 
-logger = logging.getLogger("superannotate-python-sdk")
+logger = logging.getLogger()
 
 
 def vgg_to_sa(json_data, task, output_dir):

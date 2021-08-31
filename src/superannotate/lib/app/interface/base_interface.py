@@ -4,7 +4,7 @@ from lib.infrastructure.controller import Controller
 from lib.infrastructure.repositories import ConfigRepository
 
 
-logger = logging.getLogger("superannotate-python-sdk")
+logger = logging.getLogger()
 
 
 class BaseInterfaceFacade:

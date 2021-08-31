@@ -10,7 +10,7 @@ from shapely.geometry import Point
 from shapely.geometry import Polygon
 
 
-logger = logging.getLogger("superannotate-python-sdk")
+logger = logging.getLogger()
 
 
 def df_to_annotations(df, output_dir):

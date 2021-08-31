@@ -38,7 +38,7 @@ from .voc_converters.voc_to_sa_vector import voc_object_detection_to_sa_vector
 from .vott_converters.vott_to_sa_vector import vott_to_sa
 from .yolo_converters.yolo_to_sa_vector import yolo_object_detection_to_sa_vector
 
-logger = logging.getLogger("superannotate-python-sdk")
+logger = logging.getLogger()
 
 CONVERSION_ALGORITHMS = {
     "from": {

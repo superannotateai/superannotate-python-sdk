@@ -17,7 +17,7 @@ from .voc_helper import _get_image_shape_from_xml
 from .voc_helper import _get_voc_instances_from_xml
 from .voc_helper import _iou
 
-logger = logging.getLogger("superannotate-python-sdk")
+logger = logging.getLogger()
 
 
 def _generate_polygons(object_mask_path):

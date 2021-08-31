@@ -5,7 +5,7 @@ from superannotate.lib.app.helpers import extract_project_folder
 from superannotate.lib.core.enums import ProjectType
 from superannotate.lib.infrastructure.controller import Controller
 
-controller = Controller(logger=logging.getLogger("superannotate-python-sdk"))
+controller = Controller(logger=logging.getLogger())
 
 
 def get_project_name(project):

@@ -8,7 +8,7 @@ from pathlib import Path
 
 from .converters.converters import Converter
 
-logger = logging.getLogger("superannotate-python-sdk")
+logger = logging.getLogger()
 
 
 def _load_files(path_to_imgs, ptype, extensions):
