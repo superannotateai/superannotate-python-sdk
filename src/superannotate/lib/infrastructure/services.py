@@ -78,7 +78,6 @@ class BaseBackendService(SuerannotateServiceProvider):
                 headers=headers_dict,
                 params=params,
                 timeout=60,
-                verify=False,
             )
         if response.status_code == 404 and retried < 3:
             return self._request(
@@ -116,6 +115,7 @@ class BaseBackendService(SuerannotateServiceProvider):
         total = list()
 
         while True:
+            import time
             resources, remains_count = self._get_page(url, offset, params, key_field)
             total.extend(resources["data"])
             if remains_count <= 0:
@@ -239,7 +239,8 @@ class SuperannotateBackendService(BaseBackendService):
         url = urljoin(self.api_url, self.URL_LIST_PROJECTS)
         if query_string:
             url = f"{url}?{query_string}"
-        return self._get_all_pages(url)
+        data = self._get_all_pages(url)
+        return data
 
     def create_project(self, project_data: dict) -> dict:
         create_project_url = urljoin(self.api_url, self.URL_CREATE_PROJECT)

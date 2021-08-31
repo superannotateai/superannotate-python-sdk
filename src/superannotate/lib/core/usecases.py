@@ -1941,9 +1941,9 @@ class GetProjectMetadataUseCase(BaseUseCase):
 
     def execute(self):
         data = {}
-        project = self._projects.get_one(
-            uuid=self._project.uuid, team_id=self._project.team_id
-        )
+
+        project = self._project
+
         data["project"] = project
         if self._include_complete_image_count:
             projects = self._projects.get_all(
