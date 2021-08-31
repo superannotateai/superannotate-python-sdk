@@ -8,9 +8,11 @@ from urllib.parse import urljoin
 
 import lib.core as constance
 import requests.packages.urllib3
+import requests.adapters
 from lib.core.exceptions import AppException
 from lib.core.serviceproviders import SuerannotateServiceProvider
 from requests.exceptions import HTTPError
+from lib.infrastructure.helpers import timed_lru_cache
 
 requests.packages.urllib3.disable_warnings()
 
@@ -18,6 +20,7 @@ requests.packages.urllib3.disable_warnings()
 class BaseBackendService(SuerannotateServiceProvider):
     AUTH_TYPE = "sdk"
     PAGINATE_BY = 100
+    MAX_RETRY = 3
 
     """
     Base service class
@@ -29,6 +32,14 @@ class BaseBackendService(SuerannotateServiceProvider):
         self.logger = logger
         self._paginate_by = paginate_by
         self.team_id = auth_token.split("=")[-1]
+        self._session = None
+
+    @timed_lru_cache(seconds=360)
+    def get_session(self):
+        if not self._session:
+            self._session = requests.Session()
+            self._session.headers.update(self.default_headers)
+        return self._session
 
     @property
     def default_headers(self):
@@ -69,16 +80,12 @@ class BaseBackendService(SuerannotateServiceProvider):
     ) -> requests.Response:
         kwargs = {"json": data} if data else {}
         headers_dict = self.default_headers.copy()
-        headers_dict.update(headers if headers else {})
-        method = getattr(requests, method)
+        session = self.get_session()
+        session.headers.update(headers if headers else {})
+        method = getattr(session, method)
         with self.safe_api():
             response = method(
-                url,
-                **kwargs,
-                headers=headers_dict,
-                params=params,
-                timeout=60,
-                verify=False,
+                url, **kwargs, headers=headers_dict, params=params, timeout=60,
             )
         if response.status_code == 404 and retried < 3:
             return self._request(
@@ -239,7 +246,8 @@ class SuperannotateBackendService(BaseBackendService):
         url = urljoin(self.api_url, self.URL_LIST_PROJECTS)
         if query_string:
             url = f"{url}?{query_string}"
-        return self._get_all_pages(url)
+        data = self._get_all_pages(url)
+        return data
 
     def create_project(self, project_data: dict) -> dict:
         create_project_url = urljoin(self.api_url, self.URL_CREATE_PROJECT)
