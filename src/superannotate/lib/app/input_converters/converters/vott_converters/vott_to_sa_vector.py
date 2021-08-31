@@ -10,7 +10,7 @@ from ....common import write_to_json
 from ..sa_json_helper import _create_sa_json
 from ..sa_json_helper import _create_vector_instance
 
-logger = logging.getLogger("superannotate-python-sdk")
+logger = logging.getLogger()
 
 
 def vott_to_sa(file_list, task, output_dir):

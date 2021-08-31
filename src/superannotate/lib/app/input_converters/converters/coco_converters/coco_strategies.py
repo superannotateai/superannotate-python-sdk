@@ -11,7 +11,7 @@ from ....common import tqdm_converter
 from ....common import write_to_json
 from .coco_converter import CocoBaseStrategy
 
-logger = logging.getLogger("superannotate-python-sdk")
+logger = logging.getLogger()
 
 
 class CocoPanopticConverterStrategy(CocoBaseStrategy):

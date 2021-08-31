@@ -19,7 +19,7 @@ from ..sa_json_helper import _create_sa_json
 from .coco_api import _maskfrRLE
 from .coco_api import decode
 
-logger = logging.getLogger("superannotate-python-sdk")
+logger = logging.getLogger()
 
 
 def annot_to_bitmask(annot):

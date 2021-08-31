@@ -4,7 +4,7 @@ import logging
 import fire
 from lib.app.interface.cli_interface import CLIFacade
 
-logger = logging.getLogger("superannotate-python-sdk")
+logger = logging.getLogger()
 
 # TODO Add help text
 HELP_TEXT = ""

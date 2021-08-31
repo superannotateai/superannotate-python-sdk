@@ -13,7 +13,7 @@ from ..sa_json_helper import _create_vector_instance
 from .dataloop_helper import _create_attributes_list
 from .dataloop_helper import _update_classes_dict
 
-logger = logging.getLogger("superannotate-python-sdk")
+logger = logging.getLogger()
 
 
 def dataloop_to_sa(input_dir, task, output_dir):

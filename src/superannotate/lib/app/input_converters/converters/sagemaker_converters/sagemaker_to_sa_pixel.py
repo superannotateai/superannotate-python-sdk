@@ -16,7 +16,7 @@ from ....common import write_to_json
 from ..sa_json_helper import _create_pixel_instance
 from ..sa_json_helper import _create_sa_json
 
-logger = logging.getLogger("superannotate-python-sdk")
+logger = logging.getLogger()
 
 
 def sagemaker_instance_segmentation_to_sa_pixel(data_path, output_dir):

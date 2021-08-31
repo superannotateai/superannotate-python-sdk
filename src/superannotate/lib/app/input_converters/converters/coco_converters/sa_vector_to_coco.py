@@ -10,7 +10,7 @@ from .coco_api import _merge
 from .coco_api import _polytoMask
 from .coco_api import _toBbox
 
-logger = logging.getLogger("superannotate-python-sdk")
+logger = logging.getLogger()
 
 
 def sa_vector_to_coco_object_detection(

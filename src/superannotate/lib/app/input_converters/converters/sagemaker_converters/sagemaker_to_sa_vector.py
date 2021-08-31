@@ -11,7 +11,7 @@ from ....common import write_to_json
 from ..sa_json_helper import _create_sa_json
 from ..sa_json_helper import _create_vector_instance
 
-logger = logging.getLogger("superannotate-python-sdk")
+logger = logging.getLogger()
 
 
 def sagemaker_object_detection_to_sa_vector(data_path, main_key, output_dir):

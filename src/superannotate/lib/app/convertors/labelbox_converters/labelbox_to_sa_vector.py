@@ -13,7 +13,7 @@ from ..sa_json_helper import _create_vector_instance
 from .labelbox_helper import _create_attributes_list
 from .labelbox_helper import _create_classes_id_map
 
-logger = logging.getLogger("superannotate-python-sdk")
+logger = logging.getLogger()
 
 
 def labelbox_to_sa(json_data, output_dir, task):

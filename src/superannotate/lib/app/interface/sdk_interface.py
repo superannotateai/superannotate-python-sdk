@@ -46,8 +46,7 @@ from plotly.subplots import make_subplots
 from tqdm import tqdm
 
 
-logger = logging.getLogger("superannotate-python-sdk")
-
+logger = logging.getLogger()
 controller = Controller(logger)
 
 
@@ -1144,6 +1143,9 @@ def assign_images(project: Union[str, dict], image_names: List[str], user: str):
         logger.warning(
             f"Skipping {user}. {user} is not a verified contributor for the {project_name}"
         )
+
+
+
         return
 
     controller.assign_images(project_name, folder_name, image_names, user)

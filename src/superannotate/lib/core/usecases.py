@@ -56,7 +56,7 @@ from lib.core.response import Response
 from lib.core.serviceproviders import SuerannotateServiceProvider
 from PIL import UnidentifiedImageError
 
-logger = logging.getLogger("superannotate-python-sdk")
+logger = logging.getLogger()
 
 
 class BaseUseCase(ABC):

@@ -8,7 +8,7 @@ from superannotate.lib.app.mixp.decorators import Trackable
 
 from .common import aggregate_annotations_as_df
 
-logger = logging.getLogger("superannotate-python-sdk")
+logger = logging.getLogger()
 
 
 @Trackable

@@ -1,7 +1,7 @@
 import os
 import logging.config
 
-from version import __version__
+from superannotate.version import __version__
 from superannotate.lib.app.analytics.class_analytics import attribute_distribution
 from superannotate.lib.app.analytics.class_analytics import class_distribution
 from superannotate.lib.app.annotation_helpers import add_annotation_bbox_to_json
@@ -295,3 +295,4 @@ __author__ = "Superannotate"
 file_dir = os.path.split(os.path.realpath(__file__))[0]
 
 logging.config.fileConfig(os.path.join(file_dir, "logging.conf"))
+logger = logging.getLogger()

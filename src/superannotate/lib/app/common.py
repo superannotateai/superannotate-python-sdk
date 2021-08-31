@@ -10,7 +10,7 @@ import numpy as np
 from PIL import Image
 from tqdm import tqdm
 
-logger = logging.getLogger("superannotate-python-sdk")
+logger = logging.getLogger()
 
 DEFAULT_IMAGE_EXTENSIONS = ("jpg", "jpeg", "png", "tif", "tiff", "webp", "bmp")
 DEFAULT_FILE_EXCLUDE_PATTERNS = ("___save.png", "___fuse.png")

@@ -13,7 +13,7 @@ from ..common import blue_color_generator
 from ..common import hex_to_rgb
 from ..common import write_to_json
 
-logger = logging.getLogger("superannotate-python-sdk")
+logger = logging.getLogger()
 
 
 def copy_file(src_path, dst_path):

@@ -2,7 +2,7 @@ import logging
 
 import requests
 
-logger = logging.getLogger("superannotate-python-sdk")
+logger = logging.getLogger()
 
 
 def image_downloader(url, file_name):
