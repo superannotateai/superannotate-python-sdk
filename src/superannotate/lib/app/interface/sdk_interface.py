@@ -179,17 +179,13 @@ def create_project(project_name: str, project_description: str, project_type: st
     :return: dict object metadata the new project
     :rtype: dict
     """
-    projects = controller.search_project(name=project_name).data
-    if projects:
-        raise AppException(
-            f"Project with name {project_name} already exists."
-            f" Please use unique names for projects to use with SDK."
-        )
-
-    result = controller.create_project(
+    response = controller.create_project(
         name=project_name, description=project_description, project_type=project_type
-    ).data
-    return ProjectSerializer(result).serialize()
+    )
+    if response.errors:
+        raise Exception(response.errors)
+
+    return ProjectSerializer(response.data).serialize()
 
 
 @Trackable
@@ -672,6 +668,8 @@ def upload_images_from_public_urls_to_project(
             else:
                 failed_images.append(processed_image)
 
+    logger.info("Downloading %s images", len(images_to_upload))
+
     for i in range(0, len(images_to_upload), 500):
         controller.upload_images(
             project_name=project_name,
@@ -886,7 +884,9 @@ def get_project_settings(project: Union[str, dict]):
     """
     project_name, folder_name = extract_project_folder(project)
     settings = controller.get_project_settings(project_name=project_name)
-    settings = [BaseSerializers(attribute).serialize() for attribute in settings.data]
+    settings = [
+        SettingsSerializer(attribute).serialize() for attribute in settings.data
+    ]
     return settings
 
 
@@ -1099,6 +1099,9 @@ def delete_images(project: Union[str, dict], image_names: Optional[List[str]] = 
     """
     project_name, folder_name = extract_project_folder(project)
 
+    if not isinstance(image_names, list) and image_names is not None:
+        raise AppValidationException("Image_names should be a list of strs or None.")
+
     response = controller.delete_images(
         project_name=project_name, folder_name=folder_name, image_names=image_names
     )
@@ -1143,9 +1146,6 @@ def assign_images(project: Union[str, dict], image_names: List[str], user: str):
         logger.warning(
             f"Skipping {user}. {user} is not a verified contributor for the {project_name}"
         )
-
-
-
         return
 
     controller.assign_images(project_name, folder_name, image_names, user)
@@ -1204,9 +1204,27 @@ def assign_folder(project_name: str, folder_name: str, users: List[str]):
     :param users: list of user emails
     :type users: list of str
     """
-    response = controller.assign_folder(
-        project_name=project_name, folder_name=folder_name, users=users
+
+    contributors = (
+        controller.get_project_metadata(
+            project_name=project_name, include_contributors=True
+        )
+        .data["project"]
+        .users
     )
+    verified_users = [i["user_id"] for i in contributors]
+    verified_users = set(users).intersection(set(verified_users))
+    unverified_contributor = set(users) - verified_users
+
+    for user in unverified_contributor:
+        logger.warning(
+            f"Skipping {user} from assignees. {user} is not a verified contributor for the {project_name}"
+        )
+
+    response = controller.assign_folder(
+        project_name=project_name, folder_name=folder_name, users=list(verified_users)
+    )
+
     if response.errors:
         raise AppException(response.errors)
 
@@ -1226,10 +1244,15 @@ def share_project(project_name: str, user: Union[str, dict], user_role: str):
     if isinstance(user, dict):
         user_id = user["id"]
     else:
-        user_id = controller.search_team_contributors(email=user).data[0]["id"]
-    controller.share_project(
+        response = controller.search_team_contributors(email=user)
+        if not response.data:
+            raise AppException(f"User {user} not found.")
+        user_id = response.data[0]["id"]
+    response = controller.share_project(
         project_name=project_name, user_id=user_id, user_role=user_role
     )
+    if response.errors:
+        raise AppException(response.errors)
 
 
 @Trackable
@@ -1814,6 +1837,9 @@ def upload_videos_from_folder_to_project(
             if os.name != "nt":
                 video_paths += list(Path(folder_path).glob(f"*.{extension.upper()}"))
         else:
+            logger.warning(
+                "When using recursive subfolder parsing same name videos in different subfolders will overwrite each other."
+            )
             video_paths += list(Path(folder_path).rglob(f"*.{extension.lower()}"))
             if os.name != "nt":
                 video_paths += list(Path(folder_path).rglob(f"*.{extension.upper()}"))
@@ -1823,6 +1849,14 @@ def upload_videos_from_folder_to_project(
         not_in_exclude_list = [x not in Path(path).name for x in exclude_file_patterns]
         if all(not_in_exclude_list):
             filtered_paths.append(path)
+
+    logger.info(
+        "Uploading all videos with extensions %s from %s to project %s. Excluded file patterns are: %s.",
+        extensions,
+        str(folder_path),
+        project_name,
+        exclude_file_patterns,
+    )
 
     uploaded_images, failed_images = [], []
     for path in tqdm(video_paths):
@@ -2173,6 +2207,7 @@ def download_export(
 
             for future in concurrent.futures.as_completed(results):
                 future.result()
+        logger.info("Exported to AWS %s/%s", to_s3_bucket, str(path))
 
 
 @Trackable
@@ -2569,6 +2604,7 @@ def upload_image_annotations(
         image_name=image_name,
         annotations=annotation_json,
         mask=mask,
+        verbose=verbose,
     )
     if response.errors:
         raise AppValidationException(response.errors)
@@ -3485,6 +3521,9 @@ def upload_images_to_project(
                 progress_bar.update(1)
     uploaded = []
     duplicates = []
+
+    logger.info("Uploading %s images to project.", len(images_to_upload))
+
     for i in range(0, len(uploaded_image_entities), 500):
         response = controller.upload_images(
             project_name=project_name,
@@ -3495,6 +3534,11 @@ def upload_images_to_project(
         attachments, duplications = response.data
         uploaded.extend(attachments)
         duplicates.extend(duplications)
+
+    if len(duplicates):
+        logger.warning(
+            "%s already existing images found that won't be uploaded.", len(duplicates)
+        )
 
     return uploaded, failed_images, duplicates
 

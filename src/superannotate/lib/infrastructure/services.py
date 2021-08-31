@@ -10,8 +10,8 @@ import lib.core as constance
 import requests.packages.urllib3
 from lib.core.exceptions import AppException
 from lib.core.serviceproviders import SuerannotateServiceProvider
-from requests.exceptions import HTTPError
 from lib.infrastructure.helpers import timed_lru_cache
+from requests.exceptions import HTTPError
 
 requests.packages.urllib3.disable_warnings()
 
@@ -80,8 +80,8 @@ class BaseBackendService(SuerannotateServiceProvider):
         session.headers.update(headers if headers else {})
         with self.safe_api():
             req = requests.Request(method=method, url=url, **kwargs, params=params)
-            prepared = self._session.prepare_request(req)
-            response = self._session.send(request=prepared)
+            prepared = session.prepare_request(req)
+            response = session.send(request=prepared)
         if response.status_code == 404 and retried < 3:
             return self._request(
                 url,
