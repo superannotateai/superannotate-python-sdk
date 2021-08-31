@@ -815,7 +815,7 @@ class Controller(BaseController):
             user_id=user_id,
             user_role=user_role,
         )
-        use_case.execute()
+        return use_case.execute()
 
     def un_share_project(self, project_name: str, user_id: str):
         project_entity = self._get_project(project_name)
