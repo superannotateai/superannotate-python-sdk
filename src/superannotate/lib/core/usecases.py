@@ -2434,7 +2434,7 @@ class UploadS3ImagesBackendUseCase(BaseUseCase):
             else:
                 raise AppException("Cant find settings.")
 
-        in_progress = self._backend_service.upload_form_s3(
+        response = self._backend_service.upload_form_s3(
             project_id=self._project.uuid,
             team_id=self._project.team_id,
             access_key=self._access_key,
@@ -2443,6 +2443,11 @@ class UploadS3ImagesBackendUseCase(BaseUseCase):
             from_folder_name=self._folder_path,
             to_folder_id=self._folder.uuid,
         )
+
+        if not response.ok:
+            self._response.errors = AppException(response.json()['error'])
+
+        in_progress = response.ok
         if in_progress:
             while True:
                 time.sleep(4)
@@ -4536,3 +4541,34 @@ class DeleteAnnotations(BaseUseCase):
         else:
             self._response.errors = AppException("Invalid image names.")
         return self._response
+
+
+
+class GetDuplicateImages(BaseUseCase):
+    def __init__(self,
+                 service: SuerannotateServiceProvider,
+                 project_id :int,
+                 team_id: int,
+                 folder_id: int,
+                 images: List[str]
+                 ):
+        super().__init__()
+        self._service = service
+        self._project_id = project_id
+        self._team_id = team_id
+        self._folder_id = folder_id
+        self._images = images
+        self._chunk_size = 500
+
+    def execute(self):
+        duplicates = []
+        for i in range(0, len(self._images), self._chunk_size):
+            duplications = self._service.get_bulk_images(
+                project_id=self._project_id,
+                team_id=self._team_id,
+                folder_id=self._folder_id,
+                images=self._images[i: i + self._chunk_size],
+            )
+            duplicates += [image["name"] for image in duplications]
+        return duplicates
+

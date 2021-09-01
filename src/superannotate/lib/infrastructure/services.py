@@ -758,7 +758,7 @@ class SuperannotateBackendService(BaseBackendService):
                 "folder_id": to_folder_id,
             },
         )
-        return response.ok
+        return response
 
     def get_upload_status(self, project_id: int, team_id: int, folder_id: int):
         get_upload_status_url = urljoin(

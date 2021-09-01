@@ -608,9 +608,11 @@ def upload_images_from_public_urls_to_project(
         raise AppException("Not all image URLs have corresponding names.")
 
     project_name, folder_name = extract_project_folder(project)
-    existing_images = controller.search_images(
-        project_name=project_name, folder_path=folder_name
-    ).data
+    existing_images = controller.get_duplicated_images(
+        project_name=project_name,
+        folder_name=folder_name,
+        images=img_names,
+    )
 
     image_name_url_map = {}
     duplicate_images = []
@@ -1221,6 +1223,9 @@ def assign_folder(project_name: str, folder_name: str, users: List[str]):
             f"Skipping {user} from assignees. {user} is not a verified contributor for the {project_name}"
         )
 
+    if not verified_users:
+        return
+
     response = controller.assign_folder(
         project_name=project_name, folder_name=folder_name, users=list(verified_users)
     )
@@ -1721,7 +1726,7 @@ def upload_images_from_s3_bucket_to_project(
     :type image_quality_in_editor: str
     """
     project_name, folder_name = extract_project_folder(project)
-    controller.backend_upload_from_s3(
+    response = controller.backend_upload_from_s3(
         project_name=project_name,
         folder_name=folder_name,
         folder_path=folder_path,
@@ -1730,6 +1735,8 @@ def upload_images_from_s3_bucket_to_project(
         bucket_name=bucket_name,
         image_quality=image_quality_in_editor,
     )
+    if response.errors:
+        raise AppException(response.errors)
 
 
 @Trackable
