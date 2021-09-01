@@ -337,7 +337,9 @@ class Controller(BaseController):
         project = self._get_project(from_name)
         project_to_create = copy.copy(project)
         project_to_create.name = name
-        project_to_create.description = project_description
+        if project_description:
+            project_to_create.description = project_description
+
         use_case = usecases.CloneProjectUseCase(
             project=project,
             project_to_create=project_to_create,

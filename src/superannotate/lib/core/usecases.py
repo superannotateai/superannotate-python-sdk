@@ -348,7 +348,6 @@ class CloneProjectUseCase(BaseUseCase):
 
     def execute(self):
         if self.is_valid():
-            self._project_to_create.description = self._project.description
             project = self._projects.insert(self._project_to_create)
 
             annotation_classes_mapping = {}
@@ -677,17 +676,13 @@ class AttachFileUrlsUseCase(BaseUseCase):
         return constances.UploadState.BASIC.value
 
     def execute(self):
-        duplications = self._backend_service.get_bulk_images(
+        response = self._backend_service.get_bulk_images(
             project_id=self._project.uuid,
             team_id=self._project.team_id,
             folder_id=self._folder.uuid,
             images=[image.name for image in self._attachments],
         )
-        try:
-            duplications = [image["name"] for image in duplications]
-        except Exception:
-            print(duplications)
-            raise
+        duplications = [image["name"] for image in response]
         meta = {}
         to_upload = []
         for image in self._attachments:
