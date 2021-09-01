@@ -1221,6 +1221,9 @@ def assign_folder(project_name: str, folder_name: str, users: List[str]):
             f"Skipping {user} from assignees. {user} is not a verified contributor for the {project_name}"
         )
 
+    if not verified_users:
+        return
+
     response = controller.assign_folder(
         project_name=project_name, folder_name=folder_name, users=list(verified_users)
     )
