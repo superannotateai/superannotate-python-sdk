@@ -23,6 +23,10 @@ class BaseTitledEnum(Enum):
             if enum.name.lower() == name.lower():
                 return enum.value
 
+    @classmethod
+    def values(cls):
+        return [enum.name.lower() for enum in list(cls)]
+
 
 class ProjectType(BaseTitledEnum):
     VECTOR = "Vector", 1

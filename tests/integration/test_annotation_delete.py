@@ -10,6 +10,7 @@ class TestAnnotationDelete(BaseTestCase):
     PROJECT_NAME = "TestAnnotationDelete"
     PROJECT_DESCRIPTION = "desc"
     PROJECT_TYPE = "Vector"
+    TEST_FOLDER_NAME = "folder"
     TEST_FOLDER_PATH = "data_set/sample_project_vector_single_image"
     EXAMPLE_IMAGE_1 = "example_image_1.jpg"
     EXAMPLE_IMAGE_2 = "example_image_2.jpg"
@@ -48,7 +49,7 @@ class TestAnnotationDelete(BaseTestCase):
     @pytest.mark.skip(
         "waiting for deployment to dev",
     )
-    def test_delete_annotations_by_not_exsisting_name(self):
+    def test_delete_annotations_by_not_existing_name(self):
         sa.upload_images_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
         )
@@ -59,3 +60,4 @@ class TestAnnotationDelete(BaseTestCase):
             self.PROJECT_NAME, f"{self.folder_path}"
         )
         self.assertRaises(Exception, sa.delete_annotations, self.PROJECT_NAME, [self.EXAMPLE_IMAGE_2])
+

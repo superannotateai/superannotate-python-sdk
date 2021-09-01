@@ -682,6 +682,8 @@ class AttachFileUrlsUseCase(BaseUseCase):
             folder_id=self._folder.uuid,
             images=[image.name for image in self._attachments],
         )
+        if isinstance(response, dict) and "error" in response:
+            raise AppException(response["error"])
         duplications = [image["name"] for image in response]
         meta = {}
         to_upload = []
@@ -2445,7 +2447,7 @@ class UploadS3ImagesBackendUseCase(BaseUseCase):
         )
 
         if not response.ok:
-            self._response.errors = AppException(response.json()['error'])
+            self._response.errors = AppException(response.json()["error"])
 
         in_progress = response.ok
         if in_progress:
@@ -2725,11 +2727,7 @@ class CreateAnnotationClassesUseCase(BaseUseCase):
                 unique_annotation_classes.append(annotation_class)
 
         created = []
-        logger.info(
-            "Creating annotation classes in project %s from %s.",
-            self._project.name,
-            self._annotation_classes,
-        )
+
         for i in range(0, len(unique_annotation_classes), self.CHUNK_SIZE):
             created += self._service.set_annotation_classes(
                 project_id=self._project.uuid,
@@ -3423,9 +3421,10 @@ class UploadAnnotationsUseCase(BaseUseCase):
             filter(lambda detail: detail.id is not None, images_detail)
         )
         if missing_annotations:
-            self._response.errors = AppException(
-                f"Couldn't find image {','.join(map(lambda x: x.path, missing_annotations))} for annotation upload."
-            )
+            for missing in missing_annotations:
+                logger.warning(
+                    f"Couldn't find image {missing.path} for annotation upload."
+                )
 
         if self._pre_annotation:
             auth_data = self._backend_service.get_pre_annotation_upload_data(
@@ -4302,6 +4301,16 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
             return constances.DEFAULT_FILE_EXCLUDE_PATTERNS
         return self._exclude_file_patterns
 
+    def validate_annotation_status(self):
+        if self._annotation_status and self._annotation_status not in constances.AnnotationStatus.values():
+            raise AppValidationException("Invalid annotations status")
+
+    def validate_extensions(self):
+        if self._extensions and not all(
+                [extension in constances.DEFAULT_IMAGE_EXTENSIONS  for extension in self._extensions]
+        ):
+            raise AppValidationException("")
+
     def validate_project_type(self):
         if self._project.project_type == constances.ProjectType.VIDEO.value:
             raise AppValidationException(
@@ -4510,7 +4519,7 @@ class DeleteAnnotations(BaseUseCase):
 
         if self._folder.name == "root" and not self._image_names:
             response = self._backend_service.delete_image_annotations(
-                project_id=self._project.uuid, team_id=self._project.team_id,
+                project_id=self._project.uuid, team_id=self._project.team_id, image_names=self._image_names
             )
         else:
             response = self._backend_service.delete_image_annotations(
@@ -4536,21 +4545,22 @@ class DeleteAnnotations(BaseUseCase):
                     self._response.errors = "Annotations delete fails."
                     break
                 else:
-                    logger.info(f"Annotations deleted")
+                    logger.info("Annotations deleted")
                     break
         else:
-            self._response.errors = AppException("Invalid image names.")
+            self._response.errors = AppException("Invalid image names or empty folder.")
         return self._response
 
 
 class GetDuplicateImages(BaseUseCase):
-    def __init__(self,
-                 service: SuerannotateServiceProvider,
-                 project_id :int,
-                 team_id: int,
-                 folder_id: int,
-                 images: List[str]
-                 ):
+    def __init__(
+        self,
+        service: SuerannotateServiceProvider,
+        project_id: int,
+        team_id: int,
+        folder_id: int,
+        images: List[str],
+    ):
         super().__init__()
         self._service = service
         self._project_id = project_id
@@ -4566,8 +4576,7 @@ class GetDuplicateImages(BaseUseCase):
                 project_id=self._project_id,
                 team_id=self._team_id,
                 folder_id=self._folder_id,
-                images=self._images[i: i + self._chunk_size],
+                images=self._images[i : i + self._chunk_size],
             )
             duplicates += [image["name"] for image in duplications]
         return duplicates
-
