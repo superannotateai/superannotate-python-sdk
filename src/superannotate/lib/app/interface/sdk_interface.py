@@ -1498,7 +1498,7 @@ def get_image_annotations(project: Union[str, dict], image_name: str):
         project_name=project_name, folder_name=folder_name, image_name=image_name
     )
     if res.errors:
-        raise AppValidationException(res)
+        raise AppException(res)
     return res.data
 
 
@@ -3593,3 +3593,24 @@ def aggregate_annotations_as_df(
         verbose,
         folder_names,
     )
+
+
+@Trackable
+@validate_input
+def delete_annotations(project: str, image_names: List[str] = None):
+    """
+    Delete image annotations from a given list of images.
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param image_names:  image names. If None, all image annotations from a given project/folder will be deleted.
+    :type image_names: list of strs
+    """
+
+    project_name, folder_name = extract_project_folder(project)
+
+    response = controller.delete_annotations(
+        project_name=project, folder_name=folder_name, image_names=image_names
+    )
+    if response.errors:
+        raise AppException(response.errors)

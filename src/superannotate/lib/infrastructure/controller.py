@@ -1446,3 +1446,19 @@ class Controller(BaseController):
             ml_models_repo=ml_models_repo, condition=condition
         )
         return use_case.execute()
+
+    def delete_annotations(
+        self,
+        project_name: str,
+        folder_name: str,
+        image_names: Optional[List[str]] = None,
+    ):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+        use_case = usecases.DeleteAnnotations(
+            project=project,
+            folder=folder,
+            backend_service=self._backend_client,
+            image_names=image_names,
+        )
+        return use_case.execute()

@@ -60,6 +60,7 @@ from superannotate.lib.app.interface.sdk_interface import create_fuse_image
 from superannotate.lib.app.interface.sdk_interface import create_project
 from superannotate.lib.app.interface.sdk_interface import create_project_from_metadata
 from superannotate.lib.app.interface.sdk_interface import delete_annotation_class
+from superannotate.lib.app.interface.sdk_interface import delete_annotations
 from superannotate.lib.app.interface.sdk_interface import (
     delete_contributor_to_team_invitation,
 )
@@ -235,6 +236,7 @@ __all__ = [
     "assign_images",
     "unassign_images",
     "download_image_annotations",
+    "delete_annotations",
     "upload_image_to_project",
     "upload_image_annotations",
     "upload_images_from_public_urls_to_project",
