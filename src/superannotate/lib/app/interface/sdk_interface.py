@@ -1498,7 +1498,7 @@ def get_image_annotations(project: Union[str, dict], image_name: str):
         project_name=project_name, folder_name=folder_name, image_name=image_name
     )
     if res.errors:
-        raise AppValidationException(res)
+        raise AppException(res)
     return res.data
 
 
@@ -3609,4 +3609,8 @@ def delete_annotations(project: str, image_names: List[str] = None):
 
     project_name, folder_name = extract_project_folder(project)
 
-    controller.delete_annotations(project_name=project, folder_name=folder_name, image_names=image_names)
+    response = controller.delete_annotations(
+        project_name=project, folder_name=folder_name, image_names=image_names
+    )
+    if response.errors:
+        raise AppException(response.errors)

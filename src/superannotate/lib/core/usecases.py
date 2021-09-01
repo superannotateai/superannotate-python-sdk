@@ -2082,6 +2082,9 @@ class GetImageAnnotationsUseCase(BaseUseCase):
                 file_postfix = "___objects.json"
             else:
                 file_postfix = "___pixel.json"
+                data["annotation_mask_filename"] = f"{self._image_name}___save.png"
+            data["annotation_json_filename"] = f"{self._image_name}{file_postfix}"
+
             response = requests.get(
                 url=credentials["annotation_json_path"]["url"],
                 headers=credentials["annotation_json_path"]["headers"],
@@ -2099,7 +2102,6 @@ class GetImageAnnotationsUseCase(BaseUseCase):
                     headers=annotation_blue_map_creds["headers"],
                 )
                 data["annotation_mask"] = io.BytesIO(response.content)
-                data["annotation_mask_filename"] = f"{self._image_name}___save.png"
 
             self._response.data = data
 
@@ -4487,12 +4489,13 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
 
 class DeleteAnnotations(BaseUseCase):
     POLL_AWAIT_TIME = 2
+
     def __init__(
-            self,
-            project: ProjectEntity,
-            folder: FolderEntity,
-            backend_service: SuerannotateServiceProvider,
-            image_names: Optional[List[str]] = None,
+        self,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        backend_service: SuerannotateServiceProvider,
+        image_names: Optional[List[str]] = None,
     ):
         super().__init__()
         self._project = project
@@ -4504,8 +4507,7 @@ class DeleteAnnotations(BaseUseCase):
 
         if self._folder.name == "root" and not self._image_names:
             poll_id = self._backend_service.delete_image_annotations(
-                project_id=self._project.uuid,
-                team_id=self._project.team_id,
+                project_id=self._project.uuid, team_id=self._project.team_id,
             )
         else:
             poll_id = self._backend_service.delete_image_annotations(
@@ -4513,11 +4515,26 @@ class DeleteAnnotations(BaseUseCase):
                 team_id=self._project.team_id,
                 folder_id=self._folder.uuid,
                 image_names=self._image_names,
-                )
+            )
 
         if poll_id:
             timeout_start = time.time()
             while time.time() < timeout_start + self.POLL_AWAIT_TIME:
-                 var = self._backend_service.get_annotations_delete_progress(
-                        self._project.uuid, self._project.team_id, poll_id)
-
+                progress = int(
+                    self._backend_service.get_annotations_delete_progress(
+                        project_id=self._project.uuid,
+                        team_id=self._project.team_id,
+                        poll_id=poll_id,
+                    ).get("process", -1)
+                )
+                if 0 < progress < 100:
+                    logger.info(f"Delete annotations in progress {progress}/100")
+                elif 0 > progress:
+                    self._response.errors = "Annotations delete fails."
+                    break
+                else:
+                    logger.info(f"Annotations deleted")
+                    break
+        else:
+            self._response.errors = AppException("Invalid image names.")
+        return self._response

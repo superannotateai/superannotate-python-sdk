@@ -60,6 +60,7 @@ from superannotate.lib.app.interface.sdk_interface import create_fuse_image
 from superannotate.lib.app.interface.sdk_interface import create_project
 from superannotate.lib.app.interface.sdk_interface import create_project_from_metadata
 from superannotate.lib.app.interface.sdk_interface import delete_annotation_class
+from superannotate.lib.app.interface.sdk_interface import delete_annotations
 from superannotate.lib.app.interface.sdk_interface import (
     delete_contributor_to_team_invitation,
 )
@@ -89,7 +90,6 @@ from superannotate.lib.app.interface.sdk_interface import (
 from superannotate.lib.app.interface.sdk_interface import (
     get_project_default_image_quality_in_editor,
 )
-from superannotate.lib.app.interface.sdk_interface import delete_annotations
 from superannotate.lib.app.interface.sdk_interface import get_project_image_count
 from superannotate.lib.app.interface.sdk_interface import get_project_metadata
 from superannotate.lib.app.interface.sdk_interface import get_project_settings
