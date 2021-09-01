@@ -20,6 +20,7 @@ class BaseBackendService(SuerannotateServiceProvider):
     AUTH_TYPE = "sdk"
     PAGINATE_BY = 100
     MAX_RETRY = 3
+    LIMIT = 100
 
     """
     Base service class
@@ -109,7 +110,10 @@ class BaseBackendService(SuerannotateServiceProvider):
             if isinstance(data, dict):
                 if key_field:
                     data = data[key_field]
-                return data, data.get("count", 0) - offset
+                if data.get("count", 0) < self.LIMIT:
+                    return data, 0
+                else:
+                    return data, data.get("count", 0) - offset
             if isinstance(data, list):
                 return {"data": data}, 0
         return {"data": []}, 0
@@ -177,6 +181,8 @@ class SuperannotateBackendService(BaseBackendService):
     URL_SEGMENTATION = "images/segmentation"
     URL_PREDICTION = "images/prediction"
     URL_SET_IMAGES_STATUSES_BULK = "image/updateAnnotationStatusBulk"
+    URL_DELETE_ANNOTATIONS = "annotations/remove"
+    URL_DELETE_ANNOTATIONS_PROGRESS = "annotations/getRemoveStatus"
 
     def get_project(self, uuid: int, team_id: int):
         get_project_url = urljoin(self.api_url, self.URL_GET_PROJECT.format(uuid))
@@ -752,7 +758,7 @@ class SuperannotateBackendService(BaseBackendService):
                 "folder_id": to_folder_id,
             },
         )
-        return response.ok
+        return response
 
     def get_upload_status(self, project_id: int, team_id: int, folder_id: int):
         get_upload_status_url = urljoin(
@@ -941,3 +947,35 @@ class SuperannotateBackendService(BaseBackendService):
             },
         )
         return res.json()
+
+    def delete_image_annotations(
+        self,
+        team_id: int,
+        project_id: int,
+        folder_id: int = None,
+        image_names: List[str] = None,
+    ) -> int:
+        delete_annotations_url = urljoin(self.api_url, self.URL_DELETE_ANNOTATIONS)
+        params = {"team_id": team_id, "project_id": project_id}
+        data = {}
+        if folder_id:
+            params["folder_id"] = folder_id
+        if image_names:
+            data["image_names"] = image_names
+        response = self._request(
+            delete_annotations_url, "post", params=params, data=data
+        )
+        if response.ok:
+            return response.json()["poll_id"]
+
+    def get_annotations_delete_progress(
+        self, team_id: int, project_id: int, poll_id: int
+    ):
+        get_progress_url = urljoin(self.api_url, self.URL_DELETE_ANNOTATIONS_PROGRESS)
+
+        response = self._request(
+            get_progress_url,
+            "get",
+            params={"team_id": team_id, "project_id": project_id, "poll_id": poll_id},
+        )
+        return response.json()

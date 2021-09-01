@@ -8,7 +8,7 @@ from tests.integration.base import BaseTestCase
 
 
 class TestVectorPreAnnotationImage(BaseTestCase):
-    PROJECT_NAME = "test vector"
+    PROJECT_NAME = "TestVectorPreAnnotationImage"
     PROJECT_DESCRIPTION = "Example Project test vector pre-annotation upload"
     PROJECT_TYPE = "Vector"
     TEST_FOLDER_PATH = "data_set/sample_project_vector"

@@ -89,3 +89,15 @@ class TestCloneProject(TestCase):
         self.assertEqual(
             len(new_project_metadata["workflows"]), len(project_metadata["workflows"])
         )
+
+    def test_clone_contributors(self):
+        team_users = sa.search_team_contributors()
+        sa.share_project(self.PROJECT_NAME_1, team_users[0], "QA")
+        first_project_contributors = sa.get_project_metadata(
+            self.PROJECT_NAME_1, include_contributors=True
+        )["contributors"]
+        sa.clone_project(self.PROJECT_NAME_2, self.PROJECT_NAME_1, copy_contributors=True)
+        second_project_contributors = sa.get_project_metadata(
+            self.PROJECT_NAME_2, include_contributors=True
+        )["contributors"]
+        self.assertEqual(first_project_contributors[0]["user_id"], second_project_contributors[0]["user_id"])
