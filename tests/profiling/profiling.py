@@ -32,16 +32,17 @@ import io
 # print(results)
 # print(sum(results)/10)
 
-import time
-results = []
-projects = "11", "22", "33", "44", "55", "66", "77", "88", "99"
+# import time
+# results = []
+# projects = "11", "22", "33", "44", "55", "66", "77", "88", "99"
+#
+# for project in projects:
+#     start = time.time()
+#     sa.search_annotation_classes(project)
+#     end = time.time()
+#     results.append(end-start)
+#
+# print(results)
+# print(sum(results)/9)
 
-for project in projects:
-    start = time.time()
-    sa.search_annotation_classes(project)
-    end = time.time()
-    results.append(end-start)
-
-print(results)
-print(sum(results)/9)
-
+print(sa.search_images("Vector/for sdk"))

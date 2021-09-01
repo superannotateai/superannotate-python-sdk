@@ -682,6 +682,8 @@ class AttachFileUrlsUseCase(BaseUseCase):
             folder_id=self._folder.uuid,
             images=[image.name for image in self._attachments],
         )
+        if isinstance(response, dict) and "error" in response:
+            raise AppException(response["error"])
         duplications = [image["name"] for image in response]
         meta = {}
         to_upload = []
@@ -4302,6 +4304,12 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
             return constances.DEFAULT_FILE_EXCLUDE_PATTERNS
         return self._exclude_file_patterns
 
+    def validate_extensions(self):
+        if self._extensions and not all(
+                [extension in constances.DEFAULT_IMAGE_EXTENSIONS  for extension in self._extensions]
+        ):
+            raise AppValidationException("")
+
     def validate_project_type(self):
         if self._project.project_type == constances.ProjectType.VIDEO.value:
             raise AppValidationException(
@@ -4510,7 +4518,7 @@ class DeleteAnnotations(BaseUseCase):
 
         if self._folder.name == "root" and not self._image_names:
             response = self._backend_service.delete_image_annotations(
-                project_id=self._project.uuid, team_id=self._project.team_id,
+                project_id=self._project.uuid, team_id=self._project.team_id, image_names=self._image_names
             )
         else:
             response = self._backend_service.delete_image_annotations(
@@ -4539,7 +4547,7 @@ class DeleteAnnotations(BaseUseCase):
                     logger.info(f"Annotations deleted")
                     break
         else:
-            self._response.errors = AppException("Invalid image names.")
+            self._response.errors = AppException("Invalid image names or empty folder.")
         return self._response
 
 
