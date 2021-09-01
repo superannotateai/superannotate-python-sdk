@@ -7,7 +7,7 @@ from tests.integration.base import BaseTestCase
 
 
 class TestAnnotationDelete(BaseTestCase):
-    PROJECT_NAME_ = "TestAnnotationDelete"
+    PROJECT_NAME = "TestAnnotationDelete"
     PROJECT_DESCRIPTION = "desc"
     PROJECT_TYPE = "Vector"
     TEST_FOLDER_PATH = "data_set/sample_project_vector_single_image"
