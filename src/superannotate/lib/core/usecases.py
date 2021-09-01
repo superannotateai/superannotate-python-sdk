@@ -4301,6 +4301,10 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
             return constances.DEFAULT_FILE_EXCLUDE_PATTERNS
         return self._exclude_file_patterns
 
+    def validate_annotation_status(self):
+        if self._annotation_status and self._annotation_status not in constances.AnnotationStatus.values():
+            raise AppValidationException("Invalid annotations status")
+
     def validate_extensions(self):
         if self._extensions and not all(
                 [extension in constances.DEFAULT_IMAGE_EXTENSIONS  for extension in self._extensions]
