@@ -53,10 +53,16 @@ class BaseController(metaclass=SingleInstanceMetaClass):
             self.configs.insert(ConfigEntity("token", ""))
             logger.warning("Fill config.json")
             return
+        verify_ssl_entity = self.configs.get_one("ssl_verify")
+        if not verify_ssl_entity:
+            verify_ssl = True
+        else:
+            verify_ssl = verify_ssl_entity.value
         self._backend_client = SuperannotateBackendService(
             api_url=self.configs.get_one("main_endpoint").value,
             auth_token=ConfigRepository().get_one("token").value,
             logger=logger,
+            verify_ssl=verify_ssl
         )
         self._s3_upload_auth_data = None
         self._projects = None
@@ -337,7 +343,9 @@ class Controller(BaseController):
         project = self._get_project(from_name)
         project_to_create = copy.copy(project)
         project_to_create.name = name
-        project_to_create.description = project_description
+        if project_description:
+            project_to_create.description = project_description
+
         use_case = usecases.CloneProjectUseCase(
             project=project,
             project_to_create=project_to_create,

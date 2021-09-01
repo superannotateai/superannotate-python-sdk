@@ -1,3 +1,4 @@
+import os
 from contextlib import contextmanager
 from datetime import datetime
 from typing import Dict
@@ -26,11 +27,12 @@ class BaseBackendService(SuerannotateServiceProvider):
     Base service class
     """
 
-    def __init__(self, api_url: str, auth_token: str, logger, paginate_by=None):
+    def __init__(self, api_url: str, auth_token: str, logger, paginate_by=None, verify_ssl=True):
         self.api_url = api_url
         self._auth_token = auth_token
         self.logger = logger
         self._paginate_by = paginate_by
+        self._verify_ssl = verify_ssl
         self.team_id = auth_token.split("=")[-1]
 
     @timed_lru_cache(seconds=360)
@@ -82,7 +84,7 @@ class BaseBackendService(SuerannotateServiceProvider):
         with self.safe_api():
             req = requests.Request(method=method, url=url, **kwargs, params=params)
             prepared = session.prepare_request(req)
-            response = session.send(request=prepared)
+            response = session.send(request=prepared, verify=self._verify_ssl)
         if response.status_code == 404 and retried < 3:
             return self._request(
                 url,
@@ -966,7 +968,7 @@ class SuperannotateBackendService(BaseBackendService):
             delete_annotations_url, "post", params=params, data=data
         )
         if response.ok:
-            return response.json()["poll_id"]
+            return response.json()
 
     def get_annotations_delete_progress(
         self, team_id: int, project_id: int, poll_id: int

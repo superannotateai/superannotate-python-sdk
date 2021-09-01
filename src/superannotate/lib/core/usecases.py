@@ -348,7 +348,6 @@ class CloneProjectUseCase(BaseUseCase):
 
     def execute(self):
         if self.is_valid():
-            self._project_to_create.description = self._project.description
             project = self._projects.insert(self._project_to_create)
 
             annotation_classes_mapping = {}
@@ -677,17 +676,13 @@ class AttachFileUrlsUseCase(BaseUseCase):
         return constances.UploadState.BASIC.value
 
     def execute(self):
-        duplications = self._backend_service.get_bulk_images(
+        response = self._backend_service.get_bulk_images(
             project_id=self._project.uuid,
             team_id=self._project.team_id,
             folder_id=self._folder.uuid,
             images=[image.name for image in self._attachments],
         )
-        try:
-            duplications = [image["name"] for image in duplications]
-        except Exception:
-            print(duplications)
-            raise
+        duplications = [image["name"] for image in response]
         meta = {}
         to_upload = []
         for image in self._attachments:
@@ -4511,25 +4506,25 @@ class DeleteAnnotations(BaseUseCase):
     def execute(self) -> Response:
 
         if self._folder.name == "root" and not self._image_names:
-            poll_id = self._backend_service.delete_image_annotations(
+            response = self._backend_service.delete_image_annotations(
                 project_id=self._project.uuid, team_id=self._project.team_id,
             )
         else:
-            poll_id = self._backend_service.delete_image_annotations(
+            response = self._backend_service.delete_image_annotations(
                 project_id=self._project.uuid,
                 team_id=self._project.team_id,
                 folder_id=self._folder.uuid,
                 image_names=self._image_names,
             )
 
-        if poll_id:
+        if response:
             timeout_start = time.time()
             while time.time() < timeout_start + self.POLL_AWAIT_TIME:
                 progress = int(
                     self._backend_service.get_annotations_delete_progress(
                         project_id=self._project.uuid,
                         team_id=self._project.team_id,
-                        poll_id=poll_id,
+                        poll_id=response.get("poll_id"),
                     ).get("process", -1)
                 )
                 if 0 < progress < 100:
