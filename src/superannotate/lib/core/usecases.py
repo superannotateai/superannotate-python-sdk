@@ -4509,25 +4509,25 @@ class DeleteAnnotations(BaseUseCase):
     def execute(self) -> Response:
 
         if self._folder.name == "root" and not self._image_names:
-            poll_id = self._backend_service.delete_image_annotations(
+            response = self._backend_service.delete_image_annotations(
                 project_id=self._project.uuid, team_id=self._project.team_id,
             )
         else:
-            poll_id = self._backend_service.delete_image_annotations(
+            response = self._backend_service.delete_image_annotations(
                 project_id=self._project.uuid,
                 team_id=self._project.team_id,
                 folder_id=self._folder.uuid,
                 image_names=self._image_names,
             )
 
-        if poll_id:
+        if response:
             timeout_start = time.time()
             while time.time() < timeout_start + self.POLL_AWAIT_TIME:
                 progress = int(
                     self._backend_service.get_annotations_delete_progress(
                         project_id=self._project.uuid,
                         team_id=self._project.team_id,
-                        poll_id=poll_id,
+                        poll_id=response.get("poll_id"),
                     ).get("process", -1)
                 )
                 if 0 < progress < 100:
@@ -4541,7 +4541,6 @@ class DeleteAnnotations(BaseUseCase):
         else:
             self._response.errors = AppException("Invalid image names.")
         return self._response
-
 
 
 class GetDuplicateImages(BaseUseCase):
