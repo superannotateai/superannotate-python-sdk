@@ -363,6 +363,9 @@ class CloneProjectUseCase(BaseUseCase):
                     ] = new_project_annotation_classes.insert(annotation_class_copy)
 
             if self._include_contributors:
+                self._project = self._projects.get_one(
+                    uuid=self._project.uuid, team_id=self._project.team_id
+                )
                 for user in self._project.users:
                     self._backend_service.share_project(
                         project.uuid,
