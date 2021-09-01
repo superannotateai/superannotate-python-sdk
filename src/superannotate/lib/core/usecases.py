@@ -15,6 +15,7 @@ from collections import namedtuple
 from pathlib import Path
 from typing import Iterable
 from typing import List
+from typing import Optional
 
 import boto3
 import cv2
@@ -363,6 +364,9 @@ class CloneProjectUseCase(BaseUseCase):
                     ] = new_project_annotation_classes.insert(annotation_class_copy)
 
             if self._include_contributors:
+                self._project = self._projects.get_one(
+                    uuid=self._project.uuid, team_id=self._project.team_id
+                )
                 for user in self._project.users:
                     self._backend_service.share_project(
                         project.uuid,
@@ -504,7 +508,7 @@ class UploadImageS3UseCase(BaseUseCase):
     def __init__(
         self,
         project: ProjectEntity,
-        project_settings: BaseReadOnlyRepository,
+        project_settings: List[ProjectSettingEntity],
         image_path: str,
         image: io.BytesIO,
         s3_repo: BaseManageableRepository,
@@ -535,7 +539,7 @@ class UploadImageS3UseCase(BaseUseCase):
             huge_image, huge_width, huge_height = image_processor.generate_huge()
             quality = 60
             if not self._image_quality_in_editor:
-                for setting in self._project_settings.get_all():
+                for setting in self._project_settings:
                     if setting.attribute == "ImageQuality":
                         quality = setting.value
             else:
@@ -679,7 +683,11 @@ class AttachFileUrlsUseCase(BaseUseCase):
             folder_id=self._folder.uuid,
             images=[image.name for image in self._attachments],
         )
-        duplications = [image["name"] for image in duplications]
+        try:
+            duplications = [image["name"] for image in duplications]
+        except Exception:
+            print(duplications)
+            raise
         meta = {}
         to_upload = []
         for image in self._attachments:
@@ -1062,7 +1070,7 @@ class CopyImageAnnotationClasses(BaseUseCase):
             headers=annotations["annotation_json_path"]["headers"],
         )
         if not response.ok:
-            raise AppException(f"Couldn't load annotations.")
+            raise AppException("Couldn't load annotations.")
 
         image_annotations = response.json()
         from_project_annotation_classes = (
@@ -1153,7 +1161,7 @@ class CopyImageAnnotationClasses(BaseUseCase):
                 headers=annotations["annotation_bluemap_path"]["headers"],
             )
             if not response.ok:
-                raise AppException(f"Couldn't load annotations.")
+                raise AppException("Couldn't load annotations.")
             self.to_project_s3_repo.insert(
                 S3FileEntity(
                     auth_data["annotation_bluemap_path"]["filePath"], response.content
@@ -2077,12 +2085,15 @@ class GetImageAnnotationsUseCase(BaseUseCase):
                 file_postfix = "___objects.json"
             else:
                 file_postfix = "___pixel.json"
+                data["annotation_mask_filename"] = f"{self._image_name}___save.png"
+            data["annotation_json_filename"] = f"{self._image_name}{file_postfix}"
+
             response = requests.get(
                 url=credentials["annotation_json_path"]["url"],
                 headers=credentials["annotation_json_path"]["headers"],
             )
             if not response.ok:
-                logger.warning(f"Couldn't load annotations.")
+                logger.warning("Couldn't load annotations.")
                 self._response.data = data
                 return self._response
             data["annotation_json"] = response.json()
@@ -2094,7 +2105,6 @@ class GetImageAnnotationsUseCase(BaseUseCase):
                     headers=annotation_blue_map_creds["headers"],
                 )
                 data["annotation_mask"] = io.BytesIO(response.content)
-                data["annotation_mask_filename"] = f"{self._image_name}___save.png"
 
             self._response.data = data
 
@@ -2177,7 +2187,7 @@ class GetImagePreAnnotationsUseCase(BaseUseCase):
             url=annotation_json_creds["url"], headers=annotation_json_creds["headers"],
         )
         if not response.ok:
-            raise AppException(f"Couldn't load annotations.")
+            raise AppException("Couldn't load annotations.")
         data["preannotation_json"] = response.json()
         data["preannotation_json_filename"] = f"{self._image_name}{file_postfix}"
         if self._project.project_type == constances.ProjectType.PIXEL.value:
@@ -2254,7 +2264,7 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
                 headers=annotation_json_creds["headers"],
             )
             if not response.ok:
-                logger.warning(f"Couldn't load annotations.")
+                logger.warning("Couldn't load annotations.")
                 self._response.data = (None, None)
                 return self._response
             data["annotation_json"] = response.json()
@@ -2333,7 +2343,7 @@ class DownloadImagePreAnnotationsUseCase(BaseUseCase):
             url=annotation_json_creds["url"], headers=annotation_json_creds["headers"],
         )
         if not response.ok:
-            raise AppException(f"Couldn't load annotations.")
+            raise AppException("Couldn't load annotations.")
         data["preannotation_json"] = response.json()
         data["preannotation_json_filename"] = f"{self._image_name}{file_postfix}"
         mask_path = None
@@ -3277,10 +3287,11 @@ class UploadAnnotationsUseCase(BaseUseCase):
         self,
         project: ProjectEntity,
         folder: FolderEntity,
-        annotation_classes: BaseReadOnlyRepository,
+        annotation_classes: List[AnnotationClassEntity],
         folder_path: str,
         annotation_paths: List[str],
         backend_service_provider: SuerannotateServiceProvider,
+        templates: List[dict],
         pre_annotation: bool = False,
         client_s3_bucket=None,
     ):
@@ -3293,6 +3304,7 @@ class UploadAnnotationsUseCase(BaseUseCase):
         self._annotation_paths = annotation_paths
         self._client_s3_bucket = client_s3_bucket
         self._pre_annotation = pre_annotation
+        self._templates = templates
 
     @property
     def s3_client(self):
@@ -3301,7 +3313,7 @@ class UploadAnnotationsUseCase(BaseUseCase):
     @property
     def annotation_classes_name_map(self) -> dict:
         classes_data = defaultdict(dict)
-        annotation_classes = self._annotation_classes.get_all()
+        annotation_classes = self._annotation_classes
         for annotation_class in annotation_classes:
             class_info = {"id": annotation_class.uuid}
             if annotation_class.attribute_groups:
@@ -3327,11 +3339,8 @@ class UploadAnnotationsUseCase(BaseUseCase):
         )
 
     def get_templates_mapping(self):
-        templates = self._backend_service.get_templates(
-            team_id=self._project.team_id
-        ).get("data", [])
         templates_map = {}
-        for template in templates:
+        for template in self._templates:
             templates_map[template["name"]] = template["id"]
         return templates_map
 
@@ -4276,7 +4285,7 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
         self._project = project
         self._folder = folder
         self._folder_path = folder_path
-        self._settings = settings
+        self._settings = settings.get_all()
         self._s3_repo = s3_repo
         self._backend_client = backend_client
         self._image_quality_in_editor = image_quality_in_editor
@@ -4483,6 +4492,59 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
             failed_images = [image.split("/")[-1] for image in failed_images]
 
             self._response.data = uploaded, failed_images, duplications
+        return self._response
+
+
+class DeleteAnnotations(BaseUseCase):
+    POLL_AWAIT_TIME = 2
+
+    def __init__(
+        self,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        backend_service: SuerannotateServiceProvider,
+        image_names: Optional[List[str]] = None,
+    ):
+        super().__init__()
+        self._project = project
+        self._folder = folder
+        self._image_names = image_names
+        self._backend_service = backend_service
+
+    def execute(self) -> Response:
+
+        if self._folder.name == "root" and not self._image_names:
+            poll_id = self._backend_service.delete_image_annotations(
+                project_id=self._project.uuid, team_id=self._project.team_id,
+            )
+        else:
+            poll_id = self._backend_service.delete_image_annotations(
+                project_id=self._project.uuid,
+                team_id=self._project.team_id,
+                folder_id=self._folder.uuid,
+                image_names=self._image_names,
+            )
+
+        if poll_id:
+            timeout_start = time.time()
+            while time.time() < timeout_start + self.POLL_AWAIT_TIME:
+                progress = int(
+                    self._backend_service.get_annotations_delete_progress(
+                        project_id=self._project.uuid,
+                        team_id=self._project.team_id,
+                        poll_id=poll_id,
+                    ).get("process", -1)
+                )
+                if 0 < progress < 100:
+                    logger.info(f"Delete annotations in progress {progress}/100")
+                elif 0 > progress:
+                    self._response.errors = "Annotations delete fails."
+                    break
+                else:
+                    logger.info(f"Annotations deleted")
+                    break
+        else:
+            self._response.errors = AppException("Invalid image names.")
         return self._response
 
 

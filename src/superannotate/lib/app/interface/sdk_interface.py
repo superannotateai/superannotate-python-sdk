@@ -1503,7 +1503,7 @@ def get_image_annotations(project: Union[str, dict], image_name: str):
         project_name=project_name, folder_name=folder_name, image_name=image_name
     )
     if res.errors:
-        raise AppValidationException(res)
+        raise AppException(res)
     return res.data
 
 
@@ -1561,7 +1561,7 @@ def upload_images_from_folder_to_project(
     )
     images_to_upload, _ = use_case.images_to_upload
     if use_case.is_valid():
-        with tqdm(total=len(images_to_upload)) as progress_bar:
+        with tqdm(total=len(images_to_upload), desc="Uploading images") as progress_bar:
             for _ in use_case.execute():
                 progress_bar.update(1)
         return use_case.data
@@ -1866,7 +1866,7 @@ def upload_videos_from_folder_to_project(
     )
 
     uploaded_images, failed_images = [], []
-    for path in tqdm(video_paths):
+    for path in tqdm(video_paths, desc="Uploading videos"):
         with tempfile.TemporaryDirectory() as temp_path:
             res = controller.extract_video_frames(
                 project_name=project_name,
@@ -1960,7 +1960,9 @@ def upload_video_to_project(
         )
         images_to_upload, _ = use_case.images_to_upload
         if use_case.is_valid():
-            with tqdm(total=len(images_to_upload)) as progress_bar:
+            with tqdm(
+                total=len(images_to_upload), desc="Uploading frames."
+            ) as progress_bar:
                 for _ in use_case.execute():
                     progress_bar.update(1)
             return use_case.data[0]
@@ -2495,8 +2497,10 @@ def upload_annotations_from_folder_to_project(
     uploaded_annotations = []
     failed_annotations = []
     missing_annotations = []
-    chunk_size = 10
-    with tqdm(total=len(annotation_paths)) as progress_bar:
+    chunk_size = 50
+    with tqdm(
+        total=len(annotation_paths), desc="Uploading annotations"
+    ) as progress_bar:
         for i in range(0, len(annotation_paths), chunk_size):
             response = controller.upload_annotations_from_folder(
                 project_name=project_name,
@@ -2556,7 +2560,9 @@ def upload_preannotations_from_folder_to_project(
     failed_annotations = []
     missing_annotations = []
     chunk_size = 10
-    with tqdm(total=len(annotation_paths)) as progress_bar:
+    with tqdm(
+        total=len(annotation_paths), desc="Uploading pre annotations"
+    ) as progress_bar:
         for i in range(0, len(annotation_paths), chunk_size):
             response = controller.upload_annotations_from_folder(
                 project_name=project_name,
@@ -3518,7 +3524,7 @@ def upload_images_to_project(
             executor.submit(upload_method, image_path)
             for image_path in images_to_upload
         ]
-        with tqdm(total=len(images_to_upload)) as progress_bar:
+        with tqdm(total=len(images_to_upload), desc="Uploading images") as progress_bar:
             for future in concurrent.futures.as_completed(results):
                 processed_image = future.result()
                 if processed_image.uploaded and processed_image.entity:
@@ -3594,3 +3600,24 @@ def aggregate_annotations_as_df(
         verbose,
         folder_names,
     )
+
+
+@Trackable
+@validate_input
+def delete_annotations(project: str, image_names: List[str] = None):
+    """
+    Delete image annotations from a given list of images.
+
+    :param project: project name or folder path (e.g., "project1/folder1")
+    :type project: str
+    :param image_names:  image names. If None, all image annotations from a given project/folder will be deleted.
+    :type image_names: list of strs
+    """
+
+    project_name, folder_name = extract_project_folder(project)
+
+    response = controller.delete_annotations(
+        project_name=project, folder_name=folder_name, image_names=image_names
+    )
+    if response.errors:
+        raise AppException(response.errors)
