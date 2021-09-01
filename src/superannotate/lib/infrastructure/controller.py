@@ -1425,3 +1425,16 @@ class Controller(BaseController):
             ml_models_repo=ml_models_repo, condition=condition
         )
         return use_case.execute()
+
+
+    def get_duplicated_images(self,project_name: str ,folder_name :str ,images: List[str]):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+        use_case = usecases.GetDuplicateImages(
+            service=self._backend_client,
+            project_id=project.uuid,
+            team_id= project.team_id,
+            folder_id= folder.uuid,
+            images=images
+        )
+        return use_case.execute()
