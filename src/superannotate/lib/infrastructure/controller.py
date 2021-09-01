@@ -708,11 +708,12 @@ class Controller(BaseController):
 
     def search_annotation_classes(self, project_name: str, name_prefix: str = None):
         project_entity = self._get_project(project_name)
+        condition = Condition("name", name_prefix, EQ) if name_prefix else None
         use_case = usecases.GetAnnotationClassesUseCase(
             classes=AnnotationClassRepository(
                 service=self._backend_client, project=project_entity
             ),
-            condition=Condition("name", name_prefix, EQ),
+            condition=condition
         )
         return use_case.execute()
 
@@ -1471,15 +1472,16 @@ class Controller(BaseController):
         )
         return use_case.execute()
 
-
-    def get_duplicated_images(self,project_name: str ,folder_name :str ,images: List[str]):
+    def get_duplicated_images(
+        self, project_name: str, folder_name: str, images: List[str]
+    ):
         project = self._get_project(project_name)
         folder = self._get_folder(project, folder_name)
         use_case = usecases.GetDuplicateImages(
             service=self._backend_client,
             project_id=project.uuid,
-            team_id= project.team_id,
-            folder_id= folder.uuid,
-            images=images
+            team_id=project.team_id,
+            folder_id=folder.uuid,
+            images=images,
         )
         return use_case.execute()

@@ -609,9 +609,7 @@ def upload_images_from_public_urls_to_project(
 
     project_name, folder_name = extract_project_folder(project)
     existing_images = controller.get_duplicated_images(
-        project_name=project_name,
-        folder_name=folder_name,
-        images=img_names,
+        project_name=project_name, folder_name=folder_name, images=img_names,
     )
 
     image_name_url_map = {}
@@ -1548,6 +1546,28 @@ def upload_images_from_folder_to_project(
     """
 
     project_name, folder_name = extract_project_folder(project)
+    if recursive_subfolders:
+        logger.info(
+            "When using recursive subfolder parsing same name images in different subfolders will overwrite each other."
+        )
+
+    if not isinstance(extensions, (list, tuple)):
+        raise AppException(
+            "extensions should be a list or a tuple in upload_images_from_folder_to_project"
+        )
+
+    project_folder_name = project_name + (
+        f"/{folder_name}" if folder_name != "root" else ""
+    )
+
+    logger.info(
+        "Uploading all images with extensions %s from %s to project %s. Excluded file patterns are: %s.",
+        extensions,
+        folder_path,
+        project_folder_name,
+        exclude_file_patterns,
+    )
+
     use_case = controller.upload_images_from_folder_to_project(
         project_name=project_name,
         folder_name=folder_name,
@@ -1559,7 +1579,14 @@ def upload_images_from_folder_to_project(
         recursive_sub_folders=recursive_subfolders,
         image_quality_in_editor=image_quality_in_editor,
     )
-    images_to_upload, _ = use_case.images_to_upload
+    images_to_upload, duplicates = use_case.images_to_upload
+    if len(duplicates):
+        logger.warning(
+            "%s already existing images found that won't be uploaded.", len(duplicates)
+        )
+    logger.info(
+        "Uploading %s images to project %s.", len(images_to_upload), project_folder_name
+    )
     if use_case.is_valid():
         with tqdm(total=len(images_to_upload), desc="Uploading images") as progress_bar:
             for _ in use_case.execute():
@@ -2061,6 +2088,9 @@ def create_annotation_classes_from_classes_json(
     :rtype: list of dicts
     """
     if not isinstance(classes_json, list):
+        logger.info(
+            "Creating annotation classes in project %s from %s.", project, classes_json,
+        )
         if from_s3_bucket:
             from_session = boto3.Session()
             from_s3 = from_session.resource("s3")
@@ -2073,6 +2103,7 @@ def create_annotation_classes_from_classes_json(
             annotation_classes = json.load(open(classes_json))
     else:
         annotation_classes = classes_json
+
     response = controller.create_annotation_classes(
         project_name=project, annotation_classes=annotation_classes,
     )
@@ -2491,9 +2522,26 @@ def upload_annotations_from_folder_to_project(
             "The function does not support projects containing videos attached with URLs"
         )
 
+    if recursive_subfolders:
+        logger.info(
+            "When using recursive subfolder parsing same name annotations in different subfolders will overwrite each other.",
+        )
+
+    logger.info(
+        "The JSON files should follow specific naming convention. For Vector projects they should be named '<image_name>___objects.json', for Pixel projects JSON file should be names '<image_name>___pixel.json' and also second mask image file should be present with the name '<image_name>___save.png'. In both cases image with <image_name> should be already present on the platform."
+    )
+    logger.info("Existing annotations will be overwritten.",)
+    logger.info(
+        "Uploading all annotations from %s to project %s.", folder_path, project_name
+    )
+
     annotation_paths = get_annotation_paths(
         folder_path, from_s3_bucket, recursive_subfolders
     )
+    logger.info(
+        "Uploading %s annotations to project %s.", len(annotation_paths), project_name
+    )
+
     uploaded_annotations = []
     failed_annotations = []
     missing_annotations = []
@@ -2509,8 +2557,6 @@ def upload_annotations_from_folder_to_project(
                 annotation_paths=annotation_paths[i : i + chunk_size],  # noqa: E203
                 client_s3_bucket=from_s3_bucket,
             )
-            if response.errors:
-                logger.warning(response.errors)
             if response.data:
                 uploaded_annotations.extend(response.data[0])
                 missing_annotations.extend(response.data[1])
@@ -3617,7 +3663,7 @@ def delete_annotations(project: str, image_names: List[str] = None):
     project_name, folder_name = extract_project_folder(project)
 
     response = controller.delete_annotations(
-        project_name=project, folder_name=folder_name, image_names=image_names
+        project_name=project_name, folder_name=folder_name, image_names=image_names
     )
     if response.errors:
         raise AppException(response.errors)
