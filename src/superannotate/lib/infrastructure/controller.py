@@ -30,7 +30,16 @@ from lib.infrastructure.repositories import WorkflowRepository
 from lib.infrastructure.services import SuperannotateBackendService
 
 
-class BaseController:
+class SingleInstanceMetaClass(type):
+    _instances = {}
+
+    def __call__(cls, *args, **kwargs):
+        if cls not in SingleInstanceMetaClass._instances:
+            SingleInstanceMetaClass._instances[cls] = super().__call__(*args, **kwargs)
+        return SingleInstanceMetaClass._instances[cls]
+
+
+class BaseController(metaclass=SingleInstanceMetaClass):
     def __init__(self, logger, config_path=constances.CONFIG_FILE_LOCATION):
         self._config_path = config_path
         self._logger = logger
@@ -129,6 +138,10 @@ class BaseController:
 
 
 class Controller(BaseController):
+    def __init__(self, logger, config_path=constances.CONFIG_FILE_LOCATION):
+        super().__init__(logger, config_path)
+        self._team = None
+
     def _get_project(self, name: str):
         use_case = usecases.GetProjectByNameUseCase(
             name=name,
@@ -267,7 +280,9 @@ class Controller(BaseController):
         auth_data = self.get_auth_data(project.uuid, self.team_id, folder.uuid)
         use_case = usecases.UploadImageS3UseCase(
             project=project,
-            project_settings=ProjectSettingsRepository(self._backend_client, project),
+            project_settings=ProjectSettingsRepository(
+                self._backend_client, project
+            ).get_all(),
             image_path=image_path,
             image=image_bytes,
             s3_repo=s3_repo,
@@ -432,8 +447,11 @@ class Controller(BaseController):
         return use_case.execute()
 
     def get_team(self):
-        use_case = usecases.GetTeamUseCase(teams=self.teams, team_id=self.team_id)
-        return use_case.execute()
+        if not self._team:
+            self._team = usecases.GetTeamUseCase(
+                teams=self.teams, team_id=self.team_id
+            ).execute()
+        return self._team
 
     def invite_contributor(self, email: str, is_admin: bool):
         use_case = usecases.InviteContributorUseCase(
@@ -1149,9 +1167,12 @@ class Controller(BaseController):
             backend_service_provider=self._backend_client,
             annotation_classes=AnnotationClassRepository(
                 service=self._backend_client, project=project
-            ),
+            ).get_all(),
             pre_annotation=is_pre_annotations,
             client_s3_bucket=client_s3_bucket,
+            templates=self._backend_client.get_templates(team_id=self.team_id).get(
+                "data", []
+            ),
         )
         return use_case.execute()
 

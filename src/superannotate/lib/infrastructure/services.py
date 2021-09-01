@@ -20,6 +20,7 @@ class BaseBackendService(SuerannotateServiceProvider):
     AUTH_TYPE = "sdk"
     PAGINATE_BY = 100
     MAX_RETRY = 3
+    LIMIT = 100
 
     """
     Base service class
@@ -109,7 +110,10 @@ class BaseBackendService(SuerannotateServiceProvider):
             if isinstance(data, dict):
                 if key_field:
                     data = data[key_field]
-                return data, data.get("count", 0) - offset
+                if data.get("count", 0) < self.LIMIT:
+                    return data, 0
+                else:
+                    return data, data.get("count", 0) - offset
             if isinstance(data, list):
                 return {"data": data}, 0
         return {"data": []}, 0

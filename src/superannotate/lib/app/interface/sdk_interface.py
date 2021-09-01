@@ -1556,7 +1556,7 @@ def upload_images_from_folder_to_project(
     )
     images_to_upload, _ = use_case.images_to_upload
     if use_case.is_valid():
-        with tqdm(total=len(images_to_upload)) as progress_bar:
+        with tqdm(total=len(images_to_upload), desc="Uploading images") as progress_bar:
             for _ in use_case.execute():
                 progress_bar.update(1)
         return use_case.data
@@ -1859,7 +1859,7 @@ def upload_videos_from_folder_to_project(
     )
 
     uploaded_images, failed_images = [], []
-    for path in tqdm(video_paths):
+    for path in tqdm(video_paths, desc="Uploading videos"):
         with tempfile.TemporaryDirectory() as temp_path:
             res = controller.extract_video_frames(
                 project_name=project_name,
@@ -1953,7 +1953,9 @@ def upload_video_to_project(
         )
         images_to_upload, _ = use_case.images_to_upload
         if use_case.is_valid():
-            with tqdm(total=len(images_to_upload)) as progress_bar:
+            with tqdm(
+                total=len(images_to_upload), desc="Uploading frames."
+            ) as progress_bar:
                 for _ in use_case.execute():
                     progress_bar.update(1)
             return use_case.data[0]
@@ -2488,8 +2490,10 @@ def upload_annotations_from_folder_to_project(
     uploaded_annotations = []
     failed_annotations = []
     missing_annotations = []
-    chunk_size = 10
-    with tqdm(total=len(annotation_paths)) as progress_bar:
+    chunk_size = 50
+    with tqdm(
+        total=len(annotation_paths), desc="Uploading annotations"
+    ) as progress_bar:
         for i in range(0, len(annotation_paths), chunk_size):
             response = controller.upload_annotations_from_folder(
                 project_name=project_name,
@@ -2549,7 +2553,9 @@ def upload_preannotations_from_folder_to_project(
     failed_annotations = []
     missing_annotations = []
     chunk_size = 10
-    with tqdm(total=len(annotation_paths)) as progress_bar:
+    with tqdm(
+        total=len(annotation_paths), desc="Uploading pre annotations"
+    ) as progress_bar:
         for i in range(0, len(annotation_paths), chunk_size):
             response = controller.upload_annotations_from_folder(
                 project_name=project_name,
@@ -3511,7 +3517,7 @@ def upload_images_to_project(
             executor.submit(upload_method, image_path)
             for image_path in images_to_upload
         ]
-        with tqdm(total=len(images_to_upload)) as progress_bar:
+        with tqdm(total=len(images_to_upload), desc="Uploading images") as progress_bar:
             for future in concurrent.futures.as_completed(results):
                 processed_image = future.result()
                 if processed_image.uploaded and processed_image.entity:
