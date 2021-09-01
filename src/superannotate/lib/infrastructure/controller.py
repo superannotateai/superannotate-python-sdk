@@ -62,7 +62,7 @@ class BaseController(metaclass=SingleInstanceMetaClass):
             api_url=self.configs.get_one("main_endpoint").value,
             auth_token=ConfigRepository().get_one("token").value,
             logger=logger,
-            verify_ssl=verify_ssl
+            verify_ssl=verify_ssl,
         )
         self._s3_upload_auth_data = None
         self._projects = None

@@ -4075,12 +4075,14 @@ class RunSegmentationUseCase(BaseUseCase):
         image_ids = [image["id"] for image in images]
         image_names = [image["name"] for image in images]
 
-        self._service.run_segmentation(
+        res = self._service.run_segmentation(
             self._project.team_id,
             self._project.uuid,
             model_name=self._ml_model_name,
             image_ids=image_ids,
         )
+        if not res.ok:
+            return self._response
 
         succeded_imgs = []
         failed_imgs = []
@@ -4156,12 +4158,14 @@ class RunPredictionUseCase(BaseUseCase):
             if model.name == self._ml_model_name:
                 ml_model = model
 
-        self._service.run_prediction(
+        res = self._service.run_prediction(
             team_id=self._project.team_id,
             project_id=self._project.uuid,
             ml_model_id=ml_model.uuid,
             image_ids=image_ids,
         )
+        if not res.ok:
+            return self._response
 
         success_images = []
         failed_images = []
