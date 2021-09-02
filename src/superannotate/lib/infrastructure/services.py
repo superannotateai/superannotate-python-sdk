@@ -1,4 +1,3 @@
-import os
 from contextlib import contextmanager
 from datetime import datetime
 from typing import Dict
@@ -27,7 +26,9 @@ class BaseBackendService(SuerannotateServiceProvider):
     Base service class
     """
 
-    def __init__(self, api_url: str, auth_token: str, logger, paginate_by=None, verify_ssl=True):
+    def __init__(
+        self, api_url: str, auth_token: str, logger, paginate_by=None, verify_ssl=True
+    ):
         self.api_url = api_url
         self._auth_token = auth_token
         self.logger = logger
