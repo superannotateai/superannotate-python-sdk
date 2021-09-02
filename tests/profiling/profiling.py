@@ -32,16 +32,19 @@ import io
 # print(results)
 # print(sum(results)/10)
 
-import time
-results = []
-projects = "11", "22", "33", "44", "55", "66", "77", "88", "99"
+# import time
+# results = []
+# projects = "11", "22", "33", "44", "55", "66", "77", "88", "99"
+#
+# for project in projects:
+#     start = time.time()
+#     sa.search_annotation_classes(project)
+#     end = time.time()
+#     results.append(end-start)
+#
+# print(results)
+# print(sum(results)/9)
 
-for project in projects:
-    start = time.time()
-    sa.search_annotation_classes(project)
-    end = time.time()
-    results.append(end-start)
+from src.superannotate.lib.core.enums import AnnotationStatus
 
-print(results)
-print(sum(results)/9)
-
+pass

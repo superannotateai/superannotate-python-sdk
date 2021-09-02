@@ -3679,7 +3679,7 @@ def delete_annotations(project: str, image_names: List[str] = None):
     project_name, folder_name = extract_project_folder(project)
 
     response = controller.delete_annotations(
-        project_name=project, folder_name=folder_name, image_names=image_names
+        project_name=project_name, folder_name=folder_name, image_names=image_names
     )
     if response.errors:
         raise AppException(response.errors)

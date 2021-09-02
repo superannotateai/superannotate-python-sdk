@@ -708,11 +708,12 @@ class Controller(BaseController):
 
     def search_annotation_classes(self, project_name: str, name_prefix: str = None):
         project_entity = self._get_project(project_name)
+        condition = Condition("name", name_prefix, EQ) if name_prefix else None
         use_case = usecases.GetAnnotationClassesUseCase(
             classes=AnnotationClassRepository(
                 service=self._backend_client, project=project_entity
             ),
-            condition=Condition("name", name_prefix, EQ),
+            condition=condition
         )
         return use_case.execute()
 
