@@ -41,7 +41,7 @@ class TestConsensus(BaseTestCase):
         ]
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            export_path = str(tmpdir)
+            temp_export_path = str(tmpdir)
 
             for i in range(1, 4):
                 sa.create_folder(self.PROJECT_NAME, "consensus_" + str(i))
@@ -94,7 +94,7 @@ class TestConsensus(BaseTestCase):
             res_images = sa.consensus(
                 self.PROJECT_NAME,
                 folder_names,
-                export_root=export_path,
+                export_root=temp_export_path,
                 image_list=image_names,
             )
 
