@@ -371,7 +371,9 @@ def search_annotation_classes(*args, **kwargs):
     project = kwargs.get("project", None)
     name_prefix = kwargs.get("name_prefix", None)
     if not name_prefix:
-        name_prefix = args[1]
+        name_prefix = args[1:2]
+        if not name_prefix:
+            name_prefix = None
     if not project:
         project = args[0]
     return {
