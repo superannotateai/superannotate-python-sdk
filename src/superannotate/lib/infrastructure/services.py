@@ -1,3 +1,4 @@
+import os
 from contextlib import contextmanager
 from datetime import datetime
 from typing import Dict
@@ -26,10 +27,7 @@ class BaseBackendService(SuerannotateServiceProvider):
     Base service class
     """
 
-    @classmethod
-    def __init__(
-        self, api_url: str, auth_token: str, logger, paginate_by=None, verify_ssl=True
-    ):
+    def __init__(self, api_url: str, auth_token: str, logger, paginate_by=None, verify_ssl=True):
         self.api_url = api_url
         self._auth_token = auth_token
         self.logger = logger
@@ -934,7 +932,7 @@ class SuperannotateBackendService(BaseBackendService):
             params={"team_id": team_id, "project_id": project_id},
             data={"model_name": model_name, "image_ids": image_ids},
         )
-        return res.json()
+        return res
 
     def run_prediction(
         self, team_id: int, project_id: int, ml_model_id: int, image_ids: list
@@ -950,7 +948,7 @@ class SuperannotateBackendService(BaseBackendService):
                 "image_ids": image_ids,
             },
         )
-        return res.json()
+        return res
 
     def delete_image_annotations(
         self,

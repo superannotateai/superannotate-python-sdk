@@ -2599,8 +2599,24 @@ def upload_preannotations_from_folder_to_project(
             "The function does not support projects containing videos attached with URLs"
         )
 
+    if recursive_subfolders:
+        logger.info(
+            "When using recursive subfolder parsing same name annotations in different subfolders will overwrite each other.",
+        )
+
+    logger.info(
+        "The JSON files should follow specific naming convention. For Vector projects they should be named '<image_name>___objects.json', for Pixel projects JSON file should be names '<image_name>___pixel.json' and also second mask image file should be present with the name '<image_name>___save.png'. In both cases image with <image_name> should be already present on the platform."
+    )
+    logger.info("Existing annotations will be overwritten.",)
+    logger.info(
+        "Uploading all annotations from %s to project %s.", folder_path, project_name
+    )
+
     annotation_paths = get_annotation_paths(
         folder_path, from_s3_bucket, recursive_subfolders
+    )
+    logger.info(
+        "Uploading %s annotations to project %s.", len(annotation_paths), project_name
     )
     uploaded_annotations = []
     failed_annotations = []

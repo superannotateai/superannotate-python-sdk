@@ -726,7 +726,7 @@ class Controller(BaseController):
             classes=AnnotationClassRepository(
                 service=self._backend_client, project=project_entity
             ),
-            condition=condition,
+            condition=condition
         )
         return use_case.execute()
 
