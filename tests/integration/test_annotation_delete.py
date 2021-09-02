@@ -49,6 +49,25 @@ class TestAnnotationDelete(BaseTestCase):
     @pytest.mark.skip(
         "waiting for deployment to dev",
     )
+    def test_delete_annotations_by_name(self):
+        sa.upload_images_from_folder_to_project(
+            self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
+        )
+        sa.create_annotation_classes_from_classes_json(
+            self.PROJECT_NAME, self.folder_path + "/classes/classes.json"
+        )
+        sa.upload_annotations_from_folder_to_project(
+            self.PROJECT_NAME, f"{self.folder_path}"
+        )
+        sa.delete_annotations(self.PROJECT_NAME, [self.EXAMPLE_IMAGE_1])
+        data = sa.get_image_annotations(self.PROJECT_NAME, self.EXAMPLE_IMAGE_1)
+        self.assertIsNone(data["annotation_json"])
+        self.assertIsNotNone(data["annotation_json_filename"])
+        self.assertIsNone(data["annotation_mask"])
+
+    @pytest.mark.skip(
+        "waiting for deployment to dev",
+    )
     def test_delete_annotations_by_not_existing_name(self):
         sa.upload_images_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
@@ -61,3 +80,39 @@ class TestAnnotationDelete(BaseTestCase):
         )
         self.assertRaises(Exception, sa.delete_annotations, self.PROJECT_NAME, [self.EXAMPLE_IMAGE_2])
 
+    @pytest.mark.skip(
+        "waiting for deployment to dev",
+    )
+    def test_delete_annotations_wrong_path(self):
+        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME)
+        sa.upload_images_from_folder_to_project(
+            f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME}", self.folder_path, annotation_status="InProgress"
+        )
+        sa.create_annotation_classes_from_classes_json(
+            self.PROJECT_NAME, self.folder_path + "/classes/classes.json"
+        )
+        sa.upload_annotations_from_folder_to_project(
+            f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME}", f"{self.folder_path}"
+        )
+        self.assertRaises(Exception, sa.delete_annotations, self.PROJECT_NAME, [self.EXAMPLE_IMAGE_1])
+
+    @pytest.mark.skip(
+        "waiting for deployment to dev",
+    )
+    def test_delete_annotations_from_folder(self):
+        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME)
+
+        sa.upload_images_from_folder_to_project(
+            f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME}", self.folder_path, annotation_status="InProgress"
+        )
+        sa.create_annotation_classes_from_classes_json(
+            self.PROJECT_NAME, self.folder_path + "/classes/classes.json"
+        )
+        sa.upload_annotations_from_folder_to_project(
+            f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME}", f"{self.folder_path}"
+        )
+        sa.delete_annotations(f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME}", [self.EXAMPLE_IMAGE_1])
+        data = sa.get_image_annotations(f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME}", self.EXAMPLE_IMAGE_1)
+        self.assertIsNone(data["annotation_json"])
+        self.assertIsNotNone(data["annotation_json_filename"])
+        self.assertIsNone(data["annotation_mask"])

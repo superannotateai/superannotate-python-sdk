@@ -59,8 +59,8 @@ def init(path_to_config_json: str):
     :param path_to_config_json: Location to config JSON file
     :type path_to_config_json: str or Path
     """
-    global controller
-    controller = Controller(logger, path_to_config_json)
+    # global controller
+    controller.init(path_to_config_json)
 
 
 @validate_input

@@ -1,4 +1,3 @@
-import os
 from contextlib import contextmanager
 from datetime import datetime
 from typing import Dict
@@ -27,7 +26,10 @@ class BaseBackendService(SuerannotateServiceProvider):
     Base service class
     """
 
-    def __init__(self, api_url: str, auth_token: str, logger, paginate_by=None, verify_ssl=True):
+    @classmethod
+    def __init__(
+        self, api_url: str, auth_token: str, logger, paginate_by=None, verify_ssl=True
+    ):
         self.api_url = api_url
         self._auth_token = auth_token
         self.logger = logger
@@ -956,7 +958,7 @@ class SuperannotateBackendService(BaseBackendService):
         project_id: int,
         folder_id: int = None,
         image_names: List[str] = None,
-    ) -> int:
+    ) -> dict:
         delete_annotations_url = urljoin(self.api_url, self.URL_DELETE_ANNOTATIONS)
         params = {"team_id": team_id, "project_id": project_id}
         data = {}

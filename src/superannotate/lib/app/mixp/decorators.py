@@ -1,5 +1,4 @@
 import functools
-import logging
 import sys
 
 from mixpanel import Mixpanel
@@ -11,7 +10,7 @@ from .utils import parsers
 
 mp = Mixpanel(TOKEN)
 
-controller = Controller(logger=logging.getLogger())
+controller = Controller.get_instance()
 res = controller.get_team()
 user_id, team_name = res.data.creator_id, res.data.name
 

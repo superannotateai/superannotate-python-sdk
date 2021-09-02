@@ -303,7 +303,7 @@ class SuerannotateServiceProvider(metaclass=SingleInstanceMetaClass):
         project_id: int,
         folder_id: int = None,
         image_names: List[str] = None,
-    ) -> int:
+    ) -> dict:
         raise NotImplementedError
 
     def get_annotations_delete_progress(

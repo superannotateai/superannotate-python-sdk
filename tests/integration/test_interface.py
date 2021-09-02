@@ -58,7 +58,7 @@ class TestInterface(BaseTestCase):
         sa.upload_images_from_folder_to_project(
             self.PROJECT_NAME,
             self.folder_path,
-            annotation_status="InProgress",
+            annotation_status="Completed",
         )
         uploaded_annotations, _, _ = sa.upload_annotations_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path
