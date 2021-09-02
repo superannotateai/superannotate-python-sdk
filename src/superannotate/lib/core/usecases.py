@@ -4077,12 +4077,14 @@ class RunSegmentationUseCase(BaseUseCase):
         image_ids = [image["id"] for image in images]
         image_names = [image["name"] for image in images]
 
-        self._service.run_segmentation(
+        res = self._service.run_segmentation(
             self._project.team_id,
             self._project.uuid,
             model_name=self._ml_model_name,
             image_ids=image_ids,
         )
+        if not res.ok:
+            return self._response
 
         succeded_imgs = []
         failed_imgs = []
@@ -4158,12 +4160,14 @@ class RunPredictionUseCase(BaseUseCase):
             if model.name == self._ml_model_name:
                 ml_model = model
 
-        self._service.run_prediction(
+        res = self._service.run_prediction(
             team_id=self._project.team_id,
             project_id=self._project.uuid,
             ml_model_id=ml_model.uuid,
             image_ids=image_ids,
         )
+        if not res.ok:
+            return self._response
 
         success_images = []
         failed_images = []
@@ -4266,7 +4270,7 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
         extensions=constances.DEFAULT_IMAGE_EXTENSIONS,
         annotation_status="NotStarted",
         from_s3_bucket=None,
-        exclude_file_patterns=constances.DEFAULT_FILE_EXCLUDE_PATTERNS,
+        exclude_file_patterns: List[str] = constances.DEFAULT_FILE_EXCLUDE_PATTERNS,
         recursive_sub_folders: bool = False,
         image_quality_in_editor=None,
     ):
@@ -4286,6 +4290,10 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
         self._from_s3_bucket = from_s3_bucket
         self._extensions = extensions
         self._recursive_sub_folders = recursive_sub_folders
+        if exclude_file_patterns:
+            list(exclude_file_patterns).extend(
+                list(constances.DEFAULT_FILE_EXCLUDE_PATTERNS)
+            )
         self._exclude_file_patterns = exclude_file_patterns
         self._annotation_status = annotation_status
 
@@ -4302,12 +4310,19 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
         return self._exclude_file_patterns
 
     def validate_annotation_status(self):
-        if self._annotation_status and self._annotation_status not in constances.AnnotationStatus.values():
+        if (
+            self._annotation_status
+            and self._annotation_status.lower()
+            not in constances.AnnotationStatus.values()
+        ):
             raise AppValidationException("Invalid annotations status")
 
     def validate_extensions(self):
         if self._extensions and not all(
-                [extension in constances.DEFAULT_IMAGE_EXTENSIONS  for extension in self._extensions]
+            [
+                extension in constances.DEFAULT_IMAGE_EXTENSIONS
+                for extension in self._extensions
+            ]
         ):
             raise AppValidationException("")
 
@@ -4420,14 +4435,16 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
                             paths.append(key)
                             break
 
-        paths = [str(path) for path in paths]
-        return [
-            path
-            for path in paths
-            if "___objects" not in path
-            and "___fuse" not in path
-            and "___pixel" not in path
-        ]
+        data = []
+        for path in paths:
+            if all(
+                [
+                    True if exclude_pattern not in str(path) else False
+                    for exclude_pattern in self.exclude_file_patterns
+                ]
+            ):
+                data.append(str(path))
+        return data
 
     @property
     def images_to_upload(self):
@@ -4490,8 +4507,9 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
                     annotation_status=self._annotation_status,
                 ).execute()
 
-                attachments, duplications = response.data
+                attachments, attach_duplications = response.data
                 uploaded.extend(attachments)
+                duplications.extend(attach_duplications)
             uploaded = [image["name"] for image in uploaded]
             failed_images = [image.split("/")[-1] for image in failed_images]
 
@@ -4517,17 +4535,12 @@ class DeleteAnnotations(BaseUseCase):
 
     def execute(self) -> Response:
 
-        if self._folder.name == "root" and not self._image_names:
-            response = self._backend_service.delete_image_annotations(
-                project_id=self._project.uuid, team_id=self._project.team_id, image_names=self._image_names
-            )
-        else:
-            response = self._backend_service.delete_image_annotations(
-                project_id=self._project.uuid,
-                team_id=self._project.team_id,
-                folder_id=self._folder.uuid,
-                image_names=self._image_names,
-            )
+        response = self._backend_service.delete_image_annotations(
+            project_id=self._project.uuid,
+            team_id=self._project.team_id,
+            folder_id=self._folder.uuid,
+            image_names=self._image_names,
+        )
 
         if response:
             timeout_start = time.time()

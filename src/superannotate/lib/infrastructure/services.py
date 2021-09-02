@@ -932,7 +932,7 @@ class SuperannotateBackendService(BaseBackendService):
             params={"team_id": team_id, "project_id": project_id},
             data={"model_name": model_name, "image_ids": image_ids},
         )
-        return res.json()
+        return res
 
     def run_prediction(
         self, team_id: int, project_id: int, ml_model_id: int, image_ids: list
@@ -948,7 +948,7 @@ class SuperannotateBackendService(BaseBackendService):
                 "image_ids": image_ids,
             },
         )
-        return res.json()
+        return res
 
     def delete_image_annotations(
         self,
@@ -956,7 +956,7 @@ class SuperannotateBackendService(BaseBackendService):
         project_id: int,
         folder_id: int = None,
         image_names: List[str] = None,
-    ) -> int:
+    ) -> dict:
         delete_annotations_url = urljoin(self.api_url, self.URL_DELETE_ANNOTATIONS)
         params = {"team_id": team_id, "project_id": project_id}
         data = {}

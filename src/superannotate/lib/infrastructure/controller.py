@@ -38,32 +38,16 @@ class SingleInstanceMetaClass(type):
             SingleInstanceMetaClass._instances[cls] = super().__call__(*args, **kwargs)
         return SingleInstanceMetaClass._instances[cls]
 
+    def get_instance(cls):
+        if cls._instances:
+            return cls._instances[cls]
+
 
 class BaseController(metaclass=SingleInstanceMetaClass):
     def __init__(self, logger, config_path=constances.CONFIG_FILE_LOCATION):
-        self._config_path = config_path
+        self._config_path = None
+        self._backend_client = None
         self._logger = logger
-        token, main_endpoint = (
-            self.configs.get_one("token"),
-            self.configs.get_one("main_endpoint"),
-        )
-        if not main_endpoint:
-            self.configs.insert(ConfigEntity("main_endpoint", constances.BACKEND_URL))
-        if not token:
-            self.configs.insert(ConfigEntity("token", ""))
-            logger.warning("Fill config.json")
-            return
-        verify_ssl_entity = self.configs.get_one("ssl_verify")
-        if not verify_ssl_entity:
-            verify_ssl = True
-        else:
-            verify_ssl = verify_ssl_entity.value
-        self._backend_client = SuperannotateBackendService(
-            api_url=self.configs.get_one("main_endpoint").value,
-            auth_token=ConfigRepository().get_one("token").value,
-            logger=logger,
-            verify_ssl=verify_ssl
-        )
         self._s3_upload_auth_data = None
         self._projects = None
         self._folders = None
@@ -71,12 +55,41 @@ class BaseController(metaclass=SingleInstanceMetaClass):
         self._images = None
         self._ml_models = None
         self._team_id = None
+        self.init(config_path)
+
+    def init(self, config_path):
+        self._config_path = config_path
+        token, main_endpoint = (
+            self.configs.get_one("token").value,
+            self.configs.get_one("main_endpoint").value,
+        )
+        if not main_endpoint:
+            self.configs.insert(ConfigEntity("main_endpoint", constances.BACKEND_URL))
+        if not token:
+            self.configs.insert(ConfigEntity("token", ""))
+            self._logger.warning("Fill config.json")
+            return
+        verify_ssl_entity = self.configs.get_one("ssl_verify")
+        if not verify_ssl_entity:
+            verify_ssl = True
+        else:
+            verify_ssl = verify_ssl_entity.value
+        if not self._backend_client:
+            self._backend_client = SuperannotateBackendService(
+                api_url=self.configs.get_one("main_endpoint").value,
+                auth_token=self.configs.get_one("token").value,
+                logger=self._logger,
+                verify_ssl=verify_ssl,
+            )
+        else:
+            self._backend_client.api_url = self.configs.get_one("main_endpoint").value
+            self._backend_client._auth_token = self.configs.get_one("token").value
 
     def set_token(self, token):
         self.configs.insert(ConfigEntity("token", token))
         self._backend_client = SuperannotateBackendService(
             api_url=self.configs.get_one("main_endpoint").value,
-            auth_token=ConfigRepository().get_one("token").value,
+            auth_token=self.configs.get_one("token").value,
             logger=self._logger,
         )
 
