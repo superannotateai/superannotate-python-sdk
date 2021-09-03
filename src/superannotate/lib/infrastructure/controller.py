@@ -212,21 +212,16 @@ class Controller(BaseController):
             return name
         return "root"
 
-    def search_project(self, name: str, **kwargs) -> Response:
-        conditions = []
+    def search_project(
+        self, name: str = None, include_complete_image_count=False
+    ) -> Response:
+        condition = Condition.get_empty_condition()
         if name:
-            conditions.append(Condition("name", name, EQ))
-        for key, val in kwargs.items():
-            conditions.append(Condition(key, val, EQ))
-        condition_set = None
-        if conditions:
-            for condition in conditions:
-                if condition_set:
-                    condition_set &= condition
-                else:
-                    condition_set = condition
+            condition = condition & (Condition("name", name, EQ))
+        if include_complete_image_count:
+            condition = condition & Condition("completeImagesCount", "true", EQ)
         use_case = usecases.GetProjectsUseCase(
-            condition=condition_set, projects=self.projects, team_id=self.team_id,
+            condition=condition, projects=self.projects, team_id=self.team_id,
         )
         return use_case.execute()
 

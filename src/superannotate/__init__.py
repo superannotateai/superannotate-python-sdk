@@ -1,5 +1,6 @@
 import logging.config
 import os
+import sys
 
 from superannotate.lib.app.analytics.class_analytics import attribute_distribution
 from superannotate.lib.app.analytics.class_analytics import class_distribution
@@ -295,6 +296,6 @@ __author__ = "Superannotate"
 
 
 file_dir = os.path.split(os.path.realpath(__file__))[0]
-
+sys.path.append(file_dir)
 logging.config.fileConfig(os.path.join(file_dir, "logging.conf"))
 logger = logging.getLogger()
