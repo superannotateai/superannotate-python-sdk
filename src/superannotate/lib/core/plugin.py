@@ -1,5 +1,6 @@
 import io
 import logging
+import os
 from pathlib import Path
 from typing import List
 from typing import Tuple
@@ -234,7 +235,6 @@ class VideoPlugin:
             )
 
         ratio = fps / target_fps
-        extracted_frames_paths = []
         zero_fill_count = len(str(frames_count))
 
         rotate_code = VideoPlugin.get_video_rotate_code(video_path)
@@ -242,9 +242,10 @@ class VideoPlugin:
         frame_number = 0
         extracted_frame_number = 0
         extracted_frame_ratio = ratio
-        logger.info("Extracting frames from video to %s.", extracted_frames_paths)
+        logger.info("Extracting frames from video to %s.", extract_path)
+        extracted_frames_paths = []
 
-        while len(extracted_frames_paths) < limit:
+        while len(os.listdir(extract_path)) < limit:
             success, frame = video.read()
             if success:
                 frame_time = video.get(cv2.CAP_PROP_POS_MSEC) / 1000.0
