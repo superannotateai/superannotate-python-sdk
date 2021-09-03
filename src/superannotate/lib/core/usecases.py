@@ -1689,8 +1689,6 @@ class AssignImagesUseCase(BaseUseCase):
                         f"Cant assign {', '.join(self._image_names[i: i + self.CHUNK_SIZE])}"
                     )
                     continue
-            logger.info(f"Assign images to user {self._user}")
-
         return self._response
 
 

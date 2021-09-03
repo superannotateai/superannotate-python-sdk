@@ -1148,7 +1148,9 @@ def assign_images(project: Union[str, dict], image_names: List[str], user: str):
         )
         return
 
-    controller.assign_images(project_name, folder_name, image_names, user)
+    response = controller.assign_images(project_name, folder_name, image_names, user)
+    if not response.errors:
+        logger.info(f"Assign images to user {user}")
 
 
 @Trackable
@@ -1556,9 +1558,7 @@ def upload_images_from_folder_to_project(
             "extensions should be a list or a tuple in upload_images_from_folder_to_project"
         )
 
-    project_folder_name = project_name + (
-        f"/{folder_name}" if folder_name != "root" else ""
-    )
+    project_folder_name = project_name + (f"/{folder_name}" if folder_name else "")
 
     logger.info(
         "Uploading all images with extensions %s from %s to project %s. Excluded file patterns are: %s.",
@@ -1884,6 +1884,8 @@ def upload_videos_from_folder_to_project(
         if all(not_in_exclude_list):
             filtered_paths.append(path)
 
+    project_folder_name = project_name + (f"/{folder_name}" if folder_name else "")
+
     logger.info(
         "Uploading all videos with extensions %s from %s to project %s. Excluded file patterns are: %s.",
         extensions,
@@ -1892,8 +1894,7 @@ def upload_videos_from_folder_to_project(
         exclude_file_patterns,
     )
 
-    uploaded_images, failed_images = [], []
-    for path in tqdm(video_paths, desc="Uploading videos"):
+    for path in video_paths:
         with tempfile.TemporaryDirectory() as temp_path:
             res = controller.extract_video_frames(
                 project_name=project_name,
@@ -1915,17 +1916,31 @@ def upload_videos_from_folder_to_project(
                 annotation_status=annotation_status,
                 image_quality_in_editor=image_quality_in_editor,
             )
-            images_to_upload, _ = use_case.images_to_upload
+            images_to_upload, duplicates = use_case.images_to_upload
+            logger.info(
+                "Extracted %s frames from video. Now uploading to platform.",
+                len(res.data),
+            )
+            logger.info(
+                "Uploading %s images to project %s.",
+                len(images_to_upload),
+                str(project_folder_name),
+            )
+            if len(duplicates):
+                logger.warning(
+                    "%s already existing images found that won't be uploaded.",
+                    len(duplicates),
+                )
             if use_case.is_valid():
-                for _ in use_case.execute():
-                    pass
-                uploaded, failed_images, _ = use_case.data
-                uploaded_images.append(uploaded)
-                failed_images.append(failed_images)
+                with tqdm(
+                    total=len(images_to_upload), desc="Uploading images"
+                ) as progress_bar:
+                    for _ in use_case.execute():
+                        progress_bar.update(1)
             else:
                 raise AppValidationException(use_case.response.errors)
 
-    return uploaded_images, failed_images
+    return
 
 
 @Trackable
