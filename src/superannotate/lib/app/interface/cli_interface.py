@@ -104,6 +104,9 @@ class CLIFacade(BaseInterfaceFacade):
         Optional argument extensions accepts comma separated list of image extensions to look for.
         If the argument is not given then value jpg,jpeg,png,tif,tiff,webp,bmp is assumed.
         """
+        if not isinstance(extensions, list):
+            extensions = extensions.split(",")
+
         upload_images_from_folder_to_project(
             project,
             folder_path=folder,
