@@ -20,10 +20,6 @@ class TestInterface(BaseTestCase):
     def folder_path(self):
         return os.path.join(dirname(dirname(__file__)), self.TEST_FOLDER_PATH)
 
-    def test_get_project_default_image_quality_in_editor(self):
-        sa.invite_contributor_to_team(2, 2)
-        self.assertIsNotNone(sa.get_project_default_image_quality_in_editor(self.PROJECT_NAME))
-
     def test_delete_images(self):
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME)
 

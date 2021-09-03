@@ -11,8 +11,6 @@ from .utils import parsers
 mp = Mixpanel(TOKEN)
 
 controller = Controller.get_instance()
-res = controller.get_team()
-user_id, team_name = res.data.creator_id, res.data.name
 
 
 def get_default(team_name, user_id, project_name=None):
@@ -40,15 +38,15 @@ class Trackable:
             properties = data["properties"]
             properties["Success"] = self._success
             default = get_default(
-                team_name=team_name,
-                user_id=user_id,
+                team_name=controller.team_name,
+                user_id=controller.user_id,
                 project_name=properties.get("project_name", None),
             )
             properties.pop("project_name", None)
             properties = {**default, **properties}
 
             if "pytest" not in sys.modules:
-                mp.track(user_id, event_name, properties)
+                mp.track(controller.user_id, event_name, properties)
         except Exception as _:
             pass
 

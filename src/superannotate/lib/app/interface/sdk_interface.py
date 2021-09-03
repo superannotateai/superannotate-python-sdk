@@ -13,7 +13,6 @@ from pathlib import Path
 from typing import List
 from typing import Optional
 from typing import Union
-from urllib.parse import urlparse
 
 import boto3
 import lib.core as constances
@@ -31,7 +30,6 @@ from lib.app.exceptions import EmptyOutputError
 from lib.app.helpers import extract_project_folder
 from lib.app.helpers import get_annotation_paths
 from lib.app.helpers import reformat_metrics_json
-from lib.app.helpers import validate_input
 from lib.app.mixp.decorators import Trackable
 from lib.app.serializers import BaseSerializers
 from lib.app.serializers import ImageSerializer
@@ -44,13 +42,14 @@ from lib.core.exceptions import AppValidationException
 from lib.infrastructure.controller import Controller
 from plotly.subplots import make_subplots
 from tqdm import tqdm
+from typeguard import typechecked
 
 
 logger = logging.getLogger()
 controller = Controller(logger)
 
 
-@validate_input
+@typechecked
 def init(path_to_config_json: str):
     """
     Initializes and authenticates to SuperAnnotate platform using the config file.
@@ -63,7 +62,7 @@ def init(path_to_config_json: str):
     controller.init(path_to_config_json)
 
 
-@validate_input
+@typechecked
 def set_auth_token(token: str):
     controller.set_token(token)
 
@@ -81,7 +80,7 @@ def get_team_metadata():
 
 
 @Trackable
-@validate_input
+@typechecked
 def invite_contributor_to_team(email: str, admin: bool = False):
     """Invites a contributor to team
 
@@ -94,7 +93,7 @@ def invite_contributor_to_team(email: str, admin: bool = False):
 
 
 @Trackable
-@validate_input
+@typechecked
 def delete_contributor_to_team_invitation(email: str):
     """Deletes team contributor invitation
 
@@ -105,7 +104,7 @@ def delete_contributor_to_team_invitation(email: str):
 
 
 @Trackable
-@validate_input
+@typechecked
 def search_team_contributors(
     email: str = None,
     first_name: str = None,
@@ -136,7 +135,7 @@ def search_team_contributors(
 
 
 @Trackable
-@validate_input
+@typechecked
 def search_projects(
     name: Optional[str] = None,
     return_metadata: bool = False,
@@ -165,7 +164,7 @@ def search_projects(
 
 
 @Trackable
-@validate_input
+@typechecked
 def create_project(project_name: str, project_description: str, project_type: str):
     """Create a new project in the team.
 
@@ -189,7 +188,7 @@ def create_project(project_name: str, project_description: str, project_type: st
 
 
 @Trackable
-@validate_input
+@typechecked
 def create_project_from_metadata(project_metadata: dict):
     """Create a new project in the team using project metadata object dict.
     Mandatory keys in project_metadata are "name", "description" and "type" (Vector or Pixel)
@@ -213,7 +212,7 @@ def create_project_from_metadata(project_metadata: dict):
 
 
 @Trackable
-@validate_input
+@typechecked
 def clone_project(
     project_name: Union[str, dict],
     from_project: Union[str, dict],
@@ -259,7 +258,7 @@ def clone_project(
 
 
 @Trackable
-@validate_input
+@typechecked
 def search_images(
     project: Union[str, dict],
     image_name_prefix: Optional[str] = None,
@@ -300,7 +299,7 @@ def search_images(
 
 
 @Trackable
-@validate_input
+@typechecked
 def create_folder(project: str, folder_name: str):
     """Create a new folder in the project.
 
@@ -327,7 +326,7 @@ def create_folder(project: str, folder_name: str):
 
 
 @Trackable
-@validate_input
+@typechecked
 def delete_project(project: Union[str, dict]):
     """Deletes the project
 
@@ -341,7 +340,7 @@ def delete_project(project: Union[str, dict]):
 
 
 @Trackable
-@validate_input
+@typechecked
 def rename_project(project: str, new_name: str):
     """Renames the project
 
@@ -354,7 +353,7 @@ def rename_project(project: str, new_name: str):
 
 
 @Trackable
-@validate_input
+@typechecked
 def get_folder_metadata(project: str, folder_name: str):
     """Returns folder metadata
 
@@ -373,7 +372,7 @@ def get_folder_metadata(project: str, folder_name: str):
 
 
 @Trackable
-@validate_input
+@typechecked
 def delete_folders(project: str, folder_names: List[str]):
     """Delete folder in project.
 
@@ -390,7 +389,7 @@ def delete_folders(project: str, folder_names: List[str]):
 
 
 @Trackable
-# @validate_input
+# @typechecked
 def get_project_and_folder_metadata(project: Union[str, dict]):
     """Returns project and folder metadata tuple. If folder part is empty,
     than returned folder part is set to None.
@@ -412,7 +411,7 @@ def get_project_and_folder_metadata(project: Union[str, dict]):
 
 
 @Trackable
-@validate_input
+@typechecked
 def rename_folder(project: str, new_folder_name: str):
     """Renames folder in project.
 
@@ -431,7 +430,7 @@ def rename_folder(project: str, new_folder_name: str):
 
 
 @Trackable
-@validate_input
+@typechecked
 def search_folders(
     project: str,
     folder_name: Optional[str] = None,
@@ -462,7 +461,7 @@ def search_folders(
 
 
 @Trackable
-@validate_input
+@typechecked
 def get_image_bytes(
     project: Union[str, dict], image_name: str, variant: str = "original",
 ):
@@ -491,7 +490,7 @@ def get_image_bytes(
 
 
 @Trackable
-@validate_input
+@typechecked
 def copy_image(
     source_project: Union[str, dict],
     image_name: str,
@@ -575,7 +574,7 @@ def copy_image(
 
 
 @Trackable
-@validate_input
+@typechecked
 def upload_images_from_public_urls_to_project(
     project: Union[str, dict],
     img_urls: List[str],
@@ -608,70 +607,64 @@ def upload_images_from_public_urls_to_project(
         raise AppException("Not all image URLs have corresponding names.")
 
     project_name, folder_name = extract_project_folder(project)
-    existing_images = controller.get_duplicated_images(
-        project_name=project_name, folder_name=folder_name, images=img_names,
-    )
-
-    image_name_url_map = {}
-    duplicate_images = []
-    for idx, url in enumerate(img_urls):
-        if url:
-            if img_names:
-                image_name = img_names[idx]
-            elif os.path.basename(urlparse(url).path):
-                image_name = os.path.basename(urlparse(url).path)
-            else:
-                image_name = f"{uuid.uuid4()}.jpeg"
-            if (image_name in existing_images) or (url in image_name_url_map):
-                duplicate_images.append(image_name)
-                continue
-            image_name_url_map[url] = image_name
 
     images_to_upload = []
-    ProcessedImage = namedtuple("ProcessedImage", ["uploaded", "path", "entity"])
+    ProcessedImage = namedtuple("ProcessedImage", ["url", "uploaded", "path", "entity"])
 
-    def _upload_image(image_url, image_path) -> ProcessedImage:
+    def _upload_image(image_url, image_name=None) -> ProcessedImage:
         download_response = controller.download_image_from_public_url(
             project_name=project_name, image_url=image_url
         )
-        if download_response.errors:
-            logger.warning(download_response.errors)
-            return ProcessedImage(uploaded=False, path=image_path, entity=None)
-
-        upload_response = controller.upload_image_to_s3(
-            project_name=project_name,
-            image_path=image_path,
-            image_bytes=download_response.data,
-            folder_name=folder_name,
-            image_quality_in_editor=image_quality_in_editor,
+        if not download_response.errors:
+            content, content_name = download_response.data
+            image_name = image_name if image_name else content_name
+            if image_name not in controller.get_duplicated_images(
+                project_name=project_name, folder_name=folder_name, images=[image_name]
+            ):
+                upload_response = controller.upload_image_to_s3(
+                    project_name=project_name,
+                    image_path=image_name,
+                    image_bytes=content,
+                    folder_name=folder_name,
+                    image_quality_in_editor=image_quality_in_editor,
+                )
+                if upload_response.errors:
+                    logger.warning(upload_response.errors)
+                else:
+                    return ProcessedImage(
+                        url=image_url,
+                        uploaded=True,
+                        path=image_url,
+                        entity=upload_response.data,
+                    )
+        logger.warning(download_response.errors)
+        return ProcessedImage(
+            url=image_url, uploaded=False, path=image_name, entity=None
         )
-        if upload_response.errors:
-            logger.warning(upload_response.errors)
-        else:
-            return ProcessedImage(
-                uploaded=True, path=image_url, entity=upload_response.data
-            )
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-        failed_images = []
-
-        results = [
-            executor.submit(_upload_image, image_url, image_name)
-            for image_url, image_name in image_name_url_map.items()
-            if image_name not in duplicate_images
-        ]
-
-        for future in concurrent.futures.as_completed(results):
-            processed_image = future.result()
-            if processed_image.uploaded and processed_image.entity:
-                images_to_upload.append(processed_image)
+    logger.info("Downloading %s images", len(img_urls))
+    with tqdm(total=len(img_urls), desc="Downloading") as progress_bar:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            failed_images = []
+            if img_names:
+                results = [
+                    executor.submit(_upload_image, url, img_urls[idx])
+                    for idx, url in enumerate(img_urls)
+                ]
             else:
-                failed_images.append(processed_image)
+                results = [executor.submit(_upload_image, url) for url in img_urls]
+            for future in concurrent.futures.as_completed(results):
+                processed_image = future.result()
+                if processed_image.uploaded and processed_image.entity:
+                    images_to_upload.append(processed_image)
+                else:
+                    failed_images.append(processed_image)
+                progress_bar.update(1)
 
-    logger.info("Downloading %s images", len(images_to_upload))
-
+    uploaded = []
+    duplicates = []
     for i in range(0, len(images_to_upload), 500):
-        controller.upload_images(
+        response = controller.upload_images(
             project_name=project_name,
             folder_name=folder_name,
             images=[
@@ -679,23 +672,32 @@ def upload_images_from_public_urls_to_project(
             ],
             annotation_status=annotation_status,
         )
-    uploaded_image_urls = [image.path for image in images_to_upload]
-    uploaded_image_names = [image.entity.name for image in images_to_upload]
-    failed_image_urls = [image.path for image in failed_images] + duplicate_images
+
+        attachments, duplications = response.data
+        uploaded.extend([attachment["name"] for attachment in attachments])
+        duplicates.extend([duplication["name"] for duplication in duplications])
+    uploaded_image_urls = list(
+        {
+            image.entity.name
+            for image in images_to_upload
+            if image.entity.name in uploaded
+        }
+    )
+    failed_image_urls = [image.url for image in failed_images]
 
     return (
         uploaded_image_urls,
-        uploaded_image_names,
-        duplicate_images,
+        uploaded,
+        duplicates,
         failed_image_urls,
     )
 
 
 @Trackable
-@validate_input
+@typechecked
 def copy_images(
     source_project: Union[str, dict],
-    image_names: List[str],
+    image_names: Optional[List[str]],
     destination_project: Union[str, dict],
     include_annotations: Optional[bool] = True,
     copy_pin: Optional[bool] = True,
@@ -755,10 +757,10 @@ def copy_images(
 
 
 @Trackable
-@validate_input
+@typechecked
 def move_images(
     source_project: Union[str, dict],
-    image_names: List[str],
+    image_names: Optional[List[str]],
     destination_project: Union[str, dict],
     *_,
     **__,
@@ -814,7 +816,7 @@ def move_images(
 
 
 @Trackable
-@validate_input
+@typechecked
 def get_project_metadata(
     project: Union[str, dict],
     include_annotation_classes: Optional[bool] = False,
@@ -870,7 +872,7 @@ def get_project_metadata(
 
 
 @Trackable
-@validate_input
+@typechecked
 def get_project_settings(project: Union[str, dict]):
     """Gets project's settings.
 
@@ -891,7 +893,7 @@ def get_project_settings(project: Union[str, dict]):
 
 
 @Trackable
-@validate_input
+@typechecked
 def get_project_workflow(project: Union[str, dict]):
     """Gets project's workflow.
 
@@ -911,7 +913,7 @@ def get_project_workflow(project: Union[str, dict]):
 
 
 @Trackable
-@validate_input
+@typechecked
 def search_annotation_classes(
     project: Union[str, dict], name_prefix: Optional[str] = None
 ):
@@ -933,7 +935,7 @@ def search_annotation_classes(
 
 
 @Trackable
-@validate_input
+@typechecked
 def set_project_settings(project: Union[str, dict], new_settings: List[dict]):
     """Sets project's settings.
 
@@ -953,7 +955,7 @@ def set_project_settings(project: Union[str, dict], new_settings: List[dict]):
 
 
 @Trackable
-@validate_input
+@typechecked
 def get_project_default_image_quality_in_editor(project: Union[str, dict]):
     """Gets project's default image quality in editor setting.
 
@@ -971,7 +973,7 @@ def get_project_default_image_quality_in_editor(project: Union[str, dict]):
 
 
 @Trackable
-@validate_input
+@typechecked
 def set_project_default_image_quality_in_editor(
     project: Union[str, dict], image_quality_in_editor: Optional[str],
 ):
@@ -995,7 +997,7 @@ def set_project_default_image_quality_in_editor(
 
 
 @Trackable
-@validate_input
+@typechecked
 def pin_image(project: Union[str, dict], image_name: str, pin: Optional[bool] = True):
     """Pins (or unpins) image
 
@@ -1016,7 +1018,7 @@ def pin_image(project: Union[str, dict], image_name: str, pin: Optional[bool] = 
 
 
 @Trackable
-@validate_input
+@typechecked
 def delete_image(project: Union[str, dict], image_name: str):
     """Deletes image
 
@@ -1033,7 +1035,7 @@ def delete_image(project: Union[str, dict], image_name: str):
 
 
 @Trackable
-@validate_input
+@typechecked
 def get_image_metadata(project: Union[str, dict], image_name: str, *_, **__):
     """Returns image metadata
 
@@ -1064,9 +1066,9 @@ def get_image_metadata(project: Union[str, dict], image_name: str, *_, **__):
 
 
 @Trackable
-@validate_input
+@typechecked
 def set_images_annotation_statuses(
-    project: Union[str, dict], image_names: List[str], annotation_status: str,
+    project: Union[str, dict], image_names: Optional[List[str]], annotation_status: str,
 ):
     """Sets annotation statuses of images
 
@@ -1088,7 +1090,7 @@ def set_images_annotation_statuses(
 
 
 @Trackable
-@validate_input
+@typechecked
 def delete_images(project: Union[str, dict], image_names: Optional[List[str]] = None):
     """Delete images in project.
 
@@ -1114,7 +1116,7 @@ def delete_images(project: Union[str, dict], image_names: Optional[List[str]] = 
 
 
 @Trackable
-@validate_input
+@typechecked
 def assign_images(project: Union[str, dict], image_names: List[str], user: str):
     """Assigns images to a user. The assignment role, QA or Annotator, will
     be deduced from the user's role in the project. With SDK, the user can be
@@ -1152,7 +1154,7 @@ def assign_images(project: Union[str, dict], image_names: List[str], user: str):
 
 
 @Trackable
-@validate_input
+@typechecked
 def unassign_images(project: Union[str, dict], image_names: List[str]):
     """Removes assignment of given images for all assignees.With SDK,
     the user can be assigned to a role in the project with the share_project
@@ -1173,7 +1175,7 @@ def unassign_images(project: Union[str, dict], image_names: List[str]):
 
 
 @Trackable
-@validate_input
+@typechecked
 def unassign_folder(project_name: str, folder_name: str):
     """Removes assignment of given folder for all assignees.
     With SDK, the user can be assigned to a role in the project
@@ -1192,7 +1194,7 @@ def unassign_folder(project_name: str, folder_name: str):
 
 
 @Trackable
-@validate_input
+@typechecked
 def assign_folder(project_name: str, folder_name: str, users: List[str]):
     """Assigns folder to users. With SDK, the user can be
     assigned to a role in the project with the share_project function.
@@ -1233,7 +1235,7 @@ def assign_folder(project_name: str, folder_name: str, users: List[str]):
 
 
 @Trackable
-@validate_input
+@typechecked
 def share_project(project_name: str, user: Union[str, dict], user_role: str):
     """Share project with user.
 
@@ -1259,8 +1261,8 @@ def share_project(project_name: str, user: Union[str, dict], user_role: str):
 
 
 @Trackable
-@validate_input
-def unshare_project(project_name: str, user: str):
+@typechecked
+def unshare_project(project_name: str, user: Union[str, dict]):
     """Unshare (remove) user from project.
 
     :param project_name: project name
@@ -1480,7 +1482,7 @@ def upload_images_from_azure_blob_to_project(
 
 
 @Trackable
-@validate_input
+@typechecked
 def get_image_annotations(project: Union[str, dict], image_name: str):
     """Get annotations of the image.
 
@@ -1596,7 +1598,7 @@ def upload_images_from_folder_to_project(
 
 
 @Trackable
-@validate_input
+@typechecked
 def get_project_image_count(
     project: Union[str, dict], with_all_subfolders: Optional[bool] = False
 ):
@@ -1624,7 +1626,7 @@ def get_project_image_count(
 
 
 @Trackable
-@validate_input
+@typechecked
 def get_image_preannotations(project: Union[str, dict], image_name: str):
     """Get pre-annotations of the image. Only works for "vector" projects.
 
@@ -1648,7 +1650,7 @@ def get_image_preannotations(project: Union[str, dict], image_name: str):
 
 
 @Trackable
-@validate_input
+@typechecked
 def download_image_annotations(
     project: Union[str, dict], image_name: str, local_dir_path: str
 ):
@@ -1678,7 +1680,7 @@ def download_image_annotations(
 
 
 @Trackable
-@validate_input
+@typechecked
 def download_image_preannotations(
     project: Union[str, dict], image_name: str, local_dir_path: str
 ):
@@ -1708,7 +1710,7 @@ def download_image_preannotations(
 
 
 @Trackable
-@validate_input
+@typechecked
 def get_exports(project: str, return_metadata: Optional[bool] = False):
     """Get all prepared exports of the project.
 
@@ -1727,7 +1729,7 @@ def get_exports(project: str, return_metadata: Optional[bool] = False):
 
 
 @Trackable
-@validate_input
+@typechecked
 def upload_images_from_s3_bucket_to_project(
     project: Union[str, dict],
     accessKeyId: str,
@@ -1767,7 +1769,7 @@ def upload_images_from_s3_bucket_to_project(
 
 
 @Trackable
-@validate_input
+@typechecked
 def prepare_export(
     project: Union[str, dict],
     folder_names: Optional[List[str]] = None,
@@ -3665,7 +3667,7 @@ def aggregate_annotations_as_df(
 
 
 @Trackable
-@validate_input
+@typechecked
 def delete_annotations(project: str, image_names: List[str] = None):
     """
     Delete image annotations from a given list of images.

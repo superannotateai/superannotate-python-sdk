@@ -1196,7 +1196,23 @@ class DownloadImageFromPublicUrlUseCase(BaseUseCase):
         try:
             response = requests.get(url=self._image_url)
             if response.ok:
-                self._response.data = io.BytesIO(response.content)
+                import re
+
+                content_description = response.headers.get(
+                    "Content-Description", response.headers.get("Content-Disposition")
+                )
+                if content_description:
+                    result = re.findall(
+                        r"filename\*?=([^;]+)", content_description, flags=re.IGNORECASE
+                    )
+                else:
+                    result = None
+                self._response.data = (
+                    io.BytesIO(response.content),
+                    result[0].strip().strip('"')
+                    if result
+                    else str(uuid.uuid4()) + ".jpg",
+                )
             else:
                 raise requests.exceptions.RequestException()
         except requests.exceptions.RequestException as e:

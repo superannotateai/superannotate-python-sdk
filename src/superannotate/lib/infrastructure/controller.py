@@ -55,6 +55,8 @@ class BaseController(metaclass=SingleInstanceMetaClass):
         self._images = None
         self._ml_models = None
         self._team_id = None
+        self._user_id = None
+        self._team_name = None
         self.init(config_path)
 
     def init(self, config_path):
@@ -85,6 +87,18 @@ class BaseController(metaclass=SingleInstanceMetaClass):
             self._backend_client.api_url = self.configs.get_one("main_endpoint").value
             self._backend_client._auth_token = self.configs.get_one("token").value
 
+    @property
+    def user_id(self):
+        if not self._user_id:
+            self._user_id, _ = self.get_team()
+        return self._user_id
+
+    @property
+    def team_name(self):
+        if not self._team_name:
+            _, self._team_name = self.get_team()
+        return self._team_name
+
     def set_token(self, token):
         self.configs.insert(ConfigEntity("token", token))
         self._backend_client = SuperannotateBackendService(
@@ -104,6 +118,13 @@ class BaseController(metaclass=SingleInstanceMetaClass):
         if not self._folders:
             self._folders = FolderRepository(self._backend_client)
         return self._folders
+
+    def get_team(self):
+        if not self._team:
+            self._team = usecases.GetTeamUseCase(
+                teams=self.teams, team_id=self.team_id
+            ).execute()
+        return self._team
 
     @property
     def ml_models(self):
@@ -467,13 +488,6 @@ class Controller(BaseController):
         )
         return use_case.execute()
 
-    def get_team(self):
-        if not self._team:
-            self._team = usecases.GetTeamUseCase(
-                teams=self.teams, team_id=self.team_id
-            ).execute()
-        return self._team
-
     def invite_contributor(self, email: str, is_admin: bool):
         use_case = usecases.InviteContributorUseCase(
             backend_service_provider=self._backend_client,
@@ -726,7 +740,7 @@ class Controller(BaseController):
             classes=AnnotationClassRepository(
                 service=self._backend_client, project=project_entity
             ),
-            condition=condition
+            condition=condition,
         )
         return use_case.execute()
 

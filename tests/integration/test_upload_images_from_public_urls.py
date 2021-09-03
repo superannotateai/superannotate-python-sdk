@@ -44,8 +44,8 @@ class TestUploadImageFromPublicUrls(BaseTestCase):
         )
         # check how many images were uploaded and how many were not
         self.assertEqual(len(uploaded_urls), 3)
-        self.assertEqual(len(duplicate_filenames), 1)
         self.assertEqual(len(uploaded_filenames), 3)
+        self.assertEqual(len(duplicate_filenames), 0)
         self.assertEqual(len(not_uploaded_urls), 3)
 
         for image in images_in_project:
