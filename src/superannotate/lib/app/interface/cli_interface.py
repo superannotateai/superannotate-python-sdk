@@ -1,14 +1,9 @@
-import concurrent.futures
 import json
 import logging
 import os
 import sys
 import tempfile
 import uuid
-from collections import Counter
-from collections import namedtuple
-from io import BytesIO
-from pathlib import Path
 from typing import Any
 from typing import Optional
 
@@ -19,12 +14,21 @@ from lib.app.helpers import get_annotation_paths
 from lib.app.helpers import split_project_path
 from lib.app.input_converters.conversion import import_annotation
 from lib.app.interface.base_interface import BaseInterfaceFacade
+from lib.app.interface.sdk_interface import attach_image_urls_to_project
+from lib.app.interface.sdk_interface import attach_video_urls_to_project
+from lib.app.interface.sdk_interface import create_folder
+from lib.app.interface.sdk_interface import create_project
+from lib.app.interface.sdk_interface import upload_images_from_folder_to_project
+from lib.app.interface.sdk_interface import upload_videos_from_folder_to_project
 from lib.app.serializers import ImageSerializer
 from lib.core.entities import ConfigEntity
+from lib.infrastructure.controller import Controller
 from lib.infrastructure.repositories import ConfigRepository
 from tqdm import tqdm
 
+
 logger = logging.getLogger()
+controller = Controller(logger)
 
 
 class CLIFacade(BaseInterfaceFacade):
@@ -72,18 +76,14 @@ class CLIFacade(BaseInterfaceFacade):
         """
         To create a new project
         """
-        response = self.controller.create_project(name, description, type)
-        if response.errors:
-            return response.errors
-        return response.data
+        create_project(name, description, type)
+        sys.exit(0)
 
     def create_folder(self, project: str, name: str):
         """
         To create a new folder
         """
-        response = self.controller.create_folder(project=project, folder_name=name)
-        if response.errors:
-            logger.critical(response.errors)
+        create_folder(project, name)
         sys.exit(0)
 
     def upload_images(
@@ -104,79 +104,19 @@ class CLIFacade(BaseInterfaceFacade):
         Optional argument extensions accepts comma separated list of image extensions to look for.
         If the argument is not given then value jpg,jpeg,png,tif,tiff,webp,bmp is assumed.
         """
-        uploaded_image_entities = []
-        failed_images = []
-        project_name, folder_name = split_project_path(project)
-        ProcessedImage = namedtuple("ProcessedImage", ["uploaded", "path", "entity"])
+        if not isinstance(extensions, list):
+            extensions = extensions.split(",")
 
-        def upload_image(image_path: str):
-            with open(image_path, "rb") as image:
-                image_bytes = BytesIO(image.read())
-                upload_response = self.controller.upload_image_to_s3(
-                    project_name=project_name,
-                    image_path=image_path,
-                    image_bytes=image_bytes,
-                    folder_name=folder_name,
-                    image_quality_in_editor=image_quality_in_editor,
-                )
-
-                if not upload_response.errors and upload_response.data:
-                    entity = upload_response.data
-                    return ProcessedImage(
-                        uploaded=True, path=entity.path, entity=entity
-                    )
-                else:
-                    return ProcessedImage(uploaded=False, path=image_path, entity=None)
-
-        paths = []
-
-        if isinstance(extensions, str):
-            extensions = extensions.strip().split(",")
-
-        for extension in extensions:
-            if recursive_subfolders:
-                paths += list(Path(folder).rglob(f"*.{extension.lower()}"))
-                if os.name != "nt":
-                    paths += list(Path(folder).rglob(f"*.{extension.upper()}"))
-            else:
-                paths += list(Path(folder).glob(f"*.{extension.lower()}"))
-                if os.name != "nt":
-                    paths += list(Path(folder).glob(f"*.{extension.upper()}"))
-
-        filtered_paths = []
-        for path in paths:
-            not_in_exclude_list = [
-                x not in Path(path).name for x in exclude_file_patterns
-            ]
-            if all(not_in_exclude_list):
-                filtered_paths.append(path)
-
-        duplication_counter = Counter(filtered_paths)
-        images_to_upload, duplicated_images = (
-            set(filtered_paths),
-            [item for item in duplication_counter if duplication_counter[item] > 1],
+        upload_images_from_folder_to_project(
+            project,
+            folder_path=folder,
+            extensions=extensions,
+            annotation_status=set_annotation_status,
+            from_s3_bucket=None,
+            exclude_file_patterns=exclude_file_patterns,
+            recursive_subfolders=recursive_subfolders,
+            image_quality_in_editor=image_quality_in_editor,
         )
-        with tqdm(total=len(images_to_upload)) as progress_bar:
-            with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-                results = [
-                    executor.submit(upload_image, image_path)
-                    for image_path in images_to_upload
-                ]
-                for future in concurrent.futures.as_completed(results):
-                    processed_image = future.result()
-                    if processed_image.uploaded and processed_image.entity:
-                        uploaded_image_entities.append(processed_image.entity)
-                    else:
-                        failed_images.append(processed_image.path)
-                    progress_bar.update(1)
-
-        for i in range(0, len(uploaded_image_entities), 500):
-            self.controller.upload_images(
-                project_name=project_name,
-                folder_name=folder_name,
-                images=uploaded_image_entities[i : i + 500],  # noqa: E203
-                annotation_status=set_annotation_status,
-            )
         sys.exit(0)
 
     def export_project(
@@ -305,13 +245,22 @@ class CLIFacade(BaseInterfaceFacade):
         """
         To attach image URLs to project use:
         """
-        self._attach_urls(project, attachments, annotation_status)
+
+        attach_image_urls_to_project(
+            project=project,
+            attachments=attachments,
+            annotation_status=annotation_status,
+        )
         sys.exit(0)
 
     def attach_video_urls(
         self, project: str, attachments: str, annotation_status: Optional[Any] = None
     ):
-        self._attach_urls(project, attachments, annotation_status)
+        attach_video_urls_to_project(
+            project=project,
+            attachments=attachments,
+            annotation_status=annotation_status,
+        )
         sys.exit(0)
 
     def _attach_urls(
@@ -372,58 +321,17 @@ class CLIFacade(BaseInterfaceFacade):
         start-time specifies time (in seconds) from which to start extracting frames, default is 0.0.
         end-time specifies time (in seconds) up to which to extract frames. If it is not specified, then up to end is assumed.
         """
-        project_name, folder_name = split_project_path(project)
 
-        uploaded_image_entities = []
-        failed_images = []
-
-        def _upload_image(image_path: str) -> str:
-            with open(image_path, "rb") as image:
-                image_bytes = BytesIO(image.read())
-                upload_response = self.controller.upload_image_to_s3(
-                    project_name=project_name,
-                    image_path=image_path,
-                    image_bytes=image_bytes,
-                    folder_name=folder_name,
-                )
-                if not upload_response.errors:
-                    uploaded_image_entities.append(upload_response.data)
-                else:
-                    return image_path
-
-        video_paths = []
-        for extension in extensions:
-            if not recursive:
-                video_paths += list(Path(folder).glob(f"*.{extension.lower()}"))
-                if os.name != "nt":
-                    video_paths += list(Path(folder).glob(f"*.{extension.upper()}"))
-            else:
-                video_paths += list(Path(folder).rglob(f"*.{extension.lower()}"))
-                if os.name != "nt":
-                    video_paths += list(Path(folder).rglob(f"*.{extension.upper()}"))
-        video_paths = [str(path) for path in video_paths]
-
-        for path in video_paths:
-            with tempfile.TemporaryDirectory() as temp_path:
-                res = self.controller.extract_video_frames(
-                    project_name=project_name,
-                    folder_name=folder_name,
-                    video_path=path,
-                    extract_path=temp_path,
-                    target_fps=int(target_fps),
-                    start_time=float(start_time),
-                    end_time=end_time if not end_time else float(end_time),
-                    annotation_status=set_annotation_status,
-                )
-                if not res.errors:
-                    extracted_frame_paths = res.data
-                    for image_path in extracted_frame_paths:
-                        failed_images.append(_upload_image(image_path))
-        for i in range(0, len(uploaded_image_entities), 500):
-            self.controller.upload_images(
-                project_name=project_name,
-                folder_name=folder_name,
-                images=uploaded_image_entities[i : i + 500],  # noqa: E203
-                annotation_status=set_annotation_status,
-            )
+        upload_videos_from_folder_to_project(
+            project=project,
+            folder_path=folder,
+            extensions=extensions,
+            exclude_file_patterns=(),
+            recursive_subfolders=recursive,
+            target_fps=target_fps,
+            start_time=start_time,
+            end_time=end_time,
+            annotation_status=set_annotation_status,
+            image_quality_in_editor=None,
+        )
         sys.exit(0)
