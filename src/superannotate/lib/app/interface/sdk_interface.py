@@ -2870,6 +2870,9 @@ def run_segmentation(project, images_list, model):
         model_name=model_name,
         folder_name=folder_name,
     )
+    if response.errors:
+        raise Exception(response.errors)
+
     return response.data
 
 

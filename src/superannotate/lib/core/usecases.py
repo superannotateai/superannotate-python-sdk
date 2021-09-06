@@ -53,7 +53,7 @@ from lib.core.response import Response
 from lib.core.serviceproviders import SuerannotateServiceProvider
 from PIL import UnidentifiedImageError
 
-logger = logging.getLogger()
+logger = logging.getLogger("root")
 
 
 class BaseUseCase(ABC):
@@ -3954,7 +3954,7 @@ class RunSegmentationUseCase(BaseUseCase):
         self._folder = folder
 
     def validate_project_type(self):
-        if self._project.project_type is not ProjectType.PIXEL:
+        if self._project.project_type is not ProjectType.PIXEL.value:
             raise AppValidationException(
                 "Operation not supported for given project type"
             )
@@ -3970,53 +3970,54 @@ class RunSegmentationUseCase(BaseUseCase):
             )
 
     def execute(self):
-        images = self._service.get_duplicated_images(
-            project_id=self._project.uuid,
-            team_id=self._project.team_id,
-            folder_id=self._folder.uuid,
-            images=self._images_list,
-        )
-
-        image_ids = [image["id"] for image in images]
-        image_names = [image["name"] for image in images]
-
-        res = self._service.run_segmentation(
-            self._project.team_id,
-            self._project.uuid,
-            model_name=self._ml_model_name,
-            image_ids=image_ids,
-        )
-        if not res.ok:
-            return self._response
-
-        succeded_imgs = []
-        failed_imgs = []
-        while len(succeded_imgs) + len(failed_imgs) != len(image_ids):
-            images_metadata = self._service.get_bulk_images(
+        if self.is_valid():
+            images = self._service.get_duplicated_images(
                 project_id=self._project.uuid,
                 team_id=self._project.team_id,
                 folder_id=self._folder.uuid,
-                images=image_names,
+                images=self._images_list,
             )
 
-            succeded_imgs = [
-                img["name"]
-                for img in images_metadata
-                if img["segmentation_status"] == 3
-            ]
-            failed_imgs = [
-                img["name"]
-                for img in images_metadata
-                if img["segmentation_status"] == 4
-            ]
+            image_ids = [image["id"] for image in images]
+            image_names = [image["name"] for image in images]
 
-            complete_images = succeded_imgs + failed_imgs
-            logger.info(
-                f"segmentation complete on {len(complete_images)} / {len(image_ids)} images"
+            res = self._service.run_segmentation(
+                self._project.team_id,
+                self._project.uuid,
+                model_name=self._ml_model_name,
+                image_ids=image_ids,
             )
-            time.sleep(5)
+            if not res.ok:
+                return self._response
 
-        self._response.data = (succeded_imgs, failed_imgs)
+            succeded_imgs = []
+            failed_imgs = []
+            while len(succeded_imgs) + len(failed_imgs) != len(image_ids):
+                images_metadata = self._service.get_bulk_images(
+                    project_id=self._project.uuid,
+                    team_id=self._project.team_id,
+                    folder_id=self._folder.uuid,
+                    images=image_names,
+                )
+
+                succeded_imgs = [
+                    img["name"]
+                    for img in images_metadata
+                    if img["segmentation_status"] == 3
+                ]
+                failed_imgs = [
+                    img["name"]
+                    for img in images_metadata
+                    if img["segmentation_status"] == 4
+                ]
+
+                complete_images = succeded_imgs + failed_imgs
+                logger.info(
+                    f"segmentation complete on {len(complete_images)} / {len(image_ids)} images"
+                )
+                time.sleep(5)
+
+            self._response.data = (succeded_imgs, failed_imgs)
         return self._response
 
 
@@ -4355,13 +4356,15 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
             paths = self.paths
             filtered_paths = []
             duplicated_paths = []
-            images = self._backend_client.get_bulk_images(
+
+            get_bulk_use_case = GetDuplicateImages(
+                service=self._backend_client,
                 project_id=self._project.uuid,
                 team_id=self._project.team_id,
                 folder_id=self._folder.uuid,
                 images=[Path(image).name for image in paths],
             )
-            image_names = [image["name"] for image in images]
+            image_names = get_bulk_use_case.execute()
 
             for path in paths:
                 not_in_exclude_list = [
@@ -4445,6 +4448,12 @@ class DeleteAnnotations(BaseUseCase):
             image_names=self._image_names,
         )
 
+        project_folder_name = (
+            self._project.name
+            + (f"/{self._folder.name}" if self._folder.name != "root" else "")
+            + "."
+        )
+
         if response:
             timeout_start = time.time()
             while time.time() < timeout_start + self.POLL_AWAIT_TIME:
@@ -4461,7 +4470,11 @@ class DeleteAnnotations(BaseUseCase):
                     self._response.errors = "Annotations delete fails."
                     break
                 else:
-                    logger.info("Annotations deleted")
+                    logger.info(
+                        "The annotations have been successfully deleted from "
+                        + project_folder_name
+                    )
+
                     break
         else:
             self._response.errors = AppException("Invalid image names or empty folder.")
