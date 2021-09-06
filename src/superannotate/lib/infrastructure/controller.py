@@ -235,10 +235,17 @@ class Controller(BaseController):
         annotation_classes: Iterable = tuple(),
         workflows: Iterable = tuple(),
     ) -> Response:
+
+        try:
+            project_type = constances.ProjectType[project_type.upper()].value
+        except KeyError:
+            raise AppException(
+                "Please provide a valid project type: Vector, Pixel, or Video."
+            )
         entity = ProjectEntity(
             name=name,
             description=description,
-            project_type=constances.ProjectType[project_type.upper()].value,
+            project_type=project_type,
             team_id=self.team_id,
         )
         use_case = usecases.CreateProjectUseCase(
@@ -269,14 +276,9 @@ class Controller(BaseController):
         return use_case.execute()
 
     def update_project(self, name: str, project_data: dict) -> Response:
-        entities = self.projects.get_all(
-            Condition("team_id", self.team_id, EQ) & Condition("name", name, EQ)
-        )
-        project = entities[0]
-        if entities and len(entities) == 1:
-            project.name = project_data["name"]
-            use_case = usecases.UpdateProjectUseCase(project, self.projects)
-            return use_case.execute()
+        project = self._get_project(name)
+        use_case = usecases.UpdateProjectUseCase(project, project_data, self.projects)
+        return use_case.execute()
 
     def upload_images(
         self,
@@ -875,29 +877,6 @@ class Controller(BaseController):
         )
         return use_case.execute()
 
-    @staticmethod
-    def download_images_from_google_clout(
-        project_name: str, bucket_name: str, folder_name: str, download_path: str
-    ):
-        use_case = usecases.DownloadGoogleCloudImages(
-            project_name=project_name,
-            bucket_name=bucket_name,
-            folder_name=folder_name,
-            download_path=download_path,
-        )
-        return use_case.execute()
-
-    @staticmethod
-    def download_images_from_azure_cloud(
-        container_name: str, folder_name: str, download_path: str
-    ):
-        use_case = usecases.DownloadAzureCloudImages(
-            container=container_name,
-            folder_name=folder_name,
-            download_path=download_path,
-        )
-        return use_case.execute()
-
     def get_image_annotations(
         self, project_name: str, folder_name: str, image_name: str
     ):
@@ -1238,8 +1217,8 @@ class Controller(BaseController):
         model_description: str,
         task: str,
         base_model_name: str,
-        train_data_paths: List[str],
-        test_data_paths: List[str],
+        train_data_paths: Iterable[str],
+        test_data_paths: Iterable[str],
         hyper_parameters: dict,
     ):
         use_case = usecases.CreateModelUseCase(

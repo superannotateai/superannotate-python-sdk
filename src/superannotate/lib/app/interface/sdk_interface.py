@@ -10,6 +10,7 @@ from collections import Counter
 from collections import namedtuple
 from io import BytesIO
 from pathlib import Path
+from typing import Iterable
 from typing import List
 from typing import Optional
 from typing import Union
@@ -182,7 +183,7 @@ def create_project(project_name: str, project_description: str, project_type: st
         name=project_name, description=project_description, project_type=project_type
     )
     if response.errors:
-        raise Exception(response.errors)
+        raise AppException(response.errors)
 
     return ProjectSerializer(response.data).serialize()
 
@@ -207,7 +208,7 @@ def create_project_from_metadata(project_metadata: dict):
         workflows=project_metadata.get("workflow", []),
     )
     if response.errors:
-        raise Exception(response.errors)
+        raise AppException(response.errors)
     return ProjectSerializer(response.data).serialize()
 
 
@@ -253,7 +254,7 @@ def clone_project(
         copy_contributors=copy_contributors,
     )
     if response.errors:
-        raise AppValidationException(response.errors)
+        raise AppException(response.errors)
     return ProjectSerializer(response.data).serialize()
 
 
@@ -291,7 +292,7 @@ def search_images(
         image_name_prefix=image_name_prefix,
     )
     if response.errors:
-        raise AppValidationException(response.errors)
+        raise AppException(response.errors)
 
     if return_metadata:
         return [ImageSerializer(image).serialize() for image in response.data]
@@ -525,7 +526,7 @@ def copy_image(
 
     project = controller.get_project_metadata(destination_project).data
     if project["project"].project_type == constances.ProjectType.VIDEO.value:
-        raise AppValidationException(
+        raise AppException(
             "The function does not support projects containing videos attached with URLs"
         )
 
@@ -739,7 +740,7 @@ def copy_images(
         include_pin=copy_pin,
     )
     if res.errors:
-        raise AppValidationException(res.errors)
+        raise AppException(res.errors)
     skipped_images = res.data
     done_count = len(image_names) - len(skipped_images)
     message_postfix = "{from_path} to {to_path}."
@@ -780,7 +781,7 @@ def move_images(
 
     project = controller.get_project_metadata(project_name).data
     if project["project"].project_type == constances.ProjectType.VIDEO.value:
-        raise AppValidationException(
+        raise AppException(
             "The function does not support projects containing videos attached with URLs"
         )
 
@@ -908,7 +909,7 @@ def get_project_workflow(project: Union[str, dict]):
     project_name, folder_name = extract_project_folder(project)
     workflow = controller.get_project_workflow(project_name=project_name)
     if workflow.errors:
-        raise AppValidationException(workflow.errors)
+        raise AppException(workflow.errors)
     return workflow.data
 
 
@@ -992,7 +993,7 @@ def set_project_default_image_quality_in_editor(
         new_settings=[{"attribute": "ImageQuality", "value": image_quality_in_editor}],
     )
     if response.errors:
-        raise AppValidationException(response.errors)
+        raise AppException(response.errors)
     return response.data
 
 
@@ -1050,7 +1051,7 @@ def get_image_metadata(project: Union[str, dict], image_name: str, *_, **__):
     project_name, folder_name = extract_project_folder(project)
     response = controller.get_image_metadata(project_name, folder_name, image_name)
     if response.errors:
-        raise AppValidationException(response.errors)
+        raise AppException(response.errors)
 
     res_data = response.data
     res_data["annotation_status"] = constances.AnnotationStatus.get_name(
@@ -1085,7 +1086,7 @@ def set_images_annotation_statuses(
         project_name, folder_name, image_names, annotation_status
     )
     if response.errors:
-        raise AppValidationException(response.errors)
+        raise AppException(response.errors)
     logger.info("Annotations status of images changed")
 
 
@@ -1102,13 +1103,13 @@ def delete_images(project: Union[str, dict], image_names: Optional[List[str]] = 
     project_name, folder_name = extract_project_folder(project)
 
     if not isinstance(image_names, list) and image_names is not None:
-        raise AppValidationException("Image_names should be a list of strs or None.")
+        raise AppException("Image_names should be a list of strs or None.")
 
     response = controller.delete_images(
         project_name=project_name, folder_name=folder_name, image_names=image_names
     )
     if response.errors:
-        raise AppValidationException(response.errors)
+        raise AppException(response.errors)
 
     logger.info(
         f"Images deleted in project {project_name}{'' if folder_name else '/' + folder_name}"
@@ -1280,210 +1281,6 @@ def unshare_project(project_name: str, user: Union[str, dict]):
 
 
 @Trackable
-def upload_images_from_google_cloud_to_project(
-    project,
-    google_project,
-    bucket_name,
-    folder_path,
-    annotation_status="NotStarted",
-    image_quality_in_editor=None,
-):
-    """Uploads all images present in folder_path at bucket_name in google_project to the project.
-    Sets status of all the uploaded images to set_status if it is not None.
-
-    :param project: project name or folder path (e.g., "project1/folder1")
-    :type project: str
-    :param google_project: the project name on google cloud, where the bucket resides
-    :type google_project: str
-    :param bucket_name: the name of the bucket where the images are stored
-    :type bucket_name: str
-    :param folder_path: path of the folder on the bucket where the images are stored
-    :type folder_path: str
-    :param annotation_status: value to set the annotation statuses of the uploaded images NotStarted InProgress QualityCheck Returned Completed Skipped
-    :type annotation_status: str
-    :param image_quality_in_editor: image quality be seen in SuperAnnotate web annotation editor.
-           Can be either "compressed" or "original".  If None then the default value in project settings will be used.
-    :type image_quality_in_editor: str
-
-    :return: uploaded images' urls, uploaded images' filenames, duplicate images' filenames and not-uploaded images' urls
-    :rtype: tuple of list of strs
-    """
-
-    failed_images = []
-    duplicated_images = []
-    project_name, folder_name = extract_project_folder(project)
-    project = controller.get_project_metadata(project_name).data
-    if project["project"].project_type == constances.ProjectType.VIDEO.value:
-        raise AppValidationException(
-            "The function does not support projects containing videos attached with URLs"
-        )
-    ProcessedImage = namedtuple("ProcessedImage", ["uploaded", "path", "entity"])
-
-    def _upload_image(image_path: str) -> ProcessedImage:
-        with open(image_path, "rb") as image:
-            image_bytes = BytesIO(image.read())
-            upload_response = controller.upload_image_to_s3(
-                project_name=project_name,
-                image_path=image_path,
-                image_bytes=image_bytes,
-                folder_name=folder_name,
-                image_quality_in_editor=image_quality_in_editor,
-            )
-            if upload_response.errors:
-                return ProcessedImage(
-                    uploaded=False, path=image_path, entity=upload_response.data
-                )
-            return ProcessedImage(
-                uploaded=True, path=image_path, entity=upload_response.data
-            )
-
-    with tempfile.TemporaryDirectory() as save_dir_name:
-        response = controller.download_images_from_google_clout(
-            project_name=google_project,
-            bucket_name=bucket_name,
-            folder_name=folder_path,
-            download_path=save_dir_name,
-        )
-        if response.errors:
-            for error in response.errors:
-                logger.warning(error)
-        images_to_upload = response.data.get("downloaded_images")
-        duplicated_images.extend(response.data.get("duplicated_images", []))
-        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-            results = [
-                executor.submit(_upload_image, image_path)
-                for image_path in images_to_upload
-            ]
-            for future in concurrent.futures.as_completed(results):
-                processed_image = future.result()
-                if processed_image.uploaded and processed_image.entity:
-                    images_to_upload.append(processed_image)
-                else:
-                    failed_images.append(processed_image)
-
-        for i in range(0, len(images_to_upload), 500):
-            controller.upload_images(
-                project_name=project_name,
-                folder_name=folder_name,
-                images=[
-                    image.entity
-                    for image in images_to_upload[i : i + 500]  # noqa: E203
-                ],
-                annotation_status=annotation_status,
-            )
-        uploaded_image_urls = [image.path for image in images_to_upload]
-        uploaded_image_names = [image.entity.name for image in images_to_upload]
-        failed_image_urls = [image.path for image in failed_images] + duplicated_images
-
-        return (
-            uploaded_image_urls,
-            uploaded_image_names,
-            duplicated_images,
-            failed_image_urls,
-        )
-
-
-@Trackable
-def upload_images_from_azure_blob_to_project(
-    project,
-    container_name,
-    folder_path,
-    annotation_status="NotStarted",
-    image_quality_in_editor=None,
-):
-    """Uploads all images present in folder_path at container_name Azure blob storage to the project.
-    Sets status of all the uploaded images to set_status if it is not None.
-
-    :param project: project name or folder path (e.g., "project1/folder1")
-    :type project: str
-    :param container_name: container name of the Azure blob storage
-    :type container_name: str
-    :param folder_path: path of the folder on the bucket where the images are stored
-    :type folder_path: str
-    :param annotation_status: value to set the annotation statuses of the uploaded images NotStarted InProgress QualityCheck Returned Completed Skipped
-    :type annotation_status: str
-    :param image_quality_in_editor: image quality be seen in SuperAnnotate web annotation editor.
-           Can be either "compressed" or "original".  If None then the default value in project settings will be used.
-    :type image_quality_in_editor: str
-
-    :return: uploaded images' urls, uploaded images' filenames, duplicate images' filenames and not-uploaded images' urls
-    :rtype: tuple of list of strs
-    """
-
-    failed_images = []
-    duplicated_images = []
-    project_name, folder_name = extract_project_folder(project)
-    project = controller.get_project_metadata(project_name).data
-    if project["project"].project_type == constances.ProjectType.VIDEO.value:
-        raise AppValidationException(
-            "The function does not support projects containing videos attached with URLs"
-        )
-    ProcessedImage = namedtuple("ProcessedImage", ["uploaded", "path", "entity"])
-
-    def _upload_image(image_path: str) -> ProcessedImage:
-        with open(image_path, "rb") as image:
-            image_bytes = BytesIO(image.read())
-            upload_response = controller.upload_image_to_s3(
-                project_name=project_name,
-                image_path=image_path,
-                image_bytes=image_bytes,
-                folder_name=folder_name,
-                image_quality_in_editor=image_quality_in_editor,
-            )
-            if upload_response.errors:
-                return ProcessedImage(
-                    uploaded=False, path=image_path, entity=upload_response.data
-                )
-            return ProcessedImage(
-                uploaded=True, path=image_path, entity=upload_response.data
-            )
-
-    with tempfile.TemporaryDirectory() as save_dir_name:
-        response = controller.download_images_from_azure_cloud(
-            container_name=container_name,
-            folder_name=folder_path,
-            download_path=save_dir_name,
-        )
-        if response.errors:
-            for error in response.errors:
-                logger.warning(error)
-        images_to_upload = response.data.get("downloaded_images")
-        duplicated_images.extend(response.data.get("duplicated_images", []))
-        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-            results = [
-                executor.submit(_upload_image, image_path)
-                for image_path in images_to_upload
-            ]
-            for future in concurrent.futures.as_completed(results):
-                processed_image = future.result()
-                if processed_image.uploaded and processed_image.entity:
-                    images_to_upload.append(processed_image)
-                else:
-                    failed_images.append(processed_image)
-
-        for i in range(0, len(images_to_upload), 500):
-            controller.upload_images(
-                project_name=project_name,
-                folder_name=folder_name,
-                images=[
-                    image.entity
-                    for image in images_to_upload[i : i + 500]  # noqa: E203
-                ],
-                annotation_status=annotation_status,
-            )
-        uploaded_image_urls = [image.path for image in images_to_upload]
-        uploaded_image_names = [image.entity.name for image in images_to_upload]
-        failed_image_urls = [image.path for image in failed_images] + duplicated_images
-
-        return (
-            uploaded_image_urls,
-            uploaded_image_names,
-            duplicated_images,
-            failed_image_urls,
-        )
-
-
-@Trackable
 @typechecked
 def get_image_annotations(project: Union[str, dict], image_name: str):
     """Get annotations of the image.
@@ -1509,13 +1306,16 @@ def get_image_annotations(project: Union[str, dict], image_name: str):
     return res.data
 
 
+@typechecked
 def upload_images_from_folder_to_project(
     project: Union[str, dict],
-    folder_path: str,
-    extensions: Optional[str] = constances.DEFAULT_IMAGE_EXTENSIONS,
+    folder_path: Union[str, Path],
+    extensions: Optional[Iterable[str]] = constances.DEFAULT_IMAGE_EXTENSIONS,
     annotation_status="NotStarted",
     from_s3_bucket=None,
-    exclude_file_patterns: Optional[str] = constances.DEFAULT_FILE_EXCLUDE_PATTERNS,
+    exclude_file_patterns: Optional[
+        Iterable[str]
+    ] = constances.DEFAULT_FILE_EXCLUDE_PATTERNS,
     recursive_subfolders: Optional[bool] = False,
     image_quality_in_editor: Optional[str] = None,
 ):
@@ -1560,6 +1360,12 @@ def upload_images_from_folder_to_project(
             "extensions should be a list or a tuple in upload_images_from_folder_to_project"
         )
 
+    if exclude_file_patterns:
+        exclude_file_patterns = list(exclude_file_patterns) + list(
+            constances.DEFAULT_FILE_EXCLUDE_PATTERNS
+        )
+        exclude_file_patterns = list(set(exclude_file_patterns))
+
     project_folder_name = project_name + (f"/{folder_name}" if folder_name else "")
 
     logger.info(
@@ -1594,7 +1400,7 @@ def upload_images_from_folder_to_project(
             for _ in use_case.execute():
                 progress_bar.update(1)
         return use_case.data
-    raise AppValidationException(use_case.response.errors)
+    raise AppException(use_case.response.errors)
 
 
 @Trackable
@@ -1621,7 +1427,7 @@ def get_project_image_count(
         with_all_subfolders=with_all_subfolders,
     )
     if response.errors:
-        raise AppValidationException(response.errors)
+        raise AppException(response.errors)
     return response.data
 
 
@@ -1652,7 +1458,7 @@ def get_image_preannotations(project: Union[str, dict], image_name: str):
 @Trackable
 @typechecked
 def download_image_annotations(
-    project: Union[str, dict], image_name: str, local_dir_path: str
+    project: Union[str, dict], image_name: str, local_dir_path: Union[str, Path]
 ):
     """Downloads annotations of the image (JSON and mask if pixel type project)
     to local_dir_path.
@@ -1675,14 +1481,14 @@ def download_image_annotations(
         destination=local_dir_path,
     )
     if res.errors:
-        raise AppValidationException(res.errors)
+        raise AppException(res.errors)
     return res.data
 
 
 @Trackable
 @typechecked
 def download_image_preannotations(
-    project: Union[str, dict], image_name: str, local_dir_path: str
+    project: Union[str, dict], image_name: str, local_dir_path: Union[str, Path]
 ):
     """Downloads pre-annotations of the image to local_dir_path.
     Only works for "vector" projects.
@@ -1705,7 +1511,7 @@ def download_image_preannotations(
         destination=local_dir_path,
     )
     if res.errors:
-        raise AppValidationException(res.errors)
+        raise AppException(res.errors)
     return res.data
 
 
@@ -1735,7 +1541,7 @@ def upload_images_from_s3_bucket_to_project(
     accessKeyId: str,
     secretAccessKey: str,
     bucket_name: str,
-    folder_path: str,
+    folder_path: Union[str, Path],
     image_quality_in_editor: Optional[str] = None,
 ):
     """Uploads all images from AWS S3 bucket to the project.
@@ -1817,22 +1623,23 @@ def prepare_export(
         annotation_statuses=annotation_statuses,
     )
     if response.errors:
-        raise AppValidationException(response.errors)
+        raise AppException(response.errors)
     return response.data
 
 
 @Trackable
+@typechecked
 def upload_videos_from_folder_to_project(
-    project,
-    folder_path,
-    extensions=constances.DEFAULT_VIDEO_EXTENSIONS,
-    exclude_file_patterns=(),
-    recursive_subfolders=False,
-    target_fps=None,
-    start_time=0.0,
-    end_time=None,
-    annotation_status="NotStarted",
-    image_quality_in_editor=None,
+    project: Union[str, dict],
+    folder_path: Union[str, Path],
+    extensions: Optional[Iterable[str]] = constances.DEFAULT_VIDEO_EXTENSIONS,
+    exclude_file_patterns: Optional[Iterable[str]] = (),
+    recursive_subfolders: Optional[bool] = False,
+    target_fps: Optional[int] = None,
+    start_time: Optional[float] = 0.0,
+    end_time: Optional[float] = None,
+    annotation_status: Optional[str] = "NotStarted",
+    image_quality_in_editor: Optional[str] = None,
 ):
     """Uploads image frames from all videos with given extensions from folder_path to the project.
     Sets status of all the uploaded images to set_status if it is not None.
@@ -1940,20 +1747,21 @@ def upload_videos_from_folder_to_project(
                     for _ in use_case.execute():
                         progress_bar.update(1)
             else:
-                raise AppValidationException(use_case.response.errors)
+                raise AppException(use_case.response.errors)
 
     return
 
 
 @Trackable
+@typechecked
 def upload_video_to_project(
-    project,
-    video_path,
-    target_fps=None,
-    start_time=0.0,
-    end_time=None,
-    annotation_status="NotStarted",
-    image_quality_in_editor=None,
+    project: Union[str, dict],
+    video_path: Union[str, Path],
+    target_fps: Optional[int] = None,
+    start_time: Optional[float] = 0.0,
+    end_time: Optional[float] = None,
+    annotation_status: Optional[str] = "NotStarted",
+    image_quality_in_editor: Optional[str] = None,
 ):
     """Uploads image frames from video to platform. Uploaded images will have
     names "<video_name>_<frame_no>.jpg".
@@ -2010,11 +1818,17 @@ def upload_video_to_project(
                 for _ in use_case.execute():
                     progress_bar.update(1)
             return use_case.data[0]
-        raise AppValidationException(use_case.response.errors)
+        raise AppException(use_case.response.errors)
 
 
 @Trackable
-def create_annotation_class(project, name, color, attribute_groups=None):
+@typechecked
+def create_annotation_class(
+    project: Union[dict, str],
+    name: str,
+    color: str,
+    attribute_groups: Optional[List[dict]] = None,
+):
     """Create annotation class in project
 
     :param project: project name
@@ -2038,7 +1852,8 @@ def create_annotation_class(project, name, color, attribute_groups=None):
 
 
 @Trackable
-def delete_annotation_class(project, annotation_class):
+@typechecked
+def delete_annotation_class(project: str, annotation_class: Union[dict, str]):
     """Deletes annotation class from project
 
     :param project: project name
@@ -2052,7 +1867,8 @@ def delete_annotation_class(project, annotation_class):
 
 
 @Trackable
-def get_annotation_class_metadata(project, annotation_class_name):
+@typechecked
+def get_annotation_class_metadata(project: str, annotation_class_name: str):
     """Returns annotation class metadata
 
     :param project: project name
@@ -2070,7 +1886,8 @@ def get_annotation_class_metadata(project, annotation_class_name):
 
 
 @Trackable
-def download_annotation_classes_json(project, folder):
+@typechecked
+def download_annotation_classes_json(project: str, folder: Union[str, Path]):
     """Downloads project classes.json to folder
 
     :param project: project name
@@ -2088,8 +1905,11 @@ def download_annotation_classes_json(project, folder):
 
 
 @Trackable
+@typechecked
 def create_annotation_classes_from_classes_json(
-    project, classes_json, from_s3_bucket=False
+    project: Union[str, dict],
+    classes_json: Union[list, str, Path],
+    from_s3_bucket=False,
 ):
     """Creates annotation classes in project from a SuperAnnotate format
     annotation classes.json.
@@ -2127,13 +1947,14 @@ def create_annotation_classes_from_classes_json(
     return response.data
 
 
+@typechecked
 def move_image(
-    source_project,
-    image_name,
-    destination_project,
-    include_annotations=True,
-    copy_annotation_status=True,
-    copy_pin=True,
+    source_project: Union[str, dict],
+    image_name: str,
+    destination_project: Union[str, dict],
+    include_annotations: Optional[bool] = True,
+    copy_annotation_status: Optional[bool] = True,
+    copy_pin: Optional[bool] = True,
 ):
     """Move image from source_project to destination_project. source_project
     and destination_project cannot be the same.
@@ -2160,7 +1981,7 @@ def move_image(
     source_project_name, source_folder_name = extract_project_folder(source_project)
     project = controller.get_project_metadata(source_project_name).data
     if project["project"].project_type == constances.ProjectType.VIDEO.value:
-        raise AppValidationException(
+        raise AppException(
             "The function does not support projects containing videos attached with URLs"
         )
 
@@ -2211,8 +2032,13 @@ def move_image(
 
 
 @Trackable
+@typechecked
 def download_export(
-    project, export, folder_path, extract_zip_contents=True, to_s3_bucket=None
+    project: Union[str, dict],
+    export: Union[str, dict],
+    folder_path: Union[str, Path],
+    extract_zip_contents: Optional[bool] = True,
+    to_s3_bucket=None,
 ):
     """Download prepared export.
 
@@ -2268,7 +2094,10 @@ def download_export(
 
 
 @Trackable
-def set_image_annotation_status(project, image_name, annotation_status):
+@typechecked
+def set_image_annotation_status(
+    project: Union[str, dict], image_name: str, annotation_status: str
+):
     """Sets the image annotation status
 
     :param project: project name or folder path (e.g., "project1/folder1")
@@ -2287,11 +2116,12 @@ def set_image_annotation_status(project, image_name, annotation_status):
         project_name, folder_name, [image_name], annotation_status
     )
     if response.errors:
-        raise AppValidationException(response.errors)
+        raise AppException(response.errors)
 
 
 @Trackable
-def set_project_workflow(project, new_workflow):
+@typechecked
+def set_project_workflow(project: Union[str, dict], new_workflow: List[dict]):
     """Sets project's workflow.
 
     new_workflow example: [{ "step" : <step_num>, "className" : <annotation_class>, "tool" : <tool_num>,
@@ -2309,12 +2139,17 @@ def set_project_workflow(project, new_workflow):
         project_name=project_name, steps=new_workflow
     )
     if response.errors:
-        raise AppValidationException(response.errors)
+        raise AppException(response.errors)
 
 
 @Trackable
+@typechecked
 def create_fuse_image(
-    image, classes_json, project_type, in_memory=False, output_overlay=False
+    image: [str, Path],
+    classes_json: Union[list, str, Path],
+    project_type: str,
+    in_memory: Optional[bool] = False,
+    output_overlay: Optional[bool] = False,
 ):
     """Creates fuse for locally located image and annotations
 
@@ -2343,14 +2178,15 @@ def create_fuse_image(
 
 
 @Trackable
+@typechecked
 def download_image(
-    project,
-    image_name,
-    local_dir_path="./",
-    include_annotations=False,
-    include_fuse=False,
-    include_overlay=False,
-    variant="original",
+    project: Union[str, dict],
+    image_name: str,
+    local_dir_path: Optional[Union[str, Path]] = "./",
+    include_annotations: Optional[bool] = False,
+    include_fuse: Optional[bool] = False,
+    include_overlay: Optional[bool] = False,
+    variant: Optional[str] = "original",
 ):
     """Downloads the image (and annotation if not None) to local_dir_path
 
@@ -2385,12 +2221,17 @@ def download_image(
         include_overlay=include_overlay,
     )
     if response.errors:
-        raise AppValidationException(response.errors)
+        raise AppException(response.errors)
     return response.data
 
 
 @Trackable
-def attach_image_urls_to_project(project, attachments, annotation_status="NotStarted"):
+@typechecked
+def attach_image_urls_to_project(
+    project: Union[str, dict],
+    attachments: Union[str, Path],
+    annotation_status: Optional[str] = "NotStarted",
+):
     """Link images on external storage to SuperAnnotate.
 
     :param project: project name or project folder path
@@ -2406,7 +2247,7 @@ def attach_image_urls_to_project(project, attachments, annotation_status="NotSta
     project_name, folder_name = extract_project_folder(project)
     project = controller.get_project_metadata(project_name).data
     if project["project"].project_type == constances.ProjectType.VIDEO.value:
-        raise AppValidationException(
+        raise AppException(
             "The function does not support projects containing videos attached with URLs"
         )
 
@@ -2449,7 +2290,12 @@ def attach_image_urls_to_project(project, attachments, annotation_status="NotSta
     return list_of_uploaded, list_of_not_uploaded, duplicate_images
 
 
-def attach_video_urls_to_project(project, attachments, annotation_status="NotStarted"):
+@typechecked
+def attach_video_urls_to_project(
+    project: Union[str, dict],
+    attachments: Union[str, Path],
+    annotation_status: Optional[str] = "NotStarted",
+):
     """Link videos on external storage to SuperAnnotate.
     :param project: project name or project folder path
     :type project: str or dict
@@ -2463,7 +2309,7 @@ def attach_video_urls_to_project(project, attachments, annotation_status="NotSta
     project_name, folder_name = extract_project_folder(project)
     project = controller.get_project_metadata(project_name).data
     if project["project"].project_type != constances.ProjectType.VIDEO.value:
-        raise AppValidationException("The function does not support")
+        raise AppException("The function does not support")
 
     image_data = pd.read_csv(attachments, dtype=str)
     image_data = image_data[~image_data["url"].isnull()]
@@ -2505,8 +2351,12 @@ def attach_video_urls_to_project(project, attachments, annotation_status="NotSta
 
 
 @Trackable
+@typechecked
 def upload_annotations_from_folder_to_project(
-    project, folder_path, from_s3_bucket=None, recursive_subfolders=False
+    project: Union[str, dict],
+    folder_path: Union[str, Path],
+    from_s3_bucket=None,
+    recursive_subfolders: Optional[bool] = False,
 ):
     """Finds and uploads all JSON files in the folder_path as annotations to the project.
 
@@ -2535,7 +2385,7 @@ def upload_annotations_from_folder_to_project(
     project_name, folder_name = extract_project_folder(project)
     project = controller.get_project_metadata(project_name).data
     if project["project"].project_type == constances.ProjectType.VIDEO.value:
-        raise AppValidationException(
+        raise AppException(
             "The function does not support projects containing videos attached with URLs"
         )
 
@@ -2583,8 +2433,12 @@ def upload_annotations_from_folder_to_project(
 
 
 @Trackable
+@typechecked
 def upload_preannotations_from_folder_to_project(
-    project, folder_path, from_s3_bucket=None, recursive_subfolders=False
+    project: Union[str, dict],
+    folder_path: Union[str, Path],
+    from_s3_bucket=None,
+    recursive_subfolders: Optional[bool] = False,
 ):
     """Finds and uploads all JSON files in the folder_path as pre-annotations to the project.
 
@@ -2612,7 +2466,7 @@ def upload_preannotations_from_folder_to_project(
     project_name, folder_name = extract_project_folder(project)
     project = controller.get_project_metadata(project_name).data
     if project["project"].project_type == constances.ProjectType.VIDEO.value:
-        raise AppValidationException(
+        raise AppException(
             "The function does not support projects containing videos attached with URLs"
         )
 
@@ -2663,8 +2517,13 @@ def upload_preannotations_from_folder_to_project(
 
 
 @Trackable
+@typechecked
 def upload_image_annotations(
-    project, image_name, annotation_json, mask=None, verbose=True
+    project: Union[str, dict],
+    image_name: str,
+    annotation_json: Union[str, Path, dict],
+    mask: Optional[Union[str, Path, dict]] = None,
+    verbose: Optional[bool] = True,
 ):
     """Upload annotations from JSON (also mask for pixel annotations)
     to the image.
@@ -2699,19 +2558,20 @@ def upload_image_annotations(
         verbose=verbose,
     )
     if response.errors:
-        raise AppValidationException(response.errors)
+        raise AppException(response.errors)
 
 
 @Trackable
+@typechecked
 def run_training(
-    model_name,
-    model_description,
-    task,
-    base_model,
-    train_data,
-    test_data,
-    hyperparameters=None,
-    log=False,
+    model_name: str,
+    model_description: str,
+    task: str,
+    base_model: Union[str, dict],
+    train_data: Iterable[str],
+    test_data: Iterable[str],
+    hyperparameters: Optional[dict] = None,
+    log: Optional[bool] = False,
 ):
     """Runs neural network training
     :param model_name: name of the new model
@@ -2929,7 +2789,7 @@ def benchmark(
             show_plots=show_plots,
         )
         if response.errors:
-            raise AppValidationException(response.errors)
+            raise AppException(response.errors)
     return response.data
 
 
@@ -2983,7 +2843,7 @@ def consensus(
             show_plots=show_plots,
         )
         if response.errors:
-            raise AppValidationException(response.errors)
+            raise AppException(response.errors)
     return response.data
 
 
@@ -3050,7 +2910,7 @@ def run_prediction(project, images_list, model):
         folder_name=folder_name,
     )
     if response.errors:
-        raise Exception(response.errors)
+        raise AppException(response.errors)
     return response.data
 
 
@@ -3451,7 +3311,7 @@ def upload_image_to_project(
 
     project = controller.get_project_metadata(project_name).data
     if project["project"].project_type == constances.ProjectType.VIDEO.value:
-        raise AppValidationException(
+        raise AppException(
             "The function does not support projects containing videos attached with URLs"
         )
 
@@ -3541,7 +3401,7 @@ def upload_images_to_project(
     project_name, folder_name = extract_project_folder(project)
     project = controller.get_project_metadata(project_name).data
     if project["project"].project_type == constances.ProjectType.VIDEO.value:
-        raise AppValidationException(
+        raise AppException(
             "The function does not support projects containing videos attached with URLs"
         )
 
