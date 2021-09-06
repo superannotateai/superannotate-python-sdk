@@ -14,6 +14,7 @@ from lib.app.helpers import get_annotation_paths
 from lib.app.helpers import split_project_path
 from lib.app.input_converters.conversion import import_annotation
 from lib.app.interface.base_interface import BaseInterfaceFacade
+from lib.app.interface.sdk_interface import attach_document_urls_to_project
 from lib.app.interface.sdk_interface import attach_image_urls_to_project
 from lib.app.interface.sdk_interface import attach_video_urls_to_project
 from lib.app.interface.sdk_interface import create_folder
@@ -257,6 +258,17 @@ class CLIFacade(BaseInterfaceFacade):
         self, project: str, attachments: str, annotation_status: Optional[Any] = None
     ):
         attach_video_urls_to_project(
+            project=project,
+            attachments=attachments,
+            annotation_status=annotation_status,
+        )
+        sys.exit(0)
+
+    @staticmethod
+    def attach_document_urls(
+        project: str, attachments: str, annotation_status: Optional[Any] = None
+    ):
+        attach_document_urls_to_project(
             project=project,
             attachments=attachments,
             annotation_status=annotation_status,

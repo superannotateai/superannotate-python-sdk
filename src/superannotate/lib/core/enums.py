@@ -32,6 +32,7 @@ class ProjectType(BaseTitledEnum):
     VECTOR = "Vector", 1
     PIXEL = "Pixel", 2
     VIDEO = "Video", 3
+    DOCUMENT = "Document", 4
 
 
 class UserRole(BaseTitledEnum):

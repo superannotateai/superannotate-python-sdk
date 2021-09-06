@@ -341,9 +341,13 @@ class CloneProjectUseCase(BaseUseCase):
         return self._workflows_repo(self._backend_service, self._project)
 
     def validate_project_type(self):
-        if self._project.project_type == constances.ProjectType.VIDEO.value:
+        if (
+            self._project.project_type == constances.ProjectType.VIDEO.value
+            or self._project.project_type == constances.ProjectType.DOCUMENT.value
+        ):
             raise AppValidationException(
-                "The function does not support projects containing videos attached with URLs"
+                "The function does not support projects containing "
+                f"{constances.ProjectType.get_name(self._project.project_type)} attached with URLs"
             )
 
     def execute(self):
@@ -448,11 +452,11 @@ class GetImagesUseCase(BaseUseCase):
         self._annotation_status = annotation_status
         self._image_name_prefix = image_name_prefix
 
-    # def validate_project_type(self):
-    #     if self._project.project_type == constances.ProjectType.VIDEO.value:
-    #         raise AppValidationException(
-    #             "The function does not support projects containing videos attached with URLs"
-    #         )
+    def validate_project_type(self):
+        if self._project.project_type == constances.ProjectType.DOCUMENT.value:
+            raise AppValidationException(
+                "The function does not support projects containing document attached with URLs"
+            )
 
     def execute(self):
         if self.is_valid():
@@ -671,7 +675,10 @@ class AttachFileUrlsUseCase(BaseUseCase):
 
     @property
     def upload_state_code(self) -> int:
-        if self._project.project_type == constances.ProjectType.VIDEO.value:
+        if (
+            self._project.project_type == constances.ProjectType.VIDEO.value
+            or self._project.project_type == constances.ProjectType.DOCUMENT.value
+        ):
             return constances.UploadState.EXTERNAL.value
         return constances.UploadState.BASIC.value
 
@@ -730,9 +737,13 @@ class PrepareExportUseCase(BaseUseCase):
         self._only_pinned = only_pinned
 
     def validate_project_type(self):
-        if self._project.project_type == constances.ProjectType.VIDEO.value:
+        if (
+            self._project.project_type == constances.ProjectType.VIDEO.value
+            or self._project.project_type == constances.ProjectType.DOCUMENT.value
+        ):
             raise AppValidationException(
-                "The function does not support projects containing videos attached with URLs"
+                "The function does not support projects containing "
+                f"{constances.ProjectType.get_name(self._project.project_type)} attached with URLs"
             )
 
     def validate_fuse(self):
@@ -1250,9 +1261,13 @@ class ImagesBulkCopyUseCase(BaseUseCase):
         self._include_pin = include_pin
 
     def validate_project_type(self):
-        if self._project.project_type == constances.ProjectType.VIDEO.value:
+        if (
+            self._project.project_type == constances.ProjectType.VIDEO.value
+            or self._project.project_type == constances.ProjectType.DOCUMENT.value
+        ):
             raise AppValidationException(
-                "The function does not support projects containing videos attached with URLs"
+                "The function does not support projects containing "
+                f"{constances.ProjectType.get_name(self._project.project_type)} attached with URLs"
             )
 
     def execute(self):
@@ -1431,12 +1446,13 @@ class UpdateSettingsUseCase(BaseUseCase):
     def validate_project_type(self):
         project = self._projects.get_one(uuid=self._project_id, team_id=self._team_id)
         for attribute in self._to_update:
-            if (
-                attribute.get("attribute", "") == "ImageQuality"
-                and project.project_type == constances.ProjectType.VIDEO.value
+            if attribute.get("attribute", "") == "ImageQuality" and (
+                project.project_type == constances.ProjectType.VIDEO.value
+                or project.project_type == constances.ProjectType.DOCUMENT.value
             ):
                 raise AppValidationException(
-                    "The function does not support projects containing videos attached with URLs"
+                    "The function does not support projects containing "
+                    f"{constances.ProjectType.get_name(project.project_type)} attached with URLs"
                 )
 
     def execute(self):
@@ -1498,9 +1514,13 @@ class GetImageMetadataUseCase(BaseUseCase):
         self._folder = folder
 
     def validate_project_type(self):
-        if self._project.project_type == constances.ProjectType.VIDEO.value:
+        if (
+            self._project.project_type == constances.ProjectType.VIDEO.value
+            or self._project.project_type == constances.ProjectType.DOCUMENT.value
+        ):
             raise AppValidationException(
-                "The function does not support projects containing videos attached with URLs"
+                "The function does not support projects containing "
+                f"{constances.ProjectType.get_name(self._project.project_type)} attached with URLs"
             )
 
     def execute(self):
@@ -1583,9 +1603,13 @@ class SetImageAnnotationStatuses(BaseUseCase):
 
     def validate_project_type(self):
         project = self._projects.get_one(uuid=self._project_id, team_id=self._team_id)
-        if project.project_type == constances.ProjectType.VIDEO.value:
+        if (
+            project.project_type == constances.ProjectType.VIDEO.value
+            or project.project_type == constances.ProjectType.DOCUMENT.value
+        ):
             raise AppValidationException(
-                "The function does not support projects containing videos attached with URLs"
+                "The function does not support projects containing "
+                f"{constances.ProjectType.get_name(project.project_type)} attached with URLs"
             )
 
     def execute(self):
@@ -1629,9 +1653,13 @@ class DeleteImagesUseCase(BaseUseCase):
         self._image_names = image_names
 
     def validate_project_type(self):
-        if self._project.project_type == constances.ProjectType.VIDEO.value:
+        if (
+            self._project.project_type == constances.ProjectType.VIDEO.value
+            or self._project.project_type == constances.ProjectType.DOCUMENT.value
+        ):
             raise AppValidationException(
-                "The function does not support projects containing videos attached with URLs"
+                "The function does not support projects containing "
+                f"{constances.ProjectType.get_name(self._project.project_type)} attached with URLs"
             )
 
     def execute(self):
@@ -2071,9 +2099,13 @@ class GetImageAnnotationsUseCase(BaseUseCase):
         return use_case
 
     def validate_project_type(self):
-        if self._project.project_type == constances.ProjectType.VIDEO.value:
+        if (
+            self._project.project_type == constances.ProjectType.VIDEO.value
+            or self._project.project_type == constances.ProjectType.DOCUMENT.value
+        ):
             raise AppValidationException(
-                "The function does not support projects containing videos attached with URLs"
+                "The function does not support projects containing "
+                f"{constances.ProjectType.get_name(self._project.project_type)} attached with URLs"
             )
 
     def execute(self):
@@ -2242,9 +2274,13 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
         )
 
     def validate_project_type(self):
-        if self._project.project_type == constances.ProjectType.VIDEO.value:
+        if (
+            self._project.project_type == constances.ProjectType.VIDEO.value
+            or self._project.project_type == constances.ProjectType.DOCUMENT.value
+        ):
             raise AppValidationException(
-                "The function does not support projects containing videos attached with URLs"
+                "The function does not support projects containing "
+                f"{constances.ProjectType.get_name(self._project.project_type)} attached with URLs"
             )
 
     def execute(self):
@@ -2390,13 +2426,20 @@ class GetExportsUseCase(BaseUseCase):
         self._project = project
         self._return_metadata = return_metadata
 
+    def validate_project_type(self):
+        if self._project.project_type == constances.ProjectType.DOCUMENT.value:
+            raise AppValidationException(
+                "The function does not support projects containing document attached with URLs"
+            )
+
     def execute(self):
-        data = self._service.get_exports(
-            team_id=self._project.team_id, project_id=self._project.uuid
-        )
-        self._response.data = data
-        if not self._return_metadata:
-            self._response.data = [i["name"] for i in data]
+        if self.is_valid():
+            data = self._service.get_exports(
+                team_id=self._project.team_id, project_id=self._project.uuid
+            )
+            self._response.data = data
+            if not self._return_metadata:
+                self._response.data = [i["name"] for i in data]
         return self._response
 
 
@@ -2505,9 +2548,13 @@ class GetProjectImageCountUseCase(BaseUseCase):
             raise AppValidationException("The folder does not contain any sub-folders.")
 
     def validate_project_type(self):
-        if self._project.project_type == constances.ProjectType.VIDEO.value:
+        if (
+            self._project.project_type == constances.ProjectType.VIDEO.value
+            or self._project.project_type == constances.ProjectType.DOCUMENT.value
+        ):
             raise AppValidationException(
-                "The function does not support projects containing videos attached with URLs"
+                "The function does not support projects containing "
+                f"{constances.ProjectType.get_name(self._project.project_type)} attached with URLs"
             )
 
     def execute(self):
@@ -2578,6 +2625,12 @@ class ExtractFramesUseCase(BaseUseCase):
         if not self._limit:
             return self.upload_auth_data.get("availableImageCount")
         return self._limit
+
+    def validate_project_type(self):
+        if self._project.project_type == constances.ProjectType.DOCUMENT.value:
+            raise AppValidationException(
+                "The function does not support projects containing document attached with URLs"
+            )
 
     def execute(self):
         if self.is_valid():
@@ -3065,9 +3118,13 @@ class DownloadImageUseCase(BaseUseCase):
         )
 
     def validate_project_type(self):
-        if self._project.project_type == constances.ProjectType.VIDEO.value:
+        if (
+            self._project.project_type == constances.ProjectType.VIDEO.value
+            or self._project.project_type == constances.ProjectType.DOCUMENT.value
+        ):
             raise AppValidationException(
-                "The function does not support projects containing videos attached with URLs"
+                "The function does not support projects containing "
+                f"{constances.ProjectType.get_name(self._project.project_type)} attached with URLs"
             )
 
     def validate_variant_type(self):
@@ -3154,9 +3211,13 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
         self._verbose = verbose
 
     def validate_project_type(self):
-        if self._project.project_type == constances.ProjectType.VIDEO.value:
+        if (
+            self._project.project_type == constances.ProjectType.VIDEO.value
+            or self._project.project_type == constances.ProjectType.DOCUMENT.value
+        ):
             raise AppValidationException(
-                "The function does not support projects containing videos attached with URLs"
+                "The function does not support projects containing "
+                f"{constances.ProjectType.get_name(self._project.project_type)} attached with URLs"
             )
 
     @property
@@ -3766,50 +3827,57 @@ class DownloadExportUseCase(BaseUseCase):
         self._extract_zip_contents = extract_zip_contents
         self._to_s3_bucket = to_s3_bucket
 
-    def execute(self):
-        exports = self._service.get_exports(
-            team_id=self._project.team_id, project_id=self._project.uuid
-        )
-        export_id = None
-        for export in exports:
-            if export["name"] == self._export_name:
-                export_id = export["id"]
-                break
-        if not export_id:
-            raise AppException("Export not found.")
-
-        while True:
-            export = self._service.get_export(
-                team_id=self._project.team_id,
-                project_id=self._project.uuid,
-                export_id=export_id,
+    def validate_project_type(self):
+        if self._project.project_type == constances.ProjectType.DOCUMENT.value:
+            raise AppValidationException(
+                "The function does not support projects containing document attached with URLs"
             )
 
-            if export["status"] == ExportStatus.IN_PROGRESS.value:
-                logger.info("Waiting 5 seconds for export to finish on server.")
-                time.sleep(5)
-                continue
-            if export["status"] == ExportStatus.ERROR.value:
-                raise AppException("Couldn't download export.")
-                pass
-            break
+    def execute(self):
+        if self.is_valid():
+            exports = self._service.get_exports(
+                team_id=self._project.team_id, project_id=self._project.uuid
+            )
+            export_id = None
+            for export in exports:
+                if export["name"] == self._export_name:
+                    export_id = export["id"]
+                    break
+            if not export_id:
+                raise AppException("Export not found.")
 
-        filename = Path(export["path"]).name
-        filepath = Path(self._folder_path) / filename
-        with requests.get(export["download"], stream=True) as r:
-            r.raise_for_status()
-            with open(filepath, "wb") as f:
-                for chunk in r.iter_content(chunk_size=8192):
-                    f.write(chunk)
-        if self._extract_zip_contents:
-            with zipfile.ZipFile(filepath, "r") as f:
-                f.extractall(self._folder_path)
-            Path.unlink(filepath)
-            logger.info(f"Extracted {filepath} to folder {self._folder_path}")
-        else:
-            logger.info(f"Downloaded export ID {export['id']} to {filepath}")
+            while True:
+                export = self._service.get_export(
+                    team_id=self._project.team_id,
+                    project_id=self._project.uuid,
+                    export_id=export_id,
+                )
 
-        self._response.data = self._folder_path
+                if export["status"] == ExportStatus.IN_PROGRESS.value:
+                    logger.info("Waiting 5 seconds for export to finish on server.")
+                    time.sleep(5)
+                    continue
+                if export["status"] == ExportStatus.ERROR.value:
+                    raise AppException("Couldn't download export.")
+                    pass
+                break
+
+            filename = Path(export["path"]).name
+            filepath = Path(self._folder_path) / filename
+            with requests.get(export["download"], stream=True) as r:
+                r.raise_for_status()
+                with open(filepath, "wb") as f:
+                    for chunk in r.iter_content(chunk_size=8192):
+                        f.write(chunk)
+            if self._extract_zip_contents:
+                with zipfile.ZipFile(filepath, "r") as f:
+                    f.extractall(self._folder_path)
+                Path.unlink(filepath)
+                logger.info(f"Extracted {filepath} to folder {self._folder_path}")
+            else:
+                logger.info(f"Downloaded export ID {export['id']} to {filepath}")
+
+            self._response.data = self._folder_path
         return self._response
 
 
@@ -4149,64 +4217,77 @@ class RunPredictionUseCase(BaseUseCase):
         self._service = service
         self._folder = folder
 
+    def validate_project_type(self):
+        if self._project.project_type == constances.ProjectType.DOCUMENT.value:
+            raise AppValidationException(
+                "The function does not support projects containing document attached with URLs"
+            )
+
     def execute(self):
-        images = self._service.get_duplicated_images(
-            project_id=self._project.uuid,
-            team_id=self._project.team_id,
-            folder_id=self._folder.uuid,
-            images=self._images_list,
-        )
-
-        image_ids = [image["id"] for image in images]
-        image_names = [image["name"] for image in images]
-
-        if not image_ids:
-            self._response.errors = AppException("No valid image names were provided.")
-            return self._response
-
-        ml_models = self._ml_model_repo.get_all(
-            condition=Condition("name", self._ml_model_name, EQ)
-            & Condition("include_global", True, EQ)
-            & Condition("team_id", self._project.team_id, EQ)
-        )
-        ml_model = None
-        for model in ml_models:
-            if model.name == self._ml_model_name:
-                ml_model = model
-
-        res = self._service.run_prediction(
-            team_id=self._project.team_id,
-            project_id=self._project.uuid,
-            ml_model_id=ml_model.uuid,
-            image_ids=image_ids,
-        )
-        if not res.ok:
-            return self._response
-
-        success_images = []
-        failed_images = []
-        while len(success_images) + len(failed_images) != len(image_ids):
-            images_metadata = self._service.get_bulk_images(
+        if self.is_valid():
+            images = self._service.get_duplicated_images(
                 project_id=self._project.uuid,
                 team_id=self._project.team_id,
                 folder_id=self._folder.uuid,
-                images=image_names,
+                images=self._images_list,
             )
 
-            success_images = [
-                img["name"] for img in images_metadata if img["prediction_status"] == 3
-            ]
-            failed_images = [
-                img["name"] for img in images_metadata if img["prediction_status"] == 4
-            ]
+            image_ids = [image["id"] for image in images]
+            image_names = [image["name"] for image in images]
 
-            complete_images = success_images + failed_images
-            logger.info(
-                f"prediction complete on {len(complete_images)} / {len(image_ids)} images"
+            if not image_ids:
+                self._response.errors = AppException(
+                    "No valid image names were provided."
+                )
+                return self._response
+
+            ml_models = self._ml_model_repo.get_all(
+                condition=Condition("name", self._ml_model_name, EQ)
+                & Condition("include_global", True, EQ)
+                & Condition("team_id", self._project.team_id, EQ)
             )
-            time.sleep(5)
+            ml_model = None
+            for model in ml_models:
+                if model.name == self._ml_model_name:
+                    ml_model = model
 
-        self._response.data = (success_images, failed_images)
+            res = self._service.run_prediction(
+                team_id=self._project.team_id,
+                project_id=self._project.uuid,
+                ml_model_id=ml_model.uuid,
+                image_ids=image_ids,
+            )
+            if not res.ok:
+                return self._response
+
+            success_images = []
+            failed_images = []
+            while len(success_images) + len(failed_images) != len(image_ids):
+                images_metadata = self._service.get_bulk_images(
+                    project_id=self._project.uuid,
+                    team_id=self._project.team_id,
+                    folder_id=self._folder.uuid,
+                    images=image_names,
+                )
+
+                success_images = [
+                    img["name"]
+                    for img in images_metadata
+                    if img["prediction_status"] == 3
+                ]
+                failed_images = [
+                    img["name"]
+                    for img in images_metadata
+                    if img["prediction_status"] == 4
+                ]
+
+                complete_images = success_images + failed_images
+                logger.info(
+                    f"prediction complete on {len(complete_images)} / {len(image_ids)} images"
+                )
+                time.sleep(5)
+
+            self._response.data = (success_images, failed_images)
         return self._response
 
 
@@ -4341,9 +4422,13 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
             raise AppValidationException("")
 
     def validate_project_type(self):
-        if self._project.project_type == constances.ProjectType.VIDEO.value:
+        if (
+            self._project.project_type == constances.ProjectType.VIDEO.value
+            or self._project.project_type == constances.ProjectType.DOCUMENT.value
+        ):
             raise AppValidationException(
-                "The function does not support projects containing videos attached with URLs"
+                "The function does not support projects containing "
+                f"{constances.ProjectType.get_name(self._project.project_type)} attached with URLs"
             )
 
     def validate_auth_data(self):
