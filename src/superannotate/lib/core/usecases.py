@@ -23,11 +23,7 @@ import lib.core as constances
 import numpy as np
 import pandas as pd
 import requests
-from azure.core.exceptions import AzureError
-from azure.storage.blob import BlobServiceClient
 from boto3.exceptions import Boto3Error
-from google.api_core.exceptions import GoogleAPIError
-from google.cloud import storage as google_storage
 from lib.app.analytics.common import aggregate_annotations_as_df
 from lib.app.analytics.common import consensus_plot
 from lib.app.analytics.common import image_consensus
@@ -1853,113 +1849,6 @@ class UnShareProjectUseCase(BaseUseCase):
         return self._response
 
 
-class DownloadGoogleCloudImages(BaseUseCase):
-    def __init__(
-        self, project_name: str, bucket_name: str, folder_name: str, download_path: str,
-    ):
-        super().__init__()
-        self._project_name = project_name
-        self._bucket_name = bucket_name
-        self._folder_name = folder_name
-        self._download_path = download_path
-
-    @property
-    def client(self):
-        return google_storage.Client(project=self._project_name)
-
-    def execute(self):
-        bucket = self.client.get_bucket(self._bucket_name)
-        image_blobs = bucket.list_blobs(prefix=self._folder_name)
-        downloaded_images = []
-        duplicated_images = []
-        failed_images = []
-        path = Path(self._download_path)
-        for image_blob in image_blobs:
-            if image_blobs.content_type.startswith("image"):
-                image_name = os.path.basename(image_blob.name)
-                image_path = path / image_name
-                if image_name not in downloaded_images:
-                    try:
-                        image_blob.download_to_filename(image_path)
-                    except GoogleAPIError as e:
-                        self._response.errors = (
-                            f"Couldn't download image {image_name} {e}"
-                        )
-                        failed_images.append(image_name)
-                    else:
-                        downloaded_images.append(image_name)
-                else:
-                    duplicated_images.append(image_name)
-
-        self._response.data = {
-            "downloaded_images": downloaded_images,
-            "duplicated_images": duplicated_images,
-            "failed_images": failed_images,
-        }
-        return self._response
-
-
-class DownloadAzureCloudImages(BaseUseCase):
-    STORAGE_KEY_NAME = "AZURE_STORAGE_CONNECTION_STRING"
-
-    def __init__(
-        self, container: str, folder_name: str, download_path: str,
-    ):
-        super().__init__()
-        self._container = container
-        self._folder_name = folder_name
-        self._download_path = download_path
-
-    @property
-    def get_blobs(self):
-        bucket = self.client.get_container_client(self._container)
-        return bucket.list_blobs(name_starts_with=self._folder_name)
-
-    @property
-    def connect_key(self):
-        return os.getenv(self.STORAGE_KEY_NAME)
-
-    @property
-    def client(self):
-        return BlobServiceClient.from_connection_string(self.connect_key)
-
-    def execute(self):
-        blob_client = self.client
-        image_blobs = self.get_blobs()
-        downloaded_images = []
-        duplicated_images = []
-        failed_images = []
-        path = Path(self._download_path)
-        for image_blob in image_blobs:
-            if image_blobs.content_type.startswith("image"):
-                image_name = os.path.basename(image_blob.name)
-                image_path = path / image_name
-                if image_name not in downloaded_images:
-                    try:
-                        image_blob_client = blob_client.get_blob_client(
-                            container=self._container, blob=image_blob
-                        )
-                        image_stream = image_blob_client.download_blob()
-                    except AzureError as e:
-                        self._response.errors = (
-                            f"Couldn't download image {image_name} {e}"
-                        )
-                        failed_images.append(image_name)
-                    else:
-                        with open(image_path, "wb") as image_file:
-                            image_file.write(image_stream.readall())
-                        downloaded_images.append(image_name)
-                else:
-                    duplicated_images.append(image_name)
-
-        self._response.data = {
-            "downloaded_images": downloaded_images,
-            "duplicated_images": duplicated_images,
-            "failed_images": failed_images,
-        }
-        return self._response
-
-
 class GetProjectMetadataUseCase(BaseUseCase):
     def __init__(
         self,
@@ -3540,8 +3429,8 @@ class CreateModelUseCase(BaseUseCase):
         model_description: str,
         task: str,
         team_id: int,
-        train_data_paths: List[str],
-        test_data_paths: List[str],
+        train_data_paths: Iterable[str],
+        test_data_paths: Iterable[str],
         backend_service_provider: SuerannotateServiceProvider,
         projects: BaseReadOnlyRepository,
         folders: BaseReadOnlyRepository,
