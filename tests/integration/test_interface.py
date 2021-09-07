@@ -10,6 +10,7 @@ from tests.integration.base import BaseTestCase
 class TestInterface(BaseTestCase):
     PROJECT_NAME = "Interface test"
     TEST_FOLDER_PATH = "data_set/sample_project_vector"
+    TEST_FOLDER_PATH_WITH_MULTIPLE_IMAGERS = "data_set/sample_project_vector"
     PROJECT_DESCRIPTION = "desc"
     PROJECT_TYPE = "Vector"
     TEST_FOLDER_NAME = "folder"
@@ -19,6 +20,10 @@ class TestInterface(BaseTestCase):
     @property
     def folder_path(self):
         return os.path.join(dirname(dirname(__file__)), self.TEST_FOLDER_PATH)
+
+    @property
+    def folder_path_with_multiple_images(self):
+        return os.path.join(dirname(dirname(__file__)), self.TEST_FOLDER_PATH_WITH_MULTIPLE_IMAGERS)
 
     def test_delete_images(self):
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME)

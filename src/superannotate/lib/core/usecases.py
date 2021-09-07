@@ -163,6 +163,22 @@ class CreateProjectUseCase(BaseUseCase):
         self._contributors = contributors
         self._backend_service = backend_service_provider
 
+    def validate_project_name(self):
+        if not self._project.name:
+            raise AppValidationException("Please provide a project name.")
+        condition = Condition("name", self._project.name, EQ) & Condition(
+            "team_id", self._project.team_id, EQ
+        )
+        if self._projects.get_all(condition):
+            raise AppValidationException(
+                f"Project name {self._project.name} is not unique. "
+                f"To use SDK please make project names unique."
+            )
+
+    def validate_description(self):
+        if not self._project.description:
+            raise AppValidationException("Please provide a project description.")
+
     def execute(self):
         if self.is_valid():
             # TODO add status in the constants
@@ -237,16 +253,6 @@ class CreateProjectUseCase(BaseUseCase):
             )
         return self._response
 
-    def validate_project_name_uniqueness(self):
-        condition = Condition("name", self._project.name, EQ) & Condition(
-            "team_id", self._project.team_id, EQ
-        )
-        if self._projects.get_all(condition):
-            raise AppValidationException(
-                f"Project name {self._project.name} is not unique. "
-                f"To use SDK please make project names unique."
-            )
-
 
 class DeleteProjectUseCase(BaseUseCase):
     def __init__(
@@ -273,26 +279,50 @@ class DeleteProjectUseCase(BaseUseCase):
 
 class UpdateProjectUseCase(BaseUseCase):
     def __init__(
-        self, project: ProjectEntity, projects: BaseManageableRepository,
+        self,
+        project: ProjectEntity,
+        project_data: dict,
+        projects: BaseManageableRepository,
     ):
 
         super().__init__()
         self._project = project
+        self._project_data = project_data
         self._projects = projects
 
-    def validate_project_name_uniqueness(self):
-        condition = Condition("name", self._project.name, EQ) & Condition(
-            "team_id", self._project.team_id, EQ
-        )
-        if self._projects.get_all(condition):
-            logger.error("There are duplicated names.")
-            raise AppValidationException(
-                f"Project name {self._project.name} is not unique. "
-                f"To use SDK please make project names unique."
+    def validate_project_name(self):
+        if self._project_data.get("name"):
+            if (
+                len(
+                    set(self._project_data["name"]).intersection(
+                        constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
+                    )
+                )
+                > 0
+            ):
+                self._project_data["name"] = "".join(
+                    "_"
+                    if char in constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
+                    else char
+                    for char in self._project_data["name"]
+                )
+                logger.warning(
+                    "New folder name has special characters. Special characters will be replaced by underscores."
+                )
+            condition = Condition("name", self._project_data["name"], EQ) & Condition(
+                "team_id", self._project.team_id, EQ
             )
+            if self._projects.get_all(condition):
+                logger.error("There are duplicated names.")
+                raise AppValidationException(
+                    f"Project name {self._project.name} is not unique. "
+                    f"To use SDK please make project names unique."
+                )
 
     def execute(self):
         if self.is_valid():
+            for field, value in self._project_data.items():
+                setattr(self._project, field, value)
             self._projects.update(self._project)
 
 
@@ -449,6 +479,14 @@ class GetImagesUseCase(BaseUseCase):
     #         raise AppValidationException(
     #             "The function does not support projects containing videos attached with URLs"
     #         )
+
+    def validate_annotation_status(self):
+        if (
+            self._annotation_status
+            and self._annotation_status.lower()
+            not in constances.AnnotationStatus.values()
+        ):
+            raise AppValidationException("Invalid annotations status.")
 
     def execute(self):
         if self.is_valid():
@@ -4422,6 +4460,7 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
 
 class DeleteAnnotations(BaseUseCase):
     POLL_AWAIT_TIME = 2
+    CHUNK_SIZE = 2000
 
     def __init__(
         self,
@@ -4437,34 +4476,55 @@ class DeleteAnnotations(BaseUseCase):
         self._backend_service = backend_service
 
     def execute(self) -> Response:
-
-        response = self._backend_service.delete_image_annotations(
-            project_id=self._project.uuid,
-            team_id=self._project.team_id,
-            folder_id=self._folder.uuid,
-            image_names=self._image_names,
-        )
-
-        if response:
-            timeout_start = time.time()
-            while time.time() < timeout_start + self.POLL_AWAIT_TIME:
-                progress = int(
-                    self._backend_service.get_annotations_delete_progress(
-                        project_id=self._project.uuid,
-                        team_id=self._project.team_id,
-                        poll_id=response.get("poll_id"),
-                    ).get("process", -1)
+        polling_states = {}
+        if self._image_names:
+            for idx in range(0, len(self._image_names), self.CHUNK_SIZE):
+                response = self._backend_service.delete_image_annotations(
+                    project_id=self._project.uuid,
+                    team_id=self._project.team_id,
+                    folder_id=self._folder.uuid,
+                    image_names=self._image_names[
+                        idx : idx + self.CHUNK_SIZE
+                    ],  # noqa: E203
                 )
-                if 0 < progress < 100:
-                    logger.info(f"Delete annotations in progress {progress}/100")
-                elif 0 > progress:
-                    self._response.errors = "Annotations delete fails."
-                    break
-                else:
-                    logger.info("Annotations deleted")
-                    break
+                if response:
+                    polling_states[response.get("poll_id")] = False
         else:
+            response = self._backend_service.delete_image_annotations(
+                project_id=self._project.uuid,
+                team_id=self._project.team_id,
+                folder_id=self._folder.uuid,
+            )
+            if response:
+                polling_states[response.get("poll_id")] = False
+
+        if not polling_states:
             self._response.errors = AppException("Invalid image names or empty folder.")
+        else:
+            for poll_id in polling_states:
+                timeout_start = time.time()
+                while time.time() < timeout_start + self.POLL_AWAIT_TIME:
+                    progress = int(
+                        self._backend_service.get_annotations_delete_progress(
+                            project_id=self._project.uuid,
+                            team_id=self._project.team_id,
+                            poll_id=poll_id,
+                        ).get("process", -1)
+                    )
+                    if 0 < progress < 100:
+                        logger.info("Delete annotations in progress.")
+                    elif 0 > progress:
+                        polling_states[poll_id] = False
+                        self._response.errors = "Annotations delete fails."
+                        continue
+                    else:
+                        polling_states[poll_id] = True
+                        logger.info("Annotations deleted")
+                        continue
+            if all(polling_states.values()):
+                logger.info("Annotations deleted")
+            else:
+                logger.info("Annotations delete fails.")
         return self._response
 
 

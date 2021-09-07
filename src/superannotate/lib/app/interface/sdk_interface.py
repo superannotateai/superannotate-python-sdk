@@ -183,7 +183,7 @@ def create_project(project_name: str, project_description: str, project_type: st
         name=project_name, description=project_description, project_type=project_type
     )
     if response.errors:
-        raise Exception(response.errors)
+        raise AppException(response.errors)
 
     return ProjectSerializer(response.data).serialize()
 
@@ -208,7 +208,7 @@ def create_project_from_metadata(project_metadata: dict):
         workflows=project_metadata.get("workflow", []),
     )
     if response.errors:
-        raise Exception(response.errors)
+        raise AppException(response.errors)
     return ProjectSerializer(response.data).serialize()
 
 
@@ -254,7 +254,7 @@ def clone_project(
         copy_contributors=copy_contributors,
     )
     if response.errors:
-        raise AppValidationException(response.errors)
+        raise AppException(response.errors)
     return ProjectSerializer(response.data).serialize()
 
 
@@ -292,7 +292,7 @@ def search_images(
         image_name_prefix=image_name_prefix,
     )
     if response.errors:
-        raise AppValidationException(response.errors)
+        raise AppException(response.errors)
 
     if return_metadata:
         return [ImageSerializer(image).serialize() for image in response.data]
@@ -526,7 +526,7 @@ def copy_image(
 
     project = controller.get_project_metadata(destination_project).data
     if project["project"].project_type == constances.ProjectType.VIDEO.value:
-        raise AppValidationException(
+        raise AppException(
             "The function does not support projects containing videos attached with URLs"
         )
 
@@ -740,7 +740,7 @@ def copy_images(
         include_pin=copy_pin,
     )
     if res.errors:
-        raise AppValidationException(res.errors)
+        raise AppException(res.errors)
     skipped_images = res.data
     done_count = len(image_names) - len(skipped_images)
     message_postfix = "{from_path} to {to_path}."
@@ -781,7 +781,7 @@ def move_images(
 
     project = controller.get_project_metadata(project_name).data
     if project["project"].project_type == constances.ProjectType.VIDEO.value:
-        raise AppValidationException(
+        raise AppException(
             "The function does not support projects containing videos attached with URLs"
         )
 
@@ -909,7 +909,7 @@ def get_project_workflow(project: Union[str, dict]):
     project_name, folder_name = extract_project_folder(project)
     workflow = controller.get_project_workflow(project_name=project_name)
     if workflow.errors:
-        raise AppValidationException(workflow.errors)
+        raise AppException(workflow.errors)
     return workflow.data
 
 
@@ -993,7 +993,7 @@ def set_project_default_image_quality_in_editor(
         new_settings=[{"attribute": "ImageQuality", "value": image_quality_in_editor}],
     )
     if response.errors:
-        raise AppValidationException(response.errors)
+        raise AppException(response.errors)
     return response.data
 
 
@@ -1051,7 +1051,7 @@ def get_image_metadata(project: Union[str, dict], image_name: str, *_, **__):
     project_name, folder_name = extract_project_folder(project)
     response = controller.get_image_metadata(project_name, folder_name, image_name)
     if response.errors:
-        raise AppValidationException(response.errors)
+        raise AppException(response.errors)
 
     res_data = response.data
     res_data["annotation_status"] = constances.AnnotationStatus.get_name(
@@ -1086,7 +1086,7 @@ def set_images_annotation_statuses(
         project_name, folder_name, image_names, annotation_status
     )
     if response.errors:
-        raise AppValidationException(response.errors)
+        raise AppException(response.errors)
     logger.info("Annotations status of images changed")
 
 
@@ -1103,13 +1103,13 @@ def delete_images(project: Union[str, dict], image_names: Optional[List[str]] = 
     project_name, folder_name = extract_project_folder(project)
 
     if not isinstance(image_names, list) and image_names is not None:
-        raise AppValidationException("Image_names should be a list of strs or None.")
+        raise AppException("Image_names should be a list of strs or None.")
 
     response = controller.delete_images(
         project_name=project_name, folder_name=folder_name, image_names=image_names
     )
     if response.errors:
-        raise AppValidationException(response.errors)
+        raise AppException(response.errors)
 
     logger.info(
         f"Images deleted in project {project_name}{'' if folder_name else '/' + folder_name}"
@@ -1360,6 +1360,12 @@ def upload_images_from_folder_to_project(
             "extensions should be a list or a tuple in upload_images_from_folder_to_project"
         )
 
+    if exclude_file_patterns:
+        exclude_file_patterns = list(exclude_file_patterns) + list(
+            constances.DEFAULT_FILE_EXCLUDE_PATTERNS
+        )
+        exclude_file_patterns = list(set(exclude_file_patterns))
+
     project_folder_name = project_name + (f"/{folder_name}" if folder_name else "")
 
     logger.info(
@@ -1394,7 +1400,7 @@ def upload_images_from_folder_to_project(
             for _ in use_case.execute():
                 progress_bar.update(1)
         return use_case.data
-    raise AppValidationException(use_case.response.errors)
+    raise AppException(use_case.response.errors)
 
 
 @Trackable
@@ -1421,7 +1427,7 @@ def get_project_image_count(
         with_all_subfolders=with_all_subfolders,
     )
     if response.errors:
-        raise AppValidationException(response.errors)
+        raise AppException(response.errors)
     return response.data
 
 
@@ -1475,7 +1481,7 @@ def download_image_annotations(
         destination=local_dir_path,
     )
     if res.errors:
-        raise AppValidationException(res.errors)
+        raise AppException(res.errors)
     return res.data
 
 
@@ -1505,7 +1511,7 @@ def download_image_preannotations(
         destination=local_dir_path,
     )
     if res.errors:
-        raise AppValidationException(res.errors)
+        raise AppException(res.errors)
     return res.data
 
 
@@ -1617,7 +1623,7 @@ def prepare_export(
         annotation_statuses=annotation_statuses,
     )
     if response.errors:
-        raise AppValidationException(response.errors)
+        raise AppException(response.errors)
     return response.data
 
 
@@ -1741,7 +1747,7 @@ def upload_videos_from_folder_to_project(
                     for _ in use_case.execute():
                         progress_bar.update(1)
             else:
-                raise AppValidationException(use_case.response.errors)
+                raise AppException(use_case.response.errors)
 
     return
 
@@ -1812,7 +1818,7 @@ def upload_video_to_project(
                 for _ in use_case.execute():
                     progress_bar.update(1)
             return use_case.data[0]
-        raise AppValidationException(use_case.response.errors)
+        raise AppException(use_case.response.errors)
 
 
 @Trackable
@@ -1975,7 +1981,7 @@ def move_image(
     source_project_name, source_folder_name = extract_project_folder(source_project)
     project = controller.get_project_metadata(source_project_name).data
     if project["project"].project_type == constances.ProjectType.VIDEO.value:
-        raise AppValidationException(
+        raise AppException(
             "The function does not support projects containing videos attached with URLs"
         )
 
@@ -2110,7 +2116,7 @@ def set_image_annotation_status(
         project_name, folder_name, [image_name], annotation_status
     )
     if response.errors:
-        raise AppValidationException(response.errors)
+        raise AppException(response.errors)
 
 
 @Trackable
@@ -2133,7 +2139,7 @@ def set_project_workflow(project: Union[str, dict], new_workflow: List[dict]):
         project_name=project_name, steps=new_workflow
     )
     if response.errors:
-        raise AppValidationException(response.errors)
+        raise AppException(response.errors)
 
 
 @Trackable
@@ -2215,7 +2221,7 @@ def download_image(
         include_overlay=include_overlay,
     )
     if response.errors:
-        raise AppValidationException(response.errors)
+        raise AppException(response.errors)
     return response.data
 
 
@@ -2241,7 +2247,7 @@ def attach_image_urls_to_project(
     project_name, folder_name = extract_project_folder(project)
     project = controller.get_project_metadata(project_name).data
     if project["project"].project_type == constances.ProjectType.VIDEO.value:
-        raise AppValidationException(
+        raise AppException(
             "The function does not support projects containing videos attached with URLs"
         )
 
@@ -2303,7 +2309,7 @@ def attach_video_urls_to_project(
     project_name, folder_name = extract_project_folder(project)
     project = controller.get_project_metadata(project_name).data
     if project["project"].project_type != constances.ProjectType.VIDEO.value:
-        raise AppValidationException("The function does not support")
+        raise AppException("The function does not support")
 
     image_data = pd.read_csv(attachments, dtype=str)
     image_data = image_data[~image_data["url"].isnull()]
@@ -2379,7 +2385,7 @@ def upload_annotations_from_folder_to_project(
     project_name, folder_name = extract_project_folder(project)
     project = controller.get_project_metadata(project_name).data
     if project["project"].project_type == constances.ProjectType.VIDEO.value:
-        raise AppValidationException(
+        raise AppException(
             "The function does not support projects containing videos attached with URLs"
         )
 
@@ -2460,7 +2466,7 @@ def upload_preannotations_from_folder_to_project(
     project_name, folder_name = extract_project_folder(project)
     project = controller.get_project_metadata(project_name).data
     if project["project"].project_type == constances.ProjectType.VIDEO.value:
-        raise AppValidationException(
+        raise AppException(
             "The function does not support projects containing videos attached with URLs"
         )
 
@@ -2552,7 +2558,7 @@ def upload_image_annotations(
         verbose=verbose,
     )
     if response.errors:
-        raise AppValidationException(response.errors)
+        raise AppException(response.errors)
 
 
 @Trackable
@@ -2783,7 +2789,7 @@ def benchmark(
             show_plots=show_plots,
         )
         if response.errors:
-            raise AppValidationException(response.errors)
+            raise AppException(response.errors)
     return response.data
 
 
@@ -2837,7 +2843,7 @@ def consensus(
             show_plots=show_plots,
         )
         if response.errors:
-            raise AppValidationException(response.errors)
+            raise AppException(response.errors)
     return response.data
 
 
@@ -2904,7 +2910,7 @@ def run_prediction(project, images_list, model):
         folder_name=folder_name,
     )
     if response.errors:
-        raise Exception(response.errors)
+        raise AppException(response.errors)
     return response.data
 
 
@@ -3305,7 +3311,7 @@ def upload_image_to_project(
 
     project = controller.get_project_metadata(project_name).data
     if project["project"].project_type == constances.ProjectType.VIDEO.value:
-        raise AppValidationException(
+        raise AppException(
             "The function does not support projects containing videos attached with URLs"
         )
 
@@ -3395,7 +3401,7 @@ def upload_images_to_project(
     project_name, folder_name = extract_project_folder(project)
     project = controller.get_project_metadata(project_name).data
     if project["project"].project_type == constances.ProjectType.VIDEO.value:
-        raise AppValidationException(
+        raise AppException(
             "The function does not support projects containing videos attached with URLs"
         )
 
