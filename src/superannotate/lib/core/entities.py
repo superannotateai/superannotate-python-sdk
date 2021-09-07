@@ -4,7 +4,7 @@ from typing import Any
 from typing import Iterable
 from typing import List
 
-from src.superannotate.lib.core.enums import SegmentationStatus
+from lib.core.enums import SegmentationStatus
 
 
 class BaseEntity(ABC):
