@@ -53,7 +53,7 @@ from lib.core.response import Response
 from lib.core.serviceproviders import SuerannotateServiceProvider
 from PIL import UnidentifiedImageError
 
-logger = logging.getLogger()
+logger = logging.getLogger("root")
 
 
 class BaseUseCase(ABC):
@@ -4528,7 +4528,7 @@ class DeleteAnnotations(BaseUseCase):
         return self._response
 
 
-class GetDuplicateImages(BaseUseCase):
+class GetBulkImages(BaseUseCase):
     def __init__(
         self,
         service: SuerannotateServiceProvider,
@@ -4546,13 +4546,32 @@ class GetDuplicateImages(BaseUseCase):
         self._chunk_size = 500
 
     def execute(self):
-        duplicates = []
+        res = []
         for i in range(0, len(self._images), self._chunk_size):
-            duplications = self._service.get_bulk_images(
+            images = self._service.get_bulk_images(
                 project_id=self._project_id,
                 team_id=self._team_id,
                 folder_id=self._folder_id,
                 images=self._images[i : i + self._chunk_size],
             )
-            duplicates += [image["name"] for image in duplications]
-        return duplicates
+            res += [
+                ImageEntity(
+                    uuid=image["id"],
+                    name=image["name"],
+                    path=image["name"],
+                    project_id=image["project_id"],
+                    team_id=image["team_id"],
+                    annotation_status_code=image["annotation_status"],
+                    folder_id=image["folder_id"],
+                    annotator_id=image["annotator_id"],
+                    annotator_name=image["annotator_name"],
+                    qa_id=image["qa_id"],
+                    qa_name=image["qa_name"],
+                    entropy_value=image["entropy_value"],
+                    approval_status=image["approval_status"],
+                    is_pinned=image["is_pinned"],
+                )
+                for image in images
+            ]
+        self._response.data = res
+        return self._response

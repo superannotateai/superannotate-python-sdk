@@ -4,6 +4,8 @@ from typing import Any
 from typing import Iterable
 from typing import List
 
+from lib.core.enums import SegmentationStatus
+
 
 class BaseEntity(ABC):
     def __init__(self, uuid: Any = None):
@@ -233,6 +235,8 @@ class ImageEntity(BaseEntity):
         entropy_value: int = None,
         approval_status: bool = None,
         is_pinned: bool = None,
+        segmentation_status: int = SegmentationStatus.NOT_STARTED.value,
+        prediction_status: int = SegmentationStatus.NOT_STARTED.value,
         meta: ImageInfoEntity = ImageInfoEntity(),
     ):
         super().__init__(uuid)
@@ -250,6 +254,8 @@ class ImageEntity(BaseEntity):
         self.approval_status = approval_status
         self.annotator_name = annotator_name
         self.is_pinned = is_pinned
+        self.segmentation_status = segmentation_status
+        self.prediction_status = prediction_status
         self.meta = meta
 
     def to_dict(self):
@@ -268,6 +274,8 @@ class ImageEntity(BaseEntity):
             "annotator_id": self.annotator_id,
             "annotator_name": self.annotator_name,
             "is_pinned": self.is_pinned,
+            "segmentation_status": self.segmentation_status,
+            "prediction_status": self.prediction_status,
             "meta": self.meta.to_dict(),
         }
 
