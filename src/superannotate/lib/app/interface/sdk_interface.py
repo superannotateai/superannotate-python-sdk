@@ -619,9 +619,15 @@ def upload_images_from_public_urls_to_project(
         if not download_response.errors:
             content, content_name = download_response.data
             image_name = image_name if image_name else content_name
-            if image_name not in controller.get_duplicated_images(
-                project_name=project_name, folder_name=folder_name, images=[image_name]
-            ):
+            duplicated_images = [
+                image.name
+                for image in controller.get_duplicated_images(
+                    project_name=project_name,
+                    folder_name=folder_name,
+                    images=[image_name],
+                )
+            ]
+            if image_name not in duplicated_images:
                 upload_response = controller.upload_image_to_s3(
                     project_name=project_name,
                     image_path=image_name,

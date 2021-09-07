@@ -1476,11 +1476,11 @@ class Controller(BaseController):
     ):
         project = self._get_project(project_name)
         folder = self._get_folder(project, folder_name)
-        use_case = usecases.GetDuplicateImages(
+        use_case = usecases.GetBulkImages(
             service=self._backend_client,
             project_id=project.uuid,
             team_id=project.team_id,
             folder_id=folder.uuid,
             images=images,
         )
-        return use_case.execute()
+        return use_case.execute().data
