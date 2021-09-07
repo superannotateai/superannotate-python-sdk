@@ -163,6 +163,22 @@ class CreateProjectUseCase(BaseUseCase):
         self._contributors = contributors
         self._backend_service = backend_service_provider
 
+    def validate_project_name(self):
+        if not self._project.name:
+            raise AppValidationException("Please provide a project name.")
+        condition = Condition("name", self._project.name, EQ) & Condition(
+            "team_id", self._project.team_id, EQ
+        )
+        if self._projects.get_all(condition):
+            raise AppValidationException(
+                f"Project name {self._project.name} is not unique. "
+                f"To use SDK please make project names unique."
+            )
+
+    def validate_description(self):
+        if not self._project.description:
+            raise AppValidationException("Please provide a project description.")
+
     def execute(self):
         if self.is_valid():
             # TODO add status in the constants
@@ -237,16 +253,6 @@ class CreateProjectUseCase(BaseUseCase):
             )
         return self._response
 
-    def validate_project_name_uniqueness(self):
-        condition = Condition("name", self._project.name, EQ) & Condition(
-            "team_id", self._project.team_id, EQ
-        )
-        if self._projects.get_all(condition):
-            raise AppValidationException(
-                f"Project name {self._project.name} is not unique. "
-                f"To use SDK please make project names unique."
-            )
-
 
 class DeleteProjectUseCase(BaseUseCase):
     def __init__(
@@ -273,26 +279,50 @@ class DeleteProjectUseCase(BaseUseCase):
 
 class UpdateProjectUseCase(BaseUseCase):
     def __init__(
-        self, project: ProjectEntity, projects: BaseManageableRepository,
+        self,
+        project: ProjectEntity,
+        project_data: dict,
+        projects: BaseManageableRepository,
     ):
 
         super().__init__()
         self._project = project
+        self._project_data = project_data
         self._projects = projects
 
-    def validate_project_name_uniqueness(self):
-        condition = Condition("name", self._project.name, EQ) & Condition(
-            "team_id", self._project.team_id, EQ
-        )
-        if self._projects.get_all(condition):
-            logger.error("There are duplicated names.")
-            raise AppValidationException(
-                f"Project name {self._project.name} is not unique. "
-                f"To use SDK please make project names unique."
+    def validate_project_name(self):
+        if self._project_data.get("name"):
+            if (
+                len(
+                    set(self._project_data["name"]).intersection(
+                        constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
+                    )
+                )
+                > 0
+            ):
+                self._project_data["name"] = "".join(
+                    "_"
+                    if char in constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
+                    else char
+                    for char in self._project_data["name"]
+                )
+                logger.warning(
+                    "New folder name has special characters. Special characters will be replaced by underscores."
+                )
+            condition = Condition("name", self._project_data["name"], EQ) & Condition(
+                "team_id", self._project.team_id, EQ
             )
+            if self._projects.get_all(condition):
+                logger.error("There are duplicated names.")
+                raise AppValidationException(
+                    f"Project name {self._project.name} is not unique. "
+                    f"To use SDK please make project names unique."
+                )
 
     def execute(self):
         if self.is_valid():
+            for field, value in self._project_data.items():
+                setattr(self._project, field, value)
             self._projects.update(self._project)
 
 
@@ -449,6 +479,14 @@ class GetImagesUseCase(BaseUseCase):
     #         raise AppValidationException(
     #             "The function does not support projects containing videos attached with URLs"
     #         )
+
+    def validate_annotation_status(self):
+        if (
+            self._annotation_status
+            and self._annotation_status.lower()
+            not in constances.AnnotationStatus.values()
+        ):
+            raise AppValidationException("Invalid annotations status.")
 
     def execute(self):
         if self.is_valid():
@@ -1634,16 +1672,13 @@ class DeleteImagesUseCase(BaseUseCase):
         if self.is_valid():
             if self._image_names:
                 image_ids = [
-                    image.uuid
-                    for image in GetBulkImages(
-                        service=self._backend_service,
+                    image["id"]
+                    for image in self._backend_service.get_bulk_images(
                         project_id=self._project.uuid,
                         team_id=self._project.team_id,
                         folder_id=self._folder.uuid,
                         images=self._image_names,
                     )
-                    .execute()
-                    .data
                 ]
             else:
                 condition = (
@@ -3957,7 +3992,7 @@ class RunSegmentationUseCase(BaseUseCase):
         self._folder = folder
 
     def validate_project_type(self):
-        if self._project.project_type is not ProjectType.PIXEL.value:
+        if self._project.project_type is not ProjectType.PIXEL:
             raise AppValidationException(
                 "Operation not supported for given project type"
             )
@@ -3973,67 +4008,53 @@ class RunSegmentationUseCase(BaseUseCase):
             )
 
     def execute(self):
-        if self.is_valid():
-            images = (
-                GetBulkImages(
-                    service=self._service,
-                    project_id=self._project.uuid,
-                    team_id=self._project.team_id,
-                    folder_id=self._folder.uuid,
-                    images=self._images_list,
-                )
-                .execute()
-                .data
+        images = self._service.get_duplicated_images(
+            project_id=self._project.uuid,
+            team_id=self._project.team_id,
+            folder_id=self._folder.uuid,
+            images=self._images_list,
+        )
+
+        image_ids = [image["id"] for image in images]
+        image_names = [image["name"] for image in images]
+
+        res = self._service.run_segmentation(
+            self._project.team_id,
+            self._project.uuid,
+            model_name=self._ml_model_name,
+            image_ids=image_ids,
+        )
+        if not res.ok:
+            return self._response
+
+        succeded_imgs = []
+        failed_imgs = []
+        while len(succeded_imgs) + len(failed_imgs) != len(image_ids):
+            images_metadata = self._service.get_bulk_images(
+                project_id=self._project.uuid,
+                team_id=self._project.team_id,
+                folder_id=self._folder.uuid,
+                images=image_names,
             )
 
-            image_ids = [image.uuid for image in images]
-            image_names = [image.name for image in images]
+            succeded_imgs = [
+                img["name"]
+                for img in images_metadata
+                if img["segmentation_status"] == 3
+            ]
+            failed_imgs = [
+                img["name"]
+                for img in images_metadata
+                if img["segmentation_status"] == 4
+            ]
 
-            if not len(image_names):
-                raise AppException("No valid image names were provided")
-
-            res = self._service.run_segmentation(
-                self._project.team_id,
-                self._project.uuid,
-                model_name=self._ml_model_name,
-                image_ids=image_ids,
+            complete_images = succeded_imgs + failed_imgs
+            logger.info(
+                f"segmentation complete on {len(complete_images)} / {len(image_ids)} images"
             )
-            if not res.ok:
-                return self._response
+            time.sleep(5)
 
-            success_images = []
-            failed_images = []
-            while len(success_images) + len(failed_images) != len(image_ids):
-                images_metadata = (
-                    GetBulkImages(
-                        service=self._service,
-                        project_id=self._project.uuid,
-                        team_id=self._project.team_id,
-                        folder_id=self._folder.uuid,
-                        images=self._images_list,
-                    )
-                    .execute()
-                    .data
-                )
-
-                success_images = [
-                    img.name
-                    for img in images_metadata
-                    if img.segmentation_status
-                    == constances.SegmentationStatus.COMPLETED.value
-                ]
-                failed_images = [
-                    img.name
-                    for img in images_metadata
-                    if img.segmentation_status
-                    == constances.SegmentationStatus.FAILED.value
-                ]
-                logger.info(
-                    f"segmentation complete on {len(success_images + failed_images)} / {len(image_ids)} images"
-                )
-                time.sleep(5)
-
-            self._response.data = (success_images, failed_images)
+        self._response.data = (succeded_imgs, failed_imgs)
         return self._response
 
 
@@ -4056,23 +4077,17 @@ class RunPredictionUseCase(BaseUseCase):
         self._folder = folder
 
     def execute(self):
-
-        images = (
-            GetBulkImages(
-                service=self._service,
-                project_id=self._project.uuid,
-                team_id=self._project.team_id,
-                folder_id=self._folder.uuid,
-                images=self._images_list,
-            )
-            .execute()
-            .data
+        images = self._service.get_duplicated_images(
+            project_id=self._project.uuid,
+            team_id=self._project.team_id,
+            folder_id=self._folder.uuid,
+            images=self._images_list,
         )
 
-        image_ids = [image.uuid for image in images]
-        image_names = [image.name for image in images]
+        image_ids = [image["id"] for image in images]
+        image_names = [image["name"] for image in images]
 
-        if not len(image_names):
+        if not image_ids:
             self._response.errors = AppException("No valid image names were provided.")
             return self._response
 
@@ -4098,31 +4113,23 @@ class RunPredictionUseCase(BaseUseCase):
         success_images = []
         failed_images = []
         while len(success_images) + len(failed_images) != len(image_ids):
-            images_metadata = (
-                GetBulkImages(
-                    service=self._service,
-                    project_id=self._project.uuid,
-                    team_id=self._project.team_id,
-                    folder_id=self._folder.uuid,
-                    images=self._images_list,
-                )
-                .execute()
-                .data
+            images_metadata = self._service.get_bulk_images(
+                project_id=self._project.uuid,
+                team_id=self._project.team_id,
+                folder_id=self._folder.uuid,
+                images=image_names,
             )
 
             success_images = [
-                img.name
-                for img in images_metadata
-                if img.segmentation_status
-                == constances.SegmentationStatus.COMPLETED.value
+                img["name"] for img in images_metadata if img["prediction_status"] == 3
             ]
             failed_images = [
-                img.name
-                for img in images_metadata
-                if img.segmentation_status == constances.SegmentationStatus.FAILED.value
+                img["name"] for img in images_metadata if img["prediction_status"] == 4
             ]
+
+            complete_images = success_images + failed_images
             logger.info(
-                f"Prediction complete on {len(success_images + failed_images)} / {len(image_ids)} images"
+                f"prediction complete on {len(complete_images)} / {len(image_ids)} images"
             )
             time.sleep(5)
 
@@ -4386,26 +4393,19 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
             paths = self.paths
             filtered_paths = []
             duplicated_paths = []
-
-            image_entities = (
-                GetBulkImages(
-                    service=self._backend_client,
-                    project_id=self._project.uuid,
-                    team_id=self._project.team_id,
-                    folder_id=self._folder.uuid,
-                    images=[Path(image).name for image in paths],
-                )
-                .execute()
-                .data
+            images = self._backend_client.get_bulk_images(
+                project_id=self._project.uuid,
+                team_id=self._project.team_id,
+                folder_id=self._folder.uuid,
+                images=[Path(image).name for image in paths],
             )
+            image_names = [image["name"] for image in images]
 
             for path in paths:
                 not_in_exclude_list = [
                     x not in Path(path).name for x in self.exclude_file_patterns
                 ]
-                non_in_service_list = [
-                    x.name not in Path(path).name for x in image_entities
-                ]
+                non_in_service_list = [x not in Path(path).name for x in image_names]
                 if all(not_in_exclude_list) and all(non_in_service_list):
                     filtered_paths.append(path)
                 if not all(non_in_service_list):
@@ -4460,6 +4460,7 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
 
 class DeleteAnnotations(BaseUseCase):
     POLL_AWAIT_TIME = 2
+    CHUNK_SIZE = 2000
 
     def __init__(
         self,
@@ -4475,44 +4476,55 @@ class DeleteAnnotations(BaseUseCase):
         self._backend_service = backend_service
 
     def execute(self) -> Response:
-
-        response = self._backend_service.delete_image_annotations(
-            project_id=self._project.uuid,
-            team_id=self._project.team_id,
-            folder_id=self._folder.uuid,
-            image_names=self._image_names,
-        )
-
-        project_folder_name = (
-            self._project.name
-            + (f"/{self._folder.name}" if self._folder.name != "root" else "")
-            + "."
-        )
-
-        if response:
-            timeout_start = time.time()
-            while time.time() < timeout_start + self.POLL_AWAIT_TIME:
-                progress = int(
-                    self._backend_service.get_annotations_delete_progress(
-                        project_id=self._project.uuid,
-                        team_id=self._project.team_id,
-                        poll_id=response.get("poll_id"),
-                    ).get("process", -1)
+        polling_states = {}
+        if self._image_names:
+            for idx in range(0, len(self._image_names), self.CHUNK_SIZE):
+                response = self._backend_service.delete_image_annotations(
+                    project_id=self._project.uuid,
+                    team_id=self._project.team_id,
+                    folder_id=self._folder.uuid,
+                    image_names=self._image_names[
+                        idx : idx + self.CHUNK_SIZE
+                    ],  # noqa: E203
                 )
-                if 0 < progress < 100:
-                    logger.info(f"Delete annotations in progress {progress}/100")
-                elif 0 > progress:
-                    self._response.errors = "Annotations delete fails."
-                    break
-                else:
-                    logger.info(
-                        "The annotations have been successfully deleted from "
-                        + project_folder_name
-                    )
-
-                    break
+                if response:
+                    polling_states[response.get("poll_id")] = False
         else:
+            response = self._backend_service.delete_image_annotations(
+                project_id=self._project.uuid,
+                team_id=self._project.team_id,
+                folder_id=self._folder.uuid,
+            )
+            if response:
+                polling_states[response.get("poll_id")] = False
+
+        if not polling_states:
             self._response.errors = AppException("Invalid image names or empty folder.")
+        else:
+            for poll_id in polling_states:
+                timeout_start = time.time()
+                while time.time() < timeout_start + self.POLL_AWAIT_TIME:
+                    progress = int(
+                        self._backend_service.get_annotations_delete_progress(
+                            project_id=self._project.uuid,
+                            team_id=self._project.team_id,
+                            poll_id=poll_id,
+                        ).get("process", -1)
+                    )
+                    if 0 < progress < 100:
+                        logger.info("Delete annotations in progress.")
+                    elif 0 > progress:
+                        polling_states[poll_id] = False
+                        self._response.errors = "Annotations delete fails."
+                        continue
+                    else:
+                        polling_states[poll_id] = True
+                        logger.info("Annotations deleted")
+                        continue
+            if all(polling_states.values()):
+                logger.info("Annotations deleted")
+            else:
+                logger.info("Annotations delete fails.")
         return self._response
 
 

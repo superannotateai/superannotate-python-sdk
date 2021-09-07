@@ -235,10 +235,17 @@ class Controller(BaseController):
         annotation_classes: Iterable = tuple(),
         workflows: Iterable = tuple(),
     ) -> Response:
+
+        try:
+            project_type = constances.ProjectType[project_type.upper()].value
+        except KeyError:
+            raise AppException(
+                "Please provide a valid project type: Vector, Pixel, or Video."
+            )
         entity = ProjectEntity(
             name=name,
             description=description,
-            project_type=constances.ProjectType[project_type.upper()].value,
+            project_type=project_type,
             team_id=self.team_id,
         )
         use_case = usecases.CreateProjectUseCase(
@@ -269,14 +276,9 @@ class Controller(BaseController):
         return use_case.execute()
 
     def update_project(self, name: str, project_data: dict) -> Response:
-        entities = self.projects.get_all(
-            Condition("team_id", self.team_id, EQ) & Condition("name", name, EQ)
-        )
-        project = entities[0]
-        if entities and len(entities) == 1:
-            project.name = project_data["name"]
-            use_case = usecases.UpdateProjectUseCase(project, self.projects)
-            return use_case.execute()
+        project = self._get_project(name)
+        use_case = usecases.UpdateProjectUseCase(project, project_data, self.projects)
+        return use_case.execute()
 
     def upload_images(
         self,
