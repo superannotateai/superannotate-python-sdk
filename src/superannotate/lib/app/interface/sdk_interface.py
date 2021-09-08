@@ -353,8 +353,6 @@ def rename_project(project: str, new_name: str):
     :type new_name: str
     """
 
-
-
     response = controller.update_project(name=project, project_data={"name": new_name})
     if response.errors:
         raise AppException(response.errors)
@@ -362,6 +360,7 @@ def rename_project(project: str, new_name: str):
     logger.info(
         "Successfully renamed project %s to %s.", project, response.data["name"]
     )
+
 
 @Trackable
 @typechecked
