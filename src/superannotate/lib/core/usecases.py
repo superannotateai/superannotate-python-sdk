@@ -4642,24 +4642,6 @@ class GetBulkImages(BaseUseCase):
                 folder_id=self._folder_id,
                 images=self._images[i : i + self._chunk_size],
             )
-            res += [
-                ImageEntity(
-                    uuid=image["id"],
-                    name=image["name"],
-                    path=image["name"],
-                    project_id=image["project_id"],
-                    team_id=image["team_id"],
-                    annotation_status_code=image["annotation_status"],
-                    folder_id=image["folder_id"],
-                    annotator_id=image["annotator_id"],
-                    annotator_name=image["annotator_name"],
-                    qa_id=image["qa_id"],
-                    qa_name=image["qa_name"],
-                    entropy_value=image["entropy_value"],
-                    approval_status=image["approval_status"],
-                    is_pinned=image["is_pinned"],
-                )
-                for image in images
-            ]
+            res += [ImageEntity.from_dict(**image) for image in images]
         self._response.data = res
         return self._response
