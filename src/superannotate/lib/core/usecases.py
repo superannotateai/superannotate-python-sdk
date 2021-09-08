@@ -1684,13 +1684,16 @@ class DeleteImagesUseCase(BaseUseCase):
         if self.is_valid():
             if self._image_names:
                 image_ids = [
-                    image["id"]
-                    for image in self._backend_service.get_bulk_images(
+                    image.uuid
+                    for image in GetBulkImages(
+                        service=self._backend_service,
                         project_id=self._project.uuid,
                         team_id=self._project.team_id,
                         folder_id=self._folder.uuid,
                         images=self._image_names,
                     )
+                    .execute()
+                    .data
                 ]
             else:
                 condition = (
@@ -4008,7 +4011,7 @@ class RunSegmentationUseCase(BaseUseCase):
         self._folder = folder
 
     def validate_project_type(self):
-        if self._project.project_type is not ProjectType.PIXEL:
+        if self._project.project_type is not ProjectType.PIXEL.value:
             raise AppValidationException(
                 "Operation not supported for given project type"
             )
@@ -4018,59 +4021,77 @@ class RunSegmentationUseCase(BaseUseCase):
             raise AppValidationException("Model Does not exist")
 
     def validate_upload_state(self):
+
         if self._project.upload_state is constances.UploadState.EXTERNAL:
             raise AppValidationException(
                 "The function does not support projects containing images attached with URLs"
             )
 
     def execute(self):
-        images = self._service.get_duplicated_images(
-            project_id=self._project.uuid,
-            team_id=self._project.team_id,
-            folder_id=self._folder.uuid,
-            images=self._images_list,
-        )
-
-        image_ids = [image["id"] for image in images]
-        image_names = [image["name"] for image in images]
-
-        res = self._service.run_segmentation(
-            self._project.team_id,
-            self._project.uuid,
-            model_name=self._ml_model_name,
-            image_ids=image_ids,
-        )
-        if not res.ok:
-            return self._response
-
-        succeded_imgs = []
-        failed_imgs = []
-        while len(succeded_imgs) + len(failed_imgs) != len(image_ids):
-            images_metadata = self._service.get_bulk_images(
-                project_id=self._project.uuid,
-                team_id=self._project.team_id,
-                folder_id=self._folder.uuid,
-                images=image_names,
+        if self.is_valid():
+            images = (
+                GetBulkImages(
+                    service=self._service,
+                    project_id=self._project.uuid,
+                    team_id=self._project.team_id,
+                    folder_id=self._folder.uuid,
+                    images=self._images_list,
+                )
+                .execute()
+                .data
             )
 
-            succeded_imgs = [
-                img["name"]
-                for img in images_metadata
-                if img["segmentation_status"] == 3
-            ]
-            failed_imgs = [
-                img["name"]
-                for img in images_metadata
-                if img["segmentation_status"] == 4
-            ]
+            image_ids = [image.uuid for image in images]
+            image_names = [image.name for image in images]
 
-            complete_images = succeded_imgs + failed_imgs
-            logger.info(
-                f"segmentation complete on {len(complete_images)} / {len(image_ids)} images"
+            if not len(image_names):
+                self._response.errors = AppException(
+                    "No valid image names were provided."
+                )
+                return self._response
+
+            res = self._service.run_segmentation(
+                self._project.team_id,
+                self._project.uuid,
+                model_name=self._ml_model_name,
+                image_ids=image_ids,
             )
-            time.sleep(5)
+            if not res.ok:
+                return self._response
 
-        self._response.data = (succeded_imgs, failed_imgs)
+            success_images = []
+            failed_images = []
+            while len(success_images) + len(failed_images) != len(image_ids):
+                images_metadata = (
+                    GetBulkImages(
+                        service=self._service,
+                        project_id=self._project.uuid,
+                        team_id=self._project.team_id,
+                        folder_id=self._folder.uuid,
+                        images=self._images_list,
+                    )
+                    .execute()
+                    .data
+                )
+
+                success_images = [
+                    img.name
+                    for img in images_metadata
+                    if img.segmentation_status
+                    == constances.SegmentationStatus.COMPLETED.value
+                ]
+                failed_images = [
+                    img.name
+                    for img in images_metadata
+                    if img.segmentation_status
+                    == constances.SegmentationStatus.FAILED.value
+                ]
+                logger.info(
+                    f"segmentation complete on {len(success_images + failed_images)} / {len(image_ids)} images"
+                )
+                time.sleep(5)
+
+            self._response.data = (success_images, failed_images)
         return self._response
 
 
@@ -4093,63 +4114,82 @@ class RunPredictionUseCase(BaseUseCase):
         self._folder = folder
 
     def execute(self):
-        images = self._service.get_duplicated_images(
-            project_id=self._project.uuid,
-            team_id=self._project.team_id,
-            folder_id=self._folder.uuid,
-            images=self._images_list,
-        )
+        if self.is_valid():
+            images = (
+                GetBulkImages(
+                    service=self._service,
+                    project_id=self._project.uuid,
+                    team_id=self._project.team_id,
+                    folder_id=self._folder.uuid,
+                    images=self._images_list,
+                )
+                .execute()
+                .data
+            )
 
-        image_ids = [image["id"] for image in images]
-        image_names = [image["name"] for image in images]
+            image_ids = [image.uuid for image in images]
+            image_names = [image.name for image in images]
 
-        if not image_ids:
-            self._response.errors = AppException("No valid image names were provided.")
-            return self._response
+            if not len(image_names):
+                self._response.errors = AppException(
+                    "No valid image names were provided."
+                )
+                return self._response
 
-        ml_models = self._ml_model_repo.get_all(
-            condition=Condition("name", self._ml_model_name, EQ)
-            & Condition("include_global", True, EQ)
-            & Condition("team_id", self._project.team_id, EQ)
-        )
-        ml_model = None
-        for model in ml_models:
-            if model.name == self._ml_model_name:
-                ml_model = model
+            ml_models = self._ml_model_repo.get_all(
+                condition=Condition("name", self._ml_model_name, EQ)
+                & Condition("include_global", True, EQ)
+                & Condition("team_id", self._project.team_id, EQ)
+            )
+            ml_model = None
+            for model in ml_models:
+                if model.name == self._ml_model_name:
+                    ml_model = model
 
-        res = self._service.run_prediction(
-            team_id=self._project.team_id,
-            project_id=self._project.uuid,
-            ml_model_id=ml_model.uuid,
-            image_ids=image_ids,
-        )
-        if not res.ok:
-            return self._response
-
-        success_images = []
-        failed_images = []
-        while len(success_images) + len(failed_images) != len(image_ids):
-            images_metadata = self._service.get_bulk_images(
-                project_id=self._project.uuid,
+            res = self._service.run_prediction(
                 team_id=self._project.team_id,
-                folder_id=self._folder.uuid,
-                images=image_names,
+                project_id=self._project.uuid,
+                ml_model_id=ml_model.uuid,
+                image_ids=image_ids,
             )
+            if not res.ok:
+                return self._response
 
-            success_images = [
-                img["name"] for img in images_metadata if img["prediction_status"] == 3
-            ]
-            failed_images = [
-                img["name"] for img in images_metadata if img["prediction_status"] == 4
-            ]
+            success_images = []
+            failed_images = []
+            while len(success_images) + len(failed_images) != len(image_ids):
+                images_metadata = (
+                    GetBulkImages(
+                        service=self._service,
+                        project_id=self._project.uuid,
+                        team_id=self._project.team_id,
+                        folder_id=self._folder.uuid,
+                        images=self._images_list,
+                    )
+                    .execute()
+                    .data
+                )
 
-            complete_images = success_images + failed_images
-            logger.info(
-                f"prediction complete on {len(complete_images)} / {len(image_ids)} images"
-            )
-            time.sleep(5)
+                success_images = [
+                    img.name
+                    for img in images_metadata
+                    if img.segmentation_status
+                    == constances.SegmentationStatus.COMPLETED.value
+                ]
+                failed_images = [
+                    img.name
+                    for img in images_metadata
+                    if img.segmentation_status
+                    == constances.SegmentationStatus.FAILED.value
+                ]
 
-        self._response.data = (success_images, failed_images)
+                complete_images = success_images + failed_images
+                logger.info(
+                    f"prediction complete on {len(complete_images)} / {len(image_ids)} images"
+                )
+                time.sleep(5)
+
+            self._response.data = (success_images, failed_images)
         return self._response
 
 
@@ -4415,13 +4455,25 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
                 folder_id=self._folder.uuid,
                 images=[Path(image).name for image in paths],
             )
-            image_names = [image["name"] for image in images]
+            image_entities = (
+                GetBulkImages(
+                    service=self._backend_client,
+                    project_id=self._project.uuid,
+                    team_id=self._project.team_id,
+                    folder_id=self._folder.uuid,
+                    images=[Path(image).name for image in paths],
+                )
+                .execute()
+                .data
+            )
 
             for path in paths:
                 not_in_exclude_list = [
                     x not in Path(path).name for x in self.exclude_file_patterns
                 ]
-                non_in_service_list = [x not in Path(path).name for x in image_names]
+                non_in_service_list = [
+                    x.name not in Path(path).name for x in image_entities
+                ]
                 if (
                     all(not_in_exclude_list)
                     and all(non_in_service_list)
@@ -4546,10 +4598,19 @@ class DeleteAnnotations(BaseUseCase):
                         continue
                     else:
                         polling_states[poll_id] = True
-                        logger.info("Annotations deleted")
                         continue
+
+            project_folder_name = (
+                self._project.name
+                + (f"/{self._folder.name}" if self._folder.name != "root" else "")
+                + "."
+            )
+
             if all(polling_states.values()):
-                logger.info("Annotations deleted")
+                logger.info(
+                    "The annotations have been successfully deleted from "
+                    + project_folder_name
+                )
             else:
                 logger.info("Annotations delete fails.")
         return self._response
@@ -4581,6 +4642,24 @@ class GetBulkImages(BaseUseCase):
                 folder_id=self._folder_id,
                 images=self._images[i : i + self._chunk_size],
             )
-            res += [ImageEntity.from_dict(**image) for image in images]
+            res += [
+                ImageEntity(
+                    uuid=image["id"],
+                    name=image["name"],
+                    path=image["name"],
+                    project_id=image["project_id"],
+                    team_id=image["team_id"],
+                    annotation_status_code=image["annotation_status"],
+                    folder_id=image["folder_id"],
+                    annotator_id=image["annotator_id"],
+                    annotator_name=image["annotator_name"],
+                    qa_id=image["qa_id"],
+                    qa_name=image["qa_name"],
+                    entropy_value=image["entropy_value"],
+                    approval_status=image["approval_status"],
+                    is_pinned=image["is_pinned"],
+                )
+                for image in images
+            ]
         self._response.data = res
         return self._response
