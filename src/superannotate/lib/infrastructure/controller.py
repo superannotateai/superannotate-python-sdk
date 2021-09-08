@@ -542,7 +542,11 @@ class Controller(BaseController):
     ) -> ImageEntity:
         folder = self._get_folder(project, folder_path)
         use_case = usecases.GetImageUseCase(
-            project=project, folder=folder, image_name=image_name, images=self.images,
+            service=self._backend_client,
+            project=project,
+            folder=folder,
+            image_name=image_name,
+            images=self.images,
         )
         return use_case.execute().data
 

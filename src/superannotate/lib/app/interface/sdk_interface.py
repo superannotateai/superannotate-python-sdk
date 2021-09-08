@@ -149,7 +149,8 @@ def search_projects(
     :type name: str
     :param return_metadata: return metadata of projects instead of names
     :type return_metadata: bool
-    :param include_complete_image_count: include complete image count in response
+    :param include_complete_image_count: return projects that have completed images and
+    include the number of completed images in response.
     :type include_complete_image_count: bool
 
     :return: project names or metadatas
@@ -1075,7 +1076,9 @@ def get_image_metadata(project: Union[str, dict], image_name: str, *_, **__):
 @Trackable
 @typechecked
 def set_images_annotation_statuses(
-    project: Union[str, dict], image_names: Optional[List[str]], annotation_status: str,
+    project: Union[str, dict],
+    annotation_status: str,
+    image_names: Optional[List[str]] = None,
 ):
     """Sets annotation statuses of images
 
@@ -1092,7 +1095,7 @@ def set_images_annotation_statuses(
         project_name, folder_name, image_names, annotation_status
     )
     if response.errors:
-        raise AppException(response.errors)
+        raise AppException("Failed to change status.")
     logger.info("Annotations status of images changed")
 
 
@@ -1109,7 +1112,7 @@ def delete_images(project: Union[str, dict], image_names: Optional[List[str]] = 
     project_name, folder_name = extract_project_folder(project)
 
     if not isinstance(image_names, list) and image_names is not None:
-        raise AppException("Image_names should be a list of strs or None.")
+        raise AppException("Image_names should be a list of str or None.")
 
     response = controller.delete_images(
         project_name=project_name, folder_name=folder_name, image_names=image_names
@@ -1118,7 +1121,7 @@ def delete_images(project: Union[str, dict], image_names: Optional[List[str]] = 
         raise AppException(response.errors)
 
     logger.info(
-        f"Images deleted in project {project_name}{'' if folder_name else '/' + folder_name}"
+        f"Images deleted in project {project_name}{'/' + folder_name if folder_name else ''}"
     )
 
 

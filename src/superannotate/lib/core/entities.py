@@ -238,6 +238,7 @@ class ImageEntity(BaseEntity):
         segmentation_status: int = SegmentationStatus.NOT_STARTED.value,
         prediction_status: int = SegmentationStatus.NOT_STARTED.value,
         meta: ImageInfoEntity = ImageInfoEntity(),
+        **_
     ):
         super().__init__(uuid)
         self.team_id = team_id
@@ -257,6 +258,16 @@ class ImageEntity(BaseEntity):
         self.segmentation_status = segmentation_status
         self.prediction_status = prediction_status
         self.meta = meta
+
+    @staticmethod
+    def from_dict(**kwargs):
+        if "id" in kwargs:
+            kwargs["uuid"] = kwargs["id"]
+            del kwargs["id"]
+        if "annotation_status" in kwargs:
+            kwargs["annotation_status_code"] = kwargs["annotation_status"]
+            del kwargs["annotation_status"]
+        return ImageEntity(**kwargs)
 
     def to_dict(self):
         return {

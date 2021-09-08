@@ -632,7 +632,7 @@ class SuperannotateBackendService(BaseBackendService):
                 "image_names": image_names,
             },
         )
-        return res
+        return res.ok
 
     def get_bulk_images(
         self, project_id: int, team_id: int, folder_id: int, images: List[str]

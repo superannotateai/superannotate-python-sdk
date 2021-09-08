@@ -515,21 +515,27 @@ class GetImageUseCase(BaseUseCase):
         folder: FolderEntity,
         image_name: str,
         images: BaseReadOnlyRepository,
+        service: SuerannotateServiceProvider,
     ):
         super().__init__()
         self._project = project
         self._folder = folder
         self._images = images
         self._image_name = image_name
+        self._service = service
 
     def execute(self):
-        condition = (
-            Condition("team_id", self._project.team_id, EQ)
-            & Condition("project_id", self._project.uuid, EQ)
-            & Condition("folder_id", self._folder.uuid, EQ)
-            & Condition("name", self._image_name, EQ)
+        images = (
+            GetBulkImages(
+                service=self._service,
+                project_id=self._project.uuid,
+                team_id=self._project.team_id,
+                folder_id=self._folder.uuid,
+                images=[self._image_name],
+            )
+            .execute()
+            .data
         )
-        images = self._images.get_all(condition)
         if images:
             self._response.data = images[0]
         else:
@@ -731,7 +737,7 @@ class AttachFileUrlsUseCase(BaseUseCase):
                     "height": image.meta.height,
                 }
 
-        uploaded = self._backend_service.attach_files(
+        backend_response = self._backend_service.attach_files(
             project_id=self._project.uuid,
             folder_id=self._folder.uuid,
             team_id=self._project.team_id,
@@ -740,8 +746,10 @@ class AttachFileUrlsUseCase(BaseUseCase):
             upload_state_code=self.upload_state_code,
             meta=meta,
         )
-
-        self._response.data = uploaded, duplications
+        if isinstance(backend_response, dict) and "error" in backend_response:
+            self._response.errors = AppException(backend_response["error"])
+        else:
+            self._response.data = backend_response, duplications
         return self._response
 
 
@@ -1634,13 +1642,17 @@ class SetImageAnnotationStatuses(BaseUseCase):
                     image.name for image in self._images_repo.get_all(condition)
                 ]
             for i in range(0, len(self._image_names), self.CHUNK_SIZE):
-                self._response.data = self._service.set_images_statuses_bulk(
-                    image_names=self._image_names,
+                status_changed = self._service.set_images_statuses_bulk(
+                    image_names=self._image_names[
+                        i : i + self.CHUNK_SIZE
+                    ],  # noqa: E203
                     team_id=self._team_id,
                     project_id=self._project_id,
                     folder_id=self._folder_id,
                     annotation_status=self._annotation_status,
                 )
+                if not status_changed:
+                    self._response.errors = AppException("Failed to change status.")
         return self._response
 
 
@@ -1994,6 +2006,7 @@ class GetImageAnnotationsUseCase(BaseUseCase):
             folder=self._folder,
             image_name=self._image_name,
             images=self._images,
+            service=self._service,
         )
         return use_case
 
@@ -2092,6 +2105,7 @@ class GetImagePreAnnotationsUseCase(BaseUseCase):
             folder=self._folder,
             image_name=self._image_name,
             images=self._images,
+            service=self._service,
         )
 
     def validate_project_type(self):
@@ -2162,6 +2176,7 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
     @property
     def image_use_case(self):
         return GetImageUseCase(
+            service=self._service,
             project=self._project,
             folder=self._folder,
             image_name=self._image_name,
@@ -2254,6 +2269,7 @@ class DownloadImagePreAnnotationsUseCase(BaseUseCase):
             folder=self._folder,
             image_name=self._image_name,
             images=self._images,
+            service=self._service,
         )
 
     def execute(self):
@@ -4406,9 +4422,18 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
                     x not in Path(path).name for x in self.exclude_file_patterns
                 ]
                 non_in_service_list = [x not in Path(path).name for x in image_names]
-                if all(not_in_exclude_list) and all(non_in_service_list):
+                if (
+                    all(not_in_exclude_list)
+                    and all(non_in_service_list)
+                    and not any(
+                        Path(path).name in filtered_path
+                        for filtered_path in filtered_paths
+                    )
+                ):
                     filtered_paths.append(path)
-                if not all(non_in_service_list):
+                elif not all(non_in_service_list) or any(
+                    Path(path).name in filtered_path for filtered_path in filtered_paths
+                ):
                     duplicated_paths.append(path)
 
             self._images_to_upload = list(set(filtered_paths)), duplicated_paths
@@ -4447,7 +4472,9 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
                     ],
                     annotation_status=self._annotation_status,
                 ).execute()
-
+                if response.errors:
+                    logger.error(response.errors)
+                    continue
                 attachments, attach_duplications = response.data
                 uploaded.extend(attachments)
                 duplications.extend(attach_duplications)
@@ -4554,24 +4581,6 @@ class GetBulkImages(BaseUseCase):
                 folder_id=self._folder_id,
                 images=self._images[i : i + self._chunk_size],
             )
-            res += [
-                ImageEntity(
-                    uuid=image["id"],
-                    name=image["name"],
-                    path=image["name"],
-                    project_id=image["project_id"],
-                    team_id=image["team_id"],
-                    annotation_status_code=image["annotation_status"],
-                    folder_id=image["folder_id"],
-                    annotator_id=image["annotator_id"],
-                    annotator_name=image["annotator_name"],
-                    qa_id=image["qa_id"],
-                    qa_name=image["qa_name"],
-                    entropy_value=image["entropy_value"],
-                    approval_status=image["approval_status"],
-                    is_pinned=image["is_pinned"],
-                )
-                for image in images
-            ]
+            res += [ImageEntity.from_dict(**image) for image in images]
         self._response.data = res
         return self._response
