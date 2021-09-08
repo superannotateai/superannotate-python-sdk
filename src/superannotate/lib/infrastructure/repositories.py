@@ -97,7 +97,7 @@ class ProjectRepository(BaseManageableRepository):
 
     def update(self, entity: ProjectEntity):
         condition = Condition("team_id", entity.team_id, EQ)
-        self._service.update_project(
+        return self._service.update_project(
             entity.to_dict(), query_string=condition.build_query()
         )
 

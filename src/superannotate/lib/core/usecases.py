@@ -323,7 +323,8 @@ class UpdateProjectUseCase(BaseUseCase):
         if self.is_valid():
             for field, value in self._project_data.items():
                 setattr(self._project, field, value)
-            self._projects.update(self._project)
+            self._response.data = self._projects.update(self._project)
+        return self._response
 
 
 class CloneProjectUseCase(BaseUseCase):
