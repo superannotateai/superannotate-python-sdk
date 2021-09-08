@@ -1192,7 +1192,7 @@ class Controller(BaseController):
                 "data", []
             ),
         )
-        return use_case.execute()
+        return use_case
 
     def upload_image_annotations(
         self,

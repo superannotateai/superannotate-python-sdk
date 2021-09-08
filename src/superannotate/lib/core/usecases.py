@@ -3233,8 +3233,10 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
         return self._response
 
 
-class UploadAnnotationsUseCase(BaseUseCase):
+class UploadAnnotationsUseCase(BaseInteractiveUseCase):
     MAX_WORKERS = 10
+    CHUNK_SIZE = 100
+    AUTH_DATA_CHUNK_SIZE = 500
 
     def __init__(
         self,
@@ -3258,6 +3260,8 @@ class UploadAnnotationsUseCase(BaseUseCase):
         self._client_s3_bucket = client_s3_bucket
         self._pre_annotation = pre_annotation
         self._templates = templates
+        self._annotations_to_upload = None
+        self._missing_annotations = None
 
     @property
     def s3_client(self):
@@ -3347,100 +3351,133 @@ class UploadAnnotationsUseCase(BaseUseCase):
                     "attribute_groups"
                 ][attribute["groupName"]]["attributes"]
 
+    @property
+    def annotations_to_upload(self):
+        if not self._annotations_to_upload:
+            annotation_paths = self._annotation_paths
+            ImageInfo = namedtuple("ImageInfo", ["path", "name", "id"])
+            images_detail = []
+            for annotation_path in annotation_paths:
+                images_detail.append(
+                    ImageInfo(
+                        id=None,
+                        path=annotation_path,
+                        name=os.path.basename(
+                            annotation_path.replace(
+                                constances.PIXEL_ANNOTATION_POSTFIX, ""
+                            ).replace(constances.VECTOR_ANNOTATION_POSTFIX, ""),
+                        ),
+                    )
+                )
+            images_data = (
+                GetBulkImages(
+                    service=self._backend_service,
+                    project_id=self._project.uuid,
+                    team_id=self._project.team_id,
+                    folder_id=self._folder.uuid,
+                    images=[image.name for image in images_detail],
+                )
+                .execute()
+                .data
+            )
+
+            for image_data in images_data:
+                for idx, detail in enumerate(images_detail):
+                    if detail.name == image_data.name:
+                        images_detail[idx] = detail._replace(id=image_data.uuid)
+
+            missing_annotations = list(
+                filter(lambda detail: detail.id is None, images_detail)
+            )
+            annotations_to_upload = list(
+                filter(lambda detail: detail.id is not None, images_detail)
+            )
+            if missing_annotations:
+                for missing in missing_annotations:
+                    logger.warning(
+                        f"Couldn't find image {missing.path} for annotation upload."
+                    )
+            if not annotations_to_upload:
+                raise AppException("No image to attach annotations.")
+            self._missing_annotations = missing_annotations
+            self._annotations_to_upload = annotations_to_upload
+        return self._annotations_to_upload
+
     def execute(self):
-        annotation_paths = self._annotation_paths
-        ImageInfo = namedtuple("ImageInfo", ["path", "name", "id"])
-        images_detail = []
-        for annotation_path in annotation_paths:
-            images_detail.append(
-                ImageInfo(
-                    id=None,
-                    path=annotation_path,
-                    name=os.path.basename(
-                        annotation_path.replace(
-                            constances.PIXEL_ANNOTATION_POSTFIX, ""
-                        ).replace(constances.VECTOR_ANNOTATION_POSTFIX, ""),
-                    ),
+        uploaded_annotations = []
+        missing_annotations = []
+        failed_annotations = []
+        for _ in range(0, len(self.annotations_to_upload), self.AUTH_DATA_CHUNK_SIZE):
+            annotations_to_upload = self.annotations_to_upload[
+                _ : _ + self.CHUNK_SIZE  # noqa: E203
+            ]
+
+            if self._pre_annotation:
+                auth_data = self._backend_service.get_pre_annotation_upload_data(
+                    project_id=self._project.uuid,
+                    team_id=self._project.team_id,
+                    folder_id=self._folder.uuid,
+                    image_ids=[int(image.id) for image in annotations_to_upload],
                 )
-            )
-        images_data = self._backend_service.get_bulk_images(
-            images=[image.name for image in images_detail],
-            folder_id=self._folder.uuid,
-            team_id=self._project.team_id,
-            project_id=self._project.uuid,
-        )
-        for image_data in images_data:
-            for idx, detail in enumerate(images_detail):
-                if detail.name == image_data.get("name"):
-                    images_detail[idx] = detail._replace(id=image_data["id"])
-
-        missing_annotations = list(
-            filter(lambda detail: detail.id is None, images_detail)
-        )
-        annotations_to_upload = list(
-            filter(lambda detail: detail.id is not None, images_detail)
-        )
-        if missing_annotations:
-            for missing in missing_annotations:
-                logger.warning(
-                    f"Couldn't find image {missing.path} for annotation upload."
+            else:
+                auth_data = self._backend_service.get_annotation_upload_data(
+                    project_id=self._project.uuid,
+                    team_id=self._project.team_id,
+                    folder_id=self._folder.uuid,
+                    image_ids=[int(image.id) for image in annotations_to_upload],
                 )
-        if not annotations_to_upload:
-            raise AppException("No image to attach annotations.")
-
-        if self._pre_annotation:
-            auth_data = self._backend_service.get_pre_annotation_upload_data(
-                project_id=self._project.uuid,
-                team_id=self._project.team_id,
-                folder_id=self._folder.uuid,
-                image_ids=[int(image.id) for image in annotations_to_upload],
+            session = boto3.Session(
+                aws_access_key_id=auth_data["creds"]["accessKeyId"],
+                aws_secret_access_key=auth_data["creds"]["secretAccessKey"],
+                aws_session_token=auth_data["creds"]["sessionToken"],
+                region_name=auth_data["creds"]["region"],
             )
-        else:
-            auth_data = self._backend_service.get_annotation_upload_data(
-                project_id=self._project.uuid,
-                team_id=self._project.team_id,
-                folder_id=self._folder.uuid,
-                image_ids=[int(image.id) for image in annotations_to_upload],
+            resource = session.resource("s3")
+            bucket = resource.Bucket(auth_data["creds"]["bucket"])
+            image_id_name_map = {
+                str(image.id): image for image in self.annotations_to_upload
+            }
+            if self._client_s3_bucket:
+                from_session = boto3.Session()
+                from_s3 = from_session.resource("s3")
+            else:
+                from_s3 = None
+
+            with concurrent.futures.ThreadPoolExecutor(
+                max_workers=self.MAX_WORKERS
+            ) as executor:
+                results = [
+                    executor.submit(
+                        self.upload_to_s3,
+                        image_id,
+                        image_info,
+                        bucket,
+                        from_s3,
+                        image_id_name_map,
+                    )
+                    for image_id, image_info in auth_data["images"].items()
+                ]
+                for future in concurrent.futures.as_completed(results):
+                    future.result()
+                    yield
+
+            uploaded_annotations.extend(
+                [annotation.path for annotation in self.annotations_to_upload]
             )
-        session = boto3.Session(
-            aws_access_key_id=auth_data["creds"]["accessKeyId"],
-            aws_secret_access_key=auth_data["creds"]["secretAccessKey"],
-            aws_session_token=auth_data["creds"]["sessionToken"],
-            region_name=auth_data["creds"]["region"],
-        )
-        resource = session.resource("s3")
-        bucket = resource.Bucket(auth_data["creds"]["bucket"])
-        image_id_name_map = {str(image.id): image for image in annotations_to_upload}
-        if self._client_s3_bucket:
-            from_session = boto3.Session()
-            from_s3 = from_session.resource("s3")
-        else:
-            from_s3 = None
-
-        with concurrent.futures.ThreadPoolExecutor(
-            max_workers=self.MAX_WORKERS
-        ) as executor:
-            for image_id, image_info in auth_data["images"].items():
-                executor.submit(
-                    self.upload_to_s3,
-                    image_id,
-                    image_info,
-                    bucket,
-                    from_s3,
-                    image_id_name_map,
-                )
-
-        uploaded_annotations = [annotation.path for annotation in annotations_to_upload]
-        missing_annotations = [annotation.path for annotation in missing_annotations]
-        failed_annotations = [
-            annotation
-            for annotation in annotation_paths
-            if annotation not in uploaded_annotations + missing_annotations
-        ]
+            missing_annotations.extend(
+                [annotation.path for annotation in self._missing_annotations]
+            )
+            failed_annotations.extend(
+                [
+                    annotation
+                    for annotation in self._annotation_paths
+                    if annotation not in uploaded_annotations + missing_annotations
+                ]
+            )
         self._response.data = (
             uploaded_annotations,
-            missing_annotations,
             failed_annotations,
+            missing_annotations,
         )
         return self._response
 
@@ -4451,12 +4488,6 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
             paths = self.paths
             filtered_paths = []
             duplicated_paths = []
-            images = self._backend_client.get_bulk_images(
-                project_id=self._project.uuid,
-                team_id=self._project.team_id,
-                folder_id=self._folder.uuid,
-                images=[Path(image).name for image in paths],
-            )
             image_entities = (
                 GetBulkImages(
                     service=self._backend_client,
@@ -4565,8 +4596,8 @@ class DeleteAnnotations(BaseUseCase):
                     team_id=self._project.team_id,
                     folder_id=self._folder.uuid,
                     image_names=self._image_names[
-                        idx : idx + self.CHUNK_SIZE
-                    ],  # noqa: E203
+                        idx : idx + self.CHUNK_SIZE  # noqa: E203
+                    ],
                 )
                 if response:
                     polling_states[response.get("poll_id")] = False
