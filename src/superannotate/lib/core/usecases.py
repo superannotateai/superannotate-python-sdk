@@ -3382,6 +3382,8 @@ class UploadAnnotationsUseCase(BaseUseCase):
                 logger.warning(
                     f"Couldn't find image {missing.path} for annotation upload."
                 )
+        if not annotations_to_upload:
+            raise AppException("No image to attach annotations.")
 
         if self._pre_annotation:
             auth_data = self._backend_service.get_pre_annotation_upload_data(

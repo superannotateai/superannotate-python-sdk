@@ -88,6 +88,10 @@ class BaseController(metaclass=SingleInstanceMetaClass):
             self._backend_client._auth_token = self.configs.get_one("token").value
 
     @property
+    def config_path(self):
+        return self._config_path
+
+    @property
     def user_id(self):
         if not self._user_id:
             self._user_id, _ = self.get_team()

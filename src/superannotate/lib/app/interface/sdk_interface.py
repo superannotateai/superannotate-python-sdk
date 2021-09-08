@@ -66,6 +66,7 @@ def init(path_to_config_json: str):
 @typechecked
 def set_auth_token(token: str):
     controller.set_token(token)
+    controller.init(controller.config_path)
 
 
 @Trackable
@@ -864,10 +865,10 @@ def get_project_metadata(
     ).data
 
     metadata = ProjectSerializer(response["project"]).serialize()
-    if response.get("settings"):
-        metadata["settings"] = [
-            SettingsSerializer(setting).serialize() for setting in response["settings"]
-        ]
+    metadata["settings"] = [
+        SettingsSerializer(setting).serialize()
+        for setting in response.get("settings", [])
+    ]
 
     for elem in "classes", "workflows", "contributors":
         if response.get(elem):

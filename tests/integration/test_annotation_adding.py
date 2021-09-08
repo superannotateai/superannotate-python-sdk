@@ -24,6 +24,14 @@ class TestAnnotationAdding(BaseTestCase):
     def classes_json_path(self):
         return f"{self.folder_path}/classes/classes.json"
 
+    def test_upload_annotations(self):
+        sa.upload_images_from_folder_to_project(
+            self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
+        )
+        sa.upload_annotations_from_folder_to_project(
+            self.PROJECT_NAME,  self.folder_path
+        )
+
     def test_add_bbox(self):
         sa.upload_images_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
