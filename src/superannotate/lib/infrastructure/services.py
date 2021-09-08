@@ -129,7 +129,7 @@ class BaseBackendService(SuerannotateServiceProvider):
             total.extend(resources["data"])
             if remains_count <= 0:
                 break
-            offset += self.paginate_by
+            offset += len(resources["data"])
         return total
 
 

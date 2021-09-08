@@ -46,7 +46,7 @@ from tqdm import tqdm
 from typeguard import typechecked
 
 
-logger = logging.getLogger()
+logger = logging.getLogger("root")
 controller = Controller(logger)
 
 
@@ -2232,6 +2232,7 @@ def download_image(
     )
     if response.errors:
         raise AppException(response.errors)
+    logger.info(f"Downloaded image {image_name} to {local_dir_path} ")
     return response.data
 
 
@@ -2418,28 +2419,19 @@ def upload_annotations_from_folder_to_project(
     logger.info(
         "Uploading %s annotations to project %s.", len(annotation_paths), project_name
     )
-
-    uploaded_annotations = []
-    failed_annotations = []
-    missing_annotations = []
-    chunk_size = 50
+    use_case = controller.upload_annotations_from_folder(
+        project_name=project_name,
+        folder_name=folder_name,
+        folder_path=folder_path,
+        annotation_paths=annotation_paths,  # noqa: E203
+        client_s3_bucket=from_s3_bucket,
+    )
     with tqdm(
         total=len(annotation_paths), desc="Uploading annotations"
     ) as progress_bar:
-        for i in range(0, len(annotation_paths), chunk_size):
-            response = controller.upload_annotations_from_folder(
-                project_name=project_name,
-                folder_name=folder_name,
-                folder_path=folder_path,
-                annotation_paths=annotation_paths[i : i + chunk_size],  # noqa: E203
-                client_s3_bucket=from_s3_bucket,
-            )
-            if response.data:
-                uploaded_annotations.extend(response.data[0])
-                missing_annotations.extend(response.data[1])
-                failed_annotations.extend(response.data[2])
-            progress_bar.update(chunk_size)
-    return uploaded_annotations, failed_annotations, missing_annotations
+        for _ in use_case.execute():
+            progress_bar.update(1)
+    return use_case.data
 
 
 @Trackable
@@ -2499,31 +2491,20 @@ def upload_preannotations_from_folder_to_project(
     logger.info(
         "Uploading %s annotations to project %s.", len(annotation_paths), project_name
     )
-    uploaded_annotations = []
-    failed_annotations = []
-    missing_annotations = []
-    chunk_size = 10
+    use_case = controller.upload_annotations_from_folder(
+        project_name=project_name,
+        folder_name=folder_name,
+        folder_path=folder_path,
+        annotation_paths=annotation_paths,  # noqa: E203
+        client_s3_bucket=from_s3_bucket,
+        is_pre_annotations=True,
+    )
     with tqdm(
-        total=len(annotation_paths), desc="Uploading pre annotations"
+        total=len(annotation_paths), desc="Uploading annotations"
     ) as progress_bar:
-        for i in range(0, len(annotation_paths), chunk_size):
-            response = controller.upload_annotations_from_folder(
-                project_name=project_name,
-                folder_name=folder_name,
-                folder_path=folder_path,
-                annotation_paths=annotation_paths[i : i + chunk_size],  # noqa: E203
-                client_s3_bucket=from_s3_bucket,
-                is_pre_annotations=True,
-            )
-            if response.errors:
-                logger.warning(response.errors)
-            if response.data:
-                uploaded_annotations.extend(response.data[0])
-                missing_annotations.extend(response.data[1])
-                failed_annotations.extend(response.data[2])
-            progress_bar.update(chunk_size)
-
-    return uploaded_annotations, failed_annotations, missing_annotations
+        for _ in use_case.execute():
+            progress_bar.update(1)
+    return use_case.data
 
 
 @Trackable

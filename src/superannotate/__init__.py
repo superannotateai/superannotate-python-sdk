@@ -286,8 +286,8 @@ __all__ = [
 
 __author__ = "Superannotate"
 
-
-file_dir = os.path.split(os.path.realpath(__file__))[0]
-sys.path.append(file_dir)
-logging.config.fileConfig(os.path.join(file_dir, "logging.conf"))
-logger = logging.getLogger()
+WORKING_DIR = os.path.split(os.path.realpath(__file__))[0]
+sys.path.append(WORKING_DIR)
+logging.config.fileConfig(
+    os.path.join(WORKING_DIR, "logging.conf"), disable_existing_loggers=False
+)
