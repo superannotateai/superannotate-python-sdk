@@ -270,7 +270,7 @@ class SuperannotateBackendService(BaseBackendService):
         if query_string:
             url = f"{url}?{query_string}"
         res = self._request(url, "put", data)
-        return res.ok
+        return res.json()
 
     def attach_files(
         self,

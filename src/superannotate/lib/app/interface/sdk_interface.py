@@ -352,7 +352,14 @@ def rename_project(project: str, new_name: str):
     :param new_name: project's new name
     :type new_name: str
     """
-    controller.update_project(name=project, project_data={"name": new_name})
+
+    response = controller.update_project(name=project, project_data={"name": new_name})
+    if response.errors:
+        raise AppException(response.errors)
+
+    logger.info(
+        "Successfully renamed project %s to %s.", project, response.data["name"]
+    )
 
 
 @Trackable
