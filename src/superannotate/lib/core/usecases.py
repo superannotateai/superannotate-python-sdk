@@ -2231,9 +2231,10 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
                     url=annotation_blue_map_creds["url"],
                     headers=annotation_blue_map_creds["headers"],
                 )
+                data["annotation_mask_filename"] = f"{self._image_name}___save.png"
+
                 if response.ok:
                     data["annotation_mask"] = io.BytesIO(response.content)
-                    data["annotation_mask_filename"] = f"{self._image_name}___save.png"
                     mask_path = (
                         Path(self._destination) / data["annotation_mask_filename"]
                     )
@@ -4480,17 +4481,7 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
                         ):
                             paths.append(key)
                             break
-
-        data = []
-        for path in paths:
-            if all(
-                [
-                    True if exclude_pattern not in str(path) else False
-                    for exclude_pattern in self.exclude_file_patterns
-                ]
-            ):
-                data.append(str(path))
-        return data
+        return [str(path) for path in paths]
 
     @property
     def images_to_upload(self):
@@ -4498,40 +4489,55 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
             paths = self.paths
             filtered_paths = []
             duplicated_paths = []
+            for path in paths:
+                if path.split("/")[-1] not in [
+                    path_name.split("/")[-1] for path_name in filtered_paths
+                ]:
+                    filtered_paths.append(path)
+                else:
+                    duplicated_paths.append(path)
+            filtered_paths = [
+                path
+                for path in filtered_paths
+                if not any(
+                    [
+                        path.endswith(extension)
+                        for extension in self.exclude_file_patterns
+                    ]
+                )
+            ]
+            duplicated_paths = [
+                path
+                for path in duplicated_paths
+                if not any(
+                    [
+                        path.endswith(extension)
+                        for extension in self.exclude_file_patterns
+                    ]
+                )
+            ]
+
             image_entities = (
                 GetBulkImages(
                     service=self._backend_client,
                     project_id=self._project.uuid,
                     team_id=self._project.team_id,
                     folder_id=self._folder.uuid,
-                    images=[Path(image).name for image in paths],
+                    images=[image.split("/")[-1] for image in filtered_paths],
                 )
                 .execute()
                 .data
             )
+            images_to_upload = []
+            image_list = [image.name for image in image_entities]
 
-            for path in paths:
-                not_in_exclude_list = [
-                    x not in Path(path).name for x in self.exclude_file_patterns
-                ]
-                non_in_service_list = [
-                    x.name not in Path(path).name for x in image_entities
-                ]
-                if (
-                    all(not_in_exclude_list)
-                    and all(non_in_service_list)
-                    and not any(
-                        Path(path).name in filtered_path
-                        for filtered_path in filtered_paths
-                    )
-                ):
-                    filtered_paths.append(path)
-                elif not all(non_in_service_list) or any(
-                    Path(path).name in filtered_path for filtered_path in filtered_paths
-                ):
+            for path in filtered_paths:
+                if path not in image_list:
+                    images_to_upload.append(path)
+                else:
                     duplicated_paths.append(path)
 
-            self._images_to_upload = list(set(filtered_paths)), duplicated_paths
+            self._images_to_upload = list(set(images_to_upload)), duplicated_paths
         return self._images_to_upload
 
     def execute(self):
