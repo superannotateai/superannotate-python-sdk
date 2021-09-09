@@ -28,15 +28,15 @@ class TestPixelImages(BaseTestCase):
             sa.upload_images_from_folder_to_project(
                 self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
             )
+            sa.create_annotation_classes_from_classes_json(
+                self.PROJECT_NAME, self.classes_json_path
+            )
+
             sa.upload_image_annotations(
                 project=self.PROJECT_NAME,
                 image_name=self.EXAMPLE_IMAGE_1,
                 annotation_json=f"{self.folder_path}/{self.EXAMPLE_IMAGE_1}___pixel.json",
             )
-            sa.create_annotation_classes_from_classes_json(
-                self.PROJECT_NAME, self.classes_json_path
-            )
-
             downloaded = sa.download_image(
                 project=self.PROJECT_NAME,
                 image_name=self.EXAMPLE_IMAGE_1,
