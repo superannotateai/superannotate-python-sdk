@@ -663,7 +663,7 @@ def download_image(
     if upload_state == "External":
         raise SABaseException(
             0,
-            "The function does not support projects containing images attached with URLs"
+            "The function does not support projects containing images / videos / documents   attached with URLs"
         )
     img = get_image_bytes(
         (project, project_folder), image_name, variant=variant
@@ -739,7 +739,7 @@ def get_image_bytes(project, image_name, variant='original'):
     if upload_state == "External":
         raise SABaseException(
             0,
-            "The function does not support projects containing images attached with URLs"
+            "The function does not support projects containing images / videos / documents   attached with URLs"
         )
     if variant not in ["original", "lores"]:
         raise SABaseException(

@@ -64,7 +64,7 @@ def run_prediction(project, images_list, model):
     if upload_state == "External":
         raise SABaseException(
             0,
-            "The function does not support projects containing images attached with URLs"
+            "The function does not support projects containing images / videos / documents   attached with URLs"
         )
     images_metadata = get_image_metadata(project, images_list)
     if isinstance(images_metadata, dict):
@@ -140,7 +140,7 @@ def run_segmentation(project, images_list, model):
     if upload_state == "External":
         raise SABaseException(
             0,
-            "The function does not support projects containing images attached with URLs"
+            "The function does not support projects containing images / videos / documents   attached with URLs"
         )
 
     images_metadata = get_image_metadata(project, images_list)
@@ -278,7 +278,7 @@ def run_training(
     if any([True for state in upload_states if "External" == upload_state_int_to_str(state)]):
         raise SABaseException(
             0,
-            "The function does not support projects containing images attached with URLs"
+            "The function does not support projects containing images / videos / documents   attached with URLs"
         )
     if isinstance(base_model, dict):
         base_model = base_model['name']

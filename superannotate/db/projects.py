@@ -421,7 +421,7 @@ def upload_video_to_project(
     if upload_state == "External":
         raise SABaseException(
             0,
-            "The function does not support projects containing images attached with URLs"
+            "The function does not support projects containing images / videos / documents   attached with URLs"
         )
     logger.info("Uploading from video %s.", str(video_path))
     tempdir = tempfile.TemporaryDirectory()
@@ -521,7 +521,7 @@ def upload_videos_from_folder_to_project(
     if upload_state == "External":
         raise SABaseException(
             0,
-            "The function does not support projects containing images attached with URLs"
+            "The function does not support projects containing images / videos / documents   attached with URLs"
         )
     if recursive_subfolders:
         logger.warning(
@@ -618,7 +618,7 @@ def upload_images_from_folder_to_project(
     if upload_state == "External":
         raise SABaseException(
             0,
-            "The function does not support projects containing images attached with URLs"
+            "The function does not support projects containing images / videos / documents   attached with URLs"
         )
     if recursive_subfolders:
         logger.info(
@@ -718,7 +718,7 @@ def upload_images_to_project(
     if upload_state == "External":
         raise SABaseException(
             0,
-            "The function does not support projects containing images attached with URLs"
+            "The function does not support projects containing images / videos / documents   attached with URLs"
         )
     if not isinstance(img_paths, list):
         raise SABaseException(
@@ -828,7 +828,7 @@ def upload_images_from_public_urls_to_project(
     if upload_state == "External":
         raise SABaseException(
             0,
-            "The function does not support projects containing images attached with URLs"
+            "The function does not support projects containing images / videos / documents   attached with URLs"
         )
     finish_event = threading.Event()
     tqdm_thread = threading.Thread(
@@ -937,7 +937,7 @@ def upload_images_from_google_cloud_to_project(
     if upload_state == "External":
         raise SABaseException(
             0,
-            "The function does not support projects containing images attached with URLs"
+            "The function does not support projects containing images / videos / documents   attached with URLs"
         )
     cloud_client = storage.Client(project=google_project)
     bucket = cloud_client.get_bucket(bucket_name)
@@ -1021,7 +1021,7 @@ def upload_images_from_azure_blob_to_project(
     if upload_state == "External":
         raise SABaseException(
             0,
-            "The function does not support projects containing images attached with URLs"
+            "The function does not support projects containing images / videos / documents   attached with URLs"
         )
     connect_key = os.getenv('AZURE_STORAGE_CONNECTION_STRING')
     blob_service_client = BlobServiceClient.from_connection_string(connect_key)
@@ -2058,3 +2058,25 @@ def attach_file_urls_to_project(project, attachments, annotation_status):
     )
 
     return list_of_uploaded, list_of_not_uploaded, list_of_duplicated
+
+
+
+def attach_document_urls_to_project(
+    project, attachments, annotation_status="NotStarted"
+):
+    """Link videos on external storage to SuperAnnotate.
+
+    :param project: project name or project folder path
+    :type project: str or dict
+
+    :param attachments: path to csv file on attachments metadata
+    :type attachments: Path-like (str or Path)
+
+    :param annotation_status: value to set the annotation statuses of the linked videos: NotStarted InProgress QualityCheck Returned Completed Skipped
+    :type annotation_status: str
+
+    :return: attached videos, failed videos, skipped videos
+    :rtype: (list, list, list)
+    """
+    return attach_file_urls_to_project(project, attachments, annotation_status)
+

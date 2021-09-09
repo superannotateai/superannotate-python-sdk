@@ -19,7 +19,7 @@ DEFAULT_VIDEO_EXTENSIONS = ("mp4", "avi", "mov", "webm", "flv", "mpg", "ogg")
 
 SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES = set('/\\:*?"<>|')
 
-_PROJECT_TYPES = {"Vector": 1, "Pixel": 2, "Video": 3}
+_PROJECT_TYPES = {"Vector": 1, "Pixel": 2, "Video": 3, "Text": 4}
 
 _ANNOTATION_STATUSES = {
     "NotStarted": 1,

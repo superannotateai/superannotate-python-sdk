@@ -183,6 +183,15 @@ def aggregate_annotations_as_df(
     :rtype: pandas DataFrame
     """
 
+    json_paths = list(Path(str(project_root)).glob("*.json"))
+    if (
+            json_paths
+            and "___pixel.json" not in json_paths[0].name
+            and "___objects.json" not in json_paths[0].name
+    ):
+        raise SABaseException(0, "The function does not support projects containing images / videos / documents   attached with URLs")
+
+
     if verbose:
         logger.info(
             "Aggregating annotations from %s as pandas DataFrame", project_root

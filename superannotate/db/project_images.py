@@ -61,7 +61,7 @@ def upload_image_to_project(
     if upload_state == "External":
         raise SABaseException(
             0,
-            "The function does not support projects containing images attached with URLs"
+            "The function does not support projects containing images / videos / documents   attached with URLs"
         )
     annotation_status = common.annotation_status_str_to_int(annotation_status)
     if image_quality_in_editor is None:
