@@ -184,12 +184,13 @@ class CreateProjectUseCase(BaseUseCase):
         condition = Condition("name", self._project.name, EQ) & Condition(
             "team_id", self._project.team_id, EQ
         )
-        if self._projects.get_all(condition):
-            logger.error("There are duplicated names.")
-            raise AppValidationException(
-                f"Project name {self._project.name} is not unique. "
-                f"To use SDK please make project names unique."
-            )
+        for project in self._projects.get_all(condition):
+            if project.name == self._project.name:
+                logger.error("There are duplicated names.")
+                raise AppValidationException(
+                    f"Project name {self._project.name} is not unique. "
+                    f"To use SDK please make project names unique."
+                )
 
     def validate_description(self):
         if not self._project.description:
@@ -2232,14 +2233,13 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
                     headers=annotation_blue_map_creds["headers"],
                 )
                 data["annotation_mask_filename"] = f"{self._image_name}___save.png"
-
                 if response.ok:
-                    data["annotation_mask"] = io.BytesIO(response.content)
+                    data["annotation_mask"] = io.BytesIO(response.content).getbuffer()
                     mask_path = (
                         Path(self._destination) / data["annotation_mask_filename"]
                     )
                     with open(mask_path, "wb") as f:
-                        f.write(data["annotation_mask"].getbuffer())
+                        f.write(data["annotation_mask"])
                 else:
                     logger.info("There is no blue-map for the image.")
 
@@ -3096,6 +3096,7 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
         backend_service_provider: SuerannotateServiceProvider,
         mask=None,
         verbose: bool = True,
+        annotation_path: str = True,
     ):
         super().__init__()
         self._project = project
@@ -3106,6 +3107,7 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
         self._annotations = annotations
         self._mask = mask
         self._verbose = verbose
+        self._annotation_path = annotation_path
 
     def validate_project_type(self):
         if self._project.project_type == constances.ProjectType.VIDEO.value:
@@ -3222,6 +3224,12 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
                 Key=auth_data["images"][str(image_data["id"])]["annotation_json_path"],
                 Body=json.dumps(self._annotations),
             )
+            if self._project.project_type == constances.ProjectType.PIXEL.value\
+                    and os.path.exists(self._annotation_path):
+                with open(self._annotation_path, "rb") as descriptor:
+                    file = io.BytesIO(descriptor.read())
+                    bucket.put_object(Key=auth_data["images"][str(image_data["id"])]["annotation_bluemap_path"],
+                                  Body=file)
             if self._verbose:
                 logger.info(
                     "Uploading annotations for image %s in project %s.",

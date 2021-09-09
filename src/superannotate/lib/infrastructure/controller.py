@@ -1202,6 +1202,8 @@ class Controller(BaseController):
         annotations: dict,
         mask: io.BytesIO = None,
         verbose: bool = True,
+        annotation_path: str = None,
+
     ):
         project = self._get_project(project_name)
         folder = self._get_folder(project, folder_name)
@@ -1216,6 +1218,7 @@ class Controller(BaseController):
             backend_service_provider=self._backend_client,
             mask=mask,
             verbose=verbose,
+            annotation_path=annotation_path
         )
         return use_case.execute()
 

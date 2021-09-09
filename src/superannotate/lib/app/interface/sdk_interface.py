@@ -2535,7 +2535,9 @@ def upload_image_annotations(
     :param mask: BytesIO object or filepath to mask annotation for pixel projects in SuperAnnotate format
     :type mask: BytesIO or Path-like (str or Path)
     """
-
+    annotation_path = f"{image_name}___save.png"
+    if isinstance(annotation_json, str) or isinstance(annotation_json, Path):
+        annotation_path = str(annotation_json).replace("___pixel.json", "___save.png")
     if isinstance(annotation_json, list):
         raise AppException(
             "Annotation JSON should be a dict object. You are using list object."
@@ -2554,6 +2556,7 @@ def upload_image_annotations(
         annotations=annotation_json,
         mask=mask,
         verbose=verbose,
+        annotation_path=annotation_path
     )
     if response.errors:
         raise AppException(response.errors)
