@@ -2238,7 +2238,7 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
                     with open(mask_path, "wb") as f:
                         f.write(data["annotation_mask"].getbuffer())
                 else:
-                    logger.info(f"There is no blue-map for the image.")
+                    logger.info("There is no blue-map for the image.")
 
             json_path = Path(self._destination) / data["annotation_json_filename"]
             with open(json_path, "w") as f:
