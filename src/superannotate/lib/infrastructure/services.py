@@ -115,6 +115,7 @@ class BaseBackendService(SuerannotateServiceProvider):
                     data = data[key_field]
                 if data.get("count", 0) < self.LIMIT:
                     return data, 0
+                    return data, 0
                 else:
                     return data, data.get("count", 0) - offset
             if isinstance(data, list):

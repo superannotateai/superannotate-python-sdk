@@ -2666,7 +2666,8 @@ def run_training(
 
 
 @Trackable
-def delete_model(model):
+@typechecked
+def delete_model(model: dict):
     """This function deletes the provided model
 
        :param model: the model to be deleted
@@ -2684,7 +2685,8 @@ def delete_model(model):
 
 
 @Trackable
-def stop_model_training(model):
+@typechecked
+def stop_model_training(model: dict):
     """This function will stop training model provided by either name or metadata, and return the ID
 
     :param model: The name or the metadata of the model the training of which the user needs to terminate
@@ -2692,19 +2694,7 @@ def stop_model_training(model):
     :return: the metadata of the now, stopped model
     :rtype: dict
     """
-
-    model_id = None
-    if isinstance(model, dict):
-        model_id = model["id"]
-    else:
-        res = controller.search_models(name=model).data
-        if len(res):
-            model_id = res[0]["id"]
-        else:
-            raise AppException("Model not found.")
-
-    response = controller.stop_model_training(model_id=model_id)
-
+    response = controller.stop_model_training(model_id=model["id"])
     if not response.errors:
         logger.info("Stopped model training")
     else:
@@ -2713,7 +2703,8 @@ def stop_model_training(model):
 
 
 @Trackable
-def download_model(model, output_dir):
+@typechecked
+def download_model(model: dict, output_dir: Union[str, Path]):
     """Downloads the neural network and related files
     which are the <model_name>.pth/pkl. <model_name>.json, <model_name>.yaml, classes_mapper.json
 
@@ -2733,11 +2724,12 @@ def download_model(model, output_dir):
 
 
 @Trackable
+@typechecked
 def benchmark(
-    project,
-    gt_folder,
-    folder_names,
-    export_root=None,
+    project: Union[str, dict],
+    gt_folder: str,
+    folder_names: List[str],
+    export_root: Optional[Union[str, Path]]=None,
     image_list=None,
     annot_type="bbox",
     show_plots=False,
@@ -2796,7 +2788,7 @@ def benchmark(
 
 @Trackable
 def consensus(
-    project,
+    project: str,
     folder_names,
     export_root=None,
     image_list=None,
