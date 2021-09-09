@@ -184,12 +184,13 @@ class CreateProjectUseCase(BaseUseCase):
         condition = Condition("name", self._project.name, EQ) & Condition(
             "team_id", self._project.team_id, EQ
         )
-        if self._projects.get_all(condition):
-            logger.error("There are duplicated names.")
-            raise AppValidationException(
-                f"Project name {self._project.name} is not unique. "
-                f"To use SDK please make project names unique."
-            )
+        for project in self._projects.get_all(condition):
+            if project.name == self._project.name:
+                logger.error("There are duplicated names.")
+                raise AppValidationException(
+                    f"Project name {self._project.name} is not unique. "
+                    f"To use SDK please make project names unique."
+                )
 
     def validate_description(self):
         if not self._project.description:

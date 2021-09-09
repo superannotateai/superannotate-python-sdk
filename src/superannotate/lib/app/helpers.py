@@ -72,10 +72,13 @@ def get_s3_annotation_paths(folder_path, s3_bucket, annotation_paths, recursive)
     paginator = s3_client.get_paginator("list_objects_v2")
     for data in paginator.paginate(Bucket=s3_bucket, Prefix=folder_path):
         for annotation in data["Contents"]:
-            if annotation["Key"].endswith(VECTOR_ANNOTATION_POSTFIX) or annotation[
-                "Key"
-            ].endswith(PIXEL_ANNOTATION_POSTFIX):
-                annotation_paths.append(annotation["Key"])
+            key = annotation["Key"]
+            if key.endswith(VECTOR_ANNOTATION_POSTFIX) or key.endswith(
+                PIXEL_ANNOTATION_POSTFIX
+            ):
+                if not recursive and "/" in key[len(folder_path) + 1 :]:
+                    continue
+                annotation_paths.append(key)
     return list(set(annotation_paths))
 
 
