@@ -320,7 +320,8 @@ class UpdateProjectUseCase(BaseUseCase):
         if self.is_valid():
             for field, value in self._project_data.items():
                 setattr(self._project, field, value)
-            self._response.data = self._projects.update(self._project)
+            new_project = self._projects.update(self._project)
+            self._response.data = new_project.to_dict()
         return self._response
 
 
