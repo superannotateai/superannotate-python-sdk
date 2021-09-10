@@ -418,10 +418,12 @@ def upload_video_to_project(
     limit = _get_available_image_counts(project, folder)
 
     upload_state = common.upload_state_int_to_str(project.get("upload_state"))
+    project_type = common.project_type_int_to_str(project.get("type"))
+
     if upload_state == "External":
         raise SABaseException(
             0,
-            "The function does not support projects containing images / videos / documents   attached with URLs"
+            f"The function does not support projects containing {project_type} attached with URLs"
         )
     logger.info("Uploading from video %s.", str(video_path))
     tempdir = tempfile.TemporaryDirectory()
@@ -518,10 +520,12 @@ def upload_videos_from_folder_to_project(
     """
     project, folder = get_project_and_folder_metadata(project)
     upload_state = common.upload_state_int_to_str(project.get("upload_state"))
+    project_type = common.project_type_int_to_str(project.get("type"))
+
     if upload_state == "External":
         raise SABaseException(
             0,
-            "The function does not support projects containing images / videos / documents   attached with URLs"
+            f"The function does not support projects containing {project_type}attached with URLs"
         )
     if recursive_subfolders:
         logger.warning(
@@ -615,10 +619,12 @@ def upload_images_from_folder_to_project(
         f'/{project_folder["name"]}' if project_folder else ""
     )
     upload_state = common.upload_state_int_to_str(project.get("upload_state"))
+    project_type = common.project_type_int_to_str(project.get("type"))
+
     if upload_state == "External":
         raise SABaseException(
             0,
-            "The function does not support projects containing images / videos / documents   attached with URLs"
+            f"The function does not support projects containing {project_type} attached with URLs"
         )
     if recursive_subfolders:
         logger.info(
@@ -715,10 +721,12 @@ def upload_images_to_project(
     project, folder = get_project_and_folder_metadata(project)
     folder_name = project["name"] + (f'/{folder["name"]}' if folder else "")
     upload_state = common.upload_state_int_to_str(project.get("upload_state"))
+    project_type = common.project_type_int_to_str(project.get("type"))
+
     if upload_state == "External":
         raise SABaseException(
             0,
-            "The function does not support projects containing images / videos / documents   attached with URLs"
+            f"The function does not support projects containing {project_type} attached with URLs"
         )
     if not isinstance(img_paths, list):
         raise SABaseException(
@@ -825,10 +833,11 @@ def upload_images_from_public_urls_to_project(
     path_to_url = {}
     project, project_folder = get_project_and_folder_metadata(project)
     upload_state = common.upload_state_int_to_str(project.get("upload_state"))
+    project_type = common.upload_state_int_to_str(project.get('type'))
     if upload_state == "External":
         raise SABaseException(
             0,
-            "The function does not support projects containing images / videos / documents   attached with URLs"
+            f"The function does not support projects containing {project_type} attached with URLs"
         )
     finish_event = threading.Event()
     tqdm_thread = threading.Thread(
@@ -934,10 +943,12 @@ def upload_images_from_google_cloud_to_project(
     path_to_url = {}
     project, project_folder = get_project_and_folder_metadata(project)
     upload_state = common.upload_state_int_to_str(project.get("upload_state"))
+    project_type = common.project_type_int_to_str(project.get("type"))
+
     if upload_state == "External":
         raise SABaseException(
             0,
-            "The function does not support projects containing images / videos / documents   attached with URLs"
+            f"The function does not support projects containing {project_type} attached with URLs"
         )
     cloud_client = storage.Client(project=google_project)
     bucket = cloud_client.get_bucket(bucket_name)
@@ -1018,10 +1029,11 @@ def upload_images_from_azure_blob_to_project(
     path_to_url = {}
     project, project_folder = get_project_and_folder_metadata(project)
     upload_state = common.upload_state_int_to_str(project.get("upload_state"))
+    project_type = common.project_type_int_to_str(project.get('type'))
     if upload_state == "External":
         raise SABaseException(
             0,
-            "The function does not support projects containing images / videos / documents   attached with URLs"
+            f"The function does not support projects containing {project_type} attached with URLs"
         )
     connect_key = os.getenv('AZURE_STORAGE_CONNECTION_STRING')
     blob_service_client = BlobServiceClient.from_connection_string(connect_key)

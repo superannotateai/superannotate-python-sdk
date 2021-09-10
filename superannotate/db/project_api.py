@@ -42,6 +42,7 @@ def get_project_metadata_bare(project_name, include_complete_image_count=False):
         res = results[0]
         res["type"] = common.project_type_int_to_str(res["type"])
         res["user_role"] = common.user_role_int_to_str(res["user_role"])
+        project_type = res["type"]
         current_frame = inspect.currentframe()
         outer_function = inspect.getframeinfo(current_frame.f_back).function
         outer_outer_function = inspect.getframeinfo(
@@ -53,7 +54,7 @@ def get_project_metadata_bare(project_name, include_complete_image_count=False):
         ):
             raise SABaseException(
                 0,
-                "The function does not support projects containing images / videos / documents   attached with URLs"
+                f"The function does not support projects containing {project_type} attached with URLs"
             )
         return res
     else:
@@ -153,9 +154,10 @@ def get_project_and_folder_metadata(project):
     if project.get("type") and project["type"] in ["Video","Text"] \
             and (outer_function in common.VIDEO_DEPRICATED_FUNCTIONS
                  or outer_outer_function in common.VIDEO_DEPRICATED_FUNCTIONS):
+        project_type = project['type']
         raise SABaseException(
             0,
-            "The function does not support projects containing images / videos / documents   attached with URLs"
+            f"The function does not support projects containing {project_type} attached with URLs"
         )
     return project, folder
 

@@ -179,8 +179,8 @@ def export_annotation(
 
     """
 
-    if project_type in ["Text","Video"]:
-        raise SABaseException(0, "The function does not support projects containing images / videos / documents   attached with URLs")
+    if project_type not in ["Vector", "Pixel"]:
+        raise SABaseException(0, f"The function does not support projects containing {project_type} attached with URLs")
 
 
     params_info = [
@@ -358,8 +358,8 @@ def import_annotation(
 
     """
 
-    if project_type in ["Text","Video"]:
-        raise SABaseException(0, "The function does not support projects containing images / videos / documents   attached with URLs")
+    if project_type not in ["Vector","Pixel"]:
+        raise SABaseException(0, f"The function does not support projects containing {project_type} attached with URLs")
 
     params_info = [
         (input_dir, 'input_dir', (str, Path)),

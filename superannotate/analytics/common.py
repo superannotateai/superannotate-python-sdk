@@ -189,7 +189,7 @@ def aggregate_annotations_as_df(
             and "___pixel.json" not in json_paths[0].name
             and "___objects.json" not in json_paths[0].name
     ):
-        raise SABaseException(0, "The function does not support projects containing images / videos / documents   attached with URLs")
+        raise SABaseException(0, "The function does not support projects containing videos / documents attached with URLs")
 
 
     if verbose:
