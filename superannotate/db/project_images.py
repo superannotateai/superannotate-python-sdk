@@ -58,7 +58,7 @@ def upload_image_to_project(
     initial_project_inp = project
     project, folder = get_project_and_folder_metadata(project)
     upload_state = common.upload_state_int_to_str(project.get("upload_state"))
-    project_type = common.project_type_int_to_str(project["type"])
+    project_type = project["type"]
     if upload_state == "External":
         raise SABaseException(
             0,

@@ -61,7 +61,7 @@ def run_prediction(project, images_list, model):
         )
     project_id = project["id"]
     upload_state = upload_state_int_to_str(project.get("upload_state"))
-    project_type = project_type_str_to_int(project.get("type"))
+    project_type = project.get("type")
     if upload_state == "External":
         raise SABaseException(
             0,
@@ -138,7 +138,7 @@ def run_segmentation(project, images_list, model):
         raise SABaseException(0, "Model Does not exist")
 
     upload_state = upload_state_int_to_str(project.get("upload_state"))
-    project_type = project_type_str_to_int(project.get("type"))
+    project_type = project.get("type")
     if upload_state == "External":
         raise SABaseException(
             0,

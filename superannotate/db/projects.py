@@ -418,7 +418,7 @@ def upload_video_to_project(
     limit = _get_available_image_counts(project, folder)
 
     upload_state = common.upload_state_int_to_str(project.get("upload_state"))
-    project_type = common.project_type_int_to_str(project.get("type"))
+    project_type = project.get("type")
 
     if upload_state == "External":
         raise SABaseException(
@@ -520,7 +520,7 @@ def upload_videos_from_folder_to_project(
     """
     project, folder = get_project_and_folder_metadata(project)
     upload_state = common.upload_state_int_to_str(project.get("upload_state"))
-    project_type = common.project_type_int_to_str(project.get("type"))
+    project_type = project.get("type")
 
     if upload_state == "External":
         raise SABaseException(
@@ -833,7 +833,7 @@ def upload_images_from_public_urls_to_project(
     path_to_url = {}
     project, project_folder = get_project_and_folder_metadata(project)
     upload_state = common.upload_state_int_to_str(project.get("upload_state"))
-    project_type = common.upload_state_int_to_str(project.get('type'))
+    project_type = project.get('type')
     if upload_state == "External":
         raise SABaseException(
             0,
@@ -943,7 +943,7 @@ def upload_images_from_google_cloud_to_project(
     path_to_url = {}
     project, project_folder = get_project_and_folder_metadata(project)
     upload_state = common.upload_state_int_to_str(project.get("upload_state"))
-    project_type = common.project_type_int_to_str(project.get("type"))
+    project_type = project.get("type")
 
     if upload_state == "External":
         raise SABaseException(
@@ -1029,7 +1029,7 @@ def upload_images_from_azure_blob_to_project(
     path_to_url = {}
     project, project_folder = get_project_and_folder_metadata(project)
     upload_state = common.upload_state_int_to_str(project.get("upload_state"))
-    project_type = common.project_type_int_to_str(project.get('type'))
+    project_type = project.get('type')
     if upload_state == "External":
         raise SABaseException(
             0,

@@ -660,7 +660,7 @@ def download_image(
 
     project, project_folder = get_project_and_folder_metadata(project)
     upload_state = common.upload_state_int_to_str(project.get("upload_state"))
-    project_type = common.project_type_int_to_str(project['type'])
+    project_type = project['type']
     if upload_state == "External":
         raise SABaseException(
             0,
@@ -737,7 +737,7 @@ def get_image_bytes(project, image_name, variant='original'):
     """
     project, project_folder = get_project_and_folder_metadata(project)
     upload_state = common.upload_state_int_to_str(project.get("upload_state"))
-    project_type = common.project_type_int_to_str(project['type'])
+    project_type = project['type']
 
     if upload_state == "External":
         raise SABaseException(
