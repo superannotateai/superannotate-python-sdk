@@ -243,12 +243,10 @@ class TestFolders(BaseTestCase):
             [self.EXAMPLE_IMAGE_2, self.EXAMPLE_IMAGE_3],
             f"{self.PROJECT_NAME}",
             include_annotations=False,
-            copy_annotation_status=False,
             copy_pin=False,
         )
         assert (
             "Copied 2/2 images from test copy3 folder images to test copy3 folder images/folder_1"
-            # todo add in caplog.text
         )
 
         num_images = sa.get_project_image_count(self.PROJECT_NAME)
@@ -293,7 +291,6 @@ class TestFolders(BaseTestCase):
             [self.EXAMPLE_IMAGE_2, self.EXAMPLE_IMAGE_3],
             project2,
             include_annotations=False,
-            copy_annotation_status=False,
             copy_pin=False,
         )
 
@@ -313,7 +310,6 @@ class TestFolders(BaseTestCase):
             [self.EXAMPLE_IMAGE_2, self.EXAMPLE_IMAGE_3],
             self.PROJECT_NAME,
             include_annotations=False,
-            copy_annotation_status=False,
             copy_pin=False,
         )
         num_images = sa.get_project_image_count(self.PROJECT_NAME)
@@ -479,7 +475,7 @@ class TestFolders(BaseTestCase):
             project, self.folder_path, annotation_status="InProgress"
         )
         sa.set_images_annotation_statuses(
-            project, [self.EXAMPLE_IMAGE_1, self.EXAMPLE_IMAGE_2], "QualityCheck"
+            project, "QualityCheck", [self.EXAMPLE_IMAGE_1, self.EXAMPLE_IMAGE_2],
         )
         for image in [self.EXAMPLE_IMAGE_1, self.EXAMPLE_IMAGE_2]:
             metadata = sa.get_image_metadata(project, image)
@@ -489,7 +485,7 @@ class TestFolders(BaseTestCase):
             metadata = sa.get_image_metadata(project, image)
             self.assertEqual(metadata["annotation_status"], "InProgress")
 
-        sa.set_images_annotation_statuses(self.PROJECT_NAME, None, "QualityCheck")
+        sa.set_images_annotation_statuses(self.PROJECT_NAME, "QualityCheck",  None,)
 
         for image in sa.search_images(self.PROJECT_NAME):
             metadata = sa.get_image_metadata(self.PROJECT_NAME, image)

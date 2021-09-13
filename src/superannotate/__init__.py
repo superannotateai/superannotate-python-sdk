@@ -137,13 +137,7 @@ from superannotate.lib.app.interface.sdk_interface import (
 from superannotate.lib.app.interface.sdk_interface import upload_image_annotations
 from superannotate.lib.app.interface.sdk_interface import upload_image_to_project
 from superannotate.lib.app.interface.sdk_interface import (
-    upload_images_from_azure_blob_to_project,
-)
-from superannotate.lib.app.interface.sdk_interface import (
     upload_images_from_folder_to_project,
-)
-from superannotate.lib.app.interface.sdk_interface import (
-    upload_images_from_google_cloud_to_project,
 )
 from superannotate.lib.app.interface.sdk_interface import (
     upload_images_from_public_urls_to_project,
@@ -244,8 +238,6 @@ __all__ = [
     "upload_image_to_project",
     "upload_image_annotations",
     "upload_images_from_public_urls_to_project",
-    "upload_images_from_google_cloud_to_project",
-    "upload_images_from_azure_blob_to_project",
     "upload_images_from_s3_bucket_to_project",
     "upload_images_from_folder_to_project",
     "attach_image_urls_to_project",
@@ -298,8 +290,8 @@ __all__ = [
 
 __author__ = "Superannotate"
 
-
-file_dir = os.path.split(os.path.realpath(__file__))[0]
-sys.path.append(file_dir)
-logging.config.fileConfig(os.path.join(file_dir, "logging.conf"))
-logger = logging.getLogger()
+WORKING_DIR = os.path.split(os.path.realpath(__file__))[0]
+sys.path.append(WORKING_DIR)
+logging.config.fileConfig(
+    os.path.join(WORKING_DIR, "logging.conf"), disable_existing_loggers=False
+)

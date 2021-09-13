@@ -1,5 +1,7 @@
 import os
 import subprocess
+import pytest
+import pkg_resources
 import tempfile
 from os.path import dirname
 from pathlib import Path
@@ -7,9 +9,14 @@ from unittest import TestCase
 
 import src.superannotate as sa
 
+try:
+    CLI_VERSION = pkg_resources.get_distribution("superannotate").version
+except Exception:
+    CLI_VERSION = None
+
 
 class CLITest(TestCase):
-    PROJECT_NAME = "test_cli_interface"
+    PROJECT_NAME = "test_cli_image_upload"
     FOLDER_NAME = "test_folder"
     TEST_CONVERTOR_PATH = (
         "data_set/converter_test/COCO/input/toSuperAnnotate/instance_segmentation"
@@ -89,11 +96,8 @@ class CLITest(TestCase):
             shell=True,
         )
 
-    def test_create_project(self):
-        self._create_project()
-        projects = sa.search_projects(self.PROJECT_NAME, return_metadata=True)
-        self.assertEqual(self.PROJECT_NAME, projects[0]["name"])
-
+    @pytest.mark.skipif(CLI_VERSION and CLI_VERSION != sa.__version__,
+                        reason=f"Updated package version from {CLI_VERSION} to {sa.__version__}")
     def test_create_folder(self):
         self._create_project()
         subprocess.run(
@@ -106,6 +110,8 @@ class CLITest(TestCase):
         )
         self.assertEqual(self.FOLDER_NAME, folder["name"])
 
+    @pytest.mark.skipif(CLI_VERSION and CLI_VERSION != sa.__version__,
+                        reason=f"Updated package version from {CLI_VERSION} to {sa.__version__}")
     def test_upload_images(self):
         self._create_project()
         subprocess.run(
@@ -118,6 +124,8 @@ class CLITest(TestCase):
         )
         self.assertEqual(1, len(sa.search_images(self.PROJECT_NAME)))
 
+    @pytest.mark.skipif(CLI_VERSION and CLI_VERSION != sa.__version__,
+                        reason=f"Updated package version from {CLI_VERSION} to {sa.__version__}")
     def test_upload_export(self):
         self._create_project()
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -132,6 +140,8 @@ class CLITest(TestCase):
             self.assertEqual(len(list(test_dir.glob("*.jpg"))), 0)
             self.assertEqual(len(list(test_dir.glob("*.png"))), 0)
 
+    @pytest.mark.skipif(CLI_VERSION and CLI_VERSION != sa.__version__,
+                        reason=f"Updated package version from {CLI_VERSION} to {sa.__version__}")
     def test_vector_pre_annotation_folder_upload_download_cli(self):
         self._create_project()
 
@@ -166,6 +176,8 @@ class CLITest(TestCase):
             count_out = len(list(Path(temp_dir).glob("*.json")))
             self.assertEqual(count_in, count_out)
 
+    @pytest.mark.skipif(CLI_VERSION and CLI_VERSION != sa.__version__,
+                        reason=f"Updated package version from {CLI_VERSION} to {sa.__version__}")
     def test_vector_annotation_folder_upload_download_cli(self):
         self._create_project()
         sa.create_annotation_classes_from_classes_json(
@@ -196,6 +208,8 @@ class CLITest(TestCase):
             count_out = len(list(Path(temp_dir).glob("*.json")))
             self.assertEqual(count_in, count_out)
 
+    @pytest.mark.skipif(CLI_VERSION and CLI_VERSION != sa.__version__,
+                        reason=f"Updated package version from {CLI_VERSION} to {sa.__version__}")
     def test_attach_image_urls(self):
         self._create_project()
         subprocess.run(
@@ -208,16 +222,8 @@ class CLITest(TestCase):
 
         self.assertEqual(3, len(sa.search_images(self.PROJECT_NAME)))
 
-    def test_attach_document_urls(self):
-        self._create_project("Document")
-        subprocess.run(
-            f"superannotatecli attach-document-urls "
-            f'--project "{self.PROJECT_NAME}" '
-            f"--attachments {self.image_csv_path}",
-            check=True,
-            shell=True,
-        )
-
+    @pytest.mark.skipif(CLI_VERSION and CLI_VERSION != sa.__version__,
+                        reason=f"Updated package version from {CLI_VERSION} to {sa.__version__}")
     def test_attach_video_urls(self):
         self._create_project("Video")
         subprocess.run(
@@ -229,6 +235,8 @@ class CLITest(TestCase):
         )
         self.assertEqual(3, len(sa.search_images(self.PROJECT_NAME)))
 
+    @pytest.mark.skipif(CLI_VERSION and CLI_VERSION != sa.__version__,
+                        reason=f"Updated package version from {CLI_VERSION} to {sa.__version__}")
     def test_upload_videos(self):
         self._create_project()
         subprocess.run(
@@ -240,3 +248,13 @@ class CLITest(TestCase):
             shell=True,
         )
         self.assertEqual(4, len(sa.search_images(self.PROJECT_NAME)))
+
+    def test_attach_document_urls(self):
+            self._create_project("Document")
+            subprocess.run(
+                f"superannotatecli attach-document-urls "
+                f'--project "{self.PROJECT_NAME}" '
+                f"--attachments {self.image_csv_path}",
+                check=True,
+                shell=True,
+            )

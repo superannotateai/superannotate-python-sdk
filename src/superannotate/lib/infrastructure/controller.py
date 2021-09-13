@@ -88,6 +88,10 @@ class BaseController(metaclass=SingleInstanceMetaClass):
             self._backend_client._auth_token = self.configs.get_one("token").value
 
     @property
+    def config_path(self):
+        return self._config_path
+
+    @property
     def user_id(self):
         if not self._user_id:
             self._user_id, _ = self.get_team()
@@ -235,10 +239,17 @@ class Controller(BaseController):
         annotation_classes: Iterable = tuple(),
         workflows: Iterable = tuple(),
     ) -> Response:
+
+        try:
+            project_type = constances.ProjectType[project_type.upper()].value
+        except KeyError:
+            raise AppException(
+                "Please provide a valid project type: Vector, Pixel, or Video."
+            )
         entity = ProjectEntity(
             name=name,
             description=description,
-            project_type=constances.ProjectType[project_type.upper()].value,
+            project_type=project_type,
             team_id=self.team_id,
         )
         use_case = usecases.CreateProjectUseCase(
@@ -269,14 +280,9 @@ class Controller(BaseController):
         return use_case.execute()
 
     def update_project(self, name: str, project_data: dict) -> Response:
-        entities = self.projects.get_all(
-            Condition("team_id", self.team_id, EQ) & Condition("name", name, EQ)
-        )
-        project = entities[0]
-        if entities and len(entities) == 1:
-            project.name = project_data["name"]
-            use_case = usecases.UpdateProjectUseCase(project, self.projects)
-            return use_case.execute()
+        project = self._get_project(name)
+        use_case = usecases.UpdateProjectUseCase(project, project_data, self.projects)
+        return use_case.execute()
 
     def upload_images(
         self,
@@ -540,7 +546,11 @@ class Controller(BaseController):
     ) -> ImageEntity:
         folder = self._get_folder(project, folder_path)
         use_case = usecases.GetImageUseCase(
-            project=project, folder=folder, image_name=image_name, images=self.images,
+            service=self._backend_client,
+            project=project,
+            folder=folder,
+            image_name=image_name,
+            images=self.images,
         )
         return use_case.execute().data
 
@@ -875,29 +885,6 @@ class Controller(BaseController):
         )
         return use_case.execute()
 
-    @staticmethod
-    def download_images_from_google_clout(
-        project_name: str, bucket_name: str, folder_name: str, download_path: str
-    ):
-        use_case = usecases.DownloadGoogleCloudImages(
-            project_name=project_name,
-            bucket_name=bucket_name,
-            folder_name=folder_name,
-            download_path=download_path,
-        )
-        return use_case.execute()
-
-    @staticmethod
-    def download_images_from_azure_cloud(
-        container_name: str, folder_name: str, download_path: str
-    ):
-        use_case = usecases.DownloadAzureCloudImages(
-            container=container_name,
-            folder_name=folder_name,
-            download_path=download_path,
-        )
-        return use_case.execute()
-
     def get_image_annotations(
         self, project_name: str, folder_name: str, image_name: str
     ):
@@ -1205,7 +1192,7 @@ class Controller(BaseController):
                 "data", []
             ),
         )
-        return use_case.execute()
+        return use_case
 
     def upload_image_annotations(
         self,
@@ -1215,6 +1202,7 @@ class Controller(BaseController):
         annotations: dict,
         mask: io.BytesIO = None,
         verbose: bool = True,
+        annotation_path: str = None,
     ):
         project = self._get_project(project_name)
         folder = self._get_folder(project, folder_name)
@@ -1229,6 +1217,7 @@ class Controller(BaseController):
             backend_service_provider=self._backend_client,
             mask=mask,
             verbose=verbose,
+            annotation_path=annotation_path,
         )
         return use_case.execute()
 
@@ -1238,8 +1227,8 @@ class Controller(BaseController):
         model_description: str,
         task: str,
         base_model_name: str,
-        train_data_paths: List[str],
-        test_data_paths: List[str],
+        train_data_paths: Iterable[str],
+        test_data_paths: Iterable[str],
         hyper_parameters: dict,
     ):
         use_case = usecases.CreateModelUseCase(
@@ -1499,11 +1488,11 @@ class Controller(BaseController):
     ):
         project = self._get_project(project_name)
         folder = self._get_folder(project, folder_name)
-        use_case = usecases.GetDuplicateImages(
+        use_case = usecases.GetBulkImages(
             service=self._backend_client,
             project_id=project.uuid,
             team_id=project.team_id,
             folder_id=folder.uuid,
             images=images,
         )
-        return use_case.execute()
+        return use_case.execute().data

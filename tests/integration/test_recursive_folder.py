@@ -14,11 +14,16 @@ class TestRecursiveFolder(BaseTestCase):
     PROJECT_TYPE = "Vector"
     S3_FOLDER_PATH = "sample_recursive_test"
     TEST_FOLDER_PATH = "data_set/sample_recursive_test"
+    TEST_FOLDER_PATH_NEGATIVE_CASE = "data_set/sample_recursive_test_negative_case"
     JSON_POSTFIX = "*.json"
 
     @property
     def folder_path(self):
         return os.path.join(dirname(dirname(__file__)), self.TEST_FOLDER_PATH)
+
+    @property
+    def second_folder_path(self):
+        return os.path.join(dirname(dirname(__file__)), self.TEST_FOLDER_PATH_NEGATIVE_CASE)
 
     def test_non_recursive_annotations_folder(self):
         sa.upload_images_from_folder_to_project(
@@ -72,6 +77,16 @@ class TestRecursiveFolder(BaseTestCase):
         with tempfile.TemporaryDirectory() as tmp_dir:
             sa.download_export(self.PROJECT_NAME, export["name"], tmp_dir)
             self.assertEqual(len(list(Path(tmp_dir).glob("*.json"))), 2)
+
+    def test_recursive_annotations_folder_negative_case(self):
+        sa.upload_images_from_folder_to_project(
+            self.PROJECT_NAME,
+            self.second_folder_path,
+            annotation_status="QualityCheck",
+            recursive_subfolders=True,
+        )
+
+        self.assertEqual(len(sa.search_images(self.PROJECT_NAME)), 2)
 
     def test_recursive_pre_annotations_folder(self):
         sa.upload_images_from_folder_to_project(
@@ -253,6 +268,25 @@ class TestRecursiveFolder(BaseTestCase):
         )
 
         self.assertEqual(len(sa.search_images(self.PROJECT_NAME)), 1)
+
+
+
+
+    def test_images_recursive_s3_122(self):
+        sa.upload_images_from_folder_to_project(self.PROJECT_NAME, '8sep', from_s3_bucket="superannotate-python-sdk-test",recursive_subfolders=True)
+        self.assertEqual(len(sa.search_images(self.PROJECT_NAME)), 122)
+
+
+    def test_annotations_recursive_s3_122(self):
+        sa.upload_images_from_folder_to_project(self.PROJECT_NAME, '8sep', from_s3_bucket="superannotate-python-sdk-test",recursive_subfolders=True)
+        uploaded = sa.upload_annotations_from_folder_to_project(self.PROJECT_NAME, '8sep', from_s3_bucket="superannotate-python-sdk-test",recursive_subfolders=True)
+        self.assertEqual(len(uploaded[0]),132)
+
+
+    def test_annotations_recursive_s3_10(self):
+        sa.upload_images_from_folder_to_project(self.PROJECT_NAME, '8sep', from_s3_bucket="superannotate-python-sdk-test",recursive_subfolders=False)
+        uploaded = sa.upload_annotations_from_folder_to_project(self.PROJECT_NAME, '8sep', from_s3_bucket="superannotate-python-sdk-test",recursive_subfolders=False)
+        self.assertEqual(len(uploaded[0]),10)
 
     def test_images_non_recursive(self):
         sa.upload_images_from_folder_to_project(

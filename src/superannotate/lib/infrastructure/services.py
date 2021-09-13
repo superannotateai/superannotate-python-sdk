@@ -115,6 +115,7 @@ class BaseBackendService(SuerannotateServiceProvider):
                     data = data[key_field]
                 if data.get("count", 0) < self.LIMIT:
                     return data, 0
+                    return data, 0
                 else:
                     return data, data.get("count", 0) - offset
             if isinstance(data, list):
@@ -129,7 +130,7 @@ class BaseBackendService(SuerannotateServiceProvider):
             total.extend(resources["data"])
             if remains_count <= 0:
                 break
-            offset += self.paginate_by
+            offset += len(resources["data"])
         return total
 
 
@@ -270,7 +271,7 @@ class SuperannotateBackendService(BaseBackendService):
         if query_string:
             url = f"{url}?{query_string}"
         res = self._request(url, "put", data)
-        return res.ok
+        return res.json()
 
     def attach_files(
         self,
@@ -307,10 +308,7 @@ class SuperannotateBackendService(BaseBackendService):
         get_folder_url = urljoin(self.api_url, self.URL_FOLDERS_IMAGES)
         if query_string:
             get_folder_url = f"{get_folder_url}?{query_string}"
-        response = self._get_all_pages(
-            get_folder_url, params=params, key_field="folders"
-        )
-        return response
+        return self._get_all_pages(get_folder_url, params=params, key_field="folders")
 
     def delete_folders(self, project_id: int, team_id: int, folder_ids: List[int]):
         delete_folders_url = urljoin(self.api_url, self.URL_DELETE_FOLDERS)
@@ -632,7 +630,7 @@ class SuperannotateBackendService(BaseBackendService):
                 "image_names": image_names,
             },
         )
-        return res
+        return res.ok
 
     def get_bulk_images(
         self, project_id: int, team_id: int, folder_id: int, images: List[str]
@@ -884,8 +882,8 @@ class SuperannotateBackendService(BaseBackendService):
         search_model_url = urljoin(self.api_url, self.URL_MODELS)
         if query_string:
             search_model_url = f"{search_model_url}?{query_string}"
-        response = self._request(search_model_url, "get",)
-        return response.json()
+        # response = self._request(search_model_url, "get",)
+        return self._get_all_pages(search_model_url)
 
     def bulk_get_folders(self, team_id: int, project_ids: List[int]):
         get_folders_url = urljoin(self.api_url, self.URL_BULK_GET_FOLDERS)

@@ -147,12 +147,17 @@ class ImagePlugin:
         self._image.convert("RGBA")
         self._image = Image.alpha_composite(self._image, image)
 
-    def draw_ellipse(self, cx, cy, rx, ry, fill_color, outline_color):
+    def draw_ellipse(self, cx, cy, rx, ry, fill_color, outline_color, fixed=False):
         image = self.get_empty_image()
         draw = ImageDraw.Draw(image)
-        draw.ellipse(
-            (cx - rx, cy - ry, cx + rx, cy + ry), fill=fill_color, outline=outline_color
-        )
+        if fixed:
+            draw.ellipse((cx, cy, rx, ry), fill=fill_color, outline=outline_color)
+        else:
+            draw.ellipse(
+                (cx - rx, cy - ry, cx + rx, cy + ry),
+                fill=fill_color,
+                outline=outline_color,
+            )
         self._image.convert("RGBA")
         self._image = Image.alpha_composite(self._image, image)
 

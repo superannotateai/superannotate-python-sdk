@@ -23,11 +23,7 @@ import lib.core as constances
 import numpy as np
 import pandas as pd
 import requests
-from azure.core.exceptions import AzureError
-from azure.storage.blob import BlobServiceClient
 from boto3.exceptions import Boto3Error
-from google.api_core.exceptions import GoogleAPIError
-from google.cloud import storage as google_storage
 from lib.app.analytics.common import aggregate_annotations_as_df
 from lib.app.analytics.common import consensus_plot
 from lib.app.analytics.common import image_consensus
@@ -57,7 +53,7 @@ from lib.core.response import Response
 from lib.core.serviceproviders import SuerannotateServiceProvider
 from PIL import UnidentifiedImageError
 
-logger = logging.getLogger()
+logger = logging.getLogger("root")
 
 
 class BaseUseCase(ABC):
@@ -146,7 +142,7 @@ class CreateProjectUseCase(BaseUseCase):
         project: ProjectEntity,
         projects: BaseManageableRepository,
         backend_service_provider: SuerannotateServiceProvider,
-        settings_repo: BaseManageableRepository,
+        settings_repo,
         annotation_classes_repo: BaseManageableRepository,
         workflows_repo: BaseManageableRepository,
         settings: List[ProjectSettingEntity] = None,
@@ -167,28 +163,42 @@ class CreateProjectUseCase(BaseUseCase):
         self._contributors = contributors
         self._backend_service = backend_service_provider
 
+    def validate_project_name(self):
+        if (
+            len(
+                set(self._project.name).intersection(
+                    constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
+                )
+            )
+            > 0
+        ):
+            self._project.name = "".join(
+                "_"
+                if char in constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
+                else char
+                for char in self._project.name
+            )
+            logger.warning(
+                "New folder name has special characters. Special characters will be replaced by underscores."
+            )
+        condition = Condition("name", self._project.name, EQ) & Condition(
+            "team_id", self._project.team_id, EQ
+        )
+        for project in self._projects.get_all(condition):
+            if project.name == self._project.name:
+                logger.error("There are duplicated names.")
+                raise AppValidationException(
+                    f"Project name {self._project.name} is not unique. "
+                    f"To use SDK please make project names unique."
+                )
+
+    def validate_description(self):
+        if not self._project.description:
+            raise AppValidationException("Please provide a project description.")
+
     def execute(self):
         if self.is_valid():
             # TODO add status in the constants
-
-            if (
-                len(
-                    set(self._project.name).intersection(
-                        constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
-                    )
-                )
-                > 0
-            ):
-                self._project.name = "".join(
-                    "_"
-                    if char in constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
-                    else char
-                    for char in self._project.name
-                )
-                logger.warning(
-                    "New project name has special characters. Special characters will be replaced by underscores."
-                )
-
             self._project.status = 0
             entity = self._projects.insert(self._project)
             self._response.data = entity
@@ -241,16 +251,6 @@ class CreateProjectUseCase(BaseUseCase):
             )
         return self._response
 
-    def validate_project_name_uniqueness(self):
-        condition = Condition("name", self._project.name, EQ) & Condition(
-            "team_id", self._project.team_id, EQ
-        )
-        if self._projects.get_all(condition):
-            raise AppValidationException(
-                f"Project name {self._project.name} is not unique. "
-                f"To use SDK please make project names unique."
-            )
-
 
 class DeleteProjectUseCase(BaseUseCase):
     def __init__(
@@ -277,27 +277,53 @@ class DeleteProjectUseCase(BaseUseCase):
 
 class UpdateProjectUseCase(BaseUseCase):
     def __init__(
-        self, project: ProjectEntity, projects: BaseManageableRepository,
+        self,
+        project: ProjectEntity,
+        project_data: dict,
+        projects: BaseManageableRepository,
     ):
 
         super().__init__()
         self._project = project
+        self._project_data = project_data
         self._projects = projects
 
-    def validate_project_name_uniqueness(self):
-        condition = Condition("name", self._project.name, EQ) & Condition(
-            "team_id", self._project.team_id, EQ
-        )
-        if self._projects.get_all(condition):
-            logger.error("There are duplicated names.")
-            raise AppValidationException(
-                f"Project name {self._project.name} is not unique. "
-                f"To use SDK please make project names unique."
+    def validate_project_name(self):
+        if self._project_data.get("name"):
+            if (
+                len(
+                    set(self._project_data["name"]).intersection(
+                        constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
+                    )
+                )
+                > 0
+            ):
+                self._project_data["name"] = "".join(
+                    "_"
+                    if char in constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
+                    else char
+                    for char in self._project_data["name"]
+                )
+                logger.warning(
+                    "New folder name has special characters. Special characters will be replaced by underscores."
+                )
+            condition = Condition("name", self._project_data["name"], EQ) & Condition(
+                "team_id", self._project.team_id, EQ
             )
+            if self._projects.get_all(condition):
+                logger.error("There are duplicated names.")
+                raise AppValidationException(
+                    f"Project name {self._project.name} is not unique. "
+                    f"To use SDK please make project names unique."
+                )
 
     def execute(self):
         if self.is_valid():
-            self._projects.update(self._project)
+            for field, value in self._project_data.items():
+                setattr(self._project, field, value)
+            new_project = self._projects.update(self._project)
+            self._response.data = new_project.to_dict()
+        return self._response
 
 
 class CloneProjectUseCase(BaseUseCase):
@@ -458,6 +484,14 @@ class GetImagesUseCase(BaseUseCase):
                 "The function does not support projects containing document attached with URLs"
             )
 
+    def validate_annotation_status(self):
+        if (
+            self._annotation_status
+            and self._annotation_status.lower()
+            not in constances.AnnotationStatus.values()
+        ):
+            raise AppValidationException("Invalid annotations status.")
+
     def execute(self):
         if self.is_valid():
             condition = (
@@ -485,21 +519,27 @@ class GetImageUseCase(BaseUseCase):
         folder: FolderEntity,
         image_name: str,
         images: BaseReadOnlyRepository,
+        service: SuerannotateServiceProvider,
     ):
         super().__init__()
         self._project = project
         self._folder = folder
         self._images = images
         self._image_name = image_name
+        self._service = service
 
     def execute(self):
-        condition = (
-            Condition("team_id", self._project.team_id, EQ)
-            & Condition("project_id", self._project.uuid, EQ)
-            & Condition("folder_id", self._folder.uuid, EQ)
-            & Condition("name", self._image_name, EQ)
+        images = (
+            GetBulkImages(
+                service=self._service,
+                project_id=self._project.uuid,
+                team_id=self._project.team_id,
+                folder_id=self._folder.uuid,
+                images=[self._image_name],
+            )
+            .execute()
+            .data
         )
-        images = self._images.get_all(condition)
         if images:
             self._response.data = images[0]
         else:
@@ -704,7 +744,7 @@ class AttachFileUrlsUseCase(BaseUseCase):
                     "height": image.meta.height,
                 }
 
-        uploaded = self._backend_service.attach_files(
+        backend_response = self._backend_service.attach_files(
             project_id=self._project.uuid,
             folder_id=self._folder.uuid,
             team_id=self._project.team_id,
@@ -713,8 +753,10 @@ class AttachFileUrlsUseCase(BaseUseCase):
             upload_state_code=self.upload_state_code,
             meta=meta,
         )
-
-        self._response.data = uploaded, duplications
+        if isinstance(backend_response, dict) and "error" in backend_response:
+            self._response.errors = AppException(backend_response["error"])
+        else:
+            self._response.data = backend_response, duplications
         return self._response
 
 
@@ -770,7 +812,7 @@ class PrepareExportUseCase(BaseUseCase):
                     constances.AnnotationStatus.SKIPPED.name,
                 )
 
-            res = self._backend_service.prepare_export(
+            response = self._backend_service.prepare_export(
                 project_id=self._project.uuid,
                 team_id=self._project.team_id,
                 folders=self._folder_names,
@@ -778,17 +820,17 @@ class PrepareExportUseCase(BaseUseCase):
                 include_fuse=self._include_fuse,
                 only_pinned=self._only_pinned,
             )
+            if "error" in response:
+                raise AppException(response["error"])
             folder_str = (
                 "" if self._folder_names is None else ("/" + str(self._folder_names))
             )
+
             logger.info(
-                "Prepared export %s for project %s%s (project ID %s).",
-                res["name"],
-                self._project.name,
-                folder_str,
-                self._project.uuid,
+                f"Prepared export {response['name']} for project "
+                f"{self._project.name}/{folder_str} (project ID {self._project.uuid})."
             )
-            self._response.data = res
+            self._response.data = response
 
         return self._response
 
@@ -1261,13 +1303,9 @@ class ImagesBulkCopyUseCase(BaseUseCase):
         self._include_pin = include_pin
 
     def validate_project_type(self):
-        if (
-            self._project.project_type == constances.ProjectType.VIDEO.value
-            or self._project.project_type == constances.ProjectType.DOCUMENT.value
-        ):
+        if self._project.project_type == constances.ProjectType.VIDEO.value:
             raise AppValidationException(
-                "The function does not support projects containing "
-                f"{constances.ProjectType.get_name(self._project.project_type)} attached with URLs"
+                "The function does not support projects containing videos attached with URLs"
             )
 
     def execute(self):
@@ -1446,13 +1484,12 @@ class UpdateSettingsUseCase(BaseUseCase):
     def validate_project_type(self):
         project = self._projects.get_one(uuid=self._project_id, team_id=self._team_id)
         for attribute in self._to_update:
-            if attribute.get("attribute", "") == "ImageQuality" and (
-                project.project_type == constances.ProjectType.VIDEO.value
-                or project.project_type == constances.ProjectType.DOCUMENT.value
+            if (
+                attribute.get("attribute", "") == "ImageQuality"
+                and project.project_type == constances.ProjectType.VIDEO.value
             ):
                 raise AppValidationException(
-                    "The function does not support projects containing "
-                    f"{constances.ProjectType.get_name(project.project_type)} attached with URLs"
+                    "The function does not support projects containing videos attached with URLs"
                 )
 
     def execute(self):
@@ -1514,13 +1551,9 @@ class GetImageMetadataUseCase(BaseUseCase):
         self._folder = folder
 
     def validate_project_type(self):
-        if (
-            self._project.project_type == constances.ProjectType.VIDEO.value
-            or self._project.project_type == constances.ProjectType.DOCUMENT.value
-        ):
+        if self._project.project_type == constances.ProjectType.VIDEO.value:
             raise AppValidationException(
-                "The function does not support projects containing "
-                f"{constances.ProjectType.get_name(self._project.project_type)} attached with URLs"
+                "The function does not support projects containing videos attached with URLs"
             )
 
     def execute(self):
@@ -1603,13 +1636,9 @@ class SetImageAnnotationStatuses(BaseUseCase):
 
     def validate_project_type(self):
         project = self._projects.get_one(uuid=self._project_id, team_id=self._team_id)
-        if (
-            project.project_type == constances.ProjectType.VIDEO.value
-            or project.project_type == constances.ProjectType.DOCUMENT.value
-        ):
+        if project.project_type == constances.ProjectType.VIDEO.value:
             raise AppValidationException(
-                "The function does not support projects containing "
-                f"{constances.ProjectType.get_name(project.project_type)} attached with URLs"
+                "The function does not support projects containing videos attached with URLs"
             )
 
     def execute(self):
@@ -1624,13 +1653,17 @@ class SetImageAnnotationStatuses(BaseUseCase):
                     image.name for image in self._images_repo.get_all(condition)
                 ]
             for i in range(0, len(self._image_names), self.CHUNK_SIZE):
-                self._response.data = self._service.set_images_statuses_bulk(
-                    image_names=self._image_names,
+                status_changed = self._service.set_images_statuses_bulk(
+                    image_names=self._image_names[
+                        i : i + self.CHUNK_SIZE
+                    ],  # noqa: E203
                     team_id=self._team_id,
                     project_id=self._project_id,
                     folder_id=self._folder_id,
                     annotation_status=self._annotation_status,
                 )
+                if not status_changed:
+                    self._response.errors = AppException("Failed to change status.")
         return self._response
 
 
@@ -1666,13 +1699,16 @@ class DeleteImagesUseCase(BaseUseCase):
         if self.is_valid():
             if self._image_names:
                 image_ids = [
-                    image["id"]
-                    for image in self._backend_service.get_bulk_images(
+                    image.uuid
+                    for image in GetBulkImages(
+                        service=self._backend_service,
                         project_id=self._project.uuid,
                         team_id=self._project.team_id,
                         folder_id=self._folder.uuid,
                         images=self._image_names,
                     )
+                    .execute()
+                    .data
                 ]
             else:
                 condition = (
@@ -1881,113 +1917,6 @@ class UnShareProjectUseCase(BaseUseCase):
         return self._response
 
 
-class DownloadGoogleCloudImages(BaseUseCase):
-    def __init__(
-        self, project_name: str, bucket_name: str, folder_name: str, download_path: str,
-    ):
-        super().__init__()
-        self._project_name = project_name
-        self._bucket_name = bucket_name
-        self._folder_name = folder_name
-        self._download_path = download_path
-
-    @property
-    def client(self):
-        return google_storage.Client(project=self._project_name)
-
-    def execute(self):
-        bucket = self.client.get_bucket(self._bucket_name)
-        image_blobs = bucket.list_blobs(prefix=self._folder_name)
-        downloaded_images = []
-        duplicated_images = []
-        failed_images = []
-        path = Path(self._download_path)
-        for image_blob in image_blobs:
-            if image_blobs.content_type.startswith("image"):
-                image_name = os.path.basename(image_blob.name)
-                image_path = path / image_name
-                if image_name not in downloaded_images:
-                    try:
-                        image_blob.download_to_filename(image_path)
-                    except GoogleAPIError as e:
-                        self._response.errors = (
-                            f"Couldn't download image {image_name} {e}"
-                        )
-                        failed_images.append(image_name)
-                    else:
-                        downloaded_images.append(image_name)
-                else:
-                    duplicated_images.append(image_name)
-
-        self._response.data = {
-            "downloaded_images": downloaded_images,
-            "duplicated_images": duplicated_images,
-            "failed_images": failed_images,
-        }
-        return self._response
-
-
-class DownloadAzureCloudImages(BaseUseCase):
-    STORAGE_KEY_NAME = "AZURE_STORAGE_CONNECTION_STRING"
-
-    def __init__(
-        self, container: str, folder_name: str, download_path: str,
-    ):
-        super().__init__()
-        self._container = container
-        self._folder_name = folder_name
-        self._download_path = download_path
-
-    @property
-    def get_blobs(self):
-        bucket = self.client.get_container_client(self._container)
-        return bucket.list_blobs(name_starts_with=self._folder_name)
-
-    @property
-    def connect_key(self):
-        return os.getenv(self.STORAGE_KEY_NAME)
-
-    @property
-    def client(self):
-        return BlobServiceClient.from_connection_string(self.connect_key)
-
-    def execute(self):
-        blob_client = self.client
-        image_blobs = self.get_blobs()
-        downloaded_images = []
-        duplicated_images = []
-        failed_images = []
-        path = Path(self._download_path)
-        for image_blob in image_blobs:
-            if image_blobs.content_type.startswith("image"):
-                image_name = os.path.basename(image_blob.name)
-                image_path = path / image_name
-                if image_name not in downloaded_images:
-                    try:
-                        image_blob_client = blob_client.get_blob_client(
-                            container=self._container, blob=image_blob
-                        )
-                        image_stream = image_blob_client.download_blob()
-                    except AzureError as e:
-                        self._response.errors = (
-                            f"Couldn't download image {image_name} {e}"
-                        )
-                        failed_images.append(image_name)
-                    else:
-                        with open(image_path, "wb") as image_file:
-                            image_file.write(image_stream.readall())
-                        downloaded_images.append(image_name)
-                else:
-                    duplicated_images.append(image_name)
-
-        self._response.data = {
-            "downloaded_images": downloaded_images,
-            "duplicated_images": duplicated_images,
-            "failed_images": failed_images,
-        }
-        return self._response
-
-
 class GetProjectMetadataUseCase(BaseUseCase):
     def __init__(
         self,
@@ -2095,6 +2024,7 @@ class GetImageAnnotationsUseCase(BaseUseCase):
             folder=self._folder,
             image_name=self._image_name,
             images=self._images,
+            service=self._service,
         )
         return use_case
 
@@ -2197,6 +2127,7 @@ class GetImagePreAnnotationsUseCase(BaseUseCase):
             folder=self._folder,
             image_name=self._image_name,
             images=self._images,
+            service=self._service,
         )
 
     def validate_project_type(self):
@@ -2267,6 +2198,7 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
     @property
     def image_use_case(self):
         return GetImageUseCase(
+            service=self._service,
             project=self._project,
             folder=self._folder,
             image_name=self._image_name,
@@ -2323,11 +2255,16 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
                     url=annotation_blue_map_creds["url"],
                     headers=annotation_blue_map_creds["headers"],
                 )
-                data["annotation_mask"] = io.BytesIO(response.content)
                 data["annotation_mask_filename"] = f"{self._image_name}___save.png"
-                mask_path = Path(self._destination) / data["annotation_mask_filename"]
-                with open(mask_path, "wb") as f:
-                    f.write(data["annotation_mask"].getbuffer())
+                if response.ok:
+                    data["annotation_mask"] = io.BytesIO(response.content).getbuffer()
+                    mask_path = (
+                        Path(self._destination) / data["annotation_mask_filename"]
+                    )
+                    with open(mask_path, "wb") as f:
+                        f.write(data["annotation_mask"])
+                else:
+                    logger.info("There is no blue-map for the image.")
 
             json_path = Path(self._destination) / data["annotation_json_filename"]
             with open(json_path, "w") as f:
@@ -2363,6 +2300,7 @@ class DownloadImagePreAnnotationsUseCase(BaseUseCase):
             folder=self._folder,
             image_name=self._image_name,
             images=self._images,
+            service=self._service,
         )
 
     def execute(self):
@@ -3022,7 +2960,7 @@ class CreateFuseImageUseCase(BaseUseCase):
                                     points["y"] + 2,
                                 )
                                 image.content.draw_ellipse(
-                                    *points, fill_color, fill_color
+                                    *points, fill_color, fill_color, fixed=True
                                 )
                             for connection in instance["connections"]:
                                 image.content.draw_line(
@@ -3031,6 +2969,11 @@ class CreateFuseImageUseCase(BaseUseCase):
                                     fill_color=fill_color,
                                 )
             else:
+                if not os.path.exists(self.blue_mask_path):
+                    logger.warning(
+                        "There is no blue map to generate fuse or overlay images."
+                    )
+                    return self._response
                 image = ImagePlugin(io.BytesIO(file.read()))
                 annotation_mask = np.array(
                     ImagePlugin(
@@ -3054,13 +2997,12 @@ class CreateFuseImageUseCase(BaseUseCase):
                     )
                 ]
 
-                fuse_image = ImagePlugin.from_array(empty_image_arr)
                 if self._generate_overlay:
                     alpha = 0.5  # transparency measure
                     overlay = copy.copy(empty_image_arr)
-                    overlay[:, :, :3] = np.array(image.content)
+                    overlay[:, :, :3] = np.array(image.content)[:, :, :3]
                     overlay = ImagePlugin.from_array(
-                        cv2.addWeighted(fuse_image, alpha, overlay, 1 - alpha, 0)
+                        cv2.addWeighted(empty_image_arr, alpha, overlay, 1 - alpha, 0)
                     )
                     images.append(
                         Image("overlay", f"{self._image_path}___overlay.png", overlay)
@@ -3118,13 +3060,9 @@ class DownloadImageUseCase(BaseUseCase):
         )
 
     def validate_project_type(self):
-        if (
-            self._project.project_type == constances.ProjectType.VIDEO.value
-            or self._project.project_type == constances.ProjectType.DOCUMENT.value
-        ):
+        if self._project.project_type == constances.ProjectType.VIDEO.value:
             raise AppValidationException(
-                "The function does not support projects containing "
-                f"{constances.ProjectType.get_name(self._project.project_type)} attached with URLs"
+                "The function does not support projects containing videos attached with URLs"
             )
 
     def validate_variant_type(self):
@@ -3149,7 +3087,6 @@ class DownloadImageUseCase(BaseUseCase):
 
     def execute(self):
         if self.is_valid():
-            self.get_image_use_case.execute()
             image_bytes = self.get_image_use_case.execute().data
             download_path = f"{self._download_path}/{self._image.name}"
             if self._image_variant == "lores":
@@ -3199,6 +3136,7 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
         backend_service_provider: SuerannotateServiceProvider,
         mask=None,
         verbose: bool = True,
+        annotation_path: str = True,
     ):
         super().__init__()
         self._project = project
@@ -3209,6 +3147,7 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
         self._annotations = annotations
         self._mask = mask
         self._verbose = verbose
+        self._annotation_path = annotation_path
 
     def validate_project_type(self):
         if (
@@ -3306,7 +3245,10 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
                 folder_id=self._folder.uuid,
                 team_id=self._project.team_id,
                 project_id=self._project.uuid,
-            )[0]
+            )
+            if not image_data:
+                raise AppException("There is no images to attach annotation.")
+            image_data = image_data[0]
             auth_data = self._backend_service.get_annotation_upload_data(
                 project_id=self._project.uuid,
                 team_id=self._project.team_id,
@@ -3326,6 +3268,18 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
                 Key=auth_data["images"][str(image_data["id"])]["annotation_json_path"],
                 Body=json.dumps(self._annotations),
             )
+            if (
+                self._project.project_type == constances.ProjectType.PIXEL.value
+                and os.path.exists(self._annotation_path)
+            ):
+                with open(self._annotation_path, "rb") as descriptor:
+                    file = io.BytesIO(descriptor.read())
+                    bucket.put_object(
+                        Key=auth_data["images"][str(image_data["id"])][
+                            "annotation_bluemap_path"
+                        ],
+                        Body=file,
+                    )
             if self._verbose:
                 logger.info(
                     "Uploading annotations for image %s in project %s.",
@@ -3348,8 +3302,10 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
         return self._response
 
 
-class UploadAnnotationsUseCase(BaseUseCase):
+class UploadAnnotationsUseCase(BaseInteractiveUseCase):
     MAX_WORKERS = 10
+    CHUNK_SIZE = 100
+    AUTH_DATA_CHUNK_SIZE = 500
 
     def __init__(
         self,
@@ -3373,6 +3329,8 @@ class UploadAnnotationsUseCase(BaseUseCase):
         self._client_s3_bucket = client_s3_bucket
         self._pre_annotation = pre_annotation
         self._templates = templates
+        self._annotations_to_upload = None
+        self._missing_annotations = None
 
     @property
     def s3_client(self):
@@ -3462,98 +3420,133 @@ class UploadAnnotationsUseCase(BaseUseCase):
                     "attribute_groups"
                 ][attribute["groupName"]]["attributes"]
 
+    @property
+    def annotations_to_upload(self):
+        if not self._annotations_to_upload:
+            annotation_paths = self._annotation_paths
+            ImageInfo = namedtuple("ImageInfo", ["path", "name", "id"])
+            images_detail = []
+            for annotation_path in annotation_paths:
+                images_detail.append(
+                    ImageInfo(
+                        id=None,
+                        path=annotation_path,
+                        name=os.path.basename(
+                            annotation_path.replace(
+                                constances.PIXEL_ANNOTATION_POSTFIX, ""
+                            ).replace(constances.VECTOR_ANNOTATION_POSTFIX, ""),
+                        ),
+                    )
+                )
+            images_data = (
+                GetBulkImages(
+                    service=self._backend_service,
+                    project_id=self._project.uuid,
+                    team_id=self._project.team_id,
+                    folder_id=self._folder.uuid,
+                    images=[image.name for image in images_detail],
+                )
+                .execute()
+                .data
+            )
+
+            for image_data in images_data:
+                for idx, detail in enumerate(images_detail):
+                    if detail.name == image_data.name:
+                        images_detail[idx] = detail._replace(id=image_data.uuid)
+
+            missing_annotations = list(
+                filter(lambda detail: detail.id is None, images_detail)
+            )
+            annotations_to_upload = list(
+                filter(lambda detail: detail.id is not None, images_detail)
+            )
+            if missing_annotations:
+                for missing in missing_annotations:
+                    logger.warning(
+                        f"Couldn't find image {missing.path} for annotation upload."
+                    )
+            if not annotations_to_upload:
+                raise AppException("No image to attach annotations.")
+            self._missing_annotations = missing_annotations
+            self._annotations_to_upload = annotations_to_upload
+        return self._annotations_to_upload
+
     def execute(self):
-        annotation_paths = self._annotation_paths
-        ImageInfo = namedtuple("ImageInfo", ["path", "name", "id"])
-        images_detail = []
-        for annotation_path in annotation_paths:
-            images_detail.append(
-                ImageInfo(
-                    id=None,
-                    path=annotation_path,
-                    name=os.path.basename(
-                        annotation_path.replace(
-                            constances.PIXEL_ANNOTATION_POSTFIX, ""
-                        ).replace(constances.VECTOR_ANNOTATION_POSTFIX, ""),
-                    ),
+        uploaded_annotations = []
+        missing_annotations = []
+        failed_annotations = []
+        for _ in range(0, len(self.annotations_to_upload), self.AUTH_DATA_CHUNK_SIZE):
+            annotations_to_upload = self.annotations_to_upload[
+                _ : _ + self.CHUNK_SIZE  # noqa: E203
+            ]
+
+            if self._pre_annotation:
+                auth_data = self._backend_service.get_pre_annotation_upload_data(
+                    project_id=self._project.uuid,
+                    team_id=self._project.team_id,
+                    folder_id=self._folder.uuid,
+                    image_ids=[int(image.id) for image in annotations_to_upload],
                 )
-            )
-        images_data = self._backend_service.get_bulk_images(
-            images=[image.name for image in images_detail],
-            folder_id=self._folder.uuid,
-            team_id=self._project.team_id,
-            project_id=self._project.uuid,
-        )
-        for image_data in images_data:
-            for idx, detail in enumerate(images_detail):
-                if detail.name == image_data.get("name"):
-                    images_detail[idx] = detail._replace(id=image_data["id"])
-
-        missing_annotations = list(
-            filter(lambda detail: detail.id is None, images_detail)
-        )
-        annotations_to_upload = list(
-            filter(lambda detail: detail.id is not None, images_detail)
-        )
-        if missing_annotations:
-            for missing in missing_annotations:
-                logger.warning(
-                    f"Couldn't find image {missing.path} for annotation upload."
+            else:
+                auth_data = self._backend_service.get_annotation_upload_data(
+                    project_id=self._project.uuid,
+                    team_id=self._project.team_id,
+                    folder_id=self._folder.uuid,
+                    image_ids=[int(image.id) for image in annotations_to_upload],
                 )
-
-        if self._pre_annotation:
-            auth_data = self._backend_service.get_pre_annotation_upload_data(
-                project_id=self._project.uuid,
-                team_id=self._project.team_id,
-                folder_id=self._folder.uuid,
-                image_ids=[int(image.id) for image in annotations_to_upload],
+            session = boto3.Session(
+                aws_access_key_id=auth_data["creds"]["accessKeyId"],
+                aws_secret_access_key=auth_data["creds"]["secretAccessKey"],
+                aws_session_token=auth_data["creds"]["sessionToken"],
+                region_name=auth_data["creds"]["region"],
             )
-        else:
-            auth_data = self._backend_service.get_annotation_upload_data(
-                project_id=self._project.uuid,
-                team_id=self._project.team_id,
-                folder_id=self._folder.uuid,
-                image_ids=[int(image.id) for image in annotations_to_upload],
+            resource = session.resource("s3")
+            bucket = resource.Bucket(auth_data["creds"]["bucket"])
+            image_id_name_map = {
+                str(image.id): image for image in self.annotations_to_upload
+            }
+            if self._client_s3_bucket:
+                from_session = boto3.Session()
+                from_s3 = from_session.resource("s3")
+            else:
+                from_s3 = None
+
+            with concurrent.futures.ThreadPoolExecutor(
+                max_workers=self.MAX_WORKERS
+            ) as executor:
+                results = [
+                    executor.submit(
+                        self.upload_to_s3,
+                        image_id,
+                        image_info,
+                        bucket,
+                        from_s3,
+                        image_id_name_map,
+                    )
+                    for image_id, image_info in auth_data["images"].items()
+                ]
+                for future in concurrent.futures.as_completed(results):
+                    future.result()
+                    yield
+
+            uploaded_annotations.extend(
+                [annotation.path for annotation in self.annotations_to_upload]
             )
-        session = boto3.Session(
-            aws_access_key_id=auth_data["creds"]["accessKeyId"],
-            aws_secret_access_key=auth_data["creds"]["secretAccessKey"],
-            aws_session_token=auth_data["creds"]["sessionToken"],
-            region_name=auth_data["creds"]["region"],
-        )
-        resource = session.resource("s3")
-        bucket = resource.Bucket(auth_data["creds"]["bucket"])
-        image_id_name_map = {str(image.id): image for image in annotations_to_upload}
-        if self._client_s3_bucket:
-            from_session = boto3.Session()
-            from_s3 = from_session.resource("s3")
-        else:
-            from_s3 = None
-
-        with concurrent.futures.ThreadPoolExecutor(
-            max_workers=self.MAX_WORKERS
-        ) as executor:
-            for image_id, image_info in auth_data["images"].items():
-                executor.submit(
-                    self.upload_to_s3,
-                    image_id,
-                    image_info,
-                    bucket,
-                    from_s3,
-                    image_id_name_map,
-                )
-
-        uploaded_annotations = [annotation.path for annotation in annotations_to_upload]
-        missing_annotations = [annotation.path for annotation in missing_annotations]
-        failed_annotations = [
-            annotation
-            for annotation in annotation_paths
-            if annotation not in uploaded_annotations + missing_annotations
-        ]
+            missing_annotations.extend(
+                [annotation.path for annotation in self._missing_annotations]
+            )
+            failed_annotations.extend(
+                [
+                    annotation
+                    for annotation in self._annotation_paths
+                    if annotation not in uploaded_annotations + missing_annotations
+                ]
+            )
         self._response.data = (
             uploaded_annotations,
-            missing_annotations,
             failed_annotations,
+            missing_annotations,
         )
         return self._response
 
@@ -3601,8 +3594,8 @@ class CreateModelUseCase(BaseUseCase):
         model_description: str,
         task: str,
         team_id: int,
-        train_data_paths: List[str],
-        test_data_paths: List[str],
+        train_data_paths: Iterable[str],
+        test_data_paths: Iterable[str],
         backend_service_provider: SuerannotateServiceProvider,
         projects: BaseReadOnlyRepository,
         folders: BaseReadOnlyRepository,
@@ -4133,7 +4126,7 @@ class RunSegmentationUseCase(BaseUseCase):
         self._folder = folder
 
     def validate_project_type(self):
-        if self._project.project_type is not ProjectType.PIXEL:
+        if self._project.project_type is not ProjectType.PIXEL.value:
             raise AppValidationException(
                 "Operation not supported for given project type"
             )
@@ -4143,59 +4136,77 @@ class RunSegmentationUseCase(BaseUseCase):
             raise AppValidationException("Model Does not exist")
 
     def validate_upload_state(self):
+
         if self._project.upload_state is constances.UploadState.EXTERNAL:
             raise AppValidationException(
                 "The function does not support projects containing images attached with URLs"
             )
 
     def execute(self):
-        images = self._service.get_duplicated_images(
-            project_id=self._project.uuid,
-            team_id=self._project.team_id,
-            folder_id=self._folder.uuid,
-            images=self._images_list,
-        )
-
-        image_ids = [image["id"] for image in images]
-        image_names = [image["name"] for image in images]
-
-        res = self._service.run_segmentation(
-            self._project.team_id,
-            self._project.uuid,
-            model_name=self._ml_model_name,
-            image_ids=image_ids,
-        )
-        if not res.ok:
-            return self._response
-
-        succeded_imgs = []
-        failed_imgs = []
-        while len(succeded_imgs) + len(failed_imgs) != len(image_ids):
-            images_metadata = self._service.get_bulk_images(
-                project_id=self._project.uuid,
-                team_id=self._project.team_id,
-                folder_id=self._folder.uuid,
-                images=image_names,
+        if self.is_valid():
+            images = (
+                GetBulkImages(
+                    service=self._service,
+                    project_id=self._project.uuid,
+                    team_id=self._project.team_id,
+                    folder_id=self._folder.uuid,
+                    images=self._images_list,
+                )
+                .execute()
+                .data
             )
 
-            succeded_imgs = [
-                img["name"]
-                for img in images_metadata
-                if img["segmentation_status"] == 3
-            ]
-            failed_imgs = [
-                img["name"]
-                for img in images_metadata
-                if img["segmentation_status"] == 4
-            ]
+            image_ids = [image.uuid for image in images]
+            image_names = [image.name for image in images]
 
-            complete_images = succeded_imgs + failed_imgs
-            logger.info(
-                f"segmentation complete on {len(complete_images)} / {len(image_ids)} images"
+            if not len(image_names):
+                self._response.errors = AppException(
+                    "No valid image names were provided."
+                )
+                return self._response
+
+            res = self._service.run_segmentation(
+                self._project.team_id,
+                self._project.uuid,
+                model_name=self._ml_model_name,
+                image_ids=image_ids,
             )
-            time.sleep(5)
+            if not res.ok:
+                return self._response
 
-        self._response.data = (succeded_imgs, failed_imgs)
+            success_images = []
+            failed_images = []
+            while len(success_images) + len(failed_images) != len(image_ids):
+                images_metadata = (
+                    GetBulkImages(
+                        service=self._service,
+                        project_id=self._project.uuid,
+                        team_id=self._project.team_id,
+                        folder_id=self._folder.uuid,
+                        images=self._images_list,
+                    )
+                    .execute()
+                    .data
+                )
+
+                success_images = [
+                    img.name
+                    for img in images_metadata
+                    if img.segmentation_status
+                    == constances.SegmentationStatus.COMPLETED.value
+                ]
+                failed_images = [
+                    img.name
+                    for img in images_metadata
+                    if img.segmentation_status
+                    == constances.SegmentationStatus.FAILED.value
+                ]
+                logger.info(
+                    f"segmentation complete on {len(success_images + failed_images)} / {len(image_ids)} images"
+                )
+                time.sleep(5)
+
+            self._response.data = (success_images, failed_images)
         return self._response
 
 
@@ -4225,17 +4236,22 @@ class RunPredictionUseCase(BaseUseCase):
 
     def execute(self):
         if self.is_valid():
-            images = self._service.get_duplicated_images(
-                project_id=self._project.uuid,
-                team_id=self._project.team_id,
-                folder_id=self._folder.uuid,
-                images=self._images_list,
+            images = (
+                GetBulkImages(
+                    service=self._service,
+                    project_id=self._project.uuid,
+                    team_id=self._project.team_id,
+                    folder_id=self._folder.uuid,
+                    images=self._images_list,
+                )
+                .execute()
+                .data
             )
 
-            image_ids = [image["id"] for image in images]
-            image_names = [image["name"] for image in images]
+            image_ids = [image.uuid for image in images]
+            image_names = [image.name for image in images]
 
-            if not image_ids:
+            if not len(image_names):
                 self._response.errors = AppException(
                     "No valid image names were provided."
                 )
@@ -4263,22 +4279,29 @@ class RunPredictionUseCase(BaseUseCase):
             success_images = []
             failed_images = []
             while len(success_images) + len(failed_images) != len(image_ids):
-                images_metadata = self._service.get_bulk_images(
-                    project_id=self._project.uuid,
-                    team_id=self._project.team_id,
-                    folder_id=self._folder.uuid,
-                    images=image_names,
+                images_metadata = (
+                    GetBulkImages(
+                        service=self._service,
+                        project_id=self._project.uuid,
+                        team_id=self._project.team_id,
+                        folder_id=self._folder.uuid,
+                        images=self._images_list,
+                    )
+                    .execute()
+                    .data
                 )
 
                 success_images = [
-                    img["name"]
+                    img.name
                     for img in images_metadata
-                    if img["prediction_status"] == 3
+                    if img.segmentation_status
+                    == constances.SegmentationStatus.COMPLETED.value
                 ]
                 failed_images = [
-                    img["name"]
+                    img.name
                     for img in images_metadata
-                    if img["prediction_status"] == 4
+                    if img.segmentation_status
+                    == constances.SegmentationStatus.FAILED.value
                 ]
 
                 complete_images = success_images + failed_images
@@ -4533,17 +4556,7 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
                         ):
                             paths.append(key)
                             break
-
-        data = []
-        for path in paths:
-            if all(
-                [
-                    True if exclude_pattern not in str(path) else False
-                    for exclude_pattern in self.exclude_file_patterns
-                ]
-            ):
-                data.append(str(path))
-        return data
+        return [str(path) for path in paths]
 
     @property
     def images_to_upload(self):
@@ -4551,25 +4564,55 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
             paths = self.paths
             filtered_paths = []
             duplicated_paths = []
-            images = self._backend_client.get_bulk_images(
-                project_id=self._project.uuid,
-                team_id=self._project.team_id,
-                folder_id=self._folder.uuid,
-                images=[Path(image).name for image in paths],
-            )
-            image_names = [image["name"] for image in images]
-
             for path in paths:
-                not_in_exclude_list = [
-                    x not in Path(path).name for x in self.exclude_file_patterns
-                ]
-                non_in_service_list = [x not in Path(path).name for x in image_names]
-                if all(not_in_exclude_list) and all(non_in_service_list):
+                if path.split("/")[-1] not in [
+                    path_name.split("/")[-1] for path_name in filtered_paths
+                ]:
                     filtered_paths.append(path)
-                if not all(non_in_service_list):
+                else:
+                    duplicated_paths.append(path)
+            filtered_paths = [
+                path
+                for path in filtered_paths
+                if not any(
+                    [
+                        path.endswith(extension)
+                        for extension in self.exclude_file_patterns
+                    ]
+                )
+            ]
+            duplicated_paths = [
+                path
+                for path in duplicated_paths
+                if not any(
+                    [
+                        path.endswith(extension)
+                        for extension in self.exclude_file_patterns
+                    ]
+                )
+            ]
+
+            image_entities = (
+                GetBulkImages(
+                    service=self._backend_client,
+                    project_id=self._project.uuid,
+                    team_id=self._project.team_id,
+                    folder_id=self._folder.uuid,
+                    images=[image.split("/")[-1] for image in filtered_paths],
+                )
+                .execute()
+                .data
+            )
+            images_to_upload = []
+            image_list = [image.name for image in image_entities]
+
+            for path in filtered_paths:
+                if path not in image_list:
+                    images_to_upload.append(path)
+                else:
                     duplicated_paths.append(path)
 
-            self._images_to_upload = list(set(filtered_paths)), duplicated_paths
+            self._images_to_upload = list(set(images_to_upload)), duplicated_paths
         return self._images_to_upload
 
     def execute(self):
@@ -4605,7 +4648,9 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
                     ],
                     annotation_status=self._annotation_status,
                 ).execute()
-
+                if response.errors:
+                    logger.error(response.errors)
+                    continue
                 attachments, attach_duplications = response.data
                 uploaded.extend(attachments)
                 duplications.extend(attach_duplications)
@@ -4618,6 +4663,7 @@ class UploadImagesFromFolderToProject(BaseInteractiveUseCase):
 
 class DeleteAnnotations(BaseUseCase):
     POLL_AWAIT_TIME = 2
+    CHUNK_SIZE = 2000
 
     def __init__(
         self,
@@ -4633,38 +4679,68 @@ class DeleteAnnotations(BaseUseCase):
         self._backend_service = backend_service
 
     def execute(self) -> Response:
-
-        response = self._backend_service.delete_image_annotations(
-            project_id=self._project.uuid,
-            team_id=self._project.team_id,
-            folder_id=self._folder.uuid,
-            image_names=self._image_names,
-        )
-
-        if response:
-            timeout_start = time.time()
-            while time.time() < timeout_start + self.POLL_AWAIT_TIME:
-                progress = int(
-                    self._backend_service.get_annotations_delete_progress(
-                        project_id=self._project.uuid,
-                        team_id=self._project.team_id,
-                        poll_id=response.get("poll_id"),
-                    ).get("process", -1)
+        polling_states = {}
+        if self._image_names:
+            for idx in range(0, len(self._image_names), self.CHUNK_SIZE):
+                response = self._backend_service.delete_image_annotations(
+                    project_id=self._project.uuid,
+                    team_id=self._project.team_id,
+                    folder_id=self._folder.uuid,
+                    image_names=self._image_names[
+                        idx : idx + self.CHUNK_SIZE  # noqa: E203
+                    ],
                 )
-                if 0 < progress < 100:
-                    logger.info(f"Delete annotations in progress {progress}/100")
-                elif 0 > progress:
-                    self._response.errors = "Annotations delete fails."
-                    break
-                else:
-                    logger.info("Annotations deleted")
-                    break
+                if response:
+                    polling_states[response.get("poll_id")] = False
         else:
+            response = self._backend_service.delete_image_annotations(
+                project_id=self._project.uuid,
+                team_id=self._project.team_id,
+                folder_id=self._folder.uuid,
+            )
+            if response:
+                polling_states[response.get("poll_id")] = False
+
+        if not polling_states:
             self._response.errors = AppException("Invalid image names or empty folder.")
+        else:
+            for poll_id in polling_states:
+                timeout_start = time.time()
+                while time.time() < timeout_start + self.POLL_AWAIT_TIME:
+                    progress = int(
+                        self._backend_service.get_annotations_delete_progress(
+                            project_id=self._project.uuid,
+                            team_id=self._project.team_id,
+                            poll_id=poll_id,
+                        ).get("process", -1)
+                    )
+                    if 0 < progress < 100:
+                        logger.info("Delete annotations in progress.")
+                    elif 0 > progress:
+                        polling_states[poll_id] = False
+                        self._response.errors = "Annotations delete fails."
+                        continue
+                    else:
+                        polling_states[poll_id] = True
+                        continue
+
+            project_folder_name = (
+                self._project.name
+                + (f"/{self._folder.name}" if self._folder.name != "root" else "")
+                + "."
+            )
+
+            if all(polling_states.values()):
+                logger.info(
+                    "The annotations have been successfully deleted from "
+                    + project_folder_name
+                )
+            else:
+                logger.info("Annotations delete fails.")
         return self._response
 
 
-class GetDuplicateImages(BaseUseCase):
+class GetBulkImages(BaseUseCase):
     def __init__(
         self,
         service: SuerannotateServiceProvider,
@@ -4682,13 +4758,14 @@ class GetDuplicateImages(BaseUseCase):
         self._chunk_size = 500
 
     def execute(self):
-        duplicates = []
+        res = []
         for i in range(0, len(self._images), self._chunk_size):
-            duplications = self._service.get_bulk_images(
+            images = self._service.get_bulk_images(
                 project_id=self._project_id,
                 team_id=self._team_id,
                 folder_id=self._folder_id,
                 images=self._images[i : i + self._chunk_size],
             )
-            duplicates += [image["name"] for image in duplications]
-        return duplicates
+            res += [ImageEntity.from_dict(**image) for image in images]
+        self._response.data = res
+        return self._response
