@@ -135,7 +135,7 @@ def prepare_export(
             "Include fuse functionality is not supported for projects containing  items attached with URLs"
         )
         include_fuse = False
-    if project["type"] in ["Video","Text"]:
+    if project["type"] in ["Video","Document"]:
         if only_pinned:
             logger.warning(
                 f"Pin functionality is not supported for projects containing {project['type']} attached with URLs"

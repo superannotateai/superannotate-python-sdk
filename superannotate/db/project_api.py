@@ -48,7 +48,7 @@ def get_project_metadata_bare(project_name, include_complete_image_count=False):
         outer_outer_function = inspect.getframeinfo(
             current_frame.f_back.f_back
         ).function
-        if res.get("type") and res["type"] in ["Video","Text"] and (
+        if res.get("type") and res["type"] in ["Video","Document"] and (
             outer_function in common.VIDEO_DEPRICATED_FUNCTIONS or
             outer_outer_function in common.VIDEO_DEPRICATED_FUNCTIONS
         ):
@@ -151,7 +151,7 @@ def get_project_and_folder_metadata(project):
     outer_outer_function = inspect.getframeinfo(
         current_frame.f_back.f_back
     ).function
-    if project.get("type") and project["type"] in ["Video","Text"] \
+    if project.get("type") and project["type"] in ["Video","Document"] \
             and (outer_function in common.VIDEO_DEPRICATED_FUNCTIONS
                  or outer_outer_function in common.VIDEO_DEPRICATED_FUNCTIONS):
         project_type = project['type']
