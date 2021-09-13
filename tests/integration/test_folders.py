@@ -243,12 +243,10 @@ class TestFolders(BaseTestCase):
             [self.EXAMPLE_IMAGE_2, self.EXAMPLE_IMAGE_3],
             f"{self.PROJECT_NAME}",
             include_annotations=False,
-            copy_annotation_status=False,
             copy_pin=False,
         )
         assert (
             "Copied 2/2 images from test copy3 folder images to test copy3 folder images/folder_1"
-            # todo add in caplog.text
         )
 
         num_images = sa.get_project_image_count(self.PROJECT_NAME)
@@ -293,7 +291,6 @@ class TestFolders(BaseTestCase):
             [self.EXAMPLE_IMAGE_2, self.EXAMPLE_IMAGE_3],
             project2,
             include_annotations=False,
-            copy_annotation_status=False,
             copy_pin=False,
         )
 
@@ -313,7 +310,6 @@ class TestFolders(BaseTestCase):
             [self.EXAMPLE_IMAGE_2, self.EXAMPLE_IMAGE_3],
             self.PROJECT_NAME,
             include_annotations=False,
-            copy_annotation_status=False,
             copy_pin=False,
         )
         num_images = sa.get_project_image_count(self.PROJECT_NAME)

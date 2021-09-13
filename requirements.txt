@@ -16,4 +16,6 @@ ffmpeg-python>=0.2.0
 fire==0.4.0
 Shapely==1.7.1
 mixpanel==4.8.3
-typeguard==2.12.1
+pydantic>=1.8.2
+pydantic[email]
+setuptools~=57.4.0

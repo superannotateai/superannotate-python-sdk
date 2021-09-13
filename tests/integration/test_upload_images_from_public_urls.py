@@ -11,7 +11,6 @@ class TestUploadImageFromPublicUrls(BaseTestCase):
         "https://www.pexels.com/photo/3702354/download/",
         "https://www.pexels.com/photo/3702354/download/",
         "https://www.pexels.com/photo/3702354/dwnload/",
-        "",
         "test_non_url",
     ]
     TEST_IMAGE_LIST_2 = [
@@ -46,7 +45,7 @@ class TestUploadImageFromPublicUrls(BaseTestCase):
         self.assertEqual(len(uploaded_urls), 3)
         self.assertEqual(len(uploaded_filenames), 3)
         self.assertEqual(len(duplicate_filenames), 0)
-        self.assertEqual(len(not_uploaded_urls), 3)
+        self.assertEqual(len(not_uploaded_urls), 2)
 
         for image in images_in_project:
             self.assertIn(image, uploaded_filenames)
