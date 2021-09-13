@@ -990,6 +990,7 @@ def upload_image_annotations(
     :param mask: BytesIO object or filepath to mask annotation for pixel projects in SuperAnnotate format
     :type mask: BytesIO or Pathlike (str or Path)
     """
+    project, project_folder = get_project_and_folder_metadata(project)
 
     if isinstance(annotation_json, list):
         raise SABaseException(
@@ -1000,7 +1001,6 @@ def upload_image_annotations(
         if verbose:
             logger.info("Uploading annotations from %s.", annotation_json)
         annotation_json = json.load(open(annotation_json))
-    project, project_folder = get_project_and_folder_metadata(project)
     image = get_image_metadata((project, project_folder), image_name)
     team_id, project_id, image_id, folder_id, image_name = image[
         "team_id"], image["project_id"], image["id"], image['folder_id'], image[
