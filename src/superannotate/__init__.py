@@ -45,6 +45,9 @@ from superannotate.lib.app.interface.sdk_interface import (
 from superannotate.lib.app.interface.sdk_interface import aggregate_annotations_as_df
 from superannotate.lib.app.interface.sdk_interface import assign_folder
 from superannotate.lib.app.interface.sdk_interface import assign_images
+from superannotate.lib.app.interface.sdk_interface import (
+    attach_document_urls_to_project,
+)
 from superannotate.lib.app.interface.sdk_interface import attach_image_urls_to_project
 from superannotate.lib.app.interface.sdk_interface import attach_video_urls_to_project
 from superannotate.lib.app.interface.sdk_interface import benchmark
@@ -239,6 +242,7 @@ __all__ = [
     "upload_images_from_folder_to_project",
     "attach_image_urls_to_project",
     "attach_video_urls_to_project",
+    "attach_document_urls_to_project",
     # Video Section
     "upload_videos_from_folder_to_project",
     # Annotation Section

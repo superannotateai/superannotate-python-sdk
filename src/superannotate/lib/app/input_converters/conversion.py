@@ -143,9 +143,9 @@ def export_annotation(
     project_type="Vector",
     task="object_detection",
 ):
-    if project_type == "Video":
+    if project_type == "Video" or project_type == "Text":
         raise AppValidationException(
-            "The function does not support projects containing videos attached with URLs"
+            f"The function does not support projects containing {project_type} attached with URLs"
         )
     """Converts SuperAnnotate annotation formate to the other annotation formats. Currently available (project_type, task) combinations for converter
     presented below:

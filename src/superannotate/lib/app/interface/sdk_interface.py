@@ -3567,3 +3567,63 @@ def delete_annotations(project: str, image_names: List[str] = None):
     )
     if response.errors:
         raise AppException(response.errors)
+
+
+@Trackable
+@validate_arguments
+def attach_document_urls_to_project(
+    project: Union[NotEmptyStr, dict],
+    attachments: Union[Path, NotEmptyStr],
+    annotation_status: Optional[NotEmptyStr] = "NotStarted",
+):
+    """Link documents on external storage to SuperAnnotate.
+
+    :param project: project name or project folder path
+    :type project: str or dict
+    :param attachments: path to csv file on attachments metadata
+    :type attachments: Path-like (str or Path)
+    :param annotation_status: value to set the annotation statuses of the linked documents: NotStarted InProgress QualityCheck Returned Completed Skipped
+    :type annotation_status: str
+
+    :return: list of attached documents, list of not attached documents, list of skipped documents
+    :rtype: tuple
+    """
+    project_name, folder_name = extract_project_folder(project)
+
+    image_data = pd.read_csv(attachments, dtype=str)
+    image_data = image_data[~image_data["url"].isnull()]
+    if "name" in image_data.columns:
+        image_data["name"] = (
+            image_data["name"]
+            .fillna("")
+            .apply(lambda cell: cell if str(cell).strip() else str(uuid.uuid4()))
+        )
+    else:
+        image_data["name"] = [str(uuid.uuid4()) for _ in range(len(image_data.index))]
+
+    image_data = pd.DataFrame(image_data, columns=["name", "url"])
+    img_names_urls = image_data.rename(columns={"url": "path"}).to_dict(
+        orient="records"
+    )
+    list_of_not_uploaded = []
+    duplicate_images = []
+    for i in range(0, len(img_names_urls), 500):
+        response = controller.attach_urls(
+            project_name=project_name,
+            folder_name=folder_name,
+            files=ImageSerializer.deserialize(
+                img_names_urls[i : i + 500]  # noqa: E203
+            ),
+            annotation_status=annotation_status,
+        )
+        if response.errors:
+            list_of_not_uploaded.append(response.data[0])
+            duplicate_images.append(response.data[1])
+
+    list_of_uploaded = [
+        image["name"]
+        for image in img_names_urls
+        if image["name"] not in list_of_not_uploaded
+    ]
+
+    return list_of_uploaded, list_of_not_uploaded, duplicate_images

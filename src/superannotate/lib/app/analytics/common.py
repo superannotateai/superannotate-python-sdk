@@ -179,7 +179,7 @@ def aggregate_annotations_as_df(
         and "___objects.json" not in json_paths[0].name
     ):
         raise AppException(
-            "The function does not support projects containing videos attached with URLs"
+            "The function does not support projects containing videos / documents attached with URLs"
         )
 
     if verbose:

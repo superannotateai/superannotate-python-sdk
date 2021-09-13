@@ -25,6 +25,7 @@ class CLITest(TestCase):
     TEST_VECTOR_FOLDER_PATH = "data_set/sample_project_vector"
     TEST_PIXEL_FOLDER_PATH = "data_set/sample_project_pixel"
     TEST_RECURSIVE_FOLDER_PATH = "data_set/sample_recursive_test"
+    TEST_TEXT_CSV_PATH = "data_set/csv_files/text_urls.csv"
     TEST_IMAGE_CSV_PATH = "data_set/csv_files/image_urls.csv"
     TEST_VIDEO_CSV_PATH = "data_set/csv_files/image_urls.csv"
 
@@ -74,6 +75,12 @@ class CLITest(TestCase):
     def image_csv_path(self):
         return Path(
             Path(os.path.join(dirname(dirname(__file__)), self.TEST_IMAGE_CSV_PATH))
+        )
+
+    @property
+    def text_csv_path(self):
+        return Path(
+            Path(os.path.join(dirname(dirname(__file__)), self.TEST_TEXT_CSV_PATH))
         )
 
     @property
@@ -241,3 +248,13 @@ class CLITest(TestCase):
             shell=True,
         )
         self.assertEqual(4, len(sa.search_images(self.PROJECT_NAME)))
+
+    def test_attach_document_urls(self):
+            self._create_project("Document")
+            subprocess.run(
+                f"superannotatecli attach-document-urls "
+                f'--project "{self.PROJECT_NAME}" '
+                f"--attachments {self.image_csv_path}",
+                check=True,
+                shell=True,
+            )
