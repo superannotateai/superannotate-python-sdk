@@ -619,7 +619,7 @@ def upload_images_from_folder_to_project(
         f'/{project_folder["name"]}' if project_folder else ""
     )
     upload_state = common.upload_state_int_to_str(project.get("upload_state"))
-    project_type = common.project_type_int_to_str(project.get("type"))
+    project_type = project.get("type")
 
     if upload_state == "External":
         raise SABaseException(
@@ -721,7 +721,7 @@ def upload_images_to_project(
     project, folder = get_project_and_folder_metadata(project)
     folder_name = project["name"] + (f'/{folder["name"]}' if folder else "")
     upload_state = common.upload_state_int_to_str(project.get("upload_state"))
-    project_type = common.project_type_int_to_str(project.get("type"))
+    project_type = project.get("type")
 
     if upload_state == "External":
         raise SABaseException(

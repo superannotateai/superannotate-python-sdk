@@ -635,7 +635,7 @@ def _attach_urls(
         i for i in files_to_upload if i[0] not in duplicate_files
     ]
     logger.info(
-        "Uploading %s files to project %s.", len(files_to_upload), folder_name
+        "Attaching %s files to project %s.", len(files_to_upload), folder_name
     )
 
     files_to_skip = file_urls[limit:]
