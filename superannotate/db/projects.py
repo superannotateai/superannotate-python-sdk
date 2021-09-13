@@ -2059,8 +2059,21 @@ def attach_file_urls_to_project(project, attachments, annotation_status):
     else:
         folder_id = get_project_root_folder_id(project)
 
+    attached = []
+    to_upload = []
+    duplicates = []
+    for i in df_names_urls:
+        temp = i[0]
+        i[0] = i[0].strip()
+        if i[0] not in attached:
+            attached.append(i[0])
+            to_upload.append(i)
+        else:
+            duplicates.append(temp)
+
+
     list_of_uploaded, list_of_not_uploaded, list_of_duplicated = _attach_urls(
-        file_urls=df_names_urls,
+        file_urls=to_upload,
         team_id=team_id,
         folder_id=folder_id,
         project_id=project_id,
@@ -2068,6 +2081,7 @@ def attach_file_urls_to_project(project, attachments, annotation_status):
         project=project,
         folder_name=folder_name
     )
+    list_of_duplicated += duplicates
 
     return list_of_uploaded, list_of_not_uploaded, list_of_duplicated
 
