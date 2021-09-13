@@ -801,7 +801,7 @@ class PrepareExportUseCase(BaseUseCase):
                     constances.AnnotationStatus.SKIPPED.name,
                 )
 
-            res = self._backend_service.prepare_export(
+            response = self._backend_service.prepare_export(
                 project_id=self._project.uuid,
                 team_id=self._project.team_id,
                 folders=self._folder_names,
@@ -809,17 +809,17 @@ class PrepareExportUseCase(BaseUseCase):
                 include_fuse=self._include_fuse,
                 only_pinned=self._only_pinned,
             )
+            if "error" in response:
+                raise AppException(response["error"])
             folder_str = (
                 "" if self._folder_names is None else ("/" + str(self._folder_names))
             )
+
             logger.info(
-                "Prepared export %s for project %s%s (project ID %s).",
-                res["name"],
-                self._project.name,
-                folder_str,
-                self._project.uuid,
+                f"Prepared export {response['name']} for project "
+                f"{self._project.name}/{folder_str} (project ID {self._project.uuid})."
             )
-            self._response.data = res
+            self._response.data = response
 
         return self._response
 
@@ -3224,12 +3224,18 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
                 Key=auth_data["images"][str(image_data["id"])]["annotation_json_path"],
                 Body=json.dumps(self._annotations),
             )
-            if self._project.project_type == constances.ProjectType.PIXEL.value\
-                    and os.path.exists(self._annotation_path):
+            if (
+                self._project.project_type == constances.ProjectType.PIXEL.value
+                and os.path.exists(self._annotation_path)
+            ):
                 with open(self._annotation_path, "rb") as descriptor:
                     file = io.BytesIO(descriptor.read())
-                    bucket.put_object(Key=auth_data["images"][str(image_data["id"])]["annotation_bluemap_path"],
-                                  Body=file)
+                    bucket.put_object(
+                        Key=auth_data["images"][str(image_data["id"])][
+                            "annotation_bluemap_path"
+                        ],
+                        Body=file,
+                    )
             if self._verbose:
                 logger.info(
                     "Uploading annotations for image %s in project %s.",

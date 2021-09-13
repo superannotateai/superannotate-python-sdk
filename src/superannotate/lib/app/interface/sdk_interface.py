@@ -31,6 +31,10 @@ from lib.app.exceptions import EmptyOutputError
 from lib.app.helpers import extract_project_folder
 from lib.app.helpers import get_annotation_paths
 from lib.app.helpers import reformat_metrics_json
+from lib.app.interface.types import ClassesJson
+from lib.app.interface.types import NotEmptyStr
+from lib.app.interface.types import Status
+from lib.app.interface.types import validate_arguments
 from lib.app.mixp.decorators import Trackable
 from lib.app.serializers import BaseSerializers
 from lib.app.serializers import ImageSerializer
@@ -42,15 +46,16 @@ from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
 from lib.infrastructure.controller import Controller
 from plotly.subplots import make_subplots
+from pydantic import EmailStr
+from pydantic import StrictBool
 from tqdm import tqdm
-from typeguard import typechecked
 
 
 logger = logging.getLogger("root")
 controller = Controller(logger)
 
 
-@typechecked
+@validate_arguments
 def init(path_to_config_json: str):
     """
     Initializes and authenticates to SuperAnnotate platform using the config file.
@@ -63,7 +68,7 @@ def init(path_to_config_json: str):
     controller.init(path_to_config_json)
 
 
-@typechecked
+@validate_arguments
 def set_auth_token(token: str):
     controller.set_token(token)
     controller.init(controller.config_path)
@@ -82,8 +87,8 @@ def get_team_metadata():
 
 
 @Trackable
-@typechecked
-def invite_contributor_to_team(email: str, admin: bool = False):
+@validate_arguments
+def invite_contributor_to_team(email: EmailStr, admin: bool = False):
     """Invites a contributor to team
 
     :param email: email of the contributor
@@ -95,8 +100,8 @@ def invite_contributor_to_team(email: str, admin: bool = False):
 
 
 @Trackable
-@typechecked
-def delete_contributor_to_team_invitation(email: str):
+@validate_arguments
+def delete_contributor_to_team_invitation(email: EmailStr):
     """Deletes team contributor invitation
 
     :param email: invitation email
@@ -106,12 +111,12 @@ def delete_contributor_to_team_invitation(email: str):
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def search_team_contributors(
-    email: str = None,
-    first_name: str = None,
-    last_name: str = None,
-    return_metadata: str = True,
+    email: EmailStr = None,
+    first_name: NotEmptyStr = None,
+    last_name: NotEmptyStr = None,
+    return_metadata: bool = True,
 ):
     """Search for contributors in the team
 
@@ -137,9 +142,9 @@ def search_team_contributors(
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def search_projects(
-    name: Optional[str] = None,
+    name: Optional[NotEmptyStr] = None,
     return_metadata: bool = False,
     include_complete_image_count: bool = False,
 ):
@@ -167,8 +172,12 @@ def search_projects(
 
 
 @Trackable
-@typechecked
-def create_project(project_name: str, project_description: str, project_type: str):
+@validate_arguments
+def create_project(
+    project_name: NotEmptyStr,
+    project_description: NotEmptyStr,
+    project_type: NotEmptyStr,
+):
     """Create a new project in the team.
 
     :param project_name: the new project's name
@@ -191,7 +200,7 @@ def create_project(project_name: str, project_description: str, project_type: st
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def create_project_from_metadata(project_metadata: dict):
     """Create a new project in the team using project metadata object dict.
     Mandatory keys in project_metadata are "name", "description" and "type" (Vector or Pixel)
@@ -215,15 +224,15 @@ def create_project_from_metadata(project_metadata: dict):
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def clone_project(
-    project_name: Union[str, dict],
-    from_project: Union[str, dict],
-    project_description: Optional[str] = None,
-    copy_annotation_classes: Optional[bool] = True,
-    copy_settings: Optional[bool] = True,
-    copy_workflow: Optional[bool] = True,
-    copy_contributors: Optional[bool] = False,
+    project_name: Union[NotEmptyStr, dict],
+    from_project: Union[NotEmptyStr, dict],
+    project_description: Optional[NotEmptyStr] = None,
+    copy_annotation_classes: Optional[StrictBool] = True,
+    copy_settings: Optional[StrictBool] = True,
+    copy_workflow: Optional[StrictBool] = True,
+    copy_contributors: Optional[StrictBool] = False,
 ):
     """Create a new project in the team using annotation classes and settings from from_project.
 
@@ -261,12 +270,12 @@ def clone_project(
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def search_images(
-    project: Union[str, dict],
-    image_name_prefix: Optional[str] = None,
-    annotation_status: Optional[str] = None,
-    return_metadata: Optional[bool] = False,
+    project: Union[NotEmptyStr, dict],
+    image_name_prefix: Optional[NotEmptyStr] = None,
+    annotation_status: Optional[Status] = None,
+    return_metadata: Optional[StrictBool] = False,
 ):
     """Search images by name_prefix (case-insensitive) and annotation status
 
@@ -302,8 +311,8 @@ def search_images(
 
 
 @Trackable
-@typechecked
-def create_folder(project: str, folder_name: str):
+@validate_arguments
+def create_folder(project: NotEmptyStr, folder_name: NotEmptyStr):
     """Create a new folder in the project.
 
     :param project: project name
@@ -329,8 +338,8 @@ def create_folder(project: str, folder_name: str):
 
 
 @Trackable
-@typechecked
-def delete_project(project: Union[str, dict]):
+@validate_arguments
+def delete_project(project: Union[NotEmptyStr, dict]):
     """Deletes the project
 
         :param project: project name or folder path (e.g., "project1/folder1")
@@ -343,8 +352,8 @@ def delete_project(project: Union[str, dict]):
 
 
 @Trackable
-@typechecked
-def rename_project(project: str, new_name: str):
+@validate_arguments
+def rename_project(project: NotEmptyStr, new_name: NotEmptyStr):
     """Renames the project
 
     :param project: project name or folder path (e.g., "project1/folder1")
@@ -363,8 +372,8 @@ def rename_project(project: str, new_name: str):
 
 
 @Trackable
-@typechecked
-def get_folder_metadata(project: str, folder_name: str):
+@validate_arguments
+def get_folder_metadata(project: NotEmptyStr, folder_name: NotEmptyStr):
     """Returns folder metadata
 
     :param project: project name
@@ -382,8 +391,8 @@ def get_folder_metadata(project: str, folder_name: str):
 
 
 @Trackable
-@typechecked
-def delete_folders(project: str, folder_names: List[str]):
+@validate_arguments
+def delete_folders(project: NotEmptyStr, folder_names: List[NotEmptyStr]):
     """Delete folder in project.
 
     :param project: project name
@@ -399,8 +408,8 @@ def delete_folders(project: str, folder_names: List[str]):
 
 
 @Trackable
-# @typechecked
-def get_project_and_folder_metadata(project: Union[str, dict]):
+@validate_arguments
+def get_project_and_folder_metadata(project: Union[NotEmptyStr, dict]):
     """Returns project and folder metadata tuple. If folder part is empty,
     than returned folder part is set to None.
 
@@ -421,8 +430,8 @@ def get_project_and_folder_metadata(project: Union[str, dict]):
 
 
 @Trackable
-@typechecked
-def rename_folder(project: str, new_folder_name: str):
+@validate_arguments
+def rename_folder(project: Union[NotEmptyStr, dict], new_folder_name: NotEmptyStr):
     """Renames folder in project.
 
     :param project: project name or folder path (e.g., "project1/folder1")
@@ -440,11 +449,11 @@ def rename_folder(project: str, new_folder_name: str):
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def search_folders(
-    project: str,
-    folder_name: Optional[str] = None,
-    return_metadata: Optional[bool] = False,
+    project: NotEmptyStr,
+    folder_name: Optional[NotEmptyStr] = None,
+    return_metadata: Optional[StrictBool] = False,
 ):
     """Folder name based case-insensitive search for folders in project.
 
@@ -471,9 +480,11 @@ def search_folders(
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def get_image_bytes(
-    project: Union[str, dict], image_name: str, variant: str = "original",
+    project: Union[NotEmptyStr, dict],
+    image_name: NotEmptyStr,
+    variant: str = "original",
 ):
     """Returns an io.BytesIO() object of the image. Suitable for creating
     PIL.Image out of it.
@@ -500,14 +511,14 @@ def get_image_bytes(
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def copy_image(
-    source_project: Union[str, dict],
-    image_name: str,
-    destination_project: Union[str, dict],
-    include_annotations: Optional[bool] = False,
-    copy_annotation_status: Optional[bool] = False,
-    copy_pin: Optional[bool] = False,
+    source_project: Union[NotEmptyStr, dict],
+    image_name: NotEmptyStr,
+    destination_project: Union[NotEmptyStr, dict],
+    include_annotations: Optional[StrictBool] = False,
+    copy_annotation_status: Optional[StrictBool] = False,
+    copy_pin: Optional[StrictBool] = False,
 ):
     """Copy image to a project. The image's project is the same as destination
     project then the name will be changed to <image_name>_(<num>).<image_ext>,
@@ -584,13 +595,13 @@ def copy_image(
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def upload_images_from_public_urls_to_project(
-    project: Union[str, dict],
-    img_urls: List[str],
+    project: Union[NotEmptyStr, dict],
+    img_urls: List[NotEmptyStr],
     img_names: Optional[List[str]] = None,
-    annotation_status: Optional[str] = "NotStarted",
-    image_quality_in_editor: Optional[str] = None,
+    annotation_status: Optional[Status] = "NotStarted",
+    image_quality_in_editor: Optional[NotEmptyStr] = None,
 ):
     """Uploads all images given in the list of URL strings in img_urls to the project.
     Sets status of all the uploaded images to annotation_status if it is not None.
@@ -710,15 +721,13 @@ def upload_images_from_public_urls_to_project(
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def copy_images(
-    source_project: Union[str, dict],
-    image_names: Optional[List[str]],
-    destination_project: Union[str, dict],
-    include_annotations: Optional[bool] = True,
-    copy_pin: Optional[bool] = True,
-    *_,
-    **__,
+    source_project: Union[NotEmptyStr, dict],
+    image_names: Optional[List[NotEmptyStr]],
+    destination_project: Union[NotEmptyStr, dict],
+    include_annotations: Optional[StrictBool] = True,
+    copy_pin: Optional[StrictBool] = True,
 ):
     """Copy images in bulk between folders in a project
 
@@ -773,11 +782,11 @@ def copy_images(
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def move_images(
-    source_project: Union[str, dict],
-    image_names: Optional[List[str]],
-    destination_project: Union[str, dict],
+    source_project: Union[NotEmptyStr, dict],
+    image_names: Optional[List[NotEmptyStr]],
+    destination_project: Union[NotEmptyStr, dict],
     *_,
     **__,
 ):
@@ -832,14 +841,14 @@ def move_images(
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def get_project_metadata(
-    project: Union[str, dict],
-    include_annotation_classes: Optional[bool] = False,
-    include_settings: Optional[bool] = False,
-    include_workflow: Optional[bool] = False,
-    include_contributors: Optional[bool] = False,
-    include_complete_image_count: Optional[bool] = False,
+    project: Union[NotEmptyStr, dict],
+    include_annotation_classes: Optional[StrictBool] = False,
+    include_settings: Optional[StrictBool] = False,
+    include_workflow: Optional[StrictBool] = False,
+    include_contributors: Optional[StrictBool] = False,
+    include_complete_image_count: Optional[StrictBool] = False,
 ):
     """Returns project metadata
 
@@ -888,8 +897,8 @@ def get_project_metadata(
 
 
 @Trackable
-@typechecked
-def get_project_settings(project: Union[str, dict]):
+@validate_arguments
+def get_project_settings(project: Union[NotEmptyStr, dict]):
     """Gets project's settings.
 
     Return value example: [{ "attribute" : "Brightness", "value" : 10, ...},...]
@@ -909,7 +918,7 @@ def get_project_settings(project: Union[str, dict]):
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def get_project_workflow(project: Union[str, dict]):
     """Gets project's workflow.
 
@@ -929,7 +938,7 @@ def get_project_workflow(project: Union[str, dict]):
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def search_annotation_classes(
     project: Union[str, dict], name_prefix: Optional[str] = None
 ):
@@ -951,7 +960,7 @@ def search_annotation_classes(
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def set_project_settings(project: Union[str, dict], new_settings: List[dict]):
     """Sets project's settings.
 
@@ -971,7 +980,7 @@ def set_project_settings(project: Union[str, dict], new_settings: List[dict]):
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def get_project_default_image_quality_in_editor(project: Union[str, dict]):
     """Gets project's default image quality in editor setting.
 
@@ -989,7 +998,7 @@ def get_project_default_image_quality_in_editor(project: Union[str, dict]):
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def set_project_default_image_quality_in_editor(
     project: Union[str, dict], image_quality_in_editor: Optional[str],
 ):
@@ -1013,8 +1022,10 @@ def set_project_default_image_quality_in_editor(
 
 
 @Trackable
-@typechecked
-def pin_image(project: Union[str, dict], image_name: str, pin: Optional[bool] = True):
+@validate_arguments
+def pin_image(
+    project: Union[str, dict], image_name: str, pin: Optional[StrictBool] = True
+):
     """Pins (or unpins) image
 
     :param project: project name or folder path (e.g., "project1/folder1")
@@ -1034,7 +1045,7 @@ def pin_image(project: Union[str, dict], image_name: str, pin: Optional[bool] = 
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def delete_image(project: Union[str, dict], image_name: str):
     """Deletes image
 
@@ -1051,7 +1062,7 @@ def delete_image(project: Union[str, dict], image_name: str):
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def get_image_metadata(project: Union[str, dict], image_name: str, *_, **__):
     """Returns image metadata
 
@@ -1082,7 +1093,7 @@ def get_image_metadata(project: Union[str, dict], image_name: str, *_, **__):
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def set_images_annotation_statuses(
     project: Union[str, dict],
     annotation_status: str,
@@ -1108,7 +1119,7 @@ def set_images_annotation_statuses(
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def delete_images(project: Union[str, dict], image_names: Optional[List[str]] = None):
     """Delete images in project.
 
@@ -1134,7 +1145,7 @@ def delete_images(project: Union[str, dict], image_names: Optional[List[str]] = 
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def assign_images(project: Union[str, dict], image_names: List[str], user: str):
     """Assigns images to a user. The assignment role, QA or Annotator, will
     be deduced from the user's role in the project. With SDK, the user can be
@@ -1174,7 +1185,7 @@ def assign_images(project: Union[str, dict], image_names: List[str], user: str):
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def unassign_images(project: Union[str, dict], image_names: List[str]):
     """Removes assignment of given images for all assignees.With SDK,
     the user can be assigned to a role in the project with the share_project
@@ -1195,7 +1206,7 @@ def unassign_images(project: Union[str, dict], image_names: List[str]):
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def unassign_folder(project_name: str, folder_name: str):
     """Removes assignment of given folder for all assignees.
     With SDK, the user can be assigned to a role in the project
@@ -1214,7 +1225,7 @@ def unassign_folder(project_name: str, folder_name: str):
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def assign_folder(project_name: str, folder_name: str, users: List[str]):
     """Assigns folder to users. With SDK, the user can be
     assigned to a role in the project with the share_project function.
@@ -1255,7 +1266,7 @@ def assign_folder(project_name: str, folder_name: str, users: List[str]):
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def share_project(project_name: str, user: Union[str, dict], user_role: str):
     """Share project with user.
 
@@ -1281,7 +1292,7 @@ def share_project(project_name: str, user: Union[str, dict], user_role: str):
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def unshare_project(project_name: str, user: Union[str, dict]):
     """Unshare (remove) user from project.
 
@@ -1298,7 +1309,7 @@ def unshare_project(project_name: str, user: Union[str, dict]):
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def get_image_annotations(project: Union[str, dict], image_name: str):
     """Get annotations of the image.
 
@@ -1323,7 +1334,7 @@ def get_image_annotations(project: Union[str, dict], image_name: str):
     return res.data
 
 
-@typechecked
+@validate_arguments
 def upload_images_from_folder_to_project(
     project: Union[str, dict],
     folder_path: Union[str, Path],
@@ -1333,7 +1344,7 @@ def upload_images_from_folder_to_project(
     exclude_file_patterns: Optional[
         Iterable[str]
     ] = constances.DEFAULT_FILE_EXCLUDE_PATTERNS,
-    recursive_subfolders: Optional[bool] = False,
+    recursive_subfolders: Optional[StrictBool] = False,
     image_quality_in_editor: Optional[str] = None,
 ):
     """Uploads all images with given extensions from folder_path to the project.
@@ -1421,9 +1432,9 @@ def upload_images_from_folder_to_project(
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def get_project_image_count(
-    project: Union[str, dict], with_all_subfolders: Optional[bool] = False
+    project: Union[str, dict], with_all_subfolders: Optional[StrictBool] = False
 ):
     """Returns number of images in the project.
 
@@ -1449,7 +1460,7 @@ def get_project_image_count(
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def get_image_preannotations(project: Union[str, dict], image_name: str):
     """Get pre-annotations of the image. Only works for "vector" projects.
 
@@ -1473,7 +1484,7 @@ def get_image_preannotations(project: Union[str, dict], image_name: str):
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def download_image_annotations(
     project: Union[str, dict], image_name: str, local_dir_path: Union[str, Path]
 ):
@@ -1503,7 +1514,7 @@ def download_image_annotations(
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def download_image_preannotations(
     project: Union[str, dict], image_name: str, local_dir_path: Union[str, Path]
 ):
@@ -1533,8 +1544,8 @@ def download_image_preannotations(
 
 
 @Trackable
-@typechecked
-def get_exports(project: str, return_metadata: Optional[bool] = False):
+@validate_arguments
+def get_exports(project: str, return_metadata: Optional[StrictBool] = False):
     """Get all prepared exports of the project.
 
     :param project: project name
@@ -1552,7 +1563,7 @@ def get_exports(project: str, return_metadata: Optional[bool] = False):
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def upload_images_from_s3_bucket_to_project(
     project: Union[str, dict],
     accessKeyId: str,
@@ -1592,12 +1603,12 @@ def upload_images_from_s3_bucket_to_project(
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def prepare_export(
     project: Union[str, dict],
     folder_names: Optional[List[str]] = None,
     annotation_statuses: Optional[List[str]] = None,
-    include_fuse: Optional[bool] = False,
+    include_fuse: Optional[StrictBool] = False,
     only_pinned=False,
 ):
     """Prepare annotations and classes.json for export. Original and fused images for images with
@@ -1645,17 +1656,17 @@ def prepare_export(
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def upload_videos_from_folder_to_project(
     project: Union[str, dict],
     folder_path: Union[str, Path],
     extensions: Optional[Iterable[str]] = constances.DEFAULT_VIDEO_EXTENSIONS,
     exclude_file_patterns: Optional[Iterable[str]] = (),
-    recursive_subfolders: Optional[bool] = False,
+    recursive_subfolders: Optional[StrictBool] = False,
     target_fps: Optional[int] = None,
     start_time: Optional[float] = 0.0,
     end_time: Optional[float] = None,
-    annotation_status: Optional[str] = "NotStarted",
+    annotation_status: Optional[Status] = "NotStarted",
     image_quality_in_editor: Optional[str] = None,
 ):
     """Uploads image frames from all videos with given extensions from folder_path to the project.
@@ -1770,14 +1781,14 @@ def upload_videos_from_folder_to_project(
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def upload_video_to_project(
     project: Union[str, dict],
     video_path: Union[str, Path],
     target_fps: Optional[int] = None,
     start_time: Optional[float] = 0.0,
     end_time: Optional[float] = None,
-    annotation_status: Optional[str] = "NotStarted",
+    annotation_status: Optional[Status] = "NotStarted",
     image_quality_in_editor: Optional[str] = None,
 ):
     """Uploads image frames from video to platform. Uploaded images will have
@@ -1839,7 +1850,7 @@ def upload_video_to_project(
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def create_annotation_class(
     project: Union[dict, str],
     name: str,
@@ -1869,7 +1880,7 @@ def create_annotation_class(
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def delete_annotation_class(project: str, annotation_class: Union[dict, str]):
     """Deletes annotation class from project
 
@@ -1884,7 +1895,7 @@ def delete_annotation_class(project: str, annotation_class: Union[dict, str]):
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def get_annotation_class_metadata(project: str, annotation_class_name: str):
     """Returns annotation class metadata
 
@@ -1903,7 +1914,7 @@ def get_annotation_class_metadata(project: str, annotation_class_name: str):
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def download_annotation_classes_json(project: str, folder: Union[str, Path]):
     """Downloads project classes.json to folder
 
@@ -1922,10 +1933,10 @@ def download_annotation_classes_json(project: str, folder: Union[str, Path]):
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def create_annotation_classes_from_classes_json(
     project: Union[str, dict],
-    classes_json: Union[list, str, Path],
+    classes_json: Union[List[ClassesJson], str, Path],
     from_s3_bucket=False,
 ):
     """Creates annotation classes in project from a SuperAnnotate format
@@ -1964,14 +1975,14 @@ def create_annotation_classes_from_classes_json(
     return response.data
 
 
-@typechecked
+@validate_arguments
 def move_image(
     source_project: Union[str, dict],
     image_name: str,
     destination_project: Union[str, dict],
-    include_annotations: Optional[bool] = True,
-    copy_annotation_status: Optional[bool] = True,
-    copy_pin: Optional[bool] = True,
+    include_annotations: Optional[StrictBool] = True,
+    copy_annotation_status: Optional[StrictBool] = True,
+    copy_pin: Optional[StrictBool] = True,
 ):
     """Move image from source_project to destination_project. source_project
     and destination_project cannot be the same.
@@ -2049,12 +2060,12 @@ def move_image(
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def download_export(
     project: Union[str, dict],
     export: Union[str, dict],
     folder_path: Union[str, Path],
-    extract_zip_contents: Optional[bool] = True,
+    extract_zip_contents: Optional[StrictBool] = True,
     to_s3_bucket=None,
 ):
     """Download prepared export.
@@ -2111,7 +2122,7 @@ def download_export(
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def set_image_annotation_status(
     project: Union[str, dict], image_name: str, annotation_status: str
 ):
@@ -2137,7 +2148,7 @@ def set_image_annotation_status(
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def set_project_workflow(project: Union[str, dict], new_workflow: List[dict]):
     """Sets project's workflow.
 
@@ -2160,13 +2171,13 @@ def set_project_workflow(project: Union[str, dict], new_workflow: List[dict]):
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def create_fuse_image(
-    image: [str, Path],
-    classes_json: Union[list, str, Path],
+    image: Union[NotEmptyStr, Path],
+    classes_json: Union[str, Path],
     project_type: str,
-    in_memory: Optional[bool] = False,
-    output_overlay: Optional[bool] = False,
+    in_memory: Optional[StrictBool] = False,
+    output_overlay: Optional[StrictBool] = False,
 ):
     """Creates fuse for locally located image and annotations
 
@@ -2195,14 +2206,14 @@ def create_fuse_image(
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def download_image(
     project: Union[str, dict],
     image_name: str,
     local_dir_path: Optional[Union[str, Path]] = "./",
-    include_annotations: Optional[bool] = False,
-    include_fuse: Optional[bool] = False,
-    include_overlay: Optional[bool] = False,
+    include_annotations: Optional[StrictBool] = False,
+    include_fuse: Optional[StrictBool] = False,
+    include_overlay: Optional[StrictBool] = False,
     variant: Optional[str] = "original",
 ):
     """Downloads the image (and annotation if not None) to local_dir_path
@@ -2244,11 +2255,11 @@ def download_image(
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def attach_image_urls_to_project(
     project: Union[str, dict],
     attachments: Union[str, Path],
-    annotation_status: Optional[str] = "NotStarted",
+    annotation_status: Optional[Status] = "NotStarted",
 ):
     """Link images on external storage to SuperAnnotate.
 
@@ -2308,11 +2319,11 @@ def attach_image_urls_to_project(
     return list_of_uploaded, list_of_not_uploaded, duplicate_images
 
 
-@typechecked
+@validate_arguments
 def attach_video_urls_to_project(
     project: Union[str, dict],
     attachments: Union[str, Path],
-    annotation_status: Optional[str] = "NotStarted",
+    annotation_status: Optional[Status] = "NotStarted",
 ):
     """Link videos on external storage to SuperAnnotate.
     :param project: project name or project folder path
@@ -2369,12 +2380,12 @@ def attach_video_urls_to_project(
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def upload_annotations_from_folder_to_project(
     project: Union[str, dict],
     folder_path: Union[str, Path],
     from_s3_bucket=None,
-    recursive_subfolders: Optional[bool] = False,
+    recursive_subfolders: Optional[StrictBool] = False,
 ):
     """Finds and uploads all JSON files in the folder_path as annotations to the project.
 
@@ -2442,12 +2453,12 @@ def upload_annotations_from_folder_to_project(
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def upload_preannotations_from_folder_to_project(
     project: Union[str, dict],
     folder_path: Union[str, Path],
     from_s3_bucket=None,
-    recursive_subfolders: Optional[bool] = False,
+    recursive_subfolders: Optional[StrictBool] = False,
 ):
     """Finds and uploads all JSON files in the folder_path as pre-annotations to the project.
 
@@ -2515,13 +2526,13 @@ def upload_preannotations_from_folder_to_project(
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def upload_image_annotations(
     project: Union[str, dict],
     image_name: str,
     annotation_json: Union[str, Path, dict],
     mask: Optional[Union[str, Path, dict]] = None,
-    verbose: Optional[bool] = True,
+    verbose: Optional[StrictBool] = True,
 ):
     """Upload annotations from JSON (also mask for pixel annotations)
     to the image.
@@ -2556,14 +2567,14 @@ def upload_image_annotations(
         annotations=annotation_json,
         mask=mask,
         verbose=verbose,
-        annotation_path=annotation_path
+        annotation_path=annotation_path,
     )
     if response.errors:
         raise AppException(response.errors)
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def run_training(
     model_name: str,
     model_description: str,
@@ -2572,7 +2583,7 @@ def run_training(
     train_data: Iterable[str],
     test_data: Iterable[str],
     hyperparameters: Optional[dict] = None,
-    log: Optional[bool] = False,
+    log: Optional[StrictBool] = False,
 ):
     """Runs neural network training
     :param model_name: name of the new model
@@ -2666,7 +2677,7 @@ def run_training(
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def delete_model(model: dict):
     """This function deletes the provided model
 
@@ -2685,7 +2696,7 @@ def delete_model(model: dict):
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def stop_model_training(model: dict):
     """This function will stop training model provided by either name or metadata, and return the ID
 
@@ -2703,7 +2714,7 @@ def stop_model_training(model: dict):
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def download_model(model: dict, output_dir: Union[str, Path]):
     """Downloads the neural network and related files
     which are the <model_name>.pth/pkl. <model_name>.json, <model_name>.yaml, classes_mapper.json
@@ -2724,12 +2735,12 @@ def download_model(model: dict, output_dir: Union[str, Path]):
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def benchmark(
     project: Union[str, dict],
     gt_folder: str,
     folder_names: List[str],
-    export_root: Optional[Union[str, Path]]=None,
+    export_root: Optional[Union[str, Path]] = None,
     image_list=None,
     annot_type="bbox",
     show_plots=False,
@@ -3538,7 +3549,7 @@ def aggregate_annotations_as_df(
 
 
 @Trackable
-@typechecked
+@validate_arguments
 def delete_annotations(project: str, image_names: List[str] = None):
     """
     Delete image annotations from a given list of images.
