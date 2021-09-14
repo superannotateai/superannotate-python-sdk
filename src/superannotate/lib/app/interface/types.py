@@ -128,8 +128,7 @@ class Cuboid(BaseInstance):
 
 class VectorAnnotation(BaseModel):
     metadata: Metadata
-    instances: Optional[List[Template, Cuboid, Point, PolyLine, Polygon, Bbox, Ellipse]]
-
+    instances: Optional[List[Union[Template, Cuboid, Point, PolyLine, Polygon, Bbox, Ellipse]]]
 
 def validate_arguments(func):
     @wraps(func)
