@@ -34,6 +34,7 @@ from lib.app.helpers import reformat_metrics_json
 from lib.app.interface.types import ClassesJson
 from lib.app.interface.types import NotEmptyStr
 from lib.app.interface.types import Status
+from lib.app.interface.types import AnnotationType
 from lib.app.interface.types import validate_arguments
 from lib.app.mixp.decorators import Trackable
 from lib.app.serializers import BaseSerializers
@@ -2742,7 +2743,7 @@ def benchmark(
     folder_names: List[str],
     export_root: Optional[Union[str, Path]] = None,
     image_list=None,
-    annot_type="bbox",
+    annot_type=Optional[AnnotationType],
     show_plots=False,
 ):
     """Computes benchmark score for each instance of given images that are present both gt_project_name project and projects in folder_names list:
@@ -2804,7 +2805,7 @@ def consensus(
     folder_names: NotEmptyStr,
     export_root: Optional[Union[NotEmptyStr, Path]] = None,
     image_list: Optional[List[NotEmptyStr]] = None,
-    annot_type: Optional[NotEmptyStr] = "bbox",
+    annot_type: Optional[AnnotationType] = "bbox",
     show_plots: Optional[StrictBool] = False,
 ):
     """Computes consensus score for each instance of given images that are present in at least 2 of the given projects:
@@ -3322,7 +3323,7 @@ def upload_image_to_project(
     project: NotEmptyStr,
     img,
     image_name: Optional[NotEmptyStr] = None,
-    annotation_status: Optional[NotEmptyStr] = "NotStarted",
+    annotation_status: Optional[Status] = "NotStarted",
     from_s3_bucket=None,
     image_quality_in_editor: Optional[NotEmptyStr] = None,
 ):
@@ -3412,7 +3413,7 @@ def search_models(
 def upload_images_to_project(
     project: NotEmptyStr,
     img_paths: List[NotEmptyStr],
-    annotation_status: Optional[NotEmptyStr] = "NotStarted",
+    annotation_status: Optional[Status] = "NotStarted",
     from_s3_bucket=None,
     image_quality_in_editor: Optional[NotEmptyStr] = None,
 ):
