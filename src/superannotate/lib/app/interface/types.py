@@ -36,15 +36,99 @@ class AnnotationType(StrictStr):
         return value
 
 
+class Attribute(BaseModel):
+    id: int
+    group_id: int
+    name: NotEmptyStr
+
+
 class AttributeGroup(BaseModel):
     name: StrictStr
     is_multiselect: Optional[bool]
+    attributes: List[Attribute]
 
 
 class ClassesJson(BaseModel):
     name: StrictStr
     color: StrictStr
     attribute_groups: List[AttributeGroup]
+
+
+class Metadata(BaseModel):
+    width: int
+    height: int
+
+
+class BaseInstance(BaseModel):
+    metadata: Metadata
+    type: NotEmptyStr
+    classId: int
+    groupId: int
+    attributes: List[Attribute]
+
+
+class Point(BaseInstance):
+    x: float
+    y: float
+
+
+class PolyLine(BaseInstance):
+    points: List[float]
+
+
+class Polygon(BaseInstance):
+    points: List[float]
+
+
+class BboxPoints(BaseModel):
+    x1: float
+    x2: float
+    y1: float
+    y2: float
+
+
+class Bbox(BaseInstance):
+    points: BboxPoints
+
+
+class Ellipse(BaseInstance):
+    cx: float
+    cy: float
+    rx: float
+    ry: float
+
+
+class TemplatePoint(BaseModel):
+    id: int
+    x: float
+    y: float
+
+
+class TemplateConnection(BaseModel):
+    id: int
+    to: int
+
+
+class Template(BaseInstance):
+    points: List[TemplatePoint]
+    connections: List[TemplateConnection]
+    templateId: int
+
+
+class CuboidPoint(BaseModel):
+    f1: Point
+    f2: Point
+    r1: Point
+    r2: Point
+
+
+class Cuboid(BaseInstance):
+    points: List[CuboidPoint]
+
+
+class VectorAnnotation(BaseModel):
+    metadata: Metadata
+    instances: Optional[List[Template, Cuboid, Point, PolyLine, Polygon, Bbox, Ellipse]]
 
 
 def validate_arguments(func):
