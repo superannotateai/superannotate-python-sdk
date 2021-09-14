@@ -74,3 +74,33 @@ def test_attach_text_urls():
         assert str(
             e
         ) == f"The function does not support projects containing {PROJECT_TYPE} attached with URLs"
+
+
+    with pytest.raises(SABaseException) as e:
+        sa.attach_video_urls_to_project(
+            PROJECT_NAME_TEXT, PATH_TO_URLS
+        )
+        assert str(
+            e
+        ) == f"The function does not support projects containing {PROJECT_TYPE} attached with URLs"
+
+
+def test_attach_text_to_video():
+    project_name_video = "video t"
+    project_type_video = "Video"
+    projects = sa.search_projects(project_name_video, return_metadata=True)
+    for project in projects:
+        sa.delete_project(project)
+
+    time.sleep(1)
+    sa.create_project(project_name_video, "test", project_type_video)
+    time.sleep(1)
+
+    with pytest.raises(SABaseException) as e:
+        sa.attach_document_urls_to_project(
+            project_name_video, PATH_TO_URLS
+        )
+        assert str(
+            e
+        ) == f"The function does not support projects containing {project_type_video} attached with URLs"
+

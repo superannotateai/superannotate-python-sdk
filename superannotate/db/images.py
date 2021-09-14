@@ -659,13 +659,6 @@ def download_image(
         )
 
     project, project_folder = get_project_and_folder_metadata(project)
-    upload_state = common.upload_state_int_to_str(project.get("upload_state"))
-    project_type = project['type']
-    if upload_state == "External":
-        raise SABaseException(
-            0,
-            f"The function does not support projects containing {project_type}   attached with URLs"
-        )
     img = get_image_bytes(
         (project, project_folder), image_name, variant=variant
     )
@@ -736,14 +729,7 @@ def get_image_bytes(project, image_name, variant='original'):
     :rtype: io.BytesIO()
     """
     project, project_folder = get_project_and_folder_metadata(project)
-    upload_state = common.upload_state_int_to_str(project.get("upload_state"))
-    project_type = project['type']
 
-    if upload_state == "External":
-        raise SABaseException(
-            0,
-            f"The function does not support projects containing {project_type} attached with URLs"
-        )
     if variant not in ["original", "lores"]:
         raise SABaseException(
             0, "Image download variant should be either original or lores"

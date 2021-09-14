@@ -417,14 +417,6 @@ def upload_video_to_project(
 
     limit = _get_available_image_counts(project, folder)
 
-    upload_state = common.upload_state_int_to_str(project.get("upload_state"))
-    project_type = project.get("type")
-
-    if upload_state == "External":
-        raise SABaseException(
-            0,
-            f"The function does not support projects containing {project_type} attached with URLs"
-        )
     logger.info("Uploading from video %s.", str(video_path))
     tempdir = tempfile.TemporaryDirectory()
     upload_file_names = []
@@ -519,14 +511,7 @@ def upload_videos_from_folder_to_project(
     :rtype: tuple of list of strs
     """
     project, folder = get_project_and_folder_metadata(project)
-    upload_state = common.upload_state_int_to_str(project.get("upload_state"))
-    project_type = project.get("type")
 
-    if upload_state == "External":
-        raise SABaseException(
-            0,
-            f"The function does not support projects containing {project_type}attached with URLs"
-        )
     if recursive_subfolders:
         logger.warning(
             "When using recursive subfolder parsing same name videos in different subfolders will overwrite each other."
@@ -618,14 +603,7 @@ def upload_images_from_folder_to_project(
     project_folder_name = project["name"] + (
         f'/{project_folder["name"]}' if project_folder else ""
     )
-    upload_state = common.upload_state_int_to_str(project.get("upload_state"))
-    project_type = project.get("type")
 
-    if upload_state == "External":
-        raise SABaseException(
-            0,
-            f"The function does not support projects containing {project_type} attached with URLs"
-        )
     if recursive_subfolders:
         logger.info(
             "When using recursive subfolder parsing same name images in different subfolders will overwrite each other."
@@ -720,14 +698,7 @@ def upload_images_to_project(
     """
     project, folder = get_project_and_folder_metadata(project)
     folder_name = project["name"] + (f'/{folder["name"]}' if folder else "")
-    upload_state = common.upload_state_int_to_str(project.get("upload_state"))
-    project_type = project.get("type")
 
-    if upload_state == "External":
-        raise SABaseException(
-            0,
-            f"The function does not support projects containing {project_type} attached with URLs"
-        )
     if not isinstance(img_paths, list):
         raise SABaseException(
             0, "img_paths argument to upload_images_to_project should be a list"
@@ -793,8 +764,8 @@ def attach_image_urls_to_project(
     :return: attached images, failed images, skipped images
     :rtype: (list, list, list)
     """
-    get_project_and_folder_metadata(project)
-    return attach_file_urls_to_project(project, attachments, annotation_status)
+    project, folder = get_project_and_folder_metadata(project)
+    return attach_file_urls_to_project(project, folder, attachments, annotation_status)
 
 
 @Trackable
@@ -832,13 +803,7 @@ def upload_images_from_public_urls_to_project(
     duplicate_images_filenames = []
     path_to_url = {}
     project, project_folder = get_project_and_folder_metadata(project)
-    upload_state = common.upload_state_int_to_str(project.get("upload_state"))
-    project_type = project.get('type')
-    if upload_state == "External":
-        raise SABaseException(
-            0,
-            f"The function does not support projects containing {project_type} attached with URLs"
-        )
+
     finish_event = threading.Event()
     tqdm_thread = threading.Thread(
         target=_tqdm_download,
@@ -942,14 +907,7 @@ def upload_images_from_google_cloud_to_project(
     duplicate_images_filenames = []
     path_to_url = {}
     project, project_folder = get_project_and_folder_metadata(project)
-    upload_state = common.upload_state_int_to_str(project.get("upload_state"))
-    project_type = project.get("type")
 
-    if upload_state == "External":
-        raise SABaseException(
-            0,
-            f"The function does not support projects containing {project_type} attached with URLs"
-        )
     cloud_client = storage.Client(project=google_project)
     bucket = cloud_client.get_bucket(bucket_name)
     image_blobs = bucket.list_blobs(prefix=folder_path)
@@ -1028,13 +986,6 @@ def upload_images_from_azure_blob_to_project(
     duplicate_images_filenames = []
     path_to_url = {}
     project, project_folder = get_project_and_folder_metadata(project)
-    upload_state = common.upload_state_int_to_str(project.get("upload_state"))
-    project_type = project.get('type')
-    if upload_state == "External":
-        raise SABaseException(
-            0,
-            f"The function does not support projects containing {project_type} attached with URLs"
-        )
     connect_key = os.getenv('AZURE_STORAGE_CONNECTION_STRING')
     blob_service_client = BlobServiceClient.from_connection_string(connect_key)
     container_client = blob_service_client.get_container_client(container_name)
@@ -2013,10 +1964,11 @@ def attach_video_urls_to_project(
     :return: attached videos, failed videos, skipped videos
     :rtype: (list, list, list)
     """
-    return attach_file_urls_to_project(project, attachments, annotation_status)
+    project, folder = get_project_and_folder_metadata(project)
+    return attach_file_urls_to_project(project,folder, attachments, annotation_status)
 
 
-def attach_file_urls_to_project(project, attachments, annotation_status):
+def attach_file_urls_to_project(project,folder,attachments, annotation_status):
     """Link files on external storage to SuperAnnotate.
 
     :param project: project name or project folder path
@@ -2031,7 +1983,6 @@ def attach_file_urls_to_project(project, attachments, annotation_status):
     :return: attached files, failed files, skipped files
     :rtype: (list, list, list)
     """
-    project, folder = get_project_and_folder_metadata(project)
     folder_name = project["name"] + (f'/{folder["name"]}' if folder else "")
     upload_state = common.upload_state_int_to_str(project.get("upload_state"))
     if upload_state == "Basic":
@@ -2104,5 +2055,6 @@ def attach_document_urls_to_project(
     :return: attached videos, failed videos, skipped videos
     :rtype: (list, list, list)
     """
-    return attach_file_urls_to_project(project, attachments, annotation_status)
+    project, folder = get_project_and_folder_metadata(project)
+    return attach_file_urls_to_project(project,folder, attachments, annotation_status)
 

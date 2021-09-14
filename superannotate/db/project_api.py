@@ -49,8 +49,8 @@ def get_project_metadata_bare(project_name, include_complete_image_count=False):
             current_frame.f_back.f_back
         ).function
         if res.get("type") and res["type"] in ["Video","Document"] and (
-            outer_function in common.VIDEO_DEPRICATED_FUNCTIONS or
-            outer_outer_function in common.VIDEO_DEPRICATED_FUNCTIONS
+            outer_function in common.DEPRICATED_FUNCTIONS_PER_PROJECT_TYPE[res["type"]] or
+            outer_outer_function in common.DEPRICATED_FUNCTIONS_PER_PROJECT_TYPE[res["type"]]
         ):
             raise SABaseException(
                 0,
@@ -152,8 +152,8 @@ def get_project_and_folder_metadata(project):
         current_frame.f_back.f_back
     ).function
     if project.get("type") and project["type"] in ["Video","Document"] \
-            and (outer_function in common.VIDEO_DEPRICATED_FUNCTIONS
-                 or outer_outer_function in common.VIDEO_DEPRICATED_FUNCTIONS):
+            and (outer_function in common.DEPRICATED_FUNCTIONS_PER_PROJECT_TYPE[project["type"]]
+                 or outer_outer_function in common.DEPRICATED_FUNCTIONS_PER_PROJECT_TYPE[project["type"]]):
         project_type = project['type']
         raise SABaseException(
             0,
