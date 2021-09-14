@@ -10,7 +10,6 @@ from typing import Optional
 import lib.core as constances
 import pandas as pd
 from lib import __file__ as lib_path
-from lib.app.helpers import get_annotation_paths
 from lib.app.helpers import split_project_path
 from lib.app.input_converters.conversion import import_annotation
 from lib.app.interface.base_interface import BaseInterfaceFacade
@@ -19,14 +18,14 @@ from lib.app.interface.sdk_interface import attach_image_urls_to_project
 from lib.app.interface.sdk_interface import attach_video_urls_to_project
 from lib.app.interface.sdk_interface import create_folder
 from lib.app.interface.sdk_interface import create_project
+from lib.app.interface.sdk_interface import upload_annotations_from_folder_to_project
 from lib.app.interface.sdk_interface import upload_images_from_folder_to_project
+from lib.app.interface.sdk_interface import upload_preannotations_from_folder_to_project
 from lib.app.interface.sdk_interface import upload_videos_from_folder_to_project
 from lib.app.serializers import ImageSerializer
 from lib.core.entities import ConfigEntity
 from lib.infrastructure.controller import Controller
 from lib.infrastructure.repositories import ConfigRepository
-from tqdm import tqdm
-
 
 logger = logging.getLogger()
 controller = Controller(logger)
@@ -107,13 +106,11 @@ class CLIFacade(BaseInterfaceFacade):
         """
         if not isinstance(extensions, list):
             extensions = extensions.split(",")
-
         upload_images_from_folder_to_project(
             project,
             folder_path=folder,
             extensions=extensions,
             annotation_status=set_annotation_status,
-            from_s3_bucket=None,
             exclude_file_patterns=exclude_file_patterns,
             recursive_subfolders=recursive_subfolders,
             image_quality_in_editor=image_quality_in_editor,
@@ -202,7 +199,6 @@ class CLIFacade(BaseInterfaceFacade):
             data_set_name = ""
         if not task:
             task = "object_detection"
-
         annotations_path = folder
         with tempfile.TemporaryDirectory() as temp_dir:
             if format != "SuperAnnotate":
@@ -222,22 +218,14 @@ class CLIFacade(BaseInterfaceFacade):
                 project_name=project_name,
                 annotation_classes=json.load(open(classes_path)),
             )
-            annotation_paths = get_annotation_paths(annotations_path)
-            chunk_size = 10
-            with tqdm(total=len(annotation_paths)) as progress_bar:
-                for i in range(0, len(annotation_paths), chunk_size):
-                    response = self.controller.upload_annotations_from_folder(
-                        project_name=project["project"].name,
-                        folder_name=folder_name,
-                        folder_path=annotations_path,
-                        annotation_paths=annotation_paths[
-                            i : i + chunk_size  # noqa: E203
-                        ],
-                        is_pre_annotations=pre,
-                    )
-                    if response.errors:
-                        logger.warning(response.errors)
-                    progress_bar.update(chunk_size)
+            if pre:
+                upload_preannotations_from_folder_to_project(
+                    project_name, annotations_path
+                )
+            else:
+                upload_annotations_from_folder_to_project(
+                    project_name, annotations_path
+                )
         sys.exit(0)
 
     def attach_image_urls(

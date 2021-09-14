@@ -1304,9 +1304,7 @@ class ImagesBulkCopyUseCase(BaseUseCase):
 
     def validate_project_type(self):
         if self._project.project_type == constances.ProjectType.VIDEO.value:
-            raise AppValidationException(
-                "The function does not support projects containing videos attached with URLs"
-            )
+            raise AppValidationException(constances.DEPRECATED_VIDEO_PROJECTS_MESSAGE)
 
     def execute(self):
         if self.is_valid():
@@ -1386,9 +1384,7 @@ class GetWorkflowsUseCase(BaseUseCase):
 
     def validate_project_type(self):
         if self._project.project_type == constances.ProjectType.VIDEO.value:
-            raise AppValidationException(
-                "The function does not support projects containing videos attached with URLs"
-            )
+            raise AppValidationException(constances.DEPRECATED_VIDEO_PROJECTS_MESSAGE)
 
     def execute(self):
         if self.is_valid():
@@ -1488,9 +1484,7 @@ class UpdateSettingsUseCase(BaseUseCase):
                 attribute.get("attribute", "") == "ImageQuality"
                 and project.project_type == constances.ProjectType.VIDEO.value
             ):
-                raise AppValidationException(
-                    "The function does not support projects containing videos attached with URLs"
-                )
+                raise AppValidationException(constances.DEPRECATED_VIDEO_PROJECTS_MESSAGE)
 
     def execute(self):
         if self.is_valid():
@@ -1552,9 +1546,7 @@ class GetImageMetadataUseCase(BaseUseCase):
 
     def validate_project_type(self):
         if self._project.project_type == constances.ProjectType.VIDEO.value:
-            raise AppValidationException(
-                "The function does not support projects containing videos attached with URLs"
-            )
+            raise AppValidationException(constances.DEPRECATED_VIDEO_PROJECTS_MESSAGE)
 
     def execute(self):
         if self.is_valid():
@@ -1637,9 +1629,7 @@ class SetImageAnnotationStatuses(BaseUseCase):
     def validate_project_type(self):
         project = self._projects.get_one(uuid=self._project_id, team_id=self._team_id)
         if project.project_type == constances.ProjectType.VIDEO.value:
-            raise AppValidationException(
-                "The function does not support projects containing videos attached with URLs"
-            )
+            raise AppValidationException(constances.DEPRECATED_VIDEO_PROJECTS_MESSAGE)
 
     def execute(self):
         if self.is_valid():
@@ -1748,9 +1738,7 @@ class AssignImagesUseCase(BaseUseCase):
 
     def validate_project_type(self):
         if self._project.project_type == constances.ProjectType.VIDEO.value:
-            raise AppValidationException(
-                "The function does not support projects containing videos attached with URLs"
-            )
+            raise AppValidationException(constances.DEPRECATED_VIDEO_PROJECTS_MESSAGE)
 
     def execute(self):
         if self.is_valid():
@@ -2132,9 +2120,7 @@ class GetImagePreAnnotationsUseCase(BaseUseCase):
 
     def validate_project_type(self):
         if self._project.project_type == constances.ProjectType.VIDEO.value:
-            raise AppValidationException(
-                "The function does not support projects containing videos attached with URLs"
-            )
+            raise AppValidationException(constances.DEPRECATED_VIDEO_PROJECTS_MESSAGE)
 
     def execute(self):
         data = {
@@ -2761,9 +2747,7 @@ class SetWorkflowUseCase(BaseUseCase):
 
     def validate_project_type(self):
         if self._project.project_type == constances.ProjectType.VIDEO.value:
-            raise AppValidationException(
-                "The function does not support projects containing videos attached with URLs"
-            )
+            raise AppValidationException(constances.DEPRECATED_VIDEO_PROJECTS_MESSAGE)
 
     def execute(self):
         if self.is_valid():
@@ -3061,9 +3045,7 @@ class DownloadImageUseCase(BaseUseCase):
 
     def validate_project_type(self):
         if self._project.project_type == constances.ProjectType.VIDEO.value:
-            raise AppValidationException(
-                "The function does not support projects containing videos attached with URLs"
-            )
+            raise AppValidationException(constances.DEPRECATED_VIDEO_PROJECTS_MESSAGE)
 
     def validate_variant_type(self):
         if self._image_variant not in ["original", "lores"]:
@@ -3249,56 +3231,50 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
             if not image_data:
                 raise AppException("There is no images to attach annotation.")
             image_data = image_data[0]
-            auth_data = self._backend_service.get_annotation_upload_data(
+            response = self._backend_service.get_annotation_upload_data(
                 project_id=self._project.uuid,
                 team_id=self._project.team_id,
                 folder_id=self._folder.uuid,
                 image_ids=[image_data["id"]],
             )
-            session = boto3.Session(
-                aws_access_key_id=auth_data["creds"]["accessKeyId"],
-                aws_secret_access_key=auth_data["creds"]["secretAccessKey"],
-                aws_session_token=auth_data["creds"]["sessionToken"],
-                region_name=auth_data["creds"]["region"],
-            )
-            resource = session.resource("s3")
-            bucket = resource.Bucket(auth_data["creds"]["bucket"])
-            self.fill_classes_data(self._annotations)
-            bucket.put_object(
-                Key=auth_data["images"][str(image_data["id"])]["annotation_json_path"],
-                Body=json.dumps(self._annotations),
-            )
-            if (
-                self._project.project_type == constances.ProjectType.PIXEL.value
-                and os.path.exists(self._annotation_path)
-            ):
-                with open(self._annotation_path, "rb") as descriptor:
-                    file = io.BytesIO(descriptor.read())
-                    bucket.put_object(
-                        Key=auth_data["images"][str(image_data["id"])][
-                            "annotation_bluemap_path"
-                        ],
-                        Body=file,
-                    )
-            if self._verbose:
-                logger.info(
-                    "Uploading annotations for image %s in project %s.",
-                    str(image_data["name"]),
-                    self._project.name,
+            if response.ok:
+                session = boto3.Session(
+                    aws_access_key_id=response.data.access_key,
+                    aws_secret_access_key=response.data.secret_key,
+                    aws_session_token=response.data.session_token,
+                    region_name=response.data.region,
                 )
-
-            if (
-                self._project.project_type == constances.ProjectType.PIXEL.value
-                and self._mask
-            ):
-                with open(self._mask, "rb") as fin:
-                    file = io.BytesIO(fin.read())
+                resource = session.resource("s3")
+                bucket = resource.Bucket(response.data.bucket)
+                self.fill_classes_data(self._annotations)
                 bucket.put_object(
-                    Key=auth_data["images"][str(image_data["id"])][
-                        "annotation_bluemap_path"
-                    ],
-                    Body=file,
+                    Key=response.data.images[image_data["id"]]["annotation_json_path"],
+                    Body=json.dumps(self._annotations),
                 )
+                if (
+                    self._project.project_type == constances.ProjectType.PIXEL.value
+                ):
+                    mask_path = None
+                    if os.path.exists(self._annotation_path) and not self._mask:
+                        mask_path = self._annotation_path
+                    elif self._mask:
+                        mask_path = self._mask
+
+                    if mask_path:
+                        with open(mask_path, "rb") as descriptor:
+                            file = io.BytesIO(descriptor.read())
+                            bucket.put_object(
+                                Key=response.data.images[image_data["id"]][
+                                    "annotation_bluemap_path"
+                                ],
+                                Body=file,
+                            )
+                if self._verbose:
+                    logger.info(
+                        "Uploading annotations for image %s in project %s.",
+                        str(image_data["name"]),
+                        self._project.name,
+                    )
         return self._response
 
 
@@ -3482,72 +3458,73 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
             ]
 
             if self._pre_annotation:
-                auth_data = self._backend_service.get_pre_annotation_upload_data(
+                response = self._backend_service.get_pre_annotation_upload_data(
                     project_id=self._project.uuid,
                     team_id=self._project.team_id,
                     folder_id=self._folder.uuid,
                     image_ids=[int(image.id) for image in annotations_to_upload],
                 )
             else:
-                auth_data = self._backend_service.get_annotation_upload_data(
+                response = self._backend_service.get_annotation_upload_data(
                     project_id=self._project.uuid,
                     team_id=self._project.team_id,
                     folder_id=self._folder.uuid,
                     image_ids=[int(image.id) for image in annotations_to_upload],
                 )
-            session = boto3.Session(
-                aws_access_key_id=auth_data["creds"]["accessKeyId"],
-                aws_secret_access_key=auth_data["creds"]["secretAccessKey"],
-                aws_session_token=auth_data["creds"]["sessionToken"],
-                region_name=auth_data["creds"]["region"],
-            )
-            resource = session.resource("s3")
-            bucket = resource.Bucket(auth_data["creds"]["bucket"])
-            image_id_name_map = {
-                str(image.id): image for image in self.annotations_to_upload
-            }
-            if self._client_s3_bucket:
-                from_session = boto3.Session()
-                from_s3 = from_session.resource("s3")
-            else:
-                from_s3 = None
+            if response.ok:
+                session = boto3.Session(
+                    aws_access_key_id=response.data.access_key,
+                    aws_secret_access_key=response.data.secret_key,
+                    aws_session_token=response.data.session_token,
+                    region_name=response.data.region,
+                )
+                resource = session.resource("s3")
+                bucket = resource.Bucket(response.data.bucket)
+                image_id_name_map = {
+                    image.id: image for image in self.annotations_to_upload
+                }
+                if self._client_s3_bucket:
+                    from_session = boto3.Session()
+                    from_s3 = from_session.resource("s3")
+                else:
+                    from_s3 = None
 
-            with concurrent.futures.ThreadPoolExecutor(
-                max_workers=self.MAX_WORKERS
-            ) as executor:
-                results = [
-                    executor.submit(
-                        self.upload_to_s3,
-                        image_id,
-                        image_info,
-                        bucket,
-                        from_s3,
-                        image_id_name_map,
-                    )
-                    for image_id, image_info in auth_data["images"].items()
-                ]
-                for future in concurrent.futures.as_completed(results):
-                    future.result()
-                    yield
+                with concurrent.futures.ThreadPoolExecutor(
+                    max_workers=self.MAX_WORKERS
+                ) as executor:
+                    results = [
+                        executor.submit(
+                            self.upload_to_s3,
+                            image_id,
+                            image_info,
+                            bucket,
+                            from_s3,
+                            image_id_name_map,
+                        )
+                        for image_id, image_info in response.data.images.items()
+                    ]
+                    for future in concurrent.futures.as_completed(results):
+                        future.result()
+                        yield
 
-            uploaded_annotations.extend(
-                [annotation.path for annotation in self.annotations_to_upload]
+                uploaded_annotations.extend(
+                    [annotation.path for annotation in self.annotations_to_upload]
+                )
+                missing_annotations.extend(
+                    [annotation.path for annotation in self._missing_annotations]
+                )
+                failed_annotations.extend(
+                    [
+                        annotation
+                        for annotation in self._annotation_paths
+                        if annotation not in uploaded_annotations + missing_annotations
+                    ]
+                )
+            self._response.data = (
+                uploaded_annotations,
+                failed_annotations,
+                missing_annotations,
             )
-            missing_annotations.extend(
-                [annotation.path for annotation in self._missing_annotations]
-            )
-            failed_annotations.extend(
-                [
-                    annotation
-                    for annotation in self._annotation_paths
-                    if annotation not in uploaded_annotations + missing_annotations
-                ]
-            )
-        self._response.data = (
-            uploaded_annotations,
-            failed_annotations,
-            missing_annotations,
-        )
         return self._response
 
     def upload_to_s3(
@@ -4766,6 +4743,6 @@ class GetBulkImages(BaseUseCase):
                 folder_id=self._folder_id,
                 images=self._images[i : i + self._chunk_size],
             )
-            res += [ImageEntity.from_dict(**image) for image in images]
+            res += [ImageEntity.from_dict(**image) for image in images]  # noqa: E203
         self._response.data = res
         return self._response

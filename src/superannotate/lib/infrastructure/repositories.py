@@ -319,7 +319,7 @@ class AnnotationClassRepository(BaseManageableRepository):
         return self.dict2entity(res[0])
 
     def delete(self, uuid: int):
-        res = self._service.delete_annotation_class(
+        self._service.delete_annotation_class(
             team_id=self.project.team_id,
             project_id=self.project.uuid,
             annotation_class_id=uuid,
