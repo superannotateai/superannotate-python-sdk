@@ -24,6 +24,18 @@ class Status(StrictStr):
         return value
 
 
+class AnnotationType(StrictStr):
+    VALID_TYPES = ["bbox", "polygon", "point"]
+
+    @classmethod
+    def validate(cls, value: Union[str]) -> Union[str]:
+        if value.lower() not in cls.VALID_TYPES:
+            raise TypeError(
+                f"Available annotation_types are {', '.join(cls.VALID_TYPES)}. "
+            )
+        return value
+
+
 class AttributeGroup(BaseModel):
     name: StrictStr
     is_multiselect: Optional[bool]
