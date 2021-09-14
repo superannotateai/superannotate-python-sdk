@@ -31,10 +31,10 @@ from lib.app.exceptions import EmptyOutputError
 from lib.app.helpers import extract_project_folder
 from lib.app.helpers import get_annotation_paths
 from lib.app.helpers import reformat_metrics_json
+from lib.app.interface.types import AnnotationType
 from lib.app.interface.types import ClassesJson
 from lib.app.interface.types import NotEmptyStr
 from lib.app.interface.types import Status
-from lib.app.interface.types import AnnotationType
 from lib.app.interface.types import validate_arguments
 from lib.app.mixp.decorators import Trackable
 from lib.app.serializers import BaseSerializers
@@ -2743,7 +2743,7 @@ def benchmark(
     folder_names: List[str],
     export_root: Optional[Union[str, Path]] = None,
     image_list=None,
-    annot_type=Optional[AnnotationType],
+    annot_type: Optional[AnnotationType] = "bbox",
     show_plots=False,
 ):
     """Computes benchmark score for each instance of given images that are present both gt_project_name project and projects in folder_names list:
@@ -3002,7 +3002,7 @@ def plot_model_metrics(metric_json_list=List[NotEmptyStr]):
 def add_annotation_bbox_to_image(
     project: NotEmptyStr,
     image_name: NotEmptyStr,
-    bbox: List,
+    bbox: List[float],
     annotation_class_name: NotEmptyStr,
     annotation_class_attributes: Optional[List[NotEmptyStr]] = None,
     error: Optional[StrictBool] = None,
@@ -3037,7 +3037,7 @@ def add_annotation_bbox_to_image(
 def add_annotation_polyline_to_image(
     project: NotEmptyStr,
     image_name: NotEmptyStr,
-    polyline: List,
+    polyline: List[float],
     annotation_class_name: NotEmptyStr,
     annotation_class_attributes: Optional[List[NotEmptyStr]] = None,
     error: Optional[StrictBool] = None,
@@ -3071,9 +3071,9 @@ def add_annotation_polyline_to_image(
 def add_annotation_polygon_to_image(
     project: NotEmptyStr,
     image_name: NotEmptyStr,
-    polygon: List,
+    polygon: List[float],
     annotation_class_name: NotEmptyStr,
-    annotation_class_attributes = None,
+    annotation_class_attributes=None,
     error: Optional[StrictBool] = None,
 ):
     """Add a polygon annotation to image annotations
@@ -3106,7 +3106,7 @@ def add_annotation_polygon_to_image(
 def add_annotation_point_to_image(
     project: NotEmptyStr,
     image_name: NotEmptyStr,
-    point: List,
+    point: List[float],
     annotation_class_name: NotEmptyStr,
     annotation_class_attributes: Optional[List[NotEmptyStr]] = None,
     error: Optional[StrictBool] = None,
@@ -3139,7 +3139,7 @@ def add_annotation_point_to_image(
 def add_annotation_ellipse_to_image(
     project: NotEmptyStr,
     image_name: NotEmptyStr,
-    ellipse: List,
+    ellipse: List[float],
     annotation_class_name: NotEmptyStr,
     annotation_class_attributes: Optional[List[NotEmptyStr]] = None,
     error: Optional[StrictBool] = None,
@@ -3173,8 +3173,8 @@ def add_annotation_ellipse_to_image(
 def add_annotation_template_to_image(
     project: NotEmptyStr,
     image_name: NotEmptyStr,
-    template_points: List,
-    template_connections: List,
+    template_points: List[float],
+    template_connections: List[int],
     annotation_class_name: NotEmptyStr,
     annotation_class_attributes: Optional[List[NotEmptyStr]] = None,
     error: Optional[StrictBool] = None,
@@ -3219,7 +3219,7 @@ def add_annotation_template_to_image(
 def add_annotation_cuboid_to_image(
     project: NotEmptyStr,
     image_name: NotEmptyStr,
-    cuboid: List,
+    cuboid: List[float],
     annotation_class_name: NotEmptyStr,
     annotation_class_attributes: Optional[List[NotEmptyStr]] = None,
     error: Optional[StrictBool] = None,
@@ -3256,7 +3256,7 @@ def add_annotation_comment_to_image(
     project: NotEmptyStr,
     image_name: NotEmptyStr,
     comment_text: NotEmptyStr,
-    comment_coords: List,
+    comment_coords: List[float],
     comment_author: NotEmptyStr,
     resolved: Optional[StrictBool] = False,
 ):
@@ -3541,7 +3541,7 @@ def upload_images_to_project(
 @Trackable
 @validate_arguments
 def aggregate_annotations_as_df(
-    project_root: Union[NotEmptyStr,Path],
+    project_root: Union[NotEmptyStr, Path],
     include_classes_wo_annotations: Optional[StrictBool] = False,
     include_comments: Optional[StrictBool] = False,
     include_tags: Optional[StrictBool] = False,

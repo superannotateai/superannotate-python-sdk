@@ -23,13 +23,18 @@ class Status(StrictStr):
             raise TypeError(f"Available statuses is {', '.join(AnnotationStatus)}. ")
         return value
 
+
 class AnnotationType(StrictStr):
+    VALID_TYPES = ["bbox", "polygon", "point"]
+
     @classmethod
     def validate(cls, value: Union[str]) -> Union[str]:
-        VALID_TYPES = ["bbox","polygon","points"]
-        if value.lower() not in VALID_TYPES:
-            raise TypeError(f"Available annotation_types are {', '.join(VALID_TYPES)}. ")
+        if value.lower() not in cls.VALID_TYPES:
+            raise TypeError(
+                f"Available annotation_types are {', '.join(cls.VALID_TYPES)}. "
+            )
         return value
+
 
 class AttributeGroup(BaseModel):
     name: StrictStr
