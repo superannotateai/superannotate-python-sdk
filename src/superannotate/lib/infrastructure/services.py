@@ -4,11 +4,14 @@ from typing import Dict
 from typing import Iterable
 from typing import List
 from typing import Tuple
+from typing import Union
 from urllib.parse import urljoin
 
 import lib.core as constance
 import requests.packages.urllib3
 from lib.core.exceptions import AppException
+from lib.core.service_types import ServiceResponse
+from lib.core.service_types import UploadAnnotationAuthData
 from lib.core.serviceproviders import SuerannotateServiceProvider
 from lib.infrastructure.helpers import timed_lru_cache
 from requests.exceptions import HTTPError
@@ -77,8 +80,15 @@ class BaseBackendService(SuerannotateServiceProvider):
             return self.PAGINATE_BY
 
     def _request(
-        self, url, method="get", data=None, headers=None, params=None, retried=0
-    ) -> requests.Response:
+        self,
+        url,
+        method="get",
+        data=None,
+        headers=None,
+        params=None,
+        retried=0,
+        content_type=None,
+    ) -> Union[requests.Response, ServiceResponse]:
         kwargs = {"json": data} if data else {}
         session = self.get_session()
         session.headers.update(headers if headers else {})
@@ -99,6 +109,8 @@ class BaseBackendService(SuerannotateServiceProvider):
             self.logger.error(
                 f"Got {response.status_code} response for url {url}: {response.text}"
             )
+        if content_type:
+            return ServiceResponse(response, content_type)
         return response
 
     def _get_page(self, url, offset, params=None, key_field: str = None):
@@ -823,8 +835,9 @@ class SuperannotateBackendService(BaseBackendService):
                 "ids": image_ids,
                 "folder_id": folder_id,
             },
+            content_type=UploadAnnotationAuthData,
         )
-        return response.json()
+        return response
 
     def get_pre_annotation_upload_data(
         self, project_id: int, team_id: int, image_ids: List[int], folder_id: int
@@ -841,8 +854,9 @@ class SuperannotateBackendService(BaseBackendService):
                 "ids": image_ids,
                 "folder_id": folder_id,
             },
+            content_type=UploadAnnotationAuthData,
         )
-        return response.json()
+        return response
 
     def get_templates(self, team_id: int):
         get_templates_url = urljoin(self.api_url, self.URL_GET_TEMPLATES)

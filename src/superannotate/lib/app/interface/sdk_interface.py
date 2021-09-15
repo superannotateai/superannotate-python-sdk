@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Iterable
 from typing import List
 from typing import Optional
+from typing import Tuple
 from typing import Union
 
 import boto3
@@ -1339,7 +1340,9 @@ def get_image_annotations(project: Union[str, dict], image_name: str):
 def upload_images_from_folder_to_project(
     project: Union[str, dict],
     folder_path: Union[str, Path],
-    extensions: Optional[Iterable[str]] = constances.DEFAULT_IMAGE_EXTENSIONS,
+    extensions: Optional[
+        Union[List[str], Tuple[str]]
+    ] = constances.DEFAULT_IMAGE_EXTENSIONS,
     annotation_status="NotStarted",
     from_s3_bucket=None,
     exclude_file_patterns: Optional[
@@ -1383,8 +1386,8 @@ def upload_images_from_folder_to_project(
         logger.info(
             "When using recursive subfolder parsing same name images in different subfolders will overwrite each other."
         )
-
     if not isinstance(extensions, (list, tuple)):
+        print(extensions)
         raise AppException(
             "extensions should be a list or a tuple in upload_images_from_folder_to_project"
         )
@@ -1661,7 +1664,9 @@ def prepare_export(
 def upload_videos_from_folder_to_project(
     project: Union[str, dict],
     folder_path: Union[str, Path],
-    extensions: Optional[Iterable[str]] = constances.DEFAULT_VIDEO_EXTENSIONS,
+    extensions: Optional[
+        Union[Tuple[str], List[str]]
+    ] = constances.DEFAULT_VIDEO_EXTENSIONS,
     exclude_file_patterns: Optional[Iterable[str]] = (),
     recursive_subfolders: Optional[StrictBool] = False,
     target_fps: Optional[int] = None,
