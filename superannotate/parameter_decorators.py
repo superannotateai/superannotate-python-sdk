@@ -2,6 +2,7 @@ from functools import wraps
 from inspect import signature
 
 from .common import project_type_int_to_str
+from .common import upload_state_str_to_int
 from .db.project_api import get_project_metadata_bare
 from .exceptions import SABaseException
 from .ml.ml_models import search_models
@@ -49,6 +50,12 @@ def project_metadata(func):
             raise SABaseException(
                 0,
                 "The 'project' argument should be a dict, a string, a list of strings or a list of dicts"
+            )
+
+        if new_kwargs["project"]["upload_state"] == upload_state_str_to_int("External"):
+            raise SABaseException(
+                0,
+                f"The function does not support projects containing {new_kwargs['project']['type']} attached with URLs"
             )
         return func(**new_kwargs)
 
