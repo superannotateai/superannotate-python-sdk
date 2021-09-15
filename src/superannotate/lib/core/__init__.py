@@ -55,7 +55,9 @@ MAX_IMAGE_SIZE = 100 * 1024 * 1024  # 100 MB limit
 TOKEN_UUID = "token"
 
 
-DEPRECATED_VIDEO_PROJECTS_MESSAGE = "The function does not support projects containing videos attached with URLs"
+DEPRECATED_VIDEO_PROJECTS_MESSAGE = (
+    "The function does not support projects containing videos attached with URLs"
+)
 
 __version__ = "?"
 

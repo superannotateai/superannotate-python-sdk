@@ -22,7 +22,6 @@ requests.packages.urllib3.disable_warnings()
 class BaseBackendService(SuerannotateServiceProvider):
     AUTH_TYPE = "sdk"
     PAGINATE_BY = 100
-    MAX_RETRY = 3
     LIMIT = 100
 
     """
@@ -164,9 +163,8 @@ class SuperannotateBackendService(BaseBackendService):
     URL_GET_IMAGES = "images"
     URL_BULK_GET_IMAGES = "images/getBulk"
     URL_DELETE_FOLDERS = "image/delete/images"
-    URL_GET_PROJECT_SETTIGNS = "/project/{}/settings"
     URL_CREATE_IMAGE = "image/ext-create"
-    URL_PROJECT_SETTIGNS = "project/{}/settings"
+    URL_PROJECT_SETTINGS = "project/{}/settings"
     URL_PROJECT_WORKFLOW = "project/{}/workflow"
     URL_SHARE_PROJECT = "project/{}/share"
     URL_ANNOTATION_CLASSES = "classes"
@@ -181,7 +179,6 @@ class SuperannotateBackendService(BaseBackendService):
     URL_S3_ACCESS_POINT = "/project/{}/get-image-s3-access-point"
     URL_S3_UPLOAD_STATUS = "/project/{}/getS3UploadStatus"
     URL_GET_EXPORTS = "exports"
-    URL_IMAGES_COUNT = "images/images-folders"
     URL_GET_CLASS = "class/{}"
     URL_ANNOTATION_UPLOAD_PATH_TOKEN = "images/getAnnotationsPathsAndTokens"
     URL_PRE_ANNOTATION_UPLOAD_PATH_TOKEN = "images/getPreAnnotationsPathsAndTokens"
@@ -347,14 +344,14 @@ class SuperannotateBackendService(BaseBackendService):
 
     def get_project_settings(self, project_id: int, team_id: int):
         get_settings_url = urljoin(
-            self.api_url, self.URL_PROJECT_SETTIGNS.format(project_id)
+            self.api_url, self.URL_PROJECT_SETTINGS.format(project_id)
         )
         res = self._request(get_settings_url, "get", params={"team_id": team_id})
         return res.json()
 
     def set_project_settings(self, project_id: int, team_id: int, data: List):
         set_project_settings_url = urljoin(
-            self.api_url, self.URL_PROJECT_SETTIGNS.format(project_id)
+            self.api_url, self.URL_PROJECT_SETTINGS.format(project_id)
         )
         res = self._request(
             set_project_settings_url,

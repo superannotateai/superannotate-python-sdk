@@ -1484,7 +1484,9 @@ class UpdateSettingsUseCase(BaseUseCase):
                 attribute.get("attribute", "") == "ImageQuality"
                 and project.project_type == constances.ProjectType.VIDEO.value
             ):
-                raise AppValidationException(constances.DEPRECATED_VIDEO_PROJECTS_MESSAGE)
+                raise AppValidationException(
+                    constances.DEPRECATED_VIDEO_PROJECTS_MESSAGE
+                )
 
     def execute(self):
         if self.is_valid():
@@ -3251,9 +3253,7 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
                     Key=response.data.images[image_data["id"]]["annotation_json_path"],
                     Body=json.dumps(self._annotations),
                 )
-                if (
-                    self._project.project_type == constances.ProjectType.PIXEL.value
-                ):
+                if self._project.project_type == constances.ProjectType.PIXEL.value:
                     mask_path = None
                     if os.path.exists(self._annotation_path) and not self._mask:
                         mask_path = self._annotation_path
