@@ -55,7 +55,21 @@ MAX_IMAGE_SIZE = 100 * 1024 * 1024  # 100 MB limit
 TOKEN_UUID = "token"
 
 
-DEPRECATED_VIDEO_PROJECTS_MESSAGE = "The function does not support projects containing videos attached with URLs"
+DEPRECATED_VIDEO_PROJECTS_MESSAGE = (
+    "The function does not support projects containing videos attached with URLs"
+)
+
+UPLOAD_FOLDER_LIMIT_ERROR_MESSAGE = "The number of items you want to upload exceeds the limit of 50 000 items per folder."
+UPLOAD_PROJECT_LIMIT_ERROR_MESSAGE = "The number of items you want to upload exceeds the limit of 500 000 items per project."
+UPLOAD_USER_LIMIT_ERROR_MESSAGE = "The number of items you want to upload  exceeds the limit of your subscription plan."
+
+ATTACH_FOLDER_LIMIT_ERROR_MESSAGE = "The number of items you want to attach exceeds the limit of 50 000 items per folder."
+ATTACH_PROJECT_LIMIT_ERROR_MESSAGE = "The number of items you want to attach exceeds the limit of 500 000 items per project."
+ATTACH_USER_LIMIT_ERROR_MESSAGE = "The number of items you want to attach  exceeds the limit of your subscription plan."
+
+COPY_FOLDER_LIMIT_ERROR_MESSAGE = (
+    "The number of items you want to copy exceeds the limit of 50 000 items per folder."
+)
 
 __version__ = "?"
 

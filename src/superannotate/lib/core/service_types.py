@@ -1,32 +1,24 @@
 from typing import Dict
-from typing import List
 from typing import Optional
 from typing import Union
 
-from lib.core.exceptions import AppException
 from pydantic import BaseModel
 from pydantic import Extra
 
 
-class UserLimits(BaseModel):
-    super_user_limit: int
-    project_limit: int
-    folder_limit: int
+class ErrorMessage(BaseModel):
+    error: str
 
-    def has_enough_slots(self, count: int):
-        if count > self.super_user_limit:
-            raise AppException(
-                "The number of items you want to upload exceeds the limit of your subscription plan."
-            )
-        if count > self.project_limit:
-            raise AppException(
-                "You have exceeded the limit of 500 000 items per project."
-            )
-        if count > self.folder_limit:
-            raise AppException(
-                "“You have exceeded the limit of 50 000 items per folder."
-            )
-        return True
+
+class Limit(BaseModel):
+    max_image_count: int
+    remaining_image_count: int
+
+
+class UserLimits(BaseModel):
+    super_user_limit: Optional[Limit]
+    project_limit: Limit
+    folder_limit: Limit
 
 
 class UploadAnnotationAuthData(BaseModel):
@@ -57,7 +49,7 @@ class ServiceResponse(BaseModel):
     status: int
     reason: str
     content: Union[bytes, str]
-    data: Optional[Union[UserLimits, UploadAnnotationAuthData]]
+    data: Optional[Union[UserLimits, UploadAnnotationAuthData, ErrorMessage]]
 
     def __init__(self, response, content_type):
         data = {
@@ -72,3 +64,7 @@ class ServiceResponse(BaseModel):
     @property
     def ok(self):
         return 199 < self.status < 300
+
+    @property
+    def error(self):
+        return getattr(self.data, "error", "Unknown error.")

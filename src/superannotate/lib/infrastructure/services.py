@@ -12,6 +12,7 @@ import requests.packages.urllib3
 from lib.core.exceptions import AppException
 from lib.core.service_types import ServiceResponse
 from lib.core.service_types import UploadAnnotationAuthData
+from lib.core.service_types import UserLimits
 from lib.core.serviceproviders import SuerannotateServiceProvider
 from lib.infrastructure.helpers import timed_lru_cache
 from requests.exceptions import HTTPError
@@ -22,7 +23,6 @@ requests.packages.urllib3.disable_warnings()
 class BaseBackendService(SuerannotateServiceProvider):
     AUTH_TYPE = "sdk"
     PAGINATE_BY = 100
-    MAX_RETRY = 3
     LIMIT = 100
 
     """
@@ -104,6 +104,7 @@ class BaseBackendService(SuerannotateServiceProvider):
                 headers=None,
                 params=None,
                 retried=retried + 1,
+                content_type=content_type,
             )
         if response.status_code > 299:
             self.logger.error(
@@ -199,6 +200,7 @@ class SuperannotateBackendService(BaseBackendService):
     URL_SET_IMAGES_STATUSES_BULK = "image/updateAnnotationStatusBulk"
     URL_DELETE_ANNOTATIONS = "annotations/remove"
     URL_DELETE_ANNOTATIONS_PROGRESS = "annotations/getRemoveStatus"
+    URL_GET_LIMITS = "project/{}/limitationDetails"
 
     def get_project(self, uuid: int, team_id: int):
         get_project_url = urljoin(self.api_url, self.URL_GET_PROJECT.format(uuid))
@@ -994,3 +996,14 @@ class SuperannotateBackendService(BaseBackendService):
             params={"team_id": team_id, "project_id": project_id, "poll_id": poll_id},
         )
         return response.json()
+
+    def get_limitations(
+        self, team_id: int, project_id: int, folder_id: int = None
+    ) -> ServiceResponse:
+        get_limits_url = urljoin(self.api_url, self.URL_GET_LIMITS.format(project_id))
+        return self._request(
+            get_limits_url,
+            "get",
+            params={"team_id": team_id, "folder_id": folder_id},
+            content_type=UserLimits,
+        )

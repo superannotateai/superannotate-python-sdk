@@ -180,12 +180,6 @@ def hex_to_rgb(hex_string):
     return tuple(int(h[i : i + 2], 16) for i in (0, 2, 4))
 
 
-def rgb_to_hex(rgb_tuple):
-    """Converts RGB values to HEX values
-    """
-    return "#%02x%02x%02x" % rgb_tuple
-
-
 def blue_color_generator(n, hex_values=True):
     """ Blue colors generator for SuperAnnotate blue mask.
     """
@@ -290,13 +284,6 @@ def save_web_format(output_dir, classes, files_dict):
 
     with open(output_dir.joinpath("classes", "classes.json"), "w") as fw:
         json.dump(classes, fw)
-
-
-def dump_output(output_dir, platform, classes, files_dict):
-    if platform == "Web":
-        save_web_format(output_dir, classes, files_dict)
-    else:
-        save_desktop_format(output_dir, classes, files_dict)
 
 
 def write_to_json(output_path, json_data):

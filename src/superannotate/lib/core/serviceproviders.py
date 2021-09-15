@@ -313,7 +313,7 @@ class SuerannotateServiceProvider(metaclass=SingleInstanceMetaClass):
     ):
         raise NotImplementedError
 
-    def get_limits(
+    def get_limitations(
         self, team_id: int, project_id: int, folder_id: int = None
     ) -> ServiceResponse:
         raise NotImplementedError
