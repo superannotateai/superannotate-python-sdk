@@ -11,6 +11,7 @@ from tests.integration.base import BaseTestCase
 class TestAnnotationAdding(BaseTestCase):
     PROJECT_NAME = "test_annotations_adding"
     TEST_FOLDER_PATH = "data_set/sample_project_vector"
+    TEST_INVALID_ANNOTATION_FOLDER_PATH = "data_set/sample_project_vector_invalid"
     PROJECT_DESCRIPTION = "desc"
     PROJECT_TYPE = "Vector"
     EXAMPLE_IMAGE_1 = "example_image_1.jpg"
@@ -21,8 +22,24 @@ class TestAnnotationAdding(BaseTestCase):
         return os.path.join(dirname(dirname(__file__)), self.TEST_FOLDER_PATH)
 
     @property
+    def invalid_json_path(self):
+        return os.path.join(dirname(dirname(__file__)), self.TEST_INVALID_ANNOTATION_FOLDER_PATH)
+
+    @property
     def classes_json_path(self):
         return f"{self.folder_path}/classes/classes.json"
+
+    def test_upload_invalid_annotations(self):
+        sa.upload_images_from_folder_to_project(
+            self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
+        )
+        uploaded_annotations, failed_annotations, missing_annotations = sa.upload_annotations_from_folder_to_project(
+            self.PROJECT_NAME, self.invalid_json_path
+        )
+
+        self.assertEqual(len(uploaded_annotations),3)
+        self.assertEqual(len(failed_annotations), 1)
+        self.assertEqual(len(missing_annotations),0)
 
     def test_upload_annotations(self):
         sa.upload_images_from_folder_to_project(
