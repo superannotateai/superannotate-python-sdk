@@ -648,7 +648,7 @@ def image_consensus(df, image_name, annot_type):
     return image_data
 
 
-def consensus_plot(consensus_df, projects):
+def consensus_plot(consensus_df, *_, **__):
     plot_data = consensus_df.copy()
 
     # annotator-wise boxplot

@@ -5,6 +5,8 @@ from typing import Iterable
 from typing import List
 from typing import Tuple
 
+from lib.core.service_types import ServiceResponse
+
 
 class SingleInstanceMetaClass(type):
     _instances = {}
@@ -255,7 +257,7 @@ class SuerannotateServiceProvider(metaclass=SingleInstanceMetaClass):
 
     def get_annotation_upload_data(
         self, project_id: int, team_id: int, image_ids: List[int], folder_id: int
-    ):
+    ) -> ServiceResponse:
         raise NotImplementedError
 
     def get_templates(self, team_id: int):
@@ -309,4 +311,9 @@ class SuerannotateServiceProvider(metaclass=SingleInstanceMetaClass):
     def get_annotations_delete_progress(
         self, team_id: int, project_id: int, poll_id: int
     ):
+        raise NotImplementedError
+
+    def get_limits(
+        self, team_id: int, project_id: int, folder_id: int = None
+    ) -> ServiceResponse:
         raise NotImplementedError
