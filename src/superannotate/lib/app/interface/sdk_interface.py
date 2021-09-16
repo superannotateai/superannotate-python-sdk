@@ -25,7 +25,6 @@ from lib.app.annotation_helpers import add_annotation_point_to_json
 from lib.app.annotation_helpers import add_annotation_polygon_to_json
 from lib.app.annotation_helpers import add_annotation_polyline_to_json
 from lib.app.annotation_helpers import add_annotation_template_to_json
-from lib.app.exceptions import EmptyOutputError
 from lib.app.helpers import extract_project_folder
 from lib.app.helpers import get_annotation_paths
 from lib.app.helpers import reformat_metrics_json
@@ -41,7 +40,6 @@ from lib.app.serializers import SettingsSerializer
 from lib.app.serializers import TeamSerializer
 from lib.core.enums import ImageQuality
 from lib.core.exceptions import AppException
-from lib.core.exceptions import AppValidationException
 from lib.core.types import ClassesJson
 from lib.infrastructure.controller import Controller
 from plotly.subplots import make_subplots
@@ -3288,6 +3286,7 @@ def upload_image_to_project(
     )
     if response.errors:
         raise AppException(response.errors)
+
 
 @validate_arguments
 def search_models(

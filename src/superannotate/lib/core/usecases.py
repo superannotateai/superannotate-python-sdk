@@ -628,12 +628,12 @@ class CreateFolderUseCase(BaseUseCase):
         if not self._folder.name:
             raise AppValidationException("Folder name cannot be empty.")
         if (
-                len(
-                    set(self._folder.name).intersection(
-                        constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
-                    )
+            len(
+                set(self._folder.name).intersection(
+                    constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
                 )
-                > 0
+            )
+            > 0
         ):
             self._folder.name = "".join(
                 "_"
@@ -644,6 +644,7 @@ class CreateFolderUseCase(BaseUseCase):
             logger.warning(
                 "New folder name has special characters. Special characters will be replaced by underscores."
             )
+
     def execute(self):
         if self.is_valid():
             self._folder.project_id = self._project.uuid
@@ -998,12 +999,12 @@ class UpdateFolderUseCase(BaseUseCase):
         if not self._folder.name:
             raise AppValidationException("Folder name cannot be empty.")
         if (
-                len(
-                    set(self._folder.name).intersection(
-                        constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
-                    )
+            len(
+                set(self._folder.name).intersection(
+                    constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
                 )
-                > 0
+            )
+            > 0
         ):
             self._folder.name = "".join(
                 "_"
