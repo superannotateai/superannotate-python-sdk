@@ -1,15 +1,11 @@
 from functools import wraps
-from typing import List
-from typing import Optional
 from typing import Union
 
 from lib.core.enums import AnnotationStatus
-from pydantic import BaseModel
 from pydantic import constr
 from pydantic import StrictStr
 from pydantic import validate_arguments as pydantic_validate_arguments
 from pydantic import ValidationError
-
 
 NotEmptyStr = constr(strict=True, min_length=1)
 
@@ -34,17 +30,6 @@ class AnnotationType(StrictStr):
                 f"Available annotation_types are {', '.join(cls.VALID_TYPES)}. "
             )
         return value
-
-
-class AttributeGroup(BaseModel):
-    name: StrictStr
-    is_multiselect: Optional[bool]
-
-
-class ClassesJson(BaseModel):
-    name: StrictStr
-    color: StrictStr
-    attribute_groups: List[AttributeGroup]
 
 
 def validate_arguments(func):

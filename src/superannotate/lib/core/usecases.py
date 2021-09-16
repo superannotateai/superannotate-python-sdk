@@ -51,7 +51,10 @@ from lib.core.repositories import BaseManageableRepository
 from lib.core.repositories import BaseReadOnlyRepository
 from lib.core.response import Response
 from lib.core.serviceproviders import SuerannotateServiceProvider
+from lib.core.types import PixelAnnotation
+from lib.core.types import VectorAnnotation
 from PIL import UnidentifiedImageError
+from pydantic import ValidationError
 
 logger = logging.getLogger("root")
 
@@ -3448,13 +3451,23 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
             self._annotations_to_upload = annotations_to_upload
         return self._annotations_to_upload
 
+    def _is_valid_json(self, json_data: dict):
+        try:
+            if self._project.project_type == constances.ProjectType.PIXEL.value:
+                PixelAnnotation(**json_data)
+            else:
+                VectorAnnotation(**json_data)
+            return True
+        except ValidationError as _:
+            return False
+
     def execute(self):
         uploaded_annotations = []
         missing_annotations = []
         failed_annotations = []
         for _ in range(0, len(self.annotations_to_upload), self.AUTH_DATA_CHUNK_SIZE):
             annotations_to_upload = self.annotations_to_upload[
-                _ : _ + self.CHUNK_SIZE  # noqa: E203
+                _ : _ + self.AUTH_DATA_CHUNK_SIZE  # noqa: E203
             ]
 
             if self._pre_annotation:
@@ -3504,22 +3517,21 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
                         for image_id, image_info in response.data.images.items()
                     ]
                     for future in concurrent.futures.as_completed(results):
-                        future.result()
+                        annotation, uploaded = future.result()
+                        if uploaded:
+                            uploaded_annotations.append(annotation)
+                        else:
+                            failed_annotations.append(annotation)
                         yield
 
-                uploaded_annotations.extend(
-                    [annotation.path for annotation in self.annotations_to_upload]
-                )
+                uploaded_annotations = [annotation.path for annotation in uploaded_annotations]
                 missing_annotations.extend(
                     [annotation.path for annotation in self._missing_annotations]
                 )
-                failed_annotations.extend(
-                    [
-                        annotation
-                        for annotation in self._annotation_paths
-                        if annotation not in uploaded_annotations + missing_annotations
-                    ]
-                )
+                failed_annotations = [
+                    annotation.path for annotation in failed_annotations
+                ]
+
             self._response.data = (
                 uploaded_annotations,
                 failed_annotations,
@@ -3542,6 +3554,9 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
             annotation_json = json.load(open(image_id_name_map[image_id].path))
 
         self.fill_classes_data(annotation_json)
+
+        if not self._is_valid_json(annotation_json):
+            return image_id_name_map[image_id], False
         bucket.put_object(
             Key=image_info["annotation_json_path"], Body=json.dumps(annotation_json),
         )
@@ -3561,6 +3576,7 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
                     file = io.BytesIO(mask_file.read())
 
             bucket.put_object(Key=image_info["annotation_bluemap_path"], Body=file)
+        return image_id_name_map[image_id], True
 
 
 class CreateModelUseCase(BaseUseCase):

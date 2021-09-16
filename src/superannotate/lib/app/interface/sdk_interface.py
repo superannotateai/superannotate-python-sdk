@@ -33,7 +33,6 @@ from lib.app.helpers import extract_project_folder
 from lib.app.helpers import get_annotation_paths
 from lib.app.helpers import reformat_metrics_json
 from lib.app.interface.types import AnnotationType
-from lib.app.interface.types import ClassesJson
 from lib.app.interface.types import NotEmptyStr
 from lib.app.interface.types import Status
 from lib.app.interface.types import validate_arguments
@@ -46,9 +45,11 @@ from lib.app.serializers import TeamSerializer
 from lib.core.enums import ImageQuality
 from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
+from lib.core.types import ClassesJson
 from lib.infrastructure.controller import Controller
 from plotly.subplots import make_subplots
 from pydantic import EmailStr
+from pydantic import parse_obj_as
 from pydantic import StrictBool
 from tqdm import tqdm
 
@@ -1969,12 +1970,18 @@ def create_annotation_classes_from_classes_json(
             from_s3_object = from_s3.Object(from_s3_bucket, classes_json)
             from_s3_object.download_fileobj(file)
             file.seek(0)
-            annotation_classes = json.load(file)
+            annotation_classes = parse_obj_as(List[ClassesJson], json.load(file))
         else:
-            annotation_classes = json.load(open(classes_json))
+            annotation_classes = parse_obj_as(
+                List[ClassesJson], json.load(open(classes_json))
+            )
+
     else:
         annotation_classes = classes_json
 
+    annotation_classes = [
+        annotation_class.dict() for annotation_class in annotation_classes
+    ]
     response = controller.create_annotation_classes(
         project_name=project, annotation_classes=annotation_classes,
     )

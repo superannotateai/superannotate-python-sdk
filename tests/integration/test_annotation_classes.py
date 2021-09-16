@@ -1,13 +1,29 @@
 from urllib.parse import urlparse
-
+import os
+from os.path import dirname
 import src.superannotate as sa
 from tests.integration.base import BaseTestCase
-
+from pydantic import ValidationError
+import pytest
 
 class TestAnnotationClasses(BaseTestCase):
     PROJECT_NAME_ = "TestAnnotationClasses"
     PROJECT_DESCRIPTION = "desc"
     PROJECT_TYPE = "Vector"
+    CLASSES_JON_PATH = "data_set/invalid_json/classes.json"
+
+    @property
+    def classes_path(self):
+        return os.path.join(dirname(dirname(__file__)), self.CLASSES_JON_PATH)
+
+
+    def test_invalid_json(self):
+        try:
+            sa.create_annotation_classes_from_classes_json(self.PROJECT_NAME, self.classes_path)
+        except ValidationError as e:
+            self.assertIn("1 validation error",str(e))
+
+
 
     def test_annotation_classes(self):
         annotation_classes = sa.search_annotation_classes(self.PROJECT_NAME)

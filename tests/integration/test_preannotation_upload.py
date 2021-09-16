@@ -1,5 +1,6 @@
 import os
 import tempfile
+import time
 from os.path import dirname
 from pathlib import Path
 
@@ -36,14 +37,3 @@ class TestVectorPreAnnotationImage(BaseTestCase):
             count_out = len(list(Path(tmp_dir).glob("*.json")))
 
             self.assertEqual(count_in, count_out)
-
-
-class TestPixelPreAnnotationImage(TestVectorPreAnnotationImage):
-    PROJECT_NAME = "test pixel"
-    PROJECT_DESCRIPTION = "Example Project test pixel pre-annotation upload"
-    PROJECT_TYPE = "Pixel"
-    TEST_FOLDER_PATH = "data_set/sample_project_pixel"
-
-    @property
-    def folder_path(self):
-        return os.path.join(dirname(dirname(__file__)), self.TEST_FOLDER_PATH)
