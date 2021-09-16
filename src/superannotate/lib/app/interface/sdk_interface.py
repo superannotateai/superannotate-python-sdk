@@ -28,7 +28,6 @@ from lib.app.annotation_helpers import add_annotation_point_to_json
 from lib.app.annotation_helpers import add_annotation_polygon_to_json
 from lib.app.annotation_helpers import add_annotation_polyline_to_json
 from lib.app.annotation_helpers import add_annotation_template_to_json
-from lib.app.exceptions import EmptyOutputError
 from lib.app.helpers import extract_project_folder
 from lib.app.helpers import get_annotation_paths
 from lib.app.helpers import reformat_metrics_json
@@ -46,6 +45,8 @@ from lib.core.enums import ImageQuality
 from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
 from lib.core.types import ClassesJson
+from lib.core.types import AttributeGroup
+from lib.core.types import Project
 from lib.infrastructure.controller import Controller
 from plotly.subplots import make_subplots
 from pydantic import EmailStr
@@ -204,7 +205,7 @@ def create_project(
 
 @Trackable
 @validate_arguments
-def create_project_from_metadata(project_metadata: dict):
+def create_project_from_metadata(project_metadata: Project):
     """Create a new project in the team using project metadata object dict.
     Mandatory keys in project_metadata are "name", "description" and "type" (Vector or Pixel)
     Non-mandatory keys: "workflow", "contributors", "settings" and "annotation_classes".
@@ -212,6 +213,7 @@ def create_project_from_metadata(project_metadata: dict):
     :return: dict object metadata the new project
     :rtype: dict
     """
+    project_metadata = project_metadata.dict()
     response = controller.create_project(
         name=project_metadata["name"],
         description=project_metadata["description"],
@@ -1859,10 +1861,10 @@ def upload_video_to_project(
 @Trackable
 @validate_arguments
 def create_annotation_class(
-    project: Union[dict, str],
-    name: str,
-    color: str,
-    attribute_groups: Optional[List[dict]] = None,
+    project: Union[Project, NotEmptyStr],
+    name: NotEmptyStr,
+    color: NotEmptyStr,
+    attribute_groups: Optional[List[AttributeGroup]] = None,
 ):
     """Create annotation class in project
 
@@ -1880,6 +1882,9 @@ def create_annotation_class(
     :return: new class metadata
     :rtype: dict
     """
+    if isinstance(project, Project):
+        project = project.dict()
+    attribute_groups = list(map(lambda x: x.dict(), attribute_groups)) if attribute_groups else None
     response = controller.create_annotation_class(
         project_name=project, name=name, color=color, attribute_groups=attribute_groups
     )

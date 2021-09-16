@@ -5,6 +5,7 @@ from typing import Union
 from pydantic import BaseModel
 from pydantic import constr
 from pydantic import StrictStr
+from pydantic import Extra
 
 
 NotEmptyStr = constr(strict=True, min_length=1)
@@ -119,3 +120,10 @@ class PixelAnnotationInstance(BaseModel):
 class PixelAnnotation(BaseModel):
     metadata: Metadata
     instances: List[PixelAnnotationInstance]
+
+
+class Project(BaseModel):
+    name: NotEmptyStr
+
+    class Config:
+        extra = Extra.allow
