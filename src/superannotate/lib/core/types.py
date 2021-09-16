@@ -32,7 +32,7 @@ class Metadata(BaseModel):
 class BaseInstance(BaseModel):
     type: NotEmptyStr
     classId: int
-    groupId: int
+    groupId: Optional[int]
     attributes: List[Attribute]
 
 

@@ -3491,7 +3491,7 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
         failed_annotations = []
         for _ in range(0, len(self.annotations_to_upload), self.AUTH_DATA_CHUNK_SIZE):
             annotations_to_upload = self.annotations_to_upload[
-                _ : _ + self.CHUNK_SIZE  # noqa: E203
+                _ : _ + self.AUTH_DATA_CHUNK_SIZE  # noqa: E203
             ]
 
             if self._pre_annotation:
