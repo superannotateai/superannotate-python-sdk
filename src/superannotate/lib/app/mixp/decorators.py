@@ -54,8 +54,7 @@ class Trackable:
 
     def __call__(self, *args, **kwargs):
         try:
-            if not self.__class__.TEAM_DATA:
-                self.__class__.TEAM_DATA = controller.get_team()
+            self.__class__.TEAM_DATA = controller.get_team()
             ret = self.function(*args, **kwargs)
             self._success = True
         except Exception as e:
