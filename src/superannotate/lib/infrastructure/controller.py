@@ -57,6 +57,7 @@ class BaseController(metaclass=SingleInstanceMetaClass):
         self._team_id = None
         self._user_id = None
         self._team_name = None
+        self._team = None
         self.init(config_path)
 
     def init(self, config_path):
@@ -84,8 +85,10 @@ class BaseController(metaclass=SingleInstanceMetaClass):
                 verify_ssl=verify_ssl,
             )
         else:
-            self._backend_client.api_url = self.configs.get_one("main_endpoint").value
-            self._backend_client._auth_token = self.configs.get_one("token").value
+            self._backend_client.api_url = main_endpoint
+            self._backend_client._auth_token = token
+        self._team_id = int(self.configs.get_one("token").value.split("=")[-1])
+        self._team = None
 
     @property
     def config_path(self):

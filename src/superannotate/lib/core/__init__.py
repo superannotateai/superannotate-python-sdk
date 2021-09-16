@@ -59,6 +59,15 @@ DEPRECATED_VIDEO_PROJECTS_MESSAGE = (
     "The function does not support projects containing videos attached with URLs"
 )
 
+DEPRECATED_DOCUMENT_PROJECTS_MESSAGE = (
+    "The function does not support projects containing documents attached with URLs"
+)
+
+LIMITED_FUNCTIONS = {
+    ProjectType.VIDEO.value: DEPRECATED_VIDEO_PROJECTS_MESSAGE,
+    ProjectType.DOCUMENT.value: DEPRECATED_DOCUMENT_PROJECTS_MESSAGE,
+}
+
 __version__ = "?"
 
 __alL__ = (
