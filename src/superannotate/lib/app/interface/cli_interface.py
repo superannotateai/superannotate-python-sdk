@@ -3,12 +3,10 @@ import logging
 import os
 import sys
 import tempfile
-import uuid
 from typing import Any
 from typing import Optional
 
 import lib.core as constances
-import pandas as pd
 from lib import __file__ as lib_path
 from lib.app.helpers import split_project_path
 from lib.app.input_converters.conversion import import_annotation
@@ -22,7 +20,6 @@ from lib.app.interface.sdk_interface import upload_annotations_from_folder_to_pr
 from lib.app.interface.sdk_interface import upload_images_from_folder_to_project
 from lib.app.interface.sdk_interface import upload_preannotations_from_folder_to_project
 from lib.app.interface.sdk_interface import upload_videos_from_folder_to_project
-from lib.app.serializers import ImageSerializer
 from lib.core.entities import ConfigEntity
 from lib.infrastructure.controller import Controller
 from lib.infrastructure.repositories import ConfigRepository
@@ -262,43 +259,6 @@ class CLIFacade(BaseInterfaceFacade):
             annotation_status=annotation_status,
         )
         sys.exit(0)
-
-    def _attach_urls(
-        self, project: str, attachments: str, annotation_status: Optional[Any] = None
-    ):
-        project_name, folder_name = split_project_path(project)
-
-        image_data = pd.read_csv(attachments, dtype=str)
-        image_data = image_data[~image_data["url"].isnull()]
-        for ind, _ in image_data[image_data["name"].isnull()].iterrows():
-            image_data.at[ind, "name"] = str(uuid.uuid4())
-
-        image_data = pd.DataFrame(image_data, columns=["name", "url"])
-        img_names_urls = image_data.rename(columns={"url": "path"}).to_dict(
-            orient="records"
-        )
-        list_of_not_uploaded = []
-        duplicate_images = []
-        for i in range(0, len(img_names_urls), 500):
-            response = self.controller.attach_urls(
-                project_name=project_name,
-                folder_name=folder_name,
-                files=ImageSerializer.deserialize(
-                    img_names_urls[i : i + 500]  # noqa: E203
-                ),
-                annotation_status=annotation_status,
-            )
-            if response.errors:
-                list_of_not_uploaded.append(response.data[0])
-                duplicate_images.append(response.data[1])
-
-        list_of_uploaded = [
-            image["name"]
-            for image in img_names_urls
-            if image["name"] not in list_of_not_uploaded
-        ]
-
-        return list_of_uploaded, list_of_not_uploaded, duplicate_images
 
     def upload_videos(
         self,

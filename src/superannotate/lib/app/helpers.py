@@ -1,3 +1,4 @@
+import uuid
 from ast import literal_eval
 from pathlib import Path
 from typing import List
@@ -120,3 +121,33 @@ def metric_is_plottable(key):
     if key == "total_loss" or "mIoU" in key or "mAP" in key or key == "iteration":
         return True
     return False
+
+
+def get_paths_and_duplicated_from_csv(csv_path):
+    image_data = pd.read_csv(csv_path, dtype=str)
+    image_data = image_data[~image_data["url"].isnull()]
+    if "name" in image_data.columns:
+        image_data["name"] = (
+            image_data["name"]
+            .fillna("")
+            .apply(lambda cell: cell if str(cell).strip() else str(uuid.uuid4()))
+        )
+    else:
+        image_data["name"] = [str(uuid.uuid4()) for _ in range(len(image_data.index))]
+
+    image_data = pd.DataFrame(image_data, columns=["name", "url"])
+    img_names_urls = image_data.rename(columns={"url": "path"}).to_dict(
+        orient="records"
+    )
+    duplicate_images = []
+    seen = []
+    images_to_upload = []
+    for i in img_names_urls:
+        temp = i["name"]
+        i["name"] = i["name"].strip()
+        if i["name"] not in seen:
+            seen.append(i["name"])
+            images_to_upload.append(i)
+        else:
+            duplicate_images.append(temp)
+    return images_to_upload, duplicate_images

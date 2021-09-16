@@ -5,7 +5,6 @@ import logging
 import os
 import tempfile
 import time
-import uuid
 from collections import Counter
 from collections import namedtuple
 from io import BytesIO
@@ -18,7 +17,6 @@ from typing import Union
 
 import boto3
 import lib.core as constances
-import pandas as pd
 import plotly.graph_objects as go
 from lib.app.annotation_helpers import add_annotation_bbox_to_json
 from lib.app.annotation_helpers import add_annotation_comment_to_json
@@ -31,6 +29,7 @@ from lib.app.annotation_helpers import add_annotation_template_to_json
 from lib.app.exceptions import EmptyOutputError
 from lib.app.helpers import extract_project_folder
 from lib.app.helpers import get_annotation_paths
+from lib.app.helpers import get_paths_and_duplicated_from_csv
 from lib.app.helpers import reformat_metrics_json
 from lib.app.interface.types import AnnotationType
 from lib.app.interface.types import NotEmptyStr
@@ -2287,45 +2286,26 @@ def attach_image_urls_to_project(
     :rtype: tuple
     """
     project_name, folder_name = extract_project_folder(project)
-    project = controller.get_project_metadata(project_name).data
-    if project["project"].project_type == constances.ProjectType.VIDEO.value:
-        raise AppException(
-            "The function does not support projects containing videos attached with URLs"
-        )
-
-    image_data = pd.read_csv(attachments, dtype=str)
-    image_data = image_data[~image_data["url"].isnull()]
-    if "name" in image_data.columns:
-        image_data["name"] = (
-            image_data["name"]
-            .fillna("")
-            .apply(lambda cell: cell if str(cell).strip() else str(uuid.uuid4()))
-        )
-    else:
-        image_data["name"] = [str(uuid.uuid4()) for _ in range(len(image_data.index))]
-
-    image_data = pd.DataFrame(image_data, columns=["name", "url"])
-    img_names_urls = image_data.rename(columns={"url": "path"}).to_dict(
-        orient="records"
-    )
+    images_to_upload, duplicate_images = get_paths_and_duplicated_from_csv(attachments)
     list_of_not_uploaded = []
-    duplicate_images = []
-    for i in range(0, len(img_names_urls), 500):
-        response = controller.attach_urls(
-            project_name=project_name,
-            folder_name=folder_name,
-            files=ImageSerializer.deserialize(
-                img_names_urls[i : i + 500]  # noqa: E203
-            ),
-            annotation_status=annotation_status,
-        )
-        if response.errors:
-            list_of_not_uploaded.append(response.data[0])
-            duplicate_images.append(response.data[1])
 
+    with tqdm(total=len(images_to_upload), desc="Attaching urls") as progress_bar:
+        for i in range(0, len(images_to_upload), 500):
+            response = controller.attach_urls(
+                project_name=project_name,
+                folder_name=folder_name,
+                files=ImageSerializer.deserialize(
+                    images_to_upload[i : i + 500]  # noqa: E203
+                ),
+                annotation_status=annotation_status,
+            )
+            if response.errors:
+                list_of_not_uploaded.append(response.data[0])
+                duplicate_images.append(response.data[1])
+            progress_bar.update(len(images_to_upload[i : i + 500]))
     list_of_uploaded = [
         image["name"]
-        for image in img_names_urls
+        for image in images_to_upload
         if image["name"] not in list_of_not_uploaded
     ]
 
@@ -2349,43 +2329,26 @@ def attach_video_urls_to_project(
     :rtype: (list, list, list)
     """
     project_name, folder_name = extract_project_folder(project)
-    project = controller.get_project_metadata(project_name).data
-    if project["project"].project_type != constances.ProjectType.VIDEO.value:
-        raise AppException("The function does not support")
-
-    image_data = pd.read_csv(attachments, dtype=str)
-    image_data = image_data[~image_data["url"].isnull()]
-    if "name" in image_data.columns:
-        image_data["name"] = (
-            image_data["name"]
-            .fillna("")
-            .apply(lambda cell: cell if str(cell).strip() else str(uuid.uuid4()))
-        )
-    else:
-        image_data["name"] = [str(uuid.uuid4()) for _ in range(len(image_data.index))]
-
-    image_data = pd.DataFrame(image_data, columns=["name", "url"])
-    img_names_urls = image_data.rename(columns={"url": "path"}).to_dict(
-        orient="records"
-    )
+    images_to_upload, duplicate_images = get_paths_and_duplicated_from_csv(attachments)
     list_of_not_uploaded = []
-    duplicate_images = []
-    for i in range(0, len(img_names_urls), 500):
-        response = controller.attach_urls(
-            project_name=project_name,
-            folder_name=folder_name,
-            files=ImageSerializer.deserialize(
-                img_names_urls[i : i + 500]  # noqa: E203
-            ),
-            annotation_status=annotation_status,
-        )
-        if response.errors:
-            list_of_not_uploaded.append(response.data[0])
-            duplicate_images.append(response.data[1])
 
+    with tqdm(total=len(images_to_upload), desc="Attaching urls") as progress_bar:
+        for i in range(0, len(images_to_upload), 500):
+            response = controller.attach_urls(
+                project_name=project_name,
+                folder_name=folder_name,
+                files=ImageSerializer.deserialize(
+                    images_to_upload[i : i + 500]  # noqa: E203
+                ),
+                annotation_status=annotation_status,
+            )
+            if response.errors:
+                list_of_not_uploaded.append(response.data[0])
+                duplicate_images.append(response.data[1])
+            progress_bar.update(len(images_to_upload[i : i + 500]))
     list_of_uploaded = [
         image["name"]
-        for image in img_names_urls
+        for image in images_to_upload
         if image["name"] not in list_of_not_uploaded
     ]
 
@@ -3642,40 +3605,26 @@ def attach_document_urls_to_project(
     :rtype: tuple
     """
     project_name, folder_name = extract_project_folder(project)
-
-    image_data = pd.read_csv(attachments, dtype=str)
-    image_data = image_data[~image_data["url"].isnull()]
-    if "name" in image_data.columns:
-        image_data["name"] = (
-            image_data["name"]
-            .fillna("")
-            .apply(lambda cell: cell if str(cell).strip() else str(uuid.uuid4()))
-        )
-    else:
-        image_data["name"] = [str(uuid.uuid4()) for _ in range(len(image_data.index))]
-
-    image_data = pd.DataFrame(image_data, columns=["name", "url"])
-    img_names_urls = image_data.rename(columns={"url": "path"}).to_dict(
-        orient="records"
-    )
+    images_to_upload, duplicate_images = get_paths_and_duplicated_from_csv(attachments)
     list_of_not_uploaded = []
-    duplicate_images = []
-    for i in range(0, len(img_names_urls), 500):
-        response = controller.attach_urls(
-            project_name=project_name,
-            folder_name=folder_name,
-            files=ImageSerializer.deserialize(
-                img_names_urls[i : i + 500]  # noqa: E203
-            ),
-            annotation_status=annotation_status,
-        )
-        if response.errors:
-            list_of_not_uploaded.append(response.data[0])
-            duplicate_images.append(response.data[1])
 
+    with tqdm(total=len(images_to_upload), desc="Attaching urls") as progress_bar:
+        for i in range(0, len(images_to_upload), 500):
+            response = controller.attach_urls(
+                project_name=project_name,
+                folder_name=folder_name,
+                files=ImageSerializer.deserialize(
+                    images_to_upload[i : i + 500]  # noqa: E203
+                ),
+                annotation_status=annotation_status,
+            )
+            if response.errors:
+                list_of_not_uploaded.append(response.data[0])
+                duplicate_images.append(response.data[1])
+            progress_bar.update(len(images_to_upload[i : i + 500]))
     list_of_uploaded = [
         image["name"]
-        for image in img_names_urls
+        for image in images_to_upload
         if image["name"] not in list_of_not_uploaded
     ]
 

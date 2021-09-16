@@ -3524,7 +3524,9 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
                             failed_annotations.append(annotation)
                         yield
 
-                uploaded_annotations = [annotation.path for annotation in uploaded_annotations]
+                uploaded_annotations = [
+                    annotation.path for annotation in uploaded_annotations
+                ]
                 missing_annotations.extend(
                     [annotation.path for annotation in self._missing_annotations]
                 )
