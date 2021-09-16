@@ -48,7 +48,7 @@ ANNOTATION_MASK_POSTFIX = "___save.png"
 
 NON_PLOTABLE_KEYS = ["eta_seconds", "iteration", "data_time", "time", "model"]
 
-SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES = set('/\\:*?"<>|')
+SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES = set('/\\:*?"<>|“')
 MAX_PIXEL_RESOLUTION = 4_000_000
 MAX_VECTOR_RESOLUTION = 100_000_000
 MAX_IMAGE_SIZE = 100 * 1024 * 1024  # 100 MB limit
