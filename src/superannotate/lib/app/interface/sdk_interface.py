@@ -334,7 +334,7 @@ def create_folder(project: NotEmptyStr, folder_name: NotEmptyStr):
             logger.warning(
                 f"Created folder has name {folder.name}, since folder with name {folder_name} already existed.",
             )
-        logger.info(f"Folder {folder_name} created in project {project}")
+        logger.info(f"Folder {folder.name} created in project {project}")
         return folder.to_dict()
     if res.errors:
         raise AppException(res.errors)
@@ -389,7 +389,7 @@ def get_folder_metadata(project: NotEmptyStr, folder_name: NotEmptyStr):
     """
     result = controller.get_folder(project_name=project, folder_name=folder_name).data
     if not result:
-        raise EmptyOutputError("Folder not found.")
+        raise AppException("Folder not found.")
     return result.to_dict()
 
 
@@ -447,7 +447,7 @@ def rename_folder(project: Union[NotEmptyStr, dict], new_folder_name: NotEmptySt
     if res.errors:
         raise AppException(res.errors)
     logger.info(
-        f"Folder {folder_name} renamed to {new_folder_name} in project {project_name}"
+        f"Folder {folder_name} renamed to {res.data.name} in project {project_name}"
     )
 
 

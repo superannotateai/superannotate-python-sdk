@@ -316,7 +316,7 @@ class UpdateProjectUseCase(BaseUseCase):
             if self._projects.get_all(condition):
                 logger.error("There are duplicated names.")
                 raise AppValidationException(
-                    f"Project name {self._project.name} is not unique. "
+                    f"Project name {self._project_data['name']} is not unique. "
                     f"To use SDK please make project names unique."
                 )
 
@@ -667,26 +667,25 @@ class CreateFolderUseCase(BaseUseCase):
     def validate_folder(self):
         if not self._folder.name:
             raise AppValidationException("Folder name cannot be empty.")
-
-    def execute(self):
-        if self.is_valid():
-            if (
+        if (
                 len(
                     set(self._folder.name).intersection(
                         constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
                     )
                 )
                 > 0
-            ):
-                self._folder.name = "".join(
-                    "_"
-                    if char in constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
-                    else char
-                    for char in self._folder.name
-                )
-                logger.warning(
-                    "New folder name has special characters. Special characters will be replaced by underscores."
-                )
+        ):
+            self._folder.name = "".join(
+                "_"
+                if char in constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
+                else char
+                for char in self._folder.name
+            )
+            logger.warning(
+                "New folder name has special characters. Special characters will be replaced by underscores."
+            )
+    def execute(self):
+        if self.is_valid():
             self._folder.project_id = self._project.uuid
             self._response.data = self._folders.insert(self._folder)
         return self._response
@@ -1009,11 +1008,33 @@ class UpdateFolderUseCase(BaseUseCase):
         self._folders = folders
         self._folder = folder
 
+    def validate_folder(self):
+        if not self._folder.name:
+            raise AppValidationException("Folder name cannot be empty.")
+        if (
+                len(
+                    set(self._folder.name).intersection(
+                        constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
+                    )
+                )
+                > 0
+        ):
+            self._folder.name = "".join(
+                "_"
+                if char in constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
+                else char
+                for char in self._folder.name
+            )
+            logger.warning(
+                "New folder name has special characters. Special characters will be replaced by underscores."
+            )
+
     def execute(self):
-        is_updated = self._folders.update(self._folder)
-        if not is_updated:
-            self._response.errors = AppException("Couldn't rename folder.")
-        self._response.data = self._folder
+        if self.is_valid():
+            is_updated = self._folders.update(self._folder)
+            if not is_updated:
+                self._response.errors = AppException("Couldn't rename folder.")
+            self._response.data = self._folder
         return self._response
 
 
