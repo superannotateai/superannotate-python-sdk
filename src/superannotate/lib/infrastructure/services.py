@@ -105,8 +105,11 @@ class BaseBackendService(SuerannotateServiceProvider):
                 retried=retried + 1,
             )
         if response.status_code > 299:
+            import traceback
+
+            traceback.print_stack()
             self.logger.error(
-                f"Got {response.status_code} response for url {url}: {response.text}"
+                f"Got {response.status_code} response from backend: {response.text}"
             )
         if content_type:
             return ServiceResponse(response, content_type)
@@ -118,14 +121,14 @@ class BaseBackendService(SuerannotateServiceProvider):
 
         response = self._request(url, params=params)
         if response.status_code != 200:
-            raise AppException(f"Got invalid response for url {url}: {response.text}.")
+            return {"data": []}, 0
+            # raise AppException(f"Got invalid response for url {url}: {response.text}.")
         data = response.json()
         if data:
             if isinstance(data, dict):
                 if key_field:
                     data = data[key_field]
                 if data.get("count", 0) < self.LIMIT:
-                    return data, 0
                     return data, 0
                 else:
                     return data, data.get("count", 0) - offset
