@@ -29,7 +29,7 @@ from lib.app.exceptions import EmptyOutputError
 from lib.app.helpers import extract_project_folder
 from lib.app.helpers import get_annotation_paths
 from lib.app.helpers import reformat_metrics_json
-from lib.app.interface.types import ClassesJson
+from lib.app.interface.types import AnnotationType
 from lib.app.interface.types import NotEmptyStr
 from lib.app.interface.types import Status
 from lib.app.interface.types import validate_arguments
@@ -41,9 +41,12 @@ from lib.app.serializers import SettingsSerializer
 from lib.app.serializers import TeamSerializer
 from lib.core.enums import ImageQuality
 from lib.core.exceptions import AppException
+from lib.core.exceptions import AppValidationException
+from lib.core.types import ClassesJson
 from lib.infrastructure.controller import Controller
 from plotly.subplots import make_subplots
 from pydantic import EmailStr
+from pydantic import parse_obj_as
 from pydantic import StrictBool
 from tqdm import tqdm
 
@@ -328,7 +331,7 @@ def create_folder(project: NotEmptyStr, folder_name: NotEmptyStr):
             logger.warning(
                 f"Created folder has name {folder.name}, since folder with name {folder_name} already existed.",
             )
-        logger.info(f"Folder {folder_name} created in project {project}")
+        logger.info(f"Folder {folder.name} created in project {project}")
         return folder.to_dict()
     if res.errors:
         raise AppException(res.errors)
@@ -383,7 +386,7 @@ def get_folder_metadata(project: NotEmptyStr, folder_name: NotEmptyStr):
     """
     result = controller.get_folder(project_name=project, folder_name=folder_name).data
     if not result:
-        raise EmptyOutputError("Folder not found.")
+        raise AppException("Folder not found.")
     return result.to_dict()
 
 
@@ -441,7 +444,7 @@ def rename_folder(project: Union[NotEmptyStr, dict], new_folder_name: NotEmptySt
     if res.errors:
         raise AppException(res.errors)
     logger.info(
-        f"Folder {folder_name} renamed to {new_folder_name} in project {project_name}"
+        f"Folder {folder_name} renamed to {res.data.name} in project {project_name}"
     )
 
 
@@ -591,7 +594,6 @@ def copy_image(
     )
 
 
-# TODO refactor
 @Trackable
 @validate_arguments
 def upload_images_from_public_urls_to_project(
@@ -1887,12 +1889,18 @@ def create_annotation_classes_from_classes_json(
             from_s3_object = from_s3.Object(from_s3_bucket, classes_json)
             from_s3_object.download_fileobj(file)
             file.seek(0)
-            annotation_classes = json.load(file)
+            annotation_classes = parse_obj_as(List[ClassesJson], json.load(file))
         else:
-            annotation_classes = json.load(open(classes_json))
+            annotation_classes = parse_obj_as(
+                List[ClassesJson], json.load(open(classes_json))
+            )
+
     else:
         annotation_classes = classes_json
 
+    annotation_classes = [
+        annotation_class.dict() for annotation_class in annotation_classes
+    ]
     response = controller.create_annotation_classes(
         project_name=project, annotation_classes=annotation_classes,
     )
@@ -2666,7 +2674,7 @@ def benchmark(
     folder_names: List[str],
     export_root: Optional[Union[str, Path]] = None,
     image_list=None,
-    annot_type="bbox",
+    annot_type: Optional[AnnotationType] = "bbox",
     show_plots=False,
 ):
     """Computes benchmark score for each instance of given images that are present both gt_project_name project and projects in folder_names list:
@@ -2722,13 +2730,14 @@ def benchmark(
 
 
 @Trackable
+@validate_arguments
 def consensus(
-    project: str,
-    folder_names,
-    export_root=None,
-    image_list=None,
-    annot_type="bbox",
-    show_plots=False,
+    project: NotEmptyStr,
+    folder_names: NotEmptyStr,
+    export_root: Optional[Union[NotEmptyStr, Path]] = None,
+    image_list: Optional[List[NotEmptyStr]] = None,
+    annot_type: Optional[AnnotationType] = "bbox",
+    show_plots: Optional[StrictBool] = False,
 ):
     """Computes consensus score for each instance of given images that are present in at least 2 of the given projects:
 
@@ -2776,11 +2785,18 @@ def consensus(
 
 
 @Trackable
-def run_segmentation(project, images_list, model):
+@validate_arguments
+def run_segmentation(
+    project: Union[NotEmptyStr, dict],
+    images_list: List[NotEmptyStr],
+    model: Union[NotEmptyStr, dict],
+):
     """Starts smart segmentation on a list of images using the specified model
 
     :param project: project name of metadata of the project
     :type  project: str or dict
+    :param images_list: image list
+    :type  images_list: list of str
     :param model: The model name or metadata of the model
     :type  model: str or dict
     :return: tupe of two lists, list of images on which the segmentation has succeeded and failed respectively
@@ -2811,7 +2827,12 @@ def run_segmentation(project, images_list, model):
 
 
 @Trackable
-def run_prediction(project, images_list, model):
+@validate_arguments
+def run_prediction(
+    project: Union[NotEmptyStr, dict],
+    images_list: List[NotEmptyStr],
+    model: Union[NotEmptyStr, dict],
+):
     """This function runs smart prediction on given list of images from a given project using the neural network of your choice
 
     :param project: the project in which the target images are uploaded.
@@ -2846,8 +2867,9 @@ def run_prediction(project, images_list, model):
 
 
 @Trackable
+@validate_arguments
 # todo test
-def plot_model_metrics(metric_json_list):
+def plot_model_metrics(metric_json_list=List[NotEmptyStr]):
     """plots the metrics generated by neural network using plotly
 
        :param metric_json_list: list of <model_name>.json files
@@ -2907,13 +2929,14 @@ def plot_model_metrics(metric_json_list):
 
 
 @Trackable
+@validate_arguments
 def add_annotation_bbox_to_image(
-    project,
-    image_name,
-    bbox,
-    annotation_class_name,
-    annotation_class_attributes=None,
-    error=None,
+    project: NotEmptyStr,
+    image_name: NotEmptyStr,
+    bbox: List[float],
+    annotation_class_name: NotEmptyStr,
+    annotation_class_attributes: Optional[List[NotEmptyStr]] = None,
+    error: Optional[StrictBool] = None,
 ):
     """Add a bounding box annotation to image annotations
 
@@ -2941,13 +2964,14 @@ def add_annotation_bbox_to_image(
 
 
 @Trackable
+@validate_arguments
 def add_annotation_polyline_to_image(
-    project,
-    image_name,
-    polyline,
-    annotation_class_name,
-    annotation_class_attributes=None,
-    error=None,
+    project: NotEmptyStr,
+    image_name: NotEmptyStr,
+    polyline: List[float],
+    annotation_class_name: NotEmptyStr,
+    annotation_class_attributes: Optional[List[NotEmptyStr]] = None,
+    error: Optional[StrictBool] = None,
 ):
     """Add a polyline annotation to image annotations
 
@@ -2974,13 +2998,14 @@ def add_annotation_polyline_to_image(
 
 
 @Trackable
+@validate_arguments
 def add_annotation_polygon_to_image(
-    project,
-    image_name,
-    polygon,
-    annotation_class_name,
+    project: NotEmptyStr,
+    image_name: NotEmptyStr,
+    polygon: List[float],
+    annotation_class_name: NotEmptyStr,
     annotation_class_attributes=None,
-    error=None,
+    error: Optional[StrictBool] = None,
 ):
     """Add a polygon annotation to image annotations
 
@@ -3008,13 +3033,14 @@ def add_annotation_polygon_to_image(
 
 
 @Trackable
+@validate_arguments
 def add_annotation_point_to_image(
-    project,
-    image_name,
-    point,
-    annotation_class_name,
-    annotation_class_attributes=None,
-    error=None,
+    project: NotEmptyStr,
+    image_name: NotEmptyStr,
+    point: List[float],
+    annotation_class_name: NotEmptyStr,
+    annotation_class_attributes: Optional[List[NotEmptyStr]] = None,
+    error: Optional[StrictBool] = None,
 ):
     """Add a point annotation to image annotations
 
@@ -3042,12 +3068,12 @@ def add_annotation_point_to_image(
 
 @Trackable
 def add_annotation_ellipse_to_image(
-    project,
-    image_name,
-    ellipse,
-    annotation_class_name,
-    annotation_class_attributes=None,
-    error=None,
+    project: NotEmptyStr,
+    image_name: NotEmptyStr,
+    ellipse: List[float],
+    annotation_class_name: NotEmptyStr,
+    annotation_class_attributes: Optional[List[NotEmptyStr]] = None,
+    error: Optional[StrictBool] = None,
 ):
     """Add an ellipse annotation to image annotations
 
@@ -3074,14 +3100,15 @@ def add_annotation_ellipse_to_image(
 
 
 @Trackable
+@validate_arguments
 def add_annotation_template_to_image(
-    project,
-    image_name,
-    template_points,
-    template_connections,
-    annotation_class_name,
-    annotation_class_attributes=None,
-    error=None,
+    project: NotEmptyStr,
+    image_name: NotEmptyStr,
+    template_points: List[float],
+    template_connections: List[int],
+    annotation_class_name: NotEmptyStr,
+    annotation_class_attributes: Optional[List[NotEmptyStr]] = None,
+    error: Optional[StrictBool] = None,
 ):
     """Add a template annotation to image annotations
 
@@ -3119,13 +3146,14 @@ def add_annotation_template_to_image(
 
 
 @Trackable
+@validate_arguments
 def add_annotation_cuboid_to_image(
-    project,
-    image_name,
-    cuboid,
-    annotation_class_name,
-    annotation_class_attributes=None,
-    error=None,
+    project: NotEmptyStr,
+    image_name: NotEmptyStr,
+    cuboid: List[float],
+    annotation_class_name: NotEmptyStr,
+    annotation_class_attributes: Optional[List[NotEmptyStr]] = None,
+    error: Optional[StrictBool] = None,
 ):
     """Add a cuboid annotation to image annotations
 
@@ -3156,7 +3184,12 @@ def add_annotation_cuboid_to_image(
 
 @Trackable
 def add_annotation_comment_to_image(
-    project, image_name, comment_text, comment_coords, comment_author, resolved=False
+    project: NotEmptyStr,
+    image_name: NotEmptyStr,
+    comment_text: NotEmptyStr,
+    comment_coords: List[float],
+    comment_author: NotEmptyStr,
+    resolved: Optional[StrictBool] = False,
 ):
     """Add a comment to SuperAnnotate format annotation JSON
 
@@ -3180,8 +3213,12 @@ def add_annotation_comment_to_image(
     upload_image_annotations(project, image_name, annotations, verbose=False)
 
 
+@validate_arguments
 def search_images_all_folders(
-    project, image_name_prefix=None, annotation_status=None, return_metadata=False
+    project: NotEmptyStr,
+    image_name_prefix: Optional[NotEmptyStr] = None,
+    annotation_status: Optional[NotEmptyStr] = None,
+    return_metadata: Optional[StrictBool] = False,
 ):
     """Search images by name_prefix (case-insensitive) and annotation status in
     project and all of its folders
@@ -3212,13 +3249,14 @@ def search_images_all_folders(
 
 
 @Trackable
+@validate_arguments
 def upload_image_to_project(
-    project,
+    project: NotEmptyStr,
     img,
-    image_name=None,
-    annotation_status="NotStarted",
+    image_name: Optional[NotEmptyStr] = None,
+    annotation_status: Optional[Status] = "NotStarted",
     from_s3_bucket=None,
-    image_quality_in_editor=None,
+    image_quality_in_editor: Optional[NotEmptyStr] = None,
 ):
     """Uploads image (io.BytesIO() or filepath to image) to project.
     Sets status of the uploaded image to set_status if it is not None.
@@ -3251,9 +3289,13 @@ def upload_image_to_project(
     if response.errors:
         raise AppException(response.errors)
 
-
+@validate_arguments
 def search_models(
-    name=None, type_=None, project_id=None, task=None, include_global=True,
+    name: Optional[NotEmptyStr] = None,
+    type_: Optional[NotEmptyStr] = None,
+    project_id: Optional[int] = None,
+    task: Optional[NotEmptyStr] = None,
+    include_global: Optional[StrictBool] = True,
 ):
     """Search for ML models.
 
@@ -3282,12 +3324,13 @@ def search_models(
 
 
 @Trackable
+@validate_arguments
 def upload_images_to_project(
-    project,
-    img_paths,
-    annotation_status="NotStarted",
+    project: NotEmptyStr,
+    img_paths: List[NotEmptyStr],
+    annotation_status: Optional[Status] = "NotStarted",
     from_s3_bucket=None,
-    image_quality_in_editor=None,
+    image_quality_in_editor: Optional[NotEmptyStr] = None,
 ):
     """Uploads all images given in list of path objects in img_paths to the project.
     Sets status of all the uploaded images to set_status if it is not None.
@@ -3339,13 +3382,14 @@ def upload_images_to_project(
 
 
 @Trackable
+@validate_arguments
 def aggregate_annotations_as_df(
-    project_root,
-    include_classes_wo_annotations=False,
-    include_comments=False,
-    include_tags=False,
-    verbose=True,
-    folder_names=None,
+    project_root: Union[NotEmptyStr, Path],
+    include_classes_wo_annotations: Optional[StrictBool] = False,
+    include_comments: Optional[StrictBool] = False,
+    include_tags: Optional[StrictBool] = False,
+    verbose: Optional[StrictBool] = True,
+    folder_names: Optional[NotEmptyStr] = None,
 ):
     """Aggregate annotations as pandas dataframe from project root.
 
@@ -3358,6 +3402,8 @@ def aggregate_annotations_as_df(
     :type include_comments: bool
     :param include_tags: enables inclusion of tags info as tag column
     :type include_tags: bool
+    :param verbose: enables logging
+    :type verbose: bool
     :param folder_names: Aggregate the specified folders from project_root.
                                 If None aggregate all folders in the project_root.
     :type folder_names: (list of str)
@@ -3386,7 +3432,9 @@ def aggregate_annotations_as_df(
 
 @Trackable
 @validate_arguments
-def delete_annotations(project: str, image_names: List[str] = None):
+def delete_annotations(
+    project: NotEmptyStr, image_names: Optional[List[NotEmptyStr]] = None
+):
     """
     Delete image annotations from a given list of images.
 

@@ -7,8 +7,8 @@ class TestProjectRename(BaseTestCase):
     PROJECT_DESCRIPTION = "Desc"
     PROJECT_TYPE = "Vector"
     NEW_PROJECT_NAME = "new"
-    REPLACED_PROJECT_NAME = "_ _ _ _ _ _ _ _ _"
-    BAD_PROJECT_NAME = '/ \ : * ? " < > |'
+    REPLACED_PROJECT_NAME = "_ _ _ _ _ _ _ _ _ _"
+    BAD_PROJECT_NAME = '/ \ : * ? " “ < > |'
 
     def setUp(self, *args, **kwargs):
         self.tearDown()

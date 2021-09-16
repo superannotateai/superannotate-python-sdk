@@ -13,6 +13,7 @@ class TestFolders(BaseTestCase):
     TEST_FOLDER_PATH = "data_set/sample_project_vector"
     PROJECT_DESCRIPTION = "desc"
     PROJECT_TYPE = "Vector"
+    SPECIAL_CHARS = "/\:*?“<>|"
     TEST_FOLDER_NAME_1 = "folder_1"
     TEST_FOLDER_NAME_2 = "folder_2"
     EXAMPLE_IMAGE_1_NAME = "example_image_1"
@@ -505,3 +506,17 @@ class TestFolders(BaseTestCase):
         self.assertTrue(
             f"{self.TEST_FOLDER_NAME_2}_" in sa.search_folders(self.PROJECT_NAME)
         )
+
+    def test_create_folder_with_special_chars(self):
+        sa.create_folder(self.PROJECT_NAME, self.SPECIAL_CHARS)
+        folder = sa.get_folder_metadata(self.PROJECT_NAME, "_"*len(self.SPECIAL_CHARS))
+        self.assertIsNotNone(folder)
+
+    def test_rename_folder_to_existing_name(self):
+        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1)
+        sa.create_folder(self.PROJECT_NAME, "_"*len(self.SPECIAL_CHARS))
+        sa.rename_folder(f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_1}", self.SPECIAL_CHARS)
+        folder = sa.get_folder_metadata(self.PROJECT_NAME, "_" * len(self.SPECIAL_CHARS) + " (1)")
+        self.assertIsNotNone(folder)
+
+

@@ -13,17 +13,21 @@ from superannotate.lib.app.annotation_helpers import add_annotation_polygon_to_j
 from superannotate.lib.app.annotation_helpers import add_annotation_polyline_to_json
 from superannotate.lib.app.annotation_helpers import add_annotation_template_to_json
 from superannotate.lib.app.common import image_path_to_annotation_paths
-from superannotate.lib.app.convertors.df_converter import df_to_annotations
-from superannotate.lib.app.convertors.df_converter import filter_annotation_instances
-from superannotate.lib.app.convertors.df_converter import filter_images_by_comments
-from superannotate.lib.app.convertors.df_converter import filter_images_by_tags
-from superannotate.lib.app.convertors.dicom_converter import dicom_to_rgb_sequence
 from superannotate.lib.app.exceptions import AppException
 from superannotate.lib.app.input_converters.conversion import coco_split_dataset
 from superannotate.lib.app.input_converters.conversion import convert_json_version
 from superannotate.lib.app.input_converters.conversion import convert_project_type
 from superannotate.lib.app.input_converters.conversion import export_annotation
 from superannotate.lib.app.input_converters.conversion import import_annotation
+from superannotate.lib.app.input_converters.df_converter import df_to_annotations
+from superannotate.lib.app.input_converters.df_converter import (
+    filter_annotation_instances,
+)
+from superannotate.lib.app.input_converters.df_converter import (
+    filter_images_by_comments,
+)
+from superannotate.lib.app.input_converters.df_converter import filter_images_by_tags
+from superannotate.lib.app.input_converters.dicom_converter import dicom_to_rgb_sequence
 from superannotate.lib.app.interface.sdk_interface import add_annotation_bbox_to_image
 from superannotate.lib.app.interface.sdk_interface import (
     add_annotation_comment_to_image,
@@ -171,7 +175,7 @@ __all__ = [
     # common
     "df_to_annotations",
     "image_path_to_annotation_paths",
-    # convertors
+    # converters
     "dicom_to_rgb_sequence",
     "coco_split_dataset",
     "convert_json_version",

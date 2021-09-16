@@ -6,9 +6,6 @@ from lib.app.interface.cli_interface import CLIFacade
 
 logger = logging.getLogger()
 
-# TODO Add help text
-HELP_TEXT = ""
-
 
 def main():
     fire.Fire(CLIFacade)

@@ -8,8 +8,6 @@ import random
 import time
 import uuid
 import zipfile
-from abc import ABC
-from abc import abstractmethod
 from collections import defaultdict
 from collections import namedtuple
 from pathlib import Path
@@ -27,6 +25,8 @@ from boto3.exceptions import Boto3Error
 from lib.app.analytics.common import aggregate_annotations_as_df
 from lib.app.analytics.common import consensus_plot
 from lib.app.analytics.common import image_consensus
+from lib.core.base_usecases import BaseInteractiveUseCase
+from lib.core.base_usecases import BaseUseCase
 from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.entities import AnnotationClassEntity
@@ -51,45 +51,12 @@ from lib.core.repositories import BaseManageableRepository
 from lib.core.repositories import BaseReadOnlyRepository
 from lib.core.response import Response
 from lib.core.serviceproviders import SuerannotateServiceProvider
+from lib.core.types import PixelAnnotation
+from lib.core.types import VectorAnnotation
 from PIL import UnidentifiedImageError
+from pydantic import ValidationError
 
 logger = logging.getLogger("root")
-
-
-class BaseUseCase(ABC):
-    def __init__(self):
-        self._response = Response()
-
-    @abstractmethod
-    def execute(self) -> Response:
-        raise NotImplementedError
-
-    def _validate(self):
-        for name in dir(self):
-            try:
-                if name.startswith("validate_"):
-                    method = getattr(self, name)
-                    method()
-            except AppValidationException as e:
-                self._response.errors = e
-
-    def is_valid(self):
-        self._validate()
-        return not self._response.errors
-
-
-class BaseInteractiveUseCase(BaseUseCase):
-    @property
-    def response(self):
-        return self._response
-
-    @property
-    def data(self):
-        return self.response.data
-
-    @abstractmethod
-    def execute(self):
-        raise NotImplementedError
 
 
 class GetProjectsUseCase(BaseUseCase):
@@ -313,7 +280,7 @@ class UpdateProjectUseCase(BaseUseCase):
             if self._projects.get_all(condition):
                 logger.error("There are duplicated names.")
                 raise AppValidationException(
-                    f"Project name {self._project.name} is not unique. "
+                    f"Project name {self._project_data['name']} is not unique. "
                     f"To use SDK please make project names unique."
                 )
 
@@ -367,13 +334,9 @@ class CloneProjectUseCase(BaseUseCase):
         return self._workflows_repo(self._backend_service, self._project)
 
     def validate_project_type(self):
-        if (
-            self._project.project_type == constances.ProjectType.VIDEO.value
-            or self._project.project_type == constances.ProjectType.DOCUMENT.value
-        ):
+        if self._project.project_type in constances.LIMITED_FUNCTIONS:
             raise AppValidationException(
-                "The function does not support projects containing "
-                f"{constances.ProjectType.get_name(self._project.project_type)} attached with URLs"
+                constances.LIMITED_FUNCTIONS[self._project.project_type]
             )
 
     def execute(self):
@@ -479,9 +442,9 @@ class GetImagesUseCase(BaseUseCase):
         self._image_name_prefix = image_name_prefix
 
     def validate_project_type(self):
-        if self._project.project_type == constances.ProjectType.DOCUMENT.value:
+        if self._project.project_type in constances.LIMITED_FUNCTIONS:
             raise AppValidationException(
-                "The function does not support projects containing document attached with URLs"
+                constances.LIMITED_FUNCTIONS[self._project.project_type]
             )
 
     def validate_annotation_status(self):
@@ -664,26 +627,25 @@ class CreateFolderUseCase(BaseUseCase):
     def validate_folder(self):
         if not self._folder.name:
             raise AppValidationException("Folder name cannot be empty.")
-
-    def execute(self):
-        if self.is_valid():
-            if (
+        if (
                 len(
                     set(self._folder.name).intersection(
                         constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
                     )
                 )
                 > 0
-            ):
-                self._folder.name = "".join(
-                    "_"
-                    if char in constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
-                    else char
-                    for char in self._folder.name
-                )
-                logger.warning(
-                    "New folder name has special characters. Special characters will be replaced by underscores."
-                )
+        ):
+            self._folder.name = "".join(
+                "_"
+                if char in constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
+                else char
+                for char in self._folder.name
+            )
+            logger.warning(
+                "New folder name has special characters. Special characters will be replaced by underscores."
+            )
+    def execute(self):
+        if self.is_valid():
             self._folder.project_id = self._project.uuid
             self._response.data = self._folders.insert(self._folder)
         return self._response
@@ -740,9 +702,9 @@ class AttachFileUrlsUseCase(BaseUseCase):
 
     @property
     def upload_state_code(self) -> int:
-        if (
-            self._project.project_type == constances.ProjectType.VIDEO.value
-            or self._project.project_type == constances.ProjectType.DOCUMENT.value
+        if self._project.project_type in (
+            constances.ProjectType.VIDEO.value,
+            constances.ProjectType.DOCUMENT.value,
         ):
             return constances.UploadState.EXTERNAL.value
         return constances.UploadState.BASIC.value
@@ -809,13 +771,9 @@ class PrepareExportUseCase(BaseUseCase):
         self._only_pinned = only_pinned
 
     def validate_project_type(self):
-        if (
-            self._project.project_type == constances.ProjectType.VIDEO.value
-            or self._project.project_type == constances.ProjectType.DOCUMENT.value
-        ):
+        if self._project.project_type in constances.LIMITED_FUNCTIONS:
             raise AppValidationException(
-                "The function does not support projects containing "
-                f"{constances.ProjectType.get_name(self._project.project_type)} attached with URLs"
+                constances.LIMITED_FUNCTIONS[self._project.project_type]
             )
 
     def validate_fuse(self):
@@ -1036,11 +994,33 @@ class UpdateFolderUseCase(BaseUseCase):
         self._folders = folders
         self._folder = folder
 
+    def validate_folder(self):
+        if not self._folder.name:
+            raise AppValidationException("Folder name cannot be empty.")
+        if (
+                len(
+                    set(self._folder.name).intersection(
+                        constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
+                    )
+                )
+                > 0
+        ):
+            self._folder.name = "".join(
+                "_"
+                if char in constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
+                else char
+                for char in self._folder.name
+            )
+            logger.warning(
+                "New folder name has special characters. Special characters will be replaced by underscores."
+            )
+
     def execute(self):
-        is_updated = self._folders.update(self._folder)
-        if not is_updated:
-            self._response.errors = AppException("Couldn't rename folder.")
-        self._response.data = self._folder
+        if self.is_valid():
+            is_updated = self._folders.update(self._folder)
+            if not is_updated:
+                self._response.errors = AppException("Couldn't rename folder.")
+            self._response.data = self._folder
         return self._response
 
 
@@ -1344,8 +1324,10 @@ class ImagesBulkCopyUseCase(BaseUseCase):
             raise AppValidationException(constances.UPLOAD_FOLDER_LIMIT_ERROR_MESSAGE)
 
     def validate_project_type(self):
-        if self._project.project_type == constances.ProjectType.VIDEO.value:
-            raise AppValidationException(constances.DEPRECATED_VIDEO_PROJECTS_MESSAGE)
+        if self._project.project_type in constances.LIMITED_FUNCTIONS:
+            raise AppValidationException(
+                constances.LIMITED_FUNCTIONS[self._project.project_type]
+            )
 
     def execute(self):
         if self.is_valid():
@@ -1430,8 +1412,10 @@ class GetWorkflowsUseCase(BaseUseCase):
         self._fill_classes = fill_classes
 
     def validate_project_type(self):
-        if self._project.project_type == constances.ProjectType.VIDEO.value:
-            raise AppValidationException(constances.DEPRECATED_VIDEO_PROJECTS_MESSAGE)
+        if self._project.project_type in constances.LIMITED_FUNCTIONS:
+            raise AppValidationException(
+                constances.LIMITED_FUNCTIONS[self._project.project_type]
+            )
 
     def execute(self):
         if self.is_valid():
@@ -1594,8 +1578,10 @@ class GetImageMetadataUseCase(BaseUseCase):
         self._folder = folder
 
     def validate_project_type(self):
-        if self._project.project_type == constances.ProjectType.VIDEO.value:
-            raise AppValidationException(constances.DEPRECATED_VIDEO_PROJECTS_MESSAGE)
+        if self._project.project_type in constances.LIMITED_FUNCTIONS:
+            raise AppValidationException(
+                constances.LIMITED_FUNCTIONS[self._project.project_type]
+            )
 
     def execute(self):
         if self.is_valid():
@@ -1677,8 +1663,10 @@ class SetImageAnnotationStatuses(BaseUseCase):
 
     def validate_project_type(self):
         project = self._projects.get_one(uuid=self._project_id, team_id=self._team_id)
-        if project.project_type == constances.ProjectType.VIDEO.value:
-            raise AppValidationException(constances.DEPRECATED_VIDEO_PROJECTS_MESSAGE)
+        if project.project_type in constances.LIMITED_FUNCTIONS:
+            raise AppValidationException(
+                constances.LIMITED_FUNCTIONS[project.project_type]
+            )
 
     def execute(self):
         if self.is_valid():
@@ -1725,13 +1713,9 @@ class DeleteImagesUseCase(BaseUseCase):
         self._image_names = image_names
 
     def validate_project_type(self):
-        if (
-            self._project.project_type == constances.ProjectType.VIDEO.value
-            or self._project.project_type == constances.ProjectType.DOCUMENT.value
-        ):
+        if self._project.project_type in constances.LIMITED_FUNCTIONS:
             raise AppValidationException(
-                "The function does not support projects containing "
-                f"{constances.ProjectType.get_name(self._project.project_type)} attached with URLs"
+                constances.LIMITED_FUNCTIONS[self._project.project_type]
             )
 
     def execute(self):
@@ -1786,8 +1770,10 @@ class AssignImagesUseCase(BaseUseCase):
         self._service = service
 
     def validate_project_type(self):
-        if self._project.project_type == constances.ProjectType.VIDEO.value:
-            raise AppValidationException(constances.DEPRECATED_VIDEO_PROJECTS_MESSAGE)
+        if self._project.project_type in constances.LIMITED_FUNCTIONS:
+            raise AppValidationException(
+                constances.LIMITED_FUNCTIONS[self._project.project_type]
+            )
 
     def execute(self):
         if self.is_valid():
@@ -2066,13 +2052,9 @@ class GetImageAnnotationsUseCase(BaseUseCase):
         return use_case
 
     def validate_project_type(self):
-        if (
-            self._project.project_type == constances.ProjectType.VIDEO.value
-            or self._project.project_type == constances.ProjectType.DOCUMENT.value
-        ):
+        if self._project.project_type in constances.LIMITED_FUNCTIONS:
             raise AppValidationException(
-                "The function does not support projects containing "
-                f"{constances.ProjectType.get_name(self._project.project_type)} attached with URLs"
+                constances.LIMITED_FUNCTIONS[self._project.project_type]
             )
 
     def execute(self):
@@ -2168,8 +2150,10 @@ class GetImagePreAnnotationsUseCase(BaseUseCase):
         )
 
     def validate_project_type(self):
-        if self._project.project_type == constances.ProjectType.VIDEO.value:
-            raise AppValidationException(constances.DEPRECATED_VIDEO_PROJECTS_MESSAGE)
+        if self._project.project_type in constances.LIMITED_FUNCTIONS:
+            raise AppValidationException(
+                constances.LIMITED_FUNCTIONS[self._project.project_type]
+            )
 
     def execute(self):
         data = {
@@ -2241,13 +2225,9 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
         )
 
     def validate_project_type(self):
-        if (
-            self._project.project_type == constances.ProjectType.VIDEO.value
-            or self._project.project_type == constances.ProjectType.DOCUMENT.value
-        ):
+        if self._project.project_type in constances.LIMITED_FUNCTIONS:
             raise AppValidationException(
-                "The function does not support projects containing "
-                f"{constances.ProjectType.get_name(self._project.project_type)} attached with URLs"
+                constances.LIMITED_FUNCTIONS[self._project.project_type]
             )
 
     def execute(self):
@@ -2400,9 +2380,9 @@ class GetExportsUseCase(BaseUseCase):
         self._return_metadata = return_metadata
 
     def validate_project_type(self):
-        if self._project.project_type == constances.ProjectType.DOCUMENT.value:
+        if self._project.project_type in constances.LIMITED_FUNCTIONS:
             raise AppValidationException(
-                "The function does not support projects containing document attached with URLs"
+                constances.LIMITED_FUNCTIONS[self._project.project_type]
             )
 
     def execute(self):
@@ -2521,13 +2501,9 @@ class GetProjectImageCountUseCase(BaseUseCase):
             raise AppValidationException("The folder does not contain any sub-folders.")
 
     def validate_project_type(self):
-        if (
-            self._project.project_type == constances.ProjectType.VIDEO.value
-            or self._project.project_type == constances.ProjectType.DOCUMENT.value
-        ):
+        if self._project.project_type in constances.LIMITED_FUNCTIONS:
             raise AppValidationException(
-                "The function does not support projects containing "
-                f"{constances.ProjectType.get_name(self._project.project_type)} attached with URLs"
+                constances.LIMITED_FUNCTIONS[self._project.project_type]
             )
 
     def execute(self):
@@ -2600,9 +2576,9 @@ class ExtractFramesUseCase(BaseUseCase):
         return self._limit
 
     def validate_project_type(self):
-        if self._project.project_type == constances.ProjectType.DOCUMENT.value:
+        if self._project.project_type in constances.LIMITED_FUNCTIONS:
             raise AppValidationException(
-                "The function does not support projects containing document attached with URLs"
+                constances.LIMITED_FUNCTIONS[self._project.project_type]
             )
 
     def execute(self):
@@ -2795,8 +2771,10 @@ class SetWorkflowUseCase(BaseUseCase):
         self._project = project
 
     def validate_project_type(self):
-        if self._project.project_type == constances.ProjectType.VIDEO.value:
-            raise AppValidationException(constances.DEPRECATED_VIDEO_PROJECTS_MESSAGE)
+        if self._project.project_type in constances.LIMITED_FUNCTIONS:
+            raise AppValidationException(
+                constances.LIMITED_FUNCTIONS[self._project.project_type]
+            )
 
     def execute(self):
         if self.is_valid():
@@ -3093,8 +3071,10 @@ class DownloadImageUseCase(BaseUseCase):
         )
 
     def validate_project_type(self):
-        if self._project.project_type == constances.ProjectType.VIDEO.value:
-            raise AppValidationException(constances.DEPRECATED_VIDEO_PROJECTS_MESSAGE)
+        if self._project.project_type in constances.LIMITED_FUNCTIONS:
+            raise AppValidationException(
+                constances.LIMITED_FUNCTIONS[self._project.project_type]
+            )
 
     def validate_variant_type(self):
         if self._image_variant not in ["original", "lores"]:
@@ -3181,13 +3161,9 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
         self._annotation_path = annotation_path
 
     def validate_project_type(self):
-        if (
-            self._project.project_type == constances.ProjectType.VIDEO.value
-            or self._project.project_type == constances.ProjectType.DOCUMENT.value
-        ):
+        if self._project.project_type in constances.LIMITED_FUNCTIONS:
             raise AppValidationException(
-                "The function does not support projects containing "
-                f"{constances.ProjectType.get_name(self._project.project_type)} attached with URLs"
+                constances.LIMITED_FUNCTIONS[self._project.project_type]
             )
 
     @property
@@ -3495,13 +3471,23 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
             self._annotations_to_upload = annotations_to_upload
         return self._annotations_to_upload
 
+    def _is_valid_json(self, json_data: dict):
+        try:
+            if self._project.project_type == constances.ProjectType.PIXEL.value:
+                PixelAnnotation(**json_data)
+            else:
+                VectorAnnotation(**json_data)
+            return True
+        except ValidationError as _:
+            return False
+
     def execute(self):
         uploaded_annotations = []
         missing_annotations = []
         failed_annotations = []
         for _ in range(0, len(self.annotations_to_upload), self.AUTH_DATA_CHUNK_SIZE):
             annotations_to_upload = self.annotations_to_upload[
-                _ : _ + self.CHUNK_SIZE  # noqa: E203
+                _ : _ + self.AUTH_DATA_CHUNK_SIZE  # noqa: E203
             ]
 
             if self._pre_annotation:
@@ -3551,22 +3537,23 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
                         for image_id, image_info in response.data.images.items()
                     ]
                     for future in concurrent.futures.as_completed(results):
-                        future.result()
+                        annotation, uploaded = future.result()
+                        if uploaded:
+                            uploaded_annotations.append(annotation)
+                        else:
+                            failed_annotations.append(annotation)
                         yield
 
-                uploaded_annotations.extend(
-                    [annotation.path for annotation in self.annotations_to_upload]
-                )
+                uploaded_annotations = [
+                    annotation.path for annotation in uploaded_annotations
+                ]
                 missing_annotations.extend(
                     [annotation.path for annotation in self._missing_annotations]
                 )
-                failed_annotations.extend(
-                    [
-                        annotation
-                        for annotation in self._annotation_paths
-                        if annotation not in uploaded_annotations + missing_annotations
-                    ]
-                )
+                failed_annotations = [
+                    annotation.path for annotation in failed_annotations
+                ]
+
             self._response.data = (
                 uploaded_annotations,
                 failed_annotations,
@@ -3589,6 +3576,9 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
             annotation_json = json.load(open(image_id_name_map[image_id].path))
 
         self.fill_classes_data(annotation_json)
+
+        if not self._is_valid_json(annotation_json):
+            return image_id_name_map[image_id], False
         bucket.put_object(
             Key=image_info["annotation_json_path"], Body=json.dumps(annotation_json),
         )
@@ -3608,6 +3598,7 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
                     file = io.BytesIO(mask_file.read())
 
             bucket.put_object(Key=image_info["annotation_bluemap_path"], Body=file)
+        return image_id_name_map[image_id], True
 
 
 class CreateModelUseCase(BaseUseCase):
@@ -3845,9 +3836,9 @@ class DownloadExportUseCase(BaseUseCase):
         self._to_s3_bucket = to_s3_bucket
 
     def validate_project_type(self):
-        if self._project.project_type == constances.ProjectType.DOCUMENT.value:
+        if self._project.project_type in constances.LIMITED_FUNCTIONS:
             raise AppValidationException(
-                "The function does not support projects containing document attached with URLs"
+                constances.LIMITED_FUNCTIONS[self._project.project_type]
             )
 
     def execute(self):
@@ -4253,9 +4244,9 @@ class RunPredictionUseCase(BaseUseCase):
         self._folder = folder
 
     def validate_project_type(self):
-        if self._project.project_type == constances.ProjectType.DOCUMENT.value:
+        if self._project.project_type in constances.LIMITED_FUNCTIONS:
             raise AppValidationException(
-                "The function does not support projects containing document attached with URLs"
+                constances.LIMITED_FUNCTIONS[self._project.project_type]
             )
 
     def execute(self):
@@ -4602,13 +4593,9 @@ class UploadImagesToProject(BaseInteractiveUseCase):
             raise AppValidationException("")
 
     def validate_project_type(self):
-        if self._project.project_type in (
-            constances.ProjectType.VIDEO.value,
-            constances.ProjectType.DOCUMENT.value,
-        ):
+        if self._project.project_type in constances.LIMITED_FUNCTIONS:
             raise AppValidationException(
-                "The function does not support projects containing "
-                f"{constances.ProjectType.get_name(self._project.project_type)} attached with URLs"
+                constances.LIMITED_FUNCTIONS[self._project.project_type]
             )
 
     def validate_auth_data(self):

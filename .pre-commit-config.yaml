@@ -3,7 +3,7 @@ repos:
     rev: 3.8.2
     hooks:
       - id: flake8
-        exclude:  src/lib/app/analytics | src/lib/app/converters | src/lib/app/input_convertors
+        exclude:  src/lib/app/analytics | src/lib/app/converters | src/lib/app/input_converters
         name: Style Guide Enforcement (flake8)
         args:
           - '--max-line-length=120'
@@ -12,7 +12,7 @@ repos:
     rev: v2.4.3
     hooks:
       - id: pyupgrade
-        exclude: src/lib/app/analytics | src/lib/app/converters | src/lib/app/input_convertors
+        exclude: src/lib/app/analytics | src/lib/app/converters | src/lib/app/input_converters
         name: Upgrade syntax for newer versions of the language (pyupgrade)
         args:
           - '--py37-plus'
@@ -20,7 +20,7 @@ repos:
     rev: v2.3.0
     hooks:
       - id: reorder-python-imports
-        exclude: src/lib/app/analytics | src/lib/app/converters | src/lib/app/input_convertors
+        exclude: src/lib/app/analytics | src/lib/app/converters | src/lib/app/input_converters
         name: 'Reorder Python imports (src, tests)'
         args:
           - '--application-directories'
@@ -41,4 +41,4 @@ repos:
     hooks:
       - id: dead
 files: src/
-exclude: src/lib/app/analytics | src/lib/app/converters | src/lib/app/input_convertors
+exclude: src/lib/app/analytics | src/lib/app/converters | src/lib/app/input_converters

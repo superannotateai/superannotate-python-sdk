@@ -1,4 +1,3 @@
-import functools
 import json
 import logging
 import os
@@ -12,13 +11,6 @@ from tqdm import tqdm
 
 logger = logging.getLogger()
 
-DEFAULT_IMAGE_EXTENSIONS = ("jpg", "jpeg", "png", "tif", "tiff", "webp", "bmp")
-DEFAULT_FILE_EXCLUDE_PATTERNS = ("___save.png", "___fuse.png")
-
-DEFAULT_VIDEO_EXTENSIONS = ("mp4", "avi", "mov", "webm", "flv", "mpg", "ogg")
-
-SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES = set('/\\:*?"<>|')
-
 _PROJECT_TYPES = {"Vector": 1, "Pixel": 2}
 
 _ANNOTATION_STATUSES = {
@@ -29,57 +21,6 @@ _ANNOTATION_STATUSES = {
     "Completed": 5,
     "Skipped": 6,
 }
-
-_UPLOAD_STATES_STR_TO_CODES = {"Initial": 1, "Basic": 2, "External": 3}
-_UPLOAD_STATES_CODES_TO_STR = {1: "Initial", 2: "Basic", 3: "External"}
-
-_USER_ROLES = {"Admin": 2, "Annotator": 3, "QA": 4, "Customer": 5, "Viewer": 6}
-_AVAILABLE_SEGMENTATION_MODELS = ["autonomous", "generic"]
-_MODEL_TRAINING_STATUSES = {
-    "NotStarted": 1,
-    "InProgress": 2,
-    "Completed": 3,
-    "FailedBeforeEvaluation": 4,
-    "FailedAfterEvaluation": 5,
-    "FailedAfterEvaluationWithSavedModel": 6,
-}
-
-_PREDICTION_SEGMENTATION_STATUSES = {
-    "NotStarted": 1,
-    "InProgress": 2,
-    "Completed": 3,
-    "Failed": 4,
-}
-
-_MODEL_TRAINING_TASKS = {
-    "Instance Segmentation for Pixel Projects": "instance_segmentation_pixel",
-    "Instance Segmentation for Vector Projects": "instance_segmentation_vector",
-    "Keypoint Detection for Vector Projects": "keypoint_detection_vector",
-    "Object Detection for Vector Projects": "object_detection_vector",
-    "Semantic Segmentation for Pixel Projects": "semantic_segmentation_pixel",
-}
-
-
-def prediction_segmentation_status_from_str_to_int(status):
-    return _PREDICTION_SEGMENTATION_STATUSES[status]
-
-
-def prediction_segmentation_status_from_int_to_str(status):
-    for idx, item in _PREDICTION_SEGMENTATION_STATUSES.items():
-        if item == status:
-            return idx
-    raise RuntimeError("NA segmentation/prediction status")
-
-
-def model_training_status_int_to_str(project_status):
-    for item in _MODEL_TRAINING_STATUSES:
-        if _MODEL_TRAINING_STATUSES[item] == project_status:
-            return item
-    raise RuntimeError("NA training status")
-
-
-def model_training_status_str_to_int(project_status):
-    return _MODEL_TRAINING_STATUSES[project_status]
 
 
 def image_path_to_annotation_paths(image_path, project_type):
@@ -92,85 +33,6 @@ def image_path_to_annotation_paths(image_path, project_type):
         image_path.parent / get_annotation_json_name(image_path.name, project_type),
         image_path.parent / get_annotation_png_name(image_path.name),
     )
-
-
-def project_type_str_to_int(project_type):
-    return _PROJECT_TYPES[project_type]
-
-
-def project_type_int_to_str(project_type):
-    """Converts metadata project_type int value to a string
-
-    :param project_type: int in project metadata's 'type' key
-    :type project_type: int
-
-    :return: 'Vector' or 'Pixel'
-    :rtype: str
-    """
-    for k, v in _PROJECT_TYPES.items():
-        if v == project_type:
-            return k
-    raise RuntimeError("NA Project type")
-
-
-def user_role_str_to_int(user_role):
-    return _USER_ROLES[user_role]
-
-
-def user_role_int_to_str(user_role):
-    for k, v in _USER_ROLES.items():
-        if v == user_role:
-            return k
-    return None
-
-
-def annotation_status_str_to_int(annotation_status):
-    return _ANNOTATION_STATUSES[annotation_status]
-
-
-def upload_state_str_to_int(upload_state):
-    return _UPLOAD_STATES_STR_TO_CODES[upload_state]
-
-
-def upload_state_int_to_str(upload_state):
-    return _UPLOAD_STATES_CODES_TO_STR[upload_state]
-
-
-def annotation_status_int_to_str(annotation_status):
-    """Converts metadata annotation_status int value to a string
-
-    :param annotation_status: int in image metadata's 'annotation_status' key
-    :type annotation_status: int
-
-    :return: One of 'NotStarted' 'InProgress' 'QualityCheck' 'Returned' 'Completed' 'Skipped'
-    :rtype: str
-    """
-
-    for k, v in _ANNOTATION_STATUSES.items():
-        if v == annotation_status:
-            return k
-    return None
-
-
-def deprecated_alias(**aliases):
-    def deco(f):
-        @functools.wraps(f)
-        def wrapper(*args, **kwargs):
-            rename_kwargs(f.__name__, kwargs, aliases)
-            return f(*args, **kwargs)
-
-        return wrapper
-
-    return deco
-
-
-def rename_kwargs(func_name, kwargs, aliases):
-    for alias, new in aliases.items():
-        if alias in kwargs:
-            if new in kwargs:
-                raise TypeError(f"{func_name} received both {alias} and {new}")
-            logger.warning("%s is deprecated; use %s in %s", alias, new, func_name)
-            kwargs[new] = kwargs.pop(alias)
 
 
 def hex_to_rgb(hex_string):
@@ -292,7 +154,6 @@ def write_to_json(output_path, json_data):
 
 
 MAX_IMAGE_SIZE = 100 * 1024 * 1024  # 100 MB limit
-MAX_IMAGE_RESOLUTION = {"Vector": 100_000_000, "Pixel": 4_000_000}  # Resolution limit
 
 
 def tqdm_converter(total_num, images_converted, images_not_converted, finish_event):

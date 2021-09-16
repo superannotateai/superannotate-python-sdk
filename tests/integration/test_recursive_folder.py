@@ -280,7 +280,7 @@ class TestRecursiveFolder(BaseTestCase):
     def test_annotations_recursive_s3_122(self):
         sa.upload_images_from_folder_to_project(self.PROJECT_NAME, '8sep', from_s3_bucket="superannotate-python-sdk-test",recursive_subfolders=True)
         uploaded = sa.upload_annotations_from_folder_to_project(self.PROJECT_NAME, '8sep', from_s3_bucket="superannotate-python-sdk-test",recursive_subfolders=True)
-        self.assertEqual(len(uploaded[0]),132)
+        self.assertEqual(len(uploaded[0]),122)
 
 
     def test_annotations_recursive_s3_10(self):
