@@ -132,6 +132,8 @@ class ProjectRepository(BaseManageableRepository):
                 root_folder_completed_images_count=data.get(
                     "rootFolderCompletedImagesCount"
                 ),
+                createdAt=data["createdAt"],
+                updatedAt=data["updatedAt"],
             )
         except KeyError:
             raise AppException("Cant serialize project data")
@@ -336,6 +338,8 @@ class AnnotationClassRepository(BaseManageableRepository):
             name=data["name"],
             count=data["count"],
             color=data["color"],
+            createdAt=data["createdAt"],
+            updatedAt=data["updatedAt"],
             attribute_groups=data["attribute_groups"],
         )
 
