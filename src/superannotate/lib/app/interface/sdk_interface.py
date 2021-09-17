@@ -44,8 +44,8 @@ from lib.app.serializers import TeamSerializer
 from lib.core.enums import ImageQuality
 from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
-from lib.core.types import ClassesJson
 from lib.core.types import AttributeGroup
+from lib.core.types import ClassesJson
 from lib.core.types import Project
 from lib.infrastructure.controller import Controller
 from plotly.subplots import make_subplots
@@ -1884,7 +1884,9 @@ def create_annotation_class(
     """
     if isinstance(project, Project):
         project = project.dict()
-    attribute_groups = list(map(lambda x: x.dict(), attribute_groups)) if attribute_groups else None
+    attribute_groups = (
+        list(map(lambda x: x.dict(), attribute_groups)) if attribute_groups else None
+    )
     response = controller.create_annotation_class(
         project_name=project, name=name, color=color, attribute_groups=attribute_groups
     )
@@ -1941,6 +1943,8 @@ def download_annotation_classes_json(project: str, folder: Union[str, Path]):
     response = controller.download_annotation_classes(
         project_name=project, download_path=folder
     )
+    if response.errors:
+        raise AppException(response.errors)
     return response.data
 
 

@@ -4,8 +4,8 @@ from typing import Union
 
 from pydantic import BaseModel
 from pydantic import constr
-from pydantic import StrictStr
 from pydantic import Extra
+from pydantic import StrictStr
 
 
 NotEmptyStr = constr(strict=True, min_length=1)
