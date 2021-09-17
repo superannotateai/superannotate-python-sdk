@@ -277,12 +277,13 @@ class UpdateProjectUseCase(BaseUseCase):
             condition = Condition("name", self._project_data["name"], EQ) & Condition(
                 "team_id", self._project.team_id, EQ
             )
-            if self._projects.get_all(condition):
-                logger.error("There are duplicated names.")
-                raise AppValidationException(
-                    f"Project name {self._project_data['name']} is not unique. "
-                    f"To use SDK please make project names unique."
-                )
+            for project in self._projects.get_all(condition):
+                if project.name == self._project_data["name"]:
+                    logger.error("There are duplicated names.")
+                    raise AppValidationException(
+                        f"Project name {self._project_data['name']} is not unique. "
+                        f"To use SDK please make project names unique."
+                    )
 
     def execute(self):
         if self.is_valid():
@@ -660,6 +661,7 @@ class AttachFileUrlsUseCase(BaseUseCase):
         attachments: List[ImageEntity],
         backend_service_provider: SuerannotateServiceProvider,
         annotation_status: str = None,
+        upload_state_code: int = constances.UploadState.EXTERNAL.value,
     ):
         super().__init__()
         self._attachments = attachments
@@ -667,6 +669,7 @@ class AttachFileUrlsUseCase(BaseUseCase):
         self._folder = folder
         self._backend_service = backend_service_provider
         self._annotation_status = annotation_status
+        self._upload_state_code = upload_state_code
 
     def _validate_limitations(self, to_upload_count):
         response = self._backend_service.get_limitations(
@@ -703,12 +706,9 @@ class AttachFileUrlsUseCase(BaseUseCase):
 
     @property
     def upload_state_code(self) -> int:
-        if self._project.project_type in (
-            constances.ProjectType.VIDEO.value,
-            constances.ProjectType.DOCUMENT.value,
-        ):
+        if not self._upload_state_code:
             return constances.UploadState.EXTERNAL.value
-        return constances.UploadState.BASIC.value
+        return self._upload_state_code
 
     def execute(self):
         response = self._backend_service.get_bulk_images(
@@ -815,7 +815,7 @@ class PrepareExportUseCase(BaseUseCase):
             if "error" in response:
                 raise AppException(response["error"])
             folder_str = (
-                "" if self._folder_names is None else ("/" + str(self._folder_names))
+                "" if self._folder_names is None else "/".join(self._folder_names)
             )
 
             logger.info(
@@ -2237,23 +2237,23 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
             )
 
     @property
-    def annotation_classes_name_map(self) -> dict:
+    def annotation_classes_id_name_map(self) -> dict:
         classes_data = defaultdict(dict)
         annotation_classes = self._annotation_classes.get_all()
         for annotation_class in annotation_classes:
-            class_info = {"id": annotation_class.uuid}
+            class_info = {"name": annotation_class.name}
             if annotation_class.attribute_groups:
                 for attribute_group in annotation_class.attribute_groups:
                     attribute_group_data = defaultdict(dict)
                     for attribute in attribute_group["attributes"]:
                         attribute_group_data[attribute["name"]] = attribute["id"]
                     class_info["attribute_groups"] = {
-                        attribute_group["name"]: {
-                            "id": attribute_group["id"],
+                        attribute_group["id"]: {
+                            "name": attribute_group["name"],
                             "attributes": attribute_group_data,
                         }
                     }
-            classes_data[annotation_class.name] = class_info
+            classes_data[annotation_class.uuid] = class_info
         return classes_data
 
     def get_templates_mapping(self):
@@ -2262,58 +2262,57 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
         )
         templates_map = {}
         for template in templates:
-            templates_map[template["name"]] = template["id"]
+            templates_map[template["id"]] = template["name"]
         return templates_map
 
     def fill_classes_data(self, annotations: dict):
-        annotation_classes = self.annotation_classes_name_map
+        annotation_classes = self.annotation_classes_id_name_map
         if "instances" not in annotations:
             return
         unknown_classes = {}
-        for annotation in [i for i in annotations["instances"] if "className" in i]:
-            if "className" not in annotation:
-                return
-            annotation_class_name = annotation["className"]
-            if annotation_class_name not in annotation_classes:
-                if annotation_class_name not in unknown_classes:
-                    unknown_classes[annotation_class_name] = {
-                        "id": -(len(unknown_classes) + 1),
+        # for annotation in [i for i in annotations["instances"] if "className" in i]:
+        for annotation in [i for i in annotations["instances"] if "classId" in i]:
+            annotation_class_id = annotation["classId"]
+            if annotation_class_id not in annotation_classes:
+                if annotation_class_id not in unknown_classes:
+                    unknown_classes[annotation_class_id] = {
+                        "name": "unknown_class",
                         "attribute_groups": {},
                     }
-        annotation_classes.update(unknown_classes)
+        # annotation_classes.update(unknown_classes)
         templates = self.get_templates_mapping()
         for annotation in (
             i for i in annotations["instances"] if i.get("type", None) == "template"
         ):
-            annotation["templateId"] = templates.get(
-                annotation.get("templateName", ""), -1
+            annotation["templateName"] = templates.get(
+                annotation.get("templateId", ""), -1
             )
 
-        for annotation in [i for i in annotations["instances"] if "className" in i]:
-            annotation_class_name = annotation["className"]
-            if annotation_class_name not in annotation_classes:
+        for annotation in [i for i in annotations["instances"] if "classId" in i]:
+            annotation_class_id = annotation["classId"]
+            if annotation_class_id not in annotation_classes:
                 continue
-            annotation["classId"] = annotation_classes[annotation_class_name]["id"]
+            annotation["className"] = annotation_classes[annotation_class_id]["name"]
             for attribute in annotation["attributes"]:
                 if (
                     attribute["groupName"]
-                    not in annotation_classes[annotation_class_name]["attribute_groups"]
+                    not in annotation_classes[annotation_class_id]["attribute_groups"]
                 ):
                     continue
-                attribute["groupId"] = annotation_classes[annotation_class_name][
+                attribute["groupName"] = annotation_classes[annotation_class_id][
                     "attribute_groups"
-                ][attribute["groupName"]]["id"]
+                ][attribute["groupId"]]["name"]
                 if (
                     attribute["name"]
-                    not in annotation_classes[annotation_class_name][
-                        "attribute_groups"
-                    ][attribute["groupName"]]["attributes"]
+                    not in annotation_classes[annotation_class_id]["attribute_groups"][
+                        attribute["groupId"]
+                    ]["attributes"]
                 ):
-                    del attribute["groupId"]
+                    del attribute["groupName"]
                     continue
-                attribute["id"] = annotation_classes[annotation_class_name][
+                attribute["name"] = annotation_classes[annotation_class_id][
                     "attribute_groups"
-                ][attribute["groupName"]]["attributes"]
+                ][attribute["groupId"]]["attributes"]
 
     def execute(self):
         if self.is_valid():
@@ -2790,7 +2789,7 @@ class DownloadAnnotationClassesUseCase(BaseUseCase):
         )
         classes = self._annotation_classes_repo.get_all()
         classes = [entity.to_dict() for entity in classes]
-        json_path = Path(self._download_path) / "classes.json"
+        json_path = f"{self._download_path}/classes.json"
         json.dump(classes, open(json_path, "w"), indent=4)
         self._response.data = json_path
         return self._response
@@ -2812,6 +2811,10 @@ class CreateAnnotationClassesUseCase(BaseUseCase):
         self._annotation_classes_repo = annotation_classes_repo
         self._annotation_classes = annotation_classes
         self._project = project
+
+    def validate_annotation_classes(self):
+        if "attribute_groups" not in self._annotation_classes:
+            raise AppValidationException("Field attribute_groups is required.")
 
     def execute(self):
         existing_annotation_classes = self._annotation_classes_repo.get_all()
@@ -3421,6 +3424,7 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
         self._templates = templates
         self._annotations_to_upload = None
         self._missing_annotations = None
+        self.missing_attribute_groups = set()
 
     @property
     def s3_client(self):
@@ -3490,14 +3494,22 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
                 continue
             annotation["classId"] = annotation_classes[annotation_class_name]["id"]
             for attribute in annotation["attributes"]:
-                if (
-                    attribute["groupName"]
-                    not in annotation_classes[annotation_class_name]["attribute_groups"]
-                ):
+                if annotation_classes[annotation_class_name].get("attribute_groups"):
+                    if (
+                        attribute["groupName"]
+                        not in annotation_classes[annotation_class_name][
+                            "attribute_groups"
+                        ]
+                    ):
+                        continue
+                else:
+                    self.missing_attribute_groups.add(attribute["groupName"])
                     continue
+
                 attribute["groupId"] = annotation_classes[annotation_class_name][
                     "attribute_groups"
                 ][attribute["groupName"]]["id"]
+
                 if (
                     attribute["name"]
                     not in annotation_classes[annotation_class_name][
@@ -3649,6 +3661,10 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
                 uploaded_annotations,
                 failed_annotations,
                 missing_annotations,
+            )
+        if self.missing_attribute_groups:
+            logger.warning(
+                f"Couldn't find annotation groups [{', '.join(self.missing_attribute_groups)}]"
             )
         return self._response
 
@@ -4584,6 +4600,7 @@ class UploadImageToProject(BaseUseCase):
                 attachments=[s3_upload_response.data],
                 backend_service_provider=self._backend_client,
                 annotation_status=self._annotation_status,
+                upload_state_code=constances.UploadState.BASIC.value,
             ).execute()
         return self._response
 
@@ -4839,6 +4856,7 @@ class UploadImagesToProject(BaseInteractiveUseCase):
                         image.entity for image in uploaded_images[i : i + 100]
                     ],
                     annotation_status=self._annotation_status,
+                    upload_state_code=constances.UploadState.BASIC.value,
                 ).execute()
                 if response.errors:
                     logger.error(response.errors)

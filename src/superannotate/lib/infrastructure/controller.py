@@ -304,6 +304,7 @@ class Controller(BaseController):
             backend_service_provider=self._backend_client,
             attachments=images,
             annotation_status=annotation_status,
+            upload_state_code=constances.UploadState.BASIC.value,
         )
         return use_case.execute()
 
@@ -488,6 +489,7 @@ class Controller(BaseController):
         files: List[ImageEntity],
         folder_name: str = None,
         annotation_status: str = None,
+        upload_state_code: int = None,
     ):
         project = self._get_project(project_name)
         folder = self._get_folder(project, folder_name)
@@ -498,6 +500,7 @@ class Controller(BaseController):
             attachments=files,
             backend_service_provider=self._backend_client,
             annotation_status=annotation_status,
+            upload_state_code=upload_state_code,
         )
         return use_case.execute()
 

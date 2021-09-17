@@ -1,7 +1,9 @@
+from collections import defaultdict
 from functools import wraps
 from typing import Union
 
 from lib.core.enums import AnnotationStatus
+from lib.core.exceptions import AppException
 from pydantic import constr
 from pydantic import StrictStr
 from pydantic import validate_arguments as pydantic_validate_arguments
@@ -38,6 +40,16 @@ def validate_arguments(func):
         try:
             return pydantic_validate_arguments(func)(*args, **kwargs)
         except ValidationError as e:
-            raise e
+            messages = defaultdict(list)
+            for error in e.errors():
+                messages[error["loc"][0]].append(f"{error['loc'][-1]} {error['msg']}")
+            raise AppException(
+                "\n".join(
+                    [
+                        f"Invalid {message}: {','.join(text)}"
+                        for message, text in messages.items()
+                    ]
+                )
+            )
 
     return wrapped

@@ -114,4 +114,3 @@ class TestInterface(BaseTestCase):
                 include_overlay=True,
             )
             self.assertIsNotNone(paths)
-
