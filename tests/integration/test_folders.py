@@ -514,9 +514,7 @@ class TestFolders(BaseTestCase):
 
     def test_rename_folder_to_existing_name(self):
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1)
-        sa.create_folder(self.PROJECT_NAME, "_"*len(self.SPECIAL_CHARS))
-        sa.rename_folder(f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_1}", self.SPECIAL_CHARS)
-        folder = sa.get_folder_metadata(self.PROJECT_NAME, "_" * len(self.SPECIAL_CHARS) + " (1)")
+        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_2)
+        sa.rename_folder(f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_1}", self.TEST_FOLDER_NAME_2)
+        folder = sa.get_folder_metadata(self.PROJECT_NAME, self.TEST_FOLDER_NAME_2 + " (1)")
         self.assertIsNotNone(folder)
-
-

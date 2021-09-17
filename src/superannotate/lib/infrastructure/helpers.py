@@ -12,6 +12,7 @@ def timed_lru_cache(seconds: int, maxsize: int = 32):
 
         @wraps(func)
         def wrapped_func(*args, **kwargs):
+            wrapped_func.cache_clear = func.cache_clear
             if datetime.utcnow() >= func.expiration:
                 func.cache_clear()
                 func.expiration = datetime.utcnow() + func.lifetime

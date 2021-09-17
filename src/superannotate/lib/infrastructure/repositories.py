@@ -269,7 +269,9 @@ class FolderRepository(BaseManageableRepository):
     def update(self, entity: FolderEntity):
         project_id = entity.project_id
         team_id = entity.team_id
-        return self._service.update_folder(project_id, team_id, entity.to_dict())
+        response = self._service.update_folder(project_id, team_id, entity.to_dict())
+        if response:
+            return self.dict2entity(response)
 
     def delete(self, entity: FolderEntity):
         return self._service.delete_folders(
