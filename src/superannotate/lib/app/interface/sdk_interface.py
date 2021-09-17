@@ -38,6 +38,7 @@ from lib.app.serializers import ImageSerializer
 from lib.app.serializers import ProjectSerializer
 from lib.app.serializers import SettingsSerializer
 from lib.app.serializers import TeamSerializer
+from lib.core import LIMITED_FUNCTIONS
 from lib.core.enums import ImageQuality
 from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
@@ -549,10 +550,15 @@ def copy_image(
     source_project = controller.get_project_metadata(source_project_name).data
 
     project = controller.get_project_metadata(destination_project).data
-    if project["project"].project_type == constances.ProjectType.VIDEO.value or source_project["project"].project_type == constances.ProjectType.VIDEO.value:
-        raise AppException(
-            "The function does not support projects containing videos attached with URLs"
-        )
+
+    if project["project"].project_type in [
+        constances.ProjectType.VIDEO.value,
+        constances.ProjectType.DOCUMENT.value,
+    ] or source_project["project"].project_type in [
+        constances.ProjectType.VIDEO.value,
+        constances.ProjectType.DOCUMENT.value,
+    ]:
+        raise AppException(LIMITED_FUNCTIONS[source_project["project"].project_type])
 
     img_bytes = get_image_bytes(project=source_project, image_name=image_name)
 
@@ -808,10 +814,11 @@ def move_images(
     project_name, source_folder_name = extract_project_folder(source_project)
 
     project = controller.get_project_metadata(project_name).data
-    if project["project"].project_type == constances.ProjectType.VIDEO.value:
-        raise AppException(
-            "The function does not support projects containing videos attached with URLs"
-        )
+    if project["project"].project_type in [
+        constances.ProjectType.VIDEO.value,
+        constances.ProjectType.DOCUMENT.value,
+    ]:
+        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
 
     _, destination_folder_name = extract_project_folder(destination_project)
 
@@ -1710,6 +1717,12 @@ def upload_videos_from_folder_to_project(
     """
 
     project_name, folder_name = extract_project_folder(project)
+    project = controller.get_project_metadata(project_name).data
+    if project["project"].project_type in [
+        constances.ProjectType.VIDEO.value,
+        constances.ProjectType.DOCUMENT.value,
+    ]:
+        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
 
     video_paths = []
     for extension in extensions:
@@ -2031,10 +2044,11 @@ def move_image(
 
     source_project_name, source_folder_name = extract_project_folder(source_project)
     project = controller.get_project_metadata(source_project_name).data
-    if project["project"].project_type == constances.ProjectType.VIDEO.value:
-        raise AppException(
-            "The function does not support projects containing videos attached with URLs"
-        )
+    if project["project"].project_type in [
+        constances.ProjectType.VIDEO.value,
+        constances.ProjectType.DOCUMENT.value,
+    ]:
+        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
 
     destination_project, destination_folder = extract_project_folder(
         destination_project
@@ -2297,10 +2311,11 @@ def attach_image_urls_to_project(
     """
     project_name, folder_name = extract_project_folder(project)
     project = controller.get_project_metadata(project_name).data
-    if project["project"].project_type == constances.ProjectType.VIDEO.value:
-        raise AppException(
-            "The function does not support projects containing videos attached with URLs"
-        )
+    if project["project"].project_type in [
+        constances.ProjectType.VIDEO.value,
+        constances.ProjectType.DOCUMENT.value,
+    ]:
+        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
 
     image_data = pd.read_csv(attachments, dtype=str)
     image_data = image_data[~image_data["url"].isnull()]
@@ -2359,8 +2374,9 @@ def attach_video_urls_to_project(
     """
     project_name, folder_name = extract_project_folder(project)
     project = controller.get_project_metadata(project_name).data
-    if project["project"].project_type != constances.ProjectType.VIDEO.value:
-        raise AppException("The function does not support")
+
+    if not project["project"].project_type == constances.ProjectType.VIDEO.value:
+        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
 
     image_data = pd.read_csv(attachments, dtype=str)
     image_data = image_data[~image_data["url"].isnull()]
@@ -2435,10 +2451,11 @@ def upload_annotations_from_folder_to_project(
 
     project_name, folder_name = extract_project_folder(project)
     project = controller.get_project_metadata(project_name).data
-    if project["project"].project_type == constances.ProjectType.VIDEO.value:
-        raise AppException(
-            "The function does not support projects containing videos attached with URLs"
-        )
+    if project["project"].project_type in [
+        constances.ProjectType.VIDEO.value,
+        constances.ProjectType.DOCUMENT.value,
+    ]:
+        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
 
     if recursive_subfolders:
         logger.info(
@@ -2507,10 +2524,11 @@ def upload_preannotations_from_folder_to_project(
     """
     project_name, folder_name = extract_project_folder(project)
     project = controller.get_project_metadata(project_name).data
-    if project["project"].project_type == constances.ProjectType.VIDEO.value:
-        raise AppException(
-            "The function does not support projects containing videos attached with URLs"
-        )
+    if project["project"].project_type in [
+        constances.ProjectType.VIDEO.value,
+        constances.ProjectType.DOCUMENT.value,
+    ]:
+        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
 
     if recursive_subfolders:
         logger.info(
@@ -2791,6 +2809,13 @@ def benchmark(
     project_name = project
     if isinstance(project, dict):
         project_name = project["name"]
+
+    project = controller.get_project_metadata(project_name).data
+    if project["project"].project_type in [
+        constances.ProjectType.VIDEO.value,
+        constances.ProjectType.DOCUMENT.value,
+    ]:
+        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
 
     if export_root is None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -3370,10 +3395,11 @@ def upload_image_to_project(
     project_name, folder_name = extract_project_folder(project)
 
     project = controller.get_project_metadata(project_name).data
-    if project["project"].project_type == constances.ProjectType.VIDEO.value:
-        raise AppException(
-            "The function does not support projects containing videos attached with URLs"
-        )
+    if project["project"].project_type in [
+        constances.ProjectType.VIDEO.value,
+        constances.ProjectType.DOCUMENT.value,
+    ]:
+        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
 
     if not isinstance(img, io.BytesIO):
         if from_s3_bucket:
@@ -3465,10 +3491,11 @@ def upload_images_to_project(
     failed_images = []
     project_name, folder_name = extract_project_folder(project)
     project = controller.get_project_metadata(project_name).data
-    if project["project"].project_type == constances.ProjectType.VIDEO.value:
-        raise AppException(
-            "The function does not support projects containing videos attached with URLs"
-        )
+    if project["project"].project_type in [
+        constances.ProjectType.VIDEO.value,
+        constances.ProjectType.DOCUMENT.value,
+    ]:
+        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
 
     ProcessedImage = namedtuple("ProcessedImage", ["uploaded", "path", "entity"])
 
@@ -3652,6 +3679,10 @@ def attach_document_urls_to_project(
     :rtype: tuple
     """
     project_name, folder_name = extract_project_folder(project)
+    project = controller.get_project_metadata(project_name).data
+
+    if not project["project"].project_type == constances.ProjectType.DOCUMENT.value:
+        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
 
     image_data = pd.read_csv(attachments, dtype=str)
     image_data = image_data[~image_data["url"].isnull()]

@@ -182,7 +182,7 @@ def sa_convert_project_type(input_dir, output_dir):
         img_names = from_vector_to_pixel(json_paths, output_dir)
     elif ".json" in json_paths[0].name:
         raise AppException(
-            "The function does not support projects containing videos / document attached with URLs"
+            "The function does not support projects containing videos / documents attached with URLs"
         )
     else:
         raise AppException(

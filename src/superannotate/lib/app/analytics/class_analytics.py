@@ -32,7 +32,7 @@ def class_distribution(export_root, project_names, visualize=False):
         and "___objects.json" not in json_paths[0].name
     ):
         raise AppException(
-            "The function does not support projects containing videos attached with URLs"
+            "The function does not support projects containing videos / documents attached with URLs"
         )
 
     logger.info(

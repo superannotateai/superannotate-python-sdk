@@ -1,10 +1,7 @@
-from urllib.parse import urlparse
 import os
 from os.path import dirname
 import src.superannotate as sa
 from tests.integration.base import BaseTestCase
-from pydantic import ValidationError
-import pytest
 from src.superannotate.lib.core import LIMITED_FUNCTIONS
 from src.superannotate.lib.core import ProjectType
 
@@ -20,7 +17,7 @@ class TestDepricatedFunctions(BaseTestCase):
     PROJECT_DESCRIPTION_2 = "second project"
     PROJECT_TYPE_2 = "Vector"
     EXCEPTION_MESSAGE = LIMITED_FUNCTIONS[ProjectType.VIDEO.value]
-    EXCEPTION_MESSAGE_DOCUMENT_VIDEO = "The function does not support projects containing videos / document attached with URLs"
+    EXCEPTION_MESSAGE_DOCUMENT_VIDEO = "The function does not support projects containing videos / documents attached with URLs"
 
 
     def setUp(self, *args, **kwargs):
@@ -248,7 +245,7 @@ class TestDepricatedFunctions(BaseTestCase):
             sa.class_distribution(self.video_export_path, [self.PROJECT_NAME])
         except Exception as e:
             msg = str(e)
-        self.assertIn(self.EXCEPTION_MESSAGE, msg)
+        self.assertIn(self.EXCEPTION_MESSAGE_DOCUMENT_VIDEO, msg)
         try:
             msg = ""
             sa.convert_project_type(self.video_export_path,"./")
@@ -261,8 +258,27 @@ class TestDepricatedFunctions(BaseTestCase):
         except Exception as e:
             msg = str(e)
         self.assertIn("Include fuse functionality is not supported", msg)
-
-
+        try:
+            msg = ""
+            sa.attach_document_urls_to_project(
+                self.PROJECT_NAME,
+                os.path.join(dirname(dirname(__file__)), self.PATH_TO_URLS),
+            )
+        except Exception as e:
+            msg = str(e)
+        self.assertIn(self.EXCEPTION_MESSAGE, msg)
+        try:
+            msg = ""
+            sa.benchmark(self.PROJECT_NAME, "some", ["some folder1"])
+        except Exception as e:
+            msg = str(e)
+        self.assertIn(self.EXCEPTION_MESSAGE, msg)
+        try:
+            msg = ""
+            sa.upload_videos_from_folder_to_project(self.PROJECT_NAME, self.folder_path)
+        except Exception as e:
+            msg = str(e)
+        self.assertIn(self.EXCEPTION_MESSAGE, msg)
 
         # TODO: need feedback
         # try:
@@ -274,23 +290,6 @@ class TestDepricatedFunctions(BaseTestCase):
         # except Exception as e:
         #     msg = str(e)
         # self.assertIn(self.EXCEPTION_MESSAGE, msg)
-        # TODO: needs change on use code
-        # try:
-        #     msg = ""
-        #     sa.benchmark(self.PROJECT_NAME, "some", ["some folder1"])
-        # except Exception as e:
-        #     msg = str(e)
-        # self.assertIn(self.EXCEPTION_MESSAGE, msg)
-        # TODO: fix this after merge
-        # try:
-        #     msg = ""
-        #     sa.attach_document_urls_to_project(
-        #         self.PROJECT_NAME,
-        #         os.path.join(dirname(dirname(__file__)), self.PATH_TO_URLS),
-        #     )
-        # except Exception as e:
-        #     msg = str(e)
-        # self.assertIn(self.EXCEPTION_MESSAGE, msg)
         # TODO: returns None for not existing contributer
         # try:
         #     msg = ""
@@ -298,13 +297,7 @@ class TestDepricatedFunctions(BaseTestCase):
         # except Exception as e:
         #     msg = str(e)
         # self.assertIn(self.EXCEPTION_MESSAGE, msg)
-        # TODO: needs change on use case code
-        # try:
-        #     msg = ""
-        #     sa.upload_videos_from_folder_to_project(self.PROJECT_NAME, self.folder_path)
-        # except Exception as e:
-        #     msg = str(e)
-        # self.assertIn(self.EXCEPTION_MESSAGE, msg)
+
 
 
 
