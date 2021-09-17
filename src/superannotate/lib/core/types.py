@@ -4,6 +4,7 @@ from typing import Union
 
 from pydantic import BaseModel
 from pydantic import constr
+from pydantic import Extra
 from pydantic import StrictStr
 
 
@@ -21,8 +22,8 @@ class AttributeGroup(BaseModel):
 
 class ClassesJson(BaseModel):
     name: StrictStr
-    color: StrictStr
-    attribute_groups: List[AttributeGroup]
+    color: Optional[StrictStr]
+    attribute_groups: Optional[List[AttributeGroup]]
 
 
 class Metadata(BaseModel):
@@ -119,3 +120,21 @@ class PixelAnnotationInstance(BaseModel):
 class PixelAnnotation(BaseModel):
     metadata: Metadata
     instances: List[PixelAnnotationInstance]
+
+
+class Project(BaseModel):
+    name: NotEmptyStr
+
+    class Config:
+        extra = Extra.allow
+
+
+class MLModel(BaseModel):
+    name: NotEmptyStr
+    id: int
+    path: NotEmptyStr
+    config_path: NotEmptyStr
+    team_id: Optional[int]
+
+    class Config:
+        extra = Extra.allow

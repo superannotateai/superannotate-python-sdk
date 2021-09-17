@@ -1,8 +1,10 @@
 import copy
 import io
+from pathlib import Path
 from typing import Iterable
 from typing import List
 from typing import Optional
+from typing import Union
 
 import lib.core as constances
 from lib.core import usecases
@@ -57,6 +59,7 @@ class BaseController(metaclass=SingleInstanceMetaClass):
         self._team_id = None
         self._user_id = None
         self._team_name = None
+        self._team = None
         self.init(config_path)
 
     def init(self, config_path):
@@ -84,8 +87,10 @@ class BaseController(metaclass=SingleInstanceMetaClass):
                 verify_ssl=verify_ssl,
             )
         else:
-            self._backend_client.api_url = self.configs.get_one("main_endpoint").value
-            self._backend_client._auth_token = self.configs.get_one("token").value
+            self._backend_client.api_url = main_endpoint
+            self._backend_client._auth_token = token
+        self._team_id = int(self.configs.get_one("token").value.split("=")[-1])
+        self._team = None
 
     @property
     def config_path(self):
@@ -293,17 +298,13 @@ class Controller(BaseController):
     ):
         project = self._get_project(project_name)
         folder = self._get_folder(project, folder_name)
-        limit = self.get_auth_data(project.uuid, project.team_id, folder.uuid)[
-            "availableImageCount"
-        ]
-
         use_case = usecases.AttachFileUrlsUseCase(
             project=project,
             folder=folder,
-            limit=limit,
             backend_service_provider=self._backend_client,
             attachments=images,
             annotation_status=annotation_status,
+            upload_state_code=constances.UploadState.BASIC.value,
         )
         return use_case.execute()
 
@@ -331,6 +332,67 @@ class Controller(BaseController):
             image_quality_in_editor=image_quality_in_editor,
         )
         return use_case.execute()
+
+    def upload_image_to_project(
+        self,
+        project_name: str,
+        folder_name: str,
+        image_name: str,
+        image: Union[str, io.BytesIO] = None,
+        annotation_status: str = None,
+        image_quality_in_editor: str = None,
+        from_s3_bucket=None,
+    ):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+        image_bytes = None
+        image_path = None
+        if isinstance(image, (str, Path)):
+            image_path = image
+        else:
+            image_bytes = image
+
+        return usecases.UploadImageToProject(
+            project=project,
+            folder=folder,
+            settings=ProjectSettingsRepository(
+                service=self._backend_client, project=project
+            ),
+            s3_repo=self.s3_repo,
+            backend_client=self._backend_client,
+            image_path=image_path,
+            image_bytes=image_bytes,
+            image_name=image_name,
+            from_s3_bucket=from_s3_bucket,
+            annotation_status=annotation_status,
+            image_quality_in_editor=image_quality_in_editor,
+        ).execute()
+
+    def upload_images_to_project(
+        self,
+        project_name: str,
+        folder_name: str,
+        paths: List[str],
+        annotation_status: str = None,
+        image_quality_in_editor: str = None,
+        from_s3_bucket=None,
+    ):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+
+        return usecases.UploadImagesToProject(
+            project=project,
+            folder=folder,
+            settings=ProjectSettingsRepository(
+                service=self._backend_client, project=project
+            ),
+            s3_repo=self.s3_repo,
+            backend_client=self._backend_client,
+            paths=paths,
+            from_s3_bucket=from_s3_bucket,
+            annotation_status=annotation_status,
+            image_quality_in_editor=image_quality_in_editor,
+        )
 
     def upload_images_from_folder_to_project(
         self,
@@ -362,6 +424,31 @@ class Controller(BaseController):
             exclude_file_patterns=exclude_file_patterns,
             recursive_sub_folders=recursive_sub_folders,
             image_quality_in_editor=image_quality_in_editor,
+        )
+
+    def upload_images_from_public_urls_to_project(
+        self,
+        project_name: str,
+        folder_name: str,
+        image_urls: List[str],
+        image_names: List[str] = None,
+        annotation_status: str = None,
+        image_quality_in_editor: str = None,
+    ):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+        return usecases.UploadImagesFromPublicUrls(
+            project=project,
+            folder=folder,
+            image_urls=image_urls,
+            image_names=image_names,
+            backend_service=self._backend_client,
+            settings=ProjectSettingsRepository(
+                service=self._backend_client, project=project
+            ),
+            s3_repo=self.get_s3_repository(self.team_id, project.uuid, folder.uuid),
+            image_quality_in_editor=image_quality_in_editor,
+            annotation_status=annotation_status,
         )
 
     def clone_project(
@@ -402,20 +489,18 @@ class Controller(BaseController):
         files: List[ImageEntity],
         folder_name: str = None,
         annotation_status: str = None,
+        upload_state_code: int = None,
     ):
         project = self._get_project(project_name)
         folder = self._get_folder(project, folder_name)
-        auth_data = self.get_auth_data(project.uuid, project.team_id, folder.uuid)
-
-        limit = auth_data["availableImageCount"]
 
         use_case = usecases.AttachFileUrlsUseCase(
             project=project,
             folder=folder,
             attachments=files,
-            limit=limit,
             backend_service_provider=self._backend_client,
             annotation_status=annotation_status,
+            upload_state_code=upload_state_code,
         )
         return use_case.execute()
 
@@ -912,6 +997,9 @@ class Controller(BaseController):
             image_name=image_name,
             images=ImageRepository(service=self._backend_client),
             destination=destination,
+            annotation_classes=AnnotationClassRepository(
+                service=self._backend_client, project=project
+            ),
         )
         return use_case.execute()
 
@@ -1148,6 +1236,9 @@ class Controller(BaseController):
             include_annotations=include_annotations,
             include_fuse=include_fuse,
             include_overlay=include_overlay,
+            annotation_classes=AnnotationClassRepository(
+                service=self._backend_client, project=project
+            ),
         )
         return use_case.execute()
 
@@ -1496,3 +1587,14 @@ class Controller(BaseController):
             images=images,
         )
         return use_case.execute().data
+
+    def get_project_limitations(self, project_name: str, folder_name: str):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+
+        return usecases.GetUserLimitsUseCase(
+            service=self._backend_client,
+            project_id=project.uuid,
+            team_id=project.team_id,
+            folder_id=folder.uuid,
+        ).execute()

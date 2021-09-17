@@ -148,13 +148,6 @@ def save_web_format(output_dir, classes, files_dict):
         json.dump(classes, fw)
 
 
-def dump_output(output_dir, platform, classes, files_dict):
-    if platform == "Web":
-        save_web_format(output_dir, classes, files_dict)
-    else:
-        save_desktop_format(output_dir, classes, files_dict)
-
-
 def write_to_json(output_path, json_data):
     with open(output_path, "w") as fw:
         json.dump(json_data, fw, indent=2)
