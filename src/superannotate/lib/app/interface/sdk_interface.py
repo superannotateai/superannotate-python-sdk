@@ -40,7 +40,10 @@ from lib.app.serializers import SettingsSerializer
 from lib.app.serializers import TeamSerializer
 from lib.core.enums import ImageQuality
 from lib.core.exceptions import AppException
+from lib.core.exceptions import AppValidationException
+from lib.core.types import AttributeGroup
 from lib.core.types import ClassesJson
+from lib.core.types import Project
 from lib.infrastructure.controller import Controller
 from plotly.subplots import make_subplots
 from pydantic import EmailStr
@@ -199,7 +202,7 @@ def create_project(
 
 @Trackable
 @validate_arguments
-def create_project_from_metadata(project_metadata: dict):
+def create_project_from_metadata(project_metadata: Project):
     """Create a new project in the team using project metadata object dict.
     Mandatory keys in project_metadata are "name", "description" and "type" (Vector or Pixel)
     Non-mandatory keys: "workflow", "contributors", "settings" and "annotation_classes".
@@ -207,6 +210,7 @@ def create_project_from_metadata(project_metadata: dict):
     :return: dict object metadata the new project
     :rtype: dict
     """
+    project_metadata = project_metadata.dict()
     response = controller.create_project(
         name=project_metadata["name"],
         description=project_metadata["description"],
@@ -622,22 +626,100 @@ def upload_images_from_public_urls_to_project(
     :rtype: tuple of list of strs
     """
 
+    if img_names is not None and len(img_names) != len(img_urls):
+        raise AppException("Not all image URLs have corresponding names.")
+
     project_name, folder_name = extract_project_folder(project)
 
-    use_case = controller.upload_images_from_public_urls_to_project(
-        project_name=project_name,
-        folder_name=folder_name,
-        image_urls=img_urls,
-        image_names=img_names,
-        annotation_status=annotation_status,
-        image_quality_in_editor=image_quality_in_editor,
-    )
-    if use_case.is_valid():
-        with tqdm(total=len(img_urls), desc="Uploading images") as progress_bar:
-            for _ in use_case.execute():
+    images_to_upload = []
+    ProcessedImage = namedtuple("ProcessedImage", ["url", "uploaded", "path", "entity"])
+
+    def _upload_image(image_url, image_name=None) -> ProcessedImage:
+        download_response = controller.download_image_from_public_url(
+            project_name=project_name, image_url=image_url
+        )
+        if not download_response.errors:
+            content, content_name = download_response.data
+            image_name = image_name if image_name else content_name
+            duplicated_images = [
+                image.name
+                for image in controller.get_duplicated_images(
+                    project_name=project_name,
+                    folder_name=folder_name,
+                    images=[image_name],
+                )
+            ]
+            if image_name not in duplicated_images:
+                upload_response = controller.upload_image_to_s3(
+                    project_name=project_name,
+                    image_path=image_name,
+                    image_bytes=content,
+                    folder_name=folder_name,
+                    image_quality_in_editor=image_quality_in_editor,
+                )
+                if upload_response.errors:
+                    logger.warning(upload_response.errors)
+                else:
+                    return ProcessedImage(
+                        url=image_url,
+                        uploaded=True,
+                        path=image_url,
+                        entity=upload_response.data,
+                    )
+        logger.warning(download_response.errors)
+        return ProcessedImage(
+            url=image_url, uploaded=False, path=image_name, entity=None
+        )
+
+    logger.info("Downloading %s images", len(img_urls))
+    with tqdm(total=len(img_urls), desc="Downloading") as progress_bar:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            failed_images = []
+            if img_names:
+                results = [
+                    executor.submit(_upload_image, url, img_urls[idx])
+                    for idx, url in enumerate(img_urls)
+                ]
+            else:
+                results = [executor.submit(_upload_image, url) for url in img_urls]
+            for future in concurrent.futures.as_completed(results):
+                processed_image = future.result()
+                if processed_image.uploaded and processed_image.entity:
+                    images_to_upload.append(processed_image)
+                else:
+                    failed_images.append(processed_image)
                 progress_bar.update(1)
-        return use_case.data
-    raise AppException(use_case.response.errors)
+
+    uploaded = []
+    duplicates = []
+    for i in range(0, len(images_to_upload), 500):
+        response = controller.upload_images(
+            project_name=project_name,
+            folder_name=folder_name,
+            images=[
+                image.entity for image in images_to_upload[i : i + 500]  # noqa: E203
+            ],
+            annotation_status=annotation_status,
+        )
+
+        attachments, duplications = response.data
+        uploaded.extend([attachment["name"] for attachment in attachments])
+        duplicates.extend([duplication["name"] for duplication in duplications])
+    uploaded_image_urls = list(
+        {
+            image.entity.name
+            for image in images_to_upload
+            if image.entity.name in uploaded
+        }
+    )
+    failed_image_urls = [image.url for image in failed_images]
+
+    return (
+        uploaded_image_urls,
+        uploaded,
+        duplicates,
+        failed_image_urls,
+    )
 
 
 @Trackable
@@ -1776,10 +1858,10 @@ def upload_video_to_project(
 @Trackable
 @validate_arguments
 def create_annotation_class(
-    project: Union[dict, str],
-    name: str,
-    color: str,
-    attribute_groups: Optional[List[dict]] = None,
+    project: Union[Project, NotEmptyStr],
+    name: NotEmptyStr,
+    color: NotEmptyStr,
+    attribute_groups: Optional[List[AttributeGroup]] = None,
 ):
     """Create annotation class in project
 
@@ -1797,6 +1879,11 @@ def create_annotation_class(
     :return: new class metadata
     :rtype: dict
     """
+    if isinstance(project, Project):
+        project = project.dict()
+    attribute_groups = (
+        list(map(lambda x: x.dict(), attribute_groups)) if attribute_groups else None
+    )
     response = controller.create_annotation_class(
         project_name=project, name=name, color=color, attribute_groups=attribute_groups
     )
@@ -1853,6 +1940,8 @@ def download_annotation_classes_json(project: str, folder: Union[str, Path]):
     response = controller.download_annotation_classes(
         project_name=project, download_path=folder
     )
+    if response.errors:
+        raise AppException(response.errors)
     return response.data
 
 
@@ -3275,20 +3364,35 @@ def upload_image_to_project(
     :type image_quality_in_editor: str
     """
     project_name, folder_name = extract_project_folder(project)
-    response = controller.upload_image_to_project(
+
+    project = controller.get_project_metadata(project_name).data
+    if project["project"].project_type == constances.ProjectType.VIDEO.value:
+        raise AppException(
+            "The function does not support projects containing videos attached with URLs"
+        )
+
+    if not isinstance(img, io.BytesIO):
+        if from_s3_bucket:
+            image_bytes = controller.get_image_from_s3(from_s3_bucket, image_name)
+        else:
+            image_bytes = io.BytesIO(open(img, "rb").read())
+    else:
+        image_bytes = img
+    upload_response = controller.upload_image_to_s3(
+        project_name=project_name,
+        image_path=image_name if image_name else Path(img).name,
+        image_bytes=image_bytes,
+        folder_name=folder_name,
+        image_quality_in_editor=image_quality_in_editor,
+    )
+    controller.upload_images(
         project_name=project_name,
         folder_name=folder_name,
-        image_name=image_name,
-        image=img,
+        images=[upload_response.data],  # noqa: E203
         annotation_status=annotation_status,
-        image_quality_in_editor=image_quality_in_editor,
-        from_s3_bucket=from_s3_bucket,
     )
-    if response.errors:
-        raise AppException(response.errors)
 
 
-@validate_arguments
 def search_models(
     name: Optional[NotEmptyStr] = None,
     type_: Optional[NotEmptyStr] = None,
@@ -3353,31 +3457,103 @@ def upload_images_to_project(
     :return: uploaded, could-not-upload, existing-images filepaths
     :rtype: tuple (3 members) of list of strs
     """
+    uploaded_image_entities = []
+    failed_images = []
     project_name, folder_name = extract_project_folder(project)
+    project = controller.get_project_metadata(project_name).data
+    if project["project"].project_type == constances.ProjectType.VIDEO.value:
+        raise AppException(
+            "The function does not support projects containing videos attached with URLs"
+        )
 
-    project_folder_name = project_name + (f"/{folder_name}" if folder_name else "")
-    use_case = controller.upload_images_to_project(
-        project_name=project_name,
-        folder_name=folder_name,
-        annotation_status=annotation_status,
-        image_quality_in_editor=image_quality_in_editor,
-        paths=img_paths,
-        from_s3_bucket=from_s3_bucket,
+    ProcessedImage = namedtuple("ProcessedImage", ["uploaded", "path", "entity"])
+
+    def _upload_local_image(image_path: str):
+        try:
+            with open(image_path, "rb") as image:
+                image_bytes = BytesIO(image.read())
+                upload_response = controller.upload_image_to_s3(
+                    project_name=project_name,
+                    image_path=image_path,
+                    image_bytes=image_bytes,
+                    folder_name=folder_name,
+                    image_quality_in_editor=image_quality_in_editor,
+                )
+
+                if not upload_response.errors and upload_response.data:
+                    entity = upload_response.data
+                    return ProcessedImage(
+                        uploaded=True, path=entity.path, entity=entity
+                    )
+                else:
+                    return ProcessedImage(uploaded=False, path=image_path, entity=None)
+        except FileNotFoundError:
+            return ProcessedImage(uploaded=False, path=image_path, entity=None)
+
+    def _upload_s3_image(image_path: str):
+        try:
+            image_bytes = controller.get_image_from_s3(
+                s3_bucket=from_s3_bucket, image_path=image_path
+            ).data
+        except AppValidationException as e:
+            logger.warning(e)
+            return image_path
+        upload_response = controller.upload_image_to_s3(
+            project_name=project_name,
+            image_path=image_path,
+            image_bytes=image_bytes,
+            folder_name=folder_name,
+            image_quality_in_editor=image_quality_in_editor,
+        )
+        if not upload_response.errors and upload_response.data:
+            entity = upload_response.data
+            return ProcessedImage(uploaded=True, path=entity.path, entity=entity)
+        else:
+            return ProcessedImage(uploaded=False, path=image_path, entity=None)
+
+    filtered_paths = img_paths
+    duplication_counter = Counter(filtered_paths)
+    images_to_upload, duplicated_images = (
+        set(filtered_paths),
+        [item for item in duplication_counter if duplication_counter[item] > 1],
     )
-    images_to_upload, duplicates = use_case.images_to_upload
+    upload_method = _upload_s3_image if from_s3_bucket else _upload_local_image
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        results = [
+            executor.submit(upload_method, image_path)
+            for image_path in images_to_upload
+        ]
+        with tqdm(total=len(images_to_upload), desc="Uploading images") as progress_bar:
+            for future in concurrent.futures.as_completed(results):
+                processed_image = future.result()
+                if processed_image.uploaded and processed_image.entity:
+                    uploaded_image_entities.append(processed_image.entity)
+                else:
+                    failed_images.append(processed_image.path)
+                progress_bar.update(1)
+    uploaded = []
+    duplicates = []
+
+    logger.info("Uploading %s images to project.", len(images_to_upload))
+
+    for i in range(0, len(uploaded_image_entities), 500):
+        response = controller.upload_images(
+            project_name=project_name,
+            folder_name=folder_name,
+            images=uploaded_image_entities[i : i + 500],  # noqa: E203
+            annotation_status=annotation_status,
+        )
+        attachments, duplications = response.data
+        uploaded.extend(attachments)
+        duplicates.extend(duplications)
+
     if len(duplicates):
         logger.warning(
             "%s already existing images found that won't be uploaded.", len(duplicates)
         )
-    logger.info(
-        "Uploading %s images to project %s.", len(images_to_upload), project_folder_name
-    )
-    if use_case.is_valid():
-        with tqdm(total=len(images_to_upload), desc="Uploading images") as progress_bar:
-            for _ in use_case.execute():
-                progress_bar.update(1)
-        return use_case.data
-    raise AppException(use_case.response.errors)
+
+    return uploaded, failed_images, duplicates
 
 
 @Trackable

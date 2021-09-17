@@ -4,6 +4,7 @@ from typing import Union
 
 from pydantic import BaseModel
 from pydantic import constr
+from pydantic import Extra
 from pydantic import StrictStr
 
 
@@ -119,3 +120,10 @@ class PixelAnnotationInstance(BaseModel):
 class PixelAnnotation(BaseModel):
     metadata: Metadata
     instances: List[PixelAnnotationInstance]
+
+
+class Project(BaseModel):
+    name: NotEmptyStr
+
+    class Config:
+        extra = Extra.allow

@@ -24,6 +24,22 @@ class BaseEntity(ABC):
         raise NotImplementedError
 
 
+class BaseTimedEntity(BaseEntity):
+    def __init__(
+        self, uuid: Any = None, createdAt: str = None, updatedAt: str = None,
+    ):
+        super().__init__(uuid)
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+
+    def to_dict(self):
+        return {
+            "id": self.uuid,
+            "createdAt": self.createdAt,
+            "updatedAt": self.updatedAt,
+        }
+
+
 class ConfigEntity(BaseEntity):
     def __init__(self, uuid: str, value: str):
         super().__init__(uuid)
@@ -41,10 +57,12 @@ class ConfigEntity(BaseEntity):
         return {"key": self.uuid, "value": self.value}
 
 
-class ProjectEntity(BaseEntity):
+class ProjectEntity(BaseTimedEntity):
     def __init__(
         self,
         uuid: int = None,
+        createdAt: str = None,
+        updatedAt: str = None,
         team_id: int = None,
         name: str = None,
         project_type: int = None,
@@ -65,7 +83,7 @@ class ProjectEntity(BaseEntity):
         completed_images_count: int = None,
         root_folder_completed_images_count: int = None,
     ):
-        super().__init__(uuid)
+        super().__init__(uuid, createdAt, updatedAt)
         self.team_id = team_id
         self.name = name
         self.project_type = project_type
@@ -100,7 +118,7 @@ class ProjectEntity(BaseEntity):
 
     def to_dict(self):
         return {
-            "id": self.uuid,
+            **super().to_dict(),
             "team_id": self.team_id,
             "name": self.name,
             "type": self.project_type,
@@ -175,17 +193,19 @@ class WorkflowEntity(BaseEntity):
         }
 
 
-class FolderEntity(BaseEntity):
+class FolderEntity(BaseTimedEntity):
     def __init__(
         self,
         uuid: int = None,
+        createdAt: str = None,
+        updatedAt: str = None,
         project_id: int = None,
         parent_id: int = None,
         team_id: int = None,
         name: str = None,
         folder_users: List[dict] = None,
     ):
-        super().__init__(uuid)
+        super().__init__(uuid, createdAt, updatedAt)
         self.team_id = team_id
         self.project_id = project_id
         self.name = name
@@ -194,6 +214,7 @@ class FolderEntity(BaseEntity):
 
     def to_dict(self):
         return {
+            **super().to_dict(),
             "id": self.uuid,
             "team_id": self.team_id,
             "name": self.name,
@@ -301,22 +322,26 @@ class S3FileEntity(BaseEntity):
         return {"uuid": self.uuid, "bytes": self.data, "metadata": self.metadata}
 
 
-class AnnotationClassEntity(BaseEntity):
+class AnnotationClassEntity(BaseTimedEntity):
     def __init__(
         self,
         uuid: int = None,
+        createdAt: str = None,
+        updatedAt: str = None,
         color: str = None,
         count: int = None,
         name: str = None,
         project_id: int = None,
         attribute_groups: Iterable = None,
     ):
-        super().__init__(uuid)
+        super().__init__(uuid, createdAt, updatedAt)
         self.color = color
         self.count = count
         self.name = name
         self.project_id = project_id
         self.attribute_groups = attribute_groups
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
 
     def __copy__(self):
         return AnnotationClassEntity(
@@ -328,7 +353,7 @@ class AnnotationClassEntity(BaseEntity):
 
     def to_dict(self):
         return {
-            "id": self.uuid,
+            **super().to_dict(),
             "color": self.color,
             "count": self.count,
             "name": self.name,
@@ -402,12 +427,14 @@ class TeamEntity(BaseEntity):
         }
 
 
-class MLModelEntity(BaseEntity):
+class MLModelEntity(BaseTimedEntity):
     def __init__(
         self,
         uuid: int = None,
         team_id: int = None,
         name: str = None,
+        createdAt: str = None,
+        updatedAt: str = None,
         path: str = None,
         config_path: str = None,
         model_type: int = None,
@@ -423,7 +450,7 @@ class MLModelEntity(BaseEntity):
         is_global: bool = None,
         hyper_parameters: dict = {},
     ):
-        super().__init__(uuid=uuid)
+        super().__init__(uuid, createdAt, updatedAt)
         self.name = name
         self.path = path
         self.team_id = team_id
@@ -443,7 +470,7 @@ class MLModelEntity(BaseEntity):
 
     def to_dict(self):
         return {
-            "id": self.uuid,
+            **super().to_dict(),
             "name": self.name,
             "team_id": self.team_id,
             "description": self.description,
