@@ -21,8 +21,8 @@ class TestImageUrls(BaseTestCase):
 
         self.assertEqual(UploadState.EXTERNAL.name, project_metadata["upload_state"])
 
-        self.assertEqual(len(uploaded), 8)
-        self.assertEqual(len(could_not_upload), 1)
+        self.assertEqual(len(uploaded), 7)
+        self.assertEqual(len(could_not_upload), 0)
         self.assertEqual(len(existing_images), 1)
         images = sa.search_images(project=self.PROJECT_NAME, return_metadata=True)
         self.assertTrue(all([image["name"] for image in images]))
