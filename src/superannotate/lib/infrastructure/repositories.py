@@ -336,6 +336,8 @@ class AnnotationClassRepository(BaseManageableRepository):
             name=data["name"],
             count=data["count"],
             color=data["color"],
+            createdAt=data["createdAt"],
+            updatedAt=data["updatedAt"],
             attribute_groups=data["attribute_groups"],
         )
 

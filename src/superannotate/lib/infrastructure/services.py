@@ -161,7 +161,6 @@ class SuperannotateBackendService(BaseBackendService):
     URL_GET_FOLDER_BY_NAME = "folder/getFolderByName"
     URL_CREATE_FOLDER = "folder"
     URL_UPDATE_FOLDER = "folder/{}"
-    URL_FOLDERS = "folder"
     URL_GET_IMAGE = "image/{}"
     URL_GET_IMAGES = "images"
     URL_BULK_GET_IMAGES = "images/getBulk"
