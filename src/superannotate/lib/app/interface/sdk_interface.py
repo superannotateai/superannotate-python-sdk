@@ -43,6 +43,7 @@ from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
 from lib.core.types import AttributeGroup
 from lib.core.types import ClassesJson
+from lib.core.types import MLModel
 from lib.core.types import Project
 from lib.infrastructure.controller import Controller
 from plotly.subplots import make_subplots
@@ -2269,7 +2270,6 @@ def download_image(
     )
     if response.errors:
         raise AppException(response.errors)
-    logger.info(f"Downloaded image {image_name} to {local_dir_path} ")
     return response.data
 
 
@@ -2734,7 +2734,7 @@ def stop_model_training(model: dict):
 
 @Trackable
 @validate_arguments
-def download_model(model: dict, output_dir: Union[str, Path]):
+def download_model(model: MLModel, output_dir: Union[str, Path]):
     """Downloads the neural network and related files
     which are the <model_name>.pth/pkl. <model_name>.json, <model_name>.yaml, classes_mapper.json
 
@@ -2745,8 +2745,9 @@ def download_model(model: dict, output_dir: Union[str, Path]):
     :return: the metadata of the model
     :rtype: dict
     """
-
-    res = controller.download_ml_model(model_data=model, download_path=output_dir)
+    res = controller.download_ml_model(
+        model_data=model.dict(), download_path=output_dir
+    )
     if res.errors:
         logger.error("\n".join([str(error) for error in res.errors]))
     else:

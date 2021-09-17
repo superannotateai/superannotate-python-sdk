@@ -97,3 +97,21 @@ class TestInterface(BaseTestCase):
         sa.set_image_annotation_status(self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, "Completed")
         data = sa.search_projects(self.PROJECT_NAME, return_metadata=True, include_complete_image_count=True)
         self.assertIsNotNone(data[0]['completed_images_count'])
+
+    def test_overlay_fuse(self):
+        sa.upload_image_to_project(self.PROJECT_NAME, f"{self.folder_path}/{self.EXAMPLE_IMAGE_1}")
+        sa.create_annotation_classes_from_classes_json(self.PROJECT_NAME, f"{self.folder_path}/classes/classes.json")
+        sa.upload_image_annotations(
+            self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, f"{self.folder_path}/{self.EXAMPLE_IMAGE_1}___objects.json"
+        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            paths = sa.download_image(
+                self.PROJECT_NAME,
+                self.EXAMPLE_IMAGE_1,
+                temp_dir,
+                include_annotations=True,
+                include_fuse=True,
+                include_overlay=True,
+            )
+            self.assertIsNotNone(paths)
+

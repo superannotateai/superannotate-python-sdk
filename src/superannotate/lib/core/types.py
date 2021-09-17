@@ -127,3 +127,14 @@ class Project(BaseModel):
 
     class Config:
         extra = Extra.allow
+
+
+class MLModel(BaseModel):
+    name: NotEmptyStr
+    id: int
+    path: NotEmptyStr
+    config_path: NotEmptyStr
+    team_id: Optional[int]
+
+    class Config:
+        extra = Extra.allow

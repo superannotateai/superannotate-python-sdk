@@ -994,6 +994,9 @@ class Controller(BaseController):
             image_name=image_name,
             images=ImageRepository(service=self._backend_client),
             destination=destination,
+            annotation_classes=AnnotationClassRepository(
+                service=self._backend_client, project=project
+            ),
         )
         return use_case.execute()
 
@@ -1230,6 +1233,9 @@ class Controller(BaseController):
             include_annotations=include_annotations,
             include_fuse=include_fuse,
             include_overlay=include_overlay,
+            annotation_classes=AnnotationClassRepository(
+                service=self._backend_client, project=project
+            ),
         )
         return use_case.execute()
 

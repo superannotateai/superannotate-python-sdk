@@ -2206,6 +2206,7 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
         image_name: str,
         images: BaseManageableRepository,
         destination: str,
+        annotation_classes: BaseManageableRepository,
     ):
         super().__init__()
         self._service = service
@@ -2214,6 +2215,7 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
         self._image_name = image_name
         self._images = images
         self._destination = destination
+        self._annotation_classes = annotation_classes
 
     @property
     def image_use_case(self):
@@ -2230,6 +2232,85 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
             raise AppValidationException(
                 constances.LIMITED_FUNCTIONS[self._project.project_type]
             )
+
+    @property
+    def annotation_classes_name_map(self) -> dict:
+        classes_data = defaultdict(dict)
+        annotation_classes = self._annotation_classes.get_all()
+        for annotation_class in annotation_classes:
+            class_info = {"id": annotation_class.uuid}
+            if annotation_class.attribute_groups:
+                for attribute_group in annotation_class.attribute_groups:
+                    attribute_group_data = defaultdict(dict)
+                    for attribute in attribute_group["attributes"]:
+                        attribute_group_data[attribute["name"]] = attribute["id"]
+                    class_info["attribute_groups"] = {
+                        attribute_group["name"]: {
+                            "id": attribute_group["id"],
+                            "attributes": attribute_group_data,
+                        }
+                    }
+            classes_data[annotation_class.name] = class_info
+        return classes_data
+
+    def get_templates_mapping(self):
+        templates = self._service.get_templates(team_id=self._project.team_id).get(
+            "data", []
+        )
+        templates_map = {}
+        for template in templates:
+            templates_map[template["name"]] = template["id"]
+        return templates_map
+
+    def fill_classes_data(self, annotations: dict):
+        annotation_classes = self.annotation_classes_name_map
+        if "instances" not in annotations:
+            return
+        unknown_classes = {}
+        for annotation in [i for i in annotations["instances"] if "className" in i]:
+            if "className" not in annotation:
+                return
+            annotation_class_name = annotation["className"]
+            if annotation_class_name not in annotation_classes:
+                if annotation_class_name not in unknown_classes:
+                    unknown_classes[annotation_class_name] = {
+                        "id": -(len(unknown_classes) + 1),
+                        "attribute_groups": {},
+                    }
+        annotation_classes.update(unknown_classes)
+        templates = self.get_templates_mapping()
+        for annotation in (
+            i for i in annotations["instances"] if i.get("type", None) == "template"
+        ):
+            annotation["templateId"] = templates.get(
+                annotation.get("templateName", ""), -1
+            )
+
+        for annotation in [i for i in annotations["instances"] if "className" in i]:
+            annotation_class_name = annotation["className"]
+            if annotation_class_name not in annotation_classes:
+                continue
+            annotation["classId"] = annotation_classes[annotation_class_name]["id"]
+            for attribute in annotation["attributes"]:
+                if (
+                    attribute["groupName"]
+                    not in annotation_classes[annotation_class_name]["attribute_groups"]
+                ):
+                    continue
+                attribute["groupId"] = annotation_classes[annotation_class_name][
+                    "attribute_groups"
+                ][attribute["groupName"]]["id"]
+                if (
+                    attribute["name"]
+                    not in annotation_classes[annotation_class_name][
+                        "attribute_groups"
+                    ][attribute["groupName"]]["attributes"]
+                ):
+                    del attribute["groupId"]
+                    continue
+                attribute["id"] = annotation_classes[annotation_class_name][
+                    "attribute_groups"
+                ][attribute["groupName"]]["attributes"]
 
     def execute(self):
         if self.is_valid():
@@ -2283,6 +2364,7 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
                     logger.info("There is no blue-map for the image.")
 
             json_path = Path(self._destination) / data["annotation_json_filename"]
+            self.fill_classes_data(data["annotation_json"])
             with open(json_path, "w") as f:
                 json.dump(data["annotation_json"], f, indent=4)
 
@@ -3039,6 +3121,7 @@ class DownloadImageUseCase(BaseUseCase):
         images: BaseManageableRepository,
         classes: BaseManageableRepository,
         backend_service_provider: SuerannotateServiceProvider,
+        annotation_classes: BaseReadOnlyRepository,
         download_path: str,
         image_variant: str = "original",
         include_annotations: bool = False,
@@ -3065,6 +3148,7 @@ class DownloadImageUseCase(BaseUseCase):
             image_name=self._image.name,
             images=images,
             destination=download_path,
+            annotation_classes=annotation_classes,
         )
         self.get_annotation_classes_ues_case = GetAnnotationClassesUseCase(
             classes=classes,
@@ -3098,6 +3182,9 @@ class DownloadImageUseCase(BaseUseCase):
 
     def execute(self):
         if self.is_valid():
+            fuse_image = None
+            annotations = None
+
             image_bytes = self.get_image_use_case.execute().data
             download_path = f"{self._download_path}/{self._image.name}"
             if self._image_variant == "lores":
@@ -3105,24 +3192,25 @@ class DownloadImageUseCase(BaseUseCase):
             with open(download_path, "wb") as image_file:
                 image_file.write(image_bytes.getbuffer())
 
-            annotations = None
             if self._include_annotations:
                 annotations = self.download_annotation_use_case.execute().data
 
-            fuse_image = None
             if self._include_annotations and self._include_fuse:
                 classes = self.get_annotation_classes_ues_case.execute().data
-                fuse_image_use_case = CreateFuseImageUseCase(
-                    project_type=constances.ProjectType.get_name(
-                        self._project.project_type
-                    ),
-                    image_path=download_path,
-                    classes=[
-                        annotation_class.to_dict() for annotation_class in classes
-                    ],
-                    generate_overlay=self._include_overlay,
+                fuse_image = (
+                    CreateFuseImageUseCase(
+                        project_type=constances.ProjectType.get_name(
+                            self._project.project_type
+                        ),
+                        image_path=download_path,
+                        classes=[
+                            annotation_class.to_dict() for annotation_class in classes
+                        ],
+                        generate_overlay=self._include_overlay,
+                    )
+                    .execute()
+                    .data
                 )
-                fuse_image = fuse_image_use_case.execute().data
 
             self._response.data = (
                 download_path,
@@ -3912,16 +4000,18 @@ class DownloadMLModelUseCase(BaseUseCase):
             os.path.basename(self._model.config_path), metrics_name
         )
 
-        download_token = self._backend_service.get_ml_model_download_tokens(
+        auth_response = self._backend_service.get_ml_model_download_tokens(
             self._team_id, self._model.uuid
         )
+        if not auth_response.ok:
+            raise AppException(auth_response.error)
         s3_session = boto3.Session(
-            aws_access_key_id=download_token["tokens"]["accessKeyId"],
-            aws_secret_access_key=download_token["tokens"]["secretAccessKey"],
-            aws_session_token=download_token["tokens"]["sessionToken"],
-            region_name=download_token["tokens"]["region"],
+            aws_access_key_id=auth_response.data.access_key,
+            aws_secret_access_key=auth_response.data.secret_key,
+            aws_session_token=auth_response.data.session_token,
+            region_name=auth_response.data.region,
         )
-        bucket = s3_session.resource("s3").Bucket(download_token["tokens"]["bucket"])
+        bucket = s3_session.resource("s3").Bucket(auth_response.data.bucket)
 
         bucket.download_file(
             self._model.config_path, os.path.join(self._download_path, "config.yaml")
