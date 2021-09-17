@@ -74,7 +74,6 @@ def init(path_to_config_json: str):
 @validate_arguments
 def set_auth_token(token: str):
     controller.set_token(token)
-    controller.init(controller.config_path)
 
 
 @Trackable
@@ -2185,6 +2184,8 @@ def set_image_annotation_status(
     )
     if response.errors:
         raise AppException(response.errors)
+    image = controller.get_image_metadata(project_name, folder_name, image_name).data
+    return ImageSerializer(image).serialize()
 
 
 @Trackable

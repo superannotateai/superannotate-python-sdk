@@ -16,6 +16,10 @@ class SingleInstanceMetaClass(type):
             SingleInstanceMetaClass._instances[cls] = super().__call__(*args, **kwargs)
         return SingleInstanceMetaClass._instances[cls]
 
+    def get_instance(cls):
+        if cls._instances:
+            return cls._instances[cls]
+
 
 class SuerannotateServiceProvider(metaclass=SingleInstanceMetaClass):
     @abstractmethod
