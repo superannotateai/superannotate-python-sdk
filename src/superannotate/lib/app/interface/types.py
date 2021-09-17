@@ -34,22 +34,29 @@ class AnnotationType(StrictStr):
         return value
 
 
+def to_chunks(t, size=2):
+    it = iter(t)
+    return zip(*[it] * size)
+
+
 def validate_arguments(func):
     @wraps(func)
     def wrapped(*args, **kwargs):
         try:
             return pydantic_validate_arguments(func)(*args, **kwargs)
         except ValidationError as e:
-            messages = defaultdict(list)
+            error_messages = defaultdict(list)
             for error in e.errors():
-                messages[error["loc"][0]].append(f"{error['loc'][-1]} {error['msg']}")
-            raise AppException(
-                "\n".join(
-                    [
-                        f"Invalid {message}: {','.join(text)}"
-                        for message, text in messages.items()
-                    ]
+                error_messages[error["loc"][0]].append(
+                    f"{''.join([f'  {i[0]} -> {i[1]}' for i in to_chunks(error['loc'])])}  {error['loc'][-1]} {error['msg']}"
                 )
-            )
+            texts = ["\n"]
+            for error, text in error_messages.items():
+                texts.append(
+                    "{} {}{}".format(
+                        error, " " * (21 - len(error)), f"\n {' ' * 21}".join(text)
+                    )
+                )
+            raise AppException("\n".join(texts))
 
     return wrapped

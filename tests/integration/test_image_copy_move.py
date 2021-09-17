@@ -54,7 +54,7 @@ class TestImageCopy(BaseTestCase):
         image = images[0]
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER)
         sa.copy_image(
-            self.PROJECT_NAME, image, f"{self.PROJECT_NAME}/{self.TEST_FOLDER}"
+            self.PROJECT_NAME, image, f"{self.PROJECT_NAME}/{self.TEST_FOLDER}", copy_annotation_status=True
         )
         images = sa.search_images(f"{self.PROJECT_NAME}/{self.TEST_FOLDER}")
         self.assertEqual(len(images), 1)
@@ -66,6 +66,21 @@ class TestImageCopy(BaseTestCase):
         images = sa.search_images(dest_project["name"], image)
         self.assertEqual(len(images), 1)
         self.assertEqual(images[0], image)
+
+    def test_image_copy_to_other_project(self):
+        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER)
+        sa.create_folder(self.SECOND_PROJECT_NAME, self.TEST_FOLDER)
+        sa.upload_image_to_project(
+            f"{self.SECOND_PROJECT_NAME}/{self.TEST_FOLDER}",
+            f"{self.folder_path}/{self.EXAMPLE_IMAGE}",
+            annotation_status="InProgress",
+        )
+
+        sa.copy_image(
+            f"{self.SECOND_PROJECT_NAME}/{self.TEST_FOLDER}",
+            self.EXAMPLE_IMAGE, f"{self.PROJECT_NAME}/{self.TEST_FOLDER}",
+            copy_annotation_status=True
+        )
 
     def test_multiple_image_copy(self):
 

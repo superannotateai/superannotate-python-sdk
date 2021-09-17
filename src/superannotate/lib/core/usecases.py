@@ -380,14 +380,19 @@ class CloneProjectUseCase(BaseUseCase):
 
             if self._include_workflow:
                 new_workflows = self._workflows_repo(self._backend_service, project)
-                workflow_attributes = []
                 for workflow in self.workflows.get_all():
+                    existing_workflow_ids = list(map(lambda i: i.uuid, new_workflows.get_all()))
                     workflow_data = copy.copy(workflow)
                     workflow_data.project_id = project.uuid
                     workflow_data.class_id = annotation_classes_mapping[
                         workflow.class_id
                     ].uuid
-                    new_workflow = new_workflows.insert(workflow_data)
+                    new_workflows.insert(workflow_data)
+                    workflows = new_workflows.get_all()
+                    new_workflow = [
+                        work_flow for work_flow in workflows if work_flow.uuid not in existing_workflow_ids
+                    ][0]
+                    workflow_attributes = []
                     for attribute in workflow_data.attribute:
                         for annotation_attribute in annotation_classes_mapping[
                             workflow.class_id
@@ -811,13 +816,13 @@ class PrepareExportUseCase(BaseUseCase):
             )
             if "error" in response:
                 raise AppException(response["error"])
-            folder_str = (
-                "" if self._folder_names is None else "/".join(self._folder_names)
-            )
 
+            report_message = self._project.name
+            if self._folder_names:
+                report_message = f"[{', '.join(self._folder_names)}]"
             logger.info(
                 f"Prepared export {response['name']} for project "
-                f"{self._project.name}/{folder_str} (project ID {self._project.uuid})."
+                f"{report_message} (project ID {self._project.uuid})."
             )
             self._response.data = response
 
@@ -1018,10 +1023,10 @@ class UpdateFolderUseCase(BaseUseCase):
 
     def execute(self):
         if self.is_valid():
-            is_updated = self._folders.update(self._folder)
-            if not is_updated:
+            folder = self._folders.update(self._folder)
+            if not folder:
                 self._response.errors = AppException("Couldn't rename folder.")
-            self._response.data = self._folder
+            self._response.data = folder
         return self._response
 
 
@@ -2281,9 +2286,7 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
         for annotation in (
             i for i in annotations["instances"] if i.get("type", None) == "template"
         ):
-            template_name = templates.get(
-                annotation.get("templateId"), None
-            )
+            template_name = templates.get(annotation.get("templateId"), None)
             if template_name:
                 annotation["templateName"] = template_name
 
@@ -2292,9 +2295,9 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
             if annotation_class_id not in annotation_classes:
                 continue
             annotation["className"] = annotation_classes[annotation_class_id]["name"]
-            for attribute in annotation["attributes"]:
+            for attribute in [i for i in annotation["attributes"] if "groupId" in i]:
                 if (
-                    attribute["groupName"]
+                    attribute["groupId"]
                     not in annotation_classes[annotation_class_id]["attribute_groups"]
                 ):
                     continue
@@ -2302,16 +2305,16 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
                     "attribute_groups"
                 ][attribute["groupId"]]["name"]
                 if (
-                    attribute["name"]
+                    attribute["groupId"]
                     not in annotation_classes[annotation_class_id]["attribute_groups"][
                         attribute["groupId"]
                     ]["attributes"]
                 ):
-                    del attribute["groupName"]
+                    del attribute["groupId"]
                     continue
                 attribute["name"] = annotation_classes[annotation_class_id][
                     "attribute_groups"
-                ][attribute["groupId"]]["attributes"]
+                ][attribute["groupId"]]["name"]
 
     def execute(self):
         if self.is_valid():
@@ -3336,7 +3339,7 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
                     continue
                 attribute["id"] = annotation_classes[annotation_class_name][
                     "attribute_groups"
-                ][attribute["groupName"]]["attributes"]
+                ][attribute["groupName"]]["attributes"][attribute["name"]]
 
     def execute(self):
         if self.is_valid():
@@ -3424,6 +3427,8 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
         self._annotations_to_upload = None
         self._missing_annotations = None
         self.missing_attribute_groups = set()
+        self.missing_classes = set()
+        self.missing_attributes = set()
 
     @property
     def s3_client(self):
@@ -3474,6 +3479,7 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
             annotation_class_name = annotation["className"]
             if annotation_class_name not in annotation_classes:
                 if annotation_class_name not in unknown_classes:
+                    self.missing_classes.add(annotation_class_name)
                     unknown_classes[annotation_class_name] = {
                         "id": -(len(unknown_classes) + 1),
                         "attribute_groups": {},
@@ -3516,6 +3522,7 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
                     ][attribute["groupName"]]["attributes"]
                 ):
                     del attribute["groupId"]
+                    self.missing_attributes.add(attribute["name"])
                     continue
                 attribute["id"] = annotation_classes[annotation_class_name][
                     "attribute_groups"
@@ -3661,10 +3668,7 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
                 failed_annotations,
                 missing_annotations,
             )
-        if self.missing_attribute_groups:
-            logger.warning(
-                f"Couldn't find annotation groups [{', '.join(self.missing_attribute_groups)}]"
-            )
+        self.report_missing_data()
         return self._response
 
     def upload_to_s3(
@@ -3705,6 +3709,18 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
 
             bucket.put_object(Key=image_info["annotation_bluemap_path"], Body=file)
         return image_id_name_map[image_id], True
+
+    def report_missing_data(self):
+        if self.missing_classes:
+            logger.warning(f"Couldn't find classes [{', '.join(self.missing_classes)}]")
+        if self.missing_attribute_groups:
+            logger.warning(
+                f"Couldn't find annotation groups [{', '.join(self.missing_attribute_groups)}]"
+            )
+        if self.missing_attributes:
+            logger.warning(
+                f"Couldn't find attributes [{', '.join(self.missing_attributes)}]"
+            )
 
 
 class CreateModelUseCase(BaseUseCase):
@@ -4295,6 +4311,7 @@ class RunSegmentationUseCase(BaseUseCase):
                 image_ids=image_ids,
             )
             if not res.ok:
+                # todo add error message in the response
                 return self._response
 
             success_images = []
@@ -4782,24 +4799,14 @@ class UploadImagesToProject(BaseInteractiveUseCase):
                     duplicated_paths.append(path)
             filtered_paths = [
                 path
-                for path in filtered_paths
+                for path in paths
                 if not any(
-                    [
-                        path.endswith(extension)
-                        for extension in self.exclude_file_patterns
-                    ]
+                    [extension in path for extension in self.exclude_file_patterns]
                 )
             ]
-            duplicated_paths = [
-                path
-                for path in duplicated_paths
-                if not any(
-                    [
-                        path.endswith(extension)
-                        for extension in self.exclude_file_patterns
-                    ]
-                )
-            ]
+            excluded_paths = [path for path in paths if path not in filtered_paths]
+            if excluded_paths:
+                logger.info(f"Excluded paths {', '.join(excluded_paths)}")
 
             image_entities = (
                 GetBulkImages(

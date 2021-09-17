@@ -1,6 +1,7 @@
 import os
 from os.path import dirname
 import tempfile
+import unittest
 
 import src.superannotate as sa
 from src.superannotate.lib.app.exceptions import AppException

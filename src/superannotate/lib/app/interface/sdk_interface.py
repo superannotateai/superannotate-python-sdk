@@ -74,7 +74,6 @@ def init(path_to_config_json: str):
 @validate_arguments
 def set_auth_token(token: str):
     controller.set_token(token)
-    controller.init(controller.config_path)
 
 
 @Trackable
@@ -566,7 +565,7 @@ def copy_image(
 
     if copy_annotation_status:
         res = controller.get_image(
-            project_name=source_project,
+            project_name=source_project_name,
             image_name=image_name,
             folder_path=source_folder_name,
         )
@@ -2185,6 +2184,8 @@ def set_image_annotation_status(
     )
     if response.errors:
         raise AppException(response.errors)
+    image = controller.get_image_metadata(project_name, folder_name, image_name).data
+    return ImageSerializer(image).serialize()
 
 
 @Trackable
