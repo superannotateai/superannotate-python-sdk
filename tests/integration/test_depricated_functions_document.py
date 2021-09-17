@@ -3,6 +3,7 @@ from os.path import dirname
 import src.superannotate as sa
 from tests.integration.base import BaseTestCase
 from src.superannotate.lib.core import LIMITED_FUNCTIONS
+from src.superannotate.lib.core import DEPRICATED_DOCUMENT_VIDEO_MESSAGE
 from src.superannotate.lib.core import ProjectType
 
 class TestDepricatedFunctions(BaseTestCase):
@@ -17,7 +18,7 @@ class TestDepricatedFunctions(BaseTestCase):
     PROJECT_DESCRIPTION_2 = "second project"
     PROJECT_TYPE_2 = "Vector"
     EXCEPTION_MESSAGE = LIMITED_FUNCTIONS[ProjectType.DOCUMENT.value]
-    EXCEPTION_MESSAGE_DOCUMENT_VIDEO = "The function does not support projects containing videos / documents attached with URLs"
+    EXCEPTION_MESSAGE_DOCUMENT_VIDEO = DEPRICATED_DOCUMENT_VIDEO_MESSAGE
 
 
     def setUp(self, *args, **kwargs):
@@ -203,7 +204,7 @@ class TestDepricatedFunctions(BaseTestCase):
             sa.consensus(self.PROJECT_NAME, ["some"], self.video_export_path)
         except Exception as e:
             msg = str(e)
-        self.assertIn("The function does not support projects containing videos / documents attached with URLs", msg)
+        self.assertIn(self.EXCEPTION_MESSAGE_DOCUMENT_VIDEO, msg)
         try:
             msg = ""
             sa.copy_images(self.PROJECT_NAME, [self.UPLOAD_IMAGE_NAME], self.PROJECT_NAME_2)

@@ -8,6 +8,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 from lib.app.exceptions import AppException
+from lib.core import DEPRICATED_DOCUMENT_VIDEO_MESSAGE
 
 from ..common import blue_color_generator
 from ..common import hex_to_rgb
@@ -181,9 +182,7 @@ def sa_convert_project_type(input_dir, output_dir):
     elif "___objects.json" in json_paths[0].name:
         img_names = from_vector_to_pixel(json_paths, output_dir)
     elif ".json" in json_paths[0].name:
-        raise AppException(
-            "The function does not support projects containing videos / documents attached with URLs"
-        )
+        raise AppException(DEPRICATED_DOCUMENT_VIDEO_MESSAGE)
     else:
         raise AppException(
             "'input_dir' should contain JSON files with '[IMAGE_NAME]___objects.json' or '[IMAGE_NAME]___pixel.json' names structure.",

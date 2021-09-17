@@ -6,6 +6,7 @@ from pathlib import Path
 
 from lib.app.exceptions import AppException
 from lib.app.mixp.decorators import Trackable
+from lib.core import DEPRICATED_DOCUMENT_VIDEO_MESSAGE
 from lib.core.exceptions import AppValidationException
 
 from .export_from_sa_conversions import export_from_sa
@@ -425,9 +426,7 @@ def convert_project_type(input_dir, output_dir):
         and "___pixel.json" not in json_paths[0].name
         and "___objects.json" not in json_paths[0].name
     ):
-        raise AppException(
-            "The function does not support projects containing videos / documents attached with URLs"
-        )
+        raise AppException(DEPRICATED_DOCUMENT_VIDEO_MESSAGE)
 
     input_dir, output_dir = _change_type(input_dir, output_dir)
 

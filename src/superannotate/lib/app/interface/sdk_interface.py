@@ -2330,6 +2330,14 @@ def attach_image_urls_to_project(
     :rtype: tuple
     """
     project_name, folder_name = extract_project_folder(project)
+    project = controller.get_project_metadata(project_name).data
+
+    if project["project"].project_type in [
+        constances.ProjectType.VIDEO.value,
+        constances.ProjectType.DOCUMENT.value,
+    ]:
+        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
+
     images_to_upload, duplicate_images = get_paths_and_duplicated_from_csv(attachments)
     list_of_not_uploaded = []
 
@@ -2373,6 +2381,11 @@ def attach_video_urls_to_project(
     :rtype: (list, list, list)
     """
     project_name, folder_name = extract_project_folder(project)
+    project = controller.get_project_metadata(project_name).data
+
+    if not project["project"].project_type == constances.ProjectType.VIDEO.value:
+        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
+
     images_to_upload, duplicate_images = get_paths_and_duplicated_from_csv(attachments)
     list_of_not_uploaded = []
 
@@ -3661,6 +3674,10 @@ def attach_document_urls_to_project(
     :rtype: tuple
     """
     project_name, folder_name = extract_project_folder(project)
+    project = controller.get_project_metadata(project_name).data
+
+    if not project["project"].project_type == constances.ProjectType.DOCUMENT.value:
+        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
     images_to_upload, duplicate_images = get_paths_and_duplicated_from_csv(attachments)
     list_of_not_uploaded = []
 
