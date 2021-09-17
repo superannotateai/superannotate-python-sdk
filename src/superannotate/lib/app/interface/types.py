@@ -40,16 +40,18 @@ def validate_arguments(func):
         try:
             return pydantic_validate_arguments(func)(*args, **kwargs)
         except ValidationError as e:
-            messages = defaultdict(list)
+            error_messages = defaultdict(list)
             for error in e.errors():
-                messages[error["loc"][0]].append(f"{error['loc'][-1]} {error['msg']}")
-            raise AppException(
-                "\n".join(
-                    [
-                        f"Invalid {message}: {','.join(text)}"
-                        for message, text in messages.items()
-                    ]
+                error_messages[error["loc"][0]].append(
+                    f"{error['loc'][-1]} {error['msg']}"
                 )
-            )
+            texts = ["\n"]
+            for error, text in error_messages.items():
+                texts.append(
+                    "{} |{}{}".format(
+                        error, " " * (20 - len(error) + 1), f"\n {' ' * 20}".join(text)
+                    )
+                )
+            raise AppException("\n".join(texts))
 
     return wrapped

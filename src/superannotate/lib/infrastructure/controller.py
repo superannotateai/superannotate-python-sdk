@@ -108,13 +108,21 @@ class BaseController(metaclass=SingleInstanceMetaClass):
             _, self._team_name = self.get_team()
         return self._team_name
 
+    @staticmethod
+    def _validate_token(token: str):
+        try:
+            int(token.split("=")[-1])
+        except ValueError:
+            raise AppException("Invalid token.")
+
     def set_token(self, token):
+        self._validate_token(token)
+        self._team_id = int(token.split("=")[-1])
         self.configs.insert(ConfigEntity("token", token))
-        self._backend_client = SuperannotateBackendService(
-            api_url=self.configs.get_one("main_endpoint").value,
-            auth_token=self.configs.get_one("token").value,
-            logger=self._logger,
-        )
+        self._backend_client = SuperannotateBackendService.get_instance()
+        self._backend_client._api_url = self.configs.get_one("main_endpoint").value
+        self._backend_client._auth_token = self.configs.get_one("token").value
+        self._backend_client.get_session.cache_clear()
 
     @property
     def projects(self):
