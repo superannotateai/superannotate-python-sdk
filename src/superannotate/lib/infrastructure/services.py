@@ -10,6 +10,7 @@ from urllib.parse import urljoin
 import lib.core as constance
 import requests.packages.urllib3
 from lib.core.exceptions import AppException
+from lib.core.service_types import DownloadMLModelAuthData
 from lib.core.service_types import ServiceResponse
 from lib.core.service_types import UploadAnnotationAuthData
 from lib.core.serviceproviders import SuerannotateServiceProvider
@@ -161,7 +162,6 @@ class SuperannotateBackendService(BaseBackendService):
     URL_GET_FOLDER_BY_NAME = "folder/getFolderByName"
     URL_CREATE_FOLDER = "folder"
     URL_UPDATE_FOLDER = "folder/{}"
-    URL_FOLDERS = "folder"
     URL_GET_IMAGE = "image/{}"
     URL_GET_IMAGES = "images"
     URL_BULK_GET_IMAGES = "images/getBulk"
@@ -932,8 +932,12 @@ class SuperannotateBackendService(BaseBackendService):
         get_token_url = urljoin(
             self.api_url, self.URL_GET_ML_MODEL_DOWNLOAD_TOKEN.format(model_id)
         )
-        res = self._request(get_token_url, "get", params={"team_id": team_id})
-        return res.json()
+        return self._request(
+            get_token_url,
+            "get",
+            params={"team_id": team_id},
+            content_type=DownloadMLModelAuthData,
+        )
 
     def run_segmentation(
         self, team_id: int, project_id: int, model_name: str, image_ids: list

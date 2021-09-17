@@ -4,8 +4,8 @@ from typing import Union
 
 from pydantic import BaseModel
 from pydantic import constr
-from pydantic import StrictStr
 from pydantic import Extra
+from pydantic import StrictStr
 
 
 NotEmptyStr = constr(strict=True, min_length=1)
@@ -124,6 +124,17 @@ class PixelAnnotation(BaseModel):
 
 class Project(BaseModel):
     name: NotEmptyStr
+
+    class Config:
+        extra = Extra.allow
+
+
+class MLModel(BaseModel):
+    name: NotEmptyStr
+    id: int
+    path: NotEmptyStr
+    config_path: NotEmptyStr
+    team_id: Optional[int]
 
     class Config:
         extra = Extra.allow

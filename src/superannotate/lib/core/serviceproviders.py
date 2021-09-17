@@ -286,7 +286,9 @@ class SuerannotateServiceProvider(metaclass=SingleInstanceMetaClass):
     def stop_model_training(self, team_id: int, model_id: int):
         raise NotImplementedError
 
-    def get_ml_model_download_tokens(self, team_id: int, model_id: int):
+    def get_ml_model_download_tokens(
+        self, team_id: int, model_id: int
+    ) -> ServiceResponse:
         raise NotImplementedError
 
     def run_segmentation(
