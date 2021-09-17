@@ -419,6 +419,15 @@ def convert_project_type(input_dir, output_dir):
         (output_dir, "output_dir", (str, Path)),
     ]
     _passes_type_sanity(params_info)
+    json_paths = list(Path(str(input_dir)).glob("*.json"))
+    if (
+            json_paths
+            and "___pixel.json" not in json_paths[0].name
+            and "___objects.json" not in json_paths[0].name
+    ):
+        raise AppException(
+            "The function does not support projects containing videos / document attached with URLs")
+
     input_dir, output_dir = _change_type(input_dir, output_dir)
 
     sa_convert_project_type(input_dir, output_dir)

@@ -546,9 +546,10 @@ def copy_image(
     destination_project, destination_folder = extract_project_folder(
         destination_project
     )
+    source_project = controller.get_project_metadata(source_project_name).data
 
     project = controller.get_project_metadata(destination_project).data
-    if project["project"].project_type == constances.ProjectType.VIDEO.value:
+    if project["project"].project_type == constances.ProjectType.VIDEO.value or source_project["project"].project_type == constances.ProjectType.VIDEO.value:
         raise AppException(
             "The function does not support projects containing videos attached with URLs"
         )
@@ -1117,7 +1118,7 @@ def set_images_annotation_statuses(
         project_name, folder_name, image_names, annotation_status
     )
     if response.errors:
-        raise AppException("Failed to change status.")
+        raise AppException(response.errors)
     logger.info("Annotations status of images changed")
 
 
@@ -1185,6 +1186,8 @@ def assign_images(project: Union[str, dict], image_names: List[str], user: str):
     response = controller.assign_images(project_name, folder_name, image_names, user)
     if not response.errors:
         logger.info(f"Assign images to user {user}")
+    else:
+        raise AppException(response.errors)
 
 
 @Trackable
@@ -1333,7 +1336,7 @@ def get_image_annotations(project: Union[str, dict], image_name: str):
         project_name=project_name, folder_name=folder_name, image_name=image_name
     )
     if res.errors:
-        raise AppException(res)
+        raise AppException(res.errors)
     return res.data
 
 
@@ -2821,7 +2824,7 @@ def benchmark(
 @validate_arguments
 def consensus(
     project: NotEmptyStr,
-    folder_names: NotEmptyStr,
+    folder_names: List[NotEmptyStr],
     export_root: Optional[Union[NotEmptyStr, Path]] = None,
     image_list: Optional[List[NotEmptyStr]] = None,
     annot_type: Optional[AnnotationType] = "bbox",
