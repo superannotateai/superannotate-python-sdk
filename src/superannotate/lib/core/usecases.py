@@ -2281,9 +2281,11 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
         for annotation in (
             i for i in annotations["instances"] if i.get("type", None) == "template"
         ):
-            annotation["templateName"] = templates.get(
-                annotation.get("templateId", ""), -1
+            template_name = templates.get(
+                annotation.get("templateId"), None
             )
+            if template_name:
+                annotation["templateName"] = template_name
 
         for annotation in [i for i in annotations["instances"] if "classId" in i]:
             annotation_class_id = annotation["classId"]

@@ -25,8 +25,8 @@ class TestVideoUrls(BaseTestCase):
             self.PROJECT_NAME,
             self.csv_path,
         )
-        self.assertEqual(len(uploaded), 8)
-        self.assertEqual(len(could_not_upload), 1)
+        self.assertEqual(len(uploaded), 7)
+        self.assertEqual(len(could_not_upload), 0)
         self.assertEqual(len(existing_images), 1)
 
     def test_attach_video_urls_without_name_column(self):
@@ -34,6 +34,6 @@ class TestVideoUrls(BaseTestCase):
             self.PROJECT_NAME,
             self.csv_path_without_name_column
         )
-        self.assertEqual(len(uploaded), 8)
-        self.assertEqual(len(could_not_upload), 1)
+        self.assertEqual(len(uploaded), 7)
+        self.assertEqual(len(could_not_upload), 0)
         self.assertEqual(len(existing_images), 1)

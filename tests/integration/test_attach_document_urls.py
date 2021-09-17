@@ -20,6 +20,7 @@ class TestDocumentUrls(BaseTestCase):
         self.assertEqual(len(could_not_upload), 0)
         self.assertEqual(len(existing_images), 1)
 
+
 class TestImageUrls(BaseTestCase):
     PROJECT_NAME = "test attach image urls"
     PATH_TO_URLS = "data_set/csv_files/text_urls.csv"
@@ -34,6 +35,7 @@ class TestImageUrls(BaseTestCase):
         self.assertEqual(len(uploaded), 11)
         self.assertEqual(len(could_not_upload), 0)
         self.assertEqual(len(existing_images), 1)
+
 
 class TestVideoUrls(BaseTestCase):
     PROJECT_NAME = "test attach video urls"
