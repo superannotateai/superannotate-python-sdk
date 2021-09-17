@@ -299,3 +299,4 @@ sys.path.append(WORKING_DIR)
 logging.config.fileConfig(
     os.path.join(WORKING_DIR, "logging.conf"), disable_existing_loggers=False
 )
+sys.tracebacklimit = 1

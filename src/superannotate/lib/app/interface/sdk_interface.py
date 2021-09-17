@@ -6,6 +6,8 @@ import os
 import tempfile
 import time
 import uuid
+from collections import Counter
+from collections import namedtuple
 from pathlib import Path
 from typing import Iterable
 from typing import List
@@ -487,7 +489,7 @@ def search_folders(
 def get_image_bytes(
     project: Union[NotEmptyStr, dict],
     image_name: NotEmptyStr,
-    variant: str = "original",
+    variant: Optional[NotEmptyStr] = "original",
 ):
     """Returns an io.BytesIO() object of the image. Suitable for creating
     PIL.Image out of it.
@@ -575,6 +577,7 @@ def copy_image(
         project_name=destination_project,
         files=[image_entity],
         folder_name=destination_folder,
+        upload_state_code=constances.UploadState.BASIC.value,
     )
 
     if include_annotations:
@@ -602,7 +605,7 @@ def copy_image(
 def upload_images_from_public_urls_to_project(
     project: Union[NotEmptyStr, dict],
     img_urls: List[NotEmptyStr],
-    img_names: Optional[List[str]] = None,
+    img_names: Optional[List[NotEmptyStr]] = None,
     annotation_status: Optional[Status] = "NotStarted",
     image_quality_in_editor: Optional[NotEmptyStr] = None,
 ):
@@ -943,7 +946,7 @@ def get_project_workflow(project: Union[str, dict]):
 @Trackable
 @validate_arguments
 def search_annotation_classes(
-    project: Union[str, dict], name_prefix: Optional[str] = None
+    project: Union[NotEmptyStr, dict], name_prefix: Optional[str] = None
 ):
     """Searches annotation classes by name_prefix (case-insensitive)
 
@@ -964,7 +967,7 @@ def search_annotation_classes(
 
 @Trackable
 @validate_arguments
-def set_project_settings(project: Union[str, dict], new_settings: List[dict]):
+def set_project_settings(project: Union[NotEmptyStr, dict], new_settings: List[dict]):
     """Sets project's settings.
 
     New settings format example: [{ "attribute" : "Brightness", "value" : 10, ...},...]
@@ -984,7 +987,7 @@ def set_project_settings(project: Union[str, dict], new_settings: List[dict]):
 
 @Trackable
 @validate_arguments
-def get_project_default_image_quality_in_editor(project: Union[str, dict]):
+def get_project_default_image_quality_in_editor(project: Union[NotEmptyStr, dict]):
     """Gets project's default image quality in editor setting.
 
     :param project: project name or metadata
@@ -1003,7 +1006,7 @@ def get_project_default_image_quality_in_editor(project: Union[str, dict]):
 @Trackable
 @validate_arguments
 def set_project_default_image_quality_in_editor(
-    project: Union[str, dict], image_quality_in_editor: Optional[str],
+    project: Union[NotEmptyStr, dict], image_quality_in_editor: Optional[str],
 ):
     """Sets project's default image quality in editor setting.
 
@@ -1027,7 +1030,7 @@ def set_project_default_image_quality_in_editor(
 @Trackable
 @validate_arguments
 def pin_image(
-    project: Union[str, dict], image_name: str, pin: Optional[StrictBool] = True
+    project: Union[NotEmptyStr, dict], image_name: str, pin: Optional[StrictBool] = True
 ):
     """Pins (or unpins) image
 
@@ -1049,7 +1052,7 @@ def pin_image(
 
 @Trackable
 @validate_arguments
-def delete_image(project: Union[str, dict], image_name: str):
+def delete_image(project: Union[NotEmptyStr, dict], image_name: str):
     """Deletes image
 
     :param project: project name or folder path (e.g., "project1/folder1")
@@ -1066,7 +1069,7 @@ def delete_image(project: Union[str, dict], image_name: str):
 
 @Trackable
 @validate_arguments
-def get_image_metadata(project: Union[str, dict], image_name: str, *_, **__):
+def get_image_metadata(project: Union[NotEmptyStr, dict], image_name: str, *_, **__):
     """Returns image metadata
 
     :param project: project name or folder path (e.g., "project1/folder1")
@@ -1098,9 +1101,9 @@ def get_image_metadata(project: Union[str, dict], image_name: str, *_, **__):
 @Trackable
 @validate_arguments
 def set_images_annotation_statuses(
-    project: Union[str, dict],
-    annotation_status: str,
-    image_names: Optional[List[str]] = None,
+    project: Union[NotEmptyStr, dict],
+    annotation_status: NotEmptyStr,
+    image_names: Optional[List[NotEmptyStr]] = None,
 ):
     """Sets annotation statuses of images
 
@@ -1123,7 +1126,9 @@ def set_images_annotation_statuses(
 
 @Trackable
 @validate_arguments
-def delete_images(project: Union[str, dict], image_names: Optional[List[str]] = None):
+def delete_images(
+    project: Union[NotEmptyStr, dict], image_names: Optional[List[str]] = None
+):
     """Delete images in project.
 
     :param project: project name or folder path (e.g., "project1/folder1")
@@ -1149,7 +1154,7 @@ def delete_images(project: Union[str, dict], image_names: Optional[List[str]] = 
 
 @Trackable
 @validate_arguments
-def assign_images(project: Union[str, dict], image_names: List[str], user: str):
+def assign_images(project: Union[NotEmptyStr, dict], image_names: List[str], user: str):
     """Assigns images to a user. The assignment role, QA or Annotator, will
     be deduced from the user's role in the project. With SDK, the user can be
     assigned to a role in the project with the share_project function.
@@ -1189,7 +1194,7 @@ def assign_images(project: Union[str, dict], image_names: List[str], user: str):
 
 @Trackable
 @validate_arguments
-def unassign_images(project: Union[str, dict], image_names: List[str]):
+def unassign_images(project: Union[NotEmptyStr, dict], image_names: List[NotEmptyStr]):
     """Removes assignment of given images for all assignees.With SDK,
     the user can be assigned to a role in the project with the share_project
     function.
@@ -1210,7 +1215,7 @@ def unassign_images(project: Union[str, dict], image_names: List[str]):
 
 @Trackable
 @validate_arguments
-def unassign_folder(project_name: str, folder_name: str):
+def unassign_folder(project_name: NotEmptyStr, folder_name: NotEmptyStr):
     """Removes assignment of given folder for all assignees.
     With SDK, the user can be assigned to a role in the project
     with the share_project function.
@@ -1229,7 +1234,9 @@ def unassign_folder(project_name: str, folder_name: str):
 
 @Trackable
 @validate_arguments
-def assign_folder(project_name: str, folder_name: str, users: List[str]):
+def assign_folder(
+    project_name: NotEmptyStr, folder_name: NotEmptyStr, users: List[NotEmptyStr]
+):
     """Assigns folder to users. With SDK, the user can be
     assigned to a role in the project with the share_project function.
 
@@ -1270,7 +1277,9 @@ def assign_folder(project_name: str, folder_name: str, users: List[str]):
 
 @Trackable
 @validate_arguments
-def share_project(project_name: str, user: Union[str, dict], user_role: str):
+def share_project(
+    project_name: NotEmptyStr, user: Union[str, dict], user_role: NotEmptyStr
+):
     """Share project with user.
 
     :param project_name: project name
@@ -1296,7 +1305,7 @@ def share_project(project_name: str, user: Union[str, dict], user_role: str):
 
 @Trackable
 @validate_arguments
-def unshare_project(project_name: str, user: Union[str, dict]):
+def unshare_project(project_name: NotEmptyStr, user: Union[NotEmptyStr, dict]):
     """Unshare (remove) user from project.
 
     :param project_name: project name
@@ -1313,7 +1322,7 @@ def unshare_project(project_name: str, user: Union[str, dict]):
 
 @Trackable
 @validate_arguments
-def get_image_annotations(project: Union[str, dict], image_name: str):
+def get_image_annotations(project: Union[NotEmptyStr, dict], image_name: NotEmptyStr):
     """Get annotations of the image.
 
     :param project: project name or folder path (e.g., "project1/folder1")
@@ -1339,15 +1348,15 @@ def get_image_annotations(project: Union[str, dict], image_name: str):
 
 @validate_arguments
 def upload_images_from_folder_to_project(
-    project: Union[str, dict],
-    folder_path: Union[str, Path],
+    project: Union[NotEmptyStr, dict],
+    folder_path: Union[NotEmptyStr, Path],
     extensions: Optional[
-        Union[List[str], Tuple[str]]
+        Union[List[NotEmptyStr], Tuple[str]]
     ] = constances.DEFAULT_IMAGE_EXTENSIONS,
     annotation_status="NotStarted",
     from_s3_bucket=None,
     exclude_file_patterns: Optional[
-        Iterable[str]
+        Iterable[NotEmptyStr]
     ] = constances.DEFAULT_FILE_EXCLUDE_PATTERNS,
     recursive_subfolders: Optional[StrictBool] = False,
     image_quality_in_editor: Optional[str] = None,
@@ -1439,7 +1448,7 @@ def upload_images_from_folder_to_project(
 @Trackable
 @validate_arguments
 def get_project_image_count(
-    project: Union[str, dict], with_all_subfolders: Optional[StrictBool] = False
+    project: Union[NotEmptyStr, dict], with_all_subfolders: Optional[StrictBool] = False
 ):
     """Returns number of images in the project.
 
@@ -1466,7 +1475,9 @@ def get_project_image_count(
 
 @Trackable
 @validate_arguments
-def get_image_preannotations(project: Union[str, dict], image_name: str):
+def get_image_preannotations(
+    project: Union[NotEmptyStr, dict], image_name: NotEmptyStr
+):
     """Get pre-annotations of the image. Only works for "vector" projects.
 
     :param project: project name or folder path (e.g., "project1/folder1")
@@ -1491,7 +1502,9 @@ def get_image_preannotations(project: Union[str, dict], image_name: str):
 @Trackable
 @validate_arguments
 def download_image_annotations(
-    project: Union[str, dict], image_name: str, local_dir_path: Union[str, Path]
+    project: Union[NotEmptyStr, dict],
+    image_name: NotEmptyStr,
+    local_dir_path: Union[str, Path],
 ):
     """Downloads annotations of the image (JSON and mask if pixel type project)
     to local_dir_path.
@@ -1521,7 +1534,9 @@ def download_image_annotations(
 @Trackable
 @validate_arguments
 def download_image_preannotations(
-    project: Union[str, dict], image_name: str, local_dir_path: Union[str, Path]
+    project: Union[NotEmptyStr, dict],
+    image_name: NotEmptyStr,
+    local_dir_path: Union[NotEmptyStr, Path],
 ):
     """Downloads pre-annotations of the image to local_dir_path.
     Only works for "vector" projects.
@@ -1550,7 +1565,7 @@ def download_image_preannotations(
 
 @Trackable
 @validate_arguments
-def get_exports(project: str, return_metadata: Optional[StrictBool] = False):
+def get_exports(project: NotEmptyStr, return_metadata: Optional[StrictBool] = False):
     """Get all prepared exports of the project.
 
     :param project: project name
@@ -1570,10 +1585,10 @@ def get_exports(project: str, return_metadata: Optional[StrictBool] = False):
 @Trackable
 @validate_arguments
 def upload_images_from_s3_bucket_to_project(
-    project: Union[str, dict],
-    accessKeyId: str,
-    secretAccessKey: str,
-    bucket_name: str,
+    project: Union[NotEmptyStr, dict],
+    accessKeyId: NotEmptyStr,
+    secretAccessKey: NotEmptyStr,
+    bucket_name: NotEmptyStr,
     folder_path: Union[str, Path],
     image_quality_in_editor: Optional[str] = None,
 ):
@@ -1610,9 +1625,9 @@ def upload_images_from_s3_bucket_to_project(
 @Trackable
 @validate_arguments
 def prepare_export(
-    project: Union[str, dict],
-    folder_names: Optional[List[str]] = None,
-    annotation_statuses: Optional[List[str]] = None,
+    project: Union[NotEmptyStr, dict],
+    folder_names: Optional[List[NotEmptyStr]] = None,
+    annotation_statuses: Optional[List[NotEmptyStr]] = None,
     include_fuse: Optional[StrictBool] = False,
     only_pinned=False,
 ):
@@ -1663,12 +1678,12 @@ def prepare_export(
 @Trackable
 @validate_arguments
 def upload_videos_from_folder_to_project(
-    project: Union[str, dict],
-    folder_path: Union[str, Path],
+    project: Union[NotEmptyStr, dict],
+    folder_path: Union[NotEmptyStr, Path],
     extensions: Optional[
-        Union[Tuple[str], List[str]]
+        Union[Tuple[NotEmptyStr], List[NotEmptyStr]]
     ] = constances.DEFAULT_VIDEO_EXTENSIONS,
-    exclude_file_patterns: Optional[Iterable[str]] = (),
+    exclude_file_patterns: Optional[Iterable[NotEmptyStr]] = (),
     recursive_subfolders: Optional[StrictBool] = False,
     target_fps: Optional[int] = None,
     start_time: Optional[float] = 0.0,
@@ -1790,13 +1805,13 @@ def upload_videos_from_folder_to_project(
 @Trackable
 @validate_arguments
 def upload_video_to_project(
-    project: Union[str, dict],
-    video_path: Union[str, Path],
+    project: Union[NotEmptyStr, dict],
+    video_path: Union[NotEmptyStr, Path],
     target_fps: Optional[int] = None,
     start_time: Optional[float] = 0.0,
     end_time: Optional[float] = None,
     annotation_status: Optional[Status] = "NotStarted",
-    image_quality_in_editor: Optional[str] = None,
+    image_quality_in_editor: Optional[NotEmptyStr] = None,
 ):
     """Uploads image frames from video to platform. Uploaded images will have
     names "<video_name>_<frame_no>.jpg".
@@ -1893,7 +1908,9 @@ def create_annotation_class(
 
 @Trackable
 @validate_arguments
-def delete_annotation_class(project: str, annotation_class: Union[dict, str]):
+def delete_annotation_class(
+    project: NotEmptyStr, annotation_class: Union[dict, NotEmptyStr]
+):
     """Deletes annotation class from project
 
     :param project: project name
@@ -1908,7 +1925,9 @@ def delete_annotation_class(project: str, annotation_class: Union[dict, str]):
 
 @Trackable
 @validate_arguments
-def get_annotation_class_metadata(project: str, annotation_class_name: str):
+def get_annotation_class_metadata(
+    project: NotEmptyStr, annotation_class_name: NotEmptyStr
+):
     """Returns annotation class metadata
 
     :param project: project name
@@ -1927,7 +1946,7 @@ def get_annotation_class_metadata(project: str, annotation_class_name: str):
 
 @Trackable
 @validate_arguments
-def download_annotation_classes_json(project: str, folder: Union[str, Path]):
+def download_annotation_classes_json(project: NotEmptyStr, folder: Union[str, Path]):
     """Downloads project classes.json to folder
 
     :param project: project name
@@ -1949,7 +1968,7 @@ def download_annotation_classes_json(project: str, folder: Union[str, Path]):
 @Trackable
 @validate_arguments
 def create_annotation_classes_from_classes_json(
-    project: Union[str, dict],
+    project: Union[NotEmptyStr, dict],
     classes_json: Union[List[ClassesJson], str, Path],
     from_s3_bucket=False,
 ):
@@ -1986,9 +2005,9 @@ def create_annotation_classes_from_classes_json(
     else:
         annotation_classes = classes_json
 
-    annotation_classes = [
-        annotation_class.dict() for annotation_class in annotation_classes
-    ]
+    annotation_classes = list(
+        map(lambda annotation_class: annotation_class.dict(), annotation_classes)
+    )
     response = controller.create_annotation_classes(
         project_name=project, annotation_classes=annotation_classes,
     )
@@ -1997,9 +2016,9 @@ def create_annotation_classes_from_classes_json(
 
 @validate_arguments
 def move_image(
-    source_project: Union[str, dict],
-    image_name: str,
-    destination_project: Union[str, dict],
+    source_project: Union[NotEmptyStr, dict],
+    image_name: NotEmptyStr,
+    destination_project: Union[NotEmptyStr, dict],
     include_annotations: Optional[StrictBool] = True,
     copy_annotation_status: Optional[StrictBool] = True,
     copy_pin: Optional[StrictBool] = True,
@@ -2082,8 +2101,8 @@ def move_image(
 @Trackable
 @validate_arguments
 def download_export(
-    project: Union[str, dict],
-    export: Union[str, dict],
+    project: Union[NotEmptyStr, dict],
+    export: Union[NotEmptyStr, dict],
     folder_path: Union[str, Path],
     extract_zip_contents: Optional[StrictBool] = True,
     to_s3_bucket=None,
@@ -2144,7 +2163,9 @@ def download_export(
 @Trackable
 @validate_arguments
 def set_image_annotation_status(
-    project: Union[str, dict], image_name: str, annotation_status: str
+    project: Union[NotEmptyStr, dict],
+    image_name: NotEmptyStr,
+    annotation_status: NotEmptyStr,
 ):
     """Sets the image annotation status
 
@@ -2169,7 +2190,7 @@ def set_image_annotation_status(
 
 @Trackable
 @validate_arguments
-def set_project_workflow(project: Union[str, dict], new_workflow: List[dict]):
+def set_project_workflow(project: Union[NotEmptyStr, dict], new_workflow: List[dict]):
     """Sets project's workflow.
 
     new_workflow example: [{ "step" : <step_num>, "className" : <annotation_class>, "tool" : <tool_num>,
@@ -2195,7 +2216,7 @@ def set_project_workflow(project: Union[str, dict], new_workflow: List[dict]):
 def create_fuse_image(
     image: Union[NotEmptyStr, Path],
     classes_json: Union[str, Path],
-    project_type: str,
+    project_type: NotEmptyStr,
     in_memory: Optional[StrictBool] = False,
     output_overlay: Optional[StrictBool] = False,
 ):
@@ -2228,8 +2249,8 @@ def create_fuse_image(
 @Trackable
 @validate_arguments
 def download_image(
-    project: Union[str, dict],
-    image_name: str,
+    project: Union[NotEmptyStr, dict],
+    image_name: NotEmptyStr,
     local_dir_path: Optional[Union[str, Path]] = "./",
     include_annotations: Optional[StrictBool] = False,
     include_fuse: Optional[StrictBool] = False,
@@ -2276,7 +2297,7 @@ def download_image(
 @Trackable
 @validate_arguments
 def attach_image_urls_to_project(
-    project: Union[str, dict],
+    project: Union[NotEmptyStr, dict],
     attachments: Union[str, Path],
     annotation_status: Optional[Status] = "NotStarted",
 ):
@@ -2326,6 +2347,8 @@ def attach_image_urls_to_project(
             annotation_status=annotation_status,
         )
         if response.errors:
+            logger.error(response.errors)
+        else:
             list_of_not_uploaded.append(response.data[0])
             duplicate_images.append(response.data[1])
 
@@ -2340,7 +2363,7 @@ def attach_image_urls_to_project(
 
 @validate_arguments
 def attach_video_urls_to_project(
-    project: Union[str, dict],
+    project: Union[NotEmptyStr, dict],
     attachments: Union[str, Path],
     annotation_status: Optional[Status] = "NotStarted",
 ):
@@ -2385,7 +2408,7 @@ def attach_video_urls_to_project(
             ),
             annotation_status=annotation_status,
         )
-        if response.errors:
+        if not response.errors:
             list_of_not_uploaded.append(response.data[0])
             duplicate_images.append(response.data[1])
 
@@ -2401,7 +2424,7 @@ def attach_video_urls_to_project(
 @Trackable
 @validate_arguments
 def upload_annotations_from_folder_to_project(
-    project: Union[str, dict],
+    project: Union[NotEmptyStr, dict],
     folder_path: Union[str, Path],
     from_s3_bucket=None,
     recursive_subfolders: Optional[StrictBool] = False,
@@ -2474,7 +2497,7 @@ def upload_annotations_from_folder_to_project(
 @Trackable
 @validate_arguments
 def upload_preannotations_from_folder_to_project(
-    project: Union[str, dict],
+    project: Union[NotEmptyStr, dict],
     folder_path: Union[str, Path],
     from_s3_bucket=None,
     recursive_subfolders: Optional[StrictBool] = False,
@@ -2547,7 +2570,7 @@ def upload_preannotations_from_folder_to_project(
 @Trackable
 @validate_arguments
 def upload_image_annotations(
-    project: Union[str, dict],
+    project: Union[NotEmptyStr, dict],
     image_name: str,
     annotation_json: Union[str, Path, dict],
     mask: Optional[Union[str, Path, dict]] = None,
@@ -2595,10 +2618,10 @@ def upload_image_annotations(
 @Trackable
 @validate_arguments
 def run_training(
-    model_name: str,
-    model_description: str,
-    task: str,
-    base_model: Union[str, dict],
+    model_name: NotEmptyStr,
+    model_description: NotEmptyStr,
+    task: NotEmptyStr,
+    base_model: Union[NotEmptyStr, dict],
     train_data: Iterable[str],
     test_data: Iterable[str],
     hyperparameters: Optional[dict] = None,
@@ -2757,9 +2780,9 @@ def download_model(model: MLModel, output_dir: Union[str, Path]):
 @Trackable
 @validate_arguments
 def benchmark(
-    project: Union[str, dict],
+    project: Union[NotEmptyStr, dict],
     gt_folder: str,
-    folder_names: List[str],
+    folder_names: List[NotEmptyStr],
     export_root: Optional[Union[str, Path]] = None,
     image_list=None,
     annot_type: Optional[AnnotationType] = "bbox",
@@ -3023,7 +3046,7 @@ def add_annotation_bbox_to_image(
     image_name: NotEmptyStr,
     bbox: List[float],
     annotation_class_name: NotEmptyStr,
-    annotation_class_attributes: Optional[List[NotEmptyStr]] = None,
+    annotation_class_attributes: Optional[List[dict]] = None,
     error: Optional[StrictBool] = None,
 ):
     """Add a bounding box annotation to image annotations
@@ -3058,7 +3081,7 @@ def add_annotation_polyline_to_image(
     image_name: NotEmptyStr,
     polyline: List[float],
     annotation_class_name: NotEmptyStr,
-    annotation_class_attributes: Optional[List[NotEmptyStr]] = None,
+    annotation_class_attributes: Optional[List[dict]] = None,
     error: Optional[StrictBool] = None,
 ):
     """Add a polyline annotation to image annotations
@@ -3127,7 +3150,7 @@ def add_annotation_point_to_image(
     image_name: NotEmptyStr,
     point: List[float],
     annotation_class_name: NotEmptyStr,
-    annotation_class_attributes: Optional[List[NotEmptyStr]] = None,
+    annotation_class_attributes: Optional[List[dict]] = None,
     error: Optional[StrictBool] = None,
 ):
     """Add a point annotation to image annotations
@@ -3160,7 +3183,7 @@ def add_annotation_ellipse_to_image(
     image_name: NotEmptyStr,
     ellipse: List[float],
     annotation_class_name: NotEmptyStr,
-    annotation_class_attributes: Optional[List[NotEmptyStr]] = None,
+    annotation_class_attributes: Optional[List[dict]] = None,
     error: Optional[StrictBool] = None,
 ):
     """Add an ellipse annotation to image annotations
@@ -3195,7 +3218,7 @@ def add_annotation_template_to_image(
     template_points: List[float],
     template_connections: List[int],
     annotation_class_name: NotEmptyStr,
-    annotation_class_attributes: Optional[List[NotEmptyStr]] = None,
+    annotation_class_attributes: Optional[List[dict]] = None,
     error: Optional[StrictBool] = None,
 ):
     """Add a template annotation to image annotations
@@ -3240,7 +3263,7 @@ def add_annotation_cuboid_to_image(
     image_name: NotEmptyStr,
     cuboid: List[float],
     annotation_class_name: NotEmptyStr,
-    annotation_class_attributes: Optional[List[NotEmptyStr]] = None,
+    annotation_class_attributes: Optional[List[dict]] = None,
     error: Optional[StrictBool] = None,
 ):
     """Add a cuboid annotation to image annotations
@@ -3472,7 +3495,7 @@ def upload_images_to_project(
     def _upload_local_image(image_path: str):
         try:
             with open(image_path, "rb") as image:
-                image_bytes = BytesIO(image.read())
+                image_bytes = io.BytesIO(image.read())
                 upload_response = controller.upload_image_to_s3(
                     project_name=project_name,
                     image_path=image_path,

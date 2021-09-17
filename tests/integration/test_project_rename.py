@@ -4,6 +4,7 @@ from tests.integration.base import BaseTestCase
 
 class TestProjectRename(BaseTestCase):
     PROJECT_NAME = "TestProjectRename"
+    NAME_TO_RENAME = "TestPr"
     PROJECT_DESCRIPTION = "Desc"
     PROJECT_TYPE = "Vector"
     NEW_PROJECT_NAME = "new"
@@ -21,6 +22,7 @@ class TestProjectRename(BaseTestCase):
         projects.extend(sa.search_projects(self.PROJECT_NAME, return_metadata=True))
         projects.extend(sa.search_projects(self.NEW_PROJECT_NAME, return_metadata=True))
         projects.extend(sa.search_projects(self.REPLACED_PROJECT_NAME, return_metadata=True))
+        projects.extend(sa.search_projects(self.NAME_TO_RENAME, return_metadata=True))
         for project in projects:
             try:
                 sa.delete_project(project)
@@ -36,3 +38,8 @@ class TestProjectRename(BaseTestCase):
         sa.rename_project(self.PROJECT_NAME, self.BAD_PROJECT_NAME)
         sa.get_project_metadata(self.REPLACED_PROJECT_NAME)
 
+    def test_rename_with_substring_of_an_existing_name(self):
+        sa.rename_project(self.PROJECT_NAME, self.NAME_TO_RENAME)
+        metadata = sa.get_project_metadata(self.NAME_TO_RENAME)
+        self.assertEqual(self.NAME_TO_RENAME, metadata["name"])
+        sa.delete_project(self.NAME_TO_RENAME)
