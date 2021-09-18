@@ -548,18 +548,21 @@ def copy_image(
     destination_project, destination_folder = extract_project_folder(
         destination_project
     )
-    source_project = controller.get_project_metadata(source_project_name).data
+    source_project_metadata = controller.get_project_metadata(source_project_name).data
+    destination_project_metadata = controller.get_project_metadata(
+        destination_project
+    ).data
 
-    project = controller.get_project_metadata(destination_project).data
-
-    if project["project"].project_type in [
+    if destination_project_metadata["project"].project_type in [
         constances.ProjectType.VIDEO.value,
         constances.ProjectType.DOCUMENT.value,
-    ] or source_project["project"].project_type in [
+    ] or source_project_metadata["project"].project_type in [
         constances.ProjectType.VIDEO.value,
         constances.ProjectType.DOCUMENT.value,
     ]:
-        raise AppException(LIMITED_FUNCTIONS[source_project["project"].project_type])
+        raise AppException(
+            LIMITED_FUNCTIONS[source_project_metadata["project"].project_type]
+        )
 
     img_bytes = get_image_bytes(project=source_project, image_name=image_name)
 
@@ -1174,6 +1177,14 @@ def assign_images(project: Union[NotEmptyStr, dict], image_names: List[str], use
     :type user: str
     """
     project_name, folder_name = extract_project_folder(project)
+    project = controller.get_project_metadata(project_name).data
+
+    if project["project"].project_type in [
+        constances.ProjectType.VIDEO.value,
+        constances.ProjectType.DOCUMENT.value,
+    ]:
+        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
+
     if not folder_name:
         folder_name = "root"
     contributors = (

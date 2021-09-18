@@ -6,7 +6,7 @@ from src.superannotate.lib.core import LIMITED_FUNCTIONS
 from src.superannotate.lib.core import DEPRICATED_DOCUMENT_VIDEO_MESSAGE
 from src.superannotate.lib.core import ProjectType
 
-class TestDepricatedFunctions(BaseTestCase):
+class TestDepricatedFunctionsDocument(BaseTestCase):
     PROJECT_NAME = "document proj 11"
     PROJECT_DESCRIPTION = "desc"
     PROJECT_TYPE = "Document"
@@ -274,25 +274,21 @@ class TestDepricatedFunctions(BaseTestCase):
         except Exception as e:
             msg = str(e)
         self.assertIn(self.EXCEPTION_MESSAGE, msg)
-
-
-        # TODO: need feedback
-        # try:
-        #     msg = ""
-        #     sa.export_annotation(
-        #         "input_dir", "fromSuperAnnotate/panoptic_test", "COCO", "panoptic_test", "Pixel",
-        #         "panoptic_segmentation"
-        #     )
-        # except Exception as e:
-        #     msg = str(e)
-        # self.assertIn(self.EXCEPTION_MESSAGE, msg)
-        # TODO: returns None for not existing contributer
-        # try:
-        #     msg = ""
-        #     sa.assign_images(self.PROJECT_NAME,[self.UPLOAD_IMAGE_NAME],"some user")
-        # except Exception as e:
-        #     msg = str(e)
-        # self.assertIn(self.EXCEPTION_MESSAGE, msg)
+        try:
+            msg = ""
+            sa.assign_images(self.PROJECT_NAME,[self.UPLOAD_IMAGE_NAME],"some user")
+        except Exception as e:
+            msg = str(e)
+        self.assertIn(self.EXCEPTION_MESSAGE, msg)
+        try:
+            msg = ""
+            sa.export_annotation(
+                "input_dir", "fromSuperAnnotate/panoptic_test", "COCO", "panoptic_test", "Document",
+                "panoptic_segmentation"
+            )
+        except Exception as e:
+            msg = str(e)
+        self.assertIn(self.EXCEPTION_MESSAGE, msg)
         # TODO: image quality error
         # try:
         #     msg = ""

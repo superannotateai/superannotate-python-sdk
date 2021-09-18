@@ -7,7 +7,8 @@ from pathlib import Path
 from lib.app.exceptions import AppException
 from lib.app.mixp.decorators import Trackable
 from lib.core import DEPRICATED_DOCUMENT_VIDEO_MESSAGE
-from lib.core.exceptions import AppValidationException
+from lib.core import LIMITED_FUNCTIONS
+from lib.core.enums import ProjectType
 
 from .export_from_sa_conversions import export_from_sa
 from .import_to_sa_conversions import import_to_sa
@@ -144,10 +145,13 @@ def export_annotation(
     project_type="Vector",
     task="object_detection",
 ):
-    if project_type == "Video" or project_type == "Text":
-        raise AppValidationException(
-            f"The function does not support projects containing {project_type} attached with URLs"
-        )
+
+    if project_type in [
+        ProjectType.VIDEO.name,
+        ProjectType.DOCUMENT.name,
+    ]:
+        raise AppException(LIMITED_FUNCTIONS[ProjectType.get_value(project_type)])
+
     """Converts SuperAnnotate annotation formate to the other annotation formats. Currently available (project_type, task) combinations for converter
     presented below:
 
