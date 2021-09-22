@@ -1,6 +1,7 @@
 """
 Main module for input converters
 """
+import os
 from argparse import Namespace
 from pathlib import Path
 
@@ -178,6 +179,10 @@ def export_annotation(
 
     """
 
+    if project_type not in ["Vector", "Pixel"]:
+        raise SABaseException(0, f"The function does not support projects containing {project_type} attached with URLs")
+
+
     params_info = [
         (input_dir, 'input_dir', (str, Path)),
         (output_dir, 'output_dir', (str, Path)),
@@ -352,6 +357,9 @@ def import_annotation(
     :type image_extensions: list
 
     """
+
+    if project_type not in ["Vector","Pixel"]:
+        raise SABaseException(0, f"The function does not support projects containing {project_type} attached with URLs")
 
     params_info = [
         (input_dir, 'input_dir', (str, Path)),

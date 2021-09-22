@@ -47,6 +47,7 @@ ________
 .. autofunction:: superannotate.upload_video_to_project
 .. autofunction:: superannotate.upload_videos_from_folder_to_project
 .. autofunction:: superannotate.attach_video_urls_to_project
+.. autofunction:: superannotate.attach_document_urls_to_project
 .. _ref_upload_annotations_from_folder_to_project:
 .. autofunction:: superannotate.upload_annotations_from_folder_to_project
 .. autofunction:: superannotate.upload_preannotations_from_folder_to_project

@@ -42,18 +42,19 @@ def get_project_metadata_bare(project_name, include_complete_image_count=False):
         res = results[0]
         res["type"] = common.project_type_int_to_str(res["type"])
         res["user_role"] = common.user_role_int_to_str(res["user_role"])
+        project_type = res["type"]
         current_frame = inspect.currentframe()
         outer_function = inspect.getframeinfo(current_frame.f_back).function
         outer_outer_function = inspect.getframeinfo(
             current_frame.f_back.f_back
         ).function
-        if res.get("type") and res["type"] == "Video" and (
-            outer_function in common.VIDEO_DEPRICATED_FUNCTIONS or
-            outer_outer_function in common.VIDEO_DEPRICATED_FUNCTIONS
+        if res.get("type") and res["type"] in ["Video","Document"] and (
+            outer_function in common.DEPRICATED_FUNCTIONS_PER_PROJECT_TYPE[res["type"]] or
+            outer_outer_function in common.DEPRICATED_FUNCTIONS_PER_PROJECT_TYPE[res["type"]]
         ):
             raise SABaseException(
                 0,
-                "The function does not support projects containing videos attached with URLs"
+                f"The function does not support projects containing {project_type} attached with URLs"
             )
         return res
     else:
@@ -150,12 +151,13 @@ def get_project_and_folder_metadata(project):
     outer_outer_function = inspect.getframeinfo(
         current_frame.f_back.f_back
     ).function
-    if project.get("type") and project["type"] == "Video" \
-            and (outer_function in common.VIDEO_DEPRICATED_FUNCTIONS
-                 or outer_outer_function in common.VIDEO_DEPRICATED_FUNCTIONS):
+    if project.get("type") and project["type"] in ["Video","Document"] \
+            and (outer_function in common.DEPRICATED_FUNCTIONS_PER_PROJECT_TYPE[project["type"]]
+                 or outer_outer_function in common.DEPRICATED_FUNCTIONS_PER_PROJECT_TYPE[project["type"]]):
+        project_type = project['type']
         raise SABaseException(
             0,
-            "The function does not support projects containing videos attached with URLs"
+            f"The function does not support projects containing {project_type} attached with URLs"
         )
     return project, folder
 

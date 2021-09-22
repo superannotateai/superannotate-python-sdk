@@ -14,7 +14,7 @@ from plotly.subplots import make_subplots
 from ..api import API
 from ..common import (
     _AVAILABLE_SEGMENTATION_MODELS, model_training_status_int_to_str,
-    project_type_str_to_int, upload_state_int_to_str, _MODEL_TRAINING_TASKS
+    project_type_str_to_int, upload_state_int_to_str, _MODEL_TRAINING_TASKS,project_type_int_to_str
 )
 from ..db.images import get_image_metadata
 from ..exceptions import SABaseException
@@ -61,10 +61,11 @@ def run_prediction(project, images_list, model):
         )
     project_id = project["id"]
     upload_state = upload_state_int_to_str(project.get("upload_state"))
+    project_type = project.get("type")
     if upload_state == "External":
         raise SABaseException(
             0,
-            "The function does not support projects containing images attached with URLs"
+            f"The function does not support projects containing {project_type} attached with URLs"
         )
     images_metadata = get_image_metadata(project, images_list)
     if isinstance(images_metadata, dict):
@@ -137,10 +138,11 @@ def run_segmentation(project, images_list, model):
         raise SABaseException(0, "Model Does not exist")
 
     upload_state = upload_state_int_to_str(project.get("upload_state"))
+    project_type = project.get("type")
     if upload_state == "External":
         raise SABaseException(
             0,
-            "The function does not support projects containing images attached with URLs"
+            f"The function does not support projects containing {project_type} attached with URLs"
         )
 
     images_metadata = get_image_metadata(project, images_list)
@@ -278,7 +280,7 @@ def run_training(
     if any([True for state in upload_states if "External" == upload_state_int_to_str(state)]):
         raise SABaseException(
             0,
-            "The function does not support projects containing images attached with URLs"
+            f"The function does not support projects containing {types[0]} attached with URLs"
         )
     if isinstance(base_model, dict):
         base_model = base_model['name']

@@ -59,6 +59,7 @@ def main():
         "init": lambda *args, **kwargs: ask_token(),
         "export-project": export_project,
         "attach-video-urls": attach_video_urls,
+        "attach-document-urls": attach_document_urls_to_project,
         "version": lambda *args, **kwargs: print(f"SuperAnnotate Python SDK version {sa.__version__}")
     }
     if len(sys.argv) == 1:
@@ -386,6 +387,30 @@ def attach_video_urls(command_name, args):
         annotation_status=args.annotation_status
     )
 
+
+def attach_document_urls_to_project(command_name, args):
+    parser = argparse.ArgumentParser(prog=_CLI_COMMAND + " " + command_name)
+    parser.add_argument(
+        '--project', required=True, help='Project name to upload'
+    )
+    parser.add_argument(
+        '--attachments',
+        required=True,
+        help='path to csv file on attachments metadata'
+    )
+    parser.add_argument(
+        '--annotation_status',
+        required=False,
+        default="NotStarted",
+        help=
+        'Set images\' annotation statuses after upload. Default is NotStarted'
+    )
+    args = parser.parse_args(args)
+    sa.attach_document_urls_to_project(
+        project=args.project,
+        attachments=args.attachments,
+        annotation_status=args.annotation_status
+    )
 
 if __name__ == "__main__":
     main()
