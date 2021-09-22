@@ -22,8 +22,8 @@ class AttributeGroup(BaseModel):
 
 class ClassesJson(BaseModel):
     name: StrictStr
-    color: Optional[StrictStr]
-    attribute_groups: Optional[List[AttributeGroup]]
+    color: StrictStr
+    attribute_groups: List[AttributeGroup]
 
 
 class Metadata(BaseModel):

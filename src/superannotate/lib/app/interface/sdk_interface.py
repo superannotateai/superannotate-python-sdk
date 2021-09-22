@@ -75,7 +75,6 @@ def init(path_to_config_json: str):
 @validate_arguments
 def set_auth_token(token: str):
     controller.set_token(token)
-    controller.init(controller.config_path)
 
 
 @Trackable
