@@ -2350,7 +2350,9 @@ def attach_image_urls_to_project(
         raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
 
     images_to_upload, duplicate_images = get_paths_and_duplicated_from_csv(attachments)
-    list_of_not_uploaded = []
+    list_of_uploaded = []
+
+    logger.info("Attaching %s images to project.", len(images_to_upload))
 
     with tqdm(total=len(images_to_upload), desc="Attaching urls") as progress_bar:
         for i in range(0, len(images_to_upload), 500):
@@ -2362,14 +2364,16 @@ def attach_image_urls_to_project(
                 ),
                 annotation_status=annotation_status,
             )
-            if response.errors:
-                list_of_not_uploaded.append(response.data[0])
-                duplicate_images.append(response.data[1])
-            progress_bar.update(len(images_to_upload[i : i + 500]))
-    list_of_uploaded = [
+            if not response.errors:
+                list_of_uploaded.extend(
+                    list(map(lambda image: image["name"], response.data[0]))
+                )
+                duplicate_images.extend(response.data[1])
+            progress_bar.update(len(images_to_upload[i : i + 500]))  # noqa: E203
+    list_of_not_uploaded = [
         image["name"]
         for image in images_to_upload
-        if image["name"] not in list_of_not_uploaded
+        if image["name"] not in list_of_uploaded + duplicate_images
     ]
 
     return list_of_uploaded, list_of_not_uploaded, duplicate_images
@@ -2398,7 +2402,9 @@ def attach_video_urls_to_project(
         raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
 
     images_to_upload, duplicate_images = get_paths_and_duplicated_from_csv(attachments)
-    list_of_not_uploaded = []
+    list_of_uploaded = []
+
+    logger.info("Attaching %s images to project.", len(images_to_upload))
 
     with tqdm(total=len(images_to_upload), desc="Attaching urls") as progress_bar:
         for i in range(0, len(images_to_upload), 500):
@@ -2410,14 +2416,16 @@ def attach_video_urls_to_project(
                 ),
                 annotation_status=annotation_status,
             )
-            if response.errors:
-                list_of_not_uploaded.append(response.data[0])
-                duplicate_images.append(response.data[1])
-            progress_bar.update(len(images_to_upload[i : i + 500]))
-    list_of_uploaded = [
+            if not response.errors:
+                list_of_uploaded.extend(
+                    list(map(lambda image: image["name"], response.data[0]))
+                )
+                duplicate_images.extend(response.data[1])
+            progress_bar.update(len(images_to_upload[i : i + 500]))  # noqa: E203
+    list_of_not_uploaded = [
         image["name"]
         for image in images_to_upload
-        if image["name"] not in list_of_not_uploaded
+        if image["name"] not in list_of_uploaded + duplicate_images
     ]
 
     return list_of_uploaded, list_of_not_uploaded, duplicate_images
@@ -3690,7 +3698,9 @@ def attach_document_urls_to_project(
     if not project["project"].project_type == constances.ProjectType.DOCUMENT.value:
         raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
     images_to_upload, duplicate_images = get_paths_and_duplicated_from_csv(attachments)
-    list_of_not_uploaded = []
+    list_of_uploaded = []
+
+    logger.info("Attaching %s images to project.", len(images_to_upload))
 
     with tqdm(total=len(images_to_upload), desc="Attaching urls") as progress_bar:
         for i in range(0, len(images_to_upload), 500):
@@ -3702,14 +3712,16 @@ def attach_document_urls_to_project(
                 ),
                 annotation_status=annotation_status,
             )
-            if response.errors:
-                list_of_not_uploaded.append(response.data[0])
-                duplicate_images.append(response.data[1])
-            progress_bar.update(len(images_to_upload[i : i + 500]))
-    list_of_uploaded = [
+            if not response.errors:
+                list_of_uploaded.extend(
+                    list(map(lambda image: image["name"], response.data[0]))
+                )
+                duplicate_images.extend(response.data[1])
+            progress_bar.update(len(images_to_upload[i : i + 500]))  # noqa: E203
+    list_of_not_uploaded = [
         image["name"]
         for image in images_to_upload
-        if image["name"] not in list_of_not_uploaded
+        if image["name"] not in list_of_uploaded + duplicate_images
     ]
 
     return list_of_uploaded, list_of_not_uploaded, duplicate_images
