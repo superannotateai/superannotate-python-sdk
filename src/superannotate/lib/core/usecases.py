@@ -4939,7 +4939,8 @@ class UploadImagesFromFolderToProject(UploadImagesToProject):
                 Bucket=from_s3_bucket, Prefix=folder_path
             )
             for response in response_iterator:
-                for object_data in response["Contents"]:
+                contents = response.get("Contents", [])
+                for object_data in contents:
                     key = object_data["Key"]
                     if not recursive_sub_folders and "/" in key[len(folder_path) + 1 :]:
                         continue
@@ -4949,6 +4950,7 @@ class UploadImagesFromFolderToProject(UploadImagesToProject):
                         ):
                             paths.append(key)
                             break
+
         return [str(path) for path in paths]
 
 
