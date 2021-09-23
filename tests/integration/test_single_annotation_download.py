@@ -87,24 +87,24 @@ class TestSingleAnnotationDownloadUploadPixel(BaseTestCase):
         )
         image = sa.search_images(self.PROJECT_NAME)[0]
 
-        tempdir = tempfile.TemporaryDirectory()
-        paths = sa.download_image_annotations(self.PROJECT_NAME, image, tempdir.name)
-        downloaded_json = json.load(open(paths[0]))
-        uploaded_json = json.load(
-            open(self.folder_path + "/example_image_1.jpg___pixel.json")
-        )
-        for i in downloaded_json["instances"]:
-            i.pop("classId", None)
-            for j in i["attributes"]:
-                j.pop("groupId", None)
-                j.pop("id", None)
-        for i in uploaded_json["instances"]:
-            i.pop("classId", None)
-            for j in i["attributes"]:
-                j.pop("groupId", None)
-                j.pop("id", None)
-        assert downloaded_json == uploaded_json
+        with tempfile.TemporaryDirectory() as tempdir:
+            paths = sa.download_image_annotations(self.PROJECT_NAME, image, tempdir)
+            downloaded_json = json.load(open(paths[0]))
+            uploaded_json = json.load(
+                open(self.folder_path + "/example_image_1.jpg___pixel.json")
+            )
+            for i in downloaded_json["instances"]:
+                i.pop("classId", None)
+                for j in i["attributes"]:
+                    j.pop("groupId", None)
+                    j.pop("id", None)
+            for i in uploaded_json["instances"]:
+                i.pop("classId", None)
+                for j in i["attributes"]:
+                    j.pop("groupId", None)
+                    j.pop("id", None)
+            assert downloaded_json == uploaded_json
 
-        uploaded_mask = self.folder_path + "/example_image_1.jpg___save.png"
-        download_mask = paths[1]
-        assert filecmp.cmp(download_mask, uploaded_mask, shallow=False)
+            uploaded_mask = self.folder_path + "/example_image_1.jpg___save.png"
+            download_mask = paths[1]
+            assert filecmp.cmp(download_mask, uploaded_mask, shallow=False)

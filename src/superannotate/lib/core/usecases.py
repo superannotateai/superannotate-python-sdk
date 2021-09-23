@@ -340,6 +340,36 @@ class CloneProjectUseCase(BaseUseCase):
                 constances.LIMITED_FUNCTIONS[self._project.project_type]
             )
 
+    def validate_project_name(self):
+        if self._project_to_create.name:
+            if (
+                len(
+                    set(self._project_to_create.name).intersection(
+                        constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
+                    )
+                )
+                > 0
+            ):
+                self._project_to_create.name = "".join(
+                    "_"
+                    if char in constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
+                    else char
+                    for char in self._project_to_create.name
+                )
+                logger.warning(
+                    "New folder name has special characters. Special characters will be replaced by underscores."
+                )
+            condition = Condition("name", self._project_to_create.name, EQ) & Condition(
+                "team_id", self._project.team_id, EQ
+            )
+            for project in self._projects.get_all(condition):
+                if project.name == self._project_to_create.name:
+                    logger.error("There are duplicated names.")
+                    raise AppValidationException(
+                        f"Project name {self._project_to_create.name} is not unique. "
+                        f"To use SDK please make project names unique."
+                    )
+
     def execute(self):
         if self.is_valid():
             project = self._projects.insert(self._project_to_create)
@@ -381,7 +411,9 @@ class CloneProjectUseCase(BaseUseCase):
             if self._include_workflow:
                 new_workflows = self._workflows_repo(self._backend_service, project)
                 for workflow in self.workflows.get_all():
-                    existing_workflow_ids = list(map(lambda i: i.uuid, new_workflows.get_all()))
+                    existing_workflow_ids = list(
+                        map(lambda i: i.uuid, new_workflows.get_all())
+                    )
                     workflow_data = copy.copy(workflow)
                     workflow_data.project_id = project.uuid
                     workflow_data.class_id = annotation_classes_mapping[
@@ -390,7 +422,9 @@ class CloneProjectUseCase(BaseUseCase):
                     new_workflows.insert(workflow_data)
                     workflows = new_workflows.get_all()
                     new_workflow = [
-                        work_flow for work_flow in workflows if work_flow.uuid not in existing_workflow_ids
+                        work_flow
+                        for work_flow in workflows
+                        if work_flow.uuid not in existing_workflow_ids
                     ][0]
                     workflow_attributes = []
                     for attribute in workflow_data.attribute:
@@ -3258,6 +3292,9 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
         self._mask = mask
         self._verbose = verbose
         self._annotation_path = annotation_path
+        self.unknown_classes = []
+        self.unknown_attribute_groups = []
+        self.unknown_attributes = []
 
     def validate_project_type(self):
         if self._project.project_type in constances.LIMITED_FUNCTIONS:
@@ -3298,18 +3335,21 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
         annotation_classes = self.annotation_classes_name_map
         if "instances" not in annotations:
             return
+
         unknown_classes = {}
         for annotation in [i for i in annotations["instances"] if "className" in i]:
             if "className" not in annotation:
                 return
             annotation_class_name = annotation["className"]
-            if annotation_class_name not in annotation_classes:
+            if annotation_class_name not in annotation_classes.keys():
                 if annotation_class_name not in unknown_classes:
+                    self.unknown_classes.append(annotation_class_name)
                     unknown_classes[annotation_class_name] = {
                         "id": -(len(unknown_classes) + 1),
                         "attribute_groups": {},
                     }
-        annotation_classes.update(unknown_classes)
+        if unknown_classes:
+            annotation_classes.update(unknown_classes)
         templates = self.get_templates_mapping()
         for annotation in (
             i for i in annotations["instances"] if i.get("type", None) == "template"
@@ -3320,7 +3360,7 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
 
         for annotation in [i for i in annotations["instances"] if "className" in i]:
             annotation_class_name = annotation["className"]
-            if annotation_class_name not in annotation_classes:
+            if annotation_class_name not in annotation_classes.keys():
                 continue
             annotation["classId"] = annotation_classes[annotation_class_name]["id"]
             for attribute in annotation["attributes"]:
@@ -3328,6 +3368,7 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
                     attribute["groupName"]
                     not in annotation_classes[annotation_class_name]["attribute_groups"]
                 ):
+                    self.unknown_attributes.append(attribute["groupName"])
                     continue
                 attribute["groupId"] = annotation_classes[annotation_class_name][
                     "attribute_groups"
@@ -3339,10 +3380,21 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
                     ][attribute["groupName"]]["attributes"]
                 ):
                     del attribute["groupId"]
+                    self.unknown_attributes.append(attribute["name"])
                     continue
                 attribute["id"] = annotation_classes[annotation_class_name][
                     "attribute_groups"
                 ][attribute["groupName"]]["attributes"][attribute["name"]]
+
+    def report_unknown_data(self):
+        if self.unknown_classes:
+            logger.warning(f"Unknown classes [{', '.join(self.unknown_classes)}]")
+        if self.unknown_attribute_groups:
+            logger.warning(
+                f"Unknown attribute_groups [{', '.join(self.unknown_attribute_groups)}]"
+            )
+        if self.unknown_attributes:
+            logger.warning(f"Unknown attributes [{', '.join(self.unknown_attributes)}]")
 
     def execute(self):
         if self.is_valid():
@@ -3371,6 +3423,7 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
                 resource = session.resource("s3")
                 bucket = resource.Bucket(response.data.bucket)
                 self.fill_classes_data(self._annotations)
+                self.report_unknown_data()
                 bucket.put_object(
                     Key=response.data.images[image_data["id"]]["annotation_json_path"],
                     Body=json.dumps(self._annotations),
@@ -4763,7 +4816,15 @@ class UploadImagesToProject(BaseInteractiveUseCase):
                 .data
             )
         else:
-            image_bytes = io.BytesIO(open(image_path, "rb").read())
+            try:
+                image_bytes = io.BytesIO(open(image_path, "rb").read())
+            except FileNotFoundError:
+                return ProcessedImage(
+                    uploaded=False,
+                    path=image_path,
+                    entity=None,
+                    name=Path(image_path).name,
+                )
         upload_response = UploadImageS3UseCase(
             project=self._project,
             project_settings=self._settings,

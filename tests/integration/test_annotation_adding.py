@@ -210,3 +210,23 @@ class TestAnnotationAdding(BaseTestCase):
             self.assertEqual(
                 len(annotations_new["comments"]), len(annotations["comments"]) + 1
             )
+
+    def test_add_bbox_with_dict(self):
+        sa.upload_image_to_project(self.PROJECT_NAME, f"{self.folder_path}/{self.EXAMPLE_IMAGE_1}")
+        sa.create_annotation_class(
+            self.PROJECT_NAME,
+            "test_add",
+            "#FF0000",
+            [{"name": "test", "attributes": [{"name": "yes"}, {"name": "no"}]}]
+        )
+        sa.add_annotation_bbox_to_image(
+            project=self.PROJECT_NAME,
+            image_name=self.EXAMPLE_IMAGE_1,
+            bbox=[10, 20, 100, 150],
+            annotation_class_name="test_add",
+            annotation_class_attributes=[{'name': 'yes', 'groupName': 'test_add'}]
+        )
+        annotation = sa.get_image_annotations(self.PROJECT_NAME, self.EXAMPLE_IMAGE_1)
+        self.assertEqual(
+            annotation["annotation_json"]["instances"][0]["attributes"], [{'name': 'yes', 'groupName': 'test_add'}]
+        )

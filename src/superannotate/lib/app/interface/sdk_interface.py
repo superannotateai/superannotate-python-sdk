@@ -5,7 +5,6 @@ import logging
 import os
 import tempfile
 import time
-from collections import Counter
 from collections import namedtuple
 from pathlib import Path
 from typing import Iterable
@@ -42,7 +41,6 @@ from lib.app.serializers import TeamSerializer
 from lib.core import LIMITED_FUNCTIONS
 from lib.core.enums import ImageQuality
 from lib.core.exceptions import AppException
-from lib.core.exceptions import AppValidationException
 from lib.core.types import AttributeGroup
 from lib.core.types import ClassesJson
 from lib.core.types import MLModel
@@ -1069,8 +1067,10 @@ def delete_image(project: Union[NotEmptyStr, dict], image_name: str):
     :param image_name: image name
     :type image_name: str
     """
-    project_name, _ = extract_project_folder(project)
-    response = controller.delete_image(image_name=image_name, project_name=project_name)
+    project_name, folder_name = extract_project_folder(project)
+    response = controller.delete_image(
+        image_name=image_name, folder_name=folder_name, project_name=project_name
+    )
     if response.errors:
         raise AppException("Couldn't delete image ")
     logger.info(f"Successfully deleted image {image_name}.")
@@ -2121,7 +2121,7 @@ def move_image(
             is_pinned=1,
         )
 
-    controller.delete_image(image_name, source_project_name)
+    controller.delete_image(image_name, source_project_name, source_folder_name)
 
 
 @Trackable
@@ -3503,104 +3503,29 @@ def upload_images_to_project(
     :return: uploaded, could-not-upload, existing-images filepaths
     :rtype: tuple (3 members) of list of strs
     """
-    uploaded_image_entities = []
-    failed_images = []
     project_name, folder_name = extract_project_folder(project)
-    project = controller.get_project_metadata(project_name).data
-    if project["project"].project_type in [
-        constances.ProjectType.VIDEO.value,
-        constances.ProjectType.DOCUMENT.value,
-    ]:
-        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
 
-    ProcessedImage = namedtuple("ProcessedImage", ["uploaded", "path", "entity"])
-
-    def _upload_local_image(image_path: str):
-        try:
-            with open(image_path, "rb") as image:
-                image_bytes = io.BytesIO(image.read())
-                upload_response = controller.upload_image_to_s3(
-                    project_name=project_name,
-                    image_path=image_path,
-                    image_bytes=image_bytes,
-                    folder_name=folder_name,
-                    image_quality_in_editor=image_quality_in_editor,
-                )
-
-                if not upload_response.errors and upload_response.data:
-                    entity = upload_response.data
-                    return ProcessedImage(
-                        uploaded=True, path=entity.path, entity=entity
-                    )
-                else:
-                    return ProcessedImage(uploaded=False, path=image_path, entity=None)
-        except FileNotFoundError:
-            return ProcessedImage(uploaded=False, path=image_path, entity=None)
-
-    def _upload_s3_image(image_path: str):
-        try:
-            image_bytes = controller.get_image_from_s3(
-                s3_bucket=from_s3_bucket, image_path=image_path
-            ).data
-        except AppValidationException as e:
-            logger.warning(e)
-            return image_path
-        upload_response = controller.upload_image_to_s3(
-            project_name=project_name,
-            image_path=image_path,
-            image_bytes=image_bytes,
-            folder_name=folder_name,
-            image_quality_in_editor=image_quality_in_editor,
-        )
-        if not upload_response.errors and upload_response.data:
-            entity = upload_response.data
-            return ProcessedImage(uploaded=True, path=entity.path, entity=entity)
-        else:
-            return ProcessedImage(uploaded=False, path=image_path, entity=None)
-
-    filtered_paths = img_paths
-    duplication_counter = Counter(filtered_paths)
-    images_to_upload, duplicated_images = (
-        set(filtered_paths),
-        [item for item in duplication_counter if duplication_counter[item] > 1],
+    use_case = controller.upload_images_to_project(
+        project_name=project_name,
+        folder_name=folder_name,
+        paths=img_paths,
+        annotation_status=annotation_status,
+        image_quality_in_editor=image_quality_in_editor,
+        from_s3_bucket=from_s3_bucket,
     )
-    upload_method = _upload_s3_image if from_s3_bucket else _upload_local_image
 
-    logger.info(f"Uploading {len(images_to_upload)} images to project.")
-
-    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-        results = [
-            executor.submit(upload_method, image_path)
-            for image_path in images_to_upload
-        ]
-        with tqdm(total=len(images_to_upload), desc="Uploading images") as progress_bar:
-            for future in concurrent.futures.as_completed(results):
-                processed_image = future.result()
-                if processed_image.uploaded and processed_image.entity:
-                    uploaded_image_entities.append(processed_image.entity)
-                else:
-                    failed_images.append(processed_image.path)
-                progress_bar.update(1)
-    uploaded = []
-    duplicates = []
-
-    for i in range(0, len(uploaded_image_entities), 500):
-        response = controller.upload_images(
-            project_name=project_name,
-            folder_name=folder_name,
-            images=uploaded_image_entities[i : i + 500],  # noqa: E203
-            annotation_status=annotation_status,
-        )
-        attachments, duplications = response.data
-        uploaded.extend([attachment["name"] for attachment in attachments])
-        duplicates.extend(duplications)
-
+    images_to_upload, duplicates = use_case.images_to_upload
     if len(duplicates):
         logger.warning(
             "%s already existing images found that won't be uploaded.", len(duplicates)
         )
-
-    return uploaded, failed_images, duplicates
+    logger.info(f"Uploading {len(images_to_upload)} images to project {project}.")
+    if use_case.is_valid():
+        with tqdm(total=len(images_to_upload), desc="Uploading images") as progress_bar:
+            for _ in use_case.execute():
+                progress_bar.update(1)
+        return use_case.data
+    raise AppException(use_case.response.errors)
 
 
 @Trackable

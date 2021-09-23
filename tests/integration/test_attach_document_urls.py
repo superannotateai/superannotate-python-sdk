@@ -6,7 +6,7 @@ from tests.integration.base import BaseTestCase
 
 
 class TestDocumentUrls(BaseTestCase):
-    PROJECT_NAME = "test attach document urls"
+    PROJECT_NAME = "document attach urls"
     PATH_TO_URLS = "data_set/csv_files/text_urls.csv"
     PROJECT_DESCRIPTION = "desc"
     PROJECT_TYPE = "Document"
@@ -30,7 +30,7 @@ class TestDocumentUrls(BaseTestCase):
 
 
 class TestImageUrls(BaseTestCase):
-    PROJECT_NAME = "test attach image urls"
+    PROJECT_NAME = "image attach urls"
     PATH_TO_URLS = "data_set/csv_files/text_urls.csv"
     PROJECT_DESCRIPTION = "desc"
     PROJECT_TYPE = "Vector"
@@ -54,7 +54,7 @@ class TestImageUrls(BaseTestCase):
 
 
 class TestVideoUrls(BaseTestCase):
-    PROJECT_NAME = "test attach video urls"
+    PROJECT_NAME = "video attach urls"
     PATH_TO_URLS = "data_set/csv_files/text_urls.csv"
     PROJECT_DESCRIPTION = "desc"
     PROJECT_TYPE = "Video"
