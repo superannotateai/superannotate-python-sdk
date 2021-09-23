@@ -2153,50 +2153,13 @@ def download_export(
     """
     project_name, folder_name = extract_project_folder(project)
     export_name = export["name"] if isinstance(export, dict) else export
-
-    if to_s3_bucket:
-        with tempfile.TemporaryDirectory() as tmp:
-            response = controller.download_export(
-                project_name=project_name,
-                export_name=export_name,
-                folder_path=tmp,
-                extract_zip_contents=extract_zip_contents,
-                to_s3_bucket=to_s3_bucket,
-            )
-            downloaded_folder_path = response.data
-            if to_s3_bucket:
-                to_s3_bucket = boto3.Session().resource("s3").Bucket(to_s3_bucket)
-                files_to_upload = []
-                for file in Path(downloaded_folder_path).rglob("*.*"):
-                    files_to_upload.append(file)
-
-                def _upload_file_to_s3(to_s3_bucket, path, s3_key) -> None:
-                    controller.upload_file_to_s3(
-                        to_s3_bucket=to_s3_bucket, path=path, s3_key=s3_key
-                    )
-
-                with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-                    results = []
-                    for path in files_to_upload:
-                        s3_key = f"{folder_path}/{path.name}"
-                        results.append(
-                            executor.submit(
-                                _upload_file_to_s3, to_s3_bucket, str(path), s3_key
-                            )
-                        )
-                    for future in concurrent.futures.as_completed(results):
-                        future.result()
-                logger.info(
-                    "Exported to AWS %s/%s", to_s3_bucket.name, str(folder_path)
-                )
-    else:
-        controller.download_export(
-            project_name=project_name,
-            export_name=export_name,
-            folder_path=folder_path,
-            extract_zip_contents=extract_zip_contents,
-            to_s3_bucket=to_s3_bucket,
-        )
+    controller.download_export(
+        project_name=project_name,
+        export_name=export_name,
+        folder_path=folder_path,
+        extract_zip_contents=extract_zip_contents,
+        to_s3_bucket=to_s3_bucket,
+    )
 
 
 @Trackable
