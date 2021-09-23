@@ -3337,7 +3337,7 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
                     continue
                 attribute["id"] = annotation_classes[annotation_class_name][
                     "attribute_groups"
-                ][attribute["groupName"]]["attributes"]
+                ][attribute["groupName"]]["attributes"][attribute["name"]]
 
     def execute(self):
         if self.is_valid():
