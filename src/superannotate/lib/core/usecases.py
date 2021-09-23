@@ -776,10 +776,13 @@ class PrepareExportUseCase(BaseUseCase):
         self._include_fuse = include_fuse
         self._only_pinned = only_pinned
 
-    def validate_project_type(self):
-        if self._project.project_type in constances.LIMITED_FUNCTIONS:
+    def validate_only_pinned(self):
+        if (
+            self._project.upload_state == constances.UploadState.EXTERNAL.value
+            and self._only_pinned
+        ):
             raise AppValidationException(
-                constances.LIMITED_FUNCTIONS[self._project.project_type]
+                f"Pin functionality is not supported for  projects containing {self._project.project_type} attached with URLs"
             )
 
     def validate_fuse(self):
@@ -788,7 +791,7 @@ class PrepareExportUseCase(BaseUseCase):
             and self._include_fuse
         ):
             raise AppValidationException(
-                "Include fuse functionality is not supported for  projects containing  items attached with URLs"
+                f"Include fuse functionality is not supported for  projects containing {self._project.project_type} attached with URLs"
             )
 
     def execute(self):
@@ -4941,7 +4944,8 @@ class UploadImagesFromFolderToProject(UploadImagesToProject):
                 Bucket=from_s3_bucket, Prefix=folder_path
             )
             for response in response_iterator:
-                for object_data in response["Contents"]:
+                contents = response.get("Contents", [])
+                for object_data in contents:
                     key = object_data["Key"]
                     if not recursive_sub_folders and "/" in key[len(folder_path) + 1 :]:
                         continue
@@ -4951,6 +4955,7 @@ class UploadImagesFromFolderToProject(UploadImagesToProject):
                         ):
                             paths.append(key)
                             break
+
         return [str(path) for path in paths]
 
 

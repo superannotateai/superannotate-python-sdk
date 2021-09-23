@@ -39,6 +39,7 @@ from lib.app.serializers import ImageSerializer
 from lib.app.serializers import ProjectSerializer
 from lib.app.serializers import SettingsSerializer
 from lib.app.serializers import TeamSerializer
+from lib.core import LIMITED_FUNCTIONS
 from lib.core.enums import ImageQuality
 from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
@@ -546,11 +547,20 @@ def copy_image(
     destination_project, destination_folder = extract_project_folder(
         destination_project
     )
+    source_project_metadata = controller.get_project_metadata(source_project_name).data
+    destination_project_metadata = controller.get_project_metadata(
+        destination_project
+    ).data
 
-    project = controller.get_project_metadata(destination_project).data
-    if project["project"].project_type == constances.ProjectType.VIDEO.value:
+    if destination_project_metadata["project"].project_type in [
+        constances.ProjectType.VIDEO.value,
+        constances.ProjectType.DOCUMENT.value,
+    ] or source_project_metadata["project"].project_type in [
+        constances.ProjectType.VIDEO.value,
+        constances.ProjectType.DOCUMENT.value,
+    ]:
         raise AppException(
-            "The function does not support projects containing videos attached with URLs"
+            LIMITED_FUNCTIONS[source_project_metadata["project"].project_type]
         )
 
     img_bytes = get_image_bytes(project=source_project, image_name=image_name)
@@ -808,10 +818,11 @@ def move_images(
     project_name, source_folder_name = extract_project_folder(source_project)
 
     project = controller.get_project_metadata(project_name).data
-    if project["project"].project_type == constances.ProjectType.VIDEO.value:
-        raise AppException(
-            "The function does not support projects containing videos attached with URLs"
-        )
+    if project["project"].project_type in [
+        constances.ProjectType.VIDEO.value,
+        constances.ProjectType.DOCUMENT.value,
+    ]:
+        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
 
     _, destination_folder_name = extract_project_folder(destination_project)
 
@@ -1118,7 +1129,7 @@ def set_images_annotation_statuses(
         project_name, folder_name, image_names, annotation_status
     )
     if response.errors:
-        raise AppException("Failed to change status.")
+        raise AppException(response.errors)
     logger.info("Annotations status of images changed")
 
 
@@ -1165,6 +1176,14 @@ def assign_images(project: Union[NotEmptyStr, dict], image_names: List[str], use
     :type user: str
     """
     project_name, folder_name = extract_project_folder(project)
+    project = controller.get_project_metadata(project_name).data
+
+    if project["project"].project_type in [
+        constances.ProjectType.VIDEO.value,
+        constances.ProjectType.DOCUMENT.value,
+    ]:
+        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
+
     if not folder_name:
         folder_name = "root"
     contributors = (
@@ -1188,6 +1207,8 @@ def assign_images(project: Union[NotEmptyStr, dict], image_names: List[str], use
     response = controller.assign_images(project_name, folder_name, image_names, user)
     if not response.errors:
         logger.info(f"Assign images to user {user}")
+    else:
+        raise AppException(response.errors)
 
 
 @Trackable
@@ -1340,7 +1361,7 @@ def get_image_annotations(project: Union[NotEmptyStr, dict], image_name: NotEmpt
         project_name=project_name, folder_name=folder_name, image_name=image_name
     )
     if res.errors:
-        raise AppException(res)
+        raise AppException(res.errors)
     return res.data
 
 
@@ -1720,6 +1741,12 @@ def upload_videos_from_folder_to_project(
     """
 
     project_name, folder_name = extract_project_folder(project)
+    project = controller.get_project_metadata(project_name).data
+    if project["project"].project_type in [
+        constances.ProjectType.VIDEO.value,
+        constances.ProjectType.DOCUMENT.value,
+    ]:
+        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
 
     video_paths = []
     for extension in extensions:
@@ -2045,10 +2072,11 @@ def move_image(
 
     source_project_name, source_folder_name = extract_project_folder(source_project)
     project = controller.get_project_metadata(source_project_name).data
-    if project["project"].project_type == constances.ProjectType.VIDEO.value:
-        raise AppException(
-            "The function does not support projects containing videos attached with URLs"
-        )
+    if project["project"].project_type in [
+        constances.ProjectType.VIDEO.value,
+        constances.ProjectType.DOCUMENT.value,
+    ]:
+        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
 
     destination_project, destination_folder = extract_project_folder(
         destination_project
@@ -2315,8 +2343,18 @@ def attach_image_urls_to_project(
     :rtype: tuple
     """
     project_name, folder_name = extract_project_folder(project)
+    project = controller.get_project_metadata(project_name).data
+
+    if project["project"].project_type in [
+        constances.ProjectType.VIDEO.value,
+        constances.ProjectType.DOCUMENT.value,
+    ]:
+        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
+
     images_to_upload, duplicate_images = get_paths_and_duplicated_from_csv(attachments)
-    list_of_not_uploaded = []
+    list_of_uploaded = []
+
+    logger.info("Attaching %s images to project.", len(images_to_upload))
 
     with tqdm(total=len(images_to_upload), desc="Attaching urls") as progress_bar:
         for i in range(0, len(images_to_upload), 500):
@@ -2328,14 +2366,16 @@ def attach_image_urls_to_project(
                 ),
                 annotation_status=annotation_status,
             )
-            if response.errors:
-                list_of_not_uploaded.append(response.data[0])
-                duplicate_images.append(response.data[1])
-            progress_bar.update(len(images_to_upload[i : i + 500]))
-    list_of_uploaded = [
+            if not response.errors:
+                list_of_uploaded.extend(
+                    list(map(lambda image: image["name"], response.data[0]))
+                )
+                duplicate_images.extend(response.data[1])
+            progress_bar.update(len(images_to_upload[i : i + 500]))  # noqa: E203
+    list_of_not_uploaded = [
         image["name"]
         for image in images_to_upload
-        if image["name"] not in list_of_not_uploaded
+        if image["name"] not in list_of_uploaded + duplicate_images
     ]
 
     return list_of_uploaded, list_of_not_uploaded, duplicate_images
@@ -2358,8 +2398,15 @@ def attach_video_urls_to_project(
     :rtype: (list, list, list)
     """
     project_name, folder_name = extract_project_folder(project)
+    project = controller.get_project_metadata(project_name).data
+
+    if not project["project"].project_type == constances.ProjectType.VIDEO.value:
+        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
+
     images_to_upload, duplicate_images = get_paths_and_duplicated_from_csv(attachments)
-    list_of_not_uploaded = []
+    list_of_uploaded = []
+
+    logger.info("Attaching %s images to project.", len(images_to_upload))
 
     with tqdm(total=len(images_to_upload), desc="Attaching urls") as progress_bar:
         for i in range(0, len(images_to_upload), 500):
@@ -2371,14 +2418,16 @@ def attach_video_urls_to_project(
                 ),
                 annotation_status=annotation_status,
             )
-            if response.errors:
-                list_of_not_uploaded.append(response.data[0])
-                duplicate_images.append(response.data[1])
-            progress_bar.update(len(images_to_upload[i : i + 500]))
-    list_of_uploaded = [
+            if not response.errors:
+                list_of_uploaded.extend(
+                    list(map(lambda image: image["name"], response.data[0]))
+                )
+                duplicate_images.extend(response.data[1])
+            progress_bar.update(len(images_to_upload[i : i + 500]))  # noqa: E203
+    list_of_not_uploaded = [
         image["name"]
         for image in images_to_upload
-        if image["name"] not in list_of_not_uploaded
+        if image["name"] not in list_of_uploaded + duplicate_images
     ]
 
     return list_of_uploaded, list_of_not_uploaded, duplicate_images
@@ -2418,10 +2467,11 @@ def upload_annotations_from_folder_to_project(
 
     project_name, folder_name = extract_project_folder(project)
     project = controller.get_project_metadata(project_name).data
-    if project["project"].project_type == constances.ProjectType.VIDEO.value:
-        raise AppException(
-            "The function does not support projects containing videos attached with URLs"
-        )
+    if project["project"].project_type in [
+        constances.ProjectType.VIDEO.value,
+        constances.ProjectType.DOCUMENT.value,
+    ]:
+        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
 
     if recursive_subfolders:
         logger.info(
@@ -2490,10 +2540,11 @@ def upload_preannotations_from_folder_to_project(
     """
     project_name, folder_name = extract_project_folder(project)
     project = controller.get_project_metadata(project_name).data
-    if project["project"].project_type == constances.ProjectType.VIDEO.value:
-        raise AppException(
-            "The function does not support projects containing videos attached with URLs"
-        )
+    if project["project"].project_type in [
+        constances.ProjectType.VIDEO.value,
+        constances.ProjectType.DOCUMENT.value,
+    ]:
+        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
 
     if recursive_subfolders:
         logger.info(
@@ -2775,6 +2826,13 @@ def benchmark(
     if isinstance(project, dict):
         project_name = project["name"]
 
+    project = controller.get_project_metadata(project_name).data
+    if project["project"].project_type in [
+        constances.ProjectType.VIDEO.value,
+        constances.ProjectType.DOCUMENT.value,
+    ]:
+        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
+
     if export_root is None:
         with tempfile.TemporaryDirectory() as temp_dir:
             export_root = temp_dir
@@ -2807,7 +2865,7 @@ def benchmark(
 @validate_arguments
 def consensus(
     project: NotEmptyStr,
-    folder_names: NotEmptyStr,
+    folder_names: List[NotEmptyStr],
     export_root: Optional[Union[NotEmptyStr, Path]] = None,
     image_list: Optional[List[NotEmptyStr]] = None,
     annot_type: Optional[AnnotationType] = "bbox",
@@ -3353,10 +3411,11 @@ def upload_image_to_project(
     project_name, folder_name = extract_project_folder(project)
 
     project = controller.get_project_metadata(project_name).data
-    if project["project"].project_type == constances.ProjectType.VIDEO.value:
-        raise AppException(
-            "The function does not support projects containing videos attached with URLs"
-        )
+    if project["project"].project_type in [
+        constances.ProjectType.VIDEO.value,
+        constances.ProjectType.DOCUMENT.value,
+    ]:
+        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
 
     if not isinstance(img, io.BytesIO):
         if from_s3_bucket:
@@ -3448,10 +3507,11 @@ def upload_images_to_project(
     failed_images = []
     project_name, folder_name = extract_project_folder(project)
     project = controller.get_project_metadata(project_name).data
-    if project["project"].project_type == constances.ProjectType.VIDEO.value:
-        raise AppException(
-            "The function does not support projects containing videos attached with URLs"
-        )
+    if project["project"].project_type in [
+        constances.ProjectType.VIDEO.value,
+        constances.ProjectType.DOCUMENT.value,
+    ]:
+        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
 
     ProcessedImage = namedtuple("ProcessedImage", ["uploaded", "path", "entity"])
 
@@ -3635,8 +3695,14 @@ def attach_document_urls_to_project(
     :rtype: tuple
     """
     project_name, folder_name = extract_project_folder(project)
+    project = controller.get_project_metadata(project_name).data
+
+    if not project["project"].project_type == constances.ProjectType.DOCUMENT.value:
+        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
     images_to_upload, duplicate_images = get_paths_and_duplicated_from_csv(attachments)
-    list_of_not_uploaded = []
+    list_of_uploaded = []
+
+    logger.info("Attaching %s images to project.", len(images_to_upload))
 
     with tqdm(total=len(images_to_upload), desc="Attaching urls") as progress_bar:
         for i in range(0, len(images_to_upload), 500):
@@ -3648,14 +3714,16 @@ def attach_document_urls_to_project(
                 ),
                 annotation_status=annotation_status,
             )
-            if response.errors:
-                list_of_not_uploaded.append(response.data[0])
-                duplicate_images.append(response.data[1])
-            progress_bar.update(len(images_to_upload[i : i + 500]))
-    list_of_uploaded = [
+            if not response.errors:
+                list_of_uploaded.extend(
+                    list(map(lambda image: image["name"], response.data[0]))
+                )
+                duplicate_images.extend(response.data[1])
+            progress_bar.update(len(images_to_upload[i : i + 500]))  # noqa: E203
+    list_of_not_uploaded = [
         image["name"]
         for image in images_to_upload
-        if image["name"] not in list_of_not_uploaded
+        if image["name"] not in list_of_uploaded + duplicate_images
     ]
 
     return list_of_uploaded, list_of_not_uploaded, duplicate_images

@@ -5,6 +5,7 @@ import pandas as pd
 import plotly.express as px
 from superannotate.lib.app.exceptions import AppException
 from superannotate.lib.app.mixp.decorators import Trackable
+from superannotate.lib.core import DEPRICATED_DOCUMENT_VIDEO_MESSAGE
 
 from .common import aggregate_annotations_as_df
 
@@ -31,9 +32,7 @@ def class_distribution(export_root, project_names, visualize=False):
         and "___pixel.json" not in json_paths[0].name
         and "___objects.json" not in json_paths[0].name
     ):
-        raise AppException(
-            "The function does not support projects containing videos attached with URLs"
-        )
+        raise AppException(DEPRICATED_DOCUMENT_VIDEO_MESSAGE)
 
     logger.info(
         "Aggregating class distribution accross projects: {}.".format(

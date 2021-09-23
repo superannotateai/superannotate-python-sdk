@@ -6,7 +6,9 @@ from pathlib import Path
 
 from lib.app.exceptions import AppException
 from lib.app.mixp.decorators import Trackable
-from lib.core.exceptions import AppValidationException
+from lib.core import DEPRICATED_DOCUMENT_VIDEO_MESSAGE
+from lib.core import LIMITED_FUNCTIONS
+from lib.core.enums import ProjectType
 
 from .export_from_sa_conversions import export_from_sa
 from .import_to_sa_conversions import import_to_sa
@@ -143,10 +145,13 @@ def export_annotation(
     project_type="Vector",
     task="object_detection",
 ):
-    if project_type == "Video" or project_type == "Text":
-        raise AppValidationException(
-            f"The function does not support projects containing {project_type} attached with URLs"
-        )
+
+    if project_type in [
+        ProjectType.VIDEO.name,
+        ProjectType.DOCUMENT.name,
+    ]:
+        raise AppException(LIMITED_FUNCTIONS[ProjectType.get_value(project_type)])
+
     """Converts SuperAnnotate annotation formate to the other annotation formats. Currently available (project_type, task) combinations for converter
     presented below:
 
@@ -419,6 +424,14 @@ def convert_project_type(input_dir, output_dir):
         (output_dir, "output_dir", (str, Path)),
     ]
     _passes_type_sanity(params_info)
+    json_paths = list(Path(str(input_dir)).glob("*.json"))
+    if (
+        json_paths
+        and "___pixel.json" not in json_paths[0].name
+        and "___objects.json" not in json_paths[0].name
+    ):
+        raise AppException(DEPRICATED_DOCUMENT_VIDEO_MESSAGE)
+
     input_dir, output_dir = _change_type(input_dir, output_dir)
 
     sa_convert_project_type(input_dir, output_dir)
