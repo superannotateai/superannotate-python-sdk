@@ -1021,10 +1021,10 @@ class UpdateFolderUseCase(BaseUseCase):
 
     def execute(self):
         if self.is_valid():
-            is_updated = self._folders.update(self._folder)
-            if not is_updated:
+            folder = self._folders.update(self._folder)
+            if not folder:
                 self._response.errors = AppException("Couldn't rename folder.")
-            self._response.data = self._folder
+            self._response.data = folder
         return self._response
 
 
