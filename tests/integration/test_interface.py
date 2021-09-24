@@ -180,3 +180,4 @@ class TestPixelInterface(BaseTestCase):
                     export_dir, convert_path, "COCO", "data_set_name", "Pixel", "panoptic_segmentation"
                 )
                 pass
+
