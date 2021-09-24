@@ -2169,7 +2169,8 @@ def download_export(
                 for _ in use_case.execute():
                     progress_bar.update(1)
         else:
-            use_case.execute()
+            for _ in use_case.execute():
+                continue
 
 
 @Trackable

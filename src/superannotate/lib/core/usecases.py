@@ -4049,6 +4049,7 @@ class DownloadExportUseCase(BaseUseCase):
                     logger.info(f"Extracted {filepath} to folder {destination}")
                 else:
                     logger.info(f"Downloaded export ID {export_id} to {filepath}")
+                yield
         return self._response
 
 
