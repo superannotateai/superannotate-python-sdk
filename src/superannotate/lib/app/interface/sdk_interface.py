@@ -269,6 +269,9 @@ def clone_project(
     )
     if response.errors:
         raise AppException(response.errors)
+    logger.info(
+        f"Created project {project_name} (ID {response.data.uuid} ) with type { constances.ProjectType.get_name(response.data.project_type)}."
+    )
     return ProjectSerializer(response.data).serialize()
 
 
