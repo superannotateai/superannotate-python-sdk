@@ -1672,7 +1672,7 @@ def prepare_export(
     """
     project_name, folder_name = extract_project_folder(project)
     if folder_names is None:
-        folders = [folder_name]
+        folders = [folder_name] if folder_name else []
     else:
         folders = folder_names
     if not annotation_statuses:

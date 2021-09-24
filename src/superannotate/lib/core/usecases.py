@@ -806,7 +806,7 @@ class PrepareExportUseCase(BaseUseCase):
     ):
         super().__init__(),
         self._project = project
-        self._folder_names = folder_names
+        self._folder_names = list(folder_names)
         self._backend_service = backend_service_provider
         self._annotation_statuses = annotation_statuses
         self._include_fuse = include_fuse
@@ -856,12 +856,12 @@ class PrepareExportUseCase(BaseUseCase):
             if "error" in response:
                 raise AppException(response["error"])
 
-            report_message = self._project.name
+            report_message = ""
             if self._folder_names:
-                report_message = f"[{', '.join(self._folder_names)}]"
+                report_message = f"[{', '.join(self._folder_names)}] "
             logger.info(
-                f"Prepared export {response['name']} for project "
-                f"{report_message} (project ID {self._project.uuid})."
+                f"Prepared export {response['name']} for project {self._project.name} "
+                f"{report_message}(project ID {self._project.uuid})."
             )
             self._response.data = response
 
@@ -3437,19 +3437,19 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
                 )
                 if self._project.project_type == constances.ProjectType.PIXEL.value:
                     mask_path = None
-                    if os.path.exists(self._annotation_path) and not self._mask:
-                        mask_path = self._annotation_path
+                    png_path = self._annotation_path.replace("___pixel.json", "___save.png")
+                    if os.path.exists(png_path) and not self._mask:
+                        mask_path = png_path
                     elif self._mask:
                         mask_path = self._mask
 
                     if mask_path:
                         with open(mask_path, "rb") as descriptor:
-                            file = io.BytesIO(descriptor.read())
                             bucket.put_object(
                                 Key=response.data.images[image_data["id"]][
                                     "annotation_bluemap_path"
                                 ],
-                                Body=file,
+                                Body=descriptor.read(),
                             )
                 if self._verbose:
                     logger.info(
