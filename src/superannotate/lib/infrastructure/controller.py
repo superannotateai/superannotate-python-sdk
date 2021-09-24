@@ -1402,6 +1402,8 @@ class Controller(BaseController):
             path=model_data["path"],
             config_path=model_data["config_path"],
             team_id=model_data["team_id"],
+            training_status=model_data["training_status"],
+            is_global=model_data["is_global"],
         )
         use_case = usecases.DownloadMLModelUseCase(
             model=model,
