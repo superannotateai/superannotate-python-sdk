@@ -45,6 +45,24 @@ class TestInterface(BaseTestCase):
         )
         self.assertEqual(num_images, 0)
 
+    def test_delete_image_form_folder(self):
+        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME)
+
+        sa.upload_image_to_project(
+            f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME}",
+            f"{self.folder_path}/{self.EXAMPLE_IMAGE_1}",
+        )
+        num_images = sa.get_project_image_count(
+            self.PROJECT_NAME, with_all_subfolders=True
+        )
+        self.assertEqual(num_images, 1)
+        sa.delete_image(f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME}", self.EXAMPLE_IMAGE_1)
+
+        num_images = sa.get_project_image_count(
+            self.PROJECT_NAME, with_all_subfolders=True
+        )
+        self.assertEqual(num_images, 0)
+
     def test_delete_folder(self):
         with self.assertRaises(AppException):
             sa.delete_folders(self.PROJECT_NAME, ["non-existing folder"])

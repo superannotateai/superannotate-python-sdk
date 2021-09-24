@@ -636,9 +636,8 @@ class Controller(BaseController):
         return use_case.execute()
 
     def _get_image(
-        self, project: ProjectEntity, image_name: str, folder_path: str = None,
+        self, project: ProjectEntity, image_name: str, folder: FolderEntity = None,
     ) -> ImageEntity:
-        folder = self._get_folder(project, folder_path)
         use_case = usecases.GetImageUseCase(
             service=self._backend_client,
             project=project,
@@ -651,7 +650,9 @@ class Controller(BaseController):
     def get_image(
         self, project_name: str, image_name: str, folder_path: str = None
     ) -> ImageEntity:
-        return self._get_image(self._get_project(project_name), image_name, folder_path)
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_path)
+        return self._get_image(project, image_name, folder)
 
     def update_folder(self, project_name: str, folder_name: str, folder_data: dict):
         project = self._get_project(project_name)
@@ -669,7 +670,8 @@ class Controller(BaseController):
         image_variant: str = None,
     ):
         project = self._get_project(project_name)
-        image = self._get_image(project, image_name, folder_name)
+        folder = self._get_folder(project, folder_name)
+        image = self._get_image(project, image_name, folder)
         use_case = usecases.GetImageBytesUseCase(
             image=image,
             backend_service_provider=self._backend_client,
@@ -686,12 +688,12 @@ class Controller(BaseController):
         image_name: str,
     ):
         from_project = self._get_project(from_project_name)
-        image = self._get_image(
-            from_project, folder_path=from_folder_name, image_name=image_name
-        )
+        from_folder = self._get_folder(from_project, from_folder_name)
+        image = self._get_image(from_project, folder=from_folder, image_name=image_name)
         to_project = self._get_project(to_project_name)
+        to_folder = self._get_folder(to_project, to_folder_name)
         uploaded_image = self._get_image(
-            to_project, folder_path=to_folder_name, image_name=image_name
+            to_project, folder=to_folder, image_name=image_name
         )
 
         use_case = usecases.CopyImageAnnotationClasses(
@@ -857,14 +859,16 @@ class Controller(BaseController):
         )
         return use_case.execute()
 
-    def delete_image(self, image_name, project_name):
-        image = self.get_image(project_name=project_name, image_name=image_name)
-        project_entity = self._get_project(project_name)
+    def delete_image(self, project_name: str, image_name: str, folder_name: str):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+        image = self._get_image(project=project, image_name=image_name, folder=folder)
+
         use_case = usecases.DeleteImageUseCase(
             images=ImageRepository(service=self._backend_client),
             image=image,
-            team_id=project_entity.team_id,
-            project_id=project_entity.uuid,
+            team_id=project.team_id,
+            project_id=project.uuid,
         )
         return use_case.execute()
 
@@ -1231,7 +1235,7 @@ class Controller(BaseController):
     ):
         project = self._get_project(project_name)
         folder = self._get_folder(project, folder_name)
-        image = self._get_image(project, image_name, folder_name)
+        image = self._get_image(project, image_name, folder)
 
         use_case = usecases.DownloadImageUseCase(
             project=project,

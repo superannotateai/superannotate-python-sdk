@@ -64,11 +64,11 @@ class TestDepricatedFunctionsDocument(BaseTestCase):
             os.path.join(dirname(dirname(__file__)), self.PATH_TO_URLS),
         )
         try:
-            sa.upload_images_from_folder_to_project(self.PROJECT_NAME,"some")
+            sa.upload_images_from_folder_to_project(self.PROJECT_NAME, "some")
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
-            sa.get_image_metadata(self.PROJECT_NAME,"some")
+            sa.get_image_metadata(self.PROJECT_NAME, "some")
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
@@ -76,31 +76,31 @@ class TestDepricatedFunctionsDocument(BaseTestCase):
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
-            sa.upload_images_to_project(self.PROJECT_NAME,["some"])
+            sa.upload_images_to_project(self.PROJECT_NAME, ["some"])
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
-            sa.upload_annotations_from_folder_to_project(self.PROJECT_NAME,"some",self.annotation_path)
+            sa.upload_annotations_from_folder_to_project(self.PROJECT_NAME, "some", self.annotation_path)
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
-            sa.upload_image_annotations(self.PROJECT_NAME,"some",self.annotation_path)
+            sa.upload_image_annotations(self.PROJECT_NAME, "some", self.annotation_path)
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
-            sa.download_image(self.PROJECT_NAME,self.UPLOAD_IMAGE_NAME,'./')
+            sa.download_image(self.PROJECT_NAME, self.UPLOAD_IMAGE_NAME, './')
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
-            sa.download_image_annotations(self.PROJECT_NAME,self.UPLOAD_IMAGE_NAME,"./")
+            sa.download_image_annotations(self.PROJECT_NAME, self.UPLOAD_IMAGE_NAME, "./")
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
-            sa.get_image_annotations(self.PROJECT_NAME,self.UPLOAD_IMAGE_NAME)
+            sa.get_image_annotations(self.PROJECT_NAME, self.UPLOAD_IMAGE_NAME)
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
-            sa.set_image_annotation_status(self.PROJECT_NAME,self.UPLOAD_IMAGE_NAME,"Completed")
+            sa.set_image_annotation_status(self.PROJECT_NAME, self.UPLOAD_IMAGE_NAME, "Completed")
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
@@ -111,23 +111,23 @@ class TestDepricatedFunctionsDocument(BaseTestCase):
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
-            sa.clone_project(self.PROJECT_NAME_2,self.PROJECT_NAME)
+            sa.clone_project(self.PROJECT_NAME_2, self.PROJECT_NAME)
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
-            sa.copy_image(self.PROJECT_NAME,self.UPLOAD_IMAGE_NAME,self.PROJECT_NAME_2)
+            sa.copy_image(self.PROJECT_NAME, self.UPLOAD_IMAGE_NAME, self.PROJECT_NAME_2)
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
-            sa.upload_images_to_project(self.PROJECT_NAME,[self.image_path,])
+            sa.upload_images_to_project(self.PROJECT_NAME, [self.image_path, ])
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
-            sa.upload_video_to_project(self.PROJECT_NAME,"some path")
+            sa.upload_video_to_project(self.PROJECT_NAME, "some path")
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
-            sa.add_annotation_bbox_to_image(self.PROJECT_NAME, self.UPLOAD_IMAGE_NAME, [1,2,3,4] , "some class")
+            sa.add_annotation_bbox_to_image(self.PROJECT_NAME, self.UPLOAD_IMAGE_NAME, [1, 2, 3, 4], "some class")
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
@@ -147,11 +147,12 @@ class TestDepricatedFunctionsDocument(BaseTestCase):
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
-            sa.add_annotation_comment_to_image(self.PROJECT_NAME, self.UPLOAD_IMAGE_NAME,"some comment",[1,2],"some user")
+            sa.add_annotation_comment_to_image(self.PROJECT_NAME, self.UPLOAD_IMAGE_NAME, "some comment", [1, 2],
+                                               "some user")
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
-            sa.add_annotation_point_to_image(self.PROJECT_NAME, self.UPLOAD_IMAGE_NAME,[1,2],"some class")
+            sa.add_annotation_point_to_image(self.PROJECT_NAME, self.UPLOAD_IMAGE_NAME, [1, 2], "some class")
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
@@ -167,15 +168,15 @@ class TestDepricatedFunctionsDocument(BaseTestCase):
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
-            sa.move_image(self.PROJECT_NAME,self.UPLOAD_IMAGE_NAME, self.PROJECT_NAME_2)
+            sa.move_image(self.PROJECT_NAME, self.UPLOAD_IMAGE_NAME, self.PROJECT_NAME_2)
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
-            sa.move_images(self.PROJECT_NAME,[self.UPLOAD_IMAGE_NAME], self.PROJECT_NAME_2)
+            sa.move_images(self.PROJECT_NAME, [self.UPLOAD_IMAGE_NAME], self.PROJECT_NAME_2)
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
-            sa.set_images_annotation_statuses(self.PROJECT_NAME,"Completed",[self.UPLOAD_IMAGE_NAME])
+            sa.set_images_annotation_statuses(self.PROJECT_NAME, "Completed", [self.UPLOAD_IMAGE_NAME])
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
@@ -183,11 +184,11 @@ class TestDepricatedFunctionsDocument(BaseTestCase):
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE_DOCUMENT_VIDEO, str(e))
         try:
-            sa.convert_project_type(self.video_export_path,"./")
+            sa.convert_project_type(self.video_export_path, "./")
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE_DOCUMENT_VIDEO, str(e))
         try:
-            sa.prepare_export(self.PROJECT_NAME,include_fuse=True,only_pinned=True)
+            sa.prepare_export(self.PROJECT_NAME, include_fuse=True, only_pinned=True)
         except AppException as e:
             self.assertIn("Include fuse functionality is not supported", str(e))
         try:
@@ -206,7 +207,7 @@ class TestDepricatedFunctionsDocument(BaseTestCase):
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
-            sa.assign_images(self.PROJECT_NAME,[self.UPLOAD_IMAGE_NAME],"some user")
+            sa.assign_images(self.PROJECT_NAME, [self.UPLOAD_IMAGE_NAME], "some user")
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
@@ -224,12 +225,3 @@ class TestDepricatedFunctionsDocument(BaseTestCase):
         # except Exception as e:
         #     msg = str(e)
         # self.assertIn(self.EXCEPTION_MESSAGE, msg)
-
-
-
-
-
-
-
-
-

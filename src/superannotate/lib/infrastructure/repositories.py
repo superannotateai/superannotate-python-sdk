@@ -361,8 +361,8 @@ class ImageRepository(BaseManageableRepository):
         raise NotImplementedError
 
     def delete(self, uuid: int, team_id: int, project_id: int):
-        self._service.delete_image(
-            image_id=uuid, team_id=team_id, project_id=project_id
+        self._service.delete_images(
+            image_ids=[uuid], team_id=team_id, project_id=project_id
         )
 
     def update(self, entity: ImageEntity):
