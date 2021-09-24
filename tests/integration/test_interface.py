@@ -1,7 +1,7 @@
 import os
 from os.path import dirname
 import tempfile
-import unittest
+import boto3
 
 import src.superannotate as sa
 from src.superannotate.lib.app.exceptions import AppException
@@ -10,7 +10,7 @@ from tests.integration.base import BaseTestCase
 
 class TestInterface(BaseTestCase):
     PROJECT_NAME = "Interface test"
-    TEST_FOLDER_PATH = "data_set/sample_project_vector"
+    TEST_FOLDER_PATH = "sample_project_vector"
     TEST_FOLDER_PATH_WITH_MULTIPLE_IMAGERS = "data_set/sample_project_vector"
     PROJECT_DESCRIPTION = "desc"
     PROJECT_TYPE = "Vector"
@@ -19,8 +19,12 @@ class TestInterface(BaseTestCase):
     EXAMPLE_IMAGE_2 = "example_image_2.jpg"
 
     @property
+    def data_set_path(self):
+        return os.path.join(dirname(dirname(__file__)), "data_set")
+
+    @property
     def folder_path(self):
-        return os.path.join(dirname(dirname(__file__)), self.TEST_FOLDER_PATH)
+        return os.path.join(self.data_set_path, self.TEST_FOLDER_PATH)
 
     @property
     def folder_path_with_multiple_images(self):
@@ -133,3 +137,46 @@ class TestInterface(BaseTestCase):
                 include_overlay=True,
             )
             self.assertIsNotNone(paths)
+
+    def test_upload_images_to_project_image_quality_in_editor(self):
+        self.assertRaises(
+            AppException,
+            sa.upload_images_to_project,
+            self.PROJECT_NAME,
+            [self.EXAMPLE_IMAGE_1],
+            image_quality_in_editor='random_string'
+        )
+
+
+class TestPixelInterface(BaseTestCase):
+    PROJECT_NAME = "Interface test"
+    TEST_FOLDER_PATH = "sample_project_pixel"
+    PROJECT_DESCRIPTION = "desc"
+    PROJECT_TYPE = "Pixel"
+    TEST_FOLDER_NAME = "folder"
+    EXAMPLE_IMAGE_1 = "example_image_1.jpg"
+
+    @property
+    def data_set_path(self):
+        return os.path.join(dirname(dirname(__file__)), "data_set")
+
+    @property
+    def folder_path(self):
+        return os.path.join(self.data_set_path, self.TEST_FOLDER_PATH)
+
+    def test_export_annotation(self):
+        sa.upload_image_to_project(self.PROJECT_NAME, f"{self.folder_path}/{self.EXAMPLE_IMAGE_1}")
+        sa.create_annotation_classes_from_classes_json(self.PROJECT_NAME, f"{self.folder_path}/classes/classes.json")
+        sa.upload_image_annotations(
+            self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, f"{self.folder_path}/{self.EXAMPLE_IMAGE_1}___pixel.json"
+        )
+        with tempfile.TemporaryDirectory() as export_dir:
+            result = sa.prepare_export(
+                self.PROJECT_NAME,
+            )
+            sa.download_export(self.PROJECT_NAME, result, export_dir, True)
+            with tempfile.TemporaryDirectory() as convert_path:
+                sa.export_annotation(
+                    export_dir, convert_path, "COCO", "data_set_name", "Pixel", "panoptic_segmentation"
+                )
+                pass

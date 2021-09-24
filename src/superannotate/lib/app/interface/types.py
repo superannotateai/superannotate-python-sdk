@@ -34,6 +34,19 @@ class AnnotationType(StrictStr):
         return value
 
 
+class ImageQualityChoices(StrictStr):
+    VALID_CHOICES = ["compressed", "original"]
+
+    @classmethod
+    def validate(cls, value: Union[str]) -> Union[str]:
+        super().validate(value)
+        if value.lower() not in cls.VALID_CHOICES:
+            raise TypeError(
+                f"Image quality should be on of {', '.join(cls.VALID_CHOICES)}."
+            )
+        return value.lower()
+
+
 class AnnotationStatuses(StrictStr):
     @classmethod
     def validate(cls, value: Union[str]) -> Union[str]:

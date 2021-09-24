@@ -30,6 +30,7 @@ from lib.app.helpers import get_paths_and_duplicated_from_csv
 from lib.app.helpers import reformat_metrics_json
 from lib.app.interface.types import AnnotationStatuses
 from lib.app.interface.types import AnnotationType
+from lib.app.interface.types import ImageQualityChoices
 from lib.app.interface.types import NotEmptyStr
 from lib.app.interface.types import Status
 from lib.app.interface.types import validate_arguments
@@ -3471,7 +3472,7 @@ def upload_images_to_project(
     img_paths: List[NotEmptyStr],
     annotation_status: Optional[Status] = "NotStarted",
     from_s3_bucket=None,
-    image_quality_in_editor: Optional[NotEmptyStr] = None,
+    image_quality_in_editor: Optional[ImageQualityChoices] = None,
 ):
     """Uploads all images given in list of path objects in img_paths to the project.
     Sets status of all the uploaded images to set_status if it is not None.

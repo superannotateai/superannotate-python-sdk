@@ -17,12 +17,12 @@ from typing import List
 from typing import Optional
 
 import boto3
-import botocore.exceptions
 import cv2
 import lib.core as constances
 import numpy as np
 import pandas as pd
 import requests
+from botocore.exceptions import ClientError
 from lib.app.analytics.common import aggregate_annotations_as_df
 from lib.app.analytics.common import consensus_plot
 from lib.app.analytics.common import image_consensus
@@ -805,7 +805,7 @@ class PrepareExportUseCase(BaseUseCase):
     ):
         super().__init__(),
         self._project = project
-        self._folder_names = folder_names
+        self._folder_names = list(folder_names)
         self._backend_service = backend_service_provider
         self._annotation_statuses = annotation_statuses
         self._include_fuse = include_fuse
@@ -855,12 +855,12 @@ class PrepareExportUseCase(BaseUseCase):
             if "error" in response:
                 raise AppException(response["error"])
 
-            report_message = self._project.name
+            report_message = ""
             if self._folder_names:
-                report_message = f"[{', '.join(self._folder_names)}]"
+                report_message = f"[{', '.join(self._folder_names)}] "
             logger.info(
-                f"Prepared export {response['name']} for project "
-                f"{report_message} (project ID {self._project.uuid})."
+                f"Prepared export {response['name']} for project {self._project.name} "
+                f"{report_message}(project ID {self._project.uuid})."
             )
             self._response.data = response
 
@@ -2156,14 +2156,19 @@ class GetS3ImageUseCase(BaseUseCase):
         self._image_path = image_path
 
     def execute(self):
-        image = io.BytesIO()
-        session = boto3.Session()
-        resource = session.resource("s3")
-        image_object = resource.Object(self._s3_bucket, self._image_path)
-        if image_object.content_length > constances.MAX_IMAGE_SIZE:
-            raise AppValidationException(f"File size is {image_object.content_length}")
-        image_object.download_fileobj(image)
-        self._response.data = image
+        try:
+            image = io.BytesIO()
+            session = boto3.Session()
+            resource = session.resource("s3")
+            image_object = resource.Object(self._s3_bucket, self._image_path)
+            if image_object.content_length > constances.MAX_IMAGE_SIZE:
+                raise AppValidationException(
+                    f"File size is {image_object.content_length}"
+                )
+            image_object.download_fileobj(image)
+            self._response.data = image
+        except ClientError as e:
+            self._response.errors = str(e)
         return self._response
 
 
@@ -3431,19 +3436,21 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
                 )
                 if self._project.project_type == constances.ProjectType.PIXEL.value:
                     mask_path = None
-                    if os.path.exists(self._annotation_path) and not self._mask:
-                        mask_path = self._annotation_path
+                    png_path = self._annotation_path.replace(
+                        "___pixel.json", "___save.png"
+                    )
+                    if os.path.exists(png_path) and not self._mask:
+                        mask_path = png_path
                     elif self._mask:
                         mask_path = self._mask
 
                     if mask_path:
                         with open(mask_path, "rb") as descriptor:
-                            file = io.BytesIO(descriptor.read())
                             bucket.put_object(
                                 Key=response.data.images[image_data["id"]][
                                     "annotation_bluemap_path"
                                 ],
-                                Body=file,
+                                Body=descriptor.read(),
                             )
                 if self._verbose:
                     logger.info(
@@ -4162,7 +4169,7 @@ class DownloadMLModelUseCase(BaseUseCase):
                     mapper_path,
                     os.path.join(self._download_path, "classes_mapper.json"),
                 )
-            except botocore.exceptions.ClientError:
+            except ClientError:
                 logger.info(
                     "The specified model does not contain a classes_mapper and/or a metrics file."
                 )
@@ -4853,11 +4860,20 @@ class UploadImagesToProject(BaseInteractiveUseCase):
             "ProcessedImage", ["uploaded", "path", "entity", "name"]
         )
         if self._from_s3_bucket:
-            image_bytes = (
-                GetS3ImageUseCase(s3_bucket=self._from_s3_bucket, image_path=image_path)
-                .execute()
-                .data
-            )
+            response = GetS3ImageUseCase(
+                s3_bucket=self._from_s3_bucket, image_path=image_path
+            ).execute()
+            if response.errors:
+                logger.warning(
+                    f"Unable to upload image {image_path} \n{response.errors}"
+                )
+                return ProcessedImage(
+                    uploaded=False,
+                    path=image_path,
+                    entity=None,
+                    name=Path(image_path).name,
+                )
+            image_bytes = response.data
         else:
             try:
                 image_bytes = io.BytesIO(open(image_path, "rb").read())
@@ -4934,7 +4950,6 @@ class UploadImagesToProject(BaseInteractiveUseCase):
                     images_to_upload.append(path)
                 else:
                     duplicated_paths.append(path)
-
             self._images_to_upload = list(set(images_to_upload)), duplicated_paths
         return self._images_to_upload
 
@@ -4979,7 +4994,8 @@ class UploadImagesToProject(BaseInteractiveUseCase):
                 duplications.extend(attach_duplications)
             uploaded = [image["name"] for image in uploaded]
             failed_images = [image.split("/")[-1] for image in failed_images]
-
+            if duplications:
+                logger.info(f"Duplicated images {', '.join(duplications)}")
             self._response.data = uploaded, failed_images, duplications
         return self._response
 
