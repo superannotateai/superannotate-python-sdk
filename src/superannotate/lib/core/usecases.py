@@ -17,12 +17,12 @@ from typing import List
 from typing import Optional
 
 import boto3
+import botocore.exceptions
 import cv2
 import lib.core as constances
 import numpy as np
 import pandas as pd
 import requests
-from boto3.exceptions import Boto3Error
 from lib.app.analytics.common import aggregate_annotations_as_df
 from lib.app.analytics.common import consensus_plot
 from lib.app.analytics.common import image_consensus
@@ -4162,8 +4162,8 @@ class DownloadMLModelUseCase(BaseUseCase):
                     mapper_path,
                     os.path.join(self._download_path, "classes_mapper.json"),
                 )
-            except Boto3Error:
-                self._response.errors = AppException(
+            except botocore.exceptions.ClientError:
+                logger.info(
                     "The specified model does not contain a classes_mapper and/or a metrics file."
                 )
             self._response.data = self._model
