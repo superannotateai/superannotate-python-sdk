@@ -2087,7 +2087,9 @@ def move_image(
     image_path = destination_folder + image_name
 
     image_entity = controller.upload_image_to_s3(
-        project_name=destination_project_name, image_path=image_path, image_bytes=img_bytes
+        project_name=destination_project_name,
+        image_path=image_path,
+        image_bytes=img_bytes,
     ).data
 
     del img_bytes

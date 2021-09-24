@@ -4116,36 +4116,44 @@ class DownloadMLModelUseCase(BaseUseCase):
         self._backend_service = backend_service_provider
         self._team_id = team_id
 
+    def validate_downloadable(self):
+        if self._model.training_status not in [
+            constances.TrainingStatus.COMPLETED.value,
+            constances.TrainingStatus.FAILED_AFTER_EVALUATION_WITH_SAVE_MODEL.value,
+        ]:
+            raise AppException("Unable to download.")
+
     def execute(self):
-        metrics_name = os.path.basename(self._model.path).replace(".pth", ".json")
-        mapper_path = self._model.config_path.replace(
-            os.path.basename(self._model.config_path), "classes_mapper.json"
-        )
-        metrics_path = self._model.config_path.replace(
-            os.path.basename(self._model.config_path), metrics_name
-        )
+        if self.is_valid():
+            metrics_name = os.path.basename(self._model.path).replace(".pth", ".json")
+            mapper_path = self._model.config_path.replace(
+                os.path.basename(self._model.config_path), "classes_mapper.json"
+            )
+            metrics_path = self._model.config_path.replace(
+                os.path.basename(self._model.config_path), metrics_name
+            )
 
-        auth_response = self._backend_service.get_ml_model_download_tokens(
-            self._team_id, self._model.uuid
-        )
-        if not auth_response.ok:
-            raise AppException(auth_response.error)
-        s3_session = boto3.Session(
-            aws_access_key_id=auth_response.data.access_key,
-            aws_secret_access_key=auth_response.data.secret_key,
-            aws_session_token=auth_response.data.session_token,
-            region_name=auth_response.data.region,
-        )
-        bucket = s3_session.resource("s3").Bucket(auth_response.data.bucket)
+            auth_response = self._backend_service.get_ml_model_download_tokens(
+                self._team_id, self._model.uuid
+            )
+            if not auth_response.ok:
+                raise AppException(auth_response.error)
+            s3_session = boto3.Session(
+                aws_access_key_id=auth_response.data.access_key,
+                aws_secret_access_key=auth_response.data.secret_key,
+                aws_session_token=auth_response.data.session_token,
+                region_name=auth_response.data.region,
+            )
+            bucket = s3_session.resource("s3").Bucket(auth_response.data.bucket)
 
-        bucket.download_file(
-            self._model.config_path, os.path.join(self._download_path, "config.yaml")
-        )
-        bucket.download_file(
-            self._model.path,
-            os.path.join(self._download_path, os.path.basename(self._model.path)),
-        )
-        if self._model.is_global:
+            bucket.download_file(
+                self._model.config_path,
+                os.path.join(self._download_path, "config.yaml"),
+            )
+            bucket.download_file(
+                self._model.path,
+                os.path.join(self._download_path, os.path.basename(self._model.path)),
+            )
             try:
                 bucket.download_file(
                     metrics_path, os.path.join(self._download_path, metrics_name)
@@ -4158,7 +4166,7 @@ class DownloadMLModelUseCase(BaseUseCase):
                 self._response.errors = AppException(
                     "The specified model does not contain a classes_mapper and/or a metrics file."
                 )
-        self._response.data = self._model
+            self._response.data = self._model
         return self._response
 
 
@@ -4525,13 +4533,13 @@ class RunPredictionUseCase(BaseUseCase):
                 success_images = [
                     img.name
                     for img in images_metadata
-                    if img.segmentation_status
+                    if img.prediction_status
                     == constances.SegmentationStatus.COMPLETED.value
                 ]
                 failed_images = [
                     img.name
                     for img in images_metadata
-                    if img.segmentation_status
+                    if img.prediction_status
                     == constances.SegmentationStatus.FAILED.value
                 ]
 

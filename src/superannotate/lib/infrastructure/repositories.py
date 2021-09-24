@@ -468,4 +468,5 @@ class MLModelRepository(BaseManageableRepository):
             path=data["path"],
             config_path=data["config_path"],
             is_global=data["is_global"],
+            training_status=data["training_status"],
         )
