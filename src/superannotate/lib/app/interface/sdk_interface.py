@@ -2173,10 +2173,12 @@ def download_export(
                 total=use_case.get_upload_files_count(), desc="Uploading"
             ) as progress_bar:
                 for _ in use_case.execute():
-                    progress_bar.update(1)
+                    progress_bar.update()
+            progress_bar.close()
         else:
             for _ in use_case.execute():
                 continue
+        logger.info(use_case.response.data)
 
 
 @Trackable
