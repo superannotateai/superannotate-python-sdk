@@ -17,6 +17,7 @@ class Attribute(BaseModel):
 
 class AttributeGroup(BaseModel):
     name: StrictStr
+    is_multiselect: Optional[int]
     attributes: List[Attribute]
 
 

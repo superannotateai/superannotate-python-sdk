@@ -3268,9 +3268,6 @@ class DownloadImageUseCase(BaseUseCase):
                 annotations,
                 fuse_image,
             )
-            logger.info(
-                "Downloaded image %s to %s.", self._image.name, str(download_path)
-            )
 
         return self._response
 
@@ -4067,6 +4064,8 @@ class DownloadExportUseCase(BaseUseCase):
                 project_id=self._project.uuid,
                 export_id=export["id"],
             )
+            if "error" in export:
+                raise AppException(export["error"])
             export_status = export["status"]
             if export_status in (ExportStatus.ERROR.value, ExportStatus.CANCELED.value):
                 raise AppException("Couldn't download export.")
@@ -4877,7 +4876,7 @@ class UploadImagesToProject(BaseInteractiveUseCase):
         else:
             try:
                 image_bytes = io.BytesIO(open(image_path, "rb").read())
-            except FileNotFoundError:
+            except OSError:
                 return ProcessedImage(
                     uploaded=False,
                     path=image_path,
@@ -4927,10 +4926,6 @@ class UploadImagesToProject(BaseInteractiveUseCase):
                     [extension in path for extension in self.exclude_file_patterns]
                 )
             ]
-            excluded_paths = [path for path in paths if path not in filtered_paths]
-            if excluded_paths:
-                logger.info(f"Excluded paths {', '.join(excluded_paths)}")
-
             image_entities = (
                 GetBulkImages(
                     service=self._backend_client,
@@ -4994,8 +4989,6 @@ class UploadImagesToProject(BaseInteractiveUseCase):
                 duplications.extend(attach_duplications)
             uploaded = [image["name"] for image in uploaded]
             failed_images = [image.split("/")[-1] for image in failed_images]
-            if duplications:
-                logger.info(f"Duplicated images {', '.join(duplications)}")
             self._response.data = uploaded, failed_images, duplications
         return self._response
 

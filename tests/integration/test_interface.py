@@ -138,6 +138,18 @@ class TestInterface(BaseTestCase):
             )
             self.assertIsNotNone(paths)
 
+    def test_upload_images_to_project_returned_data(self):
+        upload, not_uploaded, duplicated = sa.upload_images_to_project(
+            self.PROJECT_NAME,
+            [f"{self.folder_path}/{self.EXAMPLE_IMAGE_1}", f"{self.folder_path}/{self.EXAMPLE_IMAGE_2}"]
+        )
+        self.assertEqual(2, len(upload))
+        upload, not_uploaded, duplicated = sa.upload_images_to_project(
+            self.PROJECT_NAME,
+            [f"{self.folder_path}/{self.EXAMPLE_IMAGE_1}", f"{self.folder_path}/{self.EXAMPLE_IMAGE_2}"]
+        )
+        self.assertEqual(2, len(duplicated))
+
     def test_upload_images_to_project_image_quality_in_editor(self):
         self.assertRaises(
             AppException,
