@@ -3517,7 +3517,10 @@ def upload_images_to_project(
         with tqdm(total=len(images_to_upload), desc="Uploading images") as progress_bar:
             for _ in use_case.execute():
                 progress_bar.update(1)
-        return use_case.data
+        uploaded, failed_images, duplications = use_case.data
+        if duplications:
+            logger.info(f"Duplicated images {', '.join(duplications)}")
+        return uploaded, failed_images, duplications
     raise AppException(use_case.response.errors)
 
 

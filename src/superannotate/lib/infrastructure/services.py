@@ -39,6 +39,7 @@ class BaseBackendService(SuerannotateServiceProvider):
         self._paginate_by = paginate_by
         self._verify_ssl = verify_ssl
         self.team_id = auth_token.split("=")[-1]
+        self.get_session()
 
     @timed_lru_cache(seconds=360)
     def get_session(self):
