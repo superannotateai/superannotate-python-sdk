@@ -3552,6 +3552,8 @@ def upload_images_to_project(
     )
     upload_method = _upload_s3_image if from_s3_bucket else _upload_local_image
 
+    logger.info(f"Uploading {len(images_to_upload)} images to project.")
+
     with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
         results = [
             executor.submit(upload_method, image_path)
@@ -3568,8 +3570,6 @@ def upload_images_to_project(
     uploaded = []
     duplicates = []
 
-    logger.info("Uploading %s images to project.", len(images_to_upload))
-
     for i in range(0, len(uploaded_image_entities), 500):
         response = controller.upload_images(
             project_name=project_name,
@@ -3578,7 +3578,7 @@ def upload_images_to_project(
             annotation_status=annotation_status,
         )
         attachments, duplications = response.data
-        uploaded.extend(attachments)
+        uploaded.extend([attachment["name"] for attachment in attachments])
         duplicates.extend(duplications)
 
     if len(duplicates):

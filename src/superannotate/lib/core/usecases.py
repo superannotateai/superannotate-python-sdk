@@ -5294,13 +5294,15 @@ class GetBulkImages(BaseUseCase):
     def execute(self):
         res = []
         for i in range(0, len(self._images), self._chunk_size):
-            images = self._service.get_bulk_images(
+            response = self._service.get_bulk_images(
                 project_id=self._project_id,
                 team_id=self._team_id,
                 folder_id=self._folder_id,
-                images=self._images[i : i + self._chunk_size],
+                images=self._images[i : i + self._chunk_size],  # noqa: E203
             )
-            res += [ImageEntity.from_dict(**image) for image in images]  # noqa: E203
+            if "error" in response:
+                raise AppException(response["error"])
+            res += [ImageEntity.from_dict(**image) for image in response]
         self._response.data = res
         return self._response
 
