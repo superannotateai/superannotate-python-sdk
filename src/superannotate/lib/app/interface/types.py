@@ -34,6 +34,16 @@ class AnnotationType(StrictStr):
         return value
 
 
+class AnnotationStatuses(StrictStr):
+    @classmethod
+    def validate(cls, value: Union[str]) -> Union[str]:
+        if value.lower() not in AnnotationStatus.values():
+            raise TypeError(
+                f"Available annotation_statuses are {', '.join(AnnotationStatus.titles())}. "
+            )
+        return value
+
+
 def to_chunks(t, size=2):
     it = iter(t)
     return zip(*[it] * size)

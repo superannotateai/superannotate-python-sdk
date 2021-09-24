@@ -1386,7 +1386,7 @@ class Controller(BaseController):
         to_s3_bucket: bool,
     ):
         project = self._get_project(project_name)
-        use_case = usecases.DownloadExportUseCase(
+        return usecases.DownloadExportUseCase(
             service=self._backend_client,
             project=project,
             export_name=export_name,
@@ -1394,7 +1394,6 @@ class Controller(BaseController):
             extract_zip_contents=extract_zip_contents,
             to_s3_bucket=to_s3_bucket,
         )
-        return use_case.execute()
 
     def download_ml_model(self, model_data: dict, download_path: str):
         model = MLModelEntity(

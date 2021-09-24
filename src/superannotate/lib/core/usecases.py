@@ -5,6 +5,7 @@ import json
 import logging
 import os.path
 import random
+import tempfile
 import time
 import uuid
 import zipfile
@@ -4012,6 +4013,7 @@ class DownloadExportUseCase(BaseUseCase):
         self._folder_path = folder_path
         self._extract_zip_contents = extract_zip_contents
         self._to_s3_bucket = to_s3_bucket
+        self._temp_dir = None
 
     def validate_project_type(self):
         if self._project.project_type in constances.LIMITED_FUNCTIONS:
@@ -4019,51 +4021,84 @@ class DownloadExportUseCase(BaseUseCase):
                 constances.LIMITED_FUNCTIONS[self._project.project_type]
             )
 
+    def upload_to_s3_from_folder(self, folder_path: str):
+        to_s3_bucket = boto3.Session().resource("s3").Bucket(self._to_s3_bucket)
+        files_to_upload = list(Path(folder_path).rglob("*.*"))
+
+        def _upload_file_to_s3(_to_s3_bucket, _path, _s3_key) -> None:
+            _to_s3_bucket.upload_file(_path, _s3_key)
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+            results = []
+            for path in files_to_upload:
+                s3_key = f"{self._folder_path}/{path.name}"
+                results.append(
+                    executor.submit(_upload_file_to_s3, to_s3_bucket, str(path), s3_key)
+                )
+                yield
+
+    def download_to_local_storage(self, destination: str):
+        exports = self._service.get_exports(
+            team_id=self._project.team_id, project_id=self._project.uuid
+        )
+        export = next(filter(lambda i: i["name"] == self._export_name, exports), None)
+        export = self._service.get_export(
+            team_id=self._project.team_id,
+            project_id=self._project.uuid,
+            export_id=export["id"],
+        )
+        if not export:
+            raise AppException("Export not found.")
+        export_status = export["status"]
+
+        while export_status != ExportStatus.COMPLETE.value:
+            logger.info("Waiting 5 seconds for export to finish on server.")
+            time.sleep(5)
+
+            export = self._service.get_export(
+                team_id=self._project.team_id,
+                project_id=self._project.uuid,
+                export_id=export["id"],
+            )
+            export_status = export["status"]
+            if export_status in (ExportStatus.ERROR.value, ExportStatus.CANCELED.value):
+                raise AppException("Couldn't download export.")
+
+        filename = Path(export["path"]).name
+        filepath = Path(destination) / filename
+        with requests.get(export["download"], stream=True) as response:
+            response.raise_for_status()
+            with open(filepath, "wb") as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
+        if self._extract_zip_contents:
+            with zipfile.ZipFile(filepath, "r") as f:
+                f.extractall(destination)
+            Path.unlink(filepath)
+        return export["id"], filepath, destination
+
+    def get_upload_files_count(self):
+        if not self._temp_dir:
+            self._temp_dir = tempfile.TemporaryDirectory()
+            self.download_to_local_storage(self._temp_dir.name)
+        return len(list(Path(self._temp_dir.name).rglob("*.*")))
+
     def execute(self):
         if self.is_valid():
-            exports = self._service.get_exports(
-                team_id=self._project.team_id, project_id=self._project.uuid
-            )
-            export_id = None
-            for export in exports:
-                if export["name"] == self._export_name:
-                    export_id = export["id"]
-                    break
-            if not export_id:
-                raise AppException("Export not found.")
-
-            while True:
-                export = self._service.get_export(
-                    team_id=self._project.team_id,
-                    project_id=self._project.uuid,
-                    export_id=export_id,
-                )
-
-                if export["status"] == ExportStatus.IN_PROGRESS.value:
-                    logger.info("Waiting 5 seconds for export to finish on server.")
-                    time.sleep(5)
-                    continue
-                if export["status"] == ExportStatus.ERROR.value:
-                    raise AppException("Couldn't download export.")
-                    pass
-                break
-
-            filename = Path(export["path"]).name
-            filepath = Path(self._folder_path) / filename
-            with requests.get(export["download"], stream=True) as r:
-                r.raise_for_status()
-                with open(filepath, "wb") as f:
-                    for chunk in r.iter_content(chunk_size=8192):
-                        f.write(chunk)
-            if self._extract_zip_contents:
-                with zipfile.ZipFile(filepath, "r") as f:
-                    f.extractall(self._folder_path)
-                Path.unlink(filepath)
-                logger.info(f"Extracted {filepath} to folder {self._folder_path}")
+            if self._to_s3_bucket:
+                self.get_upload_files_count()
+                yield from self.upload_to_s3_from_folder(self._temp_dir.name)
+                logger.info(f"Exported to AWS {self._to_s3_bucket}/{self._folder_path}")
+                self._temp_dir.cleanup()
             else:
-                logger.info(f"Downloaded export ID {export['id']} to {filepath}")
-
-            self._response.data = self._folder_path
+                export_id, filepath, destination = self.download_to_local_storage(
+                    self._folder_path
+                )
+                if self._extract_zip_contents:
+                    logger.info(f"Extracted {filepath} to folder {destination}")
+                else:
+                    logger.info(f"Downloaded export ID {export_id} to {filepath}")
+                yield
         return self._response
 
 
