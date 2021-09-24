@@ -4116,7 +4116,7 @@ class DownloadMLModelUseCase(BaseUseCase):
         self._backend_service = backend_service_provider
         self._team_id = team_id
 
-    def validate_downloadable(self):
+    def validate_training_status(self):
         if self._model.training_status not in [
             constances.TrainingStatus.COMPLETED.value,
             constances.TrainingStatus.FAILED_AFTER_EVALUATION_WITH_SAVE_MODEL.value,
