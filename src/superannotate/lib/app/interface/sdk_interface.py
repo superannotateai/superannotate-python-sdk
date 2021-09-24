@@ -2153,13 +2153,23 @@ def download_export(
     """
     project_name, folder_name = extract_project_folder(project)
     export_name = export["name"] if isinstance(export, dict) else export
-    controller.download_export(
+
+    use_case = controller.download_export(
         project_name=project_name,
         export_name=export_name,
         folder_path=folder_path,
         extract_zip_contents=extract_zip_contents,
         to_s3_bucket=to_s3_bucket,
     )
+    if use_case.is_valid():
+        if to_s3_bucket:
+            with tqdm(
+                total=use_case.get_upload_files_count(), desc="Uploading"
+            ) as progress_bar:
+                for _ in use_case.execute():
+                    progress_bar.update(1)
+        else:
+            use_case.execute()
 
 
 @Trackable

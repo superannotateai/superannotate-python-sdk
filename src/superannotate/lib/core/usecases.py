@@ -5,6 +5,7 @@ import json
 import logging
 import os.path
 import random
+import tempfile
 import time
 import uuid
 import zipfile
@@ -21,7 +22,6 @@ import lib.core as constances
 import numpy as np
 import pandas as pd
 import requests
-import tempfile
 from boto3.exceptions import Boto3Error
 from lib.app.analytics.common import aggregate_annotations_as_df
 from lib.app.analytics.common import consensus_plot
@@ -382,7 +382,9 @@ class CloneProjectUseCase(BaseUseCase):
             if self._include_workflow:
                 new_workflows = self._workflows_repo(self._backend_service, project)
                 for workflow in self.workflows.get_all():
-                    existing_workflow_ids = list(map(lambda i: i.uuid, new_workflows.get_all()))
+                    existing_workflow_ids = list(
+                        map(lambda i: i.uuid, new_workflows.get_all())
+                    )
                     workflow_data = copy.copy(workflow)
                     workflow_data.project_id = project.uuid
                     workflow_data.class_id = annotation_classes_mapping[
@@ -391,7 +393,9 @@ class CloneProjectUseCase(BaseUseCase):
                     new_workflows.insert(workflow_data)
                     workflows = new_workflows.get_all()
                     new_workflow = [
-                        work_flow for work_flow in workflows if work_flow.uuid not in existing_workflow_ids
+                        work_flow
+                        for work_flow in workflows
+                        if work_flow.uuid not in existing_workflow_ids
                     ][0]
                     workflow_attributes = []
                     for attribute in workflow_data.attribute:
@@ -3960,6 +3964,7 @@ class DownloadExportUseCase(BaseUseCase):
         self._folder_path = folder_path
         self._extract_zip_contents = extract_zip_contents
         self._to_s3_bucket = to_s3_bucket
+        self._temp_dir = None
 
     def validate_project_type(self):
         if self._project.project_type in constances.LIMITED_FUNCTIONS:
@@ -3979,10 +3984,9 @@ class DownloadExportUseCase(BaseUseCase):
             for path in files_to_upload:
                 s3_key = f"{self._folder_path}/{path.name}"
                 results.append(
-                    executor.submit(
-                        _upload_file_to_s3, to_s3_bucket, str(path), s3_key
-                    )
+                    executor.submit(_upload_file_to_s3, to_s3_bucket, str(path), s3_key)
                 )
+                yield
 
     def download_to_local_storage(self, destination: str):
         exports = self._service.get_exports(
@@ -4024,15 +4028,23 @@ class DownloadExportUseCase(BaseUseCase):
             Path.unlink(filepath)
         return export["id"], filepath, destination
 
+    def get_upload_files_count(self):
+        if not self._temp_dir:
+            self._temp_dir = tempfile.TemporaryDirectory()
+            self.download_to_local_storage(self._temp_dir.name)
+        return len(list(Path(self._temp_dir.name).rglob("*.*")))
+
     def execute(self):
         if self.is_valid():
             if self._to_s3_bucket:
-                with tempfile.TemporaryDirectory() as tmp:
-                    self.download_to_local_storage(tmp)
-                    self.upload_to_s3_from_folder(tmp)
+                self.get_upload_files_count()
+                yield from self.upload_to_s3_from_folder(self._temp_dir.name)
                 logger.info(f"Exported to AWS {self._to_s3_bucket}/{self._folder_path}")
+                self._temp_dir.cleanup()
             else:
-                export_id, filepath, destination = self.download_to_local_storage(self._folder_path)
+                export_id, filepath, destination = self.download_to_local_storage(
+                    self._folder_path
+                )
                 if self._extract_zip_contents:
                     logger.info(f"Extracted {filepath} to folder {destination}")
                 else:
