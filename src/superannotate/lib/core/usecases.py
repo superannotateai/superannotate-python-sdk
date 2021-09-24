@@ -23,6 +23,7 @@ import numpy as np
 import pandas as pd
 import requests
 from boto3.exceptions import Boto3Error
+from botocore.exceptions import ClientError
 from lib.app.analytics.common import aggregate_annotations_as_df
 from lib.app.analytics.common import consensus_plot
 from lib.app.analytics.common import image_consensus
@@ -2156,14 +2157,19 @@ class GetS3ImageUseCase(BaseUseCase):
         self._image_path = image_path
 
     def execute(self):
-        image = io.BytesIO()
-        session = boto3.Session()
-        resource = session.resource("s3")
-        image_object = resource.Object(self._s3_bucket, self._image_path)
-        if image_object.content_length > constances.MAX_IMAGE_SIZE:
-            raise AppValidationException(f"File size is {image_object.content_length}")
-        image_object.download_fileobj(image)
-        self._response.data = image
+        try:
+            image = io.BytesIO()
+            session = boto3.Session()
+            resource = session.resource("s3")
+            image_object = resource.Object(self._s3_bucket, self._image_path)
+            if image_object.content_length > constances.MAX_IMAGE_SIZE:
+                raise AppValidationException(
+                    f"File size is {image_object.content_length}"
+                )
+            image_object.download_fileobj(image)
+            self._response.data = image
+        except ClientError as e:
+            self._response.errors = str(e)
         return self._response
 
 
@@ -4845,11 +4851,20 @@ class UploadImagesToProject(BaseInteractiveUseCase):
             "ProcessedImage", ["uploaded", "path", "entity", "name"]
         )
         if self._from_s3_bucket:
-            image_bytes = (
-                GetS3ImageUseCase(s3_bucket=self._from_s3_bucket, image_path=image_path)
-                .execute()
-                .data
-            )
+            response = GetS3ImageUseCase(
+                s3_bucket=self._from_s3_bucket, image_path=image_path
+            ).execute()
+            if response.errors:
+                logger.warning(
+                    f"Unable to upload image {image_path} \n{response.errors}"
+                )
+                return ProcessedImage(
+                    uploaded=False,
+                    path=image_path,
+                    entity=None,
+                    name=Path(image_path).name,
+                )
+            image_bytes = response.data
         else:
             try:
                 image_bytes = io.BytesIO(open(image_path, "rb").read())
@@ -4926,7 +4941,6 @@ class UploadImagesToProject(BaseInteractiveUseCase):
                     images_to_upload.append(path)
                 else:
                     duplicated_paths.append(path)
-
             self._images_to_upload = list(set(images_to_upload)), duplicated_paths
         return self._images_to_upload
 
@@ -4971,7 +4985,8 @@ class UploadImagesToProject(BaseInteractiveUseCase):
                 duplications.extend(attach_duplications)
             uploaded = [image["name"] for image in uploaded]
             failed_images = [image.split("/")[-1] for image in failed_images]
-
+            if duplications:
+                logger.info(f"Duplicated images {', '.join(duplications)}")
             self._response.data = uploaded, failed_images, duplications
         return self._response
 
