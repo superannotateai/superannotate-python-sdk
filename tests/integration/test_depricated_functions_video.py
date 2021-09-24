@@ -22,24 +22,18 @@ class TestDeprecatedFunctionsVideo(BaseTestCase):
     EXCEPTION_MESSAGE = LIMITED_FUNCTIONS[ProjectType.VIDEO.value]
     EXCEPTION_MESSAGE_DOCUMENT_VIDEO = DEPRICATED_DOCUMENT_VIDEO_MESSAGE
 
-
     def setUp(self, *args, **kwargs):
         self.tearDown()
-
         sa.create_project(
             self.PROJECT_NAME, self.PROJECT_DESCRIPTION, self.PROJECT_TYPE
         )
-
         sa.create_project(
             self.PROJECT_NAME_2, self.PROJECT_DESCRIPTION_2, self.PROJECT_TYPE_2
         )
 
     def tearDown(self) -> None:
         projects = sa.search_projects(self.PROJECT_NAME, return_metadata=True)
-        for project in projects:
-            sa.delete_project(project)
-
-        projects = sa.search_projects(self.PROJECT_NAME_2, return_metadata=True)
+        projects.extend(sa.search_projects(self.PROJECT_NAME_2, return_metadata=True))
         for project in projects:
             sa.delete_project(project)
 

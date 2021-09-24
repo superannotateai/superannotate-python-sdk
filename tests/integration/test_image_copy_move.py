@@ -151,7 +151,6 @@ class TestImageCopy(BaseTestCase):
         with self.assertRaises(Exception):
             sa.move_image(self.PROJECT_NAME, self.EXAMPLE_IMAGE, f"{self.PROJECT_NAME}")
 
-        sa.create_project(self.SECOND_PROJECT_NAME + "dif", "test", "Vector")
         sa.move_image(self.PROJECT_NAME, self.EXAMPLE_IMAGE, self.SECOND_PROJECT_NAME)
         di = sa.search_images(self.SECOND_PROJECT_NAME, self.EXAMPLE_IMAGE)
         self.assertEqual(len(di), 1)

@@ -2078,7 +2078,7 @@ def move_image(
     ]:
         raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
 
-    destination_project, destination_folder = extract_project_folder(
+    destination_project_name, destination_folder = extract_project_folder(
         destination_project
     )
 
@@ -2086,7 +2086,7 @@ def move_image(
     image_path = destination_folder + image_name
 
     image_entity = controller.upload_image_to_s3(
-        project_name=destination_project, image_path=image_path, image_bytes=img_bytes
+        project_name=destination_project_name, image_path=image_path, image_bytes=img_bytes
     ).data
 
     del img_bytes
@@ -2100,7 +2100,7 @@ def move_image(
         image_entity.annotation_status_code = res.annotation_status_code
 
     controller.attach_urls(
-        project_name=destination_project,
+        project_name=destination_project_name,
         files=[image_entity],
         folder_name=destination_folder,
     )
@@ -2110,18 +2110,18 @@ def move_image(
             from_project_name=source_project_name,
             from_folder_name=source_folder_name,
             to_folder_name=destination_folder,
-            to_project_name=destination_project,
+            to_project_name=destination_project_name,
             image_name=image_name,
         )
     if copy_pin:
         controller.update_image(
-            project_name=destination_project,
+            project_name=destination_project_name,
             folder_name=destination_folder,
             image_name=image_name,
             is_pinned=1,
         )
 
-    controller.delete_image(image_name, source_project_name, source_folder_name)
+    controller.delete_image(source_project_name, image_name, source_folder_name)
 
 
 @Trackable
