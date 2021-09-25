@@ -3414,7 +3414,9 @@ def upload_image_to_project(
 
     if not isinstance(img, io.BytesIO):
         if from_s3_bucket:
-            image_bytes = controller.get_image_from_s3(from_s3_bucket, image_name)
+            response = controller.get_image_from_s3(from_s3_bucket, img)
+            image_bytes = response.data
+
         else:
             image_bytes = io.BytesIO(open(img, "rb").read())
     else:

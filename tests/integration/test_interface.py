@@ -17,6 +17,9 @@ class TestInterface(BaseTestCase):
     TEST_FOLDER_NAME = "folder"
     EXAMPLE_IMAGE_1 = "example_image_1.jpg"
     EXAMPLE_IMAGE_2 = "example_image_2.jpg"
+    NEW_IMAGE_NAME = "new_name_yup"
+    IMAGE_PATH_IN_S3 = 'MP.MB/img1.bmp'
+    TEST_S3_BUCKET_NAME = "test-openseadragon-1212"
 
     @property
     def data_set_path(self):
@@ -158,6 +161,11 @@ class TestInterface(BaseTestCase):
             [self.EXAMPLE_IMAGE_1],
             image_quality_in_editor='random_string'
         )
+
+    def test_image_upload_with_set_name_on_platform(self):
+        sa.upload_image_to_project(self.PROJECT_NAME, self.IMAGE_PATH_IN_S3 , self.NEW_IMAGE_NAME,from_s3_bucket=self.TEST_S3_BUCKET_NAME)
+        self.assertIn(sa.search_images(self.PROJECT_NAME)[0],self.NEW_IMAGE_NAME)
+
 
 
 class TestPixelInterface(BaseTestCase):
