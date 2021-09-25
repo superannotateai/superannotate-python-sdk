@@ -22,7 +22,7 @@ def sa_vector_to_coco_object_detection(
     for instance in instances:
         if instance["type"] != "bbox":
             logger.warning(
-                "Skipping '%s' type convertion during object_detection task",
+                "Skipping '%s' type conversion during object_detection task",
                 instance["type"],
             )
             continue
@@ -60,7 +60,7 @@ def sa_vector_to_coco_instance_segmentation(
     for instance in instances:
         if instance["type"] != "polygon":
             logger.warning(
-                "Skipping '%s' type convertion during object_detection task",
+                "Skipping '%s' type conversion during instance_segmentation task",
                 instance["type"],
             )
             continue
