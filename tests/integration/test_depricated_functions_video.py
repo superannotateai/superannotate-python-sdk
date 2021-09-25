@@ -1,14 +1,15 @@
 import os
 from os.path import dirname
+from unittest import TestCase
+
 import src.superannotate as sa
 from src.superannotate import AppException
-from tests.integration.base import BaseTestCase
 from src.superannotate.lib.core import LIMITED_FUNCTIONS
 from src.superannotate.lib.core import ProjectType
 from src.superannotate.lib.core import DEPRICATED_DOCUMENT_VIDEO_MESSAGE
 
 
-class TestDeprecatedFunctionsVideo(BaseTestCase):
+class TestDeprecatedFunctionsVideo(TestCase):
     PROJECT_NAME = "vid proj 11"
     PROJECT_DESCRIPTION = "desc"
     PROJECT_TYPE = "Video"

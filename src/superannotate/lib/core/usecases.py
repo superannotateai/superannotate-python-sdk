@@ -3760,6 +3760,7 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
         self.fill_classes_data(annotation_json)
 
         if not self._is_valid_json(annotation_json):
+            logger.warning(f"Invalid json {image_id_name_map[image_id].path}")
             return image_id_name_map[image_id], False
         bucket.put_object(
             Key=image_info["annotation_json_path"], Body=json.dumps(annotation_json),
