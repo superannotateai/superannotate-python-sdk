@@ -607,7 +607,8 @@ def copy_image(
             is_pinned=1,
         )
     logger.info(
-        f"Copied image {source_project}" f" to {destination_project}/{image_name}."
+        f"Copied image {source_project}/{image_name}"
+        f" to {destination_project}/{destination_folder}."
     )
 
 
@@ -1782,7 +1783,7 @@ def upload_videos_from_folder_to_project(
         project_name,
         exclude_file_patterns,
     )
-
+    uploaded_paths = []
     for path in video_paths:
         with tempfile.TemporaryDirectory() as temp_path:
             res = controller.extract_video_frames(
@@ -1807,28 +1808,34 @@ def upload_videos_from_folder_to_project(
             )
             images_to_upload, duplicates = use_case.images_to_upload
             logger.info(
-                "Extracted %s frames from video. Now uploading to platform.",
-                len(res.data),
+                f"Extracted {len(res.data)} frames from video. Now uploading to platform.",
             )
             logger.info(
-                "Uploading %s images to project %s.",
-                len(images_to_upload),
-                str(project_folder_name),
+                f"Uploading {len(images_to_upload)} images to project {str(project_folder_name)}."
             )
+
             if len(duplicates):
                 logger.warning(
-                    "%s already existing images found that won't be uploaded.",
-                    len(duplicates),
+                    f"{len(duplicates)} already existing images found that won't be uploaded."
                 )
+
             if use_case.is_valid():
                 with tqdm(
                     total=len(images_to_upload), desc="Uploading images"
                 ) as progress_bar:
                     for _ in use_case.execute():
-                        progress_bar.update(1)
+                        progress_bar.update()
+                uploaded, failed_images, duplicated = use_case.response.data
+                uploaded_paths.extend(uploaded)
+                if failed_images:
+                    logger.warning(f"Failed {len(uploaded)}.")
+                if duplicated:
+                    logger.warning(
+                        f"{len(duplicated)} already existing images found that won't be uploaded."
+                    )
             else:
                 raise AppException(use_case.response.errors)
-
+        return uploaded_paths
     return
 
 
