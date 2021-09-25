@@ -167,6 +167,21 @@ class TestInterface(BaseTestCase):
         self.assertIn(sa.search_images(self.PROJECT_NAME)[0],self.NEW_IMAGE_NAME)
 
 
+    def test_download_fuse_without_classes(self):
+        sa.upload_image_to_project(self.PROJECT_NAME, f"{self.folder_path}/{self.EXAMPLE_IMAGE_1}")
+        sa.upload_image_annotations(
+            self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, f"{self.folder_path}/{self.EXAMPLE_IMAGE_1}___objects.json"
+        )
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            result = sa.download_image(
+                self.PROJECT_NAME,
+                self.EXAMPLE_IMAGE_1,
+                tmp_dir,
+                include_annotations=True,
+                include_fuse=True
+            )
+            pass
+
 
 class TestPixelInterface(BaseTestCase):
     PROJECT_NAME = "Interface test"

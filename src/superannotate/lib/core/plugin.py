@@ -224,6 +224,8 @@ class VideoPlugin:
         logger.info("Video frame count is %s.", frames_count)
 
         fps = video.get(cv2.CAP_PROP_FPS)
+        if not target_fps:
+            target_fps = fps
         if target_fps > fps:
             logger.warning(
                 "Video frame rate %s smaller than target frame rate %s. Cannot change frame rate.",

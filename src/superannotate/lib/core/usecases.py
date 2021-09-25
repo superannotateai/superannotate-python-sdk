@@ -1795,7 +1795,6 @@ class DeleteImagesUseCase(BaseUseCase):
 
 
 class AssignImagesUseCase(BaseUseCase):
-
     CHUNK_SIZE = 500
 
     def __init__(
@@ -1840,7 +1839,6 @@ class AssignImagesUseCase(BaseUseCase):
 
 
 class UnAssignImagesUseCase(BaseUseCase):
-
     CHUNK_SIZE = 500
 
     def __init__(
@@ -1867,7 +1865,7 @@ class UnAssignImagesUseCase(BaseUseCase):
             )
             if not is_un_assigned:
                 self._response.errors = AppException(
-                    f"Cant un assign {', '.join(self._image_names[i : i + self.CHUNK_SIZE])}"
+                    f"Cant un assign {', '.join(self._image_names[i: i + self.CHUNK_SIZE])}"
                 )
 
         return self._response
@@ -2834,7 +2832,6 @@ class DownloadAnnotationClassesUseCase(BaseUseCase):
 
 
 class CreateAnnotationClassesUseCase(BaseUseCase):
-
     CHUNK_SIZE = 500
 
     def __init__(
@@ -3120,6 +3117,8 @@ class CreateFuseImageUseCase(BaseUseCase):
                 weight, height = image.get_size()
                 empty_image_arr = np.full((height, weight, 4), [0, 0, 0, 255], np.uint8)
                 for annotation in self.annotations["instances"]:
+                    if not class_color_map.get(annotation["className"]):
+                        continue
                     fill_color = *class_color_map[annotation["className"]], 255
                     for part in annotation["parts"]:
                         part_color = *self.generate_color(part["color"]), 255
@@ -3308,13 +3307,32 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
                 for attribute_group in annotation_class.attribute_groups:
                     attribute_group_data = defaultdict(dict)
                     for attribute in attribute_group["attributes"]:
+                        if attribute["name"] in attribute_group_data.keys():
+                            logger.warning(
+                                f"Duplicate annotation class attribute name {attribute['name']}"
+                                f" in attribute group {attribute_group['name']}. "
+                                "Only one of the annotation class attributes will be used. "
+                                "This will result in errors in annotation upload."
+                            )
                         attribute_group_data[attribute["name"]] = attribute["id"]
+                    if attribute_group["name"] in class_info.keys():
+                        logger.warning(
+                            f"Duplicate annotation class attribute group name {attribute_group['name']}."
+                            " Only one of the annotation class attribute groups will be used."
+                            " This will result in errors in annotation upload."
+                        )
                     class_info["attribute_groups"] = {
                         attribute_group["name"]: {
                             "id": attribute_group["id"],
                             "attributes": attribute_group_data,
                         }
                     }
+            if annotation_class.name in classes_data.keys():
+                logger.warning(
+                    f"Duplicate annotation class name {annotation_class.name}."
+                    f" Only one of the annotation classes will be used."
+                    " This will result in errors in annotation upload.",
+                )
             classes_data[annotation_class.name] = class_info
         return classes_data
 
