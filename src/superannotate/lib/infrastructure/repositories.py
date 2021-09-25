@@ -320,6 +320,8 @@ class AnnotationClassRepository(BaseManageableRepository):
         res = self._service.set_annotation_classes(
             self.project.uuid, self.project.team_id, [entity.to_dict()]
         )
+        if "error" in res:
+            raise AppException(res["error"])
         return self.dict2entity(res[0])
 
     def delete(self, uuid: int):
