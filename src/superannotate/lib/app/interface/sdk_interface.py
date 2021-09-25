@@ -3428,6 +3428,8 @@ def upload_image_to_project(
         folder_name=folder_name,
         image_quality_in_editor=image_quality_in_editor,
     )
+    if upload_response.errors:
+        raise AppException(upload_response.errors)
     controller.upload_images(
         project_name=project_name,
         folder_name=folder_name,
