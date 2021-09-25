@@ -805,7 +805,7 @@ class PrepareExportUseCase(BaseUseCase):
     ):
         super().__init__(),
         self._project = project
-        self._folder_names = list(folder_names)
+        self._folder_names = list(folder_names) if folder_names else None
         self._backend_service = backend_service_provider
         self._annotation_statuses = annotation_statuses
         self._include_fuse = include_fuse
@@ -2284,12 +2284,12 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
         classes_data = defaultdict(dict)
         annotation_classes = self._annotation_classes.get_all()
         for annotation_class in annotation_classes:
-            class_info = {"name": annotation_class.name}
+            class_info = {"name": annotation_class.name, "attribute_groups": {}}
             if annotation_class.attribute_groups:
                 for attribute_group in annotation_class.attribute_groups:
                     attribute_group_data = defaultdict(dict)
                     for attribute in attribute_group["attributes"]:
-                        attribute_group_data[attribute["name"]] = attribute["id"]
+                        attribute_group_data[attribute["id"]] = attribute["name"]
                     class_info["attribute_groups"] = {
                         attribute_group["id"]: {
                             "name": attribute_group["name"],
@@ -2312,17 +2312,6 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
         annotation_classes = self.annotation_classes_id_name_map
         if "instances" not in annotations:
             return
-        unknown_classes = {}
-        # for annotation in [i for i in annotations["instances"] if "className" in i]:
-        for annotation in [i for i in annotations["instances"] if "classId" in i]:
-            annotation_class_id = annotation["classId"]
-            if annotation_class_id not in annotation_classes:
-                if annotation_class_id not in unknown_classes:
-                    unknown_classes[annotation_class_id] = {
-                        "name": "unknown_class",
-                        "attribute_groups": {},
-                    }
-        # annotation_classes.update(unknown_classes)
         templates = self.get_templates_mapping()
         for annotation in (
             i for i in annotations["instances"] if i.get("type", None) == "template"
@@ -2330,31 +2319,32 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
             template_name = templates.get(annotation.get("templateId"), None)
             if template_name:
                 annotation["templateName"] = template_name
-
-        for annotation in [i for i in annotations["instances"] if "classId" in i]:
-            annotation_class_id = annotation["classId"]
-            if annotation_class_id not in annotation_classes:
-                continue
-            annotation["className"] = annotation_classes[annotation_class_id]["name"]
-            for attribute in [i for i in annotation["attributes"] if "groupId" in i]:
-                if (
+        for annotation in [
+            i
+            for i in annotations["instances"]
+            if "classId" in i and i["classId"] in annotation_classes
+        ]:
+            annotation_class = annotation_classes[annotation["classId"]]
+            annotation["className"] = annotation_class["name"]
+            for attribute in [
+                i
+                for i in annotation["attributes"]
+                if "groupId" in i
+                and i["groupId"] in annotation_class["attribute_groups"].keys()
+            ]:
+                attribute["groupName"] = annotation_class["attribute_groups"][
                     attribute["groupId"]
-                    not in annotation_classes[annotation_class_id]["attribute_groups"]
+                ]["name"]
+                if (
+                    attribute["id"]
+                    not in list(annotation_class["attribute_groups"][attribute["groupId"]][
+                        "attributes"
+                    ].keys())
                 ):
                     continue
-                attribute["groupName"] = annotation_classes[annotation_class_id][
-                    "attribute_groups"
-                ][attribute["groupId"]]["name"]
-                if (
+                attribute["name"] = annotation_class["attribute_groups"][
                     attribute["groupId"]
-                    not in annotation_classes[annotation_class_id]["attribute_groups"][
-                        attribute["groupId"]
-                    ]["attributes"]
-                ):
-                    continue
-                attribute["name"] = annotation_classes[annotation_class_id][
-                    "attribute_groups"
-                ][attribute["groupId"]]["name"]
+                ]["attributes"][attribute["id"]]
 
     def execute(self):
         if self.is_valid():
@@ -3117,7 +3107,9 @@ class CreateFuseImageUseCase(BaseUseCase):
                 weight, height = image.get_size()
                 empty_image_arr = np.full((height, weight, 4), [0, 0, 0, 255], np.uint8)
                 for annotation in self.annotations["instances"]:
-                    if not class_color_map.get(annotation["className"]):
+                    if annotation.get("className") and not class_color_map.get(
+                        annotation["className"]
+                    ):
                         continue
                     fill_color = *class_color_map[annotation["className"]], 255
                     for part in annotation["parts"]:
@@ -3336,6 +3328,41 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
             classes_data[annotation_class.name] = class_info
         return classes_data
 
+    @property
+    def get_annotation_classes_name_to_id(self):
+        annotation_classes = self._annotation_classes
+        annotation_classes_dict = {}
+        for annotation_class in annotation_classes:
+            class_id = annotation_class["id"]
+            class_name = annotation_class["name"]
+            class_info = {"id": class_id, "attribute_groups": {}}
+            if "attribute_groups" in annotation_class:
+                for attribute_group in annotation_class["attribute_groups"]:
+                    attribute_group_info = {}
+                    for attribute in attribute_group["attributes"]:
+                        if attribute["name"] in attribute_group_info:
+                            logger.warning(
+                                "Duplicate annotation class attribute name %s in attribute group %s. Only one of the annotation classe attributes will be used. This will result in errors in annotation upload.",
+                                attribute["name"], attribute_group["name"]
+                            )
+                        attribute_group_info[attribute["name"]] = attribute["id"]
+                    if attribute_group["name"] in class_info["attribute_groups"]:
+                        logger.warning(
+                            "Duplicate annotation class attribute group name %s. Only one of the annotation classe attribute groups will be used. This will result in errors in annotation upload.",
+                            attribute_group["name"]
+                        )
+                    class_info["attribute_groups"][attribute_group["name"]] = {
+                        "id": attribute_group["id"],
+                        "attributes": attribute_group_info
+                    }
+            if class_name in annotation_classes_dict:
+                logger.warning(
+                    "Duplicate annotation class name %s. Only one of the annotation classes will be used. This will result in errors in annotation upload.",
+                    class_name
+                )
+            annotation_classes_dict[class_name] = class_info
+        return annotation_classes_dict
+
     def get_templates_mapping(self):
         templates = self._backend_service.get_templates(
             team_id=self._project.team_id
@@ -3382,7 +3409,7 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
                     attribute["groupName"]
                     not in annotation_classes[annotation_class_name]["attribute_groups"]
                 ):
-                    self.unknown_attributes.append(attribute["groupName"])
+                    self.unknown_attribute_groups.append(attribute["groupName"])
                     continue
                 attribute["groupId"] = annotation_classes[annotation_class_name][
                     "attribute_groups"
@@ -3437,7 +3464,8 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
                 resource = session.resource("s3")
                 bucket = resource.Bucket(response.data.bucket)
                 self.fill_classes_data(self._annotations)
-                self.report_unknown_data()
+                # skipped report
+                # self.report_unknown_data()
                 bucket.put_object(
                     Key=response.data.images[image_data["id"]]["annotation_json_path"],
                     Body=json.dumps(self._annotations),
@@ -4922,52 +4950,57 @@ class UploadImagesToProject(BaseInteractiveUseCase):
                 uploaded=False, path=image_path, entity=None, name=Path(image_path).name
             )
 
+    def filter_paths(self, paths: List[str]):
+        paths = [
+            path
+            for path in paths
+            if not any(
+                [extension in path for extension in self.exclude_file_patterns]
+            )
+        ]
+        name_path_map = defaultdict(list)
+        for path in paths:
+            name_path_map[Path(path).name].append(path)
+
+        filtered_paths = []
+        duplicated_paths = []
+        for file_name in name_path_map:
+            if len(name_path_map[file_name]) > 1:
+                duplicated_paths.append(name_path_map[file_name][1:])
+            filtered_paths.append(name_path_map[file_name][0])
+
+        image_entities = (
+            GetBulkImages(
+                service=self._backend_client,
+                project_id=self._project.uuid,
+                team_id=self._project.team_id,
+                folder_id=self._folder.uuid,
+                images=[image.split("/")[-1] for image in filtered_paths],
+            ).execute().data
+        )
+        images_to_upload = []
+        image_list = [image.name for image in image_entities]
+
+        for path in filtered_paths:
+            if Path(path).name not in image_list:
+                images_to_upload.append(path)
+            else:
+                duplicated_paths.append(path)
+        return list(set(images_to_upload)), duplicated_paths
+
     @property
     def images_to_upload(self):
         if not self._images_to_upload:
-            paths = self._paths
-            filtered_paths = []
-            duplicated_paths = []
-            for path in paths:
-                if path.split("/")[-1] not in [
-                    path_name.split("/")[-1] for path_name in filtered_paths
-                ]:
-                    filtered_paths.append(path)
-                else:
-                    duplicated_paths.append(path)
-            filtered_paths = [
-                path
-                for path in paths
-                if not any(
-                    [extension in path for extension in self.exclude_file_patterns]
-                )
-            ]
-            image_entities = (
-                GetBulkImages(
-                    service=self._backend_client,
-                    project_id=self._project.uuid,
-                    team_id=self._project.team_id,
-                    folder_id=self._folder.uuid,
-                    images=[image.split("/")[-1] for image in filtered_paths],
-                )
-                .execute()
-                .data
-            )
-            images_to_upload = []
-            image_list = [image.name for image in image_entities]
-
-            for path in filtered_paths:
-                if path not in image_list:
-                    images_to_upload.append(path)
-                else:
-                    duplicated_paths.append(path)
-            self._images_to_upload = list(set(images_to_upload)), duplicated_paths
+            self._images_to_upload = self.filter_paths(self._paths)
         return self._images_to_upload
 
     def execute(self):
         if self.is_valid():
             images_to_upload, duplications = self.images_to_upload
             images_to_upload = images_to_upload[: self.auth_data["availableImageCount"]]
+            if not images_to_upload:
+                return self._response
+
             uploaded_images = []
             failed_images = []
             with concurrent.futures.ThreadPoolExecutor(

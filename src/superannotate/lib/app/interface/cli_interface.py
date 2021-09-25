@@ -130,13 +130,18 @@ class CLIFacade(BaseInterfaceFacade):
             project_name, folders, include_fuse, False, annotation_statuses
         )
         export_name = export_res.data["name"]
-        self.controller.download_export(
+
+        use_case = controller.download_export(
             project_name=project_name,
             export_name=export_name,
             folder_path=folder,
             extract_zip_contents=not disable_extract_zip_contents,
             to_s3_bucket=False,
         )
+        if use_case.is_valid():
+            for _ in use_case.execute():
+                continue
+
         sys.exit(0)
 
     def upload_preannotations(

@@ -1,6 +1,7 @@
 import os
 from os.path import dirname
 from pathlib import Path
+import pytest
 
 import src.superannotate as sa
 from tests.integration.base import BaseTestCase
@@ -162,6 +163,26 @@ class TestImageCopy(BaseTestCase):
         si = sa.search_images(self.PROJECT_NAME)
         self.assertEqual(len(si), 1)
 
+    @pytest.mark.flaky(reruns=2)
+    def test_copy_image_with_arguments(self):
+        sa.upload_image_to_project(
+            self.PROJECT_NAME,
+            f"{self.folder_path}/{self.EXAMPLE_IMAGE}",
+            annotation_status="InProgress",
+        )
+        sa.create_annotation_classes_from_classes_json(
+            self.PROJECT_NAME, f"{self.folder_path}/classes/classes.json"
+        )
+        sa.upload_image_annotations(
+            self.PROJECT_NAME,
+            self.EXAMPLE_IMAGE,
+            f"{self.folder_path}/{self.EXAMPLE_IMAGE}___objects.json",
+        )
+        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER)
+        sa.copy_image(
+            self.PROJECT_NAME, self.EXAMPLE_IMAGE, f"{self.PROJECT_NAME}/{self.TEST_FOLDER}",
+            copy_annotation_status=True
+        )
 
 # def test_image_copy_folders(tmpdir):
 #     tmpdir = Path(tmpdir)

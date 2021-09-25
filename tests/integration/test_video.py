@@ -44,7 +44,7 @@ class TestVideo(BaseTestCase):
             self.folder_path,
             target_fps=1,
         )
-        self.assertEqual(len(sa.search_images(self.PROJECT_NAME)), 4)
+        self.assertEqual(len(sa.search_images(self.PROJECT_NAME)), 5)
         self.assertEqual(
             len(sa.search_images(f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME}")),
             len(sa.search_images(self.PROJECT_NAME)),
@@ -56,7 +56,7 @@ class TestVideo(BaseTestCase):
             f"{self.folder_path}/{self.TEST_VIDEO_NAME}",
             target_fps=1,
         )
-        self.assertEqual(len(sa.search_images(self.PROJECT_NAME)), 4)
+        self.assertEqual(len(sa.search_images(self.PROJECT_NAME)), 5)
 
     #  todo check
     # def test_video_deep(self):

@@ -1,7 +1,7 @@
 import os
 from os.path import dirname
 import tempfile
-import boto3
+import pytest
 
 import src.superannotate as sa
 from src.superannotate.lib.app.exceptions import AppException
@@ -33,6 +33,7 @@ class TestInterface(BaseTestCase):
     def folder_path_with_multiple_images(self):
         return os.path.join(dirname(dirname(__file__)), self.TEST_FOLDER_PATH_WITH_MULTIPLE_IMAGERS)
 
+    @pytest.mark.flaky(reruns=2)
     def test_delete_images(self):
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME)
 
@@ -52,6 +53,7 @@ class TestInterface(BaseTestCase):
         )
         self.assertEqual(num_images, 0)
 
+    @pytest.mark.flaky(reruns=2)
     def test_delete_image_form_folder(self):
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME)
 
@@ -92,6 +94,7 @@ class TestInterface(BaseTestCase):
         )
         self.assertEqual(len(uploaded_annotations), 4)
 
+    @pytest.mark.flaky(reruns=2)
     def test_get_images_metadata(self):
         sa.upload_images_from_folder_to_project(self.PROJECT_NAME, self.folder_path)
         metadata = sa.search_images(self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, return_metadata=True)
@@ -179,7 +182,7 @@ class TestInterface(BaseTestCase):
                 include_annotations=True,
                 include_fuse=True
             )
-            pass
+            self.assertIsNotNone(result)
 
 
 class TestPixelInterface(BaseTestCase):
@@ -198,6 +201,7 @@ class TestPixelInterface(BaseTestCase):
     def folder_path(self):
         return os.path.join(self.data_set_path, self.TEST_FOLDER_PATH)
 
+    @pytest.mark.flaky(reruns=2)
     def test_export_annotation(self):
         sa.upload_image_to_project(self.PROJECT_NAME, f"{self.folder_path}/{self.EXAMPLE_IMAGE_1}")
         sa.create_annotation_classes_from_classes_json(self.PROJECT_NAME, f"{self.folder_path}/classes/classes.json")

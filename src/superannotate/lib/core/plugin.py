@@ -248,7 +248,7 @@ class VideoPlugin:
 
         frame_number = 0
         extracted_frame_number = 0
-        extracted_frame_ratio = ratio
+        extracted_frame_ratio = 1.0
         logger.info("Extracting frames from video to %s.", extract_path)
         extracted_frames_paths = []
 

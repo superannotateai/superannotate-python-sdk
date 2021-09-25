@@ -29,6 +29,7 @@ class TestBenchmark(BaseTestCase):
     def export_path(self):
         return os.path.join(dirname(dirname(__file__)), self.TEST_EXPORT_ROOT)
 
+    @pytest.mark.flaky(reruns=2)
     def test_benchmark(self):
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME)
         annotation_types = ["polygon", "bbox", "point"]
@@ -59,18 +60,17 @@ class TestBenchmark(BaseTestCase):
             )
             for i in range(1, 4):
                 sa.upload_images_from_folder_to_project(
-                    self.PROJECT_NAME + f"/{self.CONSENSUS_PREFIX}" + str(i),
+                    self.PROJECT_NAME + f"/{self.CONSENSUS_PREFIX}{str(i)}",
                     self.export_path + "/images",
                     annotation_status="Completed",
                 )
-            time.sleep(2)
             sa.upload_annotations_from_folder_to_project(
                 self.PROJECT_NAME, self.export_path
             )
             for i in range(1, 4):
                 sa.upload_annotations_from_folder_to_project(
-                    self.PROJECT_NAME + f"/{self.CONSENSUS_PREFIX}" + str(i),
-                    self.export_path + f"/{self.CONSENSUS_PREFIX}" + str(i),
+                    self.PROJECT_NAME + f"/{self.CONSENSUS_PREFIX}{str(i)}",
+                    self.export_path + f"/{self.CONSENSUS_PREFIX}{str(i)}"
                 )
 
             for annotation_type in annotation_types:

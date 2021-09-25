@@ -1,5 +1,6 @@
 import os
 from os.path import dirname
+import pytest
 
 import src.superannotate as sa
 from tests.integration.base import BaseTestCase
@@ -17,6 +18,7 @@ class TestPinImage(BaseTestCase):
     def folder_path(self):
         return os.path.join(dirname(dirname(__file__)), self.TEST_FOLDER_PATH)
 
+    @pytest.mark.flaky(reruns=2)
     def test_pin_image(self):
         sa.upload_images_from_folder_to_project(
             project=self.PROJECT_NAME, folder_path=self.folder_path

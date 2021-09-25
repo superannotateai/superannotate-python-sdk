@@ -3,6 +3,7 @@ import json
 import os
 import tempfile
 from os.path import dirname
+import pytest
 
 import src.superannotate as sa
 from tests.integration.base import BaseTestCase
@@ -75,6 +76,7 @@ class TestSingleAnnotationDownloadUploadPixel(BaseTestCase):
             dirname(dirname(__file__)), self.TEST_FOLDER_PATH, "classes/classes.json"
         )
 
+    @pytest.mark.flaky(reruns=2)
     def test_annotation_download_upload_pixel(self):
         sa.upload_images_from_folder_to_project(
             project=self.PROJECT_NAME, folder_path=self.folder_path

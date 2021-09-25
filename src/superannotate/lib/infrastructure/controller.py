@@ -1424,6 +1424,7 @@ class Controller(BaseController):
         show_plots: bool,
     ):
         project = self._get_project(project_name)
+
         export_response = self.prepare_export(
             project.name,
             folder_names=folder_names,
@@ -1433,13 +1434,16 @@ class Controller(BaseController):
         if export_response.errors:
             return export_response
 
-        self.download_export(
+        download_use_case = self.download_export(
             project_name=project.name,
             export_name=export_response.data["name"],
             folder_path=export_root,
             extract_zip_contents=True,
             to_s3_bucket=False,
         )
+        if download_use_case.is_valid():
+            for _ in download_use_case.execute():
+                pass
 
         use_case = usecases.BenchmarkUseCase(
             project=project,
