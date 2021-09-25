@@ -258,7 +258,7 @@ class Controller(BaseController):
             project_type = constances.ProjectType[project_type.upper()].value
         except KeyError:
             raise AppException(
-                "Please provide a valid project type: Vector, Pixel, or Video."
+                "Please provide a valid project type: Vector, Pixel, Document, or Video."
             )
         entity = ProjectEntity(
             name=name,
