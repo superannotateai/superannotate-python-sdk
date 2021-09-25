@@ -113,7 +113,7 @@ class PixelAnnotationPart(BaseModel):
 
 class PixelAnnotationInstance(BaseModel):
     classId: int
-    groupId: int
+    groupId: Optional[int]
     parts: List[PixelAnnotationPart]
     attributes: List[Attribute]
 
