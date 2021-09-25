@@ -2356,7 +2356,12 @@ def attach_image_urls_to_project(
     images_to_upload, duplicate_images = get_paths_and_duplicated_from_csv(attachments)
     list_of_uploaded = []
 
-    logger.info("Attaching %s images to project.", len(images_to_upload))
+    if len(duplicate_images):
+        logger.warning(
+            constances.ALREADY_EXISTING_FILES_WARNING.format(len(duplicate_images))
+        )
+
+    logger.info(constances.ATTACHING_FILES_MESSAGE.format(len(images_to_upload)))
 
     with tqdm(total=len(images_to_upload), desc="Attaching urls") as progress_bar:
         for i in range(0, len(images_to_upload), 500):
@@ -2408,7 +2413,12 @@ def attach_video_urls_to_project(
     images_to_upload, duplicate_images = get_paths_and_duplicated_from_csv(attachments)
     list_of_uploaded = []
 
-    logger.info("Attaching %s images to project.", len(images_to_upload))
+    if len(duplicate_images):
+        logger.warning(
+            constances.ALREADY_EXISTING_FILES_WARNING.format(len(duplicate_images))
+        )
+
+    logger.info(constances.ATTACHING_FILES_MESSAGE.format(len(images_to_upload)))
 
     with tqdm(total=len(images_to_upload), desc="Attaching urls") as progress_bar:
         for i in range(0, len(images_to_upload), 500):
@@ -3636,7 +3646,12 @@ def attach_document_urls_to_project(
     images_to_upload, duplicate_images = get_paths_and_duplicated_from_csv(attachments)
     list_of_uploaded = []
 
-    logger.info("Attaching %s images to project.", len(images_to_upload))
+    if len(duplicate_images):
+        logger.warning(
+            constances.ALREADY_EXISTING_FILES_WARNING.format(len(duplicate_images))
+        )
+
+    logger.info(constances.ATTACHING_FILES_MESSAGE.format(len(images_to_upload)))
 
     with tqdm(total=len(images_to_upload), desc="Attaching urls") as progress_bar:
         for i in range(0, len(images_to_upload), 500):
