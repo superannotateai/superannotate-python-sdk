@@ -2508,12 +2508,6 @@ class GetExportsUseCase(BaseUseCase):
         self._project = project
         self._return_metadata = return_metadata
 
-    def validate_project_type(self):
-        if self._project.project_type in constances.LIMITED_FUNCTIONS:
-            raise AppValidationException(
-                constances.LIMITED_FUNCTIONS[self._project.project_type]
-            )
-
     def execute(self):
         if self.is_valid():
             data = self._service.get_exports(
@@ -3999,7 +3993,7 @@ class StopModelTraining(BaseUseCase):
         return self._response
 
 
-class DownloadExportUseCase(BaseUseCase):
+class DownloadExportUseCase(BaseInteractiveUseCase):
     def __init__(
         self,
         service: SuerannotateServiceProvider,
@@ -4090,20 +4084,24 @@ class DownloadExportUseCase(BaseUseCase):
 
     def execute(self):
         if self.is_valid():
+            report = []
             if self._to_s3_bucket:
                 self.get_upload_files_count()
                 yield from self.upload_to_s3_from_folder(self._temp_dir.name)
-                logger.info(f"Exported to AWS {self._to_s3_bucket}/{self._folder_path}")
+                report.append(
+                    f"Exported to AWS {self._to_s3_bucket}/{self._folder_path}"
+                )
                 self._temp_dir.cleanup()
             else:
                 export_id, filepath, destination = self.download_to_local_storage(
                     self._folder_path
                 )
                 if self._extract_zip_contents:
-                    logger.info(f"Extracted {filepath} to folder {destination}")
+                    report.append(f"Extracted {filepath} to folder {destination}")
                 else:
-                    logger.info(f"Downloaded export ID {export_id} to {filepath}")
+                    report.append(f"Downloaded export ID {export_id} to {filepath}")
                 yield
+            self._response.data = "\n".join(report)
         return self._response
 
 

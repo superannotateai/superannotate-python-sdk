@@ -37,3 +37,11 @@ class TestVideoUrls(BaseTestCase):
         self.assertEqual(len(uploaded), 7)
         self.assertEqual(len(could_not_upload), 0)
         self.assertEqual(len(existing_images), 1)
+
+    def test_get_exports(self):
+        sa.attach_video_urls_to_project(
+            self.PROJECT_NAME,
+            self.csv_path_without_name_column
+        )
+        sa.prepare_export(self.PROJECT_NAME)
+        self.assertEqual(len(sa.get_exports(self.PROJECT_NAME)),1)
