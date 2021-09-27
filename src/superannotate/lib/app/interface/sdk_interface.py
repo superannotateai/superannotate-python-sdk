@@ -1825,7 +1825,9 @@ def upload_videos_from_folder_to_project(
                     f"{len(duplicates)} already existing images found that won't be uploaded."
                 )
             if not images_to_upload:
-                logger.warning(f"{len(duplicates)} already existing images found that won't be uploaded.")
+                logger.warning(
+                    f"{len(duplicates)} already existing images found that won't be uploaded."
+                )
                 continue
             if use_case.is_valid():
                 with tqdm(
@@ -2509,7 +2511,10 @@ def upload_annotations_from_folder_to_project(
     )
 
     annotation_paths = get_annotation_paths(
-        folder_path, from_s3_bucket, recursive_subfolders
+        folder_path,
+        from_s3_bucket,
+        recursive_subfolders,
+        project["project"].project_type,
     )
     logger.info(
         "Uploading %s annotations to project %s.", len(annotation_paths), project_name
@@ -2582,7 +2587,10 @@ def upload_preannotations_from_folder_to_project(
     )
 
     annotation_paths = get_annotation_paths(
-        folder_path, from_s3_bucket, recursive_subfolders
+        folder_path,
+        from_s3_bucket,
+        recursive_subfolders,
+        project["project"].project_type,
     )
     logger.info(
         "Uploading %s annotations to project %s.", len(annotation_paths), project_name

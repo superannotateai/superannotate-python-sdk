@@ -2335,11 +2335,10 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
                 attribute["groupName"] = annotation_class["attribute_groups"][
                     attribute["groupId"]
                 ]["name"]
-                if (
-                    attribute["id"]
-                    not in list(annotation_class["attribute_groups"][attribute["groupId"]][
+                if attribute["id"] not in list(
+                    annotation_class["attribute_groups"][attribute["groupId"]][
                         "attributes"
-                    ].keys())
+                    ].keys()
                 ):
                     continue
                 attribute["name"] = annotation_class["attribute_groups"][
@@ -3343,22 +3342,23 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
                         if attribute["name"] in attribute_group_info:
                             logger.warning(
                                 "Duplicate annotation class attribute name %s in attribute group %s. Only one of the annotation classe attributes will be used. This will result in errors in annotation upload.",
-                                attribute["name"], attribute_group["name"]
+                                attribute["name"],
+                                attribute_group["name"],
                             )
                         attribute_group_info[attribute["name"]] = attribute["id"]
                     if attribute_group["name"] in class_info["attribute_groups"]:
                         logger.warning(
                             "Duplicate annotation class attribute group name %s. Only one of the annotation classe attribute groups will be used. This will result in errors in annotation upload.",
-                            attribute_group["name"]
+                            attribute_group["name"],
                         )
                     class_info["attribute_groups"][attribute_group["name"]] = {
                         "id": attribute_group["id"],
-                        "attributes": attribute_group_info
+                        "attributes": attribute_group_info,
                     }
             if class_name in annotation_classes_dict:
                 logger.warning(
                     "Duplicate annotation class name %s. Only one of the annotation classes will be used. This will result in errors in annotation upload.",
-                    class_name
+                    class_name,
                 )
             annotation_classes_dict[class_name] = class_info
         return annotation_classes_dict
@@ -3799,10 +3799,10 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
             )
             if from_s3:
                 file = io.BytesIO()
-                s3_object = self._client_s3_bucket.Objcect(
-                    self._client_s3_bucket, self._folder_path + mask_filename
+                s3_object = from_s3.Object(
+                    self._client_s3_bucket, f"{self._folder_path}/{mask_filename}"
                 )
-                s3_object.download_file(file)
+                s3_object.download_fileobj(file)
                 file.seek(0)
             else:
                 with open(f"{self._folder_path}/{mask_filename}", "rb") as mask_file:
@@ -4948,9 +4948,7 @@ class UploadImagesToProject(BaseInteractiveUseCase):
         paths = [
             path
             for path in paths
-            if not any(
-                [extension in path for extension in self.exclude_file_patterns]
-            )
+            if not any([extension in path for extension in self.exclude_file_patterns])
         ]
         name_path_map = defaultdict(list)
         for path in paths:
@@ -4970,7 +4968,9 @@ class UploadImagesToProject(BaseInteractiveUseCase):
                 team_id=self._project.team_id,
                 folder_id=self._folder.uuid,
                 images=[image.split("/")[-1] for image in filtered_paths],
-            ).execute().data
+            )
+            .execute()
+            .data
         )
         images_to_upload = []
         image_list = [image.name for image in image_entities]

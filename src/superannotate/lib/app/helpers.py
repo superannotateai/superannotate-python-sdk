@@ -10,6 +10,7 @@ import boto3
 import pandas as pd
 from superannotate.lib.app.exceptions import PathError
 from superannotate.lib.core import PIXEL_ANNOTATION_POSTFIX
+from superannotate.lib.core import ProjectType
 from superannotate.lib.core import VECTOR_ANNOTATION_POSTFIX
 
 
@@ -36,31 +37,42 @@ def extract_project_folder(user_input: Union[str, dict]) -> Tuple[str, Optional[
     raise PathError("Invalid project path")
 
 
-def get_annotation_paths(folder_path, s3_bucket=None, recursive=False):
+def get_annotation_paths(
+    folder_path, s3_bucket=None, recursive=False, project_type=ProjectType.VECTOR.value
+):
     annotation_paths = []
     if s3_bucket:
         return get_s3_annotation_paths(
-            folder_path, s3_bucket, annotation_paths, recursive
+            folder_path, s3_bucket, annotation_paths, recursive, project_type
         )
-    return get_local_annotation_paths(folder_path, annotation_paths, recursive)
+    return get_local_annotation_paths(
+        folder_path, annotation_paths, recursive, project_type
+    )
 
 
 def get_local_annotation_paths(
-    folder_path: Union[str, Path], annotation_paths: List, recursive: bool
+    folder_path: Union[str, Path],
+    annotation_paths: List,
+    recursive: bool,
+    project_type: int,
 ) -> List[str]:
+    filter_postfix = VECTOR_ANNOTATION_POSTFIX
+    if project_type == ProjectType.PIXEL.value:
+        filter_postfix = PIXEL_ANNOTATION_POSTFIX
     for path in Path(folder_path).glob("*"):
         if recursive and path.is_dir():
             get_local_annotation_paths(path, annotation_paths, recursive)
         for annotation_path in Path(folder_path).glob("*.json"):
-            if (
-                annotation_path.name.endswith(VECTOR_ANNOTATION_POSTFIX)
-                or annotation_path.name.endswith(PIXEL_ANNOTATION_POSTFIX)
-            ) and str(annotation_path) not in annotation_paths:
+            if (annotation_path.name.endswith(filter_postfix)) and str(
+                annotation_path
+            ) not in annotation_paths:
                 annotation_paths.append(str(annotation_path))
     return annotation_paths
 
 
-def get_s3_annotation_paths(folder_path, s3_bucket, annotation_paths, recursive):
+def get_s3_annotation_paths(
+    folder_path, s3_bucket, annotation_paths, recursive, project_type
+):
     s3_client = boto3.client("s3")
     result = s3_client.list_objects(Bucket=s3_bucket, Prefix=folder_path, Delimiter="/")
     result = result.get("CommonPrefixes")
@@ -70,13 +82,15 @@ def get_s3_annotation_paths(folder_path, s3_bucket, annotation_paths, recursive)
                 folder.get("Prefix"), s3_bucket, annotation_paths, recursive
             )
 
+    filter_postfix = VECTOR_ANNOTATION_POSTFIX
+    if project_type == ProjectType.PIXEL.value:
+        filter_postfix = PIXEL_ANNOTATION_POSTFIX
+
     paginator = s3_client.get_paginator("list_objects_v2")
     for data in paginator.paginate(Bucket=s3_bucket, Prefix=folder_path):
         for annotation in data["Contents"]:
             key = annotation["Key"]
-            if key.endswith(VECTOR_ANNOTATION_POSTFIX) or key.endswith(
-                PIXEL_ANNOTATION_POSTFIX
-            ):
+            if key.endswith(filter_postfix):
                 if not recursive and "/" in key[len(folder_path) + 1 :]:
                     continue
                 annotation_paths.append(key)
@@ -149,5 +163,6 @@ def get_paths_and_duplicated_from_csv(csv_path):
             seen.append(i["name"])
             images_to_upload.append(i)
         else:
+            duplicate_images.append(temp)
             duplicate_images.append(temp)
     return images_to_upload, duplicate_images
