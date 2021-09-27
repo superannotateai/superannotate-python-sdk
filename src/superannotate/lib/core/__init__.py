@@ -54,6 +54,10 @@ MAX_VECTOR_RESOLUTION = 100_000_000
 MAX_IMAGE_SIZE = 100 * 1024 * 1024  # 100 MB limit
 TOKEN_UUID = "token"
 
+ALREADY_EXISTING_FILES_WARNING = (
+    "{} already existing file(s) found that won't be uploaded."
+)
+ATTACHING_FILES_MESSAGE = "Attaching {} file(s) to project."
 
 DEPRECATED_VIDEO_PROJECTS_MESSAGE = (
     "The function does not support projects containing videos attached with URLs"
