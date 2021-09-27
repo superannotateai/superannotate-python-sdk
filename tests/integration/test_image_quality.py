@@ -2,6 +2,7 @@ import filecmp
 import os
 import tempfile
 from os.path import dirname
+import pytest
 
 import src.superannotate as sa
 from tests.integration.base import BaseTestCase
@@ -75,8 +76,9 @@ class TestImageQuality(BaseTestCase):
     def folder_path(self):
         return os.path.join(dirname(dirname(__file__)), self.TEST_FOLDER_PATH)
 
+    @pytest.mark.flaky(reruns=2)
     def test_big_image(self):
         try:
-            sa.upload_image_to_project(self.PROJECT_NAME,f"{self.folder_path}/{self.BIG_IMAGE}")
+            sa.upload_image_to_project(self.PROJECT_NAME, f"{self.folder_path}/{self.BIG_IMAGE}")
         except AppException as e:
-            self.assertEqual(str(e),self.MESSAGE)
+            self.assertEqual(str(e), self.MESSAGE)

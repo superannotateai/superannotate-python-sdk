@@ -42,7 +42,7 @@ class ImageQualityChoices(StrictStr):
         super().validate(value)
         if value.lower() not in cls.VALID_CHOICES:
             raise TypeError(
-                f"Image quality should be on of {', '.join(cls.VALID_CHOICES)}."
+                f"Image quality available choices are {', '.join(cls.VALID_CHOICES)}."
             )
         return value.lower()
 

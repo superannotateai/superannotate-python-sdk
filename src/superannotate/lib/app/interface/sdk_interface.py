@@ -576,18 +576,22 @@ def copy_image(
     image_entity = s3_response.data
     del img_bytes
 
+    annotation_status = None
     if copy_annotation_status:
         res = controller.get_image(
             project_name=source_project_name,
             image_name=image_name,
             folder_path=source_folder_name,
         )
-        image_entity.annotation_status_code = res.annotation_status_code
+        annotation_status = constances.AnnotationStatus.get_name(
+            res.annotation_status_code
+        )
 
     controller.attach_urls(
         project_name=destination_project,
         files=[image_entity],
         folder_name=destination_folder,
+        annotation_status=annotation_status,
         upload_state_code=constances.UploadState.BASIC.value,
     )
 
@@ -1462,6 +1466,8 @@ def upload_images_from_folder_to_project(
     logger.info(
         "Uploading %s images to project %s.", len(images_to_upload), project_folder_name
     )
+    if not images_to_upload:
+        return [], [], duplicates
     if use_case.is_valid():
         with tqdm(total=len(images_to_upload), desc="Uploading images") as progress_bar:
             for _ in use_case.execute():
@@ -1818,7 +1824,9 @@ def upload_videos_from_folder_to_project(
                 logger.warning(
                     f"{len(duplicates)} already existing images found that won't be uploaded."
                 )
-
+            if not images_to_upload:
+                logger.warning(f"{len(duplicates)} already existing images found that won't be uploaded.")
+                continue
             if use_case.is_valid():
                 with tqdm(
                     total=len(images_to_upload), desc="Uploading images"
@@ -2835,14 +2843,13 @@ def benchmark(
     ]:
         raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
 
-    if export_root is None:
+    if not export_root:
         with tempfile.TemporaryDirectory() as temp_dir:
-            export_root = temp_dir
             response = controller.benchmark(
                 project_name=project_name,
                 ground_truth_folder_name=gt_folder,
                 folder_names=folder_names,
-                export_root=export_root,
+                export_root=temp_dir,
                 image_list=image_list,
                 annot_type=annot_type,
                 show_plots=show_plots,
@@ -3526,6 +3533,9 @@ def upload_images_to_project(
             "%s already existing images found that won't be uploaded.", len(duplicates)
         )
     logger.info(f"Uploading {len(images_to_upload)} images to project {project}.")
+    uploaded, failed_images, duplications = [], [], duplicates
+    if not images_to_upload:
+        return uploaded, failed_images, duplications
     if use_case.is_valid():
         with tqdm(total=len(images_to_upload), desc="Uploading images") as progress_bar:
             for _ in use_case.execute():

@@ -1,6 +1,7 @@
 import os
 from os.path import dirname
 from unittest import TestCase
+import pytest
 
 import src.superannotate as sa
 from src.superannotate import AppException
@@ -54,6 +55,7 @@ class TestDeprecatedFunctionsVideo(TestCase):
     def image_path(self):
         return f'{self.folder_path}/example_image_1.jpg'
 
+    @pytest.mark.flaky(reruns=2)
     def test_deprecated_functions(self):
         _, _, _ = sa.attach_video_urls_to_project(
             self.PROJECT_NAME,
