@@ -4031,12 +4031,6 @@ class DownloadExportUseCase(BaseInteractiveUseCase):
         self._to_s3_bucket = to_s3_bucket
         self._temp_dir = None
 
-    def validate_project_type(self):
-        if self._project.project_type in constances.LIMITED_FUNCTIONS:
-            raise AppValidationException(
-                constances.LIMITED_FUNCTIONS[self._project.project_type]
-            )
-
     def upload_to_s3_from_folder(self, folder_path: str):
         to_s3_bucket = boto3.Session().resource("s3").Bucket(self._to_s3_bucket)
         files_to_upload = list(Path(folder_path).rglob("*.*"))

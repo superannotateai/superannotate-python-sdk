@@ -2186,6 +2186,8 @@ def download_export(
             for _ in use_case.execute():
                 continue
         logger.info(use_case.response.data)
+    else:
+        raise AppException(use_case.response.errors)
 
 
 @Trackable
