@@ -712,8 +712,8 @@ def move_images(
     source_project: Union[NotEmptyStr, dict],
     image_names: Optional[List[NotEmptyStr]],
     destination_project: Union[NotEmptyStr, dict],
-    *_,
-    **__,
+    *args,
+    **kwargs,
 ):
     """Move images in bulk between folders in a project
 
@@ -994,7 +994,7 @@ def delete_image(project: Union[NotEmptyStr, dict], image_name: str):
 
 @Trackable
 @validate_arguments
-def get_image_metadata(project: Union[NotEmptyStr, dict], image_name: str, *_, **__):
+def get_image_metadata(project: Union[NotEmptyStr, dict], image_name: str, *args, **kwargs):
     """Returns image metadata
 
     :param project: project name or folder path (e.g., "project1/folder1")
