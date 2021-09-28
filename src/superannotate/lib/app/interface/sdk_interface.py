@@ -566,34 +566,16 @@ def copy_image(
             LIMITED_FUNCTIONS[source_project_metadata["project"].project_type]
         )
 
-    img_bytes = get_image_bytes(project=source_project, image_name=image_name)
-
-    s3_response = controller.upload_image_to_s3(
-        project_name=destination_project, image_path=image_name, image_bytes=img_bytes
+    response = controller.copy_image(
+        from_project_name=source_project_name,
+        from_folder_name=source_folder_name,
+        to_project_name=destination_project,
+        to_folder_name=destination_folder,
+        image_name=image_name,
+        copy_annotation_status=copy_annotation_status
     )
-    if s3_response.errors:
-        raise AppException(s3_response.errors)
-    image_entity = s3_response.data
-    del img_bytes
-
-    annotation_status = None
-    if copy_annotation_status:
-        res = controller.get_image(
-            project_name=source_project_name,
-            image_name=image_name,
-            folder_path=source_folder_name,
-        )
-        annotation_status = constances.AnnotationStatus.get_name(
-            res.annotation_status_code
-        )
-
-    controller.attach_urls(
-        project_name=destination_project,
-        files=[image_entity],
-        folder_name=destination_folder,
-        annotation_status=annotation_status,
-        upload_state_code=constances.UploadState.BASIC.value,
-    )
+    if response.errors:
+        raise AppException(response.errors)
 
     if include_annotations:
         controller.copy_image_annotation_classes(
@@ -2010,13 +1992,14 @@ def move_image(
     """
     source_project_name, source_folder_name = extract_project_folder(source_project)
     destination_project_name, destination_folder = extract_project_folder(destination_project)
-    response = controller.move_image(
+    response = controller.copy_image(
         from_project_name=source_project_name,
         from_folder_name=source_folder_name,
         to_project_name=destination_project_name,
         to_folder_name=destination_folder,
         image_name=image_name,
-        copy_annotation_status=copy_annotation_status
+        copy_annotation_status=copy_annotation_status,
+        move=True
     )
     if response.errors:
         raise AppException(response.errors)

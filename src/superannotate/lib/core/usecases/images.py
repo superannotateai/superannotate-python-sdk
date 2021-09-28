@@ -1935,7 +1935,7 @@ class InteractiveAttachFileUrlsUseCase(BaseInteractiveUseCase):
         return self._response
 
 
-class MoveImageUseCase(BaseUseCase):
+class CopyImageUseCase(BaseUseCase):
     def __init__(
             self,
             from_project: ProjectEntity,
@@ -1950,6 +1950,7 @@ class MoveImageUseCase(BaseUseCase):
             include_annotations: Optional[bool] = True,
             copy_annotation_status: Optional[bool] = True,
             copy_pin: Optional[bool] = True,
+            move=False
     ):
         super().__init__()
         self._from_project = from_project
@@ -1964,6 +1965,7 @@ class MoveImageUseCase(BaseUseCase):
         self._copy_pin = copy_pin
         self._backend_service = backend_service
         self._images = images
+        self._move = move
 
     def validate_copy_path(self):
         if (
@@ -1989,7 +1991,13 @@ class MoveImageUseCase(BaseUseCase):
         errors = []
         if response.data.folder_limit.remaining_image_count < 1:
             errors.append(constances.ATTACH_FOLDER_LIMIT_ERROR_MESSAGE)
-        elif self._to_project.uuid != self._from_project.uuid and response.data.project_limit.remaining_image_count < 1:
+        elif (
+                self._move
+                and self._to_project.uuid != self._from_project.uuid
+                and response.data.project_limit.remaining_image_count < 1
+        ):
+            errors.append(constances.ATTACH_PROJECT_LIMIT_ERROR_MESSAGE)
+        elif not self._move and response.data.project_limit.remaining_image_count < 1:
             errors.append(constances.ATTACH_PROJECT_LIMIT_ERROR_MESSAGE)
         if errors:
             raise AppValidationException("\n".join(errors))
