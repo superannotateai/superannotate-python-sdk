@@ -1,3 +1,4 @@
+import concurrent.futures
 import io
 import json
 import logging
@@ -564,34 +565,16 @@ def copy_image(
             LIMITED_FUNCTIONS[source_project_metadata["project"].project_type]
         )
 
-    img_bytes = get_image_bytes(project=source_project, image_name=image_name)
-
-    s3_response = controller.upload_image_to_s3(
-        project_name=destination_project, image_path=image_name, image_bytes=img_bytes
+    response = controller.copy_image(
+        from_project_name=source_project_name,
+        from_folder_name=source_folder_name,
+        to_project_name=destination_project,
+        to_folder_name=destination_folder,
+        image_name=image_name,
+        copy_annotation_status=copy_annotation_status
     )
-    if s3_response.errors:
-        raise AppException(s3_response.errors)
-    image_entity = s3_response.data
-    del img_bytes
-
-    annotation_status = None
-    if copy_annotation_status:
-        res = controller.get_image(
-            project_name=source_project_name,
-            image_name=image_name,
-            folder_path=source_folder_name,
-        )
-        annotation_status = constances.AnnotationStatus.get_name(
-            res.annotation_status_code
-        )
-
-    controller.attach_urls(
-        project_name=destination_project,
-        files=[image_entity],
-        folder_name=destination_folder,
-        annotation_status=annotation_status,
-        upload_state_code=constances.UploadState.BASIC.value,
-    )
+    if response.errors:
+        raise AppException(response.errors)
 
     if include_annotations:
         controller.copy_image_annotation_classes(
@@ -729,8 +712,8 @@ def move_images(
     source_project: Union[NotEmptyStr, dict],
     image_names: Optional[List[NotEmptyStr]],
     destination_project: Union[NotEmptyStr, dict],
-    *_,
-    **__,
+    *args,
+    **kwargs,
 ):
     """Move images in bulk between folders in a project
 
@@ -1011,7 +994,7 @@ def delete_image(project: Union[NotEmptyStr, dict], image_name: str):
 
 @Trackable
 @validate_arguments
-def get_image_metadata(project: Union[NotEmptyStr, dict], image_name: str, *_, **__):
+def get_image_metadata(project: Union[NotEmptyStr, dict], image_name: str, *args, **kwargs):
     """Returns image metadata
 
     :param project: project name or folder path (e.g., "project1/folder1")
@@ -2009,16 +1992,15 @@ def move_image(
     :type copy_pin: bool
     """
     source_project_name, source_folder_name = extract_project_folder(source_project)
-    destination_project_name, destination_folder = extract_project_folder(
-        destination_project
-    )
-    response = controller.move_image(
+    destination_project_name, destination_folder = extract_project_folder(destination_project)
+    response = controller.copy_image(
         from_project_name=source_project_name,
         from_folder_name=source_folder_name,
         to_project_name=destination_project_name,
         to_folder_name=destination_folder,
         image_name=image_name,
         copy_annotation_status=copy_annotation_status,
+        move=True
     )
     if response.errors:
         raise AppException(response.errors)
@@ -2271,13 +2253,11 @@ def attach_image_urls_to_project(
         annotation_status=annotation_status,
     )
     if use_case.is_valid():
-        with tqdm(
-            total=use_case.attachments_count, desc="Attaching urls"
-        ) as progress_bar:
+        with tqdm(total=use_case.attachments_count, desc="Attaching urls") as progress_bar:
             for _ in use_case.execute():
                 progress_bar.update(1)
         uploaded, duplications = use_case.data
-        uploaded = [i["name"] for i in uploaded]
+        uploaded = [i['name'] for i in uploaded]
         duplications.extend(duplicate_images)
         failed_images = [
             image["name"]
@@ -2324,13 +2304,11 @@ def attach_video_urls_to_project(
         annotation_status=annotation_status,
     )
     if use_case.is_valid():
-        with tqdm(
-            total=use_case.attachments_count, desc="Attaching urls"
-        ) as progress_bar:
+        with tqdm(total=use_case.attachments_count, desc="Attaching urls") as progress_bar:
             for _ in use_case.execute():
                 progress_bar.update(1)
         uploaded, duplications = use_case.data
-        uploaded = [i["name"] for i in uploaded]
+        uploaded = [i['name'] for i in uploaded]
         duplications.extend(duplicate_images)
         failed_images = [
             image["name"]
@@ -3324,7 +3302,7 @@ def upload_image_to_project(
         image=img,
         annotation_status=annotation_status,
         from_s3_bucket=from_s3_bucket,
-        image_quality_in_editor=image_quality_in_editor,
+        image_quality_in_editor=image_quality_in_editor
     )
     if response.errors:
         raise AppException(response.errors)
@@ -3535,13 +3513,11 @@ def attach_document_urls_to_project(
         annotation_status=annotation_status,
     )
     if use_case.is_valid():
-        with tqdm(
-            total=use_case.attachments_count, desc="Attaching urls"
-        ) as progress_bar:
+        with tqdm(total=use_case.attachments_count, desc="Attaching urls") as progress_bar:
             for _ in use_case.execute():
                 progress_bar.update(1)
         uploaded, duplications = use_case.data
-        uploaded = [i["name"] for i in uploaded]
+        uploaded = [i['name'] for i in uploaded]
         duplications.extend(duplicate_images)
         failed_images = [
             image["name"]
