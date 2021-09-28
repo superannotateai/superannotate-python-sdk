@@ -82,6 +82,11 @@ ATTACH_FOLDER_LIMIT_ERROR_MESSAGE = "The number of items you want to attach exce
 ATTACH_PROJECT_LIMIT_ERROR_MESSAGE = "The number of items you want to attach exceeds the limit of 500 000 items per project."
 ATTACH_USER_LIMIT_ERROR_MESSAGE = "The number of items you want to attach  exceeds the limit of your subscription plan."
 
+COPY_ITEMS_LIMIT_ERROR_MESSAGE = "The number of items you want to copy exceeds the limit of 50 000 items per folder."
+COPY_ITEM_PROJECT_LIMIT_ERROR_MESSAGE = "The copy exceeds the limit of 50 0000 items per project."
+MOVE_ITEMS_LIMIT_ERROR_MESSAGE = "The number of items you want to move exceeds the limit of 50 000 items per folder."
+MOVE_ITEM_PROJECT_LIMIT_ERROR_MESSAGE = "The number of items you want to move exceeds the limit of 50 000 items per folder."
+
 COPY_FOLDER_LIMIT_ERROR_MESSAGE = (
     "The number of items you want to copy exceeds the limit of 50 000 items per folder."
 )

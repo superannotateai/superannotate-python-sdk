@@ -592,15 +592,11 @@ class ImagesBulkCopyUseCase(BaseUseCase):
             project_id=self._project.uuid,
             folder_id=self._to_folder.uuid,
         )
-        errors = []
         if not response.ok:
             raise AppValidationException(response.error)
         if images_to_copy_count > response.data.folder_limit.remaining_image_count:
-            errors.append(constances.UPLOAD_FOLDER_LIMIT_ERROR_MESSAGE)
-        elif images_to_copy_count > response.data.project_limit.remaining_image_count:
-            errors.append(constances.UPLOAD_PROJECT_LIMIT_ERROR_MESSAGE)
-        if errors:
-            raise AppValidationException(errors)
+            AppValidationException(constances.COPY_ITEMS_LIMIT_ERROR_MESSAGE)
+
 
     def validate_project_type(self):
         if self._project.project_type in constances.LIMITED_FUNCTIONS:
@@ -740,7 +736,7 @@ class ImagesBulkMoveUseCase(BaseUseCase):
         if not response.ok:
             raise AppValidationException(response.error)
         if to_upload_count > response.data.folder_limit.remaining_image_count:
-            raise AppValidationException(constances.UPLOAD_FOLDER_LIMIT_ERROR_MESSAGE)
+            raise AppValidationException(constances.MOVE_ITEMS_LIMIT_ERROR_MESSAGE)
 
     def execute(self):
         if self.is_valid():
@@ -1135,18 +1131,15 @@ class UploadImageToProject(BaseUseCase):
             project_id=self._project.uuid,
             folder_id=self._folder.uuid,
         )
-        errors = []
         if response.data.folder_limit.remaining_image_count < 1:
-            errors.append(constances.UPLOAD_FOLDER_LIMIT_ERROR_MESSAGE)
+            raise AppValidationException(constances.UPLOAD_FOLDER_LIMIT_ERROR_MESSAGE)
         elif response.data.project_limit.remaining_image_count < 1:
-            errors.append(constances.UPLOAD_PROJECT_LIMIT_ERROR_MESSAGE)
+            raise AppValidationException(constances.UPLOAD_PROJECT_LIMIT_ERROR_MESSAGE)
         elif (
                 response.data.super_user_limit
                 and response.data.super_user_limit.remaining_image_count < 1
         ):
-            errors.append(constances.UPLOAD_USER_LIMIT_ERROR_MESSAGE)
-        if errors:
-            raise AppValidationException("\n".join(errors))
+            raise AppValidationException(constances.UPLOAD_USER_LIMIT_ERROR_MESSAGE)
 
     @property
     def auth_data(self):
@@ -1276,18 +1269,15 @@ class UploadImagesToProject(BaseInteractiveUseCase):
         if not response.ok:
             raise AppValidationException(response.error)
         to_upload_count = len(self.images_to_upload)
-        errors = []
         if to_upload_count > response.data.folder_limit.remaining_image_count:
-            errors.append(constances.UPLOAD_FOLDER_LIMIT_ERROR_MESSAGE)
+            raise AppValidationException(constances.UPLOAD_FOLDER_LIMIT_ERROR_MESSAGE)
         elif to_upload_count > response.data.project_limit.remaining_image_count:
-            errors.append(constances.UPLOAD_PROJECT_LIMIT_ERROR_MESSAGE)
+            raise AppValidationException(constances.UPLOAD_PROJECT_LIMIT_ERROR_MESSAGE)
         elif (
                 response.data.super_user_limit
                 and to_upload_count > response.data.super_user_limit.remaining_image_count
         ):
-            errors.append(constances.UPLOAD_USER_LIMIT_ERROR_MESSAGE)
-        if errors:
-            raise AppValidationException("\n".join(errors))
+            raise AppValidationException(constances.UPLOAD_USER_LIMIT_ERROR_MESSAGE)
 
     def validate_annotation_status(self):
         if (
@@ -1596,18 +1586,15 @@ class UploadImagesFromPublicUrls(BaseInteractiveUseCase):
         if not response.ok:
             raise AppValidationException(response.error)
         to_upload_count = len(self._image_urls)
-        errors = []
         if to_upload_count > response.data.folder_limit.remaining_image_count:
-            errors.append(constances.UPLOAD_FOLDER_LIMIT_ERROR_MESSAGE)
+            raise AppValidationException(constances.UPLOAD_FOLDER_LIMIT_ERROR_MESSAGE)
         elif to_upload_count > response.data.project_limit.remaining_image_count:
-            errors.append(constances.UPLOAD_PROJECT_LIMIT_ERROR_MESSAGE)
+            raise AppValidationException(constances.UPLOAD_PROJECT_LIMIT_ERROR_MESSAGE)
         elif (
                 response.data.super_user_limit
                 and to_upload_count > response.data.super_user_limit.remaining_image_count
         ):
-            errors.append(constances.UPLOAD_USER_LIMIT_ERROR_MESSAGE)
-        if errors:
-            raise AppValidationException("\n".join(errors))
+            raise AppValidationException(constances.UPLOAD_USER_LIMIT_ERROR_MESSAGE)
 
     def validate_image_names(self):
         if self._image_names and len(self._image_names) != len(self._image_urls):
@@ -1887,18 +1874,15 @@ class InteractiveAttachFileUrlsUseCase(BaseInteractiveUseCase):
         )
         if not response.ok:
             raise AppValidationException(response.error)
-        errors = []
         if attachments_count > response.data.folder_limit.remaining_image_count:
-            errors.append(constances.ATTACH_FOLDER_LIMIT_ERROR_MESSAGE)
+            raise AppValidationException(constances.ATTACH_FOLDER_LIMIT_ERROR_MESSAGE)
         elif attachments_count > response.data.project_limit.remaining_image_count:
-            errors.append(constances.ATTACH_PROJECT_LIMIT_ERROR_MESSAGE)
+            raise AppValidationException(constances.ATTACH_PROJECT_LIMIT_ERROR_MESSAGE)
         elif (
                 response.data.super_user_limit
                 and attachments_count > response.data.super_user_limit.remaining_image_count
         ):
-            errors.append(constances.ATTACH_USER_LIMIT_ERROR_MESSAGE)
-        if errors:
-            raise AppValidationException("\n".join(errors))
+            raise AppValidationException(constances.ATTACH_USER_LIMIT_ERROR_MESSAGE)
 
     @property
     def annotation_status_code(self):
@@ -1988,13 +1972,14 @@ class CopyImageUseCase(BaseUseCase):
         )
         if not response.ok:
             raise AppValidationException(response.error)
-        errors = []
         if response.data.folder_limit.remaining_image_count < 1:
-            errors.append(constances.ATTACH_FOLDER_LIMIT_ERROR_MESSAGE)
+            if self._move:
+                raise AppValidationException(constances.MOVE_ITEMS_LIMIT_ERROR_MESSAGE)
+            raise AppValidationException(constances.COPY_ITEMS_LIMIT_ERROR_MESSAGE)
         elif self._to_project.uuid != self._from_project.uuid and response.data.project_limit.remaining_image_count < 1:
-            errors.append(constances.ATTACH_PROJECT_LIMIT_ERROR_MESSAGE)
-        if errors:
-            raise AppValidationException("\n".join(errors))
+            if self._move:
+                raise AppValidationException(constances.MOVE_ITEM_PROJECT_LIMIT_ERROR_MESSAGE)
+            raise AppValidationException(constances.COPY_ITEM_PROJECT_LIMIT_ERROR_MESSAGE)
 
     def execute(self) -> Response:
         if self.is_valid():
