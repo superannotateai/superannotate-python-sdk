@@ -76,30 +76,20 @@ DEPRICATED_DOCUMENT_VIDEO_MESSAGE = "The function does not support projects cont
 
 UPLOAD_FOLDER_LIMIT_ERROR_MESSAGE = "The number of items you want to upload exceeds the limit of 50 000 items per folder."
 UPLOAD_PROJECT_LIMIT_ERROR_MESSAGE = "The number of items you want to upload exceeds the limit of 500 000 items per project."
-UPLOAD_USER_LIMIT_ERROR_MESSAGE = "The number of items you want to upload  exceeds the limit of your subscription plan."
+UPLOAD_USER_LIMIT_ERROR_MESSAGE = "The number of items you want to upload exceeds the limit of your subscription plan."
 
 ATTACH_FOLDER_LIMIT_ERROR_MESSAGE = "The number of items you want to attach exceeds the limit of 50 000 items per folder."
 ATTACH_PROJECT_LIMIT_ERROR_MESSAGE = "The number of items you want to attach exceeds the limit of 500 000 items per project."
 ATTACH_USER_LIMIT_ERROR_MESSAGE = "The number of items you want to attach  exceeds the limit of your subscription plan."
 
-COPY_ITEMS_LIMIT_ERROR_MESSAGE = (
-    "The number of items you want to copy exceeds the limit of 50 000 items per folder."
-)
-COPY_ITEM_PROJECT_LIMIT_ERROR_MESSAGE = (
-    "The copy exceeds the limit of 50 0000 items per project."
-)
-MOVE_ITEMS_LIMIT_ERROR_MESSAGE = (
-    "The number of items you want to move exceeds the limit of 50 000 items per folder."
-)
-MOVE_ITEM_PROJECT_LIMIT_ERROR_MESSAGE = (
-    "The number of items you want to move exceeds the limit of 50 000 items per folder."
-)
 
-COPY_FOLDER_LIMIT_ERROR_MESSAGE = (
-    "The number of items you want to copy exceeds the limit of 50 000 items per folder."
-)
+COPY_FOLDER_LIMIT_ERROR_MESSAGE = "The number of items you want to copy exceeds the limit of 50 000 items per folder."
+COPY_PROJECT_LIMIT_ERROR_MESSAGE = "The number of items you want to copy exceeds the limit of 500 000 items per project."
+COPY_SUPER_LIMIT_ERROR_MESSAGE = "The number of items you want to copy exceeds the limit of your subscription plan."
 
-__version__ = "?"
+
+MOVE_FOLDER_LIMIT_ERROR_MESSAGE = "The number of items you want to move exceeds the limit of 50 000 items per folder."
+MOVE_PROJECT_LIMIT_ERROR_MESSAGE = "The number of items you want to move exceeds the limit of 500 000 items per project."
 
 __alL__ = (
     ProjectType,

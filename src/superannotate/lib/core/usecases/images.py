@@ -595,7 +595,9 @@ class ImagesBulkCopyUseCase(BaseUseCase):
         if not response.ok:
             raise AppValidationException(response.error)
         if images_to_copy_count > response.data.folder_limit.remaining_image_count:
-            AppValidationException(constances.COPY_ITEMS_LIMIT_ERROR_MESSAGE)
+            AppValidationException(constances.COPY_FOLDER_LIMIT_ERROR_MESSAGE)
+        if images_to_copy_count > response.data.project_limit.remaining_image_count:
+            AppValidationException(constances.COPY_PROJECT_LIMIT_ERROR_MESSAGE)
 
     def validate_project_type(self):
         if self._project.project_type in constances.LIMITED_FUNCTIONS:
@@ -735,7 +737,9 @@ class ImagesBulkMoveUseCase(BaseUseCase):
         if not response.ok:
             raise AppValidationException(response.error)
         if to_upload_count > response.data.folder_limit.remaining_image_count:
-            raise AppValidationException(constances.MOVE_ITEMS_LIMIT_ERROR_MESSAGE)
+            raise AppValidationException(constances.MOVE_FOLDER_LIMIT_ERROR_MESSAGE)
+        if to_upload_count > response.data.project_limit.remaining_image_count:
+            raise AppValidationException(constances.MOVE_PROJECT_LIMIT_ERROR_MESSAGE)
 
     def execute(self):
         if self.is_valid():
@@ -1982,21 +1986,22 @@ class CopyImageUseCase(BaseUseCase):
         )
         if not response.ok:
             raise AppValidationException(response.error)
-        if response.data.folder_limit.remaining_image_count < 1:
-            if self._move:
-                raise AppValidationException(constances.MOVE_ITEMS_LIMIT_ERROR_MESSAGE)
-            raise AppValidationException(constances.COPY_ITEMS_LIMIT_ERROR_MESSAGE)
-        elif (
-            self._to_project.uuid != self._from_project.uuid
-            and response.data.project_limit.remaining_image_count < 1
-        ):
-            if self._move:
-                raise AppValidationException(
-                    constances.MOVE_ITEM_PROJECT_LIMIT_ERROR_MESSAGE
-                )
-            raise AppValidationException(
-                constances.COPY_ITEM_PROJECT_LIMIT_ERROR_MESSAGE
-            )
+
+        if self._move:
+            if self._from_project.uuid == self._to_project.uuid:
+                if self._from_folder.uuid == self._to_folder.uuid:
+                    raise AppValidationException("Cannot move image if source_project == destination_project.")
+                elif response.data.folder_limit.remaining_image_count < 1:
+                    raise AppValidationException(constances.MOVE_FOLDER_LIMIT_ERROR_MESSAGE)
+            elif response.data.project_limit.remaining_image_count < 1:
+                raise AppValidationException(constances.MOVE_PROJECT_LIMIT_ERROR_MESSAGE)
+        else:
+            if response.data.folder_limit.remaining_image_count < 1:
+                raise AppValidationException(constances.COPY_FOLDER_LIMIT_ERROR_MESSAGE)
+            if response.data.project_limit.remaining_image_count < 1:
+                raise AppValidationException(constances.COPY_PROJECT_LIMIT_ERROR_MESSAGE)
+            if response.data.super_user_limit and response.data.super_user_limit.remaining_image_count < 1:
+                raise AppValidationException(constances.COPY_SUPER_LIMIT_ERROR_MESSAGE)
 
     def execute(self) -> Response:
         if self.is_valid():
