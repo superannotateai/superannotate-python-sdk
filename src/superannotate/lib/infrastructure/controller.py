@@ -700,14 +700,14 @@ class Controller(BaseController):
         return use_case.execute()
 
     def copy_image(
-            self,
-            from_project_name: str,
-            from_folder_name: str,
-            to_project_name: str,
-            to_folder_name: str,
-            image_name: str,
-            copy_annotation_status: bool = False,
-            move: bool = False
+        self,
+        from_project_name: str,
+        from_folder_name: str,
+        to_project_name: str,
+        to_folder_name: str,
+        image_name: str,
+        copy_annotation_status: bool = False,
+        move: bool = False,
     ):
         from_project = self._get_project(from_project_name)
         to_project = self._get_project(to_project_name)
@@ -720,10 +720,14 @@ class Controller(BaseController):
             backend_service=self._backend_client,
             image_name=image_name,
             images=self.images,
-            project_settings=ProjectSettingsRepository(self._backend_client, to_project).get_all(),
-            to_upload_s3_repo=self.get_s3_repository(self.team_id, to_project.uuid, to_folder.uuid),
+            project_settings=ProjectSettingsRepository(
+                self._backend_client, to_project
+            ).get_all(),
+            to_upload_s3_repo=self.get_s3_repository(
+                self.team_id, to_project.uuid, to_folder.uuid
+            ),
             copy_annotation_status=copy_annotation_status,
-            move=move
+            move=move,
         )
         return use_case.execute()
 

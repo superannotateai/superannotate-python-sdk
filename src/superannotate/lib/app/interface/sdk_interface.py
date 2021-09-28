@@ -571,7 +571,7 @@ def copy_image(
         to_project_name=destination_project,
         to_folder_name=destination_folder,
         image_name=image_name,
-        copy_annotation_status=copy_annotation_status
+        copy_annotation_status=copy_annotation_status,
     )
     if response.errors:
         raise AppException(response.errors)
@@ -1992,7 +1992,9 @@ def move_image(
     :type copy_pin: bool
     """
     source_project_name, source_folder_name = extract_project_folder(source_project)
-    destination_project_name, destination_folder = extract_project_folder(destination_project)
+    destination_project_name, destination_folder = extract_project_folder(
+        destination_project
+    )
     response = controller.copy_image(
         from_project_name=source_project_name,
         from_folder_name=source_folder_name,
@@ -2000,7 +2002,7 @@ def move_image(
         to_folder_name=destination_folder,
         image_name=image_name,
         copy_annotation_status=copy_annotation_status,
-        move=True
+        move=True,
     )
     if response.errors:
         raise AppException(response.errors)
@@ -2253,11 +2255,13 @@ def attach_image_urls_to_project(
         annotation_status=annotation_status,
     )
     if use_case.is_valid():
-        with tqdm(total=use_case.attachments_count, desc="Attaching urls") as progress_bar:
+        with tqdm(
+            total=use_case.attachments_count, desc="Attaching urls"
+        ) as progress_bar:
             for _ in use_case.execute():
                 progress_bar.update(1)
         uploaded, duplications = use_case.data
-        uploaded = [i['name'] for i in uploaded]
+        uploaded = [i["name"] for i in uploaded]
         duplications.extend(duplicate_images)
         failed_images = [
             image["name"]
@@ -2304,11 +2308,13 @@ def attach_video_urls_to_project(
         annotation_status=annotation_status,
     )
     if use_case.is_valid():
-        with tqdm(total=use_case.attachments_count, desc="Attaching urls") as progress_bar:
+        with tqdm(
+            total=use_case.attachments_count, desc="Attaching urls"
+        ) as progress_bar:
             for _ in use_case.execute():
                 progress_bar.update(1)
         uploaded, duplications = use_case.data
-        uploaded = [i['name'] for i in uploaded]
+        uploaded = [i["name"] for i in uploaded]
         duplications.extend(duplicate_images)
         failed_images = [
             image["name"]
@@ -3302,7 +3308,7 @@ def upload_image_to_project(
         image=img,
         annotation_status=annotation_status,
         from_s3_bucket=from_s3_bucket,
-        image_quality_in_editor=image_quality_in_editor
+        image_quality_in_editor=image_quality_in_editor,
     )
     if response.errors:
         raise AppException(response.errors)
@@ -3513,11 +3519,13 @@ def attach_document_urls_to_project(
         annotation_status=annotation_status,
     )
     if use_case.is_valid():
-        with tqdm(total=use_case.attachments_count, desc="Attaching urls") as progress_bar:
+        with tqdm(
+            total=use_case.attachments_count, desc="Attaching urls"
+        ) as progress_bar:
             for _ in use_case.execute():
                 progress_bar.update(1)
         uploaded, duplications = use_case.data
-        uploaded = [i['name'] for i in uploaded]
+        uploaded = [i["name"] for i in uploaded]
         duplications.extend(duplicate_images)
         failed_images = [
             image["name"]

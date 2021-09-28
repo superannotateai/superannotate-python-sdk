@@ -125,8 +125,8 @@ class GetImageUseCase(BaseUseCase):
                 folder_id=self._folder.uuid,
                 images=[self._image_name],
             )
-                .execute()
-                .data
+            .execute()
+            .data
         )
         if images:
             self._response.data = images[0]
@@ -171,12 +171,12 @@ class GetAllImagesUseCase(BaseUseCase):
 
 class GetBulkImages(BaseUseCase):
     def __init__(
-            self,
-            service: SuerannotateServiceProvider,
-            project_id: int,
-            team_id: int,
-            folder_id: int,
-            images: List[str],
+        self,
+        service: SuerannotateServiceProvider,
+        project_id: int,
+        team_id: int,
+        folder_id: int,
+        images: List[str],
     ):
         super().__init__()
         self._service = service
@@ -193,7 +193,7 @@ class GetBulkImages(BaseUseCase):
                 project_id=self._project_id,
                 team_id=self._team_id,
                 folder_id=self._folder_id,
-                images=self._images[i: i + self._chunk_size],  # noqa: E203
+                images=self._images[i : i + self._chunk_size],  # noqa: E203
             )
             if "error" in response:
                 raise AppException(response["error"])
@@ -204,13 +204,13 @@ class GetBulkImages(BaseUseCase):
 
 class AttachFileUrlsUseCase(BaseUseCase):
     def __init__(
-            self,
-            project: ProjectEntity,
-            folder: FolderEntity,
-            attachments: List[ImageEntity],
-            backend_service_provider: SuerannotateServiceProvider,
-            annotation_status: str = None,
-            upload_state_code: int = constances.UploadState.EXTERNAL.value,
+        self,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        attachments: List[ImageEntity],
+        backend_service_provider: SuerannotateServiceProvider,
+        annotation_status: str = None,
+        upload_state_code: int = constances.UploadState.EXTERNAL.value,
     ):
         super().__init__()
         self._attachments = attachments
@@ -234,8 +234,8 @@ class AttachFileUrlsUseCase(BaseUseCase):
         elif to_upload_count > response.data.project_limit.remaining_image_count:
             errors.append(constances.ATTACH_PROJECT_LIMIT_ERROR_MESSAGE)
         elif (
-                response.data.super_user_limit
-                and to_upload_count > response.data.super_user_limit.remaining_image_count
+            response.data.super_user_limit
+            and to_upload_count > response.data.super_user_limit.remaining_image_count
         ):
             errors.append(constances.ATTACH_USER_LIMIT_ERROR_MESSAGE)
         if errors:
@@ -300,10 +300,10 @@ class AttachFileUrlsUseCase(BaseUseCase):
 
 class GetImageBytesUseCase(BaseUseCase):
     def __init__(
-            self,
-            image: ImageEntity,
-            backend_service_provider: SuerannotateServiceProvider,
-            image_variant: str = "original",
+        self,
+        image: ImageEntity,
+        backend_service_provider: SuerannotateServiceProvider,
+        image_variant: str = "original",
     ):
         super().__init__()
         self._image = image
@@ -327,19 +327,19 @@ class GetImageBytesUseCase(BaseUseCase):
 
 class CopyImageAnnotationClasses(BaseUseCase):
     def __init__(
-            self,
-            from_project: ProjectEntity,
-            to_project: ProjectEntity,
-            from_image: ImageEntity,
-            to_image: ImageEntity,
-            from_project_s3_repo: BaseManageableRepository,
-            to_project_s3_repo: BaseManageableRepository,
-            to_project_annotation_classes: BaseReadOnlyRepository,
-            from_project_annotation_classes: BaseReadOnlyRepository,
-            backend_service_provider: SuerannotateServiceProvider,
-            from_folder: FolderEntity = None,
-            to_folder: FolderEntity = None,
-            annotation_type: str = "MAIN",
+        self,
+        from_project: ProjectEntity,
+        to_project: ProjectEntity,
+        from_image: ImageEntity,
+        to_image: ImageEntity,
+        from_project_s3_repo: BaseManageableRepository,
+        to_project_s3_repo: BaseManageableRepository,
+        to_project_annotation_classes: BaseReadOnlyRepository,
+        from_project_annotation_classes: BaseReadOnlyRepository,
+        backend_service_provider: SuerannotateServiceProvider,
+        from_folder: FolderEntity = None,
+        to_folder: FolderEntity = None,
+        annotation_type: str = "MAIN",
     ):
         super().__init__()
         self._from_project = from_project
@@ -428,7 +428,7 @@ class CopyImageAnnotationClasses(BaseUseCase):
 
         for instance in image_annotations["instances"]:
             if instance["classId"] < 0 or not annotations_classes_from_copy.get(
-                    instance["classId"]
+                instance["classId"]
             ):
                 continue
             project_annotation_class = annotations_classes_from_copy[
@@ -450,8 +450,8 @@ class CopyImageAnnotationClasses(BaseUseCase):
 
         for instance in image_annotations["instances"]:
             if (
-                    "className" not in instance
-                    and instance["className"] not in annotations_classes_to_copy
+                "className" not in instance
+                and instance["className"] not in annotations_classes_to_copy
             ):
                 continue
             annotation_class = annotations_classes_to_copy.get(instance["className"])
@@ -486,9 +486,9 @@ class CopyImageAnnotationClasses(BaseUseCase):
         self.to_project_s3_repo.insert(file)
 
         if (
-                self._to_project.project_type == constances.ProjectType.PIXEL.value
-                and annotations.get("annotation_bluemap_path")
-                and annotations["annotation_bluemap_path"]["exist"]
+            self._to_project.project_type == constances.ProjectType.PIXEL.value
+            and annotations.get("annotation_bluemap_path")
+            and annotations["annotation_bluemap_path"]["exist"]
         ):
             response = requests.get(
                 url=annotations["annotation_bluemap_path"]["url"],
@@ -516,7 +516,7 @@ class UpdateImageUseCase(BaseUseCase):
 
 class DownloadImageFromPublicUrlUseCase(BaseUseCase):
     def __init__(
-            self, project: ProjectEntity, image_url: str, image_name: str = None,
+        self, project: ProjectEntity, image_url: str, image_name: str = None,
     ):
         super().__init__()
         self._project = project
@@ -568,14 +568,14 @@ class ImagesBulkCopyUseCase(BaseUseCase):
     CHUNK_SIZE = 1000
 
     def __init__(
-            self,
-            project: ProjectEntity,
-            from_folder: FolderEntity,
-            to_folder: FolderEntity,
-            image_names: List[str],
-            backend_service_provider: SuerannotateServiceProvider,
-            include_annotations: bool,
-            include_pin: bool,
+        self,
+        project: ProjectEntity,
+        from_folder: FolderEntity,
+        to_folder: FolderEntity,
+        image_names: List[str],
+        backend_service_provider: SuerannotateServiceProvider,
+        include_annotations: bool,
+        include_pin: bool,
     ):
         super().__init__()
         self._project = project
@@ -596,7 +596,6 @@ class ImagesBulkCopyUseCase(BaseUseCase):
             raise AppValidationException(response.error)
         if images_to_copy_count > response.data.folder_limit.remaining_image_count:
             AppValidationException(constances.COPY_ITEMS_LIMIT_ERROR_MESSAGE)
-
 
     def validate_project_type(self):
         if self._project.project_type in constances.LIMITED_FUNCTIONS:
@@ -627,12 +626,12 @@ class ImagesBulkCopyUseCase(BaseUseCase):
                     project_id=self._project.uuid,
                     from_folder_id=self._from_folder.uuid,
                     to_folder_id=self._to_folder.uuid,
-                    images=self._image_names[i: i + self.CHUNK_SIZE],
+                    images=self._image_names[i : i + self.CHUNK_SIZE],
                     include_annotations=self._include_annotations,
                     include_pin=self._include_pin,
                 )
                 if not poll_id:
-                    skipped_images.append(self._image_names[i: i + self.CHUNK_SIZE])
+                    skipped_images.append(self._image_names[i : i + self.CHUNK_SIZE])
                     continue
 
                 await_time = len(images_to_copy) * 0.3
@@ -651,11 +650,11 @@ class ImagesBulkCopyUseCase(BaseUseCase):
 
 class DeleteImageUseCase(BaseUseCase):
     def __init__(
-            self,
-            images: BaseManageableRepository,
-            image: ImageEntity,
-            team_id: int,
-            project_id: int,
+        self,
+        images: BaseManageableRepository,
+        image: ImageEntity,
+        team_id: int,
+        project_id: int,
     ):
         super().__init__()
         self._images = images
@@ -670,11 +669,11 @@ class DeleteImageUseCase(BaseUseCase):
 
 class GetImageMetadataUseCase(BaseUseCase):
     def __init__(
-            self,
-            image_name: str,
-            project: ProjectEntity,
-            folder: FolderEntity,
-            service: SuerannotateServiceProvider,
+        self,
+        image_name: str,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        service: SuerannotateServiceProvider,
     ):
         super().__init__()
         self._image_name = image_name
@@ -712,12 +711,12 @@ class ImagesBulkMoveUseCase(BaseUseCase):
     CHUNK_SIZE = 1000
 
     def __init__(
-            self,
-            project: ProjectEntity,
-            from_folder: FolderEntity,
-            to_folder: FolderEntity,
-            image_names: List[str],
-            backend_service_provider: SuerannotateServiceProvider,
+        self,
+        project: ProjectEntity,
+        from_folder: FolderEntity,
+        to_folder: FolderEntity,
+        image_names: List[str],
+        backend_service_provider: SuerannotateServiceProvider,
     ):
         super().__init__()
         self._project = project
@@ -748,7 +747,7 @@ class ImagesBulkMoveUseCase(BaseUseCase):
                         project_id=self._project.uuid,
                         from_folder_id=self._from_folder.uuid,
                         to_folder_id=self._to_folder.uuid,
-                        images=self._image_names[i: i + self.CHUNK_SIZE],  # noqa: E203
+                        images=self._image_names[i : i + self.CHUNK_SIZE],  # noqa: E203
                     )
                 )
             self._response.data = moved_images
@@ -759,12 +758,12 @@ class CreateFuseImageUseCase(BaseUseCase):
     TRANSPARENCY = 128
 
     def __init__(
-            self,
-            project_type: str,
-            image_path: str,
-            classes: list = None,
-            in_memory: bool = False,
-            generate_overlay: bool = False,
+        self,
+        project_type: str,
+        image_path: str,
+        classes: list = None,
+        in_memory: bool = False,
+        generate_overlay: bool = False,
     ):
         super().__init__()
         self._project_type = project_type
@@ -783,7 +782,7 @@ class CreateFuseImageUseCase(BaseUseCase):
                 random.randint(1, 255),
                 random.randint(1, 255),
             )
-        return tuple(int(value.lstrip("#")[i: i + 2], 16) for i in (0, 2, 4))
+        return tuple(int(value.lstrip("#")[i : i + 2], 16) for i in (0, 2, 4))
 
     @property
     def annotations(self):
@@ -821,7 +820,7 @@ class CreateFuseImageUseCase(BaseUseCase):
                 image = ImagePlugin(io.BytesIO(file.read()))
 
                 images = [
-                    Image("fuse", f"{self._image_path}___fuse.png", image.get_empty(), )
+                    Image("fuse", f"{self._image_path}___fuse.png", image.get_empty(),)
                 ]
                 if self._generate_overlay:
                     images.append(
@@ -906,7 +905,7 @@ class CreateFuseImageUseCase(BaseUseCase):
                 empty_image_arr = np.full((height, weight, 4), [0, 0, 0, 255], np.uint8)
                 for annotation in self.annotations["instances"]:
                     if annotation.get("className") and not class_color_map.get(
-                            annotation["className"]
+                        annotation["className"]
                     ):
                         continue
                     fill_color = *class_color_map[annotation["className"]], 255
@@ -947,7 +946,7 @@ class CreateFuseImageUseCase(BaseUseCase):
 
 class GetS3ImageUseCase(BaseUseCase):
     def __init__(
-            self, s3_bucket, image_path: str,
+        self, s3_bucket, image_path: str,
     ):
         super().__init__()
         self._s3_bucket = s3_bucket
@@ -972,19 +971,19 @@ class GetS3ImageUseCase(BaseUseCase):
 
 class DownloadImageUseCase(BaseUseCase):
     def __init__(
-            self,
-            project: ProjectEntity,
-            folder: FolderEntity,
-            image: ImageEntity,
-            images: BaseManageableRepository,
-            classes: BaseManageableRepository,
-            backend_service_provider: SuerannotateServiceProvider,
-            annotation_classes: BaseReadOnlyRepository,
-            download_path: str,
-            image_variant: str = "original",
-            include_annotations: bool = False,
-            include_fuse: bool = False,
-            include_overlay: bool = False,
+        self,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        image: ImageEntity,
+        images: BaseManageableRepository,
+        classes: BaseManageableRepository,
+        backend_service_provider: SuerannotateServiceProvider,
+        annotation_classes: BaseReadOnlyRepository,
+        download_path: str,
+        image_variant: str = "original",
+        include_annotations: bool = False,
+        include_fuse: bool = False,
+        include_overlay: bool = False,
     ):
         super().__init__()
         self._project = project
@@ -1032,7 +1031,7 @@ class DownloadImageUseCase(BaseUseCase):
 
     def validate_include_annotations(self):
         if (
-                self._include_fuse or self._include_overlay
+            self._include_fuse or self._include_overlay
         ) and not self._include_annotations:
             raise AppValidationException(
                 "To download fuse or overlay image need to set include_annotations=True in download_image"
@@ -1053,7 +1052,9 @@ class DownloadImageUseCase(BaseUseCase):
             if self._include_annotations:
                 annotations = self.download_annotation_use_case.execute().data
 
-            if self._include_annotations and (self._include_fuse or self._include_overlay):
+            if self._include_annotations and (
+                self._include_fuse or self._include_overlay
+            ):
                 classes = self.get_annotation_classes_ues_case.execute().data
                 fuse_image = (
                     CreateFuseImageUseCase(
@@ -1066,8 +1067,8 @@ class DownloadImageUseCase(BaseUseCase):
                         ],
                         generate_overlay=self._include_overlay,
                     )
-                        .execute()
-                        .data
+                    .execute()
+                    .data
                 )
 
             self._response.data = (
@@ -1081,18 +1082,18 @@ class DownloadImageUseCase(BaseUseCase):
 
 class UploadImageToProject(BaseUseCase):
     def __init__(
-            self,
-            project: ProjectEntity,
-            folder: FolderEntity,
-            s3_repo: BaseManageableRepository,
-            settings: BaseManageableRepository,
-            backend_client: SuerannotateServiceProvider,
-            annotation_status: str,
-            image_bytes: io.BytesIO = None,
-            image_path: str = None,
-            image_name: str = None,
-            from_s3_bucket: str = None,
-            image_quality_in_editor: str = None,
+        self,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        s3_repo: BaseManageableRepository,
+        settings: BaseManageableRepository,
+        backend_client: SuerannotateServiceProvider,
+        annotation_status: str,
+        image_bytes: io.BytesIO = None,
+        image_path: str = None,
+        image_name: str = None,
+        from_s3_bucket: str = None,
+        image_quality_in_editor: str = None,
     ):
         super().__init__()
         self._project = project
@@ -1136,8 +1137,8 @@ class UploadImageToProject(BaseUseCase):
         elif response.data.project_limit.remaining_image_count < 1:
             raise AppValidationException(constances.UPLOAD_PROJECT_LIMIT_ERROR_MESSAGE)
         elif (
-                response.data.super_user_limit
-                and response.data.super_user_limit.remaining_image_count < 1
+            response.data.super_user_limit
+            and response.data.super_user_limit.remaining_image_count < 1
         ):
             raise AppValidationException(constances.UPLOAD_USER_LIMIT_ERROR_MESSAGE)
 
@@ -1162,8 +1163,8 @@ class UploadImageToProject(BaseUseCase):
                     else Path(self._image_path).name
                 ],
             )
-                .execute()
-                .data
+            .execute()
+            .data
         )
         if image_entities:
             raise AppValidationException("Image with this name already exists.")
@@ -1175,8 +1176,8 @@ class UploadImageToProject(BaseUseCase):
                     GetS3ImageUseCase(
                         s3_bucket=self._from_s3_bucket, image_path=self._image_path
                     )
-                        .execute()
-                        .data
+                    .execute()
+                    .data
                 )
             elif self._image_path:
                 image_bytes = io.BytesIO(open(self._image_path, "rb").read())
@@ -1212,19 +1213,19 @@ class UploadImagesToProject(BaseInteractiveUseCase):
     MAX_WORKERS = 10
 
     def __init__(
-            self,
-            project: ProjectEntity,
-            folder: FolderEntity,
-            settings: BaseManageableRepository,
-            s3_repo,
-            backend_client: SuerannotateServiceProvider,
-            paths: List[str],
-            extensions=constances.DEFAULT_IMAGE_EXTENSIONS,
-            annotation_status="NotStarted",
-            from_s3_bucket=None,
-            exclude_file_patterns: List[str] = constances.DEFAULT_FILE_EXCLUDE_PATTERNS,
-            recursive_sub_folders: bool = False,
-            image_quality_in_editor=None,
+        self,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        settings: BaseManageableRepository,
+        s3_repo,
+        backend_client: SuerannotateServiceProvider,
+        paths: List[str],
+        extensions=constances.DEFAULT_IMAGE_EXTENSIONS,
+        annotation_status="NotStarted",
+        from_s3_bucket=None,
+        exclude_file_patterns: List[str] = constances.DEFAULT_FILE_EXCLUDE_PATTERNS,
+        recursive_sub_folders: bool = False,
+        image_quality_in_editor=None,
     ):
         super().__init__()
 
@@ -1274,25 +1275,25 @@ class UploadImagesToProject(BaseInteractiveUseCase):
         elif to_upload_count > response.data.project_limit.remaining_image_count:
             raise AppValidationException(constances.UPLOAD_PROJECT_LIMIT_ERROR_MESSAGE)
         elif (
-                response.data.super_user_limit
-                and to_upload_count > response.data.super_user_limit.remaining_image_count
+            response.data.super_user_limit
+            and to_upload_count > response.data.super_user_limit.remaining_image_count
         ):
             raise AppValidationException(constances.UPLOAD_USER_LIMIT_ERROR_MESSAGE)
 
     def validate_annotation_status(self):
         if (
-                self._annotation_status
-                and self._annotation_status.lower()
-                not in constances.AnnotationStatus.values()
+            self._annotation_status
+            and self._annotation_status.lower()
+            not in constances.AnnotationStatus.values()
         ):
             raise AppValidationException("Invalid annotations status")
 
     def validate_extensions(self):
         if self._extensions and not all(
-                [
-                    extension in constances.DEFAULT_IMAGE_EXTENSIONS
-                    for extension in self._extensions
-                ]
+            [
+                extension in constances.DEFAULT_IMAGE_EXTENSIONS
+                for extension in self._extensions
+            ]
         ):
             raise AppValidationException("")
 
@@ -1383,9 +1384,7 @@ class UploadImagesToProject(BaseInteractiveUseCase):
         paths = [
             path
             for path in paths
-            if not any(
-                [extension in path for extension in self.exclude_file_patterns]
-            )
+            if not any([extension in path for extension in self.exclude_file_patterns])
         ]
         name_path_map = defaultdict(list)
         for path in paths:
@@ -1405,7 +1404,9 @@ class UploadImagesToProject(BaseInteractiveUseCase):
                 team_id=self._project.team_id,
                 folder_id=self._folder.uuid,
                 images=[image.split("/")[-1] for image in filtered_paths],
-            ).execute().data
+            )
+            .execute()
+            .data
         )
         images_to_upload = []
         image_list = [image.name for image in image_entities]
@@ -1433,7 +1434,7 @@ class UploadImagesToProject(BaseInteractiveUseCase):
             uploaded_images = []
             failed_images = []
             with concurrent.futures.ThreadPoolExecutor(
-                    max_workers=self.MAX_WORKERS
+                max_workers=self.MAX_WORKERS
             ) as executor:
                 results = [
                     executor.submit(self._upload_image, image_path)
@@ -1454,7 +1455,7 @@ class UploadImagesToProject(BaseInteractiveUseCase):
                     folder=self._folder,
                     backend_service_provider=self._backend_client,
                     attachments=[
-                        image.entity for image in uploaded_images[i: i + 100]
+                        image.entity for image in uploaded_images[i : i + 100]
                     ],
                     annotation_status=self._annotation_status,
                     upload_state_code=constances.UploadState.BASIC.value,
@@ -1475,19 +1476,19 @@ class UploadImagesFromFolderToProject(UploadImagesToProject):
     MAX_WORKERS = 10
 
     def __init__(
-            self,
-            project: ProjectEntity,
-            folder: FolderEntity,
-            settings: BaseManageableRepository,
-            s3_repo,
-            backend_client: SuerannotateServiceProvider,
-            folder_path: str,
-            extensions=constances.DEFAULT_IMAGE_EXTENSIONS,
-            annotation_status="NotStarted",
-            from_s3_bucket=None,
-            exclude_file_patterns: List[str] = constances.DEFAULT_FILE_EXCLUDE_PATTERNS,
-            recursive_sub_folders: bool = False,
-            image_quality_in_editor=None,
+        self,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        settings: BaseManageableRepository,
+        s3_repo,
+        backend_client: SuerannotateServiceProvider,
+        folder_path: str,
+        extensions=constances.DEFAULT_IMAGE_EXTENSIONS,
+        annotation_status="NotStarted",
+        from_s3_bucket=None,
+        exclude_file_patterns: List[str] = constances.DEFAULT_FILE_EXCLUDE_PATTERNS,
+        recursive_sub_folders: bool = False,
+        image_quality_in_editor=None,
     ):
         paths = UploadImagesFromFolderToProject.extract_paths(
             folder_path=folder_path,
@@ -1512,7 +1513,7 @@ class UploadImagesFromFolderToProject(UploadImagesToProject):
 
     @classmethod
     def extract_paths(
-            cls, folder_path, extensions, from_s3_bucket=None, recursive_sub_folders=False
+        cls, folder_path, extensions, from_s3_bucket=None, recursive_sub_folders=False
     ):
         if not extensions:
             extensions = constances.DEFAULT_IMAGE_EXTENSIONS
@@ -1538,11 +1539,11 @@ class UploadImagesFromFolderToProject(UploadImagesToProject):
                 contents = response.get("Contents", [])
                 for object_data in contents:
                     key = object_data["Key"]
-                    if not recursive_sub_folders and "/" in key[len(folder_path) + 1:]:
+                    if not recursive_sub_folders and "/" in key[len(folder_path) + 1 :]:
                         continue
                     for extension in extensions:
                         if key.endswith(f".{extension.lower()}") or key.endswith(
-                                f".{extension.upper()}"
+                            f".{extension.upper()}"
                         ):
                             paths.append(key)
                             break
@@ -1555,16 +1556,16 @@ class UploadImagesFromPublicUrls(BaseInteractiveUseCase):
     ProcessedImage = namedtuple("ProcessedImage", ["url", "uploaded", "path", "entity"])
 
     def __init__(
-            self,
-            project: ProjectEntity,
-            folder: FolderEntity,
-            backend_service: SuerannotateServiceProvider,
-            settings: BaseManageableRepository,
-            s3_repo,
-            image_urls: List[str],
-            image_names: List[str] = None,
-            annotation_status: str = None,
-            image_quality_in_editor: str = None,
+        self,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        backend_service: SuerannotateServiceProvider,
+        settings: BaseManageableRepository,
+        s3_repo,
+        image_urls: List[str],
+        image_names: List[str] = None,
+        annotation_status: str = None,
+        image_quality_in_editor: str = None,
     ):
         super().__init__()
         self._project = project
@@ -1591,8 +1592,8 @@ class UploadImagesFromPublicUrls(BaseInteractiveUseCase):
         elif to_upload_count > response.data.project_limit.remaining_image_count:
             raise AppValidationException(constances.UPLOAD_PROJECT_LIMIT_ERROR_MESSAGE)
         elif (
-                response.data.super_user_limit
-                and to_upload_count > response.data.super_user_limit.remaining_image_count
+            response.data.super_user_limit
+            and to_upload_count > response.data.super_user_limit.remaining_image_count
         ):
             raise AppValidationException(constances.UPLOAD_USER_LIMIT_ERROR_MESSAGE)
 
@@ -1602,8 +1603,8 @@ class UploadImagesFromPublicUrls(BaseInteractiveUseCase):
 
     def validate_project_type(self):
         if self._project.project_type in (
-                constances.ProjectType.VIDEO.value,
-                constances.ProjectType.DOCUMENT.value,
+            constances.ProjectType.VIDEO.value,
+            constances.ProjectType.DOCUMENT.value,
         ):
             raise AppValidationException(
                 "The function does not support projects containing "
@@ -1613,8 +1614,8 @@ class UploadImagesFromPublicUrls(BaseInteractiveUseCase):
     def validate_annotation_status(self):
         if self._annotation_status:
             if (
-                    self._annotation_status.lower()
-                    not in constances.AnnotationStatus.values()
+                self._annotation_status.lower()
+                not in constances.AnnotationStatus.values()
             ):
                 raise AppValidationException("Invalid annotations status.")
         else:
@@ -1648,8 +1649,8 @@ class UploadImagesFromPublicUrls(BaseInteractiveUseCase):
                     folder_id=self._folder.uuid,
                     images=[image_name],
                 )
-                    .execute()
-                    .data
+                .execute()
+                .data
             ]
             if image_name not in duplicated_images:
                 upload_response = UploadImageS3UseCase(
@@ -1684,7 +1685,7 @@ class UploadImagesFromPublicUrls(BaseInteractiveUseCase):
 
             logger.info("Downloading %s images", len(self._image_urls))
             with concurrent.futures.ThreadPoolExecutor(
-                    max_workers=self.MAX_WORKERS
+                max_workers=self.MAX_WORKERS
             ) as executor:
                 failed_images = []
                 if self._image_names:
@@ -1713,7 +1714,7 @@ class UploadImagesFromPublicUrls(BaseInteractiveUseCase):
                     folder=self._folder,
                     backend_service_provider=self._backend_service,
                     attachments=[
-                        image.entity for image in images_to_upload[i: i + 100]
+                        image.entity for image in images_to_upload[i : i + 100]
                     ],
                     annotation_status=self._annotation_status,
                 ).execute()
@@ -1741,14 +1742,14 @@ class UploadImagesFromPublicUrls(BaseInteractiveUseCase):
 
 class UploadImageS3UseCase(BaseUseCase):
     def __init__(
-            self,
-            project: ProjectEntity,
-            project_settings: List[ProjectSettingEntity],
-            image_path: str,
-            image: io.BytesIO,
-            s3_repo: BaseManageableRepository,
-            upload_path: str,
-            image_quality_in_editor: str = None,
+        self,
+        project: ProjectEntity,
+        project_settings: List[ProjectSettingEntity],
+        image_path: str,
+        image: io.BytesIO,
+        s3_repo: BaseManageableRepository,
+        upload_path: str,
+        image_quality_in_editor: str = None,
     ):
         super().__init__()
         self._project = project
@@ -1807,7 +1808,7 @@ class UploadImageS3UseCase(BaseUseCase):
                         quality=quality, subsampling=-1
                     )
             image_key = (
-                    self._upload_path + str(uuid.uuid4()) + Path(self._image_path).suffix
+                self._upload_path + str(uuid.uuid4()) + Path(self._image_path).suffix
             )
 
             file_entity = S3FileEntity(uuid=image_key, data=self._image)
@@ -1845,13 +1846,13 @@ class InteractiveAttachFileUrlsUseCase(BaseInteractiveUseCase):
     CHUNK_SIZE = 500
 
     def __init__(
-            self,
-            project: ProjectEntity,
-            folder: FolderEntity,
-            attachments: List[ImageEntity],
-            backend_service_provider: SuerannotateServiceProvider,
-            annotation_status: str = None,
-            upload_state_code: int = constances.UploadState.EXTERNAL.value,
+        self,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        attachments: List[ImageEntity],
+        backend_service_provider: SuerannotateServiceProvider,
+        annotation_status: str = None,
+        upload_state_code: int = constances.UploadState.EXTERNAL.value,
     ):
         super().__init__()
         self._attachments = attachments
@@ -1879,8 +1880,8 @@ class InteractiveAttachFileUrlsUseCase(BaseInteractiveUseCase):
         elif attachments_count > response.data.project_limit.remaining_image_count:
             raise AppValidationException(constances.ATTACH_PROJECT_LIMIT_ERROR_MESSAGE)
         elif (
-                response.data.super_user_limit
-                and attachments_count > response.data.super_user_limit.remaining_image_count
+            response.data.super_user_limit
+            and attachments_count > response.data.super_user_limit.remaining_image_count
         ):
             raise AppValidationException(constances.ATTACH_USER_LIMIT_ERROR_MESSAGE)
 
@@ -1903,10 +1904,10 @@ class InteractiveAttachFileUrlsUseCase(BaseInteractiveUseCase):
                 response = AttachFileUrlsUseCase(
                     project=self._project,
                     folder=self._folder,
-                    attachments=self._attachments[i: i + 500],  # noqa: E203
+                    attachments=self._attachments[i : i + 500],  # noqa: E203
                     backend_service_provider=self._backend_service,
                     annotation_status=self._annotation_status,
-                    upload_state_code=self._upload_state_code
+                    upload_state_code=self._upload_state_code,
                 ).execute()
                 if response.errors:
                     self._response.errors = response.errors
@@ -1921,20 +1922,20 @@ class InteractiveAttachFileUrlsUseCase(BaseInteractiveUseCase):
 
 class CopyImageUseCase(BaseUseCase):
     def __init__(
-            self,
-            from_project: ProjectEntity,
-            from_folder: FolderEntity,
-            image_name: str,
-            to_project: ProjectEntity,
-            to_folder: FolderEntity,
-            backend_service: SuerannotateServiceProvider,
-            images: BaseManageableRepository,
-            to_upload_s3_repo: BaseManageableRepository,
-            project_settings: List[ProjectSettingEntity],
-            include_annotations: Optional[bool] = True,
-            copy_annotation_status: Optional[bool] = True,
-            copy_pin: Optional[bool] = True,
-            move=False
+        self,
+        from_project: ProjectEntity,
+        from_folder: FolderEntity,
+        image_name: str,
+        to_project: ProjectEntity,
+        to_folder: FolderEntity,
+        backend_service: SuerannotateServiceProvider,
+        images: BaseManageableRepository,
+        to_upload_s3_repo: BaseManageableRepository,
+        project_settings: List[ProjectSettingEntity],
+        include_annotations: Optional[bool] = True,
+        copy_annotation_status: Optional[bool] = True,
+        copy_pin: Optional[bool] = True,
+        move=False,
     ):
         super().__init__()
         self._from_project = from_project
@@ -1953,16 +1954,21 @@ class CopyImageUseCase(BaseUseCase):
 
     def validate_copy_path(self):
         if (
-                self._from_project.name == self._to_project.name
-                and self._from_folder.name == self._to_folder.name
-
+            self._from_project.name == self._to_project.name
+            and self._from_folder.name == self._to_folder.name
         ):
-            raise AppValidationException("Cannot move image if source_project == destination_project.")
+            raise AppValidationException(
+                "Cannot move image if source_project == destination_project."
+            )
 
     def validate_project_type(self):
         if self._from_project.project_type in (
-                constances.ProjectType.VIDEO.value, constances.ProjectType.DOCUMENT.value):
-            raise AppValidationException(constances.LIMITED_FUNCTIONS[self._from_project.project_type])
+            constances.ProjectType.VIDEO.value,
+            constances.ProjectType.DOCUMENT.value,
+        ):
+            raise AppValidationException(
+                constances.LIMITED_FUNCTIONS[self._from_project.project_type]
+            )
 
     def validate_limitations(self):
         response = self._backend_service.get_limitations(
@@ -1976,25 +1982,39 @@ class CopyImageUseCase(BaseUseCase):
             if self._move:
                 raise AppValidationException(constances.MOVE_ITEMS_LIMIT_ERROR_MESSAGE)
             raise AppValidationException(constances.COPY_ITEMS_LIMIT_ERROR_MESSAGE)
-        elif self._to_project.uuid != self._from_project.uuid and response.data.project_limit.remaining_image_count < 1:
+        elif (
+            self._to_project.uuid != self._from_project.uuid
+            and response.data.project_limit.remaining_image_count < 1
+        ):
             if self._move:
-                raise AppValidationException(constances.MOVE_ITEM_PROJECT_LIMIT_ERROR_MESSAGE)
-            raise AppValidationException(constances.COPY_ITEM_PROJECT_LIMIT_ERROR_MESSAGE)
+                raise AppValidationException(
+                    constances.MOVE_ITEM_PROJECT_LIMIT_ERROR_MESSAGE
+                )
+            raise AppValidationException(
+                constances.COPY_ITEM_PROJECT_LIMIT_ERROR_MESSAGE
+            )
 
     def execute(self) -> Response:
         if self.is_valid():
-            image = GetImageUseCase(
-                project=self._from_project,
-                folder=self._from_folder,
-                image_name=self._image_name,
-                images=self._images,
-                service=self._backend_service
-            ).execute().data
+            image = (
+                GetImageUseCase(
+                    project=self._from_project,
+                    folder=self._from_folder,
+                    image_name=self._image_name,
+                    images=self._images,
+                    service=self._backend_service,
+                )
+                .execute()
+                .data
+            )
 
-            image_bytes = GetImageBytesUseCase(
-                image=image,
-                backend_service_provider=self._backend_service,
-            ).execute().data
+            image_bytes = (
+                GetImageBytesUseCase(
+                    image=image, backend_service_provider=self._backend_service,
+                )
+                .execute()
+                .data
+            )
             image_path = f"{self._to_folder}/{self._image_name}"
 
             auth_data = self._backend_service.get_s3_upload_auth_token(
@@ -2036,11 +2056,11 @@ class DeleteAnnotations(BaseUseCase):
     CHUNK_SIZE = 2000
 
     def __init__(
-            self,
-            project: ProjectEntity,
-            folder: FolderEntity,
-            backend_service: SuerannotateServiceProvider,
-            image_names: Optional[List[str]] = None,
+        self,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        backend_service: SuerannotateServiceProvider,
+        image_names: Optional[List[str]] = None,
     ):
         super().__init__()
         self._project = project
@@ -2057,8 +2077,8 @@ class DeleteAnnotations(BaseUseCase):
                     team_id=self._project.team_id,
                     folder_id=self._folder.uuid,
                     image_names=self._image_names[
-                                idx: idx + self.CHUNK_SIZE  # noqa: E203
-                                ],
+                        idx : idx + self.CHUNK_SIZE  # noqa: E203
+                    ],
                 )
                 if response:
                     polling_states[response.get("poll_id")] = False
@@ -2095,9 +2115,9 @@ class DeleteAnnotations(BaseUseCase):
                         continue
 
             project_folder_name = (
-                    self._project.name
-                    + (f"/{self._folder.name}" if self._folder.name != "root" else "")
-                    + "."
+                self._project.name
+                + (f"/{self._folder.name}" if self._folder.name != "root" else "")
+                + "."
             )
 
             if all(polling_states.values()):
@@ -2112,16 +2132,16 @@ class DeleteAnnotations(BaseUseCase):
 
 class UploadImageAnnotationsUseCase(BaseUseCase):
     def __init__(
-            self,
-            project: ProjectEntity,
-            folder: FolderEntity,
-            annotation_classes: BaseReadOnlyRepository,
-            image_name: str,
-            annotations: dict,
-            backend_service_provider: SuerannotateServiceProvider,
-            mask=None,
-            verbose: bool = True,
-            annotation_path: str = True,
+        self,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        annotation_classes: BaseReadOnlyRepository,
+        image_name: str,
+        annotations: dict,
+        backend_service_provider: SuerannotateServiceProvider,
+        mask=None,
+        verbose: bool = True,
+        annotation_path: str = True,
     ):
         super().__init__()
         self._project = project
@@ -2194,22 +2214,23 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
                         if attribute["name"] in attribute_group_info:
                             logger.warning(
                                 "Duplicate annotation class attribute name %s in attribute group %s. Only one of the annotation classe attributes will be used. This will result in errors in annotation upload.",
-                                attribute["name"], attribute_group["name"]
+                                attribute["name"],
+                                attribute_group["name"],
                             )
                         attribute_group_info[attribute["name"]] = attribute["id"]
                     if attribute_group["name"] in class_info["attribute_groups"]:
                         logger.warning(
                             "Duplicate annotation class attribute group name %s. Only one of the annotation classe attribute groups will be used. This will result in errors in annotation upload.",
-                            attribute_group["name"]
+                            attribute_group["name"],
                         )
                     class_info["attribute_groups"][attribute_group["name"]] = {
                         "id": attribute_group["id"],
-                        "attributes": attribute_group_info
+                        "attributes": attribute_group_info,
                     }
             if class_name in annotation_classes_dict:
                 logger.warning(
                     "Duplicate annotation class name %s. Only one of the annotation classes will be used. This will result in errors in annotation upload.",
-                    class_name
+                    class_name,
                 )
             annotation_classes_dict[class_name] = class_info
         return annotation_classes_dict
@@ -2243,7 +2264,7 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
             annotation_classes.update(unknown_classes)
         templates = self.get_templates_mapping()
         for annotation in (
-                i for i in annotations["instances"] if i.get("type", None) == "template"
+            i for i in annotations["instances"] if i.get("type", None) == "template"
         ):
             annotation["templateId"] = templates.get(
                 annotation.get("templateName", ""), -1
@@ -2252,24 +2273,28 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
         for annotation in [i for i in annotations["instances"] if "className" in i]:
             annotation_class_name = annotation["className"]
             if annotation_class_name not in annotation_classes.keys():
-                logger.warning(f"Couldn't find annotation class {annotation_class_name}")
+                logger.warning(
+                    f"Couldn't find annotation class {annotation_class_name}"
+                )
                 continue
             annotation["classId"] = annotation_classes[annotation_class_name]["id"]
             for attribute in annotation["attributes"]:
                 if (
-                        attribute["groupName"]
-                        not in annotation_classes[annotation_class_name]["attribute_groups"]
+                    attribute["groupName"]
+                    not in annotation_classes[annotation_class_name]["attribute_groups"]
                 ):
-                    logger.warning(f"Couldn't find annotation group {attribute['groupName']}.")
+                    logger.warning(
+                        f"Couldn't find annotation group {attribute['groupName']}."
+                    )
                     continue
                 attribute["groupId"] = annotation_classes[annotation_class_name][
                     "attribute_groups"
                 ][attribute["groupName"]]["id"]
                 if (
-                        attribute["name"]
-                        not in annotation_classes[annotation_class_name][
-                    "attribute_groups"
-                ][attribute["groupName"]]["attributes"]
+                    attribute["name"]
+                    not in annotation_classes[annotation_class_name][
+                        "attribute_groups"
+                    ][attribute["groupName"]]["attributes"]
                 ):
                     del attribute["groupId"]
                     logger.warning(
@@ -2343,12 +2368,12 @@ class DeleteImagesUseCase(BaseUseCase):
     CHUNK_SIZE = 1000
 
     def __init__(
-            self,
-            project: ProjectEntity,
-            folder: FolderEntity,
-            backend_service_provider: SuerannotateServiceProvider,
-            images: BaseReadOnlyRepository,
-            image_names: List[str] = None,
+        self,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        backend_service_provider: SuerannotateServiceProvider,
+        images: BaseReadOnlyRepository,
+        image_names: List[str] = None,
     ):
         super().__init__()
         self._project = project
@@ -2375,14 +2400,14 @@ class DeleteImagesUseCase(BaseUseCase):
                         folder_id=self._folder.uuid,
                         images=self._image_names,
                     )
-                        .execute()
-                        .data
+                    .execute()
+                    .data
                 ]
             else:
                 condition = (
-                        Condition("team_id", self._project.team_id, EQ)
-                        & Condition("project_id", self._project.uuid, EQ)
-                        & Condition("folder_id", self._folder.uuid, EQ)
+                    Condition("team_id", self._project.team_id, EQ)
+                    & Condition("project_id", self._project.uuid, EQ)
+                    & Condition("folder_id", self._folder.uuid, EQ)
                 )
                 image_ids = [image.uuid for image in self._images.get_all(condition)]
 
@@ -2390,7 +2415,7 @@ class DeleteImagesUseCase(BaseUseCase):
                 self._backend_service.delete_images(
                     project_id=self._project.uuid,
                     team_id=self._project.team_id,
-                    image_ids=image_ids[i: i + self.CHUNK_SIZE],  # noqa: E203
+                    image_ids=image_ids[i : i + self.CHUNK_SIZE],  # noqa: E203
                 )
         return self._response
 
@@ -2401,16 +2426,16 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
     AUTH_DATA_CHUNK_SIZE = 500
 
     def __init__(
-            self,
-            project: ProjectEntity,
-            folder: FolderEntity,
-            annotation_classes: List[AnnotationClassEntity],
-            folder_path: str,
-            annotation_paths: List[str],
-            backend_service_provider: SuerannotateServiceProvider,
-            templates: List[dict],
-            pre_annotation: bool = False,
-            client_s3_bucket=None,
+        self,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        annotation_classes: List[AnnotationClassEntity],
+        folder_path: str,
+        annotation_paths: List[str],
+        backend_service_provider: SuerannotateServiceProvider,
+        templates: List[dict],
+        pre_annotation: bool = False,
+        client_s3_bucket=None,
     ):
         super().__init__()
         self._project = project
@@ -2485,7 +2510,7 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
         annotation_classes.update(unknown_classes)
         templates = self.get_templates_mapping()
         for annotation in (
-                i for i in annotations["instances"] if i.get("type", None) == "template"
+            i for i in annotations["instances"] if i.get("type", None) == "template"
         ):
             annotation["templateId"] = templates.get(
                 annotation.get("templateName", ""), -1
@@ -2499,10 +2524,10 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
             for attribute in annotation["attributes"]:
                 if annotation_classes[annotation_class_name].get("attribute_groups"):
                     if (
-                            attribute["groupName"]
-                            not in annotation_classes[annotation_class_name][
-                        "attribute_groups"
-                    ]
+                        attribute["groupName"]
+                        not in annotation_classes[annotation_class_name][
+                            "attribute_groups"
+                        ]
                     ):
                         continue
                 else:
@@ -2514,10 +2539,10 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
                 ][attribute["groupName"]]["id"]
 
                 if (
-                        attribute["name"]
-                        not in annotation_classes[annotation_class_name][
-                    "attribute_groups"
-                ][attribute["groupName"]]["attributes"]
+                    attribute["name"]
+                    not in annotation_classes[annotation_class_name][
+                        "attribute_groups"
+                    ][attribute["groupName"]]["attributes"]
                 ):
                     del attribute["groupId"]
                     self.missing_attributes.add(attribute["name"])
@@ -2552,8 +2577,8 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
                     folder_id=self._folder.uuid,
                     images=[image.name for image in images_detail],
                 )
-                    .execute()
-                    .data
+                .execute()
+                .data
             )
 
             for image_data in images_data:
@@ -2630,7 +2655,7 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
                     from_s3 = None
 
                 with concurrent.futures.ThreadPoolExecutor(
-                        max_workers=self.MAX_WORKERS
+                    max_workers=self.MAX_WORKERS
                 ) as executor:
                     results = [
                         executor.submit(
@@ -2724,14 +2749,14 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
 
 class DownloadImageAnnotationsUseCase(BaseUseCase):
     def __init__(
-            self,
-            service: SuerannotateServiceProvider,
-            project: ProjectEntity,
-            folder: FolderEntity,
-            image_name: str,
-            images: BaseManageableRepository,
-            destination: str,
-            annotation_classes: BaseManageableRepository,
+        self,
+        service: SuerannotateServiceProvider,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        image_name: str,
+        images: BaseManageableRepository,
+        destination: str,
+        annotation_classes: BaseManageableRepository,
     ):
         super().__init__()
         self._service = service
@@ -2793,7 +2818,7 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
             return
         templates = self.get_templates_mapping()
         for annotation in (
-                i for i in annotations["instances"] if i.get("type", None) == "template"
+            i for i in annotations["instances"] if i.get("type", None) == "template"
         ):
             template_name = templates.get(annotation.get("templateId"), None)
             if template_name:
@@ -2809,16 +2834,15 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
                 i
                 for i in annotation["attributes"]
                 if "groupId" in i
-                   and i["groupId"] in annotation_class["attribute_groups"].keys()
+                and i["groupId"] in annotation_class["attribute_groups"].keys()
             ]:
                 attribute["groupName"] = annotation_class["attribute_groups"][
                     attribute["groupId"]
                 ]["name"]
-                if (
-                        attribute["id"]
-                        not in list(annotation_class["attribute_groups"][attribute["groupId"]][
-                                        "attributes"
-                                    ].keys())
+                if attribute["id"] not in list(
+                    annotation_class["attribute_groups"][attribute["groupId"]][
+                        "attributes"
+                    ].keys()
                 ):
                     continue
                 attribute["name"] = annotation_class["attribute_groups"][
@@ -2869,7 +2893,7 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
                 if response.ok:
                     data["annotation_mask"] = io.BytesIO(response.content).getbuffer()
                     mask_path = (
-                            Path(self._destination) / data["annotation_mask_filename"]
+                        Path(self._destination) / data["annotation_mask_filename"]
                     )
                     with open(mask_path, "wb") as f:
                         f.write(data["annotation_mask"])
@@ -2887,13 +2911,13 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
 
 class DownloadImagePreAnnotationsUseCase(BaseUseCase):
     def __init__(
-            self,
-            service: SuerannotateServiceProvider,
-            project: ProjectEntity,
-            folder: FolderEntity,
-            image_name: str,
-            images: BaseManageableRepository,
-            destination: str,
+        self,
+        service: SuerannotateServiceProvider,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        image_name: str,
+        images: BaseManageableRepository,
+        destination: str,
     ):
         super().__init__()
         self._service = service
@@ -2965,12 +2989,12 @@ class DownloadImagePreAnnotationsUseCase(BaseUseCase):
 
 class GetImageAnnotationsUseCase(BaseUseCase):
     def __init__(
-            self,
-            service: SuerannotateServiceProvider,
-            project: ProjectEntity,
-            folder: FolderEntity,
-            image_name: str,
-            images: BaseManageableRepository,
+        self,
+        service: SuerannotateServiceProvider,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        image_name: str,
+        images: BaseManageableRepository,
     ):
         super().__init__()
         self._service = service
@@ -3044,12 +3068,12 @@ class GetImageAnnotationsUseCase(BaseUseCase):
 
 class GetImagePreAnnotationsUseCase(BaseUseCase):
     def __init__(
-            self,
-            service: SuerannotateServiceProvider,
-            project: ProjectEntity,
-            folder: FolderEntity,
-            image_name: str,
-            images: BaseManageableRepository,
+        self,
+        service: SuerannotateServiceProvider,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        image_name: str,
+        images: BaseManageableRepository,
     ):
         super().__init__()
         self._service = service
@@ -3119,12 +3143,12 @@ class AssignImagesUseCase(BaseUseCase):
     CHUNK_SIZE = 500
 
     def __init__(
-            self,
-            service: SuerannotateServiceProvider,
-            project: ProjectEntity,
-            folder: FolderEntity,
-            image_names: list,
-            user: str,
+        self,
+        service: SuerannotateServiceProvider,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        image_names: list,
+        user: str,
     ):
         super().__init__()
         self._project = project
@@ -3148,8 +3172,8 @@ class AssignImagesUseCase(BaseUseCase):
                     folder_name=self._folder.name,
                     user=self._user,
                     image_names=self._image_names[
-                                i: i + self.CHUNK_SIZE  # noqa: E203
-                                ],
+                        i : i + self.CHUNK_SIZE  # noqa: E203
+                    ],
                 )
                 if not is_assigned:
                     self._response.errors = AppException(
@@ -3163,11 +3187,11 @@ class UnAssignImagesUseCase(BaseUseCase):
     CHUNK_SIZE = 500
 
     def __init__(
-            self,
-            service: SuerannotateServiceProvider,
-            project_entity: ProjectEntity,
-            folder: FolderEntity,
-            image_names: list,
+        self,
+        service: SuerannotateServiceProvider,
+        project_entity: ProjectEntity,
+        folder: FolderEntity,
+        image_names: list,
     ):
         super().__init__()
         self._project_entity = project_entity
@@ -3182,7 +3206,7 @@ class UnAssignImagesUseCase(BaseUseCase):
                 team_id=self._project_entity.team_id,
                 project_id=self._project_entity.uuid,
                 folder_name=self._folder.name,
-                image_names=self._image_names[i: i + self.CHUNK_SIZE],  # noqa: E203
+                image_names=self._image_names[i : i + self.CHUNK_SIZE],  # noqa: E203
             )
             if not is_un_assigned:
                 self._response.errors = AppException(
@@ -3194,10 +3218,10 @@ class UnAssignImagesUseCase(BaseUseCase):
 
 class UnAssignFolderUseCase(BaseUseCase):
     def __init__(
-            self,
-            service: SuerannotateServiceProvider,
-            project_entity: ProjectEntity,
-            folder: FolderEntity,
+        self,
+        service: SuerannotateServiceProvider,
+        project_entity: ProjectEntity,
+        folder: FolderEntity,
     ):
         super().__init__()
         self._service = service
@@ -3219,15 +3243,15 @@ class SetImageAnnotationStatuses(BaseUseCase):
     CHUNK_SIZE = 500
 
     def __init__(
-            self,
-            service: SuerannotateServiceProvider,
-            projects: BaseReadOnlyRepository,
-            image_names: list,
-            team_id: int,
-            project_id: int,
-            folder_id: int,
-            images_repo: BaseManageableRepository,
-            annotation_status: int,
+        self,
+        service: SuerannotateServiceProvider,
+        projects: BaseReadOnlyRepository,
+        image_names: list,
+        team_id: int,
+        project_id: int,
+        folder_id: int,
+        images_repo: BaseManageableRepository,
+        annotation_status: int,
     ):
         super().__init__()
         self._service = service
@@ -3250,9 +3274,9 @@ class SetImageAnnotationStatuses(BaseUseCase):
         if self.is_valid():
             if self._image_names is None:
                 condition = (
-                        Condition("team_id", self._team_id, EQ)
-                        & Condition("project_id", self._project_id, EQ)
-                        & Condition("folder_id", self._folder_id, EQ)
+                    Condition("team_id", self._team_id, EQ)
+                    & Condition("project_id", self._project_id, EQ)
+                    & Condition("folder_id", self._folder_id, EQ)
                 )
                 self._image_names = [
                     image.name for image in self._images_repo.get_all(condition)
@@ -3260,8 +3284,8 @@ class SetImageAnnotationStatuses(BaseUseCase):
             for i in range(0, len(self._image_names), self.CHUNK_SIZE):
                 status_changed = self._service.set_images_statuses_bulk(
                     image_names=self._image_names[
-                                i: i + self.CHUNK_SIZE  # noqa: E203
-                                ],
+                        i : i + self.CHUNK_SIZE  # noqa: E203
+                    ],
                     team_id=self._team_id,
                     project_id=self._project_id,
                     folder_id=self._folder_id,
@@ -3274,10 +3298,10 @@ class SetImageAnnotationStatuses(BaseUseCase):
 
 class CreateAnnotationClassUseCase(BaseUseCase):
     def __init__(
-            self,
-            annotation_classes: BaseManageableRepository,
-            annotation_class: AnnotationClassEntity,
-            project_name: str,
+        self,
+        annotation_classes: BaseManageableRepository,
+        annotation_class: AnnotationClassEntity,
+        project_name: str,
     ):
         super().__init__()
         self._annotation_classes = annotation_classes
@@ -3289,11 +3313,11 @@ class CreateAnnotationClassUseCase(BaseUseCase):
             Condition("name", self._annotation_class.name, EQ)
         )
         if any(
-                [
-                    True
-                    for annotation_class in annotation_classes
-                    if annotation_class.name == self._annotation_class.name
-                ]
+            [
+                True
+                for annotation_class in annotation_classes
+                if annotation_class.name == self._annotation_class.name
+            ]
         ):
             raise AppValidationException("Annotation class already exits.")
 
@@ -3313,10 +3337,10 @@ class CreateAnnotationClassUseCase(BaseUseCase):
 
 class DeleteAnnotationClassUseCase(BaseUseCase):
     def __init__(
-            self,
-            annotation_classes_repo: BaseManageableRepository,
-            annotation_class_name: str,
-            project_name: str,
+        self,
+        annotation_classes_repo: BaseManageableRepository,
+        annotation_class_name: str,
+        project_name: str,
     ):
         super().__init__()
         self._annotation_classes_repo = annotation_classes_repo
@@ -3332,7 +3356,7 @@ class DeleteAnnotationClassUseCase(BaseUseCase):
     def execute(self):
         annotation_classes = self._annotation_classes_repo.get_all(
             condition=Condition("name", self._annotation_class_name, EQ)
-                      & Condition("pattern", True, EQ)
+            & Condition("pattern", True, EQ)
         )
         self._annotation_class = annotation_classes[0]
         logger.info(
@@ -3345,9 +3369,9 @@ class DeleteAnnotationClassUseCase(BaseUseCase):
 
 class GetAnnotationClassUseCase(BaseUseCase):
     def __init__(
-            self,
-            annotation_classes_repo: BaseManageableRepository,
-            annotation_class_name: str,
+        self,
+        annotation_classes_repo: BaseManageableRepository,
+        annotation_class_name: str,
     ):
         super().__init__()
         self._annotation_classes_repo = annotation_classes_repo
@@ -3363,10 +3387,10 @@ class GetAnnotationClassUseCase(BaseUseCase):
 
 class DownloadAnnotationClassesUseCase(BaseUseCase):
     def __init__(
-            self,
-            annotation_classes_repo: BaseManageableRepository,
-            download_path: str,
-            project_name: str,
+        self,
+        annotation_classes_repo: BaseManageableRepository,
+        download_path: str,
+        project_name: str,
     ):
         super().__init__()
         self._annotation_classes_repo = annotation_classes_repo
@@ -3391,11 +3415,11 @@ class CreateAnnotationClassesUseCase(BaseUseCase):
     CHUNK_SIZE = 500
 
     def __init__(
-            self,
-            service: SuerannotateServiceProvider,
-            annotation_classes_repo: BaseManageableRepository,
-            annotation_classes: list,
-            project: ProjectEntity,
+        self,
+        service: SuerannotateServiceProvider,
+        annotation_classes_repo: BaseManageableRepository,
+        annotation_classes: list,
+        project: ProjectEntity,
     ):
         super().__init__()
         self._service = service
@@ -3427,7 +3451,7 @@ class CreateAnnotationClassesUseCase(BaseUseCase):
             created += self._service.set_annotation_classes(
                 project_id=self._project.uuid,
                 team_id=self._project.team_id,
-                data=unique_annotation_classes[i: i + self.CHUNK_SIZE],
+                data=unique_annotation_classes[i : i + self.CHUNK_SIZE],
             )
         self._response.data = created
         return self._response
@@ -3446,18 +3470,18 @@ class UploadFileToS3UseCase(BaseUseCase):
 
 class ExtractFramesUseCase(BaseUseCase):
     def __init__(
-            self,
-            backend_service_provider: SuerannotateServiceProvider,
-            project: ProjectEntity,
-            folder: FolderEntity,
-            video_path: str,
-            extract_path: str,
-            start_time: float,
-            end_time: float = None,
-            target_fps: float = None,
-            annotation_status_code: int = constances.AnnotationStatus.NOT_STARTED.value,
-            image_quality_in_editor: str = None,
-            limit: int = None,
+        self,
+        backend_service_provider: SuerannotateServiceProvider,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        video_path: str,
+        extract_path: str,
+        start_time: float,
+        end_time: float = None,
+        target_fps: float = None,
+        annotation_status_code: int = constances.AnnotationStatus.NOT_STARTED.value,
+        image_quality_in_editor: str = None,
+        limit: int = None,
     ):
         super().__init__()
         self._backend_service = backend_service_provider
@@ -3515,16 +3539,16 @@ class ExtractFramesUseCase(BaseUseCase):
 
 class UploadS3ImagesBackendUseCase(BaseUseCase):
     def __init__(
-            self,
-            backend_service_provider: SuerannotateServiceProvider,
-            settings: BaseReadOnlyRepository,
-            project: ProjectEntity,
-            folder: FolderEntity,
-            access_key: str,
-            secret_key: str,
-            bucket_name: str,
-            folder_path: str,
-            image_quality: str,
+        self,
+        backend_service_provider: SuerannotateServiceProvider,
+        settings: BaseReadOnlyRepository,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        access_key: str,
+        secret_key: str,
+        bucket_name: str,
+        folder_path: str,
+        image_quality: str,
     ):
         super().__init__()
         self._backend_service = backend_service_provider
@@ -3539,8 +3563,8 @@ class UploadS3ImagesBackendUseCase(BaseUseCase):
 
     def validate_image_quality(self):
         if self._image_quality and self._image_quality not in (
-                "compressed",
-                "original",
+            "compressed",
+            "original",
         ):
             raise AppValidationException("Invalid value for image_quality")
 
