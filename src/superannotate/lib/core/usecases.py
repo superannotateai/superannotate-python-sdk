@@ -3230,7 +3230,7 @@ class DownloadImageUseCase(BaseUseCase):
             if self._include_annotations:
                 annotations = self.download_annotation_use_case.execute().data
 
-            if self._include_annotations and self._include_fuse:
+            if self._include_annotations and (self._include_fuse or self._include_overlay):
                 classes = self.get_annotation_classes_ues_case.execute().data
                 fuse_image = (
                     CreateFuseImageUseCase(
@@ -3279,9 +3279,6 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
         self._mask = mask
         self._verbose = verbose
         self._annotation_path = annotation_path
-        self.unknown_classes = []
-        self.unknown_attribute_groups = []
-        self.unknown_attributes = []
 
     def validate_project_type(self):
         if self._project.project_type in constances.LIMITED_FUNCTIONS:
@@ -3384,7 +3381,6 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
             annotation_class_name = annotation["className"]
             if annotation_class_name not in annotation_classes.keys():
                 if annotation_class_name not in unknown_classes:
-                    self.unknown_classes.append(annotation_class_name)
                     unknown_classes[annotation_class_name] = {
                         "id": -(len(unknown_classes) + 1),
                         "attribute_groups": {},
@@ -3402,6 +3398,7 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
         for annotation in [i for i in annotations["instances"] if "className" in i]:
             annotation_class_name = annotation["className"]
             if annotation_class_name not in annotation_classes.keys():
+                logger.warning(f"Couldn't find annotation class {annotation_class_name}")
                 continue
             annotation["classId"] = annotation_classes[annotation_class_name]["id"]
             for attribute in annotation["attributes"]:
@@ -3409,7 +3406,7 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
                     attribute["groupName"]
                     not in annotation_classes[annotation_class_name]["attribute_groups"]
                 ):
-                    self.unknown_attribute_groups.append(attribute["groupName"])
+                    logger.warning(f"Couldn't find annotation group {attribute['groupName']}.")
                     continue
                 attribute["groupId"] = annotation_classes[annotation_class_name][
                     "attribute_groups"
@@ -3421,21 +3418,14 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
                     ][attribute["groupName"]]["attributes"]
                 ):
                     del attribute["groupId"]
-                    self.unknown_attributes.append(attribute["name"])
+                    logger.warning(
+                        f"Couldn't find annotation name {attribute['name']} in"
+                        f" annotation group {attribute['groupName']}",
+                    )
                     continue
                 attribute["id"] = annotation_classes[annotation_class_name][
                     "attribute_groups"
                 ][attribute["groupName"]]["attributes"][attribute["name"]]
-
-    def report_unknown_data(self):
-        if self.unknown_classes:
-            logger.warning(f"Unknown classes [{', '.join(self.unknown_classes)}]")
-        if self.unknown_attribute_groups:
-            logger.warning(
-                f"Unknown attribute_groups [{', '.join(self.unknown_attribute_groups)}]"
-            )
-        if self.unknown_attributes:
-            logger.warning(f"Unknown attributes [{', '.join(self.unknown_attributes)}]")
 
     def execute(self):
         if self.is_valid():
@@ -3464,8 +3454,6 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
                 resource = session.resource("s3")
                 bucket = resource.Bucket(response.data.bucket)
                 self.fill_classes_data(self._annotations)
-                # skipped report
-                # self.report_unknown_data()
                 bucket.put_object(
                     Key=response.data.images[image_data["id"]]["annotation_json_path"],
                     Body=json.dumps(self._annotations),
