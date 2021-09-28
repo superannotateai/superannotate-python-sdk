@@ -829,6 +829,8 @@ class CreateFuseImageUseCase(BaseUseCase):
 
                 outline_color = 4 * (255,)
                 for instance in self.annotations["instances"]:
+                    if (not instance.get("className")) or (not class_color_map.get(instance["className"])):
+                        continue
                     color = class_color_map.get(instance["className"])
                     if not color:
                         class_color_map[instance["className"]] = self.generate_color()
@@ -904,9 +906,7 @@ class CreateFuseImageUseCase(BaseUseCase):
                 weight, height = image.get_size()
                 empty_image_arr = np.full((height, weight, 4), [0, 0, 0, 255], np.uint8)
                 for annotation in self.annotations["instances"]:
-                    if annotation.get("className") and not class_color_map.get(
-                        annotation["className"]
-                    ):
+                    if (not annotation.get("className")) or (not class_color_map.get(annotation["className"])):
                         continue
                     fill_color = *class_color_map[annotation["className"]], 255
                     for part in annotation["parts"]:
@@ -1866,6 +1866,10 @@ class InteractiveAttachFileUrlsUseCase(BaseInteractiveUseCase):
     def attachments_count(self):
         return len(self._attachments)
 
+    @property
+    def chunks_count(self):
+        return int(self.attachments_count / self.CHUNK_SIZE)
+
     def validate_limitations(self):
         attachments_count = self.attachments_count
         response = self._backend_service.get_limitations(
@@ -1915,7 +1919,7 @@ class InteractiveAttachFileUrlsUseCase(BaseInteractiveUseCase):
                 uploaded, duplicated = response.data
                 uploaded_files.extend(uploaded)
                 duplicated_files.extend(duplicated)
-                yield
+                yield len(uploaded) + len(duplicated)
             self._response.data = uploaded_files, duplicated_files
         return self._response
 

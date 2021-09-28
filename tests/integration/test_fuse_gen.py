@@ -192,3 +192,27 @@ class TestFolders(TestCase):
             self.assertEqual(im1_array.shape, im2_array.shape)
             self.assertEqual(im1_array.dtype, im2_array.dtype)
             self.assertTrue(np.array_equal(im1_array, im2_array))
+
+    def test_fuse_image_create_pixel_with_no_classes(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_dir = pathlib.Path(temp_dir)
+
+            sa.upload_image_to_project(
+                self.PIXEL_PROJECT_NAME,
+                f"{self.pixel_folder_path}/{self.EXAMPLE_IMAGE_1}",
+                annotation_status="QualityCheck",
+            )
+            sa.upload_image_annotations(
+                project=self.PIXEL_PROJECT_NAME,
+                image_name=self.EXAMPLE_IMAGE_1,
+                annotation_json=f"{self.pixel_folder_path}/{self.EXAMPLE_IMAGE_1}___pixel.json",
+                mask=f"{self.pixel_folder_path}/{self.EXAMPLE_IMAGE_1}___save.png",
+            )
+
+            sa.download_image(
+                self.PIXEL_PROJECT_NAME,
+                self.EXAMPLE_IMAGE_1,
+                temp_dir,
+                include_annotations=True,
+                include_fuse=True,
+            )

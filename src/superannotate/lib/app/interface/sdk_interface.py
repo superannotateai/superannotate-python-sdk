@@ -712,8 +712,8 @@ def move_images(
     source_project: Union[NotEmptyStr, dict],
     image_names: Optional[List[NotEmptyStr]],
     destination_project: Union[NotEmptyStr, dict],
-    *_,
-    **__,
+    *args,
+    **kwargs,
 ):
     """Move images in bulk between folders in a project
 
@@ -994,7 +994,9 @@ def delete_image(project: Union[NotEmptyStr, dict], image_name: str):
 
 @Trackable
 @validate_arguments
-def get_image_metadata(project: Union[NotEmptyStr, dict], image_name: str, *_, **__):
+def get_image_metadata(
+    project: Union[NotEmptyStr, dict], image_name: str, *args, **kwargs
+):
     """Returns image metadata
 
     :param project: project name or folder path (e.g., "project1/folder1")
@@ -2258,8 +2260,8 @@ def attach_image_urls_to_project(
         with tqdm(
             total=use_case.attachments_count, desc="Attaching urls"
         ) as progress_bar:
-            for _ in use_case.execute():
-                progress_bar.update(1)
+            for attached in use_case.execute():
+                progress_bar.update(attached)
         uploaded, duplications = use_case.data
         uploaded = [i["name"] for i in uploaded]
         duplications.extend(duplicate_images)
@@ -2311,8 +2313,8 @@ def attach_video_urls_to_project(
         with tqdm(
             total=use_case.attachments_count, desc="Attaching urls"
         ) as progress_bar:
-            for _ in use_case.execute():
-                progress_bar.update(1)
+            for attached in use_case.execute():
+                progress_bar.update(attached)
         uploaded, duplications = use_case.data
         uploaded = [i["name"] for i in uploaded]
         duplications.extend(duplicate_images)
@@ -3522,8 +3524,8 @@ def attach_document_urls_to_project(
         with tqdm(
             total=use_case.attachments_count, desc="Attaching urls"
         ) as progress_bar:
-            for _ in use_case.execute():
-                progress_bar.update(1)
+            for attached in use_case.execute():
+                progress_bar.update(attached)
         uploaded, duplications = use_case.data
         uploaded = [i["name"] for i in uploaded]
         duplications.extend(duplicate_images)
