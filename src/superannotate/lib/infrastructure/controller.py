@@ -367,7 +367,7 @@ class Controller(BaseController):
             settings=ProjectSettingsRepository(
                 service=self._backend_client, project=project
             ),
-            s3_repo=self.s3_repo,
+            s3_repo=self.get_s3_repository(self.team_id, project.uuid, folder.uuid),
             backend_client=self._backend_client,
             image_path=image_path,
             image_bytes=image_bytes,
@@ -512,6 +512,26 @@ class Controller(BaseController):
             upload_state_code=upload_state_code,
         )
         return use_case.execute()
+
+    def interactive_attach_urls(
+        self,
+        project_name: str,
+        files: List[ImageEntity],
+        folder_name: str = None,
+        annotation_status: str = None,
+        upload_state_code: int = None,
+    ):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+
+        return usecases.InteractiveAttachFileUrlsUseCase(
+            project=project,
+            folder=folder,
+            attachments=files,
+            backend_service_provider=self._backend_client,
+            annotation_status=annotation_status,
+            upload_state_code=upload_state_code,
+        )
 
     def create_folder(self, project: str, folder_name: str):
         project = self._get_project(project)
@@ -679,6 +699,32 @@ class Controller(BaseController):
         )
         return use_case.execute()
 
+    def move_image(
+            self,
+            from_project_name: str,
+            from_folder_name: str,
+            to_project_name: str,
+            to_folder_name: str,
+            image_name: str,
+            copy_annotation_status: bool = False
+    ):
+        from_project = self._get_project(from_project_name)
+        to_project = self._get_project(to_project_name)
+        to_folder = self._get_folder(to_project, to_folder_name)
+        use_case = usecases.MoveImageUseCase(
+            from_project=from_project,
+            from_folder=self._get_folder(from_project, from_folder_name),
+            to_project=to_project,
+            to_folder=to_folder,
+            backend_service=self._backend_client,
+            image_name=image_name,
+            images=self.images,
+            project_settings=ProjectSettingsRepository(self._backend_client, to_project).get_all(),
+            to_upload_s3_repo=self.get_s3_repository(self.team_id, to_project.uuid, to_folder.uuid),
+            copy_annotation_status=copy_annotation_status
+        )
+        return use_case.execute()
+
     def copy_image_annotation_classes(
         self,
         from_project_name: str,
@@ -793,7 +839,7 @@ class Controller(BaseController):
     ):
         project = self._get_project(project_name)
 
-        use_case = usecases.GetProjectMetadataUseCase(
+        use_case = usecases.GetProjectMetaDataUseCase(
             project=project,
             service=self._backend_client,
             annotation_classes=AnnotationClassRepository(

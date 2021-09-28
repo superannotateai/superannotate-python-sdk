@@ -15,7 +15,6 @@ class BaseTestCase(TestCase):
 
     def setUp(self, *args, **kwargs):
         self.tearDown()
-
         self._project = sa.create_project(
             self.PROJECT_NAME, self.PROJECT_DESCRIPTION, self.PROJECT_TYPE
         )

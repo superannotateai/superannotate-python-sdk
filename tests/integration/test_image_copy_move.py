@@ -150,7 +150,7 @@ class TestImageCopy(BaseTestCase):
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER)
         self.assertEqual(len(sa.search_images(self.PROJECT_NAME)), 2)
         with self.assertRaises(Exception):
-            sa.move_image(self.PROJECT_NAME, self.EXAMPLE_IMAGE, f"{self.PROJECT_NAME}")
+            sa.move_image(self.PROJECT_NAME, self.EXAMPLE_IMAGE, self.PROJECT_NAME)
 
         sa.move_image(self.PROJECT_NAME, self.EXAMPLE_IMAGE, self.SECOND_PROJECT_NAME)
         di = sa.search_images(self.SECOND_PROJECT_NAME, self.EXAMPLE_IMAGE)
