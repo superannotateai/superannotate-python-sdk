@@ -108,5 +108,4 @@ __alL__ = (
     MAX_IMAGE_SIZE,
     MAX_VECTOR_RESOLUTION,
     MAX_PIXEL_RESOLUTION,
-    __version__,
 )
