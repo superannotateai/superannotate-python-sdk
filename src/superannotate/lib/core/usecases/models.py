@@ -38,13 +38,13 @@ logger = logging.getLogger("root")
 
 class PrepareExportUseCase(BaseUseCase):
     def __init__(
-            self,
-            project: ProjectEntity,
-            folder_names: List[str],
-            backend_service_provider: SuerannotateServiceProvider,
-            include_fuse: bool,
-            only_pinned: bool,
-            annotation_statuses: List[str] = None,
+        self,
+        project: ProjectEntity,
+        folder_names: List[str],
+        backend_service_provider: SuerannotateServiceProvider,
+        include_fuse: bool,
+        only_pinned: bool,
+        annotation_statuses: List[str] = None,
     ):
         super().__init__(),
         self._project = project
@@ -56,8 +56,8 @@ class PrepareExportUseCase(BaseUseCase):
 
     def validate_only_pinned(self):
         if (
-                self._project.upload_state == constances.UploadState.EXTERNAL.value
-                and self._only_pinned
+            self._project.upload_state == constances.UploadState.EXTERNAL.value
+            and self._only_pinned
         ):
             raise AppValidationException(
                 f"Pin functionality is not supported for  projects containing {self._project.project_type} attached with URLs"
@@ -65,8 +65,8 @@ class PrepareExportUseCase(BaseUseCase):
 
     def validate_fuse(self):
         if (
-                self._project.upload_state == constances.UploadState.EXTERNAL.value
-                and self._include_fuse
+            self._project.upload_state == constances.UploadState.EXTERNAL.value
+            and self._include_fuse
         ):
             raise AppValidationException(
                 f"Include fuse functionality is not supported for  projects containing {self._project.project_type} attached with URLs"
@@ -112,10 +112,10 @@ class PrepareExportUseCase(BaseUseCase):
 
 class GetExportsUseCase(BaseUseCase):
     def __init__(
-            self,
-            service: SuerannotateServiceProvider,
-            project: ProjectEntity,
-            return_metadata: bool = False,
+        self,
+        service: SuerannotateServiceProvider,
+        project: ProjectEntity,
+        return_metadata: bool = False,
     ):
         super().__init__()
         self._service = service
@@ -133,23 +133,21 @@ class GetExportsUseCase(BaseUseCase):
         return self._response
 
 
-
-
 class CreateModelUseCase(BaseUseCase):
     def __init__(
-            self,
-            base_model_name: str,
-            model_name: str,
-            model_description: str,
-            task: str,
-            team_id: int,
-            train_data_paths: Iterable[str],
-            test_data_paths: Iterable[str],
-            backend_service_provider: SuerannotateServiceProvider,
-            projects: BaseReadOnlyRepository,
-            folders: BaseReadOnlyRepository,
-            ml_models: BaseManageableRepository,
-            hyper_parameters: dict = None,
+        self,
+        base_model_name: str,
+        model_name: str,
+        model_description: str,
+        task: str,
+        team_id: int,
+        train_data_paths: Iterable[str],
+        test_data_paths: Iterable[str],
+        backend_service_provider: SuerannotateServiceProvider,
+        projects: BaseReadOnlyRepository,
+        folders: BaseReadOnlyRepository,
+        ml_models: BaseManageableRepository,
+        hyper_parameters: dict = None,
     ):
         super().__init__()
         self._base_model_name = base_model_name
@@ -231,11 +229,11 @@ class CreateModelUseCase(BaseUseCase):
             )
             return
         if any(
-                {
-                    True
-                    for project in projects
-                    if project.upload_state == constances.UploadState.EXTERNAL.value
-                }
+            {
+                True
+                for project in projects
+                if project.upload_state == constances.UploadState.EXTERNAL.value
+            }
         ):
             self._response.errors = AppException(
                 "The function does not support projects containing images attached with URLs"
@@ -286,10 +284,10 @@ class CreateModelUseCase(BaseUseCase):
 
 class GetModelMetricsUseCase(BaseUseCase):
     def __init__(
-            self,
-            model_id: int,
-            team_id: int,
-            backend_service_provider: SuerannotateServiceProvider,
+        self,
+        model_id: int,
+        team_id: int,
+        backend_service_provider: SuerannotateServiceProvider,
     ):
         super().__init__()
         self._model_id = model_id
@@ -306,7 +304,7 @@ class GetModelMetricsUseCase(BaseUseCase):
 
 class UpdateModelUseCase(BaseUseCase):
     def __init__(
-            self, model: MLModelEntity, models: BaseManageableRepository,
+        self, model: MLModelEntity, models: BaseManageableRepository,
     ):
         super().__init__()
         self._models = models
@@ -331,10 +329,10 @@ class DeleteMLModel(BaseUseCase):
 
 class StopModelTraining(BaseUseCase):
     def __init__(
-            self,
-            model_id: int,
-            team_id: int,
-            backend_service_provider: SuerannotateServiceProvider,
+        self,
+        model_id: int,
+        team_id: int,
+        backend_service_provider: SuerannotateServiceProvider,
     ):
         super().__init__()
 
@@ -353,13 +351,13 @@ class StopModelTraining(BaseUseCase):
 
 class DownloadExportUseCase(BaseInteractiveUseCase):
     def __init__(
-            self,
-            service: SuerannotateServiceProvider,
-            project: ProjectEntity,
-            export_name: str,
-            folder_path: str,
-            extract_zip_contents: bool,
-            to_s3_bucket: bool,
+        self,
+        service: SuerannotateServiceProvider,
+        project: ProjectEntity,
+        export_name: str,
+        folder_path: str,
+        extract_zip_contents: bool,
+        to_s3_bucket: bool,
     ):
         super().__init__()
         self._service = service
@@ -459,11 +457,11 @@ class DownloadExportUseCase(BaseInteractiveUseCase):
 
 class DownloadMLModelUseCase(BaseUseCase):
     def __init__(
-            self,
-            model: MLModelEntity,
-            download_path: str,
-            backend_service_provider: SuerannotateServiceProvider,
-            team_id: int,
+        self,
+        model: MLModelEntity,
+        download_path: str,
+        backend_service_provider: SuerannotateServiceProvider,
+        team_id: int,
     ):
         super().__init__()
         self._model = model
@@ -527,14 +525,14 @@ class DownloadMLModelUseCase(BaseUseCase):
 
 class BenchmarkUseCase(BaseUseCase):
     def __init__(
-            self,
-            project: ProjectEntity,
-            ground_truth_folder_name: str,
-            folder_names: list,
-            export_dir: str,
-            image_list: list,
-            annotation_type: str,
-            show_plots: bool,
+        self,
+        project: ProjectEntity,
+        ground_truth_folder_name: str,
+        folder_names: list,
+        export_dir: str,
+        image_list: list,
+        annotation_type: str,
+        show_plots: bool,
     ):
         super().__init__()
         self._project = project
@@ -549,7 +547,7 @@ class BenchmarkUseCase(BaseUseCase):
         project_df = aggregate_annotations_as_df(self._export_dir)
         gt_project_df = project_df[
             project_df["folderName"] == self._ground_truth_folder_name
-            ]
+        ]
         benchmark_dfs = []
         for folder_name in self._folder_names:
             folder_df = project_df[project_df["folderName"] == folder_name]
@@ -609,7 +607,7 @@ class BenchmarkUseCase(BaseUseCase):
             benchmark_project_df = pd.concat(all_benchmark_data, ignore_index=True)
             benchmark_project_df = benchmark_project_df[
                 benchmark_project_df["folderName"] == folder_name
-                ]
+            ]
             benchmark_dfs.append(benchmark_project_df)
         benchmark_df = pd.concat(benchmark_dfs, ignore_index=True)
         if self._show_plots:
@@ -620,13 +618,13 @@ class BenchmarkUseCase(BaseUseCase):
 
 class ConsensusUseCase(BaseUseCase):
     def __init__(
-            self,
-            project: ProjectEntity,
-            folder_names: list,
-            export_dir: str,
-            image_list: list,
-            annotation_type: str,
-            show_plots: bool,
+        self,
+        project: ProjectEntity,
+        folder_names: list,
+        export_dir: str,
+        image_list: list,
+        annotation_type: str,
+        show_plots: bool,
     ):
         super().__init__()
         self._project = project
@@ -702,13 +700,13 @@ class ConsensusUseCase(BaseUseCase):
 
 class RunSegmentationUseCase(BaseUseCase):
     def __init__(
-            self,
-            project: ProjectEntity,
-            ml_model_repo: BaseManageableRepository,
-            ml_model_name: str,
-            images_list: list,
-            service: SuerannotateServiceProvider,
-            folder: FolderEntity,
+        self,
+        project: ProjectEntity,
+        ml_model_repo: BaseManageableRepository,
+        ml_model_name: str,
+        images_list: list,
+        service: SuerannotateServiceProvider,
+        folder: FolderEntity,
     ):
         super().__init__()
         self._project = project
@@ -745,8 +743,8 @@ class RunSegmentationUseCase(BaseUseCase):
                     folder_id=self._folder.uuid,
                     images=self._images_list,
                 )
-                    .execute()
-                    .data
+                .execute()
+                .data
             )
 
             image_ids = [image.uuid for image in images]
@@ -779,21 +777,21 @@ class RunSegmentationUseCase(BaseUseCase):
                         folder_id=self._folder.uuid,
                         images=self._images_list,
                     )
-                        .execute()
-                        .data
+                    .execute()
+                    .data
                 )
 
                 success_images = [
                     img.name
                     for img in images_metadata
                     if img.segmentation_status
-                       == constances.SegmentationStatus.COMPLETED.value
+                    == constances.SegmentationStatus.COMPLETED.value
                 ]
                 failed_images = [
                     img.name
                     for img in images_metadata
                     if img.segmentation_status
-                       == constances.SegmentationStatus.FAILED.value
+                    == constances.SegmentationStatus.FAILED.value
                 ]
                 logger.info(
                     f"segmentation complete on {len(success_images + failed_images)} / {len(image_ids)} images"
@@ -806,13 +804,13 @@ class RunSegmentationUseCase(BaseUseCase):
 
 class RunPredictionUseCase(BaseUseCase):
     def __init__(
-            self,
-            project: ProjectEntity,
-            ml_model_repo: BaseManageableRepository,
-            ml_model_name: str,
-            images_list: list,
-            service: SuerannotateServiceProvider,
-            folder: FolderEntity,
+        self,
+        project: ProjectEntity,
+        ml_model_repo: BaseManageableRepository,
+        ml_model_name: str,
+        images_list: list,
+        service: SuerannotateServiceProvider,
+        folder: FolderEntity,
     ):
         super().__init__()
         self._project = project
@@ -838,8 +836,8 @@ class RunPredictionUseCase(BaseUseCase):
                     folder_id=self._folder.uuid,
                     images=self._images_list,
                 )
-                    .execute()
-                    .data
+                .execute()
+                .data
             )
 
             image_ids = [image.uuid for image in images]
@@ -853,8 +851,8 @@ class RunPredictionUseCase(BaseUseCase):
 
             ml_models = self._ml_model_repo.get_all(
                 condition=Condition("name", self._ml_model_name, EQ)
-                          & Condition("include_global", True, EQ)
-                          & Condition("team_id", self._project.team_id, EQ)
+                & Condition("include_global", True, EQ)
+                & Condition("team_id", self._project.team_id, EQ)
             )
             ml_model = None
             for model in ml_models:
@@ -881,21 +879,21 @@ class RunPredictionUseCase(BaseUseCase):
                         folder_id=self._folder.uuid,
                         images=self._images_list,
                     )
-                        .execute()
-                        .data
+                    .execute()
+                    .data
                 )
 
                 success_images = [
                     img.name
                     for img in images_metadata
                     if img.prediction_status
-                       == constances.SegmentationStatus.COMPLETED.value
+                    == constances.SegmentationStatus.COMPLETED.value
                 ]
                 failed_images = [
                     img.name
                     for img in images_metadata
                     if img.prediction_status
-                       == constances.SegmentationStatus.FAILED.value
+                    == constances.SegmentationStatus.FAILED.value
                 ]
 
                 complete_images = success_images + failed_images
@@ -910,7 +908,7 @@ class RunPredictionUseCase(BaseUseCase):
 
 class SearchMLModels(BaseUseCase):
     def __init__(
-            self, ml_models_repo: BaseManageableRepository, condition: Condition,
+        self, ml_models_repo: BaseManageableRepository, condition: Condition,
     ):
         super().__init__()
         self._ml_models = ml_models_repo

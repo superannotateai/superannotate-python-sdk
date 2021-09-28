@@ -629,13 +629,13 @@ class GetAnnotationClassesUseCase(BaseUseCase):
 
 class UpdateSettingsUseCase(BaseUseCase):
     def __init__(
-            self,
-            projects: BaseReadOnlyRepository,
-            settings: BaseManageableRepository,
-            to_update: List,
-            backend_service_provider: SuerannotateServiceProvider,
-            project_id: int,
-            team_id: int,
+        self,
+        projects: BaseReadOnlyRepository,
+        settings: BaseManageableRepository,
+        to_update: List,
+        backend_service_provider: SuerannotateServiceProvider,
+        project_id: int,
+        team_id: int,
     ):
         super().__init__()
         self._projects = projects
@@ -648,7 +648,7 @@ class UpdateSettingsUseCase(BaseUseCase):
     def validate_image_quality(self):
         for setting in self._to_update:
             if setting["attribute"].lower() == "imagequality" and isinstance(
-                    setting["value"], str
+                setting["value"], str
             ):
                 setting["value"] = constances.ImageQuality.get_value(setting["value"])
                 return
@@ -657,8 +657,8 @@ class UpdateSettingsUseCase(BaseUseCase):
         project = self._projects.get_one(uuid=self._project_id, team_id=self._team_id)
         for attribute in self._to_update:
             if (
-                    attribute.get("attribute", "") == "ImageQuality"
-                    and project.project_type == constances.ProjectType.VIDEO.value
+                attribute.get("attribute", "") == "ImageQuality"
+                and project.project_type == constances.ProjectType.VIDEO.value
             ):
                 raise AppValidationException(
                     constances.DEPRECATED_VIDEO_PROJECTS_MESSAGE
@@ -691,11 +691,11 @@ class UpdateSettingsUseCase(BaseUseCase):
 
 class GetProjectImageCountUseCase(BaseUseCase):
     def __init__(
-            self,
-            service: SuerannotateServiceProvider,
-            project: ProjectEntity,
-            folder: FolderEntity,
-            with_all_sub_folders: bool = False,
+        self,
+        service: SuerannotateServiceProvider,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        with_all_sub_folders: bool = False,
     ):
         super().__init__()
         self._service = service
@@ -735,12 +735,12 @@ class GetProjectImageCountUseCase(BaseUseCase):
 
 class SetWorkflowUseCase(BaseUseCase):
     def __init__(
-            self,
-            service: SuerannotateServiceProvider,
-            annotation_classes_repo: BaseManageableRepository,
-            workflow_repo: BaseManageableRepository,
-            steps: list,
-            project: ProjectEntity,
+        self,
+        service: SuerannotateServiceProvider,
+        annotation_classes_repo: BaseManageableRepository,
+        workflow_repo: BaseManageableRepository,
+        steps: list,
+        project: ProjectEntity,
     ):
         super().__init__()
         self._service = service
@@ -796,8 +796,8 @@ class SetWorkflowUseCase(BaseUseCase):
                         "name"
                     ]
                     if not annotations_classes_attributes_map.get(
-                            f"{annotation_class_name}__{attribute_group_name}__{attribute_name}",
-                            None,
+                        f"{annotation_class_name}__{attribute_group_name}__{attribute_name}",
+                        None,
                     ):
                         raise AppException(
                             "Attribute group name or attribute name not found in set_project_workflow."
@@ -839,11 +839,11 @@ class GetTeamUseCase(BaseUseCase):
 
 class InviteContributorUseCase(BaseUseCase):
     def __init__(
-            self,
-            backend_service_provider: SuerannotateServiceProvider,
-            email: str,
-            team_id: int,
-            is_admin: bool = False,
+        self,
+        backend_service_provider: SuerannotateServiceProvider,
+        email: str,
+        team_id: int,
+        is_admin: bool = False,
     ):
         super().__init__()
         self._backend_service = backend_service_provider
@@ -864,10 +864,10 @@ class InviteContributorUseCase(BaseUseCase):
 
 class DeleteContributorInvitationUseCase(BaseUseCase):
     def __init__(
-            self,
-            backend_service_provider: SuerannotateServiceProvider,
-            team: TeamEntity,
-            email: str,
+        self,
+        backend_service_provider: SuerannotateServiceProvider,
+        team: TeamEntity,
+        email: str,
     ):
         super().__init__()
         self._backend_service = backend_service_provider
@@ -885,10 +885,10 @@ class DeleteContributorInvitationUseCase(BaseUseCase):
 
 class SearchContributorsUseCase(BaseUseCase):
     def __init__(
-            self,
-            backend_service_provider: SuerannotateServiceProvider,
-            team_id: int,
-            condition: Condition = None,
+        self,
+        backend_service_provider: SuerannotateServiceProvider,
+        team_id: int,
+        condition: Condition = None,
     ):
         super().__init__()
         self._backend_service = backend_service_provider

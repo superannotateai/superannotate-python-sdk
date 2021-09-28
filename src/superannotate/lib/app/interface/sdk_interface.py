@@ -5,7 +5,6 @@ import logging
 import os
 import tempfile
 import time
-from collections import namedtuple
 from pathlib import Path
 from typing import Iterable
 from typing import List
@@ -1732,7 +1731,9 @@ def upload_videos_from_folder_to_project(
                     f"{len(duplicates)} already existing images found that won't be uploaded."
                 )
             if not images_to_upload:
-                logger.warning(f"{len(duplicates)} already existing images found that won't be uploaded.")
+                logger.warning(
+                    f"{len(duplicates)} already existing images found that won't be uploaded."
+                )
                 continue
             if use_case.is_valid():
                 with tqdm(

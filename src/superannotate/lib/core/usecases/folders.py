@@ -18,10 +18,10 @@ logger = logging.getLogger("root")
 
 class CreateFolderUseCase(BaseUseCase):
     def __init__(
-            self,
-            project: ProjectEntity,
-            folder: FolderEntity,
-            folders: BaseManageableRepository,
+        self,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        folders: BaseManageableRepository,
     ):
         super().__init__()
         self._project = project
@@ -32,12 +32,12 @@ class CreateFolderUseCase(BaseUseCase):
         if not self._folder.name:
             raise AppValidationException("Folder name cannot be empty.")
         if (
-                len(
-                    set(self._folder.name).intersection(
-                        constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
-                    )
+            len(
+                set(self._folder.name).intersection(
+                    constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
                 )
-                > 0
+            )
+            > 0
         ):
             self._folder.name = "".join(
                 "_"
@@ -56,14 +56,13 @@ class CreateFolderUseCase(BaseUseCase):
         return self._response
 
 
-
 class GetFolderUseCase(BaseUseCase):
     def __init__(
-            self,
-            project: ProjectEntity,
-            folders: BaseReadOnlyRepository,
-            folder_name: str,
-            team_id: int,
+        self,
+        project: ProjectEntity,
+        folders: BaseReadOnlyRepository,
+        folder_name: str,
+        team_id: int,
     ):
         super().__init__()
         self._project = project
@@ -73,9 +72,9 @@ class GetFolderUseCase(BaseUseCase):
 
     def execute(self):
         condition = (
-                Condition("name", self._folder_name, EQ)
-                & Condition("team_id", self._team_id, EQ)
-                & Condition("project_id", self._project.uuid, EQ)
+            Condition("name", self._folder_name, EQ)
+            & Condition("team_id", self._team_id, EQ)
+            & Condition("project_id", self._project.uuid, EQ)
         )
         try:
             self._response.data = self._folders.get_one(condition)
@@ -86,12 +85,12 @@ class GetFolderUseCase(BaseUseCase):
 
 class SearchFoldersUseCase(BaseUseCase):
     def __init__(
-            self,
-            project: ProjectEntity,
-            folders: BaseReadOnlyRepository,
-            condition: Condition,
-            folder_name: str = None,
-            include_users=False,
+        self,
+        project: ProjectEntity,
+        folders: BaseReadOnlyRepository,
+        condition: Condition,
+        folder_name: str = None,
+        include_users=False,
     ):
         super().__init__()
         self._project = project
@@ -102,10 +101,10 @@ class SearchFoldersUseCase(BaseUseCase):
 
     def execute(self):
         condition = (
-                self._condition
-                & Condition("project_id", self._project.uuid, EQ)
-                & Condition("team_id", self._project.team_id, EQ)
-                & Condition("includeUsers", self._include_users, EQ)
+            self._condition
+            & Condition("project_id", self._project.uuid, EQ)
+            & Condition("team_id", self._project.team_id, EQ)
+            & Condition("includeUsers", self._include_users, EQ)
         )
         if self._folder_name:
             condition &= Condition("name", self._folder_name, EQ)
@@ -115,10 +114,10 @@ class SearchFoldersUseCase(BaseUseCase):
 
 class DeleteFolderUseCase(BaseUseCase):
     def __init__(
-            self,
-            project: ProjectEntity,
-            folders: BaseManageableRepository,
-            folders_to_delete: List[FolderEntity],
+        self,
+        project: ProjectEntity,
+        folders: BaseManageableRepository,
+        folders_to_delete: List[FolderEntity],
     ):
         super().__init__()
         self._project = project
@@ -137,7 +136,7 @@ class DeleteFolderUseCase(BaseUseCase):
 
 class UpdateFolderUseCase(BaseUseCase):
     def __init__(
-            self, folders: BaseManageableRepository, folder: FolderEntity,
+        self, folders: BaseManageableRepository, folder: FolderEntity,
     ):
         super().__init__()
         self._folders = folders
@@ -147,12 +146,12 @@ class UpdateFolderUseCase(BaseUseCase):
         if not self._folder.name:
             raise AppValidationException("Folder name cannot be empty.")
         if (
-                len(
-                    set(self._folder.name).intersection(
-                        constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
-                    )
+            len(
+                set(self._folder.name).intersection(
+                    constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
                 )
-                > 0
+            )
+            > 0
         ):
             self._folder.name = "".join(
                 "_"
@@ -175,11 +174,11 @@ class UpdateFolderUseCase(BaseUseCase):
 
 class AssignFolderUseCase(BaseUseCase):
     def __init__(
-            self,
-            service: SuerannotateServiceProvider,
-            project_entity: ProjectEntity,
-            folder: FolderEntity,
-            users: List[str],
+        self,
+        service: SuerannotateServiceProvider,
+        project_entity: ProjectEntity,
+        folder: FolderEntity,
+        users: List[str],
     ):
         super().__init__()
         self._service = service
