@@ -186,7 +186,7 @@ class TestInterface(BaseTestCase):
 
 
 class TestPixelInterface(BaseTestCase):
-    PROJECT_NAME = "Interface test"
+    PROJECT_NAME = "Interface Pixel test"
     TEST_FOLDER_PATH = "sample_project_pixel"
     PROJECT_DESCRIPTION = "desc"
     PROJECT_TYPE = "Pixel"

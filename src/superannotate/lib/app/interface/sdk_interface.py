@@ -646,100 +646,22 @@ def upload_images_from_public_urls_to_project(
     :rtype: tuple of list of strs
     """
 
-    if img_names is not None and len(img_names) != len(img_urls):
-        raise AppException("Not all image URLs have corresponding names.")
-
     project_name, folder_name = extract_project_folder(project)
 
-    images_to_upload = []
-    ProcessedImage = namedtuple("ProcessedImage", ["url", "uploaded", "path", "entity"])
-
-    def _upload_image(image_url, image_name=None) -> ProcessedImage:
-        download_response = controller.download_image_from_public_url(
-            project_name=project_name, image_url=image_url
-        )
-        if not download_response.errors:
-            content, content_name = download_response.data
-            image_name = image_name if image_name else content_name
-            duplicated_images = [
-                image.name
-                for image in controller.get_duplicated_images(
-                    project_name=project_name,
-                    folder_name=folder_name,
-                    images=[image_name],
-                )
-            ]
-            if image_name not in duplicated_images:
-                upload_response = controller.upload_image_to_s3(
-                    project_name=project_name,
-                    image_path=image_name,
-                    image_bytes=content,
-                    folder_name=folder_name,
-                    image_quality_in_editor=image_quality_in_editor,
-                )
-                if upload_response.errors:
-                    logger.warning(upload_response.errors)
-                else:
-                    return ProcessedImage(
-                        url=image_url,
-                        uploaded=True,
-                        path=image_url,
-                        entity=upload_response.data,
-                    )
-        logger.warning(download_response.errors)
-        return ProcessedImage(
-            url=image_url, uploaded=False, path=image_name, entity=None
-        )
-
-    logger.info("Downloading %s images", len(img_urls))
-    with tqdm(total=len(img_urls), desc="Downloading") as progress_bar:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-            failed_images = []
-            if img_names:
-                results = [
-                    executor.submit(_upload_image, url, img_urls[idx])
-                    for idx, url in enumerate(img_urls)
-                ]
-            else:
-                results = [executor.submit(_upload_image, url) for url in img_urls]
-            for future in concurrent.futures.as_completed(results):
-                processed_image = future.result()
-                if processed_image.uploaded and processed_image.entity:
-                    images_to_upload.append(processed_image)
-                else:
-                    failed_images.append(processed_image)
+    use_case = controller.upload_images_from_public_urls_to_project(
+        project_name=project_name,
+        folder_name=folder_name,
+        image_urls=img_urls,
+        image_names=img_names,
+        annotation_status=annotation_status,
+        image_quality_in_editor=image_quality_in_editor,
+    )
+    if use_case.is_valid():
+        with tqdm(total=len(img_urls), desc="Uploading images") as progress_bar:
+            for _ in use_case.execute():
                 progress_bar.update(1)
-
-    uploaded = []
-    duplicates = []
-    for i in range(0, len(images_to_upload), 500):
-        response = controller.upload_images(
-            project_name=project_name,
-            folder_name=folder_name,
-            images=[
-                image.entity for image in images_to_upload[i : i + 500]  # noqa: E203
-            ],
-            annotation_status=annotation_status,
-        )
-
-        attachments, duplications = response.data
-        uploaded.extend([attachment["name"] for attachment in attachments])
-        duplicates.extend([duplication["name"] for duplication in duplications])
-    uploaded_image_urls = list(
-        {
-            image.entity.name
-            for image in images_to_upload
-            if image.entity.name in uploaded
-        }
-    )
-    failed_image_urls = [image.url for image in failed_images]
-
-    return (
-        uploaded_image_urls,
-        uploaded,
-        duplicates,
-        failed_image_urls,
-    )
+        return use_case.data
+    raise AppException(use_case.response.errors)
 
 
 @Trackable
@@ -841,12 +763,15 @@ def move_images(
         images = images.data
         image_names = [image.name for image in images]
 
-    moved_images = controller.bulk_move_images(
+    response = controller.bulk_move_images(
         project_name=project_name,
         from_folder_name=source_folder_name,
         to_folder_name=destination_folder_name,
         image_names=image_names,
-    ).data
+    )
+    if response.errors:
+        raise AppException(response.errors)
+    moved_images = response.data
     moved_count = len(moved_images)
     message_postfix = "{from_path} to {to_path}."
     message_prefix = "Moved images from "
@@ -1843,8 +1768,7 @@ def upload_videos_from_folder_to_project(
                     )
             else:
                 raise AppException(use_case.response.errors)
-        return uploaded_paths
-    return
+    return uploaded_paths
 
 
 @Trackable
@@ -2084,48 +2008,18 @@ def move_image(
     :param copy_pin: enables image pin status copy
     :type copy_pin: bool
     """
-
-    if source_project == destination_project:
-        raise AppException(
-            "Cannot move image if source_project == destination_project."
-        )
-
     source_project_name, source_folder_name = extract_project_folder(source_project)
-    project = controller.get_project_metadata(source_project_name).data
-    if project["project"].project_type in [
-        constances.ProjectType.VIDEO.value,
-        constances.ProjectType.DOCUMENT.value,
-    ]:
-        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
-
-    destination_project_name, destination_folder = extract_project_folder(
-        destination_project
+    destination_project_name, destination_folder = extract_project_folder(destination_project)
+    response = controller.move_image(
+        from_project_name=source_project_name,
+        from_folder_name=source_folder_name,
+        to_project_name=destination_project_name,
+        to_folder_name=destination_folder,
+        image_name=image_name,
+        copy_annotation_status=copy_annotation_status
     )
-
-    img_bytes = get_image_bytes(project=source_project, image_name=image_name)
-    image_path = destination_folder + image_name
-
-    image_entity = controller.upload_image_to_s3(
-        project_name=destination_project_name,
-        image_path=image_path,
-        image_bytes=img_bytes,
-    ).data
-
-    del img_bytes
-
-    if copy_annotation_status:
-        res = controller.get_image(
-            project_name=source_project,
-            image_name=image_name,
-            folder_path=source_folder_name,
-        )
-        image_entity.annotation_status_code = res.annotation_status_code
-
-    controller.attach_urls(
-        project_name=destination_project_name,
-        files=[image_entity],
-        folder_name=destination_folder,
-    )
+    if response.errors:
+        raise AppException(response.errors)
 
     if include_annotations:
         controller.copy_image_annotation_classes(
@@ -2142,7 +2036,6 @@ def move_image(
             image_name=image_name,
             is_pinned=1,
         )
-
     controller.delete_image(source_project_name, image_name, source_folder_name)
 
 
@@ -2355,6 +2248,7 @@ def attach_image_urls_to_project(
     :rtype: tuple
     """
     project_name, folder_name = extract_project_folder(project)
+
     project = controller.get_project_metadata(project_name).data
 
     if project["project"].project_type in [
@@ -2364,38 +2258,30 @@ def attach_image_urls_to_project(
         raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
 
     images_to_upload, duplicate_images = get_paths_and_duplicated_from_csv(attachments)
-    list_of_uploaded = []
-
     if len(duplicate_images):
         logger.warning(
             constances.ALREADY_EXISTING_FILES_WARNING.format(len(duplicate_images))
         )
-
-    logger.info(constances.ATTACHING_FILES_MESSAGE.format(len(images_to_upload)))
-
-    with tqdm(total=len(images_to_upload), desc="Attaching urls") as progress_bar:
-        for i in range(0, len(images_to_upload), 500):
-            response = controller.attach_urls(
-                project_name=project_name,
-                folder_name=folder_name,
-                files=ImageSerializer.deserialize(
-                    images_to_upload[i : i + 500]  # noqa: E203
-                ),
-                annotation_status=annotation_status,
-            )
-            if not response.errors:
-                list_of_uploaded.extend(
-                    list(map(lambda image: image["name"], response.data[0]))
-                )
-                duplicate_images.extend(response.data[1])
-            progress_bar.update(len(images_to_upload[i : i + 500]))  # noqa: E203
-    list_of_not_uploaded = [
-        image["name"]
-        for image in images_to_upload
-        if image["name"] not in list_of_uploaded + duplicate_images
-    ]
-
-    return list_of_uploaded, list_of_not_uploaded, duplicate_images
+    use_case = controller.interactive_attach_urls(
+        project_name=project_name,
+        folder_name=folder_name,
+        files=ImageSerializer.deserialize(images_to_upload),  # noqa: E203
+        annotation_status=annotation_status,
+    )
+    if use_case.is_valid():
+        with tqdm(total=use_case.attachments_count, desc="Attaching urls") as progress_bar:
+            for _ in use_case.execute():
+                progress_bar.update(1)
+        uploaded, duplications = use_case.data
+        uploaded = [i['name'] for i in uploaded]
+        duplications.extend(duplicate_images)
+        failed_images = [
+            image["name"]
+            for image in images_to_upload
+            if image["name"] not in uploaded + duplications
+        ]
+        return uploaded, failed_images, duplications
+    raise AppException(use_case.response.errors)
 
 
 @validate_arguments
@@ -2421,38 +2307,32 @@ def attach_video_urls_to_project(
         raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
 
     images_to_upload, duplicate_images = get_paths_and_duplicated_from_csv(attachments)
-    list_of_uploaded = []
-
     if len(duplicate_images):
         logger.warning(
             constances.ALREADY_EXISTING_FILES_WARNING.format(len(duplicate_images))
         )
-
     logger.info(constances.ATTACHING_FILES_MESSAGE.format(len(images_to_upload)))
 
-    with tqdm(total=len(images_to_upload), desc="Attaching urls") as progress_bar:
-        for i in range(0, len(images_to_upload), 500):
-            response = controller.attach_urls(
-                project_name=project_name,
-                folder_name=folder_name,
-                files=ImageSerializer.deserialize(
-                    images_to_upload[i : i + 500]  # noqa: E203
-                ),
-                annotation_status=annotation_status,
-            )
-            if not response.errors:
-                list_of_uploaded.extend(
-                    list(map(lambda image: image["name"], response.data[0]))
-                )
-                duplicate_images.extend(response.data[1])
-            progress_bar.update(len(images_to_upload[i : i + 500]))  # noqa: E203
-    list_of_not_uploaded = [
-        image["name"]
-        for image in images_to_upload
-        if image["name"] not in list_of_uploaded + duplicate_images
-    ]
-
-    return list_of_uploaded, list_of_not_uploaded, duplicate_images
+    use_case = controller.interactive_attach_urls(
+        project_name=project_name,
+        folder_name=folder_name,
+        files=ImageSerializer.deserialize(images_to_upload),  # noqa: E203
+        annotation_status=annotation_status,
+    )
+    if use_case.is_valid():
+        with tqdm(total=use_case.attachments_count, desc="Attaching urls") as progress_bar:
+            for _ in use_case.execute():
+                progress_bar.update(1)
+        uploaded, duplications = use_case.data
+        uploaded = [i['name'] for i in uploaded]
+        duplications.extend(duplicate_images)
+        failed_images = [
+            image["name"]
+            for image in images_to_upload
+            if image["name"] not in uploaded + duplications
+        ]
+        return uploaded, failed_images, duplications
+    raise AppException(use_case.response.errors)
 
 
 @Trackable
@@ -3431,37 +3311,17 @@ def upload_image_to_project(
     """
     project_name, folder_name = extract_project_folder(project)
 
-    project = controller.get_project_metadata(project_name).data
-    if project["project"].project_type in [
-        constances.ProjectType.VIDEO.value,
-        constances.ProjectType.DOCUMENT.value,
-    ]:
-        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
-
-    if not isinstance(img, io.BytesIO):
-        if from_s3_bucket:
-            response = controller.get_image_from_s3(from_s3_bucket, img)
-            image_bytes = response.data
-
-        else:
-            image_bytes = io.BytesIO(open(img, "rb").read())
-    else:
-        image_bytes = img
-    upload_response = controller.upload_image_to_s3(
-        project_name=project_name,
-        image_path=image_name if image_name else Path(img).name,
-        image_bytes=image_bytes,
-        folder_name=folder_name,
-        image_quality_in_editor=image_quality_in_editor,
-    )
-    if upload_response.errors:
-        raise AppException(upload_response.errors)
-    controller.upload_images(
+    response = controller.upload_image_to_project(
         project_name=project_name,
         folder_name=folder_name,
-        images=[upload_response.data],  # noqa: E203
+        image_name=image_name,
+        image=img,
         annotation_status=annotation_status,
+        from_s3_bucket=from_s3_bucket,
+        image_quality_in_editor=image_quality_in_editor
     )
+    if response.errors:
+        raise AppException(response.errors)
 
 
 def search_models(
@@ -3655,36 +3515,30 @@ def attach_document_urls_to_project(
 
     if not project["project"].project_type == constances.ProjectType.DOCUMENT.value:
         raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
+
     images_to_upload, duplicate_images = get_paths_and_duplicated_from_csv(attachments)
-    list_of_uploaded = []
 
     if len(duplicate_images):
         logger.warning(
             constances.ALREADY_EXISTING_FILES_WARNING.format(len(duplicate_images))
         )
-
-    logger.info(constances.ATTACHING_FILES_MESSAGE.format(len(images_to_upload)))
-
-    with tqdm(total=len(images_to_upload), desc="Attaching urls") as progress_bar:
-        for i in range(0, len(images_to_upload), 500):
-            response = controller.attach_urls(
-                project_name=project_name,
-                folder_name=folder_name,
-                files=ImageSerializer.deserialize(
-                    images_to_upload[i : i + 500]  # noqa: E203
-                ),
-                annotation_status=annotation_status,
-            )
-            if not response.errors:
-                list_of_uploaded.extend(
-                    list(map(lambda image: image["name"], response.data[0]))
-                )
-                duplicate_images.extend(response.data[1])
-            progress_bar.update(len(images_to_upload[i : i + 500]))  # noqa: E203
-    list_of_not_uploaded = [
-        image["name"]
-        for image in images_to_upload
-        if image["name"] not in list_of_uploaded + duplicate_images
-    ]
-
-    return list_of_uploaded, list_of_not_uploaded, duplicate_images
+    use_case = controller.interactive_attach_urls(
+        project_name=project_name,
+        folder_name=folder_name,
+        files=ImageSerializer.deserialize(images_to_upload),  # noqa: E203
+        annotation_status=annotation_status,
+    )
+    if use_case.is_valid():
+        with tqdm(total=use_case.attachments_count, desc="Attaching urls") as progress_bar:
+            for _ in use_case.execute():
+                progress_bar.update(1)
+        uploaded, duplications = use_case.data
+        uploaded = [i['name'] for i in uploaded]
+        duplications.extend(duplicate_images)
+        failed_images = [
+            image["name"]
+            for image in images_to_upload
+            if image["name"] not in uploaded + duplications
+        ]
+        return uploaded, failed_images, duplications
+    raise AppException(use_case.response.errors)
