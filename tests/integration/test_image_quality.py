@@ -64,7 +64,7 @@ class TestImageQuality(BaseTestCase):
 
 
 
-class TestImageQuality(BaseTestCase):
+class TestPixelImageQuality(BaseTestCase):
     PROJECT_NAME = "pixel image q"
     PROJECT_DESCRIPTION = "Desc"
     PROJECT_TYPE = "Pixel"

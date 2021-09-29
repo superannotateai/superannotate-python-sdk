@@ -281,20 +281,22 @@ class AttachFileUrlsUseCase(BaseUseCase):
         except AppValidationException as e:
             self._response.errors = e
             return self._response
-
-        backend_response = self._backend_service.attach_files(
-            project_id=self._project.uuid,
-            folder_id=self._folder.uuid,
-            team_id=self._project.team_id,
-            files=to_upload,
-            annotation_status_code=self.annotation_status_code,
-            upload_state_code=self.upload_state_code,
-            meta=meta,
-        )
-        if isinstance(backend_response, dict) and "error" in backend_response:
-            self._response.errors = AppException(backend_response["error"])
+        if to_upload:
+            backend_response = self._backend_service.attach_files(
+                project_id=self._project.uuid,
+                folder_id=self._folder.uuid,
+                team_id=self._project.team_id,
+                files=to_upload,
+                annotation_status_code=self.annotation_status_code,
+                upload_state_code=self.upload_state_code,
+                meta=meta,
+            )
+            if isinstance(backend_response, dict) and "error" in backend_response:
+                self._response.errors = AppException(backend_response["error"])
+            else:
+                self._response.data = backend_response, duplications
         else:
-            self._response.data = backend_response, duplications
+            self._response.data = [], duplications
         return self._response
 
 
@@ -1088,7 +1090,7 @@ class UploadImageToProject(BaseUseCase):
         self,
         project: ProjectEntity,
         folder: FolderEntity,
-        s3_repo: BaseManageableRepository,
+        s3_repo,
         settings: BaseManageableRepository,
         backend_client: SuerannotateServiceProvider,
         annotation_status: str,
@@ -1112,15 +1114,19 @@ class UploadImageToProject(BaseUseCase):
         self._annotation_status = annotation_status
         self._auth_data = None
 
-    def validate_auth_data(self):
-        response = self._backend_client.get_s3_upload_auth_token(
-            team_id=self._project.team_id,
-            folder_id=self._folder.uuid,
-            project_id=self._project.uuid,
+    @property
+    def s3_repo(self):
+        self._auth_data = self._backend_client.get_s3_upload_auth_token(
+            self._project.team_id, self._folder.uuid, self._project.uuid
         )
-        if "error" in response:
-            raise AppException(response.get("error"))
-        self._auth_data = response
+        if "error" in self._auth_data:
+            raise AppException(self._auth_data.get("error"))
+        return self._s3_repo(
+            self._auth_data["accessKeyId"],
+            self._auth_data["secretAccessKey"],
+            self._auth_data["sessionToken"],
+            self._auth_data["bucket"],
+        )
 
     def validate_project_type(self):
         if self._project.project_type in [
@@ -1194,7 +1200,7 @@ class UploadImageToProject(BaseUseCase):
                 else Path(self._image_path).name,
                 project_settings=self._settings.get_all(),
                 image=image_bytes,
-                s3_repo=self._s3_repo,
+                s3_repo=self.s3_repo,
                 upload_path=self.auth_data["filePath"],
                 image_quality_in_editor=self._image_quality_in_editor,
             ).execute()
@@ -1458,7 +1464,7 @@ class UploadImagesToProject(BaseInteractiveUseCase):
                     folder=self._folder,
                     backend_service_provider=self._backend_client,
                     attachments=[
-                        image.entity for image in uploaded_images[i : i + 100]
+                        image.entity for image in uploaded_images[i : i + 100]  # noqa: E203
                     ],
                     annotation_status=self._annotation_status,
                     upload_state_code=constances.UploadState.BASIC.value,
@@ -1580,6 +1586,27 @@ class UploadImagesFromPublicUrls(BaseInteractiveUseCase):
         self._annotation_status = annotation_status
         self._image_quality_in_editor = image_quality_in_editor
         self._settings = settings
+        self._auth_data = None
+
+    @property
+    def auth_data(self):
+        if not self._auth_data:
+            self._auth_data = self._backend_service.get_s3_upload_auth_token(
+            self._project.team_id, self._folder.uuid, self._project.uuid
+        )
+        return self._auth_data
+
+    @property
+    def s3_repo(self):
+
+        if "error" in self.auth_data:
+            raise AppException(self._auth_data.get("error"))
+        return self._s3_repo(
+            self.auth_data["accessKeyId"],
+            self.auth_data["secretAccessKey"],
+            self.auth_data["sessionToken"],
+            self.auth_data["bucket"],
+        )
 
     def validate_limitations(self):
         response = self._backend_service.get_limitations(
@@ -1624,18 +1651,6 @@ class UploadImagesFromPublicUrls(BaseInteractiveUseCase):
         else:
             self._annotation_status = constances.AnnotationStatus.NOT_STARTED
 
-    def get_auth_data(self, project_id: int, team_id: int, folder_id: int):
-        response = self._backend_service.get_s3_upload_auth_token(
-            team_id, folder_id, project_id
-        )
-        if "error" in response:
-            raise AppException(response.get("error"))
-        return response
-
-    @property
-    def s3_repo(self):
-        return self._s3_repo
-
     def upload_image(self, image_url, image_name=None):
         download_response = DownloadImageFromPublicUrlUseCase(
             project=self._project, image_url=image_url, image_name=image_name
@@ -1661,10 +1676,8 @@ class UploadImagesFromPublicUrls(BaseInteractiveUseCase):
                     project_settings=self._settings,
                     image_path=image_name,
                     image=content,
-                    s3_repo=self._s3_repo,
-                    upload_path=self.get_auth_data(
-                        self._project.uuid, self._project.team_id, self._folder.uuid
-                    )["filePath"],
+                    s3_repo=self.s3_repo,
+                    upload_path=self.auth_data["filePath"],
                     image_quality_in_editor=self._image_quality_in_editor,
                 ).execute()
 
@@ -1911,7 +1924,7 @@ class InteractiveAttachFileUrlsUseCase(BaseInteractiveUseCase):
                 response = AttachFileUrlsUseCase(
                     project=self._project,
                     folder=self._folder,
-                    attachments=self._attachments[i : i + 500],  # noqa: E203
+                    attachments=self._attachments[i : i + self.CHUNK_SIZE],  # noqa: E203
                     backend_service_provider=self._backend_service,
                     annotation_status=self._annotation_status,
                     upload_state_code=self._upload_state_code,
@@ -1937,7 +1950,7 @@ class CopyImageUseCase(BaseUseCase):
         to_folder: FolderEntity,
         backend_service: SuerannotateServiceProvider,
         images: BaseManageableRepository,
-        to_upload_s3_repo: BaseManageableRepository,
+        s3_repo,
         project_settings: List[ProjectSettingEntity],
         include_annotations: Optional[bool] = True,
         copy_annotation_status: Optional[bool] = True,
@@ -1950,7 +1963,7 @@ class CopyImageUseCase(BaseUseCase):
         self._image_name = image_name
         self._to_project = to_project
         self._to_folder = to_folder
-        self._to_upload_s3_repo = to_upload_s3_repo
+        self._s3_repo = s3_repo
         self._project_settings = project_settings
         self._include_annotations = include_annotations
         self._copy_annotation_status = copy_annotation_status
@@ -2002,6 +2015,20 @@ class CopyImageUseCase(BaseUseCase):
             if response.data.super_user_limit and response.data.super_user_limit.remaining_image_count < 1:
                 raise AppValidationException(constances.COPY_SUPER_LIMIT_ERROR_MESSAGE)
 
+    @property
+    def s3_repo(self):
+        self._auth_data = self._backend_service.get_s3_upload_auth_token(
+            self._to_project.team_id, self._to_folder.uuid, self._to_project.uuid
+        )
+        if "error" in self._auth_data:
+            raise AppException(self._auth_data.get("error"))
+        return self._s3_repo(
+            self._auth_data["accessKeyId"],
+            self._auth_data["secretAccessKey"],
+            self._auth_data["sessionToken"],
+            self._auth_data["bucket"],
+        )
+
     def execute(self) -> Response:
         if self.is_valid():
             image = (
@@ -2038,7 +2065,7 @@ class CopyImageUseCase(BaseUseCase):
                 image=image_bytes,
                 project_settings=self._project_settings,
                 upload_path=auth_data["filePath"],
-                s3_repo=self._to_upload_s3_repo,
+                s3_repo=self.s3_repo,
             ).execute()
             if s3_response.errors:
                 raise AppException(s3_response.errors)

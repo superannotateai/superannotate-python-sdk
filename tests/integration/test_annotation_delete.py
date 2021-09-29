@@ -1,5 +1,6 @@
 import os
 from os.path import dirname
+import pytest
 
 import src.superannotate as sa
 from tests.integration.base import BaseTestCase
@@ -70,6 +71,7 @@ class TestAnnotationDelete(BaseTestCase):
         )
         self.assertRaises(Exception, sa.delete_annotations, self.PROJECT_NAME, [self.EXAMPLE_IMAGE_2])
 
+    @pytest.mark.flaky(reruns=2)
     def test_delete_annotations_wrong_path(self):
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME)
         sa.upload_images_from_folder_to_project(

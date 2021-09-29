@@ -298,50 +298,6 @@ class Controller(BaseController):
         use_case = usecases.UpdateProjectUseCase(project, project_data, self.projects)
         return use_case.execute()
 
-    def upload_images(
-        self,
-        project_name: str,
-        folder_name: str,
-        images: List[ImageEntity],
-        annotation_status: str = None,
-    ):
-        project = self._get_project(project_name)
-        folder = self._get_folder(project, folder_name)
-        use_case = usecases.AttachFileUrlsUseCase(
-            project=project,
-            folder=folder,
-            backend_service_provider=self._backend_client,
-            attachments=images,
-            annotation_status=annotation_status,
-            upload_state_code=constances.UploadState.BASIC.value,
-        )
-        return use_case.execute()
-
-    def upload_image_to_s3(
-        self,
-        project_name: str,
-        image_path: str,  # image path to upload
-        image_bytes: io.BytesIO,
-        folder_name: str = None,  # project folder path
-        image_quality_in_editor: str = None,
-    ):
-        project = self._get_project(project_name)
-        folder = self._get_folder(project, folder_name)
-        s3_repo = self.get_s3_repository(self.team_id, project.uuid, folder.uuid)
-        auth_data = self.get_auth_data(project.uuid, self.team_id, folder.uuid)
-        use_case = usecases.UploadImageS3UseCase(
-            project=project,
-            project_settings=ProjectSettingsRepository(
-                self._backend_client, project
-            ).get_all(),
-            image_path=image_path,
-            image=image_bytes,
-            s3_repo=s3_repo,
-            upload_path=auth_data["filePath"],
-            image_quality_in_editor=image_quality_in_editor,
-        )
-        return use_case.execute()
-
     def upload_image_to_project(
         self,
         project_name: str,
@@ -367,7 +323,7 @@ class Controller(BaseController):
             settings=ProjectSettingsRepository(
                 service=self._backend_client, project=project
             ),
-            s3_repo=self.get_s3_repository(self.team_id, project.uuid, folder.uuid),
+            s3_repo=self.s3_repo,
             backend_client=self._backend_client,
             image_path=image_path,
             image_bytes=image_bytes,
@@ -455,7 +411,7 @@ class Controller(BaseController):
             settings=ProjectSettingsRepository(
                 service=self._backend_client, project=project
             ),
-            s3_repo=self.get_s3_repository(self.team_id, project.uuid, folder.uuid),
+            s3_repo=self.s3_repo,
             image_quality_in_editor=image_quality_in_editor,
             annotation_status=annotation_status,
         )
@@ -489,27 +445,6 @@ class Controller(BaseController):
             include_settings=copy_settings,
             include_workflow=copy_workflow,
             include_annotation_classes=copy_annotation_classes,
-        )
-        return use_case.execute()
-
-    def attach_urls(
-        self,
-        project_name: str,
-        files: List[ImageEntity],
-        folder_name: str = None,
-        annotation_status: str = None,
-        upload_state_code: int = None,
-    ):
-        project = self._get_project(project_name)
-        folder = self._get_folder(project, folder_name)
-
-        use_case = usecases.AttachFileUrlsUseCase(
-            project=project,
-            folder=folder,
-            attachments=files,
-            backend_service_provider=self._backend_client,
-            annotation_status=annotation_status,
-            upload_state_code=upload_state_code,
         )
         return use_case.execute()
 
@@ -723,9 +658,7 @@ class Controller(BaseController):
             project_settings=ProjectSettingsRepository(
                 self._backend_client, to_project
             ).get_all(),
-            to_upload_s3_repo=self.get_s3_repository(
-                self.team_id, to_project.uuid, to_folder.uuid
-            ),
+            s3_repo=self.s3_repo,
             copy_annotation_status=copy_annotation_status,
             move=move,
         )
@@ -1593,13 +1526,6 @@ class Controller(BaseController):
         )
         return use_case.execute()
 
-    @staticmethod
-    def upload_file_to_s3(to_s3_bucket, path, s3_key: str):
-        use_case = usecases.UploadFileToS3UseCase(
-            to_s3_bucket=to_s3_bucket, path=path, s3_key=s3_key
-        )
-        return use_case.execute()
-
     def search_models(
         self,
         name: str,
@@ -1643,28 +1569,3 @@ class Controller(BaseController):
             image_names=image_names,
         )
         return use_case.execute()
-
-    def get_duplicated_images(
-        self, project_name: str, folder_name: str, images: List[str]
-    ):
-        project = self._get_project(project_name)
-        folder = self._get_folder(project, folder_name)
-        use_case = usecases.GetBulkImages(
-            service=self._backend_client,
-            project_id=project.uuid,
-            team_id=project.team_id,
-            folder_id=folder.uuid,
-            images=images,
-        )
-        return use_case.execute().data
-
-    def get_project_limitations(self, project_name: str, folder_name: str):
-        project = self._get_project(project_name)
-        folder = self._get_folder(project, folder_name)
-
-        return usecases.GetUserLimitsUseCase(
-            service=self._backend_client,
-            project_id=project.uuid,
-            team_id=project.team_id,
-            folder_id=folder.uuid,
-        ).execute()

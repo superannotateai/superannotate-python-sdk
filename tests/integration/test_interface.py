@@ -165,9 +165,14 @@ class TestInterface(BaseTestCase):
             image_quality_in_editor='random_string'
         )
 
+    @pytest.mark.flaky(reruns=2)
     def test_image_upload_with_set_name_on_platform(self):
-        sa.upload_image_to_project(self.PROJECT_NAME, self.IMAGE_PATH_IN_S3 , self.NEW_IMAGE_NAME,from_s3_bucket=self.TEST_S3_BUCKET_NAME)
-        self.assertIn(sa.search_images(self.PROJECT_NAME)[0],self.NEW_IMAGE_NAME)
+        sa.upload_image_to_project(
+            self.PROJECT_NAME,
+            self.IMAGE_PATH_IN_S3,
+            self.NEW_IMAGE_NAME, from_s3_bucket=self.TEST_S3_BUCKET_NAME
+        )
+        self.assertIn(sa.search_images(self.PROJECT_NAME)[0], self.NEW_IMAGE_NAME)
 
     def test_download_fuse_without_classes(self):
         sa.upload_image_to_project(self.PROJECT_NAME, f"{self.folder_path}/{self.EXAMPLE_IMAGE_1}")
