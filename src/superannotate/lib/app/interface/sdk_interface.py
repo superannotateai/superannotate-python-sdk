@@ -2249,6 +2249,8 @@ def attach_image_urls_to_project(
         logger.warning(
             constances.ALREADY_EXISTING_FILES_WARNING.format(len(duplicate_images))
         )
+    logger.info(constances.ATTACHING_FILES_MESSAGE.format(len(images_to_upload)))
+
     use_case = controller.interactive_attach_urls(
         project_name=project_name,
         folder_name=folder_name,
@@ -3516,6 +3518,7 @@ def attach_document_urls_to_project(
         logger.warning(
             constances.ALREADY_EXISTING_FILES_WARNING.format(len(duplicate_images))
         )
+    logger.info(constances.ATTACHING_FILES_MESSAGE.format(len(images_to_upload)))
     use_case = controller.interactive_attach_urls(
         project_name=project_name,
         folder_name=folder_name,
