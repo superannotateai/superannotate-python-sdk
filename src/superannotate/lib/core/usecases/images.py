@@ -1283,7 +1283,7 @@ class UploadImagesToProject(BaseInteractiveUseCase):
         )
         if not response.ok:
             raise AppValidationException(response.error)
-        to_upload_count = len(self.images_to_upload)
+        to_upload_count = len(self.images_to_upload[0])
         if to_upload_count > response.data.folder_limit.remaining_image_count:
             raise AppValidationException(constances.UPLOAD_FOLDER_LIMIT_ERROR_MESSAGE)
         elif to_upload_count > response.data.project_limit.remaining_image_count:
