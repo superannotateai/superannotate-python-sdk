@@ -838,11 +838,10 @@ class CreateFuseImageUseCase(BaseUseCase):
                     color = class_color_map.get(instance["className"])
                     if not color:
                         class_color_map[instance["className"]] = self.generate_color()
-                    fill_color = (
-                        *class_color_map[instance["className"]],
-                        self.TRANSPARENCY,
-                    )
                     for image in images:
+                        fill_color = (
+                            *class_color_map[instance["className"]], 255 if image.type == "fuse" else self.TRANSPARENCY
+                        )
                         if instance["type"] == "bbox":
                             image.content.draw_bbox(
                                 **instance["points"],
