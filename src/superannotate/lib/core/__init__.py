@@ -57,7 +57,7 @@ TOKEN_UUID = "token"
 ALREADY_EXISTING_FILES_WARNING = (
     "{} already existing file(s) found that won't be uploaded."
 )
-ATTACHING_FILES_MESSAGE = "Attaching {} file(s) to project."
+ATTACHING_FILES_MESSAGE = "Attaching {} file(s) to project {}."
 
 DEPRECATED_VIDEO_PROJECTS_MESSAGE = (
     "The function does not support projects containing videos attached with URLs"

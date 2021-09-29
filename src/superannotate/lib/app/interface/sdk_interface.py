@@ -2235,8 +2235,8 @@ def attach_image_urls_to_project(
     :rtype: tuple
     """
     project_name, folder_name = extract_project_folder(project)
-
     project = controller.get_project_metadata(project_name).data
+    project_folder_name = project_name + (f"/{folder_name}" if folder_name else "")
 
     if project["project"].project_type in [
         constances.ProjectType.VIDEO.value,
@@ -2249,7 +2249,7 @@ def attach_image_urls_to_project(
         logger.warning(
             constances.ALREADY_EXISTING_FILES_WARNING.format(len(duplicate_images))
         )
-    logger.info(constances.ATTACHING_FILES_MESSAGE.format(len(images_to_upload)))
+    logger.info(constances.ATTACHING_FILES_MESSAGE.format(len(images_to_upload),project_folder_name))
 
     use_case = controller.interactive_attach_urls(
         project_name=project_name,
@@ -2293,6 +2293,7 @@ def attach_video_urls_to_project(
     """
     project_name, folder_name = extract_project_folder(project)
     project = controller.get_project_metadata(project_name).data
+    project_folder_name = project_name + (f"/{folder_name}" if folder_name else "")
 
     if not project["project"].project_type == constances.ProjectType.VIDEO.value:
         raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
@@ -2302,7 +2303,7 @@ def attach_video_urls_to_project(
         logger.warning(
             constances.ALREADY_EXISTING_FILES_WARNING.format(len(duplicate_images))
         )
-    logger.info(constances.ATTACHING_FILES_MESSAGE.format(len(images_to_upload)))
+    logger.info(constances.ATTACHING_FILES_MESSAGE.format(len(images_to_upload),project_folder_name))
 
     use_case = controller.interactive_attach_urls(
         project_name=project_name,
@@ -3508,6 +3509,7 @@ def attach_document_urls_to_project(
     """
     project_name, folder_name = extract_project_folder(project)
     project = controller.get_project_metadata(project_name).data
+    project_folder_name = project_name + (f"/{folder_name}" if folder_name else "")
 
     if not project["project"].project_type == constances.ProjectType.DOCUMENT.value:
         raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
@@ -3518,7 +3520,7 @@ def attach_document_urls_to_project(
         logger.warning(
             constances.ALREADY_EXISTING_FILES_WARNING.format(len(duplicate_images))
         )
-    logger.info(constances.ATTACHING_FILES_MESSAGE.format(len(images_to_upload)))
+    logger.info(constances.ATTACHING_FILES_MESSAGE.format(len(images_to_upload),project_folder_name))
     use_case = controller.interactive_attach_urls(
         project_name=project_name,
         folder_name=folder_name,
