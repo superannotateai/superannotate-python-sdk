@@ -2245,18 +2245,17 @@ def attach_image_urls_to_project(
         raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
 
     images_to_upload, duplicate_images = get_paths_and_duplicated_from_csv(attachments)
-    if len(duplicate_images):
-        logger.warning(
-            constances.ALREADY_EXISTING_FILES_WARNING.format(len(duplicate_images))
-        )
-    logger.info(constances.ATTACHING_FILES_MESSAGE.format(len(images_to_upload),project_folder_name))
-
     use_case = controller.interactive_attach_urls(
         project_name=project_name,
         folder_name=folder_name,
         files=ImageSerializer.deserialize(images_to_upload),  # noqa: E203
         annotation_status=annotation_status,
     )
+    if len(duplicate_images):
+        logger.warning(
+            constances.ALREADY_EXISTING_FILES_WARNING.format(len(duplicate_images))
+        )
+    logger.info(constances.ATTACHING_FILES_MESSAGE.format(len(images_to_upload),project_folder_name))
     if use_case.is_valid():
         with tqdm(
             total=use_case.attachments_count, desc="Attaching urls"
@@ -2299,18 +2298,17 @@ def attach_video_urls_to_project(
         raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
 
     images_to_upload, duplicate_images = get_paths_and_duplicated_from_csv(attachments)
-    if len(duplicate_images):
-        logger.warning(
-            constances.ALREADY_EXISTING_FILES_WARNING.format(len(duplicate_images))
-        )
-    logger.info(constances.ATTACHING_FILES_MESSAGE.format(len(images_to_upload),project_folder_name))
-
     use_case = controller.interactive_attach_urls(
         project_name=project_name,
         folder_name=folder_name,
         files=ImageSerializer.deserialize(images_to_upload),  # noqa: E203
         annotation_status=annotation_status,
     )
+    if len(duplicate_images):
+        logger.warning(
+            constances.ALREADY_EXISTING_FILES_WARNING.format(len(duplicate_images))
+        )
+    logger.info(constances.ATTACHING_FILES_MESSAGE.format(len(images_to_upload),project_folder_name))
     if use_case.is_valid():
         with tqdm(
             total=use_case.attachments_count, desc="Attaching urls"
@@ -3516,17 +3514,17 @@ def attach_document_urls_to_project(
 
     images_to_upload, duplicate_images = get_paths_and_duplicated_from_csv(attachments)
 
-    if len(duplicate_images):
-        logger.warning(
-            constances.ALREADY_EXISTING_FILES_WARNING.format(len(duplicate_images))
-        )
-    logger.info(constances.ATTACHING_FILES_MESSAGE.format(len(images_to_upload),project_folder_name))
     use_case = controller.interactive_attach_urls(
         project_name=project_name,
         folder_name=folder_name,
         files=ImageSerializer.deserialize(images_to_upload),  # noqa: E203
         annotation_status=annotation_status,
     )
+    if len(duplicate_images):
+        logger.warning(
+            constances.ALREADY_EXISTING_FILES_WARNING.format(len(duplicate_images))
+        )
+    logger.info(constances.ATTACHING_FILES_MESSAGE.format(len(images_to_upload),project_folder_name))
     if use_case.is_valid():
         with tqdm(
             total=use_case.attachments_count, desc="Attaching urls"
