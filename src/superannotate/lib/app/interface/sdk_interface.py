@@ -3492,7 +3492,7 @@ def delete_annotations(
 def attach_document_urls_to_project(
     project: Union[NotEmptyStr, dict],
     attachments: Union[Path, NotEmptyStr],
-    annotation_status: Optional[NotEmptyStr] = "NotStarted",
+    annotation_status: Optional[Status] = "NotStarted",
 ):
     """Link documents on external storage to SuperAnnotate.
 

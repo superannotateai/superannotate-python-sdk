@@ -234,8 +234,8 @@ class AttachFileUrlsUseCase(BaseUseCase):
         elif to_upload_count > response.data.project_limit.remaining_image_count:
             errors.append(constances.ATTACH_PROJECT_LIMIT_ERROR_MESSAGE)
         elif (
-            response.data.super_user_limit
-            and to_upload_count > response.data.super_user_limit.remaining_image_count
+            response.data.user_limit
+            and to_upload_count > response.data.user_limit.remaining_image_count
         ):
             errors.append(constances.ATTACH_USER_LIMIT_ERROR_MESSAGE)
         if errors:
@@ -1151,8 +1151,8 @@ class UploadImageToProject(BaseUseCase):
         elif response.data.project_limit.remaining_image_count < 1:
             raise AppValidationException(constances.UPLOAD_PROJECT_LIMIT_ERROR_MESSAGE)
         elif (
-            response.data.super_user_limit
-            and response.data.super_user_limit.remaining_image_count < 1
+            response.data.user_limit
+            and response.data.user_limit.remaining_image_count < 1
         ):
             raise AppValidationException(constances.UPLOAD_USER_LIMIT_ERROR_MESSAGE)
 
@@ -1289,8 +1289,8 @@ class UploadImagesToProject(BaseInteractiveUseCase):
         elif to_upload_count > response.data.project_limit.remaining_image_count:
             raise AppValidationException(constances.UPLOAD_PROJECT_LIMIT_ERROR_MESSAGE)
         elif (
-            response.data.super_user_limit
-            and to_upload_count > response.data.super_user_limit.remaining_image_count
+            response.data.user_limit
+            and to_upload_count > response.data.user_limit.remaining_image_count
         ):
             raise AppValidationException(constances.UPLOAD_USER_LIMIT_ERROR_MESSAGE)
 
@@ -1317,18 +1317,17 @@ class UploadImagesToProject(BaseInteractiveUseCase):
                 constances.LIMITED_FUNCTIONS[self._project.project_type]
             )
 
-    def validate_auth_data(self):
-        response = self._backend_client.get_s3_upload_auth_token(
-            team_id=self._project.team_id,
-            folder_id=self._folder.uuid,
-            project_id=self._project.uuid,
-        )
-        if "error" in response:
-            raise AppException(response.get("error"))
-        self._auth_data = response
-
     @property
     def auth_data(self):
+        if not self._auth_data:
+            response = self._backend_client.get_s3_upload_auth_token(
+                team_id=self._project.team_id,
+                folder_id=self._folder.uuid,
+                project_id=self._project.uuid,
+            )
+            if "error" in response:
+                raise AppException(response.get("error"))
+            self._auth_data = response
         return self._auth_data
 
     @property
@@ -1627,8 +1626,8 @@ class UploadImagesFromPublicUrls(BaseInteractiveUseCase):
         elif to_upload_count > response.data.project_limit.remaining_image_count:
             raise AppValidationException(constances.UPLOAD_PROJECT_LIMIT_ERROR_MESSAGE)
         elif (
-            response.data.super_user_limit
-            and to_upload_count > response.data.super_user_limit.remaining_image_count
+            response.data.user_limit
+            and to_upload_count > response.data.user_limit.remaining_image_count
         ):
             raise AppValidationException(constances.UPLOAD_USER_LIMIT_ERROR_MESSAGE)
 
@@ -1905,8 +1904,8 @@ class InteractiveAttachFileUrlsUseCase(BaseInteractiveUseCase):
         elif attachments_count > response.data.project_limit.remaining_image_count:
             raise AppValidationException(constances.ATTACH_PROJECT_LIMIT_ERROR_MESSAGE)
         elif (
-            response.data.super_user_limit
-            and attachments_count > response.data.super_user_limit.remaining_image_count
+            response.data.user_limit
+            and attachments_count > response.data.user_limit.remaining_image_count
         ):
             raise AppValidationException(constances.ATTACH_USER_LIMIT_ERROR_MESSAGE)
 
@@ -2026,8 +2025,8 @@ class CopyImageUseCase(BaseUseCase):
                     constances.COPY_PROJECT_LIMIT_ERROR_MESSAGE
                 )
             if (
-                response.data.super_user_limit
-                and response.data.super_user_limit.remaining_image_count < 1
+                response.data.user_limit
+                and response.data.user_limit.remaining_image_count < 1
             ):
                 raise AppValidationException(constances.COPY_SUPER_LIMIT_ERROR_MESSAGE)
 
@@ -3546,27 +3545,37 @@ class ExtractFramesUseCase(BaseUseCase):
         self._annotation_status_code = annotation_status_code
         self._image_quality_in_editor = image_quality_in_editor
         self._limit = limit
-        self._auth_data = None
-
-    def validate_auth_data(self):
-        response = self._backend_service.get_s3_upload_auth_token(
-            team_id=self._project.team_id,
-            folder_id=self._folder.uuid,
-            project_id=self._project.uuid,
-        )
-        if "error" in response:
-            raise AppException(response.get("error"))
-        self._auth_data = response
+        self._limitation_response = None
 
     @property
-    def upload_auth_data(self):
-        return self._auth_data
+    def limitation_response(self):
+        if not self._limitation_response:
+            self._limitation_response = self._backend_service.get_limitations(
+                team_id=self._project.team_id,
+                project_id=self._project.uuid,
+                folder_id=self._folder.uuid,
+            )
+            if not self._limitation_response.ok:
+                raise AppValidationException(self._limitation_response.error)
+        return self._limitation_response
+
+    def validate_limitations(self):
+        response = self.limitation_response
+        if not response.ok:
+            raise AppValidationException(response.error)
+        if not response.data.folder_limit.remaining_image_count:
+            raise AppValidationException(constances.UPLOAD_FOLDER_LIMIT_ERROR_MESSAGE)
+        elif not response.data.project_limit.remaining_image_count:
+            raise AppValidationException(constances.UPLOAD_PROJECT_LIMIT_ERROR_MESSAGE)
+        elif (
+            response.data.user_limit
+            and response.data.user_limit.remaining_image_count > 0
+        ):
+            raise AppValidationException(constances.UPLOAD_USER_LIMIT_ERROR_MESSAGE)
 
     @property
     def limit(self):
-        if not self._limit:
-            return self.upload_auth_data.get("availableImageCount")
-        return self._limit
+        return self._limitation_response.data.folder_limit.remaining_image_count
 
     def validate_project_type(self):
         if self._project.project_type in constances.LIMITED_FUNCTIONS:

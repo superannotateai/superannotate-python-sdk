@@ -13,12 +13,12 @@ class ErrorMessage(BaseModel):
 
 
 class Limit(BaseModel):
-    max_image_count: int
+    max_image_count: Optional[int]
     remaining_image_count: int
 
 
 class UserLimits(BaseModel):
-    super_user_limit: Optional[Limit]
+    user_limit: Optional[Limit]
     project_limit: Limit
     folder_limit: Limit
 
