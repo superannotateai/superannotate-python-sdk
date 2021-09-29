@@ -2249,6 +2249,8 @@ def attach_image_urls_to_project(
         logger.warning(
             constances.ALREADY_EXISTING_FILES_WARNING.format(len(duplicate_images))
         )
+    logger.info(constances.ATTACHING_FILES_MESSAGE.format(len(images_to_upload)))
+
     use_case = controller.interactive_attach_urls(
         project_name=project_name,
         folder_name=folder_name,
@@ -2392,11 +2394,14 @@ def upload_annotations_from_folder_to_project(
         annotation_paths=annotation_paths,  # noqa: E203
         client_s3_bucket=from_s3_bucket,
     )
-    with tqdm(
-        total=len(annotation_paths), desc="Uploading annotations"
-    ) as progress_bar:
-        for _ in use_case.execute():
-            progress_bar.update(1)
+    if use_case.is_valid():
+        with tqdm(
+            total=len(use_case.annotations_to_upload), desc="Uploading annotations"
+        ) as progress_bar:
+            for _ in use_case.execute():
+                progress_bar.update(1)
+    else:
+        raise AppException(use_case.response.errors)
     return use_case.data
 
 
@@ -3513,6 +3518,7 @@ def attach_document_urls_to_project(
         logger.warning(
             constances.ALREADY_EXISTING_FILES_WARNING.format(len(duplicate_images))
         )
+    logger.info(constances.ATTACHING_FILES_MESSAGE.format(len(images_to_upload)))
     use_case = controller.interactive_attach_urls(
         project_name=project_name,
         folder_name=folder_name,
