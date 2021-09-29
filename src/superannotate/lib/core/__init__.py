@@ -83,12 +83,18 @@ ATTACH_PROJECT_LIMIT_ERROR_MESSAGE = "The number of items you want to attach exc
 ATTACH_USER_LIMIT_ERROR_MESSAGE = "The number of items you want to attach  exceeds the limit of your subscription plan."
 
 
-COPY_FOLDER_LIMIT_ERROR_MESSAGE = "The number of items you want to copy exceeds the limit of 50 000 items per folder."
+COPY_FOLDER_LIMIT_ERROR_MESSAGE = (
+    "The number of items you want to copy exceeds the limit of 50 000 items per folder."
+)
 COPY_PROJECT_LIMIT_ERROR_MESSAGE = "The number of items you want to copy exceeds the limit of 500 000 items per project."
-COPY_SUPER_LIMIT_ERROR_MESSAGE = "The number of items you want to copy exceeds the limit of your subscription plan."
+COPY_SUPER_LIMIT_ERROR_MESSAGE = (
+    "The number of items you want to copy exceeds the limit of your subscription plan."
+)
 
 
-MOVE_FOLDER_LIMIT_ERROR_MESSAGE = "The number of items you want to move exceeds the limit of 50 000 items per folder."
+MOVE_FOLDER_LIMIT_ERROR_MESSAGE = (
+    "The number of items you want to move exceeds the limit of 50 000 items per folder."
+)
 MOVE_PROJECT_LIMIT_ERROR_MESSAGE = "The number of items you want to move exceeds the limit of 500 000 items per project."
 
 __alL__ = (
