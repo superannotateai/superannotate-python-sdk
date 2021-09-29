@@ -234,8 +234,8 @@ class AttachFileUrlsUseCase(BaseUseCase):
         elif to_upload_count > response.data.project_limit.remaining_image_count:
             errors.append(constances.ATTACH_PROJECT_LIMIT_ERROR_MESSAGE)
         elif (
-            response.data.super_user_limit
-            and to_upload_count > response.data.super_user_limit.remaining_image_count
+            response.data.user_limit
+            and to_upload_count > response.data.user_limit.remaining_image_count
         ):
             errors.append(constances.ATTACH_USER_LIMIT_ERROR_MESSAGE)
         if errors:
@@ -1151,8 +1151,8 @@ class UploadImageToProject(BaseUseCase):
         elif response.data.project_limit.remaining_image_count < 1:
             raise AppValidationException(constances.UPLOAD_PROJECT_LIMIT_ERROR_MESSAGE)
         elif (
-            response.data.super_user_limit
-            and response.data.super_user_limit.remaining_image_count < 1
+            response.data.user_limit
+            and response.data.user_limit.remaining_image_count < 1
         ):
             raise AppValidationException(constances.UPLOAD_USER_LIMIT_ERROR_MESSAGE)
 
@@ -1289,8 +1289,8 @@ class UploadImagesToProject(BaseInteractiveUseCase):
         elif to_upload_count > response.data.project_limit.remaining_image_count:
             raise AppValidationException(constances.UPLOAD_PROJECT_LIMIT_ERROR_MESSAGE)
         elif (
-            response.data.super_user_limit
-            and to_upload_count > response.data.super_user_limit.remaining_image_count
+            response.data.user_limit
+            and to_upload_count > response.data.user_limit.remaining_image_count
         ):
             raise AppValidationException(constances.UPLOAD_USER_LIMIT_ERROR_MESSAGE)
 
@@ -1626,8 +1626,8 @@ class UploadImagesFromPublicUrls(BaseInteractiveUseCase):
         elif to_upload_count > response.data.project_limit.remaining_image_count:
             raise AppValidationException(constances.UPLOAD_PROJECT_LIMIT_ERROR_MESSAGE)
         elif (
-            response.data.super_user_limit
-            and to_upload_count > response.data.super_user_limit.remaining_image_count
+            response.data.user_limit
+            and to_upload_count > response.data.user_limit.remaining_image_count
         ):
             raise AppValidationException(constances.UPLOAD_USER_LIMIT_ERROR_MESSAGE)
 
@@ -1904,8 +1904,8 @@ class InteractiveAttachFileUrlsUseCase(BaseInteractiveUseCase):
         elif attachments_count > response.data.project_limit.remaining_image_count:
             raise AppValidationException(constances.ATTACH_PROJECT_LIMIT_ERROR_MESSAGE)
         elif (
-            response.data.super_user_limit
-            and attachments_count > response.data.super_user_limit.remaining_image_count
+            response.data.user_limit
+            and attachments_count > response.data.user_limit.remaining_image_count
         ):
             raise AppValidationException(constances.ATTACH_USER_LIMIT_ERROR_MESSAGE)
 
@@ -2025,8 +2025,8 @@ class CopyImageUseCase(BaseUseCase):
                     constances.COPY_PROJECT_LIMIT_ERROR_MESSAGE
                 )
             if (
-                response.data.super_user_limit
-                and response.data.super_user_limit.remaining_image_count < 1
+                response.data.user_limit
+                and response.data.user_limit.remaining_image_count < 1
             ):
                 raise AppValidationException(constances.COPY_SUPER_LIMIT_ERROR_MESSAGE)
 
@@ -3568,8 +3568,8 @@ class ExtractFramesUseCase(BaseUseCase):
         elif not response.data.project_limit.remaining_image_count:
             raise AppValidationException(constances.UPLOAD_PROJECT_LIMIT_ERROR_MESSAGE)
         elif (
-            response.data.super_user_limit
-            and response.data.super_user_limit.remaining_image_count > 0
+            response.data.user_limit
+            and response.data.user_limit.remaining_image_count > 0
         ):
             raise AppValidationException(constances.UPLOAD_USER_LIMIT_ERROR_MESSAGE)
 
