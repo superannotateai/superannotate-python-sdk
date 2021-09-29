@@ -2662,6 +2662,8 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
                 else:
                     from_s3 = None
 
+                for _ in range(len(annotations_to_upload) - len(response.data.images)):
+                    yield
                 with concurrent.futures.ThreadPoolExecutor(
                     max_workers=self.MAX_WORKERS
                 ) as executor:
@@ -2693,7 +2695,6 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
                 failed_annotations = [
                     annotation.path for annotation in failed_annotations
                 ]
-
             self._response.data = (
                 uploaded_annotations,
                 failed_annotations,
@@ -2705,42 +2706,41 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
     def upload_to_s3(
         self, image_id: int, image_info, bucket, from_s3, image_id_name_map
     ):
-        if from_s3:
-            file = io.BytesIO()
-            s3_object = from_s3.Object(
-                self._client_s3_bucket, image_id_name_map[image_id].path
-            )
-            s3_object.download_fileobj(file)
-            file.seek(0)
-            annotation_json = json.load(file)
-        else:
-            annotation_json = json.load(open(image_id_name_map[image_id].path))
-
-        self.fill_classes_data(annotation_json)
-
-        if not self._is_valid_json(annotation_json):
-            logger.warning(f"Invalid json {image_id_name_map[image_id].path}")
-            return image_id_name_map[image_id], False
-        bucket.put_object(
-            Key=image_info["annotation_json_path"], Body=json.dumps(annotation_json),
-        )
-        if self._project.project_type == constances.ProjectType.PIXEL.value:
-            mask_filename = (
-                image_id_name_map[image_id].name + constances.ANNOTATION_MASK_POSTFIX
-            )
+        try:
             if from_s3:
                 file = io.BytesIO()
                 s3_object = from_s3.Object(
-                    self._client_s3_bucket, f"{self._folder_path}/{mask_filename}"
+                    self._client_s3_bucket, image_id_name_map[image_id].path
                 )
                 s3_object.download_fileobj(file)
                 file.seek(0)
+                annotation_json = json.load(file)
             else:
-                with open(f"{self._folder_path}/{mask_filename}", "rb") as mask_file:
-                    file = io.BytesIO(mask_file.read())
-
-            bucket.put_object(Key=image_info["annotation_bluemap_path"], Body=file)
-        return image_id_name_map[image_id], True
+                annotation_json = json.load(open(image_id_name_map[image_id].path))
+            self.fill_classes_data(annotation_json)
+            if not self._is_valid_json(annotation_json):
+                logger.warning(f"Invalid json {image_id_name_map[image_id].path}")
+                return image_id_name_map[image_id], False
+            bucket.put_object(
+                Key=image_info["annotation_json_path"], Body=json.dumps(annotation_json),
+            )
+            if self._project.project_type == constances.ProjectType.PIXEL.value:
+                mask_path = image_id_name_map[image_id].path.replace("___pixel.json", constances.ANNOTATION_MASK_POSTFIX)
+                if from_s3:
+                    file = io.BytesIO()
+                    s3_object = from_s3.Object(
+                        self._client_s3_bucket,
+                        mask_path
+                    )
+                    s3_object.download_fileobj(file)
+                    file.seek(0)
+                else:
+                    with open(mask_path, "rb") as mask_file:
+                        file = io.BytesIO(mask_file.read())
+                bucket.put_object(Key=image_info["annotation_bluemap_path"], Body=file)
+            return image_id_name_map[image_id], True
+        except Exception as _:
+            return image_id_name_map[image_id], False
 
     def report_missing_data(self):
         if self.missing_classes:

@@ -2392,11 +2392,14 @@ def upload_annotations_from_folder_to_project(
         annotation_paths=annotation_paths,  # noqa: E203
         client_s3_bucket=from_s3_bucket,
     )
-    with tqdm(
-        total=len(annotation_paths), desc="Uploading annotations"
-    ) as progress_bar:
-        for _ in use_case.execute():
-            progress_bar.update(1)
+    if use_case.is_valid():
+        with tqdm(
+            total=len(use_case.annotations_to_upload), desc="Uploading annotations"
+        ) as progress_bar:
+            for _ in use_case.execute():
+                progress_bar.update(1)
+    else:
+        raise AppException(use_case.response.errors)
     return use_case.data
 
 
