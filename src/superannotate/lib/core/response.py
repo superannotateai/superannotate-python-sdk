@@ -5,6 +5,7 @@ class Response:
     def __init__(self, status: str = None, data: Union[dict, list] = None):
         self._status = status
         self._data = data
+        self._report = []
         self._errors = []
 
     @property
@@ -14,6 +15,18 @@ class Response:
     @data.setter
     def data(self, value):
         self._data = value
+
+    @property
+    def report(self):
+        return "\n".join(self._report)
+
+    @report.setter
+    def report(self, value: str):
+        self._report.append(value)
+
+    @property
+    def report_messages(self):
+        return self._report
 
     @property
     def status(self):
