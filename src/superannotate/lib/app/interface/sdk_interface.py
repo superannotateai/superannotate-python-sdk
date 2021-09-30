@@ -671,8 +671,9 @@ def copy_images(
 
     project_name, source_folder_name = extract_project_folder(source_project)
 
-    _, destination_folder_name = extract_project_folder(destination_project)
-
+    to_project_name, destination_folder_name = extract_project_folder(destination_project)
+    if project_name != to_project_name:
+        raise AppException("Source and destination projects should be the same for copy_images")
     if not image_names:
         images = controller.search_images(
             project_name=project_name, folder_path=source_folder_name
@@ -734,7 +735,10 @@ def move_images(
     ]:
         raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
 
-    _, destination_folder_name = extract_project_folder(destination_project)
+    to_project_name, destination_folder_name = extract_project_folder(destination_project)
+
+    if project_name != to_project_name:
+        raise AppException("Source and destination projects should be the same for move_images")
 
     if not image_names:
         images = controller.search_images(
