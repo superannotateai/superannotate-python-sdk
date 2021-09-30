@@ -238,7 +238,6 @@ class AttachFileUrlsUseCase(BaseUseCase):
         ):
             raise AppValidationException(constances.ATTACH_USER_LIMIT_ERROR_MESSAGE)
 
-
     @property
     def annotation_status_code(self):
         if self._annotation_status:
@@ -1132,6 +1131,10 @@ class UploadImageToProject(BaseUseCase):
         )
 
     def validate_project_type(self):
+        if self._project.upload_state == constances.UploadState.EXTERNAL.value:
+            raise AppValidationException(constances.UPLOADING_UPLOAD_STATE_ERROR)
+
+    def validate_deprecation(self):
         if self._project.project_type in [
             constances.ProjectType.VIDEO.value,
             constances.ProjectType.DOCUMENT.value,
@@ -1310,6 +1313,10 @@ class UploadImagesToProject(BaseInteractiveUseCase):
             raise AppValidationException("")
 
     def validate_project_type(self):
+        if self._project.upload_state == constances.UploadState.EXTERNAL.value:
+            raise AppValidationException(constances.UPLOADING_UPLOAD_STATE_ERROR)
+
+    def validate_deprecation(self):
         if self._project.project_type in constances.LIMITED_FUNCTIONS:
             raise AppValidationException(
                 constances.LIMITED_FUNCTIONS[self._project.project_type]
@@ -1906,6 +1913,11 @@ class InteractiveAttachFileUrlsUseCase(BaseInteractiveUseCase):
             and attachments_count > response.data.user_limit.remaining_image_count
         ):
             raise AppValidationException(constances.ATTACH_USER_LIMIT_ERROR_MESSAGE)
+
+    def validate_upload_state(self):
+        if (self._upload_state_code and self._upload_state_code != self._project.upload_state) \
+                or self._project.upload_state == constances.UploadState.BASIC.value:
+            raise AppValidationException(constances.ATTACHING_UPLOAD_STATE_ERROR)
 
     @property
     def annotation_status_code(self):
@@ -3544,6 +3556,10 @@ class ExtractFramesUseCase(BaseUseCase):
         self._image_quality_in_editor = image_quality_in_editor
         self._limit = limit
         self._limitation_response = None
+
+    def validate_upload_state(self):
+        if self._project.upload_state == constances.UploadState.EXTERNAL.value:
+            raise AppValidationException(constances.UPLOADING_UPLOAD_STATE_ERROR)
 
     @property
     def limitation_response(self):

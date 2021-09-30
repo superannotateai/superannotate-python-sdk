@@ -1291,7 +1291,7 @@ def upload_images_from_folder_to_project(
     project: Union[NotEmptyStr, dict],
     folder_path: Union[NotEmptyStr, Path],
     extensions: Optional[
-        Union[List[NotEmptyStr], Tuple[str]]
+        Union[List[NotEmptyStr], Tuple[NotEmptyStr]]
     ] = constances.DEFAULT_IMAGE_EXTENSIONS,
     annotation_status="NotStarted",
     from_s3_bucket=None,
@@ -3426,7 +3426,7 @@ def aggregate_annotations_as_df(
     include_comments: Optional[StrictBool] = False,
     include_tags: Optional[StrictBool] = False,
     verbose: Optional[StrictBool] = True,
-    folder_names: Optional[NotEmptyStr] = None,
+    folder_names: Optional[List[NotEmptyStr]] = None,
 ):
     """Aggregate annotations as pandas dataframe from project root.
 
