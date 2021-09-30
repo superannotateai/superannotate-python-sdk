@@ -2289,12 +2289,14 @@ def attach_video_urls_to_project(
     annotation_status: Optional[Status] = "NotStarted",
 ):
     """Link videos on external storage to SuperAnnotate.
+
     :param project: project name or project folder path
     :type project: str or dict
     :param attachments: path to csv file on attachments metadata
     :type attachments: Path-like (str or Path)
     :param annotation_status: value to set the annotation statuses of the linked videos: NotStarted InProgress QualityCheck Returned Completed Skipped
     :type annotation_status: str
+
     :return: attached videos, failed videos, skipped videos
     :rtype: (list, list, list)
     """
@@ -2554,6 +2556,7 @@ def run_training(
     log: Optional[StrictBool] = False,
 ):
     """Runs neural network training
+
     :param model_name: name of the new model
     :type  model_name: str
     :param model_description: description of the new model
@@ -2570,6 +2573,7 @@ def run_training(
     :type  hyperparameters: dict
     :param log: If true will log training metrics in the stdout
     :type log: boolean
+
     :return: the metadata of the newly created model
     :rtype: dict
     """
