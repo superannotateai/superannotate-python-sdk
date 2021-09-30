@@ -2409,6 +2409,9 @@ def upload_annotations_from_folder_to_project(
                 progress_bar.update(1)
     else:
         raise AppException(use_case.response.errors)
+    if use_case.response.report:
+        for i in use_case.response.report_messages:
+            logger.info(i)
     return use_case.data
 
 

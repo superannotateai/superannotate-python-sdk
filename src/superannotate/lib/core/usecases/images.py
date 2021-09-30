@@ -2502,7 +2502,6 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
         self.missing_attribute_groups = set()
         self.missing_classes = set()
         self.missing_attributes = set()
-        self._failed_annotation_reports = []
 
     @property
     def s3_client(self):
@@ -2744,7 +2743,6 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
                 missing_annotations,
             )
         self.report_missing_data()
-        self.report_failed_annotations()
         return self._response
 
     def upload_to_s3(
@@ -2784,16 +2782,9 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
                 bucket.put_object(Key=image_info["annotation_bluemap_path"], Body=file)
             return image_id_name_map[image_id], True
         except Exception as e:
-            self._failed_annotation_reports.append(
-                {"image": image_id_name_map[image_id].name, "message": str(e)}
-            )
+            self._response.report = f"Couldn't upload annotation {image_id_name_map[image_id].name} - {str(e)}"
             return image_id_name_map[image_id], False
 
-    def report_failed_annotations(self):
-        for info in self._failed_annotation_reports:
-            logger.warning(
-                f"Couldn't upload annotation {info['image']} - {info['message']}"
-            )
 
     def report_missing_data(self):
         if self.missing_classes:
