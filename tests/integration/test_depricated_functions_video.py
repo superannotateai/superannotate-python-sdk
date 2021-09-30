@@ -157,7 +157,7 @@ class TestDeprecatedFunctionsVideo(TestCase):
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE_DOCUMENT_VIDEO, str(e))
         try:
-            sa.copy_images(self.PROJECT_NAME, [self.UPLOAD_IMAGE_NAME], self.PROJECT_NAME_2)
+            sa.copy_images(self.PROJECT_NAME, [self.UPLOAD_IMAGE_NAME], self.PROJECT_NAME)
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:

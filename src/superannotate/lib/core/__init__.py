@@ -59,6 +59,9 @@ ALREADY_EXISTING_FILES_WARNING = (
 )
 ATTACHING_FILES_MESSAGE = "Attaching {} file(s) to project {}."
 
+ATTACHING_UPLOAD_STATE_ERROR = "You cannot attach URLs in this type of project. Please attach it in an external storage project."
+UPLOADING_UPLOAD_STATE_ERROR = "You cannot upload files in this type of project. Please upload it in an basic storage project."
+
 DEPRECATED_VIDEO_PROJECTS_MESSAGE = (
     "The function does not support projects containing videos attached with URLs"
 )
