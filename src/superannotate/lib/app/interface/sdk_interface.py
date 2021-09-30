@@ -2259,12 +2259,13 @@ def attach_image_urls_to_project(
         logger.warning(
             constances.ALREADY_EXISTING_FILES_WARNING.format(len(duplicate_images))
         )
-    logger.info(
-        constances.ATTACHING_FILES_MESSAGE.format(
-            len(images_to_upload), project_folder_name
-        )
-    )
+
     if use_case.is_valid():
+        logger.info(
+            constances.ATTACHING_FILES_MESSAGE.format(
+                len(images_to_upload), project_folder_name
+            )
+        )
         with tqdm(
             total=use_case.attachments_count, desc="Attaching urls"
         ) as progress_bar:
@@ -2316,12 +2317,13 @@ def attach_video_urls_to_project(
         logger.warning(
             constances.ALREADY_EXISTING_FILES_WARNING.format(len(duplicate_images))
         )
-    logger.info(
-        constances.ATTACHING_FILES_MESSAGE.format(
-            len(images_to_upload), project_folder_name
-        )
-    )
+
     if use_case.is_valid():
+        logger.info(
+            constances.ATTACHING_FILES_MESSAGE.format(
+                len(images_to_upload), project_folder_name
+            )
+        )
         with tqdm(
             total=use_case.attachments_count, desc="Attaching urls"
         ) as progress_bar:
@@ -3539,12 +3541,12 @@ def attach_document_urls_to_project(
         logger.warning(
             constances.ALREADY_EXISTING_FILES_WARNING.format(len(duplicate_images))
         )
-    logger.info(
-        constances.ATTACHING_FILES_MESSAGE.format(
-            len(images_to_upload), project_folder_name
-        )
-    )
     if use_case.is_valid():
+        logger.info(
+            constances.ATTACHING_FILES_MESSAGE.format(
+                len(images_to_upload), project_folder_name
+            )
+        )
         with tqdm(
             total=use_case.attachments_count, desc="Attaching urls"
         ) as progress_bar:

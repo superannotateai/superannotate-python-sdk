@@ -3588,13 +3588,19 @@ class ExtractFramesUseCase(BaseUseCase):
             raise AppValidationException(constances.UPLOAD_PROJECT_LIMIT_ERROR_MESSAGE)
         elif (
             response.data.user_limit
-            and response.data.user_limit.remaining_image_count > 0
+            and response.data.user_limit.remaining_image_count < 1
         ):
             raise AppValidationException(constances.UPLOAD_USER_LIMIT_ERROR_MESSAGE)
 
     @property
     def limit(self):
-        return self._limitation_response.data.folder_limit.remaining_image_count
+        limits = [
+            self._limitation_response.data.folder_limit.remaining_image_count,
+            self._limitation_response.data.project_limit.remaining_image_count,
+        ]
+        if self._limitation_response.data.user_limit:
+            limits.append(self._limitation_response.data.user_limit.remaining_image_count)
+        return min(limits)
 
     def validate_project_type(self):
         if self._project.project_type in constances.LIMITED_FUNCTIONS:
