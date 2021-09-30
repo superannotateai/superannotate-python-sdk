@@ -238,7 +238,6 @@ class AttachFileUrlsUseCase(BaseUseCase):
         ):
             raise AppValidationException(constances.ATTACH_USER_LIMIT_ERROR_MESSAGE)
 
-
     @property
     def annotation_status_code(self):
         if self._annotation_status:
@@ -1466,7 +1465,8 @@ class UploadImagesToProject(BaseInteractiveUseCase):
                     folder=self._folder,
                     backend_service_provider=self._backend_client,
                     attachments=[
-                        image.entity for image in uploaded_images[i : i + 100]  # noqa: E203
+                        image.entity
+                        for image in uploaded_images[i : i + 100]  # noqa: E203
                     ],
                     annotation_status=self._annotation_status,
                     upload_state_code=constances.UploadState.BASIC.value,
@@ -1594,8 +1594,8 @@ class UploadImagesFromPublicUrls(BaseInteractiveUseCase):
     def auth_data(self):
         if not self._auth_data:
             self._auth_data = self._backend_service.get_s3_upload_auth_token(
-            self._project.team_id, self._folder.uuid, self._project.uuid
-        )
+                self._project.team_id, self._folder.uuid, self._project.uuid
+            )
         return self._auth_data
 
     @property
@@ -1926,7 +1926,9 @@ class InteractiveAttachFileUrlsUseCase(BaseInteractiveUseCase):
                 response = AttachFileUrlsUseCase(
                     project=self._project,
                     folder=self._folder,
-                    attachments=self._attachments[i : i + self.CHUNK_SIZE],  # noqa: E203
+                    attachments=self._attachments[
+                        i : i + self.CHUNK_SIZE
+                    ],  # noqa: E203
                     backend_service_provider=self._backend_service,
                     annotation_status=self._annotation_status,
                     upload_state_code=self._upload_state_code,
@@ -2500,6 +2502,7 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
         self.missing_attribute_groups = set()
         self.missing_classes = set()
         self.missing_attributes = set()
+        self._failed_annotation_reports = []
 
     @property
     def s3_client(self):
@@ -2741,6 +2744,7 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
                 missing_annotations,
             )
         self.report_missing_data()
+        self.report_failed_annotations()
         return self._response
 
     def upload_to_s3(
@@ -2779,8 +2783,17 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
                         file = io.BytesIO(mask_file.read())
                 bucket.put_object(Key=image_info["annotation_bluemap_path"], Body=file)
             return image_id_name_map[image_id], True
-        except Exception as _:
+        except Exception as e:
+            self._failed_annotation_reports.append(
+                {"image": image_id_name_map[image_id].name, "message": str(e)}
+            )
             return image_id_name_map[image_id], False
+
+    def report_failed_annotations(self):
+        for info in self._failed_annotation_reports:
+            logger.warning(
+                f"Couldn't upload annotation {info['image']} - {info['message']}"
+            )
 
     def report_missing_data(self):
         if self.missing_classes:

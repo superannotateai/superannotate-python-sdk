@@ -68,8 +68,10 @@ class BaseController(metaclass=SingleInstanceMetaClass):
             self.configs.get_one("token"),
             self.configs.get_one("main_endpoint"),
         )
-        if token: token = token.value
-        if main_endpoint: main_endpoint = main_endpoint.value
+        if token:
+            token = token.value
+        if main_endpoint:
+            main_endpoint = main_endpoint.value
         if not main_endpoint:
             self.configs.insert(ConfigEntity("main_endpoint", constances.BACKEND_URL))
         if not token:
