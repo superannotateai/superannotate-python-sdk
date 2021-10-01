@@ -3,6 +3,7 @@ import os
 import tempfile
 from os.path import dirname
 from pathlib import Path
+import pytest
 
 import src.superannotate as sa
 from tests.integration.base import BaseTestCase
@@ -275,12 +276,14 @@ class TestRecursiveFolder(BaseTestCase):
 
         self.assertEqual(len(sa.search_images(self.PROJECT_NAME)), 1)
 
+    @pytest.mark.skip(reason="Taking long time.")
     def test_images_recursive_s3_122(self):
         sa.upload_images_from_folder_to_project(self.PROJECT_NAME, '8sep',
                                                 from_s3_bucket="superannotate-python-sdk-test",
                                                 recursive_subfolders=True)
         self.assertEqual(len(sa.search_images(self.PROJECT_NAME)), 122)
 
+    @pytest.mark.skip(reason="Taking long time.")
     def test_annotations_recursive_s3_122(self):
         sa.upload_images_from_folder_to_project(self.PROJECT_NAME, '8sep',
                                                 from_s3_bucket="superannotate-python-sdk-test",
