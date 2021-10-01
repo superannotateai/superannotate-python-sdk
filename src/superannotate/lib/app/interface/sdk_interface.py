@@ -63,6 +63,7 @@ def init(path_to_config_json: str):
     Initializes and authenticates to SuperAnnotate platform using the config file.
     If not initialized then $HOME/.superannotate/config.json
     will be used.
+
     :param path_to_config_json: Location to config JSON file
     :type path_to_config_json: str or Path
     """
