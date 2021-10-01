@@ -34,6 +34,7 @@ class ConfigRepository(BaseManageableRepository):
         """
         Create a config file
         """
+        os.makedirs(os.path.dirname(self._config_path), exist_ok=True)
         open(self._config_path, "w").close()
         return {}
 
