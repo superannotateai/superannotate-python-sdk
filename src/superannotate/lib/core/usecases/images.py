@@ -1916,8 +1916,10 @@ class InteractiveAttachFileUrlsUseCase(BaseInteractiveUseCase):
             raise AppValidationException(constances.ATTACH_USER_LIMIT_ERROR_MESSAGE)
 
     def validate_upload_state(self):
-        if (self._upload_state_code and self._upload_state_code != self._project.upload_state) \
-                or self._project.upload_state == constances.UploadState.BASIC.value:
+        if (
+            self._upload_state_code
+            and self._upload_state_code != self._project.upload_state
+        ) or self._project.upload_state == constances.UploadState.BASIC.value:
             raise AppValidationException(constances.ATTACHING_UPLOAD_STATE_ERROR)
 
     @property
@@ -2798,7 +2800,6 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
             self._response.report = f"Couldn't upload annotation {image_id_name_map[image_id].name} - {str(e)}"
             return image_id_name_map[image_id], False
 
-
     def report_missing_data(self):
         if self.missing_classes:
             logger.warning(f"Couldn't find classes [{', '.join(self.missing_classes)}]")
@@ -3599,7 +3600,9 @@ class ExtractFramesUseCase(BaseUseCase):
             self._limitation_response.data.project_limit.remaining_image_count,
         ]
         if self._limitation_response.data.user_limit:
-            limits.append(self._limitation_response.data.user_limit.remaining_image_count)
+            limits.append(
+                self._limitation_response.data.user_limit.remaining_image_count
+            )
         return min(limits)
 
     def validate_project_type(self):
