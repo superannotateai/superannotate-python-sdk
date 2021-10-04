@@ -2,9 +2,7 @@ from urllib.parse import urlparse
 import os
 from os.path import dirname
 import src.superannotate as sa
-from src.superannotate import AppException
 from tests.integration.base import BaseTestCase
-
 
 
 class TestAnnotationClasses(BaseTestCase):
@@ -20,8 +18,8 @@ class TestAnnotationClasses(BaseTestCase):
     def test_invalid_json(self):
         try:
             sa.create_annotation_classes_from_classes_json(self.PROJECT_NAME, self.classes_path)
-        except AppException as e:
-            self.assertIn("name field required", str(e))
+        except Exception as e:
+            self.assertIn("field required", str(e))
 
     def test_annotation_classes(self):
         annotation_classes = sa.search_annotation_classes(self.PROJECT_NAME)
