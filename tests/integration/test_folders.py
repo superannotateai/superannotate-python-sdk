@@ -66,10 +66,8 @@ class TestFolders(BaseTestCase):
         self.assertIsInstance(folder, dict)
         self.assertEqual(folder["name"], self.TEST_FOLDER_NAME_1)
 
-        # todo fix
-        # with pytest.raises(EmptyOutputError) as exc_info:
-        #     sa.get_folder_metadata(self.PROJECT_NAME, self.TEST_FOLDER_NAME_2)
-        # self.assertTrue("Folder not found" in str(exc_info))
+        with self.assertRaisesRegexp(Exception, "Folder not found"):
+            sa.get_folder_metadata(self.PROJECT_NAME, self.TEST_FOLDER_NAME_2)
 
         sa.upload_images_from_folder_to_project(
             f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_1}",
@@ -88,15 +86,6 @@ class TestFolders(BaseTestCase):
         )
         images = sa.search_images(f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_1}")
         self.assertEqual(len(images), 4)
-
-        # todo fix
-        # with pytest.raises(AppException) as e:
-        #     sa.upload_images_from_folder_to_project(
-        #         f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_1}",
-        #         self.folder_path,
-        #         annotation_status="InProgress",
-        #     )
-        # self.assertTrue("Folder not found" in str(e))
 
         folder_metadata = sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_2)
         self.assertEqual(folder_metadata["name"], self.TEST_FOLDER_NAME_2)
