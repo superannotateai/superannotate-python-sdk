@@ -2018,32 +2018,23 @@ class CopyImageUseCase(BaseUseCase):
         if not response.ok:
             raise AppValidationException(response.error)
 
-        if self._move:
-            if self._from_project.uuid == self._to_project.uuid:
-                if self._from_folder.uuid == self._to_folder.uuid:
-                    raise AppValidationException(
-                        "Cannot move image if source_project == destination_project."
-                    )
-                elif response.data.folder_limit.remaining_image_count < 1:
-                    raise AppValidationException(
-                        constances.MOVE_FOLDER_LIMIT_ERROR_MESSAGE
-                    )
-            elif response.data.project_limit.remaining_image_count < 1:
+        if self._move and self._from_project.uuid == self._to_project.uuid:
+            if self._from_folder.uuid == self._to_folder.uuid:
                 raise AppValidationException(
-                    constances.MOVE_PROJECT_LIMIT_ERROR_MESSAGE
+                    "Cannot move image if source_project == destination_project."
                 )
-        else:
-            if response.data.folder_limit.remaining_image_count < 1:
-                raise AppValidationException(constances.COPY_FOLDER_LIMIT_ERROR_MESSAGE)
-            if response.data.project_limit.remaining_image_count < 1:
-                raise AppValidationException(
-                    constances.COPY_PROJECT_LIMIT_ERROR_MESSAGE
-                )
-            if (
-                response.data.user_limit
-                and response.data.user_limit.remaining_image_count < 1
-            ):
-                raise AppValidationException(constances.COPY_SUPER_LIMIT_ERROR_MESSAGE)
+
+        if response.data.folder_limit.remaining_image_count < 1:
+            raise AppValidationException(constances.COPY_FOLDER_LIMIT_ERROR_MESSAGE)
+        if response.data.project_limit.remaining_image_count < 1:
+            raise AppValidationException(
+                constances.COPY_PROJECT_LIMIT_ERROR_MESSAGE
+            )
+        if (
+            response.data.user_limit
+            and response.data.user_limit.remaining_image_count < 1
+        ):
+            raise AppValidationException(constances.COPY_SUPER_LIMIT_ERROR_MESSAGE)
 
     @property
     def s3_repo(self):
@@ -2102,7 +2093,7 @@ class CopyImageUseCase(BaseUseCase):
             image_entity = s3_response.data
             del image_bytes
 
-            AttachFileUrlsUseCase(
+            attach_response = AttachFileUrlsUseCase(
                 project=self._to_project,
                 folder=self._to_folder,
                 attachments=[image_entity],
@@ -2112,6 +2103,8 @@ class CopyImageUseCase(BaseUseCase):
                 else None,
                 upload_state_code=constances.UploadState.BASIC.value,
             ).execute()
+            if attach_response.errors:
+                raise AppException(attach_response.errors)
             self._response.data = image_entity
         return self._response
 
