@@ -158,7 +158,7 @@ class TestInterface(BaseTestCase):
 
     def test_upload_images_to_project_image_quality_in_editor(self):
         self.assertRaises(
-            AppException,
+            Exception,
             sa.upload_images_to_project,
             self.PROJECT_NAME,
             [self.EXAMPLE_IMAGE_1],

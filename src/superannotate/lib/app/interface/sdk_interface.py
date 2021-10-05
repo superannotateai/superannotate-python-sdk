@@ -1350,6 +1350,8 @@ def upload_images_from_folder_to_project(
         raise AppException(
             "extensions should be a list or a tuple in upload_images_from_folder_to_project"
         )
+    elif len(extensions) < 1:
+        return [], [], []
 
     if exclude_file_patterns:
         exclude_file_patterns = list(exclude_file_patterns) + list(

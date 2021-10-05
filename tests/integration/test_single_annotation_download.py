@@ -55,7 +55,12 @@ class TestSingleAnnotationDownloadUpload(BaseTestCase):
             for j in i["attributes"]:
                 j.pop("groupId", None)
                 j.pop("id", None)
-        # TODO check teplateId -1 when
+        self.assertTrue(
+            all(
+                [instance["templateId"] == -1 for instance in downloaded_json["instances"] if
+                 instance.get("templateId")]
+            )
+        )
         assert downloaded_json == uploaded_json
 
 

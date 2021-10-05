@@ -70,16 +70,17 @@ def validate_arguments(func):
         except ValidationError as e:
             error_messages = defaultdict(list)
             for error in e.errors():
-                error_messages[error["loc"][0]].append(
-                    f"{''.join([f'  {i[0]} -> {i[1]}' for i in to_chunks(error['loc'])])}  {error['loc'][-1]} {error['msg']}"
-                )
+                errors_list = list(error["loc"])
+                errors_list[1::2] = [f"[{i}]" for i in errors_list[1::2]]
+                errors_list[2::2] = [f".{i}" for i in errors_list[2::2]]
+                error_messages["".join(errors_list)].append(error["msg"])
             texts = ["\n"]
-            for error, text in error_messages.items():
+            for field, text in error_messages.items():
                 texts.append(
                     "{} {}{}".format(
-                        error, " " * (21 - len(error)), f"\n {' ' * 21}".join(text)
+                        field, " " * (48 - len(field)), f"\n {' ' * 48}".join(text)
                     )
                 )
-            raise AppException("\n".join(texts))
+            raise Exception("\n".join(texts))
 
     return wrapped
