@@ -2789,7 +2789,7 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
                 "attributes": [],
                 "timeline": {},
                 "type": meta["type"],
-                "classId": class_name_mapper[class_name]["id"],
+                "classId": class_name_mapper.get(class_name, {}).get("id", -1),
                 "locked": True,
             }
             if meta.get("pointLabels", None):
