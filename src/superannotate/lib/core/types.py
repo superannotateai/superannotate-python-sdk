@@ -27,8 +27,14 @@ class ClassesJson(BaseModel):
     attribute_groups: List[AttributeGroup]
 
 
-class Metadata(BaseModel):
+class PixelMetadata(BaseModel):
     name: Optional[NotEmptyStr]
+
+
+class VectorMetadata(BaseModel):
+    name: Optional[NotEmptyStr]
+    width: int
+    height: int
 
 
 class BaseInstance(BaseModel):
@@ -102,11 +108,6 @@ class Cuboid(BaseInstance):
     points: CuboidPoint
 
 
-class VectorAnnotation(BaseModel):
-    metadata: Metadata
-    instances: List[Union[Template, Cuboid, Point, PolyLine, Polygon, Bbox, Ellipse]]
-
-
 class PixelAnnotationPart(BaseModel):
     color: NotEmptyStr
 
@@ -118,8 +119,13 @@ class PixelAnnotationInstance(BaseModel):
     attributes: List[Attribute]
 
 
+class VectorAnnotation(BaseModel):
+    metadata: VectorMetadata
+    instances: List[Union[Template, Cuboid, Point, PolyLine, Polygon, Bbox, Ellipse]]
+
+
 class PixelAnnotation(BaseModel):
-    metadata: Metadata
+    metadata: PixelMetadata
     instances: List[PixelAnnotationInstance]
 
 
