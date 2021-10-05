@@ -1,16 +1,20 @@
-import filecmp
 import os
-import tempfile
+from unittest.mock import patch
 from os.path import dirname
-import pytest
 
 import src.superannotate as sa
-from tests.integration.base import BaseTestCase
 from src.superannotate import AppException
+from src.superannotate.lib.core import UPLOAD_FOLDER_LIMIT_ERROR_MESSAGE
+from src.superannotate.lib.core import UPLOAD_PROJECT_LIMIT_ERROR_MESSAGE
+from src.superannotate.lib.core import UPLOAD_USER_LIMIT_ERROR_MESSAGE
+from tests.integration.base import BaseTestCase
+from tests.moks.limitatoins import folder_limit_response
+from tests.moks.limitatoins import project_limit_response
+from tests.moks.limitatoins import user_limit_response
 
 
-class TestImageQuality(BaseTestCase):
-    PROJECT_NAME = "Limitation Test"
+class TestLimitsUploadImagesFromFolderToProject(BaseTestCase):
+    PROJECT_NAME = "TestLimitsUploadImagesFromFolderToProject"
     PROJECT_DESCRIPTION = "Desc"
     PROJECT_TYPE = "Vector"
     TEST_FOLDER_PTH = "data_set"
@@ -21,10 +25,23 @@ class TestImageQuality(BaseTestCase):
     def folder_path(self):
         return os.path.join(dirname(dirname(__file__)), self.TEST_FOLDER_PATH)
 
-    def test_image_quality_setting1(self):
-        uploaded, _, __ = sa.upload_images_from_folder_to_project(
-            project=self._project["name"], folder_path=self.folder_path
-        )
-        uploaded, _, __ = sa.upload_images_from_folder_to_project(
-            project=self._project["name"], folder_path=os.path.join(dirname(dirname(__file__)), "data_set")
-        )
+    @patch("lib.infrastructure.services.SuperannotateBackendService.get_limitations", return_value=folder_limit_response)
+    def test_folder_limitations(self, *_):
+        with self.assertRaisesRegexp(AppException, UPLOAD_FOLDER_LIMIT_ERROR_MESSAGE):
+            _, _, __ = sa.upload_images_from_folder_to_project(
+                project=self._project["name"], folder_path=self.folder_path
+            )
+
+    @patch("lib.infrastructure.services.SuperannotateBackendService.get_limitations", return_value=project_limit_response)
+    def test_project_limitations(self, *_):
+        with self.assertRaisesRegexp(AppException, UPLOAD_PROJECT_LIMIT_ERROR_MESSAGE):
+            _, _, __ = sa.upload_images_from_folder_to_project(
+                project=self._project["name"], folder_path=self.folder_path
+            )
+
+    @patch("lib.infrastructure.services.SuperannotateBackendService.get_limitations", return_value=user_limit_response)
+    def test_user_limitations(self, *_):
+        with self.assertRaisesRegexp(AppException, UPLOAD_USER_LIMIT_ERROR_MESSAGE):
+            _, _, __ = sa.upload_images_from_folder_to_project(
+                project=self._project["name"], folder_path=self.folder_path
+            )
