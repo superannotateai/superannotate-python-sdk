@@ -157,6 +157,7 @@ from superannotate.lib.app.interface.sdk_interface import upload_video_to_projec
 from superannotate.lib.app.interface.sdk_interface import (
     upload_videos_from_folder_to_project,
 )
+from superannotate.lib.app.interface.sdk_interface import validate_annotations
 from superannotate.version import __version__
 
 
@@ -164,6 +165,7 @@ __all__ = [
     "__version__",
     # Utils
     "AppException",
+    "validate_annotations",
     #
     "init",
     "set_auth_token",

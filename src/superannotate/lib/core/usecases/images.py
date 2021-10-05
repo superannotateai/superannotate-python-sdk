@@ -44,6 +44,7 @@ from lib.core.types import VectorAnnotation
 from lib.core.usecases.base import BaseInteractiveUseCase
 from lib.core.usecases.base import BaseUseCase
 from lib.core.usecases.projects import GetAnnotationClassesUseCase
+from lib.core.validators import BaseAnnotationValidator
 from PIL import UnidentifiedImageError
 from pydantic import ValidationError
 
@@ -3708,4 +3709,36 @@ class UploadS3ImagesBackendUseCase(BaseUseCase):
                 team_id=self._project.team_id,
                 data=[old_setting.to_dict()],
             )
+        return self._response
+
+
+class ValidateAnnotationUseCase(BaseUseCase):
+    def __init__(
+            self,
+            project_type: str,
+            annotation: dict,
+            validators: BaseAnnotationValidator
+    ):
+        super().__init__()
+        self._project_type = project_type
+        self._annotation = annotation
+        self._validators = validators
+
+    def execute(self) -> Response:
+        validator = None
+        if self._project_type.lower() == constances.ProjectType.VECTOR.name.lower():
+            validator = self._validators.get_vector_validator()
+        elif self._project_type.lower() == constances.ProjectType.PIXEL.name.lower():
+            validator = self._validators.get_pixel_validator()
+        elif self._project_type.lower() == constances.ProjectType.VIDEO.name.lower():
+            validator = self._validators.get_video_validator()
+        if validator:
+            validator = validator(self._annotation)
+            if validator.is_valid():
+                self._response.data = True
+            else:
+                self._response.report = validator.generate_report()
+                self._response.data = False
+        else:
+            self._response.errors = AppException(f"There is not validator for type {self._project_type}.")
         return self._response
