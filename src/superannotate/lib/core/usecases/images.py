@@ -2630,7 +2630,9 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
                         name=os.path.basename(
                             annotation_path.replace(
                                 constances.PIXEL_ANNOTATION_POSTFIX, ""
-                            ).replace(constances.VECTOR_ANNOTATION_POSTFIX, ""),
+                            )
+                            .replace(constances.VECTOR_ANNOTATION_POSTFIX, "")
+                            .replace(constances.ATTACHED_VIDEO_ANNOTATION_POSTFIX, ""),
                         ),
                     )
                 )
@@ -2760,6 +2762,114 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
         self.report_missing_data()
         return self._response
 
+    def convert_exported_video_to_editor_video_json(
+        self, data, class_name_mapper,
+    ):
+        class SetEncoder(json.JSONEncoder):
+            def default(self, obj):
+                if isinstance(obj, set):
+                    return list(obj)
+                return json.JSONEncoder.default(self, obj)
+
+        editor_data = {
+            "instances": [],
+            "tags": data["tags"],
+            "name": data["metadata"]["name"],
+            "metadata": {
+                "duration": data["metadata"]["duration"] / 1000000,
+                "name": data["metadata"]["name"],
+                "width": data["metadata"]["width"],
+                "height": data["metadata"]["height"],
+            },
+        }
+        for instance in data["instances"]:
+            meta = instance["meta"]
+            class_name = meta["className"]
+            editor_instance = {
+                "attributes": [],
+                "timeline": {},
+                "type": meta["type"],
+                "classId": class_name_mapper[class_name]["id"],
+                "locked": True,
+            }
+            if meta.get("pointLabels", None):
+                editor_instance["pointLabels"] = meta["pointLabels"]
+            active_attributes = set()
+            for parameter in instance["parameters"]:
+
+                start_time = str(parameter["start"] / 10 ** 6)
+                if start_time == "0.0":
+                    start_time = "0"
+
+                end_time = str(parameter["end"] / 10 ** 6)
+                if end_time == "0.0":
+                    end_time = "0"
+
+                for timestamp_data in parameter["timestamps"]:
+                    timestamp = str(timestamp_data["timestamp"] / 10 ** 6)
+                    if timestamp == "0.0":
+                        timestamp = "0"
+
+                    editor_instance["timeline"][timestamp] = {}
+
+                    if timestamp == start_time:
+                        editor_instance["timeline"][timestamp]["active"] = True
+
+                    if timestamp == end_time:
+                        editor_instance["timeline"][timestamp]["active"] = False
+
+                    if timestamp_data.get("points", None):
+                        editor_instance["timeline"][timestamp][
+                            "points"
+                        ] = timestamp_data["points"]
+
+                    if not class_name_mapper.get(meta["className"], None):
+                        continue
+
+                    existing_attributes_in_current_instance = set()
+                    for attribute in timestamp_data["attributes"]:
+                        key = attribute["groupName"], attribute["name"]
+                        existing_attributes_in_current_instance.add(key)
+                    attributes_to_add = (
+                        existing_attributes_in_current_instance - active_attributes
+                    )
+                    attributes_to_delete = (
+                        active_attributes - existing_attributes_in_current_instance
+                    )
+                    if attributes_to_add or attributes_to_delete:
+                        editor_instance["timeline"][timestamp][
+                            "attributes"
+                        ] = defaultdict(list)
+                    for new_attribute in attributes_to_add:
+                        attr = {
+                            "id": class_name_mapper[class_name]["attribute_groups"][
+                                new_attribute[0]
+                            ]["attributes"][new_attribute[1]],
+                            "groupId": class_name_mapper[class_name][
+                                "attribute_groups"
+                            ][new_attribute[0]]["id"],
+                        }
+                        active_attributes.add(new_attribute)
+                        editor_instance["timeline"][timestamp]["attributes"][
+                            "+"
+                        ].append(attr)
+                    for attribute_to_delete in attributes_to_delete:
+                        attr = {
+                            "id": class_name_mapper[class_name]["attribute_groups"][
+                                attribute_to_delete[0]
+                            ]["attributes"][attribute_to_delete[1]],
+                            "groupId": class_name_mapper[class_name][
+                                "attribute_groups"
+                            ][attribute_to_delete[0]]["id"],
+                        }
+                        active_attributes.remove(attribute_to_delete)
+                        editor_instance["timeline"][timestamp]["attributes"][
+                            "-"
+                        ].append(attr)
+
+            editor_data["instances"].append(editor_instance)
+        return json.loads(json.dumps(editor_data, cls=SetEncoder))
+
     def upload_to_s3(
         self, image_id: int, image_info, bucket, from_s3, image_id_name_map
     ):
@@ -2774,10 +2884,17 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
                 annotation_json = json.load(file)
             else:
                 annotation_json = json.load(open(image_id_name_map[image_id].path))
-            self.fill_classes_data(annotation_json)
-            if not self._is_valid_json(annotation_json):
-                logger.warning(f"Invalid json {image_id_name_map[image_id].path}")
-                return image_id_name_map[image_id], False
+
+            if self._project.project_type == constances.ProjectType.VIDEO.value:
+                annotation_json = self.convert_exported_video_to_editor_video_json(
+                    annotation_json, self.annotation_classes_name_map
+                )
+            else:
+                self.fill_classes_data(annotation_json)
+                if not self._is_valid_json(annotation_json):
+                    logger.warning(f"Invalid json {image_id_name_map[image_id].path}")
+                    return image_id_name_map[image_id], False
+
             bucket.put_object(
                 Key=image_info["annotation_json_path"],
                 Body=json.dumps(annotation_json),
