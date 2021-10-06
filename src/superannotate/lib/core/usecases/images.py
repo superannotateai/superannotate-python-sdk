@@ -41,6 +41,7 @@ from lib.core.response import Response
 from lib.core.serviceproviders import SuerannotateServiceProvider
 from lib.core.types import PixelAnnotation
 from lib.core.types import VectorAnnotation
+from lib.core.types import VideoAnnotation
 from lib.core.usecases.base import BaseInteractiveUseCase
 from lib.core.usecases.base import BaseUseCase
 from lib.core.usecases.projects import GetAnnotationClassesUseCase
@@ -2674,8 +2675,10 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
         try:
             if self._project.project_type == constances.ProjectType.PIXEL.value:
                 PixelAnnotation(**json_data)
-            else:
+            elif self._project.project_type == constances.ProjectType.VECTOR.value:
                 VectorAnnotation(**json_data)
+            elif self._project.project_type == constances.ProjectType.VIDEO.value:
+                VideoAnnotation(**json_data)
             return True
         except ValidationError as _:
             return False
@@ -2885,15 +2888,17 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
             else:
                 annotation_json = json.load(open(image_id_name_map[image_id].path))
 
+            if not self._is_valid_json(annotation_json):
+                logger.warning(f"Invalid json {image_id_name_map[image_id].path}")
+                return image_id_name_map[image_id], False
+
             if self._project.project_type == constances.ProjectType.VIDEO.value:
                 annotation_json = self.convert_exported_video_to_editor_video_json(
                     annotation_json, self.annotation_classes_name_map
                 )
             else:
                 self.fill_classes_data(annotation_json)
-                if not self._is_valid_json(annotation_json):
-                    logger.warning(f"Invalid json {image_id_name_map[image_id].path}")
-                    return image_id_name_map[image_id], False
+
 
             bucket.put_object(
                 Key=image_info["annotation_json_path"],

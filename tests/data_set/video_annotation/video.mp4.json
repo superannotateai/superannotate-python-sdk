@@ -3,37 +3,23 @@
         "name": "video.mp4",
         "width": 480,
         "height": 270,
-        "status": "Completed",
+        "status": "NotStarted",
         "url": "https://file-examples-com.github.io/uploads/2017/04/file_example_MP4_480_1_5MG.mp4",
         "duration": 30526667,
-        "projectId": 150845,
-        "error": false,
+        "projectId": 152038,
+        "error": null,
         "annotatorEmail": null,
-        "qaEmail": null,
-        "lastAction": {
-            "timestamp": 1633417078107,
-            "email": "shab.prog@gmail.com"
-        }
+        "qaEmail": null
     },
     "instances": [
         {
             "meta": {
                 "type": "bbox",
-                "classId": 857627,
+                "classId": 859496,
                 "className": "vid",
                 "pointLabels": {
                     "3": "point label bro"
                 },
-                "createdBy": {
-                    "email": "shab.prog@gmail.com",
-                    "role": "Admin"
-                },
-                "createdAt": "2021-10-01T13:22:01.786Z",
-                "updatedBy": {
-                    "email": "shab.prog@gmail.com",
-                    "role": "Admin"
-                },
-                "updatedAt": "2021-10-04T14:51:23.220Z",
                 "start": 0,
                 "end": 30526667
             },
@@ -62,8 +48,8 @@
                             "timestamp": 17271058,
                             "attributes": [
                                 {
-                                    "id": 1174520,
-                                    "groupId": 337487,
+                                    "id": 1175876,
+                                    "groupId": 338357,
                                     "name": "attr",
                                     "groupName": "attr g"
                                 }
@@ -79,8 +65,8 @@
                             "timestamp": 18271058,
                             "attributes": [
                                 {
-                                    "id": 1174520,
-                                    "groupId": 337487,
+                                    "id": 1175876,
+                                    "groupId": 338357,
                                     "name": "attr",
                                     "groupName": "attr g"
                                 }
@@ -96,8 +82,8 @@
                             "timestamp": 19271058,
                             "attributes": [
                                 {
-                                    "id": 1174520,
-                                    "groupId": 337487,
+                                    "id": 1175876,
+                                    "groupId": 338357,
                                     "name": "attr",
                                     "groupName": "attr g"
                                 }
@@ -113,8 +99,8 @@
                             "timestamp": 19725864,
                             "attributes": [
                                 {
-                                    "id": 1174520,
-                                    "groupId": 337487,
+                                    "id": 1175876,
+                                    "groupId": 338357,
                                     "name": "attr",
                                     "groupName": "attr g"
                                 }
@@ -130,8 +116,8 @@
                             "timestamp": 20271058,
                             "attributes": [
                                 {
-                                    "id": 1174520,
-                                    "groupId": 337487,
+                                    "id": 1175876,
+                                    "groupId": 338357,
                                     "name": "attr",
                                     "groupName": "attr g"
                                 }
@@ -147,8 +133,8 @@
                             "timestamp": 21271058,
                             "attributes": [
                                 {
-                                    "id": 1174520,
-                                    "groupId": 337487,
+                                    "id": 1175876,
+                                    "groupId": 338357,
                                     "name": "attr",
                                     "groupName": "attr g"
                                 }
@@ -164,8 +150,8 @@
                             "timestamp": 22271058,
                             "attributes": [
                                 {
-                                    "id": 1174520,
-                                    "groupId": 337487,
+                                    "id": 1175876,
+                                    "groupId": 338357,
                                     "name": "attr",
                                     "groupName": "attr g"
                                 }
@@ -181,8 +167,8 @@
                             "timestamp": 23271058,
                             "attributes": [
                                 {
-                                    "id": 1174520,
-                                    "groupId": 337487,
+                                    "id": 1175876,
+                                    "groupId": 338357,
                                     "name": "attr",
                                     "groupName": "attr g"
                                 }
@@ -198,8 +184,8 @@
                             "timestamp": 24271058,
                             "attributes": [
                                 {
-                                    "id": 1174520,
-                                    "groupId": 337487,
+                                    "id": 1175876,
+                                    "groupId": 338357,
                                     "name": "attr",
                                     "groupName": "attr g"
                                 }
@@ -215,8 +201,8 @@
                             "timestamp": 30526667,
                             "attributes": [
                                 {
-                                    "id": 1174520,
-                                    "groupId": 337487,
+                                    "id": 1175876,
+                                    "groupId": 338357,
                                     "name": "attr",
                                     "groupName": "attr g"
                                 }
@@ -229,19 +215,8 @@
         {
             "meta": {
                 "type": "bbox",
-                "classId": 857627,
+                "classId": 859496,
                 "className": "vid",
-                "pointLabels": {},
-                "createdBy": {
-                    "email": "shab.prog@gmail.com",
-                    "role": "Admin"
-                },
-                "createdAt": "2021-10-04T14:52:22.419Z",
-                "updatedBy": {
-                    "email": "shab.prog@gmail.com",
-                    "role": "Admin"
-                },
-                "updatedAt": "2021-10-05T06:57:58.107Z",
                 "start": 29713736,
                 "end": 30526667
             },
@@ -277,18 +252,8 @@
         {
             "meta": {
                 "type": "event",
-                "classId": 857627,
+                "classId": 859496,
                 "className": "vid",
-                "createdBy": {
-                    "email": "shab.prog@gmail.com",
-                    "role": "Admin"
-                },
-                "createdAt": "2021-10-05T06:57:36.920Z",
-                "updatedBy": {
-                    "email": "shab.prog@gmail.com",
-                    "role": "Admin"
-                },
-                "updatedAt": "2021-10-05T06:57:47.823Z",
                 "start": 5528212,
                 "end": 7083022
             },
@@ -305,8 +270,8 @@
                             "timestamp": 6702957,
                             "attributes": [
                                 {
-                                    "id": 1174520,
-                                    "groupId": 337487,
+                                    "id": 1175876,
+                                    "groupId": 338357,
                                     "name": "attr",
                                     "groupName": "attr g"
                                 }
@@ -316,8 +281,8 @@
                             "timestamp": 7083022,
                             "attributes": [
                                 {
-                                    "id": 1174520,
-                                    "groupId": 337487,
+                                    "id": 1175876,
+                                    "groupId": 338357,
                                     "name": "attr",
                                     "groupName": "attr g"
                                 }

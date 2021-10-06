@@ -139,3 +139,36 @@ class MLModel(BaseModel):
 
     class Config:
         extra = Extra.allow
+
+
+class VideoMetaData(BaseModel):
+    name: Optional[str]
+    width: Optional[int]
+    height: Optional[int]
+
+
+class VideoInstanceMeta(BaseModel):
+    type: NotEmptyStr
+    classId: int
+
+
+class VideoTimeStamp(BaseModel):
+    timestamp: int
+    attributes: List[Attribute]
+
+
+class VideoInstanceParameter(BaseModel):
+    start: int
+    end: int
+    timestamps: list[VideoTimeStamp]
+
+
+class VideoInstance(BaseModel):
+    meta: VideoInstanceMeta
+    parameters: list[VideoInstanceParameter]
+
+
+class VideoAnnotation(BaseModel):
+    metadata: VideoMetaData
+    instances: List[VideoInstance]
+    tags: List[str]
