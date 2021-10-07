@@ -2899,7 +2899,6 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
             else:
                 self.fill_classes_data(annotation_json)
 
-
             bucket.put_object(
                 Key=image_info["annotation_json_path"],
                 Body=json.dumps(annotation_json),
