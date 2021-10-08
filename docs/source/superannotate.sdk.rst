@@ -41,6 +41,7 @@ ________
 .. autofunction:: superannotate.upload_images_from_s3_bucket_to_project
 .. autofunction:: superannotate.attach_document_urls_to_project
 .. autofunction:: superannotate.upload_image_to_project
+.. autofunction:: superannotate.delete_annotations
 .. _ref_upload_images_from_folder_to_project:
 .. autofunction:: superannotate.upload_images_from_folder_to_project
 .. autofunction:: superannotate.upload_video_to_project
