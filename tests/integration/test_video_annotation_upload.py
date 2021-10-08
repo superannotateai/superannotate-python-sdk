@@ -2,7 +2,7 @@ import os
 import tempfile
 import json
 from os.path import dirname
-
+import pytest
 import src.superannotate as sa
 from tests.integration.base import BaseTestCase
 
@@ -14,6 +14,8 @@ class TestUploadVideoAnnotation(BaseTestCase):
     PROJECT_TYPE = "Video"
     ANNOTATIONS_PATH = "data_set/video_annotation"
     CLASSES_PATH = "data_set/video_annotation/classes/classes.json"
+    ANNOTATIONS_PATH_INVALID_JSON = "data_set/video_annotation_invalid_json"
+
 
     @property
     def csv_path(self):
@@ -24,8 +26,29 @@ class TestUploadVideoAnnotation(BaseTestCase):
         return os.path.join(dirname(dirname(__file__)), self.ANNOTATIONS_PATH)
 
     @property
+    def invalid_annotations_path(self):
+        return os.path.join(dirname(dirname(__file__)), self.ANNOTATIONS_PATH_INVALID_JSON)
+
+    @property
     def classes_path(self):
         return os.path.join(dirname(dirname(__file__)), self.CLASSES_PATH)
+
+    @pytest.fixture(autouse=True)
+    def inject_fixtures(self, caplog):
+        self._caplog = caplog
+
+    def test_video_annotation_upload_invalid_json(self):
+        sa.create_annotation_classes_from_classes_json(self.PROJECT_NAME, self.classes_path)
+
+        _, _, _ = sa.attach_video_urls_to_project(
+            self.PROJECT_NAME,
+            self.csv_path,
+        )
+        (uploaded_annotations, failed_annotations, missing_annotations) = sa.upload_annotations_from_folder_to_project(self.PROJECT_NAME, self.invalid_annotations_path)
+        self.assertEqual(len(uploaded_annotations),0)
+        self.assertEqual(len(failed_annotations),1)
+        self.assertEqual(len(missing_annotations),0)
+        self.assertIn("Invalid json",self._caplog.text)
 
 
     def test_video_annotation_upload(self):

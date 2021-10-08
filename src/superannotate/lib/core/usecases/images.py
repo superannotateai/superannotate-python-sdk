@@ -2768,18 +2768,18 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
     def convert_exported_video_to_editor_video_json(
         self, data, class_name_mapper,
     ):
-        class SetEncoder(json.JSONEncoder):
-            def default(self, obj):
-                if isinstance(obj, set):
-                    return list(obj)
-                return json.JSONEncoder.default(self, obj)
+        def safe_time(timestamp):
+            return "0" if timestamp == "0.0" else timestamp
+
+        def convert_timestamp(timestamp):
+            return timestamp / 10 ** 6
 
         editor_data = {
             "instances": [],
             "tags": data["tags"],
             "name": data["metadata"]["name"],
             "metadata": {
-                "duration": data["metadata"]["duration"] / 1000000,
+                "duration": convert_timestamp(data["metadata"]["duration"]),
                 "name": data["metadata"]["name"],
                 "width": data["metadata"]["width"],
                 "height": data["metadata"]["height"],
@@ -2800,19 +2800,13 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
             active_attributes = set()
             for parameter in instance["parameters"]:
 
-                start_time = str(parameter["start"] / 10 ** 6)
-                if start_time == "0.0":
-                    start_time = "0"
-
-                end_time = str(parameter["end"] / 10 ** 6)
-                if end_time == "0.0":
-                    end_time = "0"
+                start_time = safe_time(convert_timestamp(parameter["start"]))
+                end_time = safe_time(convert_timestamp(parameter["end"]))
 
                 for timestamp_data in parameter["timestamps"]:
-                    timestamp = str(timestamp_data["timestamp"] / 10 ** 6)
-                    if timestamp == "0.0":
-                        timestamp = "0"
-
+                    timestamp = safe_time(
+                        convert_timestamp(timestamp_data["timestamp"])
+                    )
                     editor_instance["timeline"][timestamp] = {}
 
                     if timestamp == start_time:
@@ -2871,11 +2865,17 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
                         ].append(attr)
 
             editor_data["instances"].append(editor_instance)
-        return json.loads(json.dumps(editor_data, cls=SetEncoder))
+        return editor_data
 
     def upload_to_s3(
         self, image_id: int, image_info, bucket, from_s3, image_id_name_map
     ):
+        class SetEncoder(json.JSONEncoder):
+            def default(self, obj):
+                if isinstance(obj, set):
+                    return list(obj)
+                return json.JSONEncoder.default(self, obj)
+
         try:
             if from_s3:
                 file = io.BytesIO()
@@ -2901,7 +2901,7 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
 
             bucket.put_object(
                 Key=image_info["annotation_json_path"],
-                Body=json.dumps(annotation_json),
+                Body=json.dumps(annotation_json, cls=SetEncoder),
             )
             if self._project.project_type == constances.ProjectType.PIXEL.value:
                 mask_path = image_id_name_map[image_id].path.replace(
