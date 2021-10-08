@@ -55,7 +55,7 @@ class CLIFacade(BaseInterfaceFacade):
         config = repo.get_one(uuid=constances.TOKEN_UUID)
         if config:
             if not input(
-                f"File {config} exists. Do you want to overwrite? [y/n] : "
+                f"File {repo.config_path} exists. Do you want to overwrite? [y/n] : "
             ).lower() in ("y", "yes"):
                 return
         token = input(
