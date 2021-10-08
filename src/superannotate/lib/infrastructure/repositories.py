@@ -30,6 +30,10 @@ class ConfigRepository(BaseManageableRepository):
     def __init__(self, config_path: str = constance.CONFIG_FILE_LOCATION):
         self._config_path = f"{config_path}"
 
+    @property
+    def config_path(self):
+        return self._config_path
+
     def _create_config(self):
         """
         Create a config file
