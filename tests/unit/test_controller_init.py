@@ -3,6 +3,7 @@ from io import StringIO
 import json
 from contextlib import contextmanager
 import pkg_resources
+import tempfile
 from unittest import TestCase
 from unittest.mock import mock_open
 from unittest.mock import patch
@@ -65,3 +66,15 @@ class CLITest(TestCase):
                     )
                 )
                 self.assertEqual(out.getvalue().strip(), "Configuration file successfully created.")
+
+
+class SKDInitTest(TestCase):
+
+    def test_init_flow(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            token_path = f"{temp_dir}/config.json"
+            with open(token_path, "w") as temp_config:
+                json.dump({"token": "token=1234"}, temp_config)
+                temp_config.close()
+                import src.superannotate as sa
+                sa.init(token_path)

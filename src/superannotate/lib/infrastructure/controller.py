@@ -68,12 +68,11 @@ class BaseController(metaclass=SingleInstanceMetaClass):
             self.configs.get_one("token"),
             self.configs.get_one("main_endpoint"),
         )
-        if token:
-            token = token.value
-        if main_endpoint:
-            main_endpoint = main_endpoint.value
+        token = None if not token else token.value
+        main_endpoint = None if not main_endpoint else main_endpoint.value
         if not main_endpoint:
             self.configs.insert(ConfigEntity("main_endpoint", constances.BACKEND_URL))
+            main_endpoint = constances.BACKEND_URL
         if not token:
             self.configs.insert(ConfigEntity("token", ""))
             self._logger.warning("Fill config.json")
@@ -94,8 +93,17 @@ class BaseController(metaclass=SingleInstanceMetaClass):
             self._backend_client.api_url = main_endpoint
             self._backend_client._auth_token = token
             self._backend_client.get_session.cache_clear()
-        self._team_id = int(self.configs.get_one("token").value.split("=")[-1])
+        token = self.configs.get_one("token").value
+        self.validate_token(token)
+        self._team_id = int(token.split("=")[-1])
         self._team = None
+
+    @staticmethod
+    def validate_token(token: str):
+        try:
+            return int(token.split("=")[-1])
+        except Exception:
+            raise AppException("Invalid token.")
 
     @property
     def config_path(self):
