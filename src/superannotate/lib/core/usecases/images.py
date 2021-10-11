@@ -2769,7 +2769,7 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
         self, data, class_name_mapper,
     ):
         def safe_time(timestamp):
-            return "0" if timestamp == "0.0" else timestamp
+            return "0" if str(timestamp) == "0.0" else timestamp
 
         def convert_timestamp(timestamp):
             return timestamp / 10 ** 6
