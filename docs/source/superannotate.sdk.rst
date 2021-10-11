@@ -13,7 +13,6 @@ _________________________________
 
 .. autofunction:: superannotate.init
 
-----------
 
 .. _ref_projects:
 
@@ -39,9 +38,10 @@ ________
 .. autofunction:: superannotate.upload_images_to_project
 .. autofunction:: superannotate.attach_image_urls_to_project
 .. autofunction:: superannotate.upload_images_from_public_urls_to_project
-.. autofunction:: superannotate.upload_images_from_google_cloud_to_project
-.. autofunction:: superannotate.upload_images_from_azure_blob_to_project
+.. autofunction:: superannotate.upload_images_from_s3_bucket_to_project
+.. autofunction:: superannotate.attach_document_urls_to_project
 .. autofunction:: superannotate.upload_image_to_project
+.. autofunction:: superannotate.delete_annotations
 .. _ref_upload_images_from_folder_to_project:
 .. autofunction:: superannotate.upload_images_from_folder_to_project
 .. autofunction:: superannotate.upload_video_to_project
@@ -127,6 +127,7 @@ _________________
 .. autofunction:: superannotate.get_team_metadata
 .. autofunction:: superannotate.invite_contributor_to_team
 .. autofunction:: superannotate.delete_contributor_to_team_invitation
+.. autofunction:: superannotate.search_team_contributors
 
 ----------
 
@@ -292,8 +293,8 @@ Annotation JSON helper functions
 
 .. _ref_converter:
 
-Converting annotation format to and from SuperAnnotate format
-_____________________________________________________________
+Converting annotation format to and from src.superannotate format
+_________________________________________________________________
 
 
 .. _ref_import_annotation_format:

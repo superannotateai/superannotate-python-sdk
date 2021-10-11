@@ -1,0 +1,74 @@
+{
+    "description": "",
+    "tags": [],
+    "size": {
+        "height": 933,
+        "width": 700
+    },
+    "objects": [
+        {
+            "id": 556892346,
+            "classId": 2707428,
+            "description": "",
+            "geometryType": "rectangle",
+            "labelerLogin": "Armen",
+            "createdAt": "2020-11-17T10:44:58.768Z",
+            "updatedAt": "2020-11-17T10:45:09.739Z",
+            "tags": [],
+            "classTitle": "cat",
+            "points": {
+                "exterior": [
+                    [
+                        10,
+                        32
+                    ],
+                    [
+                        538,
+                        822
+                    ]
+                ],
+                "interior": []
+            }
+        },
+        {
+            "id": 556892350,
+            "classId": 2707433,
+            "description": "",
+            "geometryType": "point",
+            "labelerLogin": "Armen",
+            "createdAt": "2020-11-17T10:45:04.086Z",
+            "updatedAt": "2020-11-17T10:45:09.739Z",
+            "tags": [],
+            "classTitle": "test_point",
+            "points": {
+                "exterior": [
+                    [
+                        637,
+                        138
+                    ]
+                ],
+                "interior": []
+            }
+        },
+        {
+            "id": 556892356,
+            "classId": 2707433,
+            "description": "",
+            "geometryType": "point",
+            "labelerLogin": "Armen",
+            "createdAt": "2020-11-17T10:45:09.518Z",
+            "updatedAt": "2020-11-17T10:45:09.518Z",
+            "tags": [],
+            "classTitle": "test_point",
+            "points": {
+                "exterior": [
+                    [
+                        635,
+                        340
+                    ]
+                ],
+                "interior": []
+            }
+        }
+    ]
+}

@@ -12,9 +12,8 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../..'))
+sys.path.insert(0, os.path.abspath('../../src'))
 
-import superannotate
 
 # -- Project information -----------------------------------------------------
 
@@ -23,7 +22,8 @@ copyright = '2021, SuperAnnotate AI'
 author = 'SuperAnnotate AI'
 
 # The full version, including alpha/beta/rc tags
-release = superannotate.__version__
+from superannotate.version import __version__
+release = __version__
 
 # -- General configuration ---------------------------------------------------
 master_doc = 'index'
@@ -52,3 +52,5 @@ html_theme = 'sphinx_rtd_theme'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = []
+
+autodoc_typehints = "description"
