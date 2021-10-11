@@ -1,5 +1,4 @@
 import json
-import logging
 import os
 import sys
 import tempfile
@@ -24,8 +23,8 @@ from lib.core.entities import ConfigEntity
 from lib.infrastructure.controller import Controller
 from lib.infrastructure.repositories import ConfigRepository
 
-logger = logging.getLogger()
-controller = Controller(logger)
+
+controller = Controller.get_instance()
 
 
 class CLIFacade(BaseInterfaceFacade):

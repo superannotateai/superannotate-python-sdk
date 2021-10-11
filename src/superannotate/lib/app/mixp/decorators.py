@@ -1,9 +1,9 @@
 import functools
 import sys
 
+from lib.infrastructure.controller import Controller
 from mixpanel import Mixpanel
-from superannotate.lib.infrastructure.controller import Controller
-from superannotate.version import __version__
+from version import __version__
 
 from .config import TOKEN
 from .utils import parsers
