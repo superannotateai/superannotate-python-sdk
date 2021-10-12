@@ -61,9 +61,24 @@ class BaseController(metaclass=SingleInstanceMetaClass):
         self._team_id = None
         self._user_id = None
         self._team_name = None
-        self.init(config_path)
+        self._config_path = Path(config_path)
+        if str(self._config_path) == constances.CONFIG_FILE_LOCATION:
+            if not self._config_path.is_file():
+                self.configs.insert(ConfigEntity("main_endpoint", constances.BACKEND_URL))
+                self.configs.insert(ConfigEntity("token", ""))
+        try:
+            self.init(config_path)
+        except AppException:
+            pass
 
-    def init(self, config_path):
+    def init(self, config_path=constances.CONFIG_FILE_LOCATION):
+        config_path = Path(config_path)
+        if not config_path.is_file():
+            raise AppException(
+                f"SuperAnnotate config file {str(config_path)} not found."
+                f" Please provide correct config file location to sa.init(<path>) or use "
+                f"CLI's superannotate init to generate default location config file."
+            )
         self._config_path = config_path
         token, main_endpoint = (
             self.configs.get_one("token"),
@@ -72,13 +87,9 @@ class BaseController(metaclass=SingleInstanceMetaClass):
         token = None if not token else token.value
         main_endpoint = None if not main_endpoint else main_endpoint.value
         if not main_endpoint:
-            self.configs.insert(ConfigEntity("main_endpoint", constances.BACKEND_URL))
             main_endpoint = constances.BACKEND_URL
         if not token:
-            self.configs.insert(ConfigEntity("token", ""))
-            # TODO check
-            #self._logger.warning(f"Fill token in the {config_path}")
-            return
+            raise AppException(f"Incorrect config file: token is not present in the config file {config_path}")
         verify_ssl_entity = self.configs.get_one("ssl_verify")
         if not verify_ssl_entity:
             verify_ssl = True
