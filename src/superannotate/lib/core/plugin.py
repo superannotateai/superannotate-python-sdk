@@ -216,63 +216,139 @@ class VideoPlugin:
         extract_path: str,
         limit: int,
         target_fps: float,
+        save: bool = True,
+        chunk_size: int = 100,
     ) -> List[str]:
-        video = cv2.VideoCapture(video_path, cv2.CAP_FFMPEG)
-        if not video.isOpened():
-            return []
-        frames_count = VideoPlugin.get_frames_count(video_path)
-        logger.info("Video frame count is %s.", frames_count)
 
+        video = cv2.VideoCapture(str(video_path), cv2.CAP_FFMPEG)
+        if not video.isOpened():
+            raise logger.warning(f"Couldn't open video file {str(video_path)}.")
+        total_num_of_frames = VideoPlugin.get_frames_count(video_path)
         fps = video.get(cv2.CAP_PROP_FPS)
         if not target_fps:
             target_fps = fps
         if target_fps > fps:
-            logger.warning(
-                "Video frame rate %s smaller than target frame rate %s. Cannot change frame rate.",
-                fps,
-                target_fps,
-            )
+            if save:
+                logger.warning(
+                    "Video frame rate %s smaller than target frame rate %s. Cannot change frame rate.",
+                    fps,
+                    target_fps,
+                )
             target_fps = fps
-
         else:
-            logger.info(
-                "Changing video frame rate from %s to target frame rate %s.",
-                fps,
-                target_fps,
-            )
+            if save:
+                logger.info(
+                    "Changing video frame rate from %s to target frame rate %s.",
+                    fps,
+                    target_fps,
+                )
 
         ratio = fps / target_fps
-        zero_fill_count = len(str(frames_count))
-
+        zero_fill_count = len(str(total_num_of_frames))
         rotate_code = VideoPlugin.get_video_rotate_code(video_path)
-
-        frame_number = 0
-        extracted_frame_number = 0
-        extracted_frame_ratio = 1.0
-        logger.info("Extracting frames from video to %s.", extract_path)
+        video_name = Path(video_path).stem
+        frame_no = 0
+        frame_no_with_change = 1.0
+        extracted_frame_no = 1
         extracted_frames_paths = []
-
-        while len(os.listdir(extract_path)) < limit:
+        all_paths = []
+        while len(all_paths) < limit:
             success, frame = video.read()
-            if success:
-                frame_time = video.get(cv2.CAP_PROP_POS_MSEC) / 1000.0
-
-                if (end_time and frame_time > end_time) or (
-                    start_time and frame_time < start_time
-                ):
-                    continue
-
-                frame_number += 1
-                if round(extracted_frame_ratio) != frame_number:
-                    continue
-                extracted_frame_ratio += ratio
-                extracted_frame_number += 1
-                if rotate_code:
-                    frame = cv2.rotate(frame, rotate_code)
-
-                path = f"{extract_path}/{Path(video_path).stem}_{str(extracted_frame_number).zfill(zero_fill_count)}.jpg"
-                extracted_frames_paths.append(path)
-                cv2.imwrite(path, frame)
-            else:
+            if not success:
                 break
+            frame_no += 1
+            if round(frame_no_with_change) != frame_no:
+                continue
+            frame_no_with_change += ratio
+            frame_time = video.get(cv2.CAP_PROP_POS_MSEC) / 1000.0
+            if end_time and frame_time > end_time:
+                break
+            if frame_time < start_time:
+                continue
+            if rotate_code and save:
+                frame = cv2.rotate(frame, rotate_code)
+            path = str(
+                Path(extract_path)
+                / (
+                    video_name
+                    + "_"
+                    + str(extracted_frame_no).zfill(zero_fill_count)
+                    + ".jpg"
+                )
+            )
+            if save:
+                cv2.imwrite(path, frame)
+            extracted_frames_paths.append(path)
+            extracted_frame_no += 1
+            if len(extracted_frames_paths) % chunk_size == 0:
+                q = extracted_frames_paths
+                all_paths += extracted_frames_paths
+                extracted_frames_paths = []
+                yield q
+        if extracted_frames_paths:
+            q = extracted_frames_paths
+            all_paths += extracted_frames_paths
+            extracted_frames_paths = []
+            yield q
         return extracted_frames_paths
+
+        #
+        # video = cv2.VideoCapture(video_path, cv2.CAP_FFMPEG)
+        # if not video.isOpened():
+        #     return []
+        # frames_count = VideoPlugin.get_frames_count(video_path)
+        # logger.info("Video frame count is %s.", frames_count)
+        #
+        # fps = video.get(cv2.CAP_PROP_FPS)
+        # if not target_fps:
+        #     target_fps = fps
+        # if target_fps > fps:
+        #     logger.warning(
+        #         "Video frame rate %s smaller than target frame rate %s. Cannot change frame rate.",
+        #         fps,
+        #         target_fps,
+        #     )
+        #     target_fps = fps
+        #
+        # else:
+        #     logger.info(
+        #         "Changing video frame rate from %s to target frame rate %s.",
+        #         fps,
+        #         target_fps,
+        #     )
+        #
+        # ratio = fps / target_fps
+        # zero_fill_count = len(str(frames_count))
+        #
+        # rotate_code = VideoPlugin.get_video_rotate_code(video_path)
+        #
+        # frame_number = 0
+        # extracted_frame_number = 0
+        # extracted_frame_ratio = 1.0
+        # logger.info("Extracting frames from video to %s.", extract_path)
+        # extracted_frames_paths = []
+        #
+        # while len(os.listdir(extract_path)) < limit:
+        #     success, frame = video.read()
+        #     if success:
+        #         frame_time = video.get(cv2.CAP_PROP_POS_MSEC) / 1000.0
+        #
+        #         if (end_time and frame_time > end_time) or (
+        #             start_time and frame_time < start_time
+        #         ):
+        #             continue
+        #
+        #         frame_number += 1
+        #         if round(extracted_frame_ratio) != frame_number:
+        #             continue
+        #         extracted_frame_ratio += ratio
+        #         extracted_frame_number += 1
+        #         if rotate_code:
+        #             frame = cv2.rotate(frame, rotate_code)
+        #
+        #         path = f"{extract_path}/{Path(video_path).stem}_{str(extracted_frame_number).zfill(zero_fill_count)}.jpg"
+        #         extracted_frames_paths.append(path)
+        #         cv2.imwrite(path, frame)
+        #     else:
+        #         break
+        # return extracted_frames_paths

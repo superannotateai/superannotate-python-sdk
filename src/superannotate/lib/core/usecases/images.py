@@ -2027,9 +2027,7 @@ class CopyImageUseCase(BaseUseCase):
         if response.data.folder_limit.remaining_image_count < 1:
             raise AppValidationException(constances.COPY_FOLDER_LIMIT_ERROR_MESSAGE)
         if response.data.project_limit.remaining_image_count < 1:
-            raise AppValidationException(
-                constances.COPY_PROJECT_LIMIT_ERROR_MESSAGE
-            )
+            raise AppValidationException(constances.COPY_PROJECT_LIMIT_ERROR_MESSAGE)
         if (
             response.data.user_limit
             and response.data.user_limit.remaining_image_count < 1
@@ -3541,6 +3539,7 @@ class ExtractFramesUseCase(BaseUseCase):
         annotation_status_code: int = constances.AnnotationStatus.NOT_STARTED.value,
         image_quality_in_editor: str = None,
         limit: int = None,
+        save: bool = True,
     ):
         super().__init__()
         self._backend_service = backend_service_provider
@@ -3555,6 +3554,7 @@ class ExtractFramesUseCase(BaseUseCase):
         self._image_quality_in_editor = image_quality_in_editor
         self._limit = limit
         self._limitation_response = None
+        self._save = save
 
     def validate_upload_state(self):
         if self._project.upload_state == constances.UploadState.EXTERNAL.value:
@@ -3606,16 +3606,15 @@ class ExtractFramesUseCase(BaseUseCase):
 
     def execute(self):
         if self.is_valid():
-            extracted_paths = VideoPlugin.extract_frames(
+            return VideoPlugin.extract_frames(
                 video_path=self._video_path,
                 start_time=self._start_time,
                 end_time=self._end_time,
                 extract_path=self._extract_path,
                 limit=self.limit,
                 target_fps=self._target_fps,
+                save=self._save,
             )
-            self._response.data = extracted_paths
-        return self._response
 
 
 class UploadS3ImagesBackendUseCase(BaseUseCase):

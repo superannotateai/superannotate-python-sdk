@@ -1714,7 +1714,22 @@ def upload_videos_from_folder_to_project(
     uploaded_paths = []
     for path in video_paths:
         with tempfile.TemporaryDirectory() as temp_path:
-            res = controller.extract_video_frames(
+            total_frames_count = 0
+            for frames_path in controller.extract_video_frames(
+                project_name=project_name,
+                folder_name=folder_name,
+                video_path=path,
+                extract_path=temp_path,
+                target_fps=target_fps,
+                start_time=start_time,
+                end_time=end_time,
+                annotation_status=annotation_status,
+                image_quality_in_editor=image_quality_in_editor,
+                save=False,
+            ):
+                total_frames_count += len(frames_path)
+            logger.info(f"Video frame count is {total_frames_count}.")
+            frames_generator = controller.extract_video_frames(
                 project_name=project_name,
                 folder_name=folder_name,
                 video_path=path,
@@ -1725,48 +1740,48 @@ def upload_videos_from_folder_to_project(
                 annotation_status=annotation_status,
                 image_quality_in_editor=image_quality_in_editor,
             )
-            if res.errors:
-                raise AppException(res.errors)
-            use_case = controller.upload_images_from_folder_to_project(
-                project_name=project_name,
-                folder_name=folder_name,
-                folder_path=temp_path,
-                annotation_status=annotation_status,
-                image_quality_in_editor=image_quality_in_editor,
-            )
-            images_to_upload, duplicates = use_case.images_to_upload
+
             logger.info(
-                f"Extracted {len(res.data)} frames from video. Now uploading to platform.",
+                f"Extracted {total_frames_count} frames from video. Now uploading to platform.",
             )
             logger.info(
-                f"Uploading {len(images_to_upload)} images to project {str(project_folder_name)}."
+                f"Uploading {total_frames_count} images to project {str(project_folder_name)}."
             )
 
-            if len(duplicates):
-                logger.warning(
-                    f"{len(duplicates)} already existing images found that won't be uploaded."
+            for _ in frames_generator:
+                use_case = controller.upload_images_from_folder_to_project(
+                    project_name=project_name,
+                    folder_name=folder_name,
+                    folder_path=temp_path,
+                    annotation_status=annotation_status,
+                    image_quality_in_editor=image_quality_in_editor,
                 )
-            if not images_to_upload:
-                logger.warning(
-                    f"{len(duplicates)} already existing images found that won't be uploaded."
-                )
-                continue
-            if use_case.is_valid():
-                with tqdm(
-                    total=len(images_to_upload), desc="Uploading images"
-                ) as progress_bar:
-                    for _ in use_case.execute():
-                        progress_bar.update()
-                uploaded, failed_images, duplicated = use_case.response.data
-                uploaded_paths.extend(uploaded)
-                if failed_images:
-                    logger.warning(f"Failed {len(uploaded)}.")
-                if duplicated:
+
+                images_to_upload, duplicates = use_case.images_to_upload
+                if len(duplicates):
                     logger.warning(
-                        f"{len(duplicated)} already existing images found that won't be uploaded."
+                        f"{len(duplicates)} already existing images found that won't be uploaded."
                     )
-            else:
-                raise AppException(use_case.response.errors)
+                if not len(images_to_upload):
+                    continue
+
+                if use_case.is_valid():
+                    with tqdm(
+                        total=total_frames_count, desc="Uploading images"
+                    ) as progress_bar:
+                        for _ in use_case.execute():
+                            progress_bar.update()
+                    uploaded, failed_images, _ = use_case.response.data
+                    uploaded_paths.extend(uploaded)
+                    if failed_images:
+                        logger.warning(f"Failed {len(failed_images)}.")
+                    files = os.listdir(temp_path)
+                    image_paths = [f"{temp_path}/{f}" for f in files]
+                    for path in image_paths:
+                        os.remove(path)
+                else:
+                    raise AppException(use_case.response.errors)
+
     return uploaded_paths
 
 
