@@ -53,8 +53,8 @@ from pydantic import StrictBool
 from tqdm import tqdm
 
 
+controller = Controller.get_instance()
 logger = logging.getLogger("root")
-controller = Controller(logger)
 
 
 @validate_arguments
@@ -67,7 +67,7 @@ def init(path_to_config_json: str):
     :param path_to_config_json: Location to config JSON file
     :type path_to_config_json: str or Path
     """
-    # global controller
+    global controller
     controller.init(path_to_config_json)
 
 
