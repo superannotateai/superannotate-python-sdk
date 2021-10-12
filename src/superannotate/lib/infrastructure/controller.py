@@ -1,5 +1,6 @@
 import copy
 import io
+import logging
 from pathlib import Path
 from typing import Iterable
 from typing import List
@@ -43,13 +44,14 @@ class SingleInstanceMetaClass(type):
     def get_instance(cls):
         if cls._instances:
             return cls._instances[cls]
+        return cls()
 
 
 class BaseController(metaclass=SingleInstanceMetaClass):
-    def __init__(self, logger, config_path=constances.CONFIG_FILE_LOCATION):
+    def __init__(self, config_path=constances.CONFIG_FILE_LOCATION):
         self._config_path = None
         self._backend_client = None
-        self._logger = logger
+        self._logger = logging.getLogger("root")
         self._s3_upload_auth_data = None
         self._projects = None
         self._folders = None
@@ -59,7 +61,6 @@ class BaseController(metaclass=SingleInstanceMetaClass):
         self._team_id = None
         self._user_id = None
         self._team_name = None
-        self._team = None
         self.init(config_path)
 
     def init(self, config_path):
@@ -68,15 +69,15 @@ class BaseController(metaclass=SingleInstanceMetaClass):
             self.configs.get_one("token"),
             self.configs.get_one("main_endpoint"),
         )
-        if token:
-            token = token.value
-        if main_endpoint:
-            main_endpoint = main_endpoint.value
+        token = None if not token else token.value
+        main_endpoint = None if not main_endpoint else main_endpoint.value
         if not main_endpoint:
             self.configs.insert(ConfigEntity("main_endpoint", constances.BACKEND_URL))
+            main_endpoint = constances.BACKEND_URL
         if not token:
             self.configs.insert(ConfigEntity("token", ""))
-            self._logger.warning("Fill config.json")
+            # TODO check
+            #self._logger.warning(f"Fill token in the {config_path}")
             return
         verify_ssl_entity = self.configs.get_one("ssl_verify")
         if not verify_ssl_entity:
@@ -94,8 +95,17 @@ class BaseController(metaclass=SingleInstanceMetaClass):
             self._backend_client.api_url = main_endpoint
             self._backend_client._auth_token = token
             self._backend_client.get_session.cache_clear()
-        self._team_id = int(self.configs.get_one("token").value.split("=")[-1])
-        self._team = None
+        if self.is_valid_token(token):
+            self._team_id = int(token.split("=")[-1])
+        self._teams = None
+
+    @staticmethod
+    def is_valid_token(token: str):
+        try:
+            int(token.split("=")[-1])
+            return True
+        except Exception:
+            return False
 
     @property
     def config_path(self):
@@ -142,11 +152,10 @@ class BaseController(metaclass=SingleInstanceMetaClass):
         return self._folders
 
     def get_team(self):
-        if not self._team:
-            self._team = usecases.GetTeamUseCase(
-                teams=self.teams, team_id=self.team_id
-            ).execute()
-        return self._team
+        return usecases.GetTeamUseCase(
+            teams=self.teams, team_id=self.team_id
+        ).execute()
+
 
     @property
     def ml_models(self):
@@ -173,6 +182,8 @@ class BaseController(metaclass=SingleInstanceMetaClass):
     @property
     def team_id(self) -> int:
         if not self._team_id:
+            if not self.is_valid_token(self.configs.get_one("token").value):
+                raise AppException("Invalid token.")
             self._team_id = int(self.configs.get_one("token").value.split("=")[-1])
         return self._team_id
 
@@ -200,8 +211,8 @@ class BaseController(metaclass=SingleInstanceMetaClass):
 
 
 class Controller(BaseController):
-    def __init__(self, logger, config_path=constances.CONFIG_FILE_LOCATION):
-        super().__init__(logger, config_path)
+    def __init__(self, config_path=constances.CONFIG_FILE_LOCATION):
+        super().__init__(config_path)
         self._team = None
 
     def _get_project(self, name: str):

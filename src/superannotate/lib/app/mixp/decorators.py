@@ -1,9 +1,9 @@
 import functools
 import sys
 
+from lib.infrastructure.controller import Controller
 from mixpanel import Mixpanel
-from superannotate.lib.infrastructure.controller import Controller
-from superannotate.version import __version__
+from version import __version__
 
 from .config import TOKEN
 from .utils import parsers
@@ -38,17 +38,20 @@ class Trackable:
             data = getattr(parsers, self.function.__name__)(*args, **kwargs)
             event_name = data["event_name"]
             properties = data["properties"]
+            team_data = self.__class__.TEAM_DATA.data
+            user_id = team_data.creator_id
+            team_name = team_data.name
             properties["Success"] = self._success
             default = get_default(
-                team_name=self.__class__.TEAM_DATA[1],
-                user_id=self.__class__.TEAM_DATA[0],
+                team_name=team_name,
+                user_id=user_id,
                 project_name=properties.get("project_name", None),
             )
             properties.pop("project_name", None)
             properties = {**default, **properties}
 
             if "pytest" not in sys.modules:
-                mp.track(controller.user_id, event_name, properties)
+                mp.track(user_id, event_name, properties)
         except Exception as _:
             pass
 

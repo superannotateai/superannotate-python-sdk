@@ -3,7 +3,6 @@ from functools import wraps
 from typing import Union
 
 from lib.core.enums import AnnotationStatus
-from lib.core.exceptions import AppException
 from pydantic import constr
 from pydantic import StrictStr
 from pydantic import validate_arguments as pydantic_validate_arguments
