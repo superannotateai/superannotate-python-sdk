@@ -61,7 +61,6 @@ class BaseController(metaclass=SingleInstanceMetaClass):
         self._team_id = None
         self._user_id = None
         self._team_name = None
-        self._team = None
         self.init(config_path)
 
     def init(self, config_path):
@@ -77,7 +76,8 @@ class BaseController(metaclass=SingleInstanceMetaClass):
             main_endpoint = constances.BACKEND_URL
         if not token:
             self.configs.insert(ConfigEntity("token", ""))
-            self._logger.warning(f"Fill token in the {config_path}")
+            # TODO check
+            #self._logger.warning(f"Fill token in the {config_path}")
             return
         verify_ssl_entity = self.configs.get_one("ssl_verify")
         if not verify_ssl_entity:
@@ -97,7 +97,7 @@ class BaseController(metaclass=SingleInstanceMetaClass):
             self._backend_client.get_session.cache_clear()
         if self.is_valid_token(token):
             self._team_id = int(token.split("=")[-1])
-        self._team = None
+        self._teams = None
 
     @staticmethod
     def is_valid_token(token: str):
@@ -152,11 +152,10 @@ class BaseController(metaclass=SingleInstanceMetaClass):
         return self._folders
 
     def get_team(self):
-        if not self._team:
-            self._team = usecases.GetTeamUseCase(
-                teams=self.teams, team_id=self.team_id
-            ).execute()
-        return self._team
+        return usecases.GetTeamUseCase(
+            teams=self.teams, team_id=self.team_id
+        ).execute()
+
 
     @property
     def ml_models(self):
