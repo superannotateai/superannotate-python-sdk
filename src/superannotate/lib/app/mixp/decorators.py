@@ -10,8 +10,6 @@ from .utils import parsers
 
 mp = Mixpanel(TOKEN)
 
-controller = Controller.get_instance()
-
 
 def get_default(team_name, user_id, project_name=None):
     return {
@@ -57,7 +55,7 @@ class Trackable:
 
     def __call__(self, *args, **kwargs):
         try:
-            self.__class__.TEAM_DATA = controller.get_team()
+            self.__class__.TEAM_DATA = Controller.get_instance().get_team()
             ret = self.function(*args, **kwargs)
             self._success = True
         except Exception as e:

@@ -58,7 +58,7 @@ logger = logging.getLogger("root")
 
 
 @validate_arguments
-def init(path_to_config_json: str):
+def init(path_to_config_json: Optional[str] = None):
     """
     Initializes and authenticates to SuperAnnotate platform using the config file.
     If not initialized then $HOME/.superannotate/config.json
