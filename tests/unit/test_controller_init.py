@@ -1,11 +1,14 @@
 import sys
 from io import StringIO
+from os.path import join
 import json
 from contextlib import contextmanager
 import pkg_resources
+import tempfile
 from unittest import TestCase
 from unittest.mock import mock_open
 from unittest.mock import patch
+
 
 from src.superannotate.lib.app.interface.cli_interface import CLIFacade
 from src.superannotate.lib.core import CONFIG_FILE_LOCATION
@@ -65,3 +68,32 @@ class CLITest(TestCase):
                     )
                 )
                 self.assertEqual(out.getvalue().strip(), "Configuration file successfully created.")
+
+
+class SKDInitTest(TestCase):
+    VALID_JSON = {
+        "token": "a"*28 + "=1234"
+    }
+    INVALID_JSON ={
+        "token": "a" * 28 + "=1234asd"
+    }
+    FILE_NAME = "config.json"
+    FILE_NAME_2 = "config.json"
+
+    def test_init_flow(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            token_path = f"{temp_dir}/config.json"
+            with open(token_path, "w") as temp_config:
+                json.dump({"token": "token=1234"}, temp_config)
+                temp_config.close()
+                import src.superannotate as sa
+                sa.init(token_path)
+
+    def test_init(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = join(temp_dir, self.FILE_NAME)
+            with open(path, "w") as config:
+                json.dump(self.VALID_JSON, config)
+            import src.superannotate as sa
+            sa.init(path)
+            self.assertEqual(sa.controller.team_id, 1234)
