@@ -1,6 +1,7 @@
 import io
 import json
 import os
+from os.path import expanduser
 from typing import List
 from typing import Optional
 
@@ -32,20 +33,20 @@ class ConfigRepository(BaseManageableRepository):
 
     @property
     def config_path(self):
-        return self._config_path
+        return expanduser(self._config_path)
 
     def _create_config(self):
         """
         Create a config file
         """
-        os.makedirs(os.path.dirname(self._config_path), exist_ok=True)
-        open(self._config_path, "w").close()
+        os.makedirs(os.path.dirname(self.config_path), exist_ok=True)
+        open(self.config_path, "w").close()
         return {}
 
     def _get_config(self) -> Optional[dict]:
-        if not os.path.exists(self._config_path):
+        if not os.path.exists(self.config_path):
             return
-        with open(self._config_path) as config:
+        with open(self.config_path) as config:
             return json.load(config)
 
     def get_one(self, uuid: str) -> Optional[ConfigEntity]:

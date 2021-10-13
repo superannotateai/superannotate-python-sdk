@@ -1,6 +1,7 @@
 import copy
 import io
 import logging
+from os.path import expanduser
 from pathlib import Path
 from typing import Iterable
 from typing import List
@@ -61,9 +62,28 @@ class BaseController(metaclass=SingleInstanceMetaClass):
         self._team_id = None
         self._user_id = None
         self._team_name = None
-        self.init(config_path)
+        self._config_path = expanduser(config_path)
+        try:
+            self.init(config_path)
+        except AppException:
+            pass
 
-    def init(self, config_path):
+    def init(self, config_path=None):
+        if not config_path:
+            config_path = constances.CONFIG_FILE_LOCATION
+        config_path = Path(expanduser(config_path))
+        if not config_path.is_file():
+            raise AppException(
+                f"SuperAnnotate config file {str(config_path)} not found."
+                f" Please provide correct config file location to sa.init(<path>) or use "
+                f"CLI's superannotate init to generate default location config file."
+            )
+        if str(config_path) == constances.CONFIG_FILE_LOCATION:
+            if not Path(self._config_path).is_file():
+                self.configs.insert(ConfigEntity("main_endpoint", constances.BACKEND_URL))
+                self.configs.insert(ConfigEntity("token", ""))
+                return
+
         self._config_path = config_path
         token, main_endpoint = (
             self.configs.get_one("token"),
@@ -72,13 +92,9 @@ class BaseController(metaclass=SingleInstanceMetaClass):
         token = None if not token else token.value
         main_endpoint = None if not main_endpoint else main_endpoint.value
         if not main_endpoint:
-            self.configs.insert(ConfigEntity("main_endpoint", constances.BACKEND_URL))
             main_endpoint = constances.BACKEND_URL
         if not token:
-            self.configs.insert(ConfigEntity("token", ""))
-            # TODO check
-            #self._logger.warning(f"Fill token in the {config_path}")
-            return
+            raise AppException(f"Incorrect config file: token is not present in the config file {config_path}")
         verify_ssl_entity = self.configs.get_one("ssl_verify")
         if not verify_ssl_entity:
             verify_ssl = True
@@ -86,8 +102,8 @@ class BaseController(metaclass=SingleInstanceMetaClass):
             verify_ssl = verify_ssl_entity.value
         if not self._backend_client:
             self._backend_client = SuperannotateBackendService(
-                api_url=self.configs.get_one("main_endpoint").value,
-                auth_token=self.configs.get_one("token").value,
+                api_url=main_endpoint,
+                auth_token=token,
                 logger=self._logger,
                 verify_ssl=verify_ssl,
             )
@@ -95,17 +111,18 @@ class BaseController(metaclass=SingleInstanceMetaClass):
             self._backend_client.api_url = main_endpoint
             self._backend_client._auth_token = token
             self._backend_client.get_session.cache_clear()
-        if self.is_valid_token(token):
-            self._team_id = int(token.split("=")[-1])
+        self._team_id = None
+        self.validate_token(token)
+        self._team_id = int(token.split("=")[-1])
         self._teams = None
 
     @staticmethod
-    def is_valid_token(token: str):
+    def validate_token(token: str):
         try:
             int(token.split("=")[-1])
             return True
         except Exception:
-            return False
+            raise AppException("Invalid token.") from None
 
     @property
     def config_path(self):
@@ -156,7 +173,6 @@ class BaseController(metaclass=SingleInstanceMetaClass):
             teams=self.teams, team_id=self.team_id
         ).execute()
 
-
     @property
     def ml_models(self):
         if not self._ml_models:
@@ -165,7 +181,7 @@ class BaseController(metaclass=SingleInstanceMetaClass):
 
     @property
     def teams(self):
-        if not self._teams:
+        if self.team_id and not self._teams:
             self._teams = TeamRepository(self._backend_client)
         return self._teams
 
@@ -182,9 +198,7 @@ class BaseController(metaclass=SingleInstanceMetaClass):
     @property
     def team_id(self) -> int:
         if not self._team_id:
-            if not self.is_valid_token(self.configs.get_one("token").value):
-                raise AppException("Invalid token.")
-            self._team_id = int(self.configs.get_one("token").value.split("=")[-1])
+            raise AppException(f"Invalid credentials provided in the {self._config_path}.")
         return self._team_id
 
     @timed_lru_cache(seconds=3600)
