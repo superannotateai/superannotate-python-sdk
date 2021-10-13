@@ -72,18 +72,17 @@ class BaseController(metaclass=SingleInstanceMetaClass):
         if not config_path:
             config_path = constances.CONFIG_FILE_LOCATION
         config_path = Path(expanduser(config_path))
+        if str(config_path) == constances.CONFIG_FILE_LOCATION:
+            if not Path(self._config_path).is_file():
+                self.configs.insert(ConfigEntity("main_endpoint", constances.BACKEND_URL))
+                self.configs.insert(ConfigEntity("token", ""))
+                return
         if not config_path.is_file():
             raise AppException(
                 f"SuperAnnotate config file {str(config_path)} not found."
                 f" Please provide correct config file location to sa.init(<path>) or use "
                 f"CLI's superannotate init to generate default location config file."
             )
-        if str(config_path) == constances.CONFIG_FILE_LOCATION:
-            if not Path(self._config_path).is_file():
-                self.configs.insert(ConfigEntity("main_endpoint", constances.BACKEND_URL))
-                self.configs.insert(ConfigEntity("token", ""))
-                return
-
         self._config_path = config_path
         token, main_endpoint = (
             self.configs.get_one("token"),
