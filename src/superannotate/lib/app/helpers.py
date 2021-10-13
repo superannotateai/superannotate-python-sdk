@@ -50,10 +50,11 @@ def get_local_annotation_paths(
 ) -> List[str]:
     all_items = [*Path(folder_path).glob("*")]
     all_folders = [i for i in all_items if i.is_dir()]
+    all_not_folders = [i for i in all_items if not i.is_dir()]
     annotation_paths.update(
         [
             str(i)
-            for i in all_items
+            for i in all_not_folders
             if i.name.endswith((VECTOR_ANNOTATION_POSTFIX, PIXEL_ANNOTATION_POSTFIX))
         ]
     )
