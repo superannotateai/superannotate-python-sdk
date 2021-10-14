@@ -38,14 +38,10 @@ class ClassesJson(BaseModel):
     attribute_groups: List[AttributeGroup]
 
 
-class PixelMetadata(BaseModel):
+class Metadata(BaseModel):
     name: Optional[NotEmptyStr]
-
-
-class VectorMetadata(BaseModel):
-    name: Optional[NotEmptyStr]
-    width: int
-    height: int
+    width: Optional[int]
+    height: Optional[int]
 
 
 class BaseInstance(BaseModel):
@@ -150,7 +146,7 @@ ANNOTATION_TYPES = {
 
 
 class VectorAnnotation(BaseModel):
-    metadata: VectorMetadata
+    metadata: Metadata
     instances: Optional[List[Union[Template, Cuboid, Point, PolyLine, Polygon, Bbox, Ellipse]]]
 
     @validator("instances", pre=True, each_item=True)
@@ -164,7 +160,7 @@ class VectorAnnotation(BaseModel):
 
 
 class PixelAnnotation(BaseModel):
-    metadata: PixelMetadata
+    metadata: Metadata
     instances: List[PixelAnnotationInstance]
 
 

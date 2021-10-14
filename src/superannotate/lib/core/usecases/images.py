@@ -2735,20 +2735,16 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
                             failed_annotations.append(annotation)
                         yield
 
-                uploaded_annotations = [
-                    annotation.path for annotation in uploaded_annotations
-                ]
-                missing_annotations.extend(
-                    [annotation.path for annotation in self._missing_annotations]
-                )
-                failed_annotations = [
-                    annotation.path for annotation in failed_annotations
-                ]
-            self._response.data = (
-                uploaded_annotations,
-                failed_annotations,
-                missing_annotations,
-            )
+        uploaded_annotations = [annotation.path for annotation in uploaded_annotations]
+        missing_annotations.extend(
+            [annotation.path for annotation in self._missing_annotations]
+        )
+        failed_annotations = [annotation.path for annotation in failed_annotations]
+        self._response.data = (
+            uploaded_annotations,
+            failed_annotations,
+            missing_annotations,
+        )
         self.report_missing_data()
         return self._response
 

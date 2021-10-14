@@ -1,10 +1,5 @@
-import logging
-
 from lib.infrastructure.controller import Controller
 from lib.infrastructure.repositories import ConfigRepository
-
-
-logger = logging.getLogger()
 
 
 class BaseInterfaceFacade:
@@ -15,6 +10,7 @@ class BaseInterfaceFacade:
     def controller(self):
         if not ConfigRepository().get_one("token"):
             raise Exception("Config does not exists!")
+        controller = Controller.get_instance()
         if self._config_path:
-            return Controller(logger, self._config_path)
-        return Controller(logger)
+            controller.init(self._config_path)
+        return controller
