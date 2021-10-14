@@ -57,6 +57,7 @@ from superannotate.lib.app.interface.sdk_interface import attach_video_urls_to_p
 from superannotate.lib.app.interface.sdk_interface import benchmark
 from superannotate.lib.app.interface.sdk_interface import clone_project
 from superannotate.lib.app.interface.sdk_interface import consensus
+from superannotate.lib.app.interface.sdk_interface import controller
 from superannotate.lib.app.interface.sdk_interface import copy_image
 from superannotate.lib.app.interface.sdk_interface import copy_images
 from superannotate.lib.app.interface.sdk_interface import create_annotation_class
@@ -157,13 +158,16 @@ from superannotate.lib.app.interface.sdk_interface import upload_video_to_projec
 from superannotate.lib.app.interface.sdk_interface import (
     upload_videos_from_folder_to_project,
 )
+from superannotate.lib.app.interface.sdk_interface import validate_annotations
 from superannotate.version import __version__
 
 
 __all__ = [
     "__version__",
+    "controller",
     # Utils
     "AppException",
+    "validate_annotations",
     #
     "init",
     "set_auth_token",

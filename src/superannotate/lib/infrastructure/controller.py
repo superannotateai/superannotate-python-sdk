@@ -1,5 +1,7 @@
 import copy
 import io
+import logging
+from os.path import expanduser
 from pathlib import Path
 from typing import Iterable
 from typing import List
@@ -30,6 +32,7 @@ from lib.infrastructure.repositories import S3Repository
 from lib.infrastructure.repositories import TeamRepository
 from lib.infrastructure.repositories import WorkflowRepository
 from lib.infrastructure.services import SuperannotateBackendService
+from lib.infrastructure.validators import AnnotationValidator
 
 
 class SingleInstanceMetaClass(type):
@@ -43,13 +46,14 @@ class SingleInstanceMetaClass(type):
     def get_instance(cls):
         if cls._instances:
             return cls._instances[cls]
+        return cls()
 
 
 class BaseController(metaclass=SingleInstanceMetaClass):
-    def __init__(self, logger, config_path=constances.CONFIG_FILE_LOCATION):
+    def __init__(self, config_path=constances.CONFIG_FILE_LOCATION):
         self._config_path = None
         self._backend_client = None
-        self._logger = logger
+        self._logger = logging.getLogger("root")
         self._s3_upload_auth_data = None
         self._projects = None
         self._folders = None
@@ -59,25 +63,38 @@ class BaseController(metaclass=SingleInstanceMetaClass):
         self._team_id = None
         self._user_id = None
         self._team_name = None
-        self._team = None
-        self.init(config_path)
+        self._config_path = expanduser(config_path)
+        try:
+            self.init(config_path)
+        except AppException:
+            pass
 
-    def init(self, config_path):
+    def init(self, config_path=None):
+        if not config_path:
+            config_path = constances.CONFIG_FILE_LOCATION
+        config_path = Path(expanduser(config_path))
+        if str(config_path) == constances.CONFIG_FILE_LOCATION:
+            if not Path(self._config_path).is_file():
+                self.configs.insert(ConfigEntity("main_endpoint", constances.BACKEND_URL))
+                self.configs.insert(ConfigEntity("token", ""))
+                return
+        if not config_path.is_file():
+            raise AppException(
+                f"SuperAnnotate config file {str(config_path)} not found."
+                f" Please provide correct config file location to sa.init(<path>) or use "
+                f"CLI's superannotate init to generate default location config file."
+            )
         self._config_path = config_path
         token, main_endpoint = (
             self.configs.get_one("token"),
             self.configs.get_one("main_endpoint"),
         )
-        if token:
-            token = token.value
-        if main_endpoint:
-            main_endpoint = main_endpoint.value
+        token = None if not token else token.value
+        main_endpoint = None if not main_endpoint else main_endpoint.value
         if not main_endpoint:
-            self.configs.insert(ConfigEntity("main_endpoint", constances.BACKEND_URL))
+            main_endpoint = constances.BACKEND_URL
         if not token:
-            self.configs.insert(ConfigEntity("token", ""))
-            self._logger.warning("Fill config.json")
-            return
+            raise AppException(f"Incorrect config file: token is not present in the config file {config_path}")
         verify_ssl_entity = self.configs.get_one("ssl_verify")
         if not verify_ssl_entity:
             verify_ssl = True
@@ -85,8 +102,8 @@ class BaseController(metaclass=SingleInstanceMetaClass):
             verify_ssl = verify_ssl_entity.value
         if not self._backend_client:
             self._backend_client = SuperannotateBackendService(
-                api_url=self.configs.get_one("main_endpoint").value,
-                auth_token=self.configs.get_one("token").value,
+                api_url=main_endpoint,
+                auth_token=token,
                 logger=self._logger,
                 verify_ssl=verify_ssl,
             )
@@ -94,8 +111,18 @@ class BaseController(metaclass=SingleInstanceMetaClass):
             self._backend_client.api_url = main_endpoint
             self._backend_client._auth_token = token
             self._backend_client.get_session.cache_clear()
-        self._team_id = int(self.configs.get_one("token").value.split("=")[-1])
-        self._team = None
+        self._team_id = None
+        self.validate_token(token)
+        self._team_id = int(token.split("=")[-1])
+        self._teams = None
+
+    @staticmethod
+    def validate_token(token: str):
+        try:
+            int(token.split("=")[-1])
+            return True
+        except Exception:
+            raise AppException("Invalid token.") from None
 
     @property
     def config_path(self):
@@ -142,11 +169,9 @@ class BaseController(metaclass=SingleInstanceMetaClass):
         return self._folders
 
     def get_team(self):
-        if not self._team:
-            self._team = usecases.GetTeamUseCase(
-                teams=self.teams, team_id=self.team_id
-            ).execute()
-        return self._team
+        return usecases.GetTeamUseCase(
+            teams=self.teams, team_id=self.team_id
+        ).execute()
 
     @property
     def ml_models(self):
@@ -156,7 +181,7 @@ class BaseController(metaclass=SingleInstanceMetaClass):
 
     @property
     def teams(self):
-        if not self._teams:
+        if self.team_id and not self._teams:
             self._teams = TeamRepository(self._backend_client)
         return self._teams
 
@@ -173,7 +198,7 @@ class BaseController(metaclass=SingleInstanceMetaClass):
     @property
     def team_id(self) -> int:
         if not self._team_id:
-            self._team_id = int(self.configs.get_one("token").value.split("=")[-1])
+            raise AppException(f"Invalid credentials provided in the {self._config_path}.")
         return self._team_id
 
     @timed_lru_cache(seconds=3600)
@@ -198,10 +223,14 @@ class BaseController(metaclass=SingleInstanceMetaClass):
     def s3_repo(self):
         return S3Repository
 
+    @property
+    def annotation_validators(self):
+        return AnnotationValidator()
+
 
 class Controller(BaseController):
-    def __init__(self, logger, config_path=constances.CONFIG_FILE_LOCATION):
-        super().__init__(logger, config_path)
+    def __init__(self, config_path=constances.CONFIG_FILE_LOCATION):
+        super().__init__(config_path)
         self._team = None
 
     def _get_project(self, name: str):
@@ -1571,5 +1600,13 @@ class Controller(BaseController):
             folder=folder,
             backend_service=self._backend_client,
             image_names=image_names,
+        )
+        return use_case.execute()
+
+    def validate_annotations(self, project_type: str, annotation: dict):
+        use_case = usecases.ValidateAnnotationUseCase(
+            project_type,
+            annotation,
+            validators=self.annotation_validators
         )
         return use_case.execute()

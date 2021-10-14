@@ -1,5 +1,4 @@
 import json
-import logging
 import os
 import sys
 import tempfile
@@ -24,8 +23,8 @@ from lib.core.entities import ConfigEntity
 from lib.infrastructure.controller import Controller
 from lib.infrastructure.repositories import ConfigRepository
 
-logger = logging.getLogger()
-controller = Controller(logger)
+
+controller = Controller.get_instance()
 
 
 class CLIFacade(BaseInterfaceFacade):
@@ -55,7 +54,7 @@ class CLIFacade(BaseInterfaceFacade):
         config = repo.get_one(uuid=constances.TOKEN_UUID)
         if config:
             if not input(
-                f"File {config} exists. Do you want to overwrite? [y/n] : "
+                f"File {repo.config_path} exists. Do you want to overwrite? [y/n] : "
             ).lower() in ("y", "yes"):
                 return
         token = input(

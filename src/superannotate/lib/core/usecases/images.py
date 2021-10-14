@@ -45,6 +45,7 @@ from lib.core.types import VideoAnnotation
 from lib.core.usecases.base import BaseInteractiveUseCase
 from lib.core.usecases.base import BaseUseCase
 from lib.core.usecases.projects import GetAnnotationClassesUseCase
+from lib.core.validators import BaseAnnotationValidator
 from PIL import UnidentifiedImageError
 from pydantic import ValidationError
 
@@ -2019,32 +2020,21 @@ class CopyImageUseCase(BaseUseCase):
         if not response.ok:
             raise AppValidationException(response.error)
 
-        if self._move:
-            if self._from_project.uuid == self._to_project.uuid:
-                if self._from_folder.uuid == self._to_folder.uuid:
-                    raise AppValidationException(
-                        "Cannot move image if source_project == destination_project."
-                    )
-                elif response.data.folder_limit.remaining_image_count < 1:
-                    raise AppValidationException(
-                        constances.MOVE_FOLDER_LIMIT_ERROR_MESSAGE
-                    )
-            elif response.data.project_limit.remaining_image_count < 1:
+        if self._move and self._from_project.uuid == self._to_project.uuid:
+            if self._from_folder.uuid == self._to_folder.uuid:
                 raise AppValidationException(
-                    constances.MOVE_PROJECT_LIMIT_ERROR_MESSAGE
+                    "Cannot move image if source_project == destination_project."
                 )
-        else:
-            if response.data.folder_limit.remaining_image_count < 1:
-                raise AppValidationException(constances.COPY_FOLDER_LIMIT_ERROR_MESSAGE)
-            if response.data.project_limit.remaining_image_count < 1:
-                raise AppValidationException(
-                    constances.COPY_PROJECT_LIMIT_ERROR_MESSAGE
-                )
-            if (
-                response.data.user_limit
-                and response.data.user_limit.remaining_image_count < 1
-            ):
-                raise AppValidationException(constances.COPY_SUPER_LIMIT_ERROR_MESSAGE)
+
+        if response.data.folder_limit.remaining_image_count < 1:
+            raise AppValidationException(constances.COPY_FOLDER_LIMIT_ERROR_MESSAGE)
+        if response.data.project_limit.remaining_image_count < 1:
+            raise AppValidationException(constances.COPY_PROJECT_LIMIT_ERROR_MESSAGE)
+        if (
+            response.data.user_limit
+            and response.data.user_limit.remaining_image_count < 1
+        ):
+            raise AppValidationException(constances.COPY_SUPER_LIMIT_ERROR_MESSAGE)
 
     @property
     def s3_repo(self):
@@ -2103,7 +2093,7 @@ class CopyImageUseCase(BaseUseCase):
             image_entity = s3_response.data
             del image_bytes
 
-            AttachFileUrlsUseCase(
+            attach_response = AttachFileUrlsUseCase(
                 project=self._to_project,
                 folder=self._to_folder,
                 attachments=[image_entity],
@@ -2113,6 +2103,8 @@ class CopyImageUseCase(BaseUseCase):
                 else None,
                 upload_state_code=constances.UploadState.BASIC.value,
             ).execute()
+            if attach_response.errors:
+                raise AppException(attach_response.errors)
             self._response.data = image_entity
         return self._response
 
@@ -2748,20 +2740,16 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
                             failed_annotations.append(annotation)
                         yield
 
-                uploaded_annotations = [
-                    annotation.path for annotation in uploaded_annotations
-                ]
-                missing_annotations.extend(
-                    [annotation.path for annotation in self._missing_annotations]
-                )
-                failed_annotations = [
-                    annotation.path for annotation in failed_annotations
-                ]
-            self._response.data = (
-                uploaded_annotations,
-                failed_annotations,
-                missing_annotations,
-            )
+        uploaded_annotations = [annotation.path for annotation in uploaded_annotations]
+        missing_annotations.extend(
+            [annotation.path for annotation in self._missing_annotations]
+        )
+        failed_annotations = [annotation.path for annotation in failed_annotations]
+        self._response.data = (
+            uploaded_annotations,
+            failed_annotations,
+            missing_annotations,
+        )
         self.report_missing_data()
         return self._response
 
@@ -3829,4 +3817,36 @@ class UploadS3ImagesBackendUseCase(BaseUseCase):
                 team_id=self._project.team_id,
                 data=[old_setting.to_dict()],
             )
+        return self._response
+
+
+class ValidateAnnotationUseCase(BaseUseCase):
+    def __init__(
+            self,
+            project_type: str,
+            annotation: dict,
+            validators: BaseAnnotationValidator
+    ):
+        super().__init__()
+        self._project_type = project_type
+        self._annotation = annotation
+        self._validators = validators
+
+    def execute(self) -> Response:
+        validator = None
+        if self._project_type.lower() == constances.ProjectType.VECTOR.name.lower():
+            validator = self._validators.get_vector_validator()
+        elif self._project_type.lower() == constances.ProjectType.PIXEL.name.lower():
+            validator = self._validators.get_pixel_validator()
+        elif self._project_type.lower() == constances.ProjectType.VIDEO.name.lower():
+            validator = self._validators.get_video_validator()
+        if validator:
+            validator = validator(self._annotation)
+            if validator.is_valid():
+                self._response.data = True
+            else:
+                self._response.report = validator.generate_report()
+                self._response.data = False
+        else:
+            self._response.errors = AppException(f"There is not validator for type {self._project_type}.")
         return self._response

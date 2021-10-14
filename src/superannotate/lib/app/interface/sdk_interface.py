@@ -30,6 +30,7 @@ from lib.app.interface.types import AnnotationStatuses
 from lib.app.interface.types import AnnotationType
 from lib.app.interface.types import ImageQualityChoices
 from lib.app.interface.types import NotEmptyStr
+from lib.app.interface.types import ProjectTypes
 from lib.app.interface.types import Status
 from lib.app.interface.types import validate_arguments
 from lib.app.mixp.decorators import Trackable
@@ -53,12 +54,12 @@ from pydantic import StrictBool
 from tqdm import tqdm
 
 
+controller = Controller.get_instance()
 logger = logging.getLogger("root")
-controller = Controller(logger)
 
 
 @validate_arguments
-def init(path_to_config_json: str):
+def init(path_to_config_json: Optional[str] = None):
     """
     Initializes and authenticates to SuperAnnotate platform using the config file.
     If not initialized then $HOME/.superannotate/config.json
@@ -67,7 +68,7 @@ def init(path_to_config_json: str):
     :param path_to_config_json: Location to config JSON file
     :type path_to_config_json: str or Path
     """
-    # global controller
+    global controller
     controller.init(path_to_config_json)
 
 
@@ -3576,3 +3577,16 @@ def attach_document_urls_to_project(
         ]
         return uploaded, failed_images, duplications
     raise AppException(use_case.response.errors)
+
+
+@validate_arguments
+def validate_annotations(project_type: ProjectTypes, annotations_json: Union[NotEmptyStr, Path]):
+    with open(annotations_json) as file:
+        annotation_data = json.loads(file.read())
+        response = controller.validate_annotations(project_type, annotation_data)
+        if response.errors:
+            raise AppException(response.errors)
+        if response.data:
+            return True
+        print(response.report)
+        return False
