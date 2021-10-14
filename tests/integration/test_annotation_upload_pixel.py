@@ -22,7 +22,7 @@ class TestRecursiveFolderPixel(BaseTestCase):
         sa.upload_images_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path, recursive_subfolders=False
         )
-        uploaded_annotations,_,_ = sa.upload_annotations_from_folder_to_project(self.PROJECT_NAME, self.S3_FOLDER_PATH,
+        uploaded_annotations, _, _ = sa.upload_annotations_from_folder_to_project(self.PROJECT_NAME, self.S3_FOLDER_PATH,
                                                                 from_s3_bucket="superannotate-python-sdk-test",
                                                                 recursive_subfolders=False)
         self.assertEqual(len(uploaded_annotations), 3)
