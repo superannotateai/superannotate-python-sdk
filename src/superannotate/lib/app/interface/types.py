@@ -1,8 +1,10 @@
-from collections import defaultdict
 from functools import wraps
 from typing import Union
 
 from lib.core.enums import AnnotationStatus
+from lib.core.enums import ProjectType
+from lib.core.exceptions import AppException
+from lib.infrastructure.validators import wrap_error
 from pydantic import constr
 from pydantic import StrictStr
 from pydantic import validate_arguments as pydantic_validate_arguments
@@ -46,6 +48,16 @@ class ImageQualityChoices(StrictStr):
         return value.lower()
 
 
+class ProjectTypes(StrictStr):
+    @classmethod
+    def validate(cls, value: Union[str]) -> Union[str]:
+        if value.lower() not in ProjectType.values():
+            raise TypeError(
+                f"Available annotation_statuses are {', '.join(ProjectType.titles())}. "
+            )
+        return value
+
+
 class AnnotationStatuses(StrictStr):
     @classmethod
     def validate(cls, value: Union[str]) -> Union[str]:
@@ -56,30 +68,11 @@ class AnnotationStatuses(StrictStr):
         return value
 
 
-def to_chunks(t, size=2):
-    it = iter(t)
-    return zip(*[it] * size)
-
-
 def validate_arguments(func):
     @wraps(func)
     def wrapped(*args, **kwargs):
         try:
             return pydantic_validate_arguments(func)(*args, **kwargs)
         except ValidationError as e:
-            error_messages = defaultdict(list)
-            for error in e.errors():
-                errors_list = list(error["loc"])
-                errors_list[1::2] = [f"[{i}]" for i in errors_list[1::2]]
-                errors_list[2::2] = [f".{i}" for i in errors_list[2::2]]
-                error_messages["".join(errors_list)].append(error["msg"])
-            texts = ["\n"]
-            for field, text in error_messages.items():
-                texts.append(
-                    "{} {}{}".format(
-                        field, " " * (48 - len(field)), f"\n {' ' * 48}".join(text)
-                    )
-                )
-            raise Exception("\n".join(texts))
-
+            raise AppException(wrap_error(e))
     return wrapped
