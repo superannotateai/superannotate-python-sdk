@@ -49,6 +49,13 @@ class TestLimitsUploadImagesFromFolderToProject(BaseTestCase):
                 project=self._project["name"], folder_path=self.folder_path
             )
 
+    @patch("lib.infrastructure.services.SuperannotateBackendService.get_limitations", return_value=user_limit_response)
+    def test_user_limitations(self, *_):
+        with self.assertRaisesRegexp(AppException, UPLOAD_USER_LIMIT_ERROR_MESSAGE):
+            _, _, __ = sa.upload_images_from_folder_to_project(
+                project=self._project["name"], folder_path=self.folder_path
+            )
+
 
 class TestLimitsMoveImage(BaseTestCase):
     PROJECT_NAME = "TestLimitsUploadImagesFromFolderToProject"

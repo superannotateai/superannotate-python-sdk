@@ -30,6 +30,7 @@ from lib.infrastructure.repositories import S3Repository
 from lib.infrastructure.repositories import TeamRepository
 from lib.infrastructure.repositories import WorkflowRepository
 from lib.infrastructure.services import SuperannotateBackendService
+from lib.infrastructure.validators import AnnotationValidator
 
 
 class SingleInstanceMetaClass(type):
@@ -197,6 +198,10 @@ class BaseController(metaclass=SingleInstanceMetaClass):
     @property
     def s3_repo(self):
         return S3Repository
+
+    @property
+    def annotation_validators(self):
+        return AnnotationValidator()
 
 
 class Controller(BaseController):
@@ -1573,5 +1578,13 @@ class Controller(BaseController):
             folder=folder,
             backend_service=self._backend_client,
             image_names=image_names,
+        )
+        return use_case.execute()
+
+    def validate_annotations(self, project_type: str, annotation: dict):
+        use_case = usecases.ValidateAnnotationUseCase(
+            project_type,
+            annotation,
+            validators=self.annotation_validators
         )
         return use_case.execute()
