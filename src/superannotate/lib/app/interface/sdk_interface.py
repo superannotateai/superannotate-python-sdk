@@ -333,10 +333,6 @@ def create_folder(project: NotEmptyStr, folder_name: NotEmptyStr):
     res = controller.create_folder(project=project, folder_name=folder_name)
     if res.data:
         folder = res.data
-        if folder and folder.name != folder_name:
-            logger.warning(
-                f"Created folder has name {folder.name}, since folder with name {folder_name} already existed.",
-            )
         logger.info(f"Folder {folder.name} created in project {project}")
         return folder.to_dict()
     if res.errors:

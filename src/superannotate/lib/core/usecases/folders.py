@@ -27,6 +27,7 @@ class CreateFolderUseCase(BaseUseCase):
         self._project = project
         self._folder = folder
         self._folders = folders
+        self._origin_name = folder.name
 
     def validate_folder(self):
         if not self._folder.name:
@@ -53,6 +54,11 @@ class CreateFolderUseCase(BaseUseCase):
         if self.is_valid():
             self._folder.project_id = self._project.uuid
             self._response.data = self._folders.insert(self._folder)
+            if self._response.data.name not in (self._origin_name, self._folder.name):
+                logger.warning(
+                    f"Created folder has name {self._response.data.name},"
+                    f" since folder with name {self._folder.name} already existed."
+                )
         return self._response
 
 
