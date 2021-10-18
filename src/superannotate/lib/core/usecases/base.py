@@ -1,5 +1,6 @@
 from abc import ABC
 from abc import abstractmethod
+from typing import Iterable
 
 from lib.core.exceptions import AppValidationException
 from lib.core.response import Response
@@ -28,6 +29,16 @@ class BaseUseCase(ABC):
 
 
 class BaseInteractiveUseCase(BaseUseCase):
+    def __init__(self):
+        super().__init__()
+        self._validated = False
+
+    def is_valid(self):
+        if not self._validated:
+            self._validate()
+            self._validated = True
+        return not self._response.errors
+
     @property
     def response(self):
         return self._response
@@ -37,5 +48,5 @@ class BaseInteractiveUseCase(BaseUseCase):
         return self.response.data
 
     @abstractmethod
-    def execute(self):
+    def execute(self) -> Iterable:
         raise NotImplementedError

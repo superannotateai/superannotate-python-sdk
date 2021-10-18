@@ -52,7 +52,7 @@ class BaseInstance(BaseModel):
 
     class Config:
         error_msg_templates = {
-            'value_error.missing': f'field required for annotation',
+            'value_error.missing': 'field required for annotation',
         }
 
 

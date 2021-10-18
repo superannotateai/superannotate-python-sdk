@@ -1137,7 +1137,6 @@ class Controller(BaseController):
         annotation_status: str = None,
         image_quality_in_editor: str = None,
         limit: int = None,
-        save: bool = True,
     ):
         annotation_status_code = (
             constances.AnnotationStatus.get_value(annotation_status)
@@ -1158,9 +1157,11 @@ class Controller(BaseController):
             annotation_status_code=annotation_status_code,
             image_quality_in_editor=image_quality_in_editor,
             limit=limit,
-            save=save,
         )
-        yield from use_case.execute()
+        if use_case.is_valid():
+            yield from use_case.execute()
+        else:
+            raise AppException(use_case.response.errors)
 
     def create_annotation_class(
         self, project_name: str, name: str, color: str, attribute_groups: List[dict]

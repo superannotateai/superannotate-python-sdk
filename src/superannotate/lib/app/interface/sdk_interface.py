@@ -42,6 +42,7 @@ from lib.app.serializers import TeamSerializer
 from lib.core import LIMITED_FUNCTIONS
 from lib.core.enums import ImageQuality
 from lib.core.exceptions import AppException
+from lib.core.plugin import VideoPlugin
 from lib.core.types import AttributeGroup
 from lib.core.types import ClassesJson
 from lib.core.types import MLModel
@@ -1715,21 +1716,6 @@ def upload_videos_from_folder_to_project(
     uploaded_paths = []
     for path in video_paths:
         with tempfile.TemporaryDirectory() as temp_path:
-            total_frames_count = 0
-            for frames_path in controller.extract_video_frames(
-                project_name=project_name,
-                folder_name=folder_name,
-                video_path=path,
-                extract_path=temp_path,
-                target_fps=target_fps,
-                start_time=start_time,
-                end_time=end_time,
-                annotation_status=annotation_status,
-                image_quality_in_editor=image_quality_in_editor,
-                save=False,
-            ):
-                total_frames_count += len(frames_path)
-            logger.info(f"Video frame count is {total_frames_count}.")
             frames_generator = controller.extract_video_frames(
                 project_name=project_name,
                 folder_name=folder_name,
@@ -1741,14 +1727,14 @@ def upload_videos_from_folder_to_project(
                 annotation_status=annotation_status,
                 image_quality_in_editor=image_quality_in_editor,
             )
-
+            total_frames_count = VideoPlugin.get_extractable_frames_count(path, start_time, end_time, target_fps)
+            logger.info(f"Video frame count is {total_frames_count}.")
             logger.info(
                 f"Extracted {total_frames_count} frames from video. Now uploading to platform.",
             )
             logger.info(
                 f"Uploading {total_frames_count} images to project {str(project_folder_name)}."
             )
-
             for _ in frames_generator:
                 use_case = controller.upload_images_from_folder_to_project(
                     project_name=project_name,
@@ -1828,21 +1814,6 @@ def upload_video_to_project(
     uploaded_paths = []
     path = video_path
     with tempfile.TemporaryDirectory() as temp_path:
-        total_frames_count = 0
-        for frames_path in controller.extract_video_frames(
-                project_name=project_name,
-                folder_name=folder_name,
-                video_path=path,
-                extract_path=temp_path,
-                target_fps=target_fps,
-                start_time=start_time,
-                end_time=end_time,
-                annotation_status=annotation_status,
-                image_quality_in_editor=image_quality_in_editor,
-                save=False,
-        ):
-            total_frames_count += len(frames_path)
-        logger.info(f"Video frame count is {total_frames_count}.")
         frames_generator = controller.extract_video_frames(
             project_name=project_name,
             folder_name=folder_name,
@@ -1854,14 +1825,13 @@ def upload_video_to_project(
             annotation_status=annotation_status,
             image_quality_in_editor=image_quality_in_editor,
         )
-
+        total_frames_count = VideoPlugin.get_extractable_frames_count(video_path, start_time, end_time, target_fps)
         logger.info(
             f"Extracted {total_frames_count} frames from video. Now uploading to platform.",
         )
         logger.info(
             f"Uploading {total_frames_count} images to project {str(project_folder_name)}."
         )
-
         for _ in frames_generator:
             use_case = controller.upload_images_from_folder_to_project(
                 project_name=project_name,
@@ -1897,14 +1867,6 @@ def upload_video_to_project(
                 raise AppException(use_case.response.errors)
 
     return uploaded_paths
-
-
-
-
-
-
-
-
 
 
 @Trackable

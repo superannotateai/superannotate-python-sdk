@@ -57,37 +57,3 @@ class TestVideo(BaseTestCase):
             target_fps=1,
         )
         self.assertEqual(len(sa.search_images(self.PROJECT_NAME)), 5)
-
-    #  todo check
-    # def test_video_deep(self):
-    #     with tempfile.TemporaryDirectory() as temp_dir:
-    #         logger = logging.getLogger()
-    #
-    #         controller = Controller(
-    #             backend_client=SuperannotateBackendService(
-    #                 api_url=constances.BACKEND_URL,
-    #                 auth_token=ConfigRepository().get_one("token"),
-    #                 logger=logger,
-    #             ),
-    #             response=Response(),
-    #         )
-    #         controller.extract_video_frames(
-    #             project_name=self.PROJECT_NAME,
-    #             folder_name="",
-    #             video_path=self.folder_path + "/single/video.mp4",
-    #             extract_path=temp_dir,
-    #             target_fps=1,
-    #             start_time=0.0,
-    #             end_time=None,
-    #             annotation_status=None,
-    #             image_quality_in_editor=None,
-    #             limit=10,
-    #         )
-    #         ground_truth_dir_name = self.folder_path + "/single/ground_truth_frames"
-    #         for file_name in os.listdir(temp_dir):
-    #             temp_file_path = temp_dir + "/" + file_name
-    #             truth_file_path = ground_truth_dir_name + "/" + file_name
-    #             img1 = cv2.imread(temp_file_path)
-    #             img2 = cv2.imread(truth_file_path)
-    #             diff = np.sum(img2 - img1) + np.sum(img2 - img1)
-    #             assert diff == 0
