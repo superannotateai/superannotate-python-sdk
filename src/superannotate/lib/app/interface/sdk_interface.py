@@ -1704,11 +1704,7 @@ def upload_videos_from_folder_to_project(
     project_folder_name = project_name + (f"/{folder_name}" if folder_name else "")
 
     logger.info(
-        "Uploading all videos with extensions %s from %s to project %s. Excluded file patterns are: %s.",
-        extensions,
-        str(folder_path),
-        project_name,
-        exclude_file_patterns,
+        f"Uploading all videos with extensions {extensions} from {str(folder_path)} to project {project_name}. Excluded file patterns are: {[*exclude_file_patterns]}.",
     )
     uploaded_paths = []
     for path in video_paths:
