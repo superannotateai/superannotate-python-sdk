@@ -1579,7 +1579,7 @@ class UploadImagesFromPublicUrls(BaseInteractiveUseCase):
         project: ProjectEntity,
         folder: FolderEntity,
         backend_service: SuerannotateServiceProvider,
-        settings: BaseManageableRepository,
+        settings: List[ProjectSettingEntity],
         s3_repo,
         image_urls: List[str],
         image_names: List[str] = None,
@@ -1597,6 +1597,7 @@ class UploadImagesFromPublicUrls(BaseInteractiveUseCase):
         self._image_quality_in_editor = image_quality_in_editor
         self._settings = settings
         self._auth_data = None
+
 
     @property
     def auth_data(self):
@@ -1743,6 +1744,7 @@ class UploadImagesFromPublicUrls(BaseInteractiveUseCase):
                         image.entity for image in images_to_upload[i : i + 100]
                     ],
                     annotation_status=self._annotation_status,
+                    upload_state_code=constances.UploadState.BASIC.value
                 ).execute()
                 if response.errors:
                     continue
