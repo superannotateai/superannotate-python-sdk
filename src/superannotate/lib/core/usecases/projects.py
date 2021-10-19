@@ -833,7 +833,7 @@ class GetTeamUseCase(BaseUseCase):
         try:
             self._response.data = self._teams.get_one(self._team_id)
         except Exception:
-            raise AppException("Can't get team data.")
+            raise AppException("Can't get team data.") from None
         return self._response
 
 

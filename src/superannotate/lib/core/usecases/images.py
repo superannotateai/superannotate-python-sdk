@@ -2027,9 +2027,7 @@ class CopyImageUseCase(BaseUseCase):
         if response.data.folder_limit.remaining_image_count < 1:
             raise AppValidationException(constances.COPY_FOLDER_LIMIT_ERROR_MESSAGE)
         if response.data.project_limit.remaining_image_count < 1:
-            raise AppValidationException(
-                constances.COPY_PROJECT_LIMIT_ERROR_MESSAGE
-            )
+            raise AppValidationException(constances.COPY_PROJECT_LIMIT_ERROR_MESSAGE)
         if (
             response.data.user_limit
             and response.data.user_limit.remaining_image_count < 1
@@ -2736,20 +2734,16 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
                             failed_annotations.append(annotation)
                         yield
 
-                uploaded_annotations = [
-                    annotation.path for annotation in uploaded_annotations
-                ]
-                missing_annotations.extend(
-                    [annotation.path for annotation in self._missing_annotations]
-                )
-                failed_annotations = [
-                    annotation.path for annotation in failed_annotations
-                ]
-            self._response.data = (
-                uploaded_annotations,
-                failed_annotations,
-                missing_annotations,
-            )
+        uploaded_annotations = [annotation.path for annotation in uploaded_annotations]
+        missing_annotations.extend(
+            [annotation.path for annotation in self._missing_annotations]
+        )
+        failed_annotations = [annotation.path for annotation in failed_annotations]
+        self._response.data = (
+            uploaded_annotations,
+            failed_annotations,
+            missing_annotations,
+        )
         self.report_missing_data()
         return self._response
 
