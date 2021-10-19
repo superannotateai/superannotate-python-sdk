@@ -3,6 +3,7 @@ from os.path import dirname
 import tempfile
 import pytest
 
+
 import src.superannotate as sa
 from src.superannotate.lib.app.exceptions import AppException
 from tests.integration.base import BaseTestCase
@@ -224,3 +225,29 @@ class TestPixelInterface(BaseTestCase):
                 )
                 pass
 
+    def test_create_folder_with_special_character(self):
+        with self.assertLogs() as logs:
+            folder_1 = sa.create_folder(self.PROJECT_NAME, "**abc")
+            folder_2 = sa.create_folder(self.PROJECT_NAME, "**abc")
+            self.assertEqual(folder_1["name"], "__abc")
+            self.assertEqual(folder_2["name"], "__abc (1)")
+            self.assertIn(
+                'New folder name has special characters. Special characters will be replaced by underscores.',
+                logs.output[0]
+            )
+            self.assertIn(
+                'Folder __abc created in project Interface Pixel test',
+                logs.output[1]
+            )
+            self.assertIn(
+                'New folder name has special characters. Special characters will be replaced by underscores.',
+                logs.output[2]
+            )
+            self.assertIn(
+                'Created folder has name __abc (1), since folder with name __abc already existed.',
+                logs.output[3]
+            )
+            self.assertIn(
+                'Folder __abc (1) created in project Interface Pixel test',
+                logs.output[4]
+            )
