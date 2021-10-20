@@ -1717,14 +1717,14 @@ def upload_videos_from_folder_to_project(
     for path in video_paths:
         progress_bar = None
         with tempfile.TemporaryDirectory() as temp_path:
-            all_frames = VideoPlugin.get_extractable_frames(
+            frame_names = VideoPlugin.get_extractable_frames(
                 path, start_time, end_time, target_fps
             )
             duplicate_images = (
                 controller.get_duplicate_images(
                     project_name=project_name,
                     folder_name=folder_name,
-                    images=[frame_name for frame_name in all_frames],
+                    images=frame_names,
                 )
                 .execute()
                 .data
@@ -1741,7 +1741,7 @@ def upload_videos_from_folder_to_project(
                 annotation_status=annotation_status,
                 image_quality_in_editor=image_quality_in_editor,
             )
-            total_frames_count = len(all_frames)
+            total_frames_count = len(frame_names)
             logger.info(f"Video frame count is {total_frames_count}.")
             logger.info(
                 f"Extracted {total_frames_count} frames from video. Now uploading to platform.",
@@ -1830,14 +1830,14 @@ def upload_video_to_project(
     path = video_path
     progress_bar = None
     with tempfile.TemporaryDirectory() as temp_path:
-        all_frames = VideoPlugin.get_extractable_frames(
+        frame_names = VideoPlugin.get_extractable_frames(
             video_path, start_time, end_time, target_fps
         )
         duplicate_images = (
             controller.get_duplicate_images(
                 project_name=project_name,
                 folder_name=folder_name,
-                images=[frame_name for frame_name in all_frames],
+                images=frame_names,
             )
             .execute()
             .data
@@ -1854,7 +1854,7 @@ def upload_video_to_project(
             annotation_status=annotation_status,
             image_quality_in_editor=image_quality_in_editor,
         )
-        total_frames_count = len(all_frames)
+        total_frames_count = len(frame_names)
         logger.info(
             f"Extracted {total_frames_count} frames from video. Now uploading to platform.",
         )
