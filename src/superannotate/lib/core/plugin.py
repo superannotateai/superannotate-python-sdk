@@ -215,14 +215,13 @@ class VideoPlugin:
 
     @staticmethod
     def frames_generator(
-            video_path: str,
-            start_time,
-            end_time,
-            target_fps: float,
+        video_path: str, start_time, end_time, target_fps: float,
     ):
         video = cv2.VideoCapture(str(video_path), cv2.CAP_FFMPEG)
         if not video.isOpened():
-            raise ImageProcessingException(f"Couldn't open video file {str(video_path)}.")
+            raise ImageProcessingException(
+                f"Couldn't open video file {str(video_path)}."
+            )
         fps = video.get(cv2.CAP_PROP_FPS)
         if not target_fps:
             target_fps = fps
@@ -250,13 +249,22 @@ class VideoPlugin:
             yield frame
 
     @staticmethod
-    def get_extractable_frames_count(
-            video_path: str,
-            start_time,
-            end_time,
-            target_fps: float,
+    def get_extractable_frames(
+        video_path: str, start_time, end_time, target_fps: float,
     ):
-        return sum(1 for _ in VideoPlugin.frames_generator(video_path, start_time, end_time, target_fps))
+        total = sum(
+            1
+            for _ in VideoPlugin.frames_generator(
+                video_path, start_time, end_time, target_fps
+            )
+        )
+        zero_fill_count = len(str(total))
+        video_name = Path(video_path).stem
+        frame_names = []
+        for i in range(1, total + 1):
+            frame_name = f"{video_name}_{str(i).zfill(zero_fill_count)}.jpg"
+            frame_names.append(frame_name)
+        return frame_names
 
     @staticmethod
     def extract_frames(
@@ -273,19 +281,21 @@ class VideoPlugin:
         video_name = Path(video_path).stem
         extracted_frame_no = 1
         extracted_frames_paths = []
-        for frame in VideoPlugin.frames_generator(video_path, start_time, end_time, target_fps):
+        for frame in VideoPlugin.frames_generator(
+            video_path, start_time, end_time, target_fps
+        ):
             if len(extracted_frames_paths) > limit:
                 break
-            extracted_frame_no += 1
             path = str(
                 Path(extract_path)
                 / (
-                        video_name
-                        + "_"
-                        + str(extracted_frame_no).zfill(zero_fill_count)
-                        + ".jpg"
+                    video_name
+                    + "_"
+                    + str(extracted_frame_no).zfill(zero_fill_count)
+                    + ".jpg"
                 )
             )
+            extracted_frame_no += 1
             cv2.imwrite(path, frame)
             extracted_frames_paths.append(path)
             if len(extracted_frames_paths) % chunk_size == 0:

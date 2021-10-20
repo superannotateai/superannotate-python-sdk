@@ -3560,7 +3560,9 @@ class ExtractFramesUseCase(BaseInteractiveUseCase):
                 f"Video frame rate {fps} smaller than target frame rate {self._target_fps}. Cannot change frame rate."
             )
         else:
-            logger.info(f"Changing video frame rate from {fps} to target frame rate {self._target_fps}.")
+            logger.info(
+                f"Changing video frame rate from {fps} to target frame rate {self._target_fps}."
+            )
 
     def validate_upload_state(self):
         if self._project.upload_state == constances.UploadState.EXTERNAL.value:
@@ -3711,10 +3713,7 @@ class UploadS3ImagesBackendUseCase(BaseUseCase):
 
 class ValidateAnnotationUseCase(BaseUseCase):
     def __init__(
-            self,
-            project_type: str,
-            annotation: dict,
-            validators: BaseAnnotationValidator
+        self, project_type: str, annotation: dict, validators: BaseAnnotationValidator
     ):
         super().__init__()
         self._project_type = project_type
@@ -3737,5 +3736,7 @@ class ValidateAnnotationUseCase(BaseUseCase):
                 self._response.report = validator.generate_report()
                 self._response.data = False
         else:
-            self._response.errors = AppException(f"There is not validator for type {self._project_type}.")
+            self._response.errors = AppException(
+                f"There is not validator for type {self._project_type}."
+            )
         return self._response

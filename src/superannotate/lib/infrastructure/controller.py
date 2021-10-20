@@ -75,7 +75,9 @@ class BaseController(metaclass=SingleInstanceMetaClass):
         config_path = Path(expanduser(config_path))
         if str(config_path) == constances.CONFIG_FILE_LOCATION:
             if not Path(self._config_path).is_file():
-                self.configs.insert(ConfigEntity("main_endpoint", constances.BACKEND_URL))
+                self.configs.insert(
+                    ConfigEntity("main_endpoint", constances.BACKEND_URL)
+                )
                 self.configs.insert(ConfigEntity("token", ""))
                 return
         if not config_path.is_file():
@@ -94,7 +96,9 @@ class BaseController(metaclass=SingleInstanceMetaClass):
         if not main_endpoint:
             main_endpoint = constances.BACKEND_URL
         if not token:
-            raise AppException(f"Incorrect config file: token is not present in the config file {config_path}")
+            raise AppException(
+                f"Incorrect config file: token is not present in the config file {config_path}"
+            )
         verify_ssl_entity = self.configs.get_one("ssl_verify")
         if not verify_ssl_entity:
             verify_ssl = True
@@ -169,9 +173,7 @@ class BaseController(metaclass=SingleInstanceMetaClass):
         return self._folders
 
     def get_team(self):
-        return usecases.GetTeamUseCase(
-            teams=self.teams, team_id=self.team_id
-        ).execute()
+        return usecases.GetTeamUseCase(teams=self.teams, team_id=self.team_id).execute()
 
     @property
     def ml_models(self):
@@ -198,7 +200,9 @@ class BaseController(metaclass=SingleInstanceMetaClass):
     @property
     def team_id(self) -> int:
         if not self._team_id:
-            raise AppException(f"Invalid credentials provided in the {self._config_path}.")
+            raise AppException(
+                f"Invalid credentials provided in the {self._config_path}."
+            )
         return self._team_id
 
     @timed_lru_cache(seconds=3600)
@@ -1163,6 +1167,17 @@ class Controller(BaseController):
         else:
             raise AppException(use_case.response.errors)
 
+    def get_duplicate_images(self, project_name: str, folder_name: str, images: list):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+        return usecases.GetBulkImages(
+            service=self._backend_client,
+            project_id=project.uuid,
+            team_id=project.team_id,
+            folder_id=folder.uuid,
+            images=images,
+        )
+
     def create_annotation_class(
         self, project_name: str, name: str, color: str, attribute_groups: List[dict]
     ):
@@ -1608,8 +1623,6 @@ class Controller(BaseController):
 
     def validate_annotations(self, project_type: str, annotation: dict):
         use_case = usecases.ValidateAnnotationUseCase(
-            project_type,
-            annotation,
-            validators=self.annotation_validators
+            project_type, annotation, validators=self.annotation_validators
         )
         return use_case.execute()

@@ -52,7 +52,7 @@ class BaseInstance(BaseModel):
 
     class Config:
         error_msg_templates = {
-            'value_error.missing': 'field required for annotation',
+            "value_error.missing": "field required for annotation",
         }
 
 
@@ -147,7 +147,9 @@ ANNOTATION_TYPES = {
 
 class VectorAnnotation(BaseModel):
     metadata: Metadata
-    instances: Optional[List[Union[Template, Cuboid, Point, PolyLine, Polygon, Bbox, Ellipse]]]
+    instances: Optional[
+        List[Union[Template, Cuboid, Point, PolyLine, Polygon, Bbox, Ellipse]]
+    ]
 
     @validator("instances", pre=True, each_item=True)
     def check_instances(cls, instance):
@@ -155,7 +157,9 @@ class VectorAnnotation(BaseModel):
         annotation_type = AnnotationType.validate(instance.get("type"))
         result = validate_model(ANNOTATION_TYPES[annotation_type], instance)
         if result[2]:
-            raise ValidationError(result[2].raw_errors, model=ANNOTATION_TYPES[annotation_type])
+            raise ValidationError(
+                result[2].raw_errors, model=ANNOTATION_TYPES[annotation_type]
+            )
         return instance
 
 

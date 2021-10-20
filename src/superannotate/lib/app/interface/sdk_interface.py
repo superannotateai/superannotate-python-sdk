@@ -1715,9 +1715,21 @@ def upload_videos_from_folder_to_project(
     )
     uploaded_paths = []
     for path in video_paths:
-        duplicates = []
         progress_bar = None
         with tempfile.TemporaryDirectory() as temp_path:
+            all_frames = VideoPlugin.get_extractable_frames(
+                path, start_time, end_time, target_fps
+            )
+            duplicate_images = (
+                controller.get_duplicate_images(
+                    project_name=project_name,
+                    folder_name=folder_name,
+                    images=[frame_name for frame_name in all_frames],
+                )
+                .execute()
+                .data
+            )
+            duplicate_images = [image.name for image in duplicate_images]
             frames_generator = controller.extract_video_frames(
                 project_name=project_name,
                 folder_name=folder_name,
@@ -1729,7 +1741,7 @@ def upload_videos_from_folder_to_project(
                 annotation_status=annotation_status,
                 image_quality_in_editor=image_quality_in_editor,
             )
-            total_frames_count = VideoPlugin.get_extractable_frames_count(path, start_time, end_time, target_fps)
+            total_frames_count = len(all_frames)
             logger.info(f"Video frame count is {total_frames_count}.")
             logger.info(
                 f"Extracted {total_frames_count} frames from video. Now uploading to platform.",
@@ -1737,6 +1749,10 @@ def upload_videos_from_folder_to_project(
             logger.info(
                 f"Uploading {total_frames_count} images to project {str(project_folder_name)}."
             )
+            if len(duplicate_images):
+                logger.warning(
+                    f"{len(duplicate_images)} already existing images found that won't be uploaded."
+                )
 
             for _ in frames_generator:
                 use_case = controller.upload_images_from_folder_to_project(
@@ -1751,7 +1767,9 @@ def upload_videos_from_folder_to_project(
                 if not len(images_to_upload):
                     continue
                 if not progress_bar:
-                    progress_bar = tqdm(total=total_frames_count, desc="Uploading images")
+                    progress_bar = tqdm(
+                        total=total_frames_count, desc="Uploading images"
+                    )
                 if use_case.is_valid():
                     for _ in use_case.execute():
                         progress_bar.update()
@@ -1765,10 +1783,6 @@ def upload_videos_from_folder_to_project(
                         os.remove(path)
                 else:
                     raise AppException(use_case.response.errors)
-            if len(duplicates):
-                logger.warning(
-                    f"{len(duplicates)} already existing images found that won't be uploaded."
-                )
 
     return uploaded_paths
 
@@ -1814,9 +1828,21 @@ def upload_video_to_project(
 
     uploaded_paths = []
     path = video_path
-    duplicates = []
     progress_bar = None
     with tempfile.TemporaryDirectory() as temp_path:
+        all_frames = VideoPlugin.get_extractable_frames(
+            video_path, start_time, end_time, target_fps
+        )
+        duplicate_images = (
+            controller.get_duplicate_images(
+                project_name=project_name,
+                folder_name=folder_name,
+                images=[frame_name for frame_name in all_frames],
+            )
+            .execute()
+            .data
+        )
+        duplicate_images = [image.name for image in duplicate_images]
         frames_generator = controller.extract_video_frames(
             project_name=project_name,
             folder_name=folder_name,
@@ -1828,13 +1854,17 @@ def upload_video_to_project(
             annotation_status=annotation_status,
             image_quality_in_editor=image_quality_in_editor,
         )
-        total_frames_count = VideoPlugin.get_extractable_frames_count(video_path, start_time, end_time, target_fps)
+        total_frames_count = len(all_frames)
         logger.info(
             f"Extracted {total_frames_count} frames from video. Now uploading to platform.",
         )
         logger.info(
             f"Uploading {total_frames_count} images to project {str(project_folder_name)}."
         )
+        if len(duplicate_images):
+            logger.warning(
+                f"{len(duplicate_images)} already existing images found that won't be uploaded."
+            )
         for _ in frames_generator:
             use_case = controller.upload_images_from_folder_to_project(
                 project_name=project_name,
@@ -1862,10 +1892,6 @@ def upload_video_to_project(
                     os.remove(path)
             else:
                 raise AppException(use_case.response.errors)
-        if len(duplicates):
-            logger.warning(
-                f"{len(duplicates)} already existing images found that won't be uploaded."
-            )
 
     return uploaded_paths
 
@@ -3611,7 +3637,9 @@ def attach_document_urls_to_project(
 
 
 @validate_arguments
-def validate_annotations(project_type: ProjectTypes, annotations_json: Union[NotEmptyStr, Path]):
+def validate_annotations(
+    project_type: ProjectTypes, annotations_json: Union[NotEmptyStr, Path]
+):
     with open(annotations_json) as file:
         annotation_data = json.loads(file.read())
         response = controller.validate_annotations(project_type, annotation_data)
