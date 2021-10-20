@@ -81,5 +81,4 @@ def validate_arguments(func):
                     )
                 )
             raise Exception("\n".join(texts)) from None
-
     return wrapped
