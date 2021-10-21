@@ -1317,7 +1317,7 @@ class Controller(BaseController):
             templates=self._backend_client.get_templates(team_id=self.team_id).get(
                 "data", []
             ),
-            validator=self.validate_annotations,
+            validators=self.annotation_validators,
         )
         return use_case
 

@@ -2494,7 +2494,7 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
         templates: List[dict],
         pre_annotation: bool = False,
         client_s3_bucket=None,
-        validator=None,
+        validators=None,
     ):
         super().__init__()
         self._project = project
@@ -2508,7 +2508,7 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
         self._templates = templates
         self._annotations_to_upload = None
         self._missing_annotations = None
-        self._validator = validator
+        self._validators = validators
         self.missing_attribute_groups = set()
         self.missing_classes = set()
         self.missing_attributes = set()
@@ -2666,10 +2666,10 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
         return self._annotations_to_upload
 
     def _is_valid_json(self, json_data: dict):
-        response = self._validator(
-            constances.ProjectType.get_name(self._project.project_type), json_data
+        use_case = ValidateAnnotationUseCase(
+            constances.ProjectType.get_name(self._project.project_type), annotation=json_data, validators=self._validators
         )
-        return response.data
+        return use_case.execute().data
 
     def execute(self):
         uploaded_annotations = []
