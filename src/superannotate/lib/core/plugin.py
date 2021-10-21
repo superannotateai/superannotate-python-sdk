@@ -189,7 +189,7 @@ class VideoPlugin:
         return video.get(cv2.CAP_PROP_FPS)
 
     @staticmethod
-    def get_video_rotate_code(video_path):
+    def get_video_rotate_code(video_path, log):
         cv2_rotations = {
             90: cv2.ROTATE_90_CLOCKWISE,
             180: cv2.ROTATE_180,
@@ -199,23 +199,25 @@ class VideoPlugin:
             meta_dict = ffmpeg.probe(str(video_path))
             rot = int(meta_dict["streams"][0]["tags"]["rotate"])
             if rot:
-                logger.info(
-                    "Frame rotation of %s found. Output images will be rotated accordingly.",
-                    rot,
-                )
+                if log:
+                    logger.info(
+                        "Frame rotation of %s found. Output images will be rotated accordingly.",
+                        rot,
+                    )
                 return cv2_rotations[rot]
         except Exception as e:
             warning_str = ""
             if "ffprobe" in str(e):
                 warning_str = "This could be because ffmpeg package is not installed. To install it, run: sudo apt install ffmpeg"
-            logger.warning(
-                "Couldn't read video metadata to determine rotation. %s", warning_str
-            )
+            if log:
+                logger.warning(
+                    "Couldn't read video metadata to determine rotation. %s", warning_str
+                )
             return
 
     @staticmethod
     def frames_generator(
-        video_path: str, start_time, end_time, target_fps: float,
+        video_path: str, start_time, end_time, target_fps: float, log=True
     ):
         video = cv2.VideoCapture(str(video_path), cv2.CAP_FFMPEG)
         if not video.isOpened():
@@ -228,7 +230,7 @@ class VideoPlugin:
         if target_fps > fps:
             target_fps = fps
         ratio = fps / target_fps
-        rotate_code = VideoPlugin.get_video_rotate_code(video_path)
+        rotate_code = VideoPlugin.get_video_rotate_code(video_path,log)
         frame_no = 0
         frame_no_with_change = 1.0
         while True:
@@ -255,7 +257,7 @@ class VideoPlugin:
         total = sum(
             1
             for _ in VideoPlugin.frames_generator(
-                video_path, start_time, end_time, target_fps
+                video_path, start_time, end_time, target_fps, log=False
             )
         )
         zero_fill_count = len(str(total))
