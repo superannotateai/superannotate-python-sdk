@@ -56,7 +56,13 @@ def get_local_annotation_paths(
         [
             str(i)
             for i in all_not_folders
-            if i.name.endswith((VECTOR_ANNOTATION_POSTFIX, PIXEL_ANNOTATION_POSTFIX))
+            if i.name.endswith(
+                (
+                    VECTOR_ANNOTATION_POSTFIX,
+                    PIXEL_ANNOTATION_POSTFIX,
+                    ATTACHED_VIDEO_ANNOTATION_POSTFIX,
+                )
+            )
         ]
     )
     if recursive:

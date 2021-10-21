@@ -3580,7 +3580,9 @@ def attach_document_urls_to_project(
 
 
 @validate_arguments
-def validate_annotations(project_type: ProjectTypes, annotations_json: Union[NotEmptyStr, Path]):
+def validate_annotations(
+    project_type: ProjectTypes, annotations_json: Union[NotEmptyStr, Path]
+):
     with open(annotations_json) as file:
         annotation_data = json.loads(file.read())
         response = controller.validate_annotations(project_type, annotation_data)

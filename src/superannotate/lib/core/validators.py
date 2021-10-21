@@ -24,7 +24,6 @@ class BaseValidator(metaclass=ABCMeta):
 
 
 class BaseAnnotationValidator(metaclass=ABCMeta):
-
     @staticmethod
     @abstractmethod
     def get_pixel_validator() -> Type[BaseValidator]:

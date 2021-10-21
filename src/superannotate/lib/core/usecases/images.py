@@ -2494,6 +2494,7 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
         templates: List[dict],
         pre_annotation: bool = False,
         client_s3_bucket=None,
+        validator=None,
     ):
         super().__init__()
         self._project = project
@@ -2507,6 +2508,7 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
         self._templates = templates
         self._annotations_to_upload = None
         self._missing_annotations = None
+        self._validator = validator
         self.missing_attribute_groups = set()
         self.missing_classes = set()
         self.missing_attributes = set()
@@ -2664,16 +2666,10 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
         return self._annotations_to_upload
 
     def _is_valid_json(self, json_data: dict):
-        try:
-            if self._project.project_type == constances.ProjectType.PIXEL.value:
-                PixelAnnotation(**json_data)
-            elif self._project.project_type == constances.ProjectType.VECTOR.value:
-                VectorAnnotation(**json_data)
-            elif self._project.project_type == constances.ProjectType.VIDEO.value:
-                VideoAnnotation(**json_data)
-            return True
-        except ValidationError as _:
-            return False
+        response = self._validator(
+            constances.ProjectType.get_name(self._project.project_type), json_data
+        )
+        return response.data
 
     def execute(self):
         uploaded_annotations = []
@@ -3822,10 +3818,7 @@ class UploadS3ImagesBackendUseCase(BaseUseCase):
 
 class ValidateAnnotationUseCase(BaseUseCase):
     def __init__(
-            self,
-            project_type: str,
-            annotation: dict,
-            validators: BaseAnnotationValidator
+        self, project_type: str, annotation: dict, validators: BaseAnnotationValidator
     ):
         super().__init__()
         self._project_type = project_type
@@ -3848,5 +3841,7 @@ class ValidateAnnotationUseCase(BaseUseCase):
                 self._response.report = validator.generate_report()
                 self._response.data = False
         else:
-            self._response.errors = AppException(f"There is not validator for type {self._project_type}.")
+            self._response.errors = AppException(
+                f"There is not validator for type {self._project_type}."
+            )
         return self._response
