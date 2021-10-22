@@ -304,4 +304,3 @@ logging.getLogger("botocore").setLevel(logging.CRITICAL)
 logging.config.fileConfig(
     os.path.join(WORKING_DIR, "logging.conf"), disable_existing_loggers=False
 )
-sys.tracebacklimit = 0

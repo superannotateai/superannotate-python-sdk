@@ -447,7 +447,7 @@ class Controller(BaseController):
             backend_service=self._backend_client,
             settings=ProjectSettingsRepository(
                 service=self._backend_client, project=project
-            ),
+            ).get_all(),
             s3_repo=self.s3_repo,
             image_quality_in_editor=image_quality_in_editor,
             annotation_status=annotation_status,
