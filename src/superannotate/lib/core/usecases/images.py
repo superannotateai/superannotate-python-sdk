@@ -2661,9 +2661,8 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
                 return image_id_name_map[image_id], False
 
             if self._project.project_type == constances.ProjectType.VIDEO.value:
-                # TODO: pass class mapper
                 annotation_json = self.convert_exported_video_to_editor_video_json(
-                    annotation_json, self.annotation_classes_name_map
+                    annotation_json, map_annotation_classes_name(self._annotation_classes)
                 )
 
             bucket.put_object(
