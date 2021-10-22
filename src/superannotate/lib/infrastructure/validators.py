@@ -3,6 +3,7 @@ from collections import defaultdict
 
 from lib.core.types import PixelAnnotation
 from lib.core.types import VectorAnnotation
+from lib.core.types import VideoAnnotation
 from lib.core.validators import BaseAnnotationValidator
 from lib.core.validators import BaseValidator
 from pydantic import ValidationError
@@ -59,6 +60,10 @@ class VectorValidator(BaseSchemaValidator):
     MODEL = VectorAnnotation
 
 
+class VideoValidator(BaseSchemaValidator):
+    MODEL = VideoAnnotation
+
+
 class AnnotationValidator(BaseAnnotationValidator):
     @classmethod
     def get_pixel_validator(cls):
@@ -70,4 +75,4 @@ class AnnotationValidator(BaseAnnotationValidator):
 
     @classmethod
     def get_video_validator(cls):
-        raise NotImplementedError
+        return VideoValidator

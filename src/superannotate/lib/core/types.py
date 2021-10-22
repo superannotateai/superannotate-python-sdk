@@ -52,7 +52,7 @@ class BaseInstance(BaseModel):
 
     class Config:
         error_msg_templates = {
-            'value_error.missing': f'field required for annotation',
+            "value_error.missing": f"field required for annotation",
         }
 
 
@@ -147,7 +147,9 @@ ANNOTATION_TYPES = {
 
 class VectorAnnotation(BaseModel):
     metadata: Metadata
-    instances: Optional[List[Union[Template, Cuboid, Point, PolyLine, Polygon, Bbox, Ellipse]]]
+    instances: Optional[
+        List[Union[Template, Cuboid, Point, PolyLine, Polygon, Bbox, Ellipse]]
+    ]
 
     @validator("instances", pre=True, each_item=True)
     def check_instances(cls, instance):
@@ -156,7 +158,9 @@ class VectorAnnotation(BaseModel):
             raise ValidationError([ErrorWrapper(TypeError("value not specified"), "type")], cls)
         result = validate_model(ANNOTATION_TYPES[annotation_type], instance)
         if result[2]:
-            raise ValidationError(result[2].raw_errors, model=ANNOTATION_TYPES[annotation_type])
+            raise ValidationError(
+                result[2].raw_errors, model=ANNOTATION_TYPES[annotation_type]
+            )
         return instance
 
 
@@ -181,3 +185,36 @@ class MLModel(BaseModel):
 
     class Config:
         extra = Extra.allow
+
+
+class VideoMetaData(BaseModel):
+    name: Optional[str]
+    width: Optional[int]
+    height: Optional[int]
+
+
+class VideoInstanceMeta(BaseModel):
+    type: NotEmptyStr
+    classId: int
+
+
+class VideoTimeStamp(BaseModel):
+    timestamp: int
+    attributes: List[Attribute]
+
+
+class VideoInstanceParameter(BaseModel):
+    start: int
+    end: int
+    timestamps: List[VideoTimeStamp]
+
+
+class VideoInstance(BaseModel):
+    meta: VideoInstanceMeta
+    parameters: List[VideoInstanceParameter]
+
+
+class VideoAnnotation(BaseModel):
+    metadata: VideoMetaData
+    instances: List[VideoInstance]
+    tags: List[str]

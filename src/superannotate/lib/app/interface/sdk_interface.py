@@ -2381,7 +2381,6 @@ def upload_annotations_from_folder_to_project(
     project_name, folder_name = extract_project_folder(project)
     project = controller.get_project_metadata(project_name).data
     if project["project"].project_type in [
-        constances.ProjectType.VIDEO.value,
         constances.ProjectType.DOCUMENT.value,
     ]:
         raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
@@ -3572,7 +3571,9 @@ def attach_document_urls_to_project(
 
 
 @validate_arguments
-def validate_annotations(project_type: ProjectTypes, annotations_json: Union[NotEmptyStr, Path]):
+def validate_annotations(
+    project_type: ProjectTypes, annotations_json: Union[NotEmptyStr, Path]
+):
     with open(annotations_json) as file:
         annotation_data = json.loads(file.read())
         response = controller.validate_annotations(project_type, annotation_data)

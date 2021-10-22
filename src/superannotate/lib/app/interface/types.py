@@ -75,4 +75,5 @@ def validate_arguments(func):
             return pydantic_validate_arguments(func)(*args, **kwargs)
         except ValidationError as e:
             raise AppException(wrap_error(e))
+
     return wrapped
