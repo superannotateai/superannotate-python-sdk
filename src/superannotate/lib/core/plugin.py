@@ -211,7 +211,8 @@ class VideoPlugin:
                 warning_str = "This could be because ffmpeg package is not installed. To install it, run: sudo apt install ffmpeg"
             if log:
                 logger.warning(
-                    "Couldn't read video metadata to determine rotation. %s", warning_str
+                    "Couldn't read video metadata to determine rotation. %s",
+                    warning_str,
                 )
             return
 
@@ -230,7 +231,7 @@ class VideoPlugin:
         if target_fps > fps:
             target_fps = fps
         ratio = fps / target_fps
-        rotate_code = VideoPlugin.get_video_rotate_code(video_path,log)
+        rotate_code = VideoPlugin.get_video_rotate_code(video_path, log)
         frame_no = 0
         frame_no_with_change = 1.0
         while True:

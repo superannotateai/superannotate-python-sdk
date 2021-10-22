@@ -1705,13 +1705,8 @@ def upload_videos_from_folder_to_project(
             filtered_paths.append(path)
 
     project_folder_name = project_name + (f"/{folder_name}" if folder_name else "")
-
     logger.info(
-        "Uploading all videos with extensions %s from %s to project %s. Excluded file patterns are: %s.",
-        extensions,
-        str(folder_path),
-        project_name,
-        exclude_file_patterns,
+        f"Uploading all videos with extensions {extensions} from {str(folder_path)} to project {project_name}. Excluded file patterns are: {[*exclude_file_patterns]}."
     )
     uploaded_paths = []
     for path in video_paths:
@@ -1835,9 +1830,7 @@ def upload_video_to_project(
         )
         duplicate_images = (
             controller.get_duplicate_images(
-                project_name=project_name,
-                folder_name=folder_name,
-                images=frame_names,
+                project_name=project_name, folder_name=folder_name, images=frame_names,
             )
             .execute()
             .data

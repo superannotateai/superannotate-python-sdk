@@ -3555,6 +3555,7 @@ class ExtractFramesUseCase(BaseInteractiveUseCase):
         fps = VideoPlugin.get_fps(self._video_path)
         if not self._target_fps:
             self._target_fps = fps
+            return
         if self._target_fps and self._target_fps > fps:
             logger.info(
                 f"Video frame rate {fps} smaller than target frame rate {self._target_fps}. Cannot change frame rate."
