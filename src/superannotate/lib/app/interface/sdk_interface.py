@@ -1638,7 +1638,7 @@ def upload_videos_from_folder_to_project(
     extensions: Optional[
         Union[Tuple[NotEmptyStr], List[NotEmptyStr]]
     ] = constances.DEFAULT_VIDEO_EXTENSIONS,
-    exclude_file_patterns: Optional[Iterable[NotEmptyStr]] = (),
+    exclude_file_patterns: Optional[List[NotEmptyStr]] = [],
     recursive_subfolders: Optional[StrictBool] = False,
     target_fps: Optional[int] = None,
     start_time: Optional[float] = 0.0,
@@ -1700,16 +1700,17 @@ def upload_videos_from_folder_to_project(
     filtered_paths = []
     video_paths = [str(path) for path in video_paths]
     for path in video_paths:
+
         not_in_exclude_list = [x not in Path(path).name for x in exclude_file_patterns]
         if all(not_in_exclude_list):
             filtered_paths.append(path)
 
     project_folder_name = project_name + (f"/{folder_name}" if folder_name else "")
     logger.info(
-        f"Uploading all videos with extensions {extensions} from {str(folder_path)} to project {project_name}. Excluded file patterns are: {[*exclude_file_patterns]}."
+        f"Uploading all videos with extensions {extensions} from {str(folder_path)} to project {project_name}. Excluded file patterns are: {exclude_file_patterns}."
     )
     uploaded_paths = []
-    for path in video_paths:
+    for path in filtered_paths:
         progress_bar = None
         with tempfile.TemporaryDirectory() as temp_path:
             frame_names = VideoPlugin.get_extractable_frames(
