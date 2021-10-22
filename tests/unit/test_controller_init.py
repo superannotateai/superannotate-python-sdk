@@ -1,8 +1,5 @@
-import sys
-from io import StringIO
 from os.path import join
 import json
-from contextlib import contextmanager
 import pkg_resources
 import tempfile
 from unittest import TestCase
@@ -12,19 +9,13 @@ from unittest.mock import patch
 
 from src.superannotate.lib.app.interface.cli_interface import CLIFacade
 from src.superannotate.lib.core import CONFIG_FILE_LOCATION
+from tests.utils.helpers import catch_prints
 
 
 try:
     CLI_VERSION = pkg_resources.get_distribution("superannotate").version
 except Exception:
     CLI_VERSION = None
-
-
-@contextmanager
-def catch_prints():
-    out = StringIO()
-    sys.stdout = out
-    yield out
 
 
 class CLITest(TestCase):
