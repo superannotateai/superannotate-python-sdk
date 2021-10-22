@@ -30,7 +30,6 @@ from lib.app.interface.types import AnnotationStatuses
 from lib.app.interface.types import AnnotationType
 from lib.app.interface.types import ImageQualityChoices
 from lib.app.interface.types import NotEmptyStr
-from lib.app.interface.types import Status
 from lib.app.interface.types import validate_arguments
 from lib.app.mixp.decorators import Trackable
 from lib.app.serializers import BaseSerializers
@@ -280,7 +279,7 @@ def clone_project(
 def search_images(
     project: Union[NotEmptyStr, dict],
     image_name_prefix: Optional[NotEmptyStr] = None,
-    annotation_status: Optional[Status] = None,
+    annotation_status: Optional[AnnotationStatuses] = None,
     return_metadata: Optional[StrictBool] = False,
 ):
     """Search images by name_prefix (case-insensitive) and annotation status
@@ -333,10 +332,6 @@ def create_folder(project: NotEmptyStr, folder_name: NotEmptyStr):
     res = controller.create_folder(project=project, folder_name=folder_name)
     if res.data:
         folder = res.data
-        if folder and folder.name != folder_name:
-            logger.warning(
-                f"Created folder has name {folder.name}, since folder with name {folder_name} already existed.",
-            )
         logger.info(f"Folder {folder.name} created in project {project}")
         return folder.to_dict()
     if res.errors:
@@ -603,7 +598,7 @@ def upload_images_from_public_urls_to_project(
     project: Union[NotEmptyStr, dict],
     img_urls: List[NotEmptyStr],
     img_names: Optional[List[NotEmptyStr]] = None,
-    annotation_status: Optional[Status] = "NotStarted",
+    annotation_status: Optional[AnnotationStatuses] = "NotStarted",
     image_quality_in_editor: Optional[NotEmptyStr] = None,
 ):
     """Uploads all images given in the list of URL strings in img_urls to the project.
@@ -1641,7 +1636,7 @@ def upload_videos_from_folder_to_project(
     target_fps: Optional[int] = None,
     start_time: Optional[float] = 0.0,
     end_time: Optional[float] = None,
-    annotation_status: Optional[Status] = "NotStarted",
+    annotation_status: Optional[AnnotationStatuses] = "NotStarted",
     image_quality_in_editor: Optional[str] = None,
 ):
     """Uploads image frames from all videos with given extensions from folder_path to the project.
@@ -1705,11 +1700,7 @@ def upload_videos_from_folder_to_project(
     project_folder_name = project_name + (f"/{folder_name}" if folder_name else "")
 
     logger.info(
-        "Uploading all videos with extensions %s from %s to project %s. Excluded file patterns are: %s.",
-        extensions,
-        str(folder_path),
-        project_name,
-        exclude_file_patterns,
+        f"Uploading all videos with extensions {extensions} from {str(folder_path)} to project {project_name}. Excluded file patterns are: {[*exclude_file_patterns]}.",
     )
     uploaded_paths = []
     for path in video_paths:
@@ -1778,7 +1769,7 @@ def upload_video_to_project(
     target_fps: Optional[int] = None,
     start_time: Optional[float] = 0.0,
     end_time: Optional[float] = None,
-    annotation_status: Optional[Status] = "NotStarted",
+    annotation_status: Optional[AnnotationStatuses] = "NotStarted",
     image_quality_in_editor: Optional[NotEmptyStr] = None,
 ):
     """Uploads image frames from video to platform. Uploaded images will have
@@ -2235,7 +2226,7 @@ def download_image(
 def attach_image_urls_to_project(
     project: Union[NotEmptyStr, dict],
     attachments: Union[str, Path],
-    annotation_status: Optional[Status] = "NotStarted",
+    annotation_status: Optional[AnnotationStatuses] = "NotStarted",
 ):
     """Link images on external storage to SuperAnnotate.
 
@@ -2298,7 +2289,7 @@ def attach_image_urls_to_project(
 def attach_video_urls_to_project(
     project: Union[NotEmptyStr, dict],
     attachments: Union[str, Path],
-    annotation_status: Optional[Status] = "NotStarted",
+    annotation_status: Optional[AnnotationStatuses] = "NotStarted",
 ):
     """Link videos on external storage to SuperAnnotate.
 
@@ -3314,7 +3305,7 @@ def upload_image_to_project(
     project: NotEmptyStr,
     img,
     image_name: Optional[NotEmptyStr] = None,
-    annotation_status: Optional[Status] = "NotStarted",
+    annotation_status: Optional[AnnotationStatuses] = "NotStarted",
     from_s3_bucket=None,
     image_quality_in_editor: Optional[NotEmptyStr] = None,
 ):
@@ -3389,7 +3380,7 @@ def search_models(
 def upload_images_to_project(
     project: NotEmptyStr,
     img_paths: List[NotEmptyStr],
-    annotation_status: Optional[Status] = "NotStarted",
+    annotation_status: Optional[AnnotationStatuses] = "NotStarted",
     from_s3_bucket=None,
     image_quality_in_editor: Optional[ImageQualityChoices] = None,
 ):
@@ -3523,7 +3514,7 @@ def delete_annotations(
 def attach_document_urls_to_project(
     project: Union[NotEmptyStr, dict],
     attachments: Union[Path, NotEmptyStr],
-    annotation_status: Optional[Status] = "NotStarted",
+    annotation_status: Optional[AnnotationStatuses] = "NotStarted",
 ):
     """Link documents on external storage to SuperAnnotate.
 

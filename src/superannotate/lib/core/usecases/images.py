@@ -33,6 +33,8 @@ from lib.core.enums import ProjectType
 from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
 from lib.core.exceptions import ImageProcessingException
+from lib.core.helpers import fill_annotation_ids
+from lib.core.helpers import map_annotation_classes_name
 from lib.core.plugin import ImagePlugin
 from lib.core.plugin import VideoPlugin
 from lib.core.repositories import BaseManageableRepository
@@ -1579,7 +1581,7 @@ class UploadImagesFromPublicUrls(BaseInteractiveUseCase):
         project: ProjectEntity,
         folder: FolderEntity,
         backend_service: SuerannotateServiceProvider,
-        settings: BaseManageableRepository,
+        settings: List[ProjectSettingEntity],
         s3_repo,
         image_urls: List[str],
         image_names: List[str] = None,
@@ -1597,6 +1599,7 @@ class UploadImagesFromPublicUrls(BaseInteractiveUseCase):
         self._image_quality_in_editor = image_quality_in_editor
         self._settings = settings
         self._auth_data = None
+
 
     @property
     def auth_data(self):
@@ -1743,6 +1746,7 @@ class UploadImagesFromPublicUrls(BaseInteractiveUseCase):
                         image.entity for image in images_to_upload[i : i + 100]
                     ],
                     annotation_status=self._annotation_status,
+                    upload_state_code=constances.UploadState.BASIC.value
                 ).execute()
                 if response.errors:
                     continue
@@ -2216,152 +2220,6 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
                 constances.LIMITED_FUNCTIONS[self._project.project_type]
             )
 
-    @property
-    def annotation_classes_name_map(self) -> dict:
-        classes_data = defaultdict(dict)
-        annotation_classes = self._annotation_classes.get_all()
-        for annotation_class in annotation_classes:
-            class_info = {"id": annotation_class.uuid}
-            if annotation_class.attribute_groups:
-                for attribute_group in annotation_class.attribute_groups:
-                    attribute_group_data = defaultdict(dict)
-                    for attribute in attribute_group["attributes"]:
-                        if attribute["name"] in attribute_group_data.keys():
-                            logger.warning(
-                                f"Duplicate annotation class attribute name {attribute['name']}"
-                                f" in attribute group {attribute_group['name']}. "
-                                "Only one of the annotation class attributes will be used. "
-                                "This will result in errors in annotation upload."
-                            )
-                        attribute_group_data[attribute["name"]] = attribute["id"]
-                    if attribute_group["name"] in class_info.keys():
-                        logger.warning(
-                            f"Duplicate annotation class attribute group name {attribute_group['name']}."
-                            " Only one of the annotation class attribute groups will be used."
-                            " This will result in errors in annotation upload."
-                        )
-                    class_info["attribute_groups"] = {
-                        attribute_group["name"]: {
-                            "id": attribute_group["id"],
-                            "attributes": attribute_group_data,
-                        }
-                    }
-            if annotation_class.name in classes_data.keys():
-                logger.warning(
-                    f"Duplicate annotation class name {annotation_class.name}."
-                    f" Only one of the annotation classes will be used."
-                    " This will result in errors in annotation upload.",
-                )
-            classes_data[annotation_class.name] = class_info
-        return classes_data
-
-    @property
-    def get_annotation_classes_name_to_id(self):
-        annotation_classes = self._annotation_classes
-        annotation_classes_dict = {}
-        for annotation_class in annotation_classes:
-            class_id = annotation_class["id"]
-            class_name = annotation_class["name"]
-            class_info = {"id": class_id, "attribute_groups": {}}
-            if "attribute_groups" in annotation_class:
-                for attribute_group in annotation_class["attribute_groups"]:
-                    attribute_group_info = {}
-                    for attribute in attribute_group["attributes"]:
-                        if attribute["name"] in attribute_group_info:
-                            logger.warning(
-                                "Duplicate annotation class attribute name %s in attribute group %s. Only one of the annotation classe attributes will be used. This will result in errors in annotation upload.",
-                                attribute["name"],
-                                attribute_group["name"],
-                            )
-                        attribute_group_info[attribute["name"]] = attribute["id"]
-                    if attribute_group["name"] in class_info["attribute_groups"]:
-                        logger.warning(
-                            "Duplicate annotation class attribute group name %s. Only one of the annotation classe attribute groups will be used. This will result in errors in annotation upload.",
-                            attribute_group["name"],
-                        )
-                    class_info["attribute_groups"][attribute_group["name"]] = {
-                        "id": attribute_group["id"],
-                        "attributes": attribute_group_info,
-                    }
-            if class_name in annotation_classes_dict:
-                logger.warning(
-                    "Duplicate annotation class name %s. Only one of the annotation classes will be used. This will result in errors in annotation upload.",
-                    class_name,
-                )
-            annotation_classes_dict[class_name] = class_info
-        return annotation_classes_dict
-
-    def get_templates_mapping(self):
-        templates = self._backend_service.get_templates(
-            team_id=self._project.team_id
-        ).get("data", [])
-        templates_map = {}
-        for template in templates:
-            templates_map[template["name"]] = template["id"]
-        return templates_map
-
-    def fill_classes_data(self, annotations: dict):
-        annotation_classes = self.annotation_classes_name_map
-        if "instances" not in annotations:
-            return
-
-        unknown_classes = {}
-        for annotation in [i for i in annotations["instances"] if "className" in i]:
-            if "className" not in annotation:
-                return
-            annotation_class_name = annotation["className"]
-            if annotation_class_name not in annotation_classes.keys():
-                if annotation_class_name not in unknown_classes:
-                    unknown_classes[annotation_class_name] = {
-                        "id": -(len(unknown_classes) + 1),
-                        "attribute_groups": {},
-                    }
-        if unknown_classes:
-            annotation_classes.update(unknown_classes)
-        templates = self.get_templates_mapping()
-        for annotation in (
-            i for i in annotations["instances"] if i.get("type", None) == "template"
-        ):
-            annotation["templateId"] = templates.get(
-                annotation.get("templateName", ""), -1
-            )
-
-        for annotation in [i for i in annotations["instances"] if "className" in i]:
-            annotation_class_name = annotation["className"]
-            if annotation_class_name not in annotation_classes.keys():
-                logger.warning(
-                    f"Couldn't find annotation class {annotation_class_name}"
-                )
-                continue
-            annotation["classId"] = annotation_classes[annotation_class_name]["id"]
-            for attribute in annotation["attributes"]:
-                if (
-                    attribute["groupName"]
-                    not in annotation_classes[annotation_class_name]["attribute_groups"]
-                ):
-                    logger.warning(
-                        f"Couldn't find annotation group {attribute['groupName']}."
-                    )
-                    continue
-                attribute["groupId"] = annotation_classes[annotation_class_name][
-                    "attribute_groups"
-                ][attribute["groupName"]]["id"]
-                if (
-                    attribute["name"]
-                    not in annotation_classes[annotation_class_name][
-                        "attribute_groups"
-                    ][attribute["groupName"]]["attributes"]
-                ):
-                    del attribute["groupId"]
-                    logger.warning(
-                        f"Couldn't find annotation name {attribute['name']} in"
-                        f" annotation group {attribute['groupName']}",
-                    )
-                    continue
-                attribute["id"] = annotation_classes[annotation_class_name][
-                    "attribute_groups"
-                ][attribute["groupName"]]["attributes"][attribute["name"]]
-
     def execute(self):
         if self.is_valid():
             image_data = self._backend_service.get_bulk_images(
@@ -2388,7 +2246,12 @@ class UploadImageAnnotationsUseCase(BaseUseCase):
                 )
                 resource = session.resource("s3")
                 bucket = resource.Bucket(response.data.bucket)
-                self.fill_classes_data(self._annotations)
+                fill_annotation_ids(
+                    annotations=self._annotations,
+                    annotation_classes_name_maps=map_annotation_classes_name(self._annotation_classes.get_all()),
+                    templates=self._backend_service.get_templates(self._project.team_id).get("data", []),
+                    logger=logger
+                )
                 bucket.put_object(
                     Key=response.data.images[image_data["id"]]["annotation_json_path"],
                     Body=json.dumps(self._annotations),
@@ -2514,98 +2377,12 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
         return boto3.client("s3")
 
     @property
-    def annotation_classes_name_map(self) -> dict:
-        classes_data = defaultdict(dict)
-        annotation_classes = self._annotation_classes
-        for annotation_class in annotation_classes:
-            class_info = {"id": annotation_class.uuid}
-            if annotation_class.attribute_groups:
-                for attribute_group in annotation_class.attribute_groups:
-                    attribute_group_data = defaultdict(dict)
-                    for attribute in attribute_group["attributes"]:
-                        attribute_group_data[attribute["name"]] = attribute["id"]
-                    class_info["attribute_groups"] = {
-                        attribute_group["name"]: {
-                            "id": attribute_group["id"],
-                            "attributes": attribute_group_data,
-                        }
-                    }
-            classes_data[annotation_class.name] = class_info
-        return classes_data
-
-    @property
     def annotation_postfix(self):
         return (
             constances.VECTOR_ANNOTATION_POSTFIX
             if self._project.project_type == constances.ProjectType.VECTOR.value
             else constances.PIXEL_ANNOTATION_POSTFIX
         )
-
-    def get_templates_mapping(self):
-        templates_map = {}
-        for template in self._templates:
-            templates_map[template["name"]] = template["id"]
-        return templates_map
-
-    def fill_classes_data(self, annotations: dict):
-        annotation_classes = self.annotation_classes_name_map
-        if "instances" not in annotations:
-            return
-        unknown_classes = {}
-        for annotation in [i for i in annotations["instances"] if "className" in i]:
-            if "className" not in annotation:
-                return
-            annotation_class_name = annotation["className"]
-            if annotation_class_name not in annotation_classes:
-                if annotation_class_name not in unknown_classes:
-                    self.missing_classes.add(annotation_class_name)
-                    unknown_classes[annotation_class_name] = {
-                        "id": -(len(unknown_classes) + 1),
-                        "attribute_groups": {},
-                    }
-        annotation_classes.update(unknown_classes)
-        templates = self.get_templates_mapping()
-        for annotation in (
-            i for i in annotations["instances"] if i.get("type", None) == "template"
-        ):
-            annotation["templateId"] = templates.get(
-                annotation.get("templateName", ""), -1
-            )
-
-        for annotation in [i for i in annotations["instances"] if "className" in i]:
-            annotation_class_name = annotation["className"]
-            if annotation_class_name not in annotation_classes:
-                continue
-            annotation["classId"] = annotation_classes[annotation_class_name]["id"]
-            for attribute in annotation["attributes"]:
-                if annotation_classes[annotation_class_name].get("attribute_groups"):
-                    if (
-                        attribute["groupName"]
-                        not in annotation_classes[annotation_class_name][
-                            "attribute_groups"
-                        ]
-                    ):
-                        continue
-                else:
-                    self.missing_attribute_groups.add(attribute["groupName"])
-                    continue
-
-                attribute["groupId"] = annotation_classes[annotation_class_name][
-                    "attribute_groups"
-                ][attribute["groupName"]]["id"]
-
-                if (
-                    attribute["name"]
-                    not in annotation_classes[annotation_class_name][
-                        "attribute_groups"
-                    ][attribute["groupName"]]["attributes"]
-                ):
-                    del attribute["groupId"]
-                    self.missing_attributes.add(attribute["name"])
-                    continue
-                attribute["id"] = annotation_classes[annotation_class_name][
-                    "attribute_groups"
-                ][attribute["groupName"]]["attributes"]
 
     @property
     def annotations_to_upload(self):
@@ -2761,7 +2538,14 @@ class UploadAnnotationsUseCase(BaseInteractiveUseCase):
                 annotation_json = json.load(file)
             else:
                 annotation_json = json.load(open(image_id_name_map[image_id].path))
-            self.fill_classes_data(annotation_json)
+            report = fill_annotation_ids(
+                annotations=annotation_json,
+                annotation_classes_name_maps=map_annotation_classes_name(self._annotation_classes),
+                templates=self._templates
+            )
+            self.missing_classes.update(report["missing_classes"])
+            self.missing_attribute_groups.update(report["missing_attribute_groups"])
+            self.missing_attributes.update(report["missing_attributes"])
             if not self._is_valid_json(annotation_json):
                 logger.warning(f"Invalid json {image_id_name_map[image_id].path}")
                 return image_id_name_map[image_id], False

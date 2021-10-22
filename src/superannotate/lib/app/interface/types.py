@@ -17,7 +17,7 @@ class Status(StrictStr):
         if cls.curtail_length and len(value) > cls.curtail_length:
             value = value[: cls.curtail_length]
         if value.lower() not in AnnotationStatus.values():
-            raise TypeError(f"Available statuses is {', '.join(AnnotationStatus)}. ")
+            raise TypeError(f"Available statuses is {', '.join(AnnotationStatus.titles())}. ")
         return value
 
 
@@ -80,6 +80,5 @@ def validate_arguments(func):
                         field, " " * (48 - len(field)), f"\n {' ' * 48}".join(text)
                     )
                 )
-            raise Exception("\n".join(texts))
-
+            raise Exception("\n".join(texts)) from None
     return wrapped

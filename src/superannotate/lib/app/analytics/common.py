@@ -212,6 +212,8 @@ def aggregate_annotations_as_df(
         "updatorRole": [],
         "updatorEmail": [],
         "folderName": [],
+        "imageAnnotator": [],
+        "imageQA": [],
     }
 
     if include_comments:
@@ -255,6 +257,8 @@ def aggregate_annotations_as_df(
         image_metadata["imageWidth"] = annotations["metadata"].get("width")
         image_metadata["imageStatus"] = annotations["metadata"].get("status")
         image_metadata["imagePinned"] = annotations["metadata"].get("pinned")
+        image_metadata["imageAnnotator"] = annotations["metadata"].get("annotatorEmail")
+        image_metadata["imageQA"] = annotations["metadata"].get("qaEmail")
         return image_metadata
 
     def __get_user_metadata(annotation):
