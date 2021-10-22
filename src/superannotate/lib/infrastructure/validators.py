@@ -1,3 +1,4 @@
+import os
 from collections import defaultdict
 
 from lib.core.types import PixelAnnotation
@@ -7,7 +8,15 @@ from lib.core.validators import BaseValidator
 from pydantic import ValidationError
 
 
+def get_tabulation() -> int:
+    try:
+        return int(os.get_terminal_size().columns/2)
+    except OSError:
+        return 48
+
+
 def wrap_error(e: ValidationError) -> str:
+    tabulation = get_tabulation()
     error_messages = defaultdict(list)
     for error in e.errors():
         errors_list = list(error["loc"])
@@ -18,7 +27,7 @@ def wrap_error(e: ValidationError) -> str:
     for field, text in error_messages.items():
         texts.append(
             "{} {}{}".format(
-                field, " " * (48 - len(field)), f"\n {' ' * 48}".join(text)
+                field, " " * (tabulation - len(field)), f"\n {' ' * tabulation}".join(text)
             )
         )
     return "\n".join(texts)
