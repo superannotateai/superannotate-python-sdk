@@ -183,7 +183,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
         iterations_range = range(
             0, len(self.annotations_to_upload), self.AUTH_DATA_CHUNK_SIZE
         )
-        self.reporter.start_progress(iterations_range)
+        self.reporter.start_progress(iterations_range,description="Uploading Annotations")
         for _ in iterations_range:
             annotations_to_upload = self.annotations_to_upload[
                 _ : _ + self.AUTH_DATA_CHUNK_SIZE  # noqa: E203
