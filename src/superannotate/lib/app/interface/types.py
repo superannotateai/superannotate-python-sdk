@@ -19,7 +19,9 @@ class Status(StrictStr):
         if cls.curtail_length and len(value) > cls.curtail_length:
             value = value[: cls.curtail_length]
         if value.lower() not in AnnotationStatus.values():
-            raise TypeError(f"Available statuses is {', '.join(AnnotationStatus.titles())}. ")
+            raise TypeError(
+                f"Available statuses is {', '.join(AnnotationStatus.titles())}. "
+            )
         return value
 
 

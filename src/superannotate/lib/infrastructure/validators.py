@@ -1,6 +1,7 @@
 import os
 from collections import defaultdict
 
+from lib.core.types import DocumentAnnotation
 from lib.core.types import PixelAnnotation
 from lib.core.types import VectorAnnotation
 from lib.core.types import VideoAnnotation
@@ -28,7 +29,9 @@ def wrap_error(e: ValidationError) -> str:
     for field, text in error_messages.items():
         texts.append(
             "{} {}{}".format(
-                field, " " * (tabulation - len(field)), f"\n {' ' * tabulation}".join(text)
+                field,
+                " " * (tabulation - len(field)),
+                f"\n {' ' * tabulation}".join(text),
             )
         )
     return "\n".join(texts)
@@ -64,6 +67,10 @@ class VideoValidator(BaseSchemaValidator):
     MODEL = VideoAnnotation
 
 
+class DocumentValidator(BaseSchemaValidator):
+    MODEL = DocumentAnnotation
+
+
 class AnnotationValidator(BaseAnnotationValidator):
     @classmethod
     def get_pixel_validator(cls):
@@ -76,3 +83,7 @@ class AnnotationValidator(BaseAnnotationValidator):
     @classmethod
     def get_video_validator(cls):
         return VideoValidator
+
+    @classmethod
+    def get_document_validator(cls):
+        return DocumentValidator

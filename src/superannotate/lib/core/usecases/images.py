@@ -1743,7 +1743,7 @@ class UploadImagesFromPublicUrls(BaseInteractiveUseCase):
                         image.entity for image in images_to_upload[i : i + 100]
                     ],
                     annotation_status=self._annotation_status,
-                    upload_state_code=constances.UploadState.BASIC.value
+                    upload_state_code=constances.UploadState.BASIC.value,
                 ).execute()
                 if response.errors:
                     continue
@@ -2245,9 +2245,13 @@ class UploadImageAnnotationsUseCaseOld(BaseUseCase):
                 bucket = resource.Bucket(response.data.bucket)
                 fill_annotation_ids(
                     annotations=self._annotations,
-                    annotation_classes_name_maps=map_annotation_classes_name(self._annotation_classes.get_all()),
-                    templates=self._backend_service.get_templates(self._project.team_id).get("data", []),
-                    logger=logger
+                    annotation_classes_name_maps=map_annotation_classes_name(
+                        self._annotation_classes.get_all()
+                    ),
+                    templates=self._backend_service.get_templates(
+                        self._project.team_id
+                    ).get("data", []),
+                    logger=logger,
                 )
                 bucket.put_object(
                     Key=response.data.images[image_data["id"]]["annotation_json_path"],
@@ -2439,7 +2443,9 @@ class UploadAnnotationsUseCaseOld(BaseInteractiveUseCase):
 
     def _is_valid_json(self, json_data: dict):
         use_case = ValidateAnnotationUseCase(
-            constances.ProjectType.get_name(self._project.project_type), annotation=json_data, validators=self._validators
+            constances.ProjectType.get_name(self._project.project_type),
+            annotation=json_data,
+            validators=self._validators,
         )
         return use_case.execute().data
 
@@ -2645,8 +2651,10 @@ class UploadAnnotationsUseCaseOld(BaseInteractiveUseCase):
                 annotation_json = json.load(open(image_id_name_map[image_id].path))
             report = fill_annotation_ids(
                 annotations=annotation_json,
-                annotation_classes_name_maps=map_annotation_classes_name(self._annotation_classes),
-                templates=self._templates
+                annotation_classes_name_maps=map_annotation_classes_name(
+                    self._annotation_classes
+                ),
+                templates=self._templates,
             )
             self.missing_classes.update(report["missing_classes"])
             self.missing_attribute_groups.update(report["missing_attribute_groups"])
@@ -2657,7 +2665,8 @@ class UploadAnnotationsUseCaseOld(BaseInteractiveUseCase):
 
             if self._project.project_type == constances.ProjectType.VIDEO.value:
                 annotation_json = self.convert_exported_video_to_editor_video_json(
-                    annotation_json, map_annotation_classes_name(self._annotation_classes)
+                    annotation_json,
+                    map_annotation_classes_name(self._annotation_classes),
                 )
 
             bucket.put_object(
@@ -3610,6 +3619,8 @@ class ValidateAnnotationUseCase(BaseUseCase):
             validator = self._validators.get_pixel_validator()
         elif self._project_type.lower() == constances.ProjectType.VIDEO.name.lower():
             validator = self._validators.get_video_validator()
+        elif self._project_type.lower() == constances.ProjectType.DOCUMENT.name.lower():
+            validator = self._validators.get_document_validator()
         if validator:
             validator = validator(self._annotation)
             if validator.is_valid():

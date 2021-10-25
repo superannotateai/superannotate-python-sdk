@@ -35,17 +35,17 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
     ImageInfo = namedtuple("ImageInfo", ["path", "name", "id"])
 
     def __init__(
-            self,
-            reporter: Reporter,
-            project: ProjectEntity,
-            folder: FolderEntity,
-            annotation_classes: List[AnnotationClassEntity],
-            annotation_paths: List[str],
-            backend_service_provider: SuerannotateServiceProvider,
-            templates: List[dict],
-            validators: BaseAnnotationValidator,
-            pre_annotation: bool = False,
-            client_s3_bucket=None,
+        self,
+        reporter: Reporter,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        annotation_classes: List[AnnotationClassEntity],
+        annotation_paths: List[str],
+        backend_service_provider: SuerannotateServiceProvider,
+        templates: List[dict],
+        validators: BaseAnnotationValidator,
+        pre_annotation: bool = False,
+        client_s3_bucket=None,
     ):
         super().__init__(reporter)
         self._project = project
@@ -65,21 +65,22 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
 
     @property
     def annotation_postfix(self):
-        if self._project.project_type in (constances.ProjectType.VIDEO.value, constances.ProjectType.DOCUMENT.value):
+        if self._project.project_type in (
+            constances.ProjectType.VIDEO.value,
+            constances.ProjectType.DOCUMENT.value,
+        ):
             return constances.ATTACHED_VIDEO_ANNOTATION_POSTFIX
         elif self._project.project_type == constances.ProjectType.VECTOR.value:
-            return  constances.VECTOR_ANNOTATION_POSTFIX
+            return constances.VECTOR_ANNOTATION_POSTFIX
         elif self._project.project_type == constances.ProjectType.PIXEL.value:
             return constances.PIXEL_ANNOTATION_POSTFIX
 
     @staticmethod
     def extract_name(value: str):
         return os.path.basename(
-            value.replace(
-                constances.PIXEL_ANNOTATION_POSTFIX, ""
-            )
-                .replace(constances.VECTOR_ANNOTATION_POSTFIX, "")
-                .replace(constances.ATTACHED_VIDEO_ANNOTATION_POSTFIX, ""),
+            value.replace(constances.PIXEL_ANNOTATION_POSTFIX, "")
+            .replace(constances.VECTOR_ANNOTATION_POSTFIX, "")
+            .replace(constances.ATTACHED_VIDEO_ANNOTATION_POSTFIX, ""),
         )
 
     @property
@@ -103,8 +104,8 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
                     folder_id=self._folder.uuid,
                     images=[image.name for image in images_detail],
                 )
-                    .execute()
-                    .data
+                .execute()
+                .data
             )
             for image_data in images_data:
                 for idx, detail in enumerate(images_detail):
@@ -128,7 +129,9 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
             self._annotations_to_upload = annotations_to_upload
         return self._annotations_to_upload
 
-    def get_annotation_upload_data(self, image_ids: List[int]) -> UploadAnnotationAuthData:
+    def get_annotation_upload_data(
+        self, image_ids: List[int]
+    ) -> UploadAnnotationAuthData:
         if self._pre_annotation:
             function = self._backend_service.get_pre_annotation_upload_data
         else:
@@ -142,8 +145,14 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
         if response.ok:
             return response.data
 
-    def _upload_annotation(self, image_id: int, image_name: str, upload_data: UploadAnnotationAuthData, path: str,
-                           bucket):
+    def _upload_annotation(
+        self,
+        image_id: int,
+        image_name: str,
+        upload_data: UploadAnnotationAuthData,
+        path: str,
+        bucket,
+    ):
         try:
             response = UploadAnnotationUseCase(
                 project=self._project,
@@ -158,7 +167,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
                 annotation_path=path,
                 verbose=False,
                 s3_bucket=bucket,
-                validators=self._validators
+                validators=self._validators,
             ).execute()
             if response.errors:
                 return path, False
@@ -171,13 +180,17 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
         uploaded_annotations = []
         missing_annotations = []
         failed_annotations = []
-        iterations_range = range(0, len(self.annotations_to_upload), self.AUTH_DATA_CHUNK_SIZE)
+        iterations_range = range(
+            0, len(self.annotations_to_upload), self.AUTH_DATA_CHUNK_SIZE
+        )
         self.reporter.start_progress(iterations_range)
         for _ in iterations_range:
             annotations_to_upload = self.annotations_to_upload[
-                                    _: _ + self.AUTH_DATA_CHUNK_SIZE  # noqa: E203
-                                    ]
-            upload_data = self.get_annotation_upload_data([int(image.id) for image in annotations_to_upload])
+                _ : _ + self.AUTH_DATA_CHUNK_SIZE  # noqa: E203
+            ]
+            upload_data = self.get_annotation_upload_data(
+                [int(image.id) for image in annotations_to_upload]
+            )
             if upload_data:
                 session = boto3.Session(
                     aws_access_key_id=upload_data.access_key,
@@ -194,7 +207,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
                 for _ in range(len(annotations_to_upload) - len(upload_data.images)):
                     self.reporter.update_progress()
                 with concurrent.futures.ThreadPoolExecutor(
-                        max_workers=self.MAX_WORKERS
+                    max_workers=self.MAX_WORKERS
                 ) as executor:
                     results = [
                         executor.submit(
@@ -203,7 +216,8 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
                             image_id_name_map[image_id].name,
                             upload_data,
                             image_id_name_map[image_id].path,
-                            bucket)
+                            bucket,
+                        )
                         for image_id, image_data in upload_data.images.items()
                     ]
                     for future in concurrent.futures.as_completed(results):
@@ -225,24 +239,23 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
 
 class UploadAnnotationUseCase(BaseReportableUseCae):
     def __init__(
-            self,
-            project: ProjectEntity,
-            folder: FolderEntity,
-            image: ImageEntity,
-            annotation_classes: List[AnnotationClassEntity],
-            backend_service_provider: SuerannotateServiceProvider,
-            reporter: Reporter,
-            templates: List[dict],
-            validators: BaseAnnotationValidator,
-            annotation_upload_data: UploadAnnotationAuthData = None,
-            annotations: dict = None,
-            s3_bucket=None,
-            client_s3_bucket=None,
-            mask=None,
-            verbose: bool = True,
-            annotation_path: str = None,
-            pass_validation: bool = False
-
+        self,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        image: ImageEntity,
+        annotation_classes: List[AnnotationClassEntity],
+        backend_service_provider: SuerannotateServiceProvider,
+        reporter: Reporter,
+        templates: List[dict],
+        validators: BaseAnnotationValidator,
+        annotation_upload_data: UploadAnnotationAuthData = None,
+        annotations: dict = None,
+        s3_bucket=None,
+        client_s3_bucket=None,
+        mask=None,
+        verbose: bool = True,
+        annotation_path: str = None,
+        pass_validation: bool = False,
     ):
         super().__init__(reporter)
         self._project = project
@@ -291,9 +304,7 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
 
     def get_s3_annotation(self, s3, path: str):
         file = io.BytesIO()
-        s3_object = s3.Object(
-            self._client_s3_bucket, path
-        )
+        s3_object = s3.Object(self._client_s3_bucket, path)
         s3_object.download_fileobj(file)
         file.seek(0)
         return json.load(file)
@@ -315,21 +326,30 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
         use_case = ValidateAnnotationUseCase(
             project_type=constances.ProjectType.get_name(self._project.project_type),
             annotation=json_data,
-            validators=self._validators
+            validators=self._validators,
         )
         return not use_case.execute().errors
 
     @staticmethod
-    def prepare_annotations(project_type: int, annotations: dict, annotation_classes: List[AnnotationClassEntity],
-                            templates: List[dict], reporter: Reporter) -> dict:
+    def prepare_annotations(
+        project_type: int,
+        annotations: dict,
+        annotation_classes: List[AnnotationClassEntity],
+        templates: List[dict],
+        reporter: Reporter,
+    ) -> dict:
         if project_type in (
-                constances.ProjectType.VECTOR.value, constances.ProjectType.PIXEL.value, constances.ProjectType.DOCUMENT.value):
+            constances.ProjectType.VECTOR.value,
+            constances.ProjectType.PIXEL.value,
+            constances.ProjectType.DOCUMENT.value,
+        ):
             fill_annotation_ids(
                 annotations=annotations,
-                annotation_classes_name_maps=map_annotation_classes_name(annotation_classes,
-                                                                         reporter),
+                annotation_classes_name_maps=map_annotation_classes_name(
+                    annotation_classes, reporter
+                ),
                 templates=templates,
-                reporter=reporter
+                reporter=reporter,
             )
         elif project_type == constances.ProjectType.VIDEO.value:
             annotations = convert_to_video_editor_json(
@@ -337,11 +357,13 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
             )
         return annotations
 
-    def is_valid_json(self, json_data: dict, ):
+    def is_valid_json(
+        self, json_data: dict,
+    ):
         use_case = ValidateAnnotationUseCase(
             constances.ProjectType.get_name(self._project.project_type),
             annotation=json_data,
-            validators=self._validators
+            validators=self._validators,
         )
         return use_case.execute().data
 
@@ -353,12 +375,14 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
                 annotations=self.get_annotation_json(),
                 annotation_classes=self._annotation_classes,
                 templates=self._templates,
-                reporter=self.reporter
+                reporter=self.reporter,
             )
             if self.is_valid_json(annotation_json):
 
                 bucket.put_object(
-                    Key=self.annotation_upload_data.images[self._image.uuid]["annotation_json_path"],
+                    Key=self.annotation_upload_data.images[self._image.uuid][
+                        "annotation_json_path"
+                    ],
                     Body=json.dumps(annotation_json),
                 )
                 if self._project.project_type == constances.ProjectType.PIXEL.value:

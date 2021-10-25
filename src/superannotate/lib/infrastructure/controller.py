@@ -1319,7 +1319,7 @@ class Controller(BaseController):
                 "data", []
             ),
             validators=self.annotation_validators,
-            reporter=Reporter(log_info=False, log_warning=False)
+            reporter=Reporter(log_info=False, log_warning=False),
         )
         return use_case.execute()
 
@@ -1350,7 +1350,7 @@ class Controller(BaseController):
             mask=mask,
             verbose=verbose,
             reporter=Reporter(),
-            validators=self.annotation_validators
+            validators=self.annotation_validators,
         )
         return use_case.execute()
 
