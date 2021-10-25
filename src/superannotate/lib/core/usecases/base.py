@@ -2,6 +2,7 @@ from abc import ABC
 from abc import abstractmethod
 
 from lib.core.exceptions import AppValidationException
+from lib.core.reporter import Reporter
 from lib.core.response import Response
 
 
@@ -39,3 +40,9 @@ class BaseInteractiveUseCase(BaseUseCase):
     @abstractmethod
     def execute(self):
         raise NotImplementedError
+
+
+class BaseReportableUseCae(BaseUseCase):
+    def __init__(self, reporter: Reporter):
+        super().__init__()
+        self.reporter = reporter

@@ -2387,11 +2387,15 @@ def upload_annotations_from_folder_to_project(
 
     if recursive_subfolders:
         logger.info(
-            "When using recursive subfolder parsing same name annotations in different subfolders will overwrite each other.",
+            "When using recursive subfolder parsing same name annotations in different "
+            "subfolders will overwrite each other.",
         )
-
     logger.info(
-        "The JSON files should follow specific naming convention. For Vector projects they should be named '<image_name>___objects.json', for Pixel projects JSON file should be names '<image_name>___pixel.json' and also second mask image file should be present with the name '<image_name>___save.png'. In both cases image with <image_name> should be already present on the platform."
+        "The JSON files should follow specific naming convention."
+        " For Vector projects they should be named '<image_name>___objects.json',"
+        " for Pixel projects JSON file should be names '<image_name>___pixel.json' and also second mask image"
+        " file should be present with the name '<image_name>___save.png'. In both cases image with <image_name>"
+        " should be already present on the platform."
     )
     logger.info("Existing annotations will be overwritten.",)
     logger.info(
@@ -2404,25 +2408,15 @@ def upload_annotations_from_folder_to_project(
     logger.info(
         "Uploading %s annotations to project %s.", len(annotation_paths), project_name
     )
-    use_case = controller.upload_annotations_from_folder(
+    response = controller.upload_annotations_from_folder(
         project_name=project_name,
         folder_name=folder_name,
-        folder_path=folder_path,
         annotation_paths=annotation_paths,  # noqa: E203
         client_s3_bucket=from_s3_bucket,
     )
-    if use_case.is_valid():
-        with tqdm(
-            total=len(use_case.annotations_to_upload), desc="Uploading annotations"
-        ) as progress_bar:
-            for _ in use_case.execute():
-                progress_bar.update(1)
-    else:
-        raise AppException(use_case.response.errors)
-    if use_case.response.report:
-        for i in use_case.response.report_messages:
-            logger.info(i)
-    return use_case.data
+    if response.errors:
+        raise AppException(response.errors)
+    return response.data
 
 
 @Trackable
@@ -2483,20 +2477,16 @@ def upload_preannotations_from_folder_to_project(
     logger.info(
         "Uploading %s annotations to project %s.", len(annotation_paths), project_name
     )
-    use_case = controller.upload_annotations_from_folder(
+    response = controller.upload_annotations_from_folder(
         project_name=project_name,
         folder_name=folder_name,
-        folder_path=folder_path,
         annotation_paths=annotation_paths,  # noqa: E203
         client_s3_bucket=from_s3_bucket,
-        is_pre_annotations=True,
+        is_pre_annotations=True
     )
-    with tqdm(
-        total=len(annotation_paths), desc="Uploading annotations"
-    ) as progress_bar:
-        for _ in use_case.execute():
-            progress_bar.update(1)
-    return use_case.data
+    if response.errors:
+        raise AppException(response.errors)
+    return response.data
 
 
 @Trackable
@@ -2505,7 +2495,7 @@ def upload_image_annotations(
     project: Union[NotEmptyStr, dict],
     image_name: str,
     annotation_json: Union[str, Path, dict],
-    mask: Optional[Union[str, Path, dict]] = None,
+    mask: Optional[Union[str, Path, bytes]] = None,
     verbose: Optional[StrictBool] = True,
 ):
     """Upload annotations from JSON (also mask for pixel annotations)
@@ -2520,15 +2510,17 @@ def upload_image_annotations(
     :param mask: BytesIO object or filepath to mask annotation for pixel projects in SuperAnnotate format
     :type mask: BytesIO or Path-like (str or Path)
     """
-    annotation_path = f"{image_name}___save.png"
-    if isinstance(annotation_json, str) or isinstance(annotation_json, Path):
-        annotation_path = str(annotation_json).replace("___pixel.json", "___save.png")
-    if isinstance(annotation_json, list):
-        raise AppException(
-            "Annotation JSON should be a dict object. You are using list object."
-            " If this is an old annotation format you can convert it to new format with superannotate."
-            "update_json_format SDK function"
-        )
+    if not mask:
+        if not isinstance(annotation_json, dict):
+            mask_path = str(annotation_json).replace("___pixel.json", "___save.png")
+        else:
+            mask_path = f"{image_name}___save.png"
+        if os.path.exists(mask_path):
+            mask = open(mask_path, "rb").read()
+    elif isinstance(mask, str) or isinstance(mask, Path):
+        if os.path.exists(mask):
+            mask = open(mask, "rb").read()
+
     if not isinstance(annotation_json, dict):
         if verbose:
             logger.info("Uploading annotations from %s.", annotation_json)
@@ -2541,7 +2533,6 @@ def upload_image_annotations(
         annotations=annotation_json,
         mask=mask,
         verbose=verbose,
-        annotation_path=annotation_path,
     )
     if response.errors:
         raise AppException(response.errors)
