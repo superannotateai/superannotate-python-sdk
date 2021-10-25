@@ -14,7 +14,7 @@ class TestUploadTextAnnotation(BaseTestCase):
     PROJECT_TYPE = "Document"
     ANNOTATIONS_PATH = "data_set/document_annotation"
     CLASSES_PATH = "data_set/document_annotation/classes/classes.json"
-
+    ANNOTATIONS_PATH_INVALID_JSON = "data_set/document_annotation_invalid_json"
 
     @property
     def csv_path(self):
@@ -35,6 +35,20 @@ class TestUploadTextAnnotation(BaseTestCase):
     @pytest.fixture(autouse=True)
     def inject_fixtures(self, caplog):
         self._caplog = caplog
+
+    def test_document_annotation_upload_invalid_json(self):
+        sa.create_annotation_classes_from_classes_json(self.PROJECT_NAME, self.classes_path)
+
+        _, _, _ = sa.attach_document_urls_to_project(
+            self.PROJECT_NAME,
+            self.csv_path,
+        )
+
+        (uploaded_annotations, failed_annotations, missing_annotations) = sa.upload_annotations_from_folder_to_project(self.PROJECT_NAME, self.invalid_annotations_path)
+        self.assertEqual(len(uploaded_annotations),0)
+        self.assertEqual(len(failed_annotations),1)
+        self.assertEqual(len(missing_annotations),0)
+        self.assertIn("Invalid json", self._caplog.text)
 
     def test_text_annotation_upload(self):
         sa.create_annotation_classes_from_classes_json(self.PROJECT_NAME, self.classes_path)
