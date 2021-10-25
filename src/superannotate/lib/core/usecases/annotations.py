@@ -65,11 +65,12 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
 
     @property
     def annotation_postfix(self):
-        return (
-            constances.VECTOR_ANNOTATION_POSTFIX
-            if self._project.project_type == constances.ProjectType.VECTOR.value
-            else constances.PIXEL_ANNOTATION_POSTFIX
-        )
+        if self._project.project_type in (constances.ProjectType.VIDEO.value, constances.ProjectType.DOCUMENT.value):
+            return constances.ATTACHED_VIDEO_ANNOTATION_POSTFIX
+        elif self._project.project_type == constances.ProjectType.VECTOR.value:
+            return  constances.VECTOR_ANNOTATION_POSTFIX
+        elif self._project.project_type == constances.ProjectType.PIXEL.value:
+            return constances.PIXEL_ANNOTATION_POSTFIX
 
     @staticmethod
     def extract_name(value: str):
@@ -322,7 +323,7 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
     def prepare_annotations(project_type: int, annotations: dict, annotation_classes: List[AnnotationClassEntity],
                             templates: List[dict], reporter: Reporter) -> dict:
         if project_type in (
-                constances.ProjectType.VECTOR.value, constances.ProjectType.PIXEL.value):
+                constances.ProjectType.VECTOR.value, constances.ProjectType.PIXEL.value, constances.ProjectType.DOCUMENT.value):
             fill_annotation_ids(
                 annotations=annotations,
                 annotation_classes_name_maps=map_annotation_classes_name(annotation_classes,
