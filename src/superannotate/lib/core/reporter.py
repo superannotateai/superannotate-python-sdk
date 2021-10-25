@@ -7,10 +7,10 @@ import tqdm
 
 class Reporter:
     def __init__(
-            self,
-            log_info: bool = True,
-            log_warning: bool = True,
-            disable_progress_bar: bool = False
+        self,
+        log_info: bool = True,
+        log_warning: bool = True,
+        disable_progress_bar: bool = False,
     ):
         self.logger = logging.getLogger("root")
         self._log_info = log_info
@@ -31,11 +31,17 @@ class Reporter:
             self.logger.warning(value)
         self.warning_messages.append(value)
 
-    def start_progress(self, iterations: Union[int, range], description: str = "Processing"):
+    def start_progress(
+        self, iterations: Union[int, range], description: str = "Processing"
+    ):
         if isinstance(iterations, range):
-            self.progress_bar = tqdm.tqdm(iterations, desc=description, disable=self._disable_progress_bar)
+            self.progress_bar = tqdm.tqdm(
+                iterations, desc=description, disable=self._disable_progress_bar
+            )
         else:
-            self.progress_bar = tqdm.tqdm(total=iterations, desc=description, disable=self._disable_progress_bar)
+            self.progress_bar = tqdm.tqdm(
+                total=iterations, desc=description, disable=self._disable_progress_bar
+            )
 
     def finish_progress(self):
         self.progress_bar.close()

@@ -2379,7 +2379,6 @@ def upload_annotations_from_folder_to_project(
     """
 
     project_name, folder_name = extract_project_folder(project)
-    project = controller.get_project_metadata(project_name).data
 
     if recursive_subfolders:
         logger.info(
@@ -2478,7 +2477,7 @@ def upload_preannotations_from_folder_to_project(
         folder_name=folder_name,
         annotation_paths=annotation_paths,  # noqa: E203
         client_s3_bucket=from_s3_bucket,
-        is_pre_annotations=True
+        is_pre_annotations=True,
     )
     if response.errors:
         raise AppException(response.errors)

@@ -44,10 +44,11 @@ def map_annotation_classes_name(annotation_classes, reporter: Reporter) -> dict:
 
 
 def fill_annotation_ids(
-        annotations: dict,
-        annotation_classes_name_maps: dict,
-        templates: List[dict],
-        reporter: Reporter):
+    annotations: dict,
+    annotation_classes_name_maps: dict,
+    templates: List[dict],
+    reporter: Reporter,
+):
     annotation_classes_name_maps = annotation_classes_name_maps
     if "instances" not in annotations:
         return
@@ -67,7 +68,7 @@ def fill_annotation_ids(
     annotation_classes_name_maps.update(unknown_classes)
     template_name_id_map = {template["name"]: template["id"] for template in templates}
     for annotation in (
-            i for i in annotations["instances"] if i.get("type", None) == "template"
+        i for i in annotations["instances"] if i.get("type", None) == "template"
     ):
         annotation["templateId"] = template_name_id_map.get(
             annotation.get("templateName", ""), -1
@@ -76,25 +77,35 @@ def fill_annotation_ids(
     for annotation in [i for i in annotations["instances"] if "className" in i]:
         annotation_class_name = annotation["className"]
         if annotation_class_name not in annotation_classes_name_maps.keys():
-            reporter.log_warning(f"Couldn't find annotation class {annotation_class_name}")
+            reporter.log_warning(
+                f"Couldn't find annotation class {annotation_class_name}"
+            )
             continue
-        annotation["classId"] = annotation_classes_name_maps[annotation_class_name]["id"]
+        annotation["classId"] = annotation_classes_name_maps[annotation_class_name][
+            "id"
+        ]
         for attribute in annotation["attributes"]:
             if (
-                    attribute["groupName"]
-                    not in annotation_classes_name_maps[annotation_class_name]["attribute_groups"]
+                attribute["groupName"]
+                not in annotation_classes_name_maps[annotation_class_name][
+                    "attribute_groups"
+                ]
             ):
-                reporter.log_warning(f"Couldn't find annotation group {attribute['groupName']}.")
-                reporter.store_message("Couldn't find annotation groups", attribute["groupName"])
+                reporter.log_warning(
+                    f"Couldn't find annotation group {attribute['groupName']}."
+                )
+                reporter.store_message(
+                    "Couldn't find annotation groups", attribute["groupName"]
+                )
                 continue
             attribute["groupId"] = annotation_classes_name_maps[annotation_class_name][
                 "attribute_groups"
             ][attribute["groupName"]]["id"]
             if (
-                    attribute["name"]
-                    not in annotation_classes_name_maps[annotation_class_name][
-                "attribute_groups"
-            ][attribute["groupName"]]["attributes"]
+                attribute["name"]
+                not in annotation_classes_name_maps[annotation_class_name][
+                    "attribute_groups"
+                ][attribute["groupName"]]["attributes"]
             ):
                 del attribute["groupId"]
                 reporter.log_warning(
@@ -145,9 +156,7 @@ def convert_to_video_editor_json(data: dict, class_name_mapper: dict):
             end_time = safe_time(convert_timestamp(parameter["end"]))
 
             for timestamp_data in parameter["timestamps"]:
-                timestamp = safe_time(
-                    convert_timestamp(timestamp_data["timestamp"])
-                )
+                timestamp = safe_time(convert_timestamp(timestamp_data["timestamp"]))
                 editor_instance["timeline"][timestamp] = {}
 
                 if timestamp == start_time:
@@ -157,9 +166,9 @@ def convert_to_video_editor_json(data: dict, class_name_mapper: dict):
                     editor_instance["timeline"][timestamp]["active"] = False
 
                 if timestamp_data.get("points", None):
-                    editor_instance["timeline"][timestamp][
+                    editor_instance["timeline"][timestamp]["points"] = timestamp_data[
                         "points"
-                    ] = timestamp_data["points"]
+                    ]
 
                 if not class_name_mapper.get(meta["className"], None):
                     continue
@@ -169,41 +178,41 @@ def convert_to_video_editor_json(data: dict, class_name_mapper: dict):
                     key = attribute["groupName"], attribute["name"]
                     existing_attributes_in_current_instance.add(key)
                 attributes_to_add = (
-                        existing_attributes_in_current_instance - active_attributes
+                    existing_attributes_in_current_instance - active_attributes
                 )
                 attributes_to_delete = (
-                        active_attributes - existing_attributes_in_current_instance
+                    active_attributes - existing_attributes_in_current_instance
                 )
                 if attributes_to_add or attributes_to_delete:
-                    editor_instance["timeline"][timestamp][
-                        "attributes"
-                    ] = defaultdict(list)
+                    editor_instance["timeline"][timestamp]["attributes"] = defaultdict(
+                        list
+                    )
                 for new_attribute in attributes_to_add:
                     attr = {
                         "id": class_name_mapper[class_name]["attribute_groups"][
                             new_attribute[0]
                         ]["attributes"][new_attribute[1]],
-                        "groupId": class_name_mapper[class_name][
-                            "attribute_groups"
-                        ][new_attribute[0]]["id"],
+                        "groupId": class_name_mapper[class_name]["attribute_groups"][
+                            new_attribute[0]
+                        ]["id"],
                     }
                     active_attributes.add(new_attribute)
-                    editor_instance["timeline"][timestamp]["attributes"][
-                        "+"
-                    ].append(attr)
+                    editor_instance["timeline"][timestamp]["attributes"]["+"].append(
+                        attr
+                    )
                 for attribute_to_delete in attributes_to_delete:
                     attr = {
                         "id": class_name_mapper[class_name]["attribute_groups"][
                             attribute_to_delete[0]
                         ]["attributes"][attribute_to_delete[1]],
-                        "groupId": class_name_mapper[class_name][
-                            "attribute_groups"
-                        ][attribute_to_delete[0]]["id"],
+                        "groupId": class_name_mapper[class_name]["attribute_groups"][
+                            attribute_to_delete[0]
+                        ]["id"],
                     }
                     active_attributes.remove(attribute_to_delete)
-                    editor_instance["timeline"][timestamp]["attributes"][
-                        "-"
-                    ].append(attr)
+                    editor_instance["timeline"][timestamp]["attributes"]["-"].append(
+                        attr
+                    )
 
         editor_data["instances"].append(editor_instance)
     return editor_data
