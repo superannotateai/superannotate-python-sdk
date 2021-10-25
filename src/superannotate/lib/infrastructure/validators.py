@@ -11,7 +11,7 @@ from pydantic import ValidationError
 
 def get_tabulation() -> int:
     try:
-        return int(os.get_terminal_size().columns/2)
+        return int(os.get_terminal_size().columns / 2)
     except OSError:
         return 48
 

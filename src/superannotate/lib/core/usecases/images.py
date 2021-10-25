@@ -41,15 +41,11 @@ from lib.core.repositories import BaseManageableRepository
 from lib.core.repositories import BaseReadOnlyRepository
 from lib.core.response import Response
 from lib.core.serviceproviders import SuerannotateServiceProvider
-from lib.core.types import PixelAnnotation
-from lib.core.types import VectorAnnotation
-from lib.core.types import VideoAnnotation
 from lib.core.usecases.base import BaseInteractiveUseCase
 from lib.core.usecases.base import BaseUseCase
 from lib.core.usecases.projects import GetAnnotationClassesUseCase
 from lib.core.validators import BaseAnnotationValidator
 from PIL import UnidentifiedImageError
-from pydantic import ValidationError
 
 logger = logging.getLogger("root")
 
@@ -1602,7 +1598,6 @@ class UploadImagesFromPublicUrls(BaseInteractiveUseCase):
         self._settings = settings
         self._auth_data = None
 
-
     @property
     def auth_data(self):
         if not self._auth_data:
@@ -2192,7 +2187,7 @@ class DeleteAnnotations(BaseUseCase):
         return self._response
 
 
-class UploadImageAnnotationsUseCase(BaseUseCase):
+class UploadImageAnnotationsUseCaseOld(BaseUseCase):
     def __init__(
         self,
         project: ProjectEntity,
@@ -2341,7 +2336,7 @@ class DeleteImagesUseCase(BaseUseCase):
         return self._response
 
 
-class UploadAnnotationsUseCase(BaseInteractiveUseCase):
+class UploadAnnotationsUseCaseOld(BaseInteractiveUseCase):
     MAX_WORKERS = 10
     CHUNK_SIZE = 100
     AUTH_DATA_CHUNK_SIZE = 500

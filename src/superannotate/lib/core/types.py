@@ -52,7 +52,7 @@ class BaseInstance(BaseModel):
 
     class Config:
         error_msg_templates = {
-            "value_error.missing": f"field required for annotation",
+            "value_error.missing": "ield required for annotation",
         }
 
 
@@ -142,6 +142,7 @@ ANNOTATION_TYPES = {
     "cuboid": Cuboid,
     "polyline": PolyLine,
     "polygon": Polygon,
+    "point": Point,
 }
 
 
