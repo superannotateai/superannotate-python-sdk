@@ -1,6 +1,7 @@
 from typing import List
 from typing import Optional
 from typing import Union
+from typing import Dict
 
 from pydantic import BaseModel
 from pydantic import constr
@@ -46,15 +47,20 @@ class Metadata(BaseModel):
     height: Optional[int]
 
 
+class PointLabels(BaseModel):
+    __root__: Dict[constr(regex=r"^[0-9]*$"), str]
+
+
 class BaseInstance(BaseModel):
     type: AnnotationType
     classId: int
     groupId: Optional[int]
     attributes: List[Attribute]
+    point_labels: Optional[PointLabels]
 
     class Config:
         error_msg_templates = {
-            "value_error.missing": "ield required for annotation",
+            "value_error.missing": "field required for annotation",
         }
 
 

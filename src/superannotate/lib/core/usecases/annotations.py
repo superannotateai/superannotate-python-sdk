@@ -370,15 +370,16 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
 
     def execute(self):
         if self.is_valid():
-            bucket = self.s3_bucket
-            annotation_json = self.prepare_annotations(
-                project_type=self._project.project_type,
-                annotations=self.get_annotation_json(),
-                annotation_classes=self._annotation_classes,
-                templates=self._templates,
-                reporter=self.reporter,
-            )
+            annotation_json = self.get_annotation_json()
             if self.is_valid_json(annotation_json):
+                bucket = self.s3_bucket
+                annotation_json = self.prepare_annotations(
+                    project_type=self._project.project_type,
+                    annotations=annotation_json,
+                    annotation_classes=self._annotation_classes,
+                    templates=self._templates,
+                    reporter=self.reporter,
+                )
                 bucket.put_object(
                     Key=self.annotation_upload_data.images[self._image.uuid][
                         "annotation_json_path"
