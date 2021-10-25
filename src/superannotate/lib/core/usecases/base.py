@@ -9,6 +9,7 @@ from lib.core.response import Response
 class BaseUseCase(ABC):
     def __init__(self):
         self._response = Response()
+        self._pass_validation = False
 
     @abstractmethod
     def execute(self) -> Response:
@@ -24,6 +25,8 @@ class BaseUseCase(ABC):
                 self._response.errors = e
 
     def is_valid(self):
+        if self._pass_validation:
+            return True
         self._validate()
         return not self._response.errors
 

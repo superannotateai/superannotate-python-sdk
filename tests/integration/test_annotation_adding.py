@@ -36,7 +36,6 @@ class TestAnnotationAdding(BaseTestCase):
         uploaded_annotations, failed_annotations, missing_annotations = sa.upload_annotations_from_folder_to_project(
             self.PROJECT_NAME, self.invalid_json_path
         )
-
         self.assertEqual(len(uploaded_annotations), 3)
         self.assertEqual(len(failed_annotations), 1)
         self.assertEqual(len(missing_annotations), 0)
