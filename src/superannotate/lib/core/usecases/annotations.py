@@ -170,6 +170,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
                 validators=self._validators,
             ).execute()
             if response.errors:
+                self.reporter.store_message("Invalid jsons", path)
                 return path, False
             return path, True
         except Exception as e:
@@ -178,7 +179,6 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
 
     def execute(self):
         uploaded_annotations = []
-        missing_annotations = []
         failed_annotations = []
         iterations_range = range(
             0, len(self.annotations_to_upload), self.AUTH_DATA_CHUNK_SIZE
@@ -227,6 +227,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
                         else:
                             failed_annotations.append(annotation)
                         self.reporter.update_progress()
+
         self._response.data = (
             uploaded_annotations,
             failed_annotations,
@@ -378,7 +379,6 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
                 reporter=self.reporter,
             )
             if self.is_valid_json(annotation_json):
-
                 bucket.put_object(
                     Key=self.annotation_upload_data.images[self._image.uuid][
                         "annotation_json_path"
@@ -400,5 +400,5 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
                         self._project.name,
                     )
             else:
-                self._response.errors = "Invalid json"
+                self._response.errors = f"Invalid json"
         return self._response
