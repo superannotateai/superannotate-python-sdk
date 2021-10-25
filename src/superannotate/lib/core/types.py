@@ -142,6 +142,7 @@ ANNOTATION_TYPES = {
     "cuboid": Cuboid,
     "polyline": PolyLine,
     "polygon": Polygon,
+    "point": Point,
 }
 
 

@@ -216,7 +216,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
         self._response.data = (
             uploaded_annotations,
             failed_annotations,
-            missing_annotations,
+            [annotation.path for annotation in self._missing_annotations],
         )
         for message in self.reporter.messages:
             logger.warning(message)
@@ -260,7 +260,6 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
         self._client_s3_bucket = client_s3_bucket
         self._pass_validation = pass_validation
         self._validators = validators
-
 
     @property
     def annotation_upload_data(self) -> UploadAnnotationAuthData:
@@ -338,6 +337,14 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
             )
         return annotations
 
+    def is_valid_json(self, json_data: dict, ):
+        use_case = ValidateAnnotationUseCase(
+            constances.ProjectType.get_name(self._project.project_type),
+            annotation=json_data,
+            validators=self._validators
+        )
+        return use_case.execute().data
+
     def execute(self):
         if self.is_valid():
             bucket = self.s3_bucket
@@ -348,23 +355,26 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
                 templates=self._templates,
                 reporter=self.reporter
             )
+            if self.is_valid_json(annotation_json):
 
-            bucket.put_object(
-                Key=self.annotation_upload_data.images[self._image.uuid]["annotation_json_path"],
-                Body=json.dumps(annotation_json),
-            )
-            if self._project.project_type == constances.ProjectType.PIXEL.value:
-                if self._mask:
-                    bucket.put_object(
-                        Key=self.annotation_upload_data.images[self._image.uuid][
-                            "annotation_bluemap_path"
-                        ],
-                        Body=self._mask,
-                    )
-            if self._verbose:
-                logger.info(
-                    "Uploading annotations for image %s in project %s.",
-                    str(self._image.name),
-                    self._project.name,
+                bucket.put_object(
+                    Key=self.annotation_upload_data.images[self._image.uuid]["annotation_json_path"],
+                    Body=json.dumps(annotation_json),
                 )
+                if self._project.project_type == constances.ProjectType.PIXEL.value:
+                    if self._mask:
+                        bucket.put_object(
+                            Key=self.annotation_upload_data.images[self._image.uuid][
+                                "annotation_bluemap_path"
+                            ],
+                            Body=self._mask,
+                        )
+                if self._verbose:
+                    logger.info(
+                        "Uploading annotations for image %s in project %s.",
+                        str(self._image.name),
+                        self._project.name,
+                    )
+            else:
+                self._response.errors = "Invalid json"
         return self._response
