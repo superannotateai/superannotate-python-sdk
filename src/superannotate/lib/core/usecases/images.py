@@ -2962,7 +2962,7 @@ class UploadFileToS3UseCase(BaseUseCase):
         self._to_s3_bucket.upload_file(str(self._path), self._s3_key)
 
 
-class ExtractFramesUseCase(BaseUseCase):
+class ExtractFramesUseCase(BaseInteractiveUseCase):
     def __init__(
         self,
         backend_service_provider: SuerannotateServiceProvider,
@@ -2990,6 +2990,20 @@ class ExtractFramesUseCase(BaseUseCase):
         self._image_quality_in_editor = image_quality_in_editor
         self._limit = limit
         self._limitation_response = None
+
+    def validate_fps(self):
+        fps = VideoPlugin.get_fps(self._video_path)
+        if not self._target_fps:
+            self._target_fps = fps
+            return
+        if self._target_fps and self._target_fps > fps:
+            logger.info(
+                f"Video frame rate {fps} smaller than target frame rate {self._target_fps}. Cannot change frame rate."
+            )
+        else:
+            logger.info(
+                f"Changing video frame rate from {fps} to target frame rate {self._target_fps}."
+            )
 
     def validate_upload_state(self):
         if self._project.upload_state == constances.UploadState.EXTERNAL.value:
@@ -3024,12 +3038,12 @@ class ExtractFramesUseCase(BaseUseCase):
     @property
     def limit(self):
         limits = [
-            self._limitation_response.data.folder_limit.remaining_image_count,
-            self._limitation_response.data.project_limit.remaining_image_count,
+            self.limitation_response.data.folder_limit.remaining_image_count,
+            self.limitation_response.data.project_limit.remaining_image_count,
         ]
-        if self._limitation_response.data.user_limit:
+        if self.limitation_response.data.user_limit:
             limits.append(
-                self._limitation_response.data.user_limit.remaining_image_count
+                self.limitation_response.data.user_limit.remaining_image_count
             )
         return min(limits)
 
@@ -3041,7 +3055,7 @@ class ExtractFramesUseCase(BaseUseCase):
 
     def execute(self):
         if self.is_valid():
-            extracted_paths = VideoPlugin.extract_frames(
+            frames_generator = VideoPlugin.extract_frames(
                 video_path=self._video_path,
                 start_time=self._start_time,
                 end_time=self._end_time,
@@ -3049,8 +3063,7 @@ class ExtractFramesUseCase(BaseUseCase):
                 limit=self.limit,
                 target_fps=self._target_fps,
             )
-            self._response.data = extracted_paths
-        return self._response
+            yield from frames_generator
 
 
 class UploadS3ImagesBackendUseCase(BaseUseCase):
