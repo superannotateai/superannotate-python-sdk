@@ -255,16 +255,17 @@ class VideoPlugin:
     def get_extractable_frames(
         video_path: str, start_time, end_time, target_fps: float,
     ):
-        total = sum(
+        total = VideoPlugin.get_frames_count(video_path)
+        total_with_fps = sum(
             1
             for _ in VideoPlugin.frames_generator(
-                video_path, start_time, end_time, target_fps, log=False
+                video_path,start_time, end_time, target_fps, log=False
             )
         )
         zero_fill_count = len(str(total))
         video_name = Path(video_path).stem
         frame_names = []
-        for i in range(1, total + 1):
+        for i in range(1, total_with_fps + 1):
             frame_name = f"{video_name}_{str(i).zfill(zero_fill_count)}.jpg"
             frame_names.append(frame_name)
         return frame_names

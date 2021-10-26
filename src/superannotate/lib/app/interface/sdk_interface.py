@@ -1644,7 +1644,7 @@ def upload_videos_from_folder_to_project(
     start_time: Optional[float] = 0.0,
     end_time: Optional[float] = None,
     annotation_status: Optional[Status] = "NotStarted",
-    image_quality_in_editor: Optional[str] = None,
+    image_quality_in_editor: Optional[ImageQualityChoices] = None,
 ):
     """Uploads image frames from all videos with given extensions from folder_path to the project.
     Sets status of all the uploaded images to set_status if it is not None.
@@ -1749,6 +1749,8 @@ def upload_videos_from_folder_to_project(
                 logger.warning(
                     f"{len(duplicate_images)} already existing images found that won't be uploaded."
                 )
+            if set(duplicate_images) == set(frame_names):
+                continue
 
             for _ in frames_generator:
                 use_case = controller.upload_images_from_folder_to_project(
@@ -1792,7 +1794,7 @@ def upload_video_to_project(
     start_time: Optional[float] = 0.0,
     end_time: Optional[float] = None,
     annotation_status: Optional[Status] = "NotStarted",
-    image_quality_in_editor: Optional[NotEmptyStr] = None,
+    image_quality_in_editor: Optional[ImageQualityChoices] = None,
 ):
     """Uploads image frames from video to platform. Uploaded images will have
     names "<video_name>_<frame_no>.jpg".
@@ -1859,6 +1861,9 @@ def upload_video_to_project(
             logger.warning(
                 f"{len(duplicate_images)} already existing images found that won't be uploaded."
             )
+        if set(duplicate_images) == set(frame_names):
+            return []
+
         for _ in frames_generator:
             use_case = controller.upload_images_from_folder_to_project(
                 project_name=project_name,
