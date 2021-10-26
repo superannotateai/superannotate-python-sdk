@@ -3,12 +3,14 @@ from abc import abstractmethod
 from typing import Iterable
 
 from lib.core.exceptions import AppValidationException
+from lib.core.reporter import Reporter
 from lib.core.response import Response
 
 
 class BaseUseCase(ABC):
     def __init__(self):
         self._response = Response()
+        self._pass_validation = False
 
     @abstractmethod
     def execute(self) -> Response:
@@ -24,6 +26,8 @@ class BaseUseCase(ABC):
                 self._response.errors = e
 
     def is_valid(self):
+        if self._pass_validation:
+            return True
         self._validate()
         return not self._response.errors
 
@@ -50,3 +54,9 @@ class BaseInteractiveUseCase(BaseUseCase):
     @abstractmethod
     def execute(self) -> Iterable:
         raise NotImplementedError
+
+
+class BaseReportableUseCae(BaseUseCase):
+    def __init__(self, reporter: Reporter):
+        super().__init__()
+        self.reporter = reporter

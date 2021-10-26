@@ -1,15 +1,16 @@
 from typing import List
 from typing import Optional
 from typing import Union
+from typing import Dict
 
 from pydantic import BaseModel
 from pydantic import constr
 from pydantic import Extra
 from pydantic import StrictStr
 from pydantic import validate_model
-from pydantic import ValidationError
 from pydantic import validator
-
+from pydantic.error_wrappers import ErrorWrapper
+from pydantic.error_wrappers import ValidationError
 
 NotEmptyStr = constr(strict=True, min_length=1)
 
@@ -18,7 +19,9 @@ class AnnotationType(StrictStr):
     @classmethod
     def validate(cls, value: str) -> Union[str]:
         if value not in ANNOTATION_TYPES.keys():
-            raise TypeError(f"Invalid type {value}")
+            raise ValidationError(
+                [ErrorWrapper(TypeError(f"invalid value {value}"), "type")], cls
+            )
         return value
 
 
@@ -44,11 +47,16 @@ class Metadata(BaseModel):
     height: Optional[int]
 
 
+class PointLabels(BaseModel):
+    __root__: Dict[constr(regex=r"^[0-9]*$"), str]
+
+
 class BaseInstance(BaseModel):
     type: AnnotationType
     classId: int
     groupId: Optional[int]
     attributes: List[Attribute]
+    point_labels: Optional[PointLabels]
 
     class Config:
         error_msg_templates = {
@@ -142,6 +150,7 @@ ANNOTATION_TYPES = {
     "cuboid": Cuboid,
     "polyline": PolyLine,
     "polygon": Polygon,
+    "point": Point,
 }
 
 
@@ -153,8 +162,11 @@ class VectorAnnotation(BaseModel):
 
     @validator("instances", pre=True, each_item=True)
     def check_instances(cls, instance):
-        # todo add type checking
         annotation_type = AnnotationType.validate(instance.get("type"))
+        if not annotation_type:
+            raise ValidationError(
+                [ErrorWrapper(TypeError("value not specified"), "type")], cls
+            )
         result = validate_model(ANNOTATION_TYPES[annotation_type], instance)
         if result[2]:
             raise ValidationError(
@@ -184,3 +196,41 @@ class MLModel(BaseModel):
 
     class Config:
         extra = Extra.allow
+
+
+class VideoMetaData(BaseModel):
+    name: Optional[str]
+    width: Optional[int]
+    height: Optional[int]
+
+
+class VideoInstanceMeta(BaseModel):
+    type: NotEmptyStr
+    classId: int
+
+
+class VideoTimeStamp(BaseModel):
+    timestamp: int
+    attributes: List[Attribute]
+
+
+class VideoInstanceParameter(BaseModel):
+    start: int
+    end: int
+    timestamps: List[VideoTimeStamp]
+
+
+class VideoInstance(BaseModel):
+    meta: VideoInstanceMeta
+    parameters: List[VideoInstanceParameter]
+
+
+class VideoAnnotation(BaseModel):
+    metadata: VideoMetaData
+    instances: List[VideoInstance]
+    tags: List[str]
+
+
+class DocumentAnnotation(BaseModel):
+    instances: list
+    tags: List[str]

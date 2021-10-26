@@ -31,7 +31,6 @@ from lib.app.interface.types import AnnotationType
 from lib.app.interface.types import ImageQualityChoices
 from lib.app.interface.types import NotEmptyStr
 from lib.app.interface.types import ProjectTypes
-from lib.app.interface.types import Status
 from lib.app.interface.types import validate_arguments
 from lib.app.mixp.decorators import Trackable
 from lib.app.serializers import BaseSerializers
@@ -282,7 +281,7 @@ def clone_project(
 def search_images(
     project: Union[NotEmptyStr, dict],
     image_name_prefix: Optional[NotEmptyStr] = None,
-    annotation_status: Optional[Status] = None,
+    annotation_status: Optional[AnnotationStatuses] = None,
     return_metadata: Optional[StrictBool] = False,
 ):
     """Search images by name_prefix (case-insensitive) and annotation status
@@ -335,10 +334,6 @@ def create_folder(project: NotEmptyStr, folder_name: NotEmptyStr):
     res = controller.create_folder(project=project, folder_name=folder_name)
     if res.data:
         folder = res.data
-        if folder and folder.name != folder_name:
-            logger.warning(
-                f"Created folder has name {folder.name}, since folder with name {folder_name} already existed.",
-            )
         logger.info(f"Folder {folder.name} created in project {project}")
         return folder.to_dict()
     if res.errors:
@@ -605,7 +600,7 @@ def upload_images_from_public_urls_to_project(
     project: Union[NotEmptyStr, dict],
     img_urls: List[NotEmptyStr],
     img_names: Optional[List[NotEmptyStr]] = None,
-    annotation_status: Optional[Status] = "NotStarted",
+    annotation_status: Optional[AnnotationStatuses] = "NotStarted",
     image_quality_in_editor: Optional[NotEmptyStr] = None,
 ):
     """Uploads all images given in the list of URL strings in img_urls to the project.
@@ -1643,7 +1638,7 @@ def upload_videos_from_folder_to_project(
     target_fps: Optional[int] = None,
     start_time: Optional[float] = 0.0,
     end_time: Optional[float] = None,
-    annotation_status: Optional[Status] = "NotStarted",
+    annotation_status: Optional[AnnotationStatuses] = "NotStarted",
     image_quality_in_editor: Optional[ImageQualityChoices] = None,
 ):
     """Uploads image frames from all videos with given extensions from folder_path to the project.
@@ -1793,7 +1788,7 @@ def upload_video_to_project(
     target_fps: Optional[int] = None,
     start_time: Optional[float] = 0.0,
     end_time: Optional[float] = None,
-    annotation_status: Optional[Status] = "NotStarted",
+    annotation_status: Optional[AnnotationStatuses] = "NotStarted",
     image_quality_in_editor: Optional[ImageQualityChoices] = None,
 ):
     """Uploads image frames from video to platform. Uploaded images will have
@@ -2291,7 +2286,7 @@ def download_image(
 def attach_image_urls_to_project(
     project: Union[NotEmptyStr, dict],
     attachments: Union[str, Path],
-    annotation_status: Optional[Status] = "NotStarted",
+    annotation_status: Optional[AnnotationStatuses] = "NotStarted",
 ):
     """Link images on external storage to SuperAnnotate.
 
@@ -2354,7 +2349,7 @@ def attach_image_urls_to_project(
 def attach_video_urls_to_project(
     project: Union[NotEmptyStr, dict],
     attachments: Union[str, Path],
-    annotation_status: Optional[Status] = "NotStarted",
+    annotation_status: Optional[AnnotationStatuses] = "NotStarted",
 ):
     """Link videos on external storage to SuperAnnotate.
 
@@ -2443,22 +2438,14 @@ def upload_annotations_from_folder_to_project(
     """
 
     project_name, folder_name = extract_project_folder(project)
-    project = controller.get_project_metadata(project_name).data
-    if project["project"].project_type in [
-        constances.ProjectType.VIDEO.value,
-        constances.ProjectType.DOCUMENT.value,
-    ]:
-        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
 
     if recursive_subfolders:
         logger.info(
-            "When using recursive subfolder parsing same name annotations in different subfolders will overwrite each other.",
+            "When using recursive subfolder parsing same name annotations in different "
+            "subfolders will overwrite each other.",
         )
-
-    logger.info(
-        "The JSON files should follow specific naming convention. For Vector projects they should be named '<image_name>___objects.json', for Pixel projects JSON file should be names '<image_name>___pixel.json' and also second mask image file should be present with the name '<image_name>___save.png'. In both cases image with <image_name> should be already present on the platform."
-    )
-    logger.info("Existing annotations will be overwritten.",)
+    logger.info("The JSON files should follow a specific naming convention, matching file names already present "
+                "on the platform. Existing annotations will be overwritten")
     logger.info(
         "Uploading all annotations from %s to project %s.", folder_path, project_name
     )
@@ -2466,28 +2453,21 @@ def upload_annotations_from_folder_to_project(
     annotation_paths = get_annotation_paths(
         folder_path, from_s3_bucket, recursive_subfolders
     )
+    if not annotation_paths:
+        raise AppException("Could not find annotations matching existing items on the platform.")
+
     logger.info(
         "Uploading %s annotations to project %s.", len(annotation_paths), project_name
     )
-    use_case = controller.upload_annotations_from_folder(
+    response = controller.upload_annotations_from_folder(
         project_name=project_name,
         folder_name=folder_name,
-        folder_path=folder_path,
         annotation_paths=annotation_paths,  # noqa: E203
         client_s3_bucket=from_s3_bucket,
     )
-    if use_case.is_valid():
-        with tqdm(
-            total=len(use_case.annotations_to_upload), desc="Uploading annotations"
-        ) as progress_bar:
-            for _ in use_case.execute():
-                progress_bar.update(1)
-    else:
-        raise AppException(use_case.response.errors)
-    if use_case.response.report:
-        for i in use_case.response.report_messages:
-            logger.info(i)
-    return use_case.data
+    if response.errors:
+        raise AppException(response.errors)
+    return response.data
 
 
 @Trackable
@@ -2548,20 +2528,16 @@ def upload_preannotations_from_folder_to_project(
     logger.info(
         "Uploading %s annotations to project %s.", len(annotation_paths), project_name
     )
-    use_case = controller.upload_annotations_from_folder(
+    response = controller.upload_annotations_from_folder(
         project_name=project_name,
         folder_name=folder_name,
-        folder_path=folder_path,
         annotation_paths=annotation_paths,  # noqa: E203
         client_s3_bucket=from_s3_bucket,
         is_pre_annotations=True,
     )
-    with tqdm(
-        total=len(annotation_paths), desc="Uploading annotations"
-    ) as progress_bar:
-        for _ in use_case.execute():
-            progress_bar.update(1)
-    return use_case.data
+    if response.errors:
+        raise AppException(response.errors)
+    return response.data
 
 
 @Trackable
@@ -2570,7 +2546,7 @@ def upload_image_annotations(
     project: Union[NotEmptyStr, dict],
     image_name: str,
     annotation_json: Union[str, Path, dict],
-    mask: Optional[Union[str, Path, dict]] = None,
+    mask: Optional[Union[str, Path, bytes]] = None,
     verbose: Optional[StrictBool] = True,
 ):
     """Upload annotations from JSON (also mask for pixel annotations)
@@ -2585,15 +2561,17 @@ def upload_image_annotations(
     :param mask: BytesIO object or filepath to mask annotation for pixel projects in SuperAnnotate format
     :type mask: BytesIO or Path-like (str or Path)
     """
-    annotation_path = f"{image_name}___save.png"
-    if isinstance(annotation_json, str) or isinstance(annotation_json, Path):
-        annotation_path = str(annotation_json).replace("___pixel.json", "___save.png")
-    if isinstance(annotation_json, list):
-        raise AppException(
-            "Annotation JSON should be a dict object. You are using list object."
-            " If this is an old annotation format you can convert it to new format with superannotate."
-            "update_json_format SDK function"
-        )
+    if not mask:
+        if not isinstance(annotation_json, dict):
+            mask_path = str(annotation_json).replace("___pixel.json", "___save.png")
+        else:
+            mask_path = f"{image_name}___save.png"
+        if os.path.exists(mask_path):
+            mask = open(mask_path, "rb").read()
+    elif isinstance(mask, str) or isinstance(mask, Path):
+        if os.path.exists(mask):
+            mask = open(mask, "rb").read()
+
     if not isinstance(annotation_json, dict):
         if verbose:
             logger.info("Uploading annotations from %s.", annotation_json)
@@ -2606,7 +2584,6 @@ def upload_image_annotations(
         annotations=annotation_json,
         mask=mask,
         verbose=verbose,
-        annotation_path=annotation_path,
     )
     if response.errors:
         raise AppException(response.errors)
@@ -3370,7 +3347,7 @@ def upload_image_to_project(
     project: NotEmptyStr,
     img,
     image_name: Optional[NotEmptyStr] = None,
-    annotation_status: Optional[Status] = "NotStarted",
+    annotation_status: Optional[AnnotationStatuses] = "NotStarted",
     from_s3_bucket=None,
     image_quality_in_editor: Optional[NotEmptyStr] = None,
 ):
@@ -3445,7 +3422,7 @@ def search_models(
 def upload_images_to_project(
     project: NotEmptyStr,
     img_paths: List[NotEmptyStr],
-    annotation_status: Optional[Status] = "NotStarted",
+    annotation_status: Optional[AnnotationStatuses] = "NotStarted",
     from_s3_bucket=None,
     image_quality_in_editor: Optional[ImageQualityChoices] = None,
 ):
@@ -3579,7 +3556,7 @@ def delete_annotations(
 def attach_document_urls_to_project(
     project: Union[NotEmptyStr, dict],
     attachments: Union[Path, NotEmptyStr],
-    annotation_status: Optional[Status] = "NotStarted",
+    annotation_status: Optional[AnnotationStatuses] = "NotStarted",
 ):
     """Link documents on external storage to SuperAnnotate.
 

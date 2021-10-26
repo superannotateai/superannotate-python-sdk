@@ -1,12 +1,10 @@
 import json
-import sys
 import os
 from os.path import dirname
-from io import StringIO
-from contextlib import contextmanager
 import tempfile
 
 import src.superannotate as sa
+from tests.utils.helpers import catch_prints
 
 from unittest import TestCase
 
@@ -60,25 +58,13 @@ VECTOR_ANNOTATION_JSON_WITH_BBOX = """
 """
 
 
-@contextmanager
-def catch_prints():
-    out = StringIO()
-    sys.stdout = out
-    yield out
-
-
-class TestVectorValidators(TestCase):
+class TestValidators(TestCase):
     TEST_VECTOR_FOLDER_PATH = "data_set/sample_project_vector"
-    TEST_PIXEL_FOLDER_PATH = "data_set/sample_project_pixel"
     VECTOR_JSON = "example_image_1.jpg___objects.json"
 
     @property
     def vector_folder_path(self):
         return os.path.join(dirname(dirname(__file__)), self.TEST_VECTOR_FOLDER_PATH)
-
-    @property
-    def pixel_folder_path(self):
-        return os.path.join(dirname(dirname(__file__)), self.TEST_PIXEL_FOLDER_PATH)
 
     def test_validate_annotations_should_note_raise_errors(self):
         sa.validate_annotations("Vector", os.path.join(self.vector_folder_path, self.VECTOR_JSON))
@@ -89,7 +75,7 @@ class TestVectorValidators(TestCase):
                 vector_json.write(VECTOR_ANNOTATION_JSON_WITH_BBOX)
             with catch_prints() as out:
                 sa.validate_annotations("Vector", os.path.join(self.vector_folder_path, f"{tmpdir_name}/vector.json"))
-                self.assertIn(f"instances[0].points[x1]{' ' * 26}field required", out.getvalue().strip())
+                self.assertEqual("instances[0].points[x1]fieldrequired", out.getvalue().strip().replace(" ", ""))
 
     def test_validate_annotation_without_metadata(self):
         with tempfile.TemporaryDirectory() as tmpdir_name:
@@ -99,4 +85,4 @@ class TestVectorValidators(TestCase):
                 )
             with catch_prints() as out:
                 sa.validate_annotations("Vector", os.path.join(self.vector_folder_path, f"{tmpdir_name}/vector.json"))
-                self.assertIn(f"metadata{' ' * 41}field required", out.getvalue().strip())
+                self.assertIn("metadatafieldrequired", out.getvalue().strip().replace(" ", ""))

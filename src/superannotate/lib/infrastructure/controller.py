@@ -19,6 +19,7 @@ from lib.core.entities import ImageEntity
 from lib.core.entities import MLModelEntity
 from lib.core.entities import ProjectEntity
 from lib.core.exceptions import AppException
+from lib.core.reporter import Reporter
 from lib.core.response import Response
 from lib.infrastructure.helpers import timed_lru_cache
 from lib.infrastructure.repositories import AnnotationClassRepository
@@ -447,7 +448,7 @@ class Controller(BaseController):
             backend_service=self._backend_client,
             settings=ProjectSettingsRepository(
                 service=self._backend_client, project=project
-            ),
+            ).get_all(),
             s3_repo=self.s3_repo,
             image_quality_in_editor=image_quality_in_editor,
             annotation_status=annotation_status,
@@ -630,14 +631,16 @@ class Controller(BaseController):
     def _get_image(
         self, project: ProjectEntity, image_name: str, folder: FolderEntity = None,
     ) -> ImageEntity:
-        use_case = usecases.GetImageUseCase(
+        response = usecases.GetImageUseCase(
             service=self._backend_client,
             project=project,
             folder=folder,
             image_name=image_name,
             images=self.images,
-        )
-        return use_case.execute().data
+        ).execute()
+        if response.errors:
+            raise AppException(response.errors)
+        return response.data
 
     def get_image(
         self, project_name: str, image_name: str, folder_path: str = None
@@ -1310,7 +1313,6 @@ class Controller(BaseController):
         self,
         project_name: str,
         folder_name: str,
-        folder_path: str,
         annotation_paths: List[str],
         client_s3_bucket=None,
         is_pre_annotations: bool = False,
@@ -1320,7 +1322,6 @@ class Controller(BaseController):
         use_case = usecases.UploadAnnotationsUseCase(
             project=project,
             folder=folder,
-            folder_path=folder_path,
             annotation_paths=annotation_paths,
             backend_service_provider=self._backend_client,
             annotation_classes=AnnotationClassRepository(
@@ -1331,8 +1332,10 @@ class Controller(BaseController):
             templates=self._backend_client.get_templates(team_id=self.team_id).get(
                 "data", []
             ),
+            validators=self.annotation_validators,
+            reporter=Reporter(log_info=False, log_warning=False),
         )
-        return use_case
+        return use_case.execute()
 
     def upload_image_annotations(
         self,
@@ -1342,22 +1345,26 @@ class Controller(BaseController):
         annotations: dict,
         mask: io.BytesIO = None,
         verbose: bool = True,
-        annotation_path: str = None,
     ):
         project = self._get_project(project_name)
         folder = self._get_folder(project, folder_name)
-        use_case = usecases.UploadImageAnnotationsUseCase(
+        image = self._get_image(project, image_name, folder)
+        use_case = usecases.UploadAnnotationUseCase(
             project=project,
             folder=folder,
             annotation_classes=AnnotationClassRepository(
                 service=self._backend_client, project=project
-            ),
-            image_name=image_name,
+            ).get_all(),
+            image=image,
             annotations=annotations,
+            templates=self._backend_client.get_templates(team_id=self.team_id).get(
+                "data", []
+            ),
             backend_service_provider=self._backend_client,
             mask=mask,
             verbose=verbose,
-            annotation_path=annotation_path,
+            reporter=Reporter(),
+            validators=self.annotation_validators,
         )
         return use_case.execute()
 

@@ -38,3 +38,8 @@ class BaseAnnotationValidator(metaclass=ABCMeta):
     @abstractmethod
     def get_video_validator() -> Type[BaseValidator]:
         raise NotImplementedError
+
+    @staticmethod
+    @abstractmethod
+    def get_document_validator() -> Type[BaseValidator]:
+        raise NotImplementedError
