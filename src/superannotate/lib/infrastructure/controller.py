@@ -1348,7 +1348,10 @@ class Controller(BaseController):
     ):
         project = self._get_project(project_name)
         folder = self._get_folder(project, folder_name)
-        image = self._get_image(project, image_name, folder)
+        try:
+            image = self._get_image(project, image_name, folder)
+        except AppException:
+            raise AppException("There is no images to attach annotation.")
         use_case = usecases.UploadAnnotationUseCase(
             project=project,
             folder=folder,

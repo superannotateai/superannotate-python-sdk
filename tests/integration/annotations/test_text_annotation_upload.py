@@ -1,7 +1,7 @@
 import os
 import tempfile
 import json
-from os.path import dirname
+from pathlib import Path
 import pytest
 import src.superannotate as sa
 from tests.integration.base import BaseTestCase
@@ -17,20 +17,24 @@ class TestUploadTextAnnotation(BaseTestCase):
     ANNOTATIONS_PATH_INVALID_JSON = "data_set/document_annotation_invalid_json"
 
     @property
+    def folder_path(self):
+        return Path(__file__).parent.parent.parent
+
+    @property
     def csv_path(self):
-        return os.path.join(dirname(dirname(__file__)), self.PATH_TO_URLS)
+        return os.path.join(self.folder_path, self.PATH_TO_URLS)
 
     @property
     def annotations_path(self):
-        return os.path.join(dirname(dirname(__file__)), self.ANNOTATIONS_PATH)
+        return os.path.join(self.folder_path, self.ANNOTATIONS_PATH)
 
     @property
     def invalid_annotations_path(self):
-        return os.path.join(dirname(dirname(__file__)), self.ANNOTATIONS_PATH_INVALID_JSON)
+        return os.path.join(self.folder_path, self.ANNOTATIONS_PATH_INVALID_JSON)
 
     @property
     def classes_path(self):
-        return os.path.join(dirname(dirname(__file__)), self.CLASSES_PATH)
+        return os.path.join(self.folder_path, self.CLASSES_PATH)
 
     @pytest.fixture(autouse=True)
     def inject_fixtures(self, caplog):
@@ -44,10 +48,11 @@ class TestUploadTextAnnotation(BaseTestCase):
             self.csv_path,
         )
 
-        (uploaded_annotations, failed_annotations, missing_annotations) = sa.upload_annotations_from_folder_to_project(self.PROJECT_NAME, self.invalid_annotations_path)
-        self.assertEqual(len(uploaded_annotations),0)
-        self.assertEqual(len(failed_annotations),1)
-        self.assertEqual(len(missing_annotations),0)
+        (uploaded_annotations, failed_annotations, missing_annotations) = sa.upload_annotations_from_folder_to_project(
+            self.PROJECT_NAME, self.invalid_annotations_path)
+        self.assertEqual(len(uploaded_annotations), 0)
+        self.assertEqual(len(failed_annotations), 1)
+        self.assertEqual(len(missing_annotations), 0)
         self.assertIn("Invalid json", self._caplog.text)
 
     def test_text_annotation_upload(self):
@@ -67,7 +72,3 @@ class TestUploadTextAnnotation(BaseTestCase):
             downloaded_annotation = json.loads(open(f"{output_path}/text_file_example_1.json").read())
             instance = downloaded_annotation['instances'][0]
             self.assertEqual(instance['classId'], classes[0]['id'])
-
-
-
-

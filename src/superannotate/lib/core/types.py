@@ -1,7 +1,7 @@
+from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Union
-from typing import Dict
 
 from pydantic import BaseModel
 from pydantic import constr
@@ -48,15 +48,15 @@ class Metadata(BaseModel):
 
 
 class PointLabels(BaseModel):
-    __root__: Dict[constr(regex=r"^[0-9]*$"), str]
+    __root__: Dict[constr(regex=r'^[0-9]*$'), str]
 
 
 class BaseInstance(BaseModel):
     type: AnnotationType
-    classId: int
+    classId: Optional[int]
     groupId: Optional[int]
     attributes: List[Attribute]
-    point_labels: Optional[PointLabels]
+    # point_labels: Optional[PointLabels]
 
     class Config:
         error_msg_templates = {
@@ -96,20 +96,20 @@ class Ellipse(BaseInstance):
 
 
 class TemplatePoint(BaseModel):
-    id: int
+    id: Optional[int]
     x: float
     y: float
 
 
 class TemplateConnection(BaseModel):
-    id: int
+    id: Optional[int]
     to: int
 
 
 class Template(BaseInstance):
     points: List[TemplatePoint]
     connections: List[Optional[TemplateConnection]]
-    templateId: int
+    templateId: Optional[int]
 
 
 class EmptyPoint(BaseModel):
@@ -133,7 +133,7 @@ class PixelAnnotationPart(BaseModel):
 
 
 class PixelAnnotationInstance(BaseModel):
-    classId: int
+    classId: Optional[int]
     groupId: Optional[int]
     parts: List[PixelAnnotationPart]
     attributes: List[Attribute]
@@ -189,7 +189,7 @@ class Project(BaseModel):
 
 class MLModel(BaseModel):
     name: NotEmptyStr
-    id: int
+    id: Optional[int]
     path: NotEmptyStr
     config_path: NotEmptyStr
     team_id: Optional[int]
@@ -206,7 +206,7 @@ class VideoMetaData(BaseModel):
 
 class VideoInstanceMeta(BaseModel):
     type: NotEmptyStr
-    classId: int
+    classId: Optional[int]
 
 
 class VideoTimeStamp(BaseModel):

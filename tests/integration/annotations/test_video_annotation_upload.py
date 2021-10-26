@@ -1,7 +1,8 @@
 import os
 import tempfile
 import json
-from os.path import dirname
+from pathlib import Path
+
 import pytest
 import src.superannotate as sa
 from tests.integration.base import BaseTestCase
@@ -16,22 +17,25 @@ class TestUploadVideoAnnotation(BaseTestCase):
     CLASSES_PATH = "data_set/video_annotation/classes/classes.json"
     ANNOTATIONS_PATH_INVALID_JSON = "data_set/video_annotation_invalid_json"
 
+    @property
+    def folder_path(self):
+        return Path(__file__).parent.parent.parent
 
     @property
     def csv_path(self):
-        return os.path.join(dirname(dirname(__file__)), self.PATH_TO_URLS)
+        return os.path.join(self.folder_path, self.PATH_TO_URLS)
 
     @property
     def annotations_path(self):
-        return os.path.join(dirname(dirname(__file__)), self.ANNOTATIONS_PATH)
+        return os.path.join(self.folder_path, self.ANNOTATIONS_PATH)
 
     @property
     def invalid_annotations_path(self):
-        return os.path.join(dirname(dirname(__file__)), self.ANNOTATIONS_PATH_INVALID_JSON)
+        return os.path.join(self.folder_path, self.ANNOTATIONS_PATH_INVALID_JSON)
 
     @property
     def classes_path(self):
-        return os.path.join(dirname(dirname(__file__)), self.CLASSES_PATH)
+        return os.path.join(self.folder_path, self.CLASSES_PATH)
 
     @pytest.fixture(autouse=True)
     def inject_fixtures(self, caplog):
@@ -44,12 +48,12 @@ class TestUploadVideoAnnotation(BaseTestCase):
             self.PROJECT_NAME,
             self.csv_path,
         )
-        (uploaded_annotations, failed_annotations, missing_annotations) = sa.upload_annotations_from_folder_to_project(self.PROJECT_NAME, self.invalid_annotations_path)
-        self.assertEqual(len(uploaded_annotations),0)
-        self.assertEqual(len(failed_annotations),1)
-        self.assertEqual(len(missing_annotations),0)
-        self.assertIn("Invalid json",self._caplog.text)
-
+        (uploaded_annotations, failed_annotations, missing_annotations) = sa.upload_annotations_from_folder_to_project(
+            self.PROJECT_NAME, self.invalid_annotations_path)
+        self.assertEqual(len(uploaded_annotations), 0)
+        self.assertEqual(len(failed_annotations), 1)
+        self.assertEqual(len(missing_annotations), 0)
+        self.assertIn("Invalid json", self._caplog.text)
 
     def test_video_annotation_upload(self):
         sa.create_annotation_classes_from_classes_json(self.PROJECT_NAME, self.classes_path)
@@ -76,10 +80,9 @@ class TestUploadVideoAnnotation(BaseTestCase):
             for id_ in ids_to_replace:
                 downloaded_annotation = downloaded_annotation.replace(str(id_), "0")
             downloaded_annotation = json.loads(downloaded_annotation)
-            uploaded_annotation = json.loads(open(f"{self.annotations_path}/video.mp4.json").read().replace("152038","0").replace("859496","0").replace("338357","0").replace("1175876","0"))
+            class_ids = ["152038", "859496", "338357", "1175876"]
+            annotation = open(f"{self.annotations_path}/video.mp4.json").read()
+            for class_id in class_ids:
+                annotation = annotation.replace(class_id, "0")
+            uploaded_annotation = json.loads(annotation)
             self.assertEqual(downloaded_annotation, uploaded_annotation)
-
-
-
-
-

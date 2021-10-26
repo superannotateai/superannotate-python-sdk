@@ -1,6 +1,5 @@
 import os
 import tempfile
-from os.path import dirname
 from pathlib import Path
 
 import src.superannotate as sa
@@ -15,7 +14,7 @@ class TestVectorPreAnnotationImage(BaseTestCase):
 
     @property
     def folder_path(self):
-        return os.path.join(dirname(dirname(__file__)), self.TEST_FOLDER_PATH)
+        return os.path.join(Path(__file__).parent.parent.parent, self.TEST_FOLDER_PATH)
 
     def test_pre_annotation_folder_upload_download(self):
         sa.upload_images_from_folder_to_project(
@@ -46,7 +45,7 @@ class TestVectorAnnotationImage(BaseTestCase):
 
     @property
     def folder_path(self):
-        return os.path.join(dirname(dirname(__file__)), self.TEST_FOLDER_PATH)
+        return os.path.join(Path(__file__).parent.parent.parent, self.TEST_FOLDER_PATH)
 
     def test_pre_annotation_folder_upload_download(self):
         sa.upload_images_from_folder_to_project(

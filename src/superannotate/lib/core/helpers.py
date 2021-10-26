@@ -60,7 +60,8 @@ def fill_annotation_ids(
         annotation_class_name = annotation["className"]
         if annotation_class_name not in annotation_classes_name_maps.keys():
             if annotation_class_name not in unknown_classes:
-                reporter.store_message("Couldn't find classes ", annotation_class_name)
+                reporter.log_warning(f"Couldn't find class {annotation_class_name}")
+                reporter.store_message("missing_classes", annotation_class_name)
                 unknown_classes[annotation_class_name] = {
                     "id": -(len(unknown_classes) + 1),
                     "attribute_groups": {},
@@ -94,9 +95,7 @@ def fill_annotation_ids(
                 reporter.log_warning(
                     f"Couldn't find annotation group {attribute['groupName']}."
                 )
-                reporter.store_message(
-                    "Couldn't find annotation groups", attribute["groupName"]
-                )
+                reporter.store_message("missing_attribute_groups", f"{annotation['className']}.{attribute['groupName']}")
                 continue
             attribute["groupId"] = annotation_classes_name_maps[annotation_class_name][
                 "attribute_groups"
@@ -112,7 +111,7 @@ def fill_annotation_ids(
                     f"Couldn't find annotation name {attribute['name']} in"
                     f" annotation group {attribute['groupName']}",
                 )
-                reporter.store_message("Couldn't find attributes", attribute["name"])
+                reporter.store_message("missing_attributes", attribute["name"])
                 continue
             attribute["id"] = annotation_classes_name_maps[annotation_class_name][
                 "attribute_groups"
