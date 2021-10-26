@@ -93,4 +93,4 @@ class TestVideo(BaseTestCase):
         frames_gen = VideoPlugin.frames_generator(
             f"{self.folder_path_big}/earth.mov", target_fps=None, start_time=10.0, end_time=None
         )
-        self.assertEqual(len([*frames_gen]), 601)
+        self.assertEqual(len([*frames_gen]), 589)
