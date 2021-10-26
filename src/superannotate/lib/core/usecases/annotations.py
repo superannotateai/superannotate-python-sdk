@@ -198,7 +198,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
             elif key == "missing_attributes":
                 template = "Could not find attributes matching existing attributes on the platform: [{}]"
             logger.warning(
-                template.format(", ".join(values))
+                template.format("', '".join(values))
             )
 
     def execute(self):
@@ -373,7 +373,7 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
             )
         elif project_type == constances.ProjectType.VIDEO.value:
             annotations = convert_to_video_editor_json(
-                annotations, map_annotation_classes_name(annotation_classes, reporter)
+                annotations, map_annotation_classes_name(annotation_classes, reporter), reporter
             )
         return annotations
 
