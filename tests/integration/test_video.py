@@ -6,6 +6,7 @@ from src.superannotate.lib.core.plugin import VideoPlugin
 from tests.integration.base import BaseTestCase
 import pytest
 
+
 class TestVideo(BaseTestCase):
     PROJECT_NAME = "test video upload1"
     SECOND_PROJECT_NAME = "test video upload2"
@@ -16,7 +17,6 @@ class TestVideo(BaseTestCase):
     TEST_VIDEO_FOLDER_PATH_BIG = "data_set/sample_videos/earth_video"
     TEST_VIDEO_NAME = "video.mp4"
     TEST_FOLDER_NAME_BIG_VIDEO = "big"
-
 
     @property
     def folder_path(self):
@@ -85,15 +85,12 @@ class TestVideo(BaseTestCase):
         )
         self.assertIn("31 already existing images found that won't be uploaded.", self._caplog.text)
 
-
     def test_frame_extraction(self):
         frames_gen = VideoPlugin.frames_generator(
-            f"{self.folder_path_big}/earth.mov", target_fps=None,start_time=0.0,end_time=None
+            f"{self.folder_path_big}/earth.mov", target_fps=None, start_time=0.0, end_time=None
         )
-        self.assertEqual(len([*frames_gen]),901)
+        self.assertEqual(len([*frames_gen]), 901)
         frames_gen = VideoPlugin.frames_generator(
             f"{self.folder_path_big}/earth.mov", target_fps=None, start_time=10.0, end_time=None
         )
         self.assertEqual(len([*frames_gen]), 601)
-
-
