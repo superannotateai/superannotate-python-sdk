@@ -9,6 +9,7 @@ from typing import Union
 import boto3
 import pandas as pd
 from superannotate.lib.app.exceptions import PathError
+from superannotate.lib.core import ATTACHED_VIDEO_ANNOTATION_POSTFIX
 from superannotate.lib.core import PIXEL_ANNOTATION_POSTFIX
 from superannotate.lib.core import VECTOR_ANNOTATION_POSTFIX
 
@@ -55,7 +56,13 @@ def get_local_annotation_paths(
         [
             str(i)
             for i in all_not_folders
-            if i.name.endswith((VECTOR_ANNOTATION_POSTFIX, PIXEL_ANNOTATION_POSTFIX))
+            if i.name.endswith(
+                (
+                    VECTOR_ANNOTATION_POSTFIX,
+                    PIXEL_ANNOTATION_POSTFIX,
+                    ATTACHED_VIDEO_ANNOTATION_POSTFIX,
+                )
+            )
         ]
     )
     if recursive:
@@ -82,8 +89,10 @@ def get_s3_annotation_paths(folder_path, s3_bucket, annotation_paths, recursive)
     for data in paginator.paginate(Bucket=s3_bucket, Prefix=folder_path):
         for annotation in data["Contents"]:
             key = annotation["Key"]
-            if key.endswith(VECTOR_ANNOTATION_POSTFIX) or key.endswith(
-                PIXEL_ANNOTATION_POSTFIX
+            if (
+                key.endswith(VECTOR_ANNOTATION_POSTFIX)
+                or key.endswith(PIXEL_ANNOTATION_POSTFIX)
+                or key.endswith(ATTACHED_VIDEO_ANNOTATION_POSTFIX)
             ):
                 if not recursive and "/" in key[len(folder_path) + 1 :]:
                     continue

@@ -1,7 +1,6 @@
 import json
 import os
 import tempfile
-from os.path import dirname
 from pathlib import Path
 
 import src.superannotate as sa
@@ -19,11 +18,11 @@ class TestAnnotationAdding(BaseTestCase):
 
     @property
     def folder_path(self):
-        return os.path.join(dirname(dirname(__file__)), self.TEST_FOLDER_PATH)
+        return os.path.join(Path(__file__).parent.parent.parent,  self.TEST_FOLDER_PATH)
 
     @property
     def invalid_json_path(self):
-        return os.path.join(dirname(dirname(__file__)), self.TEST_INVALID_ANNOTATION_FOLDER_PATH)
+        return os.path.join(Path(__file__).parent.parent.parent, self.TEST_INVALID_ANNOTATION_FOLDER_PATH)
 
     @property
     def classes_json_path(self):
@@ -36,7 +35,6 @@ class TestAnnotationAdding(BaseTestCase):
         uploaded_annotations, failed_annotations, missing_annotations = sa.upload_annotations_from_folder_to_project(
             self.PROJECT_NAME, self.invalid_json_path
         )
-
         self.assertEqual(len(uploaded_annotations), 3)
         self.assertEqual(len(failed_annotations), 1)
         self.assertEqual(len(missing_annotations), 0)

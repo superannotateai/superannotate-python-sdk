@@ -1,11 +1,12 @@
 import os
-from os.path import dirname
+from pathlib import Path
 import pytest
 import src.superannotate as sa
 from tests.integration.base import BaseTestCase
 import tempfile
 import json
 from os.path import join
+
 
 class TestRecursiveFolderPixel(BaseTestCase):
     PROJECT_NAME = "test_recursive_pixel"
@@ -17,7 +18,7 @@ class TestRecursiveFolderPixel(BaseTestCase):
 
     @property
     def folder_path(self):
-        return os.path.join(dirname(dirname(__file__)), self.TEST_FOLDER_PATH)
+        return os.path.join(Path(__file__).parent.parent.parent, self.TEST_FOLDER_PATH)
 
     @pytest.mark.flaky(reruns=2)
     def test_recursive_annotation_upload_pixel(self):
