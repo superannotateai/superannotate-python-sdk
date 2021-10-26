@@ -13,7 +13,6 @@ from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
 from lib.core.entities import ProjectEntity
 from lib.core.exceptions import AppException
-from lib.core.exceptions import AppValidationException
 from lib.core.helpers import convert_to_video_editor_json
 from lib.core.helpers import fill_annotation_ids
 from lib.core.helpers import map_annotation_classes_name
@@ -177,64 +176,84 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
             # raise e
             return path, False
 
+    def get_bucket_to_upload(self, ids: List[int]):
+        upload_data = self.get_annotation_upload_data(ids)
+        if upload_data:
+            session = boto3.Session(
+                aws_access_key_id=upload_data.access_key,
+                aws_secret_access_key=upload_data.secret_key,
+                aws_session_token=upload_data.session_token,
+                region_name=upload_data.region,
+            )
+            resource = session.resource("s3")
+            return resource.Bucket(upload_data.bucket)
+
+    def _log_report(self):
+        for key, values in self.reporter.custom_messages.items():
+            template = key + ": {}"
+            if key == "missing_classes":
+                template = "Could not find annotation classes matching existing classes on the platform: [{}]"
+            elif key == "missing_attribute_groups":
+                template = "Could not find attribute groups matching existing attribute groups on the platform: [{}]"
+            elif key == "missing_attributes":
+                template = "Could not find attributes matching existing attributes on the platform: [{}]"
+            logger.warning(
+                template.format(", ".join(values))
+            )
+
     def execute(self):
         uploaded_annotations = []
         failed_annotations = []
-        iterations_range = range(
-            0, len(self.annotations_to_upload), self.AUTH_DATA_CHUNK_SIZE
-        )
-        self.reporter.start_progress(iterations_range,description="Uploading Annotations")
-        for _ in iterations_range:
-            annotations_to_upload = self.annotations_to_upload[
-                _ : _ + self.AUTH_DATA_CHUNK_SIZE  # noqa: E203
-            ]
-            upload_data = self.get_annotation_upload_data(
-                [int(image.id) for image in annotations_to_upload]
+        if self.annotations_to_upload:
+            iterations_range = range(
+                0, len(self.annotations_to_upload), self.AUTH_DATA_CHUNK_SIZE
             )
-            if upload_data:
-                session = boto3.Session(
-                    aws_access_key_id=upload_data.access_key,
-                    aws_secret_access_key=upload_data.secret_key,
-                    aws_session_token=upload_data.session_token,
-                    region_name=upload_data.region,
+            self.reporter.start_progress(iterations_range, description="Uploading Annotations")
+            for _ in iterations_range:
+                annotations_to_upload = self.annotations_to_upload[
+                    _ : _ + self.AUTH_DATA_CHUNK_SIZE  # noqa: E203
+                ]
+                upload_data = self.get_annotation_upload_data(
+                    [int(image.id) for image in annotations_to_upload]
                 )
-                resource = session.resource("s3")
-                bucket = resource.Bucket(upload_data.bucket)
-                image_id_name_map = {
-                    image.id: image for image in self.annotations_to_upload
-                }
-                # dummy progress
-                for _ in range(len(annotations_to_upload) - len(upload_data.images)):
-                    self.reporter.update_progress()
-                with concurrent.futures.ThreadPoolExecutor(
-                    max_workers=self.MAX_WORKERS
-                ) as executor:
-                    results = [
-                        executor.submit(
-                            self._upload_annotation,
-                            image_id,
-                            image_id_name_map[image_id].name,
-                            upload_data,
-                            image_id_name_map[image_id].path,
-                            bucket,
-                        )
-                        for image_id, image_data in upload_data.images.items()
-                    ]
-                    for future in concurrent.futures.as_completed(results):
-                        annotation, uploaded = future.result()
-                        if uploaded:
-                            uploaded_annotations.append(annotation)
-                        else:
-                            failed_annotations.append(annotation)
+                bucket = self.get_bucket_to_upload([int(image.id) for image in annotations_to_upload])
+                if bucket:
+                    image_id_name_map = {
+                        image.id: image for image in self.annotations_to_upload
+                    }
+                    # dummy progress
+                    for _ in range(len(annotations_to_upload) - len(upload_data.images)):
                         self.reporter.update_progress()
+                    with concurrent.futures.ThreadPoolExecutor(
+                        max_workers=self.MAX_WORKERS
+                    ) as executor:
+                        results = [
+                            executor.submit(
+                                self._upload_annotation,
+                                image_id,
+                                image_id_name_map[image_id].name,
+                                upload_data,
+                                image_id_name_map[image_id].path,
+                                bucket,
+                            )
+                            for image_id, image_data in upload_data.images.items()
+                        ]
+                        for future in concurrent.futures.as_completed(results):
+                            annotation, uploaded = future.result()
+                            if uploaded:
+                                uploaded_annotations.append(annotation)
+                            else:
+                                failed_annotations.append(annotation)
+                            self.reporter.update_progress()
 
-        self._response.data = (
-            uploaded_annotations,
-            failed_annotations,
-            [annotation.path for annotation in self._missing_annotations],
-        )
-        for message in self.reporter.messages:
-            logger.warning(message)
+            self._response.data = (
+                uploaded_annotations,
+                failed_annotations,
+                [annotation.path for annotation in self._missing_annotations],
+            )
+            self._log_report()
+        else:
+            self._response.errors = "Could not find annotations matching existing items on the platform."
         return self._response
 
 
@@ -401,5 +420,5 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
                         self._project.name,
                     )
             else:
-                self._response.errors = f"Invalid json"
+                self._response.errors = "Invalid json"
         return self._response

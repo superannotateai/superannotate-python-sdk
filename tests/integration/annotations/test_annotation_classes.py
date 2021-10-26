@@ -1,6 +1,6 @@
 from urllib.parse import urlparse
 import os
-from os.path import dirname
+from pathlib import Path
 import src.superannotate as sa
 from tests.integration.base import BaseTestCase
 
@@ -13,7 +13,7 @@ class TestAnnotationClasses(BaseTestCase):
 
     @property
     def classes_path(self):
-        return os.path.join(dirname(dirname(__file__)), self.CLASSES_JON_PATH)
+        return os.path.join(Path(__file__).parent.parent.parent, self.CLASSES_JON_PATH)
 
     def test_invalid_json(self):
         try:

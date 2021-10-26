@@ -1,6 +1,7 @@
 import os
 from os.path import dirname
 import pytest
+from pathlib import Path
 
 import src.superannotate as sa
 from tests.integration.base import BaseTestCase
@@ -17,12 +18,11 @@ class TestAnnotationDelete(BaseTestCase):
 
     @property
     def folder_path(self):
-        return os.path.join(dirname(dirname(__file__)), self.TEST_FOLDER_PATH)
+        return os.path.join(Path(__file__).parent.parent.parent, self.TEST_FOLDER_PATH)
 
     @property
     def classes_json(self):
-        return os.path.join(
-            dirname(dirname(__file__)),
+        return os.path.join(Path(__file__).parent.parent.parent,
             "data_set/sample_project_vector/classes/classes.json",
         )
 
