@@ -118,7 +118,7 @@ def fill_annotation_ids(
             ][attribute["groupName"]]["attributes"][attribute["name"]]
 
 
-def convert_to_video_editor_json(data: dict, class_name_mapper: dict):
+def convert_to_video_editor_json(data: dict, class_name_mapper: dict, reporter: Reporter):
     def safe_time(timestamp):
         return "0" if str(timestamp) == "0.0" else timestamp
 
@@ -170,12 +170,18 @@ def convert_to_video_editor_json(data: dict, class_name_mapper: dict):
                     ]
 
                 if not class_name_mapper.get(meta["className"], None):
+                    reporter.store_message("missing_classes", meta["className"])
                     continue
 
                 existing_attributes_in_current_instance = set()
                 for attribute in timestamp_data["attributes"]:
-                    key = attribute["groupName"], attribute["name"]
-                    existing_attributes_in_current_instance.add(key)
+                    group_name, attr_name = attribute.get("groupName"), attribute.get("name")
+                    if not class_name_mapper[class_name].get("attribute_groups", {}).get(group_name):
+                        reporter.store_message("missing_attribute_groups", f"{class_name}.{group_name}")
+                    elif not class_name_mapper[class_name]["attribute_groups"][group_name].get("attributes", {}).get(attr_name):
+                        reporter.store_message("missing_attributes", f"{class_name}.{group_name}.{attr_name}")
+                    else:
+                        existing_attributes_in_current_instance.add((group_name, attr_name))
                 attributes_to_add = (
                     existing_attributes_in_current_instance - active_attributes
                 )
@@ -212,7 +218,6 @@ def convert_to_video_editor_json(data: dict, class_name_mapper: dict):
                     editor_instance["timeline"][timestamp]["attributes"]["-"].append(
                         attr
                     )
-
         editor_data["instances"].append(editor_instance)
     return editor_data
 

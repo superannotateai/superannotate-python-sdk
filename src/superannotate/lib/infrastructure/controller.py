@@ -1165,7 +1165,21 @@ class Controller(BaseController):
             image_quality_in_editor=image_quality_in_editor,
             limit=limit,
         )
-        return use_case.execute()
+        if use_case.is_valid():
+            yield from use_case.execute()
+        else:
+            raise AppException(use_case.response.errors)
+
+    def get_duplicate_images(self, project_name: str, folder_name: str, images: list):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+        return usecases.GetBulkImages(
+            service=self._backend_client,
+            project_id=project.uuid,
+            team_id=project.team_id,
+            folder_id=folder.uuid,
+            images=images,
+        )
 
     def create_annotation_class(
         self, project_name: str, name: str, color: str, attribute_groups: List[dict]
