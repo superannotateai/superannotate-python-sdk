@@ -18,6 +18,7 @@ class TestRecursiveFolderPixel(BaseTestCase):
     S3_FOLDER_PATH = "sample_project_pixel"
     TEST_FOLDER_PATH = "data_set/sample_project_pixel"
     IMAGE_NAME = "example_image_1.jpg"
+    FOLDER = "f"
 
 
     @pytest.fixture(autouse=True)
@@ -31,23 +32,25 @@ class TestRecursiveFolderPixel(BaseTestCase):
     @pytest.mark.flaky(reruns=2)
     @patch("lib.core.usecases.annotations.UploadAnnotationUseCase.s3_bucket")
     def test_recursive_annotation_upload_pixel(self, s3_bucket):
+        sa.create_folder(self.PROJECT_NAME,self.FOLDER)
+        destination = f"{self.PROJECT_NAME}/{self.FOLDER}"
         sa.upload_images_from_folder_to_project(
-            self.PROJECT_NAME, self.folder_path, recursive_subfolders=False
+            destination, self.folder_path, recursive_subfolders=False
         )
-        uploaded_annotations, _, _ = sa.upload_annotations_from_folder_to_project(self.PROJECT_NAME,
+        uploaded_annotations, _, _ = sa.upload_annotations_from_folder_to_project(destination,
                                                                                   self.S3_FOLDER_PATH,
                                                                                   from_s3_bucket="superannotate-python-sdk-test",
                                                                                   recursive_subfolders=False)
         self.assertEqual(len(uploaded_annotations), 3)
         self.assertEqual(len(s3_bucket.method_calls), 6)
-        self.assertIn(f"Uploading 3 annotations from {self.S3_FOLDER_PATH} to the project {self.PROJECT_NAME}.", self._caplog.text)
+        self.assertIn(f"Uploading 3 annotations from {self.S3_FOLDER_PATH} to the project {destination}.", self._caplog.text)
 
-        uploaded_annotations, _, _ = sa.upload_preannotations_from_folder_to_project(self.PROJECT_NAME,
+        uploaded_annotations, _, _ = sa.upload_preannotations_from_folder_to_project(destination,
                                                                                   self.S3_FOLDER_PATH,
                                                                                   from_s3_bucket="superannotate-python-sdk-test",
                                                                                   recursive_subfolders=False)
         self.assertEqual(len(s3_bucket.method_calls), 12)
-        self.assertIn(f"Uploading 3 annotations from {self.S3_FOLDER_PATH} to the project {self.PROJECT_NAME}.",
+        self.assertIn(f"Uploading 3 annotations from {self.S3_FOLDER_PATH} to the project {destination}.",
                       self._caplog.text)
 
 
