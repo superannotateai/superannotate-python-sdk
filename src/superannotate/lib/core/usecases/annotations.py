@@ -173,7 +173,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
                 return path, False
             return path, True
         except Exception as e:
-            # raise e
+            raise e
             return path, False
 
     def get_bucket_to_upload(self, ids: List[int]):
@@ -341,6 +341,10 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
                 self._annotation_json = json.load(self.get_s3_file(self.from_s3, self._annotation_path))
                 if self._project.project_type == constances.ProjectType.PIXEL.value:
                     self._mask = self.get_s3_file(self.from_s3, self._annotation_path.replace(constances.PIXEL_ANNOTATION_POSTFIX, constances.ANNOTATION_MASK_POSTFIX))
+            else:
+                self._annotation_json = json.load(open(self._annotation_path))
+                if self._project.project_type == constances.ProjectType.PIXEL.value:
+                    self._mask = open(self._annotation_path.replace(constances.PIXEL_ANNOTATION_POSTFIX, constances.ANNOTATION_MASK_POSTFIX))
 
     def _is_valid_json(self, json_data: dict):
         use_case = ValidateAnnotationUseCase(

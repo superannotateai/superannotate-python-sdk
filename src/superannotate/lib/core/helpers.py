@@ -119,8 +119,7 @@ def fill_annotation_ids(
 
 
 def convert_to_video_editor_json(data: dict, class_name_mapper: dict, reporter: Reporter):
-    id_generator = class_id_generator()
-    next(id_generator)
+    id_generator = ClassIdGenerator()
 
     def safe_time(timestamp):
         return "0" if str(timestamp) == "0.0" else timestamp
@@ -146,9 +145,12 @@ def convert_to_video_editor_json(data: dict, class_name_mapper: dict, reporter: 
             "attributes": [],
             "timeline": {},
             "type": meta["type"],
-            "classId": class_name_mapper.get(class_name, {}).get("id", id_generator.send(class_name)),
             "locked": True,
         }
+        if class_name:
+            editor_instance["classId"] = class_name_mapper.get(class_name, {}).get("id", id_generator.send(class_name))
+        else:
+            editor_instance["classId"] = id_generator.send("unknown_class")
         if meta.get("pointLabels", None):
             editor_instance["pointLabels"] = meta["pointLabels"]
         active_attributes = set()
@@ -171,8 +173,9 @@ def convert_to_video_editor_json(data: dict, class_name_mapper: dict, reporter: 
                     editor_instance["timeline"][timestamp]["points"] = timestamp_data[
                         "points"
                     ]
-
-                if not class_name_mapper.get(meta.get("className"), None):
+                if not class_name:
+                    continue
+                elif not class_name_mapper.get(class_name):
                     reporter.store_message("missing_classes", meta["className"])
                     continue
 
@@ -232,13 +235,13 @@ class SetEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
-def class_id_generator():
-    classes = defaultdict(int)
-    class_id = -1
-    while True:
-        class_name = yield str(class_id)
-        if class_name:
-            if class_name not in classes:
-                classes[class_name] = class_id
-        else:
-            class_id -= 1
+class ClassIdGenerator:
+    def __init__(self):
+        self.classes = defaultdict(int)
+        self.idx = -1
+
+    def send(self, class_name: str):
+        if class_name not in self.classes:
+            self.classes[class_name] = self.idx
+            self.idx -= 1
+        return self.classes[class_name]
