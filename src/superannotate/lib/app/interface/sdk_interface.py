@@ -1817,6 +1817,13 @@ def upload_video_to_project(
     """
 
     project_name, folder_name = extract_project_folder(project)
+
+    project = controller.get_project_metadata(project_name).data
+    if project["project"].project_type in [
+        constances.ProjectType.VIDEO.value,
+        constances.ProjectType.DOCUMENT.value,
+    ]:
+        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
     project_folder_name = project_name + (f"/{folder_name}" if folder_name else "")
 
     uploaded_paths = []
@@ -2558,6 +2565,16 @@ def upload_image_annotations(
     :param mask: BytesIO object or filepath to mask annotation for pixel projects in SuperAnnotate format
     :type mask: BytesIO or Path-like (str or Path)
     """
+
+    project_name, folder_name = extract_project_folder(project)
+
+    project = controller.get_project_metadata(project_name).data
+    if project["project"].project_type in [
+        constances.ProjectType.VIDEO.value,
+        constances.ProjectType.DOCUMENT.value,
+    ]:
+        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
+
     if not mask:
         if not isinstance(annotation_json, dict):
             mask_path = str(annotation_json).replace("___pixel.json", "___save.png")
@@ -2573,7 +2590,6 @@ def upload_image_annotations(
         if verbose:
             logger.info("Uploading annotations from %s.", annotation_json)
         annotation_json = json.load(open(annotation_json))
-    project_name, folder_name = extract_project_folder(project)
     response = controller.upload_image_annotations(
         project_name=project_name,
         folder_name=folder_name,

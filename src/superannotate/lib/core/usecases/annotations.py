@@ -406,12 +406,16 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
                     Body=json.dumps(annotation_json),
                 )
                 if self._project.project_type == constances.ProjectType.PIXEL.value:
-                    if self._mask:
+                    mask_path = self._annotation_path.replace(
+                        "___pixel.json", constances.ANNOTATION_MASK_POSTFIX
+                    )
+                    with open(mask_path, "rb") as mask_file:
+                        file = io.BytesIO(mask_file.read())
                         bucket.put_object(
                             Key=self.annotation_upload_data.images[self._image.uuid][
                                 "annotation_bluemap_path"
                             ],
-                            Body=self._mask,
+                            Body=file,
                         )
                 if self._verbose:
                     logger.info(
