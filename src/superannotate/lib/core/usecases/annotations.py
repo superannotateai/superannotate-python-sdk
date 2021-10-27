@@ -198,7 +198,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
             elif key == "missing_attributes":
                 template = "Could not find attributes matching existing attributes on the platform: [{}]"
             logger.warning(
-                template.format(", ".join(values))
+                template.format("', '".join(values))
             )
 
     def execute(self):
@@ -322,12 +322,12 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
                 self._s3_bucket = resource.Bucket(upload_data.bucket)
         return self._s3_bucket
 
-    def get_s3_annotation(self, s3, path: str):
+    def get_s3_file(self, s3, path: str):
         file = io.BytesIO()
         s3_object = s3.Object(self._client_s3_bucket, path)
         s3_object.download_fileobj(file)
         file.seek(0)
-        return json.load(file)
+        return file
 
     @property
     def from_s3(self):
@@ -335,12 +335,12 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
             from_session = boto3.Session()
             return from_session.resource("s3")
 
-    def get_annotation_json(self):
+    def set_annotation_json(self):
         if not self._annotation_json:
             if self._client_s3_bucket:
-                return self.get_s3_annotation(self.from_s3, self._annotation_path)
-            return json.load(open(self._annotation_path))
-        return self._annotation_json
+                self._annotation_json = json.load(self.get_s3_file(self.from_s3, self._annotation_path))
+                if self._project.project_type == constances.ProjectType.PIXEL.value:
+                    self._mask = self.get_s3_file(self.from_s3, self._annotation_path.replace(constances.PIXEL_ANNOTATION_POSTFIX, constances.ANNOTATION_MASK_POSTFIX))
 
     def _is_valid_json(self, json_data: dict):
         use_case = ValidateAnnotationUseCase(
@@ -373,7 +373,7 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
             )
         elif project_type == constances.ProjectType.VIDEO.value:
             annotations = convert_to_video_editor_json(
-                annotations, map_annotation_classes_name(annotation_classes, reporter)
+                annotations, map_annotation_classes_name(annotation_classes, reporter), reporter
             )
         return annotations
 
@@ -389,12 +389,12 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
 
     def execute(self):
         if self.is_valid():
-            annotation_json = self.get_annotation_json()
-            if self.is_valid_json(annotation_json):
+            self.set_annotation_json()
+            if self.is_valid_json(self._annotation_json):
                 bucket = self.s3_bucket
                 annotation_json = self.prepare_annotations(
                     project_type=self._project.project_type,
-                    annotations=annotation_json,
+                    annotations=self._annotation_json,
                     annotation_classes=self._annotation_classes,
                     templates=self._templates,
                     reporter=self.reporter,
@@ -405,14 +405,13 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
                     ],
                     Body=json.dumps(annotation_json),
                 )
-                if self._project.project_type == constances.ProjectType.PIXEL.value:
-                    if self._mask:
-                        bucket.put_object(
-                            Key=self.annotation_upload_data.images[self._image.uuid][
-                                "annotation_bluemap_path"
-                            ],
-                            Body=self._mask,
-                        )
+                if self._project.project_type == constances.ProjectType.PIXEL.value and self._mask:
+                    bucket.put_object(
+                        Key=self.annotation_upload_data.images[self._image.uuid][
+                            "annotation_bluemap_path"
+                        ],
+                        Body=self._mask,
+                    )
                 if self._verbose:
                     logger.info(
                         "Uploading annotations for image %s in project %s.",
