@@ -119,6 +119,9 @@ def fill_annotation_ids(
 
 
 def convert_to_video_editor_json(data: dict, class_name_mapper: dict, reporter: Reporter):
+    id_generator = class_id_generator()
+    next(id_generator)
+
     def safe_time(timestamp):
         return "0" if str(timestamp) == "0.0" else timestamp
 
@@ -138,12 +141,12 @@ def convert_to_video_editor_json(data: dict, class_name_mapper: dict, reporter: 
     }
     for instance in data["instances"]:
         meta = instance["meta"]
-        class_name = meta["className"]
+        class_name = meta.get("className")
         editor_instance = {
             "attributes": [],
             "timeline": {},
             "type": meta["type"],
-            "classId": class_name_mapper.get(class_name, {}).get("id", -1),
+            "classId": class_name_mapper.get(class_name, {}).get("id", id_generator.send(class_name)),
             "locked": True,
         }
         if meta.get("pointLabels", None):
@@ -169,7 +172,7 @@ def convert_to_video_editor_json(data: dict, class_name_mapper: dict, reporter: 
                         "points"
                     ]
 
-                if not class_name_mapper.get(meta["className"], None):
+                if not class_name_mapper.get(meta.get("className"), None):
                     reporter.store_message("missing_classes", meta["className"])
                     continue
 
@@ -227,3 +230,15 @@ class SetEncoder(json.JSONEncoder):
         if isinstance(obj, set):
             return list(obj)
         return json.JSONEncoder.default(self, obj)
+
+
+def class_id_generator():
+    classes = defaultdict(int)
+    class_id = -1
+    while True:
+        class_name = yield str(class_id)
+        if class_name:
+            if class_name not in classes:
+                classes[class_name] = class_id
+        else:
+            class_id -= 1
