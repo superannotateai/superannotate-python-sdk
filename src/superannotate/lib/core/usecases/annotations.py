@@ -173,7 +173,6 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
                 return path, False
             return path, True
         except Exception as e:
-            raise e
             return path, False
 
     def get_bucket_to_upload(self, ids: List[int]):
