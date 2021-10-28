@@ -368,6 +368,7 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
         if project_type in (
             constances.ProjectType.VECTOR.value,
             constances.ProjectType.PIXEL.value,
+            constances.ProjectType.DOCUMENT.value
         ):
             fill_annotation_ids(
                 annotations=annotations,
@@ -375,20 +376,14 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
                 templates=templates,
                 reporter=reporter,
             )
-        elif project_type == constances.ProjectType.DOCUMENT.value:
-            fill_annotation_ids(
-                annotations=annotations,
-                annotation_classes_name_maps=annotation_classes_name_maps,
-                templates=templates,
-                reporter=reporter,
-            )
-            fill_document_tags(
-                annotations=annotations,
-                annotation_classes=annotation_classes_name_maps,
-            )
         elif project_type == constances.ProjectType.VIDEO.value:
             annotations = convert_to_video_editor_json(
                 annotations, annotation_classes_name_maps, reporter
+            )
+        if project_type == constances.ProjectType.DOCUMENT.value:
+            fill_document_tags(
+                annotations=annotations,
+                annotation_classes=annotation_classes_name_maps,
             )
         return annotations
 
