@@ -100,3 +100,20 @@ class TestUploadVideoAnnotation(BaseTestCase):
             self.csv_path,
         )
         sa.upload_annotations_from_folder_to_project(self.PROJECT_NAME, self.annotations_without_classes)
+
+
+    def test_upload_annotations_empty_json(self):
+        sa.create_annotation_classes_from_classes_json(self.PROJECT_NAME, self.classes_path)
+
+        _, _, _ = sa.attach_video_urls_to_project(
+            self.PROJECT_NAME,
+            self.csv_path,
+        )
+        export = sa.prepare_export(self.PROJECT_NAME)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_path = temp_dir
+            sa.download_export(self.PROJECT_NAME, export, output_path, True)
+            uploaded, _, _ = sa.upload_annotations_from_folder_to_project(self.PROJECT_NAME, output_path)
+            self.assertEqual(len(uploaded),1)
+
