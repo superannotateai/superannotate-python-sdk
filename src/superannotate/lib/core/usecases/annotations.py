@@ -170,7 +170,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
                 self.reporter.store_message("Invalid jsons", path)
                 return path, False
             return path, True
-        except Exception as e:
+        except Exception as _:
             return path, False
 
     def get_bucket_to_upload(self, ids: List[int]):
@@ -355,7 +355,8 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
                         self._annotation_path.replace(
                             constances.PIXEL_ANNOTATION_POSTFIX,
                             constances.ANNOTATION_MASK_POSTFIX,
-                        )
+                        ),
+                        "rb"
                     )
 
     def _is_valid_json(self, json_data: dict):

@@ -12,7 +12,6 @@ class TestRecursiveFolderPixel(BaseTestCase):
     S3_FOLDER_PATH = "pixel_all_fuse"
     JSON_POSTFIX = "*.json"
 
-
     def test_recursive_upload_pixel(self):
         uploaded, _, duplicated = sa.upload_images_from_folder_to_project(self.PROJECT_NAME,
                                                                           self.S3_FOLDER_PATH,
@@ -27,6 +26,6 @@ class TestRecursiveFolderPixel(BaseTestCase):
                                                                           )
         self.assertEqual(115, len(uploaded))
         self.assertEqual(0, len(failed))
-        self.assertEqual(0, len(missing))
+        self.assertEqual(11, len(missing))
 
 
