@@ -15,6 +15,7 @@ from lib.core.entities import ProjectEntity
 from lib.core.exceptions import AppException
 from lib.core.helpers import convert_to_video_editor_json
 from lib.core.helpers import fill_annotation_ids
+from lib.core.helpers import fill_document_tags
 from lib.core.helpers import map_annotation_classes_name
 from lib.core.reporter import Reporter
 from lib.core.service_types import UploadAnnotationAuthData
@@ -361,22 +362,33 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
         templates: List[dict],
         reporter: Reporter,
     ) -> dict:
+        annotation_classes_name_maps = map_annotation_classes_name(
+            annotation_classes, reporter
+        )
         if project_type in (
             constances.ProjectType.VECTOR.value,
             constances.ProjectType.PIXEL.value,
-            constances.ProjectType.DOCUMENT.value,
         ):
             fill_annotation_ids(
                 annotations=annotations,
-                annotation_classes_name_maps=map_annotation_classes_name(
-                    annotation_classes, reporter
-                ),
+                annotation_classes_name_maps=annotation_classes_name_maps,
                 templates=templates,
                 reporter=reporter,
             )
+        elif project_type == constances.ProjectType.DOCUMENT.value:
+            fill_annotation_ids(
+                annotations=annotations,
+                annotation_classes_name_maps=annotation_classes_name_maps,
+                templates=templates,
+                reporter=reporter,
+            )
+            fill_document_tags(
+                annotations=annotations,
+                annotation_classes=annotation_classes_name_maps,
+            )
         elif project_type == constances.ProjectType.VIDEO.value:
             annotations = convert_to_video_editor_json(
-                annotations, map_annotation_classes_name(annotation_classes, reporter), reporter
+                annotations, annotation_classes_name_maps, reporter
             )
         return annotations
 

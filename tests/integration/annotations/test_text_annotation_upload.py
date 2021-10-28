@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 import src.superannotate as sa
 from tests.integration.base import BaseTestCase
+from src.superannotate.lib.core.helpers import fill_document_tags
 
 
 class TestUploadTextAnnotation(BaseTestCase):
@@ -72,3 +73,5 @@ class TestUploadTextAnnotation(BaseTestCase):
             downloaded_annotation = json.loads(open(f"{output_path}/text_file_example_1.json").read())
             instance = downloaded_annotation['instances'][0]
             self.assertEqual(instance['classId'], classes[0]['id'])
+            self.assertEqual(downloaded_annotation['tags'][0], "vid")
+
