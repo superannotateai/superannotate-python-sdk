@@ -159,7 +159,8 @@ def convert_to_video_editor_json(
             "attributes": [],
             "timeline": {},
             "type": meta["type"],
-            "locked": True,
+            # TODO check
+            "locked": False,
         }
         if class_name:
             editor_instance["classId"] = class_name_mapper.get(class_name, {}).get(
