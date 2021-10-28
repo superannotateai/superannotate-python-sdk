@@ -139,7 +139,7 @@ def convert_to_video_editor_json(
         return "0" if str(timestamp) == "0.0" else timestamp
 
     def convert_timestamp(timestamp):
-        return timestamp / 10 ** 6 if timestamp else None
+        return timestamp / 10 ** 6 if timestamp else "0"
 
     editor_data = {
         "instances": [],
@@ -159,7 +159,8 @@ def convert_to_video_editor_json(
             "attributes": [],
             "timeline": {},
             "type": meta["type"],
-            "locked": True,
+            # TODO check
+            "locked": False,
         }
         if class_name:
             editor_instance["classId"] = class_name_mapper.get(class_name, {}).get(
