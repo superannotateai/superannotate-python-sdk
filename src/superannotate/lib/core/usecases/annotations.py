@@ -253,10 +253,6 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
                 [annotation.path for annotation in self._missing_annotations],
             )
             self._log_report()
-        else:
-            self._response.errors = (
-                "Could not find annotations matching existing items on the platform."
-            )
         return self._response
 
 
