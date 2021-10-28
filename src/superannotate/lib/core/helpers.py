@@ -8,7 +8,10 @@ from lib.core.reporter import Reporter
 def map_annotation_classes_name(annotation_classes, reporter: Reporter) -> dict:
     classes_data = defaultdict(dict)
     for annotation_class in annotation_classes:
-        class_info = {"id": annotation_class.uuid}
+        class_info = {
+            "id": annotation_class.uuid,
+            "attribute_groups": {}
+        }
         if annotation_class.attribute_groups:
             for attribute_group in annotation_class.attribute_groups:
                 attribute_group_data = defaultdict(dict)
@@ -27,12 +30,11 @@ def map_annotation_classes_name(annotation_classes, reporter: Reporter) -> dict:
                         " Only one of the annotation class attribute groups will be used."
                         " This will result in errors in annotation upload."
                     )
-                class_info["attribute_groups"] = {
-                    attribute_group["name"]: {
-                        "id": attribute_group["id"],
-                        "attributes": attribute_group_data,
-                    }
+                class_info["attribute_groups"][attribute_group["name"]] = {
+                    "id": attribute_group["id"],
+                    "attributes": attribute_group_data,
                 }
+
         if annotation_class.name in classes_data.keys():
             reporter.log_warning(
                 f"Duplicate annotation class name {annotation_class.name}."
@@ -136,7 +138,7 @@ def convert_to_video_editor_json(data: dict, class_name_mapper: dict, reporter: 
         return "0" if str(timestamp) == "0.0" else timestamp
 
     def convert_timestamp(timestamp):
-        return timestamp / 10 ** 6
+        return timestamp / 10 ** 6 if timestamp else None
 
     editor_data = {
         "instances": [],
@@ -145,8 +147,8 @@ def convert_to_video_editor_json(data: dict, class_name_mapper: dict, reporter: 
         "metadata": {
             "duration": convert_timestamp(data["metadata"]["duration"]),
             "name": data["metadata"]["name"],
-            "width": data["metadata"]["width"],
-            "height": data["metadata"]["height"],
+            "width": data["metadata"].get("width"),
+            "height": data["metadata"].get("height"),
         },
     }
     for instance in data["instances"]:
