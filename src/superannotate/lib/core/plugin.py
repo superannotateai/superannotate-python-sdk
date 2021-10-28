@@ -259,7 +259,7 @@ class VideoPlugin:
         total_with_fps = sum(
             1
             for _ in VideoPlugin.frames_generator(
-                video_path,start_time, end_time, target_fps, log=False
+                video_path, start_time, end_time, target_fps, log=False
             )
         )
         zero_fill_count = len(str(total))
@@ -288,7 +288,7 @@ class VideoPlugin:
         for frame in VideoPlugin.frames_generator(
             video_path, start_time, end_time, target_fps
         ):
-            if len(extracted_frames_paths) > limit:
+            if len(extracted_frames_paths) >= limit:
                 break
             path = str(
                 Path(extract_path)

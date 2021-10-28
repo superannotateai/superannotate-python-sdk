@@ -119,6 +119,8 @@ def fill_annotation_ids(
 
 
 def convert_to_video_editor_json(data: dict, class_name_mapper: dict, reporter: Reporter):
+    id_generator = ClassIdGenerator()
+
     def safe_time(timestamp):
         return "0" if str(timestamp) == "0.0" else timestamp
 
@@ -138,14 +140,17 @@ def convert_to_video_editor_json(data: dict, class_name_mapper: dict, reporter: 
     }
     for instance in data["instances"]:
         meta = instance["meta"]
-        class_name = meta["className"]
+        class_name = meta.get("className")
         editor_instance = {
             "attributes": [],
             "timeline": {},
             "type": meta["type"],
-            "classId": class_name_mapper.get(class_name, {}).get("id", -1),
             "locked": True,
         }
+        if class_name:
+            editor_instance["classId"] = class_name_mapper.get(class_name, {}).get("id", id_generator.send(class_name))
+        else:
+            editor_instance["classId"] = id_generator.send("unknown_class")
         if meta.get("pointLabels", None):
             editor_instance["pointLabels"] = meta["pointLabels"]
         active_attributes = set()
@@ -168,8 +173,9 @@ def convert_to_video_editor_json(data: dict, class_name_mapper: dict, reporter: 
                     editor_instance["timeline"][timestamp]["points"] = timestamp_data[
                         "points"
                     ]
-
-                if not class_name_mapper.get(meta["className"], None):
+                if not class_name:
+                    continue
+                elif not class_name_mapper.get(class_name):
                     reporter.store_message("missing_classes", meta["className"])
                     continue
 
@@ -227,3 +233,15 @@ class SetEncoder(json.JSONEncoder):
         if isinstance(obj, set):
             return list(obj)
         return json.JSONEncoder.default(self, obj)
+
+
+class ClassIdGenerator:
+    def __init__(self):
+        self.classes = defaultdict(int)
+        self.idx = -1
+
+    def send(self, class_name: str):
+        if class_name not in self.classes:
+            self.classes[class_name] = self.idx
+            self.idx -= 1
+        return self.classes[class_name]

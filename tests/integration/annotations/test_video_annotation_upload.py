@@ -14,6 +14,7 @@ class TestUploadVideoAnnotation(BaseTestCase):
     PROJECT_DESCRIPTION = "desc"
     PROJECT_TYPE = "Video"
     ANNOTATIONS_PATH = "data_set/video_annotation"
+    ANNOTATIONS_WITHOUT_CLASSES_PATH = "data_set/annotations"
     CLASSES_PATH = "data_set/video_annotation/classes/classes.json"
     ANNOTATIONS_PATH_INVALID_JSON = "data_set/video_annotation_invalid_json"
 
@@ -28,6 +29,10 @@ class TestUploadVideoAnnotation(BaseTestCase):
     @property
     def annotations_path(self):
         return os.path.join(self.folder_path, self.ANNOTATIONS_PATH)
+
+    @property
+    def annotations_without_classes(self):
+        return os.path.join(self.folder_path, self.ANNOTATIONS_WITHOUT_CLASSES_PATH)
 
     @property
     def invalid_annotations_path(self):
@@ -86,3 +91,12 @@ class TestUploadVideoAnnotation(BaseTestCase):
                 annotation = annotation.replace(class_id, "0")
             uploaded_annotation = json.loads(annotation)
             self.assertEqual(downloaded_annotation, uploaded_annotation)
+
+    def test_upload_annotations_without_class_name(self):
+        sa.create_annotation_classes_from_classes_json(self.PROJECT_NAME, self.classes_path)
+
+        _, _, _ = sa.attach_video_urls_to_project(
+            self.PROJECT_NAME,
+            self.csv_path,
+        )
+        sa.upload_annotations_from_folder_to_project(self.PROJECT_NAME, self.annotations_without_classes)
