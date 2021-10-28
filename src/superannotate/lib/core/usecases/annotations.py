@@ -12,9 +12,9 @@ from lib.core.entities import AnnotationClassEntity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
 from lib.core.entities import ProjectEntity
-from lib.core.exceptions import AppException
 from lib.core.helpers import convert_to_video_editor_json
 from lib.core.helpers import fill_annotation_ids
+from lib.core.helpers import fill_document_tags
 from lib.core.helpers import map_annotation_classes_name
 from lib.core.reporter import Reporter
 from lib.core.service_types import UploadAnnotationAuthData
@@ -110,6 +110,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
                 for idx, detail in enumerate(images_detail):
                     if detail.name == image_data.name:
                         images_detail[idx] = detail._replace(id=image_data.uuid)
+                        break
 
             missing_annotations = list(
                 filter(lambda image_detail: image_detail.id is None, images_detail)
@@ -118,12 +119,9 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
                 filter(lambda image_detail: image_detail.id is not None, images_detail)
             )
             if missing_annotations:
-                for missing in missing_annotations:
-                    logger.warning(
-                        f"Couldn't find image {missing.path} for annotation upload."
-                    )
-            if not annotations_to_upload:
-                raise AppException("No image to attach annotations.")
+                logger.warning(
+                    f"Couldn't find {len(missing_annotations)}/{len(annotations_to_upload + missing_annotations)} items on the platform that match the annotations you want to upload."
+                )
             self._missing_annotations = missing_annotations
             self._annotations_to_upload = annotations_to_upload
         return self._annotations_to_upload
@@ -172,8 +170,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
                 self.reporter.store_message("Invalid jsons", path)
                 return path, False
             return path, True
-        except Exception as e:
-            # raise e
+        except Exception as _:
             return path, False
 
     def get_bucket_to_upload(self, ids: List[int]):
@@ -197,9 +194,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
                 template = "Could not find attribute groups matching existing attribute groups on the platform: [{}]"
             elif key == "missing_attributes":
                 template = "Could not find attributes matching existing attributes on the platform: [{}]"
-            logger.warning(
-                template.format("', '".join(values))
-            )
+            logger.warning(template.format("', '".join(values)))
 
     def execute(self):
         uploaded_annotations = []
@@ -208,21 +203,27 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
             iterations_range = range(
                 0, len(self.annotations_to_upload), self.AUTH_DATA_CHUNK_SIZE
             )
-            self.reporter.start_progress(iterations_range, description="Uploading Annotations")
-            for _ in iterations_range:
+            self.reporter.start_progress(
+                len(self.annotations_to_upload), description="Uploading Annotations"
+            )
+            for step in iterations_range:
                 annotations_to_upload = self.annotations_to_upload[
-                    _ : _ + self.AUTH_DATA_CHUNK_SIZE  # noqa: E203
-                ]
+                    step : step + self.AUTH_DATA_CHUNK_SIZE
+                ]  # noqa: E203
                 upload_data = self.get_annotation_upload_data(
                     [int(image.id) for image in annotations_to_upload]
                 )
-                bucket = self.get_bucket_to_upload([int(image.id) for image in annotations_to_upload])
+                bucket = self.get_bucket_to_upload(
+                    [int(image.id) for image in annotations_to_upload]
+                )
                 if bucket:
                     image_id_name_map = {
                         image.id: image for image in self.annotations_to_upload
                     }
                     # dummy progress
-                    for _ in range(len(annotations_to_upload) - len(upload_data.images)):
+                    for _ in range(
+                        len(annotations_to_upload) - len(upload_data.images)
+                    ):
                         self.reporter.update_progress()
                     with concurrent.futures.ThreadPoolExecutor(
                         max_workers=self.MAX_WORKERS
@@ -252,8 +253,6 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
                 [annotation.path for annotation in self._missing_annotations],
             )
             self._log_report()
-        else:
-            self._response.errors = "Could not find annotations matching existing items on the platform."
         return self._response
 
 
@@ -322,12 +321,12 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
                 self._s3_bucket = resource.Bucket(upload_data.bucket)
         return self._s3_bucket
 
-    def get_s3_annotation(self, s3, path: str):
+    def get_s3_file(self, s3, path: str):
         file = io.BytesIO()
         s3_object = s3.Object(self._client_s3_bucket, path)
         s3_object.download_fileobj(file)
         file.seek(0)
-        return json.load(file)
+        return file
 
     @property
     def from_s3(self):
@@ -335,12 +334,30 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
             from_session = boto3.Session()
             return from_session.resource("s3")
 
-    def get_annotation_json(self):
+    def set_annotation_json(self):
         if not self._annotation_json:
             if self._client_s3_bucket:
-                return self.get_s3_annotation(self.from_s3, self._annotation_path)
-            return json.load(open(self._annotation_path))
-        return self._annotation_json
+                self._annotation_json = json.load(
+                    self.get_s3_file(self.from_s3, self._annotation_path)
+                )
+                if self._project.project_type == constances.ProjectType.PIXEL.value:
+                    self._mask = self.get_s3_file(
+                        self.from_s3,
+                        self._annotation_path.replace(
+                            constances.PIXEL_ANNOTATION_POSTFIX,
+                            constances.ANNOTATION_MASK_POSTFIX,
+                        ),
+                    )
+            else:
+                self._annotation_json = json.load(open(self._annotation_path))
+                if self._project.project_type == constances.ProjectType.PIXEL.value:
+                    self._mask = open(
+                        self._annotation_path.replace(
+                            constances.PIXEL_ANNOTATION_POSTFIX,
+                            constances.ANNOTATION_MASK_POSTFIX,
+                        ),
+                        "rb"
+                    )
 
     def _is_valid_json(self, json_data: dict):
         use_case = ValidateAnnotationUseCase(
@@ -358,6 +375,9 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
         templates: List[dict],
         reporter: Reporter,
     ) -> dict:
+        annotation_classes_name_maps = map_annotation_classes_name(
+            annotation_classes, reporter
+        )
         if project_type in (
             constances.ProjectType.VECTOR.value,
             constances.ProjectType.PIXEL.value,
@@ -365,15 +385,18 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
         ):
             fill_annotation_ids(
                 annotations=annotations,
-                annotation_classes_name_maps=map_annotation_classes_name(
-                    annotation_classes, reporter
-                ),
+                annotation_classes_name_maps=annotation_classes_name_maps,
                 templates=templates,
                 reporter=reporter,
             )
         elif project_type == constances.ProjectType.VIDEO.value:
             annotations = convert_to_video_editor_json(
-                annotations, map_annotation_classes_name(annotation_classes, reporter), reporter
+                annotations, annotation_classes_name_maps, reporter
+            )
+        if project_type == constances.ProjectType.DOCUMENT.value:
+            fill_document_tags(
+                annotations=annotations,
+                annotation_classes=annotation_classes_name_maps,
             )
         return annotations
 
@@ -389,12 +412,12 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
 
     def execute(self):
         if self.is_valid():
-            annotation_json = self.get_annotation_json()
-            if self.is_valid_json(annotation_json):
+            self.set_annotation_json()
+            if self.is_valid_json(self._annotation_json):
                 bucket = self.s3_bucket
                 annotation_json = self.prepare_annotations(
                     project_type=self._project.project_type,
-                    annotations=annotation_json,
+                    annotations=self._annotation_json,
                     annotation_classes=self._annotation_classes,
                     templates=self._templates,
                     reporter=self.reporter,
@@ -405,18 +428,16 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
                     ],
                     Body=json.dumps(annotation_json),
                 )
-                if self._project.project_type == constances.ProjectType.PIXEL.value:
-                    mask_path = self._annotation_path.replace(
-                        "___pixel.json", constances.ANNOTATION_MASK_POSTFIX
+                if (
+                    self._project.project_type == constances.ProjectType.PIXEL.value
+                    and self._mask
+                ):
+                    bucket.put_object(
+                        Key=self.annotation_upload_data.images[self._image.uuid][
+                            "annotation_bluemap_path"
+                        ],
+                        Body=self._mask,
                     )
-                    with open(mask_path, "rb") as mask_file:
-                        file = io.BytesIO(mask_file.read())
-                        bucket.put_object(
-                            Key=self.annotation_upload_data.images[self._image.uuid][
-                                "annotation_bluemap_path"
-                            ],
-                            Body=file,
-                        )
                 if self._verbose:
                     logger.info(
                         "Uploading annotations for image %s in project %s.",
