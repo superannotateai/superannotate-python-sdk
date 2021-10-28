@@ -123,7 +123,9 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
                         f"Couldn't find image {missing.path} for annotation upload."
                     )
             if not annotations_to_upload:
-                raise AppException("No image to attach annotations.")
+                raise AppException(
+                    "No item to attach annotations."
+                )
             self._missing_annotations = missing_annotations
             self._annotations_to_upload = annotations_to_upload
         return self._annotations_to_upload
@@ -208,10 +210,8 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
                 0, len(self.annotations_to_upload), self.AUTH_DATA_CHUNK_SIZE
             )
             self.reporter.start_progress(iterations_range, description="Uploading Annotations")
-            for _ in iterations_range:
-                annotations_to_upload = self.annotations_to_upload[
-                    _ : _ + self.AUTH_DATA_CHUNK_SIZE  # noqa: E203
-                ]
+            for step in iterations_range:
+                annotations_to_upload = self.annotations_to_upload[step : step + self.AUTH_DATA_CHUNK_SIZE]  # noqa: E203
                 upload_data = self.get_annotation_upload_data(
                     [int(image.id) for image in annotations_to_upload]
                 )
