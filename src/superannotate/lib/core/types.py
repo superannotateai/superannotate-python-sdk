@@ -48,7 +48,7 @@ class Metadata(BaseModel):
 
 
 class PointLabels(BaseModel):
-    __root__: Dict[constr(regex=r'^[0-9]*$'), str]
+    __root__: Dict[constr(regex=r"^[0-9]*$"), str]
 
 
 class BaseInstance(BaseModel):
@@ -227,10 +227,10 @@ class VideoInstance(BaseModel):
 
 class VideoAnnotation(BaseModel):
     metadata: VideoMetaData
-    instances: List[VideoInstance]
-    tags: List[str]
+    instances: Optional[List[VideoInstance]]
+    tags: Optional[List[str]]
 
 
 class DocumentAnnotation(BaseModel):
     instances: list
-    tags: List[str]
+    tags: Optional[List[str]]

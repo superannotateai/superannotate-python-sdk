@@ -2447,22 +2447,23 @@ def upload_annotations_from_folder_to_project(
     project_name, folder_name = extract_project_folder(project)
     project_folder_name = project_name + (f"/{folder_name}" if folder_name else "")
 
-
     if recursive_subfolders:
         logger.info(
             "When using recursive subfolder parsing same name annotations in different "
             "subfolders will overwrite each other.",
         )
-    logger.info("The JSON files should follow a specific naming convention, matching file names already present "
-                "on the platform. Existing annotations will be overwritten")
+    logger.info(
+        "The JSON files should follow a specific naming convention, matching file names already present "
+        "on the platform. Existing annotations will be overwritten"
+    )
 
     annotation_paths = get_annotation_paths(
         folder_path, from_s3_bucket, recursive_subfolders
     )
-    if not annotation_paths:
-        raise AppException("Could not find annotations matching existing items on the platform.")
 
-    logger.info(f"Uploading {len(annotation_paths)} annotations from {folder_path} to the project {project_folder_name}.")
+    logger.info(
+        f"Uploading {len(annotation_paths)} annotations from {folder_path} to the project {project_folder_name}."
+    )
     response = controller.upload_annotations_from_folder(
         project_name=project_name,
         folder_name=folder_name,
@@ -2518,16 +2519,17 @@ def upload_preannotations_from_folder_to_project(
             "When using recursive subfolder parsing same name annotations in different "
             "subfolders will overwrite each other.",
         )
-    logger.info("The JSON files should follow a specific naming convention, matching file names already present "
-                "on the platform. Existing annotations will be overwritten")
+    logger.info(
+        "The JSON files should follow a specific naming convention, matching file names already present "
+        "on the platform. Existing annotations will be overwritten"
+    )
     logger.info("Existing annotations will be overwritten.",)
     annotation_paths = get_annotation_paths(
         folder_path, from_s3_bucket, recursive_subfolders
     )
-    if not annotation_paths:
-        raise AppException("Could not find annotations matching existing items on the platform.")
     logger.info(
-        f"Uploading {len(annotation_paths)} annotations from {folder_path} to the project {project_folder_name}.")
+        f"Uploading {len(annotation_paths)} annotations from {folder_path} to the project {project_folder_name}."
+    )
     response = controller.upload_annotations_from_folder(
         project_name=project_name,
         folder_name=folder_name,
