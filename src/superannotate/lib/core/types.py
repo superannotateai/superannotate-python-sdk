@@ -48,7 +48,7 @@ class Metadata(BaseModel):
 
 
 class PointLabels(BaseModel):
-    __root__: Dict[constr(regex=r'^[0-9]*$'), str]
+    __root__: Dict[constr(regex=r"^[0-9]*$"), str]
 
 
 class BaseInstance(BaseModel):

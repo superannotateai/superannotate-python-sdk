@@ -8,10 +8,7 @@ from lib.core.reporter import Reporter
 def map_annotation_classes_name(annotation_classes, reporter: Reporter) -> dict:
     classes_data = defaultdict(dict)
     for annotation_class in annotation_classes:
-        class_info = {
-            "id": annotation_class.uuid,
-            "attribute_groups": {}
-        }
+        class_info = {"id": annotation_class.uuid, "attribute_groups": {}}
         if annotation_class.attribute_groups:
             for attribute_group in annotation_class.attribute_groups:
                 attribute_group_data = defaultdict(dict)
@@ -46,14 +43,13 @@ def map_annotation_classes_name(annotation_classes, reporter: Reporter) -> dict:
 
 
 def fill_document_tags(
-    annotations: dict,
-    annotation_classes: dict,
+    annotations: dict, annotation_classes: dict,
 ):
     new_tags = []
-    for tag in annotations['tags']:
+    for tag in annotations["tags"]:
         if annotation_classes.get(tag):
-            new_tags.append(annotation_classes[tag]['id'])
-    annotations['tags'] = new_tags
+            new_tags.append(annotation_classes[tag]["id"])
+    annotations["tags"] = new_tags
 
 
 def fill_annotation_ids(
@@ -108,7 +104,10 @@ def fill_annotation_ids(
                 reporter.log_warning(
                     f"Couldn't find annotation group {attribute['groupName']}."
                 )
-                reporter.store_message("missing_attribute_groups", f"{annotation['className']}.{attribute['groupName']}")
+                reporter.store_message(
+                    "missing_attribute_groups",
+                    f"{annotation['className']}.{attribute['groupName']}",
+                )
                 continue
             attribute["groupId"] = annotation_classes_name_maps[annotation_class_name][
                 "attribute_groups"
@@ -131,7 +130,9 @@ def fill_annotation_ids(
             ][attribute["groupName"]]["attributes"][attribute["name"]]
 
 
-def convert_to_video_editor_json(data: dict, class_name_mapper: dict, reporter: Reporter):
+def convert_to_video_editor_json(
+    data: dict, class_name_mapper: dict, reporter: Reporter
+):
     id_generator = ClassIdGenerator()
 
     def safe_time(timestamp):
@@ -161,7 +162,9 @@ def convert_to_video_editor_json(data: dict, class_name_mapper: dict, reporter: 
             "locked": True,
         }
         if class_name:
-            editor_instance["classId"] = class_name_mapper.get(class_name, {}).get("id", id_generator.send(class_name))
+            editor_instance["classId"] = class_name_mapper.get(class_name, {}).get(
+                "id", id_generator.send(class_name)
+            )
         else:
             editor_instance["classId"] = id_generator.send("unknown_class")
         if meta.get("pointLabels", None):
@@ -194,13 +197,33 @@ def convert_to_video_editor_json(data: dict, class_name_mapper: dict, reporter: 
 
                 existing_attributes_in_current_instance = set()
                 for attribute in timestamp_data["attributes"]:
-                    group_name, attr_name = attribute.get("groupName"), attribute.get("name")
-                    if not class_name_mapper[class_name].get("attribute_groups", {}).get(group_name):
-                        reporter.store_message("missing_attribute_groups", f"{class_name}.{group_name}")
-                    elif not class_name_mapper[class_name]["attribute_groups"][group_name].get("attributes", {}).get(attr_name):
-                        reporter.store_message("missing_attributes", f"{class_name}.{group_name}.{attr_name}")
+                    group_name, attr_name = (
+                        attribute.get("groupName"),
+                        attribute.get("name"),
+                    )
+                    if (
+                        not class_name_mapper[class_name]
+                        .get("attribute_groups", {})
+                        .get(group_name)
+                    ):
+                        reporter.store_message(
+                            "missing_attribute_groups", f"{class_name}.{group_name}"
+                        )
+                    elif (
+                        not class_name_mapper[class_name]["attribute_groups"][
+                            group_name
+                        ]
+                        .get("attributes", {})
+                        .get(attr_name)
+                    ):
+                        reporter.store_message(
+                            "missing_attributes",
+                            f"{class_name}.{group_name}.{attr_name}",
+                        )
                     else:
-                        existing_attributes_in_current_instance.add((group_name, attr_name))
+                        existing_attributes_in_current_instance.add(
+                            (group_name, attr_name)
+                        )
                 attributes_to_add = (
                     existing_attributes_in_current_instance - active_attributes
                 )
