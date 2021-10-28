@@ -227,10 +227,10 @@ class VideoInstance(BaseModel):
 
 class VideoAnnotation(BaseModel):
     metadata: VideoMetaData
-    instances: List[VideoInstance]
-    tags: List[str]
+    instances: Optional[List[VideoInstance]]
+    tags: Optional[List[str]]
 
 
 class DocumentAnnotation(BaseModel):
     instances: list
-    tags: List[str]
+    tags: Optional[List[str]]
