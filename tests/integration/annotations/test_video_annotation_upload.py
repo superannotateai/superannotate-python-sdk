@@ -17,6 +17,7 @@ class TestUploadVideoAnnotation(BaseTestCase):
     ANNOTATIONS_WITHOUT_CLASSES_PATH = "data_set/annotations"
     CLASSES_PATH = "data_set/video_annotation/classes/classes.json"
     ANNOTATIONS_PATH_INVALID_JSON = "data_set/video_annotation_invalid_json"
+    maxDiff = None
 
     @property
     def folder_path(self):
