@@ -45,6 +45,17 @@ def map_annotation_classes_name(annotation_classes, reporter: Reporter) -> dict:
     return classes_data
 
 
+def fill_document_tags(
+    annotations: dict,
+    annotation_classes: dict,
+):
+    new_tags = []
+    for tag in annotations['tags']:
+        if annotation_classes.get(tag):
+            new_tags.append(annotation_classes[tag]['id'])
+    annotations['tags'] = new_tags
+
+
 def fill_annotation_ids(
     annotations: dict,
     annotation_classes_name_maps: dict,
