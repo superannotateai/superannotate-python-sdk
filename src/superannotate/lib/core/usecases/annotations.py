@@ -55,8 +55,8 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
         self._client_s3_bucket = client_s3_bucket
         self._pre_annotation = pre_annotation
         self._templates = templates
-        self._annotations_to_upload = None
-        self._missing_annotations = None
+        self._annotations_to_upload = []
+        self._missing_annotations = []
         self._validators = validators
         self.missing_attribute_groups = set()
         self.missing_classes = set()
@@ -247,12 +247,12 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
                                 failed_annotations.append(annotation)
                             self.reporter.update_progress()
 
-            self._response.data = (
-                uploaded_annotations,
-                failed_annotations,
-                [annotation.path for annotation in self._missing_annotations],
-            )
             self._log_report()
+        self._response.data = (
+            uploaded_annotations,
+            failed_annotations,
+            [annotation.path for annotation in self._missing_annotations],
+        )
         return self._response
 
 
