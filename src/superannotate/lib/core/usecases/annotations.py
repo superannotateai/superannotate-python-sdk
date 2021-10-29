@@ -246,7 +246,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
                             else:
                                 failed_annotations.append(annotation)
                             self.reporter.update_progress()
-
+            self.reporter.finish_progress()
             self._log_report()
         self._response.data = (
             uploaded_annotations,
