@@ -55,8 +55,8 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
         self._client_s3_bucket = client_s3_bucket
         self._pre_annotation = pre_annotation
         self._templates = templates
-        self._annotations_to_upload = None
-        self._missing_annotations = None
+        self._annotations_to_upload = []
+        self._missing_annotations = []
         self._validators = validators
         self.missing_attribute_groups = set()
         self.missing_classes = set()
