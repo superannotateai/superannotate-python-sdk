@@ -6,10 +6,6 @@ import pandas as pd
 import plotly.express as px
 from lib.app.exceptions import AppException
 from lib.core import DEPRICATED_DOCUMENT_VIDEO_MESSAGE
-from shapely.geometry import box
-from shapely.geometry import Point
-from shapely.geometry import Polygon
-
 
 logger = logging.getLogger()
 
@@ -542,6 +538,17 @@ def image_consensus(df, image_name, annot_type):
     :type dataset_format: str
 
     """
+
+    try:
+        from shapely.geometry import box
+        from shapely.geometry import Point
+        from shapely.geometry import Polygon
+    except ImportError:
+        raise ImportError(
+            "To use superannotate.benchmark or superannotate.consensus functions please install "
+            "shapely package in Anaconda enviornment with # conda install shapely"
+        )
+
     image_df = df[df["imageName"] == image_name]
     all_projects = list(set(df["folderName"]))
     column_names = [
