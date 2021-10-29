@@ -247,12 +247,12 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
                                 failed_annotations.append(annotation)
                             self.reporter.update_progress()
 
-            self._response.data = (
-                uploaded_annotations,
-                failed_annotations,
-                [annotation.path for annotation in self._missing_annotations],
-            )
             self._log_report()
+        self._response.data = (
+            uploaded_annotations,
+            failed_annotations,
+            [annotation.path for annotation in self._missing_annotations],
+        )
         return self._response
 
 
