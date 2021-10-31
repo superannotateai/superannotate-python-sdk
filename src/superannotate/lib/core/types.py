@@ -1,3 +1,4 @@
+from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Union
@@ -6,9 +7,22 @@ from pydantic import BaseModel
 from pydantic import constr
 from pydantic import Extra
 from pydantic import StrictStr
-
+from pydantic import validate_model
+from pydantic import validator
+from pydantic.error_wrappers import ErrorWrapper
+from pydantic.error_wrappers import ValidationError
 
 NotEmptyStr = constr(strict=True, min_length=1)
+
+
+class AnnotationType(StrictStr):
+    @classmethod
+    def validate(cls, value: str) -> Union[str]:
+        if value not in ANNOTATION_TYPES.keys():
+            raise ValidationError(
+                [ErrorWrapper(TypeError(f"invalid value {value}"), "type")], cls
+            )
+        return value
 
 
 class Attribute(BaseModel):
@@ -33,11 +47,21 @@ class Metadata(BaseModel):
     height: Optional[int]
 
 
+class PointLabels(BaseModel):
+    __root__: Dict[constr(regex=r"^[0-9]*$"), str]
+
+
 class BaseInstance(BaseModel):
-    type: NotEmptyStr
-    classId: int
+    type: AnnotationType
+    classId: Optional[int]
     groupId: Optional[int]
     attributes: List[Attribute]
+    # point_labels: Optional[PointLabels]
+
+    class Config:
+        error_msg_templates = {
+            "value_error.missing": "field required for annotation",
+        }
 
 
 class Point(BaseInstance):
@@ -72,20 +96,20 @@ class Ellipse(BaseInstance):
 
 
 class TemplatePoint(BaseModel):
-    id: int
+    id: Optional[int]
     x: float
     y: float
 
 
 class TemplateConnection(BaseModel):
-    id: int
+    id: Optional[int]
     to: int
 
 
 class Template(BaseInstance):
     points: List[TemplatePoint]
     connections: List[Optional[TemplateConnection]]
-    templateId: int
+    templateId: Optional[int]
 
 
 class EmptyPoint(BaseModel):
@@ -109,15 +133,46 @@ class PixelAnnotationPart(BaseModel):
 
 
 class PixelAnnotationInstance(BaseModel):
-    classId: int
+    classId: Optional[int]
     groupId: Optional[int]
     parts: List[PixelAnnotationPart]
     attributes: List[Attribute]
 
 
+class VectorInstance(BaseModel):
+    __root__: Union[Template, Cuboid, Point, PolyLine, Polygon, Bbox, Ellipse]
+
+
+ANNOTATION_TYPES = {
+    "bbox": Bbox,
+    "ellipse": Ellipse,
+    "template": Template,
+    "cuboid": Cuboid,
+    "polyline": PolyLine,
+    "polygon": Polygon,
+    "point": Point,
+}
+
+
 class VectorAnnotation(BaseModel):
     metadata: Metadata
-    instances: List[Union[Template, Cuboid, Point, PolyLine, Polygon, Bbox, Ellipse]]
+    instances: Optional[
+        List[Union[Template, Cuboid, Point, PolyLine, Polygon, Bbox, Ellipse]]
+    ]
+
+    @validator("instances", pre=True, each_item=True)
+    def check_instances(cls, instance):
+        annotation_type = AnnotationType.validate(instance.get("type"))
+        if not annotation_type:
+            raise ValidationError(
+                [ErrorWrapper(TypeError("value not specified"), "type")], cls
+            )
+        result = validate_model(ANNOTATION_TYPES[annotation_type], instance)
+        if result[2]:
+            raise ValidationError(
+                result[2].raw_errors, model=ANNOTATION_TYPES[annotation_type]
+            )
+        return instance
 
 
 class PixelAnnotation(BaseModel):
@@ -134,10 +189,48 @@ class Project(BaseModel):
 
 class MLModel(BaseModel):
     name: NotEmptyStr
-    id: int
+    id: Optional[int]
     path: NotEmptyStr
     config_path: NotEmptyStr
     team_id: Optional[int]
 
     class Config:
         extra = Extra.allow
+
+
+class VideoMetaData(BaseModel):
+    name: Optional[str]
+    width: Optional[int]
+    height: Optional[int]
+
+
+class VideoInstanceMeta(BaseModel):
+    type: NotEmptyStr
+    classId: Optional[int]
+
+
+class VideoTimeStamp(BaseModel):
+    timestamp: int
+    attributes: List[Attribute]
+
+
+class VideoInstanceParameter(BaseModel):
+    start: int
+    end: int
+    timestamps: List[VideoTimeStamp]
+
+
+class VideoInstance(BaseModel):
+    meta: VideoInstanceMeta
+    parameters: List[VideoInstanceParameter]
+
+
+class VideoAnnotation(BaseModel):
+    metadata: VideoMetaData
+    instances: Optional[List[VideoInstance]]
+    tags: Optional[List[str]]
+
+
+class DocumentAnnotation(BaseModel):
+    instances: list
+    tags: Optional[List[str]]

@@ -33,21 +33,17 @@ from lib.core.enums import ProjectType
 from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
 from lib.core.exceptions import ImageProcessingException
-from lib.core.helpers import fill_annotation_ids
-from lib.core.helpers import map_annotation_classes_name
 from lib.core.plugin import ImagePlugin
 from lib.core.plugin import VideoPlugin
 from lib.core.repositories import BaseManageableRepository
 from lib.core.repositories import BaseReadOnlyRepository
 from lib.core.response import Response
 from lib.core.serviceproviders import SuerannotateServiceProvider
-from lib.core.types import PixelAnnotation
-from lib.core.types import VectorAnnotation
 from lib.core.usecases.base import BaseInteractiveUseCase
 from lib.core.usecases.base import BaseUseCase
 from lib.core.usecases.projects import GetAnnotationClassesUseCase
+from lib.core.validators import BaseAnnotationValidator
 from PIL import UnidentifiedImageError
-from pydantic import ValidationError
 
 logger = logging.getLogger("root")
 
@@ -1600,7 +1596,6 @@ class UploadImagesFromPublicUrls(BaseInteractiveUseCase):
         self._settings = settings
         self._auth_data = None
 
-
     @property
     def auth_data(self):
         if not self._auth_data:
@@ -1746,7 +1741,7 @@ class UploadImagesFromPublicUrls(BaseInteractiveUseCase):
                         image.entity for image in images_to_upload[i : i + 100]
                     ],
                     annotation_status=self._annotation_status,
-                    upload_state_code=constances.UploadState.BASIC.value
+                    upload_state_code=constances.UploadState.BASIC.value,
                 ).execute()
                 if response.errors:
                     continue
@@ -2190,99 +2185,6 @@ class DeleteAnnotations(BaseUseCase):
         return self._response
 
 
-class UploadImageAnnotationsUseCase(BaseUseCase):
-    def __init__(
-        self,
-        project: ProjectEntity,
-        folder: FolderEntity,
-        annotation_classes: BaseReadOnlyRepository,
-        image_name: str,
-        annotations: dict,
-        backend_service_provider: SuerannotateServiceProvider,
-        mask=None,
-        verbose: bool = True,
-        annotation_path: str = True,
-    ):
-        super().__init__()
-        self._project = project
-        self._folder = folder
-        self._backend_service = backend_service_provider
-        self._annotation_classes = annotation_classes
-        self._image_name = image_name
-        self._annotations = annotations
-        self._mask = mask
-        self._verbose = verbose
-        self._annotation_path = annotation_path
-
-    def validate_project_type(self):
-        if self._project.project_type in constances.LIMITED_FUNCTIONS:
-            raise AppValidationException(
-                constances.LIMITED_FUNCTIONS[self._project.project_type]
-            )
-
-    def execute(self):
-        if self.is_valid():
-            image_data = self._backend_service.get_bulk_images(
-                images=[self._image_name],
-                folder_id=self._folder.uuid,
-                team_id=self._project.team_id,
-                project_id=self._project.uuid,
-            )
-            if not image_data:
-                raise AppException("There is no images to attach annotation.")
-            image_data = image_data[0]
-            response = self._backend_service.get_annotation_upload_data(
-                project_id=self._project.uuid,
-                team_id=self._project.team_id,
-                folder_id=self._folder.uuid,
-                image_ids=[image_data["id"]],
-            )
-            if response.ok:
-                session = boto3.Session(
-                    aws_access_key_id=response.data.access_key,
-                    aws_secret_access_key=response.data.secret_key,
-                    aws_session_token=response.data.session_token,
-                    region_name=response.data.region,
-                )
-                resource = session.resource("s3")
-                bucket = resource.Bucket(response.data.bucket)
-                fill_annotation_ids(
-                    annotations=self._annotations,
-                    annotation_classes_name_maps=map_annotation_classes_name(self._annotation_classes.get_all()),
-                    templates=self._backend_service.get_templates(self._project.team_id).get("data", []),
-                    logger=logger
-                )
-                bucket.put_object(
-                    Key=response.data.images[image_data["id"]]["annotation_json_path"],
-                    Body=json.dumps(self._annotations),
-                )
-                if self._project.project_type == constances.ProjectType.PIXEL.value:
-                    mask_path = None
-                    png_path = self._annotation_path.replace(
-                        "___pixel.json", "___save.png"
-                    )
-                    if os.path.exists(png_path) and not self._mask:
-                        mask_path = png_path
-                    elif self._mask:
-                        mask_path = self._mask
-
-                    if mask_path:
-                        with open(mask_path, "rb") as descriptor:
-                            bucket.put_object(
-                                Key=response.data.images[image_data["id"]][
-                                    "annotation_bluemap_path"
-                                ],
-                                Body=descriptor.read(),
-                            )
-                if self._verbose:
-                    logger.info(
-                        "Uploading annotations for image %s in project %s.",
-                        str(image_data["name"]),
-                        self._project.name,
-                    )
-        return self._response
-
-
 class DeleteImagesUseCase(BaseUseCase):
     CHUNK_SIZE = 1000
 
@@ -2337,251 +2239,6 @@ class DeleteImagesUseCase(BaseUseCase):
                     image_ids=image_ids[i : i + self.CHUNK_SIZE],  # noqa: E203
                 )
         return self._response
-
-
-class UploadAnnotationsUseCase(BaseInteractiveUseCase):
-    MAX_WORKERS = 10
-    CHUNK_SIZE = 100
-    AUTH_DATA_CHUNK_SIZE = 500
-
-    def __init__(
-        self,
-        project: ProjectEntity,
-        folder: FolderEntity,
-        annotation_classes: List[AnnotationClassEntity],
-        folder_path: str,
-        annotation_paths: List[str],
-        backend_service_provider: SuerannotateServiceProvider,
-        templates: List[dict],
-        pre_annotation: bool = False,
-        client_s3_bucket=None,
-    ):
-        super().__init__()
-        self._project = project
-        self._folder = folder
-        self._backend_service = backend_service_provider
-        self._annotation_classes = annotation_classes
-        self._folder_path = folder_path
-        self._annotation_paths = annotation_paths
-        self._client_s3_bucket = client_s3_bucket
-        self._pre_annotation = pre_annotation
-        self._templates = templates
-        self._annotations_to_upload = None
-        self._missing_annotations = None
-        self.missing_attribute_groups = set()
-        self.missing_classes = set()
-        self.missing_attributes = set()
-
-    @property
-    def s3_client(self):
-        return boto3.client("s3")
-
-    @property
-    def annotation_postfix(self):
-        return (
-            constances.VECTOR_ANNOTATION_POSTFIX
-            if self._project.project_type == constances.ProjectType.VECTOR.value
-            else constances.PIXEL_ANNOTATION_POSTFIX
-        )
-
-    @property
-    def annotations_to_upload(self):
-        if not self._annotations_to_upload:
-            annotation_paths = self._annotation_paths
-            ImageInfo = namedtuple("ImageInfo", ["path", "name", "id"])
-            images_detail = []
-            for annotation_path in annotation_paths:
-                images_detail.append(
-                    ImageInfo(
-                        id=None,
-                        path=annotation_path,
-                        name=os.path.basename(
-                            annotation_path.replace(
-                                constances.PIXEL_ANNOTATION_POSTFIX, ""
-                            ).replace(constances.VECTOR_ANNOTATION_POSTFIX, ""),
-                        ),
-                    )
-                )
-            images_data = (
-                GetBulkImages(
-                    service=self._backend_service,
-                    project_id=self._project.uuid,
-                    team_id=self._project.team_id,
-                    folder_id=self._folder.uuid,
-                    images=[image.name for image in images_detail],
-                )
-                .execute()
-                .data
-            )
-
-            for image_data in images_data:
-                for idx, detail in enumerate(images_detail):
-                    if detail.name == image_data.name:
-                        images_detail[idx] = detail._replace(id=image_data.uuid)
-
-            missing_annotations = list(
-                filter(lambda detail: detail.id is None, images_detail)
-            )
-            annotations_to_upload = list(
-                filter(lambda detail: detail.id is not None, images_detail)
-            )
-            if missing_annotations:
-                for missing in missing_annotations:
-                    logger.warning(
-                        f"Couldn't find image {missing.path} for annotation upload."
-                    )
-            if not annotations_to_upload:
-                raise AppException("No image to attach annotations.")
-            self._missing_annotations = missing_annotations
-            self._annotations_to_upload = annotations_to_upload
-        return self._annotations_to_upload
-
-    def _is_valid_json(self, json_data: dict):
-        try:
-            if self._project.project_type == constances.ProjectType.PIXEL.value:
-                PixelAnnotation(**json_data)
-            else:
-                VectorAnnotation(**json_data)
-            return True
-        except ValidationError as _:
-            return False
-
-    def execute(self):
-        uploaded_annotations = []
-        missing_annotations = []
-        failed_annotations = []
-        for _ in range(0, len(self.annotations_to_upload), self.AUTH_DATA_CHUNK_SIZE):
-            annotations_to_upload = self.annotations_to_upload[
-                _ : _ + self.AUTH_DATA_CHUNK_SIZE  # noqa: E203
-            ]
-
-            if self._pre_annotation:
-                response = self._backend_service.get_pre_annotation_upload_data(
-                    project_id=self._project.uuid,
-                    team_id=self._project.team_id,
-                    folder_id=self._folder.uuid,
-                    image_ids=[int(image.id) for image in annotations_to_upload],
-                )
-            else:
-                response = self._backend_service.get_annotation_upload_data(
-                    project_id=self._project.uuid,
-                    team_id=self._project.team_id,
-                    folder_id=self._folder.uuid,
-                    image_ids=[int(image.id) for image in annotations_to_upload],
-                )
-            if response.ok:
-                session = boto3.Session(
-                    aws_access_key_id=response.data.access_key,
-                    aws_secret_access_key=response.data.secret_key,
-                    aws_session_token=response.data.session_token,
-                    region_name=response.data.region,
-                )
-                resource = session.resource("s3")
-                bucket = resource.Bucket(response.data.bucket)
-                image_id_name_map = {
-                    image.id: image for image in self.annotations_to_upload
-                }
-                if self._client_s3_bucket:
-                    from_session = boto3.Session()
-                    from_s3 = from_session.resource("s3")
-                else:
-                    from_s3 = None
-
-                for _ in range(len(annotations_to_upload) - len(response.data.images)):
-                    yield
-                with concurrent.futures.ThreadPoolExecutor(
-                    max_workers=self.MAX_WORKERS
-                ) as executor:
-                    results = [
-                        executor.submit(
-                            self.upload_to_s3,
-                            image_id,
-                            image_info,
-                            bucket,
-                            from_s3,
-                            image_id_name_map,
-                        )
-                        for image_id, image_info in response.data.images.items()
-                    ]
-                    for future in concurrent.futures.as_completed(results):
-                        annotation, uploaded = future.result()
-                        if uploaded:
-                            uploaded_annotations.append(annotation)
-                        else:
-                            failed_annotations.append(annotation)
-                        yield
-
-        uploaded_annotations = [annotation.path for annotation in uploaded_annotations]
-        missing_annotations.extend(
-            [annotation.path for annotation in self._missing_annotations]
-        )
-        failed_annotations = [annotation.path for annotation in failed_annotations]
-        self._response.data = (
-            uploaded_annotations,
-            failed_annotations,
-            missing_annotations,
-        )
-        self.report_missing_data()
-        return self._response
-
-    def upload_to_s3(
-        self, image_id: int, image_info, bucket, from_s3, image_id_name_map
-    ):
-        try:
-            if from_s3:
-                file = io.BytesIO()
-                s3_object = from_s3.Object(
-                    self._client_s3_bucket, image_id_name_map[image_id].path
-                )
-                s3_object.download_fileobj(file)
-                file.seek(0)
-                annotation_json = json.load(file)
-            else:
-                annotation_json = json.load(open(image_id_name_map[image_id].path))
-            report = fill_annotation_ids(
-                annotations=annotation_json,
-                annotation_classes_name_maps=map_annotation_classes_name(self._annotation_classes),
-                templates=self._templates
-            )
-            self.missing_classes.update(report["missing_classes"])
-            self.missing_attribute_groups.update(report["missing_attribute_groups"])
-            self.missing_attributes.update(report["missing_attributes"])
-            if not self._is_valid_json(annotation_json):
-                logger.warning(f"Invalid json {image_id_name_map[image_id].path}")
-                return image_id_name_map[image_id], False
-            bucket.put_object(
-                Key=image_info["annotation_json_path"],
-                Body=json.dumps(annotation_json),
-            )
-            if self._project.project_type == constances.ProjectType.PIXEL.value:
-                mask_path = image_id_name_map[image_id].path.replace(
-                    "___pixel.json", constances.ANNOTATION_MASK_POSTFIX
-                )
-                if from_s3:
-                    file = io.BytesIO()
-                    s3_object = from_s3.Object(self._client_s3_bucket, mask_path)
-                    s3_object.download_fileobj(file)
-                    file.seek(0)
-                else:
-                    with open(mask_path, "rb") as mask_file:
-                        file = io.BytesIO(mask_file.read())
-                bucket.put_object(Key=image_info["annotation_bluemap_path"], Body=file)
-            return image_id_name_map[image_id], True
-        except Exception as e:
-            self._response.report = f"Couldn't upload annotation {image_id_name_map[image_id].name} - {str(e)}"
-            return image_id_name_map[image_id], False
-
-    def report_missing_data(self):
-        if self.missing_classes:
-            logger.warning(f"Couldn't find classes [{', '.join(self.missing_classes)}]")
-        if self.missing_attribute_groups:
-            logger.warning(
-                f"Couldn't find annotation groups [{', '.join(self.missing_attribute_groups)}]"
-            )
-        if self.missing_attributes:
-            logger.warning(
-                f"Couldn't find attributes [{', '.join(self.missing_attributes)}]"
-            )
 
 
 class DownloadImageAnnotationsUseCase(BaseUseCase):
@@ -3305,7 +2962,7 @@ class UploadFileToS3UseCase(BaseUseCase):
         self._to_s3_bucket.upload_file(str(self._path), self._s3_key)
 
 
-class ExtractFramesUseCase(BaseUseCase):
+class ExtractFramesUseCase(BaseInteractiveUseCase):
     def __init__(
         self,
         backend_service_provider: SuerannotateServiceProvider,
@@ -3333,6 +2990,20 @@ class ExtractFramesUseCase(BaseUseCase):
         self._image_quality_in_editor = image_quality_in_editor
         self._limit = limit
         self._limitation_response = None
+
+    def validate_fps(self):
+        fps = VideoPlugin.get_fps(self._video_path)
+        if not self._target_fps:
+            self._target_fps = fps
+            return
+        if self._target_fps and self._target_fps > fps:
+            logger.info(
+                f"Video frame rate {fps} smaller than target frame rate {self._target_fps}. Cannot change frame rate."
+            )
+        else:
+            logger.info(
+                f"Changing video frame rate from {fps} to target frame rate {self._target_fps}."
+            )
 
     def validate_upload_state(self):
         if self._project.upload_state == constances.UploadState.EXTERNAL.value:
@@ -3367,12 +3038,12 @@ class ExtractFramesUseCase(BaseUseCase):
     @property
     def limit(self):
         limits = [
-            self._limitation_response.data.folder_limit.remaining_image_count,
-            self._limitation_response.data.project_limit.remaining_image_count,
+            self.limitation_response.data.folder_limit.remaining_image_count,
+            self.limitation_response.data.project_limit.remaining_image_count,
         ]
-        if self._limitation_response.data.user_limit:
+        if self.limitation_response.data.user_limit:
             limits.append(
-                self._limitation_response.data.user_limit.remaining_image_count
+                self.limitation_response.data.user_limit.remaining_image_count
             )
         return min(limits)
 
@@ -3384,7 +3055,7 @@ class ExtractFramesUseCase(BaseUseCase):
 
     def execute(self):
         if self.is_valid():
-            extracted_paths = VideoPlugin.extract_frames(
+            frames_generator = VideoPlugin.extract_frames(
                 video_path=self._video_path,
                 start_time=self._start_time,
                 end_time=self._end_time,
@@ -3392,8 +3063,7 @@ class ExtractFramesUseCase(BaseUseCase):
                 limit=self.limit,
                 target_fps=self._target_fps,
             )
-            self._response.data = extracted_paths
-        return self._response
+            yield from frames_generator
 
 
 class UploadS3ImagesBackendUseCase(BaseUseCase):
@@ -3478,5 +3148,38 @@ class UploadS3ImagesBackendUseCase(BaseUseCase):
                 project_id=self._project.uuid,
                 team_id=self._project.team_id,
                 data=[old_setting.to_dict()],
+            )
+        return self._response
+
+
+class ValidateAnnotationUseCase(BaseUseCase):
+    def __init__(
+        self, project_type: str, annotation: dict, validators: BaseAnnotationValidator
+    ):
+        super().__init__()
+        self._project_type = project_type
+        self._annotation = annotation
+        self._validators = validators
+
+    def execute(self) -> Response:
+        validator = None
+        if self._project_type.lower() == constances.ProjectType.VECTOR.name.lower():
+            validator = self._validators.get_vector_validator()
+        elif self._project_type.lower() == constances.ProjectType.PIXEL.name.lower():
+            validator = self._validators.get_pixel_validator()
+        elif self._project_type.lower() == constances.ProjectType.VIDEO.name.lower():
+            validator = self._validators.get_video_validator()
+        elif self._project_type.lower() == constances.ProjectType.DOCUMENT.name.lower():
+            validator = self._validators.get_document_validator()
+        if validator:
+            validator = validator(self._annotation)
+            if validator.is_valid():
+                self._response.data = True
+            else:
+                self._response.report = validator.generate_report()
+                self._response.data = False
+        else:
+            self._response.errors = AppException(
+                f"There is not validator for type {self._project_type}."
             )
         return self._response

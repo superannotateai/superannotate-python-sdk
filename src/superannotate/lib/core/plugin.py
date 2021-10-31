@@ -1,9 +1,9 @@
 import io
 import logging
-import os
 from pathlib import Path
 from typing import List
 from typing import Tuple
+from typing import Union
 
 import cv2
 import ffmpeg
@@ -171,7 +171,7 @@ class ImagePlugin:
 
 class VideoPlugin:
     @staticmethod
-    def get_frames_count(video_path):
+    def get_frames_count(video_path: str):
         video = cv2.VideoCapture(str(video_path), cv2.CAP_FFMPEG)
         count = 0
         flag = True
@@ -184,7 +184,12 @@ class VideoPlugin:
         return count
 
     @staticmethod
-    def get_video_rotate_code(video_path):
+    def get_fps(video_path: str) -> Union[int, float]:
+        video = cv2.VideoCapture(str(video_path), cv2.CAP_FFMPEG)
+        return video.get(cv2.CAP_PROP_FPS)
+
+    @staticmethod
+    def get_video_rotate_code(video_path, log):
         cv2_rotations = {
             90: cv2.ROTATE_90_CLOCKWISE,
             180: cv2.ROTATE_180,
@@ -194,19 +199,76 @@ class VideoPlugin:
             meta_dict = ffmpeg.probe(str(video_path))
             rot = int(meta_dict["streams"][0]["tags"]["rotate"])
             if rot:
-                logger.info(
-                    "Frame rotation of %s found. Output images will be rotated accordingly.",
-                    rot,
-                )
+                if log:
+                    logger.info(
+                        "Frame rotation of %s found. Output images will be rotated accordingly.",
+                        rot,
+                    )
                 return cv2_rotations[rot]
         except Exception as e:
             warning_str = ""
             if "ffprobe" in str(e):
                 warning_str = "This could be because ffmpeg package is not installed. To install it, run: sudo apt install ffmpeg"
-            logger.warning(
-                "Couldn't read video metadata to determine rotation. %s", warning_str
-            )
+            if log:
+                logger.warning(
+                    "Couldn't read video metadata to determine rotation. %s",
+                    warning_str,
+                )
             return
+
+    @staticmethod
+    def frames_generator(
+        video_path: str, start_time, end_time, target_fps: float, log=True
+    ):
+        video = cv2.VideoCapture(str(video_path), cv2.CAP_FFMPEG)
+        if not video.isOpened():
+            raise ImageProcessingException(
+                f"Couldn't open video file {str(video_path)}."
+            )
+        fps = video.get(cv2.CAP_PROP_FPS)
+        if not target_fps:
+            target_fps = fps
+        if target_fps > fps:
+            target_fps = fps
+        ratio = fps / target_fps
+        rotate_code = VideoPlugin.get_video_rotate_code(video_path, log)
+        frame_no = 0
+        frame_no_with_change = 1.0
+        while True:
+            success, frame = video.read()
+            if not success:
+                break
+            frame_no += 1
+            if round(frame_no_with_change) != frame_no:
+                continue
+            frame_no_with_change += ratio
+            frame_time = video.get(cv2.CAP_PROP_POS_MSEC) / 1000.0
+            if end_time and frame_time > end_time:
+                break
+            if frame_time < start_time:
+                continue
+            if rotate_code:
+                frame = cv2.rotate(frame, rotate_code)
+            yield frame
+
+    @staticmethod
+    def get_extractable_frames(
+        video_path: str, start_time, end_time, target_fps: float,
+    ):
+        total = VideoPlugin.get_frames_count(video_path)
+        total_with_fps = sum(
+            1
+            for _ in VideoPlugin.frames_generator(
+                video_path, start_time, end_time, target_fps, log=False
+            )
+        )
+        zero_fill_count = len(str(total))
+        video_name = Path(video_path).stem
+        frame_names = []
+        for i in range(1, total_with_fps + 1):
+            frame_name = f"{video_name}_{str(i).zfill(zero_fill_count)}.jpg"
+            frame_names.append(frame_name)
+        return frame_names
 
     @staticmethod
     def extract_frames(
@@ -216,63 +278,32 @@ class VideoPlugin:
         extract_path: str,
         limit: int,
         target_fps: float,
+        chunk_size: int = 100,
     ) -> List[str]:
-        video = cv2.VideoCapture(video_path, cv2.CAP_FFMPEG)
-        if not video.isOpened():
-            return []
-        frames_count = VideoPlugin.get_frames_count(video_path)
-        logger.info("Video frame count is %s.", frames_count)
-
-        fps = video.get(cv2.CAP_PROP_FPS)
-        if not target_fps:
-            target_fps = fps
-        if target_fps > fps:
-            logger.warning(
-                "Video frame rate %s smaller than target frame rate %s. Cannot change frame rate.",
-                fps,
-                target_fps,
-            )
-            target_fps = fps
-
-        else:
-            logger.info(
-                "Changing video frame rate from %s to target frame rate %s.",
-                fps,
-                target_fps,
-            )
-
-        ratio = fps / target_fps
-        zero_fill_count = len(str(frames_count))
-
-        rotate_code = VideoPlugin.get_video_rotate_code(video_path)
-
-        frame_number = 0
-        extracted_frame_number = 0
-        extracted_frame_ratio = 1.0
-        logger.info("Extracting frames from video to %s.", extract_path)
+        total_num_of_frames = VideoPlugin.get_frames_count(video_path)
+        zero_fill_count = len(str(total_num_of_frames))
+        video_name = Path(video_path).stem
+        extracted_frame_no = 1
         extracted_frames_paths = []
-
-        while len(os.listdir(extract_path)) < limit:
-            success, frame = video.read()
-            if success:
-                frame_time = video.get(cv2.CAP_PROP_POS_MSEC) / 1000.0
-
-                if (end_time and frame_time > end_time) or (
-                    start_time and frame_time < start_time
-                ):
-                    continue
-
-                frame_number += 1
-                if round(extracted_frame_ratio) != frame_number:
-                    continue
-                extracted_frame_ratio += ratio
-                extracted_frame_number += 1
-                if rotate_code:
-                    frame = cv2.rotate(frame, rotate_code)
-
-                path = f"{extract_path}/{Path(video_path).stem}_{str(extracted_frame_number).zfill(zero_fill_count)}.jpg"
-                extracted_frames_paths.append(path)
-                cv2.imwrite(path, frame)
-            else:
+        for frame in VideoPlugin.frames_generator(
+            video_path, start_time, end_time, target_fps
+        ):
+            if len(extracted_frames_paths) >= limit:
                 break
-        return extracted_frames_paths
+            path = str(
+                Path(extract_path)
+                / (
+                    video_name
+                    + "_"
+                    + str(extracted_frame_no).zfill(zero_fill_count)
+                    + ".jpg"
+                )
+            )
+            extracted_frame_no += 1
+            cv2.imwrite(path, frame)
+            extracted_frames_paths.append(path)
+            if len(extracted_frames_paths) % chunk_size == 0:
+                yield extracted_frames_paths
+                extracted_frames_paths.clear()
+        if extracted_frames_paths:
+            yield extracted_frames_paths

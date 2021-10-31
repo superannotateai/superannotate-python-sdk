@@ -45,6 +45,7 @@ AVAILABLE_SEGMENTATION_MODELS = ["autonomous", "generic"]
 VECTOR_ANNOTATION_POSTFIX = "___objects.json"
 PIXEL_ANNOTATION_POSTFIX = "___pixel.json"
 ANNOTATION_MASK_POSTFIX = "___save.png"
+ATTACHED_VIDEO_ANNOTATION_POSTFIX = ".json"
 
 NON_PLOTABLE_KEYS = ["eta_seconds", "iteration", "data_time", "time", "model"]
 

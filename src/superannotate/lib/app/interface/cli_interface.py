@@ -268,7 +268,7 @@ class CLIFacade(BaseInterfaceFacade):
         self,
         project,
         folder,
-        target_fps=1,
+        target_fps=None,
         recursive=False,
         extensions=constances.DEFAULT_VIDEO_EXTENSIONS,
         set_annotation_status=constances.AnnotationStatus.NOT_STARTED.name,

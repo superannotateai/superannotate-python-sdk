@@ -19,6 +19,7 @@ from lib.core.entities import ImageEntity
 from lib.core.entities import MLModelEntity
 from lib.core.entities import ProjectEntity
 from lib.core.exceptions import AppException
+from lib.core.reporter import Reporter
 from lib.core.response import Response
 from lib.infrastructure.helpers import timed_lru_cache
 from lib.infrastructure.repositories import AnnotationClassRepository
@@ -32,6 +33,7 @@ from lib.infrastructure.repositories import S3Repository
 from lib.infrastructure.repositories import TeamRepository
 from lib.infrastructure.repositories import WorkflowRepository
 from lib.infrastructure.services import SuperannotateBackendService
+from lib.infrastructure.validators import AnnotationValidator
 
 
 class SingleInstanceMetaClass(type):
@@ -74,7 +76,9 @@ class BaseController(metaclass=SingleInstanceMetaClass):
         config_path = Path(expanduser(config_path))
         if str(config_path) == constances.CONFIG_FILE_LOCATION:
             if not Path(self._config_path).is_file():
-                self.configs.insert(ConfigEntity("main_endpoint", constances.BACKEND_URL))
+                self.configs.insert(
+                    ConfigEntity("main_endpoint", constances.BACKEND_URL)
+                )
                 self.configs.insert(ConfigEntity("token", ""))
                 return
         if not config_path.is_file():
@@ -93,7 +97,9 @@ class BaseController(metaclass=SingleInstanceMetaClass):
         if not main_endpoint:
             main_endpoint = constances.BACKEND_URL
         if not token:
-            raise AppException(f"Incorrect config file: token is not present in the config file {config_path}")
+            raise AppException(
+                f"Incorrect config file: token is not present in the config file {config_path}"
+            )
         verify_ssl_entity = self.configs.get_one("ssl_verify")
         if not verify_ssl_entity:
             verify_ssl = True
@@ -168,9 +174,7 @@ class BaseController(metaclass=SingleInstanceMetaClass):
         return self._folders
 
     def get_team(self):
-        return usecases.GetTeamUseCase(
-            teams=self.teams, team_id=self.team_id
-        ).execute()
+        return usecases.GetTeamUseCase(teams=self.teams, team_id=self.team_id).execute()
 
     @property
     def ml_models(self):
@@ -197,7 +201,9 @@ class BaseController(metaclass=SingleInstanceMetaClass):
     @property
     def team_id(self) -> int:
         if not self._team_id:
-            raise AppException(f"Invalid credentials provided in the {self._config_path}.")
+            raise AppException(
+                f"Invalid credentials provided in the {self._config_path}."
+            )
         return self._team_id
 
     @timed_lru_cache(seconds=3600)
@@ -221,6 +227,10 @@ class BaseController(metaclass=SingleInstanceMetaClass):
     @property
     def s3_repo(self):
         return S3Repository
+
+    @property
+    def annotation_validators(self):
+        return AnnotationValidator()
 
 
 class Controller(BaseController):
@@ -621,14 +631,16 @@ class Controller(BaseController):
     def _get_image(
         self, project: ProjectEntity, image_name: str, folder: FolderEntity = None,
     ) -> ImageEntity:
-        use_case = usecases.GetImageUseCase(
+        response = usecases.GetImageUseCase(
             service=self._backend_client,
             project=project,
             folder=folder,
             image_name=image_name,
             images=self.images,
-        )
-        return use_case.execute().data
+        ).execute()
+        if response.errors:
+            raise AppException(response.errors)
+        return response.data
 
     def get_image(
         self, project_name: str, image_name: str, folder_path: str = None
@@ -1153,7 +1165,21 @@ class Controller(BaseController):
             image_quality_in_editor=image_quality_in_editor,
             limit=limit,
         )
-        return use_case.execute()
+        if use_case.is_valid():
+            yield from use_case.execute()
+        else:
+            raise AppException(use_case.response.errors)
+
+    def get_duplicate_images(self, project_name: str, folder_name: str, images: list):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+        return usecases.GetBulkImages(
+            service=self._backend_client,
+            project_id=project.uuid,
+            team_id=project.team_id,
+            folder_id=folder.uuid,
+            images=images,
+        )
 
     def create_annotation_class(
         self, project_name: str, name: str, color: str, attribute_groups: List[dict]
@@ -1287,7 +1313,6 @@ class Controller(BaseController):
         self,
         project_name: str,
         folder_name: str,
-        folder_path: str,
         annotation_paths: List[str],
         client_s3_bucket=None,
         is_pre_annotations: bool = False,
@@ -1297,7 +1322,6 @@ class Controller(BaseController):
         use_case = usecases.UploadAnnotationsUseCase(
             project=project,
             folder=folder,
-            folder_path=folder_path,
             annotation_paths=annotation_paths,
             backend_service_provider=self._backend_client,
             annotation_classes=AnnotationClassRepository(
@@ -1308,8 +1332,10 @@ class Controller(BaseController):
             templates=self._backend_client.get_templates(team_id=self.team_id).get(
                 "data", []
             ),
+            validators=self.annotation_validators,
+            reporter=Reporter(log_info=False, log_warning=False),
         )
-        return use_case
+        return use_case.execute()
 
     def upload_image_annotations(
         self,
@@ -1319,22 +1345,29 @@ class Controller(BaseController):
         annotations: dict,
         mask: io.BytesIO = None,
         verbose: bool = True,
-        annotation_path: str = None,
     ):
         project = self._get_project(project_name)
         folder = self._get_folder(project, folder_name)
-        use_case = usecases.UploadImageAnnotationsUseCase(
+        try:
+            image = self._get_image(project, image_name, folder)
+        except AppException:
+            raise AppException("There is no images to attach annotation.")
+        use_case = usecases.UploadAnnotationUseCase(
             project=project,
             folder=folder,
             annotation_classes=AnnotationClassRepository(
                 service=self._backend_client, project=project
-            ),
-            image_name=image_name,
+            ).get_all(),
+            image=image,
             annotations=annotations,
+            templates=self._backend_client.get_templates(team_id=self.team_id).get(
+                "data", []
+            ),
             backend_service_provider=self._backend_client,
             mask=mask,
             verbose=verbose,
-            annotation_path=annotation_path,
+            reporter=Reporter(),
+            validators=self.annotation_validators,
         )
         return use_case.execute()
 
@@ -1595,5 +1628,11 @@ class Controller(BaseController):
             folder=folder,
             backend_service=self._backend_client,
             image_names=image_names,
+        )
+        return use_case.execute()
+
+    def validate_annotations(self, project_type: str, annotation: dict):
+        use_case = usecases.ValidateAnnotationUseCase(
+            project_type, annotation, validators=self.annotation_validators
         )
         return use_case.execute()

@@ -51,7 +51,7 @@ class TestLimitsUploadImagesFromFolderToProject(BaseTestCase):
 
 
 class TestLimitsMoveImage(BaseTestCase):
-    PROJECT_NAME = "TestLimitsUploadImagesFromFolderToProject"
+    PROJECT_NAME = "TestLimitsMoveImage"
     PROJECT_DESCRIPTION = "Desc"
     PROJECT_TYPE = "Vector"
     TEST_FOLDER_PTH = "data_set"
@@ -91,7 +91,7 @@ class TestLimitsMoveImage(BaseTestCase):
 
 
 class TestLimitsCopyImage(BaseTestCase):
-    PROJECT_NAME = "TestLimitsUploadImagesFromFolderToProject"
+    PROJECT_NAME = "TestLimitsCopyImage"
     PROJECT_DESCRIPTION = "Desc"
     PROJECT_TYPE = "Vector"
     TEST_FOLDER_PTH = "data_set"

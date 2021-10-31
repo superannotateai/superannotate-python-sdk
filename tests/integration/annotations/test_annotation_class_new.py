@@ -1,5 +1,5 @@
 import os
-from os.path import dirname
+from pathlib import Path
 from unittest import TestCase
 
 import src.superannotate as sa
@@ -33,8 +33,7 @@ class TestAnnotationClasses(TestCase):
 
     @property
     def classes_json(self):
-        return os.path.join(
-            dirname(dirname(__file__)),
+        return os.path.join(Path(__file__).parent.parent.parent,
             "data_set/sample_project_vector/classes/classes.json",
         )
 
