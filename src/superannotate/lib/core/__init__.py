@@ -63,6 +63,7 @@ ATTACHING_FILES_MESSAGE = "Attaching {} file(s) to project {}."
 ATTACHING_UPLOAD_STATE_ERROR = "You cannot attach URLs in this type of project. Please attach it in an external storage project."
 UPLOADING_UPLOAD_STATE_ERROR = "You cannot upload files in this type of project. Please upload it in an basic storage project."
 
+INVALID_PROJECT_TYPE_TO_PROCESS = "The function does not support projects of type {}."
 DEPRECATED_VIDEO_PROJECTS_MESSAGE = (
     "The function does not support projects containing videos attached with URLs"
 )

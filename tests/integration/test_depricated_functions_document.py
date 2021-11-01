@@ -5,6 +5,7 @@ from unittest import TestCase
 import src.superannotate as sa
 from src.superannotate import AppException
 from src.superannotate.lib.core import LIMITED_FUNCTIONS
+from src.superannotate.lib.core import INVALID_PROJECT_TYPE_TO_PROCESS
 from src.superannotate.lib.core import ProjectType
 from src.superannotate.lib.core import DEPRICATED_DOCUMENT_VIDEO_MESSAGE
 
@@ -21,6 +22,7 @@ class TestDeprecatedFunctionsDocument(TestCase):
     PROJECT_DESCRIPTION_2 = "second project"
     PROJECT_TYPE_2 = "Vector"
     EXCEPTION_MESSAGE = LIMITED_FUNCTIONS[ProjectType.DOCUMENT.value]
+    EXCEPTION_MESSAGE_2 = INVALID_PROJECT_TYPE_TO_PROCESS
     EXCEPTION_MESSAGE_DOCUMENT_VIDEO = DEPRICATED_DOCUMENT_VIDEO_MESSAGE
 
     def setUp(self, *args, **kwargs):
@@ -106,7 +108,7 @@ class TestDeprecatedFunctionsDocument(TestCase):
                 os.path.join(dirname(dirname(__file__)), self.PATH_TO_URLS),
             )
         except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE, str(e))
+            self.assertIn(self.EXCEPTION_MESSAGE_2.format(self.PROJECT_TYPE), str(e))
         try:
             sa.clone_project(self.PROJECT_NAME_2, self.PROJECT_NAME)
         except AppException as e:
@@ -194,7 +196,7 @@ class TestDeprecatedFunctionsDocument(TestCase):
                 os.path.join(dirname(dirname(__file__)), self.PATH_TO_URLS),
             )
         except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE, str(e))
+            self.assertIn(self.EXCEPTION_MESSAGE_2.format(self.PROJECT_TYPE), str(e))
         try:
             sa.benchmark(self.PROJECT_NAME, "some", ["some folder1"])
         except AppException as e:
