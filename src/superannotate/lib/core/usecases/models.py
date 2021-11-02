@@ -763,7 +763,7 @@ class RunSegmentationUseCase(BaseUseCase):
                 image_ids=image_ids,
             )
             if not res.ok:
-                # todo add error message in the response
+                self._response.errors = res.json().get("error")
                 return self._response
 
             success_images = []
