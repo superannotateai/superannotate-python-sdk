@@ -2315,8 +2315,11 @@ def attach_image_urls_to_project(
         constances.ProjectType.VIDEO.value,
         constances.ProjectType.DOCUMENT.value,
     ]:
-        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
-
+        raise AppException(
+            constances.INVALID_PROJECT_TYPE_TO_PROCESS.format(
+                constances.ProjectType.get_name(project["project"].project_type)
+            )
+        )
     images_to_upload, duplicate_images = get_paths_and_duplicated_from_csv(attachments)
     use_case = controller.interactive_attach_urls(
         project_name=project_name,
@@ -2374,8 +2377,12 @@ def attach_video_urls_to_project(
     project = controller.get_project_metadata(project_name).data
     project_folder_name = project_name + (f"/{folder_name}" if folder_name else "")
 
-    if not project["project"].project_type == constances.ProjectType.VIDEO.value:
-        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
+    if project["project"].project_type != constances.ProjectType.VIDEO.value:
+        raise AppException(
+            constances.INVALID_PROJECT_TYPE_TO_PROCESS.format(
+                constances.ProjectType.get_name(project["project"].project_type)
+            )
+        )
 
     images_to_upload, duplicate_images = get_paths_and_duplicated_from_csv(attachments)
     use_case = controller.interactive_attach_urls(
@@ -3585,8 +3592,12 @@ def attach_document_urls_to_project(
     project = controller.get_project_metadata(project_name).data
     project_folder_name = project_name + (f"/{folder_name}" if folder_name else "")
 
-    if not project["project"].project_type == constances.ProjectType.DOCUMENT.value:
-        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
+    if project["project"].project_type != constances.ProjectType.DOCUMENT.value:
+        raise AppException(
+            constances.INVALID_PROJECT_TYPE_TO_PROCESS.format(
+                constances.ProjectType.get_name(project["project"].project_type)
+            )
+        )
 
     images_to_upload, duplicate_images = get_paths_and_duplicated_from_csv(attachments)
 

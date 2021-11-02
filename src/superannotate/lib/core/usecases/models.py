@@ -763,8 +763,7 @@ class RunSegmentationUseCase(BaseUseCase):
                 image_ids=image_ids,
             )
             if not res.ok:
-                self._response.errors = res.json().get("error")
-                return self._response
+                res.raise_for_status()
 
             success_images = []
             failed_images = []
