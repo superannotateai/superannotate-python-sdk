@@ -199,9 +199,10 @@ class MLModel(BaseModel):
 
 
 class VideoMetaData(BaseModel):
-    name: Optional[str]
+    name: StrictStr
     width: Optional[int]
     height: Optional[int]
+    duration: Optional[int]
 
 
 class VideoInstanceMeta(BaseModel):
