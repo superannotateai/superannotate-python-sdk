@@ -358,7 +358,7 @@ def search_annotation_classes(*args, **kwargs):
         "event_name": "search_annotation_classes",
         "properties": {
             "project_name": get_project_name(project),
-            "name_prefix": name_prefix,
+            "Prefix": bool(name_prefix),
         },
     }
 
