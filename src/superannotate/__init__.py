@@ -2,6 +2,9 @@ import logging.config
 import os
 import sys
 
+import requests
+import superannotate.lib.core as constances
+from packaging.version import parse
 from superannotate.lib.app.analytics.class_analytics import attribute_distribution
 from superannotate.lib.app.analytics.class_analytics import class_distribution
 from superannotate.lib.app.annotation_helpers import add_annotation_bbox_to_json
@@ -298,9 +301,27 @@ __all__ = [
 
 __author__ = "Superannotate"
 
+
 WORKING_DIR = os.path.split(os.path.realpath(__file__))[0]
 sys.path.append(WORKING_DIR)
 logging.getLogger("botocore").setLevel(logging.CRITICAL)
 logging.config.fileConfig(
     os.path.join(WORKING_DIR, "logging.conf"), disable_existing_loggers=False
 )
+
+local_version = parse(__version__)
+if local_version.is_prerelease:
+    logging.info(constances.PACKAGE_VERSION_INFO_MESSAGE.format(__version__))
+req = requests.get('https://pypi.python.org/pypi/superannotate/json')
+if req.ok:
+    releases = req.json().get('releases', [])
+    pip_version = parse('0')
+    for release in releases:
+        ver = parse(release)
+        if not ver.is_prerelease or local_version.is_prerelease:
+            pip_version = max(pip_version, ver)
+    if pip_version.major > local_version.major:
+        logging.warning(constances.PACKAGE_VERSION_MAJOR_UPGRADE.format(local_version, pip_version))
+    elif pip_version > local_version:
+        logging.warning(constances.PACKAGE_VERSION_UPGRADE.format(local_version, pip_version)
+        )

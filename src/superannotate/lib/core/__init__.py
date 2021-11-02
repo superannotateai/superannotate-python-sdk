@@ -63,6 +63,7 @@ ATTACHING_FILES_MESSAGE = "Attaching {} file(s) to project {}."
 ATTACHING_UPLOAD_STATE_ERROR = "You cannot attach URLs in this type of project. Please attach it in an external storage project."
 UPLOADING_UPLOAD_STATE_ERROR = "You cannot upload files in this type of project. Please upload it in an basic storage project."
 
+INVALID_PROJECT_TYPE_TO_PROCESS = "The function does not support projects of type {}."
 DEPRECATED_VIDEO_PROJECTS_MESSAGE = (
     "The function does not support projects containing videos attached with URLs"
 )
@@ -101,6 +102,15 @@ MOVE_FOLDER_LIMIT_ERROR_MESSAGE = (
 )
 MOVE_PROJECT_LIMIT_ERROR_MESSAGE = "The number of items you want to move exceeds the limit of 500 000 items per project."
 
+PACKAGE_VERSION_INFO_MESSAGE = "Development version {} of SuperAnnotate SDK is being used."
+
+PACKAGE_VERSION_MAJOR_UPGRADE = "There is a major upgrade of SuperAnnotate Python SDK available on PyPI. " \
+                          "We recommend upgrading. Run 'pip install --upgrade superannotate' to " \
+                          "upgrade from your version {} to {}."
+
+PACKAGE_VERSION_UPGRADE = "There is a newer version of SuperAnnotate Python SDK available on PyPI." \
+                      " Run 'pip install --upgrade superannotate' to" \
+                      " upgrade from your version {} to {}"
 __alL__ = (
     ProjectType,
     UserRole,
