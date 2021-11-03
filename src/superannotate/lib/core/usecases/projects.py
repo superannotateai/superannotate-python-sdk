@@ -381,12 +381,6 @@ class CloneProjectUseCase(BaseUseCase):
     def workflows(self):
         return self._workflows_repo(self._backend_service, self._project)
 
-    def validate_project_type(self):
-        if self._project.project_type in constances.LIMITED_FUNCTIONS:
-            raise AppValidationException(
-                constances.LIMITED_FUNCTIONS[self._project.project_type]
-            )
-
     def validate_project_name(self):
         if self._project_to_create.name:
             if (

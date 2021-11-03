@@ -104,3 +104,65 @@ class TestCloneProject(TestCase):
             "tall",
         )
         # TODO: assert contributers
+
+class TestCloneProjectAttachedUrls(TestCase):
+    PROJECT_NAME_1 = "TestCloneProjectAttachedUrls_1"
+    PROJECT_NAME_2 = "TestCloneProjectAttachedUrls_2"
+    PROJECT_DESCRIPTION = "desc"
+    PROJECT_TYPE = "Document"
+
+    def setUp(self, *args, **kwargs):
+        self.tearDown()
+        self._project_1 = sa.create_project(
+            self.PROJECT_NAME_1, self.PROJECT_DESCRIPTION, self.PROJECT_TYPE
+        )
+
+    def tearDown(self) -> None:
+        sa.delete_project(self.PROJECT_NAME_1)
+        sa.delete_project(self.PROJECT_NAME_2)
+
+    def test_create_like_project(self):
+        sa.create_annotation_class(
+            self.PROJECT_NAME_1,
+            "rrr",
+            "#FFAAFF",
+            [
+                {
+                    "name": "tall",
+                    "is_multiselect": 0,
+                    "attributes": [{"name": "yes"}, {"name": "no"}],
+                },
+                {
+                    "name": "age",
+                    "is_multiselect": 0,
+                    "attributes": [{"name": "young"}, {"name": "old"}],
+                },
+            ],
+        )
+
+        old_settings = sa.get_project_settings(self.PROJECT_NAME_1)
+        annotator_finish = 0
+        for setting in old_settings:
+            if "attribute" in setting and setting["attribute"] == "AnnotatorFinish":
+                annotator_finish = setting["value"]
+        sa.set_project_settings(
+            self.PROJECT_NAME_1,
+            [{"attribute": "AnnotatorFinish", "value": annotator_finish}],
+        )
+
+        new_project = sa.clone_project(
+            self.PROJECT_NAME_2, self.PROJECT_NAME_1, copy_contributors=True
+        )
+        self.assertEqual(new_project["description"], self.PROJECT_DESCRIPTION)
+        self.assertEqual(new_project["type"].lower(), "document")
+
+        ann_classes = sa.search_annotation_classes(self.PROJECT_NAME_2)
+        self.assertEqual(len(ann_classes), 1)
+        self.assertEqual(ann_classes[0]["name"], "rrr")
+        self.assertEqual(ann_classes[0]["color"], "#FFAAFF")
+
+        new_settings = sa.get_project_settings(self.PROJECT_NAME_2)
+        for setting in new_settings:
+            if "attribute" in setting and setting["attribute"] == "annotator_finish":
+                self.assertEqual(setting["value"], annotator_finish)
+                break
