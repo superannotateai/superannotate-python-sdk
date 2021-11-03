@@ -23,3 +23,7 @@ class DocumentAnnotation(BaseModel):
     metadata: Metadata
     instances: List[DocumentInstance]
     tags: Optional[List[Tag]]
+    # TODO check free_text: str = Field(alias="freeText")
+
+
+

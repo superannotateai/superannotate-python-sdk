@@ -65,6 +65,7 @@ class LastUserAction(BaseModel):
 
 
 class BaseInstance(BaseModel):
+    # TODO check id: Optional[str]
     # TODO change to datetime
     class_id: int = Field(alias="classId")
     created_at: Optional[int] = Field(None, alias="createdAt")
