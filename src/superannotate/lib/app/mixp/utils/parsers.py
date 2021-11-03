@@ -1488,3 +1488,37 @@ def unassign_images(*args, **kwargs):
         "event_name": "unassign_images",
         "properties": {"Assign Folder": is_root, "Image Count": len(image_names)},
     }
+
+
+def attach_video_urls_to_project(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0]
+    return {
+        "event_name": "attach_video_urls_to_project",
+        "properties": {
+            "project_name": get_project_name(project),
+            "Annotation Status": bool(
+                args[2:3] or kwargs.get("annotation_status", None)
+            ),
+        },
+    }
+
+
+def attach_document_urls_to_project(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0]
+    return {
+        "event_name": "attach_document_urls_to_project",
+        "properties": {
+            "project_name": get_project_name(project),
+            "Annotation Status": bool(
+                args[2:3] or kwargs.get("annotation_status", None)
+            ),
+        },
+    }
+
+def delete_annotations(*args, **kwargs):
+    return {"event_name": "delete_annotations", "properties": {}}
+
