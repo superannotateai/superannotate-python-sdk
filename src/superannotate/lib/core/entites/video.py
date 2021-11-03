@@ -4,15 +4,17 @@ from typing import List
 from typing import Optional
 from typing import Union
 
+from utils import BboxPoints
+from utils import PointLabels
+from utils import BaseInstance
+from utils import MetadataBase
+from utils import Attribute
+from utils import Tag
+
 from pydantic import BaseModel
 from pydantic import constr
-from pydantic import EmailStr
 from pydantic import Field
 from pydantic import StrictStr
-from src.superannotate.lib.core.entites.utils import BboxPoints
-from src.superannotate.lib.core.entites.utils import PointLabels
-from src.superannotate.lib.core.entites.utils import TimedBaseModel
-from src.superannotate.lib.core.entites.utils import TrackableBaseModel
 
 
 class VideoType(str, Enum):
@@ -20,37 +22,25 @@ class VideoType(str, Enum):
     BBOX = "bbox"
 
 
-class LastUserAction(BaseModel):
-    email: EmailStr
-    timestamp: float
-
-
-class VideoMetaData(BaseModel):
-    name: StrictStr
+class MetaData(MetadataBase):
+    name: Optional[StrictStr]
     width: Optional[int]
     height: Optional[int]
     duration: Optional[int]
-    last_action: Optional[LastUserAction] = Field(None, alias="lastAction")
-
-
-class TimeStampAttribute(BaseModel):
-    id: int
-    group_id: int = Field(None, alias="groupId")
 
 
 class BaseTimeStamp(BaseModel):
     active: Optional[bool]
-    attributes: Optional[Dict[constr(regex=r"^[-|+]$"), List[TimeStampAttribute]]]
+    attributes: Optional[Dict[constr(regex=r"^[-|+]$"), List[Attribute]]]
 
 
 class BboxTimeStamp(BaseTimeStamp):
     points: Optional[BboxPoints]
 
 
-class BaseVideoInstance(TimedBaseModel, TrackableBaseModel):
+class BaseVideoInstance(BaseInstance):
     id: Optional[str]
     type: VideoType
-    class_id: int = Field(None, alias="classId")
     locked: Optional[bool]
     timeline: Dict[float, BaseTimeStamp]
 
@@ -65,6 +55,6 @@ class EventInstance(BaseVideoInstance):
 
 
 class VideoAnnotation(BaseModel):
-    metadata: VideoMetaData
+    metadata: MetaData
     instances: Optional[List[Union[EventInstance, BboxInstance]]]
-    tags: Optional[List[str]]
+    tags: Optional[List[Tag]]

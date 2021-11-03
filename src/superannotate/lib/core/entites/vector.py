@@ -8,12 +8,13 @@ from pydantic import StrictStr
 from pydantic import validate_model
 from pydantic import ValidationError
 from pydantic import validator
-from src.superannotate.lib.core.entites.utils import AttributeGroup
-from src.superannotate.lib.core.entites.utils import BaseInstance
-from src.superannotate.lib.core.entites.utils import BboxPoints
-from src.superannotate.lib.core.entites.utils import Comment
-from src.superannotate.lib.core.entites.utils import Metadata
-from src.superannotate.lib.core.entites.utils import VectorAnnotationType
+from utils import AttributeGroup
+from utils import BaseImageInstance
+from utils import BboxPoints
+from utils import Comment
+from utils import Metadata
+from utils import VectorAnnotationType
+from utils import Tag
 
 
 class ClassesJson(BaseModel):
@@ -27,24 +28,24 @@ class Tags(BaseModel):
     items: Optional[List[str]]
 
 
-class Point(BaseInstance):
+class Point(BaseImageInstance):
     x: float
     y: float
 
 
-class PolyLine(BaseInstance):
+class PolyLine(BaseImageInstance):
     points: List[float]
 
 
-class Polygon(BaseInstance):
+class Polygon(BaseImageInstance):
     points: List[float]
 
 
-class Bbox(BaseInstance):
+class Bbox(BaseImageInstance):
     points: BboxPoints
 
 
-class Ellipse(BaseInstance):
+class Ellipse(BaseImageInstance):
     cx: float
     cy: float
     rx: float
@@ -62,10 +63,10 @@ class TemplateConnection(BaseModel):
     to: int
 
 
-class Template(BaseInstance):
+class Template(BaseImageInstance):
     points: List[TemplatePoint]
     connections: List[Optional[TemplateConnection]]
-    template_id: int = Field(None, alias="templateId")
+    template_id: int = Field(alias="templateId")
 
 
 class CuboidPoint(BaseModel):
@@ -75,7 +76,7 @@ class CuboidPoint(BaseModel):
     r2: Point
 
 
-class Cuboid(BaseInstance):
+class Cuboid(BaseImageInstance):
     points: CuboidPoint
 
 
@@ -93,7 +94,7 @@ ANNOTATION_TYPES = {
 class VectorAnnotation(BaseModel):
     metadata: Metadata
     comments: List[Comment]
-    tags: List[Tags]
+    tags: Optional[List[Tag]]
     instances: Optional[List[Union[Template, Cuboid, Point, PolyLine, Polygon, Bbox, Ellipse]]]
 
     @validator("instances", pre=True, each_item=True)

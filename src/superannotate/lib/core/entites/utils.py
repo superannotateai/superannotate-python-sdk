@@ -1,4 +1,4 @@
-import datetime
+
 from enum import Enum
 from typing import Dict
 from typing import List
@@ -15,9 +15,14 @@ NotEmptyStr = constr(strict=True, min_length=1)
 
 class Attribute(BaseModel):
     id: int
-    group_id: int
-    name: NotEmptyStr
-    group_name: NotEmptyStr = Field(None, alias="groupName")
+    group_id: int = Field(alias="groupId")
+    # only in export
+    # name: NotEmptyStr
+    # group_name: NotEmptyStr = Field(None, alias="groupName")
+
+
+class Tag(BaseModel):
+    __root__: str
 
 
 class AttributeGroup(BaseModel):
@@ -44,8 +49,9 @@ class BboxPoints(BaseModel):
 
 
 class TimedBaseModel(BaseModel):
-    created_at: datetime = Field(None, alias="createdAt")
-    updated_at: datetime = Field(None, alias="updatedAt")
+    # TODO change to datetime
+    created_at: int = Field(None, alias="createdAt")
+    updated_at: int = Field(None, alias="updatedAt")
 
 
 class UserAction(BaseModel):
@@ -53,9 +59,23 @@ class UserAction(BaseModel):
     role: str
 
 
-class TrackableBaseModel(BaseModel):
+class LastUserAction(BaseModel):
+    email: EmailStr
+    timestamp: float
+
+
+class BaseInstance(BaseModel):
+    # TODO change to datetime
+    class_id: int = Field(alias="classId")
+    created_at: Optional[int] = Field(None, alias="createdAt")
     created_by: Optional[UserAction] = Field(None, alias="createdBy")
+    creation_type: Optional[NotEmptyStr] = Field(None, alias="creationType")
+    updated_at: Optional[int] = Field(None, alias="updatedAt")
     updated_by: Optional[UserAction] = Field(None, alias="updatedBy")
+
+
+class MetadataBase(BaseModel):
+    last_action: Optional[LastUserAction] = Field(None, alias="lastAction")
 
 
 class PointLabels(BaseModel):
@@ -71,23 +91,18 @@ class Comment(TimedBaseModel, UserAction):
     x: float
     y: float
     resolved: bool
-    creation_type: str = Field(None, alias="creationType")
+    creation_type: str = Field(alias="creationType")
     correspondence: List[Correspondence]
 
 
-class BaseSchema(TimedBaseModel):
-    creation_type: str = Field(None, alias="creationType")
-    class_id: int = Field(None, alias="ClassId")
+class BaseImageInstance(BaseInstance):
     visible: Optional[bool]
     probability: Optional[int]
     locked: Optional[int]
-
-
-class BaseInstance(BaseSchema):
     type: VectorAnnotationType
     group_id: Optional[int] = Field(None, alias="groupId")
     attributes: List[Attribute]
-    tracking_id: bool = Field(None, alias="trackingId")
+    tracking_id: bool = Field(alias="trackingId")
 
     class Config:
         error_msg_templates = {
@@ -95,12 +110,14 @@ class BaseInstance(BaseSchema):
         }
 
 
-class Metadata(BaseModel):
+class Metadata(MetadataBase):
     name: Optional[NotEmptyStr]
     width: Optional[int]
     height: Optional[int]
     status: str
     pinned: Optional[bool]
     is_predicted: Optional[bool] = Field(None, alias="isPredicted")
-    annotator_email: Optional[EmailStr] = Field(None, alias="annotatorEmail")
-    qa_email: Optional[EmailStr] = Field(None, alias="qaEmail")
+    # annotator_email: Optional[EmailStr] = Field(None, alias="annotatorEmail")
+    # qa_email: Optional[EmailStr] = Field(None, alias="qaEmail")
+
+

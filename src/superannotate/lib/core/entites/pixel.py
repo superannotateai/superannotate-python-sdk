@@ -1,9 +1,9 @@
 from typing import List
 from typing import Optional
 
-from src.superannotate.lib.core.entites.utils import Attribute
-from src.superannotate.lib.core.entites.utils import Metadata
-from src.superannotate.lib.core.entites.utils import NotEmptyStr
+from utils import Attribute
+from utils import Metadata
+from utils import NotEmptyStr
 
 from pydantic import BaseModel
 from pydantic import Field
