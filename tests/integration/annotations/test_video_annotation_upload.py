@@ -116,5 +116,4 @@ class TestUploadVideoAnnotation(BaseTestCase):
             output_path = temp_dir
             sa.download_export(self.PROJECT_NAME, export, output_path, True)
             uploaded, _, _ = sa.upload_annotations_from_folder_to_project(self.PROJECT_NAME, output_path)
-            self.assertEqual(len(uploaded),1)
-
+            self.assertEqual(len(uploaded), 1)
