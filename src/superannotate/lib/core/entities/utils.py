@@ -14,11 +14,11 @@ NotEmptyStr = constr(strict=True, min_length=1)
 
 
 class Attribute(BaseModel):
-    id: int
-    group_id: int = Field(alias="groupId")
+    id: Optional[int]
+    group_id: Optional[int] = Field(None, alias="groupId")
     # only in export
-    # name: NotEmptyStr
-    # group_name: NotEmptyStr = Field(None, alias="groupName")
+    name: NotEmptyStr
+    group_name: NotEmptyStr = Field(None, alias="groupName")
 
 
 class Tag(BaseModel):
