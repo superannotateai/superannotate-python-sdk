@@ -1,4 +1,3 @@
-
 from enum import Enum
 from typing import Dict
 from typing import List
@@ -16,7 +15,6 @@ NotEmptyStr = constr(strict=True, min_length=1)
 class Attribute(BaseModel):
     id: Optional[int]
     group_id: Optional[int] = Field(None, alias="groupId")
-    # only in export
     name: NotEmptyStr
     group_name: NotEmptyStr = Field(None, alias="groupName")
 
@@ -39,6 +37,7 @@ class VectorAnnotationType(str, Enum):
     POLYLINE = "polyline",
     POLYGON = "polygon"
     POINT = "point"
+    RBBOX = "rbbox"
 
 
 class BboxPoints(BaseModel):
@@ -59,20 +58,25 @@ class UserAction(BaseModel):
     role: str
 
 
+class CreationType(BaseModel):
+    __root__: str = Field(alias="creationType")
+
+
+class TrackableModel(BaseModel):
+    created_by: Optional[UserAction] = Field(None, alias="createdBy")
+    updated_by: Optional[UserAction] = Field(None, alias="updatedBy")
+    creation_type: Optional[CreationType]
+
+
 class LastUserAction(BaseModel):
     email: EmailStr
     timestamp: float
 
 
-class BaseInstance(BaseModel):
+class BaseInstance(TrackableModel, TimedBaseModel):
     # TODO check id: Optional[str]
     # TODO change to datetime
     class_id: int = Field(alias="classId")
-    created_at: Optional[int] = Field(None, alias="createdAt")
-    created_by: Optional[UserAction] = Field(None, alias="createdBy")
-    creation_type: Optional[NotEmptyStr] = Field(None, alias="creationType")
-    updated_at: Optional[int] = Field(None, alias="updatedAt")
-    updated_by: Optional[UserAction] = Field(None, alias="updatedBy")
 
 
 class MetadataBase(BaseModel):
@@ -80,45 +84,48 @@ class MetadataBase(BaseModel):
 
 
 class PointLabels(BaseModel):
-    __root__: Dict[constr(regex=r"^[0-9]*$"), str]
+    __root__: Dict[constr(regex=r"^[0-9]*$"), str]  # noqa: F722 E261
 
 
 class Correspondence(BaseModel):
-    text: str
+    text: NotEmptyStr
     email: EmailStr
 
 
-class Comment(TimedBaseModel, UserAction):
+class Comment(TimedBaseModel, TrackableModel):
     x: float
     y: float
-    resolved: bool
-    creation_type: str = Field(alias="creationType")
-    correspondence: List[Correspondence]
+    resolved: Optional[bool] = Field(False)
+    correspondence: Optional[List[Correspondence]]
 
 
 class BaseImageInstance(BaseInstance):
+    class_id: Optional[int] = Field(None, alias="classId")
     visible: Optional[bool]
-    probability: Optional[int]
-    locked: Optional[int]
-    type: VectorAnnotationType
-    group_id: Optional[int] = Field(None, alias="groupId")
+    locked: Optional[bool]
+    probability: Optional[int]  # TODO check = Field(100)
     attributes: List[Attribute]
-    tracking_id: bool = Field(alias="trackingId")
+    error: Optional[bool]  # todo check
 
     class Config:
         error_msg_templates = {
-            'value_error.missing': f'field required for annotation',
+            'value_error.missing': 'field required for annotation',
         }
 
 
+class BaseVectorInstance(BaseImageInstance):
+    type: VectorAnnotationType
+    point_labels: Optional[PointLabels] = Field(None, alias="pointLabels")
+    tracking_id: Optional[str] = Field(None, alias="trackingId")
+    group_id: Optional[int] = Field(None, alias="groupId")
+
+
 class Metadata(MetadataBase):
-    name: Optional[NotEmptyStr]
+    name: NotEmptyStr
     width: Optional[int]
     height: Optional[int]
-    status: str
+    status: Optional[str]
     pinned: Optional[bool]
     is_predicted: Optional[bool] = Field(None, alias="isPredicted")
-    # annotator_email: Optional[EmailStr] = Field(None, alias="annotatorEmail")
-    # qa_email: Optional[EmailStr] = Field(None, alias="qaEmail")
-
-
+    annotator_email: Optional[EmailStr] = Field(None, alias="annotatorEmail")
+    qa_email: Optional[EmailStr] = Field(None, alias="qaEmail")

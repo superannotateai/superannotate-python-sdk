@@ -4,13 +4,12 @@ from typing import List
 from typing import Optional
 from typing import Union
 
-from utils import BboxPoints
-from utils import PointLabels
-from utils import BaseInstance
-from utils import MetadataBase
-from utils import Attribute
-from utils import Tag
-
+from lib.core.entities.utils import Attribute
+from lib.core.entities.utils import BaseInstance
+from lib.core.entities.utils import BboxPoints
+from lib.core.entities.utils import MetadataBase
+from lib.core.entities.utils import PointLabels
+from lib.core.entities.utils import Tag
 from pydantic import BaseModel
 from pydantic import constr
 from pydantic import Field
@@ -31,7 +30,7 @@ class MetaData(MetadataBase):
 
 class BaseTimeStamp(BaseModel):
     active: Optional[bool]
-    attributes: Optional[Dict[constr(regex=r"^[-|+]$"), List[Attribute]]]
+    attributes: Optional[Dict[constr(regex=r"^[-|+]$"), List[Attribute]]]  # noqa: F722
 
 
 class BboxTimeStamp(BaseTimeStamp):
@@ -56,5 +55,5 @@ class EventInstance(BaseVideoInstance):
 
 class VideoAnnotation(BaseModel):
     metadata: MetaData
-    instances: Optional[List[Union[EventInstance, BboxInstance]]]
-    tags: Optional[List[Tag]]
+    instances: Optional[List[Union[EventInstance, BboxInstance]]] = Field(list())
+    tags: Optional[List[Tag]] = Field(list())
