@@ -91,6 +91,7 @@ class TestUploadVideoAnnotation(BaseTestCase):
             for class_id in class_ids:
                 annotation = annotation.replace(class_id, "0")
             uploaded_annotation = json.loads(annotation)
+            del downloaded_annotation["metadata"]["lastAction"]
             self.assertEqual(downloaded_annotation, uploaded_annotation)
 
     def test_upload_annotations_without_class_name(self):
@@ -101,7 +102,6 @@ class TestUploadVideoAnnotation(BaseTestCase):
             self.csv_path,
         )
         sa.upload_annotations_from_folder_to_project(self.PROJECT_NAME, self.annotations_without_classes)
-
 
     def test_upload_annotations_empty_json(self):
         sa.create_annotation_classes_from_classes_json(self.PROJECT_NAME, self.classes_path)

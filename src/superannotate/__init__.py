@@ -323,5 +323,4 @@ if req.ok:
     if pip_version.major > local_version.major:
         logging.warning(constances.PACKAGE_VERSION_MAJOR_UPGRADE.format(local_version, pip_version))
     elif pip_version > local_version:
-        logging.warning(constances.PACKAGE_VERSION_UPGRADE.format(local_version, pip_version)
-        )
+        logging.warning(constances.PACKAGE_VERSION_UPGRADE.format(local_version, pip_version))
