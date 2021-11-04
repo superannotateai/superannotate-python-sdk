@@ -12,9 +12,11 @@ from lib.core.entities import AnnotationClassEntity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
 from lib.core.entities import ProjectEntity
+from lib.core.entities import TeamEntity
 from lib.core.helpers import convert_to_video_editor_json
 from lib.core.helpers import fill_annotation_ids
 from lib.core.helpers import fill_document_tags
+from lib.core.helpers import handle_last_action
 from lib.core.helpers import map_annotation_classes_name
 from lib.core.reporter import Reporter
 from lib.core.service_types import UploadAnnotationAuthData
@@ -38,6 +40,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
         reporter: Reporter,
         project: ProjectEntity,
         folder: FolderEntity,
+        team: TeamEntity,
         annotation_classes: List[AnnotationClassEntity],
         annotation_paths: List[str],
         backend_service_provider: SuerannotateServiceProvider,
@@ -49,6 +52,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
         super().__init__(reporter)
         self._project = project
         self._folder = folder
+        self._team = team
         self._backend_service = backend_service_provider
         self._annotation_classes = annotation_classes
         self._annotation_paths = annotation_paths
@@ -154,6 +158,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
             response = UploadAnnotationUseCase(
                 project=self._project,
                 folder=self._folder,
+                team=self._team,
                 image=ImageEntity(uuid=image_id, name=image_name),
                 annotation_classes=self._annotation_classes,
                 backend_service_provider=self._backend_service,
@@ -262,6 +267,7 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
         project: ProjectEntity,
         folder: FolderEntity,
         image: ImageEntity,
+        team: TeamEntity,
         annotation_classes: List[AnnotationClassEntity],
         backend_service_provider: SuerannotateServiceProvider,
         reporter: Reporter,
@@ -280,6 +286,7 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
         self._project = project
         self._folder = folder
         self._image = image
+        self._team = team
         self._backend_service = backend_service_provider
         self._annotation_classes = annotation_classes
         self._annotation_json = annotations
@@ -374,6 +381,7 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
         annotation_classes: List[AnnotationClassEntity],
         templates: List[dict],
         reporter: Reporter,
+        team: TeamEntity
     ) -> dict:
         annotation_classes_name_maps = map_annotation_classes_name(
             annotation_classes, reporter
@@ -398,6 +406,7 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
                 annotations=annotations,
                 annotation_classes=annotation_classes_name_maps,
             )
+        handle_last_action(annotations, team)
         return annotations
 
     def is_valid_json(
@@ -421,6 +430,7 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
                     annotation_classes=self._annotation_classes,
                     templates=self._templates,
                     reporter=self.reporter,
+                    team=self._team
                 )
                 bucket.put_object(
                     Key=self.annotation_upload_data.images[self._image.uuid][

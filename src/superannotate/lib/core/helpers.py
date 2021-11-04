@@ -1,7 +1,9 @@
 import json
+import time
 from collections import defaultdict
 from typing import List
 
+from lib.core.entities import TeamEntity
 from lib.core.reporter import Reporter
 
 
@@ -263,6 +265,12 @@ def convert_to_video_editor_json(
                     )
         editor_data["instances"].append(editor_instance)
     return editor_data
+
+
+def handle_last_action(annotations: dict, team: TeamEntity):
+    metadata = annotations["metadata"]
+    if not annotations.get("lastAction"):
+        metadata["lastAction"] = {"email": team.creator_id, "timestamp": int(time.time())}
 
 
 class SetEncoder(json.JSONEncoder):
