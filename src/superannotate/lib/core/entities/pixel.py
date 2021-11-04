@@ -1,23 +1,17 @@
 from typing import List
-from typing import Optional
 
-from utils import Attribute
-from utils import Metadata
-from utils import NotEmptyStr
-
+from lib.core.entities.utils import BaseImageInstance
+from lib.core.entities.utils import Metadata
+from lib.core.entities.utils import NotEmptyStr
 from pydantic import BaseModel
-from pydantic import Field
 
 
 class PixelAnnotationPart(BaseModel):
-    color: NotEmptyStr
+    color: NotEmptyStr  # TODO hex validation
 
 
-class PixelAnnotationInstance(BaseModel):
-    class_id: Optional[int] = Field(None, alias="classId")
-    group_id: Optional[int] = Field(None, alias="groupId")
+class PixelAnnotationInstance(BaseImageInstance):
     parts: List[PixelAnnotationPart]
-    attributes: List[Attribute]
 
 
 class PixelAnnotation(BaseModel):

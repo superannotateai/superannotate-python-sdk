@@ -2,19 +2,19 @@ from typing import List
 from typing import Optional
 from typing import Union
 
+from lib.core.entities.utils import AttributeGroup
+from lib.core.entities.utils import BaseVectorInstance
+from lib.core.entities.utils import BboxPoints
+from lib.core.entities.utils import Comment
+from lib.core.entities.utils import Metadata
+from lib.core.entities.utils import Tag
+from lib.core.entities.utils import VectorAnnotationType
 from pydantic import BaseModel
 from pydantic import Field
 from pydantic import StrictStr
 from pydantic import validate_model
 from pydantic import ValidationError
 from pydantic import validator
-from utils import AttributeGroup
-from utils import BaseImageInstance
-from utils import BboxPoints
-from utils import Comment
-from utils import Metadata
-from utils import VectorAnnotationType
-from utils import Tag
 
 
 class ClassesJson(BaseModel):
@@ -28,28 +28,48 @@ class Tags(BaseModel):
     items: Optional[List[str]]
 
 
-class Point(BaseImageInstance):
+class AxisPoint(BaseModel):
     x: float
     y: float
 
 
-class PolyLine(BaseImageInstance):
+class Point(BaseVectorInstance, AxisPoint):
+    pass
+
+
+class PolyLine(BaseVectorInstance):
     points: List[float]
 
 
-class Polygon(BaseImageInstance):
+class Polygon(BaseVectorInstance):
     points: List[float]
 
 
-class Bbox(BaseImageInstance):
+class Bbox(BaseVectorInstance):
     points: BboxPoints
 
 
-class Ellipse(BaseImageInstance):
+class RotatedBoxPoints(BaseVectorInstance):
+    x1: float
+    y1: float
+    x2: float
+    y2: float
+    x3: float
+    y3: float
+    x4: float
+    y4: float
+
+
+class RotatedBox(BaseVectorInstance):
+    points: RotatedBoxPoints
+
+
+class Ellipse(BaseVectorInstance):
     cx: float
     cy: float
     rx: float
     ry: float
+    angle: float
 
 
 class TemplatePoint(BaseModel):
@@ -60,23 +80,24 @@ class TemplatePoint(BaseModel):
 
 class TemplateConnection(BaseModel):
     id: int
-    to: int
+    from_connection: int = Field(alias="from")
+    to_connection: int = Field(alias="to")
 
 
-class Template(BaseImageInstance):
+class Template(BaseVectorInstance):
     points: List[TemplatePoint]
-    connections: List[Optional[TemplateConnection]]
+    connections: List[TemplateConnection]  # TODO check = Field(list())
     template_id: int = Field(alias="templateId")
 
 
 class CuboidPoint(BaseModel):
-    f1: Point
-    f2: Point
-    r1: Point
-    r2: Point
+    f1: AxisPoint
+    f2: AxisPoint
+    r1: AxisPoint
+    r2: AxisPoint
 
 
-class Cuboid(BaseImageInstance):
+class Cuboid(BaseVectorInstance):
     points: CuboidPoint
 
 
@@ -87,15 +108,16 @@ ANNOTATION_TYPES = {
     VectorAnnotationType.POLYGON: Polygon,
     VectorAnnotationType.POINT: Point,
     VectorAnnotationType.POLYLINE: PolyLine,
-    VectorAnnotationType.ELLIPSE: Ellipse
+    VectorAnnotationType.ELLIPSE: Ellipse,
+    VectorAnnotationType.RBBOX: RotatedBox
 }
 
 
 class VectorAnnotation(BaseModel):
     metadata: Metadata
-    comments: List[Comment]
-    tags: Optional[List[Tag]]
-    instances: Optional[List[Union[Template, Cuboid, Point, PolyLine, Polygon, Bbox, Ellipse]]]
+    comments: Optional[List[Comment]] = Field(list())
+    tags: Optional[List[Tag]] = Field(list())
+    instances: Optional[List[Union[Template, Cuboid, Point, PolyLine, Polygon, Bbox, Ellipse, RotatedBox]]] = Field(list())
 
     @validator("instances", pre=True, each_item=True)
     def check_instances(cls, instance):
