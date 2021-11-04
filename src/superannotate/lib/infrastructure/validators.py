@@ -1,7 +1,7 @@
 import os
 from collections import defaultdict
 
-from lib.core.types import DocumentAnnotation
+from lib.core.entities import DocumentAnnotation
 from lib.core.types import PixelAnnotation
 from lib.core.types import VectorAnnotation
 from lib.core.types import VideoAnnotation

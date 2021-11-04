@@ -359,14 +359,6 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
                         "rb"
                     )
 
-    def _is_valid_json(self, json_data: dict):
-        use_case = ValidateAnnotationUseCase(
-            project_type=constances.ProjectType.get_name(self._project.project_type),
-            annotation=json_data,
-            validators=self._validators,
-        )
-        return not use_case.execute().errors
-
     @staticmethod
     def prepare_annotations(
         project_type: int,

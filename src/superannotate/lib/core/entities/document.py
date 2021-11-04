@@ -1,16 +1,13 @@
 from typing import List
 from typing import Optional
 
-from utils import MetadataBase
-from utils import BaseInstance
-from utils import Attribute
-from utils import Tag
+from lib.core.entities.utils import MetadataBase
+from lib.core.entities.utils import BaseInstance
+from lib.core.entities.utils import Attribute
+from lib.core.entities.utils import Tag
 
 from pydantic import BaseModel
-
-
-class Metadata(MetadataBase):
-    pass
+from pydantic import Field
 
 
 class DocumentInstance(BaseInstance):
@@ -20,10 +17,10 @@ class DocumentInstance(BaseInstance):
 
 
 class DocumentAnnotation(BaseModel):
-    metadata: Metadata
+    metadata: MetadataBase
     instances: List[DocumentInstance]
     tags: Optional[List[Tag]]
-    # TODO check free_text: str = Field(alias="freeText")
+    free_text: str = Field(alias="freeText")
 
 
 

@@ -68,10 +68,10 @@ class BaseInstance(BaseModel):
     # TODO check id: Optional[str]
     # TODO change to datetime
     class_id: int = Field(alias="classId")
-    created_at: Optional[int] = Field(None, alias="createdAt")
+    created_at: Optional[str] = Field(None, alias="createdAt")
     created_by: Optional[UserAction] = Field(None, alias="createdBy")
     creation_type: Optional[NotEmptyStr] = Field(None, alias="creationType")
-    updated_at: Optional[int] = Field(None, alias="updatedAt")
+    updated_at: Optional[str] = Field(None, alias="updatedAt")
     updated_by: Optional[UserAction] = Field(None, alias="updatedBy")
 
 
