@@ -1,5 +1,5 @@
-from enum import Enum
 from datetime import datetime
+from enum import Enum
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -107,6 +107,11 @@ class BaseInstance(TrackableModel, TimedBaseModel):
 
 class MetadataBase(BaseModel):
     last_action: Optional[LastUserAction] = Field(None, alias="lastAction")
+    width: Optional[int]
+    height: Optional[int]
+    project_id: Optional[int] = Field(None, alias="projectId")
+    annotator_email: Optional[EmailStr] = Field(None, alias="annotatorEmail")
+    qa_email: Optional[EmailStr] = Field(None, alias="qaEmail")
 
 
 class PointLabels(BaseModel):
@@ -148,10 +153,6 @@ class BaseVectorInstance(BaseImageInstance):
 
 class Metadata(MetadataBase):
     name: NotEmptyStr
-    width: Optional[int]
-    height: Optional[int]
     status: Optional[AnnotationStatusEnum]
     pinned: Optional[bool]
     is_predicted: Optional[bool] = Field(None, alias="isPredicted")
-    annotator_email: Optional[EmailStr] = Field(None, alias="annotatorEmail")
-    qa_email: Optional[EmailStr] = Field(None, alias="qaEmail")
