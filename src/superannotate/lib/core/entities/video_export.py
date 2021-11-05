@@ -31,11 +31,11 @@ class MetaData(MetadataBase):
 
 class BaseTimeStamp(BaseModel):
     timestamp: int
-    attributes: List[Attribute]
+    attributes: List[Attribute]  # TODO check is it required
 
 
 class BboxTimeStamp(BaseTimeStamp):
-    points: Optional[BboxPoints]
+    points: BboxPoints
 
 
 class EventTimeStamp(BaseTimeStamp):
@@ -44,7 +44,7 @@ class EventTimeStamp(BaseTimeStamp):
 
 class InstanceMetadata(BaseInstance):
     type: VideoType
-    class_name: str = Field(alias="className")
+    class_name: Optional[str] = Field(alias="className")
     point_labels: Optional[PointLabels] = Field(None, alias="pointLabels")
     start: int
     end: int
@@ -67,21 +67,21 @@ class BaseParameter(BaseModel):
 
 
 class BboxParameter(BaseParameter):
-    timestamps: List[BboxTimeStamp]
+    timestamps: List[BboxTimeStamp]  # TODO check is it required
 
 
 class EventParameter(BaseParameter):
-    timestamps: List[EventTimeStamp]
+    timestamps: Optional[List[EventTimeStamp]] = Field(list())
 
 
 class BboxInstance(BaseModel):
     metadata: InstanceMetadata
-    parameters: List[BboxParameter]
+    parameters: Optional[List[BboxParameter]] = Field(list())
 
 
 class EventInstance(BaseModel):
     metadata: InstanceMetadata
-    parameters: List[EventParameter]
+    parameters: Optional[List[EventParameter]] = Field(list())
 
 
 class VideoAnnotation(BaseModel):

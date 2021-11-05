@@ -10,6 +10,7 @@ from lib.core.entities.utils import Metadata
 from lib.core.entities.utils import Tag
 from lib.core.entities.utils import VectorAnnotationType
 from pydantic import BaseModel
+from pydantic import conlist
 from pydantic import Field
 from pydantic import StrictStr
 from pydantic import validate_model
@@ -85,9 +86,10 @@ class TemplateConnection(BaseModel):
 
 
 class Template(BaseVectorInstance):
-    points: List[TemplatePoint]  # TODO add validation  min length 2 +
-    connections: List[TemplateConnection]  # TODO check = Field(list())
+    points: conlist(TemplatePoint, min_items=1)
+    connections: List[TemplateConnection]
     template_id: int = Field(alias="templateId")
+    template_name: int = Field(alias="templateName")
 
 
 class CuboidPoint(BaseModel):

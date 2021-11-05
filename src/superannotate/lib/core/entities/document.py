@@ -16,7 +16,7 @@ class Metadata(MetadataBase):
 class DocumentInstance(BaseInstance):
     start: int
     end: int
-    attributes: List[Attribute]
+    attributes: Optional[List[Attribute]] = Field(list())
 
 
 class DocumentAnnotation(BaseModel):

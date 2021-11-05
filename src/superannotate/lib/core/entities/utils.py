@@ -5,6 +5,7 @@ from typing import List
 from typing import Optional
 
 from pydantic import BaseModel
+from pydantic import conlist
 from pydantic import constr
 from pydantic import EmailStr
 from pydantic import Field
@@ -91,7 +92,7 @@ class CreationType(BaseModel):
 class TrackableModel(BaseModel):
     created_by: Optional[UserAction] = Field(None, alias="createdBy")
     updated_by: Optional[UserAction] = Field(None, alias="updatedBy")
-    creation_type: Optional[CreationType]
+    creation_type: Optional[CreationType] = Field(CreationTypeEnum.PRE_ANNOTATION)
 
 
 class LastUserAction(BaseModel):
@@ -103,6 +104,7 @@ class BaseInstance(TrackableModel, TimedBaseModel):
     # TODO check id: Optional[str]
     # TODO change to datetime
     class_id: int = Field(alias="classId")
+    class_name: Optional[str] = Field(None, alias="className")
 
 
 class MetadataBase(BaseModel):
@@ -126,16 +128,17 @@ class Correspondence(BaseModel):
 class Comment(TimedBaseModel, TrackableModel):
     x: float
     y: float
-    resolved: Optional[bool] = Field(False)
-    correspondence: Optional[List[Correspondence]]
+    resolved: Optional[bool] = Field(False)  # todo check
+    correspondence: conlist(Correspondence, min_items=1)
 
 
 class BaseImageInstance(BaseInstance):
     class_id: Optional[int] = Field(None, alias="classId")
+    class_name: Optional[str] = Field(None, alias="className")
     visible: Optional[bool]
     locked: Optional[bool]
     probability: Optional[int]  # TODO check = Field(100)
-    attributes: List[Attribute]
+    attributes: Optional[List[Attribute]] = Field(list())
     error: Optional[bool]  # todo check
 
     class Config:
