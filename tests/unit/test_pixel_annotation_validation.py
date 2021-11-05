@@ -34,7 +34,7 @@ class TestPixelValidators(TestCase):
                         ],
                         "parts": [
                             {
-                                "color": "234"
+                                "color": [12,3]
                             }
                         ],
                         "error": None,
@@ -43,6 +43,4 @@ class TestPixelValidators(TestCase):
             ]
             }
         )
-        validator.is_valid()
-        self.assertEqual("instances[0].parts[0].color[type]invalidvalueforhexcolor234", validator.generate_report().strip().replace(" ", ""))
         self.assertFalse(validator.is_valid())

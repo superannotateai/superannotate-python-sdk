@@ -37,5 +37,5 @@ __all__ = [
     "VideoAnnotation",
     "VectorAnnotation",
     "PixelAnnotation",
-    "VideoExportAnnotation"
+    "VideoExportAnnotation",
 ]
