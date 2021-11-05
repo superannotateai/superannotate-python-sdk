@@ -15,6 +15,7 @@ from lib.core.entities.project_entities import UserEntity
 from lib.core.entities.project_entities import WorkflowEntity
 from lib.core.entities.vector import VectorAnnotation
 from lib.core.entities.video import VideoAnnotation
+from lib.core.entities.video_export import VideoAnnotation as VideoExportAnnotation
 
 
 __all__ = [
@@ -36,5 +37,6 @@ __all__ = [
     "DocumentAnnotation",
     "VideoAnnotation",
     "VectorAnnotation",
-    "PixelAnnotation"
+    "PixelAnnotation",
+    "VideoExportAnnotation"
 ]
