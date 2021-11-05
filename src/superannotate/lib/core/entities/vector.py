@@ -85,7 +85,7 @@ class TemplateConnection(BaseModel):
 
 
 class Template(BaseVectorInstance):
-    points: List[TemplatePoint]
+    points: List[TemplatePoint]  # TODO add validation  min length 2 +
     connections: List[TemplateConnection]  # TODO check = Field(list())
     template_id: int = Field(alias="templateId")
 

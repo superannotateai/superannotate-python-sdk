@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 
 class PixelAnnotationPart(BaseModel):
-    color: NotEmptyStr  # TODO hex validation
+    color: NotEmptyStr  # TODO hex validation +
 
 
 class PixelAnnotationInstance(BaseImageInstance):
