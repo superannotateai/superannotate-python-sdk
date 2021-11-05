@@ -1,4 +1,5 @@
 from enum import Enum
+from datetime import datetime
 from typing import Dict
 from typing import List
 from typing import Optional
@@ -49,8 +50,8 @@ class BboxPoints(BaseModel):
 
 class TimedBaseModel(BaseModel):
     # TODO change to datetime
-    created_at: int = Field(None, alias="createdAt")
-    updated_at: int = Field(None, alias="updatedAt")
+    created_at: datetime = Field(None, alias="createdAt")
+    updated_at: datetime = Field(None, alias="updatedAt")
 
 
 class UserAction(BaseModel):
