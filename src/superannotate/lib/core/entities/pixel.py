@@ -1,13 +1,13 @@
 from typing import List
 
 from lib.core.entities.utils import BaseImageInstance
+from lib.core.entities.utils import hex_color
 from lib.core.entities.utils import Metadata
-from lib.core.entities.utils import NotEmptyStr
 from pydantic import BaseModel
 
 
 class PixelAnnotationPart(BaseModel):
-    color: NotEmptyStr  # TODO hex validation +
+    color: hex_color
 
 
 class PixelAnnotationInstance(BaseImageInstance):

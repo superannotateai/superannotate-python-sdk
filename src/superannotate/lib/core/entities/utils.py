@@ -1,14 +1,17 @@
-from enum import Enum
+import re
 from datetime import datetime
+from enum import Enum
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Union
 
 from pydantic import BaseModel
 from pydantic import constr
 from pydantic import EmailStr
 from pydantic import Field
-
+from pydantic.error_wrappers import ErrorWrapper
+from pydantic.error_wrappers import ValidationError
 
 NotEmptyStr = constr(strict=True, min_length=1)
 
@@ -18,7 +21,7 @@ class VectorAnnotationTypeEnum(str, Enum):
     ELLIPSE = "ellipse"
     TEMPLATE = "template"
     CUBOID = "cuboid"
-    POLYLINE = "polyline",
+    POLYLINE = ("polyline",)
     POLYGON = "polygon"
     POINT = "point"
     RBBOX = "rbbox"
@@ -135,7 +138,7 @@ class BaseImageInstance(BaseInstance):
 
     class Config:
         error_msg_templates = {
-            'value_error.missing': 'field required for annotation',
+            "value_error.missing": "field required for annotation",
         }
 
 
@@ -155,3 +158,19 @@ class Metadata(MetadataBase):
     is_predicted: Optional[bool] = Field(None, alias="isPredicted")
     annotator_email: Optional[EmailStr] = Field(None, alias="annotatorEmail")
     qa_email: Optional[EmailStr] = Field(None, alias="qaEmail")
+
+
+class hex_color(NotEmptyStr):
+    @classmethod
+    def validate(cls, value: str) -> Union[str]:
+        match = re.search(r"^#(?:[0-9a-fA-F]{3}){1,2}$", value)
+        if not match:
+            raise ValidationError(
+                [
+                    ErrorWrapper(
+                        TypeError(f"invalid value for hex color {value}"), "type"
+                    )
+                ],
+                cls,
+            )
+        return value

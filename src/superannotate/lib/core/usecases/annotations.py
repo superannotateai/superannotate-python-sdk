@@ -363,7 +363,7 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
                             constances.PIXEL_ANNOTATION_POSTFIX,
                             constances.ANNOTATION_MASK_POSTFIX,
                         ),
-                        "rb"
+                        "rb",
                     )
 
     def _is_valid_json(self, json_data: dict):
@@ -381,7 +381,7 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
         annotation_classes: List[AnnotationClassEntity],
         templates: List[dict],
         reporter: Reporter,
-        team: TeamEntity
+        team: TeamEntity,
     ) -> dict:
         annotation_classes_name_maps = map_annotation_classes_name(
             annotation_classes, reporter
@@ -430,7 +430,7 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
                     annotation_classes=self._annotation_classes,
                     templates=self._templates,
                     reporter=self.reporter,
-                    team=self._team
+                    team=self._team,
                 )
                 bucket.put_object(
                     Key=self.annotation_upload_data.images[self._image.uuid][

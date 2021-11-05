@@ -31,10 +31,9 @@ __all__ = [
     "UserEntity",
     "TeamEntity",
     "MLModelEntity",
-
     # annotations
     "DocumentAnnotation",
     "VideoAnnotation",
     "VectorAnnotation",
-    "PixelAnnotation"
+    "PixelAnnotation",
 ]
