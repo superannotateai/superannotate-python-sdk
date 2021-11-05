@@ -1,9 +1,9 @@
 import os
 from collections import defaultdict
 
-from lib.core.types import DocumentAnnotation
-from lib.core.types import PixelAnnotation
-from lib.core.types import VectorAnnotation
+from lib.core.entities.document import DocumentAnnotation
+from lib.core.entities.pixel import PixelAnnotation
+from lib.core.entities.vector import VectorAnnotation
 from lib.core.types import VideoAnnotation
 from lib.core.validators import BaseAnnotationValidator
 from lib.core.validators import BaseValidator

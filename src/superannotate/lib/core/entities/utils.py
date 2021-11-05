@@ -8,6 +8,9 @@ from pydantic import BaseModel
 from pydantic import constr
 from pydantic import EmailStr
 from pydantic import Field
+from pydantic import validator
+from pydantic.color import Color
+from pydantic.color import ColorType
 
 
 NotEmptyStr = constr(strict=True, min_length=1)
@@ -18,7 +21,7 @@ class VectorAnnotationTypeEnum(str, Enum):
     ELLIPSE = "ellipse"
     TEMPLATE = "template"
     CUBOID = "cuboid"
-    POLYLINE = "polyline",
+    POLYLINE = "polyline"
     POLYGON = "polygon"
     POINT = "point"
     RBBOX = "rbbox"
@@ -140,7 +143,7 @@ class BaseImageInstance(BaseInstance):
 
     class Config:
         error_msg_templates = {
-            'value_error.missing': 'field required for annotation',
+            "value_error.missing": "field required for annotation",
         }
 
 
@@ -156,3 +159,12 @@ class Metadata(MetadataBase):
     status: Optional[AnnotationStatusEnum]
     pinned: Optional[bool]
     is_predicted: Optional[bool] = Field(None, alias="isPredicted")
+
+
+class PixelColor(BaseModel):
+    __root__: ColorType
+
+    @validator("__root__")
+    def validate_color(cls, v):
+        color = Color(v)
+        return color.as_hex()

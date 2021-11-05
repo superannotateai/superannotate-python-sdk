@@ -270,7 +270,10 @@ def convert_to_video_editor_json(
 def handle_last_action(annotations: dict, team: TeamEntity):
     metadata = annotations["metadata"]
     if not annotations.get("lastAction"):
-        metadata["lastAction"] = {"email": team.creator_id, "timestamp": int(time.time())}
+        metadata["lastAction"] = {
+            "email": team.creator_id,
+            "timestamp": int(time.time()),
+        }
 
 
 class SetEncoder(json.JSONEncoder):
