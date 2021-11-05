@@ -4,6 +4,7 @@ from typing import Optional
 from lib.core.entities.utils import BaseImageInstance
 from lib.core.entities.utils import hex_color
 from lib.core.entities.utils import MetadataBase
+from lib.core.entities.utils import Tag
 from pydantic import BaseModel
 from pydantic import Field
 
@@ -23,3 +24,5 @@ class PixelAnnotationInstance(BaseImageInstance):
 class PixelAnnotation(BaseModel):
     metadata: PixelMetaData
     instances: List[PixelAnnotationInstance]
+    tags: Optional[List[Tag]] = Field(list())
+
