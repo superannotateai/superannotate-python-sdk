@@ -13,6 +13,42 @@ from pydantic import Field
 NotEmptyStr = constr(strict=True, min_length=1)
 
 
+class VectorAnnotationTypeEnum(str, Enum):
+    BBOX = "bbox"
+    ELLIPSE = "ellipse"
+    TEMPLATE = "template"
+    CUBOID = "cuboid"
+    POLYLINE = "polyline",
+    POLYGON = "polygon"
+    POINT = "point"
+    RBBOX = "rbbox"
+
+
+class CreationTypeEnum(str, Enum):
+    MANUAL = "Manual"
+    PREDICTION = "Prediction"
+    PRE_ANNOTATION = "Pre-annotation"
+
+
+class AnnotationStatusEnum(str, Enum):
+    NOT_STARTED = "NotStarted"
+    IN_PROGRESS = "InProgress"
+    QUALITY_CHECK = "QualityCheck"
+    RETURNED = "Returned"
+    COMPLETED = "Completed"
+    SKIPPED = "Skipped"
+
+
+class BaseRoleEnum(str, Enum):
+    ADMIN = "Admin"
+    ANNOTATOR = "Annotator"
+    QA = "QA"
+
+
+class BaseImageRoleEnum(str, Enum):
+    CUSTOMER = "Customer"
+
+
 class Attribute(BaseModel):
     id: Optional[int]
     group_id: Optional[int] = Field(None, alias="groupId")
@@ -30,17 +66,6 @@ class AttributeGroup(BaseModel):
     attributes: List[Attribute]
 
 
-class VectorAnnotationType(str, Enum):
-    BBOX = "bbox"
-    ELLIPSE = "ellipse"
-    TEMPLATE = "template"
-    CUBOID = "cuboid"
-    POLYLINE = "polyline",
-    POLYGON = "polygon"
-    POINT = "point"
-    RBBOX = "rbbox"
-
-
 class BboxPoints(BaseModel):
     x1: float
     x2: float
@@ -56,7 +81,7 @@ class TimedBaseModel(BaseModel):
 
 class UserAction(BaseModel):
     email: EmailStr
-    role: str
+    role: BaseImageRoleEnum
 
 
 class CreationType(BaseModel):
@@ -115,7 +140,7 @@ class BaseImageInstance(BaseInstance):
 
 
 class BaseVectorInstance(BaseImageInstance):
-    type: VectorAnnotationType
+    type: VectorAnnotationTypeEnum
     point_labels: Optional[PointLabels] = Field(None, alias="pointLabels")
     tracking_id: Optional[str] = Field(None, alias="trackingId")
     group_id: Optional[int] = Field(None, alias="groupId")
@@ -125,7 +150,7 @@ class Metadata(MetadataBase):
     name: NotEmptyStr
     width: Optional[int]
     height: Optional[int]
-    status: Optional[str]
+    status: Optional[AnnotationStatusEnum]
     pinned: Optional[bool]
     is_predicted: Optional[bool] = Field(None, alias="isPredicted")
     annotator_email: Optional[EmailStr] = Field(None, alias="annotatorEmail")
