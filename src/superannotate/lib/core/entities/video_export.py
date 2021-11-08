@@ -13,6 +13,7 @@ from lib.core.entities.utils import NotEmptyStr
 from lib.core.entities.utils import PointLabels
 from lib.core.entities.utils import Tag
 from pydantic import BaseModel
+from pydantic import conlist
 from pydantic import Field
 
 
@@ -67,24 +68,24 @@ class BaseParameter(BaseModel):
 
 
 class BboxParameter(BaseParameter):
-    timestamps: List[BboxTimeStamp]  # TODO check is it required
+    timestamps: conlist(BboxTimeStamp, min_items=1)
 
 
 class EventParameter(BaseParameter):
-    timestamps: Optional[List[EventTimeStamp]] = Field(list())
+    timestamps: conlist(EventTimeStamp, min_items=1)
 
 
 class BboxInstance(BaseModel):
     metadata: InstanceMetadata
-    parameters: Optional[List[BboxParameter]] = Field(list())
+    parameters: conlist(BboxParameter, min_items=1)
 
 
 class EventInstance(BaseModel):
     metadata: InstanceMetadata
-    parameters: Optional[List[EventParameter]] = Field(list())
+    parameters: conlist(EventParameter, min_items=1)
 
 
 class VideoAnnotation(BaseModel):
     metadata: MetaData
-    instances: List[Union[EventInstance, BboxInstance]]
-    tags: List[Tag]
+    instances: Optional[List[Union[EventInstance, BboxInstance]]] = Field(list())
+    tags: Optional[List[Tag]] = Field(list())

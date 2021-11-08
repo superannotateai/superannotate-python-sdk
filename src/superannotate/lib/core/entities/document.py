@@ -23,4 +23,4 @@ class DocumentAnnotation(BaseModel):
     metadata: Metadata
     instances: Optional[List[DocumentInstance]] = Field(list())
     tags: Optional[List[Tag]] = Field(list())
-    # TODO check free_text: str = Field(alias="freeText")
+    free_text: Optional[str] = Field(None, alias="freeText")
