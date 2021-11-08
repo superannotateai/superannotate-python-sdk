@@ -2354,6 +2354,7 @@ def attach_image_urls_to_project(
         return uploaded, failed_images, duplications
     raise AppException(use_case.response.errors)
 
+
 @Trackable
 @validate_arguments
 def attach_video_urls_to_project(
