@@ -54,6 +54,14 @@ class InstanceMetadata(BaseInstance):
         fields = {"creation_type": {"exclude": True}}
 
 
+class BBoxInstanceMetadata(InstanceMetadata):
+    type: str = Field(VideoType.BBOX, const=True)
+
+
+class EventInstanceMetadata(InstanceMetadata):
+    type: str = Field(VideoType.EVENT, const=True)
+
+
 class BaseVideoInstance(BaseModel):
     metadata: InstanceMetadata
     id: Optional[str]
@@ -76,13 +84,19 @@ class EventParameter(BaseParameter):
 
 
 class BboxInstance(BaseModel):
-    metadata: InstanceMetadata
+    meta: BBoxInstanceMetadata
     parameters: conlist(BboxParameter, min_items=1)
 
 
 class EventInstance(BaseModel):
-    metadata: InstanceMetadata
+    meta: EventInstanceMetadata
     parameters: conlist(EventParameter, min_items=1)
+
+
+ANNOTATION_TYPES = {
+    VideoType.BBOX: BboxInstance,
+    VideoType.EVENT: EventInstance
+}
 
 
 class VideoAnnotation(BaseModel):

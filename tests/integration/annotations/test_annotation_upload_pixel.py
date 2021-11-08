@@ -20,7 +20,6 @@ class TestRecursiveFolderPixel(BaseTestCase):
     IMAGE_NAME = "example_image_1.jpg"
     FOLDER = "f"
 
-
     @pytest.fixture(autouse=True)
     def inject_fixtures(self, caplog):
         self._caplog = caplog
