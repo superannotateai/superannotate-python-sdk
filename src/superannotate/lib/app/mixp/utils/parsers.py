@@ -1519,6 +1519,6 @@ def attach_document_urls_to_project(*args, **kwargs):
         },
     }
 
+
 def delete_annotations(*args, **kwargs):
     return {"event_name": "delete_annotations", "properties": {}}
-
