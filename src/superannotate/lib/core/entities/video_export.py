@@ -51,7 +51,7 @@ class InstanceMetadata(BaseInstance):
     end: int
 
     class Config:
-        fields = {'creation_type': {'exclude': True}}
+        fields = {"creation_type": {"exclude": True}}
 
 
 class BaseVideoInstance(BaseModel):

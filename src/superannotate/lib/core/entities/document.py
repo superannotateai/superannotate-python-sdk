@@ -9,10 +9,6 @@ from pydantic import BaseModel
 from pydantic import Field
 
 
-class Metadata(MetadataBase):
-    pass
-
-
 class DocumentInstance(BaseInstance):
     start: int
     end: int

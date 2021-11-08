@@ -8,7 +8,7 @@ from lib.core.entities.utils import BboxPoints
 from lib.core.entities.utils import Comment
 from lib.core.entities.utils import Metadata
 from lib.core.entities.utils import Tag
-from lib.core.entities.utils import VectorAnnotationType
+from lib.core.entities.utils import VectorAnnotationTypeEnum
 from pydantic import BaseModel
 from pydantic import conlist
 from pydantic import Field
@@ -103,14 +103,14 @@ class Cuboid(BaseVectorInstance):
 
 
 ANNOTATION_TYPES = {
-    VectorAnnotationType.BBOX: Bbox,
-    VectorAnnotationType.TEMPLATE: Template,
-    VectorAnnotationType.CUBOID: Cuboid,
-    VectorAnnotationType.POLYGON: Polygon,
-    VectorAnnotationType.POINT: Point,
-    VectorAnnotationType.POLYLINE: PolyLine,
-    VectorAnnotationType.ELLIPSE: Ellipse,
-    VectorAnnotationType.RBBOX: RotatedBox
+    VectorAnnotationTypeEnum.BBOX: Bbox,
+    VectorAnnotationTypeEnum.TEMPLATE: Template,
+    VectorAnnotationTypeEnum.CUBOID: Cuboid,
+    VectorAnnotationTypeEnum.POLYGON: Polygon,
+    VectorAnnotationTypeEnum.POINT: Point,
+    VectorAnnotationTypeEnum.POLYLINE: PolyLine,
+    VectorAnnotationTypeEnum.ELLIPSE: Ellipse,
+    VectorAnnotationTypeEnum.RBBOX: RotatedBox,
 }
 
 
@@ -118,7 +118,11 @@ class VectorAnnotation(BaseModel):
     metadata: Metadata
     comments: Optional[List[Comment]] = Field(list())
     tags: Optional[List[Tag]] = Field(list())
-    instances: Optional[List[Union[Template, Cuboid, Point, PolyLine, Polygon, Bbox, Ellipse, RotatedBox]]] = Field(list())
+    instances: Optional[
+        List[
+            Union[Template, Cuboid, Point, PolyLine, Polygon, Bbox, Ellipse, RotatedBox]
+        ]
+    ] = Field(list())
 
     @validator("instances", pre=True, each_item=True)
     def check_instances(cls, instance):
@@ -126,5 +130,7 @@ class VectorAnnotation(BaseModel):
         annotation_type = instance.get("type")
         result = validate_model(ANNOTATION_TYPES[annotation_type], instance)
         if result[2]:
-            raise ValidationError(result[2].raw_errors, model=ANNOTATION_TYPES[annotation_type])
+            raise ValidationError(
+                result[2].raw_errors, model=ANNOTATION_TYPES[annotation_type]
+            )
         return instance
