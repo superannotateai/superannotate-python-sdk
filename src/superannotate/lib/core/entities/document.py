@@ -16,7 +16,7 @@ class DocumentInstance(BaseInstance):
 
 
 class DocumentAnnotation(BaseModel):
-    metadata: Metadata
+    metadata: MetadataBase
     instances: Optional[List[DocumentInstance]] = Field(list())
     tags: Optional[List[Tag]] = Field(list())
     free_text: Optional[str] = Field(None, alias="freeText")
