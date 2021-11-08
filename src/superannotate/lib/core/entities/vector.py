@@ -24,7 +24,6 @@ class ClassesJson(BaseModel):
     attribute_groups: List[AttributeGroup]
 
 
-# todo fill
 class Tags(BaseModel):
     items: Optional[List[str]]
 

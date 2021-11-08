@@ -105,7 +105,6 @@ class LastUserAction(BaseModel):
 
 class BaseInstance(TrackableModel, TimedBaseModel):
     # TODO check id: Optional[str]
-    # TODO change to datetime
     class_id: int = Field(alias="classId")
     class_name: Optional[str] = Field(None, alias="className")
 
@@ -131,7 +130,7 @@ class Correspondence(BaseModel):
 class Comment(TimedBaseModel, TrackableModel):
     x: float
     y: float
-    resolved: Optional[bool] = Field(False)  # todo check
+    resolved: Optional[bool] = Field(False)
     correspondence: conlist(Correspondence, min_items=1)
 
 
@@ -140,9 +139,9 @@ class BaseImageInstance(BaseInstance):
     class_name: Optional[str] = Field(None, alias="className")
     visible: Optional[bool]
     locked: Optional[bool]
-    probability: Optional[int]  # TODO check = Field(100)
+    probability: Optional[int] = Field(100)
     attributes: Optional[List[Attribute]] = Field(list())
-    error: Optional[bool]  # todo check
+    error: Optional[bool]
 
     class Config:
         error_msg_templates = {
