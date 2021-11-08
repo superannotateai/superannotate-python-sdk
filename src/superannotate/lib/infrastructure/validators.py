@@ -1,10 +1,10 @@
 import os
 from collections import defaultdict
 
-from lib.core.entities.document import DocumentAnnotation
-from lib.core.entities.pixel import PixelAnnotation
-from lib.core.entities.vector import VectorAnnotation
-from lib.core.types import VideoAnnotation
+from lib.core.entities import DocumentAnnotation
+from lib.core.entities import PixelAnnotation
+from lib.core.entities import VectorAnnotation
+from lib.core.entities import VideoExportAnnotation
 from lib.core.validators import BaseAnnotationValidator
 from lib.core.validators import BaseValidator
 from pydantic import ValidationError
@@ -40,13 +40,9 @@ def wrap_error(e: ValidationError) -> str:
 class BaseSchemaValidator(BaseValidator):
     MODEL = PixelAnnotation
 
-    @classmethod
-    def validate(cls, data: dict):
-        cls.MODEL(**data)
-
     def is_valid(self) -> bool:
         try:
-            self.validate(self._data)
+            self._validate()
         except ValidationError as e:
             self._validation_output = e
         return not bool(self._validation_output)
@@ -64,7 +60,7 @@ class VectorValidator(BaseSchemaValidator):
 
 
 class VideoValidator(BaseSchemaValidator):
-    MODEL = VideoAnnotation
+    MODEL = VideoExportAnnotation
 
 
 class DocumentValidator(BaseSchemaValidator):

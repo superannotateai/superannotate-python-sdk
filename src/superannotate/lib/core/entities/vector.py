@@ -87,8 +87,8 @@ class TemplateConnection(BaseModel):
 class Template(BaseVectorInstance):
     points: conlist(TemplatePoint, min_items=1)
     connections: List[TemplateConnection]
-    template_id: int = Field(alias="templateId")
-    template_name: int = Field(alias="templateName")
+    template_id: Optional[int] = Field(None, alias="templateId")
+    template_name: str = Field(alias="templateName")
 
 
 class CuboidPoint(BaseModel):

@@ -3,16 +3,22 @@ from abc import abstractmethod
 from typing import Any
 from typing import Type
 
+from pydantic import BaseModel
+
 
 class BaseValidator(metaclass=ABCMeta):
+    MODEL: BaseModel()
+
     def __init__(self, data: Any):
-        self._data = data
+        self.data = data
         self._validation_output = None
 
     @classmethod
-    @abstractmethod
     def validate(cls, data: Any):
-        raise NotImplementedError
+        return cls.MODEL(**data)
+
+    def _validate(self):
+        self.data = self.validate(self.data).dict(by_alias=True)
 
     @abstractmethod
     def is_valid(self) -> bool:
