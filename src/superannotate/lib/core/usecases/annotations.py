@@ -5,6 +5,7 @@ import logging
 import os
 from collections import namedtuple
 from typing import List
+from typing import Tuple
 
 import boto3
 import lib.core as constances
@@ -409,9 +410,7 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
         handle_last_action(annotations, team)
         return annotations
 
-    def is_valid_json(
-        self, json_data: dict,
-    ):
+    def clean_json(self, json_data: dict,) -> Tuple[bool, dict]:
         use_case = ValidateAnnotationUseCase(
             constances.ProjectType.get_name(self._project.project_type),
             annotation=json_data,
@@ -422,7 +421,9 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
     def execute(self):
         if self.is_valid():
             self.set_annotation_json()
-            if self.is_valid_json(self._annotation_json):
+            is_valid, clean_json = self.clean_json(self._annotation_json)
+            if is_valid:
+                self._annotation_json = clean_json
                 bucket = self.s3_bucket
                 annotation_json = self.prepare_annotations(
                     project_type=self._project.project_type,

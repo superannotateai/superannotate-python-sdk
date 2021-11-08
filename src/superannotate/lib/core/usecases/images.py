@@ -3174,10 +3174,10 @@ class ValidateAnnotationUseCase(BaseUseCase):
         if validator:
             validator = validator(self._annotation)
             if validator.is_valid():
-                self._response.data = True
+                self._response.data = True, validator.data
             else:
                 self._response.report = validator.generate_report()
-                self._response.data = False
+                self._response.data = False, validator.data
         else:
             self._response.errors = AppException(
                 f"There is not validator for type {self._project_type}."

@@ -5,7 +5,6 @@ from pathlib import Path
 import pytest
 import src.superannotate as sa
 from tests.integration.base import BaseTestCase
-from src.superannotate.lib.core.helpers import fill_document_tags
 
 
 class TestUploadTextAnnotation(BaseTestCase):
@@ -48,7 +47,6 @@ class TestUploadTextAnnotation(BaseTestCase):
             self.PROJECT_NAME,
             self.csv_path,
         )
-
         (uploaded_annotations, failed_annotations, missing_annotations) = sa.upload_annotations_from_folder_to_project(
             self.PROJECT_NAME, self.invalid_annotations_path)
         self.assertEqual(len(uploaded_annotations), 0)
