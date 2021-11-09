@@ -9,9 +9,6 @@ from pydantic import conlist
 from pydantic import constr
 from pydantic import EmailStr
 from pydantic import Field
-from pydantic import validator
-from pydantic.color import Color
-from pydantic.color import ColorType
 from pydantic.datetime_parse import parse_datetime
 
 
@@ -27,6 +24,7 @@ class StringDate(datetime):
     @classmethod
     def validate(cls, v: datetime):
         return f'{v.replace(tzinfo=None).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]}Z'
+
 
 class VectorAnnotationTypeEnum(str, Enum):
     BBOX = "bbox"
@@ -105,7 +103,9 @@ class UserAction(BaseModel):
 class TrackableModel(BaseModel):
     created_by: Optional[UserAction] = Field(None, alias="createdBy")
     updated_by: Optional[UserAction] = Field(None, alias="updatedBy")
-    creation_type: Optional[CreationTypeEnum] = Field(CreationTypeEnum.PRE_ANNOTATION.value, alias="creationType")
+    creation_type: Optional[CreationTypeEnum] = Field(
+        CreationTypeEnum.PRE_ANNOTATION.value, alias="creationType"
+    )
 
 
 class LastUserAction(BaseModel):
@@ -171,12 +171,3 @@ class Metadata(MetadataBase):
     status: Optional[AnnotationStatusEnum]
     pinned: Optional[bool]
     is_predicted: Optional[bool] = Field(None, alias="isPredicted")
-
-
-class PixelColor(BaseModel):
-    __root__: ColorType
-
-    @validator("__root__")
-    def validate_color(cls, v):
-        color = Color(v)
-        return color.as_hex()

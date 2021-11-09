@@ -74,7 +74,7 @@ def add_annotation_bbox_to_json(
     annotation_class_name,
     annotation_class_attributes=None,
     error=None,
-    image_name: str = ""
+    image_name: str = "",
 ):
     """Add a bounding box annotation to SuperAnnotate format annotation JSON
 

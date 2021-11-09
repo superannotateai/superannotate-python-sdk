@@ -88,7 +88,6 @@ class TestValidators(TestCase):
                 sa.validate_annotations("Vector", os.path.join(self.vector_folder_path, f"{tmpdir_name}/vector.json"))
                 self.assertIn("metadatafieldrequired", out.getvalue().strip().replace(" ", ""))
 
-
     def test_validate_annotation_invalid_date_time_format(self):
         data = """
             {
@@ -139,8 +138,7 @@ class TestValidators(TestCase):
             """
         validator = AnnotationValidator.get_vector_validator()(json.loads(data))
         validator.is_valid()
-        self.assertIn("instances[0].updatedAtinvaliddatetimeformat",validator.generate_report().replace(" ", ""))
-
+        self.assertIn("instances[0].updatedAtinvaliddatetimeformat", validator.generate_report().replace(" ", ""))
 
     def test_validate_annotation_valid_date_time_format(self):
         data = """
@@ -191,4 +189,93 @@ class TestValidators(TestCase):
             }
             """
         validator = AnnotationValidator.get_vector_validator()(json.loads(data))
+        self.assertTrue(validator.is_valid())
+
+    def test_validate_annotation_invalid_color_format(self):
+        data = """
+                    {
+                      "metadata": {
+                        "name": "example_image_1.jpg",
+                        "width": null,
+                        "height": null,
+                        "status": null,
+                        "pinned": null,
+                        "isPredicted": null,
+                        "projectId": null,
+                        "annotatorEmail": null,
+                        "qaEmail": null,
+                        "isSegmented": null
+                      },
+                      "instances": [
+                        {
+                          "classId": 56821,
+                          "probability": 100,
+                          "visible": true,
+                          "attributes": [
+                            {
+                              "id": 57099,
+                              "groupId": 21449,
+                              "name": "no",
+                              "groupName": "small"
+                            }
+                          ],
+                          "parts": [
+                            {
+                              "color": 132456324156321456
+                            }
+                          ],
+                          "error": null,
+                          "className": "Large vehicle"
+                        }
+                      ],
+                      "tags": [],
+                      "comments": []
+                    }
+                    """
+        validator = AnnotationValidator.get_pixel_validator()(json.loads(data))
+        validator.is_valid()
+        self.assertIn("instances[0].parts[0].colorvalueisnotavalidcolor:stringnotrecognisedasavalidcolor", validator.generate_report().replace(" ", ""))
+
+    def test_validate_annotation_valid_color_format(self):
+        data = """
+            {
+              "metadata": {
+                "name": "example_image_1.jpg",
+                "width": null,
+                "height": null,
+                "status": null,
+                "pinned": null,
+                "isPredicted": null,
+                "projectId": null,
+                "annotatorEmail": null,
+                "qaEmail": null,
+                "isSegmented": null
+              },
+              "instances": [
+                {
+                  "classId": 56821,
+                  "probability": 100,
+                  "visible": true,
+                  "attributes": [
+                    {
+                      "id": 57099,
+                      "groupId": 21449,
+                      "name": "no",
+                      "groupName": "small"
+                    }
+                  ],
+                  "parts": [
+                    {
+                      "color": "#000447"
+                    }
+                  ],
+                  "error": null,
+                  "className": "Large vehicle"
+                }
+              ],
+              "tags": [],
+              "comments": []
+            }
+            """
+        validator = AnnotationValidator.get_pixel_validator()(json.loads(data))
         self.assertTrue(validator.is_valid())
