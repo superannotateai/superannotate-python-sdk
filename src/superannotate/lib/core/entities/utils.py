@@ -26,8 +26,7 @@ class StringDate(datetime):
 
     @classmethod
     def validate(cls, v: datetime):
-        return v.replace(tzinfo=None).isoformat()
-
+        return f'{v.replace(tzinfo=None).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]}Z'
 
 class VectorAnnotationTypeEnum(str, Enum):
     BBOX = "bbox"
