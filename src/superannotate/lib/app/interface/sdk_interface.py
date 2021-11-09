@@ -2476,6 +2476,7 @@ def upload_annotations_from_folder_to_project(
         folder_name=folder_name,
         annotation_paths=annotation_paths,  # noqa: E203
         client_s3_bucket=from_s3_bucket,
+        folder_path=folder_path,
     )
     if response.errors:
         raise AppException(response.errors)

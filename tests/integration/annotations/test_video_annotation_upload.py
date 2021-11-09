@@ -59,7 +59,7 @@ class TestUploadVideoAnnotation(BaseTestCase):
         self.assertEqual(len(uploaded_annotations), 0)
         self.assertEqual(len(failed_annotations), 1)
         self.assertEqual(len(missing_annotations), 0)
-        self.assertIn("Invalid json", self._caplog.text)
+        self.assertIn("Couldn't validate ", self._caplog.text)
 
     def test_video_annotation_upload(self):
         sa.create_annotation_classes_from_classes_json(self.PROJECT_NAME, self.classes_path)
