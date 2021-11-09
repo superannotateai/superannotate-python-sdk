@@ -4,15 +4,15 @@ import json
 from superannotate.lib.app.exceptions import AppException
 
 
-def fill_in_missing(annotation_json):
+def fill_in_missing(annotation_json, image_name: str = ""):
     for field in ["instances", "comments", "tags"]:
         if field not in annotation_json:
             annotation_json[field] = []
     if "metadata" not in annotation_json:
-        annotation_json["metadata"] = {}
+        annotation_json["metadata"] = {"name": image_name}
 
 
-def _preprocess_annotation_json(annotation_json):
+def _preprocess_annotation_json(annotation_json, image_name: str = ""):
     path = None
     if not isinstance(annotation_json, dict) and annotation_json is not None:
         path = annotation_json
@@ -20,7 +20,7 @@ def _preprocess_annotation_json(annotation_json):
     elif annotation_json is None:
         annotation_json = {}
 
-    fill_in_missing(annotation_json)
+    fill_in_missing(annotation_json, image_name)
 
     return (annotation_json, path)
 
@@ -60,7 +60,7 @@ def add_annotation_comment_to_json(
         "type": "comment",
         "x": comment_coords[0],
         "y": comment_coords[1],
-        "correspondence": [{"text": comment_text, "id": comment_author}],
+        "correspondence": [{"text": comment_text, "email": comment_author}],
         "resolved": resolved,
     }
     annotation_json["comments"].append(annotation)
@@ -74,6 +74,7 @@ def add_annotation_bbox_to_json(
     annotation_class_name,
     annotation_class_attributes=None,
     error=None,
+    image_name: str = ""
 ):
     """Add a bounding box annotation to SuperAnnotate format annotation JSON
 
@@ -94,7 +95,7 @@ def add_annotation_bbox_to_json(
     if len(bbox) != 4:
         raise AppException("Bounding boxes should have 4 float elements")
 
-    annotation_json, path = _preprocess_annotation_json(annotation_json)
+    annotation_json, path = _preprocess_annotation_json(annotation_json, image_name)
 
     annotation = {
         "type": "bbox",

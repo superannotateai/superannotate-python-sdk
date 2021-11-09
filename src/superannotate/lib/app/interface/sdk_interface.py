@@ -3069,7 +3069,7 @@ def add_annotation_bbox_to_image(
     """
     annotations = get_image_annotations(project, image_name)["annotation_json"]
     annotations = add_annotation_bbox_to_json(
-        annotations, bbox, annotation_class_name, annotation_class_attributes, error,
+        annotations, bbox, annotation_class_name, annotation_class_attributes, error, image_name
     )
     upload_image_annotations(project, image_name, annotations, verbose=False)
 

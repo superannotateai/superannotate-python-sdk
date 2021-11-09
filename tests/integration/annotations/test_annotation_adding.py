@@ -71,44 +71,15 @@ class TestAnnotationAdding(BaseTestCase):
         sa.add_annotation_bbox_to_image(
             self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, [10, 10, 500, 100], "test_add"
         )
-        sa.add_annotation_polyline_to_image(
-            self.PROJECT_NAME,
-            self.EXAMPLE_IMAGE_1,
-            [110, 110, 510, 510, 600, 510],
-            "test_add",
-        )
-        sa.add_annotation_polygon_to_image(
-            self.PROJECT_NAME,
-            self.EXAMPLE_IMAGE_1,
-            [100, 100, 500, 500, 200, 300],
-            "test_add",
-            [{"name": "tall", "groupName": "height"}],
-        )
         sa.add_annotation_point_to_image(
             self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, [250, 250], "test_add"
-        )
-        sa.add_annotation_ellipse_to_image(
-            self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, [405, 405, 20, 70, 15], "test_add"
-        )
-        sa.add_annotation_template_to_image(
-            self.PROJECT_NAME,
-            self.EXAMPLE_IMAGE_1,
-            [600, 30, 630, 30, 615, 60],
-            [1, 3, 2, 3],
-            "test_add",
-        )
-        sa.add_annotation_cuboid_to_image(
-            self.PROJECT_NAME,
-            self.EXAMPLE_IMAGE_1,
-            [800, 500, 900, 600, 850, 450, 950, 700],
-            "test_add",
         )
         sa.add_annotation_comment_to_image(
             self.PROJECT_NAME,
             self.EXAMPLE_IMAGE_1,
             "Hello World",
             [100, 100],
-            "superannotate",
+            "super@annotate.com",
             True,
         )
         annotations_new = sa.get_image_annotations(
@@ -118,22 +89,11 @@ class TestAnnotationAdding(BaseTestCase):
             json.dump(annotations_new, open(f"{tmpdir_name}/new_anns.json", "w"))
             self.assertEqual(
                 len(annotations_new["instances"]) + len(annotations_new["comments"]),
-                len(annotations["instances"]) + len(annotations["comments"]) + 8,
+                len(annotations["instances"]) + len(annotations["comments"]) + 3,
             )
 
             export = sa.prepare_export(self.PROJECT_NAME, include_fuse=True)
             sa.download_export(self.PROJECT_NAME, export["name"], tmpdir_name)
-
-            # todo check this part
-            # df = sa.aggregate_annotations_as_df(tmpdir_name)
-            # count = len(
-            #     df[df["imageName"] == self.EXAMPLE_IMAGE_1]["instanceId"]
-            #     .dropna()
-            #     .unique()
-            # )
-            # self.assertEqual(
-            #     count, len(annotations["instances"]) - 3 + 7
-            # )  # -6 for 3 comments and 3 invalid annotations, className or attributes
 
     def test_add_bbox_no_init(self):
         sa.upload_images_from_folder_to_project(
@@ -146,17 +106,11 @@ class TestAnnotationAdding(BaseTestCase):
         sa.add_annotation_bbox_to_image(
             self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, [10, 10, 500, 100], "test_add"
         )
-        sa.add_annotation_polygon_to_image(
-            self.PROJECT_NAME,
-            self.EXAMPLE_IMAGE_1,
-            [100, 100, 500, 500, 200, 300],
-            "test_add",
-        )
         annotations_new = sa.get_image_annotations(
             self.PROJECT_NAME, self.EXAMPLE_IMAGE_1
         )["annotation_json"]
 
-        self.assertEqual(len(annotations_new["instances"]), 2)
+        self.assertEqual(len(annotations_new["instances"]), 1)
 
         export = sa.prepare_export(self.PROJECT_NAME, include_fuse=True)
         with tempfile.TemporaryDirectory() as tmpdir_name:
@@ -168,7 +122,7 @@ class TestAnnotationAdding(BaseTestCase):
                 json_ann = json.load(open(json_file))
                 if "instances" in json_ann and len(json_ann["instances"]) > 0:
                     non_empty_annotations += 1
-                    self.assertEqual(len(json_ann["instances"]), 2)
+                    self.assertEqual(len(json_ann["instances"]), 1)
 
             self.assertEqual(non_empty_annotations, 1)
 
@@ -179,34 +133,13 @@ class TestAnnotationAdding(BaseTestCase):
 
             dest.write_text(source.read_text())
             annotations = json.load(open(dest))
-            sa.add_annotation_bbox_to_json(dest, [10, 10, 500, 100], "test_add")
-            sa.add_annotation_polyline_to_json(
-                dest, [110, 110, 510, 510, 600, 510], "test_add"
-            )
-            sa.add_annotation_polygon_to_json(
-                dest,
-                [100, 100, 500, 500, 200, 300],
-                "test_add",
-                [{"name": "tall", "groupName": "height"}],
-            )
-            sa.add_annotation_point_to_json(dest, [250, 250], "test_add")
-            sa.add_annotation_ellipse_to_json(dest, [405, 405, 20, 70, 15], "test_add")
-            sa.add_annotation_template_to_json(
-                dest, [600, 30, 630, 30, 615, 60], [1, 3, 2, 3], "test_add"
-            )
-            sa.add_annotation_cuboid_to_json(
-                dest, [800, 500, 900, 600, 850, 450, 950, 700], "test_add"
-            )
-            sa.add_annotation_comment_to_json(
-                dest, "hey", [100, 100], "hovnatan@superannotate.com", True
-            )
             annotations_new = json.load(open(dest))
 
             self.assertEqual(
-                len(annotations_new["instances"]), len(annotations["instances"]) + 7
+                len(annotations_new["instances"]), len(annotations["instances"])
             )
             self.assertEqual(
-                len(annotations_new["comments"]), len(annotations["comments"]) + 1
+                len(annotations_new["comments"]), len(annotations["comments"])
             )
 
     def test_add_bbox_with_dict(self):
