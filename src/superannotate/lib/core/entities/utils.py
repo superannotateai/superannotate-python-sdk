@@ -4,7 +4,7 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel as PyDanticBaseModel
 from pydantic import conlist
 from pydantic import constr
 from pydantic import EmailStr
@@ -18,6 +18,16 @@ from pydantic.datetime_parse import parse_datetime
 NotEmptyStr = constr(strict=True, min_length=1)
 
 
+class BaseModel(PyDanticBaseModel):
+    class Config:
+        use_enum_values = True
+        error_msg_templates = {
+            "type_error.integer": "integer type expected",
+            "type_error.string": "str type expected",
+            "value_error.missing": "field required",
+        }
+        
+
 class StringDate(datetime):
     @classmethod
     def __get_validators__(cls):
@@ -28,6 +38,7 @@ class StringDate(datetime):
     def validate(cls, v: datetime):
         return f'{v.replace(tzinfo=None).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]}Z'
 
+      
 class VectorAnnotationTypeEnum(str, Enum):
     BBOX = "bbox"
     ELLIPSE = "ellipse"
@@ -106,6 +117,10 @@ class TrackableModel(BaseModel):
     created_by: Optional[UserAction] = Field(None, alias="createdBy")
     updated_by: Optional[UserAction] = Field(None, alias="updatedBy")
     creation_type: Optional[CreationTypeEnum] = Field(CreationTypeEnum.PRE_ANNOTATION.value, alias="creationType")
+
+    @validator("creation_type")
+    def clean_creation_type(cls, value):
+        return value or CreationTypeEnum.PRE_ANNOTATION.value
 
 
 class LastUserAction(BaseModel):
