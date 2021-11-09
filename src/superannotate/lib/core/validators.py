@@ -18,7 +18,7 @@ class BaseValidator(metaclass=ABCMeta):
         return cls.MODEL(**data)
 
     def _validate(self):
-        self.data = self.validate(self.data).dict(by_alias=True)
+        self.data = self.validate(self.data).dict(by_alias=True, exclude_none=True)
 
     @abstractmethod
     def is_valid(self) -> bool:
