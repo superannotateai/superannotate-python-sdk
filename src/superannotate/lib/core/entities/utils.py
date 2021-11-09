@@ -51,6 +51,10 @@ class BaseRoleEnum(str, Enum):
 
 class BaseImageRoleEnum(str, Enum):
     CUSTOMER = "Customer"
+    ADMIN = "Admin"
+    ANNOTATOR = "Annotator"
+    QA = "QA"
+
 
 
 class Attribute(BaseModel):
