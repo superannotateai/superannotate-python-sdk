@@ -102,16 +102,10 @@ class UserAction(BaseModel):
     role: BaseImageRoleEnum
 
 
-class CreationType(BaseModel):
-    __root__: str
-
-
 class TrackableModel(BaseModel):
     created_by: Optional[UserAction] = Field(None, alias="createdBy")
     updated_by: Optional[UserAction] = Field(None, alias="updatedBy")
-    creation_type: Optional[CreationType] = Field(
-        CreationTypeEnum.PRE_ANNOTATION.value, alias="creationType"
-    )
+    creation_type: Optional[CreationTypeEnum] = Field(CreationTypeEnum.PRE_ANNOTATION.value, alias="creationType")
 
 
 class LastUserAction(BaseModel):
