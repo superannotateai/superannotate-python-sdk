@@ -93,10 +93,7 @@ class EventInstance(BaseModel):
     parameters: conlist(EventParameter, min_items=1)
 
 
-ANNOTATION_TYPES = {
-    VideoType.BBOX: BboxInstance,
-    VideoType.EVENT: EventInstance
-}
+ANNOTATION_TYPES = {VideoType.BBOX: BboxInstance, VideoType.EVENT: EventInstance}
 
 
 class VideoAnnotation(BaseModel):

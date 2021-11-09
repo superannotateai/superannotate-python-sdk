@@ -12,6 +12,7 @@ from pydantic import Field
 from pydantic import validator
 from pydantic.color import Color
 from pydantic.color import ColorType
+from pydantic.datetime_parse import parse_datetime
 
 
 NotEmptyStr = constr(strict=True, min_length=1)
@@ -25,8 +26,19 @@ class BaseModel(PyDanticBaseModel):
             "type_error.string": "str type expected",
             "value_error.missing": "field required",
         }
+        
 
+class StringDate(datetime):
+    @classmethod
+    def __get_validators__(cls):
+        yield parse_datetime
+        yield cls.validate
 
+    @classmethod
+    def validate(cls, v: datetime):
+        return f'{v.replace(tzinfo=None).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]}Z'
+
+      
 class VectorAnnotationTypeEnum(str, Enum):
     BBOX = "bbox"
     ELLIPSE = "ellipse"
@@ -66,7 +78,6 @@ class BaseImageRoleEnum(str, Enum):
     QA = "QA"
 
 
-
 class Attribute(BaseModel):
     id: Optional[int]
     group_id: Optional[int] = Field(None, alias="groupId")
@@ -93,8 +104,8 @@ class BboxPoints(BaseModel):
 
 class TimedBaseModel(BaseModel):
     # TODO change to datetime
-    created_at: datetime = Field(None, alias="createdAt")
-    updated_at: datetime = Field(None, alias="updatedAt")
+    created_at: StringDate = Field(None, alias="createdAt")
+    updated_at: StringDate = Field(None, alias="updatedAt")
 
 
 class UserAction(BaseModel):
