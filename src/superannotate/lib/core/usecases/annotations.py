@@ -356,7 +356,7 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
                             constances.PIXEL_ANNOTATION_POSTFIX,
                             constances.ANNOTATION_MASK_POSTFIX,
                         ),
-                        "rb"
+                        "rb",
                     )
 
     def _is_valid_json(self, json_data: dict):
