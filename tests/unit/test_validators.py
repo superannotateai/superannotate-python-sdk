@@ -6,7 +6,10 @@ import tempfile
 import src.superannotate as sa
 from tests.utils.helpers import catch_prints
 from src.superannotate.lib.infrastructure.validators import AnnotationValidator
-
+from src.superannotate.lib.core.entities.utils import StringDate
+from src.superannotate.lib.core.entities.pixel import PixelAnnotationPart
+from pydantic import BaseModel
+from pydantic import ValidationError
 from unittest import TestCase
 
 VECTOR_ANNOTATION_JSON_WITH_BBOX = """
@@ -89,193 +92,20 @@ class TestValidators(TestCase):
                 self.assertIn("metadatafieldrequired", out.getvalue().strip().replace(" ", ""))
 
     def test_validate_annotation_invalid_date_time_format(self):
-        data = """
-            {
-              "metadata": {
-                "name": "example_image_1.jpg",
-                "width": 1024,
-                "height": 683,
-                "status": "Completed",
-                "pinned": false,
-                "isPredicted": null,
-                "projectId": null,
-                "annotatorEmail": null,
-                "qaEmail": null
-              },
-              "instances": [
-                {
-                  "type": "bbox",
-                  "classId": 72274,
-                  "probability": 100,
-                  "points": {
-                    "x1": 12,
-                    "x2": 465.23,
-                    "y1": 341.5,
-                    "y2": 357.09
-                  },
-                  "groupId": 0,
-                  "pointLabels": {},
-                  "locked": false,
-                  "visible": false,
-                  "attributes": [
-                    {
-                      "id": 117845,
-                      "groupId": 28230,
-                      "name": "2",
-                      "groupName": "Num doors"
-                    }
-                  ],
-                  "trackingId": "aaa97f80c9e54a5f2dc2e920fc92e5033d9af45b",
-                  "error": null,
-                  "createdBy": null,
-                  "creationType": null,
-                  "updatedAt": "2021-11-02",
-                  "updatedBy": null,
-                  "className": "Personal vehicle"
-                }
-              ]
-            }
-            """
-        validator = AnnotationValidator.get_vector_validator()(json.loads(data))
-        validator.is_valid()
-        self.assertIn("instances[0].updatedAtinvaliddatetimeformat", validator.generate_report().replace(" ", ""))
+        class Model(BaseModel):
+            date: StringDate
+        with self.assertRaisesRegexp(ValidationError, "1 validation error for Model"):
+            Model(date="2021.12.12")
 
     def test_validate_annotation_valid_date_time_format(self):
-        data = """
-            {
-              "metadata": {
-                "name": "example_image_1.jpg",
-                "width": 1024,
-                "height": 683,
-                "status": "Completed",
-                "pinned": false,
-                "isPredicted": null,
-                "projectId": null,
-                "annotatorEmail": null,
-                "qaEmail": null
-              },
-              "instances": [
-                {
-                  "type": "bbox",
-                  "classId": 72274,
-                  "probability": 100,
-                  "points": {
-                    "x1": 12,
-                    "x2": 465.23,
-                    "y1": 341.5,
-                    "y2": 357.09
-                  },
-                  "groupId": 0,
-                  "pointLabels": {},
-                  "locked": false,
-                  "visible": false,
-                  "attributes": [
-                    {
-                      "id": 117845,
-                      "groupId": 28230,
-                      "name": "2",
-                      "groupName": "Num doors"
-                    }
-                  ],
-                  "trackingId": "aaa97f80c9e54a5f2dc2e920fc92e5033d9af45b",
-                  "error": null,
-                  "createdBy": null,
-                  "creationType": null,
-                  "updatedAt": "2021-11-02T15:11:50.065Z",
-                  "updatedBy": null,
-                  "className": "Personal vehicle"
-                }
-              ]
-            }
-            """
-        validator = AnnotationValidator.get_vector_validator()(json.loads(data))
-        self.assertTrue(validator.is_valid())
+        class Model(BaseModel):
+            date: StringDate
+        self.assertEqual(Model(date="2021-11-02T15:11:50.065Z").date, "2021-11-02T15:11:50.065Z")
 
     def test_validate_annotation_invalid_color_format(self):
-        data = """
-                    {
-                      "metadata": {
-                        "name": "example_image_1.jpg",
-                        "width": null,
-                        "height": null,
-                        "status": null,
-                        "pinned": null,
-                        "isPredicted": null,
-                        "projectId": null,
-                        "annotatorEmail": null,
-                        "qaEmail": null,
-                        "isSegmented": null
-                      },
-                      "instances": [
-                        {
-                          "classId": 56821,
-                          "probability": 100,
-                          "visible": true,
-                          "attributes": [
-                            {
-                              "id": 57099,
-                              "groupId": 21449,
-                              "name": "no",
-                              "groupName": "small"
-                            }
-                          ],
-                          "parts": [
-                            {
-                              "color": 132456324156321456
-                            }
-                          ],
-                          "error": null,
-                          "className": "Large vehicle"
-                        }
-                      ],
-                      "tags": [],
-                      "comments": []
-                    }
-                    """
-        validator = AnnotationValidator.get_pixel_validator()(json.loads(data))
-        validator.is_valid()
-        self.assertIn("instances[0].parts[0].colorvalueisnotavalidcolor:stringnotrecognisedasavalidcolor", validator.generate_report().replace(" ", ""))
+        with self.assertRaisesRegexp(ValidationError, "1 validation error for PixelAnnotationPart"):
+            PixelAnnotationPart(color="fd435eraewf4rewf")
+
 
     def test_validate_annotation_valid_color_format(self):
-        data = """
-            {
-              "metadata": {
-                "name": "example_image_1.jpg",
-                "width": null,
-                "height": null,
-                "status": null,
-                "pinned": null,
-                "isPredicted": null,
-                "projectId": null,
-                "annotatorEmail": null,
-                "qaEmail": null,
-                "isSegmented": null
-              },
-              "instances": [
-                {
-                  "classId": 56821,
-                  "probability": 100,
-                  "visible": true,
-                  "attributes": [
-                    {
-                      "id": 57099,
-                      "groupId": 21449,
-                      "name": "no",
-                      "groupName": "small"
-                    }
-                  ],
-                  "parts": [
-                    {
-                      "color": "#000447"
-                    }
-                  ],
-                  "error": null,
-                  "className": "Large vehicle"
-                }
-              ],
-              "tags": [],
-              "comments": []
-            }
-            """
-        validator = AnnotationValidator.get_pixel_validator()(json.loads(data))
-        self.assertTrue(validator.is_valid())
+        self.assertEqual(PixelAnnotationPart(color="#f1f2f3").color, "#f1f2f3")
