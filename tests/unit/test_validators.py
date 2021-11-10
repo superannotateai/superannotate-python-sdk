@@ -2,13 +2,10 @@ import json
 import os
 from os.path import dirname
 import tempfile
-
 import src.superannotate as sa
 from tests.utils.helpers import catch_prints
-from src.superannotate.lib.infrastructure.validators import AnnotationValidator
-from src.superannotate.lib.core.entities.utils import StringDate
+from src.superannotate.lib.core.entities.utils import TimedBaseModel
 from src.superannotate.lib.core.entities.pixel import PixelAnnotationPart
-from pydantic import BaseModel
 from pydantic import ValidationError
 from unittest import TestCase
 
@@ -92,15 +89,11 @@ class TestValidators(TestCase):
                 self.assertIn("metadatafieldrequired", out.getvalue().strip().replace(" ", ""))
 
     def test_validate_annotation_invalid_date_time_format(self):
-        class Model(BaseModel):
-            date: StringDate
-        with self.assertRaisesRegexp(ValidationError, "1 validation error for Model"):
-            Model(date="2021.12.12")
+        with self.assertRaises(ValidationError):
+            TimedBaseModel(createdAt="2021-11-02T15:11:50.065000Z")
 
     def test_validate_annotation_valid_date_time_format(self):
-        class Model(BaseModel):
-            date: StringDate
-        self.assertEqual(Model(date="2021-11-02T15:11:50.065Z").date, "2021-11-02T15:11:50.065Z")
+        self.assertEqual(TimedBaseModel(createdAt="2021-11-02T15:11:50.065Z").created_at, "2021-11-02T15:11:50.065Z")
 
     def test_validate_annotation_invalid_color_format(self):
         with self.assertRaisesRegexp(ValidationError, "1 validation error for PixelAnnotationPart"):
