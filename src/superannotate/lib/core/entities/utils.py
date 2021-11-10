@@ -1,4 +1,3 @@
-from datetime import datetime
 from enum import Enum
 from typing import Dict
 from typing import List
@@ -9,11 +8,22 @@ from pydantic import conlist
 from pydantic import constr
 from pydantic import EmailStr
 from pydantic import Field
-from pydantic.datetime_parse import parse_datetime
 from pydantic import validator
+from pydantic.errors import EnumMemberError
+
+
+def enum_error_handling(self) -> str:
+    permitted = ', '.join(repr(v.value) for v in self.enum_values)
+    return f'Invalid value, permitted: {permitted}'
+
+
+EnumMemberError.__str__ = enum_error_handling
 
 
 NotEmptyStr = constr(strict=True, min_length=1)
+
+
+DATE_REGEX = r'\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d(?:\.\d{3})Z'
 
 
 class BaseModel(PyDanticBaseModel):
@@ -40,7 +50,7 @@ class VectorAnnotationTypeEnum(str, Enum):
 class CreationTypeEnum(str, Enum):
     MANUAL = "Manual"
     PREDICTION = "Prediction"
-    PRE_ANNOTATION = "Pre-annotation"
+    PRE_ANNOTATION = "Preannotation"
 
 
 class AnnotationStatusEnum(str, Enum):
@@ -90,8 +100,8 @@ class BboxPoints(BaseModel):
 
 
 class TimedBaseModel(BaseModel):
-    created_at: constr(regex=r'\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d(?:\.\d{3})Z') = Field(None, alias="createdAt")
-    updated_at: constr(regex=r'\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d(?:\.\d{3})Z') = Field(None, alias="updatedAt")
+    created_at: constr(regex=DATE_REGEX) = Field(None, alias="createdAt")
+    updated_at: constr(regex=DATE_REGEX) = Field(None, alias="updatedAt")
 
 
 class UserAction(BaseModel):
@@ -102,13 +112,11 @@ class UserAction(BaseModel):
 class TrackableModel(BaseModel):
     created_by: Optional[UserAction] = Field(None, alias="createdBy")
     updated_by: Optional[UserAction] = Field(None, alias="updatedBy")
-    creation_type: Optional[CreationTypeEnum] = Field(
-        CreationTypeEnum.PRE_ANNOTATION.value, alias="creationType"
-    )
+    creation_type: Optional[CreationTypeEnum] = Field(CreationTypeEnum.PRE_ANNOTATION.value, alias="creationType")
 
-    @validator("creation_type")
-    def clean_creation_type(cls, value):
-        return value or CreationTypeEnum.PRE_ANNOTATION.value
+    @validator("creation_type", always=True)
+    def clean_creation_type(cls, _):
+        return CreationTypeEnum.PRE_ANNOTATION.value
 
 
 class LastUserAction(BaseModel):
@@ -122,12 +130,14 @@ class BaseInstance(TrackableModel, TimedBaseModel):
 
 
 class MetadataBase(BaseModel):
+    name: NotEmptyStr
     last_action: Optional[LastUserAction] = Field(None, alias="lastAction")
     width: Optional[int]
     height: Optional[int]
     project_id: Optional[int] = Field(None, alias="projectId")
     annotator_email: Optional[EmailStr] = Field(None, alias="annotatorEmail")
     qa_email: Optional[EmailStr] = Field(None, alias="qaEmail")
+    status: Optional[AnnotationStatusEnum]
 
 
 class PointLabels(BaseModel):
@@ -148,7 +158,7 @@ class Comment(TimedBaseModel, TrackableModel):
 
 class BaseImageInstance(BaseInstance):
     class_id: Optional[int] = Field(None, alias="classId")
-    class_name: Optional[str] = Field(None, alias="className")
+    class_name: str = Field(alias="className")
     visible: Optional[bool]
     locked: Optional[bool]
     probability: Optional[int] = Field(100)
@@ -169,7 +179,5 @@ class BaseVectorInstance(BaseImageInstance):
 
 
 class Metadata(MetadataBase):
-    name: NotEmptyStr
-    status: Optional[AnnotationStatusEnum]
     pinned: Optional[bool]
     is_predicted: Optional[bool] = Field(None, alias="isPredicted")
