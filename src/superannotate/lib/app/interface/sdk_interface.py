@@ -2476,6 +2476,7 @@ def upload_annotations_from_folder_to_project(
         folder_name=folder_name,
         annotation_paths=annotation_paths,  # noqa: E203
         client_s3_bucket=from_s3_bucket,
+        folder_path=folder_path,
     )
     if response.errors:
         raise AppException(response.errors)
@@ -3069,7 +3070,12 @@ def add_annotation_bbox_to_image(
     """
     annotations = get_image_annotations(project, image_name)["annotation_json"]
     annotations = add_annotation_bbox_to_json(
-        annotations, bbox, annotation_class_name, annotation_class_attributes, error, image_name
+        annotations,
+        bbox,
+        annotation_class_name,
+        annotation_class_attributes,
+        error,
+        image_name,
     )
     upload_image_annotations(project, image_name, annotations, verbose=False)
 

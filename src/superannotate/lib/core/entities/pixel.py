@@ -4,9 +4,11 @@ from typing import Optional
 from lib.core.entities.utils import BaseImageInstance
 from lib.core.entities.utils import BaseModel
 from lib.core.entities.utils import MetadataBase
-from lib.core.entities.utils import PixelColor
 from lib.core.entities.utils import Tag
 from pydantic import Field
+from pydantic import validator
+from pydantic.color import Color
+from pydantic.color import ColorType
 
 
 class PixelMetaData(MetadataBase):
@@ -14,7 +16,12 @@ class PixelMetaData(MetadataBase):
 
 
 class PixelAnnotationPart(BaseModel):
-    color: PixelColor
+    color: ColorType
+
+    @validator("color")
+    def validate_color(cls, v):
+        color = Color(v)
+        return color.as_hex()
 
 
 class PixelAnnotationInstance(BaseImageInstance):

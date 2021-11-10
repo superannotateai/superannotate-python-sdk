@@ -1323,6 +1323,7 @@ class Controller(BaseController):
         annotation_paths: List[str],
         client_s3_bucket=None,
         is_pre_annotations: bool = False,
+        folder_path: str = None,
     ):
         project = self._get_project(project_name)
         folder = self._get_folder(project, folder_name)
@@ -1342,6 +1343,7 @@ class Controller(BaseController):
             ),
             validators=self.annotation_validators,
             reporter=Reporter(log_info=False, log_warning=False),
+            folder_path=folder_path,
         )
         return use_case.execute()
 
