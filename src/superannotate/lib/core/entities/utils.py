@@ -90,7 +90,6 @@ class BboxPoints(BaseModel):
 
 
 class TimedBaseModel(BaseModel):
-    # TODO change to datetime
     created_at: StringDate = Field(None, alias="createdAt")
     updated_at: StringDate = Field(None, alias="updatedAt")
 
