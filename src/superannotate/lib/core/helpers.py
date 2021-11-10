@@ -145,7 +145,7 @@ def convert_to_video_editor_json(
 
     editor_data = {
         "instances": [],
-        "tags": data.get("tags"),
+        "tags": data["tags"],
         "name": data["metadata"]["name"],
         "metadata": {
             "name": data["metadata"]["name"],
@@ -154,7 +154,9 @@ def convert_to_video_editor_json(
         },
     }
     if data["metadata"].get("duration"):
-        editor_data['metadata']['duration'] = convert_timestamp(data["metadata"]['duration'])
+        editor_data["metadata"]["duration"] = convert_timestamp(
+            data["metadata"]["duration"]
+        )
     for instance in data["instances"]:
         meta = instance["meta"]
         class_name = meta.get("className")
