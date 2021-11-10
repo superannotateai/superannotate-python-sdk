@@ -145,15 +145,16 @@ def convert_to_video_editor_json(
 
     editor_data = {
         "instances": [],
-        "tags": data["tags"],
+        "tags": data.get("tags"),
         "name": data["metadata"]["name"],
         "metadata": {
-            "duration": convert_timestamp(data["metadata"]["duration"]),
             "name": data["metadata"]["name"],
             "width": data["metadata"].get("width"),
             "height": data["metadata"].get("height"),
         },
     }
+    if data["metadata"].get("duration"):
+        editor_data['metadata']['duration'] = convert_timestamp(data["metadata"]['duration'])
     for instance in data["instances"]:
         meta = instance["meta"]
         class_name = meta.get("className")
@@ -161,7 +162,6 @@ def convert_to_video_editor_json(
             "attributes": [],
             "timeline": {},
             "type": meta["type"],
-            # TODO check
             "locked": False,
         }
         if class_name:
