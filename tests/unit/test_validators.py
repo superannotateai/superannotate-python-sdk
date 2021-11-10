@@ -2,10 +2,11 @@ import json
 import os
 from os.path import dirname
 import tempfile
-
 import src.superannotate as sa
 from tests.utils.helpers import catch_prints
-
+from src.superannotate.lib.core.entities.utils import TimedBaseModel
+from src.superannotate.lib.core.entities.pixel import PixelAnnotationPart
+from pydantic import ValidationError
 from unittest import TestCase
 
 VECTOR_ANNOTATION_JSON_WITH_BBOX = """
@@ -86,6 +87,21 @@ class TestValidators(TestCase):
             with catch_prints() as out:
                 sa.validate_annotations("Vector", os.path.join(self.vector_folder_path, f"{tmpdir_name}/vector.json"))
                 self.assertIn("metadatafieldrequired", out.getvalue().strip().replace(" ", ""))
+
+    def test_validate_annotation_invalid_date_time_format(self):
+        with self.assertRaises(ValidationError):
+            TimedBaseModel(createdAt="2021-11-02T15:11:50.065000Z")
+
+    def test_validate_annotation_valid_date_time_format(self):
+        self.assertEqual(TimedBaseModel(createdAt="2021-11-02T15:11:50.065Z").created_at, "2021-11-02T15:11:50.065Z")
+
+    def test_validate_annotation_invalid_color_format(self):
+        with self.assertRaisesRegexp(ValidationError, "1 validation error for PixelAnnotationPart"):
+            PixelAnnotationPart(color="fd435eraewf4rewf")
+
+
+    def test_validate_annotation_valid_color_format(self):
+        self.assertEqual(PixelAnnotationPart(color="#f1f2f3").color, "#f1f2f3")
 
 
 class TestTypeHandling(TestCase):

@@ -49,6 +49,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
         validators: BaseAnnotationValidator,
         pre_annotation: bool = False,
         client_s3_bucket=None,
+        folder_path: str = None,
     ):
         super().__init__(reporter)
         self._project = project
@@ -66,6 +67,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
         self.missing_attribute_groups = set()
         self.missing_classes = set()
         self.missing_attributes = set()
+        self._folder_path = folder_path
 
     @property
     def annotation_postfix(self):
@@ -173,7 +175,6 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
                 validators=self._validators,
             ).execute()
             if response.errors:
-                self.reporter.store_message("Invalid jsons", path)
                 return path, False
             return path, True
         except Exception as _:
@@ -193,14 +194,23 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
 
     def _log_report(self):
         for key, values in self.reporter.custom_messages.items():
-            template = key + ": {}"
-            if key == "missing_classes":
-                template = "Could not find annotation classes matching existing classes on the platform: [{}]"
-            elif key == "missing_attribute_groups":
-                template = "Could not find attribute groups matching existing attribute groups on the platform: [{}]"
-            elif key == "missing_attributes":
-                template = "Could not find attributes matching existing attributes on the platform: [{}]"
-            logger.warning(template.format("', '".join(values)))
+            if key in [
+                "missing_classes",
+                "missing_attribute_groups",
+                "missing_attributes",
+            ]:
+                template = key + ": {}"
+                if key == "missing_classes":
+                    template = "Could not find annotation classes matching existing classes on the platform: [{}]"
+                elif key == "missing_attribute_groups":
+                    template = "Could not find attribute groups matching existing attribute groups on the platform: [{}]"
+                elif key == "missing_attributes":
+                    template = "Could not find attributes matching existing attributes on the platform: [{}]"
+                logger.warning(template.format("', '".join(values)))
+        if self.reporter.custom_messages.get("invalid_jsons"):
+            logger.warning(
+                f"Couldn't validate {len(self.reporter.custom_messages['invalid_jsons'])}/{len(self._annotations_to_upload + self._missing_annotations)} annotations from {self._folder_path}."
+            )
 
     def execute(self):
         uploaded_annotations = []
@@ -457,4 +467,5 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
                     )
             else:
                 self._response.errors = "Invalid json"
+                self.reporter.store_message("invalid_jsons", self._annotation_path)
         return self._response

@@ -9,10 +9,8 @@ from pydantic import conlist
 from pydantic import constr
 from pydantic import EmailStr
 from pydantic import Field
-from pydantic import validator
-from pydantic.color import Color
-from pydantic.color import ColorType
 from pydantic.datetime_parse import parse_datetime
+from pydantic import validator
 
 
 NotEmptyStr = constr(strict=True, min_length=1)
@@ -26,17 +24,6 @@ class BaseModel(PyDanticBaseModel):
             "type_error.string": "str type expected",
             "value_error.missing": "field required",
         }
-
-
-class StringDate(datetime):
-    @classmethod
-    def __get_validators__(cls):
-        yield parse_datetime
-        yield cls.validate
-
-    @classmethod
-    def validate(cls, v: datetime):
-        return f'{v.replace(tzinfo=None).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]}Z'
 
 
 class VectorAnnotationTypeEnum(str, Enum):
@@ -103,9 +90,8 @@ class BboxPoints(BaseModel):
 
 
 class TimedBaseModel(BaseModel):
-    # TODO change to datetime
-    created_at: StringDate = Field(None, alias="createdAt")
-    updated_at: StringDate = Field(None, alias="updatedAt")
+    created_at: constr(regex=r'\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d(?:\.\d{3})Z') = Field(None, alias="createdAt")
+    updated_at: constr(regex=r'\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d(?:\.\d{3})Z') = Field(None, alias="updatedAt")
 
 
 class UserAction(BaseModel):
@@ -116,7 +102,9 @@ class UserAction(BaseModel):
 class TrackableModel(BaseModel):
     created_by: Optional[UserAction] = Field(None, alias="createdBy")
     updated_by: Optional[UserAction] = Field(None, alias="updatedBy")
-    creation_type: Optional[CreationTypeEnum] = Field(CreationTypeEnum.PRE_ANNOTATION.value, alias="creationType")
+    creation_type: Optional[CreationTypeEnum] = Field(
+        CreationTypeEnum.PRE_ANNOTATION.value, alias="creationType"
+    )
 
     @validator("creation_type")
     def clean_creation_type(cls, value):
@@ -185,12 +173,3 @@ class Metadata(MetadataBase):
     status: Optional[AnnotationStatusEnum]
     pinned: Optional[bool]
     is_predicted: Optional[bool] = Field(None, alias="isPredicted")
-
-
-class PixelColor(BaseModel):
-    __root__: ColorType
-
-    @validator("__root__")
-    def validate_color(cls, v):
-        color = Color(v)
-        return color.as_hex()
