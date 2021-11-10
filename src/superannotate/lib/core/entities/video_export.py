@@ -7,14 +7,15 @@ from typing import Union
 from lib.core.entities.utils import AnnotationStatusEnum
 from lib.core.entities.utils import Attribute
 from lib.core.entities.utils import BaseInstance
+from lib.core.entities.utils import BaseModel
 from lib.core.entities.utils import BboxPoints
 from lib.core.entities.utils import MetadataBase
 from lib.core.entities.utils import NotEmptyStr
 from lib.core.entities.utils import PointLabels
 from lib.core.entities.utils import Tag
-from pydantic import BaseModel
 from pydantic import conlist
 from pydantic import Field
+from pydantic import validator
 
 
 class VideoType(str, Enum):
@@ -24,7 +25,7 @@ class VideoType(str, Enum):
 
 class MetaData(MetadataBase):
     name: NotEmptyStr
-    url: str
+    url: Optional[str]
     status: Optional[AnnotationStatusEnum]
     duration: Optional[int]
     error: Optional[bool]
@@ -32,7 +33,7 @@ class MetaData(MetadataBase):
 
 class BaseTimeStamp(BaseModel):
     timestamp: int
-    attributes: List[Attribute]  # TODO check is it required
+    attributes: List[Attribute]
 
 
 class BboxTimeStamp(BaseTimeStamp):
@@ -55,11 +56,11 @@ class InstanceMetadata(BaseInstance):
 
 
 class BBoxInstanceMetadata(InstanceMetadata):
-    type: str = Field(VideoType.BBOX, const=True)
+    type: VideoType = Field(VideoType.BBOX.value, const=True)
 
 
 class EventInstanceMetadata(InstanceMetadata):
-    type: str = Field(VideoType.EVENT, const=True)
+    type: VideoType = Field(VideoType.EVENT.value, const=True)
 
 
 class BaseVideoInstance(BaseModel):
@@ -93,10 +94,34 @@ class EventInstance(BaseModel):
     parameters: conlist(EventParameter, min_items=1)
 
 
-ANNOTATION_TYPES = {VideoType.BBOX: BboxInstance, VideoType.EVENT: EventInstance}
+INSTANCES = {
+    VideoType.BBOX.value: BboxInstance,
+    VideoType.EVENT.value: EventInstance
+}
+
+
+class VideoInstance(BaseModel):
+    __root__: Union[BboxInstance, EventInstance]
+
+    @classmethod
+    def __get_validators__(cls):
+        yield cls.return_action
+
+    @classmethod
+    def return_action(cls, values):
+        try:
+            instance_type = values["meta"]["type"]
+        except KeyError:
+            raise ValueError(
+                f"meta.type required"
+            )
+        try:
+            return INSTANCES[instance_type](**values)
+        except KeyError:
+            raise ValueError(f"invalid type, valid types is {', '.join(INSTANCES.keys())}")
 
 
 class VideoAnnotation(BaseModel):
     metadata: MetaData
-    instances: Optional[List[Union[EventInstance, BboxInstance]]] = Field(list())
+    instances: Optional[List[VideoInstance]] = Field(list())
     tags: Optional[List[Tag]] = Field(list())
