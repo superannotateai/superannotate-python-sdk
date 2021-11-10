@@ -13,6 +13,15 @@ from pydantic import validator
 from pydantic.color import Color
 from pydantic.color import ColorType
 from pydantic.datetime_parse import parse_datetime
+from pydantic.errors import EnumMemberError
+
+
+def enum_error_handling(self) -> str:
+    permitted = ', '.join(repr(v.value) for v in self.enum_values)
+    return f'Invalid value, permitted: {permitted}'
+
+
+EnumMemberError.__str__ = enum_error_handling
 
 
 NotEmptyStr = constr(strict=True, min_length=1)
@@ -53,7 +62,7 @@ class VectorAnnotationTypeEnum(str, Enum):
 class CreationTypeEnum(str, Enum):
     MANUAL = "Manual"
     PREDICTION = "Prediction"
-    PRE_ANNOTATION = "Pre-annotation"
+    PRE_ANNOTATION = "Preannotation"
 
 
 class AnnotationStatusEnum(str, Enum):
@@ -103,7 +112,6 @@ class BboxPoints(BaseModel):
 
 
 class TimedBaseModel(BaseModel):
-    # TODO change to datetime
     created_at: StringDate = Field(None, alias="createdAt")
     updated_at: StringDate = Field(None, alias="updatedAt")
 
@@ -118,9 +126,9 @@ class TrackableModel(BaseModel):
     updated_by: Optional[UserAction] = Field(None, alias="updatedBy")
     creation_type: Optional[CreationTypeEnum] = Field(CreationTypeEnum.PRE_ANNOTATION.value, alias="creationType")
 
-    @validator("creation_type")
-    def clean_creation_type(cls, value):
-        return value or CreationTypeEnum.PRE_ANNOTATION.value
+    @validator("creation_type", always=True)
+    def clean_creation_type(cls, _):
+        return CreationTypeEnum.PRE_ANNOTATION.value
 
 
 class LastUserAction(BaseModel):

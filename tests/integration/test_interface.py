@@ -3,7 +3,6 @@ from os.path import dirname
 import tempfile
 import pytest
 
-
 import src.superannotate as sa
 from src.superannotate.lib.app.exceptions import AppException
 from tests.integration.base import BaseTestCase
