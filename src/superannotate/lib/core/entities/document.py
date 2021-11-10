@@ -3,9 +3,9 @@ from typing import Optional
 
 from lib.core.entities.utils import Attribute
 from lib.core.entities.utils import BaseInstance
+from lib.core.entities.utils import BaseModel
 from lib.core.entities.utils import MetadataBase
 from lib.core.entities.utils import Tag
-from pydantic import BaseModel
 from pydantic import Field
 
 

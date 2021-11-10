@@ -3642,8 +3642,8 @@ def validate_annotations(
     Validates given annotation JSON.
         :param project_type: project_type (str) – the project type Vector, Pixel, Video or Document
         :type project_type: str
-        :param annotation_json: path to annotation JSON
-        :type annotation_json: Path-like (str or Path)
+        :param annotations_json: path to annotation JSON
+        :type annotations_json: Path-like (str or Path)
 
         :return: The success of the validation
         :rtype: bool

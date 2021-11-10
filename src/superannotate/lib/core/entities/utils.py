@@ -26,7 +26,7 @@ class BaseModel(PyDanticBaseModel):
             "type_error.string": "str type expected",
             "value_error.missing": "field required",
         }
-        
+
 
 class StringDate(datetime):
     @classmethod
@@ -38,7 +38,7 @@ class StringDate(datetime):
     def validate(cls, v: datetime):
         return f'{v.replace(tzinfo=None).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]}Z'
 
-      
+
 class VectorAnnotationTypeEnum(str, Enum):
     BBOX = "bbox"
     ELLIPSE = "ellipse"
@@ -129,8 +129,7 @@ class LastUserAction(BaseModel):
 
 
 class BaseInstance(TrackableModel, TimedBaseModel):
-    # TODO check id: Optional[str]
-    class_id: int = Field(alias="classId")
+    class_id: Optional[str] = Field(None, alias="classId")
     class_name: Optional[str] = Field(None, alias="className")
 
 
