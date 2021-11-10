@@ -3,7 +3,7 @@ from typing import Optional
 
 from lib.core.entities.utils import BaseImageInstance
 from lib.core.entities.utils import BaseModel
-from lib.core.entities.utils import MetadataBase
+from lib.core.entities.utils import Metadata
 from lib.core.entities.utils import Tag
 from pydantic import Field
 from pydantic import validator
@@ -11,7 +11,7 @@ from pydantic.color import Color
 from pydantic.color import ColorType
 
 
-class PixelMetaData(MetadataBase):
+class PixelMetaData(Metadata):
     is_segmented: Optional[bool] = Field(None, alias="isSegmented")
 
 

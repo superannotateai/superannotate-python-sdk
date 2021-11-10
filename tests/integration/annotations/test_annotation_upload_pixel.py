@@ -31,7 +31,7 @@ class TestRecursiveFolderPixel(BaseTestCase):
     @pytest.mark.flaky(reruns=2)
     @patch("lib.core.usecases.annotations.UploadAnnotationUseCase.s3_bucket")
     def test_recursive_annotation_upload_pixel(self, s3_bucket):
-        sa.create_folder(self.PROJECT_NAME,self.FOLDER)
+        sa.create_folder(self.PROJECT_NAME, self.FOLDER)
         destination = f"{self.PROJECT_NAME}/{self.FOLDER}"
         sa.upload_images_from_folder_to_project(
             destination, self.folder_path, recursive_subfolders=False
@@ -42,16 +42,16 @@ class TestRecursiveFolderPixel(BaseTestCase):
                                                                                   recursive_subfolders=False)
         self.assertEqual(len(uploaded_annotations), 3)
         self.assertEqual(len(s3_bucket.method_calls), 6)
-        self.assertIn(f"Uploading 3 annotations from {self.S3_FOLDER_PATH} to the project {destination}.", self._caplog.text)
-
-        uploaded_annotations, _, _ = sa.upload_preannotations_from_folder_to_project(destination,
-                                                                                  self.S3_FOLDER_PATH,
-                                                                                  from_s3_bucket="superannotate-python-sdk-test",
-                                                                                  recursive_subfolders=False)
-        self.assertEqual(len(s3_bucket.method_calls), 12)
         self.assertIn(f"Uploading 3 annotations from {self.S3_FOLDER_PATH} to the project {destination}.",
                       self._caplog.text)
 
+        uploaded_annotations, _, _ = sa.upload_preannotations_from_folder_to_project(destination,
+                                                                                     self.S3_FOLDER_PATH,
+                                                                                     from_s3_bucket="superannotate-python-sdk-test",
+                                                                                     recursive_subfolders=False)
+        self.assertEqual(len(s3_bucket.method_calls), 12)
+        self.assertIn(f"Uploading 3 annotations from {self.S3_FOLDER_PATH} to the project {destination}.",
+                      self._caplog.text)
 
     @pytest.mark.flaky(reruns=2)
     def test_annotation_upload_pixel(self):
@@ -65,7 +65,6 @@ class TestRecursiveFolderPixel(BaseTestCase):
                 [i["attributes"] for i in annotation["instances"]],
                 [i["attributes"] for i in origin_annotation["instances"]]
             )
-
 
 
 class TestAnnotationUploadPixelSingle(BaseTestCase):
@@ -83,7 +82,7 @@ class TestAnnotationUploadPixelSingle(BaseTestCase):
 
     @pytest.mark.flaky(reruns=2)
     @patch("lib.core.usecases.annotations.UploadAnnotationUseCase.s3_bucket")
-    def test_annotation_upload_pixel(self,s3_bucket):
+    def test_annotation_upload_pixel(self, s3_bucket):
         annotation_path = join(self.folder_path_pixel, f"{self.IMAGE_NAME}___pixel.json")
         sa.upload_image_to_project(self.PROJECT_NAME, join(self.folder_path_pixel, self.IMAGE_NAME))
         sa.upload_image_annotations(self.PROJECT_NAME, self.IMAGE_NAME, annotation_path)

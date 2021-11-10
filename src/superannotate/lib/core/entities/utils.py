@@ -1,4 +1,3 @@
-from datetime import datetime
 from enum import Enum
 from typing import Dict
 from typing import List
@@ -22,6 +21,9 @@ EnumMemberError.__str__ = enum_error_handling
 
 
 NotEmptyStr = constr(strict=True, min_length=1)
+
+
+DATE_REGEX = r'\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d(?:\.\d{3})Z'
 
 
 class BaseModel(PyDanticBaseModel):
@@ -98,8 +100,8 @@ class BboxPoints(BaseModel):
 
 
 class TimedBaseModel(BaseModel):
-    created_at: constr(regex=r'\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d(?:\.\d{3})Z') = Field(None, alias="createdAt")
-    updated_at: constr(regex=r'\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d(?:\.\d{3})Z') = Field(None, alias="updatedAt")
+    created_at: constr(regex=DATE_REGEX) = Field(None, alias="createdAt")
+    updated_at: constr(regex=DATE_REGEX) = Field(None, alias="updatedAt")
 
 
 class UserAction(BaseModel):
@@ -128,12 +130,14 @@ class BaseInstance(TrackableModel, TimedBaseModel):
 
 
 class MetadataBase(BaseModel):
+    name: NotEmptyStr
     last_action: Optional[LastUserAction] = Field(None, alias="lastAction")
     width: Optional[int]
     height: Optional[int]
     project_id: Optional[int] = Field(None, alias="projectId")
     annotator_email: Optional[EmailStr] = Field(None, alias="annotatorEmail")
     qa_email: Optional[EmailStr] = Field(None, alias="qaEmail")
+    status: Optional[AnnotationStatusEnum]
 
 
 class PointLabels(BaseModel):
@@ -154,7 +158,7 @@ class Comment(TimedBaseModel, TrackableModel):
 
 class BaseImageInstance(BaseInstance):
     class_id: Optional[int] = Field(None, alias="classId")
-    class_name: Optional[str] = Field(None, alias="className")
+    class_name: str = Field(alias="className")
     visible: Optional[bool]
     locked: Optional[bool]
     probability: Optional[int] = Field(100)
@@ -175,7 +179,5 @@ class BaseVectorInstance(BaseImageInstance):
 
 
 class Metadata(MetadataBase):
-    name: NotEmptyStr
-    status: Optional[AnnotationStatusEnum]
     pinned: Optional[bool]
     is_predicted: Optional[bool] = Field(None, alias="isPredicted")

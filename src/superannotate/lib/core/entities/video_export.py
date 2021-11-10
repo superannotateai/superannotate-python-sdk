@@ -4,18 +4,15 @@ from typing import List
 from typing import Optional
 from typing import Union
 
-from lib.core.entities.utils import AnnotationStatusEnum
 from lib.core.entities.utils import Attribute
 from lib.core.entities.utils import BaseInstance
 from lib.core.entities.utils import BaseModel
 from lib.core.entities.utils import BboxPoints
 from lib.core.entities.utils import MetadataBase
-from lib.core.entities.utils import NotEmptyStr
 from lib.core.entities.utils import PointLabels
 from lib.core.entities.utils import Tag
 from pydantic import conlist
 from pydantic import Field
-from pydantic import validator
 
 
 class VideoType(str, Enum):
@@ -24,9 +21,7 @@ class VideoType(str, Enum):
 
 
 class MetaData(MetadataBase):
-    name: NotEmptyStr
     url: Optional[str]
-    status: Optional[AnnotationStatusEnum]
     duration: Optional[int]
     error: Optional[bool]
 
@@ -113,7 +108,7 @@ class VideoInstance(BaseModel):
             instance_type = values["meta"]["type"]
         except KeyError:
             raise ValueError(
-                f"meta.type required"
+                "meta.type required"
             )
         try:
             return INSTANCES[instance_type](**values)

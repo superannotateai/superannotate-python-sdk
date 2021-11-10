@@ -2,7 +2,6 @@ from typing import List
 from typing import Optional
 from typing import Union
 
-from lib.core.entities.utils import AttributeGroup
 from lib.core.entities.utils import BaseModel
 from lib.core.entities.utils import BaseVectorInstance
 from lib.core.entities.utils import BboxPoints
@@ -12,20 +11,6 @@ from lib.core.entities.utils import Tag
 from lib.core.entities.utils import VectorAnnotationTypeEnum
 from pydantic import conlist
 from pydantic import Field
-from pydantic import StrictStr
-from pydantic import validate_model
-from pydantic import ValidationError
-from pydantic import validator
-
-
-class ClassesJson(BaseModel):
-    name: StrictStr
-    color: StrictStr
-    attribute_groups: List[AttributeGroup]
-
-
-class Tags(BaseModel):
-    items: Optional[List[str]]
 
 
 class AxisPoint(BaseModel):
@@ -126,9 +111,7 @@ class AnnotationInstance(BaseModel):
         try:
             instance_type = values["type"]
         except KeyError:
-            raise ValueError(
-                f"meta.type required"
-            )
+            raise ValueError("meta.type required")
         try:
             return ANNOTATION_TYPES[instance_type](**values)
         except KeyError:
