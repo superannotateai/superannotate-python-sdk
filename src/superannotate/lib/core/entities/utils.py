@@ -9,8 +9,16 @@ from pydantic import conlist
 from pydantic import constr
 from pydantic import EmailStr
 from pydantic import Field
-from pydantic.datetime_parse import parse_datetime
 from pydantic import validator
+from pydantic.errors import EnumMemberError
+
+
+def enum_error_handling(self) -> str:
+    permitted = ', '.join(repr(v.value) for v in self.enum_values)
+    return f'Invalid value, permitted: {permitted}'
+
+
+EnumMemberError.__str__ = enum_error_handling
 
 
 NotEmptyStr = constr(strict=True, min_length=1)
@@ -40,7 +48,7 @@ class VectorAnnotationTypeEnum(str, Enum):
 class CreationTypeEnum(str, Enum):
     MANUAL = "Manual"
     PREDICTION = "Prediction"
-    PRE_ANNOTATION = "Pre-annotation"
+    PRE_ANNOTATION = "Preannotation"
 
 
 class AnnotationStatusEnum(str, Enum):
@@ -102,13 +110,11 @@ class UserAction(BaseModel):
 class TrackableModel(BaseModel):
     created_by: Optional[UserAction] = Field(None, alias="createdBy")
     updated_by: Optional[UserAction] = Field(None, alias="updatedBy")
-    creation_type: Optional[CreationTypeEnum] = Field(
-        CreationTypeEnum.PRE_ANNOTATION.value, alias="creationType"
-    )
+    creation_type: Optional[CreationTypeEnum] = Field(CreationTypeEnum.PRE_ANNOTATION.value, alias="creationType")
 
-    @validator("creation_type")
-    def clean_creation_type(cls, value):
-        return value or CreationTypeEnum.PRE_ANNOTATION.value
+    @validator("creation_type", always=True)
+    def clean_creation_type(cls, _):
+        return CreationTypeEnum.PRE_ANNOTATION.value
 
 
 class LastUserAction(BaseModel):
