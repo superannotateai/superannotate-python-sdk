@@ -4,7 +4,7 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel as PyDanticBaseModel
 from pydantic import conlist
 from pydantic import constr
 from pydantic import EmailStr
@@ -13,6 +13,16 @@ from pydantic.datetime_parse import parse_datetime
 
 
 NotEmptyStr = constr(strict=True, min_length=1)
+
+
+class BaseModel(PyDanticBaseModel):
+    class Config:
+        use_enum_values = True
+        error_msg_templates = {
+            "type_error.integer": "integer type expected",
+            "type_error.string": "str type expected",
+            "value_error.missing": "field required",
+        }
 
 
 class StringDate(datetime):
@@ -106,6 +116,10 @@ class TrackableModel(BaseModel):
         CreationTypeEnum.PRE_ANNOTATION.value, alias="creationType"
     )
 
+    @validator("creation_type")
+    def clean_creation_type(cls, value):
+        return value or CreationTypeEnum.PRE_ANNOTATION.value
+
 
 class LastUserAction(BaseModel):
     email: EmailStr
@@ -113,8 +127,7 @@ class LastUserAction(BaseModel):
 
 
 class BaseInstance(TrackableModel, TimedBaseModel):
-    # TODO check id: Optional[str]
-    class_id: int = Field(alias="classId")
+    class_id: Optional[str] = Field(None, alias="classId")
     class_name: Optional[str] = Field(None, alias="className")
 
 

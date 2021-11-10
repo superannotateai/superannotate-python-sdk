@@ -3644,12 +3644,23 @@ def attach_document_urls_to_project(
 def validate_annotations(
     project_type: ProjectTypes, annotations_json: Union[NotEmptyStr, Path]
 ):
+    """
+    Validates given annotation JSON.
+        :param project_type: project_type (str) – the project type Vector, Pixel, Video or Document
+        :type project_type: str
+        :param annotations_json: path to annotation JSON
+        :type annotations_json: Path-like (str or Path)
+
+        :return: The success of the validation
+        :rtype: bool
+        """
     with open(annotations_json) as file:
         annotation_data = json.loads(file.read())
         response = controller.validate_annotations(project_type, annotation_data)
         if response.errors:
             raise AppException(response.errors)
-        if response.data:
+        is_valid, _ = response.data
+        if is_valid:
             return True
         print(response.report)
         return False

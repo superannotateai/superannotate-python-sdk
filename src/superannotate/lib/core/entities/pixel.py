@@ -2,9 +2,9 @@ from typing import List
 from typing import Optional
 
 from lib.core.entities.utils import BaseImageInstance
+from lib.core.entities.utils import BaseModel
 from lib.core.entities.utils import MetadataBase
 from lib.core.entities.utils import Tag
-from pydantic import BaseModel
 from pydantic import Field
 from pydantic import validator
 from pydantic.color import Color

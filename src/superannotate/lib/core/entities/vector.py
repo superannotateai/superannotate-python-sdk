@@ -3,13 +3,13 @@ from typing import Optional
 from typing import Union
 
 from lib.core.entities.utils import AttributeGroup
+from lib.core.entities.utils import BaseModel
 from lib.core.entities.utils import BaseVectorInstance
 from lib.core.entities.utils import BboxPoints
 from lib.core.entities.utils import Comment
 from lib.core.entities.utils import Metadata
 from lib.core.entities.utils import Tag
 from lib.core.entities.utils import VectorAnnotationTypeEnum
-from pydantic import BaseModel
 from pydantic import conlist
 from pydantic import Field
 from pydantic import StrictStr
@@ -114,23 +114,29 @@ ANNOTATION_TYPES = {
 }
 
 
+class AnnotationInstance(BaseModel):
+    __root__: Union[Template, Cuboid, Point, PolyLine, Polygon, Bbox, Ellipse, RotatedBox]
+
+    @classmethod
+    def __get_validators__(cls):
+        yield cls.return_action
+
+    @classmethod
+    def return_action(cls, values):
+        try:
+            instance_type = values["type"]
+        except KeyError:
+            raise ValueError(
+                f"meta.type required"
+            )
+        try:
+            return ANNOTATION_TYPES[instance_type](**values)
+        except KeyError:
+            raise ValueError(f"invalid type, valid types is {', '.join(ANNOTATION_TYPES.keys())}")
+
+
 class VectorAnnotation(BaseModel):
     metadata: Metadata
     comments: Optional[List[Comment]] = Field(list())
     tags: Optional[List[Tag]] = Field(list())
-    instances: Optional[
-        List[
-            Union[Template, Cuboid, Point, PolyLine, Polygon, Bbox, Ellipse, RotatedBox]
-        ]
-    ] = Field(list())
-
-    @validator("instances", pre=True, each_item=True)
-    def check_instances(cls, instance):
-        # todo add type checking
-        annotation_type = instance.get("type")
-        result = validate_model(ANNOTATION_TYPES[annotation_type], instance)
-        if result[2]:
-            raise ValidationError(
-                result[2].raw_errors, model=ANNOTATION_TYPES[annotation_type]
-            )
-        return instance
+    instances: Optional[List[AnnotationInstance]] = Field(list())
