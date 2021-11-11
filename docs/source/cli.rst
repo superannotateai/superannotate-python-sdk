@@ -191,7 +191,7 @@ To export project
 
    superannotatecli export-project --project <project_name> --folder <folder_path> 
                                    [--include-fuse]
-                                   [--disable_extract_zip_contents] 
+                                   [--disable-extract-zip-contents] 
                                    [--annotation-statuses <comma separated list of annotation statuses to export>]
 
 ----------

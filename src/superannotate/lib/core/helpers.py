@@ -1,7 +1,9 @@
 import json
+import time
 from collections import defaultdict
 from typing import List
 
+from lib.core.entities import TeamEntity
 from lib.core.reporter import Reporter
 
 
@@ -146,12 +148,15 @@ def convert_to_video_editor_json(
         "tags": data["tags"],
         "name": data["metadata"]["name"],
         "metadata": {
-            "duration": convert_timestamp(data["metadata"]["duration"]),
             "name": data["metadata"]["name"],
             "width": data["metadata"].get("width"),
             "height": data["metadata"].get("height"),
         },
     }
+    if data["metadata"].get("duration"):
+        editor_data["metadata"]["duration"] = convert_timestamp(
+            data["metadata"]["duration"]
+        )
     for instance in data["instances"]:
         meta = instance["meta"]
         class_name = meta.get("className")
@@ -159,7 +164,6 @@ def convert_to_video_editor_json(
             "attributes": [],
             "timeline": {},
             "type": meta["type"],
-            # TODO check
             "locked": False,
         }
         if class_name:
@@ -263,6 +267,13 @@ def convert_to_video_editor_json(
                     )
         editor_data["instances"].append(editor_instance)
     return editor_data
+
+
+def handle_last_action(annotations: dict, team: TeamEntity):
+    annotations["metadata"]["lastAction"] = {
+        "email": team.creator_id,
+        "timestamp": int(time.time()),
+    }
 
 
 class SetEncoder(json.JSONEncoder):

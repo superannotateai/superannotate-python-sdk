@@ -2355,6 +2355,7 @@ def attach_image_urls_to_project(
     raise AppException(use_case.response.errors)
 
 
+@Trackable
 @validate_arguments
 def attach_video_urls_to_project(
     project: Union[NotEmptyStr, dict],
@@ -2476,6 +2477,7 @@ def upload_annotations_from_folder_to_project(
         folder_name=folder_name,
         annotation_paths=annotation_paths,  # noqa: E203
         client_s3_bucket=from_s3_bucket,
+        folder_path=folder_path,
     )
     if response.errors:
         raise AppException(response.errors)
@@ -3069,7 +3071,12 @@ def add_annotation_bbox_to_image(
     """
     annotations = get_image_annotations(project, image_name)["annotation_json"]
     annotations = add_annotation_bbox_to_json(
-        annotations, bbox, annotation_class_name, annotation_class_attributes, error,
+        annotations,
+        bbox,
+        annotation_class_name,
+        annotation_class_attributes,
+        error,
+        image_name,
     )
     upload_image_annotations(project, image_name, annotations, verbose=False)
 
@@ -3638,12 +3645,23 @@ def attach_document_urls_to_project(
 def validate_annotations(
     project_type: ProjectTypes, annotations_json: Union[NotEmptyStr, Path]
 ):
+    """
+    Validates given annotation JSON.
+        :param project_type: project_type (str) – the project type Vector, Pixel, Video or Document
+        :type project_type: str
+        :param annotations_json: path to annotation JSON
+        :type annotations_json: Path-like (str or Path)
+
+        :return: The success of the validation
+        :rtype: bool
+        """
     with open(annotations_json) as file:
         annotation_data = json.loads(file.read())
-        response = controller.validate_annotations(project_type, annotation_data)
+        response = controller.validate_annotations(project_type, annotation_data, allow_extra=False)
         if response.errors:
             raise AppException(response.errors)
-        if response.data:
+        is_valid, _ = response.data
+        if is_valid:
             return True
         print(response.report)
         return False

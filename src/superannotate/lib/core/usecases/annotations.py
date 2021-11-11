@@ -5,6 +5,7 @@ import logging
 import os
 from collections import namedtuple
 from typing import List
+from typing import Tuple
 
 import boto3
 import lib.core as constances
@@ -12,9 +13,11 @@ from lib.core.entities import AnnotationClassEntity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
 from lib.core.entities import ProjectEntity
+from lib.core.entities import TeamEntity
 from lib.core.helpers import convert_to_video_editor_json
 from lib.core.helpers import fill_annotation_ids
 from lib.core.helpers import fill_document_tags
+from lib.core.helpers import handle_last_action
 from lib.core.helpers import map_annotation_classes_name
 from lib.core.reporter import Reporter
 from lib.core.service_types import UploadAnnotationAuthData
@@ -38,6 +41,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
         reporter: Reporter,
         project: ProjectEntity,
         folder: FolderEntity,
+        team: TeamEntity,
         annotation_classes: List[AnnotationClassEntity],
         annotation_paths: List[str],
         backend_service_provider: SuerannotateServiceProvider,
@@ -45,10 +49,12 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
         validators: BaseAnnotationValidator,
         pre_annotation: bool = False,
         client_s3_bucket=None,
+        folder_path: str = None,
     ):
         super().__init__(reporter)
         self._project = project
         self._folder = folder
+        self._team = team
         self._backend_service = backend_service_provider
         self._annotation_classes = annotation_classes
         self._annotation_paths = annotation_paths
@@ -61,6 +67,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
         self.missing_attribute_groups = set()
         self.missing_classes = set()
         self.missing_attributes = set()
+        self._folder_path = folder_path
 
     @property
     def annotation_postfix(self):
@@ -154,6 +161,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
             response = UploadAnnotationUseCase(
                 project=self._project,
                 folder=self._folder,
+                team=self._team,
                 image=ImageEntity(uuid=image_id, name=image_name),
                 annotation_classes=self._annotation_classes,
                 backend_service_provider=self._backend_service,
@@ -167,7 +175,6 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
                 validators=self._validators,
             ).execute()
             if response.errors:
-                self.reporter.store_message("Invalid jsons", path)
                 return path, False
             return path, True
         except Exception as _:
@@ -187,14 +194,23 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
 
     def _log_report(self):
         for key, values in self.reporter.custom_messages.items():
-            template = key + ": {}"
-            if key == "missing_classes":
-                template = "Could not find annotation classes matching existing classes on the platform: [{}]"
-            elif key == "missing_attribute_groups":
-                template = "Could not find attribute groups matching existing attribute groups on the platform: [{}]"
-            elif key == "missing_attributes":
-                template = "Could not find attributes matching existing attributes on the platform: [{}]"
-            logger.warning(template.format("', '".join(values)))
+            if key in [
+                "missing_classes",
+                "missing_attribute_groups",
+                "missing_attributes",
+            ]:
+                template = key + ": {}"
+                if key == "missing_classes":
+                    template = "Could not find annotation classes matching existing classes on the platform: [{}]"
+                elif key == "missing_attribute_groups":
+                    template = "Could not find attribute groups matching existing attribute groups on the platform: [{}]"
+                elif key == "missing_attributes":
+                    template = "Could not find attributes matching existing attributes on the platform: [{}]"
+                logger.warning(template.format("', '".join(values)))
+        if self.reporter.custom_messages.get("invalid_jsons"):
+            logger.warning(
+                f"Couldn't validate {len(self.reporter.custom_messages['invalid_jsons'])}/{len(self._annotations_to_upload + self._missing_annotations)} annotations from {self._folder_path}."
+            )
 
     def execute(self):
         uploaded_annotations = []
@@ -262,6 +278,7 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
         project: ProjectEntity,
         folder: FolderEntity,
         image: ImageEntity,
+        team: TeamEntity,
         annotation_classes: List[AnnotationClassEntity],
         backend_service_provider: SuerannotateServiceProvider,
         reporter: Reporter,
@@ -280,6 +297,7 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
         self._project = project
         self._folder = folder
         self._image = image
+        self._team = team
         self._backend_service = backend_service_provider
         self._annotation_classes = annotation_classes
         self._annotation_json = annotations
@@ -356,7 +374,7 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
                             constances.PIXEL_ANNOTATION_POSTFIX,
                             constances.ANNOTATION_MASK_POSTFIX,
                         ),
-                        "rb"
+                        "rb",
                     )
 
     def _is_valid_json(self, json_data: dict):
@@ -374,6 +392,7 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
         annotation_classes: List[AnnotationClassEntity],
         templates: List[dict],
         reporter: Reporter,
+        team: TeamEntity,
     ) -> dict:
         annotation_classes_name_maps = map_annotation_classes_name(
             annotation_classes, reporter
@@ -398,11 +417,10 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
                 annotations=annotations,
                 annotation_classes=annotation_classes_name_maps,
             )
+        handle_last_action(annotations, team)
         return annotations
 
-    def is_valid_json(
-        self, json_data: dict,
-    ):
+    def clean_json(self, json_data: dict,) -> Tuple[bool, dict]:
         use_case = ValidateAnnotationUseCase(
             constances.ProjectType.get_name(self._project.project_type),
             annotation=json_data,
@@ -413,7 +431,9 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
     def execute(self):
         if self.is_valid():
             self.set_annotation_json()
-            if self.is_valid_json(self._annotation_json):
+            is_valid, clean_json = self.clean_json(self._annotation_json)
+            if is_valid:
+                self._annotation_json = clean_json
                 bucket = self.s3_bucket
                 annotation_json = self.prepare_annotations(
                     project_type=self._project.project_type,
@@ -421,6 +441,7 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
                     annotation_classes=self._annotation_classes,
                     templates=self._templates,
                     reporter=self.reporter,
+                    team=self._team,
                 )
                 bucket.put_object(
                     Key=self.annotation_upload_data.images[self._image.uuid][
@@ -446,4 +467,5 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
                     )
             else:
                 self._response.errors = "Invalid json"
+                self.reporter.store_message("invalid_jsons", self._annotation_path)
         return self._response

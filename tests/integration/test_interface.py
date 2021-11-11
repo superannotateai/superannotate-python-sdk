@@ -3,7 +3,6 @@ from os.path import dirname
 import tempfile
 import pytest
 
-
 import src.superannotate as sa
 from src.superannotate.lib.app.exceptions import AppException
 from tests.integration.base import BaseTestCase
@@ -251,6 +250,3 @@ class TestPixelInterface(BaseTestCase):
                 'Folder __abc (1) created in project Interface Pixel test',
                 logs.output[4]
             )
-
-    def test_(self):
-        sa.upload_annotations_from_folder_to_project("PROJECT_2", "/Users/vaghinak.basentsyan/www/for_fun/data")

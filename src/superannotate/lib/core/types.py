@@ -48,7 +48,7 @@ class Metadata(BaseModel):
 
 
 class PointLabels(BaseModel):
-    __root__: Dict[constr(regex=r"^[0-9]*$"), str]
+    __root__: Dict[constr(regex=r"^[0-9]*$"), str]  # noqa: F722
 
 
 class BaseInstance(BaseModel):
@@ -199,9 +199,10 @@ class MLModel(BaseModel):
 
 
 class VideoMetaData(BaseModel):
-    name: Optional[str]
+    name: StrictStr
     width: Optional[int]
     height: Optional[int]
+    duration: Optional[int]
 
 
 class VideoInstanceMeta(BaseModel):

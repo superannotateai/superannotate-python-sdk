@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 
 import pandas as pd
-from superannotate.lib.app.mixp.decorators import Trackable
+from lib.app.mixp.decorators import Trackable
 
 
 @Trackable

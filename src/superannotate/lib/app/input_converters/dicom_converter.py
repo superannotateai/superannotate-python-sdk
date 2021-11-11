@@ -2,8 +2,8 @@ from pathlib import Path
 
 import numpy as np
 import pydicom
+from lib.app.mixp.decorators import Trackable
 from PIL import Image
-from superannotate.lib.app.mixp.decorators import Trackable
 
 
 @Trackable

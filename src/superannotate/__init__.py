@@ -312,16 +312,19 @@ logging.config.fileConfig(
 local_version = parse(__version__)
 if local_version.is_prerelease:
     logging.info(constances.PACKAGE_VERSION_INFO_MESSAGE.format(__version__))
-req = requests.get('https://pypi.python.org/pypi/superannotate/json')
+req = requests.get("https://pypi.python.org/pypi/superannotate/json")
 if req.ok:
-    releases = req.json().get('releases', [])
-    pip_version = parse('0')
+    releases = req.json().get("releases", [])
+    pip_version = parse("0")
     for release in releases:
         ver = parse(release)
         if not ver.is_prerelease or local_version.is_prerelease:
             pip_version = max(pip_version, ver)
     if pip_version.major > local_version.major:
-        logging.warning(constances.PACKAGE_VERSION_MAJOR_UPGRADE.format(local_version, pip_version))
+        logging.warning(
+            constances.PACKAGE_VERSION_MAJOR_UPGRADE.format(local_version, pip_version)
+        )
     elif pip_version > local_version:
-        logging.warning(constances.PACKAGE_VERSION_UPGRADE.format(local_version, pip_version)
+        logging.warning(
+            constances.PACKAGE_VERSION_UPGRADE.format(local_version, pip_version)
         )
