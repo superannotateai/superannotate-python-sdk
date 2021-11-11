@@ -52,6 +52,7 @@ class SingleInstanceMetaClass(type):
 
 class BaseController(metaclass=SingleInstanceMetaClass):
     def __init__(self, config_path=constances.CONFIG_FILE_LOCATION):
+        self._team_data = None
         self._config_path = None
         self._backend_client = None
         self._logger = logging.getLogger("root")
@@ -187,6 +188,12 @@ class BaseController(metaclass=SingleInstanceMetaClass):
         if self.team_id and not self._teams:
             self._teams = TeamRepository(self._backend_client)
         return self._teams
+
+    @property
+    def team_data(self):
+        if not self._team_data:
+            self._team_data = self.get_team()
+        return self._team_data
 
     @property
     def images(self):
@@ -1316,12 +1323,14 @@ class Controller(BaseController):
         annotation_paths: List[str],
         client_s3_bucket=None,
         is_pre_annotations: bool = False,
+        folder_path: str = None,
     ):
         project = self._get_project(project_name)
         folder = self._get_folder(project, folder_name)
         use_case = usecases.UploadAnnotationsUseCase(
             project=project,
             folder=folder,
+            team=self.team_data.data,
             annotation_paths=annotation_paths,
             backend_service_provider=self._backend_client,
             annotation_classes=AnnotationClassRepository(
@@ -1334,6 +1343,7 @@ class Controller(BaseController):
             ),
             validators=self.annotation_validators,
             reporter=Reporter(log_info=False, log_warning=False),
+            folder_path=folder_path,
         )
         return use_case.execute()
 
@@ -1355,6 +1365,7 @@ class Controller(BaseController):
         use_case = usecases.UploadAnnotationUseCase(
             project=project,
             folder=folder,
+            team=self.team_data.data,
             annotation_classes=AnnotationClassRepository(
                 service=self._backend_client, project=project
             ).get_all(),
@@ -1631,8 +1642,10 @@ class Controller(BaseController):
         )
         return use_case.execute()
 
-    def validate_annotations(self, project_type: str, annotation: dict):
+    def validate_annotations(self, project_type: str, annotation: dict, allow_extra: bool = False):
         use_case = usecases.ValidateAnnotationUseCase(
-            project_type, annotation, validators=self.annotation_validators
+            project_type, annotation,
+            validators=self.annotation_validators,
+            allow_extra=allow_extra
         )
         return use_case.execute()

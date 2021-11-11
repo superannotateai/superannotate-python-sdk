@@ -5,7 +5,6 @@ from pathlib import Path
 import pytest
 import src.superannotate as sa
 from tests.integration.base import BaseTestCase
-from src.superannotate.lib.core.helpers import fill_document_tags
 
 
 class TestUploadTextAnnotation(BaseTestCase):
@@ -48,13 +47,12 @@ class TestUploadTextAnnotation(BaseTestCase):
             self.PROJECT_NAME,
             self.csv_path,
         )
-
         (uploaded_annotations, failed_annotations, missing_annotations) = sa.upload_annotations_from_folder_to_project(
             self.PROJECT_NAME, self.invalid_annotations_path)
         self.assertEqual(len(uploaded_annotations), 0)
         self.assertEqual(len(failed_annotations), 1)
         self.assertEqual(len(missing_annotations), 0)
-        self.assertIn("Invalid json", self._caplog.text)
+        self.assertIn("Couldn't validate 1/1 annotations", self._caplog.text)
 
     def test_text_annotation_upload(self):
         sa.create_annotation_classes_from_classes_json(self.PROJECT_NAME, self.classes_path)
