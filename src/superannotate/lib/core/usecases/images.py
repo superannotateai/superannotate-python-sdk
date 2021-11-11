@@ -3154,12 +3154,17 @@ class UploadS3ImagesBackendUseCase(BaseUseCase):
 
 class ValidateAnnotationUseCase(BaseUseCase):
     def __init__(
-        self, project_type: str, annotation: dict, validators: BaseAnnotationValidator
+            self,
+            project_type: str,
+            annotation: dict,
+            validators: BaseAnnotationValidator,
+            allow_extra: bool = True
     ):
         super().__init__()
         self._project_type = project_type
         self._annotation = annotation
         self._validators = validators
+        self._allow_extra = allow_extra
 
     def execute(self) -> Response:
         validator = None
@@ -3172,7 +3177,7 @@ class ValidateAnnotationUseCase(BaseUseCase):
         elif self._project_type.lower() == constances.ProjectType.DOCUMENT.name.lower():
             validator = self._validators.get_document_validator()
         if validator:
-            validator = validator(self._annotation)
+            validator = validator(self._annotation, allow_extra=self._allow_extra)
             if validator.is_valid():
                 self._response.data = True, validator.data
             else:

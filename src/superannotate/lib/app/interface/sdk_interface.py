@@ -3656,7 +3656,7 @@ def validate_annotations(
         """
     with open(annotations_json) as file:
         annotation_data = json.loads(file.read())
-        response = controller.validate_annotations(project_type, annotation_data)
+        response = controller.validate_annotations(project_type, annotation_data, allow_extra=False)
         if response.errors:
             raise AppException(response.errors)
         is_valid, _ = response.data

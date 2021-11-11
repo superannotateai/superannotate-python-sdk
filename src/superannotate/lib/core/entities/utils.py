@@ -27,7 +27,9 @@ DATE_REGEX = r'\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d(?:\.\d{3})Z'
 
 
 class BaseModel(PyDanticBaseModel):
+
     class Config:
+        # extra = "forbid"
         use_enum_values = True
         error_msg_templates = {
             "type_error.integer": "integer type expected",

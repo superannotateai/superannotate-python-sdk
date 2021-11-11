@@ -16,11 +16,11 @@ VECTOR_ANNOTATION_JSON_WITH_BBOX = """
     "width": 1024,
     "height": 683,
     "status": "Completed",
-    "pinned": false,
-    "isPredicted": null,
-    "projectId": null,
-    "annotatorEmail": null,
-    "qaEmail": null
+    "pinned": False,
+    "isPredicted": None,
+    "projectId": None,
+    "annotatorEmail": None,
+    "qaEmail": None
   },
   "instances": [
     {
@@ -35,8 +35,8 @@ VECTOR_ANNOTATION_JSON_WITH_BBOX = """
       },
       "groupId": 0,
       "pointLabels": {},
-      "locked": false,
-      "visible": false,
+      "locked": False,
+      "visible": False,
       "attributes": [
         {
           "id": 117845,
@@ -46,12 +46,12 @@ VECTOR_ANNOTATION_JSON_WITH_BBOX = """
         }
       ],
       "trackingId": "aaa97f80c9e54a5f2dc2e920fc92e5033d9af45b",
-      "error": null,
-      "createdAt": null,
-      "createdBy": null,
-      "creationType": null,
-      "updatedAt": null,
-      "updatedBy": null,
+      "error": None,
+      "createdAt": None,
+      "createdBy": None,
+      "creationType": None,
+      "updatedAt": None,
+      "updatedBy": None,
       "className": "Personal vehicle"
     }
   ]
@@ -112,11 +112,11 @@ class TestTypeHandling(TestCase):
         "width": 1024,
         "height": 683,
         "status": "Completed",
-        "pinned": false,
-        "isPredicted": null,
-        "projectId": null,
-        "annotatorEmail": null,
-        "qaEmail": null
+        "pinned": False,
+        "isPredicted": None,
+        "projectId": None,
+        "annotatorEmail": None,
+        "qaEmail": None
         },
         "instances": [
         {
@@ -131,8 +131,8 @@ class TestTypeHandling(TestCase):
           },
           "groupId": 0,
           "pointLabels": {},
-          "locked": false,
-          "visible": false,
+          "locked": False,
+          "visible": False,
           "attributes": [
             {
               "id": 117845,
@@ -142,12 +142,12 @@ class TestTypeHandling(TestCase):
             }
           ],
           "trackingId": "aaa97f80c9e54a5f2dc2e920fc92e5033d9af45b",
-          "error": null,
-          "createdAt": null,
-          "createdBy": null,
-          "creationType": null,
-          "updatedAt": null,
-          "updatedBy": null,
+          "error": None,
+          "createdAt": None,
+          "createdBy": None,
+          "creationType": None,
+          "updatedAt": None,
+          "updatedBy": None,
           "className": "Personal vehicle"
         }
         ]
