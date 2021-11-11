@@ -112,11 +112,11 @@ class TestTypeHandling(TestCase):
         "width": 1024,
         "height": 683,
         "status": "Completed",
-        "pinned": False,
-        "isPredicted": None,
-        "projectId": None,
-        "annotatorEmail": None,
-        "qaEmail": None
+        "pinned": false,
+        "isPredicted": null,
+        "projectId": null,
+        "annotatorEmail": null,
+        "qaEmail": null
         },
         "instances": [
         {
@@ -131,8 +131,8 @@ class TestTypeHandling(TestCase):
           },
           "groupId": 0,
           "pointLabels": {},
-          "locked": False,
-          "visible": False,
+          "locked": false,
+          "visible": false,
           "attributes": [
             {
               "id": 117845,
@@ -142,12 +142,12 @@ class TestTypeHandling(TestCase):
             }
           ],
           "trackingId": "aaa97f80c9e54a5f2dc2e920fc92e5033d9af45b",
-          "error": None,
-          "createdAt": None,
-          "createdBy": None,
-          "creationType": None,
-          "updatedAt": None,
-          "updatedBy": None,
+          "error": null,
+          "createdAt": null,
+          "createdBy": null,
+          "creationType": null,
+          "updatedAt": null,
+          "updatedBy": null,
           "className": "Personal vehicle"
         }
         ]

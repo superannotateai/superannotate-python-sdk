@@ -14,7 +14,7 @@ class BaseValidator(metaclass=ABCMeta):
     def __init__(self, data: Any, allow_extra: bool = True):
         self.data = data
         self._validation_output = None
-        self._extra = Extra.ignore if allow_extra else Extra.forbid
+        self._extra = Extra.allow if allow_extra else Extra.forbid
 
     @classmethod
     def validate(cls, data: Any, extra=True):

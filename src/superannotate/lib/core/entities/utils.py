@@ -8,6 +8,7 @@ from pydantic import conlist
 from pydantic import constr
 from pydantic import EmailStr
 from pydantic import Field
+from pydantic import Extra
 from pydantic import validator
 from pydantic.errors import EnumMemberError
 
@@ -29,7 +30,7 @@ DATE_REGEX = r"\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d(?:\.\d{3})Z"
 class BaseModel(PyDanticBaseModel):
 
     class Config:
-        # extra = "forbid"
+        extra = Extra.allow
         use_enum_values = True
         error_msg_templates = {
             "type_error.integer": "integer type expected",
