@@ -89,10 +89,7 @@ class EventInstance(BaseModel):
     parameters: conlist(EventParameter, min_items=1)
 
 
-INSTANCES = {
-    VideoType.BBOX.value: BboxInstance,
-    VideoType.EVENT.value: EventInstance
-}
+INSTANCES = {VideoType.BBOX.value: BboxInstance, VideoType.EVENT.value: EventInstance}
 
 
 class VideoInstance(BaseModel):
@@ -107,13 +104,13 @@ class VideoInstance(BaseModel):
         try:
             instance_type = values["meta"]["type"]
         except KeyError:
-            raise ValueError(
-                "meta.type required"
-            )
+            raise ValueError("meta.type required")
         try:
             return INSTANCES[instance_type](**values)
         except KeyError:
-            raise ValueError(f"invalid type, valid types is {', '.join(INSTANCES.keys())}")
+            raise ValueError(
+                f"invalid type, valid types is {', '.join(INSTANCES.keys())}"
+            )
 
 
 class VideoAnnotation(BaseModel):
