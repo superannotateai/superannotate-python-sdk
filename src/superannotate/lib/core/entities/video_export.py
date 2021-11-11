@@ -21,7 +21,6 @@ class VideoType(str, Enum):
 
 
 class MetaData(MetadataBase):
-    url: Optional[str]
     duration: Optional[int]
     error: Optional[bool]
 
