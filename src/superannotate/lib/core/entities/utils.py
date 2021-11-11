@@ -13,8 +13,8 @@ from pydantic.errors import EnumMemberError
 
 
 def enum_error_handling(self) -> str:
-    permitted = ', '.join(repr(v.value) for v in self.enum_values)
-    return f'Invalid value, permitted: {permitted}'
+    permitted = ", ".join(repr(v.value) for v in self.enum_values)
+    return f"Invalid value, permitted: {permitted}"
 
 
 EnumMemberError.__str__ = enum_error_handling
@@ -23,7 +23,7 @@ EnumMemberError.__str__ = enum_error_handling
 NotEmptyStr = constr(strict=True, min_length=1)
 
 
-DATE_REGEX = r'\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d(?:\.\d{3})Z'
+DATE_REGEX = r"\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d(?:\.\d{3})Z"
 
 
 class BaseModel(PyDanticBaseModel):
@@ -112,7 +112,9 @@ class UserAction(BaseModel):
 class TrackableModel(BaseModel):
     created_by: Optional[UserAction] = Field(None, alias="createdBy")
     updated_by: Optional[UserAction] = Field(None, alias="updatedBy")
-    creation_type: Optional[CreationTypeEnum] = Field(CreationTypeEnum.PRE_ANNOTATION.value, alias="creationType")
+    creation_type: Optional[CreationTypeEnum] = Field(
+        CreationTypeEnum.PRE_ANNOTATION.value, alias="creationType"
+    )
 
     @validator("creation_type", always=True)
     def clean_creation_type(cls, _):

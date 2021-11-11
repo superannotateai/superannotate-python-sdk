@@ -100,7 +100,9 @@ ANNOTATION_TYPES = {
 
 
 class AnnotationInstance(BaseModel):
-    __root__: Union[Template, Cuboid, Point, PolyLine, Polygon, Bbox, Ellipse, RotatedBox]
+    __root__: Union[
+        Template, Cuboid, Point, PolyLine, Polygon, Bbox, Ellipse, RotatedBox
+    ]
 
     @classmethod
     def __get_validators__(cls):
@@ -115,7 +117,9 @@ class AnnotationInstance(BaseModel):
         try:
             return ANNOTATION_TYPES[instance_type](**values)
         except KeyError:
-            raise ValueError(f"invalid type, valid types is {', '.join(ANNOTATION_TYPES.keys())}")
+            raise ValueError(
+                f"invalid type, valid types is {', '.join(ANNOTATION_TYPES.keys())}"
+            )
 
 
 class VectorAnnotation(BaseModel):
