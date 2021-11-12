@@ -3641,6 +3641,7 @@ def attach_document_urls_to_project(
     raise AppException(use_case.response.errors)
 
 
+@Trackable
 @validate_arguments
 def validate_annotations(
     project_type: ProjectTypes, annotations_json: Union[NotEmptyStr, Path]
@@ -3657,7 +3658,9 @@ def validate_annotations(
         """
     with open(annotations_json) as file:
         annotation_data = json.loads(file.read())
-        response = controller.validate_annotations(project_type, annotation_data, allow_extra=False)
+        response = controller.validate_annotations(
+            project_type, annotation_data, allow_extra=False
+        )
         if response.errors:
             raise AppException(response.errors)
         is_valid, _ = response.data

@@ -3154,11 +3154,11 @@ class UploadS3ImagesBackendUseCase(BaseUseCase):
 
 class ValidateAnnotationUseCase(BaseUseCase):
     def __init__(
-            self,
-            project_type: str,
-            annotation: dict,
-            validators: BaseAnnotationValidator,
-            allow_extra: bool = True
+        self,
+        project_type: str,
+        annotation: dict,
+        validators: BaseAnnotationValidator,
+        allow_extra: bool = True,
     ):
         super().__init__()
         self._project_type = project_type

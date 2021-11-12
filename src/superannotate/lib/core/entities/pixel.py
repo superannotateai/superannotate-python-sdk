@@ -3,9 +3,9 @@ from typing import Optional
 
 from lib.core.entities.utils import BaseImageInstance
 from lib.core.entities.utils import BaseModel
+from lib.core.entities.utils import Comment
 from lib.core.entities.utils import Metadata
 from lib.core.entities.utils import Tag
-from lib.core.entities.utils import Comment
 from pydantic import Field
 from pydantic import validator
 from pydantic.color import Color
