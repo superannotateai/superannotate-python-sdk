@@ -1522,3 +1522,13 @@ def attach_document_urls_to_project(*args, **kwargs):
 
 def delete_annotations(*args, **kwargs):
     return {"event_name": "delete_annotations", "properties": {}}
+
+
+def validate_annotations(*args, **kwargs):
+    project_type = kwargs.get("project_type", None)
+    if not project_type:
+        project_type = args[0]
+    return {
+        "event_name": "validate_annotations",
+        "properties": {"Project Type": project_type},
+    }

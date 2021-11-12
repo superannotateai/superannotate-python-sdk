@@ -3641,6 +3641,7 @@ def attach_document_urls_to_project(
     raise AppException(use_case.response.errors)
 
 
+@Trackable
 @validate_arguments
 def validate_annotations(
     project_type: ProjectTypes, annotations_json: Union[NotEmptyStr, Path]

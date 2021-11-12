@@ -26,7 +26,9 @@ NotEmptyStr = constr(strict=True, min_length=1)
 
 DATE_REGEX = r"\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d(?:\.\d{3})Z"
 
-DATE_TIME_FORMAT_ERROR_MESSAGE = "does not match expected format YYYY-MM-DDTHH:MM:SS.fffZ"
+DATE_TIME_FORMAT_ERROR_MESSAGE = (
+    "does not match expected format YYYY-MM-DDTHH:MM:SS.fffZ"
+)
 
 
 class BaseModel(PyDanticBaseModel):
@@ -87,7 +89,7 @@ class Attribute(BaseModel):
 
 
 class Tag(BaseModel):
-    __root__: str
+    __root__: NotEmptyStr
 
 
 class AttributeGroup(BaseModel):
@@ -113,7 +115,7 @@ class TimedBaseModel(BaseModel):
 
         try:
             constr(regex=DATE_REGEX).validate(value)
-        except StrRegexError:
+        except (TypeError, StrRegexError):
             raise TypeError(DATE_TIME_FORMAT_ERROR_MESSAGE)
         return value
 
@@ -123,7 +125,7 @@ class TimedBaseModel(BaseModel):
 
         try:
             constr(regex=DATE_REGEX).validate(value)
-        except StrRegexError:
+        except (TypeError, StrRegexError):
             raise TypeError(DATE_TIME_FORMAT_ERROR_MESSAGE)
         return value
 
@@ -152,7 +154,7 @@ class LastUserAction(BaseModel):
 
 class BaseInstance(TrackableModel, TimedBaseModel):
     class_id: Optional[int] = Field(None, alias="classId")
-    class_name: Optional[str] = Field(None, alias="className")
+    class_name: Optional[NotEmptyStr] = Field(None, alias="className")
 
 
 class MetadataBase(BaseModel):
@@ -168,7 +170,7 @@ class MetadataBase(BaseModel):
 
 
 class PointLabels(BaseModel):
-    __root__: Dict[constr(regex=r"^[0-9]*$"), str]  # noqa: F722 E261
+    __root__: Dict[constr(regex=r"^[0-9]*$"), NotEmptyStr]  # noqa: F722 E261
 
 
 class Correspondence(BaseModel):
@@ -185,7 +187,7 @@ class Comment(TimedBaseModel, TrackableModel):
 
 class BaseImageInstance(BaseInstance):
     class_id: Optional[int] = Field(None, alias="classId")
-    class_name: str = Field(alias="className")
+    class_name: NotEmptyStr = Field(alias="className")
     visible: Optional[bool]
     locked: Optional[bool]
     probability: Optional[int] = Field(100)
