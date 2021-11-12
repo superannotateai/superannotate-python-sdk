@@ -156,6 +156,7 @@ class BaseInstance(TrackableModel, TimedBaseModel):
 
 
 class MetadataBase(BaseModel):
+    url: Optional[str]
     name: NotEmptyStr
     last_action: Optional[LastUserAction] = Field(None, alias="lastAction")
     width: Optional[int]
