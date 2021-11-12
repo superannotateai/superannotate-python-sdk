@@ -110,18 +110,11 @@ class TimedBaseModel(BaseModel):
     created_at: constr(regex=DATE_REGEX) = Field(None, alias="createdAt")
     updated_at: constr(regex=DATE_REGEX) = Field(None, alias="updatedAt")
 
-    @validator("created_at", pre=True)
+    @validator("created_at", "updated_at" , pre=True)
     def validate_created_at(cls, value):
         try:
-            constr(regex=DATE_REGEX).validate(value)
-        except (TypeError, StrRegexError):
-            raise TypeError(DATE_TIME_FORMAT_ERROR_MESSAGE)
-        return value
-
-    @validator("updated_at", pre=True)
-    def validate_updated_at(cls, value):
-        try:
-            constr(regex=DATE_REGEX).validate(value)
+            if value is not None:
+                constr(regex=DATE_REGEX).validate(value)
         except (TypeError, StrRegexError):
             raise TypeError(DATE_TIME_FORMAT_ERROR_MESSAGE)
         return value

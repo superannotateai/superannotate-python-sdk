@@ -352,3 +352,48 @@ class TestTypeHandling(TestCase):
                 sa.validate_annotations("Document", os.path.join(self.vector_folder_path, f"{tmpdir_name}/test_validate_document_annotation_wrong_class_id.json"))
                 self.assertIn("instances[0].classIdintegertypeexpected", out.getvalue().strip().replace(" ", ""))
 
+
+    def test_validate_document_annotation_with_null_created_at(self):
+        with tempfile.TemporaryDirectory() as tmpdir_name:
+            with open(f"{tmpdir_name}/test_validate_document_annotation_with_null_created_at.json", "w") as test_validate_document_annotation_with_null_created_at:
+                test_validate_document_annotation_with_null_created_at.write(
+                    '''
+                    {
+                        "metadata": {
+                            "name": "text_file_example_1",
+                            "status": "NotStarted",
+                            "url": "https://sa-public-files.s3.us-west-2.amazonaws.com/Text+project/text_file_example_1.txt",
+                            "projectId": 167826,
+                            "annotatorEmail": null,
+                            "qaEmail": null,
+                            "lastAction": {
+                                "email": "some.email@gmail.com",
+                                "timestamp": 1636620976450
+                            }
+                        },
+                        "instances": [{
+                                      "start": 253,
+                                      "end": 593,
+                                      "classId": 1,
+                                      "createdAt": null,
+                                      "createdBy": {
+                                        "email": "some.email@gmail.com",
+                                        "role": "Admin"
+                                      },
+                                      "updatedAt": null,
+                                      "updatedBy": {
+                                        "email": "some.email@gmail.com",
+                                        "role": "Admin"
+                                      },
+                                      "attributes": [],
+                                      "creationType": "Manual",
+                                      "className": "vid"
+                                    }],
+                        "tags": [],
+                        "freeText": ""
+                    }
+                    '''
+                )
+            self.assertTrue(sa.validate_annotations("Document", os.path.join(self.vector_folder_path,
+                                                                             f"{tmpdir_name}/test_validate_document_annotation_with_null_created_at.json")))
+
