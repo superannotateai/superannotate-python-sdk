@@ -139,7 +139,7 @@ class TrackableModel(BaseModel):
 
 class LastUserAction(BaseModel):
     email: EmailStr
-    timestamp: float
+    timestamp: int
 
 
 class BaseInstance(TrackableModel, TimedBaseModel):
