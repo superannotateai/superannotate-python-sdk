@@ -7,8 +7,8 @@ from pydantic import BaseModel as PyDanticBaseModel
 from pydantic import conlist
 from pydantic import constr
 from pydantic import EmailStr
-from pydantic import Field
 from pydantic import Extra
+from pydantic import Field
 from pydantic import validator
 from pydantic.errors import EnumMemberError
 

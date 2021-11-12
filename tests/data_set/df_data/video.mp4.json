@@ -1,0 +1,518 @@
+{
+  "metadata": {
+    "name": "video.mp4",
+    "width": 480,
+    "height": 270,
+    "status": "Completed",
+    "url": "https://file-examples-com.github.io/uploads/2017/04/file_example_MP4_480_1_5MG.mp4",
+    "duration": 30526667,
+    "projectId": 163550,
+    "error": null,
+    "annotatorEmail": null,
+    "qaEmail": null,
+    "lastAction": {
+      "timestamp": 1636635434819,
+      "email": "vaghinak@superannotate.com"
+    }
+  },
+  "instances": [
+    {
+      "meta": {
+        "type": "bbox",
+        "classId": 876880,
+        "className": "a",
+        "pointLabels": {
+          "2": "aa",
+          "4": "aas",
+          "5": "True",
+          "7": "12"
+        },
+        "createdBy": {
+          "email": "vaghinak@superannotate.com",
+          "role": "Admin"
+        },
+        "createdAt": "2021-11-11T12:52:18.011Z",
+        "updatedBy": {
+          "email": "vaghinak@superannotate.com",
+          "role": "Admin"
+        },
+        "updatedAt": "2021-11-11T12:56:33.511Z",
+        "start": 0,
+        "end": 30526667
+      },
+      "parameters": [
+        {
+          "start": 0,
+          "end": 30526667,
+          "timestamps": [
+            {
+              "points": {
+                "x1": 163.58,
+                "y1": 103.31,
+                "x2": 199.84,
+                "y2": 132.67
+              },
+              "timestamp": 0,
+              "attributes": [
+                {
+                  "id": 1216067,
+                  "groupId": 350540,
+                  "name": "sa",
+                  "groupName": "aa"
+                }
+              ]
+            },
+            {
+              "points": {
+                "x1": 163.58,
+                "y1": 103.31,
+                "x2": 199.84,
+                "y2": 132.67
+              },
+              "timestamp": 1217320,
+              "attributes": [
+                {
+                  "id": 1216070,
+                  "groupId": 350540,
+                  "name": "ada",
+                  "groupName": "aa"
+                }
+              ]
+            },
+            {
+              "points": {
+                "x1": 187.12,
+                "y1": 66.74,
+                "x2": 251.63,
+                "y2": 127.1
+              },
+              "timestamp": 1689682,
+              "attributes": [
+                {
+                  "id": 1216070,
+                  "groupId": 350540,
+                  "name": "ada",
+                  "groupName": "aa"
+                },
+                {
+                  "id": 1216067,
+                  "groupId": 350540,
+                  "name": "sa",
+                  "groupName": "aa"
+                },
+                {
+                  "id": 1216079,
+                  "groupId": 355053,
+                  "name": "aa1",
+                  "groupName": "aa2"
+                }
+              ]
+            },
+            {
+              "points": {
+                "x1": 194.46,
+                "y1": 55.23,
+                "x2": 267.77,
+                "y2": 125.24
+              },
+              "timestamp": 2216243,
+              "attributes": [
+                {
+                  "id": 1216070,
+                  "groupId": 350540,
+                  "name": "ada",
+                  "groupName": "aa"
+                },
+                {
+                  "id": 1216067,
+                  "groupId": 350540,
+                  "name": "sa",
+                  "groupName": "aa"
+                },
+                {
+                  "id": 1216079,
+                  "groupId": 355053,
+                  "name": "aa1",
+                  "groupName": "aa2"
+                }
+              ]
+            },
+            {
+              "points": {
+                "x1": 194.46,
+                "y1": 55.23,
+                "x2": 267.77,
+                "y2": 125.24
+              },
+              "timestamp": 2544810,
+              "attributes": [
+                {
+                  "id": 1216067,
+                  "groupId": 350540,
+                  "name": "sa",
+                  "groupName": "aa"
+                },
+                {
+                  "id": 1216079,
+                  "groupId": 355053,
+                  "name": "aa1",
+                  "groupName": "aa2"
+                }
+              ]
+            },
+            {
+              "points": {
+                "x1": 206.31,
+                "y1": 36.71,
+                "x2": 293.82,
+                "y2": 122.31
+              },
+              "timestamp": 3066251,
+              "attributes": [
+                {
+                  "id": 1216067,
+                  "groupId": 350540,
+                  "name": "sa",
+                  "groupName": "aa"
+                },
+                {
+                  "id": 1216079,
+                  "groupId": 355053,
+                  "name": "aa1",
+                  "groupName": "aa2"
+                }
+              ]
+            },
+            {
+              "points": {
+                "x1": 206.31,
+                "y1": 36.71,
+                "x2": 293.82,
+                "y2": 122.31
+              },
+              "timestamp": 30526667,
+              "attributes": [
+                {
+                  "id": 1216067,
+                  "groupId": 350540,
+                  "name": "sa",
+                  "groupName": "aa"
+                },
+                {
+                  "id": 1216079,
+                  "groupId": 355053,
+                  "name": "aa1",
+                  "groupName": "aa2"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "meta": {
+        "type": "bbox",
+        "classId": 876869,
+        "className": "b",
+        "pointLabels": {
+          "2": "Sinatra",
+          "3": "aj",
+          "6": "Frank",
+          "7": "aji"
+        },
+        "createdBy": {
+          "email": "vaghinak@superannotate.com",
+          "role": "Admin"
+        },
+        "createdAt": "2021-11-11T12:52:18.012Z",
+        "updatedBy": {
+          "email": "vaghinak@superannotate.com",
+          "role": "Admin"
+        },
+        "updatedAt": "2021-11-11T12:55:11.273Z",
+        "start": 0,
+        "end": 30526667
+      },
+      "parameters": [
+        {
+          "start": 0,
+          "end": 30526667,
+          "timestamps": [
+            {
+              "points": {
+                "x1": 257.29,
+                "y1": 72.67,
+                "x2": 309.77,
+                "y2": 133.79
+              },
+              "timestamp": 0,
+              "attributes": [
+                {
+                  "id": 1208415,
+                  "groupId": 350523,
+                  "name": "bbb",
+                  "groupName": "bb"
+                }
+              ]
+            },
+            {
+              "points": {
+                "x1": 214.14,
+                "y1": 154,
+                "x2": 342.17,
+                "y2": 232.14
+              },
+              "timestamp": 1217320,
+              "attributes": [
+                {
+                  "id": 1208415,
+                  "groupId": 350523,
+                  "name": "bbb",
+                  "groupName": "bb"
+                }
+              ]
+            },
+            {
+              "points": {
+                "x1": 222.66,
+                "y1": 171.14,
+                "x2": 274.93,
+                "y2": 232.26
+              },
+              "timestamp": 3066251,
+              "attributes": [
+                {
+                  "id": 1208415,
+                  "groupId": 350523,
+                  "name": "bbb",
+                  "groupName": "bb"
+                }
+              ]
+            },
+            {
+              "points": {
+                "x1": 222.66,
+                "y1": 171.23,
+                "x2": 274.93,
+                "y2": 232.35
+              },
+              "timestamp": 4138652,
+              "attributes": [
+                {
+                  "id": 1208415,
+                  "groupId": 350523,
+                  "name": "bbb",
+                  "groupName": "bb"
+                }
+              ]
+            },
+            {
+              "points": {
+                "x1": 222.66,
+                "y1": 171.14,
+                "x2": 274.93,
+                "y2": 232.26
+              },
+              "timestamp": 30526667,
+              "attributes": [
+                {
+                  "id": 1208415,
+                  "groupId": 350523,
+                  "name": "bbb",
+                  "groupName": "bb"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "meta": {
+        "type": "bbox",
+        "classId": 876880,
+        "className": "a",
+        "pointLabels": {},
+        "createdBy": {
+          "email": "vaghinak@superannotate.com",
+          "role": "Admin"
+        },
+        "createdAt": "2021-11-11T12:55:18.731Z",
+        "updatedBy": {
+          "email": "vaghinak@superannotate.com",
+          "role": "Admin"
+        },
+        "updatedAt": "2021-11-11T12:55:33.839Z",
+        "start": 4138652,
+        "end": 30526667
+      },
+      "parameters": [
+        {
+          "start": 4138652,
+          "end": 30526667,
+          "timestamps": [
+            {
+              "points": {
+                "x1": 379.96,
+                "y1": 251.11,
+                "x2": 87.48,
+                "y2": 11.73
+              },
+              "timestamp": 4138652,
+              "attributes": [
+                {
+                  "id": 1216067,
+                  "groupId": 350540,
+                  "name": "sa",
+                  "groupName": "aa"
+                }
+              ]
+            },
+            {
+              "points": {
+                "x1": 379.96,
+                "y1": 251.11,
+                "x2": 87.48,
+                "y2": 11.73
+              },
+              "timestamp": 30526667,
+              "attributes": [
+                {
+                  "id": 1216067,
+                  "groupId": 350540,
+                  "name": "sa",
+                  "groupName": "aa"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "meta": {
+        "type": "event",
+        "classId": 876880,
+        "className": "a",
+        "createdBy": {
+          "email": "vaghinak@superannotate.com",
+          "role": "Admin"
+        },
+        "createdAt": "2021-11-11T12:56:49.624Z",
+        "updatedBy": {
+          "email": "vaghinak@superannotate.com",
+          "role": "Admin"
+        },
+        "updatedAt": "2021-11-11T12:56:57.664Z",
+        "start": 10901641,
+        "end": 13672325
+      },
+      "parameters": [
+        {
+          "start": 10901641,
+          "end": 13672325,
+          "timestamps": [
+            {
+              "timestamp": 10901641,
+              "attributes": []
+            },
+            {
+              "timestamp": 12477128,
+              "attributes": [
+                {
+                  "id": 1216067,
+                  "groupId": 350540,
+                  "name": "sa",
+                  "groupName": "aa"
+                },
+                {
+                  "id": 1216080,
+                  "groupId": 355053,
+                  "name": "aa2",
+                  "groupName": "aa2"
+                }
+              ]
+            },
+            {
+              "timestamp": 13672325,
+              "attributes": [
+                {
+                  "id": 1216067,
+                  "groupId": 350540,
+                  "name": "sa",
+                  "groupName": "aa"
+                },
+                {
+                  "id": 1216080,
+                  "groupId": 355053,
+                  "name": "aa2",
+                  "groupName": "aa2"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "meta": {
+        "type": "event",
+        "classId": 876869,
+        "className": "b",
+        "createdBy": {
+          "email": "vaghinak@superannotate.com",
+          "role": "Admin"
+        },
+        "createdAt": "2021-11-11T12:57:05.602Z",
+        "updatedBy": {
+          "email": "vaghinak@superannotate.com",
+          "role": "Admin"
+        },
+        "updatedAt": "2021-11-11T12:57:14.808Z",
+        "start": 16314530,
+        "end": 20715027
+      },
+      "parameters": [
+        {
+          "start": 16314530,
+          "end": 20715027,
+          "timestamps": [
+            {
+              "timestamp": 16314530,
+              "attributes": []
+            },
+            {
+              "timestamp": 19972556,
+              "attributes": [
+                {
+                  "id": 1208415,
+                  "groupId": 350523,
+                  "name": "bbb",
+                  "groupName": "bb"
+                }
+              ]
+            },
+            {
+              "timestamp": 20715027,
+              "attributes": [
+                {
+                  "id": 1208415,
+                  "groupId": 350523,
+                  "name": "bbb",
+                  "groupName": "bb"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "tags": [
+    "3",
+    "2",
+    "1",
+    "as"
+  ]
+}
