@@ -89,7 +89,7 @@ class TestValidators(TestCase):
                 self.assertIn("metadatafieldrequired", out.getvalue().strip().replace(" ", ""))
 
     def test_validate_annotation_invalid_date_time_format(self):
-        with self.assertRaises(ValidationError):
+        with self.assertRaisesRegexp(ValidationError,"Expected format: YYYY-mm-ddTHH:MM:SS.055Z"):
             TimedBaseModel(createdAt="2021-11-02T15:11:50.065000Z")
 
     def test_validate_annotation_valid_date_time_format(self):

@@ -1642,10 +1642,13 @@ class Controller(BaseController):
         )
         return use_case.execute()
 
-    def validate_annotations(self, project_type: str, annotation: dict, allow_extra: bool = False):
+    def validate_annotations(
+        self, project_type: str, annotation: dict, allow_extra: bool = False
+    ):
         use_case = usecases.ValidateAnnotationUseCase(
-            project_type, annotation,
+            project_type,
+            annotation,
             validators=self.annotation_validators,
-            allow_extra=allow_extra
+            allow_extra=allow_extra,
         )
         return use_case.execute()

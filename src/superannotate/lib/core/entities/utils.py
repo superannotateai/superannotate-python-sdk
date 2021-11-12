@@ -7,8 +7,8 @@ from pydantic import BaseModel as PyDanticBaseModel
 from pydantic import conlist
 from pydantic import constr
 from pydantic import EmailStr
-from pydantic import Field
 from pydantic import Extra
+from pydantic import Field
 from pydantic import validator
 from pydantic.errors import EnumMemberError
 
@@ -26,9 +26,10 @@ NotEmptyStr = constr(strict=True, min_length=1)
 
 DATE_REGEX = r"\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d(?:\.\d{3})Z"
 
+DATE_TIME_FORMAT_ERROR_MESSAGE = "Expected format: YYYY-mm-ddTHH:MM:SS.055Z"
+
 
 class BaseModel(PyDanticBaseModel):
-
     class Config:
         extra = Extra.allow
         use_enum_values = True
@@ -105,6 +106,26 @@ class BboxPoints(BaseModel):
 class TimedBaseModel(BaseModel):
     created_at: constr(regex=DATE_REGEX) = Field(None, alias="createdAt")
     updated_at: constr(regex=DATE_REGEX) = Field(None, alias="updatedAt")
+
+    @validator("created_at", pre=True)
+    def validate_created_at(cls, value):
+        from pydantic import StrRegexError
+
+        try:
+            constr(regex=DATE_REGEX).validate(value)
+        except StrRegexError:
+            raise TypeError(DATE_TIME_FORMAT_ERROR_MESSAGE)
+        return value
+
+    @validator("updated_at", pre=True)
+    def validate_updated_at(cls, value):
+        from pydantic import StrRegexError
+
+        try:
+            constr(regex=DATE_REGEX).validate(value)
+        except StrRegexError:
+            raise TypeError(DATE_TIME_FORMAT_ERROR_MESSAGE)
+        return value
 
 
 class UserAction(BaseModel):
