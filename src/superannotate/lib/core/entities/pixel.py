@@ -3,6 +3,7 @@ from typing import Optional
 
 from lib.core.entities.utils import BaseImageInstance
 from lib.core.entities.utils import BaseModel
+from lib.core.entities.utils import Comment
 from lib.core.entities.utils import Metadata
 from lib.core.entities.utils import Tag
 from pydantic import Field
@@ -32,3 +33,4 @@ class PixelAnnotation(BaseModel):
     metadata: PixelMetaData
     instances: List[PixelAnnotationInstance]
     tags: Optional[List[Tag]] = Field(list())
+    comments: Optional[List[Comment]] = Field(list())

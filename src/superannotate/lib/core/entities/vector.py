@@ -7,6 +7,7 @@ from lib.core.entities.utils import BaseVectorInstance
 from lib.core.entities.utils import BboxPoints
 from lib.core.entities.utils import Comment
 from lib.core.entities.utils import Metadata
+from lib.core.entities.utils import NotEmptyStr
 from lib.core.entities.utils import Tag
 from lib.core.entities.utils import VectorAnnotationTypeEnum
 from pydantic import conlist
@@ -73,7 +74,7 @@ class Template(BaseVectorInstance):
     points: conlist(TemplatePoint, min_items=1)
     connections: List[TemplateConnection]
     template_id: Optional[int] = Field(None, alias="templateId")
-    template_name: str = Field(alias="templateName")
+    template_name: NotEmptyStr = Field(alias="templateName")
 
 
 class CuboidPoint(BaseModel):
@@ -113,7 +114,7 @@ class AnnotationInstance(BaseModel):
         try:
             instance_type = values["type"]
         except KeyError:
-            raise ValueError("meta.type required")
+            raise ValueError("metadata.type required")
         try:
             return ANNOTATION_TYPES[instance_type](**values)
         except KeyError:
