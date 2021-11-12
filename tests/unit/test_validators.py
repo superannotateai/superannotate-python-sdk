@@ -16,11 +16,11 @@ VECTOR_ANNOTATION_JSON_WITH_BBOX = """
     "width": 1024,
     "height": 683,
     "status": "Completed",
-    "pinned": False,
-    "isPredicted": None,
-    "projectId": None,
-    "annotatorEmail": None,
-    "qaEmail": None
+    "pinned": false,
+    "isPredicted": null,
+    "projectId": null,
+    "annotatorEmail": null,
+    "qaEmail": null
   },
   "instances": [
     {
@@ -35,8 +35,8 @@ VECTOR_ANNOTATION_JSON_WITH_BBOX = """
       },
       "groupId": 0,
       "pointLabels": {},
-      "locked": False,
-      "visible": False,
+      "locked": false,
+      "visible": false,
       "attributes": [
         {
           "id": 117845,
@@ -46,12 +46,12 @@ VECTOR_ANNOTATION_JSON_WITH_BBOX = """
         }
       ],
       "trackingId": "aaa97f80c9e54a5f2dc2e920fc92e5033d9af45b",
-      "error": None,
-      "createdAt": None,
-      "createdBy": None,
-      "creationType": None,
-      "updatedAt": None,
-      "updatedBy": None,
+      "error": null,
+      "createdAt": null,
+      "createdBy": null,
+      "creationType": null,
+      "updatedAt": null,
+      "updatedBy": null,
       "className": "Personal vehicle"
     }
   ]
@@ -76,7 +76,7 @@ class TestValidators(TestCase):
                 vector_json.write(VECTOR_ANNOTATION_JSON_WITH_BBOX)
             with catch_prints() as out:
                 sa.validate_annotations("Vector", os.path.join(self.vector_folder_path, f"{tmpdir_name}/vector.json"))
-                self.assertEqual("instances[0].points[x1]fieldrequired", out.getvalue().strip().replace(" ", ""))
+                self.assertIn("instances[0].points.x1fieldrequired", out.getvalue().strip().replace(" ", ""))
 
     def test_validate_annotation_without_metadata(self):
         with tempfile.TemporaryDirectory() as tmpdir_name:
@@ -89,7 +89,7 @@ class TestValidators(TestCase):
                 self.assertIn("metadatafieldrequired", out.getvalue().strip().replace(" ", ""))
 
     def test_validate_annotation_invalid_date_time_format(self):
-        with self.assertRaisesRegexp(ValidationError,"Expected format: YYYY-mm-ddTHH:MM:SS.055Z"):
+        with self.assertRaisesRegexp(ValidationError,"does not match expected format YYYY-MM-DDTHH:MM:SS.fffZ"):
             TimedBaseModel(createdAt="2021-11-02T15:11:50.065000Z")
 
     def test_validate_annotation_valid_date_time_format(self):
@@ -187,7 +187,7 @@ class TestTypeHandling(TestCase):
                             "annotatorEmail": null,
                             "qaEmail": null,
                             "lastAction": {
-                                "email": "some.email@gmail.com"
+                                "email": "some.email@gmail.com",
                                 "timestamp": 1636620976450
                             }
                         },
@@ -208,7 +208,7 @@ class TestTypeHandling(TestCase):
                     {
                     "metadata": {
                         "lastAction": {
-                            "email": "some.email@gmail.com"
+                            "email": "some.email@gmail.com",
                             "timestamp": 1636627539398
                         },
                         "width": 1024,
@@ -269,7 +269,7 @@ class TestTypeHandling(TestCase):
                     {
                         "metadata": {
                             "lastAction": {
-                                "email": "shab.prog@gmail.com",
+                                "email": "some.email@gmail.com",
                                 "timestamp": 1636627956948
                             },
                             "width": 1024,
@@ -290,3 +290,65 @@ class TestTypeHandling(TestCase):
                 )
             self.assertTrue(sa.validate_annotations("Vector", os.path.join(self.vector_folder_path,
                                                                           f"{tmpdir_name}/vector_empty.json")))
+
+    def test_validate_error_message_format(self):
+        with tempfile.TemporaryDirectory() as tmpdir_name:
+            with open(f"{tmpdir_name}/test_validate_error_message_format.json", "w") as test_validate_error_message_format:
+                test_validate_error_message_format.write(
+                    '''
+                    {
+                        "metadata": {}
+                    }
+                    '''
+                )
+            with catch_prints() as out:
+                sa.validate_annotations("Vector", os.path.join(self.vector_folder_path,
+                                                               f"{tmpdir_name}/test_validate_error_message_format.json"))
+                self.assertIn("metadata.namefieldrequired", out.getvalue().strip().replace(" ", ""))
+
+
+    def test_validate_document_annotation_wrong_class_id(self):
+        with tempfile.TemporaryDirectory() as tmpdir_name:
+            with open(f"{tmpdir_name}/test_validate_document_annotation_wrong_class_id.json", "w") as test_validate_document_annotation_wrong_class_id:
+                test_validate_document_annotation_wrong_class_id.write(
+                    '''
+                    {
+                        "metadata": {
+                            "name": "text_file_example_1",
+                            "status": "NotStarted",
+                            "url": "https://sa-public-files.s3.us-west-2.amazonaws.com/Text+project/text_file_example_1.txt",
+                            "projectId": 167826,
+                            "annotatorEmail": null,
+                            "qaEmail": null,
+                            "lastAction": {
+                                "email": "some.email@gmail.com",
+                                "timestamp": 1636620976450
+                            }
+                        },
+                        "instances": [{
+                                      "start": 253,
+                                      "end": 593,
+                                      "classId": "string",
+                                      "createdAt": "2021-10-22T10:40:26.151Z",
+                                      "createdBy": {
+                                        "email": "some.email@gmail.com",
+                                        "role": "Admin"
+                                      },
+                                      "updatedAt": "2021-10-22T10:40:29.953Z",
+                                      "updatedBy": {
+                                        "email": "some.email@gmail.com",
+                                        "role": "Admin"
+                                      },
+                                      "attributes": [],
+                                      "creationType": "Manual",
+                                      "className": "vid"
+                                    }],
+                        "tags": [],
+                        "freeText": ""
+                    }
+                    '''
+                )
+            with catch_prints() as out:
+                sa.validate_annotations("Document", os.path.join(self.vector_folder_path, f"{tmpdir_name}/test_validate_document_annotation_wrong_class_id.json"))
+                self.assertIn("instances[0].classIdintegertypeexpected", out.getvalue().strip().replace(" ", ""))
+

@@ -26,7 +26,7 @@ NotEmptyStr = constr(strict=True, min_length=1)
 
 DATE_REGEX = r"\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d(?:\.\d{3})Z"
 
-DATE_TIME_FORMAT_ERROR_MESSAGE = "Expected format: YYYY-mm-ddTHH:MM:SS.055Z"
+DATE_TIME_FORMAT_ERROR_MESSAGE = "does not match expected format YYYY-MM-DDTHH:MM:SS.fffZ"
 
 
 class BaseModel(PyDanticBaseModel):
@@ -151,7 +151,7 @@ class LastUserAction(BaseModel):
 
 
 class BaseInstance(TrackableModel, TimedBaseModel):
-    class_id: Optional[str] = Field(None, alias="classId")
+    class_id: Optional[int] = Field(None, alias="classId")
     class_name: Optional[str] = Field(None, alias="className")
 
 
