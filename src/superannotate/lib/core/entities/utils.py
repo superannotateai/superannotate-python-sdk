@@ -9,6 +9,7 @@ from pydantic import constr
 from pydantic import EmailStr
 from pydantic import Extra
 from pydantic import Field
+from pydantic import StrRegexError
 from pydantic import validator
 from pydantic.errors import EnumMemberError
 
@@ -111,8 +112,6 @@ class TimedBaseModel(BaseModel):
 
     @validator("created_at", pre=True)
     def validate_created_at(cls, value):
-        from pydantic import StrRegexError
-
         try:
             constr(regex=DATE_REGEX).validate(value)
         except (TypeError, StrRegexError):
@@ -121,8 +120,6 @@ class TimedBaseModel(BaseModel):
 
     @validator("updated_at", pre=True)
     def validate_updated_at(cls, value):
-        from pydantic import StrRegexError
-
         try:
             constr(regex=DATE_REGEX).validate(value)
         except (TypeError, StrRegexError):
