@@ -5,7 +5,6 @@ import sys
 import requests
 import superannotate.lib.core as constances
 from packaging.version import parse
-from superannotate.lib.app.analytics.class_analytics import attribute_distribution
 from superannotate.lib.app.analytics.class_analytics import class_distribution
 from superannotate.lib.app.annotation_helpers import add_annotation_bbox_to_json
 from superannotate.lib.app.annotation_helpers import add_annotation_comment_to_json
@@ -23,13 +22,7 @@ from superannotate.lib.app.input_converters.conversion import convert_project_ty
 from superannotate.lib.app.input_converters.conversion import export_annotation
 from superannotate.lib.app.input_converters.conversion import import_annotation
 from superannotate.lib.app.input_converters.df_converter import df_to_annotations
-from superannotate.lib.app.input_converters.df_converter import (
-    filter_annotation_instances,
-)
-from superannotate.lib.app.input_converters.df_converter import (
-    filter_images_by_comments,
-)
-from superannotate.lib.app.input_converters.df_converter import filter_images_by_tags
+
 from superannotate.lib.app.input_converters.dicom_converter import dicom_to_rgb_sequence
 from superannotate.lib.app.interface.sdk_interface import add_annotation_bbox_to_image
 from superannotate.lib.app.interface.sdk_interface import (
@@ -175,7 +168,6 @@ __all__ = [
     "init",
     "set_auth_token",
     # analytics
-    "attribute_distribution",
     "class_distribution",
     "aggregate_annotations_as_df",
     "get_exports",
@@ -189,9 +181,6 @@ __all__ = [
     "import_annotation",
     "export_annotation",
     "convert_project_type",
-    "filter_images_by_comments",
-    "filter_images_by_tags",
-    "filter_annotation_instances",
     # helpers
     "add_annotation_bbox_to_json",
     "add_annotation_comment_to_json",

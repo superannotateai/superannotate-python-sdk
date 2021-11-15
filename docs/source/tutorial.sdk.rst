@@ -453,16 +453,6 @@ Example of created DataFrame:
 Each row represents annotation information. One full annotation with multiple
 attribute groups can be grouped under :code:`instanceId` field.
 
-A helper function :ref:`filter_annotation_instances <ref_filter_annotation_instances>` is available to filter annotation instances by their class, attribute, type or error fields from the DataFrame. E.g., to get annotations that have annotation class :code:`Human` and attribute  :code:`"height" : "tall"`  that are **not** of type :code:`polygon`:
-
-.. code-block:: python
-
-   filtered_df = sa.filter_annotation_instances(df, include=[{"className" : "Human",
-                                                              "attributes" : [{"groupName" : "height",
-                                                                              "name" : "tall"}]
-                                                            }],
-                                                    exclude=[{"type" : "polygon"}])
-
 To transform back pandas DataFrame annotations to SuperAnnotate format annotation:
 
 .. code-block:: python
@@ -489,17 +479,6 @@ Aggregated distribution is returned as pandas dataframe with columns className a
    df = sa.class_distribution("<path_to_export_folder>", [project_names], visualize = True)
 
 .. image:: class_distribution.png
-
-
-Similarly aggregation of class attributes across multiple projects can be obtained with
-
-.. code-block:: python
-
-   df = sa.attribute_distribution("<path_to_export_folder>", [project_names], visualize = True)
-
-Here pandas DataFrame with columns identifying attribute and corresponding instance count is returned. Within visualized histogram attributes of the same class are grouped by color and sorted accordingly.
-
-.. image:: attribute_distribution.png
 
 ----------
 
