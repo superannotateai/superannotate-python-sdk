@@ -7,7 +7,8 @@ import plotly.express as px
 from lib.app.exceptions import AppException
 from lib.core import DEPRICATED_DOCUMENT_VIDEO_MESSAGE
 
-logger = logging.getLogger()
+
+logger = logging.getLogger("root")
 
 
 def df_to_annotations(df, output_dir):
@@ -135,12 +136,11 @@ def df_to_annotations(df, output_dir):
     )
 
 
-def aggregate_annotations_as_df(
+def aggregate_image_annotations_as_df(
     project_root,
     include_classes_wo_annotations=False,
     include_comments=False,
     include_tags=False,
-    verbose=True,
     folder_names=None,
 ):
     """Aggregate annotations as pandas dataframe from project root.
@@ -177,8 +177,7 @@ def aggregate_annotations_as_df(
     ):
         raise AppException(DEPRICATED_DOCUMENT_VIDEO_MESSAGE)
 
-    if verbose:
-        logger.info("Aggregating annotations from %s as pandas DataFrame", project_root)
+    logger.info("Aggregating annotations from %s as pandas DataFrame", project_root)
 
     annotation_data = {
         "imageName": [],
@@ -300,13 +299,11 @@ def aggregate_annotations_as_df(
             )
 
     if not annotations_paths:
-        logger.warning("No annotations found in project export root %s", project_root)
+        logger.warning(f"Could not find annotations in {project_root}.")
     if len(list(Path(project_root).rglob("*___objects.json"))) > 0:
         type_postfix = "___objects.json"
-        logger.info("Found Vector project")
     else:
         type_postfix = "___pixel.json"
-        logger.info("Found Pixel project")
     for annotation_path in annotations_paths:
         annotation_json = json.load(open(annotation_path))
         parts = annotation_path.name.split(type_postfix)

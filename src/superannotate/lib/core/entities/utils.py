@@ -86,7 +86,7 @@ class Attribute(BaseModel):
     id: Optional[int]
     group_id: Optional[int] = Field(None, alias="groupId")
     name: NotEmptyStr
-    group_name: NotEmptyStr = Field(None, alias="groupName")
+    group_name: NotEmptyStr = Field(alias="groupName")
 
 
 class Tag(BaseModel):
@@ -107,10 +107,10 @@ class BboxPoints(BaseModel):
 
 
 class TimedBaseModel(BaseModel):
-    created_at: constr(regex=DATE_REGEX) = Field(None, alias="createdAt")
-    updated_at: constr(regex=DATE_REGEX) = Field(None, alias="updatedAt")
+    created_at: Optional[constr(regex=DATE_REGEX)] = Field(None, alias="createdAt")
+    updated_at: Optional[constr(regex=DATE_REGEX)] = Field(None, alias="updatedAt")
 
-    @validator("created_at", "updated_at" , pre=True)
+    @validator("created_at", "updated_at", pre=True)
     def validate_created_at(cls, value):
         try:
             if value is not None:
@@ -139,12 +139,12 @@ class TrackableModel(BaseModel):
 
 class LastUserAction(BaseModel):
     email: EmailStr
-    timestamp: float
+    timestamp: int
 
 
 class BaseInstance(TrackableModel, TimedBaseModel):
     class_id: Optional[int] = Field(None, alias="classId")
-    class_name: Optional[NotEmptyStr] = Field(None, alias="className")
+    class_name: NotEmptyStr = Field(alias="className")
 
 
 class MetadataBase(BaseModel):
@@ -176,8 +176,6 @@ class Comment(TimedBaseModel, TrackableModel):
 
 
 class BaseImageInstance(BaseInstance):
-    class_id: Optional[int] = Field(None, alias="classId")
-    class_name: NotEmptyStr = Field(alias="className")
     visible: Optional[bool]
     locked: Optional[bool]
     probability: Optional[int] = Field(100)

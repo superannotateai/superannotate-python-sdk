@@ -151,15 +151,17 @@ def search_projects(
     return_metadata: bool = False,
     include_complete_image_count: bool = False,
 ):
-    """Project name based case-insensitive search for projects.
+    """
+    Project name based case-insensitive search for projects.
     If **name** is None, all the projects will be returned.
 
     :param name: search string
     :type name: str
+
     :param return_metadata: return metadata of projects instead of names
     :type return_metadata: bool
-    :param include_complete_image_count: return projects that have completed images and
-    include the number of completed images in response.
+
+    :param include_complete_image_count: return projects that have completed images and include the number of completed images in response.
     :type include_complete_image_count: bool
 
     :return: project names or metadatas
@@ -3508,49 +3510,42 @@ def upload_images_to_project(
 @validate_arguments
 def aggregate_annotations_as_df(
     project_root: Union[NotEmptyStr, Path],
-    include_classes_wo_annotations: Optional[StrictBool] = False,
-    include_comments: Optional[StrictBool] = False,
-    include_tags: Optional[StrictBool] = False,
-    verbose: Optional[StrictBool] = True,
-    folder_names: Optional[List[NotEmptyStr]] = None,
+    project_type: ProjectTypes,
+    folder_names: Optional[List[Union[Path, NotEmptyStr]]] = None,
 ):
     """Aggregate annotations as pandas dataframe from project root.
 
-    :param project_root: export path of the project
+    :param project_root: the export path of the project
     :type project_root: Pathlike (str or Path)
-    :param include_classes_wo_annotations: enables inclusion of classes info
-                                           that have no instances in annotations
-    :type include_classes_wo_annotations: bool
-    :param include_comments: enables inclusion of comments info as commentResolved column
-    :type include_comments: bool
-    :param include_tags: enables inclusion of tags info as tag column
-    :type include_tags: bool
-    :param verbose: enables logging
-    :type verbose: bool
-    :param folder_names: Aggregate the specified folders from project_root.
-                                If None aggregate all folders in the project_root.
-    :type folder_names: (list of str)
 
-    :return: DataFrame on annotations with columns:
-                                        "imageName", "instanceId",
-                                        "className", "attributeGroupName", "attributeName", "type", "error", "locked",
-                                        "visible", "trackingId", "probability", "pointLabels",
-                                        "meta" (geometry information as string), "commentResolved", "classColor",
-                                        "groupId", "imageWidth", "imageHeight", "imageStatus", "imagePinned",
-                                        "createdAt", "creatorRole", "creationType", "creatorEmail", "updatedAt",
-                                        "updatorRole", "updatorEmail", "tag", "folderName"
+    :param project_type: the project type, Vector/Pixel or Video
+    :type project_type: str
+
+    :param folder_names: Aggregate the specified folders from project_root.
+     If None aggregate all folders in the project_root
+    :type folder_names: list of Pathlike (str or Path) objects
+
+    :return: DataFrame on annotations
     :rtype: pandas DataFrame
     """
-    from superannotate.lib.app.analytics.common import aggregate_annotations_as_df
-
-    return aggregate_annotations_as_df(
-        project_root,
-        include_classes_wo_annotations,
-        include_comments,
-        include_tags,
-        verbose,
-        folder_names,
-    )
+    if project_type in (constances.ProjectType.VECTOR.name, constances.ProjectType.PIXEL.name):
+        from superannotate.lib.app.analytics.common import aggregate_image_annotations_as_df
+        return aggregate_image_annotations_as_df(
+            project_root=project_root,
+            include_classes_wo_annotations=False,
+            include_comments=True,
+            include_tags=True,
+            folder_names=folder_names,
+        )
+    elif project_type == constances.ProjectType.VIDEO.name:
+        from superannotate.lib.app.analytics.aggregators import DataAggregator
+        return DataAggregator(
+            project_type=project_type,
+            project_root=project_root,
+            folder_names=folder_names
+        ).aggregate_annotations_as_df()
+    else:
+        raise AppException(constances.DEPRECATED_DOCUMENT_PROJECTS_MESSAGE)
 
 
 @Trackable

@@ -13,7 +13,7 @@ import lib.core as constances
 import pandas as pd
 import requests
 from botocore.exceptions import ClientError
-from lib.app.analytics.common import aggregate_annotations_as_df
+from lib.app.analytics.common import aggregate_image_annotations_as_df
 from lib.app.analytics.common import consensus_plot
 from lib.app.analytics.common import image_consensus
 from lib.core.conditions import Condition
@@ -544,7 +544,7 @@ class BenchmarkUseCase(BaseUseCase):
         self._show_plots = show_plots
 
     def execute(self):
-        project_df = aggregate_annotations_as_df(self._export_dir)
+        project_df = aggregate_image_annotations_as_df(self._export_dir)
         gt_project_df = project_df[
             project_df["folderName"] == self._ground_truth_folder_name
         ]
@@ -635,7 +635,7 @@ class ConsensusUseCase(BaseUseCase):
         self._show_plots = show_plots
 
     def execute(self):
-        project_df = aggregate_annotations_as_df(self._export_dir)
+        project_df = aggregate_image_annotations_as_df(self._export_dir)
         all_projects_df = project_df[project_df["instanceId"].notna()]
         all_projects_df = all_projects_df.loc[
             all_projects_df["folderName"].isin(self._folder_names)

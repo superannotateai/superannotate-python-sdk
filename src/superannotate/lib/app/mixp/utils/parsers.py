@@ -1309,13 +1309,6 @@ def class_distribution(*args, **kwargs):
     }
 
 
-def attribute_distribution(*args, **kwargs):
-    return {
-        "event_name": "attribute_distribution",
-        "properties": {"Plot": bool(args[2:3] or ("visualize" in kwargs))},
-    }
-
-
 def share_project(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
@@ -1370,40 +1363,6 @@ def search_folders(*args, **kwargs):
         "properties": {
             "project_name": get_project_name(project),
             "Metadata": bool(args[2:3] or ("return_metadata" in kwargs)),
-        },
-    }
-
-
-def filter_images_by_tags(*args, **kwargs):
-    return {
-        "event_name": "filter_images_by_tags",
-        "properties": {
-            "Include": bool(args[1:2] or ("include" in kwargs)),
-            "Exclude": bool(args[2:3] or ("exclude" in kwargs)),
-        },
-    }
-
-
-def filter_images_by_comments(*args, **kwargs):
-    return {
-        "event_name": "filter_images_by_comments",
-        "properties": {
-            "Include Unresolved Comments": bool(
-                args[1:2] or ("include_unresolved_comments" in kwargs)
-            ),
-            "Include Resolved Comments": bool(
-                args[2:3] or ("include_resolved_comments" in kwargs)
-            ),
-        },
-    }
-
-
-def filter_annotation_instances(*args, **kwargs):
-    return {
-        "event_name": "filter_annotation_instances",
-        "properties": {
-            "Include": bool(args[1:2] or ("include" in kwargs)),
-            "Exclude": bool(args[2:3] or ("exclude" in kwargs)),
         },
     }
 
