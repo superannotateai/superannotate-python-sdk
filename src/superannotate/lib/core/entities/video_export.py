@@ -13,6 +13,8 @@ from lib.core.entities.utils import PointLabels
 from lib.core.entities.utils import Tag
 from pydantic import conlist
 from pydantic import Field
+from pydantic import ValidationError
+from pydantic.error_wrappers import ErrorWrapper
 
 
 class VideoType(str, Enum):
@@ -40,7 +42,7 @@ class EventTimeStamp(BaseTimeStamp):
 
 class InstanceMetadata(BaseInstance):
     type: VideoType
-    class_name: Optional[NotEmptyStr] = Field(alias="className")
+    class_name: Optional[NotEmptyStr] = Field(None, alias="className")
     point_labels: Optional[PointLabels] = Field(None, alias="pointLabels")
     start: int
     end: int
@@ -95,12 +97,22 @@ class VideoInstance(BaseModel):
         try:
             instance_type = values["meta"]["type"]
         except KeyError:
-            raise ValueError("meta.type required")
+            raise ValidationError(
+                [ErrorWrapper(ValueError("meta.field required"), "type")], cls
+            )
         try:
             return INSTANCES[instance_type](**values)
         except KeyError:
-            raise ValueError(
-                f"invalid type, valid types is {', '.join(INSTANCES.keys())}"
+            raise ValidationError(
+                [
+                    ErrorWrapper(
+                        ValueError(
+                            f"invalid type, valid types are {', '.join(INSTANCES.keys())}"
+                        ),
+                        "meta.type",
+                    )
+                ],
+                cls,
             )
 
 
