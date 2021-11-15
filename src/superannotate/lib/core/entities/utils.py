@@ -159,10 +159,6 @@ class MetadataBase(BaseModel):
     status: Optional[AnnotationStatusEnum]
 
 
-class PointLabels(BaseModel):
-    __root__: Dict[constr(regex=r"^[0-9]*$"), NotEmptyStr]  # noqa: F722 E261
-
-
 class Correspondence(BaseModel):
     text: NotEmptyStr
     email: EmailStr
@@ -190,7 +186,9 @@ class BaseImageInstance(BaseInstance):
 
 class BaseVectorInstance(BaseImageInstance):
     type: VectorAnnotationTypeEnum
-    point_labels: Optional[PointLabels] = Field(None, alias="pointLabels")
+    point_labels: Optional[Dict[constr(regex=r"^[0-9]*$"), NotEmptyStr]] = Field(
+        None, alias="pointLabels"
+    )
     tracking_id: Optional[str] = Field(None, alias="trackingId")
     group_id: Optional[int] = Field(None, alias="groupId")
 
