@@ -12,6 +12,8 @@ from lib.core.entities.utils import Tag
 from lib.core.entities.utils import VectorAnnotationTypeEnum
 from pydantic import conlist
 from pydantic import Field
+from pydantic import ValidationError
+from pydantic.error_wrappers import ErrorWrapper
 
 
 class AxisPoint(BaseModel):
@@ -24,11 +26,11 @@ class Point(BaseVectorInstance, AxisPoint):
 
 
 class PolyLine(BaseVectorInstance):
-    points: List[float]
+    points: conlist(float, min_items=2)
 
 
 class Polygon(BaseVectorInstance):
-    points: List[float]
+    points: conlist(float, min_items=3)
 
 
 class Bbox(BaseVectorInstance):
@@ -114,12 +116,22 @@ class AnnotationInstance(BaseModel):
         try:
             instance_type = values["type"]
         except KeyError:
-            raise ValueError("metadata.type required")
+            raise ValidationError(
+                [ErrorWrapper(ValueError("field required"), "type")], cls
+            )
         try:
             return ANNOTATION_TYPES[instance_type](**values)
         except KeyError:
-            raise ValueError(
-                f"invalid type, valid types is {', '.join(ANNOTATION_TYPES.keys())}"
+            raise ValidationError(
+                [
+                    ErrorWrapper(
+                        ValueError(
+                            f"invalid type, valid types are {', '.join(ANNOTATION_TYPES.keys())}"
+                        ),
+                        "type",
+                    )
+                ],
+                cls,
             )
 
 
