@@ -9,6 +9,7 @@ from pydantic import constr
 from pydantic import EmailStr
 from pydantic import Extra
 from pydantic import Field
+from pydantic import StrRegexError
 from pydantic import validator
 from pydantic.errors import EnumMemberError
 
@@ -26,9 +27,12 @@ NotEmptyStr = constr(strict=True, min_length=1)
 
 DATE_REGEX = r"\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d(?:\.\d{3})Z"
 
+DATE_TIME_FORMAT_ERROR_MESSAGE = (
+    "does not match expected format YYYY-MM-DDTHH:MM:SS.fffZ"
+)
+
 
 class BaseModel(PyDanticBaseModel):
-
     class Config:
         extra = Extra.allow
         use_enum_values = True
@@ -86,7 +90,7 @@ class Attribute(BaseModel):
 
 
 class Tag(BaseModel):
-    __root__: str
+    __root__: NotEmptyStr
 
 
 class AttributeGroup(BaseModel):
@@ -105,6 +109,15 @@ class BboxPoints(BaseModel):
 class TimedBaseModel(BaseModel):
     created_at: constr(regex=DATE_REGEX) = Field(None, alias="createdAt")
     updated_at: constr(regex=DATE_REGEX) = Field(None, alias="updatedAt")
+
+    @validator("created_at", "updated_at" , pre=True)
+    def validate_created_at(cls, value):
+        try:
+            if value is not None:
+                constr(regex=DATE_REGEX).validate(value)
+        except (TypeError, StrRegexError):
+            raise TypeError(DATE_TIME_FORMAT_ERROR_MESSAGE)
+        return value
 
 
 class UserAction(BaseModel):
@@ -126,15 +139,16 @@ class TrackableModel(BaseModel):
 
 class LastUserAction(BaseModel):
     email: EmailStr
-    timestamp: float
+    timestamp: int
 
 
 class BaseInstance(TrackableModel, TimedBaseModel):
-    class_id: Optional[str] = Field(None, alias="classId")
-    class_name: Optional[str] = Field(None, alias="className")
+    class_id: Optional[int] = Field(None, alias="classId")
+    class_name: Optional[NotEmptyStr] = Field(None, alias="className")
 
 
 class MetadataBase(BaseModel):
+    url: Optional[str]
     name: NotEmptyStr
     last_action: Optional[LastUserAction] = Field(None, alias="lastAction")
     width: Optional[int]
@@ -146,7 +160,7 @@ class MetadataBase(BaseModel):
 
 
 class PointLabels(BaseModel):
-    __root__: Dict[constr(regex=r"^[0-9]*$"), str]  # noqa: F722 E261
+    __root__: Dict[constr(regex=r"^[0-9]*$"), NotEmptyStr]  # noqa: F722 E261
 
 
 class Correspondence(BaseModel):
@@ -163,7 +177,7 @@ class Comment(TimedBaseModel, TrackableModel):
 
 class BaseImageInstance(BaseInstance):
     class_id: Optional[int] = Field(None, alias="classId")
-    class_name: str = Field(alias="className")
+    class_name: NotEmptyStr = Field(alias="className")
     visible: Optional[bool]
     locked: Optional[bool]
     probability: Optional[int] = Field(100)
