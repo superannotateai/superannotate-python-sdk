@@ -160,6 +160,53 @@ class TestTypeHandling(TestCase):
     def vector_folder_path(self):
         return os.path.join(dirname(dirname(__file__)), self.TEST_VECTOR_FOLDER_PATH)
 
+
+    def test_validate_document_annotation_without_classname(self):
+        with tempfile.TemporaryDirectory() as tmpdir_name:
+            with open(f"{tmpdir_name}/test_validate_document_annotation_without_classname.json",
+                      "w") as test_validate_document_annotation_without_classname:
+                test_validate_document_annotation_without_classname.write(
+                    '''
+                    {
+                        "metadata": {
+                            "name": "text_file_example_1",
+                            "status": "NotStarted",
+                            "url": "https://sa-public-files.s3.us-west-2.amazonaws.com/Text+project/text_file_example_1.txt",
+                            "projectId": 167826,
+                            "annotatorEmail": null,
+                            "qaEmail": null,
+                            "lastAction": {
+                                "email": "some.email@gmail.com",
+                                "timestamp": 1636620976450
+                            }
+                        },
+                        "instances": [{
+                                      "start": 253,
+                                      "end": 593,
+                                      "classId": -1,
+                                      "createdAt": "2021-10-22T10:40:26.151Z",
+                                      "createdBy": {
+                                        "email": "some.email@gmail.com",
+                                        "role": "Admin"
+                                      },
+                                      "updatedAt": "2021-10-22T10:40:29.953Z",
+                                      "updatedBy": {
+                                        "email": "some.email@gmail.com",
+                                        "role": "Admin"
+                                      },
+                                      "attributes": [],
+                                      "creationType": "Manual"
+                                    }],
+                        "tags": [],
+                        "freeText": ""
+                    }
+                    '''
+                )
+
+            self.assertTrue(sa.validate_annotations("Document", os.path.join(self.vector_folder_path,
+                                                                 f"{tmpdir_name}/test_validate_document_annotation_without_classname.json")))
+
+
     def test_validate_annotation_with_wrong_bbox(self):
         with tempfile.TemporaryDirectory() as tmpdir_name:
             with open(f"{tmpdir_name}/vector.json", "w") as vector_json:

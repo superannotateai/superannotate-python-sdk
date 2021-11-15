@@ -144,7 +144,7 @@ class LastUserAction(BaseModel):
 
 class BaseInstance(TrackableModel, TimedBaseModel):
     class_id: Optional[int] = Field(None, alias="classId")
-    class_name: NotEmptyStr = Field(alias="className")
+    class_name: Optional[NotEmptyStr] = Field(None, alias="className")
 
 
 class MetadataBase(BaseModel):
