@@ -14,6 +14,8 @@ from pydantic import BaseModel
 from pydantic import constr
 from pydantic import Field
 from pydantic import StrictStr
+from pydantic import StrictInt
+from pydantic import StrictBool
 
 
 class VideoType(str, Enum):
@@ -23,13 +25,13 @@ class VideoType(str, Enum):
 
 class MetaData(MetadataBase):
     name: Optional[StrictStr]
-    width: Optional[int]
-    height: Optional[int]
-    duration: Optional[int]
+    width: Optional[StrictInt]
+    height: Optional[StrictInt]
+    duration: Optional[StrictInt]
 
 
 class BaseTimeStamp(BaseModel):
-    active: Optional[bool]
+    active: Optional[StrictBool]
     attributes: Optional[Dict[constr(regex=r"^[-|+]$"), List[Attribute]]]  # noqa: F722
 
 
@@ -40,7 +42,7 @@ class BboxTimeStamp(BaseTimeStamp):
 class BaseVideoInstance(BaseInstance):
     id: Optional[str]
     type: VideoType
-    locked: Optional[bool]
+    locked: Optional[StrictBool]
     timeline: Dict[float, BaseTimeStamp]
 
 

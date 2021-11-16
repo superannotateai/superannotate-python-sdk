@@ -1211,7 +1211,7 @@ class TestTypeHandling(TestCase):
                                     "email": "some@some.com",
                                     "timestamp": 1636964198056
                                 },
-                                "width": 1234,
+                                "width": "1234",
                                 "height": 1540,
                                 "name": "t.png",
                                 "projectId": 164988,
@@ -1348,11 +1348,12 @@ class TestTypeHandling(TestCase):
                 '''
                 )
 
+
             with catch_prints() as out:
                 sa.validate_annotations("Vector", os.path.join(self.vector_folder_path,
                                                                f"{tmpdir_name}/test_validate_vector_temlpate_polygon_polyline_min_annotation.json"))
                 self.assertEqual(
-                    "instances[0].pointsensurethisvaluehasatleast1items\ninstances[1].pointsensurethisvaluehasatleast3items\ninstances[2].pointsensurethisvaluehasatleast2items",
+                    "metadata.widthintegertypeexpected\ninstances[0].pointsensurethisvaluehasatleast1items\ninstances[1].pointsensurethisvaluehasatleast3items\ninstances[2].pointsensurethisvaluehasatleast2items",
                     out.getvalue().strip().replace(" ", ""))
 
     def test_validate_video_point_labels(self):
