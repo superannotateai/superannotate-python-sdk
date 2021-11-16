@@ -160,7 +160,6 @@ class TestTypeHandling(TestCase):
     def vector_folder_path(self):
         return os.path.join(dirname(dirname(__file__)), self.TEST_VECTOR_FOLDER_PATH)
 
-
     def test_validate_document_annotation_without_classname(self):
         with tempfile.TemporaryDirectory() as tmpdir_name:
             with open(f"{tmpdir_name}/test_validate_document_annotation_without_classname.json",
@@ -204,8 +203,7 @@ class TestTypeHandling(TestCase):
                 )
 
             self.assertTrue(sa.validate_annotations("Document", os.path.join(self.vector_folder_path,
-                                                                 f"{tmpdir_name}/test_validate_document_annotation_without_classname.json")))
-
+                                                                             f"{tmpdir_name}/test_validate_document_annotation_without_classname.json")))
 
     def test_validate_annotation_with_wrong_bbox(self):
         with tempfile.TemporaryDirectory() as tmpdir_name:
@@ -1356,12 +1354,6 @@ class TestTypeHandling(TestCase):
                     "instances[0].pointsensurethisvaluehasatleast1items\ninstances[1].pointsensurethisvaluehasatleast3items\ninstances[2].pointsensurethisvaluehasatleast2items",
                     out.getvalue().strip().replace(" ", ""))
 
-
-
-
-
-
-
     def test_validate_video_point_labels(self):
         with tempfile.TemporaryDirectory() as tmpdir_name:
             with open(f"{tmpdir_name}/test_validate_video_point_labels.json",
@@ -1668,12 +1660,327 @@ class TestTypeHandling(TestCase):
                 '''
                 )
 
-
             with catch_prints() as out:
                 sa.validate_annotations("Video", os.path.join(self.vector_folder_path,
-                                                                              f"{tmpdir_name}/test_validate_video_point_labels.json"))
+                                                              f"{tmpdir_name}/test_validate_video_point_labels.json"))
                 self.assertIn(
                     "instances[0].meta.pointLabelsvalueisnotavaliddict",
                     out.getvalue().strip().replace(" ", ""))
 
+    def test_validate_video_point_labels_bad_keys(self):
+        with tempfile.TemporaryDirectory() as tmpdir_name:
+            with open(f"{tmpdir_name}/test_validate_video_point_labels_bad_keys.json",
+                      "w") as test_validate_video_point_labels_bad_keys:
+                test_validate_video_point_labels_bad_keys.write(
+                    '''
+                    {
+                    "metadata": {
+                        "name": "video.mp4",
+                        "width": 480,
+                        "height": 270,
+                        "status": "NotStarted",
+                        "url": "https://file-examples-com.github.io/uploads/2017/04/file_example_MP4_480_1_5MG.mp4",
+                        "duration": 30526667,
+                        "projectId": 152038,
+                        "error": null,
+                        "annotatorEmail": null,
+                        "qaEmail": null
+                    },
+                    "instances": [
+                        {
+                            "meta": {
+                                "type": "bbox",
+                                "classId": 859496,
+                                "className": "vid",
+                                "pointLabels": {
+                                        "bad_key_1" : "a",
+                                        "bad_key_2" : "b",
+                                        "  " : "afsd",
+                                        "1" : ["fasdf","sdfsdf"]
+                                },
+                                "start": 0,
+                                "end": 30526667
+                            },
+                            "parameters": [
+                                {
+                                    "start": 0,
+                                    "end": 30526667,
+                                    "timestamps": [
+                                        {
+                                            "points": {
+                                                "x1": 223.32,
+                                                "y1": 78.45,
+                                                "x2": 312.31,
+                                                "y2": 176.66
+                                            },
+                                            "timestamp": 0,
+                                            "attributes": []
+                                        },
+                                        {
+                                            "points": {
+                                                "x1": 182.08,
+                                                "y1": 33.18,
+                                                "x2": 283.45,
+                                                "y2": 131.39
+                                            },
+                                            "timestamp": 17271058,
+                                            "attributes": [
+                                                {
+                                                    "id": 1175876,
+                                                    "groupId": 338357,
+                                                    "name": "attr",
+                                                    "groupName": "attr g"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "points": {
+                                                "x1": 182.32,
+                                                "y1": 36.33,
+                                                "x2": 284.01,
+                                                "y2": 134.54
+                                            },
+                                            "timestamp": 18271058,
+                                            "attributes": [
+                                                {
+                                                    "id": 1175876,
+                                                    "groupId": 338357,
+                                                    "name": "attr",
+                                                    "groupName": "attr g"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "points": {
+                                                "x1": 181.49,
+                                                "y1": 45.09,
+                                                "x2": 283.18,
+                                                "y2": 143.3
+                                            },
+                                            "timestamp": 19271058,
+                                            "attributes": [
+                                                {
+                                                    "id": 1175876,
+                                                    "groupId": 338357,
+                                                    "name": "attr",
+                                                    "groupName": "attr g"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "points": {
+                                                "x1": 181.9,
+                                                "y1": 48.35,
+                                                "x2": 283.59,
+                                                "y2": 146.56
+                                            },
+                                            "timestamp": 19725864,
+                                            "attributes": [
+                                                {
+                                                    "id": 1175876,
+                                                    "groupId": 338357,
+                                                    "name": "attr",
+                                                    "groupName": "attr g"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "points": {
+                                                "x1": 181.49,
+                                                "y1": 52.46,
+                                                "x2": 283.18,
+                                                "y2": 150.67
+                                            },
+                                            "timestamp": 20271058,
+                                            "attributes": [
+                                                {
+                                                    "id": 1175876,
+                                                    "groupId": 338357,
+                                                    "name": "attr",
+                                                    "groupName": "attr g"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "points": {
+                                                "x1": 181.49,
+                                                "y1": 63.7,
+                                                "x2": 283.18,
+                                                "y2": 161.91
+                                            },
+                                            "timestamp": 21271058,
+                                            "attributes": [
+                                                {
+                                                    "id": 1175876,
+                                                    "groupId": 338357,
+                                                    "name": "attr",
+                                                    "groupName": "attr g"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "points": {
+                                                "x1": 182.07,
+                                                "y1": 72.76,
+                                                "x2": 283.76,
+                                                "y2": 170.97
+                                            },
+                                            "timestamp": 22271058,
+                                            "attributes": [
+                                                {
+                                                    "id": 1175876,
+                                                    "groupId": 338357,
+                                                    "name": "attr",
+                                                    "groupName": "attr g"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "points": {
+                                                "x1": 182.07,
+                                                "y1": 81.51,
+                                                "x2": 283.76,
+                                                "y2": 179.72
+                                            },
+                                            "timestamp": 23271058,
+                                            "attributes": [
+                                                {
+                                                    "id": 1175876,
+                                                    "groupId": 338357,
+                                                    "name": "attr",
+                                                    "groupName": "attr g"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "points": {
+                                                "x1": 182.42,
+                                                "y1": 97.19,
+                                                "x2": 284.11,
+                                                "y2": 195.4
+                                            },
+                                            "timestamp": 24271058,
+                                            "attributes": [
+                                                {
+                                                    "id": 1175876,
+                                                    "groupId": 338357,
+                                                    "name": "attr",
+                                                    "groupName": "attr g"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "points": {
+                                                "x1": 182.42,
+                                                "y1": 97.19,
+                                                "x2": 284.11,
+                                                "y2": 195.4
+                                            },
+                                            "timestamp": 30526667,
+                                            "attributes": [
+                                                {
+                                                    "id": 1175876,
+                                                    "groupId": 338357,
+                                                    "name": "attr",
+                                                    "groupName": "attr g"
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "meta": {
+                                "type": "bbox",
+                                "classId": 859496,
+                                "className": "vid",
+                                "start": 29713736,
+                                "end": 30526667
+                            },
+                            "parameters": [
+                                {
+                                    "start": 29713736,
+                                    "end": 30526667,
+                                    "timestamps": [
+                                        {
+                                            "points": {
+                                                "x1": 132.82,
+                                                "y1": 129.12,
+                                                "x2": 175.16,
+                                                "y2": 188
+                                            },
+                                            "timestamp": 29713736,
+                                            "attributes": []
+                                        },
+                                        {
+                                            "points": {
+                                                "x1": 132.82,
+                                                "y1": 129.12,
+                                                "x2": 175.16,
+                                                "y2": 188
+                                            },
+                                            "timestamp": 30526667,
+                                            "attributes": []
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "meta": {
+                                "type": "event",
+                                "classId": 859496,
+                                "className": "vid",
+                                "start": 5528212,
+                                "end": 7083022
+                            },
+                            "parameters": [
+                                {
+                                    "start": 5528212,
+                                    "end": 7083022,
+                                    "timestamps": [
+                                        {
+                                            "timestamp": 5528212,
+                                            "attributes": []
+                                        },
+                                        {
+                                            "timestamp": 6702957,
+                                            "attributes": [
+                                                {
+                                                    "id": 1175876,
+                                                    "groupId": 338357,
+                                                    "name": "attr",
+                                                    "groupName": "attr g"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "timestamp": 7083022,
+                                            "attributes": [
+                                                {
+                                                    "id": 1175876,
+                                                    "groupId": 338357,
+                                                    "name": "attr",
+                                                    "groupName": "attr g"
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ],
+                    "tags": [
+                        "some tag"
+                    ]
+                }
+                '''
+                )
 
+            with catch_prints() as out:
+                sa.validate_annotations("Video", os.path.join(self.vector_folder_path,
+                                                              f"{tmpdir_name}/test_validate_video_point_labels_bad_keys.json"))
+                self.assertEqual(
+                    "instances[0].meta.pointLabels.bad_key_1doesnotmatchexpectedformat^[0-9]*$\ninstances[0].meta.pointLabels.bad_key_2doesnotmatchexpectedformat^[0-9]*$\ninstances[0].meta.pointLabels.doesnotmatchexpectedformat^[0-9]*$\ninstances[0].meta.pointLabels.1strtypeexpected",
+                    out.getvalue().strip().replace(" ", ""))

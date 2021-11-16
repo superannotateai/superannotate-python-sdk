@@ -10,9 +10,9 @@ from lib.core.entities.utils import BaseModel
 from lib.core.entities.utils import BboxPoints
 from lib.core.entities.utils import MetadataBase
 from lib.core.entities.utils import NotEmptyStr
+from lib.core.entities.utils import PointLabels
 from lib.core.entities.utils import Tag
 from pydantic import conlist
-from pydantic import constr
 from pydantic import Field
 from pydantic import ValidationError
 from pydantic.error_wrappers import ErrorWrapper
@@ -44,9 +44,7 @@ class EventTimeStamp(BaseTimeStamp):
 class InstanceMetadata(BaseInstance):
     type: VideoType
     class_name: Optional[NotEmptyStr] = Field(None, alias="className")
-    point_labels: Optional[Dict[constr(regex=r"^[0-9]*$"), NotEmptyStr]] = Field(
-        None, alias="pointLabels"
-    )
+    point_labels: Optional[PointLabels] = Field(None, alias="pointLabels")
     start: int
     end: int
 
