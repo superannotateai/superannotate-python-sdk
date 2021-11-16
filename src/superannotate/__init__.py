@@ -22,7 +22,6 @@ from superannotate.lib.app.input_converters.conversion import convert_project_ty
 from superannotate.lib.app.input_converters.conversion import export_annotation
 from superannotate.lib.app.input_converters.conversion import import_annotation
 from superannotate.lib.app.input_converters.df_converter import df_to_annotations
-
 from superannotate.lib.app.input_converters.dicom_converter import dicom_to_rgb_sequence
 from superannotate.lib.app.interface.sdk_interface import add_annotation_bbox_to_image
 from superannotate.lib.app.interface.sdk_interface import (

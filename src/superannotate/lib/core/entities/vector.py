@@ -10,8 +10,10 @@ from lib.core.entities.utils import Metadata
 from lib.core.entities.utils import NotEmptyStr
 from lib.core.entities.utils import Tag
 from lib.core.entities.utils import VectorAnnotationTypeEnum
+from lib.core.entities.utils import INVALID_DICT_MESSAGE
 from pydantic import conlist
 from pydantic import Field
+from pydantic import StrictInt
 from pydantic import ValidationError
 from pydantic.error_wrappers import ErrorWrapper
 
@@ -61,21 +63,21 @@ class Ellipse(BaseVectorInstance):
 
 
 class TemplatePoint(BaseModel):
-    id: int
+    id: StrictInt
     x: float
     y: float
 
 
 class TemplateConnection(BaseModel):
-    id: int
-    from_connection: int = Field(alias="from")
-    to_connection: int = Field(alias="to")
+    id: StrictInt
+    from_connection: StrictInt = Field(alias="from")
+    to_connection: StrictInt = Field(alias="to")
 
 
 class Template(BaseVectorInstance):
     points: conlist(TemplatePoint, min_items=1)
     connections: List[TemplateConnection]
-    template_id: Optional[int] = Field(None, alias="templateId")
+    template_id: Optional[StrictInt] = Field(None, alias="templateId")
     template_name: NotEmptyStr = Field(alias="templateName")
 
 
@@ -114,12 +116,12 @@ class AnnotationInstance(BaseModel):
     @classmethod
     def return_action(cls, values):
         try:
-            instance_type = values["type"]
-        except KeyError:
-            raise ValidationError(
-                [ErrorWrapper(ValueError("field required"), "type")], cls
-            )
-        try:
+            try:
+                instance_type = values["type"]
+            except KeyError:
+                raise ValidationError(
+                    [ErrorWrapper(ValueError("field required"), "type")], cls
+                )
             return ANNOTATION_TYPES[instance_type](**values)
         except KeyError:
             raise ValidationError(
@@ -133,6 +135,8 @@ class AnnotationInstance(BaseModel):
                 ],
                 cls,
             )
+        except TypeError as e:
+            raise TypeError(INVALID_DICT_MESSAGE) from e
 
 
 class VectorAnnotation(BaseModel):
