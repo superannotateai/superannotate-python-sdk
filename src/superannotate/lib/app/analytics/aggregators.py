@@ -1,6 +1,7 @@
 import copy
 import json
 import logging
+from dataclasses import dataclass
 from pathlib import Path
 from typing import List
 from typing import Optional
@@ -8,7 +9,6 @@ from typing import Union
 
 import lib.core as constances
 import pandas as pd
-from dataclasses import dataclass
 from lib.app.exceptions import AppException
 from lib.core import ATTACHED_VIDEO_ANNOTATION_POSTFIX
 from lib.core import PIXEL_ANNOTATION_POSTFIX
@@ -58,10 +58,10 @@ class VideoRawData:
 
 class DataAggregator:
     def __init__(
-            self,
-            project_type: str,
-            project_root: Union[str, Path],
-            folder_names: Optional[List[Union[Path, str]]] = None
+        self,
+        project_type: str,
+        project_root: Union[str, Path],
+        folder_names: Optional[List[Union[Path, str]]] = None,
     ):
         self.project_type = project_type
         self.project_root = Path(project_root)
@@ -87,10 +87,18 @@ class DataAggregator:
                 if path.is_file() and path.suffix == self.annotation_suffix:
                     annotations_paths.append(path)
                 elif path.is_dir() and path.name != "classes":
-                    annotations_paths.extend(list(path.rglob(f"*{self.annotation_suffix}")))
+                    annotations_paths.extend(
+                        list(path.rglob(f"*{self.annotation_suffix}"))
+                    )
         else:
             for folder_name in self.folder_names:
-                annotations_paths.extend(list((self.project_root / folder_name).rglob(f"*{self.annotation_suffix:}")))
+                annotations_paths.extend(
+                    list(
+                        (self.project_root / folder_name).rglob(
+                            f"*{self.annotation_suffix:}"
+                        )
+                    )
+                )
 
         if not annotations_paths:
             logger.warning(f"Could not find annotations in {self.project_root}.")
@@ -103,11 +111,16 @@ class DataAggregator:
             )
 
     def aggregate_annotations_as_df(self):
-        logger.info(f"Aggregating annotations from {self.project_root} as pandas DataFrame")
+        logger.info(
+            f"Aggregating annotations from {self.project_root} as pandas DataFrame"
+        )
         self.check_classes_path()
         annotation_paths = self.get_annotation_paths()
 
-        if self.project_type in (constances.ProjectType.VECTOR.name, constances.ProjectType.PIXEL.name):
+        if self.project_type in (
+            constances.ProjectType.VECTOR.name,
+            constances.ProjectType.PIXEL.name,
+        ):
             return self.aggregate_image_annotations_as_df(annotation_paths)
         elif self.project_type == constances.ProjectType.VIDEO.name:
             return self.aggregate_video_annotations_as_df(annotation_paths)
@@ -120,7 +133,11 @@ class DataAggregator:
             raw_data = VideoRawData()
             # metadata
             raw_data.videoName = annotation_data["metadata"]["name"]
-            raw_data.folderName = annotation_path.parent.name if annotation_path.parent != self.project_root else None
+            raw_data.folderName = (
+                annotation_path.parent.name
+                if annotation_path.parent != self.project_root
+                else None
+            )
             raw_data.videoHeight = annotation_data["metadata"].get("height")
             raw_data.videoWidth = annotation_data["metadata"].get("width")
             raw_data.videoStatus = annotation_data["metadata"].get("status")
@@ -146,11 +163,19 @@ class DataAggregator:
                 instance_raw.type = instance["meta"].get("type")
                 instance_raw.className = instance["meta"].get("className")
                 instance_raw.createdAt = instance["meta"].get("createdAt")
-                instance_raw.createdBy = instance["meta"].get("createdBy", {}).get("email")
-                instance_raw.creatorRole = instance["meta"].get("createdBy", {}).get("role")
+                instance_raw.createdBy = (
+                    instance["meta"].get("createdBy", {}).get("email")
+                )
+                instance_raw.creatorRole = (
+                    instance["meta"].get("createdBy", {}).get("role")
+                )
                 instance_raw.updatedAt = instance["meta"].get("updatedAt")
-                instance_raw.updatedBy = instance["meta"].get("updatedBy", {}).get("email")
-                instance_raw.updatorRole = instance["meta"].get("updatedBy", {}).get("role")
+                instance_raw.updatedBy = (
+                    instance["meta"].get("updatedBy", {}).get("email")
+                )
+                instance_raw.updatorRole = (
+                    instance["meta"].get("updatedBy", {}).get("role")
+                )
                 instance_raw.pointLabels = instance["meta"].get("pointLabels")
                 parameters = instance.get("parameters", [])
                 for parameter_id, parameter in enumerate(parameters):
@@ -167,7 +192,9 @@ class DataAggregator:
                         for attribute_id, attribute in enumerate(attributes):
                             attribute_raw = copy.copy(timestamp_raw)
                             attribute_raw.attributeId = attribute_id
-                            attribute_raw.attributeGroupName = attribute.get("groupName")
+                            attribute_raw.attributeGroupName = attribute.get(
+                                "groupName"
+                            )
                             attribute_raw.attributeName = attribute.get("name")
                             raws.append(attribute_raw)
                         if not attributes:
@@ -212,7 +239,7 @@ class DataAggregator:
             "imageAnnotator": [],
             "imageQA": [],
             "commentResolved": [],
-            "tag": []
+            "tag": [],
         }
 
         classes_json = json.load(open(self.classes_path))
@@ -233,7 +260,9 @@ class DataAggregator:
         def __append_annotation(annotation_dict):
             for annotation_key in annotation_data:
                 if annotation_key in annotation_dict:
-                    annotation_data[annotation_key].append(annotation_dict[annotation_key])
+                    annotation_data[annotation_key].append(
+                        annotation_dict[annotation_key]
+                    )
                 else:
                     annotation_data[annotation_key].append(None)
 
@@ -271,8 +300,8 @@ class DataAggregator:
                 annotation_type = annotation.get("type", "mask")
                 annotation_class_name = annotation.get("className")
                 if (
-                        annotation_class_name is None
-                        or annotation_class_name not in class_name_to_color
+                    annotation_class_name is None
+                    or annotation_class_name not in class_name_to_color
                 ):
                     logger.warning(
                         "Annotation class %s not found in classes json. Skipping.",
@@ -308,7 +337,7 @@ class DataAggregator:
                 annotation_probability = annotation.get("probability")
                 annotation_point_labels = annotation.get("pointLabels")
                 attributes = annotation.get("attributes")
-                user_metadata =self.__get_user_metadata(annotation)
+                user_metadata = self.__get_user_metadata(annotation)
                 folder_name = None
                 if annotation_path.parent != Path(self.project_root):
                     folder_name = annotation_path.parent.name
@@ -339,8 +368,8 @@ class DataAggregator:
                         attribute_group = attribute.get("groupName")
                         attribute_name = attribute.get("name")
                         if (
-                                attribute_group
-                                not in class_group_name_to_values[annotation_class_name]
+                            attribute_group
+                            not in class_group_name_to_values[annotation_class_name]
                         ):
                             logger.warning(
                                 "Annotation class group %s not in classes json. Skipping.",
@@ -348,10 +377,10 @@ class DataAggregator:
                             )
                             continue
                         if (
-                                attribute_name
-                                not in class_group_name_to_values[annotation_class_name][
-                            attribute_group
-                        ]
+                            attribute_name
+                            not in class_group_name_to_values[annotation_class_name][
+                                attribute_group
+                            ]
                         ):
                             logger.warning(
                                 "Annotation class group value %s not in classes json. Skipping.",

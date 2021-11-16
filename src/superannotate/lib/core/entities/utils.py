@@ -9,8 +9,11 @@ from pydantic import constr
 from pydantic import EmailStr
 from pydantic import Extra
 from pydantic import Field
+from pydantic import StrictStr
 from pydantic import StrRegexError
+from pydantic import ValidationError
 from pydantic import validator
+from pydantic.error_wrappers import ErrorWrapper
 from pydantic.errors import EnumMemberError
 
 
@@ -21,15 +24,17 @@ def enum_error_handling(self) -> str:
 
 EnumMemberError.__str__ = enum_error_handling
 
-
 NotEmptyStr = constr(strict=True, min_length=1)
-
 
 DATE_REGEX = r"\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d(?:\.\d{3})Z"
 
 DATE_TIME_FORMAT_ERROR_MESSAGE = (
     "does not match expected format YYYY-MM-DDTHH:MM:SS.fffZ"
 )
+
+POINT_LABEL_KEY_FORMAT_ERROR_MESSAGE = "does not match expected format ^[0-9]*$"
+
+POINT_LABEL_VALUE_FORMAT_ERROR_MESSAGE = "str type expected"
 
 
 class BaseModel(PyDanticBaseModel):
@@ -144,7 +149,7 @@ class LastUserAction(BaseModel):
 
 class BaseInstance(TrackableModel, TimedBaseModel):
     class_id: Optional[int] = Field(None, alias="classId")
-    class_name: NotEmptyStr = Field(alias="className")
+    class_name: Optional[NotEmptyStr] = Field(None, alias="className")
 
 
 class MetadataBase(BaseModel):
@@ -157,10 +162,6 @@ class MetadataBase(BaseModel):
     annotator_email: Optional[EmailStr] = Field(None, alias="annotatorEmail")
     qa_email: Optional[EmailStr] = Field(None, alias="qaEmail")
     status: Optional[AnnotationStatusEnum]
-
-
-class PointLabels(BaseModel):
-    __root__: Dict[constr(regex=r"^[0-9]*$"), NotEmptyStr]  # noqa: F722 E261
 
 
 class Correspondence(BaseModel):
@@ -186,6 +187,56 @@ class BaseImageInstance(BaseInstance):
         error_msg_templates = {
             "value_error.missing": "field required for annotation",
         }
+
+
+class StringA(BaseModel):
+    string: StrictStr
+
+
+class PointLabels(BaseModel):
+    __root__: Dict[constr(regex=r"^[0-9]*$"), str]
+
+    @classmethod
+    def __get_validators__(cls):
+        yield cls.validate_type
+        yield cls.validate_value
+
+    @validator("__root__", pre=True)
+    def validate_value(cls, values):
+        result = {}
+        errors = []
+        validate_key = None
+        validate_value = None
+        for key, value in values.items():
+            try:
+                validate_key = constr(regex=r"^[0-9]*$", min_length=1).validate(key)
+            except ValueError:
+                errors.append(
+                    ErrorWrapper(
+                        ValueError(POINT_LABEL_KEY_FORMAT_ERROR_MESSAGE), str(key)
+                    )
+                )
+            try:
+                validate_value = StringA(string=value)
+            except ValueError:
+                errors.append(
+                    ErrorWrapper(
+                        ValueError(POINT_LABEL_VALUE_FORMAT_ERROR_MESSAGE), str(key)
+                    )
+                )
+
+        if validate_key and validate_value:
+            result.update({key: value})
+
+        if errors:
+            raise ValidationError(errors, cls)
+        return result
+
+    @classmethod
+    def validate_type(cls, values):
+        if not issubclass(type(values), dict):
+            raise TypeError("value is not a valid dict")
+        return values
 
 
 class BaseVectorInstance(BaseImageInstance):
