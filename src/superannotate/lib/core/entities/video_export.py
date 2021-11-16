@@ -15,6 +15,8 @@ from lib.core.entities.utils import INVALID_DICT_MESSAGE
 from lib.core.entities.utils import Tag
 from pydantic import conlist
 from pydantic import Field
+from pydantic import StrictBool
+from pydantic import StrictInt
 from pydantic import ValidationError
 from pydantic.error_wrappers import ErrorWrapper
 
@@ -25,12 +27,12 @@ class VideoType(str, Enum):
 
 
 class MetaData(MetadataBase):
-    duration: Optional[int]
-    error: Optional[bool]
+    duration: Optional[StrictInt]
+    error: Optional[StrictBool]
 
 
 class BaseTimeStamp(BaseModel):
-    timestamp: int
+    timestamp: StrictInt
     attributes: List[Attribute]
 
 
@@ -45,8 +47,8 @@ class EventTimeStamp(BaseTimeStamp):
 class InstanceMetadata(BaseInstance):
     type: VideoType
     class_name: Optional[NotEmptyStr] = Field(None, alias="className")
-    start: int
-    end: int
+    start: StrictInt
+    end: StrictInt
 
     class Config:
         fields = {"creation_type": {"exclude": True}}
@@ -62,8 +64,8 @@ class EventInstanceMetadata(InstanceMetadata):
 
 
 class BaseParameter(BaseModel):
-    start: int
-    end: int
+    start: StrictInt
+    end: StrictInt
 
 
 class BboxParameter(BaseParameter):

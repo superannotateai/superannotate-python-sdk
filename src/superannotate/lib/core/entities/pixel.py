@@ -7,13 +7,14 @@ from lib.core.entities.utils import Comment
 from lib.core.entities.utils import Metadata
 from lib.core.entities.utils import Tag
 from pydantic import Field
+from pydantic import StrictBool
 from pydantic import validator
 from pydantic.color import Color
 from pydantic.color import ColorType
 
 
 class PixelMetaData(Metadata):
-    is_segmented: Optional[bool] = Field(None, alias="isSegmented")
+    is_segmented: Optional[StrictBool] = Field(None, alias="isSegmented")
 
 
 class PixelAnnotationPart(BaseModel):
