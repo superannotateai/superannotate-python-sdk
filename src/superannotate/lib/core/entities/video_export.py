@@ -11,6 +11,7 @@ from lib.core.entities.utils import BboxPoints
 from lib.core.entities.utils import MetadataBase
 from lib.core.entities.utils import NotEmptyStr
 from lib.core.entities.utils import PointLabels
+from lib.core.entities.utils import INVALID_DICT_MESSAGE
 from lib.core.entities.utils import Tag
 from pydantic import conlist
 from pydantic import Field
@@ -46,7 +47,6 @@ class EventTimeStamp(BaseTimeStamp):
 class InstanceMetadata(BaseInstance):
     type: VideoType
     class_name: Optional[NotEmptyStr] = Field(None, alias="className")
-    point_labels: Optional[PointLabels] = Field(None, alias="pointLabels")
     start: StrictInt
     end: StrictInt
 
@@ -56,6 +56,7 @@ class InstanceMetadata(BaseInstance):
 
 class BBoxInstanceMetadata(InstanceMetadata):
     type: VideoType = Field(VideoType.BBOX.value, const=True)
+    point_labels: Optional[PointLabels] = Field(None, alias="pointLabels")
 
 
 class EventInstanceMetadata(InstanceMetadata):
@@ -98,12 +99,12 @@ class VideoInstance(BaseModel):
     @classmethod
     def return_action(cls, values):
         try:
-            instance_type = values["meta"]["type"]
-        except KeyError:
-            raise ValidationError(
-                [ErrorWrapper(ValueError("meta.field required"), "type")], cls
-            )
-        try:
+            try:
+                instance_type = values["meta"]["type"]
+            except KeyError:
+                raise ValidationError(
+                    [ErrorWrapper(ValueError("meta.field required"), "type")], cls
+                )
             return INSTANCES[instance_type](**values)
         except KeyError:
             raise ValidationError(
@@ -117,6 +118,8 @@ class VideoInstance(BaseModel):
                 ],
                 cls,
             )
+        except TypeError as e:
+            raise TypeError(INVALID_DICT_MESSAGE) from e
 
 
 class VideoAnnotation(BaseModel):
