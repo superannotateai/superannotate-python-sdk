@@ -1956,7 +1956,7 @@ class TestTypeHandling(TestCase):
                                             ]
                                         },
                                         {
-                                            "timestamp": 7083022,
+                                            "timestamp": "7083022",
                                             "attributes": [
                                                 {
                                                     "id": 1175876,
@@ -1972,7 +1972,7 @@ class TestTypeHandling(TestCase):
                         }
                     ],
                     "tags": [
-                        "some tag"
+                        123
                     ]
                 }
                 '''
@@ -1982,5 +1982,5 @@ class TestTypeHandling(TestCase):
                 sa.validate_annotations("Video", os.path.join(self.vector_folder_path,
                                                               f"{tmpdir_name}/test_validate_video_point_labels_bad_keys.json"))
                 self.assertEqual(
-                    "instances[0].meta.pointLabels.bad_key_1doesnotmatchexpectedformat^[0-9]*$\ninstances[0].meta.pointLabels.bad_key_2doesnotmatchexpectedformat^[0-9]*$\ninstances[0].meta.pointLabels.doesnotmatchexpectedformat^[0-9]*$\ninstances[0].meta.pointLabels.1strtypeexpected",
+                    "instances[0].meta.pointLabels.bad_key_1doesnotmatchexpectedformat^[0-9]*$\ninstances[0].meta.pointLabels.bad_key_2doesnotmatchexpectedformat^[0-9]*$\ninstances[0].meta.pointLabels.doesnotmatchexpectedformat^[0-9]*$\ninstances[0].meta.pointLabels.1strtypeexpected\ninstances[2].parameters[0].timestamps[2].timestampintegertypeexpected\ntags[0]strtypeexpected",
                     out.getvalue().strip().replace(" ", ""))
