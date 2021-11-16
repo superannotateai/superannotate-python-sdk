@@ -36,6 +36,8 @@ POINT_LABEL_KEY_FORMAT_ERROR_MESSAGE = "does not match expected format ^[0-9]*$"
 
 POINT_LABEL_VALUE_FORMAT_ERROR_MESSAGE = "str type expected"
 
+INVALID_DICT_MESSAGE = "value is not a valid dict"
+
 
 class BaseModel(PyDanticBaseModel):
     class Config:
@@ -235,7 +237,7 @@ class PointLabels(BaseModel):
     @classmethod
     def validate_type(cls, values):
         if not issubclass(type(values), dict):
-            raise TypeError("value is not a valid dict")
+            raise TypeError(INVALID_DICT_MESSAGE)
         return values
 
 

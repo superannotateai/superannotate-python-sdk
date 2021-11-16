@@ -10,6 +10,7 @@ from lib.core.entities.utils import Metadata
 from lib.core.entities.utils import NotEmptyStr
 from lib.core.entities.utils import Tag
 from lib.core.entities.utils import VectorAnnotationTypeEnum
+from lib.core.entities.utils import INVALID_DICT_MESSAGE
 from pydantic import conlist
 from pydantic import Field
 from pydantic import ValidationError
@@ -114,12 +115,12 @@ class AnnotationInstance(BaseModel):
     @classmethod
     def return_action(cls, values):
         try:
-            instance_type = values["type"]
-        except KeyError:
-            raise ValidationError(
-                [ErrorWrapper(ValueError("field required"), "type")], cls
-            )
-        try:
+            try:
+                instance_type = values["type"]
+            except KeyError:
+                raise ValidationError(
+                    [ErrorWrapper(ValueError("field required"), "type")], cls
+                )
             return ANNOTATION_TYPES[instance_type](**values)
         except KeyError:
             raise ValidationError(
@@ -133,6 +134,8 @@ class AnnotationInstance(BaseModel):
                 ],
                 cls,
             )
+        except TypeError as e:
+            raise TypeError(INVALID_DICT_MESSAGE) from e
 
 
 class VectorAnnotation(BaseModel):
