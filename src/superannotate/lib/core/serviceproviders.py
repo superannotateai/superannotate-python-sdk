@@ -287,17 +287,9 @@ class SuerannotateServiceProvider(metaclass=SingleInstanceMetaClass):
     def delete_model(self, team_id: int, model_id: int):
         raise NotImplementedError
 
-    def stop_model_training(self, team_id: int, model_id: int):
-        raise NotImplementedError
-
     def get_ml_model_download_tokens(
         self, team_id: int, model_id: int
     ) -> ServiceResponse:
-        raise NotImplementedError
-
-    def run_segmentation(
-        self, team_id: int, project_id: int, model_name: str, image_ids: list
-    ):
         raise NotImplementedError
 
     def run_prediction(
