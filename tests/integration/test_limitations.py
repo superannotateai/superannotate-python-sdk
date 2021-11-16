@@ -50,46 +50,6 @@ class TestLimitsUploadImagesFromFolderToProject(BaseTestCase):
             )
 
 
-class TestLimitsMoveImage(BaseTestCase):
-    PROJECT_NAME = "TestLimitsMoveImage"
-    PROJECT_DESCRIPTION = "Desc"
-    PROJECT_TYPE = "Vector"
-    TEST_FOLDER_PTH = "data_set"
-    TEST_FOLDER_PATH = "data_set/sample_project_vector"
-    EXAMPLE_IMAGE_1 = "example_image_1.jpg"
-
-    @property
-    def folder_path(self):
-        return os.path.join(dirname(dirname(__file__)), self.TEST_FOLDER_PATH)
-
-    def test_folder_limitations(self):
-        sa.upload_image_to_project(self._project["name"], os.path.join(self.folder_path, self.EXAMPLE_IMAGE_1))
-        sa.create_folder(self._project["name"], self._project["name"])
-        with patch("lib.infrastructure.services.SuperannotateBackendService.get_limitations") as limit_response:
-            limit_response.return_value = folder_limit_response
-            with self.assertRaisesRegexp(AppException, COPY_FOLDER_LIMIT_ERROR_MESSAGE):
-                _, _, __ = sa.move_image(
-                    self._project["name"], self.folder_path, f"{self.PROJECT_NAME}/{self.PROJECT_NAME}")
-
-    def test_project_limitations(self, ):
-        sa.upload_image_to_project(self._project["name"], os.path.join(self.folder_path, self.EXAMPLE_IMAGE_1))
-        sa.create_folder(self._project["name"], self._project["name"])
-        with patch("lib.infrastructure.services.SuperannotateBackendService.get_limitations") as limit_response:
-            limit_response.return_value = project_limit_response
-            with self.assertRaisesRegexp(AppException, COPY_PROJECT_LIMIT_ERROR_MESSAGE):
-                _, _, __ = sa.move_image(
-                    self._project["name"], self.folder_path, f"{self.PROJECT_NAME}/{self.PROJECT_NAME}")
-
-    def test_user_limitations(self, ):
-        sa.upload_image_to_project(self._project["name"], os.path.join(self.folder_path, self.EXAMPLE_IMAGE_1))
-        sa.create_folder(self._project["name"], self._project["name"])
-        with patch("lib.infrastructure.services.SuperannotateBackendService.get_limitations") as limit_response:
-            limit_response.return_value = user_limit_response
-            with self.assertRaisesRegexp(AppException, COPY_SUPER_LIMIT_ERROR_MESSAGE):
-                _, _, __ = sa.move_image(
-                    self._project["name"], self.folder_path, f"{self.PROJECT_NAME}/{self.PROJECT_NAME}")
-
-
 class TestLimitsCopyImage(BaseTestCase):
     PROJECT_NAME = "TestLimitsCopyImage"
     PROJECT_DESCRIPTION = "Desc"

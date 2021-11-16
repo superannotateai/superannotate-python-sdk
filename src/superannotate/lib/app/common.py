@@ -23,18 +23,6 @@ _ANNOTATION_STATUSES = {
 }
 
 
-def image_path_to_annotation_paths(image_path, project_type):
-    image_path = Path(image_path)
-    if project_type == "Vector":
-        return (
-            image_path.parent / get_annotation_json_name(image_path.name, project_type),
-        )
-    return (
-        image_path.parent / get_annotation_json_name(image_path.name, project_type),
-        image_path.parent / get_annotation_png_name(image_path.name),
-    )
-
-
 def hex_to_rgb(hex_string):
     """Converts HEX values to RGB values
     """
