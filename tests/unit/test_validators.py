@@ -1193,10 +1193,11 @@ class TestTypeHandling(TestCase):
                 '''
                 )
 
+
             with catch_prints() as out:
                 sa.validate_annotations("Video", os.path.join(self.vector_folder_path,
                                                               f"{tmpdir_name}/test_validate_video_invalid_instace_without_type_and_attr_annotation.json"))
-                self.assertIn("instances[2].typemeta.fieldrequired", out.getvalue().strip().replace(" ", ""))
+                self.assertIn("instances[2].meta.typefieldrequired", out.getvalue().strip().replace(" ", ""))
 
     def test_validate_vector_temlpate_polygon_polyline_min_annotation(self):
         with tempfile.TemporaryDirectory() as tmpdir_name:
@@ -1933,7 +1934,8 @@ class TestTypeHandling(TestCase):
                                 "classId": 859496,
                                 "className": "vid",
                                 "start": 5528212,
-                                "end": 7083022
+                                "end": 7083022,
+                                "pointLabels": {}
                             },
                             "parameters": [
                                 {
@@ -1969,6 +1971,48 @@ class TestTypeHandling(TestCase):
                                     ]
                                 }
                             ]
+                        },
+                        {
+                            "parameters": [
+                                {
+                                    "start": 5528212,
+                                    "end": 7083022,
+                                    "timestamps": [
+                                        {
+                                            "timestamp": 5528212,
+                                            "attributes": []
+                                        },
+                                        {
+                                            "timestamp": 6702957,
+                                            "attributes": [
+                                                {
+                                                    "id": 1175876,
+                                                    "groupId": 338357,
+                                                    "name": "attr",
+                                                    "groupName": "attr g"
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            "timestamp": "7083022",
+                                            "attributes": [
+                                                {
+                                                    "id": 1175876,
+                                                    "groupId": 338357,
+                                                    "name": "attr",
+                                                    "groupName": "attr g"
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                        "meta": "afsdfadsf"
+                        },
+                        {
+                        "meta" : []
                         }
                     ],
                     "tags": [
@@ -1982,5 +2026,5 @@ class TestTypeHandling(TestCase):
                 sa.validate_annotations("Video", os.path.join(self.vector_folder_path,
                                                               f"{tmpdir_name}/test_validate_video_point_labels_bad_keys.json"))
                 self.assertEqual(
-                    "instances[0].meta.pointLabels.bad_key_1doesnotmatchexpectedformat^[0-9]*$\ninstances[0].meta.pointLabels.bad_key_2doesnotmatchexpectedformat^[0-9]*$\ninstances[0].meta.pointLabels.doesnotmatchexpectedformat^[0-9]*$\ninstances[0].meta.pointLabels.1strtypeexpected\ninstances[2].parameters[0].timestamps[2].timestampintegertypeexpected\ntags[0]strtypeexpected",
+                    "instances[0].meta.pointLabels.bad_key_1doesnotmatchexpectedformat^[0-9]*$\ninstances[0].meta.pointLabels.bad_key_2doesnotmatchexpectedformat^[0-9]*$\ninstances[0].meta.pointLabels.doesnotmatchexpectedformat^[0-9]*$\ninstances[0].meta.pointLabels.1strtypeexpected\ninstances[2].meta.pointLabelsextrafieldsnotpermitted\ninstances[2].parameters[0].timestamps[2].timestampintegertypeexpected\ninstances[3].metafieldrequired\ninstances[4].metavalueisnotavaliddict\ninstances[5].metavalueisnotavaliddict\ntags[0]strtypeexpected",
                     out.getvalue().strip().replace(" ", ""))

@@ -99,11 +99,15 @@ class VideoInstance(BaseModel):
     @classmethod
     def return_action(cls, values):
         try:
+            loc = []
             try:
-                instance_type = values["meta"]["type"]
+                loc = ["meta"]
+                meta_data = values["meta"]
+                loc.append("type")
+                instance_type = meta_data["type"]
             except KeyError:
                 raise ValidationError(
-                    [ErrorWrapper(ValueError("meta.field required"), "type")], cls
+                    [ErrorWrapper(ValueError("field required"), ".".join(loc))], cls
                 )
             return INSTANCES[instance_type](**values)
         except KeyError:
@@ -119,7 +123,17 @@ class VideoInstance(BaseModel):
                 cls,
             )
         except TypeError as e:
-            raise TypeError(INVALID_DICT_MESSAGE) from e
+            raise ValidationError(
+                [
+                    ErrorWrapper(
+                        ValueError(
+                            INVALID_DICT_MESSAGE
+                        ),
+                        "meta",
+                    )
+                ],
+                cls,
+            )
 
 
 class VideoAnnotation(BaseModel):
