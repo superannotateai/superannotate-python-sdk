@@ -3648,8 +3648,8 @@ def attach_document_urls_to_project(
 def validate_annotations(
     project_type: ProjectTypes, annotations_json: Union[NotEmptyStr, Path]
 ):
-    """
-    Validates given annotation JSON.
+    """Validates given annotation JSON.
+
         :param project_type: project_type (str) – the project type Vector, Pixel, Video or Document
         :type project_type: str
         :param annotations_json: path to annotation JSON

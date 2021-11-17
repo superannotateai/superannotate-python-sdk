@@ -312,6 +312,7 @@ Working with annotations
 ________________________
 
 .. _ref_add_annotation_bbox_to_json:
+.. autofunction:: superannotate.validate_annotations
 .. autofunction:: superannotate.add_annotation_bbox_to_json
 .. autofunction:: superannotate.add_annotation_polygon_to_json
 .. autofunction:: superannotate.add_annotation_polyline_to_json
