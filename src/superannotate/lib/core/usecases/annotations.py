@@ -412,11 +412,6 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
             annotations = convert_to_video_editor_json(
                 annotations, annotation_classes_name_maps, reporter
             )
-        if project_type == constances.ProjectType.DOCUMENT.value:
-            fill_document_tags(
-                annotations=annotations,
-                annotation_classes=annotation_classes_name_maps,
-            )
         handle_last_action(annotations, team)
         return annotations
 

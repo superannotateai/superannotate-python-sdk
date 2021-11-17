@@ -65,18 +65,19 @@ def fill_annotation_ids(
         return
     unknown_classes = dict()
 
-    for annotation in [i for i in annotations["instances"] if "className" in i]:
+    for annotation in annotations["instances"]:
         if "className" not in annotation:
-            return
-        annotation_class_name = annotation["className"]
-        if annotation_class_name not in annotation_classes_name_maps.keys():
-            if annotation_class_name not in unknown_classes:
-                reporter.log_warning(f"Couldn't find class {annotation_class_name}")
-                reporter.store_message("missing_classes", annotation_class_name)
-                unknown_classes[annotation_class_name] = {
-                    "id": -(len(unknown_classes) + 1),
-                    "attribute_groups": {},
-                }
+            annotation["classId"] = -1
+        else:
+            annotation_class_name = annotation["className"]
+            if annotation_class_name not in annotation_classes_name_maps.keys():
+                if annotation_class_name not in unknown_classes:
+                    reporter.log_warning(f"Couldn't find class {annotation_class_name}")
+                    reporter.store_message("missing_classes", annotation_class_name)
+                    unknown_classes[annotation_class_name] = {
+                        "id": -(len(unknown_classes) + 1),
+                        "attribute_groups": {},
+                    }
     annotation_classes_name_maps.update(unknown_classes)
     template_name_id_map = {template["name"]: template["id"] for template in templates}
     for annotation in (
