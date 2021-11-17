@@ -33,7 +33,7 @@ class MetaData(MetadataBase):
 
 class BaseTimeStamp(BaseModel):
     timestamp: StrictInt
-    attributes: List[Attribute]
+    attributes: Optional[List[Attribute]] = Field(list())
 
 
 class BboxTimeStamp(BaseTimeStamp):
