@@ -34,7 +34,7 @@ DATE_TIME_FORMAT_ERROR_MESSAGE = (
     "does not match expected format YYYY-MM-DDTHH:MM:SS.fffZ"
 )
 
-POINT_LABEL_KEY_FORMAT_ERROR_MESSAGE = "does not match expected format ^[0-9]*$"
+POINT_LABEL_KEY_FORMAT_ERROR_MESSAGE = "does not match expected format ^[0-9]+$"
 
 POINT_LABEL_VALUE_FORMAT_ERROR_MESSAGE = "str type expected"
 
@@ -199,7 +199,7 @@ class StringA(BaseModel):
 
 
 class PointLabels(BaseModel):
-    __root__: Dict[constr(regex=r"^[0-9]*$"), StrictStr]
+    __root__: Dict[constr(regex=r"^[0-9]+$"), StrictStr]
 
     @classmethod
     def __get_validators__(cls):
@@ -214,7 +214,7 @@ class PointLabels(BaseModel):
         validate_value = None
         for key, value in values.items():
             try:
-                validate_key = constr(regex=r"^[0-9]*$", min_length=1).validate(key)
+                validate_key = constr(regex=r"^[0-9]+$", min_length=1).validate(key)
             except ValueError:
                 errors.append(
                     ErrorWrapper(
