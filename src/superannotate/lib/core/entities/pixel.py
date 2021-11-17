@@ -32,6 +32,6 @@ class PixelAnnotationInstance(BaseImageInstance):
 
 class PixelAnnotation(BaseModel):
     metadata: PixelMetaData
-    instances: List[PixelAnnotationInstance]
+    instances: List[PixelAnnotationInstance] = Field(list())
     tags: Optional[List[Tag]] = Field(list())
     comments: Optional[List[Comment]] = Field(list())
