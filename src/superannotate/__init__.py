@@ -156,7 +156,6 @@ from superannotate.lib.app.interface.sdk_interface import (
 from superannotate.lib.app.interface.sdk_interface import validate_annotations
 from superannotate.version import __version__
 
-
 __all__ = [
     "__version__",
     "controller",
@@ -289,12 +288,41 @@ __all__ = [
 
 __author__ = "Superannotate"
 
-
 WORKING_DIR = os.path.split(os.path.realpath(__file__))[0]
 sys.path.append(WORKING_DIR)
 logging.getLogger("botocore").setLevel(logging.CRITICAL)
-logging.config.fileConfig(
-    os.path.join(WORKING_DIR, "logging.conf"), disable_existing_loggers=False
+
+logging.config.dictConfig(
+    {
+        "version": 1,
+        "disable_existing_loggers": False,
+        "handlers": {
+            "console": {
+                "class": "logging.StreamHandler",
+                "level": "INFO",
+                "formatter": "consoleFormatter",
+                "stream": "ext://sys.stdout",
+            },
+            "fileHandler": {
+                "class": "logging.handlers.RotatingFileHandler",
+                "level": "DEBUG",
+                "formatter": "consoleFormatter",
+                "filename": f"{constances.LOG_FILE_LOCATION}",
+                "mode": "a",
+                "maxBytes": 5 * 1024 * 1024,
+                "backupCount": 5,
+            },
+        },
+        "formatters": {
+            "consoleFormatter": {
+                "format": "SA-PYTHON-SDK - %(levelname)s - %(message)s",
+            }
+        },
+        "root": {  # root logger
+            "level": "DEBUG",
+            "handlers": ["console", "fileHandler"],
+        },
+    }
 )
 
 local_version = parse(__version__)

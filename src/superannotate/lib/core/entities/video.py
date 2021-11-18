@@ -13,9 +13,9 @@ from lib.core.entities.utils import Tag
 from pydantic import BaseModel
 from pydantic import constr
 from pydantic import Field
-from pydantic import StrictStr
-from pydantic import StrictInt
 from pydantic import StrictBool
+from pydantic import StrictInt
+from pydantic import StrictStr
 
 
 class VideoType(str, Enum):
