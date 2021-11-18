@@ -9,9 +9,9 @@ from pydantic import constr
 from pydantic import EmailStr
 from pydantic import Extra
 from pydantic import Field
-from pydantic import StrictStr
-from pydantic import StrictInt
 from pydantic import StrictBool
+from pydantic import StrictInt
+from pydantic import StrictStr
 from pydantic import StrRegexError
 from pydantic import ValidationError
 from pydantic import validator
