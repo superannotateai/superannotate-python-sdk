@@ -1,4 +1,5 @@
 import functools
+import logging
 import sys
 
 from lib.infrastructure.controller import Controller
@@ -10,6 +11,8 @@ from .utils import parsers
 
 controller = Controller.get_instance()
 mp = Mixpanel(TOKEN)
+
+logger = logging.getLogger("root")
 
 
 def get_default(team_name, user_id, project_name=None):
@@ -75,6 +78,7 @@ class Trackable:
             self._success = True
         except Exception as e:
             self._success = False
+            logger.debug(str(e), exc_info=True)
             raise e
         else:
             return result
