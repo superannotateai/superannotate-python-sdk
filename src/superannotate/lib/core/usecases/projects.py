@@ -658,10 +658,10 @@ class UpdateSettingsUseCase(BaseUseCase):
         for attribute in self._to_update:
             if (
                 attribute.get("attribute", "") == "ImageQuality"
-                and project.project_type == constances.ProjectType.VIDEO.value
+                and project.project_type in [constances.ProjectType.VIDEO.value, constances.ProjectType.DOCUMENT.value]
             ):
                 raise AppValidationException(
-                    constances.DEPRECATED_VIDEO_PROJECTS_MESSAGE
+                    constances.DEPRICATED_DOCUMENT_VIDEO_MESSAGE
                 )
 
     def execute(self):
