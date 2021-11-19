@@ -102,6 +102,8 @@ class TestSingleAnnotationDownloadUploadPixel(BaseTestCase):
             uploaded_json = json.load(
                 open(self.folder_path + "/example_image_1.jpg___pixel.json")
             )
+            downloaded_json['metadata']['lastAction'] = None
+            uploaded_json['metadata']['lastAction'] = None
             for i in downloaded_json["instances"]:
                 i.pop("classId", None)
                 for j in i["attributes"]:

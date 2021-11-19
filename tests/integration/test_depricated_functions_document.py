@@ -167,10 +167,6 @@ class TestDeprecatedFunctionsDocument(TestCase):
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
-            sa.move_image(self.PROJECT_NAME, self.UPLOAD_IMAGE_NAME, self.PROJECT_NAME_2)
-        except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE, str(e))
-        try:
             sa.move_images(self.PROJECT_NAME, [self.UPLOAD_IMAGE_NAME], self.PROJECT_NAME_2)
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))

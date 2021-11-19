@@ -194,6 +194,9 @@ class CLITest(TestCase):
             check=True,
             shell=True,
         )
+        # from src.superannotate.lib.app.interface.cli_interface import CLIFacade
+        # # self, project, folder, data_set_name = None, task = None, format = None
+        # cli_facade = CLIFacade().upload_annotations(self.PROJECT_NAME,self.convertor_data_path,"instances_test",None,"COCO")
         count_in = len(list(self.vector_folder_path.glob("*.json")))
         with tempfile.TemporaryDirectory() as temp_dir:
             for image_name in sa.search_images(self.PROJECT_NAME):
