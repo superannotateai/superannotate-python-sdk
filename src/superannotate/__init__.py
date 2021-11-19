@@ -1,6 +1,7 @@
 import logging.config
 import os
 import sys
+from os.path import expanduser
 
 import requests
 import superannotate.lib.core as constances
@@ -221,7 +222,7 @@ logging.config.dictConfig(
                 "class": "logging.handlers.RotatingFileHandler",
                 "level": "DEBUG",
                 "formatter": "consoleFormatter",
-                "filename": f"{constances.LOG_FILE_LOCATION}",
+                "filename": expanduser(constances.LOG_FILE_LOCATION),
                 "mode": "a",
                 "maxBytes": 5 * 1024 * 1024,
                 "backupCount": 5,
