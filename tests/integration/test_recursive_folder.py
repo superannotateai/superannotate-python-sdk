@@ -60,8 +60,7 @@ class TestRecursiveFolder(BaseTestCase):
                 json_ann = json.load(open(json_file))
                 if "instances" in json_ann and len(json_ann["instances"]) > 0:
                     non_empty_annotations += 1
-            # TODO : Template name validation error
-            # self.assertEqual(non_empty_annotations, 1)
+            self.assertEqual(non_empty_annotations, 1)
 
     def test_recursive_annotations_folder(self):
         sa.upload_images_from_folder_to_project(

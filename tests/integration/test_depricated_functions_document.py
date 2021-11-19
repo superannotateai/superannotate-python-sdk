@@ -213,10 +213,7 @@ class TestDeprecatedFunctionsDocument(TestCase):
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
 
-        # TODO: image quality error
-        # try:
-        #     msg = ""
-        #     sa.set_project_default_image_quality_in_editor(self.PROJECT_NAME,"original")
-        # except Exception as e:
-        #     msg = str(e)
-        # self.assertIn(self.EXCEPTION_MESSAGE, msg)
+        try:
+            sa.set_project_default_image_quality_in_editor(self.PROJECT_NAME,"original")
+        except AppException as e:
+            self.assertIn(self.EXCEPTION_MESSAGE_DOCUMENT_VIDEO, str(e))
