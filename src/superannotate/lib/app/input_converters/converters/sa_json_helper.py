@@ -15,7 +15,7 @@ def _create_vector_instance(
         "type": instance_type,
         "pointLabels": pointLabels,
         "attributes": attributes,
-        "creationType": "Pre-annotation",
+        "creationType": "Preannotation",
     }
 
     if instance_type == "template":

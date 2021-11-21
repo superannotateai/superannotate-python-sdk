@@ -1,7 +1,9 @@
 import json
+import time
 from collections import defaultdict
 from typing import List
 
+from lib.core.entities import TeamEntity
 from lib.core.reporter import Reporter
 
 
@@ -63,18 +65,19 @@ def fill_annotation_ids(
         return
     unknown_classes = dict()
 
-    for annotation in [i for i in annotations["instances"] if "className" in i]:
+    for annotation in annotations["instances"]:
         if "className" not in annotation:
-            return
-        annotation_class_name = annotation["className"]
-        if annotation_class_name not in annotation_classes_name_maps.keys():
-            if annotation_class_name not in unknown_classes:
-                reporter.log_warning(f"Couldn't find class {annotation_class_name}")
-                reporter.store_message("missing_classes", annotation_class_name)
-                unknown_classes[annotation_class_name] = {
-                    "id": -(len(unknown_classes) + 1),
-                    "attribute_groups": {},
-                }
+            annotation["classId"] = -1
+        else:
+            annotation_class_name = annotation["className"]
+            if annotation_class_name not in annotation_classes_name_maps.keys():
+                if annotation_class_name not in unknown_classes:
+                    reporter.log_warning(f"Couldn't find class {annotation_class_name}")
+                    reporter.store_message("missing_classes", annotation_class_name)
+                    unknown_classes[annotation_class_name] = {
+                        "id": -(len(unknown_classes) + 1),
+                        "attribute_groups": {},
+                    }
     annotation_classes_name_maps.update(unknown_classes)
     template_name_id_map = {template["name"]: template["id"] for template in templates}
     for annotation in (
@@ -146,12 +149,15 @@ def convert_to_video_editor_json(
         "tags": data["tags"],
         "name": data["metadata"]["name"],
         "metadata": {
-            "duration": convert_timestamp(data["metadata"]["duration"]),
             "name": data["metadata"]["name"],
             "width": data["metadata"].get("width"),
             "height": data["metadata"].get("height"),
         },
     }
+    if data["metadata"].get("duration"):
+        editor_data["metadata"]["duration"] = convert_timestamp(
+            data["metadata"]["duration"]
+        )
     for instance in data["instances"]:
         meta = instance["meta"]
         class_name = meta.get("className")
@@ -159,7 +165,6 @@ def convert_to_video_editor_json(
             "attributes": [],
             "timeline": {},
             "type": meta["type"],
-            # TODO check
             "locked": False,
         }
         if class_name:
@@ -263,6 +268,13 @@ def convert_to_video_editor_json(
                     )
         editor_data["instances"].append(editor_instance)
     return editor_data
+
+
+def handle_last_action(annotations: dict, team: TeamEntity):
+    annotations["metadata"]["lastAction"] = {
+        "email": team.creator_id,
+        "timestamp": int(time.time()),
+    }
 
 
 class SetEncoder(json.JSONEncoder):

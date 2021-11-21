@@ -312,6 +312,7 @@ Working with annotations
 ________________________
 
 .. _ref_add_annotation_bbox_to_json:
+.. autofunction:: superannotate.validate_annotations
 .. autofunction:: superannotate.add_annotation_bbox_to_json
 .. autofunction:: superannotate.add_annotation_polygon_to_json
 .. autofunction:: superannotate.add_annotation_polyline_to_json
@@ -323,18 +324,13 @@ ________________________
 .. _ref_aggregate_annotations_as_df:
 .. autofunction:: superannotate.aggregate_annotations_as_df
 .. autofunction:: superannotate.df_to_annotations
-.. _ref_filter_annotation_instances:
-.. autofunction:: superannotate.filter_annotation_instances
-.. autofunction:: superannotate.filter_images_by_comments
-.. autofunction:: superannotate.filter_images_by_tags
 
 ----------
 
-Aggregating class/attribute distribution from annotations
+Aggregating class distribution from annotations
 _____________________________________________________________
 
 .. autofunction:: superannotate.class_distribution
-.. autofunction:: superannotate.attribute_distribution
 
 ----------
 

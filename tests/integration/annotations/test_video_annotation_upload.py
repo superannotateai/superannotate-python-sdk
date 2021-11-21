@@ -6,6 +6,8 @@ from pathlib import Path
 import pytest
 import src.superannotate as sa
 from tests.integration.base import BaseTestCase
+from src.superannotate.lib.core.helpers import convert_to_video_editor_json
+from lib.core.reporter import Reporter
 
 
 class TestUploadVideoAnnotation(BaseTestCase):
@@ -17,7 +19,14 @@ class TestUploadVideoAnnotation(BaseTestCase):
     ANNOTATIONS_WITHOUT_CLASSES_PATH = "data_set/annotations"
     CLASSES_PATH = "data_set/video_annotation/classes/classes.json"
     ANNOTATIONS_PATH_INVALID_JSON = "data_set/video_annotation_invalid_json"
+    MINIMAL_ANNOTATION_PATH = "data_set/video_annotation_minimal_fields"
+    MINIMAL_ANNOTATION_TRUTH_PATH = "data_set/minimal_video_annotation_truth"
+
     maxDiff = None
+
+    @property
+    def minimal_annotation_truth_path(self):
+        return os.path.join(self.folder_path, self.MINIMAL_ANNOTATION_TRUTH_PATH)
 
     @property
     def folder_path(self):
@@ -30,6 +39,10 @@ class TestUploadVideoAnnotation(BaseTestCase):
     @property
     def annotations_path(self):
         return os.path.join(self.folder_path, self.ANNOTATIONS_PATH)
+
+    @property
+    def minimal_annotations_path(self):
+        return os.path.join(self.folder_path, self.MINIMAL_ANNOTATION_PATH)
 
     @property
     def annotations_without_classes(self):
@@ -59,7 +72,7 @@ class TestUploadVideoAnnotation(BaseTestCase):
         self.assertEqual(len(uploaded_annotations), 0)
         self.assertEqual(len(failed_annotations), 1)
         self.assertEqual(len(missing_annotations), 0)
-        self.assertIn("Invalid json", self._caplog.text)
+        self.assertIn("Couldn't validate ", self._caplog.text)
 
     def test_video_annotation_upload(self):
         sa.create_annotation_classes_from_classes_json(self.PROJECT_NAME, self.classes_path)
@@ -91,6 +104,7 @@ class TestUploadVideoAnnotation(BaseTestCase):
             for class_id in class_ids:
                 annotation = annotation.replace(class_id, "0")
             uploaded_annotation = json.loads(annotation)
+            del downloaded_annotation["metadata"]["lastAction"]
             self.assertEqual(downloaded_annotation, uploaded_annotation)
 
     def test_upload_annotations_without_class_name(self):
@@ -101,7 +115,6 @@ class TestUploadVideoAnnotation(BaseTestCase):
             self.csv_path,
         )
         sa.upload_annotations_from_folder_to_project(self.PROJECT_NAME, self.annotations_without_classes)
-
 
     def test_upload_annotations_empty_json(self):
         sa.create_annotation_classes_from_classes_json(self.PROJECT_NAME, self.classes_path)
@@ -116,5 +129,11 @@ class TestUploadVideoAnnotation(BaseTestCase):
             output_path = temp_dir
             sa.download_export(self.PROJECT_NAME, export, output_path, True)
             uploaded, _, _ = sa.upload_annotations_from_folder_to_project(self.PROJECT_NAME, output_path)
-            self.assertEqual(len(uploaded),1)
+            self.assertEqual(len(uploaded), 1)
 
+    def test_video_annotation_converter(self):
+        converted_video = convert_to_video_editor_json(
+            json.loads(open(f'{self.minimal_annotations_path}/video.mp4.json', 'r').read()), class_name_mapper={},
+            reporter=Reporter())
+        data = {'instances': [{'attributes': [], 'timeline': {'0': {'active': True, 'points': {'x1': 223.32, 'y1': 78.45, 'x2': 312.31, 'y2': 176.66}}, 17.271058: {'points': {'x1': 182.08, 'y1': 33.18, 'x2': 283.45, 'y2': 131.39}}, 18.271058: {'points': {'x1': 182.32, 'y1': 36.33, 'x2': 284.01, 'y2': 134.54}}, 19.271058: {'points': {'x1': 181.49, 'y1': 45.09, 'x2': 283.18, 'y2': 143.3}}, 19.725864: {'points': {'x1': 181.9, 'y1': 48.35, 'x2': 283.59, 'y2': 146.56}}, 20.271058: {'points': {'x1': 181.49, 'y1': 52.46, 'x2': 283.18, 'y2': 150.67}}, 21.271058: {'points': {'x1': 181.49, 'y1': 63.7, 'x2': 283.18, 'y2': 161.91}}, 22.271058: {'points': {'x1': 182.07, 'y1': 72.76, 'x2': 283.76, 'y2': 170.97}}, 23.271058: {'points': {'x1': 182.07, 'y1': 81.51, 'x2': 283.76, 'y2': 179.72}}, 24.271058: {'points': {'x1': 182.42, 'y1': 97.19, 'x2': 284.11, 'y2': 195.4}}, 30.526667: {'active': False, 'points': {'x1': 182.42, 'y1': 97.19, 'x2': 284.11, 'y2': 195.4}}}, 'type': 'bbox', 'locked': False, 'classId': -1, 'pointLabels': {'3': 'point label bro'}}, {'attributes': [], 'timeline': {29.713736: {'active': True, 'points': {'x1': 132.82, 'y1': 129.12, 'x2': 175.16, 'y2': 188}}, 30.526667: {'active': False, 'points': {'x1': 132.82, 'y1': 129.12, 'x2': 175.16, 'y2': 188}}}, 'type': 'bbox', 'locked': False, 'classId': -1}, {'attributes': [], 'timeline': {5.528212: {'active': True}, 6.702957: {}, 7.083022: {'active': False}}, 'type': 'event', 'locked': False, 'classId': -1}], 'tags': ['some tag'], 'name': 'video.mp4', 'metadata': {'name': 'video.mp4', 'width': None, 'height': None}}
+        self.assertEqual(data, converted_video)
