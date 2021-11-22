@@ -13,19 +13,12 @@ from typing import Union
 
 import boto3
 import lib.core as constances
-import plotly.graph_objects as go
 from lib.app.annotation_helpers import add_annotation_bbox_to_json
 from lib.app.annotation_helpers import add_annotation_comment_to_json
-from lib.app.annotation_helpers import add_annotation_cuboid_to_json
-from lib.app.annotation_helpers import add_annotation_ellipse_to_json
 from lib.app.annotation_helpers import add_annotation_point_to_json
-from lib.app.annotation_helpers import add_annotation_polygon_to_json
-from lib.app.annotation_helpers import add_annotation_polyline_to_json
-from lib.app.annotation_helpers import add_annotation_template_to_json
 from lib.app.helpers import extract_project_folder
 from lib.app.helpers import get_annotation_paths
 from lib.app.helpers import get_paths_and_duplicated_from_csv
-from lib.app.helpers import reformat_metrics_json
 from lib.app.interface.types import AnnotationStatuses
 from lib.app.interface.types import AnnotationType
 from lib.app.interface.types import ImageQualityChoices
@@ -100,17 +93,6 @@ def invite_contributor_to_team(email: EmailStr, admin: bool = False):
     :type admin: bool
     """
     controller.invite_contributor(email, is_admin=admin)
-
-
-@Trackable
-@validate_arguments
-def delete_contributor_to_team_invitation(email: EmailStr):
-    """Deletes team contributor invitation
-
-    :param email: invitation email
-    :type email: str
-    """
-    controller.delete_contributor_invitation(email)
 
 
 @Trackable
@@ -436,25 +418,6 @@ def get_project_and_folder_metadata(project: Union[NotEmptyStr, dict]):
 
 @Trackable
 @validate_arguments
-def rename_folder(project: Union[NotEmptyStr, dict], new_folder_name: NotEmptyStr):
-    """Renames folder in project.
-
-    :param project: project name or folder path (e.g., "project1/folder1")
-    :type project: str
-    :param new_folder_name: folder's new name
-    :type new_folder_name: str
-    """
-    project_name, folder_name = extract_project_folder(project)
-    res = controller.update_folder(project_name, folder_name, {"name": new_folder_name})
-    if res.errors:
-        raise AppException(res.errors)
-    logger.info(
-        f"Folder {folder_name} renamed to {res.data.name} in project {project_name}"
-    )
-
-
-@Trackable
-@validate_arguments
 def search_folders(
     project: NotEmptyStr,
     folder_name: Optional[NotEmptyStr] = None,
@@ -482,37 +445,6 @@ def search_folders(
     if return_metadata:
         return [BaseSerializers(folder).serialize() for folder in data]
     return [folder.name for folder in data]
-
-
-@Trackable
-@validate_arguments
-def get_image_bytes(
-    project: Union[NotEmptyStr, dict],
-    image_name: NotEmptyStr,
-    variant: Optional[NotEmptyStr] = "original",
-):
-    """Returns an io.BytesIO() object of the image. Suitable for creating
-    PIL.Image out of it.
-
-    :param project: project name or folder path (e.g., "project1/folder1")
-    :type project: str
-    :param image_name: image name
-    :type image_name: str
-    :param variant: which resolution to get, can be 'original' or 'lores'
-     (low resolution)
-    :type variant: str
-
-    :return: io.BytesIO() of the image
-    :rtype: io.BytesIO()
-    """
-    project_name, folder_name = extract_project_folder(project)
-    image = controller.get_image_bytes(
-        project_name=project_name,
-        image_name=image_name,
-        folder_name=folder_name,
-        image_variant=variant,
-    ).data
-    return image
 
 
 @Trackable
@@ -901,44 +833,6 @@ def search_annotation_classes(
 
 @Trackable
 @validate_arguments
-def set_project_settings(project: Union[NotEmptyStr, dict], new_settings: List[dict]):
-    """Sets project's settings.
-
-    New settings format example: [{ "attribute" : "Brightness", "value" : 10, ...},...]
-
-    :param project: project name or metadata
-    :type project: str or dict
-    :param new_settings: new settings list of dicts
-    :type new_settings: list of dicts
-
-    :return: updated part of project's settings
-    :rtype: list of dicts
-    """
-    project_name, folder_name = extract_project_folder(project)
-    updated = controller.set_project_settings(project_name, new_settings)
-    return updated.data
-
-
-@Trackable
-@validate_arguments
-def get_project_default_image_quality_in_editor(project: Union[NotEmptyStr, dict]):
-    """Gets project's default image quality in editor setting.
-
-    :param project: project name or metadata
-    :type project: str or dict
-
-    :return: "original" or "compressed" setting value
-    :rtype: str
-    """
-    project_name, folder_name = extract_project_folder(project)
-    settings = controller.get_project_settings(project_name).data
-    for setting in settings:
-        if setting.attribute == "ImageQuality":
-            return setting.value
-
-
-@Trackable
-@validate_arguments
 def set_project_default_image_quality_in_editor(
     project: Union[NotEmptyStr, dict], image_quality_in_editor: Optional[str],
 ):
@@ -982,25 +876,6 @@ def pin_image(
         folder_name=folder_name,
         is_pinned=int(pin),
     )
-
-
-@Trackable
-@validate_arguments
-def delete_image(project: Union[NotEmptyStr, dict], image_name: str):
-    """Deletes image
-
-    :param project: project name or folder path (e.g., "project1/folder1")
-    :type project: str
-    :param image_name: image name
-    :type image_name: str
-    """
-    project_name, folder_name = extract_project_folder(project)
-    response = controller.delete_image(
-        image_name=image_name, folder_name=folder_name, project_name=project_name
-    )
-    if response.errors:
-        raise AppException("Couldn't delete image ")
-    logger.info(f"Successfully deleted image {image_name}.")
 
 
 @Trackable
@@ -1253,23 +1128,6 @@ def share_project(
 
 @Trackable
 @validate_arguments
-def unshare_project(project_name: NotEmptyStr, user: Union[NotEmptyStr, dict]):
-    """Unshare (remove) user from project.
-
-    :param project_name: project name
-    :type project_name: str
-    :param user: user email or metadata of the user to unshare project
-    :type user: str or dict
-    """
-    if isinstance(user, dict):
-        user_id = user["id"]
-    else:
-        user_id = controller.search_team_contributors(email=user).data[0]["id"]
-    controller.un_share_project(project_name=project_name, user_id=user_id)
-
-
-@Trackable
-@validate_arguments
 def get_image_annotations(project: Union[NotEmptyStr, dict], image_name: NotEmptyStr):
     """Get annotations of the image.
 
@@ -1427,32 +1285,6 @@ def get_project_image_count(
 
 @Trackable
 @validate_arguments
-def get_image_preannotations(
-    project: Union[NotEmptyStr, dict], image_name: NotEmptyStr
-):
-    """Get pre-annotations of the image. Only works for "vector" projects.
-
-    :param project: project name or folder path (e.g., "project1/folder1")
-    :type project: str
-    :param image_name: image name
-    :type image_name: str
-
-    :return: dict object with following keys:
-        "preannotation_json": dict object of the annotation,
-        "preannotation_json_filename": filename on server,
-        "preannotation_mask": mask (for pixel),
-        "preannotation_mask_filename": mask filename on server
-    :rtype: dict
-    """
-    project_name, folder_name = extract_project_folder(project)
-    res = controller.get_image_pre_annotations(
-        project_name=project_name, folder_name=folder_name, image_name=image_name
-    )
-    return res.data
-
-
-@Trackable
-@validate_arguments
 def download_image_annotations(
     project: Union[NotEmptyStr, dict],
     image_name: NotEmptyStr,
@@ -1485,38 +1317,6 @@ def download_image_annotations(
 
 @Trackable
 @validate_arguments
-def download_image_preannotations(
-    project: Union[NotEmptyStr, dict],
-    image_name: NotEmptyStr,
-    local_dir_path: Union[NotEmptyStr, Path],
-):
-    """Downloads pre-annotations of the image to local_dir_path.
-    Only works for "vector" projects.
-
-    :param project: project name or folder path (e.g., "project1/folder1")
-    :type project: str
-    :param image_name: image name
-    :type image_name: str
-    :param local_dir_path: local directory path to download to
-    :type local_dir_path: Path-like (str or Path)
-
-    :return: paths of downloaded pre-annotations
-    :rtype: tuple
-    """
-    project_name, folder_name = extract_project_folder(project)
-    res = controller.download_image_pre_annotations(
-        project_name=project_name,
-        folder_name=folder_name,
-        image_name=image_name,
-        destination=local_dir_path,
-    )
-    if res.errors:
-        raise AppException(res.errors)
-    return res.data
-
-
-@Trackable
-@validate_arguments
 def get_exports(project: NotEmptyStr, return_metadata: Optional[StrictBool] = False):
     """Get all prepared exports of the project.
 
@@ -1532,46 +1332,6 @@ def get_exports(project: NotEmptyStr, return_metadata: Optional[StrictBool] = Fa
         project_name=project, return_metadata=return_metadata
     )
     return response.data
-
-
-@Trackable
-@validate_arguments
-def upload_images_from_s3_bucket_to_project(
-    project: Union[NotEmptyStr, dict],
-    accessKeyId: NotEmptyStr,
-    secretAccessKey: NotEmptyStr,
-    bucket_name: NotEmptyStr,
-    folder_path: Union[str, Path],
-    image_quality_in_editor: Optional[str] = None,
-):
-    """Uploads all images from AWS S3 bucket to the project.
-
-    :param project: project name or folder path (e.g., "project1/folder1")
-    :type project: str
-    :param accessKeyId: AWS S3 access key ID
-    :type accessKeyId: str
-    :param secretAccessKey: AWS S3 secret access key
-    :type secretAccessKey: str
-    :param bucket_name: AWS S3 bucket
-    :type bucket_name: str
-    :param folder_path: from which folder to upload the images
-    :type folder_path: str
-    :param image_quality_in_editor: image quality be seen in SuperAnnotate web annotation editor.
-           Can be either "compressed" or "original".  If None then the default value in project settings will be used.
-    :type image_quality_in_editor: str
-    """
-    project_name, folder_name = extract_project_folder(project)
-    response = controller.backend_upload_from_s3(
-        project_name=project_name,
-        folder_name=folder_name,
-        folder_path=folder_path,
-        access_key=accessKeyId,
-        secret_key=secretAccessKey,
-        bucket_name=bucket_name,
-        image_quality=image_quality_in_editor,
-    )
-    if response.errors:
-        raise AppException(response.errors)
 
 
 @Trackable
@@ -1953,27 +1713,6 @@ def delete_annotation_class(
 
 @Trackable
 @validate_arguments
-def get_annotation_class_metadata(
-    project: NotEmptyStr, annotation_class_name: NotEmptyStr
-):
-    """Returns annotation class metadata
-
-    :param project: project name
-    :type project: str
-    :param annotation_class_name: annotation class name
-    :type annotation_class_name: str
-
-    :return: metadata of annotation class
-    :rtype: dict
-    """
-    response = controller.get_annotation_class(
-        project_name=project, annotation_class_name=annotation_class_name
-    )
-    return response.data.to_dict()
-
-
-@Trackable
-@validate_arguments
 def download_annotation_classes_json(project: NotEmptyStr, folder: Union[str, Path]):
     """Downloads project classes.json to folder
 
@@ -2040,65 +1779,6 @@ def create_annotation_classes_from_classes_json(
         project_name=project, annotation_classes=annotation_classes,
     )
     return response.data
-
-
-@validate_arguments
-def move_image(
-    source_project: Union[NotEmptyStr, dict],
-    image_name: NotEmptyStr,
-    destination_project: Union[NotEmptyStr, dict],
-    include_annotations: Optional[StrictBool] = True,
-    copy_annotation_status: Optional[StrictBool] = True,
-    copy_pin: Optional[StrictBool] = True,
-):
-    """Move image from source_project to destination_project. source_project
-    and destination_project cannot be the same.
-
-    :param source_project: project name or metadata of the project of source project
-    :type source_project: str or dict
-    :param image_name: image name
-    :type image_name: str
-    :param destination_project: project name or metadata of the project of destination project
-    :type destination_project: str or dict
-    :param include_annotations: enables annotations move
-    :type include_annotations: bool
-    :param copy_annotation_status: enables annotations status copy
-    :type copy_annotation_status: bool
-    :param copy_pin: enables image pin status copy
-    :type copy_pin: bool
-    """
-    source_project_name, source_folder_name = extract_project_folder(source_project)
-    destination_project_name, destination_folder = extract_project_folder(
-        destination_project
-    )
-    response = controller.copy_image(
-        from_project_name=source_project_name,
-        from_folder_name=source_folder_name,
-        to_project_name=destination_project_name,
-        to_folder_name=destination_folder,
-        image_name=image_name,
-        copy_annotation_status=copy_annotation_status,
-        move=True,
-    )
-    if response.errors:
-        raise AppException(response.errors)
-
-    if include_annotations:
-        controller.copy_image_annotation_classes(
-            from_project_name=source_project_name,
-            from_folder_name=source_folder_name,
-            to_folder_name=destination_folder,
-            to_project_name=destination_project_name,
-            image_name=image_name,
-        )
-    if copy_pin:
-        controller.update_image(
-            project_name=destination_project_name,
-            folder_name=destination_folder,
-            image_name=image_name,
-            is_pinned=1,
-        )
-    controller.delete_image(source_project_name, image_name, source_folder_name)
 
 
 @Trackable
@@ -2204,41 +1884,6 @@ def set_project_workflow(project: Union[NotEmptyStr, dict], new_workflow: List[d
     )
     if response.errors:
         raise AppException(response.errors)
-
-
-@Trackable
-@validate_arguments
-def create_fuse_image(
-    image: Union[NotEmptyStr, Path],
-    classes_json: Union[str, Path],
-    project_type: NotEmptyStr,
-    in_memory: Optional[StrictBool] = False,
-    output_overlay: Optional[StrictBool] = False,
-):
-    """Creates fuse for locally located image and annotations
-
-    :param image: path to image
-    :type image: str or Path-like
-    :param classes_json: annotation classes or path to their JSON
-    :type classes_json: list or Path-like
-    :param project_type: project type, "Vector" or "Pixel"
-    :type project_type: str
-    :param in_memory: enables pillow Image return instead of saving the image
-    :type in_memory: bool
-
-    :return: path to created fuse image or pillow Image object if in_memory enabled
-    :rtype: str of PIL.Image
-    """
-    annotation_classes = json.load(open(classes_json))
-    response = controller.create_fuse_image(
-        image_path=image,
-        project_type=project_type,
-        annotation_classes=annotation_classes,
-        in_memory=in_memory,
-        generate_overlay=output_overlay,
-    )
-
-    return response.data
 
 
 @Trackable
@@ -2613,148 +2258,6 @@ def upload_image_annotations(
 
 @Trackable
 @validate_arguments
-def run_training(
-    model_name: NotEmptyStr,
-    model_description: NotEmptyStr,
-    task: NotEmptyStr,
-    base_model: Union[NotEmptyStr, dict],
-    train_data: Iterable[str],
-    test_data: Iterable[str],
-    hyperparameters: Optional[dict] = None,
-    log: Optional[StrictBool] = False,
-):
-    """Runs neural network training
-
-    :param model_name: name of the new model
-    :type  model_name: str
-    :param model_description: description of the new model
-    :type  model_description: str
-    :param task: The model training task
-    :type  task: str
-    :param base_model: base model on which the new network will be trained
-    :type  base_model: str or dict
-    :param train_data: train data folders (e.g., "project1/folder1")
-    :type  train_data: list of str
-    :param test_data: test data folders (e.g., "project1/folder1")
-    :type  test_data: list of str
-    :param hyperparameters: hyperparameters that should be used in training. If None use defualt hyperparameters for the training.
-    :type  hyperparameters: dict
-    :param log: If true will log training metrics in the stdout
-    :type log: boolean
-
-    :return: the metadata of the newly created model
-    :rtype: dict
-    """
-    if isinstance(base_model, dict):
-        base_model = base_model["name"]
-
-    response = controller.create_model(
-        model_name=model_name,
-        model_description=model_description,
-        task=task,
-        base_model_name=base_model,
-        train_data_paths=train_data,
-        test_data_paths=test_data,
-        hyper_parameters=hyperparameters,
-    )
-    model = response.data
-    if log:
-        logger.info(
-            "We are firing up servers to run model training."
-            " Depending on the number of training images and the task it may take up to 15"
-            " minutes until you will start seeing metric reports"
-            " \n "
-            "Terminating the function will not terminate model training. "
-            "If you wish to stop the training please use the stop_model_training function"
-        )
-        training_finished = False
-
-        while not training_finished:
-            response = controller.get_model_metrics(model_id=model.uuid)
-            metrics = response.data
-            if len(metrics) == 1:
-                logger.info("Starting up servers")
-                time.sleep(30)
-            if "continuous_metrics" in metrics:
-                logger.info(metrics["continuous_metrics"])
-            if "per_evaluation_metrics" in metrics:
-                for item, value in metrics["per_evaluation_metrics"].items():
-                    logger.info(value)
-            if "training_status" in metrics:
-                status_str = constances.TrainingStatus.get_name(
-                    metrics["training_status"]
-                )
-                if status_str == "Completed":
-                    logger.info("Model Training Successfully completed")
-                    training_finished = True
-                elif (
-                    status_str == "FailedBeforeEvaluation"
-                    or status_str == "FailedAfterEvaluation"
-                ):
-                    logger.info("Failed to train model")
-                    training_finished = True
-                elif status_str == "FailedAfterEvaluationWithSavedModel":
-                    logger.info(
-                        "Model training failed, but we have a checkpoint that can be saved"
-                    )
-                    logger.info("Do you wish to save checkpoint (Y/N)?")
-                    user_input = None
-                    while user_input not in ["Y", "N", "y", "n"]:
-                        user_input = input()
-                        if user_input in ["Y", "y"]:
-                            controller.update_model_status(
-                                model_id=model.uuid,
-                                status=constances.TrainingStatus.FAILED_AFTER_EVALUATION_WITH_SAVE_MODEL.value,
-                            )
-                            logger.info("Model was successfully saved")
-                            pass
-                        else:
-                            controller.delete_model(model_id=model.uuid)
-                            logger.info("The model was not saved")
-                    training_finished = True
-            time.sleep(5)
-    return response.data.to_dict()
-
-
-@Trackable
-@validate_arguments
-def delete_model(model: dict):
-    """This function deletes the provided model
-
-       :param model: the model to be deleted
-       :type model: dict
-       :return: the metadata of the model that was deleted
-       :rtype: dict
-    """
-    response = controller.delete_model(model_id=model["id"])
-
-    if response.errors:
-        logger.info("Failed to delete model, please try again")
-    else:
-        logger.info("Model successfully deleted")
-    return model
-
-
-@Trackable
-@validate_arguments
-def stop_model_training(model: dict):
-    """This function will stop training model provided by either name or metadata, and return the ID
-
-    :param model: The name or the metadata of the model the training of which the user needs to terminate
-    :type model: dict
-    :return: the metadata of the now, stopped model
-    :rtype: dict
-    """
-    response = controller.stop_model_training(model_id=model["id"])
-    if not response.errors:
-        logger.info("Stopped model training")
-    else:
-        logger.info("Failed to stop model training please try again")
-    return model
-
-
-@Trackable
-@validate_arguments
 def download_model(model: MLModel, output_dir: Union[str, Path]):
     """Downloads the neural network and related files
     which are the <model_name>.pth/pkl. <model_name>.json, <model_name>.yaml, classes_mapper.json
@@ -2901,48 +2404,6 @@ def consensus(
 
 @Trackable
 @validate_arguments
-def run_segmentation(
-    project: Union[NotEmptyStr, dict],
-    images_list: List[NotEmptyStr],
-    model: Union[NotEmptyStr, dict],
-):
-    """Starts smart segmentation on a list of images using the specified model
-
-    :param project: project name of metadata of the project
-    :type  project: str or dict
-    :param images_list: image list
-    :type  images_list: list of str
-    :param model: The model name or metadata of the model
-    :type  model: str or dict
-    :return: tupe of two lists, list of images on which the segmentation has succeeded and failed respectively
-    :rtype res: tuple
-    """
-
-    project_name = None
-    folder_name = None
-    if isinstance(project, dict):
-        project_name = project["name"]
-    if isinstance(project, str):
-        project_name, folder_name = extract_project_folder(project)
-
-    model_name = model
-    if isinstance(model, dict):
-        model_name = model["name"]
-
-    response = controller.run_segmentation(
-        project_name=project_name,
-        images_list=images_list,
-        model_name=model_name,
-        folder_name=folder_name,
-    )
-    if response.errors:
-        raise Exception(response.errors)
-
-    return response.data
-
-
-@Trackable
-@validate_arguments
 def run_prediction(
     project: Union[NotEmptyStr, dict],
     images_list: List[NotEmptyStr],
@@ -2979,68 +2440,6 @@ def run_prediction(
     if response.errors:
         raise AppException(response.errors)
     return response.data
-
-
-@Trackable
-@validate_arguments
-# todo test
-def plot_model_metrics(metric_json_list=List[NotEmptyStr]):
-    """plots the metrics generated by neural network using plotly
-
-       :param metric_json_list: list of <model_name>.json files
-       :type  metric_json_list: list of str
-    """
-
-    def plot_df(df, plottable_cols, figure, start_index=1):
-        for row, metric in enumerate(plottable_cols, start_index):
-            for model_df in df:
-                name = model_df["model"].iloc[0]
-                x_ = model_df.loc[model_df["model"] == name, "iteration"]
-                y_ = model_df.loc[model_df["model"] == name, metric]
-                figure.add_trace(
-                    go.Scatter(x=x_, y=y_, name=name + " " + metric), row=row, col=1
-                )
-
-        return figure
-
-    def get_plottable_cols(df):
-        plottable_cols = []
-        for sub_df in df:
-            col_names = sub_df.columns.values.tolist()
-            plottable_cols += [
-                col_name
-                for col_name in col_names
-                if col_name not in plottable_cols
-                and col_name not in constances.NON_PLOTABLE_KEYS
-            ]
-        return plottable_cols
-
-    if not isinstance(metric_json_list, list):
-        metric_json_list = [metric_json_list]
-
-    full_c_metrics = []
-    full_pe_metrics = []
-    for metric_json in metric_json_list:
-        with open(metric_json) as fp:
-            data = json.load(fp)
-        name = metric_json.split(".")[0]
-        c_metrics, pe_metrics = reformat_metrics_json(data, name)
-        full_c_metrics.append(c_metrics)
-        full_pe_metrics.append(pe_metrics)
-
-    plottable_c_cols = get_plottable_cols(full_c_metrics)
-    plottable_pe_cols = get_plottable_cols(full_pe_metrics)
-    num_rows = len(plottable_c_cols) + len(plottable_pe_cols)
-    figure_specs = [[{"secondary_y": True}] for _ in range(num_rows)]
-    plottable_cols = plottable_c_cols + plottable_pe_cols
-    figure = make_subplots(
-        rows=num_rows, cols=1, specs=figure_specs, subplot_titles=plottable_cols,
-    )
-    figure.update_layout(height=1000 * num_rows)
-
-    plot_df(full_c_metrics, plottable_c_cols, figure)
-    plot_df(full_pe_metrics, plottable_pe_cols, figure, len(plottable_c_cols) + 1)
-    figure.show()
 
 
 @Trackable
@@ -3085,75 +2484,6 @@ def add_annotation_bbox_to_image(
 
 @Trackable
 @validate_arguments
-def add_annotation_polyline_to_image(
-    project: NotEmptyStr,
-    image_name: NotEmptyStr,
-    polyline: List[float],
-    annotation_class_name: NotEmptyStr,
-    annotation_class_attributes: Optional[List[dict]] = None,
-    error: Optional[StrictBool] = None,
-):
-    """Add a polyline annotation to image annotations
-
-    annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
-
-    :param project: project name or folder path (e.g., "project1/folder1")
-    :type project: str
-    :param image_name: image name
-    :type image_name: str
-    :param polyline: [x1,y1,x2,y2,...] list of coordinates
-    :type polyline: list of floats
-    :param annotation_class_name: annotation class name
-    :type annotation_class_name: str
-    :param annotation_class_attributes: list of annotation class attributes
-    :type annotation_class_attributes: list of 2 element dicts
-    :param error: if not None, marks annotation as error (True) or no-error (False)
-    :type error: bool
-    """
-    annotations = get_image_annotations(project, image_name)["annotation_json"]
-    annotations = add_annotation_polyline_to_json(
-        annotations, polyline, annotation_class_name, annotation_class_attributes, error
-    )
-    upload_image_annotations(project, image_name, annotations, verbose=False)
-
-
-@Trackable
-@validate_arguments
-def add_annotation_polygon_to_image(
-    project: NotEmptyStr,
-    image_name: NotEmptyStr,
-    polygon: List[float],
-    annotation_class_name: NotEmptyStr,
-    annotation_class_attributes=None,
-    error: Optional[StrictBool] = None,
-):
-    """Add a polygon annotation to image annotations
-
-    annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
-
-    :param project: project name or folder path (e.g., "project1/folder1")
-    :type project: str
-    :param image_name: image name
-    :type image_name: str
-    :param polygon: [x1,y1,x2,y2,...] list of coordinates
-    :type polygon: list of floats
-    :param annotation_class_name: annotation class name
-    :type annotation_class_name: str
-    :param annotation_class_attributes: list of annotation class attributes
-    :type annotation_class_attributes: list of 2 element dicts
-    :param error: if not None, marks annotation as error (True) or no-error (False)
-    :type error: bool
-    """
-
-    annotations = get_image_annotations(project, image_name)["annotation_json"]
-    annotations = add_annotation_polygon_to_json(
-        annotations, polygon, annotation_class_name, annotation_class_attributes, error
-    )
-    upload_image_annotations(project, image_name, annotations, verbose=False)
-
-
-@Trackable
-@validate_arguments
 def add_annotation_point_to_image(
     project: NotEmptyStr,
     image_name: NotEmptyStr,
@@ -3182,122 +2512,6 @@ def add_annotation_point_to_image(
     annotations = get_image_annotations(project, image_name)["annotation_json"]
     annotations = add_annotation_point_to_json(
         annotations, point, annotation_class_name, annotation_class_attributes, error
-    )
-    upload_image_annotations(project, image_name, annotations, verbose=False)
-
-
-@Trackable
-def add_annotation_ellipse_to_image(
-    project: NotEmptyStr,
-    image_name: NotEmptyStr,
-    ellipse: List[float],
-    annotation_class_name: NotEmptyStr,
-    annotation_class_attributes: Optional[List[dict]] = None,
-    error: Optional[StrictBool] = None,
-):
-    """Add an ellipse annotation to image annotations
-
-    annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
-
-    :param project: project name or folder path (e.g., "project1/folder1")
-    :type project: str
-    :param image_name: image name
-    :type image_name: str
-    :param ellipse: [center_x, center_y, r_x, r_y, angle] list of coordinates and angle
-    :type ellipse: list of floats
-    :param annotation_class_name: annotation class name
-    :type annotation_class_name: str
-    :param annotation_class_attributes: list of annotation class attributes
-    :type annotation_class_attributes: list of 2 element dicts
-    :param error: if not None, marks annotation as error (True) or no-error (False)
-    :type error: bool
-    """
-    annotations = get_image_annotations(project, image_name)["annotation_json"]
-    annotations = add_annotation_ellipse_to_json(
-        annotations, ellipse, annotation_class_name, annotation_class_attributes, error
-    )
-    upload_image_annotations(project, image_name, annotations, verbose=False)
-
-
-@Trackable
-@validate_arguments
-def add_annotation_template_to_image(
-    project: NotEmptyStr,
-    image_name: NotEmptyStr,
-    template_points: List[float],
-    template_connections: List[int],
-    annotation_class_name: NotEmptyStr,
-    annotation_class_attributes: Optional[List[dict]] = None,
-    error: Optional[StrictBool] = None,
-):
-    """Add a template annotation to image annotations
-
-    annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
-
-    :param project: project name or folder path (e.g., "project1/folder1")
-    :type project: str
-    :param image_name: image name
-    :type image_name: str
-    :param template_points: [x1,y1,x2,y2,...] list of coordinates
-    :type template_points: list of floats
-    :param template_connections: [from_id_1,to_id_1,from_id_2,to_id_2,...]
-                                 list of indexes from -> to. Indexes are based
-                                 on template_points. E.g., to have x1,y1 to connect
-                                 to x2,y2 and x1,y1 to connect to x4,y4,
-                                 need: [1,2,1,4,...]
-    :type template_connections: list of ints
-    :param annotation_class_name: annotation class name
-    :type annotation_class_name: str
-    :param annotation_class_attributes: list of annotation class attributes
-    :type annotation_class_attributes: list of 2 element dicts
-    :param error: if not None, marks annotation as error (True) or no-error (False)
-    :type error: bool
-    """
-    annotations = get_image_annotations(project, image_name)["annotation_json"]
-    annotations = add_annotation_template_to_json(
-        annotations,
-        template_points,
-        template_connections,
-        annotation_class_name,
-        annotation_class_attributes,
-        error,
-    )
-    upload_image_annotations(project, image_name, annotations, verbose=False)
-
-
-@Trackable
-@validate_arguments
-def add_annotation_cuboid_to_image(
-    project: NotEmptyStr,
-    image_name: NotEmptyStr,
-    cuboid: List[float],
-    annotation_class_name: NotEmptyStr,
-    annotation_class_attributes: Optional[List[dict]] = None,
-    error: Optional[StrictBool] = None,
-):
-    """Add a cuboid annotation to image annotations
-
-    annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
-
-    :param project: project name or folder path (e.g., "project1/folder1")
-    :type project: str
-    :param image_name: image name
-    :type image_name: str
-    :param cuboid: [x_front_tl,y_front_tl,x_front_br,y_front_br,
-                    x_back_tl,y_back_tl,x_back_br,y_back_br] list of coordinates
-                    of front rectangle and back rectangle, in top-left and
-                    bottom-right format
-    :type cuboid: list of floats
-    :param annotation_class_name: annotation class name
-    :type annotation_class_name: str
-    :param annotation_class_attributes: list of annotation class attributes
-    :type annotation_class_attributes: list of 2 element dicts
-    :param error: if not None, marks annotation as error (True) or no-error (False)
-    :type error: bool
-    """
-    annotations = get_image_annotations(project, image_name)["annotation_json"]
-    annotations = add_annotation_cuboid_to_json(
-        annotations, cuboid, annotation_class_name, annotation_class_attributes, error
     )
     upload_image_annotations(project, image_name, annotations, verbose=False)
 

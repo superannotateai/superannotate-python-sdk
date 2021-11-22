@@ -658,10 +658,10 @@ class UpdateSettingsUseCase(BaseUseCase):
         for attribute in self._to_update:
             if (
                 attribute.get("attribute", "") == "ImageQuality"
-                and project.project_type == constances.ProjectType.VIDEO.value
+                and project.project_type in [constances.ProjectType.VIDEO.value, constances.ProjectType.DOCUMENT.value]
             ):
                 raise AppValidationException(
-                    constances.DEPRECATED_VIDEO_PROJECTS_MESSAGE
+                    constances.DEPRICATED_DOCUMENT_VIDEO_MESSAGE
                 )
 
     def execute(self):
@@ -860,27 +860,6 @@ class InviteContributorUseCase(BaseUseCase):
         self._backend_service.invite_contributor(
             team_id=self._team_id, email=self._email, user_role=role
         )
-
-
-class DeleteContributorInvitationUseCase(BaseUseCase):
-    def __init__(
-        self,
-        backend_service_provider: SuerannotateServiceProvider,
-        team: TeamEntity,
-        email: str,
-    ):
-        super().__init__()
-        self._backend_service = backend_service_provider
-        self._email = email
-        self._team = team
-
-    def execute(self):
-        for invite in self._team.pending_invitations:
-            if invite["email"] == self._email:
-                self._backend_service.delete_team_invitation(
-                    self._team.uuid, invite["token"], self._email
-                )
-        return self._response
 
 
 class SearchContributorsUseCase(BaseUseCase):

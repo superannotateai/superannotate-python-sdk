@@ -193,7 +193,6 @@ class SuperannotateBackendService(BaseBackendService):
     URL_PROJECT_WORKFLOW_ATTRIBUTE = "project/{}/workflow_attribute"
     URL_MODELS = "ml_models"
     URL_MODEL = "ml_model"
-    URL_STOP_MODEL_TRAINING = "ml_model/{}/stopTrainingJob"
     URL_GET_MODEL_METRICS = "ml_models/{}/getCurrentMetrics"
     URL_BULK_GET_FOLDERS = "foldersByTeam"
     URL_GET_EXPORT = "export/{}"
@@ -928,13 +927,6 @@ class SuperannotateBackendService(BaseBackendService):
         res = self._request(delete_model_url, "delete", params={"team_id": team_id})
         return res.ok
 
-    def stop_model_training(self, team_id: int, model_id: int):
-        stop_training_url = urljoin(
-            self.api_url, self.URL_STOP_MODEL_TRAINING.format(model_id)
-        )
-        res = self._request(stop_training_url, "post", params={"team_id": team_id})
-        return res.ok
-
     def get_ml_model_download_tokens(self, team_id: int, model_id: int):
         get_token_url = urljoin(
             self.api_url, self.URL_GET_ML_MODEL_DOWNLOAD_TOKEN.format(model_id)
@@ -945,18 +937,6 @@ class SuperannotateBackendService(BaseBackendService):
             params={"team_id": team_id},
             content_type=DownloadMLModelAuthData,
         )
-
-    def run_segmentation(
-        self, team_id: int, project_id: int, model_name: str, image_ids: list
-    ):
-        segmentation_url = urljoin(self.api_url, self.URL_SEGMENTATION)
-        res = self._request(
-            segmentation_url,
-            "post",
-            params={"team_id": team_id, "project_id": project_id},
-            data={"model_name": model_name, "image_ids": image_ids},
-        )
-        return res
 
     def run_prediction(
         self, team_id: int, project_id: int, ml_model_id: int, image_ids: list

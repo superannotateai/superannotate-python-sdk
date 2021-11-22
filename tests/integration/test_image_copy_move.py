@@ -128,41 +128,6 @@ class TestImageCopy(BaseTestCase):
         )
         self.assertEqual(metadata["is_pinned"], 1)
 
-    def test_image_move(self):
-        sa.upload_image_to_project(
-            self.PROJECT_NAME,
-            f"{self.folder_path}/{self.EXAMPLE_IMAGE}",
-            annotation_status="InProgress",
-        )
-        sa.create_annotation_classes_from_classes_json(
-            self.PROJECT_NAME, f"{self.folder_path}/classes/classes.json"
-        )
-        sa.upload_image_annotations(
-            self.PROJECT_NAME,
-            self.EXAMPLE_IMAGE,
-            f"{self.folder_path}/{self.EXAMPLE_IMAGE}___objects.json",
-        )
-        sa.upload_image_to_project(
-            self.PROJECT_NAME,
-            f"{self.folder_path}/example_image_2.jpg",
-            annotation_status="InProgress",
-        )
-        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER)
-        self.assertEqual(len(sa.search_images(self.PROJECT_NAME)), 2)
-        with self.assertRaises(Exception):
-            sa.move_image(self.PROJECT_NAME, self.EXAMPLE_IMAGE, self.PROJECT_NAME)
-
-        sa.move_image(self.PROJECT_NAME, self.EXAMPLE_IMAGE, self.SECOND_PROJECT_NAME)
-        di = sa.search_images(self.SECOND_PROJECT_NAME, self.EXAMPLE_IMAGE)
-        self.assertEqual(len(di), 1)
-        self.assertEqual(di[0], self.EXAMPLE_IMAGE)
-
-        si = sa.search_images(self.PROJECT_NAME, self.EXAMPLE_IMAGE)
-        self.assertEqual(len(si), 0)
-
-        si = sa.search_images(self.PROJECT_NAME)
-        self.assertEqual(len(si), 1)
-
     @pytest.mark.flaky(reruns=2)
     def test_copy_image_with_arguments(self):
         sa.upload_image_to_project(

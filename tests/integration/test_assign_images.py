@@ -34,27 +34,6 @@ class TestAnnotationClasses(BaseTestCase):
         )
         self.assertEqual(image_metadata["qa_id"], email)
 
-        sa.unshare_project(self._project["name"], email)
-        image_metadata = sa.get_image_metadata(
-            self._project["name"], self.EXAMPLE_IMAGE_1
-        )
-
-        self.assertIsNone(image_metadata["qa_id"])
-        self.assertIsNone(image_metadata["annotator_id"])
-
-        sa.share_project(self._project["name"], email, "Annotator")
-
-        sa.assign_images(
-            self._project["name"], [self.EXAMPLE_IMAGE_1, self.EXAMPLE_IMAGE_2], email
-        )
-
-        image_metadata = sa.get_image_metadata(
-            self._project["name"], self.EXAMPLE_IMAGE_1
-        )
-
-        self.assertEqual(image_metadata["annotator_id"], email)
-        self.assertIsNone(image_metadata["qa_id"])
-
     def test_assign_images_folder(self):
 
         email = sa.get_team_metadata()["users"][0]["email"]
@@ -75,30 +54,6 @@ class TestAnnotationClasses(BaseTestCase):
 
         self.assertEqual(im1_metadata["qa_id"], email)
         self.assertEqual(im2_metadata["qa_id"], email)
-
-        sa.unshare_project(self.PROJECT_NAME, email)
-
-        im1_metadata = sa.get_image_metadata(project_folder, self.EXAMPLE_IMAGE_1)
-        im2_metadata = sa.get_image_metadata(project_folder, self.EXAMPLE_IMAGE_2)
-
-        self.assertIsNone(im1_metadata["qa_id"])
-        self.assertIsNone(im2_metadata["qa_id"])
-        self.assertIsNone(im1_metadata["annotator_id"])
-        self.assertIsNone(im2_metadata["annotator_id"])
-
-        sa.share_project(self.PROJECT_NAME, email, "Annotator")
-
-        sa.assign_images(
-            project_folder, [self.EXAMPLE_IMAGE_1, self.EXAMPLE_IMAGE_2], email
-        )
-
-        im1_metadata = sa.get_image_metadata(project_folder, self.EXAMPLE_IMAGE_1)
-        im2_metadata = sa.get_image_metadata(project_folder, self.EXAMPLE_IMAGE_2)
-
-        self.assertEqual(im1_metadata["annotator_id"], email)
-        self.assertEqual(im2_metadata["annotator_id"], email)
-        self.assertIsNone(im1_metadata["qa_id"])
-        self.assertIsNone(im2_metadata["qa_id"])
 
     def test_un_assign_images(self):
 

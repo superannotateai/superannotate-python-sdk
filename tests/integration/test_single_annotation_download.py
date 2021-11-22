@@ -28,42 +28,46 @@ class TestSingleAnnotationDownloadUpload(BaseTestCase):
 
 
     # TODO: template name validation error
-    # def test_annotation_download_upload_vector(self):
-    #     sa.upload_images_from_folder_to_project(
-    #         project=self.PROJECT_NAME, folder_path=self.folder_path
-    #     )
-    #     sa.create_annotation_classes_from_classes_json(
-    #         self.PROJECT_NAME, self.classes_path
-    #     )
-    #     sa.upload_annotations_from_folder_to_project(
-    #         self.PROJECT_NAME, self.folder_path
-    #     )
-    #     image = sa.search_images(self.PROJECT_NAME)[0]
-    #
-    #     tempdir = tempfile.TemporaryDirectory()
-    #     paths = sa.download_image_annotations(self.PROJECT_NAME, image, tempdir.name)
-    #     downloaded_json = json.load(open(paths[0]))
-    #
-    #     uploaded_json = json.load(
-    #         open(self.folder_path + "/example_image_1.jpg___objects.json")
-    #     )
-    #     for i in downloaded_json["instances"]:
-    #         i.pop("classId", None)
-    #         for j in i["attributes"]:
-    #             j.pop("groupId", None)
-    #             j.pop("id", None)
-    #     for i in uploaded_json["instances"]:
-    #         i.pop("classId", None)
-    #         for j in i["attributes"]:
-    #             j.pop("groupId", None)
-    #             j.pop("id", None)
-    #     self.assertTrue(
-    #         all(
-    #             [instance["templateId"] == -1 for instance in downloaded_json["instances"] if
-    #              instance.get("templateId")]
-    #         )
-    #     )
-    #     assert downloaded_json == uploaded_json
+    def test_annotation_download_upload_vector(self):
+        sa.upload_images_from_folder_to_project(
+            project=self.PROJECT_NAME, folder_path=self.folder_path
+        )
+        sa.create_annotation_classes_from_classes_json(
+            self.PROJECT_NAME, self.classes_path
+        )
+        sa.upload_annotations_from_folder_to_project(
+            self.PROJECT_NAME, self.folder_path
+        )
+        image = sa.search_images(self.PROJECT_NAME)[0]
+
+        tempdir = tempfile.TemporaryDirectory()
+        paths = sa.download_image_annotations(self.PROJECT_NAME, image, tempdir.name)
+        downloaded_json = json.load(open(paths[0]))
+
+        uploaded_json = json.load(
+            open(self.folder_path + "/example_image_1.jpg___objects.json")
+        )
+        downloaded_json['metadata']['lastAction'] = None
+        uploaded_json['metadata']['lastAction'] = None
+
+        for i in downloaded_json["instances"]:
+            i.pop("classId", None)
+            for j in i["attributes"]:
+                j.pop("groupId", None)
+                j.pop("id", None)
+        for i in uploaded_json["instances"]:
+            i.pop("classId", None)
+            for j in i["attributes"]:
+                j.pop("groupId", None)
+                j.pop("id", None)
+        self.assertTrue(
+            all(
+                [instance["templateId"] == -1 for instance in downloaded_json["instances"] if
+                 instance.get("templateId")]
+            )
+        )
+        # TODO:
+        #assert downloaded_json == uploaded_json
 
 
 class TestSingleAnnotationDownloadUploadPixel(BaseTestCase):
@@ -102,6 +106,8 @@ class TestSingleAnnotationDownloadUploadPixel(BaseTestCase):
             uploaded_json = json.load(
                 open(self.folder_path + "/example_image_1.jpg___pixel.json")
             )
+            downloaded_json['metadata']['lastAction'] = None
+            uploaded_json['metadata']['lastAction'] = None
             for i in downloaded_json["instances"]:
                 i.pop("classId", None)
                 for j in i["attributes"]:
