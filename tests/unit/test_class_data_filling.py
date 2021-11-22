@@ -1,10 +1,13 @@
+import time
 from unittest import TestCase
 
 from src.superannotate.lib.core.helpers import fill_annotation_ids
+from src.superannotate.lib.core.helpers import handle_last_action
 from src.superannotate.lib.core.helpers import map_annotation_classes_name
 from src.superannotate.lib.core.reporter import Reporter
-from src.superannotate.lib.core.entities import AnnotationClassEntity
+from src.superannotate.lib.core.entities import TeamEntity
 from src.superannotate.lib.infrastructure.repositories import AnnotationClassRepository
+
 
 TEST_ANNOTATION = {
     "metadata": {
@@ -94,3 +97,10 @@ class TestClassData(TestCase):
         self.assertEqual(TEST_ANNOTATION["instances"][0]["classId"], 72274)
         self.assertEqual(attribute["id"], 117845)
         self.assertEqual(attribute["groupId"], 28230)
+
+    def test_last_action_filling(self):
+        handle_last_action(TEST_ANNOTATION, TeamEntity(creator_id="Hello"))
+        self.assertEqual(
+            TEST_ANNOTATION["metadata"]["lastAction"],
+            {"email": "Hello", "timestamp": int(time.time())}
+        )

@@ -134,6 +134,7 @@
     },
     {
       "type": "template",
+      "templateName": "some",
       "classId": 72274,
       "probability": 100,
       "points": [
@@ -220,7 +221,7 @@
           "id": 117846
         }
       ],
-      "templateId": -1,
+      "templateName": "HandPose",
       "trackingId": "cbde2787e76c41be77c1079e8d090252ad701ea",
       "createdAt": null,
       "createdBy": null,
@@ -1089,6 +1090,7 @@
     },
     {
       "type": "template",
+      "templateName": "some",
       "classId": 72276,
       "probability": 100,
       "points": [
@@ -1315,7 +1317,7 @@
       "locked": false,
       "visible": false,
       "attributes": [],
-      "templateId": -1,
+      "templateName": "HandPose",
       "trackingId": "2c89e809614523cf56c9aeab932e90b87aaf5e4f",
       "createdAt": null,
       "createdBy": null,
@@ -1326,6 +1328,7 @@
     },
     {
       "type": "template",
+      "templateName": "some",
       "classId": 72276,
       "probability": 100,
       "points": [
@@ -1552,7 +1555,7 @@
       "locked": false,
       "visible": false,
       "attributes": [],
-      "templateId": -1,
+      "templateName": "HandPose",
       "trackingId": "bab62dc810b0cee390f8d5fb5fa62fade3c8da7",
       "createdAt": null,
       "createdBy": null,
@@ -1563,6 +1566,7 @@
     },
     {
       "type": "template",
+      "templateName": "some",
       "classId": 72276,
       "probability": 100,
       "points": [
@@ -1789,7 +1793,7 @@
       "locked": false,
       "visible": false,
       "attributes": [],
-      "templateId": -1,
+      "templateName": "HandPose",
       "trackingId": "f8f542a9e9da918d5d5cb8eed9052713302089",
       "createdAt": null,
       "createdBy": null,
@@ -1800,6 +1804,7 @@
     },
     {
       "type": "template",
+      "templateName": "some",
       "classId": 72276,
       "probability": 100,
       "points": [
@@ -2028,7 +2033,7 @@
       "locked": false,
       "visible": false,
       "attributes": [],
-      "templateId": -1,
+      "templateName": "HandPose",
       "trackingId": "4fd95b7d6d95b7b84750e65aa89c70b9c86eb3b8",
       "createdAt": null,
       "createdBy": null,
@@ -2039,6 +2044,7 @@
     },
     {
       "type": "template",
+      "templateName": "some",
       "classId": 72276,
       "probability": 100,
       "points": [
@@ -2267,7 +2273,7 @@
       "locked": false,
       "visible": false,
       "attributes": [],
-      "templateId": -1,
+      "templateName": "HandPose",
       "trackingId": "8894b2a1727f62631d26e885a5aaf9bc2ac2a578",
       "createdAt": null,
       "createdBy": null,
@@ -2278,6 +2284,7 @@
     },
     {
       "type": "template",
+      "templateName": "some",
       "classId": 72276,
       "probability": 100,
       "points": [
@@ -2506,7 +2513,7 @@
       "locked": false,
       "visible": false,
       "attributes": [],
-      "templateId": -1,
+      "templateName": "HandPose",
       "trackingId": "2fe1f0c6c4af879955d6f19cfcf113a6b929b73",
       "createdAt": null,
       "createdBy": null,

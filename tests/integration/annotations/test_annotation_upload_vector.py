@@ -69,25 +69,3 @@ class TestAnnotationUploadVector(BaseTestCase):
                     len([i["attributes"] for i in annotation["instances"]]),
                     len([i["attributes"] for i in origin_annotation["instances"]])
                 )
-
-    def test_pre_annotation_folder_upload_download(self):
-        sa.upload_images_from_folder_to_project(
-            self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
-        )
-        sa.create_annotation_classes_from_classes_json(
-            self.PROJECT_NAME, f"{self.folder_path}/classes/classes.json"
-        )
-        _, _, _ = sa.upload_preannotations_from_folder_to_project(
-            self.PROJECT_NAME, self.folder_path
-        )
-        images = sa.search_images(self.PROJECT_NAME)
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            for image_name in images:
-                annotation_path = join(self.folder_path, f"{image_name}___objects.json")
-                sa.download_image_preannotations(self.PROJECT_NAME, image_name, tmp_dir)
-                origin_annotation = json.load(open(annotation_path))
-                annotation = json.load(open(join(tmp_dir, f"{image_name}___objects.json")))
-                self.assertEqual(
-                    len([i["attributes"] for i in annotation["instances"]]),
-                    len([i["attributes"] for i in origin_annotation["instances"]])
-                )

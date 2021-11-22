@@ -13,7 +13,7 @@ import lib.core as constances
 import pandas as pd
 import requests
 from botocore.exceptions import ClientError
-from lib.app.analytics.common import aggregate_annotations_as_df
+from lib.app.analytics.common import aggregate_image_annotations_as_df
 from lib.app.analytics.common import consensus_plot
 from lib.app.analytics.common import image_consensus
 from lib.core.conditions import Condition
@@ -327,28 +327,6 @@ class DeleteMLModel(BaseUseCase):
         return self._response
 
 
-class StopModelTraining(BaseUseCase):
-    def __init__(
-        self,
-        model_id: int,
-        team_id: int,
-        backend_service_provider: SuerannotateServiceProvider,
-    ):
-        super().__init__()
-
-        self._model_id = model_id
-        self._team_id = team_id
-        self._backend_service = backend_service_provider
-
-    def execute(self):
-        is_stopped = self._backend_service.stop_model_training(
-            self._team_id, self._model_id
-        )
-        if not is_stopped:
-            self._response.errors = AppException("Something went wrong.")
-        return self._response
-
-
 class DownloadExportUseCase(BaseInteractiveUseCase):
     def __init__(
         self,
@@ -544,7 +522,7 @@ class BenchmarkUseCase(BaseUseCase):
         self._show_plots = show_plots
 
     def execute(self):
-        project_df = aggregate_annotations_as_df(self._export_dir)
+        project_df = aggregate_image_annotations_as_df(self._export_dir)
         gt_project_df = project_df[
             project_df["folderName"] == self._ground_truth_folder_name
         ]
@@ -635,7 +613,7 @@ class ConsensusUseCase(BaseUseCase):
         self._show_plots = show_plots
 
     def execute(self):
-        project_df = aggregate_annotations_as_df(self._export_dir)
+        project_df = aggregate_image_annotations_as_df(self._export_dir)
         all_projects_df = project_df[project_df["instanceId"].notna()]
         all_projects_df = all_projects_df.loc[
             all_projects_df["folderName"].isin(self._folder_names)
@@ -695,109 +673,6 @@ class ConsensusUseCase(BaseUseCase):
             consensus_plot(consensus_df, self._folder_names)
 
         self._response.data = consensus_df
-        return self._response
-
-
-class RunSegmentationUseCase(BaseUseCase):
-    def __init__(
-        self,
-        project: ProjectEntity,
-        ml_model_repo: BaseManageableRepository,
-        ml_model_name: str,
-        images_list: list,
-        service: SuerannotateServiceProvider,
-        folder: FolderEntity,
-    ):
-        super().__init__()
-        self._project = project
-        self._ml_model_repo = ml_model_repo
-        self._ml_model_name = ml_model_name
-        self._images_list = images_list
-        self._service = service
-        self._folder = folder
-
-    def validate_project_type(self):
-        if self._project.project_type is not ProjectType.PIXEL.value:
-            raise AppValidationException(
-                "Operation not supported for given project type"
-            )
-
-    def validate_model(self):
-        if self._ml_model_name not in constances.AVAILABLE_SEGMENTATION_MODELS:
-            raise AppValidationException("Model Does not exist")
-
-    def validate_upload_state(self):
-
-        if self._project.upload_state is constances.UploadState.EXTERNAL:
-            raise AppValidationException(
-                "The function does not support projects containing images attached with URLs"
-            )
-
-    def execute(self):
-        if self.is_valid():
-            images = (
-                GetBulkImages(
-                    service=self._service,
-                    project_id=self._project.uuid,
-                    team_id=self._project.team_id,
-                    folder_id=self._folder.uuid,
-                    images=self._images_list,
-                )
-                .execute()
-                .data
-            )
-
-            image_ids = [image.uuid for image in images]
-            image_names = [image.name for image in images]
-
-            if not len(image_names):
-                self._response.errors = AppException(
-                    "No valid image names were provided."
-                )
-                return self._response
-
-            res = self._service.run_segmentation(
-                self._project.team_id,
-                self._project.uuid,
-                model_name=self._ml_model_name,
-                image_ids=image_ids,
-            )
-            if not res.ok:
-                res.raise_for_status()
-
-            success_images = []
-            failed_images = []
-            while len(success_images) + len(failed_images) != len(image_ids):
-                images_metadata = (
-                    GetBulkImages(
-                        service=self._service,
-                        project_id=self._project.uuid,
-                        team_id=self._project.team_id,
-                        folder_id=self._folder.uuid,
-                        images=self._images_list,
-                    )
-                    .execute()
-                    .data
-                )
-
-                success_images = [
-                    img.name
-                    for img in images_metadata
-                    if img.segmentation_status
-                    == constances.SegmentationStatus.COMPLETED.value
-                ]
-                failed_images = [
-                    img.name
-                    for img in images_metadata
-                    if img.segmentation_status
-                    == constances.SegmentationStatus.FAILED.value
-                ]
-                logger.info(
-                    f"segmentation complete on {len(success_images + failed_images)} / {len(image_ids)} images"
-                )
-                time.sleep(5)
-
-            self._response.data = (success_images, failed_images)
         return self._response
 
 

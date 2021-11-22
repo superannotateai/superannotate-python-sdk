@@ -226,14 +226,6 @@ each JSON a mask image file should be present with the name
 :file:`"<image_name>___save.png"`. Image with :file:`<image_name>` should 
 already be present in the project for the upload to work.
 
-You can add an annotation to local annotations JSON with:
-
-.. code-block:: python
-
-   sa.add_annotation_bbox_to_json("<path_to_json>", [10, 10, 100, 100],
-                                  "Human")
-
-
 
 Exporting projects
 __________________
@@ -380,32 +372,11 @@ To download image annotations:
 
    sa.download_image_annotations(project, image, "<path_to_local_dir>")
 
-After the image annotations are downloaded, you can add annotations to it:
-
-.. code-block:: python
-
-   sa.add_annotation_bbox_to_json("<path_to_json>", [10, 10, 100, 100],
-                                  "Human")
-
-and upload back to the platform with:
+Upload back to the platform with:
 
 .. code-block:: python
 
    sa.upload_image_annotations(project, image, "<path_to_json>")
-
-Last two steps can be combined into one:
-
-.. code-block:: python
-
-   sa.add_annotation_bbox_to_image(project, image, [10, 10, 100, 100], "Human")
-
-but if bulk changes are made to many images it is much faster to add all required
-annotations using :ref:`add_annotation_bbox_to_json
-<ref_add_annotation_bbox_to_json>` 
-then upload them using
-:ref:`upload_annotations_from_folder_to_project
-<ref_upload_images_from_folder_to_project>`.
-
 
 ----------
 
@@ -453,23 +424,6 @@ Example of created DataFrame:
 Each row represents annotation information. One full annotation with multiple
 attribute groups can be grouped under :code:`instanceId` field.
 
-A helper function :ref:`filter_annotation_instances <ref_filter_annotation_instances>` is available to filter annotation instances by their class, attribute, type or error fields from the DataFrame. E.g., to get annotations that have annotation class :code:`Human` and attribute  :code:`"height" : "tall"`  that are **not** of type :code:`polygon`:
-
-.. code-block:: python
-
-   filtered_df = sa.filter_annotation_instances(df, include=[{"className" : "Human",
-                                                              "attributes" : [{"groupName" : "height",
-                                                                              "name" : "tall"}]
-                                                            }],
-                                                    exclude=[{"type" : "polygon"}])
-
-To transform back pandas DataFrame annotations to SuperAnnotate format annotation:
-
-.. code-block:: python
-
-   sa.df_to_annotations(filtered_df, "<path_to_output_folder>")
-
-
 ----------
 
 
@@ -490,30 +444,11 @@ Aggregated distribution is returned as pandas dataframe with columns className a
 
 .. image:: class_distribution.png
 
-
-Similarly aggregation of class attributes across multiple projects can be obtained with
-
-.. code-block:: python
-
-   df = sa.attribute_distribution("<path_to_export_folder>", [project_names], visualize = True)
-
-Here pandas DataFrame with columns identifying attribute and corresponding instance count is returned. Within visualized histogram attributes of the same class are grouped by color and sorted accordingly.
-
-.. image:: attribute_distribution.png
-
 ----------
 
 
 Working with DICOM files
 _______________________________________________________
-
-
-To convert DICOM file images to JPEG images:
-
-
-.. code-block:: python
-
-   df = sa.dicom_to_rgb_sequence("<path_to_dicom_file>", "<path_to_output_dir>")
 
 JPEG images with names :file:`<dicom_file_name>_<frame_num>.jpg` will be created
 in :file:`<path_to_output_dir>`. Those JPEG images can be uploaded to

@@ -4,15 +4,15 @@ import json
 from superannotate.lib.app.exceptions import AppException
 
 
-def fill_in_missing(annotation_json):
+def fill_in_missing(annotation_json, image_name: str = ""):
     for field in ["instances", "comments", "tags"]:
         if field not in annotation_json:
             annotation_json[field] = []
     if "metadata" not in annotation_json:
-        annotation_json["metadata"] = {}
+        annotation_json["metadata"] = {"name": image_name}
 
 
-def _preprocess_annotation_json(annotation_json):
+def _preprocess_annotation_json(annotation_json, image_name: str = ""):
     path = None
     if not isinstance(annotation_json, dict) and annotation_json is not None:
         path = annotation_json
@@ -20,7 +20,7 @@ def _preprocess_annotation_json(annotation_json):
     elif annotation_json is None:
         annotation_json = {}
 
-    fill_in_missing(annotation_json)
+    fill_in_missing(annotation_json, image_name)
 
     return (annotation_json, path)
 
@@ -60,7 +60,7 @@ def add_annotation_comment_to_json(
         "type": "comment",
         "x": comment_coords[0],
         "y": comment_coords[1],
-        "correspondence": [{"text": comment_text, "id": comment_author}],
+        "correspondence": [{"text": comment_text, "email": comment_author}],
         "resolved": resolved,
     }
     annotation_json["comments"].append(annotation)
@@ -74,6 +74,7 @@ def add_annotation_bbox_to_json(
     annotation_class_name,
     annotation_class_attributes=None,
     error=None,
+    image_name: str = "",
 ):
     """Add a bounding box annotation to SuperAnnotate format annotation JSON
 
@@ -94,104 +95,11 @@ def add_annotation_bbox_to_json(
     if len(bbox) != 4:
         raise AppException("Bounding boxes should have 4 float elements")
 
-    annotation_json, path = _preprocess_annotation_json(annotation_json)
+    annotation_json, path = _preprocess_annotation_json(annotation_json, image_name)
 
     annotation = {
         "type": "bbox",
         "points": {"x1": bbox[0], "y1": bbox[1], "x2": bbox[2], "y2": bbox[3]},
-        "className": annotation_class_name,
-        "error": error,
-        "groupId": 0,
-        "pointLabels": {},
-        "locked": False,
-        "visible": True,
-        "attributes": []
-        if annotation_class_attributes is None
-        else annotation_class_attributes,
-    }
-
-    annotation_json["instances"].append(annotation)
-
-    return _postprocess_annotation_json(annotation_json, path)
-
-
-def add_annotation_polygon_to_json(
-    annotation_json,
-    polygon,
-    annotation_class_name,
-    annotation_class_attributes=None,
-    error=None,
-):
-    """Add a polygon annotation to SuperAnnotate format annotation JSON
-
-    annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
-
-    :param annotation_json: annotations in SuperAnnotate format JSON or filepath to JSON
-    :type annotation_json: dict or Pathlike (str or Path)
-    :param polygon: [x1,y1,x2,y2,...] list of coordinates
-    :type polygon: list of floats
-    :param annotation_class_name: annotation class name
-    :type annotation_class_name: str
-    :param annotation_class_attributes: list of annotation class attributes
-    :type annotation_class_attributes: list of 2 element dicts
-    :param error: if not None, marks annotation as error (True) or no-error (False)
-    :type error: bool
-    """
-    if len(polygon) % 2 != 0:
-        raise AppException("Polygons should be even length lists of floats.")
-
-    annotation_json, path = _preprocess_annotation_json(annotation_json)
-
-    annotation = {
-        "type": "polygon",
-        "points": polygon,
-        "className": annotation_class_name,
-        "error": error,
-        "groupId": 0,
-        "pointLabels": {},
-        "locked": False,
-        "visible": True,
-        "attributes": []
-        if annotation_class_attributes is None
-        else annotation_class_attributes,
-    }
-
-    annotation_json["instances"].append(annotation)
-
-    return _postprocess_annotation_json(annotation_json, path)
-
-
-def add_annotation_polyline_to_json(
-    annotation_json,
-    polyline,
-    annotation_class_name,
-    annotation_class_attributes=None,
-    error=None,
-):
-    """Add a polyline annotation to SuperAnnotate format annotation JSON
-
-    annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
-
-    :param annotation_json: annotations in SuperAnnotate format JSON or filepath to JSON
-    :type annotation_json: dict or Pathlike (str or Path)
-    :param polyline: [x1,y1,x2,y2,...] list of coordinates
-    :type polyline: list of floats
-    :param annotation_class_name: annotation class name
-    :type annotation_class_name: str
-    :param annotation_class_attributes: list of annotation class attributes
-    :type annotation_class_attributes: list of 2 element dicts
-    :param error: if not None, marks annotation as error (True) or no-error (False)
-    :type error: bool
-    """
-
-    if len(polyline) % 2 != 0:
-        raise AppException("Polylines should be even length lists of floats.")
-
-    annotation_json, path = _preprocess_annotation_json(annotation_json)
-
-    annotation = {
-        "type": "polyline",
-        "points": polyline,
         "className": annotation_class_name,
         "error": error,
         "groupId": 0,
@@ -239,180 +147,6 @@ def add_annotation_point_to_json(
         "type": "point",
         "x": point[0],
         "y": point[1],
-        "className": annotation_class_name,
-        "error": error,
-        "groupId": 0,
-        "pointLabels": {},
-        "locked": False,
-        "visible": True,
-        "attributes": []
-        if annotation_class_attributes is None
-        else annotation_class_attributes,
-    }
-
-    annotation_json["instances"].append(annotation)
-
-    return _postprocess_annotation_json(annotation_json, path)
-
-
-def add_annotation_ellipse_to_json(
-    annotation_json,
-    ellipse,
-    annotation_class_name,
-    annotation_class_attributes=None,
-    error=None,
-):
-    """Add an ellipse annotation to SuperAnnotate format annotation JSON
-
-    annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
-
-    :param annotation_json: annotations in SuperAnnotate format JSON or filepath to JSON
-    :type annotation_json: dict or Pathlike (str or Path)
-    :param ellipse: [center_x, center_y, r_x, r_y, angle]
-                    list of coordinates and rotation angle in degrees around y
-                    axis
-    :type ellipse: list of floats
-    :param annotation_class_name: annotation class name
-    :type annotation_class_name: str
-    :param annotation_class_attributes: list of annotation class attributes
-    :type annotation_class_attributes: list of 2 element dicts
-    :param error: if not None, marks annotation as error (True) or no-error (False)
-    :type error: bool
-    """
-    if len(ellipse) != 5:
-        raise AppException("Ellipse should be 5 element float list.")
-
-    annotation_json, path = _preprocess_annotation_json(annotation_json)
-
-    annotation = {
-        "type": "ellipse",
-        "cx": ellipse[0],
-        "cy": ellipse[1],
-        "rx": ellipse[2],
-        "ry": ellipse[3],
-        "angle": ellipse[4],
-        "className": annotation_class_name,
-        "error": error,
-        "groupId": 0,
-        "pointLabels": {},
-        "locked": False,
-        "visible": True,
-        "attributes": []
-        if annotation_class_attributes is None
-        else annotation_class_attributes,
-    }
-
-    annotation_json["instances"].append(annotation)
-
-    return _postprocess_annotation_json(annotation_json, path)
-
-
-def add_annotation_template_to_json(
-    annotation_json,
-    template_points,
-    template_connections,
-    annotation_class_name,
-    annotation_class_attributes=None,
-    error=None,
-):
-    """Add a template annotation to SuperAnnotate format annotation JSON
-
-    annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
-
-    :param annotation_json: annotations in SuperAnnotate format JSON or filepath to JSON
-    :type annotation_json: dict or Pathlike (str or Path)
-    :param template_points: [x1,y1,x2,y2,...] list of coordinates
-    :type template_points: list of floats
-    :param template_connections: [from_id_1,to_id_1,from_id_2,to_id_2,...]
-                                 list of indexes from -> to. Indexes are based
-                                 on template_points. E.g., to have x1,y1 to connect
-                                 to x2,y2 and x1,y1 to connect to x4,y4,
-                                 need: [1,2,1,4,...]
-    :type template_connections: list of ints
-    :param annotation_class_name: annotation class name
-    :type annotation_class_name: str
-    :param annotation_class_attributes: list of annotation class attributes
-    :type annotation_class_attributes: list of 2 element dicts
-    :param error: if not None, marks annotation as error (True) or no-error (False)
-    :type error: bool
-    """
-    if len(template_points) % 2 != 0:
-        raise AppException("template_points should be even length lists of floats.")
-    if len(template_connections) % 2 != 0:
-        raise AppException("template_connections should be even length lists of ints.")
-
-    annotation_json, path = _preprocess_annotation_json(annotation_json)
-
-    annotation = {
-        "type": "template",
-        "points": [],
-        "connections": [],
-        "className": annotation_class_name,
-        "error": error,
-        "groupId": 0,
-        "pointLabels": {},
-        "locked": False,
-        "visible": True,
-        "attributes": []
-        if annotation_class_attributes is None
-        else annotation_class_attributes,
-    }
-    for i in range(0, len(template_points), 2):
-        annotation["points"].append(
-            {"id": i // 2 + 1, "x": template_points[i], "y": template_points[i + 1]}
-        )
-    for i in range(0, len(template_connections), 2):
-        annotation["connections"].append(
-            {
-                "id": i // 2 + 1,
-                "from": template_connections[i],
-                "to": template_connections[i + 1],
-            }
-        )
-
-    annotation_json["instances"].append(annotation)
-
-    return _postprocess_annotation_json(annotation_json, path)
-
-
-def add_annotation_cuboid_to_json(
-    annotation_json,
-    cuboid,
-    annotation_class_name,
-    annotation_class_attributes=None,
-    error=None,
-):
-    """Add a cuboid annotation to SuperAnnotate format annotation JSON
-
-    annotation_class_attributes has the form [ {"name" : "<attribute_value>", "groupName" : "<attribute_group>"},  ... ]
-
-    :param annotation_json: annotations in SuperAnnotate format JSON or filepath to JSON
-    :type annotation_json: dict or Pathlike (str or Path)
-    :param cuboid: [x_front_tl,y_front_tl,x_front_br,y_front_br,
-                    x_rear_tl,y_rear_tl,x_rear_br,y_rear_br] list of coordinates
-                    of front rectangle and back rectangle, in top-left (tl) and
-                    bottom-right (br) format
-    :type cuboid: list of floats
-    :param annotation_class_name: annotation class name
-    :type annotation_class_name: str
-    :param annotation_class_attributes: list of attributes
-    :type error: list of 2 element dicts
-    :param error: if not None, marks annotation as error (True) or no-error (False)
-    :type error: bool
-    """
-    if len(cuboid) != 8:
-        raise AppException("cuboid should be lenght 8 list of floats.")
-
-    annotation_json, path = _preprocess_annotation_json(annotation_json)
-
-    annotation = {
-        "type": "cuboid",
-        "points": {
-            "f1": {"x": cuboid[0], "y": cuboid[1]},
-            "f2": {"x": cuboid[2], "y": cuboid[3]},
-            "r1": {"x": cuboid[4], "y": cuboid[5]},
-            "r2": {"x": cuboid[6], "y": cuboid[7]},
-        },
         "className": annotation_class_name,
         "error": error,
         "groupId": 0,
