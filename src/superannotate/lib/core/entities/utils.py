@@ -9,8 +9,13 @@ from pydantic import constr
 from pydantic import EmailStr
 from pydantic import Extra
 from pydantic import Field
+from pydantic import StrictStr
+from pydantic import StrictInt
+from pydantic import StrictBool
 from pydantic import StrRegexError
+from pydantic import ValidationError
 from pydantic import validator
+from pydantic.error_wrappers import ErrorWrapper
 from pydantic.errors import EnumMemberError
 
 
@@ -21,15 +26,19 @@ def enum_error_handling(self) -> str:
 
 EnumMemberError.__str__ = enum_error_handling
 
-
 NotEmptyStr = constr(strict=True, min_length=1)
-
 
 DATE_REGEX = r"\d{4}-[01]\d-[0-3]\dT[0-2]\d:[0-5]\d:[0-5]\d(?:\.\d{3})Z"
 
 DATE_TIME_FORMAT_ERROR_MESSAGE = (
     "does not match expected format YYYY-MM-DDTHH:MM:SS.fffZ"
 )
+
+POINT_LABEL_KEY_FORMAT_ERROR_MESSAGE = "does not match expected format ^[0-9]+$"
+
+POINT_LABEL_VALUE_FORMAT_ERROR_MESSAGE = "str type expected"
+
+INVALID_DICT_MESSAGE = "value is not a valid dict"
 
 
 class BaseModel(PyDanticBaseModel):
@@ -83,8 +92,8 @@ class BaseImageRoleEnum(str, Enum):
 
 
 class Attribute(BaseModel):
-    id: Optional[int]
-    group_id: Optional[int] = Field(None, alias="groupId")
+    id: Optional[StrictInt]
+    group_id: Optional[StrictInt] = Field(None, alias="groupId")
     name: NotEmptyStr
     group_name: NotEmptyStr = Field(alias="groupName")
 
@@ -95,6 +104,7 @@ class Tag(BaseModel):
 
 class AttributeGroup(BaseModel):
     name: NotEmptyStr
+    # TODO :
     is_multiselect: Optional[int] = False
     attributes: List[Attribute]
 
@@ -139,28 +149,24 @@ class TrackableModel(BaseModel):
 
 class LastUserAction(BaseModel):
     email: EmailStr
-    timestamp: int
+    timestamp: StrictInt
 
 
 class BaseInstance(TrackableModel, TimedBaseModel):
-    class_id: Optional[int] = Field(None, alias="classId")
-    class_name: NotEmptyStr = Field(alias="className")
+    class_id: Optional[StrictInt] = Field(None, alias="classId")
+    class_name: Optional[NotEmptyStr] = Field(None, alias="className")
 
 
 class MetadataBase(BaseModel):
-    url: Optional[str]
+    url: Optional[StrictStr]
     name: NotEmptyStr
     last_action: Optional[LastUserAction] = Field(None, alias="lastAction")
-    width: Optional[int]
-    height: Optional[int]
-    project_id: Optional[int] = Field(None, alias="projectId")
+    width: Optional[StrictInt]
+    height: Optional[StrictInt]
+    project_id: Optional[StrictInt] = Field(None, alias="projectId")
     annotator_email: Optional[EmailStr] = Field(None, alias="annotatorEmail")
     qa_email: Optional[EmailStr] = Field(None, alias="qaEmail")
     status: Optional[AnnotationStatusEnum]
-
-
-class PointLabels(BaseModel):
-    __root__: Dict[constr(regex=r"^[0-9]*$"), NotEmptyStr]  # noqa: F722 E261
 
 
 class Correspondence(BaseModel):
@@ -171,16 +177,16 @@ class Correspondence(BaseModel):
 class Comment(TimedBaseModel, TrackableModel):
     x: float
     y: float
-    resolved: Optional[bool] = Field(False)
+    resolved: Optional[StrictBool] = Field(False)
     correspondence: conlist(Correspondence, min_items=1)
 
 
 class BaseImageInstance(BaseInstance):
-    visible: Optional[bool]
-    locked: Optional[bool]
-    probability: Optional[int] = Field(100)
+    visible: Optional[StrictBool]
+    locked: Optional[StrictBool]
+    probability: Optional[StrictInt] = Field(100)
     attributes: Optional[List[Attribute]] = Field(list())
-    error: Optional[bool]
+    error: Optional[StrictBool]
 
     class Config:
         error_msg_templates = {
@@ -188,13 +194,63 @@ class BaseImageInstance(BaseInstance):
         }
 
 
+class StringA(BaseModel):
+    string: StrictStr
+
+
+class PointLabels(BaseModel):
+    __root__: Dict[constr(regex=r"^[0-9]+$"), StrictStr]
+
+    @classmethod
+    def __get_validators__(cls):
+        yield cls.validate_type
+        yield cls.validate_value
+
+    @validator("__root__", pre=True)
+    def validate_value(cls, values):
+        result = {}
+        errors = []
+        validate_key = None
+        validate_value = None
+        for key, value in values.items():
+            try:
+                validate_key = constr(regex=r"^[0-9]+$", min_length=1).validate(key)
+            except ValueError:
+                errors.append(
+                    ErrorWrapper(
+                        ValueError(POINT_LABEL_KEY_FORMAT_ERROR_MESSAGE), str(key)
+                    )
+                )
+            try:
+                validate_value = StringA(string=value)
+            except ValueError:
+                errors.append(
+                    ErrorWrapper(
+                        ValueError(POINT_LABEL_VALUE_FORMAT_ERROR_MESSAGE), str(key)
+                    )
+                )
+
+        if validate_key and validate_value:
+            result.update({key: value})
+
+        if errors:
+            raise ValidationError(errors, cls)
+        return result
+
+    @classmethod
+    def validate_type(cls, values):
+        if not issubclass(type(values), dict):
+            raise TypeError(INVALID_DICT_MESSAGE)
+        return values
+
+
 class BaseVectorInstance(BaseImageInstance):
     type: VectorAnnotationTypeEnum
     point_labels: Optional[PointLabels] = Field(None, alias="pointLabels")
-    tracking_id: Optional[str] = Field(None, alias="trackingId")
-    group_id: Optional[int] = Field(None, alias="groupId")
+    tracking_id: Optional[StrictStr] = Field(None, alias="trackingId")
+    group_id: Optional[StrictInt] = Field(None, alias="groupId")
 
 
 class Metadata(MetadataBase):
-    pinned: Optional[bool]
-    is_predicted: Optional[bool] = Field(None, alias="isPredicted")
+    pinned: Optional[StrictBool]
+    is_predicted: Optional[StrictBool] = Field(None, alias="isPredicted")

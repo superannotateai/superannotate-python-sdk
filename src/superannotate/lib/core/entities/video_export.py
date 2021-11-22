@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Union
@@ -10,9 +11,12 @@ from lib.core.entities.utils import BboxPoints
 from lib.core.entities.utils import MetadataBase
 from lib.core.entities.utils import NotEmptyStr
 from lib.core.entities.utils import PointLabels
+from lib.core.entities.utils import INVALID_DICT_MESSAGE
 from lib.core.entities.utils import Tag
 from pydantic import conlist
 from pydantic import Field
+from pydantic import StrictBool
+from pydantic import StrictInt
 from pydantic import ValidationError
 from pydantic.error_wrappers import ErrorWrapper
 
@@ -23,13 +27,13 @@ class VideoType(str, Enum):
 
 
 class MetaData(MetadataBase):
-    duration: Optional[int]
-    error: Optional[bool]
+    duration: Optional[StrictInt]
+    error: Optional[StrictBool]
 
 
 class BaseTimeStamp(BaseModel):
-    timestamp: int
-    attributes: List[Attribute]
+    timestamp: StrictInt
+    attributes: Optional[List[Attribute]] = Field(list())
 
 
 class BboxTimeStamp(BaseTimeStamp):
@@ -43,9 +47,8 @@ class EventTimeStamp(BaseTimeStamp):
 class InstanceMetadata(BaseInstance):
     type: VideoType
     class_name: Optional[NotEmptyStr] = Field(None, alias="className")
-    point_labels: Optional[PointLabels] = Field(None, alias="pointLabels")
-    start: int
-    end: int
+    start: StrictInt
+    end: StrictInt
 
     class Config:
         fields = {"creation_type": {"exclude": True}}
@@ -53,6 +56,7 @@ class InstanceMetadata(BaseInstance):
 
 class BBoxInstanceMetadata(InstanceMetadata):
     type: VideoType = Field(VideoType.BBOX.value, const=True)
+    point_labels: Optional[PointLabels] = Field(None, alias="pointLabels")
 
 
 class EventInstanceMetadata(InstanceMetadata):
@@ -60,8 +64,8 @@ class EventInstanceMetadata(InstanceMetadata):
 
 
 class BaseParameter(BaseModel):
-    start: int
-    end: int
+    start: StrictInt
+    end: StrictInt
 
 
 class BboxParameter(BaseParameter):
@@ -95,12 +99,16 @@ class VideoInstance(BaseModel):
     @classmethod
     def return_action(cls, values):
         try:
-            instance_type = values["meta"]["type"]
-        except KeyError:
-            raise ValidationError(
-                [ErrorWrapper(ValueError("meta.field required"), "type")], cls
-            )
-        try:
+            loc = []
+            try:
+                loc = ["meta"]
+                meta_data = values["meta"]
+                loc.append("type")
+                instance_type = meta_data["type"]
+            except KeyError:
+                raise ValidationError(
+                    [ErrorWrapper(ValueError("field required"), ".".join(loc))], cls
+                )
             return INSTANCES[instance_type](**values)
         except KeyError:
             raise ValidationError(
@@ -110,6 +118,18 @@ class VideoInstance(BaseModel):
                             f"invalid type, valid types are {', '.join(INSTANCES.keys())}"
                         ),
                         "meta.type",
+                    )
+                ],
+                cls,
+            )
+        except TypeError as e:
+            raise ValidationError(
+                [
+                    ErrorWrapper(
+                        ValueError(
+                            INVALID_DICT_MESSAGE
+                        ),
+                        "meta",
                     )
                 ],
                 cls,

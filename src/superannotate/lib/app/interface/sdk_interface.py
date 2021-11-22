@@ -2742,8 +2742,14 @@ def aggregate_annotations_as_df(
     :return: DataFrame on annotations
     :rtype: pandas DataFrame
     """
-    if project_type in (constances.ProjectType.VECTOR.name, constances.ProjectType.PIXEL.name):
-        from superannotate.lib.app.analytics.common import aggregate_image_annotations_as_df
+    if project_type in (
+        constances.ProjectType.VECTOR.name,
+        constances.ProjectType.PIXEL.name,
+    ):
+        from superannotate.lib.app.analytics.common import (
+            aggregate_image_annotations_as_df,
+        )
+
         return aggregate_image_annotations_as_df(
             project_root=project_root,
             include_classes_wo_annotations=False,
@@ -2753,10 +2759,11 @@ def aggregate_annotations_as_df(
         )
     elif project_type == constances.ProjectType.VIDEO.name:
         from superannotate.lib.app.analytics.aggregators import DataAggregator
+
         return DataAggregator(
             project_type=project_type,
             project_root=project_root,
-            folder_names=folder_names
+            folder_names=folder_names,
         ).aggregate_annotations_as_df()
     else:
         raise AppException(constances.DEPRECATED_DOCUMENT_PROJECTS_MESSAGE)
@@ -2855,10 +2862,11 @@ def attach_document_urls_to_project(
 def validate_annotations(
     project_type: ProjectTypes, annotations_json: Union[NotEmptyStr, Path]
 ):
-    """
-    Validates given annotation JSON.
-        :param project_type: project_type (str) – the project type Vector, Pixel, Video or Document
+    """Validates given annotation JSON.
+
+        :param project_type: The project type Vector, Pixel, Video or Document
         :type project_type: str
+
         :param annotations_json: path to annotation JSON
         :type annotations_json: Path-like (str or Path)
 
