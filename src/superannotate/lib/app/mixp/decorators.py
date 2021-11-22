@@ -5,10 +5,13 @@ from lib.infrastructure.controller import Controller
 from mixpanel import Mixpanel
 from version import __version__
 
-from .config import TOKEN
 from .utils import parsers
 
 controller = Controller.get_instance()
+
+TOKEN = "e741d4863e7e05b1a45833d01865ef0d"
+if "api.annotate.online" in controller._backend_client.api_url:
+    TOKEN = "ca95ed96f80e8ec3be791e2d3097cf51"
 mp = Mixpanel(TOKEN)
 
 
