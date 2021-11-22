@@ -18,6 +18,8 @@ from lib.core.repositories import BaseManageableRepository
 from lib.core.repositories import BaseReadOnlyRepository
 from lib.core.serviceproviders import SuerannotateServiceProvider
 from lib.core.usecases.base import BaseUseCase
+from lib.core.usecases.base import BaseReportableUseCae
+from lib.core.reporter import Reporter
 
 logger = logging.getLogger("root")
 
@@ -341,9 +343,10 @@ class UpdateProjectUseCase(BaseUseCase):
         return self._response
 
 
-class CloneProjectUseCase(BaseUseCase):
+class CloneProjectUseCase(BaseReportableUseCae):
     def __init__(
         self,
+        reporter: Reporter,
         project: ProjectEntity,
         project_to_create: ProjectEntity,
         projects: BaseManageableRepository,
@@ -356,7 +359,7 @@ class CloneProjectUseCase(BaseUseCase):
         include_workflow: bool = True,
         include_contributors: bool = False,
     ):
-        super().__init__()
+        super().__init__(reporter)
         self._project = project
         self._project_to_create = project_to_create
         self._projects = projects
@@ -413,6 +416,7 @@ class CloneProjectUseCase(BaseUseCase):
 
     def execute(self):
         if self.is_valid():
+            self.reporter.info_messages.append(f"Created project {self._project_to_create.name} with type {constances.ProjectType.get_name(self._project_to_create.project_type)}.")
             project = self._projects.insert(self._project_to_create)
 
             annotation_classes_mapping = {}
@@ -420,6 +424,7 @@ class CloneProjectUseCase(BaseUseCase):
                 self._backend_service, project
             )
             if self._include_annotation_classes:
+                self.reporter.info_messages.append(f"Cloning annotation classes from {self._project.name} to {self._project_to_create.name}.")
                 annotation_classes = self.annotation_classes.get_all()
                 for annotation_class in annotation_classes:
                     annotation_class_copy = copy.copy(annotation_class)
@@ -428,6 +433,8 @@ class CloneProjectUseCase(BaseUseCase):
                     ] = new_project_annotation_classes.insert(annotation_class_copy)
 
             if self._include_contributors:
+                self.reporter.info_messages.append(f"Cloning contributors from {self._project.name} to {self._project_to_create.name}.")
+
                 self._project = self._projects.get_one(
                     uuid=self._project.uuid, team_id=self._project.team_id
                 )
@@ -440,6 +447,8 @@ class CloneProjectUseCase(BaseUseCase):
                     )
 
             if self._include_settings:
+                self.reporter.info_messages.append(f"Cloning settings from {self._project.name} to {self._project_to_create.name}.")
+
                 new_settings = self._settings_repo(self._backend_service, project)
                 for setting in self.settings.get_all():
                     for new_setting in new_settings.get_all():
@@ -450,56 +459,61 @@ class CloneProjectUseCase(BaseUseCase):
                             new_settings.update(setting_copy)
 
             if self._include_workflow:
-                new_workflows = self._workflows_repo(self._backend_service, project)
-                for workflow in self.workflows.get_all():
-                    existing_workflow_ids = list(
-                        map(lambda i: i.uuid, new_workflows.get_all())
-                    )
-                    workflow_data = copy.copy(workflow)
-                    workflow_data.project_id = project.uuid
-                    workflow_data.class_id = annotation_classes_mapping[
-                        workflow.class_id
-                    ].uuid
-                    new_workflows.insert(workflow_data)
-                    workflows = new_workflows.get_all()
-                    new_workflow = [
-                        work_flow
-                        for work_flow in workflows
-                        if work_flow.uuid not in existing_workflow_ids
-                    ][0]
-                    workflow_attributes = []
-                    for attribute in workflow_data.attribute:
-                        for annotation_attribute in annotation_classes_mapping[
-                            workflow.class_id
-                        ].attribute_groups:
-                            if (
-                                attribute["attribute"]["attribute_group"]["name"]
-                                == annotation_attribute["name"]
-                            ):
-                                for annotation_attribute_value in annotation_attribute[
-                                    "attributes"
-                                ]:
-                                    if (
-                                        annotation_attribute_value["name"]
-                                        == attribute["attribute"]["name"]
-                                    ):
-                                        workflow_attributes.append(
-                                            {
-                                                "workflow_id": new_workflow.uuid,
-                                                "attribute_id": annotation_attribute_value[
-                                                    "id"
-                                                ],
-                                            }
-                                        )
-                                        break
-
-                    if workflow_attributes:
-                        self._backend_service.set_project_workflow_attributes_bulk(
-                            project_id=project.uuid,
-                            team_id=project.team_id,
-                            attributes=workflow_attributes,
+                if self._project.upload_state != constances.UploadState.EXTERNAL.value:
+                    self.reporter.info_messages.append(f"Cloning workflow from {self._project.name} to {self._project_to_create.name}.")
+                    new_workflows = self._workflows_repo(self._backend_service, project)
+                    for workflow in self.workflows.get_all():
+                        existing_workflow_ids = list(
+                            map(lambda i: i.uuid, new_workflows.get_all())
                         )
+                        workflow_data = copy.copy(workflow)
+                        workflow_data.project_id = project.uuid
+                        workflow_data.class_id = annotation_classes_mapping[
+                            workflow.class_id
+                        ].uuid
+                        new_workflows.insert(workflow_data)
+                        workflows = new_workflows.get_all()
+                        new_workflow = [
+                            work_flow
+                            for work_flow in workflows
+                            if work_flow.uuid not in existing_workflow_ids
+                        ][0]
+                        workflow_attributes = []
+                        for attribute in workflow_data.attribute:
+                            for annotation_attribute in annotation_classes_mapping[
+                                workflow.class_id
+                            ].attribute_groups:
+                                if (
+                                    attribute["attribute"]["attribute_group"]["name"]
+                                    == annotation_attribute["name"]
+                                ):
+                                    for annotation_attribute_value in annotation_attribute[
+                                        "attributes"
+                                    ]:
+                                        if (
+                                            annotation_attribute_value["name"]
+                                            == attribute["attribute"]["name"]
+                                        ):
+                                            workflow_attributes.append(
+                                                {
+                                                    "workflow_id": new_workflow.uuid,
+                                                    "attribute_id": annotation_attribute_value[
+                                                        "id"
+                                                    ],
+                                                }
+                                            )
+                                            break
 
+                        if workflow_attributes:
+                            self._backend_service.set_project_workflow_attributes_bulk(
+                                project_id=project.uuid,
+                                team_id=project.team_id,
+                                attributes=workflow_attributes,
+                            )
+                else:
+                    self.reporter.warning_messages.append(f"Workflow copy is deprecated for {constances.ProjectType.get_name(self._project_to_create.project_type)} projects.")
+
+            print(self.reporter.generate_report())
             self._response.data = self._projects.get_one(
                 uuid=project.uuid, team_id=project.team_id
             )
