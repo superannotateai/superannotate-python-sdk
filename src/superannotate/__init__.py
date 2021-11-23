@@ -220,7 +220,7 @@ logging.config.dictConfig(
             "fileHandler": {
                 "class": "logging.handlers.RotatingFileHandler",
                 "level": "DEBUG",
-                "formatter": "consoleFormatter",
+                "formatter": "fileFormatter",
                 "filename": expanduser(constances.LOG_FILE_LOCATION),
                 "mode": "a",
                 "maxBytes": 5 * 1024 * 1024,
@@ -230,6 +230,9 @@ logging.config.dictConfig(
         "formatters": {
             "consoleFormatter": {
                 "format": "SA-PYTHON-SDK - %(levelname)s - %(message)s",
+            },
+            "fileFormatter": {
+                "format": "SA-PYTHON-SDK - %(levelname)s - %(asctime)s - %(message)s"
             }
         },
         "root": {  # root logger
@@ -239,22 +242,28 @@ logging.config.dictConfig(
     }
 )
 
-local_version = parse(__version__)
-if local_version.is_prerelease:
-    logging.info(constances.PACKAGE_VERSION_INFO_MESSAGE.format(__version__))
-req = requests.get("https://pypi.python.org/pypi/superannotate/json")
-if req.ok:
-    releases = req.json().get("releases", [])
-    pip_version = parse("0")
-    for release in releases:
-        ver = parse(release)
-        if not ver.is_prerelease or local_version.is_prerelease:
-            pip_version = max(pip_version, ver)
-    if pip_version.major > local_version.major:
-        logging.warning(
-            constances.PACKAGE_VERSION_MAJOR_UPGRADE.format(local_version, pip_version)
-        )
-    elif pip_version > local_version:
-        logging.warning(
-            constances.PACKAGE_VERSION_UPGRADE.format(local_version, pip_version)
-        )
+
+def log_version_info():
+    local_version = parse(__version__)
+    if local_version.is_prerelease:
+        logging.info(constances.PACKAGE_VERSION_INFO_MESSAGE.format(__version__))
+    req = requests.get("https://pypi.python.org/pypi/superannotate/json")
+    if req.ok:
+        releases = req.json().get("releases", [])
+        pip_version = parse("0")
+        for release in releases:
+            ver = parse(release)
+            if not ver.is_prerelease or local_version.is_prerelease:
+                pip_version = max(pip_version, ver)
+        if pip_version.major > local_version.major:
+            logging.warning(
+                constances.PACKAGE_VERSION_MAJOR_UPGRADE.format(local_version, pip_version)
+            )
+        elif pip_version > local_version:
+            logging.warning(
+                constances.PACKAGE_VERSION_UPGRADE.format(local_version, pip_version)
+            )
+
+
+log_version_info()
+

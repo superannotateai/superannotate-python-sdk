@@ -181,7 +181,8 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
             if response.errors:
                 return path, False
             return path, True
-        except Exception as _:
+        except Exception as e:
+            logger.debug(str(e), exc_info=True)
             return path, False
 
     def get_bucket_to_upload(self, ids: List[int]):
