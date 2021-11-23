@@ -166,7 +166,7 @@ class TestDeprecatedFunctionsVideo(TestCase):
         try:
             sa.set_project_default_image_quality_in_editor(self.PROJECT_NAME, "original")
         except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE, str(e))
+            self.assertIn(self.EXCEPTION_MESSAGE_DOCUMENT_VIDEO, str(e))
         try:
             sa.set_images_annotation_statuses(self.PROJECT_NAME, "Completed", [self.UPLOAD_IMAGE_NAME])
         except AppException as e:

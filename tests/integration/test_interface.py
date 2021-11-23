@@ -75,11 +75,6 @@ class TestInterface(BaseTestCase):
         )
         self.assertEqual(len(uploaded_annotations), 4)
 
-    @pytest.mark.flaky(reruns=2)
-    def test_get_images_metadata(self):
-        sa.upload_images_from_folder_to_project(self.PROJECT_NAME, self.folder_path)
-        metadata = sa.search_images(self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, return_metadata=True)
-        self.assertIn("qa_id", metadata[0])
 
     def test_download_image_annotations(self):
         sa.upload_images_from_folder_to_project(self.PROJECT_NAME, self.folder_path)

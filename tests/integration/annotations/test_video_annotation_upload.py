@@ -105,6 +105,8 @@ class TestUploadVideoAnnotation(BaseTestCase):
                 annotation = annotation.replace(class_id, "0")
             uploaded_annotation = json.loads(annotation)
             del downloaded_annotation["metadata"]["lastAction"]
+            del downloaded_annotation["metadata"]["status"]
+            del uploaded_annotation["metadata"]["status"]
             self.assertEqual(downloaded_annotation, uploaded_annotation)
 
     def test_upload_annotations_without_class_name(self):
