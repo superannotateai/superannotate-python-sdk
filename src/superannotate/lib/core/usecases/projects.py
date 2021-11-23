@@ -509,11 +509,6 @@ class CloneProjectUseCase(BaseReportableUseCae):
                 )
                 self._copy_annotation_classes(annotation_classes_entity_mapping, project)
 
-            if self._include_contributors:
-                self.reporter.log_info(
-                    f"Cloning contributors from {self._project.name} to {self._project_to_create.name}."
-                )
-                self._copy_include_contributors(project)
             if self._include_settings:
                 self.reporter.log_info(
                     f"Cloning settings from {self._project.name} to {self._project_to_create.name}."
@@ -536,9 +531,16 @@ class CloneProjectUseCase(BaseReportableUseCae):
                     "Workflow copy is deprecated for "
                     f"{constances.ProjectType.get_name(self._project_to_create.project_type)} projects."
                 )
+            if self._include_contributors:
+                self.reporter.log_info(
+                    f"Cloning contributors from {self._project.name} to {self._project_to_create.name}."
+                )
+                self._copy_include_contributors(project)
+
             self._response.data = self._projects.get_one(
                 uuid=project.uuid, team_id=project.team_id
             )
+
         return self._response
 
 
