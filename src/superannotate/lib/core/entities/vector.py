@@ -6,11 +6,11 @@ from lib.core.entities.utils import BaseModel
 from lib.core.entities.utils import BaseVectorInstance
 from lib.core.entities.utils import BboxPoints
 from lib.core.entities.utils import Comment
+from lib.core.entities.utils import INVALID_DICT_MESSAGE
 from lib.core.entities.utils import Metadata
 from lib.core.entities.utils import NotEmptyStr
 from lib.core.entities.utils import Tag
 from lib.core.entities.utils import VectorAnnotationTypeEnum
-from lib.core.entities.utils import INVALID_DICT_MESSAGE
 from pydantic import conlist
 from pydantic import Field
 from pydantic import StrictInt
