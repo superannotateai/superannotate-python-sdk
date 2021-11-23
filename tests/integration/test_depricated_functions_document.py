@@ -110,10 +110,6 @@ class TestDeprecatedFunctionsDocument(TestCase):
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE_2.format(self.PROJECT_TYPE), str(e))
         try:
-            sa.clone_project(self.PROJECT_NAME_2, self.PROJECT_NAME)
-        except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE, str(e))
-        try:
             sa.copy_image(self.PROJECT_NAME, self.UPLOAD_IMAGE_NAME, self.PROJECT_NAME_2)
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))

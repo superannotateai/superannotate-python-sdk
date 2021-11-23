@@ -479,6 +479,7 @@ class Controller(BaseController):
             project_to_create.description = project_description
 
         use_case = usecases.CloneProjectUseCase(
+            reporter=Reporter(),
             project=project,
             project_to_create=project_to_create,
             projects=self.projects,

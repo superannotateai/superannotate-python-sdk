@@ -92,9 +92,17 @@ def clone_project(*args, **kwargs):
     project = kwargs.get("project_name", None)
     if not project:
         project = args[0]
+
+    result = controller.get_project_metadata(project)
+    project_metadata = result.data["project"]
+    project_type = ProjectType.get_name(project_metadata.project_type)
+
+
     return {
         "event_name": "clone_project",
         "properties": {
+            "External": bool(project_metadata.upload_state == constances.UploadState.EXTERNAL.value),
+            "Project Type": project_type,
             "Copy Classes": bool(
                 args[3:4] or kwargs.get("copy_annotation_classes", None)
             ),
