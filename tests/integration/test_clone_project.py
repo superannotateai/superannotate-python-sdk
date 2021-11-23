@@ -1,5 +1,5 @@
 from unittest import TestCase
-
+import pytest
 import src.superannotate as sa
 
 
@@ -38,15 +38,6 @@ class TestCloneProject(TestCase):
             ],
         )
 
-        old_settings = sa.get_project_settings(self.PROJECT_NAME_1)
-        brightness_value = 0
-        for setting in old_settings:
-            if "attribute" in setting and setting["attribute"] == "Brightness":
-                brightness_value = setting["value"]
-        sa.set_project_settings(
-            self.PROJECT_NAME_1,
-            [{"attribute": "Brightness", "value": brightness_value + 10}],
-        )
         sa.set_project_workflow(
             self.PROJECT_NAME_1,
             [
@@ -81,13 +72,6 @@ class TestCloneProject(TestCase):
         self.assertEqual(len(ann_classes), 1)
         self.assertEqual(ann_classes[0]["name"], "rrr")
         self.assertEqual(ann_classes[0]["color"], "#FFAAFF")
-
-        new_settings = sa.get_project_settings(self.PROJECT_NAME_2)
-        for setting in new_settings:
-            if "attribute" in setting and setting["attribute"] == "Brightness":
-                self.assertEqual(setting["value"], brightness_value + 10)
-            break
-
         new_workflow = sa.get_project_workflow(self.PROJECT_NAME_2)
         self.assertEqual(len(new_workflow), 1)
         self.assertEqual(new_workflow[0]["className"], "rrr")
@@ -110,6 +94,11 @@ class TestCloneProjectAttachedUrls(TestCase):
     PROJECT_NAME_2 = "TestCloneProjectAttachedUrls_2"
     PROJECT_DESCRIPTION = "desc"
     PROJECT_TYPE = "Document"
+
+    @pytest.fixture(autouse=True)
+    def inject_fixtures(self, caplog):
+        self._caplog = caplog
+
 
     def setUp(self, *args, **kwargs):
         self.tearDown()
@@ -140,16 +129,6 @@ class TestCloneProjectAttachedUrls(TestCase):
             ],
         )
 
-        old_settings = sa.get_project_settings(self.PROJECT_NAME_1)
-        annotator_finish = 0
-        for setting in old_settings:
-            if "attribute" in setting and setting["attribute"] == "AnnotatorFinish":
-                annotator_finish = setting["value"]
-        sa.set_project_settings(
-            self.PROJECT_NAME_1,
-            [{"attribute": "AnnotatorFinish", "value": annotator_finish}],
-        )
-
         new_project = sa.clone_project(
             self.PROJECT_NAME_2, self.PROJECT_NAME_1, copy_contributors=True
         )
@@ -160,9 +139,4 @@ class TestCloneProjectAttachedUrls(TestCase):
         self.assertEqual(len(ann_classes), 1)
         self.assertEqual(ann_classes[0]["name"], "rrr")
         self.assertEqual(ann_classes[0]["color"], "#FFAAFF")
-
-        new_settings = sa.get_project_settings(self.PROJECT_NAME_2)
-        for setting in new_settings:
-            if "attribute" in setting and setting["attribute"] == "annotator_finish":
-                self.assertEqual(setting["value"], annotator_finish)
-                break
+        self.assertIn("Workflow copy is deprecated for Document projects.",self._caplog.text)
