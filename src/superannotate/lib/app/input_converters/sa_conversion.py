@@ -204,6 +204,7 @@ def upgrade_json(input_dir, output_dir):
             converted_files.append(file_name)
             write_to_json(output_dir / file_name, output_json)
         except Exception as e:
+            logger.debug(str(e), exc_info=True)
             failed_files.append(file_name)
 
     return converted_files
