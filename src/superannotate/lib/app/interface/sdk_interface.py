@@ -3,7 +3,6 @@ import json
 import logging
 import os
 import tempfile
-import time
 from pathlib import Path
 from typing import Iterable
 from typing import List
@@ -40,7 +39,6 @@ from lib.core.types import ClassesJson
 from lib.core.types import MLModel
 from lib.core.types import Project
 from lib.infrastructure.controller import Controller
-from plotly.subplots import make_subplots
 from pydantic import EmailStr
 from pydantic import parse_obj_as
 from pydantic import StrictBool
@@ -2479,7 +2477,8 @@ def add_annotation_bbox_to_image(
         error,
         image_name,
     )
-    upload_image_annotations(project, image_name, annotations, verbose=False)
+
+    controller.upload_image_annotations(*extract_project_folder(project), image_name, annotations)
 
 
 @Trackable
@@ -2513,7 +2512,7 @@ def add_annotation_point_to_image(
     annotations = add_annotation_point_to_json(
         annotations, point, annotation_class_name, annotation_class_attributes, error
     )
-    upload_image_annotations(project, image_name, annotations, verbose=False)
+    controller.upload_image_annotations(*extract_project_folder(project), image_name, annotations)
 
 
 @Trackable
@@ -2542,9 +2541,9 @@ def add_annotation_comment_to_image(
     """
     annotations = get_image_annotations(project, image_name)["annotation_json"]
     annotations = add_annotation_comment_to_json(
-        annotations, comment_text, comment_coords, comment_author, resolved=resolved
+        annotations, comment_text, comment_coords, comment_author, resolved=resolved, image_name=image_name
     )
-    upload_image_annotations(project, image_name, annotations, verbose=False)
+    controller.upload_image_annotations(*extract_project_folder(project), image_name, annotations)
 
 
 @validate_arguments

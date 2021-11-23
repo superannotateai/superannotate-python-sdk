@@ -3,7 +3,6 @@ import logging
 import os
 import sys
 import time
-from pathlib import Path
 
 import numpy as np
 from PIL import Image

@@ -3,6 +3,7 @@ import time
 from collections import defaultdict
 from typing import List
 
+import lib.core as constances
 from lib.core.entities import TeamEntity
 from lib.core.reporter import Reporter
 
@@ -275,6 +276,10 @@ def handle_last_action(annotations: dict, team: TeamEntity):
         "email": team.creator_id,
         "timestamp": int(time.time()),
     }
+
+
+def handle_annotation_status(annotations: dict):
+    annotations["metadata"]["status"] = constances.AnnotationStatus.IN_PROGRESS.value
 
 
 class SetEncoder(json.JSONEncoder):

@@ -14,7 +14,6 @@ from .export_from_sa_conversions import export_from_sa
 from .import_to_sa_conversions import import_to_sa
 from .sa_conversion import degrade_json
 from .sa_conversion import sa_convert_project_type
-from .sa_conversion import split_coco
 from .sa_conversion import upgrade_json
 
 ALLOWED_TASK_TYPES = [

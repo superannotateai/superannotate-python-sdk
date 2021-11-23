@@ -13,9 +13,9 @@ from lib.core.entities.utils import Tag
 from pydantic import BaseModel
 from pydantic import constr
 from pydantic import Field
-from pydantic import StrictStr
-from pydantic import StrictInt
 from pydantic import StrictBool
+from pydantic import StrictInt
+from pydantic import StrictStr
 
 
 class VideoType(str, Enum):
@@ -47,7 +47,7 @@ class BaseVideoInstance(BaseInstance):
 
 
 class BboxInstance(BaseVideoInstance):
-    point_labels: Optional[Dict[constr(regex=r"^[0-9]+$"), NotEmptyStr]] = Field(
+    point_labels: Optional[Dict[constr(regex=r"^[0-9]+$"), NotEmptyStr]] = Field( # noqa F722
         None, alias="pointLabels"
     )
     timeline: Dict[float, BboxTimeStamp]

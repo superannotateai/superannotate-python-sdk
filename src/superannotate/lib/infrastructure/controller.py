@@ -1260,6 +1260,7 @@ class Controller(BaseController):
         use_case = usecases.UploadAnnotationsUseCase(
             project=project,
             folder=folder,
+            images=self.images,
             team=self.team_data.data,
             annotation_paths=annotation_paths,
             backend_service_provider=self._backend_client,
@@ -1295,6 +1296,7 @@ class Controller(BaseController):
         use_case = usecases.UploadAnnotationUseCase(
             project=project,
             folder=folder,
+            images=self.images,
             team=self.team_data.data,
             annotation_classes=AnnotationClassRepository(
                 service=self._backend_client, project=project

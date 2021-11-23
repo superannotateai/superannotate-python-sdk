@@ -10,7 +10,6 @@ from superannotate.lib.app.exceptions import AppException
 from superannotate.lib.app.input_converters.conversion import convert_json_version
 from superannotate.lib.app.input_converters.conversion import convert_project_type
 from superannotate.lib.app.input_converters.conversion import export_annotation
-
 from superannotate.lib.app.interface.sdk_interface import add_annotation_bbox_to_image
 from superannotate.lib.app.interface.sdk_interface import (
     add_annotation_comment_to_image,
