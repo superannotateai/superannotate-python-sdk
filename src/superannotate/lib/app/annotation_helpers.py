@@ -34,7 +34,7 @@ def _postprocess_annotation_json(annotation_json, path):
 
 
 def add_annotation_comment_to_json(
-    annotation_json, comment_text, comment_coords, comment_author, resolved=False
+    annotation_json, comment_text, comment_coords, comment_author, resolved=False, image_name=""
 ):
     """Add a comment to SuperAnnotate format annotation JSON
 
@@ -54,7 +54,7 @@ def add_annotation_comment_to_json(
     if len(comment_coords) != 2:
         raise AppException("Comment should have two values")
 
-    annotation_json, path = _preprocess_annotation_json(annotation_json)
+    annotation_json, path = _preprocess_annotation_json(annotation_json, image_name=image_name)
 
     annotation = {
         "type": "comment",

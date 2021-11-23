@@ -10,7 +10,6 @@ from lib.core.entities import AnnotationClassEntity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ProjectEntity
 from lib.core.entities import ProjectSettingEntity
-from lib.core.entities import TeamEntity
 from lib.core.entities import WorkflowEntity
 from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException

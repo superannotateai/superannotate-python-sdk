@@ -16,10 +16,10 @@ from lib.core.entities import ProjectEntity
 from lib.core.entities import TeamEntity
 from lib.core.helpers import convert_to_video_editor_json
 from lib.core.helpers import fill_annotation_ids
-from lib.core.helpers import fill_document_tags
 from lib.core.helpers import handle_last_action
 from lib.core.helpers import map_annotation_classes_name
 from lib.core.reporter import Reporter
+from lib.core.repositories import BaseManageableRepository
 from lib.core.service_types import UploadAnnotationAuthData
 from lib.core.serviceproviders import SuerannotateServiceProvider
 from lib.core.usecases.base import BaseReportableUseCae
@@ -42,6 +42,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
         project: ProjectEntity,
         folder: FolderEntity,
         team: TeamEntity,
+        images: BaseManageableRepository,
         annotation_classes: List[AnnotationClassEntity],
         annotation_paths: List[str],
         backend_service_provider: SuerannotateServiceProvider,
@@ -55,6 +56,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
         self._project = project
         self._folder = folder
         self._team = team
+        self._images = images
         self._backend_service = backend_service_provider
         self._annotation_classes = annotation_classes
         self._annotation_paths = annotation_paths
@@ -127,7 +129,8 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
             )
             if missing_annotations:
                 logger.warning(
-                    f"Couldn't find {len(missing_annotations)}/{len(annotations_to_upload + missing_annotations)} items on the platform that match the annotations you want to upload."
+                    f"Couldn't find {len(missing_annotations)}/{len(annotations_to_upload + missing_annotations)} "
+                    "items on the platform that match the annotations you want to upload."
                 )
             self._missing_annotations = missing_annotations
             self._annotations_to_upload = annotations_to_upload
@@ -162,7 +165,8 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
                 project=self._project,
                 folder=self._folder,
                 team=self._team,
-                image=ImageEntity(uuid=image_id, name=image_name),
+                image=ImageEntity(uuid=image_id, name=image_name, team_id=self._project.team_id, project_id=self._project.uuid),
+                images=self._images,
                 annotation_classes=self._annotation_classes,
                 backend_service_provider=self._backend_service,
                 reporter=self.reporter,
@@ -203,7 +207,8 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
                 if key == "missing_classes":
                     template = "Could not find annotation classes matching existing classes on the platform: [{}]"
                 elif key == "missing_attribute_groups":
-                    template = "Could not find attribute groups matching existing attribute groups on the platform: [{}]"
+                    template = "Could not find attribute groups matching existing attribute groups" \
+                               " on the platform: [{}]"
                 elif key == "missing_attributes":
                     template = "Could not find attributes matching existing attributes on the platform: [{}]"
                 logger.warning(template.format("', '".join(values)))
@@ -224,8 +229,8 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
             )
             for step in iterations_range:
                 annotations_to_upload = self.annotations_to_upload[
-                    step : step + self.AUTH_DATA_CHUNK_SIZE
-                ]  # noqa: E203
+                    step : step + self.AUTH_DATA_CHUNK_SIZE  # noqa: E203
+                ]
                 upload_data = self.get_annotation_upload_data(
                     [int(image.id) for image in annotations_to_upload]
                 )
@@ -278,6 +283,7 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
         project: ProjectEntity,
         folder: FolderEntity,
         image: ImageEntity,
+        images: BaseManageableRepository,
         team: TeamEntity,
         annotation_classes: List[AnnotationClassEntity],
         backend_service_provider: SuerannotateServiceProvider,
@@ -297,6 +303,7 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
         self._project = project
         self._folder = folder
         self._image = image
+        self._images = images
         self._team = team
         self._backend_service = backend_service_provider
         self._annotation_classes = annotation_classes
@@ -454,6 +461,8 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
                         ],
                         Body=self._mask,
                     )
+                self._image.annotation_status_code = constances.AnnotationStatus.IN_PROGRESS.value
+                self._images.update(self._image)
                 if self._verbose:
                     logger.info(
                         "Uploading annotations for image %s in project %s.",
