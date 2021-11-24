@@ -479,6 +479,7 @@ class Controller(BaseController):
             project_to_create.description = project_description
 
         use_case = usecases.CloneProjectUseCase(
+            reporter=Reporter(),
             project=project,
             project_to_create=project_to_create,
             projects=self.projects,
@@ -592,13 +593,6 @@ class Controller(BaseController):
         )
         return use_case.execute()
 
-    def delete_contributor_invitation(self, email: str):
-        team = self.teams.get_one(self.team_id)
-        use_case = usecases.DeleteContributorInvitationUseCase(
-            backend_service_provider=self._backend_client, email=email, team=team,
-        )
-        return use_case.execute()
-
     def search_team_contributors(self, **kwargs):
         condition = None
         if any(kwargs.values()):
@@ -662,23 +656,6 @@ class Controller(BaseController):
         for field, value in folder_data.items():
             setattr(folder, field, value)
         use_case = usecases.UpdateFolderUseCase(folders=self.folders, folder=folder,)
-        return use_case.execute()
-
-    def get_image_bytes(
-        self,
-        project_name: str,
-        image_name: str,
-        folder_name: str = None,
-        image_variant: str = None,
-    ):
-        project = self._get_project(project_name)
-        folder = self._get_folder(project, folder_name)
-        image = self._get_image(project, image_name, folder)
-        use_case = usecases.GetImageBytesUseCase(
-            image=image,
-            backend_service_provider=self._backend_client,
-            image_variant=image_variant,
-        )
         return use_case.execute()
 
     def copy_image(
@@ -891,19 +868,6 @@ class Controller(BaseController):
         )
         return use_case.execute()
 
-    def delete_image(self, project_name: str, image_name: str, folder_name: str):
-        project = self._get_project(project_name)
-        folder = self._get_folder(project, folder_name)
-        image = self._get_image(project=project, image_name=image_name, folder=folder)
-
-        use_case = usecases.DeleteImageUseCase(
-            images=ImageRepository(service=self._backend_client),
-            image=image,
-            team_id=project.team_id,
-            project_id=project.uuid,
-        )
-        return use_case.execute()
-
     def get_image_metadata(self, project_name: str, folder_name: str, image_name: str):
         project = self._get_project(project_name)
         folder = self._get_folder(project, folder_name)
@@ -1072,22 +1036,6 @@ class Controller(BaseController):
         use_case.execute()
         return use_case.execute()
 
-    def get_image_pre_annotations(
-        self, project_name: str, folder_name: str, image_name: str
-    ):
-        project = self._get_project(project_name)
-        folder = self._get_folder(project=project, name=folder_name)
-
-        use_case = usecases.GetImagePreAnnotationsUseCase(
-            service=self._backend_client,
-            project=project,
-            folder=folder,
-            image_name=image_name,
-            images=ImageRepository(service=self._backend_client),
-        )
-        use_case.execute()
-        return use_case.execute()
-
     def get_exports(self, project_name: str, return_metadata: bool):
         project = self._get_project(project_name)
 
@@ -1251,23 +1199,6 @@ class Controller(BaseController):
         )
         return use_case.execute()
 
-    @staticmethod
-    def create_fuse_image(
-        project_type: str,
-        image_path: str,
-        annotation_classes: List,
-        in_memory: bool,
-        generate_overlay: bool,
-    ):
-        use_case = usecases.CreateFuseImageUseCase(
-            project_type=project_type,
-            image_path=image_path,
-            classes=annotation_classes,
-            in_memory=in_memory,
-            generate_overlay=generate_overlay,
-        )
-        return use_case.execute()
-
     def download_image(
         self,
         project_name: str,
@@ -1330,6 +1261,7 @@ class Controller(BaseController):
         use_case = usecases.UploadAnnotationsUseCase(
             project=project,
             folder=folder,
+            images=self.images,
             team=self.team_data.data,
             annotation_paths=annotation_paths,
             backend_service_provider=self._backend_client,
@@ -1365,6 +1297,7 @@ class Controller(BaseController):
         use_case = usecases.UploadAnnotationUseCase(
             project=project,
             folder=folder,
+            images=self.images,
             team=self.team_data.data,
             annotation_classes=AnnotationClassRepository(
                 service=self._backend_client, project=project
@@ -1423,15 +1356,6 @@ class Controller(BaseController):
 
     def delete_model(self, model_id: int):
         use_case = usecases.DeleteMLModel(model_id=model_id, models=self.ml_models)
-        return use_case.execute()
-
-    def stop_model_training(self, model_id: int):
-
-        use_case = usecases.StopModelTraining(
-            model_id=model_id,
-            team_id=self.team_id,
-            backend_service_provider=self._backend_client,
-        )
         return use_case.execute()
 
     def download_export(
@@ -1546,24 +1470,6 @@ class Controller(BaseController):
             image_list=image_list,
             annotation_type=annot_type,
             show_plots=show_plots,
-        )
-        return use_case.execute()
-
-    def run_segmentation(
-        self, project_name: str, images_list: list, model_name: str, folder_name: str
-    ):
-        project = self._get_project(project_name)
-        folder = self._get_folder(project, folder_name)
-        ml_model_repo = MLModelRepository(
-            team_id=project.uuid, service=self._backend_client
-        )
-        use_case = usecases.RunSegmentationUseCase(
-            project=project,
-            ml_model_repo=ml_model_repo,
-            ml_model_name=model_name,
-            images_list=images_list,
-            service=self._backend_client,
-            folder=folder,
         )
         return use_case.execute()
 

@@ -27,7 +27,7 @@ def wrap_error(e: ValidationError) -> str:
         errors_list[1::] = [
             f"[{i}]" if isinstance(i, int) else f".{i}" for i in errors_list[1::]
         ]
-        error_messages["".join(errors_list)].append(error["msg"])
+        error_messages["".join([str(item) for item in errors_list])].append(error["msg"])
     texts = ["\n"]
     for field, text in error_messages.items():
         texts.append(

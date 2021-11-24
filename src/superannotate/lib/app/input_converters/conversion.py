@@ -14,7 +14,6 @@ from .export_from_sa_conversions import export_from_sa
 from .import_to_sa_conversions import import_to_sa
 from .sa_conversion import degrade_json
 from .sa_conversion import sa_convert_project_type
-from .sa_conversion import split_coco
 from .sa_conversion import upgrade_json
 
 ALLOWED_TASK_TYPES = [
@@ -435,57 +434,6 @@ def convert_project_type(input_dir, output_dir):
     input_dir, output_dir = _change_type(input_dir, output_dir)
 
     sa_convert_project_type(input_dir, output_dir)
-
-
-@Trackable
-def coco_split_dataset(
-    coco_json_path, image_dir, output_dir, dataset_list_name, ratio_list
-):
-    """ Splits COCO dataset to few datsets.
-
-    :param coco_json_path: Path to main COCO JSON dataset, which should be splitted.
-    :type coco_json_path: Pathlike(str or Path)
-    :param image_dir: Path to all images in the original dataset.
-    :type coco_json_path: str or Pathlike
-    :param coco_json_path: Path to the folder where you want to output splitted COCO JSON files.
-    :type coco_json_path: str or Pathlike
-    :param dataset_list_name: List of dataset names.
-    :type dataset_list_name: list
-    :param ratio_list: List of ratios for each splitted dataset.
-    :type ratio_list: list
-    """
-    params_info = [
-        (coco_json_path, "coco_json_path", (str, Path)),
-        (image_dir, "image_dir", (str, Path)),
-        (output_dir, "output_dir", (str, Path)),
-        (dataset_list_name, "dataset_list_name", list),
-        (ratio_list, "ratio_list", list),
-    ]
-    _passes_type_sanity(params_info)
-
-    lists_info = [
-        (dataset_list_name, "dataset_name", str),
-        (ratio_list, "ratio_list", (int, float)),
-    ]
-
-    _passes_list_members_type_sanity(lists_info)
-
-    if sum(ratio_list) != 100:
-        raise AppException("Sum of 'ratio_list' members must be 100")
-
-    if len(dataset_list_name) != len(ratio_list):
-        raise AppException(
-            "'dataset_list_name' and 'ratio_list' should have same lenght"
-        )
-
-    if isinstance(coco_json_path, str):
-        coco_json_path = Path(coco_json_path)
-    if isinstance(image_dir, str):
-        image_dir = Path(image_dir)
-    if isinstance(output_dir, str):
-        output_dir = Path(output_dir)
-
-    split_coco(coco_json_path, image_dir, output_dir, dataset_list_name, ratio_list)
 
 
 @Trackable

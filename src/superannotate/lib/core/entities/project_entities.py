@@ -291,7 +291,7 @@ class ImageEntity(BaseEntity):
         return ImageEntity(**kwargs)
 
     def to_dict(self):
-        return {
+        data = {
             "id": self.uuid,
             "team_id": self.team_id,
             "name": self.name,
@@ -310,6 +310,7 @@ class ImageEntity(BaseEntity):
             "prediction_status": self.prediction_status,
             "meta": self.meta.to_dict(),
         }
+        return {k: v for k, v in data.items() if v is not None}
 
 
 class S3FileEntity(BaseEntity):

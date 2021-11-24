@@ -75,6 +75,7 @@ def export_from_sa(args):
             args.output_dir, args.input_dir / "classes" / "classes.json"
         )
     except Exception as e:
+        logger.debug(str(e), exc_info=True)
         _create_classes_mapper(args.input_dir, args.output_dir)
 
     data_set = _load_files(args.input_dir, args.task, args.project_type)

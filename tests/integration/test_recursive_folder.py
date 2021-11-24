@@ -60,8 +60,7 @@ class TestRecursiveFolder(BaseTestCase):
                 json_ann = json.load(open(json_file))
                 if "instances" in json_ann and len(json_ann["instances"]) > 0:
                     non_empty_annotations += 1
-            # TODO : Template name validation error
-            # self.assertEqual(non_empty_annotations, 1)
+            self.assertEqual(non_empty_annotations, 1)
 
     def test_recursive_annotations_folder(self):
         sa.upload_images_from_folder_to_project(
@@ -94,54 +93,6 @@ class TestRecursiveFolder(BaseTestCase):
         )
 
         self.assertEqual(len(sa.search_images(self.PROJECT_NAME)), 2)
-
-    def test_recursive_pre_annotations_folder(self):
-        sa.upload_images_from_folder_to_project(
-            self.PROJECT_NAME,
-            self.folder_path,
-            annotation_status="QualityCheck",
-            recursive_subfolders=True,
-        )
-
-        self.assertEqual(len(sa.search_images(self.PROJECT_NAME)), 2)
-
-        sa.create_annotation_classes_from_classes_json(
-            self.PROJECT_NAME, f"{self.folder_path}/classes/classes.json"
-        )
-
-        sa.upload_preannotations_from_folder_to_project(
-            self.PROJECT_NAME, self.folder_path, recursive_subfolders=True
-        )
-
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            for image in sa.search_images(self.PROJECT_NAME):
-                sa.download_image_preannotations(self.PROJECT_NAME, image, tmp_dir)
-
-            self.assertEqual(len(list(Path(tmp_dir).glob(self.JSON_POSTFIX))), 2)
-
-    def test_non_recursive_pre_annotations_folder(self):
-        sa.upload_images_from_folder_to_project(
-            self.PROJECT_NAME,
-            self.folder_path,
-            annotation_status="QualityCheck",
-            recursive_subfolders=True,
-        )
-
-        self.assertEqual(len(sa.search_images(self.PROJECT_NAME)), 2)
-
-        sa.create_annotation_classes_from_classes_json(
-            self.PROJECT_NAME, f"{self.folder_path}/classes/classes.json"
-        )
-
-        sa.upload_preannotations_from_folder_to_project(
-            self.PROJECT_NAME, self.folder_path, recursive_subfolders=True
-        )
-
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            for image in sa.search_images(self.PROJECT_NAME):
-                sa.download_image_preannotations(self.PROJECT_NAME, image, tmp_dir)
-
-            self.assertEqual(len(list(Path(tmp_dir).glob(self.JSON_POSTFIX))), 2)
 
     def test_annotations_recursive_s3_folder(self):
 
@@ -211,62 +162,6 @@ class TestRecursiveFolder(BaseTestCase):
             # TODO: template name error
             # self.assertEqual(non_empty_annotations, 1)
 
-    def test_pre_annotations_recursive_s3_folder(self):
-
-        sa.upload_images_from_folder_to_project(
-            self.PROJECT_NAME,
-            self.S3_FOLDER_PATH,
-            from_s3_bucket="superannotate-python-sdk-test",
-            recursive_subfolders=True,
-        )
-
-        self.assertEqual(len(sa.search_images(self.PROJECT_NAME)), 2)
-
-        sa.create_annotation_classes_from_classes_json(
-            self.PROJECT_NAME,
-            f"{self.S3_FOLDER_PATH}/classes/classes.json",
-            from_s3_bucket="superannotate-python-sdk-test",
-        )
-
-        sa.upload_preannotations_from_folder_to_project(
-            self.PROJECT_NAME,
-            self.S3_FOLDER_PATH,
-            recursive_subfolders=True,
-            from_s3_bucket="superannotate-python-sdk-test",
-        )
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            for image in sa.search_images(self.PROJECT_NAME):
-                sa.download_image_preannotations(self.PROJECT_NAME, image, tmp_dir)
-
-            self.assertEqual(len(list(Path(tmp_dir).glob(self.JSON_POSTFIX))), 2)
-
-    def test_pre_annotations_non_recursive_s3_folder(self):
-        sa.upload_images_from_folder_to_project(
-            self.PROJECT_NAME,
-            self.S3_FOLDER_PATH,
-            from_s3_bucket="superannotate-python-sdk-test",
-            recursive_subfolders=False,
-        )
-
-        self.assertEqual(len(sa.search_images(self.PROJECT_NAME)), 1)
-
-        sa.create_annotation_classes_from_classes_json(
-            self.PROJECT_NAME,
-            f"{self.S3_FOLDER_PATH}/classes/classes.json",
-            from_s3_bucket="superannotate-python-sdk-test",
-        )
-
-        sa.upload_preannotations_from_folder_to_project(
-            self.PROJECT_NAME,
-            self.S3_FOLDER_PATH,
-            recursive_subfolders=False,
-            from_s3_bucket="superannotate-python-sdk-test",
-        )
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            for image in sa.search_images(self.PROJECT_NAME):
-                sa.download_image_preannotations(self.PROJECT_NAME, image, tmp_dir)
-            self.assertEqual(len(list(Path(tmp_dir).glob(self.JSON_POSTFIX))), 1)
-
     def test_images_non_recursive_s3(self):
         sa.upload_images_from_folder_to_project(
             self.PROJECT_NAME,
@@ -301,7 +196,7 @@ class TestRecursiveFolder(BaseTestCase):
         uploaded = sa.upload_annotations_from_folder_to_project(self.PROJECT_NAME, '8sep',
                                                                 from_s3_bucket="superannotate-python-sdk-test",
                                                                 recursive_subfolders=False)
-        self.assertEqual(len(uploaded[0]), 8)
+        self.assertEqual(len(uploaded[0]), 9)
 
     def test_images_non_recursive(self):
         sa.upload_images_from_folder_to_project(
