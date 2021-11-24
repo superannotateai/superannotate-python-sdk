@@ -104,7 +104,11 @@ class TestUploadVideoAnnotation(BaseTestCase):
             for class_id in class_ids:
                 annotation = annotation.replace(class_id, "0")
             uploaded_annotation = json.loads(annotation)
+
             del downloaded_annotation["metadata"]["lastAction"]
+            # status deleted because it changed by export
+            del downloaded_annotation["metadata"]["status"]
+            del uploaded_annotation["metadata"]["status"]
             self.assertEqual(downloaded_annotation, uploaded_annotation)
 
     def test_upload_annotations_without_class_name(self):
@@ -135,5 +139,28 @@ class TestUploadVideoAnnotation(BaseTestCase):
         converted_video = convert_to_video_editor_json(
             json.loads(open(f'{self.minimal_annotations_path}/video.mp4.json', 'r').read()), class_name_mapper={},
             reporter=Reporter())
-        data = {'instances': [{'attributes': [], 'timeline': {'0': {'active': True, 'points': {'x1': 223.32, 'y1': 78.45, 'x2': 312.31, 'y2': 176.66}}, 17.271058: {'points': {'x1': 182.08, 'y1': 33.18, 'x2': 283.45, 'y2': 131.39}}, 18.271058: {'points': {'x1': 182.32, 'y1': 36.33, 'x2': 284.01, 'y2': 134.54}}, 19.271058: {'points': {'x1': 181.49, 'y1': 45.09, 'x2': 283.18, 'y2': 143.3}}, 19.725864: {'points': {'x1': 181.9, 'y1': 48.35, 'x2': 283.59, 'y2': 146.56}}, 20.271058: {'points': {'x1': 181.49, 'y1': 52.46, 'x2': 283.18, 'y2': 150.67}}, 21.271058: {'points': {'x1': 181.49, 'y1': 63.7, 'x2': 283.18, 'y2': 161.91}}, 22.271058: {'points': {'x1': 182.07, 'y1': 72.76, 'x2': 283.76, 'y2': 170.97}}, 23.271058: {'points': {'x1': 182.07, 'y1': 81.51, 'x2': 283.76, 'y2': 179.72}}, 24.271058: {'points': {'x1': 182.42, 'y1': 97.19, 'x2': 284.11, 'y2': 195.4}}, 30.526667: {'active': False, 'points': {'x1': 182.42, 'y1': 97.19, 'x2': 284.11, 'y2': 195.4}}}, 'type': 'bbox', 'locked': False, 'classId': -1, 'pointLabels': {'3': 'point label bro'}}, {'attributes': [], 'timeline': {29.713736: {'active': True, 'points': {'x1': 132.82, 'y1': 129.12, 'x2': 175.16, 'y2': 188}}, 30.526667: {'active': False, 'points': {'x1': 132.82, 'y1': 129.12, 'x2': 175.16, 'y2': 188}}}, 'type': 'bbox', 'locked': False, 'classId': -1}, {'attributes': [], 'timeline': {5.528212: {'active': True}, 6.702957: {}, 7.083022: {'active': False}}, 'type': 'event', 'locked': False, 'classId': -1}], 'tags': ['some tag'], 'name': 'video.mp4', 'metadata': {'name': 'video.mp4', 'width': None, 'height': None}}
+        data = {'instances': [{'attributes': [], 'timeline': {
+            '0': {'active': True, 'points': {'x1': 223.32, 'y1': 78.45, 'x2': 312.31, 'y2': 176.66}},
+            17.271058: {'points': {'x1': 182.08, 'y1': 33.18, 'x2': 283.45, 'y2': 131.39}},
+            18.271058: {'points': {'x1': 182.32, 'y1': 36.33, 'x2': 284.01, 'y2': 134.54}},
+            19.271058: {'points': {'x1': 181.49, 'y1': 45.09, 'x2': 283.18, 'y2': 143.3}},
+            19.725864: {'points': {'x1': 181.9, 'y1': 48.35, 'x2': 283.59, 'y2': 146.56}},
+            20.271058: {'points': {'x1': 181.49, 'y1': 52.46, 'x2': 283.18, 'y2': 150.67}},
+            21.271058: {'points': {'x1': 181.49, 'y1': 63.7, 'x2': 283.18, 'y2': 161.91}},
+            22.271058: {'points': {'x1': 182.07, 'y1': 72.76, 'x2': 283.76, 'y2': 170.97}},
+            23.271058: {'points': {'x1': 182.07, 'y1': 81.51, 'x2': 283.76, 'y2': 179.72}},
+            24.271058: {'points': {'x1': 182.42, 'y1': 97.19, 'x2': 284.11, 'y2': 195.4}},
+            30.526667: {'active': False, 'points': {'x1': 182.42, 'y1': 97.19, 'x2': 284.11, 'y2': 195.4}}},
+                               'type': 'bbox', 'locked': False, 'classId': -1, 'pointLabels': {'3': 'point label bro'}},
+                              {'attributes': [], 'timeline': {29.713736: {'active': True,
+                                                                          'points': {'x1': 132.82, 'y1': 129.12,
+                                                                                     'x2': 175.16, 'y2': 188}},
+                                                              30.526667: {'active': False,
+                                                                          'points': {'x1': 132.82, 'y1': 129.12,
+                                                                                     'x2': 175.16, 'y2': 188}}},
+                               'type': 'bbox', 'locked': False, 'classId': -1}, {'attributes': [], 'timeline': {
+                5.528212: {'active': True}, 6.702957: {}, 7.083022: {'active': False}}, 'type': 'event',
+                                                                                 'locked': False, 'classId': -1}],
+                'tags': ['some tag'], 'name': 'video.mp4',
+                'metadata': {'name': 'video.mp4', 'width': None, 'height': None}}
         self.assertEqual(data, converted_video)

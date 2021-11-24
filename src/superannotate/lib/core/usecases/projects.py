@@ -1,9 +1,9 @@
 import copy
 import logging
+from collections import defaultdict
 from typing import Iterable
 from typing import List
 from typing import Type
-from collections import defaultdict
 
 import lib.core as constances
 from lib.core.conditions import Condition
@@ -15,12 +15,12 @@ from lib.core.entities import ProjectSettingEntity
 from lib.core.entities import WorkflowEntity
 from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
+from lib.core.reporter import Reporter
 from lib.core.repositories import BaseManageableRepository
 from lib.core.repositories import BaseReadOnlyRepository
 from lib.core.serviceproviders import SuerannotateServiceProvider
-from lib.core.usecases.base import BaseUseCase
 from lib.core.usecases.base import BaseReportableUseCae
-from lib.core.reporter import Reporter
+from lib.core.usecases.base import BaseUseCase
 
 logger = logging.getLogger("root")
 

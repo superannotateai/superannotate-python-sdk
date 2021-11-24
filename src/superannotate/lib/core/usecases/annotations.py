@@ -16,6 +16,7 @@ from lib.core.entities import ProjectEntity
 from lib.core.entities import TeamEntity
 from lib.core.helpers import convert_to_video_editor_json
 from lib.core.helpers import fill_annotation_ids
+from lib.core.helpers import fill_document_tags
 from lib.core.helpers import handle_last_action
 from lib.core.helpers import map_annotation_classes_name
 from lib.core.reporter import Reporter
@@ -420,6 +421,8 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
             annotations = convert_to_video_editor_json(
                 annotations, annotation_classes_name_maps, reporter
             )
+        if project_type == constances.ProjectType.DOCUMENT.value:
+            fill_document_tags(annotations, annotation_classes_name_maps)
         handle_last_action(annotations, team)
         return annotations
 

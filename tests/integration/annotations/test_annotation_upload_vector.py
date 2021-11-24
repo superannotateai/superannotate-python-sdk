@@ -23,7 +23,7 @@ class TestAnnotationUploadVector(BaseTestCase):
     def folder_path(self):
         return os.path.join(Path(__file__).parent.parent.parent, self.TEST_FOLDER_PATH)
 
-    @pytest.mark.flaky(reruns=2)
+    @pytest.mark.flaky(reruns=3)
     @patch("lib.infrastructure.controller.Reporter")
     def test_annotation_upload(self, reporter):
         reporter_mock = MagicMock()
@@ -48,7 +48,8 @@ class TestAnnotationUploadVector(BaseTestCase):
                 [i["attributes"]for i in origin_annotation["instances"]]
             )
 
-    def test_annotation_folder_upload_download(self, ):
+    @pytest.mark.flaky(reruns=3)
+    def test_annotation_folder_upload_download(self):
         sa.upload_images_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
         )
