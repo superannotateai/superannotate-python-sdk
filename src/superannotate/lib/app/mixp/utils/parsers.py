@@ -418,6 +418,22 @@ def get_project_and_folder_metadata(*args, **kwargs):
     }
 
 
+def search_images_all_folders(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0]
+    return {
+        "event_name": "search_images_all_folders",
+        "properties": {
+            "Annotation Status": bool(
+                args[2:3] or kwargs.get("annotation_status", None)
+            ),
+            "Metadata": bool(args[3:4] or kwargs.get("return_metadata", None)),
+            "project_name": get_project_name(project),
+        },
+    }
+
+
 def download_model(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
