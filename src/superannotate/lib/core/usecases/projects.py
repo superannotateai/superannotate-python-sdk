@@ -501,42 +501,63 @@ class CloneProjectUseCase(BaseReportableUseCae):
                 f" {constances.ProjectType.get_name(self._project_to_create.project_type)}."
             )
             project = self._projects.insert(self._project_to_create)
-
             annotation_classes_entity_mapping = defaultdict(AnnotationClassEntity)
+            annotation_classes_created = False
             if self._include_annotation_classes:
                 self.reporter.log_info(
                     f"Cloning annotation classes from {self._project.name} to {self._project_to_create.name}."
                 )
-                self._copy_annotation_classes(annotation_classes_entity_mapping, project)
-
+                try:
+                    self._copy_annotation_classes(annotation_classes_entity_mapping, project)
+                    annotation_classes_created = True
+                except AppException:
+                    self.reporter.log_warning(
+                        f"Failed to clone annotation classes from {self._project.name} to {self._project_to_create.name}."
+                    )
             if self._include_settings:
                 self.reporter.log_info(
                     f"Cloning settings from {self._project.name} to {self._project_to_create.name}."
                 )
-                self._copy_settings(project)
-            if (
-                    self._include_workflow
-                    and self._project.upload_state != constances.UploadState.EXTERNAL.value
-                    and self._include_annotation_classes
-                    and self._project.project_type not in (
-                        constances.ProjectType.DOCUMENT.value, constances.ProjectType.VIDEO.value
+                try:
+                    self._copy_settings(project)
+                except AppException:
+                    self.reporter.log_warning(
+                        f"Failed to clone settings from {self._project.name} to {self._project_to_create.name}."
                     )
-            ):
-                self.reporter.log_info(
-                    f"Cloning workflow from {self._project.name} to {self._project_to_create.name}."
-                )
-                self._copy_workflow(annotation_classes_entity_mapping, project)
-            elif self._include_workflow:
-                self.reporter.log_warning(
-                    "Workflow copy is deprecated for "
-                    f"{constances.ProjectType.get_name(self._project_to_create.project_type)} projects."
-                )
+
+            if self._include_workflow and self._include_annotation_classes:
+                if self._project.project_type in (
+                        constances.ProjectType.DOCUMENT.value,
+                        constances.ProjectType.VIDEO.value
+                ):
+                    self.reporter.log_warning(
+                        "Workflow copy is deprecated for "
+                        f"{constances.ProjectType.get_name(self._project_to_create.project_type)} projects."
+                    )
+                elif not annotation_classes_created:
+                    self.reporter.log_info(
+                        f"Skipping the workflow clone from  {self._project.name} to {self._project_to_create.name}."
+                    )
+                else:
+                    self.reporter.log_info(
+                        f"Cloning workflow from {self._project.name} to {self._project_to_create.name}."
+                    )
+                    try:
+                        self._copy_workflow(annotation_classes_entity_mapping, project)
+                    except AppException:
+                        self.reporter.log_warning(
+                            f"Failed to workflow from {self._project.name} to {self._project_to_create.name}."
+                        )
             if self._include_contributors:
                 self.reporter.log_info(
                     f"Cloning contributors from {self._project.name} to {self._project_to_create.name}."
                 )
-                self._copy_include_contributors(project)
-
+                try:
+                    self._copy_include_contributors(project)
+                except AppException:
+                    self.reporter.log_warning(
+                        f"Failed to clone contributors from {self._project.name} to {self._project_to_create.name}."
+                    )
             self._response.data = self._projects.get_one(
                 uuid=project.uuid, team_id=project.team_id
             )
