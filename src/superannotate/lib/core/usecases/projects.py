@@ -536,7 +536,7 @@ class CloneProjectUseCase(BaseReportableUseCae):
                     )
                 elif not annotation_classes_created:
                     self.reporter.log_info(
-                        f"Skipping the workflow clone from  {self._project.name} to {self._project_to_create.name}."
+                        f"Skipping the workflow clone from {self._project.name} to {self._project_to_create.name}."
                     )
                 else:
                     self.reporter.log_info(
