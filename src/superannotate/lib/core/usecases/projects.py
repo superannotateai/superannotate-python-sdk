@@ -21,6 +21,7 @@ from lib.core.repositories import BaseReadOnlyRepository
 from lib.core.serviceproviders import SuerannotateServiceProvider
 from lib.core.usecases.base import BaseReportableUseCae
 from lib.core.usecases.base import BaseUseCase
+from requests.exceptions import RequestException
 
 logger = logging.getLogger("root")
 
@@ -418,7 +419,9 @@ class CloneProjectUseCase(BaseReportableUseCae):
     def get_annotation_classes_repo(self, project: ProjectEntity):
         return self._annotation_classes_repo(self._backend_service, project)
 
-    def _copy_annotation_classes(self, annotation_classes_entity_mapping: dict, project: ProjectEntity):
+    def _copy_annotation_classes(
+        self, annotation_classes_entity_mapping: dict, project: ProjectEntity
+    ):
         annotation_classes = self.annotation_classes.get_all()
         for annotation_class in annotation_classes:
             annotation_class_copy = copy.copy(annotation_class)
@@ -448,42 +451,49 @@ class CloneProjectUseCase(BaseReportableUseCae):
                     setting_copy.project_id = to_project.uuid
                     new_settings.update(setting_copy)
 
-    def _copy_workflow(self, annotation_classes_entity_mapping: dict, to_project: ProjectEntity):
+    def _copy_workflow(
+        self, annotation_classes_entity_mapping: dict, to_project: ProjectEntity
+    ):
         new_workflows = self._workflows_repo(self._backend_service, to_project)
         for workflow in self.workflows.get_all():
-            existing_workflow_ids = list(
-                map(lambda i: i.uuid, new_workflows.get_all())
-            )
+            existing_workflow_ids = list(map(lambda i: i.uuid, new_workflows.get_all()))
             workflow_data = copy.copy(workflow)
             workflow_data.project_id = to_project.uuid
-            workflow_data.class_id = annotation_classes_entity_mapping[workflow.class_id].uuid
+            workflow_data.class_id = annotation_classes_entity_mapping[
+                workflow.class_id
+            ].uuid
             new_workflows.insert(workflow_data)
             workflows = new_workflows.get_all()
-            new_workflow = next((
-                work_flow
-                for work_flow in workflows
-                if work_flow.uuid not in existing_workflow_ids
-            ), None)
+            new_workflow = next(
+                (
+                    work_flow
+                    for work_flow in workflows
+                    if work_flow.uuid not in existing_workflow_ids
+                ),
+                None,
+            )
             workflow_attributes = []
             for attribute in workflow_data.attribute:
                 for annotation_attribute in annotation_classes_entity_mapping[
                     workflow.class_id
                 ].attribute_groups:
                     if (
-                            attribute["attribute"]["attribute_group"]["name"]
-                            == annotation_attribute["name"]
+                        attribute["attribute"]["attribute_group"]["name"]
+                        == annotation_attribute["name"]
                     ):
                         for annotation_attribute_value in annotation_attribute[
                             "attributes"
                         ]:
                             if (
-                                    annotation_attribute_value["name"]
-                                    == attribute["attribute"]["name"]
+                                annotation_attribute_value["name"]
+                                == attribute["attribute"]["name"]
                             ):
                                 workflow_attributes.append(
                                     {
                                         "workflow_id": new_workflow.uuid,
-                                        "attribute_id": annotation_attribute_value["id"]
+                                        "attribute_id": annotation_attribute_value[
+                                            "id"
+                                        ],
                                     }
                                 )
                                 break
@@ -508,27 +518,32 @@ class CloneProjectUseCase(BaseReportableUseCae):
                     f"Cloning annotation classes from {self._project.name} to {self._project_to_create.name}."
                 )
                 try:
-                    self._copy_annotation_classes(annotation_classes_entity_mapping, project)
+                    self._copy_annotation_classes(
+                        annotation_classes_entity_mapping, project
+                    )
                     annotation_classes_created = True
-                except AppException:
+                except (AppException, RequestException) as e:
                     self.reporter.log_warning(
                         f"Failed to clone annotation classes from {self._project.name} to {self._project_to_create.name}."
                     )
+                    self.reporter.log_debug(str(e), exc_info=True)
+
             if self._include_settings:
                 self.reporter.log_info(
                     f"Cloning settings from {self._project.name} to {self._project_to_create.name}."
                 )
                 try:
                     self._copy_settings(project)
-                except AppException:
+                except (AppException, RequestException) as e:
                     self.reporter.log_warning(
                         f"Failed to clone settings from {self._project.name} to {self._project_to_create.name}."
                     )
+                    self.reporter.log_debug(str(e), exc_info=True)
 
             if self._include_workflow and self._include_annotation_classes:
                 if self._project.project_type in (
-                        constances.ProjectType.DOCUMENT.value,
-                        constances.ProjectType.VIDEO.value
+                    constances.ProjectType.DOCUMENT.value,
+                    constances.ProjectType.VIDEO.value,
                 ):
                     self.reporter.log_warning(
                         "Workflow copy is deprecated for "
@@ -544,20 +559,22 @@ class CloneProjectUseCase(BaseReportableUseCae):
                     )
                     try:
                         self._copy_workflow(annotation_classes_entity_mapping, project)
-                    except AppException:
+                    except (AppException, RequestException) as e:
                         self.reporter.log_warning(
                             f"Failed to workflow from {self._project.name} to {self._project_to_create.name}."
                         )
+                        self.reporter.log_debug(str(e), exc_info=True)
             if self._include_contributors:
                 self.reporter.log_info(
                     f"Cloning contributors from {self._project.name} to {self._project_to_create.name}."
                 )
                 try:
                     self._copy_include_contributors(project)
-                except AppException:
+                except (AppException, RequestException) as e:
                     self.reporter.log_warning(
                         f"Failed to clone contributors from {self._project.name} to {self._project_to_create.name}."
                     )
+                    self.reporter.log_debug(str(e), exc_info=True)
             self._response.data = self._projects.get_one(
                 uuid=project.uuid, team_id=project.team_id
             )
@@ -709,10 +726,12 @@ class UpdateSettingsUseCase(BaseUseCase):
     def validate_project_type(self):
         project = self._projects.get_one(uuid=self._project_id, team_id=self._team_id)
         for attribute in self._to_update:
-            if (
-                attribute.get("attribute", "") == "ImageQuality"
-                and project.project_type in [constances.ProjectType.VIDEO.value, constances.ProjectType.DOCUMENT.value]
-            ):
+            if attribute.get(
+                "attribute", ""
+            ) == "ImageQuality" and project.project_type in [
+                constances.ProjectType.VIDEO.value,
+                constances.ProjectType.DOCUMENT.value,
+            ]:
                 raise AppValidationException(
                     constances.DEPRICATED_DOCUMENT_VIDEO_MESSAGE
                 )

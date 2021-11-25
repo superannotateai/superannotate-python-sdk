@@ -11,13 +11,16 @@ class Reporter:
         log_info: bool = True,
         log_warning: bool = True,
         disable_progress_bar: bool = False,
+        log_debug: bool = True,
     ):
         self.logger = logging.getLogger("root")
         self._log_info = log_info
         self._log_warning = log_warning
+        self._log_debug = log_debug
         self._disable_progress_bar = disable_progress_bar
         self.info_messages = []
         self.warning_messages = []
+        self.debug_messages = []
         self.custom_messages = defaultdict(set)
         self.progress_bar = None
 
@@ -30,6 +33,11 @@ class Reporter:
         if self._log_warning:
             self.logger.warning(value)
         self.warning_messages.append(value)
+
+    def log_debug(self, value: str):
+        if self._log_debug:
+            self.logger.debug(value)
+        self.debug_messages.append(value)
 
     def start_progress(
         self, iterations: Union[int, range], description: str = "Processing"
