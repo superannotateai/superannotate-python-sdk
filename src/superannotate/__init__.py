@@ -206,41 +206,41 @@ WORKING_DIR = os.path.split(os.path.realpath(__file__))[0]
 sys.path.append(WORKING_DIR)
 logging.getLogger("botocore").setLevel(logging.CRITICAL)
 
-# logging.config.dictConfig(
-#     {
-#         "version": 1,
-#         "disable_existing_loggers": False,
-#         "handlers": {
-#             "console": {
-#                 "class": "logging.StreamHandler",
-#                 "level": "INFO",
-#                 "formatter": "consoleFormatter",
-#                 "stream": "ext://sys.stdout",
-#             },
-#             "fileHandler": {
-#                 "class": "logging.handlers.RotatingFileHandler",
-#                 "level": "DEBUG",
-#                 "formatter": "fileFormatter",
-#                 "filename": expanduser(constances.LOG_FILE_LOCATION),
-#                 "mode": "a",
-#                 "maxBytes": 5 * 1024 * 1024,
-#                 "backupCount": 5,
-#             },
-#         },
-#         "formatters": {
-#             "consoleFormatter": {
-#                 "format": "SA-PYTHON-SDK - %(levelname)s - %(message)s",
-#             },
-#             "fileFormatter": {
-#                 "format": "SA-PYTHON-SDK - %(levelname)s - %(asctime)s - %(message)s"
-#             }
-#         },
-#         "root": {  # root logger
-#             "level": "DEBUG",
-#             "handlers": ["console", "fileHandler"],
-#         },
-#     }
-# )
+logging.config.dictConfig(
+    {
+        "version": 1,
+        "disable_existing_loggers": False,
+        "handlers": {
+            "console": {
+                "class": "logging.StreamHandler",
+                "level": "INFO",
+                "formatter": "consoleFormatter",
+                "stream": "ext://sys.stdout",
+            },
+            "fileHandler": {
+                "class": "logging.handlers.RotatingFileHandler",
+                "level": "DEBUG",
+                "formatter": "fileFormatter",
+                "filename": expanduser(constances.LOG_FILE_LOCATION),
+                "mode": "a",
+                "maxBytes": 5 * 1024 * 1024,
+                "backupCount": 5,
+            },
+        },
+        "formatters": {
+            "consoleFormatter": {
+                "format": "SA-PYTHON-SDK - %(levelname)s - %(message)s",
+            },
+            "fileFormatter": {
+                "format": "SA-PYTHON-SDK - %(levelname)s - %(asctime)s - %(message)s"
+            }
+        },
+        "root": {  # root logger
+            "level": "DEBUG",
+            "handlers": ["console", "fileHandler"],
+        },
+    }
+)
 
 
 def log_version_info():
