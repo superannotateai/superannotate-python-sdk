@@ -233,7 +233,7 @@ logging.config.dictConfig(
             },
             "fileFormatter": {
                 "format": "SA-PYTHON-SDK - %(levelname)s - %(asctime)s - %(message)s"
-            }
+            },
         },
         "root": {  # root logger
             "level": "DEBUG",
@@ -257,7 +257,9 @@ def log_version_info():
                 pip_version = max(pip_version, ver)
         if pip_version.major > local_version.major:
             logging.warning(
-                constances.PACKAGE_VERSION_MAJOR_UPGRADE.format(local_version, pip_version)
+                constances.PACKAGE_VERSION_MAJOR_UPGRADE.format(
+                    local_version, pip_version
+                )
             )
         elif pip_version > local_version:
             logging.warning(
