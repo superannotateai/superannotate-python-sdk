@@ -199,7 +199,7 @@ class StringA(BaseModel):
 
 
 class PointLabels(BaseModel):
-    __root__: Dict[constr(regex=r"^[0-9]+$"), StrictStr] # noqa F722
+    __root__: Dict[constr(regex=r"^[0-9]+$"), StrictStr]  # noqa F722
 
     @classmethod
     def __get_validators__(cls):
