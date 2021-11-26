@@ -506,11 +506,11 @@ class CloneProjectUseCase(BaseReportableUseCae):
 
     def execute(self):
         if self.is_valid():
+            project = self._projects.insert(self._project_to_create)
             self.reporter.log_info(
                 f"Created project {self._project_to_create.name} with type"
                 f" {constances.ProjectType.get_name(self._project_to_create.project_type)}."
             )
-            project = self._projects.insert(self._project_to_create)
             annotation_classes_entity_mapping = defaultdict(AnnotationClassEntity)
             annotation_classes_created = False
             if self._include_annotation_classes:
