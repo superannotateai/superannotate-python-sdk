@@ -2517,6 +2517,7 @@ def add_annotation_point_to_image(
 
 
 @Trackable
+@validate_arguments
 def add_annotation_comment_to_image(
     project: NotEmptyStr,
     image_name: NotEmptyStr,
@@ -2554,6 +2555,7 @@ def add_annotation_comment_to_image(
     )
 
 
+@Trackable
 @validate_arguments
 def search_images_all_folders(
     project: NotEmptyStr,
