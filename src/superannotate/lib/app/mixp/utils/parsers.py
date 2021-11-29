@@ -97,11 +97,12 @@ def clone_project(*args, **kwargs):
     project_metadata = result.data["project"]
     project_type = ProjectType.get_name(project_metadata.project_type)
 
-
     return {
         "event_name": "clone_project",
         "properties": {
-            "External": bool(project_metadata.upload_state == constances.UploadState.EXTERNAL.value),
+            "External": bool(
+                project_metadata.upload_state == constances.UploadState.EXTERNAL.value
+            ),
             "Project Type": project_type,
             "Copy Classes": bool(
                 args[3:4] or kwargs.get("copy_annotation_classes", None)
@@ -415,6 +416,22 @@ def get_project_and_folder_metadata(*args, **kwargs):
     return {
         "event_name": "get_project_and_folder_metadata",
         "properties": {"project_name": get_project_name(project)},
+    }
+
+
+def search_images_all_folders(*args, **kwargs):
+    project = kwargs.get("project", None)
+    if not project:
+        project = args[0]
+    return {
+        "event_name": "search_images_all_folders",
+        "properties": {
+            "Annotation Status": bool(
+                args[2:3] or kwargs.get("annotation_status", None)
+            ),
+            "Metadata": bool(args[3:4] or kwargs.get("return_metadata", None)),
+            "project_name": get_project_name(project),
+        },
     }
 
 

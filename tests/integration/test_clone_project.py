@@ -1,3 +1,5 @@
+import os
+from os.path import dirname
 from unittest import TestCase
 import pytest
 import src.superannotate as sa
@@ -9,6 +11,7 @@ class TestCloneProject(TestCase):
     PROJECT_DESCRIPTION = "desc"
     PROJECT_TYPE = "Vector"
     IMAGE_QUALITY = "original"
+    PATH_TO_URLS = "data_set/attach_urls.csv"
 
     def setUp(self, *args, **kwargs):
         self.tearDown()
@@ -21,6 +24,11 @@ class TestCloneProject(TestCase):
         sa.delete_project(self.PROJECT_NAME_2)
 
     def test_create_like_project(self):
+        _, _, _ = sa.attach_image_urls_to_project(
+            self.PROJECT_NAME_1,
+            os.path.join(dirname(dirname(__file__)), self.PATH_TO_URLS),
+        )
+
         sa.create_annotation_class(
             self.PROJECT_NAME_1,
             "rrr",
@@ -68,6 +76,8 @@ class TestCloneProject(TestCase):
         new_project = sa.clone_project(
             self.PROJECT_NAME_2, self.PROJECT_NAME_1, copy_contributors=True
         )
+        source_project = sa.get_project_metadata(self.PROJECT_NAME_1)
+        self.assertEqual(new_project['upload_state'], source_project['upload_state'])
 
         new_settings = sa.get_project_settings(self.PROJECT_NAME_2)
         image_quality = None

@@ -174,6 +174,7 @@ class SuperannotateBackendService(BaseBackendService):
     URL_PROJECT_SETTINGS = "project/{}/settings"
     URL_PROJECT_WORKFLOW = "project/{}/workflow"
     URL_SHARE_PROJECT = "project/{}/share"
+    URL_SHARE_PROJECT_BULK = "project/{}/share/bulk"
     URL_ANNOTATION_CLASSES = "classes"
     URL_TEAM = "team"
     URL_INVITE_CONTRIBUTOR = "team/{}/invite"
@@ -421,16 +422,14 @@ class SuperannotateBackendService(BaseBackendService):
         )
         return res.json()
 
-    def share_project(
-        self, project_id: int, team_id: int, user_id: int, user_role: int
-    ):
+    def share_project_bulk(self, project_id: int, team_id: int, users: list):
         share_project_url = urljoin(
-            self.api_url, self.URL_SHARE_PROJECT.format(project_id)
+            self.api_url, self.URL_SHARE_PROJECT_BULK.format(project_id)
         )
         res = self._request(
             share_project_url,
             "post",
-            data={"user_id": user_id, "user_role": user_role},
+            data={"users": users},
             params={"team_id": team_id},
         )
         return res.json()

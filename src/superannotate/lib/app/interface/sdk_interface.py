@@ -2475,7 +2475,9 @@ def add_annotation_bbox_to_image(
         image_name,
     )
 
-    controller.upload_image_annotations(*extract_project_folder(project), image_name, annotations)
+    controller.upload_image_annotations(
+        *extract_project_folder(project), image_name, annotations
+    )
 
 
 @Trackable
@@ -2509,10 +2511,13 @@ def add_annotation_point_to_image(
     annotations = add_annotation_point_to_json(
         annotations, point, annotation_class_name, annotation_class_attributes, error
     )
-    controller.upload_image_annotations(*extract_project_folder(project), image_name, annotations)
+    controller.upload_image_annotations(
+        *extract_project_folder(project), image_name, annotations
+    )
 
 
 @Trackable
+@validate_arguments
 def add_annotation_comment_to_image(
     project: NotEmptyStr,
     image_name: NotEmptyStr,
@@ -2538,11 +2543,19 @@ def add_annotation_comment_to_image(
     """
     annotations = get_image_annotations(project, image_name)["annotation_json"]
     annotations = add_annotation_comment_to_json(
-        annotations, comment_text, comment_coords, comment_author, resolved=resolved, image_name=image_name
+        annotations,
+        comment_text,
+        comment_coords,
+        comment_author,
+        resolved=resolved,
+        image_name=image_name,
     )
-    controller.upload_image_annotations(*extract_project_folder(project), image_name, annotations)
+    controller.upload_image_annotations(
+        *extract_project_folder(project), image_name, annotations
+    )
 
 
+@Trackable
 @validate_arguments
 def search_images_all_folders(
     project: NotEmptyStr,

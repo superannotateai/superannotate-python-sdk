@@ -11,6 +11,7 @@ from superannotate.lib.app.exceptions import AppException
 from superannotate.lib.app.input_converters.conversion import convert_json_version
 from superannotate.lib.app.input_converters.conversion import convert_project_type
 from superannotate.lib.app.input_converters.conversion import export_annotation
+from superannotate.lib.app.input_converters.conversion import import_annotation
 from superannotate.lib.app.interface.sdk_interface import add_annotation_bbox_to_image
 from superannotate.lib.app.interface.sdk_interface import (
     add_annotation_comment_to_image,
@@ -233,7 +234,7 @@ logging.config.dictConfig(
             },
             "fileFormatter": {
                 "format": "SA-PYTHON-SDK - %(levelname)s - %(asctime)s - %(message)s"
-            }
+            },
         },
         "root": {  # root logger
             "level": "DEBUG",
@@ -257,7 +258,9 @@ def log_version_info():
                 pip_version = max(pip_version, ver)
         if pip_version.major > local_version.major:
             logging.warning(
-                constances.PACKAGE_VERSION_MAJOR_UPGRADE.format(local_version, pip_version)
+                constances.PACKAGE_VERSION_MAJOR_UPGRADE.format(
+                    local_version, pip_version
+                )
             )
         elif pip_version > local_version:
             logging.warning(

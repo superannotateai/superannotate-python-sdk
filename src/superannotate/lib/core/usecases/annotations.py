@@ -166,7 +166,12 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
                 project=self._project,
                 folder=self._folder,
                 team=self._team,
-                image=ImageEntity(uuid=image_id, name=image_name, team_id=self._project.team_id, project_id=self._project.uuid),
+                image=ImageEntity(
+                    uuid=image_id,
+                    name=image_name,
+                    team_id=self._project.team_id,
+                    project_id=self._project.uuid,
+                ),
                 images=self._images,
                 annotation_classes=self._annotation_classes,
                 backend_service_provider=self._backend_service,
@@ -209,8 +214,10 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
                 if key == "missing_classes":
                     template = "Could not find annotation classes matching existing classes on the platform: [{}]"
                 elif key == "missing_attribute_groups":
-                    template = "Could not find attribute groups matching existing attribute groups" \
-                               " on the platform: [{}]"
+                    template = (
+                        "Could not find attribute groups matching existing attribute groups"
+                        " on the platform: [{}]"
+                    )
                 elif key == "missing_attributes":
                     template = "Could not find attributes matching existing attributes on the platform: [{}]"
                 logger.warning(template.format("', '".join(values)))
@@ -465,7 +472,9 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
                         ],
                         Body=self._mask,
                     )
-                self._image.annotation_status_code = constances.AnnotationStatus.IN_PROGRESS.value
+                self._image.annotation_status_code = (
+                    constances.AnnotationStatus.IN_PROGRESS.value
+                )
                 self._images.update(self._image)
                 if self._verbose:
                     logger.info(
