@@ -76,6 +76,7 @@ class ProjectEntity(BaseTimedEntity):
         folder_id: int = None,
         upload_state: int = None,
         users: Iterable = (),
+        unverified_users: Iterable = (),
         contributors: List = None,
         settings: List = None,
         annotation_classes: List = None,
@@ -97,6 +98,7 @@ class ProjectEntity(BaseTimedEntity):
         self.folder_id = folder_id
         self.upload_state = upload_state
         self.users = users
+        self.unverified_users = unverified_users
         self.contributors = contributors
         self.settings = settings
         self.annotation_classes = annotation_classes
