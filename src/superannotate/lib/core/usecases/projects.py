@@ -433,13 +433,19 @@ class CloneProjectUseCase(BaseReportableUseCae):
         from_project = self._projects.get_one(
             uuid=self._project.uuid, team_id=self._project.team_id
         )
+        users = []
         for user in from_project.users:
-            self._backend_service.share_project(
-                to_project.uuid,
-                to_project.team_id,
-                user.get("user_id"),
-                user.get("user_role"),
+            users.append(
+                {"user_id": user.get("user_id"), "user_role": user.get("user_role")}
             )
+
+        for user in from_project.unverified_users:
+            users.append(
+                {"user_id": user.get("email"), "user_role": user.get("user_role")}
+            )
+        self._backend_service.share_project_bulk(
+            to_project.uuid, to_project.team_id, users
+        )
 
     def _copy_settings(self, to_project: ProjectEntity):
         new_settings = self._settings_repo(self._backend_service, to_project)
@@ -601,11 +607,10 @@ class ShareProjectUseCase(BaseUseCase):
         return constances.UserRole.get_value(self._user_role)
 
     def execute(self):
-        self._response.data = self._service.share_project(
+        self._response.data = self._service.share_project_bulk(
             team_id=self._project_entity.team_id,
             project_id=self._project_entity.uuid,
-            user_id=self._user_id,
-            user_role=self.user_role,
+            users=[{"user_id": self._user_id, "user_role": self.user_role}],
         )
         if not self._response.errors:
             logger.info(

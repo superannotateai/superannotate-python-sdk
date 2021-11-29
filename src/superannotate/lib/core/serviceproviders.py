@@ -42,9 +42,7 @@ class SuerannotateServiceProvider(metaclass=SingleInstanceMetaClass):
         raise NotImplementedError
 
     @abstractmethod
-    def share_project(
-        self, project_id: int, team_id: int, user_id: str, user_role: int
-    ):
+    def share_project_bulk(self, project_id: int, team_id: int, users: list):
         raise NotImplementedError
 
     @abstractmethod
