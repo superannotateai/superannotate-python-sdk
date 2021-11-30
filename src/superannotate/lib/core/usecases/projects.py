@@ -547,34 +547,29 @@ class CloneProjectUseCase(BaseReportableUseCae):
                     self.reporter.log_debug(str(e), exc_info=True)
 
             if self._include_workflow:
-                if self._include_annotation_classes:
-                    if self._project.project_type in (
-                        constances.ProjectType.DOCUMENT.value,
-                        constances.ProjectType.VIDEO.value,
-                    ):
-                        self.reporter.log_warning(
-                            "Workflow copy is deprecated for "
-                            f"{constances.ProjectType.get_name(self._project_to_create.project_type)} projects."
-                        )
-                    elif not annotation_classes_created:
-                        self.reporter.log_info(
-                            f"Skipping the workflow clone from {self._project.name} to {self._project_to_create.name}."
-                        )
-                    else:
-                        self.reporter.log_info(
-                            f"Cloning workflow from {self._project.name} to {self._project_to_create.name}."
-                        )
-                        try:
-                            self._copy_workflow(annotation_classes_entity_mapping, project)
-                        except (AppException, RequestException) as e:
-                            self.reporter.log_warning(
-                                f"Failed to workflow from {self._project.name} to {self._project_to_create.name}."
-                            )
-                            self.reporter.log_debug(str(e), exc_info=True)
-                else:
+                if self._project.project_type in (
+                    constances.ProjectType.DOCUMENT.value,
+                    constances.ProjectType.VIDEO.value,
+                ):
+                    self.reporter.log_warning(
+                        "Workflow copy is deprecated for "
+                        f"{constances.ProjectType.get_name(self._project_to_create.project_type)} projects."
+                    )
+                elif not annotation_classes_created:
                     self.reporter.log_info(
                         f"Skipping the workflow clone from {self._project.name} to {self._project_to_create.name}."
                     )
+                else:
+                    self.reporter.log_info(
+                        f"Cloning workflow from {self._project.name} to {self._project_to_create.name}."
+                    )
+                    try:
+                        self._copy_workflow(annotation_classes_entity_mapping, project)
+                    except (AppException, RequestException) as e:
+                        self.reporter.log_warning(
+                            f"Failed to workflow from {self._project.name} to {self._project_to_create.name}."
+                        )
+                        self.reporter.log_debug(str(e), exc_info=True)
             if self._include_contributors:
                 self.reporter.log_info(
                     f"Cloning contributors from {self._project.name} to {self._project_to_create.name}."
