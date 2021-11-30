@@ -546,7 +546,7 @@ class CloneProjectUseCase(BaseReportableUseCae):
                     )
                     self.reporter.log_debug(str(e), exc_info=True)
 
-            if self._include_workflow and self._include_annotation_classes:
+            if self._include_workflow:
                 if self._project.project_type in (
                     constances.ProjectType.DOCUMENT.value,
                     constances.ProjectType.VIDEO.value,
