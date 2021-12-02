@@ -31,6 +31,12 @@ class TestPixelImages(BaseTestCase):
             sa.create_annotation_classes_from_classes_json(
                 self.PROJECT_NAME, self.classes_json_path
             )
+            image = sa.get_image_metadata(self.PROJECT_NAME,image_name="example_image_1.jpg" )
+            image['createdAt'] = ''
+            image['updatedAt'] = ''
+            truth ={'name': 'example_image_1.jpg', 'path': None, 'annotation_status': 'InProgress', 'prediction_status':'NotStarted', 'segmentation_status': 'NotStarted', 'approval_status': None, 'is_pinned': 0, 'annotator_name': None, 'qa_name': None, 'entropy_value': None, 'createdAt': '', 'updatedAt': ''}
+
+            self.assertEqual(image,truth)
 
             sa.upload_image_annotations(
                 project=self.PROJECT_NAME,
@@ -82,6 +88,13 @@ class TestVectorImages(BaseTestCase):
             self.assertEqual(len(images), 1)
 
             image_name = images[0]
+
+            image = sa.get_image_metadata(self.PROJECT_NAME,image_name="example_image_1.jpg" )
+            image['createdAt'] = ''
+            image['updatedAt'] = ''
+            truth = {'name': 'example_image_1.jpg', 'path': None, 'annotation_status': 'InProgress', 'prediction_status':'NotStarted', 'segmentation_status': None, 'approval_status': None, 'is_pinned': 0, 'annotator_name': None, 'qa_name': None, 'entropy_value': None, 'createdAt': '', 'updatedAt': ''}
+            self.assertEqual(image, truth)
+
             sa.download_image(self.PROJECT_NAME, image_name, temp_dir, True)
             self.assertEqual(
                 sa.get_image_annotations(self.PROJECT_NAME, image_name)[
