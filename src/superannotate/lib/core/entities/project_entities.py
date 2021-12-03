@@ -4,6 +4,7 @@ from typing import Any
 from typing import Iterable
 from typing import List
 
+import lib.core as constances
 from lib.core.enums import SegmentationStatus
 
 
@@ -261,6 +262,8 @@ class ImageEntity(BaseEntity):
         segmentation_status: int = SegmentationStatus.NOT_STARTED.value,
         prediction_status: int = SegmentationStatus.NOT_STARTED.value,
         meta: ImageInfoEntity = ImageInfoEntity(),
+        created_at: str = None,
+        updated_at: str = None,
         **_
     ):
         super().__init__(uuid)
@@ -281,6 +284,8 @@ class ImageEntity(BaseEntity):
         self.segmentation_status = segmentation_status
         self.prediction_status = prediction_status
         self.meta = meta
+        self.created_at = created_at
+        self.updated_at = updated_at
 
     @staticmethod
     def from_dict(**kwargs):
@@ -290,26 +295,35 @@ class ImageEntity(BaseEntity):
         if "annotation_status" in kwargs:
             kwargs["annotation_status_code"] = kwargs["annotation_status"]
             del kwargs["annotation_status"]
+        if "createdAt" in kwargs:
+            kwargs["created_at"] = kwargs["createdAt"]
+            del kwargs["createdAt"]
+        if "updatedAt" in kwargs:
+            kwargs["updated_at"] = kwargs["updatedAt"]
+            del kwargs["updatedAt"]
         return ImageEntity(**kwargs)
+
 
     def to_dict(self):
         data = {
             "id": self.uuid,
             "team_id": self.team_id,
+            "project_id": self.project_id,
+            "folder_id": self.folder_id,
             "name": self.name,
             "path": self.path,
-            "project_id": self.project_id,
             "annotation_status": self.annotation_status_code,
-            "folder_id": self.folder_id,
+            "prediction_status": self.prediction_status,
+            "segmentation_status": self.segmentation_status,
+            "approval_status": self.approval_status,
+            "is_pinned": self.is_pinned,
+            "annotator_id": self.annotator_id,
+            "annotator_name": self.annotator_name,
             "qa_id": self.qa_id,
             "qa_name": self.qa_name,
             "entropy_value": self.entropy_value,
-            "approval_status": self.approval_status,
-            "annotator_id": self.annotator_id,
-            "annotator_name": self.annotator_name,
-            "is_pinned": self.is_pinned,
-            "segmentation_status": self.segmentation_status,
-            "prediction_status": self.prediction_status,
+            "createdAt": self.created_at,
+            "updatedAt": self.updated_at,
             "meta": self.meta.to_dict(),
         }
         return {k: v for k, v in data.items() if v is not None}
