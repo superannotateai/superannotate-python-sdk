@@ -293,7 +293,7 @@ def search_images(
         raise AppException(response.errors)
 
     if return_metadata:
-        return [image.represent_by_project(project=project) for image in response.data]
+        return [ImageSerializer(image).serialize_by_project(project) for image in response.data]
     return [image.name for image in response.data]
 
 
@@ -895,7 +895,7 @@ def get_image_metadata(
 
     if response.errors:
         raise AppException(response.errors)
-    return response.data.represent_by_project(project=project)
+    return ImageSerializer(response.data).serialize_by_project(project)
 
 
 @Trackable
@@ -1841,13 +1841,14 @@ def set_image_annotation_status(
     :rtype: dict
     """
     project_name, folder_name = extract_project_folder(project)
+    project_entity = controller._get_project(project_name)
     response = controller.set_images_annotation_statuses(
         project_name, folder_name, [image_name], annotation_status
     )
     if response.errors:
         raise AppException(response.errors)
     image = controller.get_image_metadata(project_name, folder_name, image_name).data
-    return ImageSerializer(image).serialize()
+    return ImageSerializer(image).serialize_by_project(project=project_entity)
 
 
 @Trackable
@@ -2581,7 +2582,7 @@ def search_images_all_folders(
     )
     if return_metadata:
         return [
-            image.represent_by_project(project=project_entity) for image in res.data
+            ImageSerializer(image).serialize_by_project(project=project_entity) for image in res.data
         ]
     return [image.name for image in res.data]
 
