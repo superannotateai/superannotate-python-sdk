@@ -10,6 +10,7 @@ from .utils import parsers
 
 controller = Controller.get_instance()
 
+# TODO:
 try:
     if "api.annotate.online" in controller._backend_client.api_url:
         TOKEN = "ca95ed96f80e8ec3be791e2d3097cf51"

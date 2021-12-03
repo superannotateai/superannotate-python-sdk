@@ -396,6 +396,8 @@ class ImageRepository(BaseManageableRepository):
             annotator_id=data["annotator_id"],
             annotator_name=data["annotator_name"],
             is_pinned=data.get("is_pinned"),
+            created_at=data["createdAt"],
+            updated_at=data["updatedAt"],
         )
 
 

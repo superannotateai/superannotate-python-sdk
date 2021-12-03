@@ -93,7 +93,6 @@ class GetImagesUseCase(BaseUseCase):
                     constances.AnnotationStatus.get_value(self._annotation_status),
                     EQ,
                 )
-
             self._response.data = self._images.get_all(condition)
         return self._response
 
@@ -161,9 +160,10 @@ class GetAllImagesUseCase(BaseUseCase):
             condition &= Condition("annotation_status", self.annotation_status, EQ)
         if self._name_prefix:
             condition &= Condition("name", self._name_prefix, EQ)
-        self._response.data = self._service_provider.list_images(
+        images_list = self._service_provider.list_images(
             query_string=condition.build_query()
         )
+        self._response.data = [ImageEntity.from_dict(**image) for image in images_list]
         return self._response
 
 
@@ -676,7 +676,8 @@ class GetImageMetadataUseCase(BaseUseCase):
                 folder_id=self._folder.uuid,
             )
             if data:
-                self._response.data = data[0]
+                image_entity = ImageEntity.from_dict(**data[0])
+                self._response.data = image_entity
             else:
                 self._response.errors = AppException("Image not found.")
         return self._response

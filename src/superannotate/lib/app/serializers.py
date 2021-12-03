@@ -3,6 +3,7 @@ from abc import ABC
 import superannotate.lib.core as constance
 from superannotate.lib.core.entities import BaseEntity
 from superannotate.lib.core.entities import ImageEntity
+from superannotate.lib.core.entities import ProjectEntity
 
 
 class BaseSerializers(ABC):
@@ -55,6 +56,47 @@ class ImageSerializer(BaseSerializers):
         data["annotation_status"] = constance.AnnotationStatus.get_name(
             data["annotation_status"]
         )
+        return data
+
+
+    def serialize_by_project(self, project: ProjectEntity):
+        data = super().serialize()
+        data = {
+            "name": data.get("name"),
+            "path": data.get("path"),
+            "annotation_status": data.get("annotation_status"),
+            "prediction_status": data.get("prediction_status"),
+            "segmentation_status": data.get("segmentation_status"),
+            "approval_status": data.get("approval_status"),
+            "is_pinned": data.get("is_pinned"),
+            "annotator_name": data.get("annotator_name"),
+            "qa_name": data.get("qa_name"),
+            "entropy_value": data.get("entropy_value"),
+            "createdAt": data.get("createdAt"),
+            "updatedAt": data.get("updatedAt"),
+        }
+
+        data["annotation_status"] = constance.AnnotationStatus.get_name(
+            data["annotation_status"]
+        )
+
+        if project.upload_state == constance.UploadState.EXTERNAL.value:
+            data["prediction_status"] = None
+            data["segmentation_status"] = None
+        else:
+            if project.project_type == constance.ProjectType.VECTOR.value:
+                data["prediction_status"] = constance.SegmentationStatus.get_name(
+                    data["prediction_status"]
+                )
+                data["segmentation_status"] = None
+            if project.project_type == constance.ProjectType.PIXEL.value:
+                data["prediction_status"] = constance.SegmentationStatus.get_name(
+                    data["prediction_status"]
+                )
+                data["segmentation_status"] = constance.SegmentationStatus.get_name(
+                    data["segmentation_status"]
+                )
+            data["path"] = None
         return data
 
     @staticmethod
