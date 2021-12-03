@@ -28,7 +28,7 @@ class TestImageUrls(BaseTestCase):
         self.assertEqual(len(existing_images), 1)
         images = sa.search_images(project=self.PROJECT_NAME, return_metadata=True)
         self.assertTrue(all([image["name"] for image in images]))
-        truth = {'name': '6022a74b26aec4002575b9e8',
+        truth = {'name': '',
          'path': 'https://drive.google.com/uc?export=download&id=1geS2YtQiTYuiduEirKVYxBujHJaIWA3V',
          'annotation_status': 'NotStarted', 'prediction_status': None, 'segmentation_status': None,
          'approval_status': None, 'is_pinned': 0, 'annotator_name': None, 'qa_name': None, 'entropy_value': None,
@@ -36,6 +36,7 @@ class TestImageUrls(BaseTestCase):
         image = images[0]
         image['createdAt'] = ''
         image['updatedAt'] = ''
+        image['name'] = ''
         self.assertEqual(image, truth)
 
     def test_double_attach_image_urls(self):
