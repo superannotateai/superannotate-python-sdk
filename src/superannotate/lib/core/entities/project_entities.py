@@ -303,7 +303,6 @@ class ImageEntity(BaseEntity):
             del kwargs["updatedAt"]
         return ImageEntity(**kwargs)
 
-
     def to_dict(self):
         data = {
             "id": self.uuid,

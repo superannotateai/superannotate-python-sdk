@@ -58,7 +58,6 @@ class ImageSerializer(BaseSerializers):
         )
         return data
 
-
     def serialize_by_project(self, project: ProjectEntity):
         data = super().serialize()
         data = {
