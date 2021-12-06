@@ -293,7 +293,10 @@ def search_images(
         raise AppException(response.errors)
 
     if return_metadata:
-        return [ImageSerializer(image).serialize_by_project(project) for image in response.data]
+        return [
+            ImageSerializer(image).serialize_by_project(project)
+            for image in response.data
+        ]
     return [image.name for image in response.data]
 
 
@@ -2582,7 +2585,8 @@ def search_images_all_folders(
     )
     if return_metadata:
         return [
-            ImageSerializer(image).serialize_by_project(project=project_entity) for image in res.data
+            ImageSerializer(image).serialize_by_project(project=project_entity)
+            for image in res.data
         ]
     return [image.name for image in res.data]
 
