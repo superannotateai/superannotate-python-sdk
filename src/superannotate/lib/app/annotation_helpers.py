@@ -127,6 +127,7 @@ def add_annotation_point_to_json(
     annotation_json,
     point,
     annotation_class_name,
+    image_name,
     annotation_class_attributes=None,
     error=None,
 ):
@@ -148,7 +149,7 @@ def add_annotation_point_to_json(
     if len(point) != 2:
         raise AppException("Point should be 2 element float list.")
 
-    annotation_json, path = _preprocess_annotation_json(annotation_json)
+    annotation_json, path = _preprocess_annotation_json(annotation_json, image_name)
 
     annotation = {
         "type": "point",
