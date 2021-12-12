@@ -155,17 +155,6 @@ class TestFolders(BaseTestCase):
         self.assertEqual(len(sa.search_folders(self.PROJECT_NAME)), 1)
         self.assertEqual(sa.search_folders(self.PROJECT_NAME)[0], "folder6")
 
-    def test_rename_folder(self):
-        sa.create_folder(self.PROJECT_NAME, "folder_1")
-        sa.create_folder(self.PROJECT_NAME, "folder_2")
-        sa.create_folder(self.PROJECT_NAME, "folder_3")
-        self.assertEqual(len(sa.search_folders(self.PROJECT_NAME)), 3)
-
-        sa.rename_folder(f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_1}", "folder_5")
-        self.assertEqual(len(sa.search_folders(self.PROJECT_NAME)), 3)
-
-        self.assertTrue("folder_5" in sa.search_folders(self.PROJECT_NAME))
-        self.assertTrue("folder_1" not in sa.search_folders(self.PROJECT_NAME))
 
     def test_project_folder_image_count(self):
         sa.upload_images_from_folder_to_project(
@@ -499,11 +488,4 @@ class TestFolders(BaseTestCase):
     def test_create_folder_with_special_chars(self):
         sa.create_folder(self.PROJECT_NAME, self.SPECIAL_CHARS)
         folder = sa.get_folder_metadata(self.PROJECT_NAME, "_"*len(self.SPECIAL_CHARS))
-        self.assertIsNotNone(folder)
-
-    def test_rename_folder_to_existing_name(self):
-        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1)
-        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_2)
-        sa.rename_folder(f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_1}", self.TEST_FOLDER_NAME_2)
-        folder = sa.get_folder_metadata(self.PROJECT_NAME, self.TEST_FOLDER_NAME_2 + " (1)")
         self.assertIsNotNone(folder)

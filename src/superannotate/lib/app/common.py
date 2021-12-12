@@ -3,7 +3,6 @@ import logging
 import os
 import sys
 import time
-from pathlib import Path
 
 import numpy as np
 from PIL import Image
@@ -21,18 +20,6 @@ _ANNOTATION_STATUSES = {
     "Completed": 5,
     "Skipped": 6,
 }
-
-
-def image_path_to_annotation_paths(image_path, project_type):
-    image_path = Path(image_path)
-    if project_type == "Vector":
-        return (
-            image_path.parent / get_annotation_json_name(image_path.name, project_type),
-        )
-    return (
-        image_path.parent / get_annotation_json_name(image_path.name, project_type),
-        image_path.parent / get_annotation_png_name(image_path.name),
-    )
 
 
 def hex_to_rgb(hex_string):

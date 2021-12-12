@@ -24,8 +24,8 @@ class TestRecursiveFolderPixel(BaseTestCase):
                                                                           from_s3_bucket="test-openseadragon-1212",
                                                                           recursive_subfolders=True
                                                                           )
-        self.assertEqual(115, len(uploaded))
-        self.assertEqual(0, len(failed))
+        self.assertEqual(112, len(uploaded))
+        self.assertEqual(3, len(failed))
         self.assertEqual(11, len(missing))
 
 

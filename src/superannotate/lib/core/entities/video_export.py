@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import Dict
 from typing import List
 from typing import Optional
 from typing import Union
@@ -8,10 +7,10 @@ from lib.core.entities.utils import Attribute
 from lib.core.entities.utils import BaseInstance
 from lib.core.entities.utils import BaseModel
 from lib.core.entities.utils import BboxPoints
+from lib.core.entities.utils import INVALID_DICT_MESSAGE
 from lib.core.entities.utils import MetadataBase
 from lib.core.entities.utils import NotEmptyStr
 from lib.core.entities.utils import PointLabels
-from lib.core.entities.utils import INVALID_DICT_MESSAGE
 from lib.core.entities.utils import Tag
 from pydantic import conlist
 from pydantic import Field
@@ -124,15 +123,7 @@ class VideoInstance(BaseModel):
             )
         except TypeError as e:
             raise ValidationError(
-                [
-                    ErrorWrapper(
-                        ValueError(
-                            INVALID_DICT_MESSAGE
-                        ),
-                        "meta",
-                    )
-                ],
-                cls,
+                [ErrorWrapper(ValueError(INVALID_DICT_MESSAGE), "meta",)], cls,
             )
 
 

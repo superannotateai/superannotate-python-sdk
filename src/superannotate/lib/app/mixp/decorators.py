@@ -1,15 +1,26 @@
 import functools
+import logging
 import sys
 
 from lib.infrastructure.controller import Controller
 from mixpanel import Mixpanel
 from version import __version__
 
-from .config import TOKEN
 from .utils import parsers
 
 controller = Controller.get_instance()
+
+# TODO:
+try:
+    if "api.annotate.online" in controller._backend_client.api_url:
+        TOKEN = "ca95ed96f80e8ec3be791e2d3097cf51"
+    else:
+        TOKEN = "e741d4863e7e05b1a45833d01865ef0d"
+except AttributeError as e:
+    TOKEN = "e741d4863e7e05b1a45833d01865ef0d"
 mp = Mixpanel(TOKEN)
+
+logger = logging.getLogger("root")
 
 
 def get_default(team_name, user_id, project_name=None):
@@ -75,6 +86,7 @@ class Trackable:
             self._success = True
         except Exception as e:
             self._success = False
+            logger.debug(str(e), exc_info=True)
             raise e
         else:
             return result

@@ -42,9 +42,7 @@ class SuerannotateServiceProvider(metaclass=SingleInstanceMetaClass):
         raise NotImplementedError
 
     @abstractmethod
-    def share_project(
-        self, project_id: int, team_id: int, user_id: str, user_role: int
-    ):
+    def share_project_bulk(self, project_id: int, team_id: int, users: list):
         raise NotImplementedError
 
     @abstractmethod
@@ -287,17 +285,9 @@ class SuerannotateServiceProvider(metaclass=SingleInstanceMetaClass):
     def delete_model(self, team_id: int, model_id: int):
         raise NotImplementedError
 
-    def stop_model_training(self, team_id: int, model_id: int):
-        raise NotImplementedError
-
     def get_ml_model_download_tokens(
         self, team_id: int, model_id: int
     ) -> ServiceResponse:
-        raise NotImplementedError
-
-    def run_segmentation(
-        self, team_id: int, project_id: int, model_name: str, image_ids: list
-    ):
         raise NotImplementedError
 
     def run_prediction(

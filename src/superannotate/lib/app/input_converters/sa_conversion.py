@@ -1,9 +1,6 @@
-"""
-"""
 import json
 import logging
 import shutil
-from pathlib import Path
 
 import cv2
 import numpy as np
@@ -192,54 +189,6 @@ def sa_convert_project_type(input_dir, output_dir):
         copy_file(input_dir.joinpath(img_name), output_dir.joinpath(img_name))
 
 
-def split_coco(coco_json_path, image_dir, output_dir, dataset_list_name, ratio_list):
-    coco_json = json.load(open(coco_json_path))
-
-    groups = {}
-    for dataset_name in dataset_list_name:
-        groups[dataset_name] = {
-            "info": coco_json["info"],
-            "licenses": coco_json["licenses"],
-            "images": [],
-            "annotations": [],
-            "categories": coco_json["categories"],
-        }
-
-    images = coco_json["images"]
-    np.random.shuffle(images)
-    num_of_images = len(images)
-    points = []
-    total = 0
-    for ratio in ratio_list:
-        total += ratio
-        point = total / 100 * num_of_images
-        points.append(int(point))
-
-    image_id_to_group_map = {}
-    group_id = 0
-    dataset_name = dataset_list_name[group_id]
-    (output_dir / dataset_name).mkdir(parents=True)
-    for i, image in enumerate(images):
-        if i in points:
-            group_id += 1
-            dataset_name = dataset_list_name[group_id]
-            (output_dir / dataset_name).mkdir()
-
-        image_name = Path(image["file_name"]).name
-        copy_file(image_dir / image_name, output_dir / dataset_name / image_name)
-
-        image_id_to_group_map[image["id"]] = group_id
-        groups[dataset_name]["images"].append(image)
-
-    for annotation in coco_json["annotations"]:
-        dataset_name = dataset_list_name[image_id_to_group_map[annotation["image_id"]]]
-        groups[dataset_name]["annotations"].append(annotation)
-
-    for file_name, value in groups.items():
-        with open(output_dir / (file_name + ".json"), "w") as fw:
-            json.dump(value, fw, indent=2)
-
-
 def upgrade_json(input_dir, output_dir):
     files_list = list(input_dir.glob("*.json"))
     ptype = "Vector"
@@ -255,6 +204,7 @@ def upgrade_json(input_dir, output_dir):
             converted_files.append(file_name)
             write_to_json(output_dir / file_name, output_json)
         except Exception as e:
+            logger.debug(str(e), exc_info=True)
             failed_files.append(file_name)
 
     return converted_files

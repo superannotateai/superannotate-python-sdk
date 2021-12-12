@@ -13,6 +13,7 @@
   "instances": [
     {
       "type": "template",
+      "templateName": "some",
       "classId": 4770,
       "probability": 100,
       "points": [
@@ -831,6 +832,7 @@
     },
     {
       "type": "template",
+      "templateName": "some",
       "classId": 4772,
       "probability": 100,
       "points": [
@@ -1062,6 +1064,7 @@
     },
     {
       "type": "template",
+      "templateName": "some",
       "classId": 4772,
       "probability": 100,
       "points": [
@@ -1293,6 +1296,7 @@
     },
     {
       "type": "template",
+      "templateName": "some",
       "classId": 4772,
       "probability": 100,
       "points": [
@@ -1524,6 +1528,7 @@
     },
     {
       "type": "template",
+      "templateName": "some",
       "classId": 4772,
       "probability": 100,
       "points": [
@@ -1757,6 +1762,7 @@
     },
     {
       "type": "template",
+      "templateName": "some",
       "classId": 4772,
       "probability": 100,
       "points": [
@@ -1990,6 +1996,7 @@
     },
     {
       "type": "template",
+      "templateName": "some",
       "classId": 4772,
       "probability": 100,
       "points": [

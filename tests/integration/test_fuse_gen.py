@@ -81,53 +81,15 @@ class TestFolders(TestCase):
                 [20, 20, 40, 40],
                 "Human",
             )
-            sa.add_annotation_polygon_to_image(
-                self.VECTOR_PROJECT_NAME,
-                self.EXAMPLE_IMAGE_1,
-                [60, 60, 100, 100, 80, 100],
-                "Personal vehicle",
-            )
-            sa.add_annotation_polyline_to_image(
-                self.VECTOR_PROJECT_NAME,
-                self.EXAMPLE_IMAGE_1,
-                [200, 200, 300, 200, 350, 300],
-                "Personal vehicle",
-            )
             sa.add_annotation_point_to_image(
                 self.VECTOR_PROJECT_NAME,
                 self.EXAMPLE_IMAGE_1,
                 [400, 400],
                 "Personal vehicle",
             )
-            sa.add_annotation_ellipse_to_image(
-                self.VECTOR_PROJECT_NAME,
-                self.EXAMPLE_IMAGE_1,
-                [600, 600, 50, 100, 20],
-                "Personal vehicle",
-            )
-            sa.add_annotation_template_to_image(
-                self.VECTOR_PROJECT_NAME,
-                self.EXAMPLE_IMAGE_1,
-                [600, 300, 600, 350, 550, 250, 650, 250, 550, 400, 650, 400],
-                [1, 2, 3, 1, 4, 1, 5, 2, 6, 2],
-                "Human",
-            )
-            sa.add_annotation_cuboid_to_image(
-                self.VECTOR_PROJECT_NAME,
-                self.EXAMPLE_IMAGE_1,
-                [60, 300, 200, 350, 120, 325, 250, 500],
-                "Human",
-            )
-
             export = sa.prepare_export(self.VECTOR_PROJECT_NAME, include_fuse=True)
             (temp_dir / "export").mkdir()
             sa.download_export(self.VECTOR_PROJECT_NAME, export, (temp_dir / "export"))
-
-            sa.create_fuse_image(
-                image=f"{self.vector_folder_path}/{self.EXAMPLE_IMAGE_1}",
-                classes_json=self.vector_classes_json,
-                project_type="Vector",
-            )
 
             paths = sa.download_image(
                 self.VECTOR_PROJECT_NAME,
@@ -172,11 +134,6 @@ class TestFolders(TestCase):
             (temp_dir / "export").mkdir()
             sa.download_export(self.PIXEL_PROJECT_NAME, export, (temp_dir / "export"))
 
-            sa.create_fuse_image(
-                f"{self.pixel_folder_path}/{self.EXAMPLE_IMAGE_1}",
-                f"{self.pixel_folder_path}/classes/classes.json",
-                "Pixel",
-            )
             paths = sa.download_image(
                 self.PIXEL_PROJECT_NAME,
                 self.EXAMPLE_IMAGE_1,

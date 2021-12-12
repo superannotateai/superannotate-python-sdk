@@ -44,30 +44,6 @@ class TestMlFuncs(BaseTestCase):
             self.assertIsNotNone(model["name"])
 
 
-class TestSegmentation(BaseTestCase):
-    PROJECT_NAME = "TestSegmentation"
-    PROJECT_DESCRIPTION = "Desc"
-    PROJECT_TYPE = "Pixel"
-    TEST_FOLDER_PTH = "data_set"
-    TEST_FOLDER_PATH = "data_set/sample_project_vector"
-    SEGMENTATION_MODEL_AUTONOMOUS = "autonomous"
-    SEGMENTATION_MODEL_GENERIC = "generic"
-
-    @property
-    def folder_path(self):
-        return os.path.join(dirname(dirname(__file__)), self.TEST_FOLDER_PATH)
-
-    def test_run_segmentation(self):
-        sa.upload_images_from_folder_to_project(
-            project=self.PROJECT_NAME, folder_path=self.folder_path
-        )
-        image_names_pixel = sa.search_images(self.PROJECT_NAME)
-        succeeded_images, failed_images = sa.run_segmentation(
-            self.PROJECT_NAME, image_names_pixel, self.SEGMENTATION_MODEL_AUTONOMOUS
-        )
-        self.assertEqual((len(succeeded_images) + len(failed_images)), 4)
-
-
 # def test_download_model(tmpdir):
 #     tmpdir = Path(tmpdir)
 #     export_dir = Path(tmpdir / 'export')

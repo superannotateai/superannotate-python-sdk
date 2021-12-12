@@ -107,10 +107,6 @@ class TestDeprecatedFunctionsVideo(TestCase):
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE_2.format(self.PROJECT_TYPE), str(e))
         try:
-            sa.clone_project(self.PROJECT_NAME_2, self.PROJECT_NAME)
-        except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE, str(e))
-        try:
             sa.copy_image(self.PROJECT_NAME, self.UPLOAD_IMAGE_NAME, self.PROJECT_NAME_2)
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
@@ -164,17 +160,13 @@ class TestDeprecatedFunctionsVideo(TestCase):
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
-            sa.move_image(self.PROJECT_NAME, self.UPLOAD_IMAGE_NAME, self.PROJECT_NAME_2)
-        except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE, str(e))
-        try:
             sa.move_images(self.PROJECT_NAME, [self.UPLOAD_IMAGE_NAME], self.PROJECT_NAME_2)
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
             sa.set_project_default_image_quality_in_editor(self.PROJECT_NAME, "original")
         except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE, str(e))
+            self.assertIn(self.EXCEPTION_MESSAGE_DOCUMENT_VIDEO, str(e))
         try:
             sa.set_images_annotation_statuses(self.PROJECT_NAME, "Completed", [self.UPLOAD_IMAGE_NAME])
         except AppException as e:
