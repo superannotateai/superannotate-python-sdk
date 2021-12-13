@@ -9,7 +9,7 @@ class TestRecursiveFolderPixel(BaseTestCase):
     PROJECT_NAME = "pixel_recursive_test"
     PROJECT_DESCRIPTION = "Desc"
     PROJECT_TYPE = "Pixel"
-    S3_FOLDER_PATH = "pixel_all_fuse"
+    S3_FOLDER_PATH = "pixel_recursive_annotations"
     JSON_POSTFIX = "*.json"
 
     def test_recursive_upload_pixel(self):
@@ -24,8 +24,8 @@ class TestRecursiveFolderPixel(BaseTestCase):
                                                                           from_s3_bucket="test-openseadragon-1212",
                                                                           recursive_subfolders=True
                                                                           )
-        self.assertEqual(112, len(uploaded))
-        self.assertEqual(3, len(failed))
-        self.assertEqual(11, len(missing))
+        self.assertEqual(4, len(uploaded))
+        self.assertEqual(0, len(failed))
+        self.assertEqual(1, len(missing))
 
 
