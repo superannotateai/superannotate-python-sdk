@@ -76,6 +76,31 @@ class TestAnnotationAdding(BaseTestCase):
                 'classId': -1
             })
 
+    def test_add_bbox_to_empty_annotation(self):
+        sa.upload_images_from_folder_to_project(
+            self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
+        )
+
+        sa.add_annotation_bbox_to_image(
+            self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, [10, 10, 500, 100], "test_add"
+        )
+
+        annotations_new = sa.get_image_annotations(
+            self.PROJECT_NAME, self.EXAMPLE_IMAGE_1
+        )["annotation_json"]
+
+        self.assertEqual(annotations_new['instances'][0], {
+            'creationType': 'Preannotation',
+            'className': 'test_add', 'visible': True,
+            'locked': False, 'probability': 100,
+            'attributes': [],
+            'type': 'bbox',
+            'pointLabels': {},
+            'groupId': 0,
+            'points': {'x1': 10.0, 'x2': 500.0, 'y1': 10.0, 'y2': 100.0},
+            'classId': -1
+        })
+
 
     def test_add_bbox(self):
         sa.upload_images_from_folder_to_project(
