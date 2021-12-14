@@ -1,4 +1,5 @@
 """SuperAnnotate format annotation JSON helpers"""
+import datetime
 import json
 
 from superannotate.lib.app.exceptions import AppException
@@ -63,12 +64,23 @@ def add_annotation_comment_to_json(
         annotation_json, image_name=image_name
     )
 
+    created_at = (
+        datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[
+            :-3
+        ]
+        + "Z"
+    )
+    user_action = {"email": comment_author, "role": "Admin"}
+
     annotation = {
-        "type": "comment",
         "x": comment_coords[0],
         "y": comment_coords[1],
         "correspondence": [{"text": comment_text, "email": comment_author}],
         "resolved": resolved,
+        "createdAt": created_at,
+        "updatedAt": created_at,
+        "createdBy": user_action,
+        "updatedBy": user_action,
     }
     annotation_json["comments"].append(annotation)
 

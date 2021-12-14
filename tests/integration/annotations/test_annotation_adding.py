@@ -102,6 +102,32 @@ class TestAnnotationAdding(BaseTestCase):
         })
 
 
+    def test_add_comment_to_empty_annotation(self):
+        sa.upload_images_from_folder_to_project(
+            self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
+        )
+
+        sa.add_annotation_comment_to_image(self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, "some comment", [1, 2], "abc@abc.com")
+
+        annotations_new = sa.get_image_annotations(
+            self.PROJECT_NAME, self.EXAMPLE_IMAGE_1
+        )["annotation_json"]
+
+        annotations_new['comments'][0]['createdAt'] = ""
+        annotations_new['comments'][0]['updatedAt'] = ""
+
+        self.assertEqual(annotations_new['comments'][0],
+                         {'createdBy': {'email': 'abc@abc.com', 'role': 'Admin'},
+                          'updatedBy': {'email': 'abc@abc.com', 'role': 'Admin'},
+                          'creationType': 'Preannotation',
+                          'createdAt': '',
+                          'updatedAt': '',
+                          'x': 1.0, 'y': 2.0,
+                          'resolved': False,
+                          'correspondence': [{'text': 'some comment', 'email': 'abc@abc.com'}]
+                          })
+
+
     def test_add_bbox(self):
         sa.upload_images_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
