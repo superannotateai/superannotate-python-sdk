@@ -2461,7 +2461,11 @@ def add_annotation_bbox_to_image(
     :param error: if not None, marks annotation as error (True) or no-error (False)
     :type error: bool
     """
-    annotations = get_image_annotations(project, image_name)["annotation_json"]
+    project_name, folder_name = extract_project_folder(project)
+    response = controller.get_image_annotations(
+        project_name=project_name, folder_name=folder_name, image_name=image_name
+    )
+    annotations = response.data["annotation_json"]
     annotations = add_annotation_bbox_to_json(
         annotations,
         bbox,
@@ -2503,9 +2507,18 @@ def add_annotation_point_to_image(
     :param error: if not None, marks annotation as error (True) or no-error (False)
     :type error: bool
     """
-    annotations = get_image_annotations(project, image_name)["annotation_json"]
+    project_name, folder_name = extract_project_folder(project)
+    response = controller.get_image_annotations(
+        project_name=project_name, folder_name=folder_name, image_name=image_name
+    )
+    annotations = response.data["annotation_json"]
     annotations = add_annotation_point_to_json(
-        annotations, point, annotation_class_name, annotation_class_attributes, error
+        annotations,
+        point,
+        annotation_class_name,
+        image_name,
+        annotation_class_attributes,
+        error,
     )
     controller.upload_image_annotations(
         *extract_project_folder(project), image_name, annotations
@@ -2537,7 +2550,11 @@ def add_annotation_comment_to_image(
     :param resolved: comment resolve status
     :type resolved: bool
     """
-    annotations = get_image_annotations(project, image_name)["annotation_json"]
+    project_name, folder_name = extract_project_folder(project)
+    response = controller.get_image_annotations(
+        project_name=project_name, folder_name=folder_name, image_name=image_name
+    )
+    annotations = response.data["annotation_json"]
     annotations = add_annotation_comment_to_json(
         annotations,
         comment_text,

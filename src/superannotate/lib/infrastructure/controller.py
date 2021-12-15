@@ -991,6 +991,7 @@ class Controller(BaseController):
             folder=folder,
             image_name=image_name,
             images=ImageRepository(service=self._backend_client),
+            reporter=Reporter(log_info=False, log_warning=False),
         )
         return use_case.execute()
 

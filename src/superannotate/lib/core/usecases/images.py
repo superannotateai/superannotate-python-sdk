@@ -35,11 +35,13 @@ from lib.core.exceptions import AppValidationException
 from lib.core.exceptions import ImageProcessingException
 from lib.core.plugin import ImagePlugin
 from lib.core.plugin import VideoPlugin
+from lib.core.reporter import Reporter
 from lib.core.repositories import BaseManageableRepository
 from lib.core.repositories import BaseReadOnlyRepository
 from lib.core.response import Response
 from lib.core.serviceproviders import SuerannotateServiceProvider
 from lib.core.usecases.base import BaseInteractiveUseCase
+from lib.core.usecases.base import BaseReportableUseCae
 from lib.core.usecases.base import BaseUseCase
 from lib.core.usecases.projects import GetAnnotationClassesUseCase
 from lib.core.validators import BaseAnnotationValidator
@@ -2463,16 +2465,17 @@ class DownloadImagePreAnnotationsUseCase(BaseUseCase):
         return self._response
 
 
-class GetImageAnnotationsUseCase(BaseUseCase):
+class GetImageAnnotationsUseCase(BaseReportableUseCae):
     def __init__(
         self,
+        reporter: Reporter,
         service: SuerannotateServiceProvider,
         project: ProjectEntity,
         folder: FolderEntity,
         image_name: str,
         images: BaseManageableRepository,
     ):
-        super().__init__()
+        super().__init__(reporter)
         self._service = service
         self._project = project
         self._folder = folder
@@ -2524,7 +2527,7 @@ class GetImageAnnotationsUseCase(BaseUseCase):
                 headers=credentials["annotation_json_path"]["headers"],
             )
             if not response.ok:
-                logger.warning("Couldn't load annotations.")
+                self.reporter.log_warning("Couldn't load annotations.")
                 self._response.data = data
                 return self._response
             data["annotation_json"] = response.json()

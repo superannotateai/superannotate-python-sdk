@@ -47,6 +47,97 @@ class TestAnnotationAdding(BaseTestCase):
             self.PROJECT_NAME,  self.folder_path
         )
 
+
+    def test_add_point_to_empty_image(self):
+        sa.upload_images_from_folder_to_project(
+            self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
+        )
+
+        sa.add_annotation_point_to_image(
+            self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, [250, 250], "test_add"
+        )
+        annotations_new = sa.get_image_annotations(
+            self.PROJECT_NAME, self.EXAMPLE_IMAGE_1
+        )["annotation_json"]
+
+        annotations_new["instances"][0]['createdAt'] = ''
+        annotations_new["instances"][0]['updatedAt'] = ''
+
+        self.assertEqual(
+            annotations_new["instances"][0], {
+                'x': 250.0,
+                'y': 250.0,
+                'creationType': 'Preannotation',
+                'className': 'test_add',
+                'visible': True,
+                'locked': False,
+                'probability': 100,
+                'attributes': [],
+                'type': 'point',
+                'pointLabels': {},
+                'groupId': 0,
+                'classId': -1,
+                'createdAt': '',
+                'updatedAt': ''
+            })
+
+    def test_add_bbox_to_empty_annotation(self):
+        sa.upload_images_from_folder_to_project(
+            self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
+        )
+
+        sa.add_annotation_bbox_to_image(
+            self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, [10, 10, 500, 100], "test_add"
+        )
+
+        annotations_new = sa.get_image_annotations(
+            self.PROJECT_NAME, self.EXAMPLE_IMAGE_1
+        )["annotation_json"]
+
+        annotations_new["instances"][0]['createdAt'] = ''
+        annotations_new["instances"][0]['updatedAt'] = ''
+
+        self.assertEqual(annotations_new['instances'][0], {
+            'creationType': 'Preannotation',
+            'className': 'test_add', 'visible': True,
+            'locked': False, 'probability': 100,
+            'attributes': [],
+            'type': 'bbox',
+            'pointLabels': {},
+            'groupId': 0,
+            'points': {'x1': 10.0, 'x2': 500.0, 'y1': 10.0, 'y2': 100.0},
+            'classId': -1,
+            'createdAt': '',
+            'updatedAt': ''
+        })
+
+
+    def test_add_comment_to_empty_annotation(self):
+        sa.upload_images_from_folder_to_project(
+            self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
+        )
+
+        sa.add_annotation_comment_to_image(self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, "some comment", [1, 2], "abc@abc.com")
+
+        annotations_new = sa.get_image_annotations(
+            self.PROJECT_NAME, self.EXAMPLE_IMAGE_1
+        )["annotation_json"]
+
+        annotations_new['comments'][0]['createdAt'] = ""
+        annotations_new['comments'][0]['updatedAt'] = ""
+
+        self.assertEqual(annotations_new['comments'][0],
+                         {'createdBy': {'email': 'abc@abc.com', 'role': 'Admin'},
+                          'updatedBy': {'email': 'abc@abc.com', 'role': 'Admin'},
+                          'creationType': 'Preannotation',
+                          'createdAt': '',
+                          'updatedAt': '',
+                          'x': 1.0, 'y': 2.0,
+                          'resolved': False,
+                          'correspondence': [{'text': 'some comment', 'email': 'abc@abc.com'}]
+                          })
+
+
     def test_add_bbox(self):
         sa.upload_images_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
@@ -92,8 +183,6 @@ class TestAnnotationAdding(BaseTestCase):
                 len(annotations["instances"]) + len(annotations["comments"]) + 3,
             )
 
-            export = sa.prepare_export(self.PROJECT_NAME, include_fuse=True)
-            sa.download_export(self.PROJECT_NAME, export["name"], tmpdir_name)
 
     def test_add_bbox_no_init(self):
         sa.upload_images_from_folder_to_project(
