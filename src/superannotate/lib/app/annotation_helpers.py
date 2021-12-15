@@ -1,4 +1,5 @@
 """SuperAnnotate format annotation JSON helpers"""
+import datetime
 import json
 
 from superannotate.lib.app.exceptions import AppException
@@ -33,6 +34,18 @@ def _postprocess_annotation_json(annotation_json, path):
         return annotation_json
 
 
+def _add_created_updated(annotation):
+    created_at = (
+        datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[
+            :-3
+        ]
+        + "Z"
+    )
+    annotation["createdAt"] = created_at
+    annotation["updatedAt"] = created_at
+    return annotation
+
+
 def add_annotation_comment_to_json(
     annotation_json,
     comment_text,
@@ -63,13 +76,17 @@ def add_annotation_comment_to_json(
         annotation_json, image_name=image_name
     )
 
+    user_action = {"email": comment_author, "role": "Admin"}
+
     annotation = {
-        "type": "comment",
         "x": comment_coords[0],
         "y": comment_coords[1],
         "correspondence": [{"text": comment_text, "email": comment_author}],
         "resolved": resolved,
+        "createdBy": user_action,
+        "updatedBy": user_action,
     }
+    annotation = _add_created_updated(annotation)
     annotation_json["comments"].append(annotation)
 
     return _postprocess_annotation_json(annotation_json, path)
@@ -118,6 +135,7 @@ def add_annotation_bbox_to_json(
         else annotation_class_attributes,
     }
 
+    annotation = _add_created_updated(annotation)
     annotation_json["instances"].append(annotation)
 
     return _postprocess_annotation_json(annotation_json, path)
@@ -127,6 +145,7 @@ def add_annotation_point_to_json(
     annotation_json,
     point,
     annotation_class_name,
+    image_name,
     annotation_class_attributes=None,
     error=None,
 ):
@@ -148,7 +167,7 @@ def add_annotation_point_to_json(
     if len(point) != 2:
         raise AppException("Point should be 2 element float list.")
 
-    annotation_json, path = _preprocess_annotation_json(annotation_json)
+    annotation_json, path = _preprocess_annotation_json(annotation_json, image_name)
 
     annotation = {
         "type": "point",
@@ -165,6 +184,7 @@ def add_annotation_point_to_json(
         else annotation_class_attributes,
     }
 
+    annotation = _add_created_updated(annotation)
     annotation_json["instances"].append(annotation)
 
     return _postprocess_annotation_json(annotation_json, path)
