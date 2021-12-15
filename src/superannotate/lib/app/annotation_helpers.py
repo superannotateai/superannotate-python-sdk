@@ -34,6 +34,18 @@ def _postprocess_annotation_json(annotation_json, path):
         return annotation_json
 
 
+def _add_created_updated(annotation):
+    created_at = (
+        datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[
+            :-3
+        ]
+        + "Z"
+    )
+    annotation["createdAt"] = created_at
+    annotation["updatedAt"] = created_at
+    return annotation
+
+
 def add_annotation_comment_to_json(
     annotation_json,
     comment_text,
@@ -64,12 +76,6 @@ def add_annotation_comment_to_json(
         annotation_json, image_name=image_name
     )
 
-    created_at = (
-        datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[
-            :-3
-        ]
-        + "Z"
-    )
     user_action = {"email": comment_author, "role": "Admin"}
 
     annotation = {
@@ -77,11 +83,10 @@ def add_annotation_comment_to_json(
         "y": comment_coords[1],
         "correspondence": [{"text": comment_text, "email": comment_author}],
         "resolved": resolved,
-        "createdAt": created_at,
-        "updatedAt": created_at,
         "createdBy": user_action,
         "updatedBy": user_action,
     }
+    annotation = _add_created_updated(annotation)
     annotation_json["comments"].append(annotation)
 
     return _postprocess_annotation_json(annotation_json, path)
@@ -130,6 +135,7 @@ def add_annotation_bbox_to_json(
         else annotation_class_attributes,
     }
 
+    annotation = _add_created_updated(annotation)
     annotation_json["instances"].append(annotation)
 
     return _postprocess_annotation_json(annotation_json, path)
@@ -178,6 +184,7 @@ def add_annotation_point_to_json(
         else annotation_class_attributes,
     }
 
+    annotation = _add_created_updated(annotation)
     annotation_json["instances"].append(annotation)
 
     return _postprocess_annotation_json(annotation_json, path)

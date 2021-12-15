@@ -60,6 +60,9 @@ class TestAnnotationAdding(BaseTestCase):
             self.PROJECT_NAME, self.EXAMPLE_IMAGE_1
         )["annotation_json"]
 
+        annotations_new["instances"][0]['createdAt'] = ''
+        annotations_new["instances"][0]['updatedAt'] = ''
+
         self.assertEqual(
             annotations_new["instances"][0], {
                 'x': 250.0,
@@ -73,7 +76,9 @@ class TestAnnotationAdding(BaseTestCase):
                 'type': 'point',
                 'pointLabels': {},
                 'groupId': 0,
-                'classId': -1
+                'classId': -1,
+                'createdAt': '',
+                'updatedAt': ''
             })
 
     def test_add_bbox_to_empty_annotation(self):
@@ -89,6 +94,9 @@ class TestAnnotationAdding(BaseTestCase):
             self.PROJECT_NAME, self.EXAMPLE_IMAGE_1
         )["annotation_json"]
 
+        annotations_new["instances"][0]['createdAt'] = ''
+        annotations_new["instances"][0]['updatedAt'] = ''
+
         self.assertEqual(annotations_new['instances'][0], {
             'creationType': 'Preannotation',
             'className': 'test_add', 'visible': True,
@@ -98,7 +106,9 @@ class TestAnnotationAdding(BaseTestCase):
             'pointLabels': {},
             'groupId': 0,
             'points': {'x1': 10.0, 'x2': 500.0, 'y1': 10.0, 'y2': 100.0},
-            'classId': -1
+            'classId': -1,
+            'createdAt': '',
+            'updatedAt': ''
         })
 
 
