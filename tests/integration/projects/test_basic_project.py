@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 import src.superannotate as sa
+from tests import DATA_SET_PATH
 from tests.integration.base import BaseTestCase
 
 
@@ -14,21 +15,21 @@ class TestProject(BaseTestCase):
     PROJECT_TYPE = "Pixel"
     PROJECT_DESCRIPTION = "DESCRIPTION"
     TEST_IMAGE_NAME = "example_image_1.jpg"
-    TEST_FOLDER_PATH = "data_set/sample_project_pixel"
-    TEST_ANNOTATION_PATH = "data_set/sample_annotation_no_class"
+    TEST_FOLDER_PATH = "sample_project_pixel"
+    TEST_ANNOTATION_PATH = "sample_annotation_no_class"
     PNG_POSTFIX = "*___save.png"
     FUSE_PNG_POSTFIX = "*___fuse.png"
 
     @property
     def folder_path(self):
         return Path(
-            Path(os.path.join(dirname(dirname(__file__)), self.TEST_FOLDER_PATH))
+            Path(os.path.join(DATA_SET_PATH, self.TEST_FOLDER_PATH))
         )
 
     @property
     def annotations_path(self):
         return Path(
-            Path(os.path.join(dirname(dirname(__file__)), self.TEST_ANNOTATION_PATH))
+            Path(os.path.join(DATA_SET_PATH, self.TEST_ANNOTATION_PATH))
         )
 
     @property
