@@ -42,7 +42,11 @@ class SuerannotateServiceProvider(metaclass=SingleInstanceMetaClass):
         raise NotImplementedError
 
     @abstractmethod
-    def share_project_bulk(self, project_id: int, team_id: int, users: list):
+    def share_project_bulk(self, project_id: int, team_id: int, users: Iterable):
+        raise NotImplementedError
+
+    @abstractmethod
+    def invite_contributors(self, team_id: int, team_role: int, emails: Iterable) -> bool:
         raise NotImplementedError
 
     @abstractmethod
@@ -55,10 +59,6 @@ class SuerannotateServiceProvider(metaclass=SingleInstanceMetaClass):
         include_fuse: bool,
         only_pinned: bool,
     ):
-        raise NotImplementedError
-
-    @abstractmethod
-    def invite_contributor(self, team_id: int, email: str, user_role: str):
         raise NotImplementedError
 
     @abstractmethod

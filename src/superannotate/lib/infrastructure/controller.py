@@ -65,6 +65,7 @@ class BaseController(metaclass=SingleInstanceMetaClass):
         self._team_id = None
         self._user_id = None
         self._team_name = None
+        self._reporter = None
         self._config_path = expanduser(config_path)
         try:
             self.init(config_path)
@@ -212,6 +213,12 @@ class BaseController(metaclass=SingleInstanceMetaClass):
                 f"Invalid credentials provided in the {self._config_path}."
             )
         return self._team_id
+
+    @property
+    def default_reporter(self):
+        if not self._reporter:
+            self._reporter = Reporter()
+        return self._reporter
 
     @timed_lru_cache(seconds=3600)
     def get_auth_data(self, project_id: int, team_id: int, folder_id: int):
@@ -479,7 +486,7 @@ class Controller(BaseController):
             project_to_create.description = project_description
 
         use_case = usecases.CloneProjectUseCase(
-            reporter=Reporter(),
+            reporter=self.default_reporter,
             project=project,
             project_to_create=project_to_create,
             projects=self.projects,
@@ -581,15 +588,6 @@ class Controller(BaseController):
             include_fuse=include_fuse,
             only_pinned=only_pinned,
             annotation_statuses=annotation_statuses,
-        )
-        return use_case.execute()
-
-    def invite_contributor(self, email: str, is_admin: bool):
-        use_case = usecases.InviteContributorUseCase(
-            backend_service_provider=self._backend_client,
-            email=email,
-            team_id=self.team_id,
-            is_admin=is_admin,
         )
         return use_case.execute()
 
@@ -1311,7 +1309,7 @@ class Controller(BaseController):
             backend_service_provider=self._backend_client,
             mask=mask,
             verbose=verbose,
-            reporter=Reporter(),
+            reporter=self.default_reporter,
             validators=self.annotation_validators,
         )
         return use_case.execute()
@@ -1557,5 +1555,31 @@ class Controller(BaseController):
             annotation,
             validators=self.annotation_validators,
             allow_extra=allow_extra,
+        )
+        return use_case.execute()
+
+    def add_contributors_to_project(self, project_name: str, emails: list, role: str):
+        team = self.get_team()
+        project = self.get_project_metadata(
+            project_name=project_name, include_contributors=True
+        )
+        use_case = usecases.AddContributorsToProject(
+            reporter=self.default_reporter,
+            team=team.data,
+            project=project.data["project"],
+            emails=emails,
+            role=role,
+            service=self._backend_client,
+        )
+        return use_case.execute()
+
+    def invite_contributors_to_team(self, emails: list, set_admin: str):
+        team = self.get_team()
+        use_case = usecases.InviteContributorsToTeam(
+            reporter=self.default_reporter,
+            team=team.data,
+            emails=emails,
+            set_admin=set_admin,
+            service=self._backend_client,
         )
         return use_case.execute()

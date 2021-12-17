@@ -20,6 +20,7 @@ from lib.app.helpers import get_annotation_paths
 from lib.app.helpers import get_paths_and_duplicated_from_csv
 from lib.app.interface.types import AnnotationStatuses
 from lib.app.interface.types import AnnotationType
+from lib.app.interface.types import AnnotatorRole
 from lib.app.interface.types import ImageQualityChoices
 from lib.app.interface.types import NotEmptyStr
 from lib.app.interface.types import ProjectTypes
@@ -78,19 +79,6 @@ def get_team_metadata():
     """
     response = controller.get_team()
     return TeamSerializer(response.data).serialize()
-
-
-@Trackable
-@validate_arguments
-def invite_contributor_to_team(email: EmailStr, admin: bool = False):
-    """Invites a contributor to team
-
-    :param email: email of the contributor
-    :type email: str
-    :param admin: enables admin priviledges for the contributor
-    :type admin: bool
-    """
-    controller.invite_contributor(email, is_admin=admin)
 
 
 @Trackable
@@ -2911,3 +2899,50 @@ def validate_annotations(
             return True
         print(response.report)
         return False
+
+
+@Trackable
+@validate_arguments
+def add_contributors_to_project(
+    project_name: NotEmptyStr, emails: List[EmailStr], role: AnnotatorRole
+) -> Tuple[List[str], List[str]]:
+    """Add contributors to project.
+
+    :param project_name: project name
+    :type project_name: str
+
+    :param emails: users email
+    :type emails: list
+
+    :param role: user role to apply, one of Admin , Annotator , QA
+    :type role: str
+
+    return: lists of added,  skipped contributors of the project
+    rtype: tuple (2 members) of lists of strs
+    """
+    response = controller.add_contributors_to_project(
+        project_name=project_name, emails=emails, role=role
+    )
+    if response.errors:
+        raise AppException(response.errors)
+    return response.data
+
+
+@Trackable
+@validate_arguments
+def invite_contributors_to_team(emails: List[EmailStr], admin: StrictBool = False) -> Tuple[List[str], List[str]]:
+    """Invites contributors to the team.
+
+    :param emails: list of contributor emails
+    :type emails: list
+
+    :param admin: enables admin privileges for the contributor
+    :type admin: bool
+
+    return: lists of invited, skipped contributors of the team
+    rtype: tuple (2 members) of lists of strs
+    """
+    response = controller.invite_contributors_to_team(emails=emails, set_admin=admin)
+    if response.errors:
+        raise AppException(response.errors)
+    return response.data

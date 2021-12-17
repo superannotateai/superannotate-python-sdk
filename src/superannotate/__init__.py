@@ -17,6 +17,7 @@ from superannotate.lib.app.interface.sdk_interface import (
     add_annotation_comment_to_image,
 )
 from superannotate.lib.app.interface.sdk_interface import add_annotation_point_to_image
+from superannotate.lib.app.interface.sdk_interface import add_contributors_to_project
 from superannotate.lib.app.interface.sdk_interface import aggregate_annotations_as_df
 from superannotate.lib.app.interface.sdk_interface import assign_folder
 from superannotate.lib.app.interface.sdk_interface import assign_images
@@ -63,7 +64,7 @@ from superannotate.lib.app.interface.sdk_interface import get_project_settings
 from superannotate.lib.app.interface.sdk_interface import get_project_workflow
 from superannotate.lib.app.interface.sdk_interface import get_team_metadata
 from superannotate.lib.app.interface.sdk_interface import init
-from superannotate.lib.app.interface.sdk_interface import invite_contributor_to_team
+from superannotate.lib.app.interface.sdk_interface import invite_contributors_to_team
 from superannotate.lib.app.interface.sdk_interface import move_images
 from superannotate.lib.app.interface.sdk_interface import pin_image
 from superannotate.lib.app.interface.sdk_interface import prepare_export
@@ -128,7 +129,6 @@ __all__ = [
     "convert_project_type",
     # Teams Section
     "get_team_metadata",
-    "invite_contributor_to_team",
     "search_team_contributors",
     # Projects Section
     "create_project_from_metadata",
@@ -199,6 +199,8 @@ __all__ = [
     "consensus",
     "upload_video_to_project",
     "upload_images_to_project",
+    "add_contributors_to_project",
+    "invite_contributors_to_team",
 ]
 
 __author__ = "Superannotate"

@@ -1,7 +1,6 @@
 import json
 import os
 import tempfile
-from os.path import dirname
 from pathlib import Path
 
 import pytest

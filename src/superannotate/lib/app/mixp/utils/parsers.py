@@ -22,7 +22,7 @@ def get_team_metadata(*args, **kwargs):
     return {"event_name": "get_team_metadata", "properties": {}}
 
 
-def invite_contributor_to_team(*args, **kwargs):
+def invite_contributors_to_team(*args, **kwargs):
     admin = kwargs.get("admin", None)
     if not admin:
         admin = args[1:2]
@@ -30,7 +30,7 @@ def invite_contributor_to_team(*args, **kwargs):
         admin = "CUSTOM"
     else:
         admin = "DEFAULT"
-    return {"event_name": "invite_contributor_to_team", "properties": {"Admin": admin}}
+    return {"event_name": "invite_contributors_to_team", "properties": {"Admin": admin}}
 
 
 def search_team_contributors(*args, **kwargs):
