@@ -12,6 +12,7 @@ from lib.core.entities import AnnotationClassEntity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ProjectEntity
 from lib.core.entities import ProjectSettingEntity
+from lib.core.entities import TeamEntity
 from lib.core.entities import WorkflowEntity
 from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
@@ -915,31 +916,6 @@ class GetTeamUseCase(BaseUseCase):
         return self._response
 
 
-class InviteContributorUseCase(BaseUseCase):
-    def __init__(
-            self,
-            backend_service_provider: SuerannotateServiceProvider,
-            email: str,
-            team_id: int,
-            is_admin: bool = False,
-    ):
-        super().__init__()
-        self._backend_service = backend_service_provider
-        self._email = email
-        self._team_id = team_id
-        self._is_admin = is_admin
-
-    def execute(self):
-        role = (
-            constances.UserRole.ADMIN.value
-            if self._is_admin
-            else constances.UserRole.ANNOTATOR.value
-        )
-        self._backend_service.invite_contributor(
-            team_id=self._team_id, email=self._email, user_role=role
-        )
-
-
 class SearchContributorsUseCase(BaseUseCase):
     def __init__(
             self,
@@ -962,4 +938,123 @@ class SearchContributorsUseCase(BaseUseCase):
             self._team_id, self.condition
         )
         self._response.data = res
+        return self._response
+
+
+class AddContributorsToProject(BaseReportableUseCae):
+    """
+    Returns tuple of lists (added, skipped)
+    """
+
+    def __init__(
+            self,
+            reporter: Reporter,
+            team: TeamEntity,
+            project: ProjectEntity,
+            emails: list,
+            role: str,
+            service: SuerannotateServiceProvider,
+    ):
+        super().__init__(reporter)
+        self._team = team
+        self._project = project
+        self._emails = emails
+        self._role = role
+        self._service = service
+
+    @property
+    def user_role(self):
+        return constances.UserRole.get_value(self._role)
+
+    def execute(self):
+        team_users = set()
+        project_users = {user["user_id"] for user in self._project.users}
+        for user in self._team.users:
+            if user.user_role > constances.UserRole.ADMIN.value:
+                team_users.add(user.email)
+        # collecting pending team users which is not admin
+        for user in self._team.pending_invitations:
+            if user["user_role"] > constances.UserRole.ADMIN.value:
+                team_users.add(user["email"])
+        # collecting pending project users which is not admin
+        for user in self._project.unverified_users:
+            if user["user_role"] > constances.UserRole.ADMIN.value:
+                project_users.add(user["email"])
+
+        to_add = team_users.intersection(self._emails) - project_users
+        to_skip = set(self._emails).difference(to_add)
+
+        if to_skip:
+            self.reporter.log_warning(
+                f"Skipped {len(to_skip)}/{len(self._emails)} "
+                "contributors that are out of the team scope or already have access to the project."
+            )
+        if to_add:
+            response = self._service.share_project_bulk(
+                team_id=self._team.uuid,
+                project_id=self._project.uuid,
+                users=[
+                    dict(user_id=user_id, user_role=self.user_role)
+                    for user_id in to_add
+                ],
+            )
+            if response and not response.get("invalidUsers"):
+                self._response.data = to_add, to_skip
+                self.reporter.log_info(
+                    f"Added {len(to_add)}/{len(self._emails)} "
+                    "contributors to the project <project_name> with the <role> role."
+                )
+        return self._response
+
+
+class InviteContributorsToTeam(BaseReportableUseCae):
+    """
+    Returns tuple of lists (added, skipped)
+    """
+
+    def __init__(
+            self,
+            reporter: Reporter,
+            team: TeamEntity,
+            emails: list,
+            set_admin: bool,
+            service: SuerannotateServiceProvider,
+    ):
+        super().__init__(reporter)
+        self._team = team
+        self._emails = emails
+        self._set_admin = set_admin
+        self._service = service
+
+    def execute(self):
+        team_users = set()
+        for user in self._team.users:
+            if user.user_role > constances.UserRole.ADMIN.value:
+                team_users.add(user.email)
+        # collecting pending team users which is not admin
+        for user in self._team.pending_invitations:
+            if user["user_role"] > constances.UserRole.ADMIN.value:
+                team_users.add(user["email"])
+
+        emails = set(self._emails)
+
+        to_skip = emails.intersection(team_users)
+        to_add = emails.difference(to_skip)
+
+        if to_skip:
+            self.reporter.log_warning(
+                f"Found {len(to_skip)}/{len(self._emails)} existing members of the team."
+            )
+        if to_add:
+            response = self._service.invite_contributors(
+                team_id=self._team.uuid,
+                # REMINDER UserRole.VIEWER is the contributor for the teams
+                team_role=constances.UserRole.ADMIN.value if self._set_admin else constances.UserRole.VIEWER.value,
+                emails=to_add
+            )
+            if response:
+                self._response.data = to_add, to_skip
+                self.reporter.log_info(
+                    f"Sent team <admin/contributor> invitations to {len(to_add)}/{len(self._emails)}."
+                )
         return self._response

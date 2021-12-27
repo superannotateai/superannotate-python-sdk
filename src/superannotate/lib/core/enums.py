@@ -40,7 +40,7 @@ class ProjectType(BaseTitledEnum):
 
 
 class UserRole(BaseTitledEnum):
-    SUPER_AMIN = "Superadmin", 1
+    SUPER_ADMIN = "Superadmin", 1
     ADMIN = "Admin", 2
     ANNOTATOR = "Annotator", 3
     QA = "QA", 4
