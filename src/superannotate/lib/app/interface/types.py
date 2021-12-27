@@ -3,6 +3,7 @@ from typing import Union
 
 from lib.core.enums import AnnotationStatus
 from lib.core.enums import ProjectType
+from lib.core.enums import UserRole
 from lib.core.exceptions import AppException
 from lib.infrastructure.validators import wrap_error
 from pydantic import constr
@@ -21,6 +22,20 @@ class Status(StrictStr):
         if value.lower() not in AnnotationStatus.values():
             raise TypeError(
                 f"Available statuses is {', '.join(AnnotationStatus.titles())}. "
+            )
+        return value
+
+
+class AnnotatorRole(StrictStr):
+    ANNOTATOR_ROLES = (UserRole.ADMIN.name, UserRole.ANNOTATOR.name, UserRole.QA.name)
+
+    @classmethod
+    def validate(cls, value: Union[str]) -> Union[str]:
+        if cls.curtail_length and len(value) > cls.curtail_length:
+            value = value[: cls.curtail_length]
+        if value.lower() not in [role.lower() for role in cls.ANNOTATOR_ROLES]:
+            raise TypeError(
+                f"Available statuses is {', '.join(AnnotatorRole)}. "
             )
         return value
 
