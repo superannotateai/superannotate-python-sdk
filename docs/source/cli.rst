@@ -148,7 +148,6 @@ Only when COCO format is specified *dataset-name* and *task* arguments are requi
 *task* specifies the COCO task for conversion. Please see 
 :ref:`import_annotation_format <ref_import_annotation_format>` for more details.
 
-The annotation classes will be created during the execution of this command.
 
 ----------
 
@@ -175,8 +174,6 @@ Only when COCO format is specified *dataset-name* and *task* arguments are requi
 
 *task* specifies the COCO task for conversion. Please see 
 :ref:`import_annotation_format <ref_import_annotation_format>` for more details.
-
-The annotation classes will be created during the execution of this command.
 
 ----------
 

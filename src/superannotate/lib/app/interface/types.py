@@ -10,8 +10,22 @@ from pydantic import constr
 from pydantic import StrictStr
 from pydantic import validate_arguments as pydantic_validate_arguments
 from pydantic import ValidationError
+from pydantic.errors import StrRegexError
+
 
 NotEmptyStr = constr(strict=True, min_length=1)
+
+
+class EmailStr(StrictStr):
+    @classmethod
+    def validate(cls, value: Union[str]) -> Union[str]:
+        try:
+            constr(
+                regex=r"^(?=.{1,254}$)(?=.{1,64}@)[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)*@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"
+            ).validate(value)
+        except StrRegexError:
+            raise ValueError("Invalid email")
+        return value
 
 
 class Status(StrictStr):
