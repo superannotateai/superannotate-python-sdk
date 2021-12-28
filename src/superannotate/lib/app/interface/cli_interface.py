@@ -144,7 +144,7 @@ class CLIFacade(BaseInterfaceFacade):
         sys.exit(0)
 
     def upload_preannotations(
-        self, project, folder, data_set_name=None, task=None, format=None
+        self, project, folder, dataset_name=None, task=None, format=None
     ):
         """
         To upload preannotations from folder to project use
@@ -153,20 +153,19 @@ class CLIFacade(BaseInterfaceFacade):
         Only when COCO format is specified dataset-name and task arguments are required.
         dataset-name specifies JSON filename (without extension) in <folder_path>.
         task specifies the COCO task for conversion. Please see import_annotation_format for more details.
-        The annotation classes will be created during the execution of this command.
         """
         self._upload_annotations(
             project=project,
             folder=folder,
             format=format,
-            data_set_name=data_set_name,
+            dataset_name=dataset_name,
             task=task,
             pre=True,
         )
         sys.exit(0)
 
     def upload_annotations(
-        self, project, folder, data_set_name=None, task=None, format=None
+        self, project, folder, dataset_name=None, task=None, format=None
     ):
         """
         To upload annotations from folder to project use
@@ -175,29 +174,28 @@ class CLIFacade(BaseInterfaceFacade):
         Only when COCO format is specified dataset-name and task arguments are required.
         dataset-name specifies JSON filename (without extension) in <folder_path>.
         task specifies the COCO task for conversion. Please see import_annotation_format for more details.
-        The annotation classes will be created during the execution of this command.
         """
         self._upload_annotations(
             project=project,
             folder=folder,
             format=format,
-            data_set_name=data_set_name,
+            dataset_name=dataset_name,
             task=task,
             pre=False,
         )
         sys.exit(0)
 
     def _upload_annotations(
-        self, project, folder, format, data_set_name, task, pre=True
+        self, project, folder, format, dataset_name, task, pre=True
     ):
         project_name, folder_name = split_project_path(project)
         project = self.controller.get_project_metadata(project_name=project_name).data
         if not format:
             format = "SuperAnnotate"
-        if not data_set_name and format == "COCO":
+        if not dataset_name and format == "COCO":
             raise Exception("Data-set name is required")
-        elif not data_set_name:
-            data_set_name = ""
+        elif not dataset_name:
+            dataset_name = ""
         if not task:
             task = "object_detection"
         annotations_path = folder
@@ -207,7 +205,7 @@ class CLIFacade(BaseInterfaceFacade):
                     input_dir=folder,
                     output_dir=temp_dir,
                     dataset_format=format,
-                    dataset_name=data_set_name,
+                    dataset_name=dataset_name,
                     project_type=constances.ProjectType.get_name(
                         project["project"].project_type
                     ),

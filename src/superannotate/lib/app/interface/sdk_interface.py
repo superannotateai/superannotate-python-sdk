@@ -25,6 +25,7 @@ from lib.app.interface.types import ImageQualityChoices
 from lib.app.interface.types import NotEmptyStr
 from lib.app.interface.types import ProjectTypes
 from lib.app.interface.types import validate_arguments
+from lib.app.interface.types import EmailStr
 from lib.app.mixp.decorators import Trackable
 from lib.app.serializers import BaseSerializers
 from lib.app.serializers import ImageSerializer
@@ -40,7 +41,6 @@ from lib.core.types import ClassesJson
 from lib.core.types import MLModel
 from lib.core.types import Project
 from lib.infrastructure.controller import Controller
-from pydantic import EmailStr
 from pydantic import parse_obj_as
 from pydantic import StrictBool
 from tqdm import tqdm

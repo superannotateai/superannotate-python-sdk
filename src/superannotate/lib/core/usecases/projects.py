@@ -1039,7 +1039,7 @@ class InviteContributorsToTeam(BaseReportableUseCae):
         emails = set(self._emails)
 
         to_skip = emails.intersection(team_users)
-        to_add = emails.difference(to_skip)
+        to_add = list(emails.difference(to_skip))
 
         if to_skip:
             self.reporter.log_warning(
