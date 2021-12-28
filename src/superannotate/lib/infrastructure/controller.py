@@ -246,6 +246,10 @@ class BaseController(metaclass=SingleInstanceMetaClass):
     def annotation_validators(self):
         return AnnotationValidator()
 
+    @property
+    def backend_client(self):
+        return self._backend_client
+
 
 class Controller(BaseController):
     def __init__(self, config_path=constances.CONFIG_FILE_LOCATION):
@@ -1569,17 +1573,17 @@ class Controller(BaseController):
             project=project.data["project"],
             emails=emails,
             role=role,
-            service=self._backend_client,
+            service=self.backend_client,
         )
         return use_case.execute()
 
-    def invite_contributors_to_team(self, emails: list, set_admin: str):
+    def invite_contributors_to_team(self, emails: list, set_admin: bool):
         team = self.get_team()
         use_case = usecases.InviteContributorsToTeam(
             reporter=self.default_reporter,
             team=team.data,
             emails=emails,
             set_admin=set_admin,
-            service=self._backend_client,
+            service=self.backend_client,
         )
         return use_case.execute()

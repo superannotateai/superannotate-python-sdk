@@ -999,11 +999,11 @@ class AddContributorsToProject(BaseReportableUseCae):
                 ],
             )
             if response and not response.get("invalidUsers"):
-                self._response.data = to_add, to_skip
                 self.reporter.log_info(
                     f"Added {len(to_add)}/{len(self._emails)} "
                     "contributors to the project <project_name> with the <role> role."
                 )
+        self._response.data = to_add, to_skip
         return self._response
 
 
@@ -1053,8 +1053,8 @@ class InviteContributorsToTeam(BaseReportableUseCae):
                 emails=to_add
             )
             if response:
-                self._response.data = to_add, to_skip
                 self.reporter.log_info(
                     f"Sent team <admin/contributor> invitations to {len(to_add)}/{len(self._emails)}."
                 )
+        self._response.data = to_add, to_skip
         return self._response
