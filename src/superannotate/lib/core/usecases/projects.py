@@ -981,8 +981,8 @@ class AddContributorsToProject(BaseReportableUseCae):
             if user["user_role"] > constances.UserRole.ADMIN.value:
                 project_users.add(user["email"])
 
-        to_add = team_users.intersection(self._emails) - project_users
-        to_skip = set(self._emails).difference(to_add)
+        to_add = list(team_users.intersection(self._emails) - project_users)
+        to_skip = list(set(self._emails).difference(to_add))
 
         if to_skip:
             self.reporter.log_warning(
@@ -1001,7 +1001,7 @@ class AddContributorsToProject(BaseReportableUseCae):
             if response and not response.get("invalidUsers"):
                 self.reporter.log_info(
                     f"Added {len(to_add)}/{len(self._emails)} "
-                    "contributors to the project <project_name> with the <role> role."
+                    f"contributors to the project {self._project.name} with the {self.user_role} role."
                 )
         self._response.data = to_add, to_skip
         return self._response
@@ -1027,18 +1027,13 @@ class InviteContributorsToTeam(BaseReportableUseCae):
         self._service = service
 
     def execute(self):
-        team_users = set()
-        for user in self._team.users:
-            if user.user_role > constances.UserRole.ADMIN.value:
-                team_users.add(user.email)
-        # collecting pending team users which is not admin
-        for user in self._team.pending_invitations:
-            if user["user_role"] > constances.UserRole.ADMIN.value:
-                team_users.add(user["email"])
+        team_users = {user.email for user in self._team.users}
+        # collecting pending team users
+        team_users.update({user["email"] for user in self._team.pending_invitations})
 
         emails = set(self._emails)
 
-        to_skip = emails.intersection(team_users)
+        to_skip = list(emails.intersection(team_users))
         to_add = list(emails.difference(to_skip))
 
         if to_skip:
@@ -1046,15 +1041,21 @@ class InviteContributorsToTeam(BaseReportableUseCae):
                 f"Found {len(to_skip)}/{len(self._emails)} existing members of the team."
             )
         if to_add:
-            response = self._service.invite_contributors(
+            invited, failed = self._service.invite_contributors(
                 team_id=self._team.uuid,
                 # REMINDER UserRole.VIEWER is the contributor for the teams
                 team_role=constances.UserRole.ADMIN.value if self._set_admin else constances.UserRole.VIEWER.value,
                 emails=to_add
             )
-            if response:
+            if invited:
                 self.reporter.log_info(
-                    f"Sent team <admin/contributor> invitations to {len(to_add)}/{len(self._emails)}."
+                    f"Sent team {'admin' if self._set_admin else 'contributor'} invitations"
+                    f" to {len(to_add)}/{len(self._emails)} users."
+                )
+            if failed:
+                self.reporter.log_info(
+                    f"Skipped team {'admin' if self._set_admin else 'contributor'} "
+                    f"invitations for {len(failed)}/{len(self._emails)} users."
                 )
         self._response.data = to_add, to_skip
         return self._response

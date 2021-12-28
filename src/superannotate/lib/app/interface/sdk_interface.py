@@ -2904,12 +2904,12 @@ def validate_annotations(
 @Trackable
 @validate_arguments
 def add_contributors_to_project(
-    project_name: NotEmptyStr, emails: List[EmailStr], role: AnnotatorRole
+    project: NotEmptyStr, emails: List[EmailStr], role: AnnotatorRole
 ) -> Tuple[List[str], List[str]]:
     """Add contributors to project.
 
-    :param project_name: project name
-    :type project_name: str
+    :param project: project name
+    :type project: str
 
     :param emails: users email
     :type emails: list
@@ -2921,7 +2921,7 @@ def add_contributors_to_project(
     rtype: tuple (2 members) of lists of strs
     """
     response = controller.add_contributors_to_project(
-        project_name=project_name, emails=emails, role=role
+        project_name=project, emails=emails, role=role
     )
     if response.errors:
         raise AppException(response.errors)

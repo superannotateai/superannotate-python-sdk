@@ -46,7 +46,7 @@ class SuerannotateServiceProvider(metaclass=SingleInstanceMetaClass):
         raise NotImplementedError
 
     @abstractmethod
-    def invite_contributors(self, team_id: int, team_role: int, emails: Iterable) -> bool:
+    def invite_contributors(self, team_id: int, team_role: int, emails: Iterable) -> Tuple[List[str], List[str]]:
         raise NotImplementedError
 
     @abstractmethod

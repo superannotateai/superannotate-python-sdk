@@ -58,10 +58,10 @@ class TestProject(BaseTestCase):
         self.assertEqual(len(skipped), 7)
 
     @patch("lib.infrastructure.controller.Controller.get_team")
-    @patch("lib.infrastructure.controller.Controller.backend_client", MagicMock())
-    def test_invite_contributors(self, get_team_mock):
+    @patch("lib.infrastructure.controller.Controller.backend_client", new_callable=PropertyMock)
+    def test_invite_contributors(self, client, get_team_mock):
         random_emails = [self.random_email for i in range(20)]
-
+        client.return_value.invite_contributors.return_value = random_emails[:3], []
         team_users = [UserEntity(email=email, user_role=3) for email in random_emails[: 10]]
         to_add_emails = random_emails[8: 18]
         pending_users = [dict(email=email, user_role=3) for email in random_emails[15: 20]]
