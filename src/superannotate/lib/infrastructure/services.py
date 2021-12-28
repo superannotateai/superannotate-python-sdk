@@ -511,7 +511,7 @@ class SuperannotateBackendService(BaseBackendService):
         )
         return res.ok
 
-    def invite_contributors(self, team_id: int, team_role: int, emails: list) -> bool:
+    def invite_contributors(self, team_id: int, team_role: int, emails: list) -> Tuple[List[str], List[str]]:
         invite_contributors_url = urljoin(
             self.api_url, self.URL_INVITE_CONTRIBUTORS.format(team_id)
         )
@@ -519,8 +519,8 @@ class SuperannotateBackendService(BaseBackendService):
             invite_contributors_url,
             "post",
             data=dict(emails=emails, team_role=team_role)
-        )
-        return res.ok
+        ).json()
+        return res["success"]["emails"], res["failed"]["emails"]
 
     def update_image(self, image_id: int, team_id: int, project_id: int, data: dict):
         update_image_url = urljoin(self.api_url, self.URL_GET_IMAGE.format(image_id))
