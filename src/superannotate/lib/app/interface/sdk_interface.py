@@ -41,6 +41,7 @@ from lib.core.types import ClassesJson
 from lib.core.types import MLModel
 from lib.core.types import Project
 from lib.infrastructure.controller import Controller
+from pydantic import conlist
 from pydantic import parse_obj_as
 from pydantic import StrictBool
 from tqdm import tqdm
@@ -2904,7 +2905,7 @@ def validate_annotations(
 @Trackable
 @validate_arguments
 def add_contributors_to_project(
-    project: NotEmptyStr, emails: List[EmailStr], role: AnnotatorRole
+    project: NotEmptyStr, emails: conlist(EmailStr, min_items=1), role: AnnotatorRole
 ) -> Tuple[List[str], List[str]]:
     """Add contributors to project.
 
@@ -2930,7 +2931,7 @@ def add_contributors_to_project(
 
 @Trackable
 @validate_arguments
-def invite_contributors_to_team(emails: List[EmailStr], admin: StrictBool = False) -> Tuple[List[str], List[str]]:
+def invite_contributors_to_team(emails: conlist(EmailStr, min_items=1), admin: StrictBool = False) -> Tuple[List[str], List[str]]:
     """Invites contributors to the team.
 
     :param emails: list of contributor emails
