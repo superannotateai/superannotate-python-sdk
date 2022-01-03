@@ -22,6 +22,7 @@ from lib.core.repositories import BaseReadOnlyRepository
 from lib.core.serviceproviders import SuerannotateServiceProvider
 from lib.core.usecases.base import BaseReportableUseCae
 from lib.core.usecases.base import BaseUseCase
+from lib.core.usecases.base import BaseUserBasedUseCase
 from requests.exceptions import RequestException
 
 logger = logging.getLogger("root")
@@ -941,7 +942,7 @@ class SearchContributorsUseCase(BaseUseCase):
         return self._response
 
 
-class AddContributorsToProject(BaseReportableUseCae):
+class AddContributorsToProject(BaseUserBasedUseCase):
     """
     Returns tuple of lists (added, skipped)
     """
@@ -955,10 +956,9 @@ class AddContributorsToProject(BaseReportableUseCae):
             role: str,
             service: SuerannotateServiceProvider,
     ):
-        super().__init__(reporter)
+        super().__init__(reporter, emails)
         self._team = team
         self._project = project
-        self._emails = emails
         self._role = role
         self._service = service
 
@@ -967,47 +967,48 @@ class AddContributorsToProject(BaseReportableUseCae):
         return constances.UserRole.get_value(self._role)
 
     def execute(self):
-        team_users = set()
-        project_users = {user["user_id"] for user in self._project.users}
-        for user in self._team.users:
-            if user.user_role > constances.UserRole.ADMIN.value:
-                team_users.add(user.email)
-        # collecting pending team users which is not admin
-        for user in self._team.pending_invitations:
-            if user["user_role"] > constances.UserRole.ADMIN.value:
-                team_users.add(user["email"])
-        # collecting pending project users which is not admin
-        for user in self._project.unverified_users:
-            if user["user_role"] > constances.UserRole.ADMIN.value:
-                project_users.add(user["email"])
+        if self.is_valid():
+            team_users = set()
+            project_users = {user["user_id"] for user in self._project.users}
+            for user in self._team.users:
+                if user.user_role > constances.UserRole.ADMIN.value:
+                    team_users.add(user.email)
+            # collecting pending team users which is not admin
+            for user in self._team.pending_invitations:
+                if user["user_role"] > constances.UserRole.ADMIN.value:
+                    team_users.add(user["email"])
+            # collecting pending project users which is not admin
+            for user in self._project.unverified_users:
+                if user["user_role"] > constances.UserRole.ADMIN.value:
+                    project_users.add(user["email"])
 
-        to_add = list(team_users.intersection(self._emails) - project_users)
-        to_skip = list(set(self._emails).difference(to_add))
+            to_add = list(team_users.intersection(self._emails) - project_users)
+            to_skip = list(set(self._emails).difference(to_add))
 
-        if to_skip:
-            self.reporter.log_warning(
-                f"Skipped {len(to_skip)}/{len(self._emails)} "
-                "contributors that are out of the team scope or already have access to the project."
-            )
-        if to_add:
-            response = self._service.share_project_bulk(
-                team_id=self._team.uuid,
-                project_id=self._project.uuid,
-                users=[
-                    dict(user_id=user_id, user_role=self.user_role)
-                    for user_id in to_add
-                ],
-            )
-            if response and not response.get("invalidUsers"):
-                self.reporter.log_info(
-                    f"Added {len(to_add)}/{len(self._emails)} "
-                    f"contributors to the project {self._project.name} with the {self.user_role} role."
+            if to_skip:
+                self.reporter.log_warning(
+                    f"Skipped {len(to_skip)}/{len(self._emails)} "
+                    "contributors that are out of the team scope or already have access to the project."
                 )
-        self._response.data = to_add, to_skip
-        return self._response
+            if to_add:
+                response = self._service.share_project_bulk(
+                    team_id=self._team.uuid,
+                    project_id=self._project.uuid,
+                    users=[
+                        dict(user_id=user_id, user_role=self.user_role)
+                        for user_id in to_add
+                    ],
+                )
+                if response and not response.get("invalidUsers"):
+                    self.reporter.log_info(
+                        f"Added {len(to_add)}/{len(self._emails)} "
+                        f"contributors to the project {self._project.name} with the {self._role} role."
+                    )
+            self._response.data = to_add, to_skip
+            return self._response
 
 
-class InviteContributorsToTeam(BaseReportableUseCae):
+class InviteContributorsToTeam(BaseUserBasedUseCase):
     """
     Returns tuple of lists (added, skipped)
     """
@@ -1020,42 +1021,42 @@ class InviteContributorsToTeam(BaseReportableUseCae):
             set_admin: bool,
             service: SuerannotateServiceProvider,
     ):
-        super().__init__(reporter)
+        super().__init__(reporter, emails)
         self._team = team
-        self._emails = emails
         self._set_admin = set_admin
         self._service = service
 
     def execute(self):
-        team_users = {user.email for user in self._team.users}
-        # collecting pending team users
-        team_users.update({user["email"] for user in self._team.pending_invitations})
+        if self.is_valid():
+            team_users = {user.email for user in self._team.users}
+            # collecting pending team users
+            team_users.update({user["email"] for user in self._team.pending_invitations})
 
-        emails = set(self._emails)
+            emails = set(self._emails)
 
-        to_skip = list(emails.intersection(team_users))
-        to_add = list(emails.difference(to_skip))
+            to_skip = list(emails.intersection(team_users))
+            to_add = list(emails.difference(to_skip))
 
-        if to_skip:
-            self.reporter.log_warning(
-                f"Found {len(to_skip)}/{len(self._emails)} existing members of the team."
-            )
-        if to_add:
-            invited, failed = self._service.invite_contributors(
-                team_id=self._team.uuid,
-                # REMINDER UserRole.VIEWER is the contributor for the teams
-                team_role=constances.UserRole.ADMIN.value if self._set_admin else constances.UserRole.VIEWER.value,
-                emails=to_add
-            )
-            if invited:
-                self.reporter.log_info(
-                    f"Sent team {'admin' if self._set_admin else 'contributor'} invitations"
-                    f" to {len(to_add)}/{len(self._emails)} users."
+            if to_skip:
+                self.reporter.log_warning(
+                    f"Found {len(to_skip)}/{len(self._emails)} existing members of the team."
                 )
-            if failed:
-                self.reporter.log_info(
-                    f"Skipped team {'admin' if self._set_admin else 'contributor'} "
-                    f"invitations for {len(failed)}/{len(self._emails)} users."
+            if to_add:
+                invited, failed = self._service.invite_contributors(
+                    team_id=self._team.uuid,
+                    # REMINDER UserRole.VIEWER is the contributor for the teams
+                    team_role=constances.UserRole.ADMIN.value if self._set_admin else constances.UserRole.VIEWER.value,
+                    emails=to_add
                 )
-        self._response.data = to_add, to_skip
-        return self._response
+                if invited:
+                    self.reporter.log_info(
+                        f"Sent team {'admin' if self._set_admin else 'contributor'} invitations"
+                        f" to {len(to_add)}/{len(self._emails)} users."
+                    )
+                if failed:
+                    self.reporter.log_info(
+                        f"Skipped team {'admin' if self._set_admin else 'contributor'} "
+                        f"invitations for {len(failed)}/{len(self._emails)} users."
+                    )
+            self._response.data = to_add, to_skip
+            return self._response
