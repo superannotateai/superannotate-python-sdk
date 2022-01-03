@@ -1,6 +1,8 @@
 from abc import ABC
+from abc import ABCMeta
 from abc import abstractmethod
 from typing import Iterable
+from typing import List
 
 from lib.core.exceptions import AppValidationException
 from lib.core.reporter import Reporter
@@ -56,7 +58,27 @@ class BaseInteractiveUseCase(BaseUseCase):
         raise NotImplementedError
 
 
-class BaseReportableUseCae(BaseUseCase):
+class BaseReportableUseCae(BaseUseCase, metaclass=ABCMeta):
     def __init__(self, reporter: Reporter):
         super().__init__()
         self.reporter = reporter
+
+
+class BaseUserBasedUseCase(BaseReportableUseCae, metaclass=ABCMeta):
+    """
+    class contain validation of unique emails
+    """
+    def __init__(self, reporter: Reporter, emails: List[str]):
+        super().__init__(reporter)
+        self._emails = emails
+
+    def validate_emails(self):
+        emails_to_add = set()
+        duplicated_emails = [
+            email for email in self._emails if email not in emails_to_add and not emails_to_add.add(email)
+        ]
+        if duplicated_emails:
+            self.reporter.log_info(
+                f"Dropping duplicates. Found {len(duplicated_emails)}/{len(self._emails)} unique users."
+            )
+        self._emails = emails_to_add

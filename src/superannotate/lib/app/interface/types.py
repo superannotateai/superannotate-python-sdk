@@ -49,7 +49,7 @@ class AnnotatorRole(StrictStr):
             value = value[: cls.curtail_length]
         if value.lower() not in [role.lower() for role in cls.ANNOTATOR_ROLES]:
             raise TypeError(
-                f"Available statuses is {', '.join(AnnotatorRole)}. "
+                f"Invalid user role provided. Please specify one of {', '.join(cls.ANNOTATOR_ROLES)}. "
             )
         return value
 
