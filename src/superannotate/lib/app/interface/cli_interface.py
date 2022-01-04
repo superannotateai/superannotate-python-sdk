@@ -212,11 +212,6 @@ class CLIFacade(BaseInterfaceFacade):
                     task=task,
                 )
                 annotations_path = temp_dir
-            classes_path = f"{annotations_path}/classes/classes.json"
-            self.controller.create_annotation_classes(
-                project_name=project_name,
-                annotation_classes=json.load(open(classes_path)),
-            )
             if pre:
                 upload_preannotations_from_folder_to_project(
                     project_name, annotations_path
