@@ -1054,7 +1054,7 @@ class InviteContributorsToTeam(BaseUserBasedUseCase):
                         f" to {len(to_add)}/{len(self._emails)} users."
                     )
                 if failed:
-                    to_skip = set(to_skip).update(set(failed))
+                    set(to_skip).update(set(failed))
                     self.reporter.log_info(
                         f"Skipped team {'admin' if self._set_admin else 'contributor'} "
                         f"invitations for {len(failed)}/{len(self._emails)} users."
