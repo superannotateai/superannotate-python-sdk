@@ -1036,7 +1036,7 @@ class InviteContributorsToTeam(BaseUserBasedUseCase):
 
             to_skip = list(emails.intersection(team_users))
             to_add = list(emails.difference(to_skip))
-
+            invited, failed = [], emails
             if to_skip:
                 self.reporter.log_warning(
                     f"Found {len(to_skip)}/{len(self._emails)} existing members of the team."
@@ -1058,5 +1058,5 @@ class InviteContributorsToTeam(BaseUserBasedUseCase):
                         f"Skipped team {'admin' if self._set_admin else 'contributor'} "
                         f"invitations for {len(failed)}/{len(self._emails)} users."
                     )
-            self._response.data = to_add, to_skip
+            self._response.data = invited, failed
             return self._response
