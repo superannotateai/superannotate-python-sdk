@@ -74,11 +74,11 @@ class BaseUserBasedUseCase(BaseReportableUseCae, metaclass=ABCMeta):
 
     def validate_emails(self):
         emails_to_add = set()
-        duplicated_emails = [
+        unique_emails = [
             email for email in self._emails if email not in emails_to_add and not emails_to_add.add(email)
         ]
-        if duplicated_emails:
+        if unique_emails:
             self.reporter.log_info(
-                f"Dropping duplicates. Found {len(duplicated_emails)}/{len(self._emails)} unique users."
+                f"Dropping duplicates. Found {len(unique_emails)}/{len(self._emails)} unique users."
             )
         self._emails = emails_to_add
