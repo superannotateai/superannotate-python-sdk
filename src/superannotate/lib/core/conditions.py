@@ -3,7 +3,6 @@ from typing import Any
 from typing import List
 from typing import NamedTuple
 
-
 CONDITION_OR = "|"
 CONDITION_AND = "&"
 CONDITION_EQ = "="

@@ -42,12 +42,17 @@ class Reporter:
     def start_progress(
         self, iterations: Union[int, range], description: str = "Processing"
     ):
+        self.progress_bar = self.get_progress_bar(iterations, description)
+
+    def get_progress_bar(
+        self, iterations: Union[int, range], description: str = "Processing"
+    ):
         if isinstance(iterations, range):
-            self.progress_bar = tqdm.tqdm(
+            return tqdm.tqdm(
                 iterations, desc=description, disable=self._disable_progress_bar
             )
         else:
-            self.progress_bar = tqdm.tqdm(
+            return tqdm.tqdm(
                 total=iterations, desc=description, disable=self._disable_progress_bar
             )
 

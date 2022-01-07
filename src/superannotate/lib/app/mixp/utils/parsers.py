@@ -809,8 +809,8 @@ def upload_images_from_folder_to_project(*args, **kwargs):
         else:
             exclude_file_patterns = constances.DEFAULT_FILE_EXCLUDE_PATTERNS
 
-    from pathlib import Path
     import os
+    from pathlib import Path
 
     paths = []
     for extension in extensions:

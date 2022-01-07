@@ -2,6 +2,7 @@ import io
 import logging
 from pathlib import Path
 from typing import List
+from typing import Optional
 from typing import Tuple
 from typing import Union
 
@@ -218,7 +219,7 @@ class VideoPlugin:
 
     @staticmethod
     def frames_generator(
-        video_path: str, start_time, end_time, target_fps: float, log=True
+        video_path: str, start_time, end_time, target_fps: Optional[float], log=True
     ):
         video = cv2.VideoCapture(str(video_path), cv2.CAP_FFMPEG)
         if not video.isOpened():
