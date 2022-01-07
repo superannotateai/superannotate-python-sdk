@@ -24,6 +24,7 @@ jobs:
         uses: pypa/gh-action-pypi-publish@master
         with:
           password: ${{ secrets.pypi_password }}
+          verbose: true
       -
         name: Set up QEMU
         uses: docker/setup-qemu-action@v1
