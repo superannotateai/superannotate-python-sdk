@@ -31,7 +31,6 @@ from lib.core.usecases.base import BaseInteractiveUseCase
 from lib.core.usecases.base import BaseUseCase
 from lib.core.usecases.images import GetBulkImages
 
-
 logger = logging.getLogger("root")
 
 

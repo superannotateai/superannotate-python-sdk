@@ -5,6 +5,7 @@ import json
 import logging
 import os.path
 import random
+import tempfile
 import time
 import uuid
 from collections import defaultdict
@@ -39,6 +40,7 @@ from lib.core.reporter import Reporter
 from lib.core.repositories import BaseManageableRepository
 from lib.core.repositories import BaseReadOnlyRepository
 from lib.core.response import Response
+from lib.core.reporter import Progress
 from lib.core.serviceproviders import SuerannotateServiceProvider
 from lib.core.usecases.base import BaseInteractiveUseCase
 from lib.core.usecases.base import BaseReportableUseCae
@@ -3099,4 +3101,174 @@ class ValidateAnnotationUseCase(BaseUseCase):
             self._response.errors = AppException(
                 f"There is not validator for type {self._project_type}."
             )
+        return self._response
+
+
+class UploadVideosAsImages(BaseReportableUseCae):
+    def __init__(
+        self,
+        reporter: Reporter,
+        service: SuerannotateServiceProvider,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        settings: BaseManageableRepository,
+        s3_repo,
+        paths: List[str],
+        target_fps: int,
+        extensions: List[str] = constances.DEFAULT_VIDEO_EXTENSIONS,
+        exclude_file_patterns: List[str] = (),
+        start_time: Optional[float] = 0.0,
+        end_time: Optional[float] = None,
+        annotation_status: str = constances.AnnotationStatus.NOT_STARTED,
+        image_quality_in_editor=None,
+    ):
+        super().__init__(reporter)
+        self._service = service
+        self._project = project
+        self._folder = folder
+        self._settings = settings
+        self._s3_repo = s3_repo
+        self._paths = paths
+        self._target_fps = target_fps
+        self._extensions = extensions
+        self._exclude_file_patterns = exclude_file_patterns
+        self._start_time = start_time
+        self._end_time = end_time
+        self._annotation_status = annotation_status
+        self._image_quality_in_editor = image_quality_in_editor
+
+    @property
+    def annotation_status(self):
+        if not self._annotation_status:
+            return constances.AnnotationStatus.NOT_STARTED.name
+        return self._annotation_status
+
+    @property
+    def upload_path(self):
+        if self._folder.name != "root":
+            return f"{self._project.name}/{self._folder.name}"
+        return self._project.name
+
+    @property
+    def exclude_file_patterns(self):
+        if not self._exclude_file_patterns:
+            return []
+        return self._exclude_file_patterns
+
+    @property
+    def extensions(self):
+        if not self._extensions:
+            return constances.DEFAULT_VIDEO_EXTENSIONS
+        return self._extensions
+
+    def validate_project_type(self):
+        if self._project.project_type in constances.LIMITED_FUNCTIONS:
+            raise AppValidationException(
+                constances.LIMITED_FUNCTIONS[self._project.project_type]
+            )
+
+    def validate_paths(self):
+        validated_paths = set()
+        for path in self._paths:
+            path = Path(path)
+            if (
+                path.exists()
+                and path.name not in self.exclude_file_patterns
+                and path.suffix.split(".")[-1] in self.extensions
+            ):
+                validated_paths.add(path)
+        if not validated_paths:
+            raise AppValidationException("There is no valid path.")
+
+        self._paths = list(validated_paths)
+
+    def execute(self) -> Response:
+        if self.is_valid():
+            data = {}
+            for path in self._paths:
+                with tempfile.TemporaryDirectory() as temp_path:
+                    frame_names = VideoPlugin.get_extractable_frames(
+                        path, self._start_time, self._end_time, self._target_fps
+                    )
+                    duplicate_images = (
+                        GetBulkImages(
+                            service=self._service,
+                            project_id=self._project.uuid,
+                            team_id=self._project.team_id,
+                            folder_id=self._folder.uuid,
+                            images=frame_names,
+                        )
+                        .execute()
+                        .data
+                    )
+                    duplicate_images = [image.name for image in duplicate_images]
+                    frames_generator_use_case = ExtractFramesUseCase(
+                        backend_service_provider=self._service,
+                        project=self._project,
+                        folder=self._folder,
+                        video_path=path,
+                        extract_path=temp_path,
+                        start_time=self._start_time,
+                        end_time=self._end_time,
+                        target_fps=self._target_fps,
+                        annotation_status_code=self.annotation_status,
+                        image_quality_in_editor=self._image_quality_in_editor,
+                    )
+                    if not frames_generator_use_case.is_valid():
+                        self._response.errors = use_case.response.errors
+                        return self._response
+
+                    frames_generator = frames_generator_use_case.execute()
+
+                    total_frames_count = len(frame_names)
+                    self.reporter.log_info(
+                        f"Video frame count is {total_frames_count}."
+                    )
+                    self.reporter.log_info(
+                        f"Extracted {total_frames_count} frames from video. Now uploading to platform.",
+                    )
+                    self.reporter.log_info(
+                        f"Uploading {total_frames_count} images to project {str(self.upload_path)}."
+                    )
+                    if len(duplicate_images):
+                        self.reporter.log_warning(
+                            f"{len(duplicate_images)} already existing images found that won't be uploaded."
+                        )
+                    if set(duplicate_images) == set(frame_names):
+                        continue
+                    uploaded_paths = []
+                    for _ in frames_generator:
+                        with Progress(total_frames_count, f"Uploading {Path(path).name}") as progress:
+                            use_case = UploadImagesFromFolderToProject(
+                                project=self._project,
+                                folder=self._folder,
+                                backend_client=self._service,
+                                folder_path=temp_path,
+                                settings=self._settings,
+                                s3_repo=self._s3_repo,
+                                annotation_status=self.annotation_status,
+                                image_quality_in_editor=self._image_quality_in_editor,
+                            )
+
+                            images_to_upload, duplicates = use_case.images_to_upload
+                            if not len(images_to_upload):
+                                continue
+                            if use_case.is_valid():
+                                for _ in use_case.execute():
+                                    progress.update()
+
+                                uploaded, failed_images, _ = use_case.response.data
+                                uploaded_paths.extend(uploaded)
+                                if failed_images:
+                                    self.reporter.log_warning(
+                                        f"Failed {len(failed_images)}."
+                                    )
+                                files = os.listdir(temp_path)
+                                image_paths = [f"{temp_path}/{f}" for f in files]
+                                for image_path in image_paths:
+                                    os.remove(image_path)
+                            else:
+                                raise AppException(use_case.response.errors)
+                data[str(path)] = uploaded_paths
+            self._response.data = data
         return self._response
