@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import tempfile
+import warnings
 from pathlib import Path
 from typing import Iterable
 from typing import List
@@ -1091,6 +1092,11 @@ def share_project(
     :param user_role: user role to apply, one of Admin , Annotator , QA , Customer , Viewer
     :type user_role: str
     """
+    warnings.warn(
+        "The share_project function is deprecated and will be removed with the coming release, "
+        "please use add_contributors_to_project instead.",
+        DeprecationWarning
+    )
     if isinstance(user, dict):
         user_id = user["id"]
     else:
