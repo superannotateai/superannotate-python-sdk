@@ -1092,9 +1092,11 @@ def share_project(
     :param user_role: user role to apply, one of Admin , Annotator , QA , Customer , Viewer
     :type user_role: str
     """
+    warning_msg = "The share_project function is deprecated and will be removed with the coming release, " \
+                  "please use add_contributors_to_project instead."
+    logger.warning(warning_msg)
     warnings.warn(
-        "The share_project function is deprecated and will be removed with the coming release, "
-        "please use add_contributors_to_project instead.",
+        warning_msg,
         DeprecationWarning
     )
     if isinstance(user, dict):
