@@ -151,7 +151,7 @@ class TestFolders(TestCase):
             self.assertEqual(im1_array.dtype, im2_array.dtype)
             self.assertTrue(np.array_equal(im1_array, im2_array))
 
-    @pytest.mark.flaky(reruns=3)
+    @pytest.mark.flaky(reruns=4)
     def test_fuse_image_create_pixel_with_no_classes(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_dir = pathlib.Path(temp_dir)
