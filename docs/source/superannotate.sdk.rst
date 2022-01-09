@@ -49,6 +49,7 @@ ________
 .. autofunction:: superannotate.upload_annotations_from_folder_to_project
 .. autofunction:: superannotate.upload_preannotations_from_folder_to_project
 .. autofunction:: superannotate.share_project
+.. autofunction:: superannotate.add_contributors_to_project
 .. autofunction:: superannotate.get_project_settings
 .. autofunction:: superannotate.set_project_default_image_quality_in_editor
 .. autofunction:: superannotate.get_project_workflow
@@ -108,7 +109,7 @@ Team contributors
 _________________
 
 .. autofunction:: superannotate.get_team_metadata
-.. autofunction:: superannotate.invite_contributor_to_team
+.. autofunction:: superannotate.invite_contributors_to_team
 .. autofunction:: superannotate.search_team_contributors
 
 ----------

@@ -3,6 +3,7 @@ from os.path import dirname
 from unittest import TestCase
 import pytest
 import src.superannotate as sa
+from tests import DATA_SET_PATH
 
 
 class TestCloneProject(TestCase):
@@ -11,7 +12,7 @@ class TestCloneProject(TestCase):
     PROJECT_DESCRIPTION = "desc"
     PROJECT_TYPE = "Vector"
     IMAGE_QUALITY = "original"
-    PATH_TO_URLS = "data_set/attach_urls.csv"
+    PATH_TO_URLS = "attach_urls.csv"
 
     def setUp(self, *args, **kwargs):
         self.tearDown()
@@ -26,7 +27,7 @@ class TestCloneProject(TestCase):
     def test_create_like_project(self):
         _, _, _ = sa.attach_image_urls_to_project(
             self.PROJECT_NAME_1,
-            os.path.join(dirname(dirname(__file__)), self.PATH_TO_URLS),
+            os.path.join(DATA_SET_PATH, self.PATH_TO_URLS),
         )
 
         sa.create_annotation_class(
@@ -47,7 +48,7 @@ class TestCloneProject(TestCase):
             ],
         )
 
-        sa.set_project_default_image_quality_in_editor(self.PROJECT_NAME_1,self.IMAGE_QUALITY)
+        sa.set_project_default_image_quality_in_editor(self.PROJECT_NAME_1, self.IMAGE_QUALITY)
 
         sa.set_project_workflow(
             self.PROJECT_NAME_1,
@@ -85,7 +86,7 @@ class TestCloneProject(TestCase):
             if setting["attribute"].lower() == "imagequality":
                 image_quality = setting["value"]
                 break
-        self.assertEqual(image_quality,self.IMAGE_QUALITY)
+        self.assertEqual(image_quality, self.IMAGE_QUALITY)
         self.assertEqual(new_project["description"], self.PROJECT_DESCRIPTION)
         self.assertEqual(new_project["type"].lower(), "vector")
 
@@ -119,7 +120,6 @@ class TestCloneProjectAttachedUrls(TestCase):
     @pytest.fixture(autouse=True)
     def inject_fixtures(self, caplog):
         self._caplog = caplog
-
 
     def setUp(self, *args, **kwargs):
         self.tearDown()
@@ -160,4 +160,4 @@ class TestCloneProjectAttachedUrls(TestCase):
         self.assertEqual(len(ann_classes), 1)
         self.assertEqual(ann_classes[0]["name"], "rrr")
         self.assertEqual(ann_classes[0]["color"], "#FFAAFF")
-        self.assertIn("Workflow copy is deprecated for Document projects.",self._caplog.text)
+        self.assertIn("Workflow copy is deprecated for Document projects.", self._caplog.text)

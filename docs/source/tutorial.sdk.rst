@@ -388,7 +388,7 @@ A team contributor can be invited to the team with:
 
 .. code-block:: python
 
-   sa.invite_contributor_to_team(email="hovnatan@superannotate.com", admin=False)
+   sa.invite_contributors_to_team(emails=["hovnatan@superannotate.com"], admin=False)
 
 
 This invitation should be accepted by the contributor. After which, to share the 

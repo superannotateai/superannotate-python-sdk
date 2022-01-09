@@ -14,9 +14,9 @@ CONFIG_FILE_LOCATION = str(Path.home() / ".superannotate" / "config.json")
 LOG_FILE_LOCATION = str(Path.home() / ".superannotate" / "sa.log")
 BACKEND_URL = "https://api.annotate.online"
 
-DEFAULT_IMAGE_EXTENSIONS = ("jpg", "jpeg", "png", "tif", "tiff", "webp", "bmp")
-DEFAULT_FILE_EXCLUDE_PATTERNS = ("___save.png", "___fuse.png")
-DEFAULT_VIDEO_EXTENSIONS = ("mp4", "avi", "mov", "webm", "flv", "mpg", "ogg")
+DEFAULT_IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "tif", "tiff", "webp", "bmp"]
+DEFAULT_FILE_EXCLUDE_PATTERNS = ["___save.png", "___fuse.png"]
+DEFAULT_VIDEO_EXTENSIONS = ["mp4", "avi", "mov", "webm", "flv", "mpg", "ogg"]
 DEFAULT_HYPER_PARAMETERS = {
     "instance_type": "1 x T4 16 GB",
     "num_epochs": 12,

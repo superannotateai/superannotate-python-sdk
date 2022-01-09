@@ -178,6 +178,7 @@ class SuperannotateBackendService(BaseBackendService):
     URL_ANNOTATION_CLASSES = "classes"
     URL_TEAM = "team"
     URL_INVITE_CONTRIBUTOR = "team/{}/invite"
+    URL_INVITE_CONTRIBUTORS = "team/{}/inviteUsers"
     URL_PREPARE_EXPORT = "export"
     URL_COPY_IMAGES_FROM_FOLDER = "images/copy-image-or-folders"
     URL_MOVE_IMAGES_FROM_FOLDER = "image/move"
@@ -501,17 +502,6 @@ class SuperannotateBackendService(BaseBackendService):
         res = self._request(get_team_url, "get")
         return res.json()
 
-    def invite_contributor(self, team_id: int, email: str, user_role: str) -> bool:
-        invite_contributor_url = urljoin(
-            self.api_url, self.URL_INVITE_CONTRIBUTOR.format(team_id)
-        )
-        res = self._request(
-            invite_contributor_url,
-            "post",
-            data={"email": email, "user_role": user_role},
-        )
-        return res.ok
-
     def delete_team_invitation(self, team_id: int, token: str, email: str) -> bool:
         invite_contributor_url = urljoin(
             self.api_url, self.URL_INVITE_CONTRIBUTOR.format(team_id)
@@ -520,6 +510,17 @@ class SuperannotateBackendService(BaseBackendService):
             invite_contributor_url, "delete", data={"token": token, "e_mail": email}
         )
         return res.ok
+
+    def invite_contributors(self, team_id: int, team_role: int, emails: list) -> Tuple[List[str], List[str]]:
+        invite_contributors_url = urljoin(
+            self.api_url, self.URL_INVITE_CONTRIBUTORS.format(team_id)
+        )
+        res = self._request(
+            invite_contributors_url,
+            "post",
+            data=dict(emails=emails, team_role=team_role)
+        ).json()
+        return res["success"]["emails"], res["failed"]["emails"]
 
     def update_image(self, image_id: int, team_id: int, project_id: int, data: dict):
         update_image_url = urljoin(self.api_url, self.URL_GET_IMAGE.format(image_id))

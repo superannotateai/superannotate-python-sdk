@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import tempfile
+import warnings
 from pathlib import Path
 from typing import Iterable
 from typing import List
@@ -20,6 +21,8 @@ from lib.app.helpers import get_annotation_paths
 from lib.app.helpers import get_paths_and_duplicated_from_csv
 from lib.app.interface.types import AnnotationStatuses
 from lib.app.interface.types import AnnotationType
+from lib.app.interface.types import AnnotatorRole
+from lib.app.interface.types import EmailStr
 from lib.app.interface.types import ImageQualityChoices
 from lib.app.interface.types import NotEmptyStr
 from lib.app.interface.types import ProjectTypes
@@ -39,7 +42,7 @@ from lib.core.types import ClassesJson
 from lib.core.types import MLModel
 from lib.core.types import Project
 from lib.infrastructure.controller import Controller
-from pydantic import EmailStr
+from pydantic import conlist
 from pydantic import parse_obj_as
 from pydantic import StrictBool
 from tqdm import tqdm
@@ -78,19 +81,6 @@ def get_team_metadata():
     """
     response = controller.get_team()
     return TeamSerializer(response.data).serialize()
-
-
-@Trackable
-@validate_arguments
-def invite_contributor_to_team(email: EmailStr, admin: bool = False):
-    """Invites a contributor to team
-
-    :param email: email of the contributor
-    :type email: str
-    :param admin: enables admin priviledges for the contributor
-    :type admin: bool
-    """
-    controller.invite_contributor(email, is_admin=admin)
 
 
 @Trackable
@@ -1102,6 +1092,13 @@ def share_project(
     :param user_role: user role to apply, one of Admin , Annotator , QA , Customer , Viewer
     :type user_role: str
     """
+    warning_msg = "The share_project function is deprecated and will be removed with the coming release, " \
+                  "please use add_contributors_to_project instead."
+    logger.warning(warning_msg)
+    warnings.warn(
+        warning_msg,
+        DeprecationWarning
+    )
     if isinstance(user, dict):
         user_id = user["id"]
     else:
@@ -2461,7 +2458,11 @@ def add_annotation_bbox_to_image(
     :param error: if not None, marks annotation as error (True) or no-error (False)
     :type error: bool
     """
-    annotations = get_image_annotations(project, image_name)["annotation_json"]
+    project_name, folder_name = extract_project_folder(project)
+    response = controller.get_image_annotations(
+        project_name=project_name, folder_name=folder_name, image_name=image_name
+    )
+    annotations = response.data["annotation_json"]
     annotations = add_annotation_bbox_to_json(
         annotations,
         bbox,
@@ -2503,9 +2504,18 @@ def add_annotation_point_to_image(
     :param error: if not None, marks annotation as error (True) or no-error (False)
     :type error: bool
     """
-    annotations = get_image_annotations(project, image_name)["annotation_json"]
+    project_name, folder_name = extract_project_folder(project)
+    response = controller.get_image_annotations(
+        project_name=project_name, folder_name=folder_name, image_name=image_name
+    )
+    annotations = response.data["annotation_json"]
     annotations = add_annotation_point_to_json(
-        annotations, point, annotation_class_name, annotation_class_attributes, error
+        annotations,
+        point,
+        annotation_class_name,
+        image_name,
+        annotation_class_attributes,
+        error,
     )
     controller.upload_image_annotations(
         *extract_project_folder(project), image_name, annotations
@@ -2537,7 +2547,11 @@ def add_annotation_comment_to_image(
     :param resolved: comment resolve status
     :type resolved: bool
     """
-    annotations = get_image_annotations(project, image_name)["annotation_json"]
+    project_name, folder_name = extract_project_folder(project)
+    response = controller.get_image_annotations(
+        project_name=project_name, folder_name=folder_name, image_name=image_name
+    )
+    annotations = response.data["annotation_json"]
     annotations = add_annotation_comment_to_json(
         annotations,
         comment_text,
@@ -2894,3 +2908,50 @@ def validate_annotations(
             return True
         print(response.report)
         return False
+
+
+@Trackable
+@validate_arguments
+def add_contributors_to_project(
+    project: NotEmptyStr, emails: conlist(EmailStr, min_items=1), role: AnnotatorRole
+) -> Tuple[List[str], List[str]]:
+    """Add contributors to project.
+
+    :param project: project name
+    :type project: str
+
+    :param emails: users email
+    :type emails: list
+
+    :param role: user role to apply, one of Admin , Annotator , QA
+    :type role: str
+
+    return: lists of added,  skipped contributors of the project
+    rtype: tuple (2 members) of lists of strs
+    """
+    response = controller.add_contributors_to_project(
+        project_name=project, emails=emails, role=role
+    )
+    if response.errors:
+        raise AppException(response.errors)
+    return response.data
+
+
+@Trackable
+@validate_arguments
+def invite_contributors_to_team(emails: conlist(EmailStr, min_items=1), admin: StrictBool = False) -> Tuple[List[str], List[str]]:
+    """Invites contributors to the team.
+
+    :param emails: list of contributor emails
+    :type emails: list
+
+    :param admin: enables admin privileges for the contributor
+    :type admin: bool
+
+    return: lists of invited, skipped contributors of the team
+    rtype: tuple (2 members) of lists of strs
+    """
+    response = controller.invite_contributors_to_team(emails=emails, set_admin=admin)
+    if response.errors:
+        raise AppException(response.errors)
+    return response.data
