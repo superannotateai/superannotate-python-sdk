@@ -1,7 +1,7 @@
 """
 Labelbox to SA conversion method
 """
-import logging
+from superannotate.logger import get_default_logger
 import threading
 from pathlib import Path
 
@@ -18,7 +18,7 @@ from .labelbox_helper import _create_attributes_list
 from .labelbox_helper import _create_classes_id_map
 from .labelbox_helper import image_downloader
 
-logger = logging.getLogger()
+logger = get_default_logger()
 
 
 def labelbox_instance_segmentation_to_sa_pixel(json_data, output_dir, input_dir):

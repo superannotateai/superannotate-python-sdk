@@ -1,5 +1,5 @@
 import copy
-import logging
+from superannotate.logger import get_default_logger
 from collections import defaultdict
 from typing import Iterable
 from typing import List
@@ -25,7 +25,7 @@ from lib.core.usecases.base import BaseUseCase
 from lib.core.usecases.base import BaseUserBasedUseCase
 from requests.exceptions import RequestException
 
-logger = logging.getLogger("root")
+logger = get_default_logger()
 
 
 class GetProjectsUseCase(BaseUseCase):

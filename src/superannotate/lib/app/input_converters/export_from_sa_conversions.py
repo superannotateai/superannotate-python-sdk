@@ -4,7 +4,7 @@ superannotate annotation format to other annotation formats
 """
 import copy
 import json
-import logging
+from superannotate.logger import get_default_logger
 import shutil
 from pathlib import Path
 
@@ -12,7 +12,7 @@ import numpy as np
 
 from .converters.converters import Converter
 
-logger = logging.getLogger()
+logger = get_default_logger()
 
 
 def _load_files(path_to_imgs, task, ptype):

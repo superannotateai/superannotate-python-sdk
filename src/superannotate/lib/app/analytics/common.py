@@ -1,5 +1,5 @@
 import json
-import logging
+from superannotate.logger import get_default_logger
 from pathlib import Path
 
 import pandas as pd
@@ -8,7 +8,7 @@ from lib.app.exceptions import AppException
 from lib.core import DEPRICATED_DOCUMENT_VIDEO_MESSAGE
 
 
-logger = logging.getLogger("root")
+logger = get_default_logger()
 
 
 def aggregate_image_annotations_as_df(

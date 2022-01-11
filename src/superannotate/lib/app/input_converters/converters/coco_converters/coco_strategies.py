@@ -1,6 +1,6 @@
 """
 """
-import logging
+from superannotate.logger import get_default_logger
 import threading
 from pathlib import Path
 
@@ -11,7 +11,7 @@ from ....common import tqdm_converter
 from ....common import write_to_json
 from .coco_converter import CocoBaseStrategy
 
-logger = logging.getLogger()
+logger = get_default_logger()
 
 
 class CocoPanopticConverterStrategy(CocoBaseStrategy):

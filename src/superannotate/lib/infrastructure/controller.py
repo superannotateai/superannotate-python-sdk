@@ -1,6 +1,6 @@
 import copy
 import io
-import logging
+from superannotate.logger import get_default_logger
 from os.path import expanduser
 from pathlib import Path
 from typing import Iterable
@@ -55,7 +55,7 @@ class BaseController(metaclass=SingleInstanceMetaClass):
         self._team_data = None
         self._config_path = None
         self._backend_client = None
-        self._logger = logging.getLogger("root")
+        self._logger = get_default_logger()
         self._s3_upload_auth_data = None
         self._projects = None
         self._folders = None

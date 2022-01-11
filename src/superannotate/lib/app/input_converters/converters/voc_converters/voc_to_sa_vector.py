@@ -1,7 +1,7 @@
 """
 VOC to SA conversion method
 """
-import logging
+from superannotate.logger import get_default_logger
 import threading
 
 import cv2
@@ -15,7 +15,7 @@ from .voc_helper import _get_image_shape_from_xml
 from .voc_helper import _get_voc_instances_from_xml
 from .voc_helper import _iou
 
-logger = logging.getLogger()
+logger = get_default_logger()
 
 
 def _generate_polygons(object_mask_path):

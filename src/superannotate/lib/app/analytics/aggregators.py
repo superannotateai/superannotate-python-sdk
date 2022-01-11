@@ -1,6 +1,6 @@
 import copy
 import json
-import logging
+from superannotate.logger import get_default_logger
 from pathlib import Path
 from typing import List
 from typing import Optional
@@ -14,7 +14,7 @@ from lib.core import ATTACHED_VIDEO_ANNOTATION_POSTFIX
 from lib.core import PIXEL_ANNOTATION_POSTFIX
 from lib.core import VECTOR_ANNOTATION_POSTFIX
 
-logger = logging.getLogger("root")
+logger = get_default_logger()
 
 
 @dataclass

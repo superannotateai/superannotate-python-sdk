@@ -1,4 +1,4 @@
-import logging
+from superannotate.logger import get_default_logger
 from pathlib import Path
 
 import pandas as pd
@@ -9,7 +9,7 @@ from superannotate.lib.core import DEPRICATED_DOCUMENT_VIDEO_MESSAGE
 
 from .common import aggregate_image_annotations_as_df
 
-logger = logging.getLogger()
+logger = get_default_logger()
 
 
 @Trackable

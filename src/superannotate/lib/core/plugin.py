@@ -1,5 +1,5 @@
 import io
-import logging
+from superannotate.logger import get_default_logger
 from pathlib import Path
 from typing import List
 from typing import Tuple
@@ -12,7 +12,7 @@ from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageOps
 
-logger = logging.getLogger()
+logger = get_default_logger()
 
 
 class ImagePlugin:

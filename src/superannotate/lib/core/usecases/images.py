@@ -2,7 +2,7 @@ import concurrent.futures
 import copy
 import io
 import json
-import logging
+from superannotate.logger import get_default_logger
 import os.path
 import random
 import time
@@ -47,7 +47,7 @@ from lib.core.usecases.projects import GetAnnotationClassesUseCase
 from lib.core.validators import BaseAnnotationValidator
 from PIL import UnidentifiedImageError
 
-logger = logging.getLogger("root")
+logger = get_default_logger()
 
 
 class GetImagesUseCase(BaseUseCase):

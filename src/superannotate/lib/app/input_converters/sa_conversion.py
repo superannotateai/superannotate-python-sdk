@@ -1,5 +1,5 @@
 import json
-import logging
+from superannotate.logger import get_default_logger
 import shutil
 
 import cv2
@@ -11,7 +11,7 @@ from ..common import blue_color_generator
 from ..common import hex_to_rgb
 from ..common import write_to_json
 
-logger = logging.getLogger()
+logger = get_default_logger()
 
 
 def copy_file(src_path, dst_path):

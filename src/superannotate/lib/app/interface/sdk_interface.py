@@ -1,6 +1,6 @@
 import io
 import json
-import logging
+from superannotate.logger import get_default_logger
 import os
 import tempfile
 import warnings
@@ -49,7 +49,7 @@ from tqdm import tqdm
 
 
 controller = Controller.get_instance()
-logger = logging.getLogger("root")
+logger = get_default_logger()
 
 
 @validate_arguments

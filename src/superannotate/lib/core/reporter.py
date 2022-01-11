@@ -1,4 +1,4 @@
-import logging
+from superannotate.logger import get_default_logger
 from collections import defaultdict
 from typing import Union
 
@@ -13,7 +13,7 @@ class Reporter:
         disable_progress_bar: bool = False,
         log_debug: bool = True,
     ):
-        self.logger = logging.getLogger("root")
+        self.logger = get_default_logger()
         self._log_info = log_info
         self._log_warning = log_warning
         self._log_debug = log_debug

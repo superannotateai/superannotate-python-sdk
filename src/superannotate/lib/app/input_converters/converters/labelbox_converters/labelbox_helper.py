@@ -1,8 +1,8 @@
-import logging
+from superannotate.logger import get_default_logger
 
 import requests
 
-logger = logging.getLogger()
+logger = get_default_logger()
 
 
 def image_downloader(url, file_name):

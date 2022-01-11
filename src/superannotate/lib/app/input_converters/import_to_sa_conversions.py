@@ -2,13 +2,13 @@
 Module which will convert from other
 annotation formats to superannotate annotation format
 """
-import logging
+from superannotate.logger import get_default_logger
 import shutil
 from pathlib import Path
 
 from .converters.converters import Converter
 
-logger = logging.getLogger()
+logger = get_default_logger()
 
 
 def _load_files(path_to_imgs, ptype, extensions):

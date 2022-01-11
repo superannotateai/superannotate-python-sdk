@@ -1,5 +1,5 @@
 import json
-import logging
+from superannotate.logger import get_default_logger
 import os
 import sys
 import time
@@ -8,7 +8,7 @@ import numpy as np
 from PIL import Image
 from tqdm import tqdm
 
-logger = logging.getLogger()
+logger = get_default_logger()
 
 _PROJECT_TYPES = {"Vector": 1, "Pixel": 2}
 

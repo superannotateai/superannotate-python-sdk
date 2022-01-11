@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-import logging
+from superannotate.logger import get_default_logger
 
 import fire
 from lib.app.interface.cli_interface import CLIFacade
 
-logger = logging.getLogger()
+logger = get_default_logger()
 
 
 def main():

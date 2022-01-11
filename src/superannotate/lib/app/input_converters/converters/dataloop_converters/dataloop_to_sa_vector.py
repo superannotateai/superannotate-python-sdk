@@ -2,7 +2,7 @@
 Dataloop to SA conversion method
 """
 import json
-import logging
+from superannotate.logger import get_default_logger
 import threading
 
 from ....common import tqdm_converter
@@ -13,7 +13,7 @@ from ..sa_json_helper import _create_vector_instance
 from .dataloop_helper import _create_attributes_list
 from .dataloop_helper import _update_classes_dict
 
-logger = logging.getLogger()
+logger = get_default_logger()
 
 
 def dataloop_to_sa(input_dir, task, output_dir):

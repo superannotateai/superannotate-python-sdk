@@ -1,5 +1,5 @@
 import functools
-import logging
+from superannotate.logger import get_default_logger
 import sys
 
 from lib.infrastructure.controller import Controller
@@ -20,7 +20,7 @@ except AttributeError as e:
     TOKEN = "e741d4863e7e05b1a45833d01865ef0d"
 mp = Mixpanel(TOKEN)
 
-logger = logging.getLogger("root")
+logger = get_default_logger()
 
 
 def get_default(team_name, user_id, project_name=None):

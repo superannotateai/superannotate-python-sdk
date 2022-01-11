@@ -2,7 +2,7 @@
 COCO to SA conversion methods
 """
 import json
-import logging
+from superannotate.logger import get_default_logger
 import threading
 from pathlib import Path
 
@@ -16,7 +16,7 @@ from ..sa_json_helper import _create_vector_instance
 from .coco_api import _maskfrRLE
 from .coco_api import decode
 
-logger = logging.getLogger()
+logger = get_default_logger()
 
 
 def annot_to_polygon(annot):

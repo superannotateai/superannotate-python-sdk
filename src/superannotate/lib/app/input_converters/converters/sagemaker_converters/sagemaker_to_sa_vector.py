@@ -2,7 +2,7 @@
 Sagemaker to SA conversion method
 """
 import json
-import logging
+from superannotate.logger import get_default_logger
 import threading
 from pathlib import Path
 
@@ -11,7 +11,7 @@ from ....common import write_to_json
 from ..sa_json_helper import _create_sa_json
 from ..sa_json_helper import _create_vector_instance
 
-logger = logging.getLogger()
+logger = get_default_logger()
 
 
 def sagemaker_object_detection_to_sa_vector(data_path, main_key, output_dir):
