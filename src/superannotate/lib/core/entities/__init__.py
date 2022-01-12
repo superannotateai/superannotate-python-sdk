@@ -17,7 +17,6 @@ from lib.core.entities.vector import VectorAnnotation
 from lib.core.entities.video import VideoAnnotation
 from lib.core.entities.video_export import VideoAnnotation as VideoExportAnnotation
 
-
 __all__ = [
     "BaseEntity",
     "ProjectEntity",

@@ -36,7 +36,6 @@ from lib.app.serializers import TeamSerializer
 from lib.core import LIMITED_FUNCTIONS
 from lib.core.enums import ImageQuality
 from lib.core.exceptions import AppException
-from lib.core.plugin import VideoPlugin
 from lib.core.types import AttributeGroup
 from lib.core.types import ClassesJson
 from lib.core.types import MLModel
@@ -46,7 +45,6 @@ from pydantic import conlist
 from pydantic import parse_obj_as
 from pydantic import StrictBool
 from tqdm import tqdm
-
 
 controller = Controller.get_instance()
 logger = logging.getLogger("root")
@@ -728,6 +726,10 @@ def get_project_metadata(
                              the key "contributors"
     :type include_contributors: bool
 
+    :param include_complete_image_count: enables project complete image count output under
+                             the key "completed_images_count"
+    :type include_complete_image_count: bool
+
     :return: metadata of project
     :rtype: dict
     """
@@ -1163,19 +1165,27 @@ def upload_images_from_folder_to_project(
 
     :param project: project name or folder path (e.g., "project1/folder1")
     :type project: str or dict
+
     :param folder_path: from which folder to upload the images
     :type folder_path: Path-like (str or Path)
+
     :param extensions: tuple or list of filename extensions to include from folder
     :type extensions: tuple or list of strs
-    :param annotation_status: value to set the annotation statuses of the uploaded images NotStarted InProgress QualityCheck Returned Completed Skipped
+
+    :param annotation_status: value to set the annotation statuses of the uploaded images
+    NotStarted InProgress QualityCheck Returned Completed Skipped
     :type annotation_status: str
+
     :param from_s3_bucket: AWS S3 bucket to use. If None then folder_path is in local filesystem
     :type from_s3_bucket: str
+
     :param exclude_file_patterns: filename patterns to exclude from uploading,
                                  default value is to exclude SuperAnnotate export related ["___save.png", "___fuse.png"]
     :type exclude_file_patterns: list or tuple of strs
+
     :param recursive_subfolders: enable recursive subfolder parsing
     :type recursive_subfolders: bool
+
     :param image_quality_in_editor: image quality be seen in SuperAnnotate web annotation editor.
            Can be either "compressed" or "original".  If None then the default value in project settings will be used.
     :type image_quality_in_editor: str
@@ -1337,7 +1347,8 @@ def prepare_export(
     :type project: str
     :param folder_names: names of folders to include in the export. If None, whole project will be exported
     :type folder_names: list of str
-    :param annotation_statuses: images with which status to include, if None, ["NotStarted", "InProgress", "QualityCheck", "Returned", "Completed", "Skipped"]  will be chose
+    :param annotation_statuses: images with which status to include, if None,
+           ["NotStarted", "InProgress", "QualityCheck", "Returned", "Completed", "Skipped"]  will be chose
            list elements should be one of NotStarted InProgress QualityCheck Returned Completed Skipped
     :type annotation_statuses: list of strs
     :param include_fuse: enables fuse images in the export
@@ -1382,7 +1393,7 @@ def upload_videos_from_folder_to_project(
     extensions: Optional[
         Union[Tuple[NotEmptyStr], List[NotEmptyStr]]
     ] = constances.DEFAULT_VIDEO_EXTENSIONS,
-    exclude_file_patterns: Optional[List[NotEmptyStr]] = [],
+    exclude_file_patterns: Optional[List[NotEmptyStr]] = (),
     recursive_subfolders: Optional[StrictBool] = False,
     target_fps: Optional[int] = None,
     start_time: Optional[float] = 0.0,
@@ -1410,7 +1421,8 @@ def upload_videos_from_folder_to_project(
     :type start_time: float
     :param end_time: Time (in seconds) up to which to extract frames. If None up to end
     :type end_time: float
-    :param annotation_status: value to set the annotation statuses of the uploaded images NotStarted InProgress QualityCheck Returned Completed Skipped
+    :param annotation_status: value to set the annotation statuses of the uploaded images
+        NotStarted InProgress QualityCheck Returned Completed Skipped
     :type annotation_status: str
     :param image_quality_in_editor: image quality be seen in SuperAnnotate web annotation editor.
            Can be either "compressed" or "original".  If None then the default value in project settings will be used.
@@ -1421,12 +1433,6 @@ def upload_videos_from_folder_to_project(
     """
 
     project_name, folder_name = extract_project_folder(project)
-    project = controller.get_project_metadata(project_name).data
-    if project["project"].project_type in [
-        constances.ProjectType.VIDEO.value,
-        constances.ProjectType.DOCUMENT.value,
-    ]:
-        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
 
     video_paths = []
     for extension in extensions:
@@ -1436,97 +1442,28 @@ def upload_videos_from_folder_to_project(
                 video_paths += list(Path(folder_path).glob(f"*.{extension.upper()}"))
         else:
             logger.warning(
-                "When using recursive subfolder parsing same name videos in different subfolders will overwrite each other."
+                "When using recursive subfolder parsing same name videos "
+                "in different subfolders will overwrite each other."
             )
             video_paths += list(Path(folder_path).rglob(f"*.{extension.lower()}"))
             if os.name != "nt":
                 video_paths += list(Path(folder_path).rglob(f"*.{extension.upper()}"))
-    filtered_paths = []
+
     video_paths = [str(path) for path in video_paths]
-    for path in video_paths:
-
-        not_in_exclude_list = [x not in Path(path).name for x in exclude_file_patterns]
-        if all(not_in_exclude_list):
-            filtered_paths.append(path)
-
-    project_folder_name = project_name + (f"/{folder_name}" if folder_name else "")
-    logger.info(
-        f"Uploading all videos with extensions {extensions} from {str(folder_path)} to project {project_name}. Excluded file patterns are: {exclude_file_patterns}."
+    response = controller.upload_videos(
+        project_name=project_name,
+        folder_name=folder_name,
+        paths=video_paths,
+        target_fps=target_fps,
+        start_time=start_time,
+        exclude_file_patterns=exclude_file_patterns,
+        end_time=end_time,
+        annotation_status=annotation_status,
+        image_quality_in_editor=image_quality_in_editor,
     )
-    uploaded_paths = []
-    for path in filtered_paths:
-        progress_bar = None
-        with tempfile.TemporaryDirectory() as temp_path:
-            frame_names = VideoPlugin.get_extractable_frames(
-                path, start_time, end_time, target_fps
-            )
-            duplicate_images = (
-                controller.get_duplicate_images(
-                    project_name=project_name,
-                    folder_name=folder_name,
-                    images=frame_names,
-                )
-                .execute()
-                .data
-            )
-            duplicate_images = [image.name for image in duplicate_images]
-            frames_generator = controller.extract_video_frames(
-                project_name=project_name,
-                folder_name=folder_name,
-                video_path=path,
-                extract_path=temp_path,
-                target_fps=target_fps,
-                start_time=start_time,
-                end_time=end_time,
-                annotation_status=annotation_status,
-                image_quality_in_editor=image_quality_in_editor,
-            )
-            total_frames_count = len(frame_names)
-            logger.info(f"Video frame count is {total_frames_count}.")
-            logger.info(
-                f"Extracted {total_frames_count} frames from video. Now uploading to platform.",
-            )
-            logger.info(
-                f"Uploading {total_frames_count} images to project {str(project_folder_name)}."
-            )
-            if len(duplicate_images):
-                logger.warning(
-                    f"{len(duplicate_images)} already existing images found that won't be uploaded."
-                )
-            if set(duplicate_images) == set(frame_names):
-                continue
-
-            for _ in frames_generator:
-                use_case = controller.upload_images_from_folder_to_project(
-                    project_name=project_name,
-                    folder_name=folder_name,
-                    folder_path=temp_path,
-                    annotation_status=annotation_status,
-                    image_quality_in_editor=image_quality_in_editor,
-                )
-
-                images_to_upload, duplicates = use_case.images_to_upload
-                if not len(images_to_upload):
-                    continue
-                if not progress_bar:
-                    progress_bar = tqdm(
-                        total=total_frames_count, desc="Uploading images"
-                    )
-                if use_case.is_valid():
-                    for _ in use_case.execute():
-                        progress_bar.update()
-                    uploaded, failed_images, _ = use_case.response.data
-                    uploaded_paths.extend(uploaded)
-                    if failed_images:
-                        logger.warning(f"Failed {len(failed_images)}.")
-                    files = os.listdir(temp_path)
-                    image_paths = [f"{temp_path}/{f}" for f in files]
-                    for path in image_paths:
-                        os.remove(path)
-                else:
-                    raise AppException(use_case.response.errors)
-
-    return uploaded_paths
+    if response.errors:
+        raise AppException(response.errors)
+    return response.data.values
 
 
 @Trackable
@@ -1567,83 +1504,19 @@ def upload_video_to_project(
 
     project_name, folder_name = extract_project_folder(project)
 
-    project = controller.get_project_metadata(project_name).data
-    if project["project"].project_type in [
-        constances.ProjectType.VIDEO.value,
-        constances.ProjectType.DOCUMENT.value,
-    ]:
-        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
-    project_folder_name = project_name + (f"/{folder_name}" if folder_name else "")
-
-    uploaded_paths = []
-    path = video_path
-    progress_bar = None
-    with tempfile.TemporaryDirectory() as temp_path:
-        frame_names = VideoPlugin.get_extractable_frames(
-            video_path, start_time, end_time, target_fps
-        )
-        duplicate_images = (
-            controller.get_duplicate_images(
-                project_name=project_name, folder_name=folder_name, images=frame_names,
-            )
-            .execute()
-            .data
-        )
-        duplicate_images = [image.name for image in duplicate_images]
-        frames_generator = controller.extract_video_frames(
-            project_name=project_name,
-            folder_name=folder_name,
-            video_path=path,
-            extract_path=temp_path,
-            target_fps=target_fps,
-            start_time=start_time,
-            end_time=end_time,
-            annotation_status=annotation_status,
-            image_quality_in_editor=image_quality_in_editor,
-        )
-        total_frames_count = len(frame_names)
-        logger.info(
-            f"Extracted {total_frames_count} frames from video. Now uploading to platform.",
-        )
-        logger.info(
-            f"Uploading {total_frames_count} images to project {str(project_folder_name)}."
-        )
-        if len(duplicate_images):
-            logger.warning(
-                f"{len(duplicate_images)} already existing images found that won't be uploaded."
-            )
-        if set(duplicate_images) == set(frame_names):
-            return []
-
-        for _ in frames_generator:
-            use_case = controller.upload_images_from_folder_to_project(
-                project_name=project_name,
-                folder_name=folder_name,
-                folder_path=temp_path,
-                annotation_status=annotation_status,
-                image_quality_in_editor=image_quality_in_editor,
-            )
-
-            images_to_upload, duplicates = use_case.images_to_upload
-            if not len(images_to_upload):
-                continue
-            if not progress_bar:
-                progress_bar = tqdm(total=total_frames_count, desc="Uploading images")
-            if use_case.is_valid():
-                for _ in use_case.execute():
-                    progress_bar.update()
-                uploaded, failed_images, _ = use_case.response.data
-                uploaded_paths.extend(uploaded)
-                if failed_images:
-                    logger.warning(f"Failed {len(failed_images)}.")
-                files = os.listdir(temp_path)
-                image_paths = [f"{temp_path}/{f}" for f in files]
-                for path in image_paths:
-                    os.remove(path)
-            else:
-                raise AppException(use_case.response.errors)
-
-    return uploaded_paths
+    response = controller.upload_videos(
+        project_name=project_name,
+        folder_name=folder_name,
+        paths=[video_path],
+        target_fps=target_fps,
+        start_time=start_time,
+        end_time=end_time,
+        annotation_status=annotation_status,
+        image_quality_in_editor=image_quality_in_editor,
+    )
+    if response.errors:
+        raise AppException(response.errors)
+    return response.data.get(str(video_path), [])
 
 
 @Trackable
@@ -2939,7 +2812,9 @@ def add_contributors_to_project(
 
 @Trackable
 @validate_arguments
-def invite_contributors_to_team(emails: conlist(EmailStr, min_items=1), admin: StrictBool = False) -> Tuple[List[str], List[str]]:
+def invite_contributors_to_team(
+    emails: conlist(EmailStr, min_items=1), admin: StrictBool = False
+) -> Tuple[List[str], List[str]]:
     """Invites contributors to the team.
 
     :param emails: list of contributor emails
