@@ -1,11 +1,10 @@
 """
 Labelbox to SA conversion method
 """
-
 import threading
-from superannotate.logger import get_default_logger
 
 import cv2
+from superannotate.logger import get_default_logger
 
 from ....common import tqdm_converter
 from ....common import write_to_json

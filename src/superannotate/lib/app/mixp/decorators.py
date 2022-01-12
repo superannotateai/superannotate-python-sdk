@@ -1,9 +1,9 @@
 import functools
-from superannotate.logger import get_default_logger
 import sys
 
 from lib.infrastructure.controller import Controller
 from mixpanel import Mixpanel
+from superannotate.logger import get_default_logger
 from version import __version__
 
 from .utils import parsers

@@ -49,9 +49,7 @@ class BaseVideoInstance(BaseInstance):
 class BboxInstance(BaseVideoInstance):
     point_labels: Optional[
         Dict[constr(regex=r"^[0-9]+$"), NotEmptyStr]  # noqa F722
-    ] = Field(
-        None, alias="pointLabels"
-    )
+    ] = Field(None, alias="pointLabels")
     timeline: Dict[float, BboxTimeStamp]
 
 

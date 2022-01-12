@@ -1,11 +1,11 @@
 """
 VOC to SA conversion method
 """
-from superannotate.logger import get_default_logger
 import threading
 
 import cv2
 import numpy as np
+from superannotate.logger import get_default_logger
 
 from ....common import tqdm_converter
 from ....common import write_to_json

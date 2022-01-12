@@ -1,7 +1,6 @@
 """
 """
 import json
-from superannotate.logger import get_default_logger
 from collections import namedtuple
 from datetime import datetime
 from pathlib import Path
@@ -9,6 +8,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 from PIL import Image
+from superannotate.logger import get_default_logger
 
 from ....common import id2rgb
 from ....common import write_to_json

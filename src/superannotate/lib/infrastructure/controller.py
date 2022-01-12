@@ -1,6 +1,5 @@
 import copy
 import io
-from superannotate.logger import get_default_logger
 from os.path import expanduser
 from pathlib import Path
 from typing import Iterable
@@ -34,6 +33,7 @@ from lib.infrastructure.repositories import TeamRepository
 from lib.infrastructure.repositories import WorkflowRepository
 from lib.infrastructure.services import SuperannotateBackendService
 from lib.infrastructure.validators import AnnotationValidator
+from superannotate.logger import get_default_logger
 
 
 class SingleInstanceMetaClass(type):

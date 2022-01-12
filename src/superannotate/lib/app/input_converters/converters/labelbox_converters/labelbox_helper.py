@@ -1,6 +1,5 @@
-from superannotate.logger import get_default_logger
-
 import requests
+from superannotate.logger import get_default_logger
 
 logger = get_default_logger()
 

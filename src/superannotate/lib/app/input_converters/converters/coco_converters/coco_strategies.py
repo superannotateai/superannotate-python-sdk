@@ -1,10 +1,10 @@
 """
 """
-from superannotate.logger import get_default_logger
 import threading
 from pathlib import Path
 
 from PIL import Image
+from superannotate.logger import get_default_logger
 
 from ....common import id2rgb
 from ....common import tqdm_converter

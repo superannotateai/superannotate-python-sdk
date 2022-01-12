@@ -1,6 +1,5 @@
 import io
 import json
-from superannotate.logger import get_default_logger
 import os
 import tempfile
 import warnings
@@ -45,6 +44,7 @@ from lib.infrastructure.controller import Controller
 from pydantic import conlist
 from pydantic import parse_obj_as
 from pydantic import StrictBool
+from superannotate.logger import get_default_logger
 from tqdm import tqdm
 
 
@@ -1092,13 +1092,12 @@ def share_project(
     :param user_role: user role to apply, one of Admin , Annotator , QA , Customer , Viewer
     :type user_role: str
     """
-    warning_msg = "The share_project function is deprecated and will be removed with the coming release, " \
-                  "please use add_contributors_to_project instead."
-    logger.warning(warning_msg)
-    warnings.warn(
-        warning_msg,
-        DeprecationWarning
+    warning_msg = (
+        "The share_project function is deprecated and will be removed with the coming release, "
+        "please use add_contributors_to_project instead."
     )
+    logger.warning(warning_msg)
+    warnings.warn(warning_msg, DeprecationWarning)
     if isinstance(user, dict):
         user_id = user["id"]
     else:
@@ -2939,7 +2938,9 @@ def add_contributors_to_project(
 
 @Trackable
 @validate_arguments
-def invite_contributors_to_team(emails: conlist(EmailStr, min_items=1), admin: StrictBool = False) -> Tuple[List[str], List[str]]:
+def invite_contributors_to_team(
+    emails: conlist(EmailStr, min_items=1), admin: StrictBool = False
+) -> Tuple[List[str], List[str]]:
     """Invites contributors to the team.
 
     :param emails: list of contributor emails

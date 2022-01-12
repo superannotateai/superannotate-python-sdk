@@ -2,12 +2,12 @@
 COCO to SA conversion methods
 """
 import json
-from superannotate.logger import get_default_logger
 import threading
 from pathlib import Path
 
 import cv2
 import numpy as np
+from superannotate.logger import get_default_logger
 
 from ....common import tqdm_converter
 from ....common import write_to_json

@@ -1,9 +1,9 @@
 """
 SA to COCO conversion methods
 """
-from superannotate.logger import get_default_logger
-
 import threading
+
+from superannotate.logger import get_default_logger
 
 from ....common import tqdm_converter
 from .coco_api import _area

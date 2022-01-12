@@ -1,7 +1,6 @@
 import concurrent.futures
 import io
 import json
-from superannotate.logger import get_default_logger
 import os
 from collections import namedtuple
 from typing import List
@@ -27,6 +26,7 @@ from lib.core.usecases.base import BaseReportableUseCae
 from lib.core.usecases.images import GetBulkImages
 from lib.core.usecases.images import ValidateAnnotationUseCase
 from lib.infrastructure.validators import BaseAnnotationValidator
+from superannotate.logger import get_default_logger
 
 logger = get_default_logger()
 

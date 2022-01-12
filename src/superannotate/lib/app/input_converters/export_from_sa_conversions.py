@@ -4,11 +4,11 @@ superannotate annotation format to other annotation formats
 """
 import copy
 import json
-from superannotate.logger import get_default_logger
 import shutil
 from pathlib import Path
 
 import numpy as np
+from superannotate.logger import get_default_logger
 
 from .converters.converters import Converter
 

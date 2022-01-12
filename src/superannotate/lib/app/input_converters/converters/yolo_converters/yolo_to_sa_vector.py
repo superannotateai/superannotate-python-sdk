@@ -1,12 +1,12 @@
 """
 YOLO to SA conversion method
 """
-from superannotate.logger import get_default_logger
 import threading
 from glob import glob
 from pathlib import Path
 
 import cv2
+from superannotate.logger import get_default_logger
 
 from ....common import tqdm_converter
 from ....common import write_to_json

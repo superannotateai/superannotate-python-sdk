@@ -1,4 +1,3 @@
-from superannotate.logger import get_default_logger
 from pathlib import Path
 
 import pandas as pd
@@ -6,6 +5,7 @@ import plotly.express as px
 from lib.app.mixp.decorators import Trackable
 from superannotate.lib.app.exceptions import AppException
 from superannotate.lib.core import DEPRICATED_DOCUMENT_VIDEO_MESSAGE
+from superannotate.logger import get_default_logger
 
 from .common import aggregate_image_annotations_as_df
 

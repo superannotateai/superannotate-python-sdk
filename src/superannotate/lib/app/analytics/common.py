@@ -1,11 +1,11 @@
 import json
-from superannotate.logger import get_default_logger
 from pathlib import Path
 
 import pandas as pd
 import plotly.express as px
 from lib.app.exceptions import AppException
 from lib.core import DEPRICATED_DOCUMENT_VIDEO_MESSAGE
+from superannotate.logger import get_default_logger
 
 
 logger = get_default_logger()

@@ -1,11 +1,11 @@
 import json
-from superannotate.logger import get_default_logger
 import os
 import sys
 import time
 
 import numpy as np
 from PIL import Image
+from superannotate.logger import get_default_logger
 from tqdm import tqdm
 
 logger = get_default_logger()

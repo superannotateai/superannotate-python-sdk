@@ -511,14 +511,16 @@ class SuperannotateBackendService(BaseBackendService):
         )
         return res.ok
 
-    def invite_contributors(self, team_id: int, team_role: int, emails: list) -> Tuple[List[str], List[str]]:
+    def invite_contributors(
+        self, team_id: int, team_role: int, emails: list
+    ) -> Tuple[List[str], List[str]]:
         invite_contributors_url = urljoin(
             self.api_url, self.URL_INVITE_CONTRIBUTORS.format(team_id)
         )
         res = self._request(
             invite_contributors_url,
             "post",
-            data=dict(emails=emails, team_role=team_role)
+            data=dict(emails=emails, team_role=team_role),
         ).json()
         return res["success"]["emails"], res["failed"]["emails"]
 

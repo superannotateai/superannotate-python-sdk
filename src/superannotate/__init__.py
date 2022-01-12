@@ -106,8 +106,8 @@ from superannotate.lib.app.interface.sdk_interface import (
     upload_videos_from_folder_to_project,
 )
 from superannotate.lib.app.interface.sdk_interface import validate_annotations
-from superannotate.version import __version__
 from superannotate.logger import get_default_logger
+from superannotate.version import __version__
 
 __all__ = [
     "__version__",
@@ -209,6 +209,7 @@ WORKING_DIR = os.path.split(os.path.realpath(__file__))[0]
 sys.path.append(WORKING_DIR)
 logging.getLogger("botocore").setLevel(logging.CRITICAL)
 logger = get_default_logger()
+
 
 def log_version_info():
     local_version = parse(__version__)

@@ -1,11 +1,11 @@
 import json
-from superannotate.logger import get_default_logger
 import shutil
 
 import cv2
 import numpy as np
 from lib.app.exceptions import AppException
 from lib.core import DEPRICATED_DOCUMENT_VIDEO_MESSAGE
+from superannotate.logger import get_default_logger
 
 from ..common import blue_color_generator
 from ..common import hex_to_rgb

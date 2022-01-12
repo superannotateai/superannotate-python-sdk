@@ -2,9 +2,10 @@
 Module which will convert from other
 annotation formats to superannotate annotation format
 """
-from superannotate.logger import get_default_logger
 import shutil
 from pathlib import Path
+
+from superannotate.logger import get_default_logger
 
 from .converters.converters import Converter
 

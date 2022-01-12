@@ -2,12 +2,12 @@
 Supervisely to SA conversion method
 """
 import json
-from superannotate.logger import get_default_logger
 import threading
 from pathlib import Path
 
 import cv2
 import numpy as np
+from superannotate.logger import get_default_logger
 
 from ....common import blue_color_generator
 from ....common import hex_to_rgb

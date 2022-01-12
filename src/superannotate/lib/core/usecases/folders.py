@@ -1,4 +1,3 @@
-from superannotate.logger import get_default_logger
 from typing import List
 
 import lib.core as constances
@@ -12,6 +11,7 @@ from lib.core.repositories import BaseManageableRepository
 from lib.core.repositories import BaseReadOnlyRepository
 from lib.core.serviceproviders import SuerannotateServiceProvider
 from lib.core.usecases.base import BaseUseCase
+from superannotate.logger import get_default_logger
 
 logger = get_default_logger()
 

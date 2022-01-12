@@ -1,8 +1,8 @@
-from superannotate.logger import get_default_logger
 from collections import defaultdict
 from typing import Union
 
 import tqdm
+from superannotate.logger import get_default_logger
 
 
 class Reporter:
