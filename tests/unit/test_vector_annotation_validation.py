@@ -1,5 +1,5 @@
-from src.superannotate.lib.infrastructure.validators import AnnotationValidator
-from tests.utils.helpers import catch_prints
+from superannotate_schemas.validators import AnnotationValidators
+
 
 from unittest import TestCase
 
@@ -7,17 +7,23 @@ from unittest import TestCase
 class TestVectorValidators(TestCase):
 
     def test_validate_annotation_without_metadata(self):
-        validator = AnnotationValidator.get_vector_validator()({"instances": []})
+        validator = AnnotationValidators().get_validator("vector")({"instances": []})
         self.assertFalse(validator.is_valid())
-        self.assertEqual("metadatafieldrequired", validator.generate_report().strip().replace(" ", ""))
+        self.assertEqual(
+            "metadata                                         field required",
+            validator.generate_report()
+        )
 
     def test_validate_annotation_with_invalid_metadata(self):
-        validator = AnnotationValidator.get_vector_validator()({"metadata": {"name": 12}})
+        validator = AnnotationValidators().get_validator("vector")({"metadata": {"name": 12}})
         self.assertFalse(validator.is_valid())
-        self.assertEqual("metadata[name]strtypeexpected", validator.generate_report().strip().replace(" ", ""))
+        self.assertEqual(
+            "metadata.name                                    str type expected",
+            validator.generate_report()
+        )
 
     def test_validate_instances(self):
-        validator = AnnotationValidator.get_vector_validator()(
+        validator = AnnotationValidators().get_validator("vector")(
             {
                 "metadata": {"name": "12"},
                 "instances": [{"type": "invalid_type"}, {"type": "bbox"}]
@@ -25,6 +31,10 @@ class TestVectorValidators(TestCase):
         )
 
         self.assertFalse(validator.is_valid())
-        print(validator.generate_report())
-        self.assertEqual("metadata[name]strtypeexpected", validator.generate_report().strip().replace(" ", ""))
+        self.assertEqual(
+            "instances[0].type                                invalid type, valid types are bbox, "
+            "template, cuboid, polygon, point, polyline, ellipse, rbbox\n"
+            "instances[1].points                              field required",
+            validator.generate_report()
+        )
 

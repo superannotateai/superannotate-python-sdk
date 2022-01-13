@@ -44,8 +44,8 @@ from lib.core.usecases.base import BaseInteractiveUseCase
 from lib.core.usecases.base import BaseReportableUseCae
 from lib.core.usecases.base import BaseUseCase
 from lib.core.usecases.projects import GetAnnotationClassesUseCase
-from lib.core.validators import BaseAnnotationValidator
 from PIL import UnidentifiedImageError
+from superannotate_schemas.validators import AnnotationValidators
 
 logger = logging.getLogger("root")
 
@@ -3069,7 +3069,7 @@ class ValidateAnnotationUseCase(BaseUseCase):
         self,
         project_type: str,
         annotation: dict,
-        validators: BaseAnnotationValidator,
+        validators: AnnotationValidators,
         allow_extra: bool = True,
     ):
         super().__init__()
@@ -3079,23 +3079,16 @@ class ValidateAnnotationUseCase(BaseUseCase):
         self._allow_extra = allow_extra
 
     def execute(self) -> Response:
-        validator = None
-        if self._project_type.lower() == constances.ProjectType.VECTOR.name.lower():
-            validator = self._validators.get_vector_validator()
-        elif self._project_type.lower() == constances.ProjectType.PIXEL.name.lower():
-            validator = self._validators.get_pixel_validator()
-        elif self._project_type.lower() == constances.ProjectType.VIDEO.name.lower():
-            validator = self._validators.get_video_validator()
-        elif self._project_type.lower() == constances.ProjectType.DOCUMENT.name.lower():
-            validator = self._validators.get_document_validator()
-        if validator:
+        try:
+            validator = self._validators.get_validator(self._project_type)
+
             validator = validator(self._annotation, allow_extra=self._allow_extra)
             if validator.is_valid():
                 self._response.data = True, validator.data
             else:
                 self._response.report = validator.generate_report()
                 self._response.data = False, validator.data
-        else:
+        except KeyError:
             self._response.errors = AppException(
                 f"There is not validator for type {self._project_type}."
             )
