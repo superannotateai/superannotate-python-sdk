@@ -3184,7 +3184,7 @@ class UploadVideosAsImages(BaseReportableUseCae):
 
     def execute(self) -> Response:
         if self.is_valid():
-            data = {}
+            data = []
             for path in self._paths:
                 with tempfile.TemporaryDirectory() as temp_path:
                     frame_names = VideoPlugin.get_extractable_frames(
@@ -3269,9 +3269,6 @@ class UploadVideosAsImages(BaseReportableUseCae):
                                     os.remove(image_path)
                             else:
                                 raise AppException(use_case.response.errors)
-
-
-
-                data[str(path)] = uploaded_paths
+                data.extend(uploaded_paths)
             self._response.data = data
         return self._response

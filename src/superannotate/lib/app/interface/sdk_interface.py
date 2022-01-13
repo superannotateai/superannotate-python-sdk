@@ -1463,7 +1463,7 @@ def upload_videos_from_folder_to_project(
     )
     if response.errors:
         raise AppException(response.errors)
-    return response.data.values
+    return response.data
 
 
 @Trackable
@@ -1516,7 +1516,7 @@ def upload_video_to_project(
     )
     if response.errors:
         raise AppException(response.errors)
-    return response.data.get(str(video_path), [])
+    return response.data
 
 
 @Trackable
