@@ -3237,8 +3237,8 @@ class UploadVideosAsImages(BaseReportableUseCae):
                     if set(duplicate_images) == set(frame_names):
                         continue
                     uploaded_paths = []
-                    for _ in frames_generator:
-                        with Progress(total_frames_count, f"Uploading {Path(path).name}") as progress:
+                    with Progress(total_frames_count, f"Uploading {Path(path).name}") as progress:
+                        for _ in frames_generator:
                             use_case = UploadImagesFromFolderToProject(
                                 project=self._project,
                                 folder=self._folder,
@@ -3269,6 +3269,9 @@ class UploadVideosAsImages(BaseReportableUseCae):
                                     os.remove(image_path)
                             else:
                                 raise AppException(use_case.response.errors)
+
+
+
                 data[str(path)] = uploaded_paths
             self._response.data = data
         return self._response

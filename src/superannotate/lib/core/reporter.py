@@ -90,7 +90,8 @@ class Progress(object):
         return self
 
     def __exit__(self, type, value, traceback):
-        self._progress_bar.clos()
+        if self._progress_bar:
+            self._progress_bar.close()
 
     def update(self, value=1):
         if not self._progress_bar:
