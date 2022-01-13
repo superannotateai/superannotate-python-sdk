@@ -40,6 +40,7 @@ from lib.core.reporter import Reporter
 from lib.core.repositories import BaseManageableRepository
 from lib.core.repositories import BaseReadOnlyRepository
 from lib.core.response import Response
+from lib.core.reporter import Progress
 from lib.core.serviceproviders import SuerannotateServiceProvider
 from lib.core.usecases.base import BaseInteractiveUseCase
 from lib.core.usecases.base import BaseReportableUseCae
@@ -3237,40 +3238,37 @@ class UploadVideosAsImages(BaseReportableUseCae):
                         continue
                     uploaded_paths = []
                     for _ in frames_generator:
-                        use_case = UploadImagesFromFolderToProject(
-                            project=self._project,
-                            folder=self._folder,
-                            backend_client=self._service,
-                            folder_path=temp_path,
-                            settings=self._settings,
-                            s3_repo=self._s3_repo,
-                            annotation_status=self.annotation_status,
-                            image_quality_in_editor=self._image_quality_in_editor,
-                        )
+                        with Progress(total_frames_count, f"Uploading {Path(path).name}") as progress:
+                            use_case = UploadImagesFromFolderToProject(
+                                project=self._project,
+                                folder=self._folder,
+                                backend_client=self._service,
+                                folder_path=temp_path,
+                                settings=self._settings,
+                                s3_repo=self._s3_repo,
+                                annotation_status=self.annotation_status,
+                                image_quality_in_editor=self._image_quality_in_editor,
+                            )
 
-                        images_to_upload, duplicates = use_case.images_to_upload
-                        if not len(images_to_upload):
-                            continue
-                        progress = self.reporter.get_progress_bar(
-                            total_frames_count, f"Uploading {Path(path).name}"
-                        )
-                        if use_case.is_valid():
-                            for _ in use_case.execute():
-                                progress.update()
+                            images_to_upload, duplicates = use_case.images_to_upload
+                            if not len(images_to_upload):
+                                continue
+                            if use_case.is_valid():
+                                for _ in use_case.execute():
+                                    progress.update()
 
-                            uploaded, failed_images, _ = use_case.response.data
-                            uploaded_paths.extend(uploaded)
-                            if failed_images:
-                                self.reporter.log_warning(
-                                    f"Failed {len(failed_images)}."
-                                )
-                            files = os.listdir(temp_path)
-                            image_paths = [f"{temp_path}/{f}" for f in files]
-                            for image_path in image_paths:
-                                os.remove(image_path)
-                        else:
-                            raise AppException(use_case.response.errors)
-                    progress.close()
+                                uploaded, failed_images, _ = use_case.response.data
+                                uploaded_paths.extend(uploaded)
+                                if failed_images:
+                                    self.reporter.log_warning(
+                                        f"Failed {len(failed_images)}."
+                                    )
+                                files = os.listdir(temp_path)
+                                image_paths = [f"{temp_path}/{f}" for f in files]
+                                for image_path in image_paths:
+                                    os.remove(image_path)
+                            else:
+                                raise AppException(use_case.response.errors)
                 data[str(path)] = uploaded_paths
             self._response.data = data
         return self._response
