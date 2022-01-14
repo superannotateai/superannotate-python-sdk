@@ -2334,6 +2334,8 @@ def add_annotation_bbox_to_image(
     response = controller.get_image_annotations(
         project_name=project_name, folder_name=folder_name, image_name=image_name
     )
+    if response.errors:
+        raise AppException(response.errors)
     annotations = response.data["annotation_json"]
     annotations = add_annotation_bbox_to_json(
         annotations,
@@ -2380,6 +2382,8 @@ def add_annotation_point_to_image(
     response = controller.get_image_annotations(
         project_name=project_name, folder_name=folder_name, image_name=image_name
     )
+    if response.errors:
+        raise AppException(response.errors)
     annotations = response.data["annotation_json"]
     annotations = add_annotation_point_to_json(
         annotations,
@@ -2423,6 +2427,8 @@ def add_annotation_comment_to_image(
     response = controller.get_image_annotations(
         project_name=project_name, folder_name=folder_name, image_name=image_name
     )
+    if response.errors:
+        raise AppException(response.errors)
     annotations = response.data["annotation_json"]
     annotations = add_annotation_comment_to_json(
         annotations,

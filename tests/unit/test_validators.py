@@ -8,7 +8,7 @@ from unittest.mock import patch
 from pydantic import ValidationError
 
 import src.superannotate as sa
-from src.superannotate.lib.core.entities.utils import TimedBaseModel
+
 
 VECTOR_ANNOTATION_JSON_WITH_BBOX = """
 {
@@ -89,13 +89,6 @@ class TestValidators(TestCase):
                 )
             sa.validate_annotations("Vector", os.path.join(self.vector_folder_path, f"{tmpdir_name}/vector.json"))
             mock_print.assert_any_call("metadata                                         field required")
-
-    def test_validate_annotation_invalid_date_time_format(self):
-        with self.assertRaisesRegexp(ValidationError, "does not match expected format YYYY-MM-DDTHH:MM:SS.fffZ"):
-            TimedBaseModel(createdAt="2021-11-02T15:11:50.065000Z")
-
-    def test_validate_annotation_valid_date_time_format(self):
-        self.assertEqual(TimedBaseModel(createdAt="2021-11-02T15:11:50.065Z").created_at, "2021-11-02T15:11:50.065Z")
 
 
 class TestTypeHandling(TestCase):

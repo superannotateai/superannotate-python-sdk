@@ -32,8 +32,9 @@ from lib.infrastructure.repositories import S3Repository
 from lib.infrastructure.repositories import TeamRepository
 from lib.infrastructure.repositories import WorkflowRepository
 from lib.infrastructure.services import SuperannotateBackendService
-from superannotate_schemas.validators import AnnotationValidators
 from superannotate.logger import get_default_logger
+from superannotate_schemas.validators import AnnotationValidators
+
 
 class SingleInstanceMetaClass(type):
     _instances = {}

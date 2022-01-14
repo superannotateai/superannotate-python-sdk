@@ -25,8 +25,8 @@ from lib.core.serviceproviders import SuerannotateServiceProvider
 from lib.core.usecases.base import BaseReportableUseCae
 from lib.core.usecases.images import GetBulkImages
 from lib.core.usecases.images import ValidateAnnotationUseCase
-from superannotate_schemas.validators import AnnotationValidators
 from superannotate.logger import get_default_logger
+from superannotate_schemas.validators import AnnotationValidators
 
 logger = get_default_logger()
 
