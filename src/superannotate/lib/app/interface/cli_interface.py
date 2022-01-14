@@ -22,7 +22,6 @@ from lib.core.entities import ConfigEntity
 from lib.infrastructure.controller import Controller
 from lib.infrastructure.repositories import ConfigRepository
 
-
 controller = Controller.get_instance()
 
 

@@ -1587,3 +1587,39 @@ class Controller(BaseController):
             service=self.backend_client,
         )
         return use_case.execute()
+
+    def upload_videos(
+        self,
+        project_name: str,
+        folder_name: str,
+        paths: List[str],
+        start_time: float,
+        extensions: List[str] = None,
+        exclude_file_patterns: List[str] = None,
+        end_time: Optional[float] = None,
+        target_fps: Optional[int] = None,
+        annotation_status: Optional[str] = None,
+        image_quality_in_editor: Optional[str] = None,
+    ):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+
+        use_case = usecases.UploadVideosAsImages(
+            reporter=self.default_reporter,
+            service=self.backend_client,
+            project=project,
+            folder=folder,
+            settings=ProjectSettingsRepository(
+                service=self._backend_client, project=project
+            ),
+            s3_repo=self.s3_repo,
+            paths=paths,
+            target_fps=target_fps,
+            extensions=extensions,
+            exclude_file_patterns=exclude_file_patterns,
+            start_time=start_time,
+            end_time=end_time,
+            annotation_status=annotation_status,
+            image_quality_in_editor=image_quality_in_editor,
+        )
+        return use_case.execute()

@@ -412,9 +412,7 @@ def image_consensus(df, image_name, annot_type):
     """
 
     try:
-        from shapely.geometry import box
-        from shapely.geometry import Point
-        from shapely.geometry import Polygon
+        from shapely.geometry import Point, Polygon, box
     except ImportError:
         raise ImportError(
             "To use superannotate.benchmark or superannotate.consensus functions please install "
