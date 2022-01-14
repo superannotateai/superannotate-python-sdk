@@ -238,7 +238,8 @@ logging.config.dictConfig(
                 "format": "SA-PYTHON-SDK - %(levelname)s - %(asctime)s - %(message)s"
             },
         },
-        "root": {  # root logger
+        "root": {
+            # "level": "INFO",
             "level": "DEBUG",
             "handlers": ["console", "fileHandler"],
         },

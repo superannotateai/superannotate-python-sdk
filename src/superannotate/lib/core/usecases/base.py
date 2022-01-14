@@ -68,6 +68,7 @@ class BaseUserBasedUseCase(BaseReportableUseCae, metaclass=ABCMeta):
     """
     class contain validation of unique emails
     """
+
     def __init__(self, reporter: Reporter, emails: List[str]):
         super().__init__(reporter)
         self._emails = emails
@@ -75,7 +76,9 @@ class BaseUserBasedUseCase(BaseReportableUseCae, metaclass=ABCMeta):
     def validate_emails(self):
         emails_to_add = set()
         unique_emails = [
-            email for email in self._emails if email not in emails_to_add and not emails_to_add.add(email)
+            email
+            for email in self._emails
+            if email not in emails_to_add and not emails_to_add.add(email)
         ]
         if unique_emails:
             self.reporter.log_info(
