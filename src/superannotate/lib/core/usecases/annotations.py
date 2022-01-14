@@ -1,7 +1,6 @@
 import concurrent.futures
 import io
 import json
-import logging
 import os
 from collections import namedtuple
 from typing import List
@@ -27,9 +26,9 @@ from lib.core.usecases.base import BaseReportableUseCae
 from lib.core.usecases.images import GetBulkImages
 from lib.core.usecases.images import ValidateAnnotationUseCase
 from superannotate_schemas.validators import AnnotationValidators
+from superannotate.logger import get_default_logger
 
-
-logger = logging.getLogger("root")
+logger = get_default_logger()
 
 
 class UploadAnnotationsUseCase(BaseReportableUseCae):

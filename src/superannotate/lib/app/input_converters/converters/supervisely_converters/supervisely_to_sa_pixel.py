@@ -2,12 +2,12 @@
 Supervisely to SA conversion method
 """
 import json
-import logging
 import threading
 from pathlib import Path
 
 import cv2
 import numpy as np
+from superannotate.logger import get_default_logger
 
 from ....common import blue_color_generator
 from ....common import hex_to_rgb
@@ -18,7 +18,7 @@ from ..sa_json_helper import _create_sa_json
 from .supervisely_helper import _base64_to_polygon
 from .supervisely_helper import _create_attribute_list
 
-logger = logging.getLogger()
+logger = get_default_logger()
 
 
 def supervisely_instance_segmentation_to_sa_pixel(json_files, class_id_map, output_dir):

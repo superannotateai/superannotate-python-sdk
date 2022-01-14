@@ -1,7 +1,6 @@
 import logging.config
 import os
 import sys
-from os.path import expanduser
 
 import requests
 import superannotate.lib.core as constances
@@ -107,6 +106,7 @@ from superannotate.lib.app.interface.sdk_interface import (
     upload_videos_from_folder_to_project,
 )
 from superannotate.lib.app.interface.sdk_interface import validate_annotations
+from superannotate.logger import get_default_logger
 from superannotate.version import __version__
 
 __all__ = [
@@ -208,49 +208,13 @@ __author__ = "Superannotate"
 WORKING_DIR = os.path.split(os.path.realpath(__file__))[0]
 sys.path.append(WORKING_DIR)
 logging.getLogger("botocore").setLevel(logging.CRITICAL)
-
-logging.config.dictConfig(
-    {
-        "version": 1,
-        "disable_existing_loggers": False,
-        "handlers": {
-            "console": {
-                "class": "logging.StreamHandler",
-                "level": "INFO",
-                "formatter": "consoleFormatter",
-                "stream": "ext://sys.stdout",
-            },
-            "fileHandler": {
-                "class": "logging.handlers.RotatingFileHandler",
-                "level": "DEBUG",
-                "formatter": "fileFormatter",
-                "filename": expanduser(constances.LOG_FILE_LOCATION),
-                "mode": "a",
-                "maxBytes": 5 * 1024 * 1024,
-                "backupCount": 5,
-            },
-        },
-        "formatters": {
-            "consoleFormatter": {
-                "format": "SA-PYTHON-SDK - %(levelname)s - %(message)s",
-            },
-            "fileFormatter": {
-                "format": "SA-PYTHON-SDK - %(levelname)s - %(asctime)s - %(message)s"
-            },
-        },
-        "root": {
-            # "level": "INFO",
-            "level": "DEBUG",
-            "handlers": ["console", "fileHandler"],
-        },
-    }
-)
+logger = get_default_logger()
 
 
 def log_version_info():
     local_version = parse(__version__)
     if local_version.is_prerelease:
-        logging.info(constances.PACKAGE_VERSION_INFO_MESSAGE.format(__version__))
+        logger.info(constances.PACKAGE_VERSION_INFO_MESSAGE.format(__version__))
     req = requests.get("https://pypi.python.org/pypi/superannotate/json")
     if req.ok:
         releases = req.json().get("releases", [])
@@ -260,13 +224,13 @@ def log_version_info():
             if not ver.is_prerelease or local_version.is_prerelease:
                 pip_version = max(pip_version, ver)
         if pip_version.major > local_version.major:
-            logging.warning(
+            logger.warning(
                 constances.PACKAGE_VERSION_MAJOR_UPGRADE.format(
                     local_version, pip_version
                 )
             )
         elif pip_version > local_version:
-            logging.warning(
+            logger.warning(
                 constances.PACKAGE_VERSION_UPGRADE.format(local_version, pip_version)
             )
 

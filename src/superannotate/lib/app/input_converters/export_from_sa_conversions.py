@@ -4,15 +4,15 @@ superannotate annotation format to other annotation formats
 """
 import copy
 import json
-import logging
 import shutil
 from pathlib import Path
 
 import numpy as np
+from superannotate.logger import get_default_logger
 
 from .converters.converters import Converter
 
-logger = logging.getLogger()
+logger = get_default_logger()
 
 
 def _load_files(path_to_imgs, task, ptype):

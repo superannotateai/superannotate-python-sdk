@@ -1,6 +1,5 @@
 import copy
 import io
-import logging
 from os.path import expanduser
 from pathlib import Path
 from typing import Iterable
@@ -34,7 +33,7 @@ from lib.infrastructure.repositories import TeamRepository
 from lib.infrastructure.repositories import WorkflowRepository
 from lib.infrastructure.services import SuperannotateBackendService
 from superannotate_schemas.validators import AnnotationValidators
-
+from superannotate.logger import get_default_logger
 
 class SingleInstanceMetaClass(type):
     _instances = {}
@@ -55,7 +54,7 @@ class BaseController(metaclass=SingleInstanceMetaClass):
         self._team_data = None
         self._config_path = None
         self._backend_client = None
-        self._logger = logging.getLogger("root")
+        self._logger = get_default_logger()
         self._s3_upload_auth_data = None
         self._projects = None
         self._folders = None

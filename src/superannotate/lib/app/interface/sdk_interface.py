@@ -1,6 +1,5 @@
 import io
 import json
-import logging
 import os
 import tempfile
 import warnings
@@ -44,10 +43,11 @@ from lib.infrastructure.controller import Controller
 from pydantic import conlist
 from pydantic import parse_obj_as
 from pydantic import StrictBool
+from superannotate.logger import get_default_logger
 from tqdm import tqdm
 
 controller = Controller.get_instance()
-logger = logging.getLogger("root")
+logger = get_default_logger()
 
 
 @validate_arguments
@@ -1094,13 +1094,12 @@ def share_project(
     :param user_role: user role to apply, one of Admin , Annotator , QA , Customer , Viewer
     :type user_role: str
     """
-    warning_msg = "The share_project function is deprecated and will be removed with the coming release, " \
-                  "please use add_contributors_to_project instead."
-    logger.warning(warning_msg)
-    warnings.warn(
-        warning_msg,
-        DeprecationWarning
+    warning_msg = (
+        "The share_project function is deprecated and will be removed with the coming release, "
+        "please use add_contributors_to_project instead."
     )
+    logger.warning(warning_msg)
+    warnings.warn(warning_msg, DeprecationWarning)
     if isinstance(user, dict):
         user_id = user["id"]
     else:

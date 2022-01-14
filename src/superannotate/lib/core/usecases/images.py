@@ -2,7 +2,6 @@ import concurrent.futures
 import copy
 import io
 import json
-import logging
 import os.path
 import random
 import tempfile
@@ -47,9 +46,10 @@ from lib.core.usecases.base import BaseReportableUseCae
 from lib.core.usecases.base import BaseUseCase
 from lib.core.usecases.projects import GetAnnotationClassesUseCase
 from PIL import UnidentifiedImageError
+from superannotate.logger import get_default_logger
 from superannotate_schemas.validators import AnnotationValidators
 
-logger = logging.getLogger("root")
+logger = get_default_logger()
 
 
 class GetImagesUseCase(BaseUseCase):

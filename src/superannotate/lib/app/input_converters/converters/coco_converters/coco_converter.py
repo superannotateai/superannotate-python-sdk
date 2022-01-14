@@ -1,7 +1,6 @@
 """
 """
 import json
-import logging
 from collections import namedtuple
 from datetime import datetime
 from pathlib import Path
@@ -9,12 +8,13 @@ from pathlib import Path
 import cv2
 import numpy as np
 from PIL import Image
+from superannotate.logger import get_default_logger
 
 from ....common import id2rgb
 from ....common import write_to_json
 from ..baseStrategy import baseStrategy
 
-logger = logging.getLogger()
+logger = get_default_logger()
 
 
 class CocoBaseStrategy(baseStrategy):

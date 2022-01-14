@@ -1,10 +1,10 @@
 """
 Labelbox to SA conversion method
 """
-import logging
 import threading
 
 import cv2
+from superannotate.logger import get_default_logger
 
 from ....common import tqdm_converter
 from ....common import write_to_json
@@ -13,7 +13,7 @@ from ..sa_json_helper import _create_vector_instance
 from .labelbox_helper import _create_attributes_list
 from .labelbox_helper import _create_classes_id_map
 
-logger = logging.getLogger()
+logger = get_default_logger()
 
 
 def labelbox_to_sa(json_data, output_dir, task):
@@ -92,7 +92,7 @@ def labelbox_to_sa(json_data, output_dir, task):
             img = cv2.imread(str(output_dir / data["External ID"]))
             H, W, _ = img.shape
         except Exception as e:
-            logging.warning(
+            logger.warning(
                 "Can't open %s image. 'height' and 'width' for SA JSON metadata will set to zero",
                 data["External ID"],
             )
