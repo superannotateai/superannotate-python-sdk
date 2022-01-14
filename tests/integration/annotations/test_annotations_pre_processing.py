@@ -9,7 +9,7 @@ from unittest.mock import patch
 from unittest.mock import MagicMock
 
 import src.superannotate as sa
-from src.superannotate.lib.core.entities.utils import CreationTypeEnum
+from superannotate_schemas.schemas.base import CreationTypeEnum
 from tests.integration.base import BaseTestCase
 
 

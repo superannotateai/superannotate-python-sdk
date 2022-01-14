@@ -1,13 +1,14 @@
 import json
 import os
-from os.path import dirname
 import tempfile
-import src.superannotate as sa
-from tests.utils.helpers import catch_prints
-from src.superannotate.lib.core.entities.utils import TimedBaseModel
-from src.superannotate.lib.core.entities.pixel import PixelAnnotationPart
-from pydantic import ValidationError
+from os.path import dirname
 from unittest import TestCase
+from unittest.mock import patch
+
+from pydantic import ValidationError
+
+import src.superannotate as sa
+from src.superannotate.lib.core.entities.utils import TimedBaseModel
 
 VECTOR_ANNOTATION_JSON_WITH_BBOX = """
 {
@@ -70,23 +71,24 @@ class TestValidators(TestCase):
     def test_validate_annotations_should_note_raise_errors(self):
         sa.validate_annotations("Vector", os.path.join(self.vector_folder_path, self.VECTOR_JSON))
 
-    def test_validate_annotation_with_wrong_bbox(self):
+    @patch('builtins.print')
+    def test_validate_annotation_with_wrong_bbox(self, mock_print):
         with tempfile.TemporaryDirectory() as tmpdir_name:
             with open(f"{tmpdir_name}/vector.json", "w") as vector_json:
                 vector_json.write(VECTOR_ANNOTATION_JSON_WITH_BBOX)
-            with catch_prints() as out:
-                sa.validate_annotations("Vector", os.path.join(self.vector_folder_path, f"{tmpdir_name}/vector.json"))
-                self.assertIn("instances[0].points.x1fieldrequired", out.getvalue().strip().replace(" ", ""))
 
-    def test_validate_annotation_without_metadata(self):
+            sa.validate_annotations("Vector", os.path.join(self.vector_folder_path, f"{tmpdir_name}/vector.json"))
+            mock_print.assert_any_call("instances[0].points.x1                           field required")
+
+    @patch('builtins.print')
+    def test_validate_annotation_without_metadata(self, mock_print):
         with tempfile.TemporaryDirectory() as tmpdir_name:
             with open(f"{tmpdir_name}/vector.json", "w") as vector_json:
                 vector_json.write(
                     json.dumps({"instances": []})
                 )
-            with catch_prints() as out:
-                sa.validate_annotations("Vector", os.path.join(self.vector_folder_path, f"{tmpdir_name}/vector.json"))
-                self.assertIn("metadatafieldrequired", out.getvalue().strip().replace(" ", ""))
+            sa.validate_annotations("Vector", os.path.join(self.vector_folder_path, f"{tmpdir_name}/vector.json"))
+            mock_print.assert_any_call("metadata                                         field required")
 
     def test_validate_annotation_invalid_date_time_format(self):
         with self.assertRaisesRegexp(ValidationError, "does not match expected format YYYY-MM-DDTHH:MM:SS.fffZ"):
@@ -94,13 +96,6 @@ class TestValidators(TestCase):
 
     def test_validate_annotation_valid_date_time_format(self):
         self.assertEqual(TimedBaseModel(createdAt="2021-11-02T15:11:50.065Z").created_at, "2021-11-02T15:11:50.065Z")
-
-    def test_validate_annotation_invalid_color_format(self):
-        with self.assertRaisesRegexp(ValidationError, "1 validation error for PixelAnnotationPart"):
-            PixelAnnotationPart(color="fd435eraewf4rewf")
-
-    def test_validate_annotation_valid_color_format(self):
-        self.assertEqual(PixelAnnotationPart(color="#f1f2f3").color, "#f1f2f3")
 
 
 class TestTypeHandling(TestCase):
@@ -205,16 +200,16 @@ class TestTypeHandling(TestCase):
             self.assertTrue(sa.validate_annotations("Document", os.path.join(self.vector_folder_path,
                                                                              f"{tmpdir_name}/test_validate_document_annotation_without_classname.json")))
 
-    def test_validate_annotation_with_wrong_bbox(self):
+    @patch('builtins.print')
+    def test_validate_annotation_with_wrong_bbox(self, mock_print):
         with tempfile.TemporaryDirectory() as tmpdir_name:
             with open(f"{tmpdir_name}/vector.json", "w") as vector_json:
                 vector_json.write(self.ANNOTATION)
-            with catch_prints() as out:
-                sa.validate_annotations("Vector", os.path.join(self.vector_folder_path, f"{tmpdir_name}/vector.json"))
-                self.assertEqual(
-                    "instances[0].typeinvalidtype,validtypesarebbox,template,cuboid,polygon,point,polyline,ellipse,rbbox",
-                    out.getvalue().strip().replace(" ", "")
-                )
+            sa.validate_annotations("Vector", os.path.join(self.vector_folder_path, f"{tmpdir_name}/vector.json"))
+            mock_print.assert_any_call(
+                "instances[0].type                                invalid type, valid types are bbox, "
+                "template, cuboid, polygon, point, polyline, ellipse, rbbox"
+            )
 
     def test_validate_document_annotation(self):
         with tempfile.TemporaryDirectory() as tmpdir_name:
@@ -334,7 +329,8 @@ class TestTypeHandling(TestCase):
             self.assertTrue(sa.validate_annotations("Vector", os.path.join(self.vector_folder_path,
                                                                            f"{tmpdir_name}/vector_empty.json")))
 
-    def test_validate_error_message_format(self):
+    @patch('builtins.print')
+    def test_validate_error_message_format(self, mock_print):
         with tempfile.TemporaryDirectory() as tmpdir_name:
             with open(f"{tmpdir_name}/test_validate_error_message_format.json",
                       "w") as test_validate_error_message_format:
@@ -345,12 +341,13 @@ class TestTypeHandling(TestCase):
                     }
                     '''
                 )
-            with catch_prints() as out:
-                sa.validate_annotations("Vector", os.path.join(self.vector_folder_path,
-                                                               f"{tmpdir_name}/test_validate_error_message_format.json"))
-                self.assertIn("metadata.namefieldrequired", out.getvalue().strip().replace(" ", ""))
 
-    def test_validate_document_annotation_wrong_class_id(self):
+            sa.validate_annotations("Vector", os.path.join(self.vector_folder_path,
+                                                           f"{tmpdir_name}/test_validate_error_message_format.json"))
+            mock_print.assert_any_call("metadata.name                                    field required")
+
+    @patch('builtins.print')
+    def test_validate_document_annotation_wrong_class_id(self, mock_print):
         with tempfile.TemporaryDirectory() as tmpdir_name:
             with open(f"{tmpdir_name}/test_validate_document_annotation_wrong_class_id.json",
                       "w") as test_validate_document_annotation_wrong_class_id:
@@ -392,10 +389,10 @@ class TestTypeHandling(TestCase):
                     }
                     '''
                 )
-            with catch_prints() as out:
-                sa.validate_annotations("Document", os.path.join(self.vector_folder_path,
-                                                                 f"{tmpdir_name}/test_validate_document_annotation_wrong_class_id.json"))
-                self.assertIn("instances[0].classIdintegertypeexpected", out.getvalue().strip().replace(" ", ""))
+
+            sa.validate_annotations("Document", os.path.join(self.vector_folder_path,
+                                                             f"{tmpdir_name}/test_validate_document_annotation_wrong_class_id.json"))
+            mock_print.assert_any_call("instances[0].classId                             value is not a valid integer")
 
     def test_validate_document_annotation_with_null_created_at(self):
         with tempfile.TemporaryDirectory() as tmpdir_name:
@@ -442,11 +439,12 @@ class TestTypeHandling(TestCase):
             self.assertTrue(sa.validate_annotations("Document", os.path.join(self.vector_folder_path,
                                                                              f"{tmpdir_name}/test_validate_document_annotation_with_null_created_at.json")))
 
-    def test_validate_vector_instace_type_and_attr_annotation(self):
+    @patch('builtins.print')
+    def test_validate_vector_instance_type_and_attr_annotation(self, mock_print):
+        json_name = "test.json"
         with tempfile.TemporaryDirectory() as tmpdir_name:
-            with open(f"{tmpdir_name}/test_validate_vector_instace_type_and_attr_annotation.json",
-                      "w") as test_validate_vector_instace_type_and_attr_annotation:
-                test_validate_vector_instace_type_and_attr_annotation.write(
+            with open(f"{tmpdir_name}/{json_name}", "w") as json_file:
+                json_file.write(
                     '''
                     {
                     "metadata": {
@@ -500,12 +498,12 @@ class TestTypeHandling(TestCase):
                 }
                 '''
                 )
-            with catch_prints() as out:
-                sa.validate_annotations("Vector", os.path.join(self.vector_folder_path,
-                                                               f"{tmpdir_name}/test_validate_vector_instace_type_and_attr_annotation.json"))
-                self.assertIn("instances[0].typefieldrequired", out.getvalue().strip().replace(" ", ""))
 
-    def test_validate_vector_invalid_instace_type_and_attr_annotation(self):
+            sa.validate_annotations("Vector", os.path.join(self.vector_folder_path, f"{tmpdir_name}/{json_name}"))
+            mock_print.assert_any_call("instances[0].type                                field required")
+
+    @patch('builtins.print')
+    def test_validate_vector_invalid_instance_type_and_attr_annotation(self, mock_print):
         with tempfile.TemporaryDirectory() as tmpdir_name:
             with open(f"{tmpdir_name}/test_validate_vector_invalid_instace_type_and_attr_annotation.json",
                       "w") as test_validate_vector_invalid_instace_type_and_attr_annotation:
@@ -565,14 +563,18 @@ class TestTypeHandling(TestCase):
                 '''
                 )
 
-            with catch_prints() as out:
-                sa.validate_annotations("Vector", os.path.join(self.vector_folder_path,
-                                                               f"{tmpdir_name}/test_validate_vector_invalid_instace_type_and_attr_annotation.json"))
-                self.assertIn(
-                    "instances[0].typeinvalidtype,validtypesarebbox,template,cuboid,polygon,point,polyline,ellipse,rbbox",
-                    out.getvalue().strip().replace(" ", ""))
+            sa.validate_annotations(
+                "Vector",
+                os.path.join(self.vector_folder_path,
+                             f"{tmpdir_name}/test_validate_vector_invalid_instace_type_and_attr_annotation.json")
+            )
+            mock_print.assert_any_call(
+                "instances[0].type                                invalid type, valid types are bbox, "
+                "template, cuboid, polygon, point, polyline, ellipse, rbbox"
+            )
 
-    def test_validate_video_invalid_instace_type_and_attr_annotation(self):
+    @patch('builtins.print')
+    def test_validate_video_invalid_instance_type_and_attr_annotation(self, mock_print):
         with tempfile.TemporaryDirectory() as tmpdir_name:
             with open(f"{tmpdir_name}/test_validate_video_invalid_instace_type_and_attr_annotation.json",
                       "w") as test_validate_video_invalid_instace_type_and_attr_annotation:
@@ -880,17 +882,18 @@ class TestTypeHandling(TestCase):
                 '''
                 )
 
-            with catch_prints() as out:
-                sa.validate_annotations("Video", os.path.join(self.vector_folder_path,
-                                                              f"{tmpdir_name}/test_validate_video_invalid_instace_type_and_attr_annotation.json"))
-                self.assertIn("instances[2].meta.typeinvalidtype,validtypesarebbox,event",
-                              out.getvalue().strip().replace(" ", ""))
+            sa.validate_annotations("Video", os.path.join(self.vector_folder_path,
+                                                          f"{tmpdir_name}/test_validate_video_invalid_instace_type_and_attr_annotation.json"))
+            mock_print.assert_any_call(
+                "instances[2].meta.type                           invalid type, valid types are bbox, event"
+            )
 
-    def test_validate_video_invalid_instace_without_type_and_attr_annotation(self):
+    @patch('builtins.print')
+    def test_validate_video_invalid_instance_without_type_and_attr_annotation(self, mock_print):
+        json_name = "test.json"
         with tempfile.TemporaryDirectory() as tmpdir_name:
-            with open(f"{tmpdir_name}/test_validate_video_invalid_instace_without_type_and_attr_annotation.json",
-                      "w") as test_validate_video_invalid_instace_without_type_and_attr_annotation:
-                test_validate_video_invalid_instace_without_type_and_attr_annotation.write(
+            with open(f"{tmpdir_name}/{json_name}", "w") as json_file:
+                json_file.write(
                     '''
                     {
                     "metadata": {
@@ -1192,18 +1195,17 @@ class TestTypeHandling(TestCase):
                 }
                 '''
                 )
+            sa.validate_annotations("Video", os.path.join(self.vector_folder_path, f"{tmpdir_name}/{json_name}"))
+            mock_print.assert_any_call(
+                "instances[2].meta.type                           field required"
+            )
 
-
-            with catch_prints() as out:
-                sa.validate_annotations("Video", os.path.join(self.vector_folder_path,
-                                                              f"{tmpdir_name}/test_validate_video_invalid_instace_without_type_and_attr_annotation.json"))
-                self.assertIn("instances[2].meta.typefieldrequired", out.getvalue().strip().replace(" ", ""))
-
-    def test_validate_vector_temlpate_polygon_polyline_min_annotation(self):
+    @patch('builtins.print')
+    def test_validate_vector_template_polygon_polyline_min_annotation(self, mock_print):
+        json_name = "test.json"
         with tempfile.TemporaryDirectory() as tmpdir_name:
-            with open(f"{tmpdir_name}/test_validate_vector_temlpate_polygon_polyline_min_annotation.json",
-                      "w") as test_validate_vector_temlpate_polygon_polyline_min_annotation:
-                test_validate_vector_temlpate_polygon_polyline_min_annotation.write(
+            with open(f"{tmpdir_name}/{json_name}", "w") as json_file:
+                json_file.write(
                     '''
                     {
                             "metadata": {
@@ -1347,16 +1349,16 @@ class TestTypeHandling(TestCase):
                         }
                 '''
                 )
+            sa.validate_annotations("Vector", os.path.join(self.vector_folder_path,
+                                                           f"{tmpdir_name}/{json_name}"))
+            mock_print.assert_any_call(
+                "metadata.width                                   value is not a valid integer\n"
+                "instances[0].points                              ensure this value has at least 1 items\n"
+                "instances[1].points                              ensure this value has at least 3 items"
+            )
 
-
-            with catch_prints() as out:
-                sa.validate_annotations("Vector", os.path.join(self.vector_folder_path,
-                                                               f"{tmpdir_name}/test_validate_vector_temlpate_polygon_polyline_min_annotation.json"))
-                self.assertEqual(
-                    "metadata.widthintegertypeexpected\ninstances[0].pointsensurethisvaluehasatleast1items\ninstances[1].pointsensurethisvaluehasatleast3items\ninstances[2].pointsensurethisvaluehasatleast2items",
-                    out.getvalue().strip().replace(" ", ""))
-
-    def test_validate_video_point_labels(self):
+    @patch('builtins.print')
+    def test_validate_video_point_labels(self, mock_print):
         with tempfile.TemporaryDirectory() as tmpdir_name:
             with open(f"{tmpdir_name}/test_validate_video_point_labels.json",
                       "w") as test_validate_video_point_labels:
@@ -1662,14 +1664,14 @@ class TestTypeHandling(TestCase):
                 '''
                 )
 
-            with catch_prints() as out:
-                sa.validate_annotations("Video", os.path.join(self.vector_folder_path,
-                                                              f"{tmpdir_name}/test_validate_video_point_labels.json"))
-                self.assertIn(
-                    "instances[0].meta.pointLabelsvalueisnotavaliddict",
-                    out.getvalue().strip().replace(" ", ""))
+            sa.validate_annotations("Video", os.path.join(self.vector_folder_path,
+                                                          f"{tmpdir_name}/test_validate_video_point_labels.json"))
+            mock_print.assert_any_call(
+                "instances[0].meta.pointLabels                    value is not a valid dict",
+            )
 
-    def test_validate_video_point_labels_bad_keys(self):
+    @patch('builtins.print')
+    def test_validate_video_point_labels_bad_keys(self, mock_print):
         with tempfile.TemporaryDirectory() as tmpdir_name:
             with open(f"{tmpdir_name}/test_validate_video_point_labels_bad_keys.json",
                       "w") as test_validate_video_point_labels_bad_keys:
@@ -2022,10 +2024,13 @@ class TestTypeHandling(TestCase):
                 }
                 '''
                 )
-
-            with catch_prints() as out:
-                sa.validate_annotations("Video", os.path.join(self.vector_folder_path,
-                                                              f"{tmpdir_name}/test_validate_video_point_labels_bad_keys.json"))
-                self.assertEqual(
-                    "instances[0].meta.pointLabels.bad_key_1doesnotmatchexpectedformat^[0-9]+$\ninstances[0].meta.pointLabels.bad_key_2doesnotmatchexpectedformat^[0-9]+$\ninstances[0].meta.pointLabels.doesnotmatchexpectedformat^[0-9]+$\ninstances[0].meta.pointLabels.1strtypeexpected\ninstances[2].meta.pointLabelsextrafieldsnotpermitted\ninstances[2].parameters[0].timestamps[2].timestampintegertypeexpected\ninstances[3].metafieldrequired\ninstances[4].metavalueisnotavaliddict\ninstances[5].metavalueisnotavaliddict\ntags[0]strtypeexpected",
-                    out.getvalue().strip().replace(" ", ""))
+            sa.validate_annotations("Video", os.path.join(self.vector_folder_path,
+                                                          f"{tmpdir_name}/test_validate_video_point_labels_bad_keys.json"))
+            mock_print.assert_any_call(
+                "instances[0].meta.pointLabels                    str type expected\n"
+                "instances[2].parameters[0].timestamps[2].timestamp value is not a valid integer\n"
+                "instances[3].meta                                field required\n"
+                "instances[4].meta                                value is not a valid dict\n"
+                "instances[5].meta                                field required\n"
+                "tags[0]                                          str type expected"
+            )

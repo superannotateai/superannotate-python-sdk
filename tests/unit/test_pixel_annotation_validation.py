@@ -1,11 +1,11 @@
-from src.superannotate.lib.infrastructure.validators import AnnotationValidator
+from superannotate_schemas.validators import AnnotationValidators
 from unittest import TestCase
 
 
 class TestPixelValidators(TestCase):
 
     def test_validate_annotation_invalid_hex(self):
-        validator = AnnotationValidator.get_pixel_validator()(
+        validator = AnnotationValidators.get_validator("pixel")(
             {
                 "metadata": {
                     "name": "example_image_1.jpg",
