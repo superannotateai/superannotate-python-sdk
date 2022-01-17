@@ -1,5 +1,4 @@
 import concurrent.futures
-import logging
 import os.path
 import tempfile
 import time
@@ -30,9 +29,10 @@ from lib.core.serviceproviders import SuerannotateServiceProvider
 from lib.core.usecases.base import BaseInteractiveUseCase
 from lib.core.usecases.base import BaseUseCase
 from lib.core.usecases.images import GetBulkImages
+from superannotate.logger import get_default_logger
 
 
-logger = logging.getLogger("root")
+logger = get_default_logger()
 
 
 class PrepareExportUseCase(BaseUseCase):

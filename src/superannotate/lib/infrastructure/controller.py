@@ -1,6 +1,5 @@
 import copy
 import io
-import logging
 from os.path import expanduser
 from pathlib import Path
 from typing import Iterable
@@ -33,7 +32,8 @@ from lib.infrastructure.repositories import S3Repository
 from lib.infrastructure.repositories import TeamRepository
 from lib.infrastructure.repositories import WorkflowRepository
 from lib.infrastructure.services import SuperannotateBackendService
-from lib.infrastructure.validators import AnnotationValidator
+from superannotate.logger import get_default_logger
+from superannotate_schemas.validators import AnnotationValidators
 
 
 class SingleInstanceMetaClass(type):
@@ -55,7 +55,7 @@ class BaseController(metaclass=SingleInstanceMetaClass):
         self._team_data = None
         self._config_path = None
         self._backend_client = None
-        self._logger = logging.getLogger("root")
+        self._logger = get_default_logger()
         self._s3_upload_auth_data = None
         self._projects = None
         self._folders = None
@@ -243,8 +243,8 @@ class BaseController(metaclass=SingleInstanceMetaClass):
         return S3Repository
 
     @property
-    def annotation_validators(self):
-        return AnnotationValidator()
+    def annotation_validators(self) -> AnnotationValidators:
+        return AnnotationValidators()
 
     @property
     def backend_client(self):
@@ -1585,5 +1585,41 @@ class Controller(BaseController):
             emails=emails,
             set_admin=set_admin,
             service=self.backend_client,
+        )
+        return use_case.execute()
+
+    def upload_videos(
+        self,
+        project_name: str,
+        folder_name: str,
+        paths: List[str],
+        start_time: float,
+        extensions: List[str] = None,
+        exclude_file_patterns: List[str] = None,
+        end_time: Optional[float] = None,
+        target_fps: Optional[int] = None,
+        annotation_status: Optional[str] = None,
+        image_quality_in_editor: Optional[str] = None,
+    ):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+
+        use_case = usecases.UploadVideosAsImages(
+            reporter=self.default_reporter,
+            service=self.backend_client,
+            project=project,
+            folder=folder,
+            settings=ProjectSettingsRepository(
+                service=self._backend_client, project=project
+            ),
+            s3_repo=self.s3_repo,
+            paths=paths,
+            target_fps=target_fps,
+            extensions=extensions,
+            exclude_file_patterns=exclude_file_patterns,
+            start_time=start_time,
+            end_time=end_time,
+            annotation_status=annotation_status,
+            image_quality_in_editor=image_quality_in_editor,
         )
         return use_case.execute()

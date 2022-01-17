@@ -1,5 +1,6 @@
 import os
 from os.path import dirname
+import pytest
 from unittest import TestCase
 
 import src.superannotate as sa
@@ -61,6 +62,7 @@ class TestDeprecatedFunctionsDocument(TestCase):
     def image_path(self):
         return f'{self.folder_path}/example_image_1.jpg'
 
+    @pytest.mark.flaky(reruns=2)
     def test_deprecated_functions(self):
         _, _, _ = sa.attach_document_urls_to_project(
             self.PROJECT_NAME,

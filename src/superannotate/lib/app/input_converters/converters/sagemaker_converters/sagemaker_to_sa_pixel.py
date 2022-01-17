@@ -2,12 +2,12 @@
 Sagemaker to SA conversion method
 """
 import json
-import logging
 import threading
 from pathlib import Path
 
 import cv2
 import numpy as np
+from superannotate.logger import get_default_logger
 
 from ....common import blue_color_generator
 from ....common import hex_to_rgb
@@ -16,7 +16,7 @@ from ....common import write_to_json
 from ..sa_json_helper import _create_pixel_instance
 from ..sa_json_helper import _create_sa_json
 
-logger = logging.getLogger()
+logger = get_default_logger()
 
 
 def sagemaker_instance_segmentation_to_sa_pixel(data_path, output_dir):

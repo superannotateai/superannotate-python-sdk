@@ -18,7 +18,7 @@ class TestAnnotationAdding(BaseTestCase):
 
     @property
     def folder_path(self):
-        return os.path.join(Path(__file__).parent.parent.parent,  self.TEST_FOLDER_PATH)
+        return os.path.join(Path(__file__).parent.parent.parent, self.TEST_FOLDER_PATH)
 
     @property
     def invalid_json_path(self):
@@ -44,9 +44,8 @@ class TestAnnotationAdding(BaseTestCase):
             self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
         )
         sa.upload_annotations_from_folder_to_project(
-            self.PROJECT_NAME,  self.folder_path
+            self.PROJECT_NAME, self.folder_path
         )
-
 
     def test_add_point_to_empty_image(self):
         sa.upload_images_from_folder_to_project(
@@ -111,13 +110,13 @@ class TestAnnotationAdding(BaseTestCase):
             'updatedAt': ''
         })
 
-
     def test_add_comment_to_empty_annotation(self):
         sa.upload_images_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
         )
 
-        sa.add_annotation_comment_to_image(self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, "some comment", [1, 2], "abc@abc.com")
+        sa.add_annotation_comment_to_image(self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, "some comment", [1, 2],
+                                           "abc@abc.com")
 
         annotations_new = sa.get_image_annotations(
             self.PROJECT_NAME, self.EXAMPLE_IMAGE_1
@@ -136,7 +135,6 @@ class TestAnnotationAdding(BaseTestCase):
                           'resolved': False,
                           'correspondence': [{'text': 'some comment', 'email': 'abc@abc.com'}]
                           })
-
 
     def test_add_bbox(self):
         sa.upload_images_from_folder_to_project(
@@ -182,7 +180,6 @@ class TestAnnotationAdding(BaseTestCase):
                 len(annotations_new["instances"]) + len(annotations_new["comments"]),
                 len(annotations["instances"]) + len(annotations["comments"]) + 3,
             )
-
 
     def test_add_bbox_no_init(self):
         sa.upload_images_from_folder_to_project(

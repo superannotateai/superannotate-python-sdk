@@ -1,4 +1,5 @@
 import os
+import pytest
 from os.path import dirname
 
 import src.superannotate as sa
@@ -55,6 +56,7 @@ class TestAnnotationClasses(BaseTestCase):
         self.assertIsNotNone(im1_metadata["qa_name"])
         self.assertIsNotNone(im2_metadata["qa_name"])
 
+    @pytest.mark.flaky(reruns=2)
     def test_un_assign_images(self):
 
         email = sa.get_team_metadata()["users"][0]["email"]

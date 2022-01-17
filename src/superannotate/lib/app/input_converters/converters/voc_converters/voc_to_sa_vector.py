@@ -1,11 +1,11 @@
 """
 VOC to SA conversion method
 """
-import logging
 import threading
 
 import cv2
 import numpy as np
+from superannotate.logger import get_default_logger
 
 from ....common import tqdm_converter
 from ....common import write_to_json
@@ -15,7 +15,7 @@ from .voc_helper import _get_image_shape_from_xml
 from .voc_helper import _get_voc_instances_from_xml
 from .voc_helper import _iou
 
-logger = logging.getLogger()
+logger = get_default_logger()
 
 
 def _generate_polygons(object_mask_path):

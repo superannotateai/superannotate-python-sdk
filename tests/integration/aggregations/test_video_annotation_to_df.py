@@ -7,6 +7,7 @@ from unittest import mock
 from unittest import TestCase
 
 import src.superannotate as sa
+from src.superannotate.logger import get_default_logger
 
 
 class TestAggregateVideoAnnotation(TestCase):
@@ -41,7 +42,7 @@ class TestAggregateVideoAnnotation(TestCase):
     def test_empty_folder_log(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             copy_tree(f"{self.folder_path}/classes", f"{temp_dir}/classes")
-            logger = logging.getLogger('root')
+            logger = get_default_logger()
             with mock.patch.object(logger, 'warning') as mock_log:
                 _ = sa.aggregate_annotations_as_df(temp_dir, self.PROJECT_TYPE)
                 mock_log.assert_called_with(f"Could not find annotations in {temp_dir}.")

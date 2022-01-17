@@ -169,8 +169,8 @@ class CLITest(TestCase):
         )
         # tod add test
 
-    # @pytest.mark.skipif(CLI_VERSION and CLI_VERSION != sa.__version__,
-    #                     reason=f"Updated package version from {CLI_VERSION} to {sa.__version__}")
+    @pytest.mark.skipif(CLI_VERSION and CLI_VERSION != sa.__version__,
+                        reason=f"Updated package version from {CLI_VERSION} to {sa.__version__}")
     def test_vector_annotation_folder_upload_download_cli(self):
         self._create_project()
         sa.create_annotation_classes_from_classes_json(

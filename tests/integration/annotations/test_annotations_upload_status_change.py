@@ -10,8 +10,8 @@ import src.superannotate.lib.core as constances
 from tests.integration.base import BaseTestCase
 
 
-class TestAnnotationUploadVector(BaseTestCase):
-    PROJECT_NAME = "TestAnnotationUploadVector"
+class TestAnnotationUploadStatusChangeVector(BaseTestCase):
+    PROJECT_NAME = "TestAnnotationUploadStatusChangeVector"
     PROJECT_DESCRIPTION = "Desc"
     PROJECT_TYPE = "Vector"
     S3_FOLDER_PATH = "sample_project_pixel"

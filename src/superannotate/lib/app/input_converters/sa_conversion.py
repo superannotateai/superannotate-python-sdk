@@ -1,17 +1,17 @@
 import json
-import logging
 import shutil
 
 import cv2
 import numpy as np
 from lib.app.exceptions import AppException
 from lib.core import DEPRICATED_DOCUMENT_VIDEO_MESSAGE
+from superannotate.logger import get_default_logger
 
 from ..common import blue_color_generator
 from ..common import hex_to_rgb
 from ..common import write_to_json
 
-logger = logging.getLogger()
+logger = get_default_logger()
 
 
 def copy_file(src_path, dst_path):

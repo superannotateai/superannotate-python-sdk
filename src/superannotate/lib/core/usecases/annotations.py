@@ -1,7 +1,6 @@
 import concurrent.futures
 import io
 import json
-import logging
 import os
 from collections import namedtuple
 from typing import List
@@ -26,9 +25,10 @@ from lib.core.serviceproviders import SuerannotateServiceProvider
 from lib.core.usecases.base import BaseReportableUseCae
 from lib.core.usecases.images import GetBulkImages
 from lib.core.usecases.images import ValidateAnnotationUseCase
-from lib.infrastructure.validators import BaseAnnotationValidator
+from superannotate.logger import get_default_logger
+from superannotate_schemas.validators import AnnotationValidators
 
-logger = logging.getLogger("root")
+logger = get_default_logger()
 
 
 class UploadAnnotationsUseCase(BaseReportableUseCae):
@@ -48,7 +48,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
         annotation_paths: List[str],
         backend_service_provider: SuerannotateServiceProvider,
         templates: List[dict],
-        validators: BaseAnnotationValidator,
+        validators: AnnotationValidators,
         pre_annotation: bool = False,
         client_s3_bucket=None,
         folder_path: str = None,
@@ -298,7 +298,7 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
         backend_service_provider: SuerannotateServiceProvider,
         reporter: Reporter,
         templates: List[dict],
-        validators: BaseAnnotationValidator,
+        validators: AnnotationValidators,
         annotation_upload_data: UploadAnnotationAuthData = None,
         annotations: dict = None,
         s3_bucket=None,

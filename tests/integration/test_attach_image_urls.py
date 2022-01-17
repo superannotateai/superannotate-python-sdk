@@ -1,4 +1,5 @@
 import os
+import pytest
 from os.path import dirname
 
 import src.superannotate as sa
@@ -14,6 +15,7 @@ class TestImageUrls(BaseTestCase):
     PROJECT_DESCRIPTION = "desc"
     PROJECT_TYPE = "Vector"
 
+    @pytest.mark.flaky(reruns=2)
     def test_attach_image_urls(self):
         uploaded, could_not_upload, existing_images = sa.attach_image_urls_to_project(
             self.PROJECT_NAME,
