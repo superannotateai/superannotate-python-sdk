@@ -223,7 +223,10 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
                 logger.warning(template.format("', '".join(values)))
         if self.reporter.custom_messages.get("invalid_jsons"):
             logger.warning(
-                f"Couldn't validate {len(self.reporter.custom_messages['invalid_jsons'])}/{len(self._annotations_to_upload + self._missing_annotations)} annotations from {self._folder_path}."
+                f"Couldn't validate {len(self.reporter.custom_messages['invalid_jsons'])}/"
+                f"{len(self._annotations_to_upload + self._missing_annotations)} annotations from {self._folder_path}. "
+                f"Use the validate_annotations function to discover the possible reason(s) for "
+                f"which an annotation is invalid."
             )
 
     def execute(self):
