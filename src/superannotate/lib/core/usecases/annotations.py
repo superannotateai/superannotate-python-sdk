@@ -137,6 +137,12 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
             self._annotations_to_upload = annotations_to_upload
         return self._annotations_to_upload
 
+    @property
+    def missing_annotations(self):
+        if not self._missing_annotations:
+            self._missing_annotations = []
+        return self._missing_annotations
+
     def get_annotation_upload_data(
         self, image_ids: List[int]
     ) -> UploadAnnotationAuthData:
@@ -223,7 +229,10 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
                 logger.warning(template.format("', '".join(values)))
         if self.reporter.custom_messages.get("invalid_jsons"):
             logger.warning(
-                f"Couldn't validate {len(self.reporter.custom_messages['invalid_jsons'])}/{len(self._annotations_to_upload + self._missing_annotations)} annotations from {self._folder_path}."
+                f"Couldn't validate {len(self.reporter.custom_messages['invalid_jsons'])}/"
+                f"{len(self.annotations_to_upload + self.missing_annotations)} annotations from {self._folder_path}. "
+                f"Use the validate_annotations function to discover the possible reason(s) for "
+                f"which an annotation is invalid."
             )
 
     def execute(self):
@@ -281,7 +290,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
         self._response.data = (
             uploaded_annotations,
             failed_annotations,
-            [annotation.path for annotation in self._missing_annotations],
+            [annotation.path for annotation in self.missing_annotations],
         )
         return self._response
 

@@ -1055,7 +1055,7 @@ class InviteContributorsToTeam(BaseUserBasedUseCase):
                 if invited:
                     self.reporter.log_info(
                         f"Sent team {'admin' if self._set_admin else 'contributor'} invitations"
-                        f" to {len(to_add)}/{len(self._emails)} users."
+                        f" to {len(invited)}/{len(self._emails)} users."
                     )
                 if failed:
                     to_skip = set(to_skip)
