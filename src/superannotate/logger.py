@@ -1,7 +1,7 @@
 import logging.config
 from os.path import expanduser
 
-import superannotate.lib.core as constances
+from superannotate import constances
 
 logging.config.dictConfig(
     {

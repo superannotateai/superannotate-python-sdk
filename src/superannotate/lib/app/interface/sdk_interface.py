@@ -12,6 +12,7 @@ from typing import Union
 
 import boto3
 import lib.core as constances
+from lib import controller
 from lib.app.annotation_helpers import add_annotation_bbox_to_json
 from lib.app.annotation_helpers import add_annotation_comment_to_json
 from lib.app.annotation_helpers import add_annotation_point_to_json
@@ -39,14 +40,13 @@ from lib.core.types import AttributeGroup
 from lib.core.types import ClassesJson
 from lib.core.types import MLModel
 from lib.core.types import Project
-from lib.infrastructure.controller import Controller
 from pydantic import conlist
 from pydantic import parse_obj_as
 from pydantic import StrictBool
 from superannotate.logger import get_default_logger
 from tqdm import tqdm
 
-controller = Controller.get_instance()
+
 logger = get_default_logger()
 
 

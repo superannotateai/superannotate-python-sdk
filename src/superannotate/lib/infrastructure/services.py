@@ -110,9 +110,6 @@ class BaseBackendService(SuerannotateServiceProvider):
                 content_type=content_type,
             )
         if response.status_code > 299:
-            import traceback
-
-            traceback.print_stack()
             self.logger.error(
                 f"Got {response.status_code} response from backend: {response.text}"
             )

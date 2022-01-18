@@ -10,7 +10,7 @@ class BaseInterfaceFacade:
     def controller(self):
         if not ConfigRepository().get_one("token"):
             raise Exception("Config does not exists!")
-        controller = Controller.get_instance()
+        controller = Controller()
         if self._config_path:
             controller.init(self._config_path)
         return controller
