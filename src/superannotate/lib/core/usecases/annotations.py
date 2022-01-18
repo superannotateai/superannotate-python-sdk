@@ -137,7 +137,6 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
             self._annotations_to_upload = annotations_to_upload
         return self._annotations_to_upload
 
-
     @property
     def missing_annotations(self):
         if not self._missing_annotations:
