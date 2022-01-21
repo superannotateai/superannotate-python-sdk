@@ -4,6 +4,7 @@ from unittest import TestCase
 import pytest
 import src.superannotate as sa
 from tests import DATA_SET_PATH
+from src.superannotate import constances
 
 
 class TestCloneProject(TestCase):
@@ -78,7 +79,7 @@ class TestCloneProject(TestCase):
             self.PROJECT_NAME_2, self.PROJECT_NAME_1, copy_contributors=True
         )
         source_project = sa.get_project_metadata(self.PROJECT_NAME_1)
-        self.assertEqual(new_project['upload_state'], source_project['upload_state'])
+        self.assertEqual(new_project['upload_state'], constances.UploadState.INITIAL.name)
 
         new_settings = sa.get_project_settings(self.PROJECT_NAME_2)
         image_quality = None
