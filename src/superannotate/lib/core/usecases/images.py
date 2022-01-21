@@ -3208,7 +3208,7 @@ class UploadVideosAsImages(BaseReportableUseCae):
                         image_quality_in_editor=self._image_quality_in_editor,
                     )
                     if not frames_generator_use_case.is_valid():
-                        self._response.errors = use_case.response.errors
+                        self._response.errors = frames_generator_use_case.response.errors
                         return self._response
 
                     frames_generator = frames_generator_use_case.execute()
