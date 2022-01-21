@@ -85,6 +85,7 @@ class TestVideo(BaseTestCase):
         )
         self.assertIn("31 already existing images found that won't be uploaded.", self._caplog.text)
 
+    @pytest.mark.flaky(reruns=2)
     def test_frame_extraction(self):
         frames_gen = VideoPlugin.frames_generator(
             f"{self.folder_path_big}/earth.mov", target_fps=None, start_time=0.0, end_time=None

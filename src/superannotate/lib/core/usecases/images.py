@@ -40,6 +40,7 @@ from lib.core.reporter import Reporter
 from lib.core.repositories import BaseManageableRepository
 from lib.core.repositories import BaseReadOnlyRepository
 from lib.core.response import Response
+from lib.core.reporter import Progress
 from lib.core.serviceproviders import SuerannotateServiceProvider
 from lib.core.usecases.base import BaseInteractiveUseCase
 from lib.core.usecases.base import BaseReportableUseCae
@@ -3208,7 +3209,9 @@ class UploadVideosAsImages(BaseReportableUseCae):
                         image_quality_in_editor=self._image_quality_in_editor,
                     )
                     if not frames_generator_use_case.is_valid():
-                        self._response.errors = frames_generator_use_case.response.errors
+                        self._response.errors = (
+                            frames_generator_use_case.response.errors
+                        )
                         return self._response
 
                     frames_generator = frames_generator_use_case.execute()
