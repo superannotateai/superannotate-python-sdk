@@ -32,8 +32,9 @@ from lib.infrastructure.repositories import S3Repository
 from lib.infrastructure.repositories import TeamRepository
 from lib.infrastructure.repositories import WorkflowRepository
 from lib.infrastructure.services import SuperannotateBackendService
-from superannotate_schemas.validators import AnnotationValidators
 from superannotate.logger import get_default_logger
+from superannotate_schemas.validators import AnnotationValidators
+
 
 class SingleInstanceMetaClass(type):
     _instances = {}
@@ -1312,7 +1313,7 @@ class Controller(BaseController):
             backend_service_provider=self._backend_client,
             mask=mask,
             verbose=verbose,
-            reporter=self.default_reporter,
+            reporter=Reporter(log_info=True, log_warning=True),
             validators=self.annotation_validators,
         )
         return use_case.execute()

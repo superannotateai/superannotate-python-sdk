@@ -46,16 +46,12 @@ class Reporter:
 
     @staticmethod
     def get_progress_bar(
-            iterations: Union[int, range], description: str = "Processing", disable=False
+        iterations: Union[int, range], description: str = "Processing", disable=False
     ):
         if isinstance(iterations, range):
-            return tqdm.tqdm(
-                iterations, desc=description, disable=disable
-            )
+            return tqdm.tqdm(iterations, desc=description, disable=disable)
         else:
-            return tqdm.tqdm(
-                total=iterations, desc=description, disable=disable
-            )
+            return tqdm.tqdm(total=iterations, desc=description, disable=disable)
 
     def finish_progress(self):
         self.progress_bar.close()
@@ -80,7 +76,7 @@ class Reporter:
             yield f"{key} [{', '.join(values)}]"
 
 
-class Progress(object):
+class Progress:
     def __init__(self, iterations: Union[int, range], description: str = "Processing"):
         self._iterations = iterations
         self._description = description
@@ -95,5 +91,7 @@ class Progress(object):
 
     def update(self, value=1):
         if not self._progress_bar:
-            self._progress_bar = Reporter.get_progress_bar(self._iterations, self._description)
+            self._progress_bar = Reporter.get_progress_bar(
+                self._iterations, self._description
+            )
         self._progress_bar.update(value)

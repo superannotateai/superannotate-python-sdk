@@ -2112,7 +2112,7 @@ def upload_image_annotations(
         mask=mask,
         verbose=verbose,
     )
-    if response.errors:
+    if response.errors and not response.errors == constances.INVALID_JSON_MESSSAGE:
         raise AppException(response.errors)
 
 

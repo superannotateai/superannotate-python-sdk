@@ -35,11 +35,11 @@ from lib.core.exceptions import AppValidationException
 from lib.core.exceptions import ImageProcessingException
 from lib.core.plugin import ImagePlugin
 from lib.core.plugin import VideoPlugin
+from lib.core.reporter import Progress
 from lib.core.reporter import Reporter
 from lib.core.repositories import BaseManageableRepository
 from lib.core.repositories import BaseReadOnlyRepository
 from lib.core.response import Response
-from lib.core.reporter import Progress
 from lib.core.serviceproviders import SuerannotateServiceProvider
 from lib.core.usecases.base import BaseInteractiveUseCase
 from lib.core.usecases.base import BaseReportableUseCae
@@ -3230,7 +3230,9 @@ class UploadVideosAsImages(BaseReportableUseCae):
                     if set(duplicate_images) == set(frame_names):
                         continue
                     uploaded_paths = []
-                    with Progress(total_frames_count, f"Uploading {Path(path).name}") as progress:
+                    with Progress(
+                        total_frames_count, f"Uploading {Path(path).name}"
+                    ) as progress:
                         for _ in frames_generator:
                             use_case = UploadImagesFromFolderToProject(
                                 project=self._project,
