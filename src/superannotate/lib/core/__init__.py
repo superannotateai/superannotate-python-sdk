@@ -117,6 +117,14 @@ PACKAGE_VERSION_UPGRADE = (
     " Run 'pip install --upgrade superannotate' to"
     " upgrade from your version {} to {}"
 )
+
+USE_VALIDATE_MESSAGE = (
+    "Use the validate_annotations function to discover the possible reason(s) for "
+    "which an annotation is invalid."
+)
+
+INVALID_JSON_MESSAGE = "Invalid json"
+
 __alL__ = (
     ProjectType,
     UserRole,

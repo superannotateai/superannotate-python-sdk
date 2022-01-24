@@ -156,6 +156,23 @@ class TestInterface(BaseTestCase):
             )
             self.assertIsNotNone(result)
 
+    def test_validate_log_for_single_uplaod(self):
+        with self.assertLogs() as logs:
+            sa.upload_image_to_project(self.PROJECT_NAME, f"{self.folder_path}/{self.EXAMPLE_IMAGE_1}")
+            sa.upload_image_annotations(
+                self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, {
+                    "metadatas": {
+                        "name": "example_image_1.jpg",
+                        "width": 1024,
+                        "height": 683,
+                        "status": "Completed",
+                    },
+                    "instance": []
+                }
+            )
+            self.assertEqual(len(logs[1][0]), 150)
+
+
 
 class TestPixelInterface(BaseTestCase):
     PROJECT_NAME = "Interface Pixel test"

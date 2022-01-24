@@ -515,6 +515,13 @@ class CloneProjectUseCase(BaseReportableUseCae):
 
     def execute(self):
         if self.is_valid():
+            if self._project_to_create.project_type in (
+                constances.ProjectType.PIXEL.value,
+                constances.ProjectType.VECTOR.value,
+            ):
+                self._project_to_create.upload_state = (
+                    constances.UploadState.INITIAL.value
+                )
             project = self._projects.insert(self._project_to_create)
             self.reporter.log_info(
                 f"Created project {self._project_to_create.name} with type"
