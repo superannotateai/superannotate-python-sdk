@@ -123,7 +123,7 @@ USE_VALIDATE_MESSAGE = (
     "which an annotation is invalid."
 )
 
-INVALID_JSON_MESSSAGE = "Invalid json"
+INVALID_JSON_MESSAGE = "Invalid json"
 
 __alL__ = (
     ProjectType,

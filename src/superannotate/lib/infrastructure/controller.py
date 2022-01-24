@@ -216,9 +216,7 @@ class BaseController(metaclass=SingleInstanceMetaClass):
 
     @property
     def default_reporter(self):
-        if not self._reporter:
-            self._reporter = Reporter()
-        return self._reporter
+        return Reporter()
 
     @timed_lru_cache(seconds=3600)
     def get_auth_data(self, project_id: int, team_id: int, folder_id: int):
@@ -1313,7 +1311,7 @@ class Controller(BaseController):
             backend_service_provider=self._backend_client,
             mask=mask,
             verbose=verbose,
-            reporter=Reporter(log_info=True, log_warning=True),
+            reporter=self.default_reporter,
             validators=self.annotation_validators,
         )
         return use_case.execute()
