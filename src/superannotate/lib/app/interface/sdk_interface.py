@@ -2039,7 +2039,6 @@ def upload_preannotations_from_folder_to_project(
         "The JSON files should follow a specific naming convention, matching file names already present "
         "on the platform. Existing annotations will be overwritten"
     )
-    logger.info("Existing annotations will be overwritten.",)
     annotation_paths = get_annotation_paths(
         folder_path, from_s3_bucket, recursive_subfolders
     )
