@@ -20,6 +20,11 @@ class TestInterface(BaseTestCase):
     NEW_IMAGE_NAME = "new_name_yup"
     IMAGE_PATH_IN_S3 = 'MP.MB/img1.bmp'
     TEST_S3_BUCKET_NAME = "test-openseadragon-1212"
+    TEST_INVALID_ANNOTATION_FOLDER_PATH = "sample_project_vector_invalid"
+
+    @property
+    def invalid_json_path(self):
+        return os.path.join(self.data_set_path, self.TEST_INVALID_ANNOTATION_FOLDER_PATH)
 
     @property
     def data_set_path(self):
@@ -171,6 +176,70 @@ class TestInterface(BaseTestCase):
                 }
             )
             self.assertEqual(len(logs[1][0]), 150)
+
+            sa.upload_image_annotations(
+                self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, {
+                    "metadata": {
+                        "name": "example_image_1.jpg",
+                        "width": 1024,
+                        "height": 683,
+                        "status": "Completed",
+                    },
+                    "instance": []
+                }
+            )
+            self.assertEqual(len(logs[1][1]), 86)
+
+            sa.upload_images_from_folder_to_project(
+                self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
+            )
+            uploaded_annotations, failed_annotations, missing_annotations = sa.upload_annotations_from_folder_to_project(
+                self.PROJECT_NAME, self.invalid_json_path
+            )
+            self.assertEqual(len(uploaded_annotations), 3)
+            self.assertEqual(len(failed_annotations), 1)
+            self.assertEqual(len(missing_annotations), 0)
+            self.assertEqual(len(logs[1][2].split("from")[0]), 98)
+            self.assertEqual(len(logs[1][3]), 66)
+            self.assertEqual(len(logs[1][4]), 53)
+            self.assertEqual(len(logs[1][5]), 160)
+            self.assertEqual(len(logs[1][6].split("from")[0]), 32)
+
+            uploaded_annotations, failed_annotations, missing_annotations = sa.upload_preannotations_from_folder_to_project(
+                self.PROJECT_NAME, self.invalid_json_path
+            )
+            self.assertEqual(len(uploaded_annotations), 3)
+            self.assertEqual(len(failed_annotations), 1)
+            self.assertEqual(len(missing_annotations), 0)
+
+            with tempfile.TemporaryDirectory() as tmpdir_name:
+                path = f"{tmpdir_name}/annotation___objects.json"
+                with open(path, "w") as annotation:
+                    annotation.write(
+                        '''
+                                           {
+                                               "metadata": {
+                                                   "name": "text_file_example_1",
+                                                   "status": "NotStarted",
+                                                   "url": "https://sa-public-files.s3.us-west-2.amazonaws.com/Text+project/text_file_example_1.txt",
+                                                   "projectId": 167826,
+                                                   "annotatorEmail": null,
+                                                   "qaEmail": null,
+                                                   "lastAction": {
+                                                       "email": "some.email@gmail.com",
+                                                       "timestamp": 1636620976450
+                                                   }
+                                               },
+                                               "instances": [],
+                                               "tags": []
+                                           }
+                                           '''
+                    )
+                sa.upload_image_annotations(self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, path)
+                self.assertEqual(len(logs[1][-1]),86)
+                self.assertEqual(len(logs[1][-2].split('from')[0]),30)
+
+
 
 
 
