@@ -216,9 +216,7 @@ class BaseController(metaclass=SingleInstanceMetaClass):
 
     @property
     def default_reporter(self):
-        if not self._reporter:
-            self._reporter = Reporter()
-        return self._reporter
+        return Reporter()
 
     @timed_lru_cache(seconds=3600)
     def get_auth_data(self, project_id: int, team_id: int, folder_id: int):

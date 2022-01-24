@@ -137,6 +137,12 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
             self._annotations_to_upload = annotations_to_upload
         return self._annotations_to_upload
 
+    @property
+    def missing_annotations(self):
+        if not self._missing_annotations:
+            self._missing_annotations = []
+        return self._missing_annotations
+
     def get_annotation_upload_data(
         self, image_ids: List[int]
     ) -> UploadAnnotationAuthData:
@@ -162,6 +168,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
         bucket,
     ):
         try:
+            self.reporter.disable_warnings()
             response = UploadAnnotationUseCase(
                 project=self._project,
                 folder=self._folder,
@@ -190,6 +197,8 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
         except Exception as e:
             logger.debug(str(e), exc_info=True)
             return path, False
+        finally:
+            self.reporter.enable_warnings()
 
     def get_bucket_to_upload(self, ids: List[int]):
         upload_data = self.get_annotation_upload_data(ids)
@@ -223,7 +232,9 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
                 logger.warning(template.format("', '".join(values)))
         if self.reporter.custom_messages.get("invalid_jsons"):
             logger.warning(
-                f"Couldn't validate {len(self.reporter.custom_messages['invalid_jsons'])}/{len(self._annotations_to_upload + self._missing_annotations)} annotations from {self._folder_path}."
+                f"Couldn't validate {len(self.reporter.custom_messages['invalid_jsons'])}/"
+                f"{len(self.annotations_to_upload + self.missing_annotations)} annotations from {self._folder_path}. "
+                f"{constances.USE_VALIDATE_MESSAGE}"
             )
 
     def execute(self):
@@ -281,7 +292,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
         self._response.data = (
             uploaded_annotations,
             failed_annotations,
-            [annotation.path for annotation in self._missing_annotations],
+            [annotation.path for annotation in self.missing_annotations],
         )
         return self._response
 
@@ -477,12 +488,13 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
                 )
                 self._images.update(self._image)
                 if self._verbose:
-                    logger.info(
-                        "Uploading annotations for image %s in project %s.",
-                        str(self._image.name),
-                        self._project.name,
+                    self.reporter.log_info(
+                        f"Uploading annotations for image {str(self._image.name)} in project {self._project.name}."
                     )
             else:
-                self._response.errors = "Invalid json"
+                self._response.errors = constances.INVALID_JSON_MESSAGE
                 self.reporter.store_message("invalid_jsons", self._annotation_path)
+                self.reporter.log_warning(
+                    f"Couldn't validate annotations. {constances.USE_VALIDATE_MESSAGE}"
+                )
         return self._response
