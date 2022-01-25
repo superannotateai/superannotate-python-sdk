@@ -24,13 +24,15 @@ def get_team_metadata(*args, **kwargs):
 
 def invite_contributors_to_team(*args, **kwargs):
     admin = kwargs.get("admin", None)
-    if not admin:
+    if admin is None:
         admin = args[1:2]
-    if admin:
-        admin = "CUSTOM"
+        if not admin:
+            admin_value = False
+        if admin:
+            admin_value = admin[0]
     else:
-        admin = "DEFAULT"
-    return {"event_name": "invite_contributors_to_team", "properties": {"Admin": admin}}
+        admin_value = admin
+    return {"event_name": "invite_contributors_to_team", "properties": {"Admin": admin_value}}
 
 
 def search_team_contributors(*args, **kwargs):
