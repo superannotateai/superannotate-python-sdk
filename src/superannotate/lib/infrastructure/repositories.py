@@ -325,7 +325,7 @@ class AnnotationClassRepository(BaseManageableRepository):
 
     def insert(self, entity: AnnotationClassEntity):
         res = self._service.set_annotation_classes(
-            self.project.uuid, self.project.team_id, [entity.to_dict()]
+            self.project.uuid, self.project.team_id, [entity.dict(exclude_unset=True)]
         )
         if "error" in res:
             raise AppException(res["error"])
@@ -342,9 +342,9 @@ class AnnotationClassRepository(BaseManageableRepository):
         raise NotImplementedError
 
     @staticmethod
-    def dict2entity(data: dict):
+    def dict2entity(data: dict) -> AnnotationClassEntity:
         return AnnotationClassEntity(
-            uuid=data["id"],
+            id=data["id"],
             project_id=data["project_id"],
             name=data["name"],
             count=data["count"],

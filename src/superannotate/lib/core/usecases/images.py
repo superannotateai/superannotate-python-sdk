@@ -1054,7 +1054,7 @@ class DownloadImageUseCase(BaseUseCase):
                         ),
                         image_path=download_path,
                         classes=[
-                            annotation_class.to_dict() for annotation_class in classes
+                            annotation_class.dict(exclude_unset=True) for annotation_class in classes
                         ],
                         generate_overlay=self._include_overlay,
                     )
@@ -2272,15 +2272,15 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
             if annotation_class.attribute_groups:
                 for attribute_group in annotation_class.attribute_groups:
                     attribute_group_data = defaultdict(dict)
-                    for attribute in attribute_group["attributes"]:
-                        attribute_group_data[attribute["id"]] = attribute["name"]
+                    for attribute in attribute_group.attributes:
+                        attribute_group_data[attribute.id] = attribute.name
                     class_info["attribute_groups"] = {
-                        attribute_group["id"]: {
-                            "name": attribute_group["name"],
+                        attribute_group.id: {
+                            "name": attribute_group.name,
                             "attributes": attribute_group_data,
                         }
                     }
-            classes_data[annotation_class.uuid] = class_info
+            classes_data[annotation_class.id] = class_info
         return classes_data
 
     def get_templates_mapping(self):
@@ -2759,7 +2759,7 @@ class DeleteAnnotationClassUseCase(BaseUseCase):
     @property
     def uuid(self):
         if self._annotation_class:
-            return self._annotation_class.uuid
+            return self._annotation_class.id
 
     def execute(self):
         annotation_classes = self._annotation_classes_repo.get_all(

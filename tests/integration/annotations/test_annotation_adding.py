@@ -61,7 +61,6 @@ class TestAnnotationAdding(BaseTestCase):
 
         annotations_new["instances"][0]['createdAt'] = ''
         annotations_new["instances"][0]['updatedAt'] = ''
-
         self.assertEqual(
             annotations_new["instances"][0], {
                 'x': 250.0,
@@ -78,7 +77,8 @@ class TestAnnotationAdding(BaseTestCase):
                 'classId': -1,
                 'createdAt': '',
                 'updatedAt': ''
-            })
+            }
+        )
 
     def test_add_bbox_to_empty_annotation(self):
         sa.upload_images_from_folder_to_project(

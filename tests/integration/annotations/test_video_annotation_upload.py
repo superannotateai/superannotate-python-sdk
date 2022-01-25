@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 import src.superannotate as sa
 from tests.integration.base import BaseTestCase
-from src.superannotate.lib.core.helpers import convert_to_video_editor_json
+from src.superannotate.lib.core.data_handlers import VideoFormatHandler
 from lib.core.reporter import Reporter
 
 
@@ -136,9 +136,11 @@ class TestUploadVideoAnnotation(BaseTestCase):
             self.assertEqual(len(uploaded), 1)
 
     def test_video_annotation_converter(self):
-        converted_video = convert_to_video_editor_json(
-            json.loads(open(f'{self.minimal_annotations_path}/video.mp4.json', 'r').read()), class_name_mapper={},
-            reporter=Reporter())
+        handler = VideoFormatHandler([], Reporter())
+        converted_video = handler.handle(
+            json.loads(open(f'{self.minimal_annotations_path}/video.mp4.json', 'r').read())
+        )
+
         data = {'instances': [{'attributes': [], 'timeline': {
             '0': {'active': True, 'points': {'x1': 223.32, 'y1': 78.45, 'x2': 312.31, 'y2': 176.66}},
             17.271058: {'points': {'x1': 182.08, 'y1': 33.18, 'x2': 283.45, 'y2': 131.39}},
