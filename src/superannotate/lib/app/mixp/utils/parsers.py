@@ -1200,7 +1200,7 @@ def validate_annotations(*args, **kwargs):
 def add_contributors_to_project(*args, **kwargs):
     user_role = kwargs.get("role", None)
     if not user_role:
-        user_role = args[2:3]
+        user_role = args[2:3][0]
 
     return {
         "event_name": "add_contributors_to_project",
