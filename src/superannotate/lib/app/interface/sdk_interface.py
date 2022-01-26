@@ -2804,8 +2804,8 @@ def add_contributors_to_project(
     :param role: user role to apply, one of Admin , Annotator , QA
     :type role: str
 
-    return: lists of added,  skipped contributors of the project
-    rtype: tuple (2 members) of lists of strs
+    :return: lists of added,  skipped contributors of the project
+    :rtype: tuple (2 members) of lists of strs
     """
     response = controller.add_contributors_to_project(
         project_name=project, emails=emails, role=role
@@ -2828,8 +2828,8 @@ def invite_contributors_to_team(
     :param admin: enables admin privileges for the contributor
     :type admin: bool
 
-    return: lists of invited, skipped contributors of the team
-    rtype: tuple (2 members) of lists of strs
+    :return: lists of invited, skipped contributors of the team
+    :rtype: tuple (2 members) of lists of strs
     """
     response = controller.invite_contributors_to_team(emails=emails, set_admin=admin)
     if response.errors:
