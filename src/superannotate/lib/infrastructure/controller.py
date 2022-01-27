@@ -1,10 +1,12 @@
 import copy
 import io
+import os
 from os.path import expanduser
 from pathlib import Path
 from typing import Iterable
 from typing import List
 from typing import Optional
+from typing import Tuple
 from typing import Union
 
 import lib.core as constances
@@ -12,7 +14,6 @@ from lib.core import usecases
 from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.entities import AnnotationClassEntity
-from lib.core.entities import ConfigEntity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
 from lib.core.entities import MLModelEntity
@@ -51,8 +52,11 @@ class SingleInstanceMetaClass(type):
 
 
 class BaseController(metaclass=SingleInstanceMetaClass):
-    def __init__(self, config_path=constances.CONFIG_FILE_LOCATION):
+    def __init__(self, config_path=constances.CONFIG_FILE_LOCATION, token: str = None):
         self._team_data = None
+        self._token = None
+        self._backend_url = None
+        self._ssl_verify = True
         self._config_path = None
         self._backend_client = None
         self._logger = get_default_logger()
@@ -62,74 +66,81 @@ class BaseController(metaclass=SingleInstanceMetaClass):
         self._teams = None
         self._images = None
         self._ml_models = None
-        self._team_id = None
         self._user_id = None
         self._team_name = None
         self._reporter = None
         self._config_path = expanduser(config_path)
-        try:
-            self.init(config_path)
-        except AppException:
-            pass
-
-    def init(self, config_path=None):
-        if not config_path:
-            config_path = constances.CONFIG_FILE_LOCATION
-        config_path = Path(expanduser(config_path))
-        if str(config_path) == constances.CONFIG_FILE_LOCATION:
-            if not Path(self._config_path).is_file():
-                self.configs.insert(
-                    ConfigEntity("main_endpoint", constances.BACKEND_URL)
-                )
-                self.configs.insert(ConfigEntity("token", ""))
-                return
-        if not config_path.is_file():
-            raise AppException(
-                f"SuperAnnotate config file {str(config_path)} not found."
-                f" Please provide correct config file location to sa.init(<path>) or use "
-                f"CLI's superannotate init to generate default location config file."
-            )
-        self._config_path = config_path
-        token, main_endpoint = (
-            self.configs.get_one("token"),
-            self.configs.get_one("main_endpoint"),
+        self._token, self._backend_url = (
+            os.environ.get("SA_TOKEN"),
+            os.environ.get("SA_URL"),
         )
-        token = None if not token else token.value
-        main_endpoint = None if not main_endpoint else main_endpoint.value
-        if not main_endpoint:
-            main_endpoint = constances.BACKEND_URL
-        if not token:
-            raise AppException(
-                f"Incorrect config file: token is not present in the config file {config_path}"
+
+        if not self._token and token:
+            if self._validate_token(token):
+                self._token = token
+            else:
+                raise AppException("Invalid token.")
+        if not self._token and config_path:
+            self._token, self._backend_url, ssl_verify = self.retrieve_configs(
+                Path(config_path), raise_exception=False
             )
-        verify_ssl_entity = self.configs.get_one("ssl_verify")
-        if not verify_ssl_entity:
-            verify_ssl = True
-        else:
-            verify_ssl = verify_ssl_entity.value
+
+    def retrieve_configs(
+        self, path: Path, raise_exception=True
+    ) -> Tuple[Optional[str], Optional[str], Optional[str]]:
+        if not path.is_file():
+            if raise_exception:
+                raise AppException(
+                    f"SuperAnnotate config file {str(path)} not found."
+                    f" Please provide correct config file location to sa.init(<path>) or use "
+                    f"CLI's superannotate init to generate default location config file."
+                )
+        try:
+            config_repo = ConfigRepository(self._config_path)
+            return (
+                config_repo.get_one("token").value,
+                config_repo.get_one("main_endpoint").value,
+                config_repo.get_one("ssl_verify").value,
+            )
+        except Exception:
+            if raise_exception:
+                raise AppException(
+                    f"Incorrect config file: token is not present in the config file {path}"
+                )
+            return None, None, None
+
+    def init(
+        self, config_path: str = constances.CONFIG_FILE_LOCATION, token: str = None
+    ):
+        if token:
+            if self._validate_token(token):
+                self._token = token
+            else:
+                raise AppException("Invalid token.")
+        if not token and config_path:
+            self._config_path = config_path
+            self._token, self._backend_url, ssl_verify = self.retrieve_configs(
+                Path(config_path), raise_exception=True
+            )
+            self._ssl_verify = False if ssl_verify is False else True
+
+    @property
+    def backend_client(self):
         if not self._backend_client:
             self._backend_client = SuperannotateBackendService(
-                api_url=main_endpoint,
-                auth_token=token,
+                api_url=self._backend_url,
+                auth_token=self._token,
                 logger=self._logger,
-                verify_ssl=verify_ssl,
+                verify_ssl=self._ssl_verify,
             )
-        else:
-            self._backend_client.api_url = main_endpoint
-            self._backend_client._auth_token = token
-            self._backend_client.get_session.cache_clear()
-        self._team_id = None
-        self.validate_token(token)
-        self._team_id = int(token.split("=")[-1])
-        self._teams = None
+        self._backend_client._api_url = self._backend_url
+        self._backend_client._auth_token = self._token
+        self._backend_client.get_session.cache_clear()
+        return self._backend_client
 
     @staticmethod
-    def validate_token(token: str):
-        try:
-            int(token.split("=")[-1])
-            return True
-        except Exception:
-            raise AppException("Invalid token.") from None
+    def is_valid_token(token: str):
+        return int(token.split("=")[-1])
 
     @property
     def config_path(self):
@@ -154,13 +165,12 @@ class BaseController(metaclass=SingleInstanceMetaClass):
         except ValueError:
             raise AppException("Invalid token.")
 
-    def set_token(self, token):
+    def set_token(self, token: str, backend_url: str = constances.BACKEND_URL):
         self._validate_token(token)
-        self._team_id = int(token.split("=")[-1])
-        self.configs.insert(ConfigEntity("token", token))
-        self._backend_client = SuperannotateBackendService.get_instance()
-        self._backend_client._api_url = self.configs.get_one("main_endpoint").value
-        self._backend_client._auth_token = self.configs.get_one("token").value
+        self._token = token
+        self._backend_client = self.backend_client
+        self._backend_client._api_url = backend_url
+        self._backend_client._auth_token = token
         self._backend_client.get_session.cache_clear()
 
     @property
@@ -186,9 +196,7 @@ class BaseController(metaclass=SingleInstanceMetaClass):
 
     @property
     def teams(self):
-        if self.team_id and not self._teams:
-            self._teams = TeamRepository(self._backend_client)
-        return self._teams
+        return TeamRepository(self.backend_client)
 
     @property
     def team_data(self):
@@ -208,11 +216,11 @@ class BaseController(metaclass=SingleInstanceMetaClass):
 
     @property
     def team_id(self) -> int:
-        if not self._team_id:
+        if not self._token:
             raise AppException(
                 f"Invalid credentials provided in the {self._config_path}."
             )
-        return self._team_id
+        return int(self._token.split("=")[-1])
 
     @property
     def default_reporter(self):
@@ -243,10 +251,6 @@ class BaseController(metaclass=SingleInstanceMetaClass):
     @property
     def annotation_validators(self) -> AnnotationValidators:
         return AnnotationValidators()
-
-    @property
-    def backend_client(self):
-        return self._backend_client
 
 
 class Controller(BaseController):

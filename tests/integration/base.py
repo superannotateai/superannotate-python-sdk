@@ -20,9 +20,12 @@ class BaseTestCase(TestCase):
         )
 
     def tearDown(self) -> None:
-        projects = sa.search_projects(self.PROJECT_NAME, return_metadata=True)
-        for project in projects:
-            try:
-                sa.delete_project(project)
-            except Exception:
-                pass
+        try:
+            projects = sa.search_projects(self.PROJECT_NAME, return_metadata=True)
+            for project in projects:
+                try:
+                    sa.delete_project(project)
+                except Exception:
+                    pass
+        except Exception as e:
+            print(str(e))
