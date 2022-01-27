@@ -136,7 +136,7 @@ class TestCloneProjectAttachedUrls(TestCase):
         sa.create_annotation_class(
             self.PROJECT_NAME_1,
             "rrr",
-            "#FFAAFF",
+            "#faf",
             [
                 {
                     "name": "tall",
@@ -160,5 +160,5 @@ class TestCloneProjectAttachedUrls(TestCase):
         ann_classes = sa.search_annotation_classes(self.PROJECT_NAME_2)
         self.assertEqual(len(ann_classes), 1)
         self.assertEqual(ann_classes[0]["name"], "rrr")
-        self.assertEqual(ann_classes[0]["color"], "#FFAAFF")
+        self.assertEqual(ann_classes[0]["color"], "#faf")
         self.assertIn("Workflow copy is deprecated for Document projects.", self._caplog.text)

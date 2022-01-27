@@ -8,16 +8,16 @@ from typing import Tuple
 
 import boto3
 import lib.core as constances
+from lib.core.data_handlers import ChainedAnnotationHandlers
+from lib.core.data_handlers import DocumentTagHandler
+from lib.core.data_handlers import LastActionHandler
+from lib.core.data_handlers import MissingIDsHandler
+from lib.core.data_handlers import VideoFormatHandler
 from lib.core.entities import AnnotationClassEntity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
 from lib.core.entities import ProjectEntity
 from lib.core.entities import TeamEntity
-from lib.core.helpers import convert_to_video_editor_json
-from lib.core.helpers import fill_annotation_ids
-from lib.core.helpers import fill_document_tags
-from lib.core.helpers import handle_last_action
-from lib.core.helpers import map_annotation_classes_name
 from lib.core.reporter import Reporter
 from lib.core.repositories import BaseManageableRepository
 from lib.core.service_types import UploadAnnotationAuthData
@@ -421,28 +421,19 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
         reporter: Reporter,
         team: TeamEntity,
     ) -> dict:
-        annotation_classes_name_maps = map_annotation_classes_name(
-            annotation_classes, reporter
-        )
+        handlers_chain = ChainedAnnotationHandlers()
         if project_type in (
             constances.ProjectType.VECTOR.value,
             constances.ProjectType.PIXEL.value,
             constances.ProjectType.DOCUMENT.value,
         ):
-            fill_annotation_ids(
-                annotations=annotations,
-                annotation_classes_name_maps=annotation_classes_name_maps,
-                templates=templates,
-                reporter=reporter,
-            )
+            handlers_chain.attach(MissingIDsHandler(annotation_classes, templates, reporter))
         elif project_type == constances.ProjectType.VIDEO.value:
-            annotations = convert_to_video_editor_json(
-                annotations, annotation_classes_name_maps, reporter
-            )
+            handlers_chain.attach(VideoFormatHandler(annotation_classes, reporter))
         if project_type == constances.ProjectType.DOCUMENT.value:
-            fill_document_tags(annotations, annotation_classes_name_maps)
-        handle_last_action(annotations, team)
-        return annotations
+            handlers_chain.attach(DocumentTagHandler(annotation_classes))
+        handlers_chain.attach(LastActionHandler(team.creator_id))
+        return handlers_chain.handle(annotations)
 
     def clean_json(self, json_data: dict,) -> Tuple[bool, dict]:
         use_case = ValidateAnnotationUseCase(

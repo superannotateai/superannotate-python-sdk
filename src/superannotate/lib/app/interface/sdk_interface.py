@@ -1550,7 +1550,7 @@ def create_annotation_class(
     response = controller.create_annotation_class(
         project_name=project, name=name, color=color, attribute_groups=attribute_groups
     )
-    return response.data.to_dict()
+    return response.data.dict()
 
 
 @Trackable

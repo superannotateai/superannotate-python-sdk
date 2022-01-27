@@ -428,7 +428,7 @@ class CloneProjectUseCase(BaseReportableUseCae):
         for annotation_class in annotation_classes:
             annotation_class_copy = copy.copy(annotation_class)
             annotation_classes_entity_mapping[
-                annotation_class.uuid
+                annotation_class.id
             ] = self.get_annotation_classes_repo(project).insert(annotation_class_copy)
 
     def _copy_include_contributors(self, to_project: ProjectEntity):
@@ -848,12 +848,12 @@ class SetWorkflowUseCase(BaseUseCase):
             annotation_classes_map = {}
             annotations_classes_attributes_map = {}
             for annotation_class in annotation_classes:
-                annotation_classes_map[annotation_class.name] = annotation_class.uuid
+                annotation_classes_map[annotation_class.name] = annotation_class.id
                 for attribute_group in annotation_class.attribute_groups:
-                    for attribute in attribute_group["attributes"]:
+                    for attribute in attribute_group.attributes:
                         annotations_classes_attributes_map[
                             f"{annotation_class.name}__{attribute_group['name']}__{attribute['name']}"
-                        ] = attribute["id"]
+                        ] = attribute.id
 
             for step in [step for step in self._steps if "className" in step]:
                 if step.get("id"):
