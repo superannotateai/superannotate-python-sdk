@@ -470,7 +470,7 @@ class CloneProjectUseCase(BaseReportableUseCae):
             workflow_data.project_id = to_project.uuid
             workflow_data.class_id = annotation_classes_entity_mapping[
                 workflow.class_id
-            ].uuid
+            ].id
             new_workflows.insert(workflow_data)
             workflows = new_workflows.get_all()
             new_workflow = next(
@@ -488,21 +488,17 @@ class CloneProjectUseCase(BaseReportableUseCae):
                 ].attribute_groups:
                     if (
                         attribute["attribute"]["attribute_group"]["name"]
-                        == annotation_attribute["name"]
+                        == annotation_attribute.name
                     ):
-                        for annotation_attribute_value in annotation_attribute[
-                            "attributes"
-                        ]:
+                        for annotation_attribute_value in annotation_attribute.attributes:
                             if (
-                                annotation_attribute_value["name"]
+                                annotation_attribute_value.name
                                 == attribute["attribute"]["name"]
                             ):
                                 workflow_attributes.append(
                                     {
                                         "workflow_id": new_workflow.uuid,
-                                        "attribute_id": annotation_attribute_value[
-                                            "id"
-                                        ],
+                                        "attribute_id": annotation_attribute_value.id,
                                     }
                                 )
                                 break
@@ -852,7 +848,7 @@ class SetWorkflowUseCase(BaseUseCase):
                 for attribute_group in annotation_class.attribute_groups:
                     for attribute in attribute_group.attributes:
                         annotations_classes_attributes_map[
-                            f"{annotation_class.name}__{attribute_group['name']}__{attribute['name']}"
+                            f"{annotation_class.name}__{attribute_group.name}__{attribute.name}"
                         ] = attribute.id
 
             for step in [step for step in self._steps if "className" in step]:
