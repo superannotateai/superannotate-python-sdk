@@ -125,6 +125,7 @@ class TestRecursiveFolder(BaseTestCase):
 
             self.assertEqual(len(list(Path(tmp_dir).glob(self.JSON_POSTFIX))), 2)
 
+    @pytest.mark.flaky(reruns=2)
     def test_annotations_non_recursive_s3_folder(self):
         sa.upload_images_from_folder_to_project(
             self.PROJECT_NAME,

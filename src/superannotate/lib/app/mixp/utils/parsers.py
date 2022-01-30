@@ -24,13 +24,15 @@ def get_team_metadata(*args, **kwargs):
 
 def invite_contributors_to_team(*args, **kwargs):
     admin = kwargs.get("admin", None)
-    if not admin:
+    if admin is None:
         admin = args[1:2]
-    if admin:
-        admin = "CUSTOM"
+        if not admin:
+            admin_value = False
+        if admin:
+            admin_value = admin[0]
     else:
-        admin = "DEFAULT"
-    return {"event_name": "invite_contributors_to_team", "properties": {"Admin": admin}}
+        admin_value = admin
+    return {"event_name": "invite_contributors_to_team", "properties": {"Admin": admin_value}}
 
 
 def search_team_contributors(*args, **kwargs):
@@ -809,8 +811,8 @@ def upload_images_from_folder_to_project(*args, **kwargs):
         else:
             exclude_file_patterns = constances.DEFAULT_FILE_EXCLUDE_PATTERNS
 
-    from pathlib import Path
     import os
+    from pathlib import Path
 
     paths = []
     for extension in extensions:
@@ -1071,9 +1073,17 @@ def aggregate_annotations_as_df(*args, **kwargs):
             if folder_names is None:
                 folder_names = []
 
+    project_type = kwargs.get("project_type", None)
+    if not project_type:
+        project_type = args[1]
+
     return {
         "event_name": "aggregate_annotations_as_df",
-        "properties": {"Folder Count": len(folder_names)},
+        "properties": {
+            "Folder Count": len(folder_names),
+            "Project Type": project_type
+
+        },
     }
 
 
@@ -1184,4 +1194,15 @@ def validate_annotations(*args, **kwargs):
     return {
         "event_name": "validate_annotations",
         "properties": {"Project Type": project_type},
+    }
+
+
+def add_contributors_to_project(*args, **kwargs):
+    user_role = kwargs.get("role", None)
+    if not user_role:
+        user_role = args[2:3][0]
+
+    return {
+        "event_name": "add_contributors_to_project",
+        "properties": {"User Role": user_role},
     }

@@ -1,5 +1,3 @@
-from lib.core.entities.document import DocumentAnnotation
-from lib.core.entities.pixel import PixelAnnotation
 from lib.core.entities.project_entities import AnnotationClassEntity
 from lib.core.entities.project_entities import BaseEntity
 from lib.core.entities.project_entities import ConfigEntity
@@ -13,10 +11,13 @@ from lib.core.entities.project_entities import S3FileEntity
 from lib.core.entities.project_entities import TeamEntity
 from lib.core.entities.project_entities import UserEntity
 from lib.core.entities.project_entities import WorkflowEntity
-from lib.core.entities.vector import VectorAnnotation
-from lib.core.entities.video import VideoAnnotation
-from lib.core.entities.video_export import VideoAnnotation as VideoExportAnnotation
-
+from superannotate_schemas.schemas.internal.document import DocumentAnnotation
+from superannotate_schemas.schemas.internal.pixel import PixelAnnotation
+from superannotate_schemas.schemas.internal.vector import VectorAnnotation
+from superannotate_schemas.schemas.internal.video import VideoAnnotation
+from superannotate_schemas.schemas.internal.video import (
+    VideoAnnotation as VideoExportAnnotation,
+)
 
 __all__ = [
     "BaseEntity",

@@ -1,6 +1,6 @@
 """
 """
-import logging
+from superannotate.logger import get_default_logger
 
 from .coco_converters.coco_to_sa_pixel import coco_instance_segmentation_to_sa_pixel
 from .coco_converters.coco_to_sa_pixel import coco_panoptic_segmentation_to_sa_pixel
@@ -38,7 +38,7 @@ from .voc_converters.voc_to_sa_vector import voc_object_detection_to_sa_vector
 from .vott_converters.vott_to_sa_vector import vott_to_sa
 from .yolo_converters.yolo_to_sa_vector import yolo_object_detection_to_sa_vector
 
-logger = logging.getLogger()
+logger = get_default_logger()
 
 CONVERSION_ALGORITHMS = {
     "from": {

@@ -12,7 +12,6 @@ from pydantic import validate_arguments as pydantic_validate_arguments
 from pydantic import ValidationError
 from pydantic.errors import StrRegexError
 
-
 NotEmptyStr = constr(strict=True, min_length=1)
 
 

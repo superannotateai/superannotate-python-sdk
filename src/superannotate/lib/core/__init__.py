@@ -9,7 +9,6 @@ from superannotate.lib.core.enums import TrainingTask
 from superannotate.lib.core.enums import UploadState
 from superannotate.lib.core.enums import UserRole
 
-
 CONFIG_FILE_LOCATION = str(Path.home() / ".superannotate" / "config.json")
 LOG_FILE_LOCATION = str(Path.home() / ".superannotate" / "sa.log")
 BACKEND_URL = "https://api.annotate.online"
@@ -118,6 +117,14 @@ PACKAGE_VERSION_UPGRADE = (
     " Run 'pip install --upgrade superannotate' to"
     " upgrade from your version {} to {}"
 )
+
+USE_VALIDATE_MESSAGE = (
+    "Use the validate_annotations function to discover the possible reason(s) for "
+    "which an annotation is invalid."
+)
+
+INVALID_JSON_MESSAGE = "Invalid json"
+
 __alL__ = (
     ProjectType,
     UserRole,
