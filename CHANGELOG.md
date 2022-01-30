@@ -1,6 +1,6 @@
 # Changelog 
 All release higlighths of this project will be documented in this file.
-## 4.2.9 - Dec 12 2022
+## 4.2.9 - Jan 30 2022
 ### Added
 - `superannotate_schemas` as a stand alone package on annotation schemas.
 ### Updated
