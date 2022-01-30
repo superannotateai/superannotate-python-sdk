@@ -1,5 +1,17 @@
 # Changelog 
 All release higlighths of this project will be documented in this file.
+## 4.2.9 - Dec 12 2022
+### Added
+- `superannotate_schemas` as a stand alone package on annotation schemas.
+### Updated
+- `upload_annotations_from_folder_to_project()` to reference the `validate_annotations()`.
+- `upload_videos_from_folder_to_project()` to remove code duplications.
+- `clone_project()` to set upload state of clone project to inital. 
+### Fixed
+- `validate_annotations()` to fix rotated bounding box schema. 
+### Removed
+- Third party logs from logging mechanism.
+###
 ## 4.2.8 - Jan 9 2022
 ### Added
 - `invite_contributers_to_team()` for bulk team invite.
