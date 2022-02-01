@@ -1524,7 +1524,7 @@ def create_annotation_class(
     project: Union[Project, NotEmptyStr],
     name: NotEmptyStr,
     color: NotEmptyStr,
-    attribute_groups: Optional[List[AttributeGroup]] = [],
+    attribute_groups: Optional[List[AttributeGroup]] = None,
 ):
     """Create annotation class in project
 
@@ -1545,7 +1545,7 @@ def create_annotation_class(
     if isinstance(project, Project):
         project = project.dict()
     attribute_groups = (
-        list(map(lambda x: x.dict(), attribute_groups))
+        list(map(lambda x: x.dict(), attribute_groups)) if attribute_groups else []
     )
     response = controller.create_annotation_class(
         project_name=project, name=name, color=color, attribute_groups=attribute_groups
