@@ -414,7 +414,7 @@ class CopyImageAnnotationClasses(BaseUseCase):
         to_project_annotation_classes = self._to_project_annotation_classes.get_all()
 
         annotations_classes_from_copy = {
-            from_annotation.uuid: from_annotation
+            from_annotation.id: from_annotation
             for from_annotation in from_project_annotation_classes
             for to_annotation in to_project_annotation_classes
             if from_annotation.name == to_annotation.name
@@ -429,7 +429,7 @@ class CopyImageAnnotationClasses(BaseUseCase):
 
         for instance in image_annotations["instances"]:
             if instance["classId"] < 0 or not annotations_classes_from_copy.get(
-                instance["classId"]
+                    instance["classId"]
             ):
                 continue
             project_annotation_class = annotations_classes_from_copy[
@@ -441,18 +441,18 @@ class CopyImageAnnotationClasses(BaseUseCase):
                     attribute_group = None
                     if attribute.get("groupId"):
                         for group in project_annotation_class.attribute_groups:
-                            if group["id"] == attribute["groupId"]:
-                                attribute["groupName"] = group["name"]
+                            if group.id == attribute["groupId"]:
+                                attribute["groupName"] = group.name
                                 attribute_group = group
                         if attribute.get("id") and attribute_group:
-                            for attr in attribute_group["attributes"]:
-                                if attr["id"] == attribute["id"]:
-                                    attribute["name"] = attr["name"]
+                            for attr in attribute_group.attributes:
+                                if attr.id == attribute["id"]:
+                                    attribute["name"] = attr.name
 
         for instance in image_annotations["instances"]:
             if (
-                "className" not in instance
-                and instance["className"] not in annotations_classes_to_copy
+                    "className" not in instance
+                    and instance["className"] not in annotations_classes_to_copy
             ):
                 continue
             annotation_class = annotations_classes_to_copy.get(instance["className"])
@@ -460,24 +460,20 @@ class CopyImageAnnotationClasses(BaseUseCase):
                 instance["classId"] = -1
                 continue
             attribute_groups_map = {
-                group["name"]: group for group in annotation_class.attribute_groups
+                group.name: group for group in annotation_class.attribute_groups
             }
-            instance["classId"] = annotation_class.uuid
+            instance["classId"] = annotation_class.id
             for attribute in instance["attributes"]:
                 if attribute_groups_map.get(attribute["groupName"]):
-                    attribute["groupId"] = attribute_groups_map[attribute["groupName"]][
-                        "id"
-                    ]
+                    attribute["groupId"] = attribute_groups_map[attribute["groupName"]].id
                     attr_map = {
-                        attr["name"]: attr
-                        for attr in attribute_groups_map[attribute["groupName"]][
-                            "attributes"
-                        ]
+                        attr.name: attr
+                        for attr in attribute_groups_map[attribute["groupName"]].attributes
                     }
                     if attribute["name"] not in attr_map:
                         del attribute["groupId"]
                         continue
-                    attribute["id"] = attr_map[attribute["name"]]["id"]
+                    attribute["id"] = attr_map[attribute["name"]].id
 
         auth_data = self.upload_auth_data
         file = S3FileEntity(

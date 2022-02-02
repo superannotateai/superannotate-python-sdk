@@ -1545,7 +1545,7 @@ def create_annotation_class(
     if isinstance(project, Project):
         project = project.dict()
     attribute_groups = (
-        list(map(lambda x: x.dict(), attribute_groups)) if attribute_groups else None
+        list(map(lambda x: x.dict(), attribute_groups)) if attribute_groups else []
     )
     response = controller.create_annotation_class(
         project_name=project, name=name, color=color, attribute_groups=attribute_groups

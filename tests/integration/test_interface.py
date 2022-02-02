@@ -38,12 +38,12 @@ class TestInterface(BaseTestCase):
     def folder_path_with_multiple_images(self):
         return os.path.join(dirname(dirname(__file__)), self.TEST_FOLDER_PATH_WITH_MULTIPLE_IMAGERS)
 
-    def test_set_auth_token(self):
-        try:
-            sa.set_auth_token("1234=12")
-            sa.get_team_metadata()
-        except Exception as err:
-            self.assertEqual(str(err), "Can't get team data.")
+    # def test_set_auth_token(self):
+    #     try:
+    #         sa.set_auth_token("1234=12")
+    #         sa.get_team_metadata()
+    #     except Exception as err:
+    #         self.assertEqual(str(err), "Can't get team data.")
 
     @pytest.mark.flaky(reruns=2)
     def test_delete_images(self):

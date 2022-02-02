@@ -94,7 +94,6 @@ class TestCloneProject(TestCase):
         ann_classes = sa.search_annotation_classes(self.PROJECT_NAME_2)
         self.assertEqual(len(ann_classes), 1)
         self.assertEqual(ann_classes[0]["name"], "rrr")
-        self.assertEqual(ann_classes[0]["color"], "#FFAAFF")
         new_workflow = sa.get_project_workflow(self.PROJECT_NAME_2)
         self.assertEqual(len(new_workflow), 1)
         self.assertEqual(new_workflow[0]["className"], "rrr")
@@ -110,6 +109,8 @@ class TestCloneProject(TestCase):
             new_workflow[0]["attribute"][1]["attribute"]["attribute_group"]["name"],
             "tall",
         )
+        self.assertEqual(ann_classes[0]["color"], "#FFAAFF")
+
 
 
 class TestCloneProjectAttachedUrls(TestCase):
