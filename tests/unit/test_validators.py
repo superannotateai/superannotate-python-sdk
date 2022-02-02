@@ -201,7 +201,7 @@ class TestTypeHandling(TestCase):
             sa.validate_annotations("Vector", os.path.join(self.vector_folder_path, f"{tmpdir_name}/vector.json"))
             mock_print.assert_any_call(
                 "instances[0].type                                invalid type, valid types are bbox, "
-                "template, cuboid, polygon, point, polyline, ellipse, rbbox"
+                "template, cuboid, polygon, point, polyline, ellipse, rbbox, tag"
             )
 
     def test_validate_document_annotation(self):
@@ -385,7 +385,7 @@ class TestTypeHandling(TestCase):
 
             sa.validate_annotations("Document", os.path.join(self.vector_folder_path,
                                                              f"{tmpdir_name}/test_validate_document_annotation_wrong_class_id.json"))
-            mock_print.assert_any_call("instances[0].classId                             value is not a valid integer")
+            mock_print.assert_any_call("instances[0].classId                             integer type expected")
 
     def test_validate_document_annotation_with_null_created_at(self):
         with tempfile.TemporaryDirectory() as tmpdir_name:
@@ -563,7 +563,7 @@ class TestTypeHandling(TestCase):
             )
             mock_print.assert_any_call(
                 "instances[0].type                                invalid type, valid types are bbox, "
-                "template, cuboid, polygon, point, polyline, ellipse, rbbox"
+                "template, cuboid, polygon, point, polyline, ellipse, rbbox, tag"
             )
 
     @patch('builtins.print')
@@ -1345,7 +1345,7 @@ class TestTypeHandling(TestCase):
             sa.validate_annotations("Vector", os.path.join(self.vector_folder_path,
                                                            f"{tmpdir_name}/{json_name}"))
             mock_print.assert_any_call(
-                "metadata.width                                   value is not a valid integer\n"
+                "metadata.width                                   integer type expected\n"
                 "instances[0].points                              ensure this value has at least 1 items\n"
                 "instances[1].points                              ensure this value has at least 3 items"
             )
