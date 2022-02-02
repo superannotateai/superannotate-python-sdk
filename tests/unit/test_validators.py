@@ -8,6 +8,7 @@ from unittest.mock import patch
 from pydantic import ValidationError
 
 import src.superannotate as sa
+from superannotate_schemas.validators import AnnotationValidators
 
 
 VECTOR_ANNOTATION_JSON_WITH_BBOX = """
@@ -1663,8 +1664,8 @@ class TestTypeHandling(TestCase):
                 "instances[0].meta.pointLabels                    value is not a valid dict",
             )
 
-    @patch('builtins.print')
-    def test_validate_video_point_labels_bad_keys(self, mock_print):
+
+    def test_validate_video_point_labels_bad_keys(self):
         with tempfile.TemporaryDirectory() as tmpdir_name:
             with open(f"{tmpdir_name}/test_validate_video_point_labels_bad_keys.json",
                       "w") as test_validate_video_point_labels_bad_keys:
@@ -2017,13 +2018,9 @@ class TestTypeHandling(TestCase):
                 }
                 '''
                 )
-            sa.validate_annotations("Video", os.path.join(self.vector_folder_path,
-                                                          f"{tmpdir_name}/test_validate_video_point_labels_bad_keys.json"))
-            mock_print.assert_any_call(
-                "instances[0].meta.pointLabels                    str type expected\n"
-                "instances[2].parameters[0].timestamps[2].timestamp value is not a valid integer\n"
-                "instances[3].meta                                field required\n"
-                "instances[4].meta                                value is not a valid dict\n"
-                "instances[5].meta                                field required\n"
-                "tags[0]                                          str type expected"
-            )
+
+            with open(f"{tmpdir_name}/test_validate_video_point_labels_bad_keys.json", "r") as f:
+                data = json.loads(f.read())
+            validator = AnnotationValidators.get_validator("video")(data)
+            self.assertFalse(validator.is_valid())
+            self.assertEqual(len(validator.generate_report()), 409)
