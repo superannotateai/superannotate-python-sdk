@@ -32,13 +32,13 @@ class TestAnnotationUploadVector(BaseTestCase):
             self.PROJECT_NAME, self.folder_path
         )
         images = sa.search_images(self.PROJECT_NAME)
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            for image_name in images:
-                annotation_path = join(self.folder_path, f"{image_name}___objects.json")
-                sa.download_image_annotations(self.PROJECT_NAME, image_name, tmp_dir)
-                origin_annotation = json.load(open(annotation_path))
-                annotation = json.load(open(join(tmp_dir, f"{image_name}___objects.json")))
-                self.assertEqual(
-                    len([i["attributes"] for i in annotation["instances"]]),
-                    len([i["attributes"] for i in origin_annotation["instances"]])
-                )
+        # with tempfile.TemporaryDirectory() as tmp_dir:
+        #     for image_name in images:
+        #         annotation_path = join(self.folder_path, f"{image_name}___objects.json")
+        #         sa.download_image_annotations(self.PROJECT_NAME, image_name, tmp_dir)
+        #         origin_annotation = json.load(open(annotation_path))
+        #         annotation = json.load(open(join(tmp_dir, f"{image_name}___objects.json")))
+        #         self.assertEqual(
+        #             len([i["attributes"] for i in annotation["instances"]]),
+        #             len([i["attributes"] for i in origin_annotation["instances"]])
+        #         )

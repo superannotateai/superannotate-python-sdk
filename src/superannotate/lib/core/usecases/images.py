@@ -2822,7 +2822,7 @@ class CreateAnnotationClassesUseCase(BaseUseCase):
         self,
         service: SuerannotateServiceProvider,
         annotation_classes_repo: BaseManageableRepository,
-        annotation_classes: list,
+        annotation_classes: List[AnnotationClassEntity],
         project: ProjectEntity,
     ):
         super().__init__()
@@ -2840,10 +2840,10 @@ class CreateAnnotationClassesUseCase(BaseUseCase):
         existing_classes_name = [i.name for i in existing_annotation_classes]
         unique_annotation_classes = []
         for annotation_class in self._annotation_classes:
-            if annotation_class["name"] in existing_classes_name:
+            if annotation_class.name in existing_classes_name:
                 logger.warning(
                     "Annotation class %s already in project. Skipping.",
-                    annotation_class["name"],
+                    annotation_class.name,
                 )
                 continue
             else:
@@ -2855,7 +2855,7 @@ class CreateAnnotationClassesUseCase(BaseUseCase):
             created += self._service.set_annotation_classes(
                 project_id=self._project.uuid,
                 team_id=self._project.team_id,
-                data=unique_annotation_classes[i : i + self.CHUNK_SIZE],
+                data=unique_annotation_classes[i : i + self.CHUNK_SIZE],  # noqa: E203
             )
         self._response.data = created
         return self._response
