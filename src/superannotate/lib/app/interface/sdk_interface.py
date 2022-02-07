@@ -44,7 +44,9 @@ from pydantic import conlist
 from pydantic import parse_obj_as
 from pydantic import StrictBool
 from superannotate.logger import get_default_logger
+from lib.core.enums import AnnotationClassesTypeEnum
 from tqdm import tqdm
+from lib.core.entities.project_entities import AnnotationClassEntity
 
 
 logger = get_default_logger()
@@ -1622,21 +1624,26 @@ def create_annotation_classes_from_classes_json(
             from_s3_object = from_s3.Object(from_s3_bucket, classes_json)
             from_s3_object.download_fileobj(file)
             file.seek(0)
-            annotation_classes = parse_obj_as(List[ClassesJson], json.load(file))
+            annotation_classes = parse_obj_as(List[AnnotationClassEntity], json.load(file))
         else:
             annotation_classes = parse_obj_as(
-                List[ClassesJson], json.load(open(classes_json))
+                List[AnnotationClassEntity], json.load(open(classes_json))
             )
 
     else:
         annotation_classes = classes_json
 
     annotation_classes = list(
-        map(lambda annotation_class: annotation_class.dict(), annotation_classes)
+        map(lambda annotation_class: annotation_class.to_internal_dict(), annotation_classes)
     )
     response = controller.create_annotation_classes(
         project_name=project, annotation_classes=annotation_classes,
     )
+    if response.errors:
+        raise AppException(response.errors)
+
+    for i in response.data: i['type'] = AnnotationClassesTypeEnum.get_name(i['type'])
+
     return response.data
 
 
