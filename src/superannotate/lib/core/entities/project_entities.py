@@ -4,12 +4,11 @@ from typing import Any
 from typing import Iterable
 from typing import List
 from typing import Type
-
 from lib.core.enums import SegmentationStatus
+from lib.core.enums import AnnotationClassesTypeEnum
 from superannotate_schemas.schemas.classes import AnnotationClass
 
-
-AnnotationClassEntity: Type[AnnotationClass] = AnnotationClass
+AnnotationClassEntity = AnnotationClass
 
 
 class BaseEntity(ABC):
