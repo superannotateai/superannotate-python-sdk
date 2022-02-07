@@ -38,10 +38,6 @@ class ProjectType(BaseTitledEnum):
     VIDEO = "Video", 3
     DOCUMENT = "Document", 4
 
-class AnnotationClassesTypeEnum(BaseTitledEnum):
-    OBJECT = "object", 1
-    TAG = "tag", 2
-
 
 class UserRole(BaseTitledEnum):
     SUPER_ADMIN = "Superadmin", 1
@@ -77,6 +73,11 @@ class AnnotationStatus(BaseTitledEnum):
     RETURNED = "Returned", 4
     COMPLETED = "Completed", 5
     SKIPPED = "Skipped", 6
+
+
+class ClassType(BaseTitledEnum):
+    OBJECT = "object", 1
+    TAG = "tag", 2
 
 
 class TrainingStatus(BaseTitledEnum):

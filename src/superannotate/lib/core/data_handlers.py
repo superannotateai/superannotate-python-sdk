@@ -1,5 +1,5 @@
-import time
 import random
+import time
 from abc import ABCMeta
 from abc import abstractmethod
 from collections import defaultdict
@@ -353,4 +353,3 @@ class VideoFormatHandler(BaseAnnotationDateHandler):
                         )
             editor_data["instances"].append(editor_instance)
         return editor_data
-

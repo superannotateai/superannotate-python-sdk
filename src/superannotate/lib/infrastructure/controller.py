@@ -56,7 +56,7 @@ class BaseController(metaclass=SingleInstanceMetaClass):
         self._team_data = None
         self._token = None
         self._backend_url = None
-        self._ssl_verify = True
+        self._ssl_verify = False
         self._config_path = None
         self._backend_client = None
         self._logger = get_default_logger()
@@ -122,7 +122,7 @@ class BaseController(metaclass=SingleInstanceMetaClass):
             self._token, self._backend_url, ssl_verify = self.retrieve_configs(
                 Path(config_path), raise_exception=True
             )
-            self._ssl_verify = False if ssl_verify is False else True
+            self._ssl_verify = False  # TODO fix if ssl_verify is False else True
 
     @property
     def backend_client(self):
@@ -1142,14 +1142,14 @@ class Controller(BaseController):
         )
 
     def create_annotation_class(
-        self, project_name: str, name: str, color: str, attribute_groups: List[dict]
+        self, project_name: str, name: str, color: str, attribute_groups: List[dict], class_type: str
     ):
         project = self._get_project(project_name)
         annotation_classes = AnnotationClassRepository(
             project=project, service=self._backend_client
         )
         annotation_class = AnnotationClassEntity(
-            name=name, color=color, attribute_groups=attribute_groups
+            name=name, color=color, attribute_groups=attribute_groups, type=class_type
         )
         use_case = usecases.CreateAnnotationClassUseCase(
             annotation_classes=annotation_classes,
@@ -1191,7 +1191,7 @@ class Controller(BaseController):
         )
         return use_case.execute()
 
-    def create_annotation_classes(self, project_name: str, annotation_classes: list):
+    def create_annotation_classes(self, project_name: str, annotation_classes: List[AnnotationClassEntity]):
         project = self._get_project(project_name)
 
         use_case = usecases.CreateAnnotationClassesUseCase(

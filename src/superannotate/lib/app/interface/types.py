@@ -11,6 +11,7 @@ from pydantic import StrictStr
 from pydantic import validate_arguments as pydantic_validate_arguments
 from pydantic import ValidationError
 from pydantic.errors import StrRegexError
+from superannotate_schemas.schemas.base import ClassTypeEnum
 
 NotEmptyStr = constr(strict=True, min_length=1)
 
@@ -86,6 +87,17 @@ class ProjectTypes(StrictStr):
                 f"Available annotation_statuses are {', '.join(ProjectType.titles())}. "
             )
         return value
+
+
+class ClassType(StrictStr):
+    @classmethod
+    def validate(cls, value: Union[str]) -> Union[str]:
+        enum_values = [e.value.lower() for e in ClassTypeEnum]
+        if value.lower() not in enum_values:
+            raise TypeError(
+                f"Available annotation_statuses are {', '.join(enum_values)}. "
+            )
+        return value.lower()
 
 
 class AnnotationStatuses(StrictStr):
