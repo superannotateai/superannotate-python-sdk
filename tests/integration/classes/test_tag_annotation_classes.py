@@ -139,6 +139,8 @@ class TestTagClasses(BaseTestCase):
                     '''
                 )
 
-            sa.create_annotation_classes_from_classes_json(
+            created = sa.create_annotation_classes_from_classes_json(
                 self.PROJECT_NAME, temp_path
             )
+            self.assertEqual(created[0]["type"],"tag")
+            self.assertEqual(created[4]["type"],"object")

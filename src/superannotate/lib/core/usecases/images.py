@@ -429,7 +429,7 @@ class CopyImageAnnotationClasses(BaseUseCase):
 
         for instance in image_annotations["instances"]:
             if instance["classId"] < 0 or not annotations_classes_from_copy.get(
-                    instance["classId"]
+                instance["classId"]
             ):
                 continue
             project_annotation_class = annotations_classes_from_copy[
@@ -451,8 +451,8 @@ class CopyImageAnnotationClasses(BaseUseCase):
 
         for instance in image_annotations["instances"]:
             if (
-                    "className" not in instance
-                    and instance["className"] not in annotations_classes_to_copy
+                "className" not in instance
+                and instance["className"] not in annotations_classes_to_copy
             ):
                 continue
             annotation_class = annotations_classes_to_copy.get(instance["className"])
@@ -465,10 +465,14 @@ class CopyImageAnnotationClasses(BaseUseCase):
             instance["classId"] = annotation_class.id
             for attribute in instance["attributes"]:
                 if attribute_groups_map.get(attribute["groupName"]):
-                    attribute["groupId"] = attribute_groups_map[attribute["groupName"]].id
+                    attribute["groupId"] = attribute_groups_map[
+                        attribute["groupName"]
+                    ].id
                     attr_map = {
                         attr.name: attr
-                        for attr in attribute_groups_map[attribute["groupName"]].attributes
+                        for attr in attribute_groups_map[
+                            attribute["groupName"]
+                        ].attributes
                     }
                     if attribute["name"] not in attr_map:
                         del attribute["groupId"]
@@ -1050,7 +1054,8 @@ class DownloadImageUseCase(BaseUseCase):
                         ),
                         image_path=download_path,
                         classes=[
-                            annotation_class.dict(exclude_unset=True) for annotation_class in classes
+                            annotation_class.dict(exclude_unset=True)
+                            for annotation_class in classes
                         ],
                         generate_overlay=self._include_overlay,
                     )
@@ -2852,10 +2857,8 @@ class CreateAnnotationClassesUseCase(BaseUseCase):
         created = []
 
         for i in range(0, len(unique_annotation_classes), self.CHUNK_SIZE):
-            created += self._service.set_annotation_classes(
-                project_id=self._project.uuid,
-                team_id=self._project.team_id,
-                data=unique_annotation_classes[i : i + self.CHUNK_SIZE],  # noqa: E203
+            created += self._annotation_classes_repo.bulk_insert(
+                entities=unique_annotation_classes[i : i + self.CHUNK_SIZE],
             )
         self._response.data = created
         return self._response

@@ -1142,7 +1142,12 @@ class Controller(BaseController):
         )
 
     def create_annotation_class(
-        self, project_name: str, name: str, color: str, attribute_groups: List[dict], class_type: str
+        self,
+        project_name: str,
+        name: str,
+        color: str,
+        attribute_groups: List[dict],
+        class_type: str,
     ):
         project = self._get_project(project_name)
         annotation_classes = AnnotationClassRepository(
@@ -1191,7 +1196,9 @@ class Controller(BaseController):
         )
         return use_case.execute()
 
-    def create_annotation_classes(self, project_name: str, annotation_classes: List[AnnotationClassEntity]):
+    def create_annotation_classes(
+        self, project_name: str, annotation_classes: List[AnnotationClassEntity]
+    ):
         project = self._get_project(project_name)
 
         use_case = usecases.CreateAnnotationClassesUseCase(

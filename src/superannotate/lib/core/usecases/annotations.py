@@ -427,7 +427,9 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
             constances.ProjectType.PIXEL.value,
             constances.ProjectType.DOCUMENT.value,
         ):
-            handlers_chain.attach(MissingIDsHandler(annotation_classes, templates, reporter))
+            handlers_chain.attach(
+                MissingIDsHandler(annotation_classes, templates, reporter)
+            )
         elif project_type == constances.ProjectType.VIDEO.value:
             handlers_chain.attach(VideoFormatHandler(annotation_classes, reporter))
         if project_type == constances.ProjectType.DOCUMENT.value:

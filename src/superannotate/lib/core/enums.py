@@ -75,7 +75,7 @@ class AnnotationStatus(BaseTitledEnum):
     SKIPPED = "Skipped", 6
 
 
-class ClassType(BaseTitledEnum):
+class ClassTypeEnum(BaseTitledEnum):
     OBJECT = "object", 1
     TAG = "tag", 2
 
