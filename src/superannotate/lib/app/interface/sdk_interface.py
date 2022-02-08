@@ -1527,7 +1527,7 @@ def create_annotation_class(
     name: NotEmptyStr,
     color: NotEmptyStr,
     attribute_groups: Optional[List[AttributeGroup]] = None,
-    type: ClassType = "object"
+    type: ClassType = "object",
 ):
     """Create annotation class in project
 
@@ -1551,7 +1551,11 @@ def create_annotation_class(
         list(map(lambda x: x.dict(), attribute_groups)) if attribute_groups else []
     )
     response = controller.create_annotation_class(
-        project_name=project, name=name, color=color, attribute_groups=attribute_groups, class_type=type
+        project_name=project,
+        name=name,
+        color=color,
+        attribute_groups=attribute_groups,
+        class_type=type,
     )
     return response.data.dict()
 
@@ -1626,9 +1630,7 @@ def create_annotation_classes_from_classes_json(
         else:
             data = open(classes_json)
         classes_json = json.load(data)
-    annotation_classes = parse_obj_as(
-        List[AnnotationClassEntity], classes_json
-    )
+    annotation_classes = parse_obj_as(List[AnnotationClassEntity], classes_json)
     logger.info(
         "Creating annotation classes in project %s from %s.", project, classes_json,
     )
@@ -1638,7 +1640,7 @@ def create_annotation_classes_from_classes_json(
     if response.errors:
         raise AppException(response.errors)
 
-    return response.data
+    return [i.dict() for i in response.data]
 
 
 @Trackable

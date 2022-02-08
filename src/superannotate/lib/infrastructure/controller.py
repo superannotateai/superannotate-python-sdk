@@ -1191,7 +1191,7 @@ class Controller(BaseController):
         )
         return use_case.execute()
 
-    def create_annotation_classes(self, project_name: str, annotation_classes: List[AnnotationClassEntity]):
+    def create_annotation_classes(self, project_name: str, annotation_classes: list):
         project = self._get_project(project_name)
 
         use_case = usecases.CreateAnnotationClassesUseCase(

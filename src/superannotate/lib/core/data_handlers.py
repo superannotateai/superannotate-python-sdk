@@ -9,11 +9,11 @@ from typing import Dict
 from typing import List
 
 import lib.core as constances
+from lib.core.enums import ClassTypeEnum
 from lib.core.reporter import Reporter
 from superannotate_schemas.schemas.classes import AnnotationClass
 from superannotate_schemas.schemas.classes import Attribute
 from superannotate_schemas.schemas.classes import AttributeGroup
-from superannotate_schemas.schemas.enums import ClassTypeEnum
 
 
 class BaseDataHandler(metaclass=ABCMeta):
@@ -40,9 +40,7 @@ class BaseAnnotationDateHandler(BaseDataHandler, metaclass=ABCMeta):
 
     @lru_cache()
     def get_annotation_class(
-            self,
-            name: str,
-            class_type: ClassTypeEnum = ClassTypeEnum.OBJECT
+        self, name: str, class_type: ClassTypeEnum = ClassTypeEnum.OBJECT
     ) -> AnnotationClass:
         if class_type != ClassTypeEnum.TAG:
             class_type = ClassTypeEnum.OBJECT
@@ -51,7 +49,9 @@ class BaseAnnotationDateHandler(BaseDataHandler, metaclass=ABCMeta):
                 return annotation_class
 
     @lru_cache()
-    def get_attribute_group(self, annotation_class: AnnotationClass, attr_group_name: str) -> AttributeGroup:
+    def get_attribute_group(
+        self, annotation_class: AnnotationClass, attr_group_name: str
+    ) -> AttributeGroup:
         for attr_group in annotation_class.attribute_groups:
             if attr_group.name == attr_group_name:
                 return attr_group
@@ -86,7 +86,9 @@ class ChainedAnnotationHandlers:
 
 class AnnotationStatusHandler(BaseDataHandler):
     def handle(self, annotations: Dict):
-        annotations["metadata"]["status"] = constances.AnnotationStatus.IN_PROGRESS.value
+        annotations["metadata"][
+            "status"
+        ] = constances.AnnotationStatus.IN_PROGRESS.value
         return annotations
 
 
@@ -106,7 +108,9 @@ class DocumentTagHandler(BaseAnnotationDateHandler):
     def handle(self, annotation: dict):
         new_tags = []
         for tag in annotation["tags"]:
-            annotation_class = self.get_annotation_class(tag, class_type=ClassTypeEnum.OBJECT)
+            annotation_class = self.get_annotation_class(
+                tag, class_type=ClassTypeEnum.OBJECT
+            )
             if annotation_class:
                 new_tags.append(annotation_class.id)
         annotation["tags"] = new_tags
@@ -115,10 +119,10 @@ class DocumentTagHandler(BaseAnnotationDateHandler):
 
 class MissingIDsHandler(BaseAnnotationDateHandler):
     def __init__(
-            self,
-            annotation_classes: List[AnnotationClass],
-            templates: List[dict],
-            reporter: Reporter
+        self,
+        annotation_classes: List[AnnotationClass],
+        templates: List[dict],
+        reporter: Reporter,
     ):
         super().__init__(annotation_classes)
         self.validate_existing_classes(annotation_classes)
@@ -173,22 +177,33 @@ class MissingIDsHandler(BaseAnnotationDateHandler):
                     self.reporter.store_message("missing_classes", class_name)
                     self._annotation_classes.append(
                         AnnotationClass(
-                            id=-1, name=class_name, attribute_groups=[], color=f"#{random.randint(0, 0xFFFFFF):06x}"
+                            id=-1,
+                            name=class_name,
+                            attribute_groups=[],
+                            color=f"#{random.randint(0, 0xFFFFFF):06x}",
                         )
                     )
                     self.get_annotation_class.cache_clear()
-        template_name_id_map = {template["name"]: template["id"] for template in self._templates}
+        template_name_id_map = {
+            template["name"]: template["id"] for template in self._templates
+        }
         for annotation_instance in (
-                i for i in annotation["instances"] if i.get("type", None) == "template"
+            i for i in annotation["instances"] if i.get("type", None) == "template"
         ):
             annotation_instance["templateId"] = template_name_id_map.get(
                 annotation_instance.get("templateName", ""), -1
             )
 
-        for annotation_instance in [i for i in annotation["instances"] if "className" in i]:
+        for annotation_instance in [
+            i for i in annotation["instances"] if "className" in i
+        ]:
             annotation_class_name = annotation_instance["className"]
-            annotation_class_type = annotation_instance.get("type", ClassTypeEnum.OBJECT)
-            annotation_class = self.get_annotation_class(annotation_class_name, annotation_class_type)
+            annotation_class_type = annotation_instance.get(
+                "type", ClassTypeEnum.OBJECT
+            )
+            annotation_class = self.get_annotation_class(
+                annotation_class_name, annotation_class_type
+            )
             if not annotation_class:
                 self.reporter.log_warning(
                     f"Couldn't find annotation class {annotation_class_name}"
@@ -196,7 +211,9 @@ class MissingIDsHandler(BaseAnnotationDateHandler):
                 continue
             annotation_instance["classId"] = annotation_class.id
             for annotation_attribute in annotation_instance["attributes"]:
-                attr_group = self.get_attribute_group(annotation_class, annotation_attribute["groupName"])
+                attr_group = self.get_attribute_group(
+                    annotation_class, annotation_attribute["groupName"]
+                )
                 if not attr_group:
                     self.reporter.log_warning(
                         f"Couldn't find annotation group {annotation_attribute['groupName']}."
@@ -214,18 +231,16 @@ class MissingIDsHandler(BaseAnnotationDateHandler):
                         f"Couldn't find annotation name {annotation_attribute['name']} in"
                         f" annotation group {annotation_attribute['groupName']}",
                     )
-                    self.reporter.store_message("missing_attributes", annotation_attribute["name"])
+                    self.reporter.store_message(
+                        "missing_attributes", annotation_attribute["name"]
+                    )
                     continue
                 annotation_attribute["id"] = attribute.id
         return annotation
 
 
 class VideoFormatHandler(BaseAnnotationDateHandler):
-    def __init__(
-            self,
-            annotation_classes: List[AnnotationClass],
-            reporter: Reporter
-    ):
+    def __init__(self, annotation_classes: List[AnnotationClass], reporter: Reporter):
         super().__init__(annotation_classes)
         self.reporter = reporter
 
@@ -280,7 +295,9 @@ class VideoFormatHandler(BaseAnnotationDateHandler):
                 end_time = safe_time(convert_timestamp(parameter["end"]))
 
                 for timestamp_data in parameter["timestamps"]:
-                    timestamp = safe_time(convert_timestamp(timestamp_data["timestamp"]))
+                    timestamp = safe_time(
+                        convert_timestamp(timestamp_data["timestamp"])
+                    )
                     editor_instance["timeline"][timestamp] = {}
 
                     if timestamp == start_time:
@@ -290,14 +307,16 @@ class VideoFormatHandler(BaseAnnotationDateHandler):
                         editor_instance["timeline"][timestamp]["active"] = False
 
                     if timestamp_data.get("points", None):
-                        editor_instance["timeline"][timestamp]["points"] = timestamp_data[
+                        editor_instance["timeline"][timestamp][
                             "points"
-                        ]
+                        ] = timestamp_data["points"]
                     if not class_name:
                         continue
                     annotation_class = self.get_annotation_class(class_name)
                     if not annotation_class:
-                        self.reporter.store_message("missing_classes", meta["className"])
+                        self.reporter.store_message(
+                            "missing_classes", meta["className"]
+                        )
                         continue
 
                     existing_attributes_in_current_instance = set()
@@ -306,8 +325,14 @@ class VideoFormatHandler(BaseAnnotationDateHandler):
                             attribute.get("groupName"),
                             attribute.get("name"),
                         )
-                        attr_group = self.get_attribute_group(annotation_class, group_name)
-                        attribute = self.get_attribute(attr_group, attr_name) if attr_group else None
+                        attr_group = self.get_attribute_group(
+                            annotation_class, group_name
+                        )
+                        attribute = (
+                            self.get_attribute(attr_group, attr_name)
+                            if attr_group
+                            else None
+                        )
                         if not attr_group:
                             self.reporter.store_message(
                                 "missing_attribute_groups", f"{class_name}.{group_name}"
@@ -328,28 +353,38 @@ class VideoFormatHandler(BaseAnnotationDateHandler):
                         active_attributes - existing_attributes_in_current_instance
                     )
                     if attributes_to_add or attributes_to_delete:
-                        editor_instance["timeline"][timestamp]["attributes"] = defaultdict(list)
+                        editor_instance["timeline"][timestamp][
+                            "attributes"
+                        ] = defaultdict(list)
                     for new_attribute in attributes_to_add:
-                        attribute_group = self.get_attribute_group(annotation_class, new_attribute[0])
-                        attribute = self.get_attribute(attribute_group, new_attribute[1])
+                        attribute_group = self.get_attribute_group(
+                            annotation_class, new_attribute[0]
+                        )
+                        attribute = self.get_attribute(
+                            attribute_group, new_attribute[1]
+                        )
                         attr = {
                             "id": attribute.id,
                             "groupId": attribute_group.id,
                         }
                         active_attributes.add(new_attribute)
-                        editor_instance["timeline"][timestamp]["attributes"]["+"].append(
-                            attr
-                        )
+                        editor_instance["timeline"][timestamp]["attributes"][
+                            "+"
+                        ].append(attr)
                     for attribute_to_delete in attributes_to_delete:
-                        attribute_group = self.get_attribute_group(annotation_class, attribute_to_delete[0])
-                        attribute = self.get_attribute(attribute_group, attribute_to_delete[1])
+                        attribute_group = self.get_attribute_group(
+                            annotation_class, attribute_to_delete[0]
+                        )
+                        attribute = self.get_attribute(
+                            attribute_group, attribute_to_delete[1]
+                        )
                         attr = {
                             "id": attribute.id,
                             "groupId": attribute_group.id,
                         }
                         active_attributes.remove(attribute_to_delete)
-                        editor_instance["timeline"][timestamp]["attributes"]["-"].append(
-                            attr
-                        )
+                        editor_instance["timeline"][timestamp]["attributes"][
+                            "-"
+                        ].append(attr)
             editor_data["instances"].append(editor_instance)
         return editor_data

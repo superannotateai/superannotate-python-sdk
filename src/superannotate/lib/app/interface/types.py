@@ -2,6 +2,7 @@ from functools import wraps
 from typing import Union
 
 from lib.core.enums import AnnotationStatus
+from lib.core.enums import ClassTypeEnum
 from lib.core.enums import ProjectType
 from lib.core.enums import UserRole
 from lib.core.exceptions import AppException
