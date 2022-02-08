@@ -1541,6 +1541,8 @@ def create_annotation_class(
      [ { "name": "tall", "is_multiselect": 0, "attributes": [ { "name": "yes" }, { "name": "no" } ] },
      { "name": "age", "is_multiselect": 0, "attributes": [ { "name": "young" }, { "name": "old" } ] } ]
     :type attribute_groups: list of dicts
+    :param type: class type
+    :type type: str
 
     :return: new class metadata
     :rtype: dict
