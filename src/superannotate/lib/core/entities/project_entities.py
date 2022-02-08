@@ -3,13 +3,18 @@ from abc import abstractmethod
 from typing import Any
 from typing import Iterable
 from typing import List
-from typing import Type
 
+from lib.core.enums import ClassType
 from lib.core.enums import SegmentationStatus
 from superannotate_schemas.schemas.classes import AnnotationClass
 
 
-AnnotationClassEntity: Type[AnnotationClass] = AnnotationClass
+class AnnotationClassEntity(AnnotationClass):
+
+    def deserialize(self):
+        data = self.dict()
+        data["type"] = ClassType.get_value(data["type"])
+        return data
 
 
 class BaseEntity(ABC):

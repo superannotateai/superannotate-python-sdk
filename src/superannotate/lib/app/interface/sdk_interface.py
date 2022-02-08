@@ -22,6 +22,7 @@ from lib.app.helpers import get_paths_and_duplicated_from_csv
 from lib.app.interface.types import AnnotationStatuses
 from lib.app.interface.types import AnnotationType
 from lib.app.interface.types import AnnotatorRole
+from lib.app.interface.types import ClassType
 from lib.app.interface.types import EmailStr
 from lib.app.interface.types import ImageQualityChoices
 from lib.app.interface.types import NotEmptyStr
@@ -34,6 +35,7 @@ from lib.app.serializers import ProjectSerializer
 from lib.app.serializers import SettingsSerializer
 from lib.app.serializers import TeamSerializer
 from lib.core import LIMITED_FUNCTIONS
+from lib.core.entities.project_entities import AnnotationClassEntity
 from lib.core.enums import ImageQuality
 from lib.core.exceptions import AppException
 from lib.core.types import AttributeGroup
@@ -1525,6 +1527,7 @@ def create_annotation_class(
     name: NotEmptyStr,
     color: NotEmptyStr,
     attribute_groups: Optional[List[AttributeGroup]] = None,
+    type: ClassType = "object"
 ):
     """Create annotation class in project
 
@@ -1548,7 +1551,7 @@ def create_annotation_class(
         list(map(lambda x: x.dict(), attribute_groups)) if attribute_groups else []
     )
     response = controller.create_annotation_class(
-        project_name=project, name=name, color=color, attribute_groups=attribute_groups
+        project_name=project, name=name, color=color, attribute_groups=attribute_groups, class_type=type
     )
     return response.data.dict()
 
@@ -1611,10 +1614,7 @@ def create_annotation_classes_from_classes_json(
     :return: list of created annotation class metadatas
     :rtype: list of dicts
     """
-    if not isinstance(classes_json, list):
-        logger.info(
-            "Creating annotation classes in project %s from %s.", project, classes_json,
-        )
+    if isinstance(classes_json, str) or isinstance(classes_json, Path):
         if from_s3_bucket:
             from_session = boto3.Session()
             from_s3 = from_session.resource("s3")
@@ -1622,21 +1622,22 @@ def create_annotation_classes_from_classes_json(
             from_s3_object = from_s3.Object(from_s3_bucket, classes_json)
             from_s3_object.download_fileobj(file)
             file.seek(0)
-            annotation_classes = parse_obj_as(List[ClassesJson], json.load(file))
+            data = file
         else:
-            annotation_classes = parse_obj_as(
-                List[ClassesJson], json.load(open(classes_json))
-            )
-
-    else:
-        annotation_classes = classes_json
-
-    annotation_classes = list(
-        map(lambda annotation_class: annotation_class.dict(), annotation_classes)
+            data = open(classes_json)
+        classes_json = json.load(data)
+    annotation_classes = parse_obj_as(
+        List[AnnotationClassEntity], classes_json
+    )
+    logger.info(
+        "Creating annotation classes in project %s from %s.", project, classes_json,
     )
     response = controller.create_annotation_classes(
         project_name=project, annotation_classes=annotation_classes,
     )
+    if response.errors:
+        raise AppException(response.errors)
+
     return response.data
 
 

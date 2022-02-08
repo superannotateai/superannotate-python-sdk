@@ -19,6 +19,7 @@ from lib.core.entities import S3FileEntity
 from lib.core.entities import TeamEntity
 from lib.core.entities import UserEntity
 from lib.core.entities import WorkflowEntity
+from lib.core.enums import ClassType
 from lib.core.exceptions import AppException
 from lib.core.repositories import BaseManageableRepository
 from lib.core.repositories import BaseProjectRelatedManageableRepository
@@ -325,7 +326,7 @@ class AnnotationClassRepository(BaseManageableRepository):
 
     def insert(self, entity: AnnotationClassEntity):
         res = self._service.set_annotation_classes(
-            self.project.uuid, self.project.team_id, [entity.dict(exclude_unset=True)]
+            self.project.uuid, self.project.team_id, [entity]
         )
         if "error" in res:
             raise AppException(res["error"])
@@ -352,6 +353,7 @@ class AnnotationClassRepository(BaseManageableRepository):
             createdAt=data["createdAt"],
             updatedAt=data["updatedAt"],
             attribute_groups=data["attribute_groups"],
+            type=ClassType.get_name(data["type"])
         )
 
 

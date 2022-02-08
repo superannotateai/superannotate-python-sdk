@@ -75,6 +75,11 @@ class AnnotationStatus(BaseTitledEnum):
     SKIPPED = "Skipped", 6
 
 
+class ClassType(BaseTitledEnum):
+    OBJECT = "object", 1
+    TAG = "tag", 2
+
+
 class TrainingStatus(BaseTitledEnum):
     NOT_STARTED = "NotStarted", 1
     IN_PROGRESS = "InProgress", 2
