@@ -487,13 +487,15 @@ class CloneProjectUseCase(BaseReportableUseCae):
                     workflow.class_id
                 ].attribute_groups:
                     if (
-                            attribute["attribute"]["attribute_group"]["name"]
-                            == annotation_attribute.name
+                        attribute["attribute"]["attribute_group"]["name"]
+                        == annotation_attribute.name
                     ):
-                        for annotation_attribute_value in annotation_attribute.attributes:
+                        for (
+                            annotation_attribute_value
+                        ) in annotation_attribute.attributes:
                             if (
-                                    annotation_attribute_value.name
-                                    == attribute["attribute"]["name"]
+                                annotation_attribute_value.name
+                                == attribute["attribute"]["name"]
                             ):
                                 workflow_attributes.append(
                                     {

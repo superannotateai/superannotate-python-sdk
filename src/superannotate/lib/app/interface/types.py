@@ -2,6 +2,7 @@ from functools import wraps
 from typing import Union
 
 from lib.core.enums import AnnotationStatus
+from lib.core.enums import ClassTypeEnum
 from lib.core.enums import ProjectType
 from lib.core.enums import UserRole
 from lib.core.exceptions import AppException
@@ -11,7 +12,6 @@ from pydantic import StrictStr
 from pydantic import validate_arguments as pydantic_validate_arguments
 from pydantic import ValidationError
 from pydantic.errors import StrRegexError
-from superannotate_schemas.schemas.base import ClassTypeEnum
 
 NotEmptyStr = constr(strict=True, min_length=1)
 
