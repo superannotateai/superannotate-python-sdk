@@ -179,6 +179,8 @@ class MissingIDsHandler(BaseAnnotationDateHandler):
                 if not annotation_class:
                     self.reporter.log_warning(f"Couldn't find class {class_name}")
                     self.reporter.store_message("missing_classes", class_name)
+                    annotation_instance["classId"] = -1
+                    annotation_instance["attributes"] = []
                     self._annotation_classes.append(
                         AnnotationClass(
                             id=-1,
@@ -188,6 +190,9 @@ class MissingIDsHandler(BaseAnnotationDateHandler):
                         )
                     )
                     self.get_annotation_class.cache_clear()
+                else:
+                    annotation_instance["classId"] = annotation_class.id
+
         template_name_id_map = {
             template["name"]: template["id"] for template in self._templates
         }
@@ -199,7 +204,7 @@ class MissingIDsHandler(BaseAnnotationDateHandler):
             )
 
         for annotation_instance in [
-            i for i in annotation["instances"] if "className" in i
+            i for i in annotation["instances"] if "className" in i and i["classId"] > 0
         ]:
             annotation_class_name = annotation_instance["className"]
             annotation_class_type = self._get_class_type(annotation_instance.get("type", ClassTypeEnum.OBJECT))
@@ -212,7 +217,6 @@ class MissingIDsHandler(BaseAnnotationDateHandler):
                     f"Couldn't find annotation class {annotation_class_name}"
                 )
                 continue
-            annotation_instance["classId"] = annotation_class.id
             annotation_instance_attributes = []
             for annotation_attribute in annotation_instance["attributes"]:
                 attr_group = self.get_attribute_group(

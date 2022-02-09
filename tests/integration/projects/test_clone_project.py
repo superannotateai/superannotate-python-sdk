@@ -109,7 +109,7 @@ class TestCloneProject(TestCase):
             new_workflow[0]["attribute"][1]["attribute"]["attribute_group"]["name"],
             "tall",
         )
-        self.assertEqual(ann_classes[0]["color"], "#FFAAFF")
+        self.assertEqual(ann_classes[0]["color"], "#faf")
 
 
 
