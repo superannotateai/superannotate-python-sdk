@@ -52,7 +52,7 @@ class SingleInstanceMetaClass(type):
 
 
 class BaseController(metaclass=SingleInstanceMetaClass):
-    def __init__(self, config_path=constances.CONFIG_FILE_LOCATION, token: str = None):
+    def __init__(self, config_path: str, token: str = None):
         self._team_data = None
         self._token = None
         self._backend_url = None
@@ -69,26 +69,26 @@ class BaseController(metaclass=SingleInstanceMetaClass):
         self._user_id = None
         self._team_name = None
         self._reporter = None
-        self._config_path = expanduser(config_path)
-        self._token, self._backend_url = (
-            os.environ.get("SA_TOKEN"),
-            os.environ.get("SA_URL"),
-        )
+        self._ssl_verify = not os.environ.get("SA_TESTING", False)
+        self._config_path = expanduser(config_path) if config_path else constances.CONFIG_FILE_LOCATION
 
-        if not self._token and token:
-            if self._validate_token(token):
-                self._token = token
-            else:
-                raise AppException("Invalid token.")
-        if not self._token and config_path:
-            self._token, self._backend_url, ssl_verify = self.retrieve_configs(
-                Path(config_path), raise_exception=False
+        self._backend_url = os.environ.get("SA_URL", constances.BACKEND_URL)
+        if not token and not config_path:
+            env_token = os.environ.get("SA_TOKEN")
+            if env_token:
+                self._token = self._validate_token(os.environ.get("SA_TOKEN"))
+        if token:
+            self._token = self._validate_token(token)
+
+        if not self._token:
+            self._token, self._backend_url, self._ssl_verify = self.retrieve_configs(
+                Path(self._config_path), raise_exception=False
             )
 
     def retrieve_configs(
         self, path: Path, raise_exception=True
     ) -> Tuple[Optional[str], Optional[str], Optional[str]]:
-        if not path.is_file():
+        if not path.is_file() or not os.access(path, os.R_OK):
             if raise_exception:
                 raise AppException(
                     f"SuperAnnotate config file {str(path)} not found."
@@ -96,9 +96,9 @@ class BaseController(metaclass=SingleInstanceMetaClass):
                     f"CLI's superannotate init to generate default location config file."
                 )
         try:
-            config_repo = ConfigRepository(self._config_path)
+            config_repo = ConfigRepository(str(path))
             return (
-                config_repo.get_one("token").value,
+                self._validate_token(config_repo.get_one("token").value),
                 config_repo.get_one("main_endpoint").value,
                 config_repo.get_one("ssl_verify").value,
             )
@@ -110,23 +110,32 @@ class BaseController(metaclass=SingleInstanceMetaClass):
             return None, None, None
 
     def init(
-        self, config_path: str = constances.CONFIG_FILE_LOCATION, token: str = None
+        self, token: str = None, backend_url: str = None, config_path: str = None,
     ):
+        if backend_url:
+            self._backend_url = backend_url
         if token:
             if self._validate_token(token):
                 self._token = token
+                return self
             else:
                 raise AppException("Invalid token.")
-        if not token and config_path:
-            self._config_path = config_path
-            self._token, self._backend_url, ssl_verify = self.retrieve_configs(
-                Path(config_path), raise_exception=True
+        if not config_path:
+            raise AppException(
+                " Please provide correct config file location to sa.init(<path>)."
             )
-            self._ssl_verify = False  # TODO fix if ssl_verify is False else True
+        self._config_path = config_path
+        self._token, self._backend_url, ssl_verify = self.retrieve_configs(
+            Path(config_path), raise_exception=True
+        )
+        self._ssl_verify = ssl_verify
+        return self
 
     @property
     def backend_client(self):
         if not self._backend_client:
+            if not self._token:
+                raise AppException("Team token not provided")
             self._backend_client = SuperannotateBackendService(
                 api_url=self._backend_url,
                 auth_token=self._token,
@@ -164,14 +173,12 @@ class BaseController(metaclass=SingleInstanceMetaClass):
             int(token.split("=")[-1])
         except ValueError:
             raise AppException("Invalid token.")
+        return token
 
     def set_token(self, token: str, backend_url: str = constances.BACKEND_URL):
-        self._validate_token(token)
-        self._token = token
+        self._token = self._validate_token(token)
+        self._backend_url = backend_url
         self._backend_client = self.backend_client
-        self._backend_client._api_url = backend_url
-        self._backend_client._auth_token = token
-        self._backend_client.get_session.cache_clear()
 
     @property
     def projects(self):
@@ -254,7 +261,8 @@ class BaseController(metaclass=SingleInstanceMetaClass):
 
 
 class Controller(BaseController):
-    def __init__(self, config_path=constances.CONFIG_FILE_LOCATION):
+
+    def __init__(self, config_path: str = None):
         super().__init__(config_path)
         self._team = None
 

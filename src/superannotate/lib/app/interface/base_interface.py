@@ -12,5 +12,5 @@ class BaseInterfaceFacade:
             raise Exception("Config does not exists!")
         controller = Controller()
         if self._config_path:
-            controller.init(self._config_path)
+            controller.init(config_path=self._config_path)
         return controller

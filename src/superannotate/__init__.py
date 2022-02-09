@@ -239,4 +239,5 @@ def log_version_info():
             )
 
 
-log_version_info()
+if not os.environ.get("SA_VERSION_CHECK", "True").lower() == "false":
+    log_version_info()

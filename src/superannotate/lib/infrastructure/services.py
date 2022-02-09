@@ -18,8 +18,8 @@ from lib.core.service_types import UploadAnnotationAuthData
 from lib.core.service_types import UserLimits
 from lib.core.serviceproviders import SuerannotateServiceProvider
 from lib.infrastructure.helpers import timed_lru_cache
-from pydantic import BaseModel
 from requests.exceptions import HTTPError
+
 
 requests.packages.urllib3.disable_warnings()
 
