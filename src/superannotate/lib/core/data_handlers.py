@@ -36,14 +36,12 @@ class ClassIdGenerator:
 
 class BaseAnnotationDateHandler(BaseDataHandler, metaclass=ABCMeta):
     def __init__(self, annotation_classes: List[AnnotationClass]):
-        self._annotation_classes = annotation_classes
+        self._annotation_classes: List[AnnotationClass] = annotation_classes
 
     @lru_cache()
     def get_annotation_class(
         self, name: str, class_type: ClassTypeEnum = ClassTypeEnum.OBJECT
     ) -> AnnotationClass:
-        if class_type != ClassTypeEnum.TAG:
-            class_type = ClassTypeEnum.OBJECT
         for annotation_class in self._annotation_classes:
             if annotation_class.name == name and annotation_class.type == class_type:
                 return annotation_class
@@ -162,6 +160,11 @@ class MissingIDsHandler(BaseAnnotationDateHandler):
                     " This will result in errors in annotation upload.",
                 )
 
+    def _get_class_type(self, annotation_type: str):
+        if annotation_type == ClassTypeEnum.TAG.name:
+            return annotation_type
+        return ClassTypeEnum.OBJECT.name
+
     def handle(self, annotation: dict):
         if "instances" not in annotation:
             return annotation
@@ -170,11 +173,14 @@ class MissingIDsHandler(BaseAnnotationDateHandler):
                 annotation_instance["classId"] = -1
             else:
                 class_name = annotation_instance["className"]
-                class_type = annotation_instance.get("type", ClassTypeEnum.OBJECT)
+                annotation_type = annotation_instance.get("type", ClassTypeEnum.OBJECT)
+                class_type = self._get_class_type(annotation_type)
                 annotation_class = self.get_annotation_class(class_name, class_type)
                 if not annotation_class:
                     self.reporter.log_warning(f"Couldn't find class {class_name}")
                     self.reporter.store_message("missing_classes", class_name)
+                    annotation_instance["classId"] = -1
+                    annotation_instance["attributes"] = []
                     self._annotation_classes.append(
                         AnnotationClass(
                             id=-1,
@@ -184,6 +190,9 @@ class MissingIDsHandler(BaseAnnotationDateHandler):
                         )
                     )
                     self.get_annotation_class.cache_clear()
+                else:
+                    annotation_instance["classId"] = annotation_class.id
+
         template_name_id_map = {
             template["name"]: template["id"] for template in self._templates
         }
@@ -195,12 +204,11 @@ class MissingIDsHandler(BaseAnnotationDateHandler):
             )
 
         for annotation_instance in [
-            i for i in annotation["instances"] if "className" in i
+            i for i in annotation["instances"] if "className" in i and i["classId"] > 0
         ]:
             annotation_class_name = annotation_instance["className"]
-            annotation_class_type = annotation_instance.get(
-                "type", ClassTypeEnum.OBJECT
-            )
+            annotation_class_type = self._get_class_type(annotation_instance.get("type", ClassTypeEnum.OBJECT))
+
             annotation_class = self.get_annotation_class(
                 annotation_class_name, annotation_class_type
             )
@@ -209,7 +217,7 @@ class MissingIDsHandler(BaseAnnotationDateHandler):
                     f"Couldn't find annotation class {annotation_class_name}"
                 )
                 continue
-            annotation_instance["classId"] = annotation_class.id
+            annotation_instance_attributes = []
             for annotation_attribute in annotation_instance["attributes"]:
                 attr_group = self.get_attribute_group(
                     annotation_class, annotation_attribute["groupName"]
@@ -236,6 +244,8 @@ class MissingIDsHandler(BaseAnnotationDateHandler):
                     )
                     continue
                 annotation_attribute["id"] = attribute.id
+                annotation_instance_attributes.append(annotation_attribute)
+            annotation_instance["attributes"] = annotation_instance_attributes
         return annotation
 
 
