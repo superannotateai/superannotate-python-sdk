@@ -93,10 +93,10 @@ class ProjectTypes(StrictStr):
 class ClassType(StrictStr):
     @classmethod
     def validate(cls, value: Union[str]) -> Union[str]:
-        enum_values = [e.value.lower() for e in ClassTypeEnum]
+        enum_values = [e.name.lower() for e in ClassTypeEnum]
         if value.lower() not in enum_values:
             raise TypeError(
-                f"Available annotation_statuses are {', '.join(enum_values)}. "
+                f"Available class_types are {', '.join(enum_values)}. "
             )
         return value.lower()
 

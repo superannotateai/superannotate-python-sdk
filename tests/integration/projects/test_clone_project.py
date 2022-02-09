@@ -150,6 +150,7 @@ class TestCloneProjectAttachedUrls(TestCase):
                     "attributes": [{"name": "young"}, {"name": "old"}],
                 },
             ],
+            "tag"
         )
 
         new_project = sa.clone_project(
@@ -162,4 +163,5 @@ class TestCloneProjectAttachedUrls(TestCase):
         self.assertEqual(len(ann_classes), 1)
         self.assertEqual(ann_classes[0]["name"], "rrr")
         self.assertEqual(ann_classes[0]["color"], "#faf")
+        self.assertEqual(ann_classes[0]["type"], "tag")
         self.assertIn("Workflow copy is deprecated for Document projects.", self._caplog.text)
