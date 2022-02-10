@@ -362,7 +362,7 @@ class AnnotationClassRepository(BaseManageableRepository):
             createdAt=data["createdAt"],
             updatedAt=data["updatedAt"],
             attribute_groups=data["attribute_groups"],
-            type=ClassTypeEnum.get_name(data["type"]),
+            type=ClassTypeEnum.get_name(data.get('type')),
         )
 
 
