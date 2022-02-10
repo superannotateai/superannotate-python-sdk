@@ -43,7 +43,7 @@ class BaseAnnotationDateHandler(BaseDataHandler, metaclass=ABCMeta):
         self, name: str, class_type: ClassTypeEnum = ClassTypeEnum.OBJECT
     ) -> AnnotationClass:
         for annotation_class in self._annotation_classes:
-            if annotation_class.name == name and annotation_class.type == class_type:
+            if annotation_class.name == name and annotation_class.type.name.lower() == class_type:
                 return annotation_class
 
     @lru_cache()
@@ -107,7 +107,7 @@ class DocumentTagHandler(BaseAnnotationDateHandler):
         new_tags = []
         for tag in annotation["tags"]:
             annotation_class = self.get_annotation_class(
-                tag, class_type=ClassTypeEnum.OBJECT
+                tag, class_type=ClassTypeEnum.OBJECT.name
             )
             if annotation_class:
                 new_tags.append(annotation_class.id)
