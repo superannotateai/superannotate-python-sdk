@@ -5,8 +5,8 @@ from typing import Iterable
 from typing import List
 
 from lib.core.enums import ClassTypeEnum
-from lib.core.enums import SegmentationStatus
 from lib.core.enums import ImageQuality
+from lib.core.enums import SegmentationStatus
 from superannotate_schemas.schemas.classes import AnnotationClass
 
 
@@ -178,9 +178,10 @@ class ProjectSettingEntity(BaseEntity):
         }
 
     def serialize(self):
-        if self.attribute == 'ImageQuality':
+        if self.attribute == "ImageQuality":
             self.value = ImageQuality.get_value(self.value)
         return self.to_dict()
+
 
 class WorkflowEntity(BaseEntity):
     def __init__(

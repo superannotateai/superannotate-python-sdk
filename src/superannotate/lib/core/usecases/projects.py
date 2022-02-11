@@ -258,10 +258,14 @@ class CreateProjectUseCase(BaseUseCase):
                     self._backend_service.share_project_bulk(
                         team_id=entity.team_id,
                         project_id=entity.uuid,
-                        users=[{
-                            "user_id": contributor["user_id"],
-                            "user_role": constances.UserRole.get_value(contributor["user_role"])
-                        }]
+                        users=[
+                            {
+                                "user_id": contributor["user_id"],
+                                "user_role": constances.UserRole.get_value(
+                                    contributor["user_role"]
+                                ),
+                            }
+                        ],
                     )
                 data["contributors"] = self._contributors
 
