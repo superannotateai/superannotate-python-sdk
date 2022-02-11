@@ -53,7 +53,7 @@ logger = get_default_logger()
 
 
 @validate_arguments
-def init(path_to_config_json: Optional[str] = None):
+def init(path_to_config_json: Optional[str] = None, token: str = None):
     """
     Initializes and authenticates to SuperAnnotate platform using the config file.
     If not initialized then $HOME/.superannotate/config.json
@@ -61,9 +61,12 @@ def init(path_to_config_json: Optional[str] = None):
 
     :param path_to_config_json: Location to config JSON file
     :type path_to_config_json: str or Path
+
+    :param token: Team token
+    :type token: str
     """
     global controller
-    controller.init(path_to_config_json)
+    controller.init(config_path=path_to_config_json, token=token)
 
 
 @validate_arguments

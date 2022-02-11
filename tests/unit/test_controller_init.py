@@ -68,13 +68,12 @@ class SKDInitTest(TestCase):
     VALID_JSON = {
         "token": "a"*28 + "=1234"
     }
-    INVALID_JSON ={
+    INVALID_JSON = {
         "token": "a" * 28 + "=1234asd"
     }
     FILE_NAME = "config.json"
     FILE_NAME_2 = "config.json"
 
-    @pytest.mark.skip(reason="Need to adjust")
     def test_init_flow(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             token_path = f"{temp_dir}/config.json"
@@ -84,7 +83,6 @@ class SKDInitTest(TestCase):
                 import src.superannotate as sa
                 sa.init(token_path)
 
-    @pytest.mark.skip(reason="Need to adjust")
     def test_init(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             path = join(temp_dir, self.FILE_NAME)
@@ -93,3 +91,6 @@ class SKDInitTest(TestCase):
             import src.superannotate as sa
             sa.init(path)
             self.assertEqual(sa.controller.team_id, 1234)
+
+    def test_(self):
+        import superannotate as sa

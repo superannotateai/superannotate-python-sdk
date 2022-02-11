@@ -45,10 +45,8 @@ class ConfigRepository(BaseManageableRepository):
         return {}
 
     def _get_config(self) -> Optional[dict]:
-        if not os.path.exists(self.config_path):
-            return
-        with open(self.config_path) as config:
-            return json.load(config)
+        if os.path.exists(self.config_path):
+            return json.load(open(self.config_path))
 
     def get_one(self, uuid: str) -> Optional[ConfigEntity]:
         config = self._get_config()
