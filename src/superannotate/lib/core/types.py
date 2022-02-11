@@ -1,5 +1,3 @@
-from typing import Dict
-from typing import List
 from typing import Optional
 from typing import Union
 
@@ -7,8 +5,6 @@ from pydantic import BaseModel
 from pydantic import constr
 from pydantic import Extra
 from pydantic import StrictStr
-from pydantic import validate_model
-from pydantic import validator
 from pydantic.error_wrappers import ErrorWrapper
 from pydantic.error_wrappers import ValidationError
 from superannotate_schemas.schemas.classes import AttributeGroup as AttributeGroupSchema
@@ -28,7 +24,6 @@ class AnnotationType(StrictStr):
         return value
 
 
-
 class Project(BaseModel):
     name: NotEmptyStr
 
@@ -45,5 +40,3 @@ class MLModel(BaseModel):
 
     class Config:
         extra = Extra.allow
-
-

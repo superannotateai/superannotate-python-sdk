@@ -70,7 +70,9 @@ class BaseController(metaclass=SingleInstanceMetaClass):
         self._team_name = None
         self._reporter = None
         self._ssl_verify = not os.environ.get("SA_TESTING", False)
-        self._config_path = expanduser(config_path) if config_path else constances.CONFIG_FILE_LOCATION
+        self._config_path = (
+            expanduser(config_path) if config_path else constances.CONFIG_FILE_LOCATION
+        )
 
         self._backend_url = os.environ.get("SA_URL", constances.BACKEND_URL)
         if not token and not config_path:
@@ -261,7 +263,6 @@ class BaseController(metaclass=SingleInstanceMetaClass):
 
 
 class Controller(BaseController):
-
     def __init__(self, config_path: str = None):
         super().__init__(config_path)
         self._team = None
@@ -1150,7 +1151,12 @@ class Controller(BaseController):
         )
 
     def create_annotation_class(
-        self, project_name: str, name: str, color: str, attribute_groups: List[dict], class_type: str
+        self,
+        project_name: str,
+        name: str,
+        color: str,
+        attribute_groups: List[dict],
+        class_type: str,
     ):
         project = self._get_project(project_name)
         annotation_classes = AnnotationClassRepository(
