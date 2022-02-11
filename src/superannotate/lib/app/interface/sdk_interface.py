@@ -1637,7 +1637,9 @@ def create_annotation_classes_from_classes_json(
         classes_json = json.load(data)
     annotation_classes = parse_obj_as(List[AnnotationClassEntity], classes_json)
     logger.info(
-        "Creating annotation classes in project %s from %s.", project, classes_json_initial,
+        "Creating annotation classes in project %s from %s.",
+        project,
+        classes_json_initial,
     )
     response = controller.create_annotation_classes(
         project_name=project, annotation_classes=annotation_classes,

@@ -43,9 +43,11 @@ def get_default_logger():
                     expanduser(constances.LOG_FILE_LOCATION),
                     maxBytes=5 * 1024 * 1024,
                     backupCount=5,
-                    mode="a"
+                    mode="a",
                 )
-                formatter = Formatter("SA-PYTHON-SDK - %(levelname)s - %(asctime)s - %(message)s")
+                formatter = Formatter(
+                    "SA-PYTHON-SDK - %(levelname)s - %(asctime)s - %(message)s"
+                )
                 file_handler.setFormatter(formatter)
                 file_handler.setLevel("DEBUG")
                 default_logger.addHandler(file_handler)
