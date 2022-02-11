@@ -39,7 +39,6 @@ from lib.core.entities.project_entities import AnnotationClassEntity
 from lib.core.enums import ImageQuality
 from lib.core.exceptions import AppException
 from lib.core.types import AttributeGroup
-from lib.core.types import ClassesJson
 from lib.core.types import MLModel
 from lib.core.types import Project
 from pydantic import conlist
@@ -1607,7 +1606,7 @@ def download_annotation_classes_json(project: NotEmptyStr, folder: Union[str, Pa
 @validate_arguments
 def create_annotation_classes_from_classes_json(
     project: Union[NotEmptyStr, dict],
-    classes_json: Union[List[ClassesJson], str, Path],
+    classes_json: Union[List[AnnotationClassEntity], str, Path],
     from_s3_bucket=False,
 ):
     """Creates annotation classes in project from a SuperAnnotate format
@@ -1623,6 +1622,7 @@ def create_annotation_classes_from_classes_json(
     :return: list of created annotation class metadatas
     :rtype: list of dicts
     """
+    classes_json_initial = classes_json
     if isinstance(classes_json, str) or isinstance(classes_json, Path):
         if from_s3_bucket:
             from_session = boto3.Session()
@@ -1637,7 +1637,7 @@ def create_annotation_classes_from_classes_json(
         classes_json = json.load(data)
     annotation_classes = parse_obj_as(List[AnnotationClassEntity], classes_json)
     logger.info(
-        "Creating annotation classes in project %s from %s.", project, classes_json,
+        "Creating annotation classes in project %s from %s.", project, classes_json_initial,
     )
     response = controller.create_annotation_classes(
         project_name=project, annotation_classes=annotation_classes,
