@@ -9,6 +9,95 @@ from tests import DATA_SET_PATH
 from tests.integration.base import BaseTestCase
 
 
+
+class TestProjectCreateMetadata(BaseTestCase):
+    PROJECT_NAME = "sample_basic_project"
+    PROJECT_TYPE = "Vector"
+    OTHER_PROJECT_NAME = "other_project"
+    PROJECT_DESCRIPTION = "DESCRIPTION"
+    IMAGE_QUALITY_ORIGINAL = "original"
+
+    def setUp(self, *args, **kwargs):
+        super(TestProjectCreateMetadata, self).setUp()
+        try:
+            sa.delete_project(self.OTHER_PROJECT_NAME)
+        except:
+            pass
+
+    def tearDown(self) -> None:
+        super(TestProjectCreateMetadata, self).tearDown()
+        try:
+            sa.delete_project(self.OTHER_PROJECT_NAME)
+        except:
+            pass
+
+    def test_create_project_from_metadata(self):
+        sa.create_annotation_class(
+            self.PROJECT_NAME,
+            "rrr",
+            "#FFAAFF",
+            [
+                {
+                    "name": "tall",
+                    "is_multiselect": 0,
+                    "attributes": [{"name": "yes"}, {"name": "no"}],
+                },
+                {
+                    "name": "age",
+                    "is_multiselect": 0,
+                    "attributes": [{"name": "young"}, {"name": "old"}],
+                },
+            ],
+        )
+        sa.set_project_workflow(
+            self.PROJECT_NAME,
+            [
+                {
+                    "step": 1,
+                    "className": "rrr",
+                    "tool": 3,
+                    "attribute": [
+                        {
+                            "attribute": {
+                                "name": "young",
+                                "attribute_group": {"name": "age"},
+                            }
+                        },
+                        {
+                            "attribute": {
+                                "name": "yes",
+                                "attribute_group": {"name": "tall"},
+                            }
+                        },
+                    ],
+                }
+            ],
+        )
+
+        team_users = sa.search_team_contributors()
+        sa.share_project(self.PROJECT_NAME, team_users[0], "QA")
+
+        sa.set_project_default_image_quality_in_editor(self.PROJECT_NAME, self.IMAGE_QUALITY_ORIGINAL)
+        meta = sa.get_project_metadata(self.PROJECT_NAME,
+                                       include_workflow=True,
+                                       include_settings=True,
+                                       include_contributors=True,
+                                       include_annotation_classes=True
+                                       )
+        meta["name"] = self.OTHER_PROJECT_NAME
+        sa.create_project_from_metadata(meta)
+        created = sa.get_project_metadata(self.OTHER_PROJECT_NAME,
+                                include_workflow=True,
+                                include_settings=True,
+                                include_contributors=True,
+                                include_annotation_classes=True
+                                )
+        self.assertNotEqual(len(created["users"]), 1)
+        self.assertNotEqual(len(created["contributors"]), 1)
+        self.assertEqual([f"{i['attribute']}_{i['value']}" for i in meta["settings"]],
+                         [f"{i['attribute']}_{i['value']}" for i in created["settings"]])
+
+
 class TestProject(BaseTestCase):
     PROJECT_NAME = "sample_basic_project"
     PROJECT_TYPE = "Pixel"
@@ -18,6 +107,7 @@ class TestProject(BaseTestCase):
     TEST_ANNOTATION_PATH = "sample_annotation_no_class"
     PNG_POSTFIX = "*___save.png"
     FUSE_PNG_POSTFIX = "*___fuse.png"
+
 
     @property
     def folder_path(self):
