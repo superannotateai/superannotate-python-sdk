@@ -12,6 +12,7 @@ from typing import Union
 
 import boto3
 import lib.core as constances
+from lib import controller
 from lib.app.annotation_helpers import add_annotation_bbox_to_json
 from lib.app.annotation_helpers import add_annotation_comment_to_json
 from lib.app.annotation_helpers import add_annotation_point_to_json
@@ -21,6 +22,7 @@ from lib.app.helpers import get_paths_and_duplicated_from_csv
 from lib.app.interface.types import AnnotationStatuses
 from lib.app.interface.types import AnnotationType
 from lib.app.interface.types import AnnotatorRole
+from lib.app.interface.types import ClassType
 from lib.app.interface.types import EmailStr
 from lib.app.interface.types import ImageQualityChoices
 from lib.app.interface.types import NotEmptyStr
@@ -33,25 +35,24 @@ from lib.app.serializers import ProjectSerializer
 from lib.app.serializers import SettingsSerializer
 from lib.app.serializers import TeamSerializer
 from lib.core import LIMITED_FUNCTIONS
+from lib.core.entities.project_entities import AnnotationClassEntity
 from lib.core.enums import ImageQuality
 from lib.core.exceptions import AppException
 from lib.core.types import AttributeGroup
-from lib.core.types import ClassesJson
 from lib.core.types import MLModel
 from lib.core.types import Project
-from lib.infrastructure.controller import Controller
 from pydantic import conlist
 from pydantic import parse_obj_as
 from pydantic import StrictBool
 from superannotate.logger import get_default_logger
 from tqdm import tqdm
 
-controller = Controller.get_instance()
+
 logger = get_default_logger()
 
 
 @validate_arguments
-def init(path_to_config_json: Optional[str] = None):
+def init(path_to_config_json: Optional[str] = None, token: str = None):
     """
     Initializes and authenticates to SuperAnnotate platform using the config file.
     If not initialized then $HOME/.superannotate/config.json
@@ -59,9 +60,12 @@ def init(path_to_config_json: Optional[str] = None):
 
     :param path_to_config_json: Location to config JSON file
     :type path_to_config_json: str or Path
+
+    :param token: Team token
+    :type token: str
     """
     global controller
-    controller.init(path_to_config_json)
+    controller.init(config_path=path_to_config_json, token=token)
 
 
 @validate_arguments
@@ -1525,6 +1529,7 @@ def create_annotation_class(
     name: NotEmptyStr,
     color: NotEmptyStr,
     attribute_groups: Optional[List[AttributeGroup]] = None,
+    type: ClassType = "object",
 ):
     """Create annotation class in project
 
@@ -1538,6 +1543,8 @@ def create_annotation_class(
      [ { "name": "tall", "is_multiselect": 0, "attributes": [ { "name": "yes" }, { "name": "no" } ] },
      { "name": "age", "is_multiselect": 0, "attributes": [ { "name": "young" }, { "name": "old" } ] } ]
     :type attribute_groups: list of dicts
+    :param type: class type
+    :type type: str
 
     :return: new class metadata
     :rtype: dict
@@ -1545,12 +1552,16 @@ def create_annotation_class(
     if isinstance(project, Project):
         project = project.dict()
     attribute_groups = (
-        list(map(lambda x: x.dict(), attribute_groups)) if attribute_groups else None
+        list(map(lambda x: x.dict(), attribute_groups)) if attribute_groups else []
     )
     response = controller.create_annotation_class(
-        project_name=project, name=name, color=color, attribute_groups=attribute_groups
+        project_name=project,
+        name=name,
+        color=color,
+        attribute_groups=attribute_groups,
+        class_type=type,
     )
-    return response.data.to_dict()
+    return response.data.dict()
 
 
 @Trackable
@@ -1595,7 +1606,7 @@ def download_annotation_classes_json(project: NotEmptyStr, folder: Union[str, Pa
 @validate_arguments
 def create_annotation_classes_from_classes_json(
     project: Union[NotEmptyStr, dict],
-    classes_json: Union[List[ClassesJson], str, Path],
+    classes_json: Union[List[AnnotationClassEntity], str, Path],
     from_s3_bucket=False,
 ):
     """Creates annotation classes in project from a SuperAnnotate format
@@ -1611,10 +1622,8 @@ def create_annotation_classes_from_classes_json(
     :return: list of created annotation class metadatas
     :rtype: list of dicts
     """
-    if not isinstance(classes_json, list):
-        logger.info(
-            "Creating annotation classes in project %s from %s.", project, classes_json,
-        )
+    classes_json_initial = classes_json
+    if isinstance(classes_json, str) or isinstance(classes_json, Path):
         if from_s3_bucket:
             from_session = boto3.Session()
             from_s3 = from_session.resource("s3")
@@ -1622,22 +1631,23 @@ def create_annotation_classes_from_classes_json(
             from_s3_object = from_s3.Object(from_s3_bucket, classes_json)
             from_s3_object.download_fileobj(file)
             file.seek(0)
-            annotation_classes = parse_obj_as(List[ClassesJson], json.load(file))
+            data = file
         else:
-            annotation_classes = parse_obj_as(
-                List[ClassesJson], json.load(open(classes_json))
-            )
-
-    else:
-        annotation_classes = classes_json
-
-    annotation_classes = list(
-        map(lambda annotation_class: annotation_class.dict(), annotation_classes)
+            data = open(classes_json)
+        classes_json = json.load(data)
+    annotation_classes = parse_obj_as(List[AnnotationClassEntity], classes_json)
+    logger.info(
+        "Creating annotation classes in project %s from %s.",
+        project,
+        classes_json_initial,
     )
     response = controller.create_annotation_classes(
         project_name=project, annotation_classes=annotation_classes,
     )
-    return response.data
+    if response.errors:
+        raise AppException(response.errors)
+
+    return [i.dict() for i in response.data]
 
 
 @Trackable

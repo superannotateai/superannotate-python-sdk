@@ -1,9 +1,13 @@
 import os
+import random
 from pathlib import Path
 from unittest import TestCase
 
-from src.superannotate.lib.core.helpers import convert_to_video_editor_json
 from src.superannotate.lib.core.reporter import Reporter
+from src.superannotate.lib.core.data_handlers import VideoFormatHandler
+from superannotate_schemas.schemas.classes import AnnotationClass
+from superannotate_schemas.schemas.classes import AttributeGroup
+from superannotate_schemas.schemas.classes import Attribute
 
 TEST_ANNOTATION = {
     "metadata": {
@@ -173,26 +177,30 @@ class TestClassData(TestCase):
 
     def __init__(self, *args, **kwargs):
         super(TestClassData, self).__init__(*args, **kwargs)
-        self.annotation_classes_name_maps = {
-            "vid": {
-                "id": 1,
-                "attribute_groups": {
-                    "attr g": {
-                        "id": 2,
-                        "attributes": {
-                            "attr": 4
-                        }
-                    },
-                    "attr b": {
-                        "id": 3,
-                        "attributes": {
-                            "attr": 5,
-                            "attr a": 6
-                        }
-                    }
-                }
-            }
-        }
+        self.annotation_classes = [
+            AnnotationClass(
+                id=1,
+                name="vid",
+                color=f"#{random.randint(0, 0xFFFFFF):06x}",
+                attribute_groups=[
+                    AttributeGroup(
+                        id=2,
+                        name="attr g",
+                        attributes=[
+                            Attribute(id=4, name="attr")
+                        ]
+                    ),
+                    AttributeGroup(
+                        id=3,
+                        name="attr b",
+                        attributes=[
+                            Attribute(id=5, name="attr"),
+                            Attribute(id=6, name="attr a"),
+                        ]
+                    )
+                ]
+            )
+        ]
 
     @property
     def folder_path(self):
@@ -203,8 +211,9 @@ class TestClassData(TestCase):
         return os.path.join(self.folder_path, self.ANNOTATIONS_PATH)
 
     def test_map_annotation_classes_name(self):
-        annotation = convert_to_video_editor_json(TEST_ANNOTATION, self.annotation_classes_name_maps, Reporter())
+        handler = VideoFormatHandler(self.annotation_classes, Reporter())
 
+        annotation = handler.handle(TEST_ANNOTATION)
         timestamps = [i["timestamp"] for i in TEST_ANNOTATION["instances"][0]["parameters"][0]["timestamps"]]
         first_instance_timeline = annotation["instances"][0]["timeline"]
         second_instance_timeline = annotation["instances"][1]["timeline"]
@@ -228,4 +237,7 @@ class TestClassData(TestCase):
                                         "url": "https://drive.google.com/uc?export=download&id=14R6IXioDzC8mH52uIsyhNownbBji5TEl",
                                         "duration": None, "projectId": 164746, "error": None, "annotatorEmail": None,
                                         "qaEmail": None}, "instances": [], "tags": []}
-        convert_to_video_editor_json(annotation_json, self.annotation_classes_name_maps, Reporter())
+        handler = VideoFormatHandler(self.annotation_classes, Reporter())
+
+        _ = handler.handle(annotation_json)
+        # TODO add asserts

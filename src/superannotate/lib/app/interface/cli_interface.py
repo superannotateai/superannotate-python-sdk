@@ -12,6 +12,7 @@ from lib.app.interface.base_interface import BaseInterfaceFacade
 from lib.app.interface.sdk_interface import attach_document_urls_to_project
 from lib.app.interface.sdk_interface import attach_image_urls_to_project
 from lib.app.interface.sdk_interface import attach_video_urls_to_project
+from lib.app.interface.sdk_interface import controller
 from lib.app.interface.sdk_interface import create_folder
 from lib.app.interface.sdk_interface import create_project
 from lib.app.interface.sdk_interface import upload_annotations_from_folder_to_project
@@ -19,10 +20,7 @@ from lib.app.interface.sdk_interface import upload_images_from_folder_to_project
 from lib.app.interface.sdk_interface import upload_preannotations_from_folder_to_project
 from lib.app.interface.sdk_interface import upload_videos_from_folder_to_project
 from lib.core.entities import ConfigEntity
-from lib.infrastructure.controller import Controller
 from lib.infrastructure.repositories import ConfigRepository
-
-controller = Controller.get_instance()
 
 
 class CLIFacade(BaseInterfaceFacade):

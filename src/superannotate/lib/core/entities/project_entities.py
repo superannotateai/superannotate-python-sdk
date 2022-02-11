@@ -4,12 +4,25 @@ from typing import Any
 from typing import Iterable
 from typing import List
 
+from lib.core.enums import ClassTypeEnum
 from lib.core.enums import SegmentationStatus
+from superannotate_schemas.schemas.classes import AnnotationClass
+
+
+class AnnotationClassEntity(AnnotationClass):
+    def deserialize(self):
+        data = self.dict()
+        data["type"] = ClassTypeEnum.get_value(data["type"])
+        return data
 
 
 class BaseEntity(ABC):
     def __init__(self, uuid: Any = None):
         self._uuid = uuid
+
+    @property
+    def id(self):
+        return self._uuid
 
     @property
     def uuid(self):
@@ -335,46 +348,6 @@ class S3FileEntity(BaseEntity):
 
     def to_dict(self):
         return {"uuid": self.uuid, "bytes": self.data, "metadata": self.metadata}
-
-
-class AnnotationClassEntity(BaseTimedEntity):
-    def __init__(
-        self,
-        uuid: int = None,
-        createdAt: str = None,
-        updatedAt: str = None,
-        color: str = None,
-        count: int = None,
-        name: str = None,
-        project_id: int = None,
-        attribute_groups: Iterable = None,
-    ):
-        super().__init__(uuid, createdAt, updatedAt)
-        self.color = color
-        self.count = count
-        self.name = name
-        self.project_id = project_id
-        self.attribute_groups = attribute_groups
-        self.createdAt = createdAt
-        self.updatedAt = updatedAt
-
-    def __copy__(self):
-        return AnnotationClassEntity(
-            color=self.color,
-            count=self.count,
-            name=self.name,
-            attribute_groups=self.attribute_groups,
-        )
-
-    def to_dict(self):
-        return {
-            **super().to_dict(),
-            "color": self.color,
-            "count": self.count,
-            "name": self.name,
-            "project_id": self.project_id,
-            "attribute_groups": self.attribute_groups if self.attribute_groups else [],
-        }
 
 
 class UserEntity(BaseEntity):

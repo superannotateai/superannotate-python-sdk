@@ -4,6 +4,7 @@ import tempfile
 from os.path import dirname
 from pathlib import Path
 from unittest import TestCase
+import pytest
 
 import src.superannotate as sa
 
@@ -235,6 +236,7 @@ class TestCocoSplit(TestCase):
                 "instance_segmentation",
             )
 
+    @pytest.mark.skip(reason="Need to adjust")
     def test_upload_annotations_with_template_id(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmpdir = Path(tmp_dir)

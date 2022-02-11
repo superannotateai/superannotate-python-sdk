@@ -1,9 +1,9 @@
 import lib.core as constances
+from lib import get_default_controller
 from lib.app.helpers import extract_project_folder
 from lib.core.enums import ProjectType
-from lib.infrastructure.controller import Controller
 
-controller = Controller.get_instance()
+controller = get_default_controller()
 
 
 def get_project_name(project):
@@ -32,7 +32,10 @@ def invite_contributors_to_team(*args, **kwargs):
             admin_value = admin[0]
     else:
         admin_value = admin
-    return {"event_name": "invite_contributors_to_team", "properties": {"Admin": admin_value}}
+    return {
+        "event_name": "invite_contributors_to_team",
+        "properties": {"Admin": admin_value},
+    }
 
 
 def search_team_contributors(*args, **kwargs):
@@ -1079,11 +1082,7 @@ def aggregate_annotations_as_df(*args, **kwargs):
 
     return {
         "event_name": "aggregate_annotations_as_df",
-        "properties": {
-            "Folder Count": len(folder_names),
-            "Project Type": project_type
-
-        },
+        "properties": {"Folder Count": len(folder_names), "Project Type": project_type},
     }
 
 

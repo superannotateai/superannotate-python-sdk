@@ -1,3 +1,4 @@
+import json
 import time
 from contextlib import contextmanager
 from datetime import datetime
@@ -19,7 +20,15 @@ from lib.core.serviceproviders import SuerannotateServiceProvider
 from lib.infrastructure.helpers import timed_lru_cache
 from requests.exceptions import HTTPError
 
+
 requests.packages.urllib3.disable_warnings()
+
+
+class PydanticEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if hasattr(obj, "deserialize"):
+            return obj.deserialize()
+        return json.JSONEncoder.default(self, obj)
 
 
 class BaseBackendService(SuerannotateServiceProvider):
@@ -32,13 +41,13 @@ class BaseBackendService(SuerannotateServiceProvider):
     """
 
     def __init__(
-        self, api_url: str, auth_token: str, logger, paginate_by=None, verify_ssl=True
+        self, api_url: str, auth_token: str, logger, paginate_by=None, verify_ssl=False
     ):
         self.api_url = api_url
         self._auth_token = auth_token
         self.logger = logger
         self._paginate_by = paginate_by
-        self._verify_ssl = verify_ssl
+        self._verify_ssl = False  # TODO fix False
         self.team_id = auth_token.split("=")[-1]
         self.get_session()
 
@@ -92,7 +101,7 @@ class BaseBackendService(SuerannotateServiceProvider):
         retried=0,
         content_type=None,
     ) -> Union[requests.Response, ServiceResponse]:
-        kwargs = {"json": data} if data else {}
+        kwargs = {"data": json.dumps(data, cls=PydanticEncoder)} if data else {}
         session = self.get_session()
         session.headers.update(headers if headers else {})
         with self.safe_api():
@@ -110,9 +119,6 @@ class BaseBackendService(SuerannotateServiceProvider):
                 content_type=content_type,
             )
         if response.status_code > 299:
-            import traceback
-
-            traceback.print_stack()
             self.logger.error(
                 f"Got {response.status_code} response from backend: {response.text}"
             )

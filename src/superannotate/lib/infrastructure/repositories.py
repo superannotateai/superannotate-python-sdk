@@ -19,6 +19,7 @@ from lib.core.entities import S3FileEntity
 from lib.core.entities import TeamEntity
 from lib.core.entities import UserEntity
 from lib.core.entities import WorkflowEntity
+from lib.core.enums import ClassTypeEnum
 from lib.core.exceptions import AppException
 from lib.core.repositories import BaseManageableRepository
 from lib.core.repositories import BaseProjectRelatedManageableRepository
@@ -44,10 +45,8 @@ class ConfigRepository(BaseManageableRepository):
         return {}
 
     def _get_config(self) -> Optional[dict]:
-        if not os.path.exists(self.config_path):
-            return
-        with open(self.config_path) as config:
-            return json.load(config)
+        if os.path.exists(self.config_path):
+            return json.load(open(self.config_path))
 
     def get_one(self, uuid: str) -> Optional[ConfigEntity]:
         config = self._get_config()
@@ -325,7 +324,7 @@ class AnnotationClassRepository(BaseManageableRepository):
 
     def insert(self, entity: AnnotationClassEntity):
         res = self._service.set_annotation_classes(
-            self.project.uuid, self.project.team_id, [entity.to_dict()]
+            self.project.uuid, self.project.team_id, [entity]
         )
         if "error" in res:
             raise AppException(res["error"])
@@ -338,13 +337,22 @@ class AnnotationClassRepository(BaseManageableRepository):
             annotation_class_id=uuid,
         )
 
+    def bulk_insert(self, entities: List[AnnotationClassEntity]):
+        res = self._service.set_annotation_classes(
+            self.project.uuid, self.project.team_id, entities
+        )
+        if "error" in res:
+            raise AppException(res["error"])
+
+        return [self.dict2entity(i) for i in res]
+
     def update(self, entity: AnnotationClassEntity):
         raise NotImplementedError
 
     @staticmethod
-    def dict2entity(data: dict):
+    def dict2entity(data: dict) -> AnnotationClassEntity:
         return AnnotationClassEntity(
-            uuid=data["id"],
+            id=data["id"],
             project_id=data["project_id"],
             name=data["name"],
             count=data["count"],
@@ -352,6 +360,7 @@ class AnnotationClassRepository(BaseManageableRepository):
             createdAt=data["createdAt"],
             updatedAt=data["updatedAt"],
             attribute_groups=data["attribute_groups"],
+            type=ClassTypeEnum.get_name(data.get("type")),
         )
 
 

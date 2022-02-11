@@ -414,7 +414,7 @@ class CopyImageAnnotationClasses(BaseUseCase):
         to_project_annotation_classes = self._to_project_annotation_classes.get_all()
 
         annotations_classes_from_copy = {
-            from_annotation.uuid: from_annotation
+            from_annotation.id: from_annotation
             for from_annotation in from_project_annotation_classes
             for to_annotation in to_project_annotation_classes
             if from_annotation.name == to_annotation.name
@@ -441,13 +441,13 @@ class CopyImageAnnotationClasses(BaseUseCase):
                     attribute_group = None
                     if attribute.get("groupId"):
                         for group in project_annotation_class.attribute_groups:
-                            if group["id"] == attribute["groupId"]:
-                                attribute["groupName"] = group["name"]
+                            if group.id == attribute["groupId"]:
+                                attribute["groupName"] = group.name
                                 attribute_group = group
                         if attribute.get("id") and attribute_group:
-                            for attr in attribute_group["attributes"]:
-                                if attr["id"] == attribute["id"]:
-                                    attribute["name"] = attr["name"]
+                            for attr in attribute_group.attributes:
+                                if attr.id == attribute["id"]:
+                                    attribute["name"] = attr.name
 
         for instance in image_annotations["instances"]:
             if (
@@ -460,24 +460,24 @@ class CopyImageAnnotationClasses(BaseUseCase):
                 instance["classId"] = -1
                 continue
             attribute_groups_map = {
-                group["name"]: group for group in annotation_class.attribute_groups
+                group.name: group for group in annotation_class.attribute_groups
             }
-            instance["classId"] = annotation_class.uuid
+            instance["classId"] = annotation_class.id
             for attribute in instance["attributes"]:
                 if attribute_groups_map.get(attribute["groupName"]):
-                    attribute["groupId"] = attribute_groups_map[attribute["groupName"]][
-                        "id"
-                    ]
+                    attribute["groupId"] = attribute_groups_map[
+                        attribute["groupName"]
+                    ].id
                     attr_map = {
-                        attr["name"]: attr
-                        for attr in attribute_groups_map[attribute["groupName"]][
-                            "attributes"
-                        ]
+                        attr.name: attr
+                        for attr in attribute_groups_map[
+                            attribute["groupName"]
+                        ].attributes
                     }
                     if attribute["name"] not in attr_map:
                         del attribute["groupId"]
                         continue
-                    attribute["id"] = attr_map[attribute["name"]]["id"]
+                    attribute["id"] = attr_map[attribute["name"]].id
 
         auth_data = self.upload_auth_data
         file = S3FileEntity(
@@ -1054,7 +1054,8 @@ class DownloadImageUseCase(BaseUseCase):
                         ),
                         image_path=download_path,
                         classes=[
-                            annotation_class.to_dict() for annotation_class in classes
+                            annotation_class.dict(exclude_unset=True)
+                            for annotation_class in classes
                         ],
                         generate_overlay=self._include_overlay,
                     )
@@ -2272,15 +2273,15 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
             if annotation_class.attribute_groups:
                 for attribute_group in annotation_class.attribute_groups:
                     attribute_group_data = defaultdict(dict)
-                    for attribute in attribute_group["attributes"]:
-                        attribute_group_data[attribute["id"]] = attribute["name"]
+                    for attribute in attribute_group.attributes:
+                        attribute_group_data[attribute.id] = attribute.name
                     class_info["attribute_groups"] = {
-                        attribute_group["id"]: {
-                            "name": attribute_group["name"],
+                        attribute_group.id: {
+                            "name": attribute_group.name,
                             "attributes": attribute_group_data,
                         }
                     }
-            classes_data[annotation_class.uuid] = class_info
+            classes_data[annotation_class.id] = class_info
         return classes_data
 
     def get_templates_mapping(self):
@@ -2759,7 +2760,7 @@ class DeleteAnnotationClassUseCase(BaseUseCase):
     @property
     def uuid(self):
         if self._annotation_class:
-            return self._annotation_class.uuid
+            return self._annotation_class.id
 
     def execute(self):
         annotation_classes = self._annotation_classes_repo.get_all(
@@ -2812,7 +2813,7 @@ class DownloadAnnotationClassesUseCase(BaseUseCase):
             str(self._download_path),
         )
         classes = self._annotation_classes_repo.get_all()
-        classes = [entity.to_dict() for entity in classes]
+        classes = [entity.dict() for entity in classes]
         json_path = f"{self._download_path}/classes.json"
         json.dump(classes, open(json_path, "w"), indent=4)
         self._response.data = json_path
@@ -2826,7 +2827,7 @@ class CreateAnnotationClassesUseCase(BaseUseCase):
         self,
         service: SuerannotateServiceProvider,
         annotation_classes_repo: BaseManageableRepository,
-        annotation_classes: list,
+        annotation_classes: List[AnnotationClassEntity],
         project: ProjectEntity,
     ):
         super().__init__()
@@ -2844,10 +2845,10 @@ class CreateAnnotationClassesUseCase(BaseUseCase):
         existing_classes_name = [i.name for i in existing_annotation_classes]
         unique_annotation_classes = []
         for annotation_class in self._annotation_classes:
-            if annotation_class["name"] in existing_classes_name:
+            if annotation_class.name in existing_classes_name:
                 logger.warning(
                     "Annotation class %s already in project. Skipping.",
-                    annotation_class["name"],
+                    annotation_class.name,
                 )
                 continue
             else:
@@ -2856,10 +2857,8 @@ class CreateAnnotationClassesUseCase(BaseUseCase):
         created = []
 
         for i in range(0, len(unique_annotation_classes), self.CHUNK_SIZE):
-            created += self._service.set_annotation_classes(
-                project_id=self._project.uuid,
-                team_id=self._project.team_id,
-                data=unique_annotation_classes[i : i + self.CHUNK_SIZE],
+            created += self._annotation_classes_repo.bulk_insert(
+                entities=unique_annotation_classes[i : i + self.CHUNK_SIZE],
             )
         self._response.data = created
         return self._response

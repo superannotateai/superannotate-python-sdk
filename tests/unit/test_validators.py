@@ -8,6 +8,7 @@ from unittest.mock import patch
 from pydantic import ValidationError
 
 import src.superannotate as sa
+from superannotate_schemas.validators import AnnotationValidators
 
 
 VECTOR_ANNOTATION_JSON_WITH_BBOX = """
@@ -201,7 +202,7 @@ class TestTypeHandling(TestCase):
             sa.validate_annotations("Vector", os.path.join(self.vector_folder_path, f"{tmpdir_name}/vector.json"))
             mock_print.assert_any_call(
                 "instances[0].type                                invalid type, valid types are bbox, "
-                "template, cuboid, polygon, point, polyline, ellipse, rbbox"
+                "template, cuboid, polygon, point, polyline, ellipse, rbbox, tag"
             )
 
     def test_validate_document_annotation(self):
@@ -385,7 +386,7 @@ class TestTypeHandling(TestCase):
 
             sa.validate_annotations("Document", os.path.join(self.vector_folder_path,
                                                              f"{tmpdir_name}/test_validate_document_annotation_wrong_class_id.json"))
-            mock_print.assert_any_call("instances[0].classId                             value is not a valid integer")
+            mock_print.assert_any_call("instances[0].classId                             integer type expected")
 
     def test_validate_document_annotation_with_null_created_at(self):
         with tempfile.TemporaryDirectory() as tmpdir_name:
@@ -563,7 +564,7 @@ class TestTypeHandling(TestCase):
             )
             mock_print.assert_any_call(
                 "instances[0].type                                invalid type, valid types are bbox, "
-                "template, cuboid, polygon, point, polyline, ellipse, rbbox"
+                "template, cuboid, polygon, point, polyline, ellipse, rbbox, tag"
             )
 
     @patch('builtins.print')
@@ -1345,7 +1346,7 @@ class TestTypeHandling(TestCase):
             sa.validate_annotations("Vector", os.path.join(self.vector_folder_path,
                                                            f"{tmpdir_name}/{json_name}"))
             mock_print.assert_any_call(
-                "metadata.width                                   value is not a valid integer\n"
+                "metadata.width                                   integer type expected\n"
                 "instances[0].points                              ensure this value has at least 1 items\n"
                 "instances[1].points                              ensure this value has at least 3 items"
             )
@@ -1663,8 +1664,8 @@ class TestTypeHandling(TestCase):
                 "instances[0].meta.pointLabels                    value is not a valid dict",
             )
 
-    @patch('builtins.print')
-    def test_validate_video_point_labels_bad_keys(self, mock_print):
+
+    def test_validate_video_point_labels_bad_keys(self):
         with tempfile.TemporaryDirectory() as tmpdir_name:
             with open(f"{tmpdir_name}/test_validate_video_point_labels_bad_keys.json",
                       "w") as test_validate_video_point_labels_bad_keys:
@@ -2017,13 +2018,9 @@ class TestTypeHandling(TestCase):
                 }
                 '''
                 )
-            sa.validate_annotations("Video", os.path.join(self.vector_folder_path,
-                                                          f"{tmpdir_name}/test_validate_video_point_labels_bad_keys.json"))
-            mock_print.assert_any_call(
-                "instances[0].meta.pointLabels                    str type expected\n"
-                "instances[2].parameters[0].timestamps[2].timestamp value is not a valid integer\n"
-                "instances[3].meta                                field required\n"
-                "instances[4].meta                                value is not a valid dict\n"
-                "instances[5].meta                                field required\n"
-                "tags[0]                                          str type expected"
-            )
+
+            with open(f"{tmpdir_name}/test_validate_video_point_labels_bad_keys.json", "r") as f:
+                data = json.loads(f.read())
+            validator = AnnotationValidators.get_validator("video")(data)
+            self.assertFalse(validator.is_valid())
+            self.assertEqual(len(validator.generate_report()), 409)

@@ -33,7 +33,7 @@ class TestVectorValidators(TestCase):
         self.assertFalse(validator.is_valid())
         self.assertEqual(
             "instances[0].type                                invalid type, valid types are bbox, "
-            "template, cuboid, polygon, point, polyline, ellipse, rbbox\n"
+            "template, cuboid, polygon, point, polyline, ellipse, rbbox, tag\n"
             "instances[1].points                              field required",
             validator.generate_report()
         )

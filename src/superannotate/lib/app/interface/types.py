@@ -2,6 +2,7 @@ from functools import wraps
 from typing import Union
 
 from lib.core.enums import AnnotationStatus
+from lib.core.enums import ClassTypeEnum
 from lib.core.enums import ProjectType
 from lib.core.enums import UserRole
 from lib.core.exceptions import AppException
@@ -11,6 +12,7 @@ from pydantic import StrictStr
 from pydantic import validate_arguments as pydantic_validate_arguments
 from pydantic import ValidationError
 from pydantic.errors import StrRegexError
+
 
 NotEmptyStr = constr(strict=True, min_length=1)
 
@@ -86,6 +88,15 @@ class ProjectTypes(StrictStr):
                 f"Available annotation_statuses are {', '.join(ProjectType.titles())}. "
             )
         return value
+
+
+class ClassType(StrictStr):
+    @classmethod
+    def validate(cls, value: Union[str]) -> Union[str]:
+        enum_values = [e.name.lower() for e in ClassTypeEnum]
+        if value.lower() not in enum_values:
+            raise TypeError(f"Available class_types are {', '.join(enum_values)}. ")
+        return value.lower()
 
 
 class AnnotationStatuses(StrictStr):

@@ -94,7 +94,6 @@ class TestCloneProject(TestCase):
         ann_classes = sa.search_annotation_classes(self.PROJECT_NAME_2)
         self.assertEqual(len(ann_classes), 1)
         self.assertEqual(ann_classes[0]["name"], "rrr")
-        self.assertEqual(ann_classes[0]["color"], "#FFAAFF")
         new_workflow = sa.get_project_workflow(self.PROJECT_NAME_2)
         self.assertEqual(len(new_workflow), 1)
         self.assertEqual(new_workflow[0]["className"], "rrr")
@@ -110,6 +109,8 @@ class TestCloneProject(TestCase):
             new_workflow[0]["attribute"][1]["attribute"]["attribute_group"]["name"],
             "tall",
         )
+        self.assertEqual(ann_classes[0]["color"], "#faf")
+
 
 
 class TestCloneProjectAttachedUrls(TestCase):
@@ -136,7 +137,7 @@ class TestCloneProjectAttachedUrls(TestCase):
         sa.create_annotation_class(
             self.PROJECT_NAME_1,
             "rrr",
-            "#FFAAFF",
+            "#faf",
             [
                 {
                     "name": "tall",
@@ -149,6 +150,7 @@ class TestCloneProjectAttachedUrls(TestCase):
                     "attributes": [{"name": "young"}, {"name": "old"}],
                 },
             ],
+            "tag"
         )
 
         new_project = sa.clone_project(
@@ -160,5 +162,6 @@ class TestCloneProjectAttachedUrls(TestCase):
         ann_classes = sa.search_annotation_classes(self.PROJECT_NAME_2)
         self.assertEqual(len(ann_classes), 1)
         self.assertEqual(ann_classes[0]["name"], "rrr")
-        self.assertEqual(ann_classes[0]["color"], "#FFAAFF")
+        self.assertEqual(ann_classes[0]["color"], "#faf")
+        self.assertEqual(ann_classes[0]["type"], "object")
         self.assertIn("Workflow copy is deprecated for Document projects.", self._caplog.text)
