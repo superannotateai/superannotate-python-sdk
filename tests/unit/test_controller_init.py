@@ -10,7 +10,6 @@ from unittest.mock import patch
 
 
 from src.superannotate.lib.app.interface.cli_interface import CLIFacade
-from src.superannotate.lib.core import CONFIG_FILE_LOCATION
 from tests.utils.helpers import catch_prints
 
 

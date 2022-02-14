@@ -223,10 +223,25 @@ class BaseController(metaclass=ABCMeta):
 
 
 class Controller(BaseController):
+    DEFAULT = None
 
     def __init__(self, config_path: str = None, token: str = None):
         super().__init__(config_path, token)
         self._team = None
+
+    @classmethod
+    def get_default(cls):
+        if not cls.DEFAULT:
+            try:
+                cls.DEFAULT = Controller()
+            except Exception:
+                pass
+        return cls.DEFAULT
+
+    @classmethod
+    def set_default(cls, obj):
+        cls.DEFAULT = obj
+        return cls.DEFAULT
 
     def _get_project(self, name: str):
         use_case = usecases.GetProjectByNameUseCase(

@@ -8,12 +8,10 @@ from version import __version__
 
 from .utils import parsers
 
-controller = get_default_controller()
-
 
 # TODO:
 try:
-    if "api.annotate.online" in controller._backend_client.api_url:
+    if "api.annotate.online" in get_default_controller()._backend_client.api_url:
         TOKEN = "ca95ed96f80e8ec3be791e2d3097cf51"
     else:
         TOKEN = "e741d4863e7e05b1a45833d01865ef0d"
@@ -51,7 +49,7 @@ class Trackable:
 
     @property
     def team(self):
-        return controller.get_team()
+        return get_default_controller().get_team()
 
     def track(self, *args, **kwargs):
         try:
@@ -82,7 +80,7 @@ class Trackable:
 
     def __call__(self, *args, **kwargs):
         try:
-            self.__class__.TEAM_DATA = controller.get_team()
+            self.__class__.TEAM_DATA = get_default_controller().get_team()
             result = self.function(*args, **kwargs)
             self._success = True
         except Exception as e:

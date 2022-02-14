@@ -4,7 +4,7 @@ import sys
 
 import requests
 import superannotate.lib.core as constances
-from lib import get_default_controller
+from superannotate.lib import get_default_controller
 from packaging.version import parse
 from superannotate.lib.app.analytics.class_analytics import class_distribution
 from superannotate.lib.app.exceptions import AppException
@@ -107,6 +107,7 @@ from superannotate.lib.app.interface.sdk_interface import (
 )
 from superannotate.lib.app.interface.sdk_interface import validate_annotations
 from superannotate.logger import get_default_logger
+from superannotate.lib.infrastructure.controller import Controller
 from superannotate.version import __version__
 
 
