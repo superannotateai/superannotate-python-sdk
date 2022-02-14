@@ -4,8 +4,8 @@ import sys
 
 import requests
 import superannotate.lib.core as constances
-from superannotate.lib import get_default_controller
 from packaging.version import parse
+from superannotate.lib import get_default_controller
 from superannotate.lib.app.analytics.class_analytics import class_distribution
 from superannotate.lib.app.exceptions import AppException
 from superannotate.lib.app.input_converters.conversion import convert_json_version
@@ -50,6 +50,7 @@ from superannotate.lib.app.interface.sdk_interface import download_export
 from superannotate.lib.app.interface.sdk_interface import download_image
 from superannotate.lib.app.interface.sdk_interface import download_image_annotations
 from superannotate.lib.app.interface.sdk_interface import download_model
+from superannotate.lib.app.interface.sdk_interface import get_annotations
 from superannotate.lib.app.interface.sdk_interface import get_exports
 from superannotate.lib.app.interface.sdk_interface import get_folder_metadata
 from superannotate.lib.app.interface.sdk_interface import get_image_annotations
@@ -107,7 +108,6 @@ from superannotate.lib.app.interface.sdk_interface import (
 )
 from superannotate.lib.app.interface.sdk_interface import validate_annotations
 from superannotate.logger import get_default_logger
-from superannotate.lib.infrastructure.controller import Controller
 from superannotate.version import __version__
 
 
@@ -128,6 +128,8 @@ __all__ = [
     "class_distribution",
     "aggregate_annotations_as_df",
     "get_exports",
+    # annotations
+    "get_annotations",
     # converters
     "convert_json_version",
     "import_annotation",
