@@ -64,7 +64,7 @@ def init(path_to_config_json: Optional[str] = None, token: str = None):
     :param token: Team token
     :type token: str
     """
-    Controller.get_default().set_default(Controller(config_path=path_to_config_json, token=token))
+    Controller.set_default(Controller(config_path=path_to_config_json, token=token))
 
 
 @validate_arguments
