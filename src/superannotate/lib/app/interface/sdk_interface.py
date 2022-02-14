@@ -11,8 +11,8 @@ from typing import Tuple
 from typing import Union
 
 import boto3
+import lib
 import lib.core as constances
-from lib import controller
 from lib.app.annotation_helpers import add_annotation_bbox_to_json
 from lib.app.annotation_helpers import add_annotation_comment_to_json
 from lib.app.annotation_helpers import add_annotation_point_to_json
@@ -41,6 +41,7 @@ from lib.core.exceptions import AppException
 from lib.core.types import AttributeGroup
 from lib.core.types import MLModel
 from lib.core.types import Project
+from lib.infrastructure.controller import Controller
 from pydantic import conlist
 from pydantic import parse_obj_as
 from pydantic import StrictBool
@@ -49,6 +50,7 @@ from tqdm import tqdm
 
 
 logger = get_default_logger()
+controller = lib.DEFAULT_CONTROLLER
 
 
 @validate_arguments
@@ -64,8 +66,7 @@ def init(path_to_config_json: Optional[str] = None, token: str = None):
     :param token: Team token
     :type token: str
     """
-    global controller
-    controller.init(config_path=path_to_config_json, token=token)
+    lib.DEFAULT_CONTROLLER = Controller(config_path=path_to_config_json, token=token)
 
 
 @validate_arguments
