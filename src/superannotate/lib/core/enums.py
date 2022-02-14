@@ -31,6 +31,9 @@ class BaseTitledEnum(Enum):
     def titles(cls):
         return [enum.name for enum in list(cls)]
 
+    def equals(self, other: Enum):
+        return self.name.lower() == other.lower()
+
 
 class ProjectType(BaseTitledEnum):
     VECTOR = "Vector", 1

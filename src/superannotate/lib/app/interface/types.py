@@ -95,9 +95,7 @@ class ClassType(StrictStr):
     def validate(cls, value: Union[str]) -> Union[str]:
         enum_values = [e.name.lower() for e in ClassTypeEnum]
         if value.lower() not in enum_values:
-            raise TypeError(
-                f"Available class_types are {', '.join(enum_values)}. "
-            )
+            raise TypeError(f"Available class_types are {', '.join(enum_values)}. ")
         return value.lower()
 
 

@@ -40,10 +40,12 @@ class BaseAnnotationDateHandler(BaseDataHandler, metaclass=ABCMeta):
 
     @lru_cache()
     def get_annotation_class(
-        self, name: str, class_type: ClassTypeEnum = ClassTypeEnum.OBJECT
+        self, name: str, class_type: ClassTypeEnum
     ) -> AnnotationClass:
         for annotation_class in self._annotation_classes:
-            if annotation_class.name == name and annotation_class.type == class_type:
+            if annotation_class.name == name and class_type.equals(
+                annotation_class.type
+            ):
                 return annotation_class
 
     @lru_cache()
@@ -162,8 +164,8 @@ class MissingIDsHandler(BaseAnnotationDateHandler):
 
     def _get_class_type(self, annotation_type: str):
         if annotation_type == ClassTypeEnum.TAG.name:
-            return annotation_type
-        return ClassTypeEnum.OBJECT.name
+            return ClassTypeEnum.TAG
+        return ClassTypeEnum.OBJECT
 
     def handle(self, annotation: dict):
         if "instances" not in annotation:
@@ -207,7 +209,9 @@ class MissingIDsHandler(BaseAnnotationDateHandler):
             i for i in annotation["instances"] if "className" in i and i["classId"] > 0
         ]:
             annotation_class_name = annotation_instance["className"]
-            annotation_class_type = self._get_class_type(annotation_instance.get("type", ClassTypeEnum.OBJECT))
+            annotation_class_type = self._get_class_type(
+                annotation_instance.get("type", ClassTypeEnum.OBJECT)
+            )
 
             annotation_class = self.get_annotation_class(
                 annotation_class_name, annotation_class_type
@@ -287,7 +291,9 @@ class VideoFormatHandler(BaseAnnotationDateHandler):
                 "locked": False,
             }
             if class_name:
-                annotation_class = self.get_annotation_class(class_name)
+                annotation_class = self.get_annotation_class(
+                    class_name, ClassTypeEnum.OBJECT
+                )
                 if annotation_class:
                     editor_instance["classId"] = annotation_class.id
                 else:
@@ -322,7 +328,9 @@ class VideoFormatHandler(BaseAnnotationDateHandler):
                         ] = timestamp_data["points"]
                     if not class_name:
                         continue
-                    annotation_class = self.get_annotation_class(class_name)
+                    annotation_class = self.get_annotation_class(
+                        class_name, ClassTypeEnum.OBJECT
+                    )
                     if not annotation_class:
                         self.reporter.store_message(
                             "missing_classes", meta["className"]
