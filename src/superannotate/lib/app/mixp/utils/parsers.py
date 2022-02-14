@@ -2,8 +2,7 @@ import lib.core as constances
 from lib import get_default_controller
 from lib.app.helpers import extract_project_folder
 from lib.core.enums import ProjectType
-
-controller = get_default_controller()
+from lib.infrastructure.controller import Controller
 
 
 def get_project_name(project):
@@ -98,7 +97,7 @@ def clone_project(*args, **kwargs):
     if not project:
         project = args[0]
 
-    result = controller.get_project_metadata(project)
+    result = Controller.get_default().get_project_metadata(project)
     project_metadata = result.data["project"]
     project_type = ProjectType.get_name(project_metadata.project_type)
 
@@ -522,7 +521,7 @@ def run_prediction(*args, **kwargs):
     if not project:
         project = args[0]
     project_name = get_project_name(project)
-    res = controller.get_project_metadata(project_name)
+    res = Controller.get_default().get_project_metadata(project_name)
     project_metadata = res.data["project"]
     project_type = ProjectType.get_name(project_metadata.project_type)
     image_list = kwargs.get("images_list", None)
@@ -611,7 +610,7 @@ def move_images(*args, **kwargs):
     if image_names == False:
         image_names = args[1]
         if image_names is None:
-            res = controller.search_images(project)
+            res = Controller.get_default().search_images(project)
             image_names = res.data
 
     return {
@@ -636,7 +635,7 @@ def copy_images(*args, **kwargs):
     if image_names == False:
         image_names = args[1]
         if image_names is None:
-            res = controller.search_images(project)
+            res = Controller.get_default().search_images(project)
             image_names = res.data
     return {
         "event_name": "copy_images",
@@ -664,7 +663,7 @@ def consensus(*args, **kwargs):
         image_list = args[4:5]
         if image_list:
             if image_list[0] is None:
-                res = controller.search_images(project)
+                res = Controller.get_default().search_images(project)
                 image_list = res.data
             else:
                 image_list = image_list[0]
@@ -706,7 +705,7 @@ def benchmark(*args, **kwargs):
         image_list = args[4:5]
         if image_list:
             if image_list[0] is None:
-                res = controller.search_images(project)
+                res = Controller.get_default().search_images(project)
                 image_list = res.data
             else:
                 image_list = image_list[0]
@@ -741,7 +740,7 @@ def upload_annotations_from_folder_to_project(*args, **kwargs):
     if not project:
         project = args[0]
     project_name = get_project_name(project)
-    res = controller.get_project_metadata(project_name)
+    res = Controller.get_default().get_project_metadata(project_name)
     project_metadata = res.data["project"]
     project_type = ProjectType.get_name(project_metadata.project_type)
 
@@ -766,7 +765,7 @@ def upload_preannotations_from_folder_to_project(*args, **kwargs):
     if not project:
         project = args[0]
     project_name = get_project_name(project)
-    res = controller.get_project_metadata(project_name)
+    res = Controller.get_default().get_project_metadata(project_name)
     project_metadata = res.data["project"]
     project_type = ProjectType.get_name(project_metadata.project_type)
     folder_path = kwargs.get("folder_path", None)
@@ -892,7 +891,7 @@ def assign_images(*args, **kwargs):
     if not user:
         user = args[2]
 
-    contributors = controller.get_project_metadata(
+    contributors = Controller.get_default().get_project_metadata(
         project_name=project, include_contributors=True
     ).data["contributors"]
     contributor = None
@@ -1110,7 +1109,7 @@ def delete_images(*args, **kwargs):
     if not image_names:
         image_names = args[1]
         if image_names is None:
-            res = controller.search_images(project)
+            res = Controller.get_default().search_images(project)
             image_names = res.data
     return {
         "event_name": "delete_images",
