@@ -4,8 +4,8 @@ import sys
 
 import requests
 import superannotate.lib.core as constances
+from lib import get_default_controller
 from packaging.version import parse
-from superannotate.lib import get_default_controller
 from superannotate.lib.app.analytics.class_analytics import class_distribution
 from superannotate.lib.app.exceptions import AppException
 from superannotate.lib.app.input_converters.conversion import convert_json_version
@@ -111,6 +111,7 @@ from superannotate.version import __version__
 
 
 controller = get_default_controller()
+
 
 __all__ = [
     "__version__",
