@@ -38,7 +38,7 @@ from superannotate_schemas.validators import AnnotationValidators
 
 
 class BaseController(metaclass=ABCMeta):
-    def __init__(self, config_path: str, token: str = None):
+    def __init__(self, config_path: str = None, token: str = None):
         self._team_data = None
         self._token = None
         self._backend_url = None
@@ -60,7 +60,7 @@ class BaseController(metaclass=ABCMeta):
         self._backend_url = os.environ.get("SA_URL", constances.BACKEND_URL)
 
         if token:
-            self._token = self._validate_token(os.environ.get("SA_TOKEN"))
+            self._token = self._validate_token(token)
         elif config_path:
             config_path = expanduser(config_path)
             self.retrieve_configs(Path(config_path), raise_exception=True)
