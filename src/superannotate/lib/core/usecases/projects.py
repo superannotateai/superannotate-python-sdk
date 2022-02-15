@@ -244,13 +244,16 @@ class CreateProjectUseCase(BaseUseCase):
                     ] = annotation_repo.insert(annotation_class)
                 self._response.data.annotation_classes = self._annotation_classes
             if self._workflows:
-                workflow_repo = self._workflows_repo(self._backend_service, entity)
-                for workflow in self._workflows:
-                    workflow.project_id = entity.uuid
-                    workflow.class_id = annotation_classes_mapping.get(
-                        workflow.class_id
-                    ).id
-                    workflow_repo.insert(workflow)
+                set_workflow_usecase = SetWorkflowUseCase(
+                    service=self._backend_service,
+                    annotation_classes_repo=self._annotation_classes_repo(
+                        self._backend_service, entity
+                    ),
+                    workflow_repo=self._workflows_repo(self._backend_service, entity),
+                    steps=self._workflows,
+                    project=entity,
+                )
+                set_workflow_usecase.execute()
                 data["workflows"] = self._workflows
 
             if self._contributors:

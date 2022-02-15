@@ -343,9 +343,7 @@ class Controller(BaseController):
             settings=[
                 ProjectSettingsRepository.dict2entity(setting) for setting in settings
             ],
-            workflows=[
-                WorkflowRepository.dict2entity(workflow) for workflow in workflows
-            ],
+            workflows=workflows,
             annotation_classes=[
                 AnnotationClassEntity(**annotation_class)
                 for annotation_class in annotation_classes
