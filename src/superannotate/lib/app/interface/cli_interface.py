@@ -19,8 +19,8 @@ from lib.app.interface.sdk_interface import upload_images_from_folder_to_project
 from lib.app.interface.sdk_interface import upload_preannotations_from_folder_to_project
 from lib.app.interface.sdk_interface import upload_videos_from_folder_to_project
 from lib.core.entities import ConfigEntity
-from lib.infrastructure.repositories import ConfigRepository
 from lib.infrastructure.controller import Controller
+from lib.infrastructure.repositories import ConfigRepository
 
 
 controller = Controller.get_default()
@@ -72,7 +72,6 @@ class CLIFacade(BaseInterfaceFacade):
         To create a new project
         """
         create_project(name, description, type)
-        sys.exit(0)
 
     def create_folder(self, project: str, name: str):
         """

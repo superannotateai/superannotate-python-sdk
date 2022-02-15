@@ -20,6 +20,7 @@ from lib.core.entities import TeamEntity
 from lib.core.entities import UserEntity
 from lib.core.entities import WorkflowEntity
 from lib.core.enums import ClassTypeEnum
+from lib.core.enums import ImageQuality
 from lib.core.exceptions import AppException
 from lib.core.repositories import BaseManageableRepository
 from lib.core.repositories import BaseProjectRelatedManageableRepository
@@ -197,13 +198,15 @@ class ProjectSettingsRepository(BaseProjectRelatedManageableRepository):
         raise NotImplementedError
 
     def update(self, entity: ProjectSettingEntity):
-        res = self._service.set_project_settings(
+        if entity.attribute == "ImageQuality" and isinstance(entity.value, str):
+            entity.value = ImageQuality.get_value(entity.value)
+        self._service.set_project_settings(
             self._project.uuid, self._project.team_id, [entity.to_dict()]
         )
         return entity
 
     @staticmethod
-    def dict2entity(data: dict):
+    def dict2entity(data: dict) -> ProjectSettingEntity:
         return ProjectSettingEntity(
             uuid=data["id"],
             project_id=data["project_id"],
@@ -360,7 +363,7 @@ class AnnotationClassRepository(BaseManageableRepository):
             createdAt=data["createdAt"],
             updatedAt=data["updatedAt"],
             attribute_groups=data["attribute_groups"],
-            type=ClassTypeEnum.get_name(data.get("type")),
+            type=ClassTypeEnum.get_name(data.get("type", 1)),
         )
 
 

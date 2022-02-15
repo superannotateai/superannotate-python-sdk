@@ -44,6 +44,7 @@ from lib.infrastructure.controller import Controller
 from pydantic import conlist
 from pydantic import parse_obj_as
 from pydantic import StrictBool
+from pydantic.error_wrappers import ValidationError
 from superannotate.logger import get_default_logger
 from tqdm import tqdm
 
@@ -193,7 +194,7 @@ def create_project_from_metadata(project_metadata: Project):
         contributors=project_metadata.get("contributors", []),
         settings=project_metadata.get("settings", []),
         annotation_classes=project_metadata.get("classes", []),
-        workflows=project_metadata.get("workflow", []),
+        workflows=project_metadata.get("workflows", []),
     )
     if response.errors:
         raise AppException(response.errors)
@@ -1634,7 +1635,10 @@ def create_annotation_classes_from_classes_json(
         else:
             data = open(classes_json)
         classes_json = json.load(data)
-    annotation_classes = parse_obj_as(List[AnnotationClassEntity], classes_json)
+    try:
+        annotation_classes = parse_obj_as(List[AnnotationClassEntity], classes_json)
+    except ValidationError:
+        raise AppException("Couldn't validate annotation classes.")
     logger.info(
         "Creating annotation classes in project %s from %s.",
         project,
@@ -1645,8 +1649,7 @@ def create_annotation_classes_from_classes_json(
     )
     if response.errors:
         raise AppException(response.errors)
-
-    return [i.dict() for i in response.data]
+    return [BaseSerializers(i).serialize() for i in response.data]
 
 
 @Trackable
@@ -2841,6 +2844,53 @@ def invite_contributors_to_team(
     :rtype: tuple (2 members) of lists of strs
     """
     response = Controller.get_default().invite_contributors_to_team(emails=emails, set_admin=admin)
+    if response.errors:
+        raise AppException(response.errors)
+    return response.data
+
+
+@Trackable
+@validate_arguments
+def get_annotations(project: NotEmptyStr, items: Optional[List[NotEmptyStr]]):
+    """Returns annotations for the given list of items.
+
+    :param project: project name
+    :type project: str
+
+    :param items:  item names. If None all items in the project will be exported
+    :type items: list of strs
+
+    :return: list of annotations
+    :rtype: list of strs
+    """
+    project_name, folder_name = extract_project_folder(project)
+    response = Controller.get_default().get_annotations(project_name, folder_name, items)
+    if response.errors:
+        raise AppException(response.errors)
+    return response.data
+
+
+@Trackable
+@validate_arguments
+def get_annotations_per_frame(project: NotEmptyStr, video: NotEmptyStr, fps: int = 1):
+    """Returns per frame annotations for the given video.
+
+
+    :param project: project name
+    :type project: str
+
+    :param video: video name
+    :type video: str
+
+    :param fps: how many frames per second needs to be extracted from the video.
+     Will extract 1 frame per second by default.
+    :type fps: str
+
+    :return: list of annotation objects
+    :rtype: list of dicts
+    """
+    project_name, folder_name = extract_project_folder(project)
+    response = Controller.get_default().get_annotations_per_frame(project_name, folder_name, video_name=video, fps=fps)
     if response.errors:
         raise AppException(response.errors)
     return response.data

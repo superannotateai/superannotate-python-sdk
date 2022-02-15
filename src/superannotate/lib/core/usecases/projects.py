@@ -240,26 +240,37 @@ class CreateProjectUseCase(BaseUseCase):
                 )
                 for annotation_class in self._annotation_classes:
                     annotation_classes_mapping[
-                        annotation_class.uuid
+                        annotation_class.id
                     ] = annotation_repo.insert(annotation_class)
                 self._response.data.annotation_classes = self._annotation_classes
             if self._workflows:
-                workflow_repo = self._workflows_repo(self._backend_service, entity)
-                for workflow in self._workflows:
-                    workflow.project_id = entity.uuid
-                    workflow.class_id = annotation_classes_mapping.get(
-                        workflow.class_id
-                    )
-                    workflow_repo.insert(workflow)
+                set_workflow_use_case = SetWorkflowUseCase(
+                    service=self._backend_service,
+                    annotation_classes_repo=self._annotation_classes_repo(
+                        self._backend_service, entity
+                    ),
+                    workflow_repo=self._workflows_repo(self._backend_service, entity),
+                    steps=self._workflows,
+                    project=entity,
+                )
+                set_workflow_response = set_workflow_use_case.execute()
+                if set_workflow_response.errors:
+                    self._response.errors = set_workflow_response.errors
                 data["workflows"] = self._workflows
 
             if self._contributors:
                 for contributor in self._contributors:
-                    self._backend_service.share_project(
-                        entity.uuid,
-                        entity.team_id,
-                        contributor["user_id"],
-                        constances.UserRole.get_value(contributor["user_role"]),
+                    self._backend_service.share_project_bulk(
+                        team_id=entity.team_id,
+                        project_id=entity.uuid,
+                        users=[
+                            {
+                                "user_id": contributor["user_id"],
+                                "user_role": constances.UserRole.get_value(
+                                    contributor["user_role"]
+                                ),
+                            }
+                        ],
                     )
                 data["contributors"] = self._contributors
 

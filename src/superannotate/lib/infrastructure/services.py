@@ -1,3 +1,4 @@
+import asyncio
 import json
 import time
 from contextlib import contextmanager
@@ -18,6 +19,7 @@ from lib.core.service_types import UploadAnnotationAuthData
 from lib.core.service_types import UserLimits
 from lib.core.serviceproviders import SuerannotateServiceProvider
 from lib.infrastructure.helpers import timed_lru_cache
+from lib.infrastructure.stream_data_handler import StreamedAnnotations
 from requests.exceptions import HTTPError
 
 
@@ -163,6 +165,8 @@ class SuperannotateBackendService(BaseBackendService):
     """
     Manage projects, images and team in the Superannotate
     """
+    DEFAULT_CHUNK_SIZE = 1000
+    STREAMED_DATA_PROVIDER_URL = "https://assets-provider.devsuperannotate.com"
 
     URL_USERS = "users"
     URL_LIST_PROJECTS = "projects"
@@ -211,6 +215,7 @@ class SuperannotateBackendService(BaseBackendService):
     URL_DELETE_ANNOTATIONS = "annotations/remove"
     URL_DELETE_ANNOTATIONS_PROGRESS = "annotations/getRemoveStatus"
     URL_GET_LIMITS = "project/{}/limitationDetails"
+    URL_GET_ANNOTATIONS = "api/v1/images/annotations/stream"
 
     def get_project(self, uuid: int, team_id: int):
         get_project_url = urljoin(self.api_url, self.URL_GET_PROJECT.format(uuid))
@@ -1004,3 +1009,23 @@ class SuperannotateBackendService(BaseBackendService):
             params={"team_id": team_id, "folder_id": folder_id},
             content_type=UserLimits,
         )
+
+    def get_annotations(self, project_id: int, team_id: int, folder_id: int, items: List[str]) -> List[dict]:
+        get_limits_url = urljoin(self.STREAMED_DATA_PROVIDER_URL, self.URL_GET_ANNOTATIONS)
+        query_params = {
+            "team_id": team_id,
+            "project_id": project_id,
+        }
+        if folder_id:
+            query_params["folder_id"] = folder_id
+
+        handler = StreamedAnnotations(self.default_headers)
+        loop = asyncio.new_event_loop()
+
+        return loop.run_until_complete(handler.get_data(
+            url=get_limits_url,
+            data=items,
+            params=query_params,
+            chunk_size=self.DEFAULT_CHUNK_SIZE,
+            map_function=lambda x: {"image_names": x}
+        ))

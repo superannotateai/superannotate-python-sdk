@@ -15,7 +15,7 @@ class BaseSerializers(ABC):
         if isinstance(self._entity, dict):
             return self._entity
         if isinstance(self._entity, BaseModel):
-            return self._entity.dict()
+            return self._entity.dict(by_alias=True)
         return self._entity.to_dict()
 
 
