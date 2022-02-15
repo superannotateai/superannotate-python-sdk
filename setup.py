@@ -7,21 +7,18 @@ from setuptools import find_packages, setup
 with open('src/superannotate/version.py') as f:
     version = f.read().rstrip()[15:-1]
 
-requirements_path = f"requirements_{'dev' if parse(version).is_prerelease else 'prod'}.txt"
+requirements_path = "requirements_{}.txt".format('dev' if parse(version).is_prerelease else 'prod')
+requirements = []
 
 with open(requirements_path) as f:
-    requirements = f.read()
-requirements = requirements.splitlines()
+    requirements.extend(f.read().splitlines())
 
-if sys.platform == 'linux':
-    with open('requirements_extra.txt') as f:
-        requirements_extra = f.read()
-
-    requirements_extra = requirements_extra.splitlines()
-    requirements += requirements_extra
+with open("requirements.txt") as f:
+    requirements.extend(f.read().splitlines())
 
 with open('README.md') as f:
     readme = f.read()
+
 readme = "\n".join(readme.split('\n')[2:])
 
 

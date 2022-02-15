@@ -61,6 +61,8 @@ Exports
 _______
 
 .. autofunction:: superannotate.prepare_export
+.. autofunction:: superannotate.get_annotations
+.. autofunction:: superannotate.get_annotations_per_frame
 .. _ref_download_export:
 .. autofunction:: superannotate.download_export
 .. autofunction:: superannotate.get_exports

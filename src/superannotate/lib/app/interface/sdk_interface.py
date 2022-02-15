@@ -44,6 +44,7 @@ from lib.infrastructure.controller import Controller
 from pydantic import conlist
 from pydantic import parse_obj_as
 from pydantic import StrictBool
+from pydantic.error_wrappers import ValidationError
 from superannotate.logger import get_default_logger
 from tqdm import tqdm
 
@@ -1634,7 +1635,10 @@ def create_annotation_classes_from_classes_json(
         else:
             data = open(classes_json)
         classes_json = json.load(data)
-    annotation_classes = parse_obj_as(List[AnnotationClassEntity], classes_json)
+    try:
+        annotation_classes = parse_obj_as(List[AnnotationClassEntity], classes_json)
+    except ValidationError:
+        raise AppException("Couldn't validate annotation classes.")
     logger.info(
         "Creating annotation classes in project %s from %s.",
         project,
