@@ -1,5 +1,3 @@
-import sys
-
 from packaging.version import parse
 from setuptools import find_packages, setup
 
@@ -10,11 +8,12 @@ with open('src/superannotate/version.py') as f:
 requirements_path = "requirements_{}.txt".format('dev' if parse(version).is_prerelease else 'prod')
 requirements = []
 
+with open("requirements.txt") as f:
+    requirements.extend(f.read().splitlines())
+
 with open(requirements_path) as f:
     requirements.extend(f.read().splitlines())
 
-with open("requirements.txt") as f:
-    requirements.extend(f.read().splitlines())
 
 with open('README.md') as f:
     readme = f.read()
