@@ -1645,8 +1645,7 @@ def create_annotation_classes_from_classes_json(
     )
     if response.errors:
         raise AppException(response.errors)
-
-    return [i.dict() for i in response.data]
+    return [BaseSerializers(i).serialize() for i in response.data]
 
 
 @Trackable
