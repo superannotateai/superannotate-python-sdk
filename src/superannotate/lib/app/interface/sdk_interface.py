@@ -193,7 +193,7 @@ def create_project_from_metadata(project_metadata: Project):
         contributors=project_metadata.get("contributors", []),
         settings=project_metadata.get("settings", []),
         annotation_classes=project_metadata.get("classes", []),
-        workflows=project_metadata.get("workflow", []),
+        workflows=project_metadata.get("workflows", []),
     )
     if response.errors:
         raise AppException(response.errors)
