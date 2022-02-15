@@ -80,9 +80,17 @@ class Trackable:
 
     def __call__(self, *args, **kwargs):
         try:
-            self.__class__.TEAM_DATA = get_default_controller().get_team()
-            result = self.function(*args, **kwargs)
-            self._success = True
+            controller = get_default_controller()
+            if controller:
+                self.__class__.TEAM_DATA = controller.get_team()
+                result = self.function(*args, **kwargs)
+                self._success = True
+            else:
+                raise Exception(
+                    "SuperAnnotate config file not found."
+                    f" Please provide correct config file location to sa.init(<path>) or use "
+                    f"CLI's superannotate init to generate default location config file."
+                )
         except Exception as e:
             self._success = False
             logger.debug(str(e), exc_info=True)
