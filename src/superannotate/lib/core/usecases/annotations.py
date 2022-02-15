@@ -4,6 +4,7 @@ import json
 import os
 from collections import namedtuple
 from typing import List
+from typing import Optional
 from typing import Tuple
 
 import boto3
@@ -18,6 +19,7 @@ from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
 from lib.core.entities import ProjectEntity
 from lib.core.entities import TeamEntity
+from lib.core.exceptions import AppException
 from lib.core.reporter import Reporter
 from lib.core.repositories import BaseManageableRepository
 from lib.core.service_types import UploadAnnotationAuthData
@@ -25,6 +27,7 @@ from lib.core.serviceproviders import SuerannotateServiceProvider
 from lib.core.usecases.base import BaseReportableUseCae
 from lib.core.usecases.images import GetBulkImages
 from lib.core.usecases.images import ValidateAnnotationUseCase
+from lib.core.video_convertor import VideoFrameGenerator
 from superannotate.logger import get_default_logger
 from superannotate_schemas.validators import AnnotationValidators
 
@@ -482,4 +485,75 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
                 self.reporter.log_warning(
                     f"Couldn't validate annotations. {constances.USE_VALIDATE_MESSAGE}"
                 )
+        return self._response
+
+
+class GetAnnotations(BaseReportableUseCae):
+    def __init__(
+            self,
+            reporter: Reporter,
+            project: ProjectEntity,
+            folder: FolderEntity,
+            item_names: Optional[List[str]],
+            backend_service_provider: SuerannotateServiceProvider
+    ):
+        super().__init__(reporter)
+        self._project = project
+        self._folder = folder
+        self._item_names = item_names
+        self._client = backend_service_provider
+
+    def validate_item_names(self):
+        if self._item_names:
+            item_names = list(dict.fromkeys(self._item_names))
+            len_unique_items, len_items = len(item_names), len(self._item_names)
+            if len_unique_items < len_items:
+                self.reporter.log_info(
+                    f"Dropping duplicates. Found {len_unique_items}/{len_items} unique items."
+                )
+                self._item_names = item_names
+
+    def execute(self):
+        annotations = self._client.get_annotations(
+            team_id=self._project.team_id,
+            project_id=self._project.uuid,
+            folder_id=self._folder.uuid,
+            items=self._item_names
+        )
+        self._response.data = annotations
+        return self._response
+
+
+class GetVideoAnnotationsPerFrame(BaseReportableUseCae):
+    def __init__(
+            self,
+            reporter: Reporter,
+            project: ProjectEntity,
+            folder: FolderEntity,
+            video_name: str,
+            fps: int,
+            backend_service_provider: SuerannotateServiceProvider
+    ):
+        super().__init__(reporter)
+        self._project = project
+        self._folder = folder
+        self._video_name = video_name
+        self._fps = fps
+        self._client = backend_service_provider
+
+    def execute(self):
+        response = GetAnnotations(
+            reporter=self.reporter,
+            project=self._project,
+            folder=self._folder,
+            item_names=[self._video_name],
+            backend_service_provider=self._client
+        ).execute()
+        if response.errors:
+            self._response.errors = response.errors
+            return self._response
+        if not response.data:
+            self._response.errors = AppException(f"Video {self._video_name} not found.")
+
+        self._response.data = VideoFrameGenerator(response.data[1], fps=self._fps)
         return self._response

@@ -1,5 +1,4 @@
 import lib.core as constances
-from lib import get_default_controller
 from lib.app.helpers import extract_project_folder
 from lib.core.enums import ProjectType
 from lib.infrastructure.controller import Controller

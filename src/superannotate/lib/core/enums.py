@@ -82,6 +82,13 @@ class ClassTypeEnum(BaseTitledEnum):
     OBJECT = "object", 1
     TAG = "tag", 2
 
+    @classmethod
+    def get_value(cls, name):
+        for enum in list(cls):
+            if enum.name.lower() == name.lower():
+                return enum.value
+        return "object"
+
 
 class TrainingStatus(BaseTitledEnum):
     NOT_STARTED = "NotStarted", 1

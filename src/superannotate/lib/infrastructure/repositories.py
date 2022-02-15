@@ -198,7 +198,7 @@ class ProjectSettingsRepository(BaseProjectRelatedManageableRepository):
 
     def update(self, entity: ProjectSettingEntity):
         res = self._service.set_project_settings(
-            self._project.uuid, self._project.team_id, [entity.to_dict()]
+            self._project.uuid, self._project.team_id, [entity.serialize()]
         )
         return entity
 
@@ -360,7 +360,7 @@ class AnnotationClassRepository(BaseManageableRepository):
             createdAt=data["createdAt"],
             updatedAt=data["updatedAt"],
             attribute_groups=data["attribute_groups"],
-            type=ClassTypeEnum.get_name(data.get("type")),
+            type=ClassTypeEnum.get_name(data.get("type", 1)),
         )
 
 

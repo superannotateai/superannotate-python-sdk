@@ -319,11 +319,9 @@ class Controller(BaseController):
             settings=[
                 ProjectSettingsRepository.dict2entity(setting) for setting in settings
             ],
-            workflows=[
-                WorkflowRepository.dict2entity(workflow) for workflow in workflows
-            ],
+            workflows=workflows,
             annotation_classes=[
-                AnnotationClassRepository.dict2entity(annotation_class)
+                AnnotationClassEntity(**annotation_class)
                 for annotation_class in annotation_classes
             ],
             contributors=contributors,
@@ -1617,5 +1615,32 @@ class Controller(BaseController):
             end_time=end_time,
             annotation_status=annotation_status,
             image_quality_in_editor=image_quality_in_editor,
+        )
+        return use_case.execute()
+
+    def get_annotations(self, project_name: str, folder_name: str, item_names: List[str]):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+
+        use_case = usecases.GetAnnotations(
+            reporter=self.default_reporter,
+            project=project,
+            folder=folder,
+            item_names=item_names,
+            backend_service_provider=self.backend_client
+        )
+        return use_case.execute()
+
+    def get_annotations_per_frame(self, project_name: str, folder_name: str, video_name: str, fps: int):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+
+        use_case = usecases.GetVideoAnnotationsPerFrame(
+            reporter=self.default_reporter,
+            project=project,
+            folder=folder,
+            video_name=video_name,
+            fps=fps,
+            backend_service_provider=self.backend_client
         )
         return use_case.execute()

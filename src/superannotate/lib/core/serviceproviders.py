@@ -302,3 +302,7 @@ class SuerannotateServiceProvider:
         self, team_id: int, project_id: int, folder_id: int = None
     ) -> ServiceResponse:
         raise NotImplementedError
+
+    @abstractmethod
+    def get_annotations(self, project_id: int, team_id: int, folder_id: int, items: List[str]) -> List[dict]:
+        raise NotImplementedError
