@@ -1,12 +1,5 @@
 import os
 from os.path import dirname
-from typing import List
-import json
-import pytest
-
-import src.superannotate as sa
-from pydantic import parse_obj_as
-from superannotate_schemas.schemas.internal import VectorAnnotation
 from tests.integration.base import BaseTestCase
 
 
@@ -25,10 +18,4 @@ class TestGetAnnotations(BaseTestCase):
     @property
     def csv_path_without_name_column(self):
         return os.path.join(dirname(dirname(__file__)), self.PATH_TO_URLS_WITHOUT_NAMES)
-
-    def test_attach_video_urls(self):
-        uploaded, _, __ = sa.attach_video_urls_to_project(
-            self.PROJECT_NAME,
-            self.csv_path,
-        )
 

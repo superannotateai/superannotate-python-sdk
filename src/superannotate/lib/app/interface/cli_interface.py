@@ -72,7 +72,6 @@ class CLIFacade(BaseInterfaceFacade):
         To create a new project
         """
         create_project(name, description, type)
-        sys.exit(0)
 
     def create_folder(self, project: str, name: str):
         """

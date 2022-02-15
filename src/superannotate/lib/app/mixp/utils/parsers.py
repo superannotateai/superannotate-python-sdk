@@ -1203,3 +1203,27 @@ def add_contributors_to_project(*args, **kwargs):
         "event_name": "add_contributors_to_project",
         "properties": {"User Role": user_role},
     }
+
+
+def get_annotations(*args, **kwargs):
+    project = kwargs.get("project", args[0])
+    items = kwargs.get("items", args[1])
+
+    return {
+        "event_name": "get_annotations",
+        "properties": {"Project": project, "items_count": len(items)},
+    }
+
+
+def get_annotations_per_frame(*args, **kwargs):
+    project = kwargs.get("project", args[0])
+    fps = kwargs.get("fps")
+    if not fps:
+        try:
+            fps = args[2]
+        except IndexError:
+            fps = 1
+    return {
+        "event_name": "get_annotations_per_frame",
+        "properties": {"Project": project, "fps": fps},
+    }

@@ -1,3 +1,2 @@
--r requirements.txt
 superannotate_schemas>=1.0.38.b1
 
