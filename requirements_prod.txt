@@ -1,1 +1,1 @@
-superannotate_schemas=1.0.39
+superannotate_schemas
