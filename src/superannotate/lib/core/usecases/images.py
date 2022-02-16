@@ -2845,10 +2845,6 @@ class CreateAnnotationClassesUseCase(BaseUseCase):
         self._annotation_classes = annotation_classes
         self._project = project
 
-    def validate_annotation_classes(self):
-        if "attribute_groups" not in self._annotation_classes:
-            raise AppValidationException("Field attribute_groups is required.")
-
     def validate_project_type(self):
         if self._project.project_type != ProjectType.VECTOR.value and "tag" in [
             i.type for i in self._annotation_classes
