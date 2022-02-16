@@ -150,7 +150,7 @@ class TestCloneProjectAttachedUrls(TestCase):
                     "attributes": [{"name": "young"}, {"name": "old"}],
                 },
             ],
-            "tag"
+            "object"
         )
 
         new_project = sa.clone_project(
