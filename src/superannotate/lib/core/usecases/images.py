@@ -2813,7 +2813,7 @@ class DownloadAnnotationClassesUseCase(BaseUseCase):
             str(self._download_path),
         )
         classes = self._annotation_classes_repo.get_all()
-        classes = [entity.dict() for entity in classes]
+        classes = [entity.dict(by_alias=True) for entity in classes]
         json_path = f"{self._download_path}/classes.json"
         json.dump(classes, open(json_path, "w"), indent=4)
         self._response.data = json_path
