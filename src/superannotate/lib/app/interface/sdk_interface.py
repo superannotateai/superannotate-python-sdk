@@ -1562,6 +1562,7 @@ def create_annotation_class(
         class_type=type,
     )
     return response.data.dict()
+    return BaseSerializers(response.data).serialize()
 
 
 @Trackable
