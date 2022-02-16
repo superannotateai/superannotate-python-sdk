@@ -13,18 +13,22 @@ def map_image_names_to_fetch_streamed_data(data: List[str]):
 
 
 class StreamedAnnotations:
-    DELIMITER = b";)"
+    DELIMITER = b'\n:)\n'
 
     def __init__(self, headers: dict):
         self._headers = headers
         self._annotations = []
 
-    async def fetch(self, method: str, session: aiohttp.ClientSession, url: str, data: dict = None, params: dict = None):
+    async def fetch(self, method: str, session: aiohttp.ClientSession, url: str, data: dict = None,
+                    params: dict = None):
         response = await session._request(method, url, json=data, params=params)
         buffer = b""
         async for line in response.content:
             slices = line.split(self.DELIMITER)
-            if slices[0]:
+            if len(slices) == 1:
+                buffer += slices[0]
+                continue
+            elif slices[0]:
                 self._annotations.append(json.loads(buffer + slices[0]))
             for data in slices[1:-1]:
                 self._annotations.append(json.loads(data))
@@ -43,7 +47,6 @@ class StreamedAnnotations:
             map_function: Callable = lambda x: x,
             verify_ssl: bool = False,
     ):
-
         async with aiohttp.ClientSession(raise_for_status=True, headers=self._headers,
                                          connector=aiohttp.TCPConnector(ssl=verify_ssl)) as session:
 

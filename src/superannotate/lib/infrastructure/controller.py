@@ -55,8 +55,8 @@ class BaseController(metaclass=ABCMeta):
         self._user_id = None
         self._team_name = None
         self._reporter = None
-        self._ssl_verify = not (os.environ.get("SA_TESTING", "False").lower() == "false")
-
+        self._testing = os.getenv("SA_TESTING", 'False').lower() in ('true', '1', 't')
+        self._ssl_verify = not self._testing
         self._backend_url = os.environ.get("SA_URL", constances.BACKEND_URL)
 
         if token:
@@ -114,6 +114,7 @@ class BaseController(metaclass=ABCMeta):
             auth_token=self._token,
             logger=self._logger,
             verify_ssl=self._ssl_verify,
+            testing=self._testing
         )
         self._backend_client.get_session.cache_clear()
         return self._backend_client
@@ -1142,7 +1143,7 @@ class Controller(BaseController):
         use_case = usecases.CreateAnnotationClassUseCase(
             annotation_classes=annotation_classes,
             annotation_class=annotation_class,
-            project_name=project_name,
+            project=project,
         )
         use_case.execute()
         return use_case.execute()

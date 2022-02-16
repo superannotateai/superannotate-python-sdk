@@ -51,6 +51,7 @@ from superannotate.lib.app.interface.sdk_interface import download_image
 from superannotate.lib.app.interface.sdk_interface import download_image_annotations
 from superannotate.lib.app.interface.sdk_interface import download_model
 from superannotate.lib.app.interface.sdk_interface import get_annotations
+from superannotate.lib.app.interface.sdk_interface import get_annotations_per_frame
 from superannotate.lib.app.interface.sdk_interface import get_exports
 from superannotate.lib.app.interface.sdk_interface import get_folder_metadata
 from superannotate.lib.app.interface.sdk_interface import get_image_annotations
@@ -130,6 +131,7 @@ __all__ = [
     "get_exports",
     # annotations
     "get_annotations",
+    "get_annotations_per_frame",
     # converters
     "convert_json_version",
     "import_annotation",

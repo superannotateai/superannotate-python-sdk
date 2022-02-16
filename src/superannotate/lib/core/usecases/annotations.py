@@ -554,6 +554,9 @@ class GetVideoAnnotationsPerFrame(BaseReportableUseCae):
             return self._response
         if not response.data:
             self._response.errors = AppException(f"Video {self._video_name} not found.")
-
-        self._response.data = VideoFrameGenerator(response.data[1], fps=self._fps)
+        annotations = response.data
+        if annotations:
+            self._response.data = list(VideoFrameGenerator(response.data[0], fps=self._fps))
+        else:
+            self._response.data = []
         return self._response
