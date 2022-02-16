@@ -19,7 +19,7 @@ class TestAnnotationClasses(BaseTestCase):
         try:
             sa.create_annotation_classes_from_classes_json(self.PROJECT_NAME, self.classes_path)
         except Exception as e:
-            self.assertIn("field required", str(e))
+            self.assertIn("Couldn't validate annotation classes", str(e))
 
     def test_annotation_classes(self):
         annotation_classes = sa.search_annotation_classes(self.PROJECT_NAME)

@@ -43,15 +43,22 @@ class BaseBackendService(SuerannotateServiceProvider):
     """
 
     def __init__(
-        self, api_url: str, auth_token: str, logger, paginate_by=None, verify_ssl=False
+        self, api_url: str, auth_token: str, logger, paginate_by=None, verify_ssl=False, testing: bool = False
     ):
         self.api_url = api_url
         self._auth_token = auth_token
         self.logger = logger
         self._paginate_by = paginate_by
-        self._verify_ssl = False  # TODO fix False
+        self._verify_ssl = verify_ssl
         self.team_id = auth_token.split("=")[-1]
+        self._testing = testing
         self.get_session()
+
+    @property
+    def assets_provider_url(self):
+        if self._testing:
+            return "https://assets-provider.devsuperannotate.com/api/v1/"
+        return "https://assets-provider.superannotate.com/api/v1/"
 
     @timed_lru_cache(seconds=360)
     def get_session(self):
@@ -166,7 +173,6 @@ class SuperannotateBackendService(BaseBackendService):
     Manage projects, images and team in the Superannotate
     """
     DEFAULT_CHUNK_SIZE = 1000
-    STREAMED_DATA_PROVIDER_URL = "https://assets-provider.devsuperannotate.com"
 
     URL_USERS = "users"
     URL_LIST_PROJECTS = "projects"
@@ -215,7 +221,7 @@ class SuperannotateBackendService(BaseBackendService):
     URL_DELETE_ANNOTATIONS = "annotations/remove"
     URL_DELETE_ANNOTATIONS_PROGRESS = "annotations/getRemoveStatus"
     URL_GET_LIMITS = "project/{}/limitationDetails"
-    URL_GET_ANNOTATIONS = "api/v1/images/annotations/stream"
+    URL_GET_ANNOTATIONS = "images/annotations/stream"
 
     def get_project(self, uuid: int, team_id: int):
         get_project_url = urljoin(self.api_url, self.URL_GET_PROJECT.format(uuid))
@@ -1011,7 +1017,7 @@ class SuperannotateBackendService(BaseBackendService):
         )
 
     def get_annotations(self, project_id: int, team_id: int, folder_id: int, items: List[str]) -> List[dict]:
-        get_limits_url = urljoin(self.STREAMED_DATA_PROVIDER_URL, self.URL_GET_ANNOTATIONS)
+        get_limits_url = urljoin(self.assets_provider_url, self.URL_GET_ANNOTATIONS)
         query_params = {
             "team_id": team_id,
             "project_id": project_id,

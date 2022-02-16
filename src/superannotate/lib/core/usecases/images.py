@@ -2710,12 +2710,12 @@ class CreateAnnotationClassUseCase(BaseUseCase):
         self,
         annotation_classes: BaseManageableRepository,
         annotation_class: AnnotationClassEntity,
-        project_name: str,
+        project: ProjectEntity,
     ):
         super().__init__()
         self._annotation_classes = annotation_classes
         self._annotation_class = annotation_class
-        self._project_name = project_name
+        self._project = project
 
     def validate_uniqueness(self):
         annotation_classes = self._annotation_classes.get_all(
@@ -2730,11 +2730,20 @@ class CreateAnnotationClassUseCase(BaseUseCase):
         ):
             raise AppValidationException("Annotation class already exits.")
 
+    def validate_project_type(self):
+        if (
+            self._project.project_type != ProjectType.VECTOR.value
+            and self._annotation_class.type == "tag"
+        ):
+            raise AppException(
+                f"Predefined tagging functionality is not supported for projects of type {ProjectType.get_name(self._project.project_type)}."
+            )
+
     def execute(self):
         if self.is_valid():
             logger.info(
                 "Creating annotation class in project %s with name %s",
-                self._project_name,
+                self._project.name,
                 self._annotation_class.name,
             )
             created = self._annotation_classes.insert(entity=self._annotation_class)
@@ -2813,7 +2822,7 @@ class DownloadAnnotationClassesUseCase(BaseUseCase):
             str(self._download_path),
         )
         classes = self._annotation_classes_repo.get_all()
-        classes = [entity.dict() for entity in classes]
+        classes = [entity.dict(by_alias=True) for entity in classes]
         json_path = f"{self._download_path}/classes.json"
         json.dump(classes, open(json_path, "w"), indent=4)
         self._response.data = json_path
@@ -2840,27 +2849,34 @@ class CreateAnnotationClassesUseCase(BaseUseCase):
         if "attribute_groups" not in self._annotation_classes:
             raise AppValidationException("Field attribute_groups is required.")
 
-    def execute(self):
-        existing_annotation_classes = self._annotation_classes_repo.get_all()
-        existing_classes_name = [i.name for i in existing_annotation_classes]
-        unique_annotation_classes = []
-        for annotation_class in self._annotation_classes:
-            if annotation_class.name in existing_classes_name:
-                logger.warning(
-                    "Annotation class %s already in project. Skipping.",
-                    annotation_class.name,
-                )
-                continue
-            else:
-                unique_annotation_classes.append(annotation_class)
-
-        created = []
-
-        for i in range(0, len(unique_annotation_classes), self.CHUNK_SIZE):
-            created += self._annotation_classes_repo.bulk_insert(
-                entities=unique_annotation_classes[i : i + self.CHUNK_SIZE],
+    def validate_project_type(self):
+        if self._project.project_type != ProjectType.VECTOR.value and "tag" in [
+            i.type for i in self._annotation_classes
+        ]:
+            raise AppException(
+                f"Predefined tagging functionality is not supported for projects of type {ProjectType.get_name(self._project.project_type)}."
             )
-        self._response.data = created
+
+    def execute(self):
+        if self.is_valid():
+            existing_annotation_classes = self._annotation_classes_repo.get_all()
+            existing_classes_name = [i.name for i in existing_annotation_classes]
+            unique_annotation_classes = []
+            for annotation_class in self._annotation_classes:
+                if annotation_class.name in existing_classes_name:
+                    logger.warning(
+                        "Annotation class %s already in project. Skipping.",
+                        annotation_class.name,
+                    )
+                    continue
+                else:
+                    unique_annotation_classes.append(annotation_class)
+            created = []
+            for i in range(len(unique_annotation_classes) - self.CHUNK_SIZE, 0, self.CHUNK_SIZE):
+                created += self._annotation_classes_repo.bulk_insert(
+                    entities=unique_annotation_classes[i : i + self.CHUNK_SIZE],  # noqa: E203
+                )
+            self._response.data = created
         return self._response
 
 
