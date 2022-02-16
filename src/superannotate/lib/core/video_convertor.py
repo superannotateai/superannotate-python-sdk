@@ -141,5 +141,5 @@ class VideoFrameGenerator:
                         )
 
     def __iter__(self):
-        for frame_no in range(1, int(self._frames_count)):
+        for frame_no in range(1, int(self._frames_count) + 1):
             yield self.get_frame(frame_no).dict()
