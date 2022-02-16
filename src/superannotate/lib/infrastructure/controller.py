@@ -1142,7 +1142,7 @@ class Controller(BaseController):
         use_case = usecases.CreateAnnotationClassUseCase(
             annotation_classes=annotation_classes,
             annotation_class=annotation_class,
-            project_name=project_name,
+            project=project,
         )
         use_case.execute()
         return use_case.execute()
