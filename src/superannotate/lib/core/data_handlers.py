@@ -205,6 +205,7 @@ class MissingIDsHandler(BaseAnnotationDateHandler):
         ]:
             annotation_class_name = annotation_instance["className"]
             annotation_class = self.get_annotation_class(annotation_class_name)
+
             if not annotation_class:
                 self.reporter.log_warning(
                     f"Couldn't find annotation class {annotation_class_name}"

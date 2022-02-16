@@ -13,7 +13,7 @@ def map_image_names_to_fetch_streamed_data(data: List[str]):
 
 
 class StreamedAnnotations:
-    DELIMITER = b';)'
+    DELIMITER = b'\n:)\n'
 
     def __init__(self, headers: dict):
         self._headers = headers
