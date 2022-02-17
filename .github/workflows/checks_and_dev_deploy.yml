@@ -19,6 +19,7 @@ jobs:
           pip install setuptools wheel twine yapf sphinx sphinx_rtd_theme
           pip install shapely
           pip install -r requirements.txt
+          pip install -r requirements_prod.txt
       - name: Check formatting
         run: yapf -p -r --diff superannotate
       - name: Check docs
