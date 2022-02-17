@@ -27,6 +27,7 @@ class TestCreateAnnotationClass(BaseTestCase):
         classes = sa.create_annotation_classes_from_classes_json(self.PROJECT_NAME, self.large_json_path)
         self.assertEqual(len(classes), 1500)
 
+
 class TestCreateAnnotationClassNonVectorWithError(BaseTestCase):
     PROJECT_NAME = "test_create_annotation_class"
     PROJECT_TYPE = "Video"
