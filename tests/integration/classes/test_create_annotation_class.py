@@ -15,6 +15,13 @@ class TestCreateAnnotationClass(BaseTestCase):
         sa.create_annotation_class(self.PROJECT_NAME, "test_add", "#FF0000", type="tag")
         classes = sa.search_annotation_classes(self.PROJECT_NAME)
         self.assertEqual(classes[0]["type"], "tag")
+        msg = ""
+        try:
+            sa.create_annotation_class(self.PROJECT_NAME, "class1", "#FF0000", type="wrong")
+        except Exception as e:
+            msg = str(e)
+        self.assertIn("Invalid type provided. Please specify one of the object, tag.", msg)
+
 
 
 class TestCreateAnnotationClassNonVectorWithError(BaseTestCase):
