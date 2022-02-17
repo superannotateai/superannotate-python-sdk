@@ -1,20 +1,31 @@
+import os
+from os.path import dirname
 import tempfile
 
 import src.superannotate as sa
 from tests.integration.base import BaseTestCase
+from tests import DATA_SET_PATH
 
 
 class TestCreateAnnotationClass(BaseTestCase):
     PROJECT_NAME = "test_create_annotation_class"
     PROJECT_TYPE = "Vector"
-    PROJECT_DESCRIPTION = "Example Project test pixel basic images"
-    TEST_FOLDER_PTH = "data_set/sample_project_pixel"
+    PROJECT_DESCRIPTION = "Example "
+    TEST_LARGE_CLASSES_JSON = "large_classes_json.json"
     EXAMPLE_IMAGE_1 = "example_image_1.jpg"
+
+    @property
+    def large_json_path(self):
+        return os.path.join(DATA_SET_PATH, self.TEST_LARGE_CLASSES_JSON)
 
     def test_create_annotation_class(self):
         sa.create_annotation_class(self.PROJECT_NAME, "test_add", "#FF0000", type="tag")
         classes = sa.search_annotation_classes(self.PROJECT_NAME)
         self.assertEqual(classes[0]["type"], "tag")
+
+    def test_create_annotations_classes_from_class_json(self):
+        classes = sa.create_annotation_classes_from_classes_json(self.PROJECT_NAME, self.large_json_path)
+        self.assertEqual(len(classes), 1500)
 
 
 class TestCreateAnnotationClassNonVectorWithError(BaseTestCase):

@@ -2868,10 +2868,13 @@ class CreateAnnotationClassesUseCase(BaseUseCase):
                 else:
                     unique_annotation_classes.append(annotation_class)
             created = []
-            for i in range(len(unique_annotation_classes) - self.CHUNK_SIZE, 0, self.CHUNK_SIZE):
-                created += self._annotation_classes_repo.bulk_insert(
-                    entities=unique_annotation_classes[i : i + self.CHUNK_SIZE],  # noqa: E203
-                )
+            if len(unique_annotation_classes) > self.CHUNK_SIZE:
+                for i in range(len(unique_annotation_classes), 0, -self.CHUNK_SIZE):
+                    created.extend(self._annotation_classes_repo.bulk_insert(
+                        entities=unique_annotation_classes[i - self.CHUNK_SIZE : i],  # noqa: E203
+                    ))
+            else:
+                created = self._annotation_classes_repo.bulk_insert(entities=unique_annotation_classes)
             self._response.data = created
         return self._response
 
