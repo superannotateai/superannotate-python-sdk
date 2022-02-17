@@ -2867,12 +2867,15 @@ class CreateAnnotationClassesUseCase(BaseUseCase):
                     continue
                 else:
                     unique_annotation_classes.append(annotation_class)
-            created = []
+
             for i in range(len(unique_annotation_classes) - self.CHUNK_SIZE, 0, self.CHUNK_SIZE):
-                created += self._annotation_classes_repo.bulk_insert(
+                self._annotation_classes_repo.bulk_insert(
                     entities=unique_annotation_classes[i : i + self.CHUNK_SIZE],  # noqa: E203
                 )
-            self._response.data = created
+
+            annotation_classes_use_case = GetAnnotationClassesUseCase(classes=self._annotation_classes_repo)
+            created = annotation_classes_use_case.execute()
+            self._response.data = created.data
         return self._response
 
 
