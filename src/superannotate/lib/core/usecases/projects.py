@@ -701,8 +701,9 @@ class GetWorkflowsUseCase(BaseUseCase):
                 if self._fill_classes:
                     annotation_classes = self._annotation_classes.get_all()
                     for annotation_class in annotation_classes:
-                        annotation_class.uuid = workflow.class_id
-                        workflow_data["className"] = annotation_class.name
+                        if annotation_class.id == workflow.class_id:
+                            workflow_data["className"] = annotation_class.name
+                            break
                 data.append(workflow_data)
             self._response.data = data
         return self._response
