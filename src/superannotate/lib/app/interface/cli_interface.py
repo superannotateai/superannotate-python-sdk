@@ -123,7 +123,7 @@ class CLIFacade(BaseInterfaceFacade):
         folders = None
         if folder_name:
             folders = [folder_name]
-        export_res = self.controller.prepare_export(
+        export_res = controller.prepare_export(
             project_name, folders, include_fuse, False, annotation_statuses
         )
         export_name = export_res.data["name"]
@@ -187,7 +187,7 @@ class CLIFacade(BaseInterfaceFacade):
         self, project, folder, format, dataset_name, task, pre=True
     ):
         project_name, folder_name = split_project_path(project)
-        project = self.controller.get_project_metadata(project_name=project_name).data
+        project = controller.get_project_metadata(project_name=project_name).data
         if not format:
             format = "SuperAnnotate"
         if not dataset_name and format == "COCO":
