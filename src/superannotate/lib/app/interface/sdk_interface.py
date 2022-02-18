@@ -181,7 +181,7 @@ def create_project(
 def create_project_from_metadata(project_metadata: Project):
     """Create a new project in the team using project metadata object dict.
     Mandatory keys in project_metadata are "name", "description" and "type" (Vector or Pixel)
-    Non-mandatory keys: "workflow", "contributors", "settings" and "annotation_classes".
+    Non-mandatory keys: "workflow", "settings" and "annotation_classes".
 
     :return: dict object metadata the new project
     :rtype: dict
@@ -191,7 +191,6 @@ def create_project_from_metadata(project_metadata: Project):
         name=project_metadata["name"],
         description=project_metadata["description"],
         project_type=project_metadata["type"],
-        contributors=project_metadata.get("contributors", []),
         settings=project_metadata.get("settings", []),
         annotation_classes=project_metadata.get("classes", []),
         workflows=project_metadata.get("workflows", []),
@@ -2788,7 +2787,7 @@ def validate_annotations(
         """
     with open(annotations_json) as file:
         annotation_data = json.loads(file.read())
-        response = Controller.get_default().validate_annotations(
+        response = Controller.validate_annotations(
             project_type, annotation_data, allow_extra=False
         )
         if response.errors:

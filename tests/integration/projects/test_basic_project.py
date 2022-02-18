@@ -9,6 +9,93 @@ from tests import DATA_SET_PATH
 from tests.integration.base import BaseTestCase
 
 
+class TestWorkflowGet(BaseTestCase):
+    PROJECT_NAME = "TestWorkflowGet"
+    PROJECT_TYPE = "Vector"
+    PROJECT_DESCRIPTION = "DESCRIPTION"
+
+    def test_workflow_get(self):
+        sa.create_annotation_class(
+            self.PROJECT_NAME,
+            "class1",
+            "#FFAAFF",
+            [
+                {
+                    "name": "tall",
+                    "is_multiselect": 0,
+                    "attributes": [{"name": "yes"}, {"name": "no"}],
+                },
+                {
+                    "name": "age",
+                    "is_multiselect": 0,
+                    "attributes": [{"name": "young"}, {"name": "old"}],
+                },
+            ],
+        )
+        sa.create_annotation_class(
+            self.PROJECT_NAME,
+            "class2",
+            "#FFAAFF",
+            [
+                {
+                    "name": "tall",
+                    "is_multiselect": 0,
+                    "attributes": [{"name": "yes"}, {"name": "no"}],
+                },
+                {
+                    "name": "age",
+                    "is_multiselect": 0,
+                    "attributes": [{"name": "young"}, {"name": "old"}],
+                },
+            ],
+        )
+        sa.set_project_workflow(
+            self.PROJECT_NAME,
+            [
+                {
+                    "step": 1,
+                    "className": "class1",
+                    "tool": 3,
+                    "attribute": [
+                        {
+                            "attribute": {
+                                "name": "young",
+                                "attribute_group": {"name": "age"},
+                            }
+                        },
+                        {
+                            "attribute": {
+                                "name": "yes",
+                                "attribute_group": {"name": "tall"},
+                            }
+                        },
+                    ],
+                },
+                {
+                    "step": 2,
+                    "className": "class2",
+                    "tool": 3,
+                    "attribute": [
+                        {
+                            "attribute": {
+                                "name": "young",
+                                "attribute_group": {"name": "age"},
+                            }
+                        },
+                        {
+                            "attribute": {
+                                "name": "yes",
+                                "attribute_group": {"name": "tall"},
+                            }
+                        },
+                    ],
+                }
+            ],
+        )
+        workflows = sa.get_project_workflow(self.PROJECT_NAME)
+        self.assertEqual(workflows[0]['className'], "class1")
+        self.assertEqual(workflows[1]['className'], "class2")
+
 
 class TestProjectCreateMetadata(BaseTestCase):
     PROJECT_NAME = "sample_basic_project"
@@ -93,7 +180,6 @@ class TestProjectCreateMetadata(BaseTestCase):
                                 include_annotation_classes=True
                                 )
         self.assertEqual(len(created["classes"]), 1)
-        self.assertEqual(len(created["contributors"]), 1)
         self.assertEqual([f"{i['attribute']}_{i['value']}" for i in meta["settings"]],
                          [f"{i['attribute']}_{i['value']}" for i in created["settings"]])
         self.assertEqual(len(created['workflows']), 1)

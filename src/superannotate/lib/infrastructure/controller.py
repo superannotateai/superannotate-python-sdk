@@ -292,7 +292,6 @@ class Controller(BaseController):
         name: str,
         description: str,
         project_type: str,
-        contributors: Iterable = tuple(),
         settings: Iterable = tuple(),
         annotation_classes: Iterable = tuple(),
         workflows: Iterable = tuple(),
@@ -324,8 +323,7 @@ class Controller(BaseController):
             annotation_classes=[
                 AnnotationClassEntity(**annotation_class)
                 for annotation_class in annotation_classes
-            ],
-            contributors=contributors,
+            ]
         )
         return use_case.execute()
 
@@ -1546,13 +1544,14 @@ class Controller(BaseController):
         )
         return use_case.execute()
 
+    @staticmethod
     def validate_annotations(
-        self, project_type: str, annotation: dict, allow_extra: bool = False
+        project_type: str, annotation: dict, allow_extra: bool = False
     ):
         use_case = usecases.ValidateAnnotationUseCase(
             project_type,
             annotation,
-            validators=self.annotation_validators,
+            validators=AnnotationValidators(),
             allow_extra=allow_extra,
         )
         return use_case.execute()

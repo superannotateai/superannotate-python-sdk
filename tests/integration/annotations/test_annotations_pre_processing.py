@@ -14,7 +14,7 @@ from tests.integration.base import BaseTestCase
 
 
 class TestAnnotationUploadVector(BaseTestCase):
-    PROJECT_NAME = "TestAnnotationUploadVector"
+    PROJECT_NAME = "TestAnnotationUploadVectorPreProcessing"
     PROJECT_DESCRIPTION = "Desc"
     PROJECT_TYPE = "Vector"
     S3_FOLDER_PATH = "sample_project_pixel"

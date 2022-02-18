@@ -125,15 +125,18 @@ class GetProjectMetaDataUseCase(BaseUseCase):
         )
         data["project"] = project
         if self._include_complete_image_count:
-            projects = self._projects.get_all(
-                condition=(
-                    Condition("completeImagesCount", "true", EQ)
-                    & Condition("name", self._project.name, EQ)
-                    & Condition("team_id", self._project.team_id, EQ)
-                )
+            completed_images_data = self._service.bulk_get_folders(
+                self._project.team_id, [project.uuid]
             )
-            if projects:
-                data["project"] = projects[0]
+            root_completed_count = 0
+            total_completed_count = 0
+            for i in completed_images_data['data']:
+                total_completed_count += i['completedCount']
+                if i['is_root']:
+                    root_completed_count = i['completedCount']
+
+            project.root_folder_completed_images_count = root_completed_count
+            project.completed_images_count = total_completed_count
 
         if self._include_annotation_classes:
             self.annotation_classes_use_case.execute()
@@ -168,7 +171,6 @@ class CreateProjectUseCase(BaseUseCase):
         settings: List[ProjectSettingEntity] = None,
         workflows: List[WorkflowEntity] = None,
         annotation_classes: List[AnnotationClassEntity] = None,
-        contributors: Iterable[dict] = None,
     ):
 
         super().__init__()
@@ -180,7 +182,6 @@ class CreateProjectUseCase(BaseUseCase):
         self._workflows_repo = workflows_repo
         self._workflows = workflows
         self._annotation_classes = annotation_classes
-        self._contributors = contributors
         self._backend_service = backend_service_provider
 
     def validate_project_name(self):
@@ -257,22 +258,6 @@ class CreateProjectUseCase(BaseUseCase):
                 if set_workflow_response.errors:
                     self._response.errors = set_workflow_response.errors
                 data["workflows"] = self._workflows
-
-            if self._contributors:
-                for contributor in self._contributors:
-                    self._backend_service.share_project_bulk(
-                        team_id=entity.team_id,
-                        project_id=entity.uuid,
-                        users=[
-                            {
-                                "user_id": contributor["user_id"],
-                                "user_role": constances.UserRole.get_value(
-                                    contributor["user_role"]
-                                ),
-                            }
-                        ],
-                    )
-                data["contributors"] = self._contributors
 
             logger.info(
                 "Created project %s (ID %s) with type %s",
@@ -701,8 +686,9 @@ class GetWorkflowsUseCase(BaseUseCase):
                 if self._fill_classes:
                     annotation_classes = self._annotation_classes.get_all()
                     for annotation_class in annotation_classes:
-                        annotation_class.uuid = workflow.class_id
-                        workflow_data["className"] = annotation_class.name
+                        if annotation_class.id == workflow.class_id:
+                            workflow_data["className"] = annotation_class.name
+                            break
                 data.append(workflow_data)
             self._response.data = data
         return self._response
