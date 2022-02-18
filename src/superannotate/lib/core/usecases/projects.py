@@ -168,7 +168,6 @@ class CreateProjectUseCase(BaseUseCase):
         settings: List[ProjectSettingEntity] = None,
         workflows: List[WorkflowEntity] = None,
         annotation_classes: List[AnnotationClassEntity] = None,
-        contributors: Iterable[dict] = None,
     ):
 
         super().__init__()
@@ -180,7 +179,6 @@ class CreateProjectUseCase(BaseUseCase):
         self._workflows_repo = workflows_repo
         self._workflows = workflows
         self._annotation_classes = annotation_classes
-        self._contributors = contributors
         self._backend_service = backend_service_provider
 
     def validate_project_name(self):
@@ -257,22 +255,6 @@ class CreateProjectUseCase(BaseUseCase):
                 if set_workflow_response.errors:
                     self._response.errors = set_workflow_response.errors
                 data["workflows"] = self._workflows
-
-            if self._contributors:
-                for contributor in self._contributors:
-                    self._backend_service.share_project_bulk(
-                        team_id=entity.team_id,
-                        project_id=entity.uuid,
-                        users=[
-                            {
-                                "user_id": contributor["user_id"],
-                                "user_role": constances.UserRole.get_value(
-                                    contributor["user_role"]
-                                ),
-                            }
-                        ],
-                    )
-                data["contributors"] = self._contributors
 
             logger.info(
                 "Created project %s (ID %s) with type %s",

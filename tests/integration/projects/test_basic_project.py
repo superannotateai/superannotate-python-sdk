@@ -93,7 +93,6 @@ class TestProjectCreateMetadata(BaseTestCase):
                                 include_annotation_classes=True
                                 )
         self.assertEqual(len(created["classes"]), 1)
-        self.assertEqual(len(created["contributors"]), 1)
         self.assertEqual([f"{i['attribute']}_{i['value']}" for i in meta["settings"]],
                          [f"{i['attribute']}_{i['value']}" for i in created["settings"]])
         self.assertEqual(len(created['workflows']), 1)

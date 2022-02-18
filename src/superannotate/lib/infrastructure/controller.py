@@ -292,7 +292,6 @@ class Controller(BaseController):
         name: str,
         description: str,
         project_type: str,
-        contributors: Iterable = tuple(),
         settings: Iterable = tuple(),
         annotation_classes: Iterable = tuple(),
         workflows: Iterable = tuple(),
@@ -324,8 +323,7 @@ class Controller(BaseController):
             annotation_classes=[
                 AnnotationClassEntity(**annotation_class)
                 for annotation_class in annotation_classes
-            ],
-            contributors=contributors,
+            ]
         )
         return use_case.execute()
 
