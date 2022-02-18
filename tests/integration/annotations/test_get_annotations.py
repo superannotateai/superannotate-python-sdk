@@ -23,6 +23,7 @@ class TestGetAnnotations(BaseTestCase):
 
     @pytest.mark.flaky(reruns=3)
     def test_get_annotations(self):
+        sa.init()
         sa.upload_images_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
         )

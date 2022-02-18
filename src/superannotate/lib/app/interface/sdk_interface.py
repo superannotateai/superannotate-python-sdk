@@ -2787,7 +2787,7 @@ def validate_annotations(
         """
     with open(annotations_json) as file:
         annotation_data = json.loads(file.read())
-        response = Controller.get_default().validate_annotations(
+        response = Controller.validate_annotations(
             project_type, annotation_data, allow_extra=False
         )
         if response.errors:
