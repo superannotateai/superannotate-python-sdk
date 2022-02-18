@@ -125,15 +125,18 @@ class GetProjectMetaDataUseCase(BaseUseCase):
         )
         data["project"] = project
         if self._include_complete_image_count:
-            projects = self._projects.get_all(
-                condition=(
-                    Condition("completeImagesCount", "true", EQ)
-                    & Condition("name", self._project.name, EQ)
-                    & Condition("team_id", self._project.team_id, EQ)
-                )
+            completed_images_data = self._service.bulk_get_folders(
+                self._project.team_id, [project.uuid]
             )
-            if projects:
-                data["project"] = projects[0]
+            root_completed_count = 0
+            total_completed_count = 0
+            for i in completed_images_data['data']:
+                total_completed_count += i['completedCount']
+                if i['is_root']:
+                    root_completed_count = i['completedCount']
+
+            project.root_folder_completed_images_count = root_completed_count
+            project.completed_images_count = total_completed_count
 
         if self._include_annotation_classes:
             self.annotation_classes_use_case.execute()
