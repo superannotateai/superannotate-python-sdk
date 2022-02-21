@@ -514,12 +514,24 @@ class GetAnnotations(BaseReportableUseCae):
                 self._item_names = item_names
 
     def execute(self):
+        items_count = len(self._item_names)
+        self.reporter.log_info(
+            f"Getting {items_count} annotations from "
+            f"{self._project.name}{f'/{self._folder.name}' if self._folder else ''}."
+        )
+        self.reporter.start_progress(items_count)
         annotations = self._client.get_annotations(
             team_id=self._project.team_id,
             project_id=self._project.uuid,
             folder_id=self._folder.uuid,
-            items=self._item_names
+            items=self._item_names,
+            reporter=self.reporter
         )
+        received_items_count = len(annotations)
+        if items_count > received_items_count:
+            self.reporter.log_warning(
+                f"Could not find annotations for {items_count - received_items_count}/{items_count} items."
+            )
         self._response.data = annotations
         return self._response
 
@@ -549,6 +561,8 @@ class GetVideoAnnotationsPerFrame(BaseReportableUseCae):
             item_names=[self._video_name],
             backend_service_provider=self._client
         ).execute()
+        generator = VideoFrameGenerator(response.data[0], fps=self._fps)
+        self.reporter.log_info(f"Getting annotations for {generator.frames_count} frames from {self._video_name}.")
         if response.errors:
             self._response.errors = response.errors
             return self._response
@@ -556,7 +570,7 @@ class GetVideoAnnotationsPerFrame(BaseReportableUseCae):
             self._response.errors = AppException(f"Video {self._video_name} not found.")
         annotations = response.data
         if annotations:
-            self._response.data = list(VideoFrameGenerator(response.data[0], fps=self._fps))
+            self._response.data = list(generator)
         else:
             self._response.data = []
         return self._response

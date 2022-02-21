@@ -5,6 +5,7 @@ from typing import Iterable
 from typing import List
 from typing import Tuple
 
+from lib.core.reporter import Reporter
 from lib.core.service_types import ServiceResponse
 
 
@@ -304,5 +305,12 @@ class SuerannotateServiceProvider:
         raise NotImplementedError
 
     @abstractmethod
-    def get_annotations(self, project_id: int, team_id: int, folder_id: int, items: List[str]) -> List[dict]:
+    def get_annotations(
+            self,
+            project_id: int,
+            team_id: int,
+            folder_id: int,
+            items: List[str],
+            reporter: Reporter
+    ) -> List[dict]:
         raise NotImplementedError

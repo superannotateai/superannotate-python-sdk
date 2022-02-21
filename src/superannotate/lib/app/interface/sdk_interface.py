@@ -2416,7 +2416,7 @@ def add_annotation_comment_to_image(
     image_name: NotEmptyStr,
     comment_text: NotEmptyStr,
     comment_coords: List[float],
-    comment_author: NotEmptyStr,
+    comment_author: EmailStr,
     resolved: Optional[StrictBool] = False,
 ):
     """Add a comment to SuperAnnotate format annotation JSON

@@ -3,6 +3,7 @@ from typing import Callable
 from typing import List
 
 import aiohttp
+from lib.core.reporter import Reporter
 
 
 def map_image_names_to_fetch_streamed_data(data: List[str]):
@@ -15,9 +16,10 @@ def map_image_names_to_fetch_streamed_data(data: List[str]):
 class StreamedAnnotations:
     DELIMITER = b"\\n;)\\n"
 
-    def __init__(self, headers: dict):
+    def __init__(self, headers: dict, reporter: Reporter):
         self._headers = headers
         self._annotations = []
+        self._reporter = reporter
 
     async def fetch(self, method: str, session: aiohttp.ClientSession, url: str, data: dict = None,
                     params: dict = None):
@@ -53,6 +55,8 @@ class StreamedAnnotations:
             if chunk_size:
                 for i in range(0, len(data), chunk_size):
                     await self.fetch(method, session, url, map_function(data[i:i + chunk_size]), params=params)
+                    self._reporter.update_progress(chunk_size)
             else:
                 await self.fetch(method, session, url, map_function(data), params=params)
+                self._reporter.update_progress(len(data))
         return self._annotations

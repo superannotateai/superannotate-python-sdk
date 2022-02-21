@@ -63,7 +63,8 @@ class Reporter:
         self.progress_bar.close()
 
     def update_progress(self, value: int = 1):
-        self.progress_bar.update(value)
+        if self.progress_bar:
+            self.progress_bar.update(value)
 
     def generate_report(self) -> str:
         report = ""
