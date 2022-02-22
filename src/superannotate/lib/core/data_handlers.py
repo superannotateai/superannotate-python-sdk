@@ -8,13 +8,12 @@ from typing import Any
 from typing import Dict
 from typing import List
 
-from superannotate_schemas.schemas.classes import AnnotationClass
-from superannotate_schemas.schemas.classes import Attribute
-from superannotate_schemas.schemas.classes import AttributeGroup
-
 import lib.core as constances
 from lib.core.enums import ClassTypeEnum
 from lib.core.reporter import Reporter
+from superannotate_schemas.schemas.classes import AnnotationClass
+from superannotate_schemas.schemas.classes import Attribute
+from superannotate_schemas.schemas.classes import AttributeGroup
 
 
 class BaseDataHandler(metaclass=ABCMeta):

@@ -1,12 +1,13 @@
-from pathlib import Path
-import os
-from typing import List
 import json
-import pytest
+import os
+from pathlib import Path
+from typing import List
 
-import src.superannotate as sa
+import pytest
 from pydantic import parse_obj_as
 from superannotate_schemas.schemas.internal import VectorAnnotation
+
+import src.superannotate as sa
 from tests.integration.base import BaseTestCase
 
 
@@ -40,3 +41,18 @@ class TestGetAnnotations(BaseTestCase):
             annotation_data = json.load(annotation_file)
             self.assertEqual(len(annotation_data["instances"]), len(annotations[0]["instances"]))
         parse_obj_as(List[VectorAnnotation], annotations)
+
+    @pytest.mark.flaky(reruns=3)
+    def test_get_annotations_all(self):
+        sa.init()
+        sa.upload_images_from_folder_to_project(
+            self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
+        )
+        sa.create_annotation_classes_from_classes_json(
+            self.PROJECT_NAME, f"{self.folder_path}/classes/classes.json"
+        )
+        _, _, _ = sa.upload_annotations_from_folder_to_project(
+            self.PROJECT_NAME, self.folder_path
+        )
+        annotations = sa.get_annotations(f"{self.PROJECT_NAME}")
+        self.assertEqual(len(annotations), 4)

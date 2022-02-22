@@ -88,8 +88,8 @@ class Trackable:
             else:
                 raise Exception(
                     "SuperAnnotate config file not found."
-                    f" Please provide correct config file location to sa.init(<path>) or use "
-                    f"CLI's superannotate init to generate default location config file."
+                    " Please provide correct config file location to sa.init(<path>) or use "
+                    "CLI's superannotate init to generate default location config file."
                 )
         except Exception as e:
             self._success = False

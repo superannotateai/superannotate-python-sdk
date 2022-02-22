@@ -9,6 +9,8 @@ from typing import Tuple
 
 import boto3
 import lib.core as constances
+from lib.core.conditions import Condition
+from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.data_handlers import ChainedAnnotationHandlers
 from lib.core.data_handlers import DocumentTagHandler
 from lib.core.data_handlers import LastActionHandler
@@ -494,14 +496,18 @@ class GetAnnotations(BaseReportableUseCae):
             reporter: Reporter,
             project: ProjectEntity,
             folder: FolderEntity,
+            images: BaseManageableRepository,
             item_names: Optional[List[str]],
-            backend_service_provider: SuerannotateServiceProvider
+            backend_service_provider: SuerannotateServiceProvider,
+            show_process: bool = True
     ):
         super().__init__(reporter)
         self._project = project
         self._folder = folder
+        self._images = images
         self._item_names = item_names
         self._client = backend_service_provider
+        self._show_process = show_process
 
     def validate_item_names(self):
         if self._item_names:
@@ -512,15 +518,36 @@ class GetAnnotations(BaseReportableUseCae):
                     f"Dropping duplicates. Found {len_unique_items}/{len_items} unique items."
                 )
                 self._item_names = item_names
+        else:
+            condition = (
+                    Condition("team_id", self._project.team_id, EQ)
+                    & Condition("project_id", self._project.uuid, EQ)
+                    & Condition("folder_id", self._folder.uuid, EQ)
+            )
+
+            self._item_names = [item.name for item in self._images.get_all(condition)]
 
     def execute(self):
-        annotations = self._client.get_annotations(
-            team_id=self._project.team_id,
-            project_id=self._project.uuid,
-            folder_id=self._folder.uuid,
-            items=self._item_names
-        )
-        self._response.data = annotations
+        if self.is_valid():
+            items_count = len(self._item_names)
+            self.reporter.log_info(
+                f"Getting {items_count} annotations from "
+                f"{self._project.name}{f'/{self._folder.name}' if self._folder else ''}."
+            )
+            self.reporter.start_progress(items_count, disable=not self._show_process)
+            annotations = self._client.get_annotations(
+                team_id=self._project.team_id,
+                project_id=self._project.uuid,
+                folder_id=self._folder.uuid,
+                items=self._item_names,
+                reporter=self.reporter
+            )
+            received_items_count = len(annotations)
+            if items_count > received_items_count:
+                self.reporter.log_warning(
+                    f"Could not find annotations for {items_count - received_items_count}/{items_count} items."
+                )
+            self._response.data = annotations
         return self._response
 
 
@@ -530,6 +557,7 @@ class GetVideoAnnotationsPerFrame(BaseReportableUseCae):
             reporter: Reporter,
             project: ProjectEntity,
             folder: FolderEntity,
+            images: BaseManageableRepository,
             video_name: str,
             fps: int,
             backend_service_provider: SuerannotateServiceProvider
@@ -537,6 +565,7 @@ class GetVideoAnnotationsPerFrame(BaseReportableUseCae):
         super().__init__(reporter)
         self._project = project
         self._folder = folder
+        self._images = images
         self._video_name = video_name
         self._fps = fps
         self._client = backend_service_provider
@@ -546,9 +575,13 @@ class GetVideoAnnotationsPerFrame(BaseReportableUseCae):
             reporter=self.reporter,
             project=self._project,
             folder=self._folder,
+            images=self._images,
             item_names=[self._video_name],
-            backend_service_provider=self._client
+            backend_service_provider=self._client,
+            show_process=False
         ).execute()
+        generator = VideoFrameGenerator(response.data[0], fps=self._fps)
+        self.reporter.log_info(f"Getting annotations for {generator.frames_count} frames from {self._video_name}.")
         if response.errors:
             self._response.errors = response.errors
             return self._response
@@ -556,7 +589,7 @@ class GetVideoAnnotationsPerFrame(BaseReportableUseCae):
             self._response.errors = AppException(f"Video {self._video_name} not found.")
         annotations = response.data
         if annotations:
-            self._response.data = list(VideoFrameGenerator(response.data[0], fps=self._fps))
+            self._response.data = list(generator)
         else:
             self._response.data = []
         return self._response

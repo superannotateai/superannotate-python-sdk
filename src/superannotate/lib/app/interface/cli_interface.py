@@ -23,7 +23,8 @@ from lib.infrastructure.controller import Controller
 from lib.infrastructure.repositories import ConfigRepository
 
 
-controller = Controller.get_default()
+controller = Controller()
+controller.retrieve_configs(constances.CONFIG_FILE_LOCATION)
 
 
 class CLIFacade(BaseInterfaceFacade):

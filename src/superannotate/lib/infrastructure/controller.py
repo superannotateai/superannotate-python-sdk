@@ -1626,6 +1626,7 @@ class Controller(BaseController):
             reporter=self.default_reporter,
             project=project,
             folder=folder,
+            images=self.images,
             item_names=item_names,
             backend_service_provider=self.backend_client
         )
@@ -1639,6 +1640,7 @@ class Controller(BaseController):
             reporter=self.default_reporter,
             project=project,
             folder=folder,
+            images=self.images,
             video_name=video_name,
             fps=fps,
             backend_service_provider=self.backend_client

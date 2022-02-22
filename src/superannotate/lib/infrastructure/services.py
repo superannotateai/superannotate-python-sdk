@@ -13,6 +13,7 @@ from urllib.parse import urljoin
 import lib.core as constance
 import requests.packages.urllib3
 from lib.core.exceptions import AppException
+from lib.core.reporter import Reporter
 from lib.core.service_types import DownloadMLModelAuthData
 from lib.core.service_types import ServiceResponse
 from lib.core.service_types import UploadAnnotationAuthData
@@ -175,6 +176,7 @@ class SuperannotateBackendService(BaseBackendService):
     DEFAULT_CHUNK_SIZE = 1000
 
     URL_USERS = "users"
+    URL_LIST_ALL_IMAGES = "/images/getImagesWithAnnotationPaths"
     URL_LIST_PROJECTS = "projects"
     URL_FOLDERS_IMAGES = "images-folders"
     URL_CREATE_PROJECT = "project"
@@ -1016,7 +1018,14 @@ class SuperannotateBackendService(BaseBackendService):
             content_type=UserLimits,
         )
 
-    def get_annotations(self, project_id: int, team_id: int, folder_id: int, items: List[str]) -> List[dict]:
+    def get_annotations(
+            self,
+            project_id: int,
+            team_id: int,
+            folder_id: int,
+            items: List[str],
+            reporter: Reporter
+    ) -> List[dict]:
         get_limits_url = urljoin(self.assets_provider_url, self.URL_GET_ANNOTATIONS)
         query_params = {
             "team_id": team_id,
@@ -1025,7 +1034,7 @@ class SuperannotateBackendService(BaseBackendService):
         if folder_id:
             query_params["folder_id"] = folder_id
 
-        handler = StreamedAnnotations(self.default_headers)
+        handler = StreamedAnnotations(self.default_headers, reporter)
         loop = asyncio.new_event_loop()
 
         return loop.run_until_complete(handler.get_data(

@@ -547,6 +547,12 @@ def upload_images_from_public_urls_to_project(
      and not-uploaded images' urls
     :rtype: tuple of list of strs
     """
+    warning_msg = (
+        "The upload_images_from_public_urls function is deprecated and will be removed with the coming release, "
+        "please use attach_image_urls_to_project instead."
+    )
+    logger.warning(warning_msg)
+    warnings.warn(warning_msg, DeprecationWarning)
 
     project_name, folder_name = extract_project_folder(project)
 
@@ -2416,7 +2422,7 @@ def add_annotation_comment_to_image(
     image_name: NotEmptyStr,
     comment_text: NotEmptyStr,
     comment_coords: List[float],
-    comment_author: NotEmptyStr,
+    comment_author: EmailStr,
     resolved: Optional[StrictBool] = False,
 ):
     """Add a comment to SuperAnnotate format annotation JSON
@@ -2850,7 +2856,7 @@ def invite_contributors_to_team(
 
 @Trackable
 @validate_arguments
-def get_annotations(project: NotEmptyStr, items: Optional[List[NotEmptyStr]]):
+def get_annotations(project: NotEmptyStr, items: Optional[List[NotEmptyStr]] = None):
     """Returns annotations for the given list of items.
 
     :param project: project name

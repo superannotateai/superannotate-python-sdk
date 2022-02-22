@@ -41,7 +41,7 @@ class VideoFrameGenerator:
         self.fps = fps
         self.ratio = 1000 * 1000 / fps
         self._frame_id = 1
-        self._frames_count = self.duration * fps
+        self.frames_count = self.duration * fps
         self.annotations: dict = {}
         self._mapping = {}
         self._process()
@@ -141,5 +141,5 @@ class VideoFrameGenerator:
                         )
 
     def __iter__(self):
-        for frame_no in range(1, int(self._frames_count) + 1):
+        for frame_no in range(1, int(self.frames_count) + 1):
             yield self.get_frame(frame_no).dict()

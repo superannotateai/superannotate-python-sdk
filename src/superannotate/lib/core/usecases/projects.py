@@ -1,6 +1,5 @@
 import copy
 from collections import defaultdict
-from typing import Iterable
 from typing import List
 from typing import Type
 
