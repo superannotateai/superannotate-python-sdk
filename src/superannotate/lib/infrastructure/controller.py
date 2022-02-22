@@ -74,8 +74,9 @@ class BaseController(metaclass=ABCMeta):
         self.initialize_backend_client()
 
     def retrieve_configs(self, path: Path, raise_exception=True):
+
         token, backend_url, ssl_verify = None, None, None
-        if not path.is_file() or not os.access(path, os.R_OK):
+        if not Path(path).is_file() or not os.access(path, os.R_OK):
             if raise_exception:
                 raise AppException(
                     f"SuperAnnotate config file {str(path)} not found."
@@ -1626,6 +1627,7 @@ class Controller(BaseController):
             reporter=self.default_reporter,
             project=project,
             folder=folder,
+            images=self.images,
             item_names=item_names,
             backend_service_provider=self.backend_client
         )
@@ -1639,6 +1641,7 @@ class Controller(BaseController):
             reporter=self.default_reporter,
             project=project,
             folder=folder,
+            images=self.images,
             video_name=video_name,
             fps=fps,
             backend_service_provider=self.backend_client

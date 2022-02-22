@@ -25,18 +25,21 @@ class StreamedAnnotations:
                     params: dict = None):
         response = await session._request(method, url, json=data, params=params)
         buffer = b""
-        async for line in response.content:
+        async for line in response.content.iter_any():
             slices = line.split(self.DELIMITER)
             if len(slices) == 1:
                 buffer += slices[0]
                 continue
             elif slices[0]:
                 self._annotations.append(json.loads(buffer + slices[0]))
+                self._reporter.update_progress()
             for data in slices[1:-1]:
                 self._annotations.append(json.loads(data))
+                self._reporter.update_progress()
             buffer = slices[-1]
         if buffer:
             self._annotations.append(json.loads(buffer))
+            self._reporter.update_progress()
         return self._annotations
 
     async def get_data(
@@ -54,9 +57,8 @@ class StreamedAnnotations:
 
             if chunk_size:
                 for i in range(0, len(data), chunk_size):
-                    await self.fetch(method, session, url, map_function(data[i:i + chunk_size]), params=params)
-                    self._reporter.update_progress(chunk_size)
+                    data_to_process = data[i:i + chunk_size]
+                    await self.fetch(method, session, url, map_function(data_to_process), params=params)
             else:
                 await self.fetch(method, session, url, map_function(data), params=params)
-                self._reporter.update_progress(len(data))
         return self._annotations
