@@ -1928,8 +1928,8 @@ class InteractiveAttachFileUrlsUseCase(BaseInteractiveUseCase):
                     project=self._project,
                     folder=self._folder,
                     attachments=self._attachments[
-                        i : i + self.CHUNK_SIZE
-                    ],  # noqa: E203
+                        i : i + self.CHUNK_SIZE  # noqa: E203
+                    ],
                     backend_service_provider=self._backend_service,
                     annotation_status=self._annotation_status,
                     upload_state_code=self._upload_state_code,

@@ -46,9 +46,9 @@ class Reporter:
         self.debug_messages.append(value)
 
     def start_progress(
-        self, iterations: Union[int, range], description: str = "Processing"
+        self, iterations: Union[int, range], description: str = "Processing", disable=False
     ):
-        self.progress_bar = self.get_progress_bar(iterations, description)
+        self.progress_bar = self.get_progress_bar(iterations, description, disable)
 
     @staticmethod
     def get_progress_bar(

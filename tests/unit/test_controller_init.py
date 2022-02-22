@@ -73,9 +73,10 @@ class SKDInitTest(TestCase):
     FILE_NAME = "config.json"
     FILE_NAME_2 = "config.json"
 
-    @patch.dict(os.environ, {"SA_TOKEN": TEST_TOKEN})
     def test_env_flow(self):
         import superannotate as sa
+        os.environ.update({"SA_TOKEN": self.TEST_TOKEN})
+        sa.init()
         self.assertEqual(sa.get_default_controller()._token, self.TEST_TOKEN)
 
     def test_init_via_config_file(self):
