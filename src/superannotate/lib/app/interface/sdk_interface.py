@@ -2850,7 +2850,7 @@ def invite_contributors_to_team(
 
 @Trackable
 @validate_arguments
-def get_annotations(project: NotEmptyStr, items: Optional[List[NotEmptyStr]]):
+def get_annotations(project: NotEmptyStr, items: Optional[List[NotEmptyStr]] = None):
     """Returns annotations for the given list of items.
 
     :param project: project name

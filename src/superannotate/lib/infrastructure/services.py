@@ -176,6 +176,7 @@ class SuperannotateBackendService(BaseBackendService):
     DEFAULT_CHUNK_SIZE = 1000
 
     URL_USERS = "users"
+    URL_LIST_ALL_IMAGES = "/images/getImagesWithAnnotationPaths"
     URL_LIST_PROJECTS = "projects"
     URL_FOLDERS_IMAGES = "images-folders"
     URL_CREATE_PROJECT = "project"
