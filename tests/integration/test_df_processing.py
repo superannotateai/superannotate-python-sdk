@@ -19,7 +19,7 @@ class TestDF(BaseTestCase):
         )
 
     def test_filter_instances(self):
-        df = sa.aggregate_annotations_as_df(self.folder_path,self.PROJECT_TYPE)
+        df = sa.aggregate_annotations_as_df(self.folder_path, self.PROJECT_TYPE)
         df = df[~(df.duplicated(["instanceId", "imageName"]))]
         df = df[df.duplicated(["trackingId"], False) & df["trackingId"].notnull()]
         self.assertEqual(len(df), 2)
@@ -27,6 +27,7 @@ class TestDF(BaseTestCase):
             {df.iloc[0]["imageName"], df.iloc[1]["imageName"]},
             {"example_image_1.jpg", "example_image_2.jpg"},
         )
+
 
 class TestDFWithTagInstace(BaseTestCase):
     PROJECT_TYPE = "Vector"
@@ -38,11 +39,9 @@ class TestDFWithTagInstace(BaseTestCase):
             Path(os.path.join(dirname(dirname(__file__)), self.TEST_FOLDER_PATH))
         )
 
-
     def test_filter_instances(self):
         df = sa.aggregate_annotations_as_df(self.folder_path, self.PROJECT_TYPE)
         self.assertEqual(df.iloc[0]["type"], "tag")
-
 
 
 class TestClassDistibutionWithTagInstance(BaseTestCase):
@@ -57,6 +56,6 @@ class TestClassDistibutionWithTagInstance(BaseTestCase):
         )
 
     def test_filter_instances(self):
-        df = sa.class_distribution(export_root=self.root_path,project_names=[self.PROJECT_NAME])
+        df = sa.class_distribution(export_root=self.root_path, project_names=[self.PROJECT_NAME])
         self.assertEqual(df.iloc[0]['count'], 1)
         self.assertEqual(df.iloc[0]['className'], "Weather")

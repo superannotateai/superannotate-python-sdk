@@ -74,8 +74,9 @@ class BaseController(metaclass=ABCMeta):
         self.initialize_backend_client()
 
     def retrieve_configs(self, path: Path, raise_exception=True):
+
         token, backend_url, ssl_verify = None, None, None
-        if not path.is_file() or not os.access(path, os.R_OK):
+        if not Path(path).is_file() or not os.access(path, os.R_OK):
             if raise_exception:
                 raise AppException(
                     f"SuperAnnotate config file {str(path)} not found."
