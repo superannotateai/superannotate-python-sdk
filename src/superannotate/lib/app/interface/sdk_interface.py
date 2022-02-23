@@ -40,6 +40,7 @@ from lib.core.exceptions import AppException
 from lib.core.types import AttributeGroup
 from lib.core.types import MLModel
 from lib.core.types import Project
+from lib.core.types import PriorityScore
 from lib.infrastructure.controller import Controller
 from pydantic import conlist
 from pydantic import parse_obj_as
@@ -2900,3 +2901,29 @@ def get_annotations_per_frame(project: NotEmptyStr, video: NotEmptyStr, fps: int
     if response.errors:
         raise AppException(response.errors)
     return response.data
+
+@Trackable
+@validate_arguments
+def upload_priority_scores(project: NotEmptyStr, scores: List[PriorityScore]):
+    """Returns per frame annotations for the given video.
+    :param project: project name or folder path (e.g., “project1/folder1”)
+    :type project: str
+
+    :param scores: list of score objects
+    :type scores: list of dicts
+
+    :return: lists of uploaded, skipped items
+    :rtype: tuple (2 members) of lists of strs
+    """
+    project_name, folder_name = extract_project_folder(project)
+    project_folder_name = project
+    use_case = Controller.get_default().upload_priority_scores(project_name, folder_name, scores, project_folder_name)
+    with tqdm(
+            total=len(scores), desc="Uploading priority scores"
+    ) as progress_bar:
+        for _ in use_case.execute():
+            progress_bar.update()
+    progress_bar.close()
+    if use_case.response.errors:
+        raise AppException(use_case.errors)
+    return use_case.response.data
