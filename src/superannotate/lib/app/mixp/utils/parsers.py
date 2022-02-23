@@ -1235,6 +1235,6 @@ def get_annotations_per_frame(*args, **kwargs):
 def upload_priority_scores(*args, **kwargs):
     scores = kwargs.get("scores", args[1])
     return {
-        "event_name": "get_annotations_per_frame",
+        "event_name": "upload_priority_scores",
         "properties": {"Score Count": len(scores)},
     }
