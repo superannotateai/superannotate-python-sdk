@@ -24,6 +24,7 @@ from lib.core.entities import TeamEntity
 from lib.core.exceptions import AppException
 from lib.core.reporter import Reporter
 from lib.core.repositories import BaseManageableRepository
+from lib.core.usecases.base import BaseInteractiveUseCase
 from lib.core.service_types import UploadAnnotationAuthData
 from lib.core.serviceproviders import SuerannotateServiceProvider
 from lib.core.usecases.base import BaseReportableUseCae
@@ -32,6 +33,7 @@ from lib.core.usecases.images import ValidateAnnotationUseCase
 from lib.core.video_convertor import VideoFrameGenerator
 from superannotate.logger import get_default_logger
 from superannotate_schemas.validators import AnnotationValidators
+from lib.core.types import PriorityScore
 
 logger = get_default_logger()
 
@@ -593,3 +595,51 @@ class GetVideoAnnotationsPerFrame(BaseReportableUseCae):
         else:
             self._response.data = []
         return self._response
+
+
+class UploadPriorityScoresUseCase(BaseInteractiveUseCase):
+
+    CHUNK_SIZE = 100
+
+    def __init__(
+            self,
+            project: ProjectEntity,
+            folder: FolderEntity,
+            scores: List[PriorityScore],
+            project_folder_name: str,
+            backend_service_provider: SuerannotateServiceProvider
+    ):
+        super().__init__()
+        self._project = project
+        self._folder = folder
+        self._scores = scores
+        self._client = backend_service_provider
+        self._project_folder_name = project_folder_name
+
+    def execute(self):
+        logger.info(f"Uploading  priority scores for {len(self._scores)} item(s) from {self._project_folder_name}.")
+        priorities = []
+        to_send = []
+        for i in self._scores:
+            priorities.append({
+                "name": i.name,
+                "entropy_value": i.priority
+            })
+            to_send.append(i.name)
+
+        uploaded = []
+        for i in range(0, len(priorities), self.CHUNK_SIZE):
+            res = self._client.upload_priority_scores(
+                team_id=self._project.team_id,
+                project_id=self._project.uuid,
+                folder_id=self._folder.uuid,
+                priorities=priorities[i : i + self.CHUNK_SIZE],  # noqa: E203
+            )
+            uploaded += res["data"]
+            yield
+
+        uploaded = [i["name"] for i in uploaded]
+        skipped = list(set(to_send) - set(uploaded))
+        self._response.data = (uploaded, skipped)
+        return self._response
+

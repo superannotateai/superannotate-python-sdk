@@ -1647,3 +1647,15 @@ class Controller(BaseController):
             backend_service_provider=self.backend_client
         )
         return use_case.execute()
+
+    def upload_priority_scores(self, project_name, folder_name, scores, project_folder_name):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+        use_case = usecases.UploadPriorityScoresUseCase(
+            project=project,
+            folder=folder,
+            scores=scores,
+            backend_service_provider=self.backend_client,
+            project_folder_name=project_folder_name
+        )
+        return use_case
