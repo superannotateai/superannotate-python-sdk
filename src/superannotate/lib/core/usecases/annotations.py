@@ -631,12 +631,12 @@ class UploadPriorityScoresUseCase(BaseInteractiveUseCase):
     CHUNK_SIZE = 100
 
     def __init__(
-            self,
-            project: ProjectEntity,
-            folder: FolderEntity,
-            scores: List[PriorityScore],
-            project_folder_name: str,
-            backend_service_provider: SuerannotateServiceProvider
+        self,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        scores: List[PriorityScore],
+        project_folder_name: str,
+        backend_service_provider: SuerannotateServiceProvider
     ):
         super().__init__()
         self._project = project
@@ -646,7 +646,6 @@ class UploadPriorityScoresUseCase(BaseInteractiveUseCase):
         self._project_folder_name = project_folder_name
 
     def execute(self):
-        logger.info(f"Uploading  priority scores for {len(self._scores)} item(s) from {self._project_folder_name}.")
         priorities = []
         to_send = []
         for i in self._scores:
@@ -665,7 +664,7 @@ class UploadPriorityScoresUseCase(BaseInteractiveUseCase):
                 priorities=priorities[i : i + self.CHUNK_SIZE],  # noqa: E203
             )
             uploaded += res["data"]
-            yield
+            yield len(to_send[:i + self.CHUNK_SIZE])
 
         uploaded = [i["name"] for i in uploaded]
         skipped = list(set(to_send) - set(uploaded))

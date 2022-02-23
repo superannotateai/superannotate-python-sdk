@@ -2918,11 +2918,12 @@ def upload_priority_scores(project: NotEmptyStr, scores: List[PriorityScore]):
     project_name, folder_name = extract_project_folder(project)
     project_folder_name = project
     use_case = Controller.get_default().upload_priority_scores(project_name, folder_name, scores, project_folder_name)
+    logger.info(f"Uploading  priority scores for {len(scores)} item(s) from {project_folder_name}.")
     with tqdm(
             total=len(scores), desc="Uploading priority scores"
     ) as progress_bar:
-        for _ in use_case.execute():
-            progress_bar.update()
+        for uploaded_count in use_case.execute():
+            progress_bar.update(uploaded_count)
     progress_bar.close()
     if use_case.response.errors:
         raise AppException(use_case.errors)
