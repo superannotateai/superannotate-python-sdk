@@ -50,7 +50,7 @@ class BaseBackendService(SuerannotateServiceProvider):
         self._auth_token = auth_token
         self.logger = logger
         self._paginate_by = paginate_by
-        self._verify_ssl = False
+        self._verify_ssl = verify_ssl
         self.team_id = auth_token.split("=")[-1]
         self._testing = testing
         self.get_session()
