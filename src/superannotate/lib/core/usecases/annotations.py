@@ -616,13 +616,26 @@ class UploadPriorityScoresUseCase(BaseInteractiveUseCase):
         self._client = backend_service_provider
         self._project_folder_name = project_folder_name
 
+    @staticmethod
+    def get_clean_priority(priority):
+        if len(str(priority)) > 8:
+            priority = float(str(priority)[:8])
+        if priority > 1000000:
+            priority = 1000000
+        if priority < 0:
+            priority = 0
+        if str(float(priority)).split('.')[1:2]:
+            if len(str(float(priority)).split('.')[1]) > 5:
+                priority = float(str(float(priority)).split('.')[0] + '.' + str(float(priority)).split('.')[1][:5])
+        return priority
+
     def execute(self):
         priorities = []
         to_send = []
         for i in self._scores:
             priorities.append({
                 "name": i.name,
-                "entropy_value": i.priority
+                "entropy_value": self.get_clean_priority(i.priority)
             })
             to_send.append(i.name)
 
