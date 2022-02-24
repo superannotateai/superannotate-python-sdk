@@ -1026,7 +1026,9 @@ class SuperannotateBackendService(BaseBackendService):
             items: List[str],
             reporter: Reporter
     ) -> List[dict]:
-        get_limits_url = urljoin(self.assets_provider_url, self.URL_GET_ANNOTATIONS)
+        import nest_asyncio
+        nest_asyncio.apply()
+
         query_params = {
             "team_id": team_id,
             "project_id": project_id,
@@ -1038,7 +1040,7 @@ class SuperannotateBackendService(BaseBackendService):
         loop = asyncio.new_event_loop()
 
         return loop.run_until_complete(handler.get_data(
-            url=get_limits_url,
+            url=urljoin(self.assets_provider_url, self.URL_GET_ANNOTATIONS),
             data=items,
             params=query_params,
             chunk_size=self.DEFAULT_CHUNK_SIZE,
