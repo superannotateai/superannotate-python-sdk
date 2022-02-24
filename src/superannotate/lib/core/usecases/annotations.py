@@ -547,6 +547,7 @@ class GetAnnotations(BaseReportableUseCae):
                 reporter=self.reporter
             )
             received_items_count = len(annotations)
+            self.reporter.finish_progress()
             if items_count > received_items_count:
                 self.reporter.log_warning(
                     f"Could not find annotations for {items_count - received_items_count}/{items_count} items."
