@@ -27,8 +27,14 @@ class Reporter:
     def disable_warnings(self):
         self._log_warning = False
 
+    def disable_info(self):
+        self._log_info = False
+
     def enable_warnings(self):
         self._log_warning = True
+
+    def enable_info(self):
+        self._log_info = True
 
     def log_info(self, value: str):
         if self._log_info:
