@@ -508,6 +508,7 @@ class GetAnnotations(BaseReportableUseCae):
         self._item_names = item_names
         self._client = backend_service_provider
         self._show_process = show_process
+        self._item_names_provided = True
 
     def validate_project_type(self):
         if self._project.project_type == constances.ProjectType.PIXEL.value:
@@ -523,6 +524,7 @@ class GetAnnotations(BaseReportableUseCae):
                 )
                 self._item_names = item_names
         else:
+            self._item_names_provided = False
             condition = (
                     Condition("team_id", self._project.team_id, EQ)
                     & Condition("project_id", self._project.uuid, EQ)
@@ -530,6 +532,18 @@ class GetAnnotations(BaseReportableUseCae):
             )
 
             self._item_names = [item.name for item in self._images.get_all(condition)]
+
+    def _prettify_annotations(self, annotations: List[dict]):
+
+        if self._item_names_provided:
+            try:
+                data = []
+                for annotation in annotations:
+                   data.append((self._item_names.index(annotation["metadata"]["name"]), annotation))
+                return [i[1] for i in sorted(data, key=lambda x: x[0])]
+            except KeyError:
+                raise AppException("Broken data.")
+        return annotations
 
     def execute(self):
         if self.is_valid():
@@ -552,7 +566,7 @@ class GetAnnotations(BaseReportableUseCae):
                 self.reporter.log_warning(
                     f"Could not find annotations for {items_count - received_items_count}/{items_count} items."
                 )
-            self._response.data = annotations
+            self._response.data = self._prettify_annotations(annotations)
         return self._response
 
 
