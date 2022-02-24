@@ -1140,6 +1140,12 @@ def get_image_annotations(project: Union[NotEmptyStr, dict], image_name: NotEmpt
         "annotation_mask_filename": mask filename on server
     :rtype: dict
     """
+    warning_msg = (
+        "The get_image_annotations function is deprecated and will be removed with the coming releases, "
+        "please use get_annotations instead."
+    )
+    logger.warning(warning_msg)
+    warnings.warn(warning_msg, DeprecationWarning)
     project_name, folder_name = extract_project_folder(project)
     res = Controller.get_default().get_image_annotations(
         project_name=project_name, folder_name=folder_name, image_name=image_name
@@ -2859,7 +2865,7 @@ def invite_contributors_to_team(
 def get_annotations(project: NotEmptyStr, items: Optional[List[NotEmptyStr]] = None):
     """Returns annotations for the given list of items.
 
-    :param project: project name
+    :param project: project name or folder path (e.g., “project1/folder1”).
     :type project: str
 
     :param items:  item names. If None all items in the project will be exported
@@ -2881,7 +2887,7 @@ def get_annotations_per_frame(project: NotEmptyStr, video: NotEmptyStr, fps: int
     """Returns per frame annotations for the given video.
 
 
-    :param project: project name
+    :param project: project name or folder path (e.g., “project1/folder1”).
     :type project: str
 
     :param video: video name

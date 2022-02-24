@@ -47,7 +47,8 @@ class TestGetAnnotations(BaseTestCase):
         self.assertEqual(
             len(annotations),
             int(
-                json.load(open(f"{self.annotations_path}/{self.VIDEO_NAME}.json"))["metadata"]["duration"] / (
-                            1000 * 1000)
+                json.load(
+                    open(f"{self.annotations_path}/{self.VIDEO_NAME}.json"))["metadata"]["duration"] / (
+                        1000 * 1000)
             )
         )
