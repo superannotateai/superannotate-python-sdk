@@ -509,6 +509,10 @@ class GetAnnotations(BaseReportableUseCae):
         self._client = backend_service_provider
         self._show_process = show_process
 
+    def validate_project_type(self):
+        if self._project.project_type == constances.ProjectType.PIXEL.value:
+            raise AppException("The function is not supported for Pixel projects.")
+
     def validate_item_names(self):
         if self._item_names:
             item_names = list(dict.fromkeys(self._item_names))
@@ -532,7 +536,7 @@ class GetAnnotations(BaseReportableUseCae):
             items_count = len(self._item_names)
             self.reporter.log_info(
                 f"Getting {items_count} annotations from "
-                f"{self._project.name}{f'/{self._folder.name}' if self._folder else ''}."
+                f"{self._project.name}{f'/{self._folder.name}' if self._folder.name != 'root' else ''}."
             )
             self.reporter.start_progress(items_count, disable=not self._show_process)
             annotations = self._client.get_annotations(
@@ -570,7 +574,12 @@ class GetVideoAnnotationsPerFrame(BaseReportableUseCae):
         self._fps = fps
         self._client = backend_service_provider
 
+    def validate_project_type(self):
+        if self._project.project_type != constances.ProjectType.VIDEO.value:
+            raise AppException("The function only supports video projects.")
+
     def execute(self):
+        self.reporter.disable_info()
         response = GetAnnotations(
             reporter=self.reporter,
             project=self._project,
@@ -580,16 +589,21 @@ class GetVideoAnnotationsPerFrame(BaseReportableUseCae):
             backend_service_provider=self._client,
             show_process=False
         ).execute()
-        generator = VideoFrameGenerator(response.data[0], fps=self._fps)
-        self.reporter.log_info(f"Getting annotations for {generator.frames_count} frames from {self._video_name}.")
-        if response.errors:
-            self._response.errors = response.errors
-            return self._response
-        if not response.data:
-            self._response.errors = AppException(f"Video {self._video_name} not found.")
-        annotations = response.data
-        if annotations:
-            self._response.data = list(generator)
+        self.reporter.enable_info()
+        if response.data:
+            generator = VideoFrameGenerator(response.data[0], fps=self._fps)
+
+            self.reporter.log_info(f"Getting annotations for {generator.frames_count} frames from {self._video_name}.")
+            if response.errors:
+                self._response.errors = response.errors
+                return self._response
+            if not response.data:
+                self._response.errors = AppException(f"Video {self._video_name} not found.")
+            annotations = response.data
+            if annotations:
+                self._response.data = list(generator)
+            else:
+                self._response.data = []
         else:
-            self._response.data = []
+            self._response.errors = "Couldn't get annotations."
         return self._response
