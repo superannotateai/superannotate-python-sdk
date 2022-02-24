@@ -187,6 +187,7 @@ class CLIFacade(BaseInterfaceFacade):
     def _upload_annotations(
         self, project, folder, format, dataset_name, task, pre=True
     ):
+        project_folder_name = project
         project_name, folder_name = split_project_path(project)
         project = controller.get_project_metadata(project_name=project_name).data
         if not format:
@@ -213,11 +214,11 @@ class CLIFacade(BaseInterfaceFacade):
                 annotations_path = temp_dir
             if pre:
                 upload_preannotations_from_folder_to_project(
-                    project_name, annotations_path
+                    project_folder_name, annotations_path
                 )
             else:
                 upload_annotations_from_folder_to_project(
-                    project_name, annotations_path
+                    project_folder_name, annotations_path
                 )
         sys.exit(0)
 
