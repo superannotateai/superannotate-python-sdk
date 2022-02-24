@@ -547,6 +547,12 @@ def upload_images_from_public_urls_to_project(
      and not-uploaded images' urls
     :rtype: tuple of list of strs
     """
+    warning_msg = (
+        "The upload_images_from_public_urls function is deprecated and will be removed with the coming release, "
+        "please use attach_image_urls_to_project instead."
+    )
+    logger.warning(warning_msg)
+    warnings.warn(warning_msg, DeprecationWarning)
 
     project_name, folder_name = extract_project_folder(project)
 
