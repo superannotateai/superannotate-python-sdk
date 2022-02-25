@@ -298,7 +298,7 @@ class VideoFormatHandler(BaseAnnotationDateHandler):
                 end_time = safe_time(convert_timestamp(parameter["end"]))
 
                 for timestamp_data in parameter["timestamps"]:
-                    timestamp = safeg_time(
+                    timestamp = safe_time(
                         convert_timestamp(timestamp_data["timestamp"])
                     )
                     editor_instance["timeline"][timestamp] = {}
