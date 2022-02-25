@@ -54,3 +54,4 @@ class Condition:
         return str(self) + "".join(
             [f"{condition[0]}{condition[1]}" for condition in self._condition_set]
         )
+c

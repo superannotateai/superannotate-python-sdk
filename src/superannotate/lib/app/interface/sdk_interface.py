@@ -1540,7 +1540,7 @@ def create_annotation_class(
     name: NotEmptyStr,
     color: NotEmptyStr,
     attribute_groups: Optional[List[AttributeGroup]] = None,
-    type: ClassType = "object",
+    class_type: ClassType = "object",
 ):
     """Create annotation class in project
 
@@ -1554,8 +1554,8 @@ def create_annotation_class(
      [ { "name": "tall", "is_multiselect": 0, "attributes": [ { "name": "yes" }, { "name": "no" } ] },
      { "name": "age", "is_multiselect": 0, "attributes": [ { "name": "young" }, { "name": "old" } ] } ]
     :type attribute_groups: list of dicts
-    :param type: class type
-    :type type: str
+    :param class_type: class type
+    :type class_type: str
 
     :return: new class metadata
     :rtype: dict
@@ -1570,7 +1570,7 @@ def create_annotation_class(
         name=name,
         color=color,
         attribute_groups=attribute_groups,
-        class_type=type,
+        class_type=class_type,
     )
     return BaseSerializers(response.data).serialize()
 
@@ -1633,7 +1633,6 @@ def create_annotation_classes_from_classes_json(
     :return: list of created annotation class metadatas
     :rtype: list of dicts
     """
-    classes_json_initial = classes_json
     if isinstance(classes_json, str) or isinstance(classes_json, Path):
         if from_s3_bucket:
             from_session = boto3.Session()
@@ -1650,11 +1649,7 @@ def create_annotation_classes_from_classes_json(
         annotation_classes = parse_obj_as(List[AnnotationClassEntity], classes_json)
     except ValidationError:
         raise AppException("Couldn't validate annotation classes.")
-    logger.info(
-        "Creating annotation classes in project %s from %s.",
-        project,
-        classes_json_initial,
-    )
+    logger.info(f"Creating annotation classes in project {project}.")
     response = Controller.get_default().create_annotation_classes(
         project_name=project, annotation_classes=annotation_classes,
     )
