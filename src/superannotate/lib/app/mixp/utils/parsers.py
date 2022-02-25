@@ -974,14 +974,17 @@ def add_annotation_point_to_image(*args, **kwargs):
 
 def create_annotation_class(*args, **kwargs):
     project = kwargs.get("project", None)
+    class_type = kwargs.get("class_type")
     if not project:
         project = args[0]
-
+    if not class_type and len(args) == 5:
+        class_type = args[4]
     return {
         "event_name": "create_annotation_class",
         "properties": {
             "project_name": get_project_name(project),
             "Attributes": bool(args[3:4] or ("attribute_groups" in kwargs)),
+            "class_type": class_type if class_type else "object"
         },
     }
 

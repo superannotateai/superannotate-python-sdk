@@ -1,5 +1,6 @@
 import json
 import os
+from os.path import dirname
 from pathlib import Path
 from typing import List
 
@@ -44,6 +45,25 @@ class TestGetAnnotations(BaseTestCase):
         parse_obj_as(List[VectorAnnotation], annotations)
 
     @pytest.mark.flaky(reruns=3)
+    def test_get_annotations_order(self):
+        sa.init()
+        sa.upload_images_from_folder_to_project(
+            self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
+        )
+        sa.create_annotation_classes_from_classes_json(
+            self.PROJECT_NAME, f"{self.folder_path}/classes/classes.json"
+        )
+        _, _, _ = sa.upload_annotations_from_folder_to_project(
+            self.PROJECT_NAME, self.folder_path
+        )
+        names = [
+            self.IMAGE_NAME, self.IMAGE_NAME.replace("1", "2"),
+            self.IMAGE_NAME.replace("1", "3"), self.IMAGE_NAME.replace("1", "4")
+        ]
+        annotations = sa.get_annotations(f"{self.PROJECT_NAME}", names)
+        self.assertEqual(names, [i["metadata"]["name"] for i in annotations])
+
+    @pytest.mark.flaky(reruns=3)
     def test_get_annotations_from_folder(self):
         sa.init()
         sa.create_folder(self.PROJECT_NAME, self.FOLDER_NAME)
@@ -79,3 +99,56 @@ class TestGetAnnotations(BaseTestCase):
         )
         annotations = sa.get_annotations(f"{self.PROJECT_NAME}")
         self.assertEqual(len(annotations), 4)
+
+
+class TestGetAnnotationsVideo(BaseTestCase):
+    PROJECT_NAME = "test attach multiple video urls"
+    PATH_TO_URLS = "data_set/video_urls.csv"
+    PATH_TO_URLS_WITHOUT_NAMES = "data_set/attach_urls_with_no_name.csv"
+    PATH_TO_50K_URLS = "data_set/501_urls.csv"
+    PROJECT_DESCRIPTION = "desc"
+    ANNOTATIONS_PATH = "data_set/video_annotations"
+    VIDEO_NAME = "video.mp4"
+    CLASSES_PATH = "data_set/video_annotation/classes/classes.json"
+    PROJECT_TYPE = "Video"
+
+    @property
+    def csv_path(self):
+        return os.path.join(dirname(dirname(dirname(__file__))), self.PATH_TO_URLS)
+
+    @property
+    def classes_path(self):
+        return os.path.join(self.folder_path, self.CLASSES_PATH)
+
+    @property
+    def folder_path(self):
+        return Path(__file__).parent.parent.parent
+
+    @property
+    def annotations_path(self):
+        return os.path.join(self.folder_path, self.ANNOTATIONS_PATH)
+
+    def test_video_annotation_upload_root(self):
+        sa.init()
+        sa.create_annotation_classes_from_classes_json(self.PROJECT_NAME, self.classes_path)
+
+        _, _, _ = sa.attach_video_urls_to_project(
+            self.PROJECT_NAME,
+            self.csv_path,
+        )
+        sa.upload_annotations_from_folder_to_project(self.PROJECT_NAME, self.annotations_path)
+        annotations = sa.get_annotations(self.PROJECT_NAME)
+        self.assertEqual(len(annotations), 2)
+
+    def test_video_annotation_upload_folder(self):
+        sa.init()
+        sa.create_annotation_classes_from_classes_json(self.PROJECT_NAME, self.classes_path)
+        sa.create_folder(self.PROJECT_NAME, "folder")
+        path = f"{self.PROJECT_NAME}/folder"
+        _, _, _ = sa.attach_video_urls_to_project(
+            path,
+            self.csv_path,
+        )
+        sa.upload_annotations_from_folder_to_project(path, self.annotations_path)
+        annotations = sa.get_annotations(path)
+        self.assertEqual(len(annotations), 2)
