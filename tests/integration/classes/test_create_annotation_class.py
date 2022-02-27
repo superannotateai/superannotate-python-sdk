@@ -19,7 +19,7 @@ class TestCreateAnnotationClass(BaseTestCase):
         return os.path.join(DATA_SET_PATH, self.TEST_LARGE_CLASSES_JSON)
 
     def test_create_annotation_class(self):
-        sa.create_annotation_class(self.PROJECT_NAME, "test_add", "#FF0000", type="tag")
+        sa.create_annotation_class(self.PROJECT_NAME, "test_add", "#FF0000", class_type="tag")
         classes = sa.search_annotation_classes(self.PROJECT_NAME)
         self.assertEqual(classes[0]["type"], "tag")
 
@@ -36,7 +36,7 @@ class TestCreateAnnotationClassNonVectorWithError(BaseTestCase):
     def test_create_annotation_class(self):
         msg = ""
         try:
-            sa.create_annotation_class(self.PROJECT_NAME, "test_add", "#FF0000", type="tag")
+            sa.create_annotation_class(self.PROJECT_NAME, "test_add", "#FF0000", class_type="tag")
         except Exception as e:
             msg = str(e)
         self.assertEqual(msg, "Predefined tagging functionality is not supported for projects of type Video.")
