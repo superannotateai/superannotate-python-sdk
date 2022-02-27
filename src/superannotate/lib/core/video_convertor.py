@@ -42,7 +42,7 @@ class VideoFrameGenerator:
         self.fps = fps
         self.ratio = 1000 * 1000 / fps
         self._frame_id = 1
-        self.frames_count = self.duration * fps
+        self.frames_count = int(self.duration * fps)
         self.annotations: dict = {}
         self._mapping = {}
         self._process()
