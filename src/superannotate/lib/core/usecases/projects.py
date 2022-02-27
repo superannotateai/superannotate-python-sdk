@@ -1,6 +1,5 @@
 import copy
 from collections import defaultdict
-from typing import Iterable
 from typing import List
 from typing import Type
 
@@ -125,15 +124,18 @@ class GetProjectMetaDataUseCase(BaseUseCase):
         )
         data["project"] = project
         if self._include_complete_image_count:
-            projects = self._projects.get_all(
-                condition=(
-                    Condition("completeImagesCount", "true", EQ)
-                    & Condition("name", self._project.name, EQ)
-                    & Condition("team_id", self._project.team_id, EQ)
-                )
+            completed_images_data = self._service.bulk_get_folders(
+                self._project.team_id, [project.uuid]
             )
-            if projects:
-                data["project"] = projects[0]
+            root_completed_count = 0
+            total_completed_count = 0
+            for i in completed_images_data['data']:
+                total_completed_count += i['completedCount']
+                if i['is_root']:
+                    root_completed_count = i['completedCount']
+
+            project.root_folder_completed_images_count = root_completed_count
+            project.completed_images_count = total_completed_count
 
         if self._include_annotation_classes:
             self.annotation_classes_use_case.execute()
@@ -168,7 +170,6 @@ class CreateProjectUseCase(BaseUseCase):
         settings: List[ProjectSettingEntity] = None,
         workflows: List[WorkflowEntity] = None,
         annotation_classes: List[AnnotationClassEntity] = None,
-        contributors: Iterable[dict] = None,
     ):
 
         super().__init__()
@@ -180,7 +181,6 @@ class CreateProjectUseCase(BaseUseCase):
         self._workflows_repo = workflows_repo
         self._workflows = workflows
         self._annotation_classes = annotation_classes
-        self._contributors = contributors
         self._backend_service = backend_service_provider
 
     def validate_project_name(self):
@@ -240,28 +240,23 @@ class CreateProjectUseCase(BaseUseCase):
                 )
                 for annotation_class in self._annotation_classes:
                     annotation_classes_mapping[
-                        annotation_class.uuid
+                        annotation_class.id
                     ] = annotation_repo.insert(annotation_class)
                 self._response.data.annotation_classes = self._annotation_classes
             if self._workflows:
-                workflow_repo = self._workflows_repo(self._backend_service, entity)
-                for workflow in self._workflows:
-                    workflow.project_id = entity.uuid
-                    workflow.class_id = annotation_classes_mapping.get(
-                        workflow.class_id
-                    )
-                    workflow_repo.insert(workflow)
+                set_workflow_use_case = SetWorkflowUseCase(
+                    service=self._backend_service,
+                    annotation_classes_repo=self._annotation_classes_repo(
+                        self._backend_service, entity
+                    ),
+                    workflow_repo=self._workflows_repo(self._backend_service, entity),
+                    steps=self._workflows,
+                    project=entity,
+                )
+                set_workflow_response = set_workflow_use_case.execute()
+                if set_workflow_response.errors:
+                    self._response.errors = set_workflow_response.errors
                 data["workflows"] = self._workflows
-
-            if self._contributors:
-                for contributor in self._contributors:
-                    self._backend_service.share_project(
-                        entity.uuid,
-                        entity.team_id,
-                        contributor["user_id"],
-                        constances.UserRole.get_value(contributor["user_role"]),
-                    )
-                data["contributors"] = self._contributors
 
             logger.info(
                 "Created project %s (ID %s) with type %s",
@@ -428,7 +423,7 @@ class CloneProjectUseCase(BaseReportableUseCae):
         for annotation_class in annotation_classes:
             annotation_class_copy = copy.copy(annotation_class)
             annotation_classes_entity_mapping[
-                annotation_class.uuid
+                annotation_class.id
             ] = self.get_annotation_classes_repo(project).insert(annotation_class_copy)
 
     def _copy_include_contributors(self, to_project: ProjectEntity):
@@ -470,7 +465,7 @@ class CloneProjectUseCase(BaseReportableUseCae):
             workflow_data.project_id = to_project.uuid
             workflow_data.class_id = annotation_classes_entity_mapping[
                 workflow.class_id
-            ].uuid
+            ].id
             new_workflows.insert(workflow_data)
             workflows = new_workflows.get_all()
             new_workflow = next(
@@ -488,21 +483,19 @@ class CloneProjectUseCase(BaseReportableUseCae):
                 ].attribute_groups:
                     if (
                         attribute["attribute"]["attribute_group"]["name"]
-                        == annotation_attribute["name"]
+                        == annotation_attribute.name
                     ):
-                        for annotation_attribute_value in annotation_attribute[
-                            "attributes"
-                        ]:
+                        for (
+                            annotation_attribute_value
+                        ) in annotation_attribute.attributes:
                             if (
-                                annotation_attribute_value["name"]
+                                annotation_attribute_value.name
                                 == attribute["attribute"]["name"]
                             ):
                                 workflow_attributes.append(
                                     {
                                         "workflow_id": new_workflow.uuid,
-                                        "attribute_id": annotation_attribute_value[
-                                            "id"
-                                        ],
+                                        "attribute_id": annotation_attribute_value.id,
                                     }
                                 )
                                 break
@@ -692,8 +685,9 @@ class GetWorkflowsUseCase(BaseUseCase):
                 if self._fill_classes:
                     annotation_classes = self._annotation_classes.get_all()
                     for annotation_class in annotation_classes:
-                        annotation_class.uuid = workflow.class_id
-                        workflow_data["className"] = annotation_class.name
+                        if annotation_class.id == workflow.class_id:
+                            workflow_data["className"] = annotation_class.name
+                            break
                 data.append(workflow_data)
             self._response.data = data
         return self._response
@@ -848,12 +842,12 @@ class SetWorkflowUseCase(BaseUseCase):
             annotation_classes_map = {}
             annotations_classes_attributes_map = {}
             for annotation_class in annotation_classes:
-                annotation_classes_map[annotation_class.name] = annotation_class.uuid
+                annotation_classes_map[annotation_class.name] = annotation_class.id
                 for attribute_group in annotation_class.attribute_groups:
-                    for attribute in attribute_group["attributes"]:
+                    for attribute in attribute_group.attributes:
                         annotations_classes_attributes_map[
-                            f"{annotation_class.name}__{attribute_group['name']}__{attribute['name']}"
-                        ] = attribute["id"]
+                            f"{annotation_class.name}__{attribute_group.name}__{attribute.name}"
+                        ] = attribute.id
 
             for step in [step for step in self._steps if "className" in step]:
                 if step.get("id"):

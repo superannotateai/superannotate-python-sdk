@@ -4,20 +4,24 @@ import json
 import os
 from collections import namedtuple
 from typing import List
+from typing import Optional
 from typing import Tuple
 
 import boto3
 import lib.core as constances
+from lib.core.conditions import Condition
+from lib.core.conditions import CONDITION_EQ as EQ
+from lib.core.data_handlers import ChainedAnnotationHandlers
+from lib.core.data_handlers import DocumentTagHandler
+from lib.core.data_handlers import LastActionHandler
+from lib.core.data_handlers import MissingIDsHandler
+from lib.core.data_handlers import VideoFormatHandler
 from lib.core.entities import AnnotationClassEntity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
 from lib.core.entities import ProjectEntity
 from lib.core.entities import TeamEntity
-from lib.core.helpers import convert_to_video_editor_json
-from lib.core.helpers import fill_annotation_ids
-from lib.core.helpers import fill_document_tags
-from lib.core.helpers import handle_last_action
-from lib.core.helpers import map_annotation_classes_name
+from lib.core.exceptions import AppException
 from lib.core.reporter import Reporter
 from lib.core.repositories import BaseManageableRepository
 from lib.core.service_types import UploadAnnotationAuthData
@@ -25,6 +29,7 @@ from lib.core.serviceproviders import SuerannotateServiceProvider
 from lib.core.usecases.base import BaseReportableUseCae
 from lib.core.usecases.images import GetBulkImages
 from lib.core.usecases.images import ValidateAnnotationUseCase
+from lib.core.video_convertor import VideoFrameGenerator
 from superannotate.logger import get_default_logger
 from superannotate_schemas.validators import AnnotationValidators
 
@@ -404,14 +409,6 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
                         "rb",
                     )
 
-    def _is_valid_json(self, json_data: dict):
-        use_case = ValidateAnnotationUseCase(
-            project_type=constances.ProjectType.get_name(self._project.project_type),
-            annotation=json_data,
-            validators=self._validators,
-        )
-        return not use_case.execute().errors
-
     @staticmethod
     def prepare_annotations(
         project_type: int,
@@ -421,28 +418,21 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
         reporter: Reporter,
         team: TeamEntity,
     ) -> dict:
-        annotation_classes_name_maps = map_annotation_classes_name(
-            annotation_classes, reporter
-        )
+        handlers_chain = ChainedAnnotationHandlers()
         if project_type in (
             constances.ProjectType.VECTOR.value,
             constances.ProjectType.PIXEL.value,
             constances.ProjectType.DOCUMENT.value,
         ):
-            fill_annotation_ids(
-                annotations=annotations,
-                annotation_classes_name_maps=annotation_classes_name_maps,
-                templates=templates,
-                reporter=reporter,
+            handlers_chain.attach(
+                MissingIDsHandler(annotation_classes, templates, reporter)
             )
         elif project_type == constances.ProjectType.VIDEO.value:
-            annotations = convert_to_video_editor_json(
-                annotations, annotation_classes_name_maps, reporter
-            )
+            handlers_chain.attach(VideoFormatHandler(annotation_classes, reporter))
         if project_type == constances.ProjectType.DOCUMENT.value:
-            fill_document_tags(annotations, annotation_classes_name_maps)
-        handle_last_action(annotations, team)
-        return annotations
+            handlers_chain.attach(DocumentTagHandler(annotation_classes))
+        handlers_chain.attach(LastActionHandler(team.creator_id))
+        return handlers_chain.handle(annotations)
 
     def clean_json(self, json_data: dict,) -> Tuple[bool, dict]:
         use_case = ValidateAnnotationUseCase(
@@ -497,4 +487,138 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
                 self.reporter.log_warning(
                     f"Couldn't validate annotations. {constances.USE_VALIDATE_MESSAGE}"
                 )
+        return self._response
+
+
+class GetAnnotations(BaseReportableUseCae):
+    def __init__(
+            self,
+            reporter: Reporter,
+            project: ProjectEntity,
+            folder: FolderEntity,
+            images: BaseManageableRepository,
+            item_names: Optional[List[str]],
+            backend_service_provider: SuerannotateServiceProvider,
+            show_process: bool = True
+    ):
+        super().__init__(reporter)
+        self._project = project
+        self._folder = folder
+        self._images = images
+        self._item_names = item_names
+        self._client = backend_service_provider
+        self._show_process = show_process
+        self._item_names_provided = True
+
+    def validate_project_type(self):
+        if self._project.project_type == constances.ProjectType.PIXEL.value:
+            raise AppException("The function is not supported for Pixel projects.")
+
+    def validate_item_names(self):
+        if self._item_names:
+            item_names = list(dict.fromkeys(self._item_names))
+            len_unique_items, len_items = len(item_names), len(self._item_names)
+            if len_unique_items < len_items:
+                self.reporter.log_info(
+                    f"Dropping duplicates. Found {len_unique_items}/{len_items} unique items."
+                )
+                self._item_names = item_names
+        else:
+            self._item_names_provided = False
+            condition = (
+                    Condition("team_id", self._project.team_id, EQ)
+                    & Condition("project_id", self._project.uuid, EQ)
+                    & Condition("folder_id", self._folder.uuid, EQ)
+            )
+
+            self._item_names = [item.name for item in self._images.get_all(condition)]
+
+    def _prettify_annotations(self, annotations: List[dict]):
+
+        if self._item_names_provided:
+            try:
+                data = []
+                for annotation in annotations:
+                   data.append((self._item_names.index(annotation["metadata"]["name"]), annotation))
+                return [i[1] for i in sorted(data, key=lambda x: x[0])]
+            except KeyError:
+                raise AppException("Broken data.")
+        return annotations
+
+    def execute(self):
+        if self.is_valid():
+            items_count = len(self._item_names)
+            self.reporter.log_info(
+                f"Getting {items_count} annotations from "
+                f"{self._project.name}{f'/{self._folder.name}' if self._folder.name != 'root' else ''}."
+            )
+            self.reporter.start_progress(items_count, disable=not self._show_process)
+            annotations = self._client.get_annotations(
+                team_id=self._project.team_id,
+                project_id=self._project.uuid,
+                folder_id=self._folder.uuid,
+                items=self._item_names,
+                reporter=self.reporter
+            )
+            received_items_count = len(annotations)
+            self.reporter.finish_progress()
+            if items_count > received_items_count:
+                self.reporter.log_warning(
+                    f"Could not find annotations for {items_count - received_items_count}/{items_count} items."
+                )
+            self._response.data = self._prettify_annotations(annotations)
+        return self._response
+
+
+class GetVideoAnnotationsPerFrame(BaseReportableUseCae):
+    def __init__(
+            self,
+            reporter: Reporter,
+            project: ProjectEntity,
+            folder: FolderEntity,
+            images: BaseManageableRepository,
+            video_name: str,
+            fps: int,
+            backend_service_provider: SuerannotateServiceProvider
+    ):
+        super().__init__(reporter)
+        self._project = project
+        self._folder = folder
+        self._images = images
+        self._video_name = video_name
+        self._fps = fps
+        self._client = backend_service_provider
+
+    def validate_project_type(self):
+        if self._project.project_type != constances.ProjectType.VIDEO.value:
+            raise AppException("The function only supports video projects.")
+
+    def execute(self):
+        self.reporter.disable_info()
+        response = GetAnnotations(
+            reporter=self.reporter,
+            project=self._project,
+            folder=self._folder,
+            images=self._images,
+            item_names=[self._video_name],
+            backend_service_provider=self._client,
+            show_process=False
+        ).execute()
+        self.reporter.enable_info()
+        if response.data:
+            generator = VideoFrameGenerator(response.data[0], fps=self._fps)
+
+            self.reporter.log_info(f"Getting annotations for {generator.frames_count} frames from {self._video_name}.")
+            if response.errors:
+                self._response.errors = response.errors
+                return self._response
+            if not response.data:
+                self._response.errors = AppException(f"Video {self._video_name} not found.")
+            annotations = response.data
+            if annotations:
+                self._response.data = list(generator)
+            else:
+                self._response.data = []
+        else:
+            self._response.errors = "Couldn't get annotations."
         return self._response

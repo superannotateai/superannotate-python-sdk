@@ -1,6 +1,7 @@
 from abc import ABC
 
 import superannotate.lib.core as constance
+from pydantic import BaseModel
 from superannotate.lib.core.entities import BaseEntity
 from superannotate.lib.core.entities import ImageEntity
 from superannotate.lib.core.entities import ProjectEntity
@@ -13,6 +14,8 @@ class BaseSerializers(ABC):
     def serialize(self):
         if isinstance(self._entity, dict):
             return self._entity
+        if isinstance(self._entity, BaseModel):
+            return self._entity.dict(by_alias=True)
         return self._entity.to_dict()
 
 
@@ -111,3 +114,4 @@ class SettingsSerializer(BaseSerializers):
         if data["attribute"] == "ImageQuality":
             data["value"] = constance.ImageQuality.get_name(data["value"])
         return data
+

@@ -22,7 +22,9 @@ from lib.core.entities import ConfigEntity
 from lib.infrastructure.controller import Controller
 from lib.infrastructure.repositories import ConfigRepository
 
-controller = Controller.get_instance()
+
+controller = Controller()
+controller.retrieve_configs(constances.CONFIG_FILE_LOCATION)
 
 
 class CLIFacade(BaseInterfaceFacade):
@@ -71,7 +73,6 @@ class CLIFacade(BaseInterfaceFacade):
         To create a new project
         """
         create_project(name, description, type)
-        sys.exit(0)
 
     def create_folder(self, project: str, name: str):
         """
@@ -123,7 +124,7 @@ class CLIFacade(BaseInterfaceFacade):
         folders = None
         if folder_name:
             folders = [folder_name]
-        export_res = self.controller.prepare_export(
+        export_res = controller.prepare_export(
             project_name, folders, include_fuse, False, annotation_statuses
         )
         export_name = export_res.data["name"]
@@ -186,8 +187,9 @@ class CLIFacade(BaseInterfaceFacade):
     def _upload_annotations(
         self, project, folder, format, dataset_name, task, pre=True
     ):
+        project_folder_name = project
         project_name, folder_name = split_project_path(project)
-        project = self.controller.get_project_metadata(project_name=project_name).data
+        project = controller.get_project_metadata(project_name=project_name).data
         if not format:
             format = "SuperAnnotate"
         if not dataset_name and format == "COCO":
@@ -212,11 +214,11 @@ class CLIFacade(BaseInterfaceFacade):
                 annotations_path = temp_dir
             if pre:
                 upload_preannotations_from_folder_to_project(
-                    project_name, annotations_path
+                    project_folder_name, annotations_path
                 )
             else:
                 upload_annotations_from_folder_to_project(
-                    project_name, annotations_path
+                    project_folder_name, annotations_path
                 )
         sys.exit(0)
 

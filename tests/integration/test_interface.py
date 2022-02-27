@@ -4,7 +4,7 @@ import tempfile
 import pytest
 
 import src.superannotate as sa
-from src.superannotate.lib.app.exceptions import AppException
+from src.superannotate import AppException
 from tests.integration.base import BaseTestCase
 
 
@@ -38,6 +38,13 @@ class TestInterface(BaseTestCase):
     def folder_path_with_multiple_images(self):
         return os.path.join(dirname(dirname(__file__)), self.TEST_FOLDER_PATH_WITH_MULTIPLE_IMAGERS)
 
+    # def test_set_auth_token(self):
+    #     try:
+    #         sa.set_auth_token("1234=12")
+    #         sa.get_team_metadata()
+    #     except Exception as err:
+    #         self.assertEqual(str(err), "Can't get team data.")
+
     @pytest.mark.flaky(reruns=2)
     def test_delete_images(self):
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME)
@@ -66,7 +73,9 @@ class TestInterface(BaseTestCase):
         metadata = sa.get_project_metadata(self.PROJECT_NAME)
         self.assertIsNotNone(metadata["id"])
         self.assertListEqual(metadata.get("contributors", []), [])
-        metadata_with_users = sa.get_project_metadata(self.PROJECT_NAME, include_contributors=True)
+        sa.create_annotation_class(self.PROJECT_NAME, "tt", "#FFFFFF", class_type="tag")
+        metadata_with_users = sa.get_project_metadata(self.PROJECT_NAME, include_annotation_classes=True, include_contributors=True)
+        self.assertEqual(metadata_with_users['classes'][0]['type'], 'tag')
         self.assertIsNotNone(metadata_with_users.get("contributors"))
 
     def test_upload_annotations_from_folder_to_project(self):

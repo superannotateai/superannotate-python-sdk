@@ -12,6 +12,7 @@ from PIL import Image
 class TestFolders(TestCase):
     VECTOR_PROJECT_NAME = "vector test fuse"
     PIXEL_PROJECT_NAME = "pixel test fuse"
+    PIXEL_PROJECT_NAME_FOR_FUSE = "pixel test fuse 1"
     TEST_VECTOR_FOLDER_PATH = "data_set/sample_project_vector"
     TEST_PIXEL_FOLDER_PATH = "data_set/sample_project_pixel"
     PROJECT_DESCRIPTION = "desc"
@@ -31,11 +32,16 @@ class TestFolders(TestCase):
             cls.PIXEL_PROJECT_NAME, cls.PROJECT_DESCRIPTION, "Pixel"
         )
 
+        cls._pixel_project_2 = sa.create_project(
+            cls.PIXEL_PROJECT_NAME_FOR_FUSE, cls.PROJECT_DESCRIPTION, "Pixel"
+        )
+
     @classmethod
     def tearDownClass(cls) -> None:
         projects = sa.search_projects(
             cls.VECTOR_PROJECT_NAME, return_metadata=True
-        ) + sa.search_projects(cls.PIXEL_PROJECT_NAME, return_metadata=True)
+        ) + sa.search_projects(cls.PIXEL_PROJECT_NAME, return_metadata=True) + \
+                   sa.search_projects(cls.PIXEL_PROJECT_NAME_FOR_FUSE,return_metadata=True)
         for project in projects:
             sa.delete_project(project)
 
@@ -157,19 +163,19 @@ class TestFolders(TestCase):
             temp_dir = pathlib.Path(temp_dir)
 
             sa.upload_image_to_project(
-                self.PIXEL_PROJECT_NAME,
+                self.PIXEL_PROJECT_NAME_FOR_FUSE,
                 f"{self.pixel_folder_path}/{self.EXAMPLE_IMAGE_1}",
                 annotation_status="QualityCheck",
             )
             sa.upload_image_annotations(
-                project=self.PIXEL_PROJECT_NAME,
+                project=self.PIXEL_PROJECT_NAME_FOR_FUSE,
                 image_name=self.EXAMPLE_IMAGE_1,
                 annotation_json=f"{self.pixel_folder_path}/{self.EXAMPLE_IMAGE_1}___pixel.json",
                 mask=f"{self.pixel_folder_path}/{self.EXAMPLE_IMAGE_1}___save.png",
             )
 
             sa.download_image(
-                self.PIXEL_PROJECT_NAME,
+                self.PIXEL_PROJECT_NAME_FOR_FUSE,
                 self.EXAMPLE_IMAGE_1,
                 temp_dir,
                 include_annotations=True,

@@ -31,6 +31,9 @@ class BaseTitledEnum(Enum):
     def titles(cls):
         return [enum.name for enum in list(cls)]
 
+    def equals(self, other: Enum):
+        return self.name.lower() == other.lower()
+
 
 class ProjectType(BaseTitledEnum):
     VECTOR = "Vector", 1
@@ -73,6 +76,18 @@ class AnnotationStatus(BaseTitledEnum):
     RETURNED = "Returned", 4
     COMPLETED = "Completed", 5
     SKIPPED = "Skipped", 6
+
+
+class ClassTypeEnum(BaseTitledEnum):
+    OBJECT = "object", 1
+    TAG = "tag", 2
+
+    @classmethod
+    def get_value(cls, name):
+        for enum in list(cls):
+            if enum.name.lower() == name.lower():
+                return enum.value
+        return "object"
 
 
 class TrainingStatus(BaseTitledEnum):

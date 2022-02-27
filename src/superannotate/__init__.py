@@ -5,6 +5,7 @@ import sys
 import requests
 import superannotate.lib.core as constances
 from packaging.version import parse
+from superannotate.lib import get_default_controller
 from superannotate.lib.app.analytics.class_analytics import class_distribution
 from superannotate.lib.app.exceptions import AppException
 from superannotate.lib.app.input_converters.conversion import convert_json_version
@@ -28,7 +29,6 @@ from superannotate.lib.app.interface.sdk_interface import attach_video_urls_to_p
 from superannotate.lib.app.interface.sdk_interface import benchmark
 from superannotate.lib.app.interface.sdk_interface import clone_project
 from superannotate.lib.app.interface.sdk_interface import consensus
-from superannotate.lib.app.interface.sdk_interface import controller
 from superannotate.lib.app.interface.sdk_interface import copy_image
 from superannotate.lib.app.interface.sdk_interface import copy_images
 from superannotate.lib.app.interface.sdk_interface import create_annotation_class
@@ -50,6 +50,8 @@ from superannotate.lib.app.interface.sdk_interface import download_export
 from superannotate.lib.app.interface.sdk_interface import download_image
 from superannotate.lib.app.interface.sdk_interface import download_image_annotations
 from superannotate.lib.app.interface.sdk_interface import download_model
+from superannotate.lib.app.interface.sdk_interface import get_annotations
+from superannotate.lib.app.interface.sdk_interface import get_annotations_per_frame
 from superannotate.lib.app.interface.sdk_interface import get_exports
 from superannotate.lib.app.interface.sdk_interface import get_folder_metadata
 from superannotate.lib.app.interface.sdk_interface import get_image_annotations
@@ -109,9 +111,14 @@ from superannotate.lib.app.interface.sdk_interface import validate_annotations
 from superannotate.logger import get_default_logger
 from superannotate.version import __version__
 
+
+controller = get_default_controller()
+
+
 __all__ = [
     "__version__",
     "controller",
+    "constances",
     # Utils
     "AppException",
     "validate_annotations",
@@ -122,6 +129,9 @@ __all__ = [
     "class_distribution",
     "aggregate_annotations_as_df",
     "get_exports",
+    # annotations
+    "get_annotations",
+    "get_annotations_per_frame",
     # converters
     "convert_json_version",
     "import_annotation",
@@ -235,4 +245,5 @@ def log_version_info():
             )
 
 
-log_version_info()
+if not os.environ.get("SA_VERSION_CHECK", "True").lower() == "false":
+    log_version_info()

@@ -39,7 +39,9 @@ class TestAnnotationClasses(TestCase):
 
     def test_create_annotation_class(self):
         sa.create_annotation_class(self.PROJECT_NAME, "tt", "#FFFFFF")
-        self.assertEqual(len(sa.search_annotation_classes(self.PROJECT_NAME)), 1)
+        classes = sa.search_annotation_classes(self.PROJECT_NAME)
+        self.assertEqual(len(classes), 1)
+        self.assertEqual(classes[0]['type'], 'object')
         sa.create_annotation_class(self.PROJECT_NAME, "tt", "#FFFFFF")
         self.assertEqual(len(sa.search_annotation_classes(self.PROJECT_NAME)), 1)
 

@@ -21,6 +21,7 @@ from lib.app.helpers import get_paths_and_duplicated_from_csv
 from lib.app.interface.types import AnnotationStatuses
 from lib.app.interface.types import AnnotationType
 from lib.app.interface.types import AnnotatorRole
+from lib.app.interface.types import ClassType
 from lib.app.interface.types import EmailStr
 from lib.app.interface.types import ImageQualityChoices
 from lib.app.interface.types import NotEmptyStr
@@ -33,25 +34,26 @@ from lib.app.serializers import ProjectSerializer
 from lib.app.serializers import SettingsSerializer
 from lib.app.serializers import TeamSerializer
 from lib.core import LIMITED_FUNCTIONS
+from lib.core.entities.project_entities import AnnotationClassEntity
 from lib.core.enums import ImageQuality
 from lib.core.exceptions import AppException
 from lib.core.types import AttributeGroup
-from lib.core.types import ClassesJson
 from lib.core.types import MLModel
 from lib.core.types import Project
 from lib.infrastructure.controller import Controller
 from pydantic import conlist
 from pydantic import parse_obj_as
 from pydantic import StrictBool
+from pydantic.error_wrappers import ValidationError
 from superannotate.logger import get_default_logger
 from tqdm import tqdm
 
-controller = Controller.get_instance()
+
 logger = get_default_logger()
 
 
 @validate_arguments
-def init(path_to_config_json: Optional[str] = None):
+def init(path_to_config_json: Optional[str] = None, token: str = None):
     """
     Initializes and authenticates to SuperAnnotate platform using the config file.
     If not initialized then $HOME/.superannotate/config.json
@@ -59,14 +61,16 @@ def init(path_to_config_json: Optional[str] = None):
 
     :param path_to_config_json: Location to config JSON file
     :type path_to_config_json: str or Path
+
+    :param token: Team token
+    :type token: str
     """
-    global controller
-    controller.init(path_to_config_json)
+    Controller.set_default(Controller(config_path=path_to_config_json, token=token))
 
 
 @validate_arguments
 def set_auth_token(token: str):
-    controller.set_token(token)
+    Controller.get_default().set_token(token)
 
 
 @Trackable
@@ -77,7 +81,7 @@ def get_team_metadata():
     :return: team metadata
     :rtype: dict
     """
-    response = controller.get_team()
+    response = Controller.get_default().get_team()
     return TeamSerializer(response.data).serialize()
 
 
@@ -104,7 +108,7 @@ def search_team_contributors(
     :rtype: list of dicts
     """
 
-    contributors = controller.search_team_contributors(
+    contributors = Controller.get_default().search_team_contributors(
         email=email, first_name=first_name, last_name=last_name
     ).data
     if not return_metadata:
@@ -135,7 +139,7 @@ def search_projects(
     :return: project names or metadatas
     :rtype: list of strs or dicts
     """
-    result = controller.search_project(
+    result = Controller.get_default().search_project(
         name=name, include_complete_image_count=include_complete_image_count
     ).data
     if return_metadata:
@@ -163,7 +167,7 @@ def create_project(
     :return: dict object metadata the new project
     :rtype: dict
     """
-    response = controller.create_project(
+    response = Controller.get_default().create_project(
         name=project_name, description=project_description, project_type=project_type
     )
     if response.errors:
@@ -177,20 +181,19 @@ def create_project(
 def create_project_from_metadata(project_metadata: Project):
     """Create a new project in the team using project metadata object dict.
     Mandatory keys in project_metadata are "name", "description" and "type" (Vector or Pixel)
-    Non-mandatory keys: "workflow", "contributors", "settings" and "annotation_classes".
+    Non-mandatory keys: "workflow", "settings" and "annotation_classes".
 
     :return: dict object metadata the new project
     :rtype: dict
     """
     project_metadata = project_metadata.dict()
-    response = controller.create_project(
+    response = Controller.get_default().create_project(
         name=project_metadata["name"],
         description=project_metadata["description"],
         project_type=project_metadata["type"],
-        contributors=project_metadata.get("contributors", []),
         settings=project_metadata.get("settings", []),
         annotation_classes=project_metadata.get("classes", []),
-        workflows=project_metadata.get("workflow", []),
+        workflows=project_metadata.get("workflows", []),
     )
     if response.errors:
         raise AppException(response.errors)
@@ -229,7 +232,7 @@ def clone_project(
     :return: dict object metadata of the new project
     :rtype: dict
     """
-    response = controller.clone_project(
+    response = Controller.get_default().clone_project(
         name=project_name,
         from_name=from_project,
         project_description=project_description,
@@ -269,9 +272,9 @@ def search_images(
     """
 
     project_name, folder_name = extract_project_folder(project)
-    project = controller._get_project(project_name)
+    project = Controller.get_default()._get_project(project_name)
 
-    response = controller.search_images(
+    response = Controller.get_default().search_images(
         project_name=project_name,
         folder_path=folder_name,
         annotation_status=annotation_status,
@@ -302,7 +305,7 @@ def create_folder(project: NotEmptyStr, folder_name: NotEmptyStr):
     :rtype: dict
     """
 
-    res = controller.create_folder(project=project, folder_name=folder_name)
+    res = Controller.get_default().create_folder(project=project, folder_name=folder_name)
     if res.data:
         folder = res.data
         logger.info(f"Folder {folder.name} created in project {project}")
@@ -322,7 +325,7 @@ def delete_project(project: Union[NotEmptyStr, dict]):
     name = project
     if isinstance(project, dict):
         name = project["name"]
-    controller.delete_project(name=name)
+    Controller.get_default().delete_project(name=name)
 
 
 @Trackable
@@ -336,7 +339,7 @@ def rename_project(project: NotEmptyStr, new_name: NotEmptyStr):
     :type new_name: str
     """
 
-    response = controller.update_project(name=project, project_data={"name": new_name})
+    response = Controller.get_default().update_project(name=project, project_data={"name": new_name})
     if response.errors:
         raise AppException(response.errors)
 
@@ -358,7 +361,7 @@ def get_folder_metadata(project: NotEmptyStr, folder_name: NotEmptyStr):
     :return: metadata of folder
     :rtype: dict
     """
-    result = controller.get_folder(project_name=project, folder_name=folder_name).data
+    result = Controller.get_default().get_folder(project_name=project, folder_name=folder_name).data
     if not result:
         raise AppException("Folder not found.")
     return result.to_dict()
@@ -375,7 +378,7 @@ def delete_folders(project: NotEmptyStr, folder_names: List[NotEmptyStr]):
     :type folder_names: list of strs
     """
 
-    res = controller.delete_folders(project_name=project, folder_names=folder_names)
+    res = Controller.get_default().delete_folders(project_name=project, folder_names=folder_names)
     if res.errors:
         raise AppException(res.errors)
     logger.info(f"Folders {folder_names} deleted in project {project}")
@@ -395,7 +398,7 @@ def get_project_and_folder_metadata(project: Union[NotEmptyStr, dict]):
     """
     project_name, folder_name = extract_project_folder(project)
     project = ProjectSerializer(
-        controller.search_project(project_name).data[0]
+        Controller.get_default().search_project(project_name).data[0]
     ).serialize()
     folder = None
     if folder_name:
@@ -423,7 +426,7 @@ def search_folders(
     :rtype: list of strs or dicts
     """
 
-    response = controller.search_folders(
+    response = Controller.get_default().search_folders(
         project_name=project, folder_name=folder_name, include_users=return_metadata
     )
     if response.errors:
@@ -467,8 +470,8 @@ def copy_image(
     destination_project, destination_folder = extract_project_folder(
         destination_project
     )
-    source_project_metadata = controller.get_project_metadata(source_project_name).data
-    destination_project_metadata = controller.get_project_metadata(
+    source_project_metadata = Controller.get_default().get_project_metadata(source_project_name).data
+    destination_project_metadata = Controller.get_default().get_project_metadata(
         destination_project
     ).data
 
@@ -483,7 +486,7 @@ def copy_image(
             LIMITED_FUNCTIONS[source_project_metadata["project"].project_type]
         )
 
-    response = controller.copy_image(
+    response = Controller.get_default().copy_image(
         from_project_name=source_project_name,
         from_folder_name=source_folder_name,
         to_project_name=destination_project,
@@ -495,7 +498,7 @@ def copy_image(
         raise AppException(response.errors)
 
     if include_annotations:
-        controller.copy_image_annotation_classes(
+        Controller.get_default().copy_image_annotation_classes(
             from_project_name=source_project_name,
             from_folder_name=source_folder_name,
             to_folder_name=destination_folder,
@@ -503,7 +506,7 @@ def copy_image(
             image_name=image_name,
         )
     if copy_pin:
-        controller.update_image(
+        Controller.get_default().update_image(
             project_name=destination_project,
             folder_name=destination_folder,
             image_name=image_name,
@@ -544,10 +547,16 @@ def upload_images_from_public_urls_to_project(
      and not-uploaded images' urls
     :rtype: tuple of list of strs
     """
+    warning_msg = (
+        "The upload_images_from_public_urls function is deprecated and will be removed with the coming release, "
+        "please use attach_image_urls_to_project instead."
+    )
+    logger.warning(warning_msg)
+    warnings.warn(warning_msg, DeprecationWarning)
 
     project_name, folder_name = extract_project_folder(project)
 
-    use_case = controller.upload_images_from_public_urls_to_project(
+    use_case = Controller.get_default().upload_images_from_public_urls_to_project(
         project_name=project_name,
         folder_name=folder_name,
         image_urls=img_urls,
@@ -598,12 +607,12 @@ def copy_images(
             "Source and destination projects should be the same for copy_images"
         )
     if not image_names:
-        images = controller.search_images(
+        images = Controller.get_default().search_images(
             project_name=project_name, folder_path=source_folder_name
         ).data
         image_names = [image.name for image in images]
 
-    res = controller.bulk_copy_images(
+    res = Controller.get_default().bulk_copy_images(
         project_name=project_name,
         from_folder_name=source_folder_name,
         to_folder_name=destination_folder_name,
@@ -651,7 +660,7 @@ def move_images(
     """
     project_name, source_folder_name = extract_project_folder(source_project)
 
-    project = controller.get_project_metadata(project_name).data
+    project = Controller.get_default().get_project_metadata(project_name).data
     if project["project"].project_type in [
         constances.ProjectType.VIDEO.value,
         constances.ProjectType.DOCUMENT.value,
@@ -668,13 +677,13 @@ def move_images(
         )
 
     if not image_names:
-        images = controller.search_images(
+        images = Controller.get_default().search_images(
             project_name=project_name, folder_path=source_folder_name
         )
         images = images.data
         image_names = [image.name for image in images]
 
-    response = controller.bulk_move_images(
+    response = Controller.get_default().bulk_move_images(
         project_name=project_name,
         from_folder_name=source_folder_name,
         to_folder_name=destination_folder_name,
@@ -734,7 +743,7 @@ def get_project_metadata(
     :rtype: dict
     """
     project_name, folder_name = extract_project_folder(project)
-    response = controller.get_project_metadata(
+    response = Controller.get_default().get_project_metadata(
         project_name,
         include_annotation_classes,
         include_settings,
@@ -773,7 +782,7 @@ def get_project_settings(project: Union[NotEmptyStr, dict]):
     :rtype: list of dicts
     """
     project_name, folder_name = extract_project_folder(project)
-    settings = controller.get_project_settings(project_name=project_name)
+    settings = Controller.get_default().get_project_settings(project_name=project_name)
     settings = [
         SettingsSerializer(attribute).serialize() for attribute in settings.data
     ]
@@ -794,7 +803,7 @@ def get_project_workflow(project: Union[str, dict]):
     :rtype: list of dicts
     """
     project_name, folder_name = extract_project_folder(project)
-    workflow = controller.get_project_workflow(project_name=project_name)
+    workflow = Controller.get_default().get_project_workflow(project_name=project_name)
     if workflow.errors:
         raise AppException(workflow.errors)
     return workflow.data
@@ -817,7 +826,7 @@ def search_annotation_classes(
     :rtype: list of dicts
     """
     project_name, folder_name = extract_project_folder(project)
-    classes = controller.search_annotation_classes(project_name, name_prefix)
+    classes = Controller.get_default().search_annotation_classes(project_name, name_prefix)
     classes = [BaseSerializers(attribute).serialize() for attribute in classes.data]
     return classes
 
@@ -837,7 +846,7 @@ def set_project_default_image_quality_in_editor(
     project_name, folder_name = extract_project_folder(project)
     image_quality_in_editor = ImageQuality.get_value(image_quality_in_editor)
 
-    response = controller.set_project_settings(
+    response = Controller.get_default().set_project_settings(
         project_name=project_name,
         new_settings=[{"attribute": "ImageQuality", "value": image_quality_in_editor}],
     )
@@ -861,7 +870,7 @@ def pin_image(
     :type pin: bool
     """
     project_name, folder_name = extract_project_folder(project)
-    controller.update_image(
+    Controller.get_default().update_image(
         project_name=project_name,
         image_name=image_name,
         folder_name=folder_name,
@@ -885,8 +894,8 @@ def get_image_metadata(
     :rtype: dict
     """
     project_name, folder_name = extract_project_folder(project)
-    project = controller._get_project(project_name)
-    response = controller.get_image_metadata(project_name, folder_name, image_name)
+    project = Controller.get_default()._get_project(project_name)
+    response = Controller.get_default().get_image_metadata(project_name, folder_name, image_name)
 
     if response.errors:
         raise AppException(response.errors)
@@ -911,7 +920,7 @@ def set_images_annotation_statuses(
     :type annotation_status: str
     """
     project_name, folder_name = extract_project_folder(project)
-    response = controller.set_images_annotation_statuses(
+    response = Controller.get_default().set_images_annotation_statuses(
         project_name, folder_name, image_names, annotation_status
     )
     if response.errors:
@@ -936,7 +945,7 @@ def delete_images(
     if not isinstance(image_names, list) and image_names is not None:
         raise AppException("Image_names should be a list of str or None.")
 
-    response = controller.delete_images(
+    response = Controller.get_default().delete_images(
         project_name=project_name, folder_name=folder_name, image_names=image_names
     )
     if response.errors:
@@ -962,7 +971,7 @@ def assign_images(project: Union[NotEmptyStr, dict], image_names: List[str], use
     :type user: str
     """
     project_name, folder_name = extract_project_folder(project)
-    project = controller.get_project_metadata(project_name).data
+    project = Controller.get_default().get_project_metadata(project_name).data
 
     if project["project"].project_type in [
         constances.ProjectType.VIDEO.value,
@@ -973,7 +982,7 @@ def assign_images(project: Union[NotEmptyStr, dict], image_names: List[str], use
     if not folder_name:
         folder_name = "root"
     contributors = (
-        controller.get_project_metadata(
+        Controller.get_default().get_project_metadata(
             project_name=project_name, include_contributors=True
         )
         .data["project"]
@@ -990,7 +999,7 @@ def assign_images(project: Union[NotEmptyStr, dict], image_names: List[str], use
         )
         return
 
-    response = controller.assign_images(project_name, folder_name, image_names, user)
+    response = Controller.get_default().assign_images(project_name, folder_name, image_names, user)
     if not response.errors:
         logger.info(f"Assign images to user {user}")
     else:
@@ -1011,7 +1020,7 @@ def unassign_images(project: Union[NotEmptyStr, dict], image_names: List[NotEmpt
     """
     project_name, folder_name = extract_project_folder(project)
 
-    response = controller.un_assign_images(
+    response = Controller.get_default().un_assign_images(
         project_name=project_name, folder_name=folder_name, image_names=image_names
     )
     if response.errors:
@@ -1030,7 +1039,7 @@ def unassign_folder(project_name: NotEmptyStr, folder_name: NotEmptyStr):
     :param folder_name: folder name to remove assignees
     :type folder_name: str
     """
-    response = controller.un_assign_folder(
+    response = Controller.get_default().un_assign_folder(
         project_name=project_name, folder_name=folder_name
     )
     if response.errors:
@@ -1054,7 +1063,7 @@ def assign_folder(
     """
 
     contributors = (
-        controller.get_project_metadata(
+        Controller.get_default().get_project_metadata(
             project_name=project_name, include_contributors=True
         )
         .data["project"]
@@ -1072,7 +1081,7 @@ def assign_folder(
     if not verified_users:
         return
 
-    response = controller.assign_folder(
+    response = Controller.get_default().assign_folder(
         project_name=project_name, folder_name=folder_name, users=list(verified_users)
     )
 
@@ -1103,11 +1112,11 @@ def share_project(
     if isinstance(user, dict):
         user_id = user["id"]
     else:
-        response = controller.search_team_contributors(email=user)
+        response = Controller.get_default().search_team_contributors(email=user)
         if not response.data:
             raise AppException(f"User {user} not found.")
         user_id = response.data[0]["id"]
-    response = controller.share_project(
+    response = Controller.get_default().share_project(
         project_name=project_name, user_id=user_id, user_role=user_role
     )
     if response.errors:
@@ -1131,8 +1140,14 @@ def get_image_annotations(project: Union[NotEmptyStr, dict], image_name: NotEmpt
         "annotation_mask_filename": mask filename on server
     :rtype: dict
     """
+    warning_msg = (
+        "The get_image_annotations function is deprecated and will be removed with the coming releases, "
+        "please use get_annotations instead."
+    )
+    logger.warning(warning_msg)
+    warnings.warn(warning_msg, DeprecationWarning)
     project_name, folder_name = extract_project_folder(project)
-    res = controller.get_image_annotations(
+    res = Controller.get_default().get_image_annotations(
         project_name=project_name, folder_name=folder_name, image_name=image_name
     )
     if res.errors:
@@ -1222,7 +1237,7 @@ def upload_images_from_folder_to_project(
         exclude_file_patterns,
     )
 
-    use_case = controller.upload_images_from_folder_to_project(
+    use_case = Controller.get_default().upload_images_from_folder_to_project(
         project_name=project_name,
         folder_name=folder_name,
         folder_path=folder_path,
@@ -1269,7 +1284,7 @@ def get_project_image_count(
 
     project_name, folder_name = extract_project_folder(project)
 
-    response = controller.get_project_image_count(
+    response = Controller.get_default().get_project_image_count(
         project_name=project_name,
         folder_name=folder_name,
         with_all_subfolders=with_all_subfolders,
@@ -1300,7 +1315,7 @@ def download_image_annotations(
     :rtype: tuple
     """
     project_name, folder_name = extract_project_folder(project)
-    res = controller.download_image_annotations(
+    res = Controller.get_default().download_image_annotations(
         project_name=project_name,
         folder_name=folder_name,
         image_name=image_name,
@@ -1324,7 +1339,7 @@ def get_exports(project: NotEmptyStr, return_metadata: Optional[StrictBool] = Fa
     :return: names or metadata objects of the all prepared exports of the project
     :rtype: list of strs or dicts
     """
-    response = controller.get_exports(
+    response = Controller.get_default().get_exports(
         project_name=project, return_metadata=return_metadata
     )
     return response.data
@@ -1372,7 +1387,7 @@ def prepare_export(
             constances.AnnotationStatus.COMPLETED.name,
             constances.AnnotationStatus.SKIPPED.name,
         ]
-    response = controller.prepare_export(
+    response = Controller.get_default().prepare_export(
         project_name=project_name,
         folder_names=folders,
         include_fuse=include_fuse,
@@ -1449,7 +1464,7 @@ def upload_videos_from_folder_to_project(
                 video_paths += list(Path(folder_path).rglob(f"*.{extension.upper()}"))
 
     video_paths = [str(path) for path in video_paths]
-    response = controller.upload_videos(
+    response = Controller.get_default().upload_videos(
         project_name=project_name,
         folder_name=folder_name,
         paths=video_paths,
@@ -1503,7 +1518,7 @@ def upload_video_to_project(
 
     project_name, folder_name = extract_project_folder(project)
 
-    response = controller.upload_videos(
+    response = Controller.get_default().upload_videos(
         project_name=project_name,
         folder_name=folder_name,
         paths=[video_path],
@@ -1525,6 +1540,7 @@ def create_annotation_class(
     name: NotEmptyStr,
     color: NotEmptyStr,
     attribute_groups: Optional[List[AttributeGroup]] = None,
+    class_type: ClassType = "object",
 ):
     """Create annotation class in project
 
@@ -1538,6 +1554,8 @@ def create_annotation_class(
      [ { "name": "tall", "is_multiselect": 0, "attributes": [ { "name": "yes" }, { "name": "no" } ] },
      { "name": "age", "is_multiselect": 0, "attributes": [ { "name": "young" }, { "name": "old" } ] } ]
     :type attribute_groups: list of dicts
+    :param class_type: class type
+    :type class_type: str
 
     :return: new class metadata
     :rtype: dict
@@ -1545,12 +1563,16 @@ def create_annotation_class(
     if isinstance(project, Project):
         project = project.dict()
     attribute_groups = (
-        list(map(lambda x: x.dict(), attribute_groups)) if attribute_groups else None
+        list(map(lambda x: x.dict(), attribute_groups)) if attribute_groups else []
     )
-    response = controller.create_annotation_class(
-        project_name=project, name=name, color=color, attribute_groups=attribute_groups
+    response = Controller.get_default().create_annotation_class(
+        project_name=project,
+        name=name,
+        color=color,
+        attribute_groups=attribute_groups,
+        class_type=class_type,
     )
-    return response.data.to_dict()
+    return BaseSerializers(response.data).serialize()
 
 
 @Trackable
@@ -1565,7 +1587,7 @@ def delete_annotation_class(
     :param annotation_class: annotation class name or  metadata
     :type annotation_class: str or dict
     """
-    controller.delete_annotation_class(
+    Controller.get_default().delete_annotation_class(
         project_name=project, annotation_class_name=annotation_class
     )
 
@@ -1583,7 +1605,7 @@ def download_annotation_classes_json(project: NotEmptyStr, folder: Union[str, Pa
     :return: path of the download file
     :rtype: str
     """
-    response = controller.download_annotation_classes(
+    response = Controller.get_default().download_annotation_classes(
         project_name=project, download_path=folder
     )
     if response.errors:
@@ -1595,7 +1617,7 @@ def download_annotation_classes_json(project: NotEmptyStr, folder: Union[str, Pa
 @validate_arguments
 def create_annotation_classes_from_classes_json(
     project: Union[NotEmptyStr, dict],
-    classes_json: Union[List[ClassesJson], str, Path],
+    classes_json: Union[List[AnnotationClassEntity], str, Path],
     from_s3_bucket=False,
 ):
     """Creates annotation classes in project from a SuperAnnotate format
@@ -1611,10 +1633,7 @@ def create_annotation_classes_from_classes_json(
     :return: list of created annotation class metadatas
     :rtype: list of dicts
     """
-    if not isinstance(classes_json, list):
-        logger.info(
-            "Creating annotation classes in project %s from %s.", project, classes_json,
-        )
+    if isinstance(classes_json, str) or isinstance(classes_json, Path):
         if from_s3_bucket:
             from_session = boto3.Session()
             from_s3 = from_session.resource("s3")
@@ -1622,22 +1641,21 @@ def create_annotation_classes_from_classes_json(
             from_s3_object = from_s3.Object(from_s3_bucket, classes_json)
             from_s3_object.download_fileobj(file)
             file.seek(0)
-            annotation_classes = parse_obj_as(List[ClassesJson], json.load(file))
+            data = file
         else:
-            annotation_classes = parse_obj_as(
-                List[ClassesJson], json.load(open(classes_json))
-            )
-
-    else:
-        annotation_classes = classes_json
-
-    annotation_classes = list(
-        map(lambda annotation_class: annotation_class.dict(), annotation_classes)
-    )
-    response = controller.create_annotation_classes(
+            data = open(classes_json)
+        classes_json = json.load(data)
+    try:
+        annotation_classes = parse_obj_as(List[AnnotationClassEntity], classes_json)
+    except ValidationError:
+        raise AppException("Couldn't validate annotation classes.")
+    logger.info(f"Creating annotation classes in project {project}.")
+    response = Controller.get_default().create_annotation_classes(
         project_name=project, annotation_classes=annotation_classes,
     )
-    return response.data
+    if response.errors:
+        raise AppException(response.errors)
+    return [BaseSerializers(i).serialize() for i in response.data]
 
 
 @Trackable
@@ -1669,7 +1687,7 @@ def download_export(
     project_name, folder_name = extract_project_folder(project)
     export_name = export["name"] if isinstance(export, dict) else export
 
-    use_case = controller.download_export(
+    use_case = Controller.get_default().download_export(
         project_name=project_name,
         export_name=export_name,
         folder_path=folder_path,
@@ -1713,13 +1731,13 @@ def set_image_annotation_status(
     :rtype: dict
     """
     project_name, folder_name = extract_project_folder(project)
-    project_entity = controller._get_project(project_name)
-    response = controller.set_images_annotation_statuses(
+    project_entity = Controller.get_default()._get_project(project_name)
+    response = Controller.get_default().set_images_annotation_statuses(
         project_name, folder_name, [image_name], annotation_status
     )
     if response.errors:
         raise AppException(response.errors)
-    image = controller.get_image_metadata(project_name, folder_name, image_name).data
+    image = Controller.get_default().get_image_metadata(project_name, folder_name, image_name).data
     return ImageSerializer(image).serialize_by_project(project=project_entity)
 
 
@@ -1739,7 +1757,7 @@ def set_project_workflow(project: Union[NotEmptyStr, dict], new_workflow: List[d
     :type new_workflow: list of dicts
     """
     project_name, _ = extract_project_folder(project)
-    response = controller.set_project_workflow(
+    response = Controller.get_default().set_project_workflow(
         project_name=project_name, steps=new_workflow
     )
     if response.errors:
@@ -1779,7 +1797,7 @@ def download_image(
     :rtype: tuple
     """
     project_name, folder_name = extract_project_folder(project)
-    response = controller.download_image(
+    response = Controller.get_default().download_image(
         project_name=project_name,
         folder_name=folder_name,
         image_name=image_name,
@@ -1815,7 +1833,7 @@ def attach_image_urls_to_project(
     :rtype: tuple
     """
     project_name, folder_name = extract_project_folder(project)
-    project = controller.get_project_metadata(project_name).data
+    project = Controller.get_default().get_project_metadata(project_name).data
     project_folder_name = project_name + (f"/{folder_name}" if folder_name else "")
 
     if project["project"].project_type in [
@@ -1828,7 +1846,7 @@ def attach_image_urls_to_project(
             )
         )
     images_to_upload, duplicate_images = get_paths_and_duplicated_from_csv(attachments)
-    use_case = controller.interactive_attach_urls(
+    use_case = Controller.get_default().interactive_attach_urls(
         project_name=project_name,
         folder_name=folder_name,
         files=ImageSerializer.deserialize(images_to_upload),  # noqa: E203
@@ -1882,7 +1900,7 @@ def attach_video_urls_to_project(
     :rtype: (list, list, list)
     """
     project_name, folder_name = extract_project_folder(project)
-    project = controller.get_project_metadata(project_name).data
+    project = Controller.get_default().get_project_metadata(project_name).data
     project_folder_name = project_name + (f"/{folder_name}" if folder_name else "")
 
     if project["project"].project_type != constances.ProjectType.VIDEO.value:
@@ -1893,7 +1911,7 @@ def attach_video_urls_to_project(
         )
 
     images_to_upload, duplicate_images = get_paths_and_duplicated_from_csv(attachments)
-    use_case = controller.interactive_attach_urls(
+    use_case = Controller.get_default().interactive_attach_urls(
         project_name=project_name,
         folder_name=folder_name,
         files=ImageSerializer.deserialize(images_to_upload),  # noqa: E203
@@ -1979,7 +1997,7 @@ def upload_annotations_from_folder_to_project(
     logger.info(
         f"Uploading {len(annotation_paths)} annotations from {folder_path} to the project {project_folder_name}."
     )
-    response = controller.upload_annotations_from_folder(
+    response = Controller.get_default().upload_annotations_from_folder(
         project_name=project_name,
         folder_name=folder_name,
         annotation_paths=annotation_paths,  # noqa: E203
@@ -2024,7 +2042,7 @@ def upload_preannotations_from_folder_to_project(
     """
     project_name, folder_name = extract_project_folder(project)
     project_folder_name = project_name + (f"/{folder_name}" if folder_name else "")
-    project = controller.get_project_metadata(project_name).data
+    project = Controller.get_default().get_project_metadata(project_name).data
     if project["project"].project_type in [
         constances.ProjectType.VIDEO.value,
         constances.ProjectType.DOCUMENT.value,
@@ -2045,7 +2063,7 @@ def upload_preannotations_from_folder_to_project(
     logger.info(
         f"Uploading {len(annotation_paths)} annotations from {folder_path} to the project {project_folder_name}."
     )
-    response = controller.upload_annotations_from_folder(
+    response = Controller.get_default().upload_annotations_from_folder(
         project_name=project_name,
         folder_name=folder_name,
         annotation_paths=annotation_paths,  # noqa: E203
@@ -2082,7 +2100,7 @@ def upload_image_annotations(
 
     project_name, folder_name = extract_project_folder(project)
 
-    project = controller.get_project_metadata(project_name).data
+    project = Controller.get_default().get_project_metadata(project_name).data
     if project["project"].project_type in [
         constances.ProjectType.VIDEO.value,
         constances.ProjectType.DOCUMENT.value,
@@ -2104,7 +2122,7 @@ def upload_image_annotations(
         if verbose:
             logger.info("Uploading annotations from %s.", annotation_json)
         annotation_json = json.load(open(annotation_json))
-    response = controller.upload_image_annotations(
+    response = Controller.get_default().upload_image_annotations(
         project_name=project_name,
         folder_name=folder_name,
         image_name=image_name,
@@ -2129,7 +2147,7 @@ def download_model(model: MLModel, output_dir: Union[str, Path]):
     :return: the metadata of the model
     :rtype: dict
     """
-    res = controller.download_ml_model(
+    res = Controller.get_default().download_ml_model(
         model_data=model.dict(), download_path=output_dir
     )
     if res.errors:
@@ -2173,7 +2191,7 @@ def benchmark(
     if isinstance(project, dict):
         project_name = project["name"]
 
-    project = controller.get_project_metadata(project_name).data
+    project = Controller.get_default().get_project_metadata(project_name).data
     if project["project"].project_type in [
         constances.ProjectType.VIDEO.value,
         constances.ProjectType.DOCUMENT.value,
@@ -2182,7 +2200,7 @@ def benchmark(
 
     if not export_root:
         with tempfile.TemporaryDirectory() as temp_dir:
-            response = controller.benchmark(
+            response = Controller.get_default().benchmark(
                 project_name=project_name,
                 ground_truth_folder_name=gt_folder,
                 folder_names=folder_names,
@@ -2193,7 +2211,7 @@ def benchmark(
             )
 
     else:
-        response = controller.benchmark(
+        response = Controller.get_default().benchmark(
             project_name=project_name,
             ground_truth_folder_name=gt_folder,
             folder_names=folder_names,
@@ -2239,7 +2257,7 @@ def consensus(
     if export_root is None:
         with tempfile.TemporaryDirectory() as temp_dir:
             export_root = temp_dir
-            response = controller.consensus(
+            response = Controller.get_default().consensus(
                 project_name=project,
                 folder_names=folder_names,
                 export_path=export_root,
@@ -2249,7 +2267,7 @@ def consensus(
             )
 
     else:
-        response = controller.consensus(
+        response = Controller.get_default().consensus(
             project_name=project,
             folder_names=folder_names,
             export_path=export_root,
@@ -2291,7 +2309,7 @@ def run_prediction(
     if isinstance(model, dict):
         model_name = model["name"]
 
-    response = controller.run_prediction(
+    response = Controller.get_default().run_prediction(
         project_name=project_name,
         images_list=images_list,
         model_name=model_name,
@@ -2331,7 +2349,7 @@ def add_annotation_bbox_to_image(
     :type error: bool
     """
     project_name, folder_name = extract_project_folder(project)
-    response = controller.get_image_annotations(
+    response = Controller.get_default().get_image_annotations(
         project_name=project_name, folder_name=folder_name, image_name=image_name
     )
     if response.errors:
@@ -2346,7 +2364,7 @@ def add_annotation_bbox_to_image(
         image_name,
     )
 
-    controller.upload_image_annotations(
+    Controller.get_default().upload_image_annotations(
         *extract_project_folder(project), image_name, annotations
     )
 
@@ -2379,7 +2397,7 @@ def add_annotation_point_to_image(
     :type error: bool
     """
     project_name, folder_name = extract_project_folder(project)
-    response = controller.get_image_annotations(
+    response = Controller.get_default().get_image_annotations(
         project_name=project_name, folder_name=folder_name, image_name=image_name
     )
     if response.errors:
@@ -2393,7 +2411,7 @@ def add_annotation_point_to_image(
         annotation_class_attributes,
         error,
     )
-    controller.upload_image_annotations(
+    Controller.get_default().upload_image_annotations(
         *extract_project_folder(project), image_name, annotations
     )
 
@@ -2405,7 +2423,7 @@ def add_annotation_comment_to_image(
     image_name: NotEmptyStr,
     comment_text: NotEmptyStr,
     comment_coords: List[float],
-    comment_author: NotEmptyStr,
+    comment_author: EmailStr,
     resolved: Optional[StrictBool] = False,
 ):
     """Add a comment to SuperAnnotate format annotation JSON
@@ -2424,7 +2442,7 @@ def add_annotation_comment_to_image(
     :type resolved: bool
     """
     project_name, folder_name = extract_project_folder(project)
-    response = controller.get_image_annotations(
+    response = Controller.get_default().get_image_annotations(
         project_name=project_name, folder_name=folder_name, image_name=image_name
     )
     if response.errors:
@@ -2438,7 +2456,7 @@ def add_annotation_comment_to_image(
         resolved=resolved,
         image_name=image_name,
     )
-    controller.upload_image_annotations(
+    Controller.get_default().upload_image_annotations(
         *extract_project_folder(project), image_name, annotations
     )
 
@@ -2469,8 +2487,8 @@ def search_images_all_folders(
     :rtype: list of dicts or strs
     """
 
-    project_entity = controller._get_project(project)
-    res = controller.list_images(
+    project_entity = Controller.get_default()._get_project(project)
+    res = Controller.get_default().list_images(
         project_name=project,
         name_prefix=image_name_prefix,
         annotation_status=annotation_status,
@@ -2513,7 +2531,7 @@ def upload_image_to_project(
     """
     project_name, folder_name = extract_project_folder(project)
 
-    response = controller.upload_image_to_project(
+    response = Controller.get_default().upload_image_to_project(
         project_name=project_name,
         folder_name=folder_name,
         image_name=image_name,
@@ -2549,7 +2567,7 @@ def search_models(
     :return: ml model metadata
     :rtype: list of dicts
     """
-    res = controller.search_models(
+    res = Controller.get_default().search_models(
         name=name,
         model_type=type_,
         project_id=project_id,
@@ -2592,7 +2610,7 @@ def upload_images_to_project(
     """
     project_name, folder_name = extract_project_folder(project)
 
-    use_case = controller.upload_images_to_project(
+    use_case = Controller.get_default().upload_images_to_project(
         project_name=project_name,
         folder_name=folder_name,
         paths=img_paths,
@@ -2686,7 +2704,7 @@ def delete_annotations(
 
     project_name, folder_name = extract_project_folder(project)
 
-    response = controller.delete_annotations(
+    response = Controller.get_default().delete_annotations(
         project_name=project_name, folder_name=folder_name, image_names=image_names
     )
     if response.errors:
@@ -2713,7 +2731,7 @@ def attach_document_urls_to_project(
     :rtype: tuple
     """
     project_name, folder_name = extract_project_folder(project)
-    project = controller.get_project_metadata(project_name).data
+    project = Controller.get_default().get_project_metadata(project_name).data
     project_folder_name = project_name + (f"/{folder_name}" if folder_name else "")
 
     if project["project"].project_type != constances.ProjectType.DOCUMENT.value:
@@ -2725,7 +2743,7 @@ def attach_document_urls_to_project(
 
     images_to_upload, duplicate_images = get_paths_and_duplicated_from_csv(attachments)
 
-    use_case = controller.interactive_attach_urls(
+    use_case = Controller.get_default().interactive_attach_urls(
         project_name=project_name,
         folder_name=folder_name,
         files=ImageSerializer.deserialize(images_to_upload),  # noqa: E203
@@ -2776,7 +2794,7 @@ def validate_annotations(
         """
     with open(annotations_json) as file:
         annotation_data = json.loads(file.read())
-        response = controller.validate_annotations(
+        response = Controller.validate_annotations(
             project_type, annotation_data, allow_extra=False
         )
         if response.errors:
@@ -2807,7 +2825,7 @@ def add_contributors_to_project(
     :return: lists of added,  skipped contributors of the project
     :rtype: tuple (2 members) of lists of strs
     """
-    response = controller.add_contributors_to_project(
+    response = Controller.get_default().add_contributors_to_project(
         project_name=project, emails=emails, role=role
     )
     if response.errors:
@@ -2831,7 +2849,54 @@ def invite_contributors_to_team(
     :return: lists of invited, skipped contributors of the team
     :rtype: tuple (2 members) of lists of strs
     """
-    response = controller.invite_contributors_to_team(emails=emails, set_admin=admin)
+    response = Controller.get_default().invite_contributors_to_team(emails=emails, set_admin=admin)
+    if response.errors:
+        raise AppException(response.errors)
+    return response.data
+
+
+@Trackable
+@validate_arguments
+def get_annotations(project: NotEmptyStr, items: Optional[List[NotEmptyStr]] = None):
+    """Returns annotations for the given list of items.
+
+    :param project: project name or folder path (e.g., “project1/folder1”).
+    :type project: str
+
+    :param items:  item names. If None all items in the project will be exported
+    :type items: list of strs
+
+    :return: list of annotations
+    :rtype: list of strs
+    """
+    project_name, folder_name = extract_project_folder(project)
+    response = Controller.get_default().get_annotations(project_name, folder_name, items)
+    if response.errors:
+        raise AppException(response.errors)
+    return response.data
+
+
+@Trackable
+@validate_arguments
+def get_annotations_per_frame(project: NotEmptyStr, video: NotEmptyStr, fps: int = 1):
+    """Returns per frame annotations for the given video.
+
+
+    :param project: project name or folder path (e.g., “project1/folder1”).
+    :type project: str
+
+    :param video: video name
+    :type video: str
+
+    :param fps: how many frames per second needs to be extracted from the video.
+     Will extract 1 frame per second by default.
+    :type fps: str
+
+    :return: list of annotation objects
+    :rtype: list of dicts
+    """
+    project_name, folder_name = extract_project_folder(project)
+    response = Controller.get_default().get_annotations_per_frame(project_name, folder_name, video_name=video, fps=fps)
     if response.errors:
         raise AppException(response.errors)
     return response.data

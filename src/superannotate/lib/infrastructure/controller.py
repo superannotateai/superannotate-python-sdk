@@ -1,5 +1,7 @@
 import copy
 import io
+import os
+from abc import ABCMeta
 from os.path import expanduser
 from pathlib import Path
 from typing import Iterable
@@ -12,7 +14,6 @@ from lib.core import usecases
 from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.entities import AnnotationClassEntity
-from lib.core.entities import ConfigEntity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
 from lib.core.entities import MLModelEntity
@@ -36,23 +37,12 @@ from superannotate.logger import get_default_logger
 from superannotate_schemas.validators import AnnotationValidators
 
 
-class SingleInstanceMetaClass(type):
-    _instances = {}
-
-    def __call__(cls, *args, **kwargs):
-        if cls not in SingleInstanceMetaClass._instances:
-            SingleInstanceMetaClass._instances[cls] = super().__call__(*args, **kwargs)
-        return SingleInstanceMetaClass._instances[cls]
-
-    def get_instance(cls):
-        if cls._instances:
-            return cls._instances[cls]
-        return cls()
-
-
-class BaseController(metaclass=SingleInstanceMetaClass):
-    def __init__(self, config_path=constances.CONFIG_FILE_LOCATION):
+class BaseController(metaclass=ABCMeta):
+    def __init__(self, config_path: str = None, token: str = None):
         self._team_data = None
+        self._token = None
+        self._backend_url = None
+        self._ssl_verify = False
         self._config_path = None
         self._backend_client = None
         self._logger = get_default_logger()
@@ -62,78 +52,79 @@ class BaseController(metaclass=SingleInstanceMetaClass):
         self._teams = None
         self._images = None
         self._ml_models = None
-        self._team_id = None
         self._user_id = None
         self._team_name = None
         self._reporter = None
-        self._config_path = expanduser(config_path)
-        try:
-            self.init(config_path)
-        except AppException:
-            pass
+        self._testing = os.getenv("SA_TESTING", 'False').lower() in ('true', '1', 't')
+        self._ssl_verify = not self._testing
+        self._backend_url = os.environ.get("SA_URL", constances.BACKEND_URL)
 
-    def init(self, config_path=None):
-        if not config_path:
-            config_path = constances.CONFIG_FILE_LOCATION
-        config_path = Path(expanduser(config_path))
-        if str(config_path) == constances.CONFIG_FILE_LOCATION:
-            if not Path(self._config_path).is_file():
-                self.configs.insert(
-                    ConfigEntity("main_endpoint", constances.BACKEND_URL)
+        if token:
+            self._token = self._validate_token(token)
+        elif config_path:
+            config_path = expanduser(config_path)
+            self.retrieve_configs(Path(config_path), raise_exception=True)
+        else:
+            env_token = os.environ.get("SA_TOKEN")
+            if env_token:
+                self._token = self._validate_token(os.environ.get("SA_TOKEN"))
+            else:
+                config_path = expanduser(constances.CONFIG_FILE_LOCATION)
+                self.retrieve_configs(Path(config_path), raise_exception=False)
+        self.initialize_backend_client()
+
+    def retrieve_configs(self, path: Path, raise_exception=True):
+
+        token, backend_url, ssl_verify = None, None, None
+        if not Path(path).is_file() or not os.access(path, os.R_OK):
+            if raise_exception:
+                raise AppException(
+                    f"SuperAnnotate config file {str(path)} not found."
+                    f" Please provide correct config file location to sa.init(<path>) or use "
+                    f"CLI's superannotate init to generate default location config file."
                 )
-                self.configs.insert(ConfigEntity("token", ""))
-                return
-        if not config_path.is_file():
-            raise AppException(
-                f"SuperAnnotate config file {str(config_path)} not found."
-                f" Please provide correct config file location to sa.init(<path>) or use "
-                f"CLI's superannotate init to generate default location config file."
+        try:
+            config_repo = ConfigRepository(str(path))
+            token, backend_url, ssl_verify = (
+                self._validate_token(config_repo.get_one("token").value),
+                config_repo.get_one("main_endpoint").value,
+                config_repo.get_one("ssl_verify").value,
             )
-        self._config_path = config_path
-        token, main_endpoint = (
-            self.configs.get_one("token"),
-            self.configs.get_one("main_endpoint"),
-        )
-        token = None if not token else token.value
-        main_endpoint = None if not main_endpoint else main_endpoint.value
-        if not main_endpoint:
-            main_endpoint = constances.BACKEND_URL
-        if not token:
-            raise AppException(
-                f"Incorrect config file: token is not present in the config file {config_path}"
-            )
-        verify_ssl_entity = self.configs.get_one("ssl_verify")
-        if not verify_ssl_entity:
-            verify_ssl = True
-        else:
-            verify_ssl = verify_ssl_entity.value
-        if not self._backend_client:
-            self._backend_client = SuperannotateBackendService(
-                api_url=main_endpoint,
-                auth_token=token,
-                logger=self._logger,
-                verify_ssl=verify_ssl,
-            )
-        else:
-            self._backend_client.api_url = main_endpoint
-            self._backend_client._auth_token = token
-            self._backend_client.get_session.cache_clear()
-        self._team_id = None
-        self.validate_token(token)
-        self._team_id = int(token.split("=")[-1])
-        self._teams = None
+        except Exception:
+            if raise_exception:
+                raise AppException(
+                    f"Incorrect config file: token is not present in the config file {path}"
+                )
+        self._token = token
+        self._backend_url = backend_url or self._backend_url
+        self._ssl_verify = ssl_verify or self._ssl_verify
 
     @staticmethod
-    def validate_token(token: str):
+    def _validate_token(token: str):
         try:
             int(token.split("=")[-1])
-            return True
-        except Exception:
-            raise AppException("Invalid token.") from None
+        except ValueError:
+            raise AppException("Invalid token.")
+        return token
+
+    def initialize_backend_client(self):
+        if not self._token:
+            raise AppException("Team token not provided")
+        self._backend_client = SuperannotateBackendService(
+            api_url=self._backend_url,
+            auth_token=self._token,
+            logger=self._logger,
+            verify_ssl=self._ssl_verify,
+            testing=self._testing
+        )
+        self._backend_client.get_session.cache_clear()
+        return self._backend_client
 
     @property
-    def config_path(self):
-        return self._config_path
+    def backend_client(self):
+        if not self._backend_client:
+            self.initialize_backend_client()
+        return self._backend_client
 
     @property
     def user_id(self):
@@ -147,21 +138,11 @@ class BaseController(metaclass=SingleInstanceMetaClass):
             _, self._team_name = self.get_team()
         return self._team_name
 
-    @staticmethod
-    def _validate_token(token: str):
-        try:
-            int(token.split("=")[-1])
-        except ValueError:
-            raise AppException("Invalid token.")
-
-    def set_token(self, token):
-        self._validate_token(token)
-        self._team_id = int(token.split("=")[-1])
-        self.configs.insert(ConfigEntity("token", token))
-        self._backend_client = SuperannotateBackendService.get_instance()
-        self._backend_client._api_url = self.configs.get_one("main_endpoint").value
-        self._backend_client._auth_token = self.configs.get_one("token").value
-        self._backend_client.get_session.cache_clear()
+    def set_token(self, token: str, backend_url: str = constances.BACKEND_URL):
+        self._token = self._validate_token(token)
+        if backend_url:
+            self._backend_url = backend_url
+        self.initialize_backend_client()
 
     @property
     def projects(self):
@@ -186,9 +167,7 @@ class BaseController(metaclass=SingleInstanceMetaClass):
 
     @property
     def teams(self):
-        if self.team_id and not self._teams:
-            self._teams = TeamRepository(self._backend_client)
-        return self._teams
+        return TeamRepository(self.backend_client)
 
     @property
     def team_data(self):
@@ -208,11 +187,11 @@ class BaseController(metaclass=SingleInstanceMetaClass):
 
     @property
     def team_id(self) -> int:
-        if not self._team_id:
+        if not self._token:
             raise AppException(
                 f"Invalid credentials provided in the {self._config_path}."
             )
-        return self._team_id
+        return int(self._token.split("=")[-1])
 
     @property
     def default_reporter(self):
@@ -244,15 +223,27 @@ class BaseController(metaclass=SingleInstanceMetaClass):
     def annotation_validators(self) -> AnnotationValidators:
         return AnnotationValidators()
 
-    @property
-    def backend_client(self):
-        return self._backend_client
-
 
 class Controller(BaseController):
-    def __init__(self, config_path=constances.CONFIG_FILE_LOCATION):
-        super().__init__(config_path)
+    DEFAULT = None
+
+    def __init__(self, config_path: str = None, token: str = None):
+        super().__init__(config_path, token)
         self._team = None
+
+    @classmethod
+    def get_default(cls):
+        if not cls.DEFAULT:
+            try:
+                cls.DEFAULT = Controller()
+            except Exception:
+                pass
+        return cls.DEFAULT
+
+    @classmethod
+    def set_default(cls, obj):
+        cls.DEFAULT = obj
+        return cls.DEFAULT
 
     def _get_project(self, name: str):
         use_case = usecases.GetProjectByNameUseCase(
@@ -302,7 +293,6 @@ class Controller(BaseController):
         name: str,
         description: str,
         project_type: str,
-        contributors: Iterable = tuple(),
         settings: Iterable = tuple(),
         annotation_classes: Iterable = tuple(),
         workflows: Iterable = tuple(),
@@ -330,14 +320,11 @@ class Controller(BaseController):
             settings=[
                 ProjectSettingsRepository.dict2entity(setting) for setting in settings
             ],
-            workflows=[
-                WorkflowRepository.dict2entity(workflow) for workflow in workflows
-            ],
+            workflows=workflows,
             annotation_classes=[
-                AnnotationClassRepository.dict2entity(annotation_class)
+                AnnotationClassEntity(**annotation_class)
                 for annotation_class in annotation_classes
-            ],
-            contributors=contributors,
+            ]
         )
         return use_case.execute()
 
@@ -1138,19 +1125,24 @@ class Controller(BaseController):
         )
 
     def create_annotation_class(
-        self, project_name: str, name: str, color: str, attribute_groups: List[dict]
+        self,
+        project_name: str,
+        name: str,
+        color: str,
+        attribute_groups: List[dict],
+        class_type: str,
     ):
         project = self._get_project(project_name)
         annotation_classes = AnnotationClassRepository(
             project=project, service=self._backend_client
         )
         annotation_class = AnnotationClassEntity(
-            name=name, color=color, attribute_groups=attribute_groups
+            name=name, color=color, attribute_groups=attribute_groups, type=class_type
         )
         use_case = usecases.CreateAnnotationClassUseCase(
             annotation_classes=annotation_classes,
             annotation_class=annotation_class,
-            project_name=project_name,
+            project=project,
         )
         use_case.execute()
         return use_case.execute()
@@ -1457,13 +1449,17 @@ class Controller(BaseController):
         )
         if export_response.errors:
             return export_response
-        self.download_export(
+
+        download_export_usecase = self.download_export(
             project_name=project.name,
             export_name=export_response.data["name"],
             folder_path=export_path,
             extract_zip_contents=True,
             to_s3_bucket=False,
         )
+        for _ in download_export_usecase.execute():
+            continue
+
         use_case = usecases.ConsensusUseCase(
             project=project,
             folder_names=folder_names,
@@ -1549,13 +1545,14 @@ class Controller(BaseController):
         )
         return use_case.execute()
 
+    @staticmethod
     def validate_annotations(
-        self, project_type: str, annotation: dict, allow_extra: bool = False
+        project_type: str, annotation: dict, allow_extra: bool = False
     ):
         use_case = usecases.ValidateAnnotationUseCase(
             project_type,
             annotation,
-            validators=self.annotation_validators,
+            validators=AnnotationValidators(),
             allow_extra=allow_extra,
         )
         return use_case.execute()
@@ -1619,5 +1616,34 @@ class Controller(BaseController):
             end_time=end_time,
             annotation_status=annotation_status,
             image_quality_in_editor=image_quality_in_editor,
+        )
+        return use_case.execute()
+
+    def get_annotations(self, project_name: str, folder_name: str, item_names: List[str]):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+
+        use_case = usecases.GetAnnotations(
+            reporter=self.default_reporter,
+            project=project,
+            folder=folder,
+            images=self.images,
+            item_names=item_names,
+            backend_service_provider=self.backend_client
+        )
+        return use_case.execute()
+
+    def get_annotations_per_frame(self, project_name: str, folder_name: str, video_name: str, fps: int):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+
+        use_case = usecases.GetVideoAnnotationsPerFrame(
+            reporter=self.default_reporter,
+            project=project,
+            folder=folder,
+            images=self.images,
+            video_name=video_name,
+            fps=fps,
+            backend_service_provider=self.backend_client
         )
         return use_case.execute()

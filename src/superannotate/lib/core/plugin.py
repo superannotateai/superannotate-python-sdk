@@ -95,7 +95,7 @@ class ImagePlugin:
         return buffer, width, height
 
     def generate_huge(self, base_width: int = 600) -> Tuple[io.BytesIO, float, float]:
-        im = self._image
+        im = self._get_image()
         width, height = im.size
         buffer = io.BytesIO()
         h_size = int(height * base_width / width)
@@ -107,7 +107,7 @@ class ImagePlugin:
         return buffer, width, height
 
     def generate_low_resolution(self, quality: int = 60, subsampling: int = -1):
-        im = self._image
+        im = self._get_image()
         buffer = io.BytesIO()
         bg = Image.new("RGBA", im.size, (255, 255, 255))
         im = im.convert("RGBA")

@@ -190,13 +190,10 @@ class CLITest(TestCase):
             f'--project "{self.PROJECT_NAME}" '
             f'--folder "{self.convertor_data_path}" '
             f'--format COCO '
-            f'--data-set-name "instances_test"',
+            f'--dataset-name "instances_test"',
             check=True,
             shell=True,
         )
-        from src.superannotate.lib.app.interface.cli_interface import CLIFacade
-        # self, project, folder, dataset_name = None, task = None, format = None
-        cli_facade = CLIFacade().upload_annotations(self.PROJECT_NAME,self.convertor_data_path,"instances_test",None,"COCO")
         count_in = len(list(self.vector_folder_path.glob("*.json")))
         with tempfile.TemporaryDirectory() as temp_dir:
             for image_name in sa.search_images(self.PROJECT_NAME):
@@ -204,8 +201,8 @@ class CLITest(TestCase):
             count_out = len(list(Path(temp_dir).glob("*.json")))
             self.assertEqual(count_in, count_out)
 
-    # @pytest.mark.skipif(CLI_VERSION and CLI_VERSION != sa.__version__,
-    #                     reason=f"Updated package version from {CLI_VERSION} to {sa.__version__}")
+    @pytest.mark.skipif(CLI_VERSION and CLI_VERSION != sa.__version__,
+                        reason=f"Updated package version from {CLI_VERSION} to {sa.__version__}")
     def test_attach_image_urls(self):
         self._create_project()
         subprocess.run(
@@ -245,8 +242,8 @@ class CLITest(TestCase):
         )
         self.assertEqual(5, len(sa.search_images(self.PROJECT_NAME)))
 
-    # @pytest.mark.skipif(CLI_VERSION and CLI_VERSION != sa.__version__,
-    #                     reason=f"Updated package version from {CLI_VERSION} to {sa.__version__}")
+    @pytest.mark.skipif(CLI_VERSION and CLI_VERSION != sa.__version__,
+                        reason=f"Updated package version from {CLI_VERSION} to {sa.__version__}")
     def test_attach_document_urls(self):
             self._create_project("Document")
             subprocess.run(

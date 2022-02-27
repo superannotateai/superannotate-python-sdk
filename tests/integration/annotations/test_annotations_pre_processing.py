@@ -14,7 +14,7 @@ from tests.integration.base import BaseTestCase
 
 
 class TestAnnotationUploadVector(BaseTestCase):
-    PROJECT_NAME = "TestAnnotationUploadVector"
+    PROJECT_NAME = "TestAnnotationUploadVectorPreProcessing"
     PROJECT_DESCRIPTION = "Desc"
     PROJECT_TYPE = "Vector"
     S3_FOLDER_PATH = "sample_project_pixel"
@@ -45,7 +45,7 @@ class TestAnnotationUploadVector(BaseTestCase):
                 self.assertEqual(instance["creationType"], CreationTypeEnum.PRE_ANNOTATION.value)
             self.assertEqual(
                 type(annotation["metadata"]["lastAction"]["email"]),
-                type(sa.controller.team_data.data.creator_id)
+                type(sa.get_default_controller().team_data.data.creator_id)
             )
             self.assertEqual(
                 type(annotation["metadata"]["lastAction"]["timestamp"]),

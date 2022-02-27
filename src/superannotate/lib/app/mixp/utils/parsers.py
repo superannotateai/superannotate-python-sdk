@@ -3,8 +3,6 @@ from lib.app.helpers import extract_project_folder
 from lib.core.enums import ProjectType
 from lib.infrastructure.controller import Controller
 
-controller = Controller.get_instance()
-
 
 def get_project_name(project):
     project_name = ""
@@ -32,7 +30,10 @@ def invite_contributors_to_team(*args, **kwargs):
             admin_value = admin[0]
     else:
         admin_value = admin
-    return {"event_name": "invite_contributors_to_team", "properties": {"Admin": admin_value}}
+    return {
+        "event_name": "invite_contributors_to_team",
+        "properties": {"Admin": admin_value},
+    }
 
 
 def search_team_contributors(*args, **kwargs):
@@ -95,7 +96,7 @@ def clone_project(*args, **kwargs):
     if not project:
         project = args[0]
 
-    result = controller.get_project_metadata(project)
+    result = Controller.get_default().get_project_metadata(project)
     project_metadata = result.data["project"]
     project_type = ProjectType.get_name(project_metadata.project_type)
 
@@ -519,7 +520,7 @@ def run_prediction(*args, **kwargs):
     if not project:
         project = args[0]
     project_name = get_project_name(project)
-    res = controller.get_project_metadata(project_name)
+    res = Controller.get_default().get_project_metadata(project_name)
     project_metadata = res.data["project"]
     project_type = ProjectType.get_name(project_metadata.project_type)
     image_list = kwargs.get("images_list", None)
@@ -608,7 +609,7 @@ def move_images(*args, **kwargs):
     if image_names == False:
         image_names = args[1]
         if image_names is None:
-            res = controller.search_images(project)
+            res = Controller.get_default().search_images(project)
             image_names = res.data
 
     return {
@@ -633,7 +634,7 @@ def copy_images(*args, **kwargs):
     if image_names == False:
         image_names = args[1]
         if image_names is None:
-            res = controller.search_images(project)
+            res = Controller.get_default().search_images(project)
             image_names = res.data
     return {
         "event_name": "copy_images",
@@ -661,7 +662,7 @@ def consensus(*args, **kwargs):
         image_list = args[4:5]
         if image_list:
             if image_list[0] is None:
-                res = controller.search_images(project)
+                res = Controller.get_default().search_images(project)
                 image_list = res.data
             else:
                 image_list = image_list[0]
@@ -703,7 +704,7 @@ def benchmark(*args, **kwargs):
         image_list = args[4:5]
         if image_list:
             if image_list[0] is None:
-                res = controller.search_images(project)
+                res = Controller.get_default().search_images(project)
                 image_list = res.data
             else:
                 image_list = image_list[0]
@@ -738,7 +739,7 @@ def upload_annotations_from_folder_to_project(*args, **kwargs):
     if not project:
         project = args[0]
     project_name = get_project_name(project)
-    res = controller.get_project_metadata(project_name)
+    res = Controller.get_default().get_project_metadata(project_name)
     project_metadata = res.data["project"]
     project_type = ProjectType.get_name(project_metadata.project_type)
 
@@ -763,7 +764,7 @@ def upload_preannotations_from_folder_to_project(*args, **kwargs):
     if not project:
         project = args[0]
     project_name = get_project_name(project)
-    res = controller.get_project_metadata(project_name)
+    res = Controller.get_default().get_project_metadata(project_name)
     project_metadata = res.data["project"]
     project_type = ProjectType.get_name(project_metadata.project_type)
     folder_path = kwargs.get("folder_path", None)
@@ -889,7 +890,7 @@ def assign_images(*args, **kwargs):
     if not user:
         user = args[2]
 
-    contributors = controller.get_project_metadata(
+    contributors = Controller.get_default().get_project_metadata(
         project_name=project, include_contributors=True
     ).data["contributors"]
     contributor = None
@@ -973,14 +974,17 @@ def add_annotation_point_to_image(*args, **kwargs):
 
 def create_annotation_class(*args, **kwargs):
     project = kwargs.get("project", None)
+    class_type = kwargs.get("class_type")
     if not project:
         project = args[0]
-
+    if not class_type and len(args) == 5:
+        class_type = args[4]
     return {
         "event_name": "create_annotation_class",
         "properties": {
             "project_name": get_project_name(project),
             "Attributes": bool(args[3:4] or ("attribute_groups" in kwargs)),
+            "class_type": class_type if class_type else "object"
         },
     }
 
@@ -1079,11 +1083,7 @@ def aggregate_annotations_as_df(*args, **kwargs):
 
     return {
         "event_name": "aggregate_annotations_as_df",
-        "properties": {
-            "Folder Count": len(folder_names),
-            "Project Type": project_type
-
-        },
+        "properties": {"Folder Count": len(folder_names), "Project Type": project_type},
     }
 
 
@@ -1111,7 +1111,7 @@ def delete_images(*args, **kwargs):
     if not image_names:
         image_names = args[1]
         if image_names is None:
-            res = controller.search_images(project)
+            res = Controller.get_default().search_images(project)
             image_names = res.data
     return {
         "event_name": "delete_images",
@@ -1205,4 +1205,28 @@ def add_contributors_to_project(*args, **kwargs):
     return {
         "event_name": "add_contributors_to_project",
         "properties": {"User Role": user_role},
+    }
+
+
+def get_annotations(*args, **kwargs):
+    project = kwargs.get("project", args[0])
+    items = kwargs.get("items", args[1])
+
+    return {
+        "event_name": "get_annotations",
+        "properties": {"Project": project, "items_count": len(items)},
+    }
+
+
+def get_annotations_per_frame(*args, **kwargs):
+    project = kwargs.get("project", args[0])
+    fps = kwargs.get("fps")
+    if not fps:
+        try:
+            fps = args[2]
+        except IndexError:
+            fps = 1
+    return {
+        "event_name": "get_annotations_per_frame",
+        "properties": {"Project": project, "fps": fps},
     }

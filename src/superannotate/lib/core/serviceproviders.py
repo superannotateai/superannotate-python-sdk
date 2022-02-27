@@ -5,23 +5,11 @@ from typing import Iterable
 from typing import List
 from typing import Tuple
 
+from lib.core.reporter import Reporter
 from lib.core.service_types import ServiceResponse
 
 
-class SingleInstanceMetaClass(type):
-    _instances = {}
-
-    def __call__(cls, *args, **kwargs):
-        if cls not in SingleInstanceMetaClass._instances:
-            SingleInstanceMetaClass._instances[cls] = super().__call__(*args, **kwargs)
-        return SingleInstanceMetaClass._instances[cls]
-
-    def get_instance(cls):
-        if cls._instances:
-            return cls._instances[cls]
-
-
-class SuerannotateServiceProvider(metaclass=SingleInstanceMetaClass):
+class SuerannotateServiceProvider:
     @abstractmethod
     def attach_files(
         self,
@@ -314,4 +302,15 @@ class SuerannotateServiceProvider(metaclass=SingleInstanceMetaClass):
     def get_limitations(
         self, team_id: int, project_id: int, folder_id: int = None
     ) -> ServiceResponse:
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_annotations(
+            self,
+            project_id: int,
+            team_id: int,
+            folder_id: int,
+            items: List[str],
+            reporter: Reporter
+    ) -> List[dict]:
         raise NotImplementedError

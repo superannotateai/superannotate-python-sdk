@@ -16,6 +16,7 @@ ffmpeg-python>=0.2.0
 fire==0.4.0
 mixpanel==4.8.3
 pydantic>=1.8.2
-pydantic[email]
 setuptools~=57.4.0
-superannotate_schemas
+aiohttp==3.8.1
+email-validator>=1.0.3
+nest-asyncio==1.5.4

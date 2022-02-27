@@ -1,4 +1,5 @@
 import os
+import time
 import tempfile
 from os.path import dirname
 
@@ -31,6 +32,7 @@ class TestMlFuncs(BaseTestCase):
         sa.upload_images_from_folder_to_project(
             project=self.PROJECT_NAME, folder_path=self.folder_path
         )
+        time.sleep(2)
         image_names_vector = sa.search_images(self.PROJECT_NAME)
         succeeded_images, failed_images = sa.run_prediction(
             self.PROJECT_NAME, image_names_vector, self.MODEL_NAME

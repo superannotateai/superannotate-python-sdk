@@ -9,6 +9,7 @@ from superannotate.lib.core.enums import TrainingTask
 from superannotate.lib.core.enums import UploadState
 from superannotate.lib.core.enums import UserRole
 
+
 CONFIG_FILE_LOCATION = str(Path.home() / ".superannotate" / "config.json")
 LOG_FILE_LOCATION = str(Path.home() / ".superannotate" / "sa.log")
 BACKEND_URL = "https://api.annotate.online"

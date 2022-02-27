@@ -1,18 +1,17 @@
 import functools
 import sys
 
-from lib.infrastructure.controller import Controller
+from lib import get_default_controller
 from mixpanel import Mixpanel
 from superannotate.logger import get_default_logger
 from version import __version__
 
 from .utils import parsers
 
-controller = Controller.get_instance()
 
 # TODO:
 try:
-    if "api.annotate.online" in controller._backend_client.api_url:
+    if "api.annotate.online" in get_default_controller()._backend_client.api_url:
         TOKEN = "ca95ed96f80e8ec3be791e2d3097cf51"
     else:
         TOKEN = "e741d4863e7e05b1a45833d01865ef0d"
@@ -50,7 +49,7 @@ class Trackable:
 
     @property
     def team(self):
-        return controller.get_team()
+        return get_default_controller().get_team()
 
     def track(self, *args, **kwargs):
         try:
@@ -81,9 +80,17 @@ class Trackable:
 
     def __call__(self, *args, **kwargs):
         try:
-            self.__class__.TEAM_DATA = controller.get_team()
-            result = self.function(*args, **kwargs)
-            self._success = True
+            controller = get_default_controller()
+            if controller:
+                self.__class__.TEAM_DATA = controller.get_team()
+                result = self.function(*args, **kwargs)
+                self._success = True
+            else:
+                raise Exception(
+                    "SuperAnnotate config file not found."
+                    " Please provide correct config file location to sa.init(<path>) or use "
+                    "CLI's superannotate init to generate default location config file."
+                )
         except Exception as e:
             self._success = False
             logger.debug(str(e), exc_info=True)

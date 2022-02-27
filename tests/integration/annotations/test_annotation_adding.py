@@ -59,8 +59,8 @@ class TestAnnotationAdding(BaseTestCase):
             self.PROJECT_NAME, self.EXAMPLE_IMAGE_1
         )["annotation_json"]
 
-        annotations_new["instances"][0]['createdAt'] = ''
-        annotations_new["instances"][0]['updatedAt'] = ''
+        del annotations_new["instances"][0]['createdAt']
+        del annotations_new["instances"][0]['updatedAt']
 
         self.assertEqual(
             annotations_new["instances"][0], {
@@ -76,9 +76,8 @@ class TestAnnotationAdding(BaseTestCase):
                 'pointLabels': {},
                 'groupId': 0,
                 'classId': -1,
-                'createdAt': '',
-                'updatedAt': ''
-            })
+            }
+        )
 
     def test_add_bbox_to_empty_annotation(self):
         sa.upload_images_from_folder_to_project(
@@ -93,21 +92,21 @@ class TestAnnotationAdding(BaseTestCase):
             self.PROJECT_NAME, self.EXAMPLE_IMAGE_1
         )["annotation_json"]
 
-        annotations_new["instances"][0]['createdAt'] = ''
-        annotations_new["instances"][0]['updatedAt'] = ''
+        del annotations_new["instances"][0]['createdAt']
+        del annotations_new["instances"][0]['updatedAt']
 
         self.assertEqual(annotations_new['instances'][0], {
             'creationType': 'Preannotation',
-            'className': 'test_add', 'visible': True,
-            'locked': False, 'probability': 100,
+            'className': 'test_add',
+            'visible': True,
+            'locked': False,
+            'probability': 100,
             'attributes': [],
             'type': 'bbox',
             'pointLabels': {},
             'groupId': 0,
             'points': {'x1': 10.0, 'x2': 500.0, 'y1': 10.0, 'y2': 100.0},
             'classId': -1,
-            'createdAt': '',
-            'updatedAt': ''
         })
 
     def test_add_comment_to_empty_annotation(self):
@@ -241,9 +240,10 @@ class TestAnnotationAdding(BaseTestCase):
             image_name=self.EXAMPLE_IMAGE_1,
             bbox=[10, 20, 100, 150],
             annotation_class_name="test_add",
-            annotation_class_attributes=[{'name': 'yes', 'groupName': 'test_add'}]
+            annotation_class_attributes=[{'name': 'yes', 'groupName': 'test'}]
         )
         annotation = sa.get_image_annotations(self.PROJECT_NAME, self.EXAMPLE_IMAGE_1)
-        self.assertEqual(
-            annotation["annotation_json"]["instances"][0]["attributes"], [{'name': 'yes', 'groupName': 'test_add'}]
+        self.assertTrue(
+            all([annotation["annotation_json"]["instances"][0]["attributes"][0][key] == val for key, val in
+             {'name': 'yes', 'groupName': 'test'}.items()])
         )
