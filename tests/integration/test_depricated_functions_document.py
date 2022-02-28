@@ -12,7 +12,7 @@ from src.superannotate.lib.core import DEPRICATED_DOCUMENT_VIDEO_MESSAGE
 
 
 class TestDeprecatedFunctionsDocument(TestCase):
-    PROJECT_NAME = "document proj 11"
+    PROJECT_NAME = "TestDeprecatedFunctionsDocument"
     PROJECT_DESCRIPTION = "desc"
     PROJECT_TYPE = "Document"
     PATH_TO_URLS = "data_set/attach_urls.csv"

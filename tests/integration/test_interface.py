@@ -73,7 +73,7 @@ class TestInterface(BaseTestCase):
         metadata = sa.get_project_metadata(self.PROJECT_NAME)
         self.assertIsNotNone(metadata["id"])
         self.assertListEqual(metadata.get("contributors", []), [])
-        sa.create_annotation_class(self.PROJECT_NAME, "tt", "#FFFFFF", type="tag")
+        sa.create_annotation_class(self.PROJECT_NAME, "tt", "#FFFFFF", class_type="tag")
         metadata_with_users = sa.get_project_metadata(self.PROJECT_NAME, include_annotation_classes=True, include_contributors=True)
         self.assertEqual(metadata_with_users['classes'][0]['type'], 'tag')
         self.assertIsNotNone(metadata_with_users.get("contributors"))

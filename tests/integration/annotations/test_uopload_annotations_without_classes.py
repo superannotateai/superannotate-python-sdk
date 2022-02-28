@@ -37,7 +37,7 @@ class TestAnnotationUploadVectorWithoutClasses(BaseTestCase):
             with tempfile.TemporaryDirectory() as classes_dir:
                 classes_path = sa.download_annotation_classes_json(self.PROJECT_NAME, classes_dir)
                 self.assertEqual(json.load(open(classes_path, "r")), [])
-                sa.create_annotation_class(self.PROJECT_NAME, "tt", "#FFFFFF", type="tag")
+                sa.create_annotation_class(self.PROJECT_NAME, "tt", "#FFFFFF", class_type="tag")
                 classes_path = sa.download_annotation_classes_json(self.PROJECT_NAME, classes_dir)
                 classes_json = json.load(open(classes_path, "r"))
                 self.assertEqual(classes_json[0]["type"], "tag")
