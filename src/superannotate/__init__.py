@@ -99,12 +99,12 @@ from superannotate.lib.app.interface.sdk_interface import (
 from superannotate.lib.app.interface.sdk_interface import (
     upload_images_from_public_urls_to_project,
 )
-from superannotate.lib.app.interface.sdk_interface import (
-    upload_priority_scores,
-)
 from superannotate.lib.app.interface.sdk_interface import upload_images_to_project
 from superannotate.lib.app.interface.sdk_interface import (
     upload_preannotations_from_folder_to_project,
+)
+from superannotate.lib.app.interface.sdk_interface import (
+    upload_priority_scores,
 )
 from superannotate.lib.app.interface.sdk_interface import upload_video_to_project
 from superannotate.lib.app.interface.sdk_interface import (

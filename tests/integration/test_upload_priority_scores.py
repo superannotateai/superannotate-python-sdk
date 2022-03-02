@@ -1,7 +1,9 @@
 import os
+from pathlib import Path
+
 import src.superannotate as sa
 from tests.integration.base import BaseTestCase
-from pathlib import Path
+
 
 class TestUploadPriorityScores(BaseTestCase):
     PROJECT_NAME = "TestUploadPriorityScores"
@@ -17,7 +19,7 @@ class TestUploadPriorityScores(BaseTestCase):
         sa.upload_images_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
         )
-        uploaded, skipped = sa.upload_priority_scores(self.PROJECT_NAME, scores=[{
+        uploaded, skipped = sa.upload_priority_2scores(self.PROJECT_NAME, scores=[{
             "name": "example_image_1.jpg",
             "priority": 1
         }])
@@ -39,5 +41,5 @@ class TestUploadPriorityScores(BaseTestCase):
             "name": "example_image_4.jpg",
             "priority": 100000000
         }])
-        self.assertEqual(sa.get_image_metadata(self.PROJECT_NAME,"example_image_4.jpg")['entropy_value'], 1000000)
-        self.assertEqual(sa.get_image_metadata(self.PROJECT_NAME,"example_image_3.jpg")['entropy_value'], 1.12345)
+        self.assertEqual(sa.get_image_metadata(self.PROJECT_NAME, "example_image_4.jpg")['entropy_value'], 1000000)
+        self.assertEqual(sa.get_image_metadata(self.PROJECT_NAME, "example_image_3.jpg")['entropy_value'], 1.12345)
