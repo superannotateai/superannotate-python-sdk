@@ -227,8 +227,8 @@ class SuperannotateBackendService(BaseBackendService):
     URL_UPLOAD_PRIORITY_SCORES = "images/updateEntropy"
 
     def upload_priority_scores(
-            self, team_id: int, project_id: int, folder_id: int, priorities: list = []
-    ) -> ServiceResponse:
+            self, team_id: int, project_id: int, folder_id: int, priorities: list
+    ) -> dict:
         upload_priority_score_url = urljoin(self.api_url, self.URL_UPLOAD_PRIORITY_SCORES)
         res = self._request(
             upload_priority_score_url,

@@ -316,7 +316,6 @@ class SuerannotateServiceProvider:
         raise NotImplementedError
 
     def upload_priority_scores(
-            self, team_id: int, project_id: int, folder_id: int, priorities: list = []
-    ) -> ServiceResponse:
+            self, team_id: int, project_id: int, folder_id: int, priorities: list
+    ) -> dict:
         raise NotImplementedError
-
