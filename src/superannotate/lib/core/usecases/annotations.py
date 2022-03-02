@@ -592,7 +592,10 @@ class GetVideoAnnotationsPerFrame(BaseReportableUseCae):
 
     def validate_project_type(self):
         if self._project.project_type != constances.ProjectType.VIDEO.value:
-            raise AppException("The function only supports video projects.")
+            raise AppException(
+                "The function is not supported for"
+                f" {constances.ProjectType.get_name(self._project.project_type)} projects."
+            )
 
     def execute(self):
         self.reporter.disable_info()
