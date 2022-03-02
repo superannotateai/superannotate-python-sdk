@@ -116,7 +116,8 @@ class VideoFrameGenerator:
     def merge_first_frame(frames_mapping):
         try:
             if 0 in frames_mapping:
-                frames_mapping[1].extendleft(frames_mapping[0])
+                frames_mapping[0].extend(frames_mapping[1])
+                frames_mapping[1] = frames_mapping[0]
                 del frames_mapping[0]
         finally:
             return frames_mapping

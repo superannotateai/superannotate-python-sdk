@@ -690,6 +690,7 @@ class UploadPriorityScoresUseCase(BaseReportableUseCae):
                     )
                     self.reporter.update_progress(len(priorities_to_upload))
                     uploaded_score_names.extend(list(map(lambda x: x["name"], res.get("data", []))))
+                self.reporter.finish_progress()
                 skipped_score_names = list(set(initial_scores) - set(uploaded_score_names))
                 self._response.data = (uploaded_score_names, skipped_score_names)
             else:

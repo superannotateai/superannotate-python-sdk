@@ -98,7 +98,7 @@ class BaseController(metaclass=ABCMeta):
                 )
         self._token = token
         self._backend_url = backend_url or self._backend_url
-        self._ssl_verify = ssl_verify or self._ssl_verify
+        self._ssl_verify = ssl_verify if ssl_verify is not None else True
 
     @staticmethod
     def _validate_token(token: str):
