@@ -114,4 +114,3 @@ class SettingsSerializer(BaseSerializers):
         if data["attribute"] == "ImageQuality":
             data["value"] = constance.ImageQuality.get_name(data["value"])
         return data
-

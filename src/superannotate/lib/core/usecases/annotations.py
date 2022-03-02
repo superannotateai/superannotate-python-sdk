@@ -536,7 +536,6 @@ class GetAnnotations(BaseReportableUseCae):
             self._item_names = [item.name for item in self._images.get_all(condition)]
 
     def _prettify_annotations(self, annotations: List[dict]):
-
         if self._item_names_provided:
             try:
                 data = []
