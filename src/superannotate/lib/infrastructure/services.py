@@ -224,6 +224,19 @@ class SuperannotateBackendService(BaseBackendService):
     URL_DELETE_ANNOTATIONS_PROGRESS = "annotations/getRemoveStatus"
     URL_GET_LIMITS = "project/{}/limitationDetails"
     URL_GET_ANNOTATIONS = "images/annotations/stream"
+    URL_UPLOAD_PRIORITY_SCORES = "images/updateEntropy"
+
+    def upload_priority_scores(
+            self, team_id: int, project_id: int, folder_id: int, priorities: list
+    ) -> dict:
+        upload_priority_score_url = urljoin(self.api_url, self.URL_UPLOAD_PRIORITY_SCORES)
+        res = self._request(
+            upload_priority_score_url,
+            "post",
+            params={"team_id": team_id, "project_id": project_id, "folder_id": folder_id},
+            data={"image_entropies": priorities}
+        )
+        return res.json()
 
     def get_project(self, uuid: int, team_id: int):
         get_project_url = urljoin(self.api_url, self.URL_GET_PROJECT.format(uuid))

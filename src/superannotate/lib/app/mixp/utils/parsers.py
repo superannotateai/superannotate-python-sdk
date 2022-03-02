@@ -1230,3 +1230,11 @@ def get_annotations_per_frame(*args, **kwargs):
         "event_name": "get_annotations_per_frame",
         "properties": {"Project": project, "fps": fps},
     }
+
+
+def upload_priority_scores(*args, **kwargs):
+    scores = kwargs.get("scores", args[1])
+    return {
+        "event_name": "upload_priority_scores",
+        "properties": {"Score Count": len(scores)},
+    }

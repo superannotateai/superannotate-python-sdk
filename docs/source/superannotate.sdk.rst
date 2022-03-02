@@ -92,6 +92,7 @@ ______
 .. autofunction:: superannotate.add_annotation_bbox_to_image
 .. autofunction:: superannotate.add_annotation_point_to_image
 .. autofunction:: superannotate.add_annotation_comment_to_image
+.. autofunction:: superannotate.upload_priority_scores
 
 ----------
 

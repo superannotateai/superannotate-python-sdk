@@ -39,6 +39,7 @@ from lib.core.enums import ImageQuality
 from lib.core.exceptions import AppException
 from lib.core.types import AttributeGroup
 from lib.core.types import MLModel
+from lib.core.types import PriorityScore
 from lib.core.types import Project
 from lib.infrastructure.controller import Controller
 from pydantic import conlist
@@ -2897,6 +2898,28 @@ def get_annotations_per_frame(project: NotEmptyStr, video: NotEmptyStr, fps: int
     """
     project_name, folder_name = extract_project_folder(project)
     response = Controller.get_default().get_annotations_per_frame(project_name, folder_name, video_name=video, fps=fps)
+    if response.errors:
+        raise AppException(response.errors)
+    return response.data
+
+
+@Trackable
+@validate_arguments
+def upload_priority_scores(project: NotEmptyStr, scores: List[PriorityScore]):
+    """Returns per frame annotations for the given video.
+
+    :param project: project name or folder path (e.g., “project1/folder1”)
+    :type project: str
+
+    :param scores: list of score objects
+    :type scores: list of dicts
+
+    :return: lists of uploaded, skipped items
+    :rtype: tuple (2 members) of lists of strs
+    """
+    project_name, folder_name = extract_project_folder(project)
+    project_folder_name = project
+    response = Controller.get_default().upload_priority_scores(project_name, folder_name, scores, project_folder_name)
     if response.errors:
         raise AppException(response.errors)
     return response.data

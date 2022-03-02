@@ -38,6 +38,7 @@ from superannotate_schemas.validators import AnnotationValidators
 
 
 class BaseController(metaclass=ABCMeta):
+
     def __init__(self, config_path: str = None, token: str = None):
         self._team_data = None
         self._token = None
@@ -1645,5 +1646,18 @@ class Controller(BaseController):
             video_name=video_name,
             fps=fps,
             backend_service_provider=self.backend_client
+        )
+        return use_case.execute()
+
+    def upload_priority_scores(self, project_name, folder_name, scores, project_folder_name):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+        use_case = usecases.UploadPriorityScoresUseCase(
+            reporter=self.default_reporter,
+            project=project,
+            folder=folder,
+            scores=scores,
+            backend_service_provider=self.backend_client,
+            project_folder_name=project_folder_name
         )
         return use_case.execute()

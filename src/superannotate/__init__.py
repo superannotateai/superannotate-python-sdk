@@ -103,6 +103,9 @@ from superannotate.lib.app.interface.sdk_interface import upload_images_to_proje
 from superannotate.lib.app.interface.sdk_interface import (
     upload_preannotations_from_folder_to_project,
 )
+from superannotate.lib.app.interface.sdk_interface import (
+    upload_priority_scores,
+)
 from superannotate.lib.app.interface.sdk_interface import upload_video_to_project
 from superannotate.lib.app.interface.sdk_interface import (
     upload_videos_from_folder_to_project,
@@ -151,6 +154,7 @@ __all__ = [
     "clone_project",
     "share_project",
     "delete_project",
+    "upload_priority_scores",
     # Images Section
     "search_images",
     "copy_image",
