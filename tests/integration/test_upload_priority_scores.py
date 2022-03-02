@@ -16,10 +16,11 @@ class TestUploadPriorityScores(BaseTestCase):
         return os.path.join(Path(__file__).parent.parent, self.TEST_FOLDER_PATH)
 
     def test_upload_priority_scores(self):
+
         sa.upload_images_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
         )
-        uploaded, skipped = sa.upload_priority_2scores(self.PROJECT_NAME, scores=[{
+        uploaded, skipped = sa.upload_priority_scores(self.PROJECT_NAME, scores=[{
             "name": "example_image_1.jpg",
             "priority": 1
         }])
