@@ -225,6 +225,8 @@ class SuperannotateBackendService(BaseBackendService):
     URL_GET_LIMITS = "project/{}/limitationDetails"
     URL_GET_ANNOTATIONS = "images/annotations/stream"
     URL_UPLOAD_PRIORITY_SCORES = "images/updateEntropy"
+    URL_GET_INTEGRATIONS = "integrations"
+    URL_ATTACH_INTEGRATIONS = "image/integration/create"
 
     def upload_priority_scores(
             self, team_id: int, project_id: int, folder_id: int, priorities: list
@@ -1059,3 +1061,32 @@ class SuperannotateBackendService(BaseBackendService):
             chunk_size=self.DEFAULT_CHUNK_SIZE,
             map_function=lambda x: {"image_names": x}
         ))
+
+    def get_integrations(self, team_id: int) -> List[dict]:
+        get_integrations_url = urljoin(self.api_url, self.URL_GET_INTEGRATIONS.format(team_id))
+
+        response = self._request(
+            get_integrations_url,
+            "get",
+            params={"team_id": team_id}
+        )
+        if response.ok:
+            return response.json().get("integrations", [])
+        return []
+
+    def attach_integrations(self, team_id: int, project_id: int, integration_id: int,  folder_id: int, folder_name: str = None) -> bool:
+        attach_integrations_url = urljoin(self.api_url, self.URL_ATTACH_INTEGRATIONS.format(team_id))
+        data = {
+            "team_id": team_id,
+            "project_id": project_id,
+            "folder_id": folder_id,
+            "integration_id": integration_id
+        }
+        if folder_name:
+            data["customer_folder_name"] = folder_name
+        response = self._request(
+            attach_integrations_url,
+            "post",
+            data=data
+        )
+        return response.ok

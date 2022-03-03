@@ -1,6 +1,7 @@
 import lib.core as constances
 from lib.app.helpers import extract_project_folder
 from lib.core.enums import ProjectType
+from lib.core.entities import IntegrationEntity
 from lib.infrastructure.controller import Controller
 
 
@@ -1238,3 +1239,36 @@ def upload_priority_scores(*args, **kwargs):
         "event_name": "upload_priority_scores",
         "properties": {"Score Count": len(scores)},
     }
+
+
+def get_integrations(*args, **kwargs):
+    return {
+        "event_name": "get_integrations",
+        "properties": {},
+    }
+
+
+def attach_items_from_integrated_storage(*args, **kwargs):
+    project = kwargs.get("project")
+    integration = kwargs.get("integration")
+    folder_path = kwargs.get("folder_path")
+    if not project:
+        project = args[0]
+    if not integration:
+        integration = args[1]
+    if not folder_path:
+        folder_path = args[2]
+
+    project_name, _ = extract_project_folder(project)
+    if isinstance(integration, str):
+        integration = IntegrationEntity(name=integration)
+    project = Controller.get_default().get_project_metadata(project_name)
+    return {
+        "event_name": "attach_items_from_integrated_storage",
+        "properties": {
+            "project_type": ProjectType.get_name(project.project_type),
+            "integration_name": integration.name,
+            "folder_path": bool(folder_path)
+        },
+    }
+

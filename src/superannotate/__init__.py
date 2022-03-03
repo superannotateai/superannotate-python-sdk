@@ -21,6 +21,8 @@ from superannotate.lib.app.interface.sdk_interface import add_contributors_to_pr
 from superannotate.lib.app.interface.sdk_interface import aggregate_annotations_as_df
 from superannotate.lib.app.interface.sdk_interface import assign_folder
 from superannotate.lib.app.interface.sdk_interface import assign_images
+from superannotate.lib.app.interface.sdk_interface import get_integrations
+from superannotate.lib.app.interface.sdk_interface import attach_items_from_integrated_storage
 from superannotate.lib.app.interface.sdk_interface import (
     attach_document_urls_to_project,
 )
@@ -135,6 +137,9 @@ __all__ = [
     # annotations
     "get_annotations",
     "get_annotations_per_frame",
+    # integrations
+    "get_integrations",
+    "attach_items_from_integrated_storage",
     # converters
     "convert_json_version",
     "import_annotation",

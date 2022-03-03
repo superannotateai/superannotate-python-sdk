@@ -668,7 +668,7 @@ class UploadPriorityScoresUseCase(BaseReportableUseCae):
     @property
     def uploading_info(self):
         data_len: int = len(self._scores)
-        return f"Uploading  priority scores for {data_len} item{'(s)' if data_len < 1 else ''} to {self.folder_path}."
+        return f"Uploading  priority scores for {data_len} item(s) to {self.folder_path}."
 
     def execute(self):
         if self.is_valid():

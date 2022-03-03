@@ -1,4 +1,8 @@
 from abc import ABC
+from typing import List
+from typing import Set
+from typing import Union
+from typing import Any
 
 import superannotate.lib.core as constance
 from pydantic import BaseModel
@@ -11,12 +15,37 @@ class BaseSerializers(ABC):
     def __init__(self, entity: BaseEntity):
         self._entity = entity
 
-    def serialize(self):
-        if isinstance(self._entity, dict):
-            return self._entity
-        if isinstance(self._entity, BaseModel):
-            return self._entity.dict(by_alias=True)
-        return self._entity.to_dict()
+    def serialize(self, fields: List[str] = None, by_alias: bool = True, flat: bool = False):
+            return self._serialize(self._entity, fields, by_alias, flat)
+
+    @staticmethod
+    def _serialize(entity: Any, fields: List[str] = None, by_alias: bool = False, flat: bool = False):
+        if isinstance(entity, dict):
+            return entity
+        if isinstance(entity, BaseModel):
+            if fields:
+                fields = set(fields)
+                if len(fields) == 1:
+                    if flat:
+                        return entity.dict(include=fields, by_alias=by_alias)[next(iter(fields))]
+                    else:
+                        return entity.dict(include=fields, by_alias=by_alias)
+                return entity.dict(include=fields, by_alias=by_alias)
+            return entity.dict(by_alias=by_alias)
+        return entity.to_dict()
+
+    @classmethod
+    def serialize_iterable(
+            cls,
+            data: List[Any],
+            fields: Union[List[str], Set[str]] = None,
+            by_alias: bool = False,
+            flat: bool = False
+    ) -> List[Any]:
+        serialized_data = []
+        for i in data:
+            serialized_data.append(cls._serialize(i, fields, by_alias, flat))
+        return serialized_data
 
 
 class UserSerializer(BaseSerializers):

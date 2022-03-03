@@ -18,6 +18,7 @@ from lib.core.entities import ProjectSettingEntity
 from lib.core.entities import S3FileEntity
 from lib.core.entities import TeamEntity
 from lib.core.entities import UserEntity
+from lib.core.entities import IntegrationEntity
 from lib.core.entities import WorkflowEntity
 from lib.core.enums import ClassTypeEnum
 from lib.core.enums import ImageQuality
@@ -493,3 +494,19 @@ class MLModelRepository(BaseManageableRepository):
             is_global=data["is_global"],
             training_status=data["training_status"],
         )
+
+
+class IntegrationRepository(BaseReadOnlyRepository):
+    def __init__(self, service: SuperannotateBackendService, team_id: int):
+        self._service = service
+        self._team_id = team_id
+
+    def get_one(self, uuid: int) -> Optional[TeamEntity]:
+        raise NotImplementedError
+
+    def get_all(self, condition: Optional[Condition] = None) -> List[IntegrationEntity]:
+        return [self.dict2entity(integration) for integration in self._service.get_integrations(self._team_id)]
+
+    @staticmethod
+    def dict2entity(data: dict) -> IntegrationEntity:
+        return IntegrationEntity(**data)

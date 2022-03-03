@@ -34,6 +34,7 @@ from lib.app.serializers import ProjectSerializer
 from lib.app.serializers import SettingsSerializer
 from lib.app.serializers import TeamSerializer
 from lib.core import LIMITED_FUNCTIONS
+from lib.core.entities.integrations import IntegrationEntity
 from lib.core.entities.project_entities import AnnotationClassEntity
 from lib.core.enums import ImageQuality
 from lib.core.exceptions import AppException
@@ -2923,3 +2924,49 @@ def upload_priority_scores(project: NotEmptyStr, scores: List[PriorityScore]):
     if response.errors:
         raise AppException(response.errors)
     return response.data
+
+
+@Trackable
+@validate_arguments
+def get_integrations():
+    """Get all integrations per team
+
+    :return: metadata objects of all integrations of the team.
+    :rtype: list of dicts
+    """
+    response = Controller.get_default().get_integrations()
+    if response.errors:
+        raise AppException(response.errors)
+    integrations = response.data
+    return BaseSerializers.serialize_iterable(integrations, ("name", "type", "root"))
+
+
+@Trackable
+@validate_arguments
+def attach_items_from_integrated_storage(
+        project: NotEmptyStr,
+        integration: Union[NotEmptyStr, IntegrationEntity],
+        folder_path: Optional[NotEmptyStr] = None
+):
+    """Link images from integrated external storage to SuperAnnotate.
+
+    :param project: project name or folder path where items should be attached (e.g., “project1/folder1”).
+    :type project: str
+
+    :param project: project name or folder path where items should be attached (e.g., “project1/folder1”).
+    :type project: str
+
+    :param integration:  existing integration name or metadata dict to pull items from.
+     Mandatory keys in integration metadata’s dict is “name”.
+    :type integration: str
+
+    :param folder_path: Points to an exact folder/directory within given storage.
+    If None, items are fetched from the root directory.
+    :type folder_path: str
+    """
+    project_name, folder_name = extract_project_folder(project)
+    if isinstance(integration, str):
+        integration = IntegrationEntity(name=integration)
+    response = Controller.get_default().attach_integrations(project_name, folder_name, integration, folder_path)
+    if response.errors:
+        raise AppException(response.errors)
