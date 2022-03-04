@@ -12,13 +12,13 @@ from lib.core.entities import AnnotationClassEntity
 from lib.core.entities import ConfigEntity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
+from lib.core.entities import IntegrationEntity
 from lib.core.entities import MLModelEntity
 from lib.core.entities import ProjectEntity
 from lib.core.entities import ProjectSettingEntity
 from lib.core.entities import S3FileEntity
 from lib.core.entities import TeamEntity
 from lib.core.entities import UserEntity
-from lib.core.entities import IntegrationEntity
 from lib.core.entities import WorkflowEntity
 from lib.core.enums import ClassTypeEnum
 from lib.core.enums import ImageQuality

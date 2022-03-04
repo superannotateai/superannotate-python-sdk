@@ -17,7 +17,7 @@ from lib.core.exceptions import AppValidationException
 from lib.core.reporter import Reporter
 from lib.core.repositories import BaseManageableRepository
 from lib.core.repositories import BaseReadOnlyRepository
-from lib.core.serviceproviders import SuerannotateServiceProvider
+from lib.core.serviceproviders import SuperannotateServiceProvider
 from lib.core.usecases.base import BaseReportableUseCae
 from lib.core.usecases.base import BaseUseCase
 from lib.core.usecases.base import BaseUserBasedUseCase
@@ -75,7 +75,7 @@ class GetProjectMetaDataUseCase(BaseUseCase):
     def __init__(
         self,
         project: ProjectEntity,
-        service: SuerannotateServiceProvider,
+        service: SuperannotateServiceProvider,
         annotation_classes: BaseManageableRepository,
         settings: BaseManageableRepository,
         workflows: BaseManageableRepository,
@@ -163,7 +163,7 @@ class CreateProjectUseCase(BaseUseCase):
         self,
         project: ProjectEntity,
         projects: BaseManageableRepository,
-        backend_service_provider: SuerannotateServiceProvider,
+        backend_service_provider: SuperannotateServiceProvider,
         settings_repo: Type[BaseManageableRepository],
         annotation_classes_repo: BaseManageableRepository,
         workflows_repo: BaseManageableRepository,
@@ -352,7 +352,7 @@ class CloneProjectUseCase(BaseReportableUseCae):
         settings_repo: Type[BaseManageableRepository],
         workflows_repo: Type[BaseManageableRepository],
         annotation_classes_repo: Type[BaseManageableRepository],
-        backend_service_provider: SuerannotateServiceProvider,
+        backend_service_provider: SuperannotateServiceProvider,
         include_annotation_classes: bool = True,
         include_settings: bool = True,
         include_workflow: bool = True,
@@ -594,7 +594,7 @@ class CloneProjectUseCase(BaseReportableUseCae):
 class ShareProjectUseCase(BaseUseCase):
     def __init__(
         self,
-        service: SuerannotateServiceProvider,
+        service: SuperannotateServiceProvider,
         project_entity: ProjectEntity,
         user_id: str,
         user_role: str,
@@ -625,7 +625,7 @@ class ShareProjectUseCase(BaseUseCase):
 class UnShareProjectUseCase(BaseUseCase):
     def __init__(
         self,
-        service: SuerannotateServiceProvider,
+        service: SuperannotateServiceProvider,
         project_entity: ProjectEntity,
         user_id: str,
     ):
@@ -712,7 +712,7 @@ class UpdateSettingsUseCase(BaseUseCase):
         projects: BaseReadOnlyRepository,
         settings: BaseManageableRepository,
         to_update: List,
-        backend_service_provider: SuerannotateServiceProvider,
+        backend_service_provider: SuperannotateServiceProvider,
         project_id: int,
         team_id: int,
     ):
@@ -773,7 +773,7 @@ class UpdateSettingsUseCase(BaseUseCase):
 class GetProjectImageCountUseCase(BaseUseCase):
     def __init__(
         self,
-        service: SuerannotateServiceProvider,
+        service: SuperannotateServiceProvider,
         project: ProjectEntity,
         folder: FolderEntity,
         with_all_sub_folders: bool = False,
@@ -817,7 +817,7 @@ class GetProjectImageCountUseCase(BaseUseCase):
 class SetWorkflowUseCase(BaseUseCase):
     def __init__(
         self,
-        service: SuerannotateServiceProvider,
+        service: SuperannotateServiceProvider,
         annotation_classes_repo: BaseManageableRepository,
         workflow_repo: BaseManageableRepository,
         steps: list,
@@ -921,7 +921,7 @@ class GetTeamUseCase(BaseUseCase):
 class SearchContributorsUseCase(BaseUseCase):
     def __init__(
         self,
-        backend_service_provider: SuerannotateServiceProvider,
+        backend_service_provider: SuperannotateServiceProvider,
         team_id: int,
         condition: Condition = None,
     ):
@@ -955,7 +955,7 @@ class AddContributorsToProject(BaseUserBasedUseCase):
         project: ProjectEntity,
         emails: list,
         role: str,
-        service: SuerannotateServiceProvider,
+        service: SuperannotateServiceProvider,
     ):
         super().__init__(reporter, emails)
         self._team = team
@@ -1020,7 +1020,7 @@ class InviteContributorsToTeam(BaseUserBasedUseCase):
         team: TeamEntity,
         emails: list,
         set_admin: bool,
-        service: SuerannotateServiceProvider,
+        service: SuperannotateServiceProvider,
     ):
         super().__init__(reporter, emails)
         self._team = team

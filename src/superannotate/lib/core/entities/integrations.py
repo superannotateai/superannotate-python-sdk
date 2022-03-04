@@ -1,5 +1,5 @@
-from pydantic import Field
 from lib.core.entities.base import TimedBaseModel
+from pydantic import Field
 
 
 class IntegrationEntity(TimedBaseModel):

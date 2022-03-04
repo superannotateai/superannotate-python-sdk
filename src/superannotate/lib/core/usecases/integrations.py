@@ -1,13 +1,15 @@
-from lib.core.usecases import BaseReportableUseCae
-from lib.core.reporter import Reporter
-from lib.core.entities import IntegrationEntity
-from lib.core.entities import TeamEntity
+from typing import List
+
 from lib.core.entities import FolderEntity
+from lib.core.entities import IntegrationEntity
 from lib.core.entities import ProjectEntity
-from lib.core.response import Response
+from lib.core.entities import TeamEntity
 from lib.core.exceptions import AppException
+from lib.core.reporter import Reporter
 from lib.core.repositories import BaseReadOnlyRepository
-from lib.core.serviceproviders import SuerannotateServiceProvider
+from lib.core.response import Response
+from lib.core.serviceproviders import SuperannotateServiceProvider
+from lib.core.usecases import BaseReportableUseCae
 
 
 class GetIntegrations(BaseReportableUseCae):
@@ -38,7 +40,7 @@ class AttachIntegrations(BaseReportableUseCae):
             project: ProjectEntity,
             folder: FolderEntity,
             integrations: BaseReadOnlyRepository,
-            backend_service: SuerannotateServiceProvider,
+            backend_service: SuperannotateServiceProvider,
             integration: IntegrationEntity,
             folder_path: str = None
     ):
@@ -52,15 +54,19 @@ class AttachIntegrations(BaseReportableUseCae):
         self._folder_path = folder_path
         self._integrations = integrations
 
+    @property
+    def _upload_path(self):
+        return f"{self._project.name}{f'/{self._folder.name}' if self._folder.name != 'root' else ''}"
+
     def execute(self) -> Response:
-        integrations = self._integrations.get_all()
+        integrations: List[IntegrationEntity] = self._integrations.get_all()
         integration_name_lower = self._integration.name.lower()
         integration = next((i for i in integrations if i.name.lower() == integration_name_lower), None)
         if integration:
             self.reporter.log_info(
                 "Attaching file(s) from "
-                f"{integration.root}{f'/{self._folder.name}' if self._folder.name != 'root' else ''} "
-                f"to {self._project.name}. This may take some time."
+                f"{integration.root}{f'/{self._folder.name}' if self._folder_path else ''} "
+                f"to {self._upload_path}. This may take some time."
             )
             attached = self._client.attach_integrations(
                 self._team.uuid,

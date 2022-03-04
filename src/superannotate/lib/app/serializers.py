@@ -1,8 +1,8 @@
 from abc import ABC
+from typing import Any
 from typing import List
 from typing import Set
 from typing import Union
-from typing import Any
 
 import superannotate.lib.core as constance
 from pydantic import BaseModel
@@ -16,7 +16,7 @@ class BaseSerializers(ABC):
         self._entity = entity
 
     def serialize(self, fields: List[str] = None, by_alias: bool = True, flat: bool = False):
-            return self._serialize(self._entity, fields, by_alias, flat)
+        return self._serialize(self._entity, fields, by_alias, flat)
 
     @staticmethod
     def _serialize(entity: Any, fields: List[str] = None, by_alias: bool = False, flat: bool = False):
@@ -28,8 +28,7 @@ class BaseSerializers(ABC):
                 if len(fields) == 1:
                     if flat:
                         return entity.dict(include=fields, by_alias=by_alias)[next(iter(fields))]
-                    else:
-                        return entity.dict(include=fields, by_alias=by_alias)
+                    return entity.dict(include=fields, by_alias=by_alias)
                 return entity.dict(include=fields, by_alias=by_alias)
             return entity.dict(by_alias=by_alias)
         return entity.to_dict()

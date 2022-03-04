@@ -18,7 +18,7 @@ from lib.core.service_types import DownloadMLModelAuthData
 from lib.core.service_types import ServiceResponse
 from lib.core.service_types import UploadAnnotationAuthData
 from lib.core.service_types import UserLimits
-from lib.core.serviceproviders import SuerannotateServiceProvider
+from lib.core.serviceproviders import SuperannotateServiceProvider
 from lib.infrastructure.helpers import timed_lru_cache
 from lib.infrastructure.stream_data_handler import StreamedAnnotations
 from requests.exceptions import HTTPError
@@ -34,7 +34,7 @@ class PydanticEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
-class BaseBackendService(SuerannotateServiceProvider):
+class BaseBackendService(SuperannotateServiceProvider):
     AUTH_TYPE = "sdk"
     PAGINATE_BY = 100
     LIMIT = 100
@@ -1074,7 +1074,13 @@ class SuperannotateBackendService(BaseBackendService):
             return response.json().get("integrations", [])
         return []
 
-    def attach_integrations(self, team_id: int, project_id: int, integration_id: int,  folder_id: int, folder_name: str = None) -> bool:
+    def attach_integrations(
+            self,
+            team_id: int,
+            project_id: int,
+            integration_id: int,
+            folder_id: int,
+            folder_name: str = None) -> bool:
         attach_integrations_url = urljoin(self.api_url, self.URL_ATTACH_INTEGRATIONS.format(team_id))
         data = {
             "team_id": team_id,

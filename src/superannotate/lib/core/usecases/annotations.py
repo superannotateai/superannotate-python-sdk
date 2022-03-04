@@ -8,11 +8,9 @@ from typing import Optional
 from typing import Tuple
 
 import boto3
-from superannotate_schemas.validators import AnnotationValidators
-
 import lib.core as constances
-from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.conditions import Condition
+from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.data_handlers import ChainedAnnotationHandlers
 from lib.core.data_handlers import DocumentTagHandler
 from lib.core.data_handlers import LastActionHandler
@@ -27,13 +25,14 @@ from lib.core.exceptions import AppException
 from lib.core.reporter import Reporter
 from lib.core.repositories import BaseManageableRepository
 from lib.core.service_types import UploadAnnotationAuthData
-from lib.core.serviceproviders import SuerannotateServiceProvider
+from lib.core.serviceproviders import SuperannotateServiceProvider
 from lib.core.types import PriorityScore
 from lib.core.usecases.base import BaseReportableUseCae
 from lib.core.usecases.images import GetBulkImages
 from lib.core.usecases.images import ValidateAnnotationUseCase
 from lib.core.video_convertor import VideoFrameGenerator
 from superannotate.logger import get_default_logger
+from superannotate_schemas.validators import AnnotationValidators
 
 logger = get_default_logger()
 
@@ -53,7 +52,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
             images: BaseManageableRepository,
             annotation_classes: List[AnnotationClassEntity],
             annotation_paths: List[str],
-            backend_service_provider: SuerannotateServiceProvider,
+            backend_service_provider: SuperannotateServiceProvider,
             templates: List[dict],
             validators: AnnotationValidators,
             pre_annotation: bool = False,
@@ -313,7 +312,7 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
             images: BaseManageableRepository,
             team: TeamEntity,
             annotation_classes: List[AnnotationClassEntity],
-            backend_service_provider: SuerannotateServiceProvider,
+            backend_service_provider: SuperannotateServiceProvider,
             reporter: Reporter,
             templates: List[dict],
             validators: AnnotationValidators,
@@ -500,7 +499,7 @@ class GetAnnotations(BaseReportableUseCae):
             folder: FolderEntity,
             images: BaseManageableRepository,
             item_names: Optional[List[str]],
-            backend_service_provider: SuerannotateServiceProvider,
+            backend_service_provider: SuperannotateServiceProvider,
             show_process: bool = True
     ):
         super().__init__(reporter)
@@ -580,7 +579,7 @@ class GetVideoAnnotationsPerFrame(BaseReportableUseCae):
             images: BaseManageableRepository,
             video_name: str,
             fps: int,
-            backend_service_provider: SuerannotateServiceProvider
+            backend_service_provider: SuperannotateServiceProvider
     ):
         super().__init__(reporter)
         self._project = project
@@ -639,7 +638,7 @@ class UploadPriorityScoresUseCase(BaseReportableUseCae):
             folder: FolderEntity,
             scores: List[PriorityScore],
             project_folder_name: str,
-            backend_service_provider: SuerannotateServiceProvider
+            backend_service_provider: SuperannotateServiceProvider
     ):
         super().__init__(reporter)
         self._project = project

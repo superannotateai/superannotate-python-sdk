@@ -9,7 +9,7 @@ from lib.core.reporter import Reporter
 from lib.core.service_types import ServiceResponse
 
 
-class SuerannotateServiceProvider:
+class SuperannotateServiceProvider:
     @abstractmethod
     def attach_files(
             self,

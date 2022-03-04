@@ -21,12 +21,11 @@ from superannotate.lib.app.interface.sdk_interface import add_contributors_to_pr
 from superannotate.lib.app.interface.sdk_interface import aggregate_annotations_as_df
 from superannotate.lib.app.interface.sdk_interface import assign_folder
 from superannotate.lib.app.interface.sdk_interface import assign_images
-from superannotate.lib.app.interface.sdk_interface import get_integrations
-from superannotate.lib.app.interface.sdk_interface import attach_items_from_integrated_storage
 from superannotate.lib.app.interface.sdk_interface import (
     attach_document_urls_to_project,
 )
 from superannotate.lib.app.interface.sdk_interface import attach_image_urls_to_project
+from superannotate.lib.app.interface.sdk_interface import attach_items_from_integrated_storage
 from superannotate.lib.app.interface.sdk_interface import attach_video_urls_to_project
 from superannotate.lib.app.interface.sdk_interface import benchmark
 from superannotate.lib.app.interface.sdk_interface import clone_project
@@ -58,6 +57,7 @@ from superannotate.lib.app.interface.sdk_interface import get_exports
 from superannotate.lib.app.interface.sdk_interface import get_folder_metadata
 from superannotate.lib.app.interface.sdk_interface import get_image_annotations
 from superannotate.lib.app.interface.sdk_interface import get_image_metadata
+from superannotate.lib.app.interface.sdk_interface import get_integrations
 from superannotate.lib.app.interface.sdk_interface import (
     get_project_and_folder_metadata,
 )

@@ -1,7 +1,7 @@
 import lib.core as constances
 from lib.app.helpers import extract_project_folder
-from lib.core.enums import ProjectType
 from lib.core.entities import IntegrationEntity
+from lib.core.enums import ProjectType
 from lib.infrastructure.controller import Controller
 
 
@@ -1249,15 +1249,9 @@ def get_integrations(*args, **kwargs):
 
 
 def attach_items_from_integrated_storage(*args, **kwargs):
-    project = kwargs.get("project")
-    integration = kwargs.get("integration")
-    folder_path = kwargs.get("folder_path")
-    if not project:
-        project = args[0]
-    if not integration:
-        integration = args[1]
-    if not folder_path:
-        folder_path = args[2]
+    project = kwargs.get("project", args[0])
+    integration = kwargs.get("integration", args[1])
+    folder_path = kwargs.get("folder_path", args[2])
 
     project_name, _ = extract_project_folder(project)
     if isinstance(integration, str):
@@ -1271,4 +1265,3 @@ def attach_items_from_integrated_storage(*args, **kwargs):
             "folder_path": bool(folder_path)
         },
     }
-

@@ -1,3 +1,4 @@
+from lib.core.entities.integrations import IntegrationEntity
 from lib.core.entities.project_entities import AnnotationClassEntity
 from lib.core.entities.project_entities import BaseEntity
 from lib.core.entities.project_entities import ConfigEntity
@@ -11,7 +12,6 @@ from lib.core.entities.project_entities import S3FileEntity
 from lib.core.entities.project_entities import TeamEntity
 from lib.core.entities.project_entities import UserEntity
 from lib.core.entities.project_entities import WorkflowEntity
-from lib.core.entities.integrations import IntegrationEntity
 from superannotate_schemas.schemas.internal.document import DocumentAnnotation
 from superannotate_schemas.schemas.internal.pixel import PixelAnnotation
 from superannotate_schemas.schemas.internal.vector import VectorAnnotation

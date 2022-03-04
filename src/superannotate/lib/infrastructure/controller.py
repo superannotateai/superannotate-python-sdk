@@ -9,12 +9,10 @@ from typing import List
 from typing import Optional
 from typing import Union
 
-from superannotate_schemas.validators import AnnotationValidators
-
 import lib.core as constances
 from lib.core import usecases
-from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.conditions import Condition
+from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.entities import AnnotationClassEntity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
@@ -38,6 +36,7 @@ from lib.infrastructure.repositories import TeamRepository
 from lib.infrastructure.repositories import WorkflowRepository
 from lib.infrastructure.services import SuperannotateBackendService
 from superannotate.logger import get_default_logger
+from superannotate_schemas.validators import AnnotationValidators
 
 
 class BaseController(metaclass=ABCMeta):

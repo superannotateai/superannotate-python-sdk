@@ -2958,7 +2958,7 @@ def attach_items_from_integrated_storage(
 
     :param integration:  existing integration name or metadata dict to pull items from.
      Mandatory keys in integration metadata’s dict is “name”.
-    :type integration: str
+    :type integration: str or dict
 
     :param folder_path: Points to an exact folder/directory within given storage.
     If None, items are fetched from the root directory.
