@@ -65,7 +65,7 @@ class AttachIntegrations(BaseReportableUseCae):
         if integration:
             self.reporter.log_info(
                 "Attaching file(s) from "
-                f"{integration.root}{f'/{self._folder.name}' if self._folder_path else ''} "
+                f"{integration.root}{f'/{self._folder_path}' if self._folder_path else ''} "
                 f"to {self._upload_path}. This may take some time."
             )
             attached = self._client.attach_integrations(
