@@ -254,7 +254,7 @@ class Controller(BaseController):
         cls.DEFAULT = obj
         return cls.DEFAULT
 
-    def _get_project(self, name: str):
+    def _get_project(self, name: str) -> ProjectEntity:
         use_case = usecases.GetProjectByNameUseCase(
             name=name,
             team_id=self.team_id,
@@ -482,6 +482,8 @@ class Controller(BaseController):
         project_to_create.name = name
         if project_description:
             project_to_create.description = project_description
+        elif not project.description:
+            project.description = f"Copy of {from_name}."
 
         use_case = usecases.CloneProjectUseCase(
             reporter=self.default_reporter,

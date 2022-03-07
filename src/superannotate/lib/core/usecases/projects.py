@@ -212,14 +212,9 @@ class CreateProjectUseCase(BaseUseCase):
                     f"To use SDK please make project names unique."
                 )
 
-    def validate_description(self):
-        if not self._project.description:
-            raise AppValidationException("Please provide a project description.")
-
     def execute(self):
         if self.is_valid():
-            # TODO add status in the constants
-            self._project.status = 0
+            self._project.status = constances.ProjectStatus.NotStarted.value
             entity = self._projects.insert(self._project)
             self._response.data = entity
             data = {}
