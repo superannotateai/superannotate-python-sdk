@@ -25,6 +25,7 @@ from superannotate.lib.app.interface.sdk_interface import (
     attach_document_urls_to_project,
 )
 from superannotate.lib.app.interface.sdk_interface import attach_image_urls_to_project
+from superannotate.lib.app.interface.sdk_interface import attach_items_from_integrated_storage
 from superannotate.lib.app.interface.sdk_interface import attach_video_urls_to_project
 from superannotate.lib.app.interface.sdk_interface import benchmark
 from superannotate.lib.app.interface.sdk_interface import clone_project
@@ -56,6 +57,7 @@ from superannotate.lib.app.interface.sdk_interface import get_exports
 from superannotate.lib.app.interface.sdk_interface import get_folder_metadata
 from superannotate.lib.app.interface.sdk_interface import get_image_annotations
 from superannotate.lib.app.interface.sdk_interface import get_image_metadata
+from superannotate.lib.app.interface.sdk_interface import get_integrations
 from superannotate.lib.app.interface.sdk_interface import (
     get_project_and_folder_metadata,
 )
@@ -135,6 +137,9 @@ __all__ = [
     # annotations
     "get_annotations",
     "get_annotations_per_frame",
+    # integrations
+    "get_integrations",
+    "attach_items_from_integrated_storage",
     # converters
     "convert_json_version",
     "import_annotation",

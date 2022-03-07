@@ -12,6 +12,7 @@ from lib.core.entities import AnnotationClassEntity
 from lib.core.entities import ConfigEntity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
+from lib.core.entities import IntegrationEntity
 from lib.core.entities import MLModelEntity
 from lib.core.entities import ProjectEntity
 from lib.core.entities import ProjectSettingEntity
@@ -493,3 +494,19 @@ class MLModelRepository(BaseManageableRepository):
             is_global=data["is_global"],
             training_status=data["training_status"],
         )
+
+
+class IntegrationRepository(BaseReadOnlyRepository):
+    def __init__(self, service: SuperannotateBackendService, team_id: int):
+        self._service = service
+        self._team_id = team_id
+
+    def get_one(self, uuid: int) -> Optional[TeamEntity]:
+        raise NotImplementedError
+
+    def get_all(self, condition: Optional[Condition] = None) -> List[IntegrationEntity]:
+        return [self.dict2entity(integration) for integration in self._service.get_integrations(self._team_id)]
+
+    @staticmethod
+    def dict2entity(data: dict) -> IntegrationEntity:
+        return IntegrationEntity(**data)
