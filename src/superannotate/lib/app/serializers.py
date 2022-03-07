@@ -71,6 +71,10 @@ class ProjectSerializer(BaseSerializers):
     def serialize(self):
         data = super().serialize()
         data["type"] = constance.ProjectType.get_name(data["type"])
+        if data.get("status"):
+            data["status"] = constance.ProjectStatus.get_name(data["status"])
+        else:
+            data["status"] = "Undefined"
         if data.get("upload_state"):
             data["upload_state"] = constance.UploadState(data["upload_state"]).name
         if data.get("users"):
