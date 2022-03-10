@@ -124,7 +124,7 @@ class ProjectEntity(BaseTimedEntity):
             team_id=self.team_id,
             name=self.name,
             project_type=self.project_type,
-            description=self.description,
+            description=self.description if self.description else f"Copy of {self.name}.",
             status=self.status,
             folder_id=self.folder_id,
             users=self.users,

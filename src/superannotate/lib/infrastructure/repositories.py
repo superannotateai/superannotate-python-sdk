@@ -99,6 +99,8 @@ class ProjectRepository(BaseManageableRepository):
 
     def insert(self, entity: ProjectEntity) -> ProjectEntity:
         project_data = self._drop_nones(entity.to_dict())
+        if not project_data.get("status"):
+            project_data["status"] = constance.ProjectStatus.NotStarted.value
         result = self._service.create_project(project_data)
         return self.dict2entity(result)
 
@@ -118,21 +120,21 @@ class ProjectRepository(BaseManageableRepository):
         )
 
     @staticmethod
-    def dict2entity(data: dict):
+    def dict2entity(data: dict) -> ProjectEntity:
         try:
             return ProjectEntity(
                 uuid=data["id"],
                 team_id=data["team_id"],
                 name=data["name"],
                 project_type=data["type"],
-                status=data["status"],
-                attachment_name=data["attachment_name"],
-                attachment_path=data["attachment_path"],
-                entropy_status=data["entropy_status"],
+                status=data.get("status"),
+                attachment_name=data.get("attachment_name"),
+                attachment_path=data.get("attachment_path"),
+                entropy_status=data.get("entropy_status"),
                 sharing_status=data.get("sharing_status"),
                 creator_id=data["creator_id"],
                 upload_state=data["upload_state"],
-                description=data["description"],
+                description=data.get("description"),
                 folder_id=data.get("folder_id"),
                 users=data.get("users", ()),
                 unverified_users=data.get("unverified_users", ()),
@@ -148,6 +150,7 @@ class ProjectRepository(BaseManageableRepository):
 
 
 class S3Repository(BaseS3Repository):
+
     def get_one(self, uuid: str) -> S3FileEntity:
         file = io.BytesIO()
         self._resource.Object(self._bucket, uuid).download_fileobj(file)
@@ -242,7 +245,7 @@ class WorkflowRepository(BaseProjectRelatedManageableRepository):
         raise NotImplementedError
 
     @staticmethod
-    def dict2entity(data: dict):
+    def dict2entity(data: dict) -> WorkflowEntity:
         return WorkflowEntity(
             uuid=data["id"],
             project_id=data["project_id"],
@@ -294,7 +297,7 @@ class FolderRepository(BaseManageableRepository):
         return self._service.delete_folders(entity.project_id, entity.team_id, ids)
 
     @staticmethod
-    def dict2entity(data: dict):
+    def dict2entity(data: dict) -> FolderEntity:
         try:
             return FolderEntity(
                 uuid=data["id"],
@@ -397,7 +400,7 @@ class ImageRepository(BaseManageableRepository):
         return entity
 
     @staticmethod
-    def dict2entity(data: dict):
+    def dict2entity(data: dict) -> ImageEntity:
         return ImageEntity(
             uuid=data["id"],
             name=data["name"],
@@ -416,7 +419,7 @@ class ImageRepository(BaseManageableRepository):
 
 class UserRepository(BaseReadOnlyRepository):
     @staticmethod
-    def dict2entity(data: dict):
+    def dict2entity(data: dict) -> UserEntity:
         return UserEntity(
             uuid=data["id"],
             first_name=data["first_name"],
@@ -480,7 +483,7 @@ class MLModelRepository(BaseManageableRepository):
         return self.dict2entity(data)
 
     @staticmethod
-    def dict2entity(data: dict):
+    def dict2entity(data: dict) -> MLModelEntity:
         return MLModelEntity(
             uuid=data["id"],
             name=data["name"],

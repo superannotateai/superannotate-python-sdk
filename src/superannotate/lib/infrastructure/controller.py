@@ -482,9 +482,6 @@ class Controller(BaseController):
         project_to_create.name = name
         if project_description:
             project_to_create.description = project_description
-        elif not project.description:
-            project.description = f"Copy of {from_name}."
-
         use_case = usecases.CloneProjectUseCase(
             reporter=self.default_reporter,
             project=project,

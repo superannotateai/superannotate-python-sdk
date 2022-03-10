@@ -98,7 +98,7 @@ class TestWorkflowGet(BaseTestCase):
 
 
 class TestProjectCreateMetadata(BaseTestCase):
-    PROJECT_NAME = "sample_basic_project"
+    PROJECT_NAME = "TestProjectCreateMetadata"
     PROJECT_TYPE = "Vector"
     OTHER_PROJECT_NAME = "other_project"
     PROJECT_DESCRIPTION = "DESCRIPTION"
