@@ -480,7 +480,7 @@ class Controller(BaseController):
         project = self._get_project(from_name)
         project_to_create = copy.copy(project)
         project_to_create.name = name
-        if project_description:
+        if project_description is not None:
             project_to_create.description = project_description
         use_case = usecases.CloneProjectUseCase(
             reporter=self.default_reporter,

@@ -191,7 +191,7 @@ def create_project_from_metadata(project_metadata: Project):
     project_metadata = project_metadata.dict()
     response = Controller.get_default().create_project(
         name=project_metadata["name"],
-        description=project_metadata.get("description", "..."),
+        description=project_metadata.get("description"),
         project_type=project_metadata["type"],
         settings=project_metadata.get("settings", []),
         annotation_classes=project_metadata.get("classes", []),
