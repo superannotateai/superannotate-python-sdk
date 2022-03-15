@@ -99,8 +99,8 @@ class ProjectRepository(BaseManageableRepository):
 
     def insert(self, entity: ProjectEntity) -> ProjectEntity:
         project_data = self._drop_nones(entity.to_dict())
-        if not project_data.get("status"):
-            project_data["status"] = constance.ProjectStatus.NotStarted.value
+        # new projects can only have the status of NotStarted
+        project_data["status"] = constance.ProjectStatus.NotStarted.value
         result = self._service.create_project(project_data)
         return self.dict2entity(result)
 
