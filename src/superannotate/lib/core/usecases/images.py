@@ -2732,7 +2732,7 @@ class CreateAnnotationClassUseCase(BaseUseCase):
 
     def validate_project_type(self):
         if (
-            self._project.project_type in (ProjectType.PIXEL.value and ProjectType.VIDEO.value)
+            self._project.project_type in (ProjectType.PIXEL.value, ProjectType.VIDEO.value)
             and self._annotation_class.type == "tag"
         ):
             raise AppException(
