@@ -2732,7 +2732,7 @@ class CreateAnnotationClassUseCase(BaseUseCase):
 
     def validate_project_type(self):
         if (
-            self._project.project_type != ProjectType.VECTOR.value
+            self._project.project_type in (ProjectType.PIXEL.value and ProjectType.VIDEO.value)
             and self._annotation_class.type == "tag"
         ):
             raise AppException(
@@ -2846,9 +2846,9 @@ class CreateAnnotationClassesUseCase(BaseUseCase):
         self._project = project
 
     def validate_project_type(self):
-        if self._project.project_type != ProjectType.VECTOR.value and "tag" in [
-            i.type for i in self._annotation_classes
-        ]:
+        if self._project.project_type in (ProjectType.PIXEL.value, ProjectType.VIDEO.value) and "tag" in any([
+            True for i in self._annotation_classes if i.type == "tag"
+        ]):
             raise AppException(
                 f"Predefined tagging functionality is not supported for projects of type {ProjectType.get_name(self._project.project_type)}."
             )

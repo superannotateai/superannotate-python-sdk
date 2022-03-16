@@ -1,8 +1,8 @@
 from pathlib import Path
 
-from superannotate.lib.core.enums import ProjectStatus
 from superannotate.lib.core.enums import AnnotationStatus
 from superannotate.lib.core.enums import ImageQuality
+from superannotate.lib.core.enums import ProjectStatus
 from superannotate.lib.core.enums import ProjectType
 from superannotate.lib.core.enums import SegmentationStatus
 from superannotate.lib.core.enums import TrainingStatus
