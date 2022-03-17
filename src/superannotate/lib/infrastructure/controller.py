@@ -1152,7 +1152,6 @@ class Controller(BaseController):
             annotation_class=annotation_class,
             project=project,
         )
-        use_case.execute()
         return use_case.execute()
 
     def delete_annotation_class(self, project_name: str, annotation_class_name: str):
