@@ -50,7 +50,6 @@ class TestCloneProject(TestCase):
         )
 
         sa.set_project_default_image_quality_in_editor(self.PROJECT_NAME_1, self.IMAGE_QUALITY)
-
         sa.set_project_workflow(
             self.PROJECT_NAME_1,
             [
@@ -78,7 +77,6 @@ class TestCloneProject(TestCase):
         new_project = sa.clone_project(
             self.PROJECT_NAME_2, self.PROJECT_NAME_1, copy_contributors=True
         )
-        source_project = sa.get_project_metadata(self.PROJECT_NAME_1)
         self.assertEqual(new_project['upload_state'], constances.UploadState.INITIAL.name)
 
         new_settings = sa.get_project_settings(self.PROJECT_NAME_2)
@@ -110,7 +108,6 @@ class TestCloneProject(TestCase):
             "tall",
         )
         self.assertEqual(ann_classes[0]["color"], "#faf")
-
 
 
 class TestCloneProjectAttachedUrls(TestCase):

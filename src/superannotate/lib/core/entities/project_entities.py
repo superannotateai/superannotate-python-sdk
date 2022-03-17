@@ -3,6 +3,7 @@ from abc import abstractmethod
 from typing import Any
 from typing import Iterable
 from typing import List
+from typing import Union
 
 from lib.core.enums import ClassTypeEnum
 from lib.core.enums import SegmentationStatus
@@ -79,7 +80,7 @@ class ProjectEntity(BaseTimedEntity):
         team_id: int = None,
         name: str = None,
         project_type: int = None,
-        description: str = None,
+        description: Union[str, None] = None,
         attachment_name: str = None,
         attachment_path: str = None,
         creator_id: str = None,
@@ -124,7 +125,7 @@ class ProjectEntity(BaseTimedEntity):
             team_id=self.team_id,
             name=self.name,
             project_type=self.project_type,
-            description=self.description,
+            description=self.description if self.description else f"Copy of {self.name}.",
             status=self.status,
             folder_id=self.folder_id,
             users=self.users,

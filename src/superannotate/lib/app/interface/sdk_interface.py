@@ -34,11 +34,13 @@ from lib.app.serializers import ProjectSerializer
 from lib.app.serializers import SettingsSerializer
 from lib.app.serializers import TeamSerializer
 from lib.core import LIMITED_FUNCTIONS
+from lib.core.entities.integrations import IntegrationEntity
 from lib.core.entities.project_entities import AnnotationClassEntity
 from lib.core.enums import ImageQuality
 from lib.core.exceptions import AppException
 from lib.core.types import AttributeGroup
 from lib.core.types import MLModel
+from lib.core.types import PriorityScore
 from lib.core.types import Project
 from lib.infrastructure.controller import Controller
 from pydantic import conlist
@@ -189,7 +191,7 @@ def create_project_from_metadata(project_metadata: Project):
     project_metadata = project_metadata.dict()
     response = Controller.get_default().create_project(
         name=project_metadata["name"],
-        description=project_metadata["description"],
+        description=project_metadata.get("description"),
         project_type=project_metadata["type"],
         settings=project_metadata.get("settings", []),
         annotation_classes=project_metadata.get("classes", []),
@@ -1572,6 +1574,8 @@ def create_annotation_class(
         attribute_groups=attribute_groups,
         class_type=class_type,
     )
+    if response.errors:
+        raise AppException(response.errors)
     return BaseSerializers(response.data).serialize()
 
 
@@ -2900,3 +2904,71 @@ def get_annotations_per_frame(project: NotEmptyStr, video: NotEmptyStr, fps: int
     if response.errors:
         raise AppException(response.errors)
     return response.data
+
+
+@Trackable
+@validate_arguments
+def upload_priority_scores(project: NotEmptyStr, scores: List[PriorityScore]):
+    """Returns per frame annotations for the given video.
+
+    :param project: project name or folder path (e.g., “project1/folder1”)
+    :type project: str
+
+    :param scores: list of score objects
+    :type scores: list of dicts
+
+    :return: lists of uploaded, skipped items
+    :rtype: tuple (2 members) of lists of strs
+    """
+    project_name, folder_name = extract_project_folder(project)
+    project_folder_name = project
+    response = Controller.get_default().upload_priority_scores(project_name, folder_name, scores, project_folder_name)
+    if response.errors:
+        raise AppException(response.errors)
+    return response.data
+
+
+@Trackable
+@validate_arguments
+def get_integrations():
+    """Get all integrations per team
+
+    :return: metadata objects of all integrations of the team.
+    :rtype: list of dicts
+    """
+    response = Controller.get_default().get_integrations()
+    if response.errors:
+        raise AppException(response.errors)
+    integrations = response.data
+    return BaseSerializers.serialize_iterable(integrations, ("name", "type", "root"))
+
+
+@Trackable
+@validate_arguments
+def attach_items_from_integrated_storage(
+        project: NotEmptyStr,
+        integration: Union[NotEmptyStr, IntegrationEntity],
+        folder_path: Optional[NotEmptyStr] = None
+):
+    """Link images from integrated external storage to SuperAnnotate.
+
+    :param project: project name or folder path where items should be attached (e.g., “project1/folder1”).
+    :type project: str
+
+    :param project: project name or folder path where items should be attached (e.g., “project1/folder1”).
+    :type project: str
+
+    :param integration:  existing integration name or metadata dict to pull items from.
+     Mandatory keys in integration metadata’s dict is “name”.
+    :type integration: str or dict
+
+    :param folder_path: Points to an exact folder/directory within given storage.
+    If None, items are fetched from the root directory.
+    :type folder_path: str
+    """
+    project_name, folder_name = extract_project_folder(project)
+    if isinstance(integration, str):
+        integration = IntegrationEntity(name=integration)
+    response = Controller.get_default().attach_integrations(project_name, folder_name, integration, folder_path)
+    if response.errors:
+        raise AppException(response.errors)

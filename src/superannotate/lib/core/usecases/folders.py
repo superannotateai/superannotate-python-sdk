@@ -9,7 +9,7 @@ from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
 from lib.core.repositories import BaseManageableRepository
 from lib.core.repositories import BaseReadOnlyRepository
-from lib.core.serviceproviders import SuerannotateServiceProvider
+from lib.core.serviceproviders import SuperannotateServiceProvider
 from lib.core.usecases.base import BaseUseCase
 from superannotate.logger import get_default_logger
 
@@ -181,7 +181,7 @@ class UpdateFolderUseCase(BaseUseCase):
 class AssignFolderUseCase(BaseUseCase):
     def __init__(
         self,
-        service: SuerannotateServiceProvider,
+        service: SuperannotateServiceProvider,
         project_entity: ProjectEntity,
         folder: FolderEntity,
         users: List[str],

@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pytest
+
 import superannotate as sa
 
 
@@ -9,11 +10,11 @@ def test_labelbox_convert_vector(tmpdir):
     project_name = "labelbox_vector_annotation"
 
     input_dir = (
-        Path("tests")
-        / "converter_test"
-        / "LabelBox"
-        / "vector_annotations"
-        / "toSuperAnnotate"
+            Path("tests")
+            / "converter_test"
+            / "LabelBox"
+            / "vector_annotations"
+            / "toSuperAnnotate"
     )
     out_dir = Path(tmpdir) / project_name
     dataset_name = "labelbox_example"
@@ -31,11 +32,11 @@ def test_labelbox_convert_object(tmpdir):
     project_name = "labelbox_object_vector"
 
     input_dir = (
-        Path("tests")
-        / "converter_test"
-        / "LabelBox"
-        / "vector_annotations"
-        / "toSuperAnnotate"
+            Path("tests")
+            / "converter_test"
+            / "LabelBox"
+            / "vector_annotations"
+            / "toSuperAnnotate"
     )
     out_dir = Path(tmpdir) / project_name
     dataset_name = "labelbox_example"
@@ -53,11 +54,11 @@ def test_labelbox_convert_instance(tmpdir):
     project_name = "labelbox_vector_instance"
 
     input_dir = (
-        Path("tests")
-        / "converter_test"
-        / "LabelBox"
-        / "vector_annotations"
-        / "toSuperAnnotate"
+            Path("tests")
+            / "converter_test"
+            / "LabelBox"
+            / "vector_annotations"
+            / "toSuperAnnotate"
     )
     out_dir = Path(tmpdir) / project_name
     dataset_name = "labelbox_example"
@@ -75,11 +76,11 @@ def test_labelbox_convert_instance_pixel(tmpdir):
     project_name = "labelbox_pixel_instance"
 
     input_dir = (
-        Path("tests")
-        / "converter_test"
-        / "LabelBox"
-        / "instance_segmentation"
-        / "toSuperAnnotate"
+            Path("tests")
+            / "converter_test"
+            / "LabelBox"
+            / "instance_segmentation"
+            / "toSuperAnnotate"
     )
     out_dir = Path(tmpdir) / project_name
     dataset_name = "labelbox_example"

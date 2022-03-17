@@ -40,3 +40,8 @@ class MLModel(BaseModel):
 
     class Config:
         extra = Extra.allow
+
+
+class PriorityScore(BaseModel):
+    name: NotEmptyStr
+    priority: float

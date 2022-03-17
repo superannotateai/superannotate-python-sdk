@@ -1,3 +1,4 @@
+from lib.core.entities.integrations import IntegrationEntity
 from lib.core.entities.project_entities import AnnotationClassEntity
 from lib.core.entities.project_entities import BaseEntity
 from lib.core.entities.project_entities import ConfigEntity
@@ -33,6 +34,7 @@ __all__ = [
     "UserEntity",
     "TeamEntity",
     "MLModelEntity",
+    "IntegrationEntity",
     # annotations
     "DocumentAnnotation",
     "VideoAnnotation",

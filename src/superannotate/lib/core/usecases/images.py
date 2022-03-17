@@ -40,7 +40,7 @@ from lib.core.reporter import Reporter
 from lib.core.repositories import BaseManageableRepository
 from lib.core.repositories import BaseReadOnlyRepository
 from lib.core.response import Response
-from lib.core.serviceproviders import SuerannotateServiceProvider
+from lib.core.serviceproviders import SuperannotateServiceProvider
 from lib.core.usecases.base import BaseInteractiveUseCase
 from lib.core.usecases.base import BaseReportableUseCae
 from lib.core.usecases.base import BaseUseCase
@@ -108,7 +108,7 @@ class GetImageUseCase(BaseUseCase):
         folder: FolderEntity,
         image_name: str,
         images: BaseReadOnlyRepository,
-        service: SuerannotateServiceProvider,
+        service: SuperannotateServiceProvider,
     ):
         super().__init__()
         self._project = project
@@ -140,7 +140,7 @@ class GetAllImagesUseCase(BaseUseCase):
     def __init__(
         self,
         project: ProjectEntity,
-        service_provider: SuerannotateServiceProvider,
+        service_provider: SuperannotateServiceProvider,
         annotation_status: str = None,
         name_prefix: str = None,
     ):
@@ -174,7 +174,7 @@ class GetAllImagesUseCase(BaseUseCase):
 class GetBulkImages(BaseUseCase):
     def __init__(
         self,
-        service: SuerannotateServiceProvider,
+        service: SuperannotateServiceProvider,
         project_id: int,
         team_id: int,
         folder_id: int,
@@ -210,7 +210,7 @@ class AttachFileUrlsUseCase(BaseUseCase):
         project: ProjectEntity,
         folder: FolderEntity,
         attachments: List[ImageEntity],
-        backend_service_provider: SuerannotateServiceProvider,
+        backend_service_provider: SuperannotateServiceProvider,
         annotation_status: str = None,
         upload_state_code: int = constances.UploadState.EXTERNAL.value,
     ):
@@ -303,7 +303,7 @@ class GetImageBytesUseCase(BaseUseCase):
     def __init__(
         self,
         image: ImageEntity,
-        backend_service_provider: SuerannotateServiceProvider,
+        backend_service_provider: SuperannotateServiceProvider,
         image_variant: str = "original",
     ):
         super().__init__()
@@ -337,7 +337,7 @@ class CopyImageAnnotationClasses(BaseUseCase):
         to_project_s3_repo: BaseManageableRepository,
         to_project_annotation_classes: BaseReadOnlyRepository,
         from_project_annotation_classes: BaseReadOnlyRepository,
-        backend_service_provider: SuerannotateServiceProvider,
+        backend_service_provider: SuperannotateServiceProvider,
         from_folder: FolderEntity = None,
         to_folder: FolderEntity = None,
         annotation_type: str = "MAIN",
@@ -574,7 +574,7 @@ class ImagesBulkCopyUseCase(BaseUseCase):
         from_folder: FolderEntity,
         to_folder: FolderEntity,
         image_names: List[str],
-        backend_service_provider: SuerannotateServiceProvider,
+        backend_service_provider: SuperannotateServiceProvider,
         include_annotations: bool,
         include_pin: bool,
     ):
@@ -657,7 +657,7 @@ class GetImageMetadataUseCase(BaseUseCase):
         image_name: str,
         project: ProjectEntity,
         folder: FolderEntity,
-        service: SuerannotateServiceProvider,
+        service: SuperannotateServiceProvider,
     ):
         super().__init__()
         self._image_name = image_name
@@ -701,7 +701,7 @@ class ImagesBulkMoveUseCase(BaseUseCase):
         from_folder: FolderEntity,
         to_folder: FolderEntity,
         image_names: List[str],
-        backend_service_provider: SuerannotateServiceProvider,
+        backend_service_provider: SuperannotateServiceProvider,
     ):
         super().__init__()
         self._project = project
@@ -968,7 +968,7 @@ class DownloadImageUseCase(BaseUseCase):
         image: ImageEntity,
         images: BaseManageableRepository,
         classes: BaseManageableRepository,
-        backend_service_provider: SuerannotateServiceProvider,
+        backend_service_provider: SuperannotateServiceProvider,
         annotation_classes: BaseReadOnlyRepository,
         download_path: str,
         image_variant: str = "original",
@@ -1079,7 +1079,7 @@ class UploadImageToProject(BaseUseCase):
         folder: FolderEntity,
         s3_repo,
         settings: BaseManageableRepository,
-        backend_client: SuerannotateServiceProvider,
+        backend_client: SuperannotateServiceProvider,
         annotation_status: str,
         image_bytes: io.BytesIO = None,
         image_path: str = None,
@@ -1218,7 +1218,7 @@ class UploadImagesToProject(BaseInteractiveUseCase):
         folder: FolderEntity,
         settings: BaseManageableRepository,
         s3_repo,
-        backend_client: SuerannotateServiceProvider,
+        backend_client: SuperannotateServiceProvider,
         paths: List[str],
         extensions=constances.DEFAULT_IMAGE_EXTENSIONS,
         annotation_status="NotStarted",
@@ -1485,7 +1485,7 @@ class UploadImagesFromFolderToProject(UploadImagesToProject):
         folder: FolderEntity,
         settings: BaseManageableRepository,
         s3_repo,
-        backend_client: SuerannotateServiceProvider,
+        backend_client: SuperannotateServiceProvider,
         folder_path: str,
         extensions=constances.DEFAULT_IMAGE_EXTENSIONS,
         annotation_status="NotStarted",
@@ -1563,7 +1563,7 @@ class UploadImagesFromPublicUrls(BaseInteractiveUseCase):
         self,
         project: ProjectEntity,
         folder: FolderEntity,
-        backend_service: SuerannotateServiceProvider,
+        backend_service: SuperannotateServiceProvider,
         settings: List[ProjectSettingEntity],
         s3_repo,
         image_urls: List[str],
@@ -1862,7 +1862,7 @@ class InteractiveAttachFileUrlsUseCase(BaseInteractiveUseCase):
         project: ProjectEntity,
         folder: FolderEntity,
         attachments: List[ImageEntity],
-        backend_service_provider: SuerannotateServiceProvider,
+        backend_service_provider: SuperannotateServiceProvider,
         annotation_status: str = None,
         upload_state_code: int = constances.UploadState.EXTERNAL.value,
     ):
@@ -1953,7 +1953,7 @@ class CopyImageUseCase(BaseUseCase):
         image_name: str,
         to_project: ProjectEntity,
         to_folder: FolderEntity,
-        backend_service: SuerannotateServiceProvider,
+        backend_service: SuperannotateServiceProvider,
         images: BaseManageableRepository,
         s3_repo,
         project_settings: List[ProjectSettingEntity],
@@ -2101,7 +2101,7 @@ class DeleteAnnotations(BaseUseCase):
         self,
         project: ProjectEntity,
         folder: FolderEntity,
-        backend_service: SuerannotateServiceProvider,
+        backend_service: SuperannotateServiceProvider,
         image_names: Optional[List[str]] = None,
     ):
         super().__init__()
@@ -2179,7 +2179,7 @@ class DeleteImagesUseCase(BaseUseCase):
         self,
         project: ProjectEntity,
         folder: FolderEntity,
-        backend_service_provider: SuerannotateServiceProvider,
+        backend_service_provider: SuperannotateServiceProvider,
         images: BaseReadOnlyRepository,
         image_names: List[str] = None,
     ):
@@ -2231,7 +2231,7 @@ class DeleteImagesUseCase(BaseUseCase):
 class DownloadImageAnnotationsUseCase(BaseUseCase):
     def __init__(
         self,
-        service: SuerannotateServiceProvider,
+        service: SuperannotateServiceProvider,
         project: ProjectEntity,
         folder: FolderEntity,
         image_name: str,
@@ -2393,7 +2393,7 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
 class DownloadImagePreAnnotationsUseCase(BaseUseCase):
     def __init__(
         self,
-        service: SuerannotateServiceProvider,
+        service: SuperannotateServiceProvider,
         project: ProjectEntity,
         folder: FolderEntity,
         image_name: str,
@@ -2472,7 +2472,7 @@ class GetImageAnnotationsUseCase(BaseReportableUseCae):
     def __init__(
         self,
         reporter: Reporter,
-        service: SuerannotateServiceProvider,
+        service: SuperannotateServiceProvider,
         project: ProjectEntity,
         folder: FolderEntity,
         image_name: str,
@@ -2553,7 +2553,7 @@ class AssignImagesUseCase(BaseUseCase):
 
     def __init__(
         self,
-        service: SuerannotateServiceProvider,
+        service: SuperannotateServiceProvider,
         project: ProjectEntity,
         folder: FolderEntity,
         image_names: list,
@@ -2597,7 +2597,7 @@ class UnAssignImagesUseCase(BaseUseCase):
 
     def __init__(
         self,
-        service: SuerannotateServiceProvider,
+        service: SuperannotateServiceProvider,
         project_entity: ProjectEntity,
         folder: FolderEntity,
         image_names: list,
@@ -2628,7 +2628,7 @@ class UnAssignImagesUseCase(BaseUseCase):
 class UnAssignFolderUseCase(BaseUseCase):
     def __init__(
         self,
-        service: SuerannotateServiceProvider,
+        service: SuperannotateServiceProvider,
         project_entity: ProjectEntity,
         folder: FolderEntity,
     ):
@@ -2653,7 +2653,7 @@ class SetImageAnnotationStatuses(BaseUseCase):
 
     def __init__(
         self,
-        service: SuerannotateServiceProvider,
+        service: SuperannotateServiceProvider,
         projects: BaseReadOnlyRepository,
         image_names: list,
         team_id: int,
@@ -2732,7 +2732,7 @@ class CreateAnnotationClassUseCase(BaseUseCase):
 
     def validate_project_type(self):
         if (
-            self._project.project_type != ProjectType.VECTOR.value
+            self._project.project_type in (ProjectType.PIXEL.value, ProjectType.VIDEO.value)
             and self._annotation_class.type == "tag"
         ):
             raise AppException(
@@ -2834,7 +2834,7 @@ class CreateAnnotationClassesUseCase(BaseUseCase):
 
     def __init__(
         self,
-        service: SuerannotateServiceProvider,
+        service: SuperannotateServiceProvider,
         annotation_classes_repo: BaseManageableRepository,
         annotation_classes: List[AnnotationClassEntity],
         project: ProjectEntity,
@@ -2846,9 +2846,9 @@ class CreateAnnotationClassesUseCase(BaseUseCase):
         self._project = project
 
     def validate_project_type(self):
-        if self._project.project_type != ProjectType.VECTOR.value and "tag" in [
-            i.type for i in self._annotation_classes
-        ]:
+        if self._project.project_type in (ProjectType.PIXEL.value, ProjectType.VIDEO.value) and any([
+            True for i in self._annotation_classes if i.type == "tag"
+        ]):
             raise AppException(
                 f"Predefined tagging functionality is not supported for projects of type {ProjectType.get_name(self._project.project_type)}."
             )
@@ -2893,7 +2893,7 @@ class UploadFileToS3UseCase(BaseUseCase):
 class ExtractFramesUseCase(BaseInteractiveUseCase):
     def __init__(
         self,
-        backend_service_provider: SuerannotateServiceProvider,
+        backend_service_provider: SuperannotateServiceProvider,
         project: ProjectEntity,
         folder: FolderEntity,
         video_path: str,
@@ -2997,7 +2997,7 @@ class ExtractFramesUseCase(BaseInteractiveUseCase):
 class UploadS3ImagesBackendUseCase(BaseUseCase):
     def __init__(
         self,
-        backend_service_provider: SuerannotateServiceProvider,
+        backend_service_provider: SuperannotateServiceProvider,
         settings: BaseReadOnlyRepository,
         project: ProjectEntity,
         folder: FolderEntity,
@@ -3115,7 +3115,7 @@ class UploadVideosAsImages(BaseReportableUseCae):
     def __init__(
         self,
         reporter: Reporter,
-        service: SuerannotateServiceProvider,
+        service: SuperannotateServiceProvider,
         project: ProjectEntity,
         folder: FolderEntity,
         settings: BaseManageableRepository,

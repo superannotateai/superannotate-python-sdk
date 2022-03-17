@@ -9,23 +9,23 @@ from lib.core.reporter import Reporter
 from lib.core.service_types import ServiceResponse
 
 
-class SuerannotateServiceProvider:
+class SuperannotateServiceProvider:
     @abstractmethod
     def attach_files(
-        self,
-        project_id: int,
-        folder_id: int,
-        team_id: int,
-        files: List[Dict],
-        annotation_status_code: int,
-        upload_state_code: int,
-        meta: Dict,
+            self,
+            project_id: int,
+            folder_id: int,
+            team_id: int,
+            files: List[Dict],
+            annotation_status_code: int,
+            upload_state_code: int,
+            meta: Dict,
     ):
         raise NotImplementedError
 
     @abstractmethod
     def get_annotation_classes(
-        self, project_id: int, team_id: int, name_prefix: str = None
+            self, project_id: int, team_id: int, name_prefix: str = None
     ):
         raise NotImplementedError
 
@@ -35,19 +35,19 @@ class SuerannotateServiceProvider:
 
     @abstractmethod
     def invite_contributors(
-        self, team_id: int, team_role: int, emails: Iterable
+            self, team_id: int, team_role: int, emails: Iterable
     ) -> Tuple[List[str], List[str]]:
         raise NotImplementedError
 
     @abstractmethod
     def prepare_export(
-        self,
-        project_id: int,
-        team_id: int,
-        folders: List[str],
-        annotation_statuses: Iterable[Any],
-        include_fuse: bool,
-        only_pinned: bool,
+            self,
+            project_id: int,
+            team_id: int,
+            folders: List[str],
+            annotation_statuses: Iterable[Any],
+            include_fuse: bool,
+            only_pinned: bool,
     ):
         raise NotImplementedError
 
@@ -99,17 +99,17 @@ class SuerannotateServiceProvider:
         raise NotImplementedError
 
     def get_download_token(
-        self,
-        project_id: int,
-        team_id: int,
-        folder_id: int,
-        image_id: int,
-        include_original: int = 1,
+            self,
+            project_id: int,
+            team_id: int,
+            folder_id: int,
+            image_id: int,
+            include_original: int = 1,
     ) -> dict:
         raise NotImplementedError
 
     def get_upload_token(
-        self, project_id: int, team_id: int, folder_id: int, image_id: int,
+            self, project_id: int, team_id: int, folder_id: int, image_id: int,
     ) -> dict:
         raise NotImplementedError
 
@@ -117,24 +117,24 @@ class SuerannotateServiceProvider:
         raise NotImplementedError
 
     def copy_images_between_folders_transaction(
-        self,
-        team_id: int,
-        project_id: int,
-        from_folder_id: int,
-        to_folder_id: int,
-        images: List[str],
-        include_annotations: bool = False,
-        include_pin: bool = False,
+            self,
+            team_id: int,
+            project_id: int,
+            from_folder_id: int,
+            to_folder_id: int,
+            images: List[str],
+            include_annotations: bool = False,
+            include_pin: bool = False,
     ) -> int:
         raise NotImplementedError
 
     def move_images_between_folders(
-        self,
-        team_id: int,
-        project_id: int,
-        from_folder_id: int,
-        to_folder_id: int,
-        images: List[str],
+            self,
+            team_id: int,
+            project_id: int,
+            from_folder_id: int,
+            to_folder_id: int,
+            images: List[str],
     ) -> List[str]:
         """
         Returns list of moved images.
@@ -142,22 +142,22 @@ class SuerannotateServiceProvider:
         raise NotImplementedError
 
     def get_duplicated_images(
-        self, project_id: int, team_id: int, folder_id: int, images: List[str]
+            self, project_id: int, team_id: int, folder_id: int, images: List[str]
     ):
         raise NotImplementedError
 
     def get_progress(
-        self, project_id: int, team_id: int, poll_id: int
+            self, project_id: int, team_id: int, poll_id: int
     ) -> Tuple[int, int]:
         raise NotImplementedError
 
     def set_images_statuses_bulk(
-        self,
-        image_names: List[str],
-        team_id: int,
-        project_id: int,
-        folder_id: int,
-        annotation_status: int,
+            self,
+            image_names: List[str],
+            team_id: int,
+            project_id: int,
+            folder_id: int,
+            annotation_status: int,
     ):
         raise NotImplementedError
 
@@ -165,49 +165,49 @@ class SuerannotateServiceProvider:
         raise NotImplementedError
 
     def assign_images(
-        self,
-        team_id: int,
-        project_id: int,
-        folder_name: str,
-        user: str,
-        image_names: list,
+            self,
+            team_id: int,
+            project_id: int,
+            folder_name: str,
+            user: str,
+            image_names: list,
     ):
         raise NotImplementedError
 
     def get_bulk_images(
-        self, project_id: int, team_id: int, folder_id: int, images: List[str]
+            self, project_id: int, team_id: int, folder_id: int, images: List[str]
     ) -> List[dict]:
         raise NotImplementedError
 
     def un_assign_folder(
-        self, team_id: int, project_id: int, folder_name: str,
+            self, team_id: int, project_id: int, folder_name: str,
     ):
         raise NotImplementedError
 
     def assign_folder(
-        self, team_id: int, project_id: int, folder_name: str, users: list
+            self, team_id: int, project_id: int, folder_name: str, users: list
     ):
         raise NotImplementedError
 
     def un_assign_images(
-        self, team_id: int, project_id: int, folder_name: str, image_names: list,
+            self, team_id: int, project_id: int, folder_name: str, image_names: list,
     ):
         raise NotImplementedError
 
     def un_share_project(
-        self, team_id: int, project_id: int, user_id: str,
+            self, team_id: int, project_id: int, user_id: str,
     ):
         raise NotImplementedError
 
     def upload_form_s3(
-        self,
-        project_id: int,
-        team_id: int,
-        access_key: str,
-        secret_key: str,
-        bucket_name: str,
-        from_folder_name: str,
-        to_folder_id: int,
+            self,
+            project_id: int,
+            team_id: int,
+            access_key: str,
+            secret_key: str,
+            bucket_name: str,
+            from_folder_name: str,
+            to_folder_id: int,
     ):
         raise NotImplementedError
 
@@ -227,7 +227,7 @@ class SuerannotateServiceProvider:
         raise NotImplementedError
 
     def delete_annotation_class(
-        self, team_id: int, project_id: int, annotation_class_id: int
+            self, team_id: int, project_id: int, annotation_class_id: int
     ):
         raise NotImplementedError
 
@@ -238,17 +238,17 @@ class SuerannotateServiceProvider:
         raise NotImplementedError
 
     def set_project_workflow_attributes_bulk(
-        self, project_id: int, team_id: int, attributes: list
+            self, project_id: int, team_id: int, attributes: list
     ):
         raise NotImplementedError
 
     def get_pre_annotation_upload_data(
-        self, project_id: int, team_id: int, image_ids: List[int], folder_id: int
+            self, project_id: int, team_id: int, image_ids: List[int], folder_id: int
     ):
         raise NotImplementedError
 
     def get_annotation_upload_data(
-        self, project_id: int, team_id: int, image_ids: List[int], folder_id: int
+            self, project_id: int, team_id: int, image_ids: List[int], folder_id: int
     ) -> ServiceResponse:
         raise NotImplementedError
 
@@ -262,7 +262,7 @@ class SuerannotateServiceProvider:
         raise NotImplementedError
 
     def get_models(
-        self, name: str, team_id: int, project_id: int, model_type: str
+            self, name: str, team_id: int, project_id: int, model_type: str
     ) -> List:
         raise NotImplementedError
 
@@ -276,31 +276,31 @@ class SuerannotateServiceProvider:
         raise NotImplementedError
 
     def get_ml_model_download_tokens(
-        self, team_id: int, model_id: int
+            self, team_id: int, model_id: int
     ) -> ServiceResponse:
         raise NotImplementedError
 
     def run_prediction(
-        self, team_id: int, project_id: int, ml_model_id: int, image_ids: list
+            self, team_id: int, project_id: int, ml_model_id: int, image_ids: list
     ):
         raise NotImplementedError
 
     def delete_image_annotations(
-        self,
-        team_id: int,
-        project_id: int,
-        folder_id: int = None,
-        image_names: List[str] = None,
+            self,
+            team_id: int,
+            project_id: int,
+            folder_id: int = None,
+            image_names: List[str] = None,
     ) -> dict:
         raise NotImplementedError
 
     def get_annotations_delete_progress(
-        self, team_id: int, project_id: int, poll_id: int
+            self, team_id: int, project_id: int, poll_id: int
     ):
         raise NotImplementedError
 
     def get_limitations(
-        self, team_id: int, project_id: int, folder_id: int = None
+            self, team_id: int, project_id: int, folder_id: int = None
     ) -> ServiceResponse:
         raise NotImplementedError
 
@@ -313,4 +313,16 @@ class SuerannotateServiceProvider:
             items: List[str],
             reporter: Reporter
     ) -> List[dict]:
+        raise NotImplementedError
+
+    def upload_priority_scores(
+            self, team_id: int, project_id: int, folder_id: int, priorities: list
+    ) -> dict:
+        raise NotImplementedError
+
+    def get_integrations(self, team_id: int) -> List[dict]:
+        raise NotImplementedError
+
+    def attach_integrations(self, team_id: int, project_id: int, integration_id: int, folder_id: int,
+                            folder_name: str) -> bool:
         raise NotImplementedError

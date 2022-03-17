@@ -25,7 +25,7 @@ from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
 from lib.core.repositories import BaseManageableRepository
 from lib.core.repositories import BaseReadOnlyRepository
-from lib.core.serviceproviders import SuerannotateServiceProvider
+from lib.core.serviceproviders import SuperannotateServiceProvider
 from lib.core.usecases.base import BaseInteractiveUseCase
 from lib.core.usecases.base import BaseUseCase
 from lib.core.usecases.images import GetBulkImages
@@ -40,7 +40,7 @@ class PrepareExportUseCase(BaseUseCase):
         self,
         project: ProjectEntity,
         folder_names: List[str],
-        backend_service_provider: SuerannotateServiceProvider,
+        backend_service_provider: SuperannotateServiceProvider,
         include_fuse: bool,
         only_pinned: bool,
         annotation_statuses: List[str] = None,
@@ -112,7 +112,7 @@ class PrepareExportUseCase(BaseUseCase):
 class GetExportsUseCase(BaseUseCase):
     def __init__(
         self,
-        service: SuerannotateServiceProvider,
+        service: SuperannotateServiceProvider,
         project: ProjectEntity,
         return_metadata: bool = False,
     ):
@@ -142,7 +142,7 @@ class CreateModelUseCase(BaseUseCase):
         team_id: int,
         train_data_paths: Iterable[str],
         test_data_paths: Iterable[str],
-        backend_service_provider: SuerannotateServiceProvider,
+        backend_service_provider: SuperannotateServiceProvider,
         projects: BaseReadOnlyRepository,
         folders: BaseReadOnlyRepository,
         ml_models: BaseManageableRepository,
@@ -286,7 +286,7 @@ class GetModelMetricsUseCase(BaseUseCase):
         self,
         model_id: int,
         team_id: int,
-        backend_service_provider: SuerannotateServiceProvider,
+        backend_service_provider: SuperannotateServiceProvider,
     ):
         super().__init__()
         self._model_id = model_id
@@ -329,7 +329,7 @@ class DeleteMLModel(BaseUseCase):
 class DownloadExportUseCase(BaseInteractiveUseCase):
     def __init__(
         self,
-        service: SuerannotateServiceProvider,
+        service: SuperannotateServiceProvider,
         project: ProjectEntity,
         export_name: str,
         folder_path: str,
@@ -437,7 +437,7 @@ class DownloadMLModelUseCase(BaseUseCase):
         self,
         model: MLModelEntity,
         download_path: str,
-        backend_service_provider: SuerannotateServiceProvider,
+        backend_service_provider: SuperannotateServiceProvider,
         team_id: int,
     ):
         super().__init__()
@@ -682,7 +682,7 @@ class RunPredictionUseCase(BaseUseCase):
         ml_model_repo: BaseManageableRepository,
         ml_model_name: str,
         images_list: list,
-        service: SuerannotateServiceProvider,
+        service: SuperannotateServiceProvider,
         folder: FolderEntity,
     ):
         super().__init__()
