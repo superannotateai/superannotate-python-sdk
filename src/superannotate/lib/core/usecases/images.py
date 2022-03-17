@@ -2846,7 +2846,7 @@ class CreateAnnotationClassesUseCase(BaseUseCase):
         self._project = project
 
     def validate_project_type(self):
-        if self._project.project_type in (ProjectType.PIXEL.value, ProjectType.VIDEO.value) and "tag" in any([
+        if self._project.project_type in (ProjectType.PIXEL.value, ProjectType.VIDEO.value) and any([
             True for i in self._annotation_classes if i.type == "tag"
         ]):
             raise AppException(

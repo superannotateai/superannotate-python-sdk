@@ -1574,6 +1574,8 @@ def create_annotation_class(
         attribute_groups=attribute_groups,
         class_type=class_type,
     )
+    if response.errors:
+        raise AppException(response.errors)
     return BaseSerializers(response.data).serialize()
 
 
