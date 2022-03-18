@@ -23,9 +23,6 @@ from lib.infrastructure.controller import Controller
 from lib.infrastructure.repositories import ConfigRepository
 
 
-controller = Controller()
-controller.retrieve_configs(constances.CONFIG_FILE_LOCATION)
-
 
 class CLIFacade(BaseInterfaceFacade):
     """
@@ -124,12 +121,12 @@ class CLIFacade(BaseInterfaceFacade):
         folders = None
         if folder_name:
             folders = [folder_name]
-        export_res = controller.prepare_export(
+        export_res = Controller.get_default().prepare_export(
             project_name, folders, include_fuse, False, annotation_statuses
         )
         export_name = export_res.data["name"]
 
-        use_case = controller.download_export(
+        use_case = Controller.get_default().download_export(
             project_name=project_name,
             export_name=export_name,
             folder_path=folder,
@@ -189,7 +186,7 @@ class CLIFacade(BaseInterfaceFacade):
     ):
         project_folder_name = project
         project_name, folder_name = split_project_path(project)
-        project = controller.get_project_metadata(project_name=project_name).data
+        project = Controller.get_default().get_project_metadata(project_name=project_name).data
         if not format:
             format = "SuperAnnotate"
         if not dataset_name and format == "COCO":
