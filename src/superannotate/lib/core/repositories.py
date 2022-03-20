@@ -8,7 +8,7 @@ import boto3
 from lib.core.conditions import Condition
 from lib.core.entities import BaseEntity
 from lib.core.entities import ProjectEntity
-from lib.core.serviceproviders import SuerannotateServiceProvider
+from lib.core.serviceproviders import SuperannotateServiceProvider
 
 
 class BaseReadOnlyRepository(ABC):
@@ -50,7 +50,7 @@ class BaseManageableRepository(BaseReadOnlyRepository):
 
 
 class BaseProjectRelatedManageableRepository(BaseManageableRepository):
-    def __init__(self, service: SuerannotateServiceProvider, project: ProjectEntity):
+    def __init__(self, service: SuperannotateServiceProvider, project: ProjectEntity):
         self._service = service
         self._project = project
 

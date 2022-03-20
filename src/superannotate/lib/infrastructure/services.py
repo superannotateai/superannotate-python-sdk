@@ -1,6 +1,5 @@
 import asyncio
 import json
-import time
 from contextlib import contextmanager
 from datetime import datetime
 from typing import Dict
@@ -18,7 +17,7 @@ from lib.core.service_types import DownloadMLModelAuthData
 from lib.core.service_types import ServiceResponse
 from lib.core.service_types import UploadAnnotationAuthData
 from lib.core.service_types import UserLimits
-from lib.core.serviceproviders import SuerannotateServiceProvider
+from lib.core.serviceproviders import SuperannotateServiceProvider
 from lib.infrastructure.helpers import timed_lru_cache
 from lib.infrastructure.stream_data_handler import StreamedAnnotations
 from requests.exceptions import HTTPError
@@ -34,7 +33,7 @@ class PydanticEncoder(json.JSONEncoder):
         return json.JSONEncoder.default(self, obj)
 
 
-class BaseBackendService(SuerannotateServiceProvider):
+class BaseBackendService(SuperannotateServiceProvider):
     AUTH_TYPE = "sdk"
     PAGINATE_BY = 100
     LIMIT = 100
@@ -224,6 +223,21 @@ class SuperannotateBackendService(BaseBackendService):
     URL_DELETE_ANNOTATIONS_PROGRESS = "annotations/getRemoveStatus"
     URL_GET_LIMITS = "project/{}/limitationDetails"
     URL_GET_ANNOTATIONS = "images/annotations/stream"
+    URL_UPLOAD_PRIORITY_SCORES = "images/updateEntropy"
+    URL_GET_INTEGRATIONS = "integrations"
+    URL_ATTACH_INTEGRATIONS = "image/integration/create"
+
+    def upload_priority_scores(
+            self, team_id: int, project_id: int, folder_id: int, priorities: list
+    ) -> dict:
+        upload_priority_score_url = urljoin(self.api_url, self.URL_UPLOAD_PRIORITY_SCORES)
+        res = self._request(
+            upload_priority_score_url,
+            "post",
+            params={"team_id": team_id, "project_id": project_id, "folder_id": folder_id},
+            data={"image_entropies": priorities}
+        )
+        return res.json()
 
     def get_project(self, uuid: int, team_id: int):
         get_project_url = urljoin(self.api_url, self.URL_GET_PROJECT.format(uuid))
@@ -303,7 +317,7 @@ class SuperannotateBackendService(BaseBackendService):
         res = self._request(url, "delete")
         return res.ok
 
-    def update_project(self, data: dict, query_string: str = None) -> bool:
+    def update_project(self, data: dict, query_string: str = None) -> dict:
         url = urljoin(self.api_url, self.URL_GET_PROJECT.format(data["id"]))
         if query_string:
             url = f"{url}?{query_string}"
@@ -674,8 +688,6 @@ class SuperannotateBackendService(BaseBackendService):
         self, project_id: int, team_id: int, folder_id: int, images: List[str]
     ) -> List[dict]:
         bulk_get_images_url = urljoin(self.api_url, self.URL_BULK_GET_IMAGES)
-        time.sleep(1)
-
         res = self._request(
             bulk_get_images_url,
             "post",
@@ -1046,3 +1058,38 @@ class SuperannotateBackendService(BaseBackendService):
             chunk_size=self.DEFAULT_CHUNK_SIZE,
             map_function=lambda x: {"image_names": x}
         ))
+
+    def get_integrations(self, team_id: int) -> List[dict]:
+        get_integrations_url = urljoin(self.api_url, self.URL_GET_INTEGRATIONS.format(team_id))
+
+        response = self._request(
+            get_integrations_url,
+            "get",
+            params={"team_id": team_id}
+        )
+        if response.ok:
+            return response.json().get("integrations", [])
+        return []
+
+    def attach_integrations(
+            self,
+            team_id: int,
+            project_id: int,
+            integration_id: int,
+            folder_id: int,
+            folder_name: str = None) -> bool:
+        attach_integrations_url = urljoin(self.api_url, self.URL_ATTACH_INTEGRATIONS.format(team_id))
+        data = {
+            "team_id": team_id,
+            "project_id": project_id,
+            "folder_id": folder_id,
+            "integration_id": integration_id
+        }
+        if folder_name:
+            data["customer_folder_name"] = folder_name
+        response = self._request(
+            attach_integrations_url,
+            "post",
+            data=data
+        )
+        return response.ok

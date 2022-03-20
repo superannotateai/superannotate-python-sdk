@@ -38,6 +38,7 @@ ________
 .. autofunction:: superannotate.attach_image_urls_to_project
 .. autofunction:: superannotate.upload_images_from_public_urls_to_project
 .. autofunction:: superannotate.attach_document_urls_to_project
+.. autofunction:: superannotate.attach_items_from_integrated_storage
 .. autofunction:: superannotate.upload_image_to_project
 .. autofunction:: superannotate.delete_annotations
 .. _ref_upload_images_from_folder_to_project:
@@ -92,6 +93,7 @@ ______
 .. autofunction:: superannotate.add_annotation_bbox_to_image
 .. autofunction:: superannotate.add_annotation_point_to_image
 .. autofunction:: superannotate.add_annotation_comment_to_image
+.. autofunction:: superannotate.upload_priority_scores
 
 ----------
 
@@ -107,10 +109,11 @@ __________________
 
 ----------
 
-Team contributors
+Team
 _________________
 
 .. autofunction:: superannotate.get_team_metadata
+.. autofunction:: superannotate.get_integrations
 .. autofunction:: superannotate.invite_contributors_to_team
 .. autofunction:: superannotate.search_team_contributors
 

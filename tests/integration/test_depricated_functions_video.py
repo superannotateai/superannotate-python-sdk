@@ -137,7 +137,7 @@ class TestDeprecatedFunctionsVideo(TestCase):
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
             sa.add_annotation_comment_to_image(self.PROJECT_NAME, self.UPLOAD_IMAGE_NAME, "some comment", [1, 2],
-                                               "some user")
+                                               "some@user.com")
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
@@ -196,7 +196,7 @@ class TestDeprecatedFunctionsVideo(TestCase):
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
-            sa.assign_images(self.PROJECT_NAME, [self.UPLOAD_IMAGE_NAME], "some user")
+            sa.assign_images(self.PROJECT_NAME, [self.UPLOAD_IMAGE_NAME], "some@user.com")
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:

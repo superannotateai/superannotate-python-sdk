@@ -64,7 +64,6 @@ class TestDeprecatedFunctionsDocument(TestCase):
 
     @pytest.mark.flaky(reruns=2)
     def test_deprecated_functions(self):
-
         try:
             sa.upload_images_from_folder_to_project(self.PROJECT_NAME, "some")
         except AppException as e:
@@ -143,7 +142,7 @@ class TestDeprecatedFunctionsDocument(TestCase):
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
             sa.add_annotation_comment_to_image(self.PROJECT_NAME, self.UPLOAD_IMAGE_NAME, "some comment", [1, 2],
-                                               "some user")
+                                               "some@user.com")
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:

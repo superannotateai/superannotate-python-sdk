@@ -8,7 +8,7 @@ from tests import DATA_SET_PATH
 
 
 class TestCreateAnnotationClass(BaseTestCase):
-    PROJECT_NAME = "test_create_annotation_class"
+    PROJECT_NAME = "TestCreateAnnotationClass"
     PROJECT_TYPE = "Vector"
     PROJECT_DESCRIPTION = "Example "
     TEST_LARGE_CLASSES_JSON = "large_classes_json.json"
@@ -29,7 +29,7 @@ class TestCreateAnnotationClass(BaseTestCase):
 
 
 class TestCreateAnnotationClassNonVectorWithError(BaseTestCase):
-    PROJECT_NAME = "test_create_annotation_class"
+    PROJECT_NAME = "TestCreateAnnotationClassNonVectorWithError"
     PROJECT_TYPE = "Video"
     PROJECT_DESCRIPTION = "Example Project test pixel basic images"
 
@@ -43,7 +43,7 @@ class TestCreateAnnotationClassNonVectorWithError(BaseTestCase):
 
 
 class TestCreateAnnotationClassesNonVectorWithError(BaseTestCase):
-    PROJECT_NAME = "test_create_annotation_class"
+    PROJECT_NAME = "TestCreateAnnotationClassesNonVectorWithError"
     PROJECT_TYPE = "Video"
     PROJECT_DESCRIPTION = "Example Project test pixel basic images"
 

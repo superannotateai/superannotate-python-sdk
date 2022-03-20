@@ -62,6 +62,13 @@ class ImageQuality(BaseTitledEnum):
     COMPRESSED = "compressed", 60
 
 
+class ProjectStatus(BaseTitledEnum):
+    NotStarted = "NotStarted", 1
+    InProgress = "InProgress", 2
+    Completed = "Completed", 3
+    OnHold = "OnHold", 4
+
+
 class ExportStatus(BaseTitledEnum):
     IN_PROGRESS = "inProgress", 1
     COMPLETE = "complete", 2
