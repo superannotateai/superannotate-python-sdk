@@ -326,3 +326,9 @@ class SuperannotateServiceProvider:
     def attach_integrations(self, team_id: int, project_id: int, integration_id: int, folder_id: int,
                             folder_name: str) -> bool:
         raise NotImplementedError
+
+    def saqul_query(self, team_id: int, project_id: int, folder_id: int, query: str) -> ServiceResponse:
+        raise NotImplementedError
+
+    def validate_saqul_query(self, team_id: int, project_id: int, query: str) -> dict:
+        raise NotImplementedError

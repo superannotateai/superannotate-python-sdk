@@ -1693,3 +1693,16 @@ class Controller(BaseController):
             folder_path=folder_path
         )
         return use_case.execute()
+
+    def query_entities(self, project_name: str, folder_name: str, query: str = None):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+
+        use_case = usecases.QueryEntities(
+            reporter=self.default_reporter,
+            project=project,
+            folder=folder,
+            query=query,
+            backend_service_provider=self.backend_client
+        )
+        return use_case.execute()

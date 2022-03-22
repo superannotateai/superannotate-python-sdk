@@ -1,6 +1,7 @@
 import os
-from os.path import dirname
 import tempfile
+from os.path import dirname
+
 import pytest
 
 import src.superannotate as sa
@@ -74,7 +75,8 @@ class TestInterface(BaseTestCase):
         self.assertIsNotNone(metadata["id"])
         self.assertListEqual(metadata.get("contributors", []), [])
         sa.create_annotation_class(self.PROJECT_NAME, "tt", "#FFFFFF", class_type="tag")
-        metadata_with_users = sa.get_project_metadata(self.PROJECT_NAME, include_annotation_classes=True, include_contributors=True)
+        metadata_with_users = sa.get_project_metadata(self.PROJECT_NAME, include_annotation_classes=True,
+                                                      include_contributors=True)
         self.assertEqual(metadata_with_users['classes'][0]['type'], 'tag')
         self.assertIsNotNone(metadata_with_users.get("contributors"))
 
@@ -166,7 +168,6 @@ class TestInterface(BaseTestCase):
                 self.EXAMPLE_IMAGE_1,
                 tmp_dir,
                 include_annotations=True,
-                include_fuse=True
             )
             self.assertIsNotNone(result)
 
@@ -245,11 +246,8 @@ class TestInterface(BaseTestCase):
                                            '''
                     )
                 sa.upload_image_annotations(self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, path)
-                self.assertEqual(len(logs[1][-1]),86)
-                self.assertEqual(len(logs[1][-2].split('from')[0]),30)
-
-
-
+                self.assertEqual(len(logs[1][-1]), 86)
+                self.assertEqual(len(logs[1][-2].split('from')[0]), 30)
 
 
 class TestPixelInterface(BaseTestCase):

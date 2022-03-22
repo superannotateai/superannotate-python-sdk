@@ -23,7 +23,6 @@ from lib.infrastructure.controller import Controller
 from lib.infrastructure.repositories import ConfigRepository
 
 
-
 class CLIFacade(BaseInterfaceFacade):
     """
     With SuperAnnotate CLI, basic tasks can be accomplished using shell commands:

@@ -77,6 +77,7 @@ ______
 .. _ref_search_images:
 .. autofunction:: superannotate.search_images
 .. autofunction:: superannotate.search_images_all_folders
+.. autofunction:: superannotate.query
 .. autofunction:: superannotate.get_image_metadata
 .. autofunction:: superannotate.download_image
 .. autofunction:: superannotate.set_image_annotation_status
