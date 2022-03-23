@@ -2955,9 +2955,6 @@ def attach_items_from_integrated_storage(
     :param project: project name or folder path where items should be attached (e.g., “project1/folder1”).
     :type project: str
 
-    :param project: project name or folder path where items should be attached (e.g., “project1/folder1”).
-    :type project: str
-
     :param integration:  existing integration name or metadata dict to pull items from.
      Mandatory keys in integration metadata’s dict is “name”.
     :type integration: str or dict
@@ -2972,3 +2969,24 @@ def attach_items_from_integrated_storage(
     response = Controller.get_default().attach_integrations(project_name, folder_name, integration, folder_path)
     if response.errors:
         raise AppException(response.errors)
+
+
+@Trackable
+@validate_arguments
+def query(project: NotEmptyStr, query: Optional[NotEmptyStr]):
+    """Return items
+
+    :param project: project name or folder path (e.g., “project1/folder1”)
+    :type project: str
+
+    :param query: SAQuL query string.
+    :type query: str
+
+    :return: queried items’ metadata list
+    :rtype: list of dicts
+    """
+    project_name, folder_name = extract_project_folder(project)
+    response = Controller.get_default().query_entities(project_name, folder_name, query)
+    if response.errors:
+        raise AppException(response.errors)
+    return BaseSerializers.serialize_iterable(response.data)

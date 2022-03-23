@@ -3,10 +3,14 @@ from abc import abstractmethod
 from typing import Any
 from typing import Iterable
 from typing import List
+from typing import Optional
 from typing import Union
 
+from lib.core.enums import AnnotationStatus
 from lib.core.enums import ClassTypeEnum
 from lib.core.enums import SegmentationStatus
+from pydantic import BaseModel
+from pydantic import Field
 from superannotate_schemas.schemas.classes import AnnotationClass
 
 
@@ -477,3 +481,33 @@ class MLModelEntity(BaseTimedEntity):
             "is_global": self.is_global,
             **self.hyper_parameters,
         }
+
+
+class Entity(BaseModel):
+    id: int
+    name: str
+    path: Optional[str] = Field(None, description="Item’s path in SuperAnnotate project")
+    url: Optional[str] = Field(None, description="Publicly available HTTP address")
+    annotation_status: AnnotationStatus = Field(description="Item annotation status")
+    annotator_name: Optional[str] = Field(description="Annotator email")
+    qa_name: Optional[str] = Field(description="QA email")
+    entropy_value: Optional[str] = Field(description="Priority score of given item")
+    created_at: str = Field(alias="createdAt", description="Date of creation")
+    updated_at: str = Field(alias="updatedAt", description="Update date")
+
+    class Config:
+        ignore_extra = True
+
+
+class TmpImageEntity(Entity):
+    prediction_status: Optional[SegmentationStatus] = Field(SegmentationStatus.NOT_STARTED)
+    segmentation_status: Optional[SegmentationStatus] = Field(SegmentationStatus.NOT_STARTED)
+    approval_status: bool = None
+
+
+class VideoEntity(Entity):
+    pass
+
+
+class DocumentEntity(Entity):
+    pass

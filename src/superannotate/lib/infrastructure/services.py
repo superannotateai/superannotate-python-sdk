@@ -37,6 +37,7 @@ class BaseBackendService(SuperannotateServiceProvider):
     AUTH_TYPE = "sdk"
     PAGINATE_BY = 100
     LIMIT = 100
+    MAX_ITEMS_COUNT = 500 * 1000
 
     """
     Base service class
@@ -226,6 +227,8 @@ class SuperannotateBackendService(BaseBackendService):
     URL_UPLOAD_PRIORITY_SCORES = "images/updateEntropy"
     URL_GET_INTEGRATIONS = "integrations"
     URL_ATTACH_INTEGRATIONS = "image/integration/create"
+    URL_SAQUL_QUERY = "/images/search/advanced"
+    URL_VALIDATE_SAQUL_QUERY = "/images/validate/advanced"
 
     def upload_priority_scores(
             self, team_id: int, project_id: int, folder_id: int, priorities: list
@@ -1093,3 +1096,39 @@ class SuperannotateBackendService(BaseBackendService):
             data=data
         )
         return response.ok
+
+    def saqul_query(self, team_id: int, project_id: int, folder_id: int, query: str) -> ServiceResponse:
+        CHUNK_SIZE = 50
+        query_url = urljoin(self.api_url, self.URL_SAQUL_QUERY)
+        params = {
+            "team_id": team_id,
+            "project_id": project_id,
+            "folder_id": folder_id,
+        }
+        data = {
+            "query": query,
+            "image_index": 0
+        }
+        items = []
+        for _ in range(self.MAX_ITEMS_COUNT):
+            response = self._request(query_url, "post", params=params, data=data)
+            if response.ok:
+                response_items = response.json()
+                items.extend(response_items)
+                if len(response_items) < CHUNK_SIZE:
+                    service_response = ServiceResponse(response)
+                    service_response.data = items
+                    return service_response
+                data["image_index"] += CHUNK_SIZE
+            return ServiceResponse(response)
+
+    def validate_saqul_query(self, team_id: int, project_id: int, query: str) -> dict:
+        validate_query_url = urljoin(self.api_url, self.URL_VALIDATE_SAQUL_QUERY)
+        params = {
+            "team_id": team_id,
+            "project_id": project_id,
+        }
+        data = {
+            "query": query,
+        }
+        return self._request(validate_query_url, "post", params=params, data=data).json()

@@ -71,6 +71,7 @@ from superannotate.lib.app.interface.sdk_interface import invite_contributors_to
 from superannotate.lib.app.interface.sdk_interface import move_images
 from superannotate.lib.app.interface.sdk_interface import pin_image
 from superannotate.lib.app.interface.sdk_interface import prepare_export
+from superannotate.lib.app.interface.sdk_interface import query
 from superannotate.lib.app.interface.sdk_interface import rename_project
 from superannotate.lib.app.interface.sdk_interface import run_prediction
 from superannotate.lib.app.interface.sdk_interface import search_annotation_classes
@@ -171,6 +172,8 @@ __all__ = [
     "search_folders",
     "assign_folder",
     "unassign_folder",
+    # Entities Section
+    "query",
     # Image Section
     "copy_images",
     "move_images",

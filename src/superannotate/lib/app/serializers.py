@@ -15,8 +15,16 @@ class BaseSerializers(ABC):
     def __init__(self, entity: BaseEntity):
         self._entity = entity
 
+    @staticmethod
+    def _fill_enum_values(data: dict):
+        if isinstance(data, dict):
+            for key, value in data.items():
+                if hasattr(value, "_type") and value._type == "titled_enum":
+                    data[key] = value.__doc__
+        return data
+
     def serialize(self, fields: List[str] = None, by_alias: bool = True, flat: bool = False):
-        return self._serialize(self._entity, fields, by_alias, flat)
+        return self._fill_enum_values(self._serialize(self._entity, fields, by_alias, flat))
 
     @staticmethod
     def _serialize(entity: Any, fields: List[str] = None, by_alias: bool = False, flat: bool = False):
@@ -43,7 +51,9 @@ class BaseSerializers(ABC):
     ) -> List[Any]:
         serialized_data = []
         for i in data:
-            serialized_data.append(cls._serialize(i, fields, by_alias, flat))
+            serialized_data.append(
+                cls._fill_enum_values(cls._serialize(i, fields, by_alias, flat))
+            )
         return serialized_data
 
 

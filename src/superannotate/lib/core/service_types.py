@@ -77,14 +77,17 @@ class ServiceResponse(BaseModel):
     content: Union[bytes, str]
     data: Any
 
-    def __init__(self, response, content_type):
+    def __init__(self, response, content_type=None):
         data = {
             "status": response.status_code,
             "reason": response.reason,
             "content": response.content,
         }
         if response.ok:
-            data["data"] = content_type(**response.json())
+            if content_type:
+                data["data"] = content_type(**response.json())
+            else:
+                data["data"] = response.json()
         super().__init__(**data)
 
     @property
