@@ -169,6 +169,7 @@ class TestTypeHandling(TestCase):
                             }
                         },
                         "instances": [{
+                                      "type": "entity",
                                       "start": 253,
                                       "end": 593,
                                       "classId": -1,
@@ -361,6 +362,7 @@ class TestTypeHandling(TestCase):
                             }
                         },
                         "instances": [{
+                                      "type": "entity",
                                       "start": 253,
                                       "end": 593,
                                       "classId": "string",
@@ -408,6 +410,7 @@ class TestTypeHandling(TestCase):
                             }
                         },
                         "instances": [{
+                                      "type": "entity",
                                       "start": 253,
                                       "end": 593,
                                       "classId": 1,

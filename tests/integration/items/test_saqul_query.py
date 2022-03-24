@@ -30,6 +30,7 @@ class TestEntitiesSearchVector(BaseTestCase):
 
         entities = sa.query(self.PROJECT_NAME, self.TEST_QUERY)
         self.assertEqual(len(entities), 1)
+        assert all([entity["path"] is None for entity in entities])
 
     def test_validate_saqul_query(self):
         try:
@@ -54,4 +55,3 @@ class TestUnsupportedProjectEntitiesSearchVector(BaseTestCase):
             sa.query(self.PROJECT_NAME, self.TEST_QUERY)
         except Exception as e:
             self.assertEqual(str(e), "Unsupported project type.")
-

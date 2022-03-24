@@ -11,7 +11,7 @@ from superannotate.lib.core.entities import ImageEntity
 from superannotate.lib.core.entities import ProjectEntity
 
 
-class BaseSerializers(ABC):
+class BaseSerializer(ABC):
     def __init__(self, entity: BaseEntity):
         self._entity = entity
 
@@ -25,6 +25,15 @@ class BaseSerializers(ABC):
 
     def serialize(self, fields: List[str] = None, by_alias: bool = True, flat: bool = False):
         return self._fill_enum_values(self._serialize(self._entity, fields, by_alias, flat))
+
+    def serialize_item(
+            self,
+            data: Any,
+            fields: Union[List[str], Set[str]] = None,
+            by_alias: bool = False,
+            flat: bool = False
+    ):
+        return self._fill_enum_values(self._serialize(data, fields, by_alias, flat))
 
     @staticmethod
     def _serialize(entity: Any, fields: List[str] = None, by_alias: bool = False, flat: bool = False):
@@ -57,14 +66,14 @@ class BaseSerializers(ABC):
         return serialized_data
 
 
-class UserSerializer(BaseSerializers):
+class UserSerializer(BaseSerializer):
     def serialize(self):
         data = super().serialize()
         data["user_role"] = constance.UserRole[data["user_role"]].name
         return data
 
 
-class TeamSerializer(BaseSerializers):
+class TeamSerializer(BaseSerializer):
     def serialize(self):
         data = super().serialize()
         users = []
@@ -77,7 +86,7 @@ class TeamSerializer(BaseSerializers):
         return data
 
 
-class ProjectSerializer(BaseSerializers):
+class ProjectSerializer(BaseSerializer):
     def serialize(self):
         data = super().serialize()
         data["type"] = constance.ProjectType.get_name(data["type"])
@@ -95,7 +104,7 @@ class ProjectSerializer(BaseSerializers):
         return data
 
 
-class ImageSerializer(BaseSerializers):
+class ImageSerializer(BaseSerializer):
     def serialize(self):
         data = super().serialize()
         data["annotation_status"] = constance.AnnotationStatus.get_name(
@@ -150,7 +159,7 @@ class ImageSerializer(BaseSerializers):
         return ImageEntity(**data)
 
 
-class SettingsSerializer(BaseSerializers):
+class SettingsSerializer(BaseSerializer):
     def serialize(self):
         data = super().serialize()
         if data["attribute"] == "ImageQuality":

@@ -10,6 +10,7 @@ from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.entities import AnnotationClassEntity
 from lib.core.entities import ConfigEntity
+from lib.core.entities import Entity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
 from lib.core.entities import IntegrationEntity
@@ -28,6 +29,7 @@ from lib.core.repositories import BaseProjectRelatedManageableRepository
 from lib.core.repositories import BaseReadOnlyRepository
 from lib.core.repositories import BaseS3Repository
 from lib.infrastructure.services import SuperannotateBackendService
+from pydantic import parse_obj_as
 
 
 class ConfigRepository(BaseManageableRepository):
@@ -135,6 +137,7 @@ class ProjectRepository(BaseManageableRepository):
                 creator_id=data["creator_id"],
                 upload_state=data["upload_state"],
                 description=data.get("description"),
+                sync_status=data.get("sync_status"),
                 folder_id=data.get("folder_id"),
                 users=data.get("users", ()),
                 unverified_users=data.get("unverified_users", ()),
@@ -513,3 +516,17 @@ class IntegrationRepository(BaseReadOnlyRepository):
     @staticmethod
     def dict2entity(data: dict) -> IntegrationEntity:
         return IntegrationEntity(**data)
+
+
+class ItemRepository(BaseReadOnlyRepository):
+    def __init__(self, service: SuperannotateBackendService):
+        self._service = service
+
+    def get_one(self, uuid: Condition) -> Entity:
+        items = self._service.list_images(uuid.build_query())
+        if len(items) >= 1:
+            return Entity(**items[0])
+
+    def get_all(self, condition: Optional[Condition] = None) -> List[Entity]:
+        images = self._service.list_images(condition.build_query())
+        return parse_obj_as(List[Entity], images)

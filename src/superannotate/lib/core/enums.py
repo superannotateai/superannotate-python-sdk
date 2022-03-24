@@ -120,6 +120,11 @@ class SegmentationStatus(BaseTitledEnum):
     FAILED = "Failed", 4
 
 
+class ProjectState(BaseTitledEnum):
+    NOT_SYNCED = "Not synced", 1
+    SYNCED = "Synced", 2
+
+
 class TrainingTask:
     INSTANCE_SEGMENTATION_PIXEL = (
         "Instance Segmentation for Pixel Projects",

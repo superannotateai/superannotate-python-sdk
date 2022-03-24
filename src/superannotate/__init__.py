@@ -58,6 +58,7 @@ from superannotate.lib.app.interface.sdk_interface import get_folder_metadata
 from superannotate.lib.app.interface.sdk_interface import get_image_annotations
 from superannotate.lib.app.interface.sdk_interface import get_image_metadata
 from superannotate.lib.app.interface.sdk_interface import get_integrations
+from superannotate.lib.app.interface.sdk_interface import get_item_metadata
 from superannotate.lib.app.interface.sdk_interface import (
     get_project_and_folder_metadata,
 )
@@ -78,6 +79,7 @@ from superannotate.lib.app.interface.sdk_interface import search_annotation_clas
 from superannotate.lib.app.interface.sdk_interface import search_folders
 from superannotate.lib.app.interface.sdk_interface import search_images
 from superannotate.lib.app.interface.sdk_interface import search_images_all_folders
+from superannotate.lib.app.interface.sdk_interface import search_items
 from superannotate.lib.app.interface.sdk_interface import search_models
 from superannotate.lib.app.interface.sdk_interface import search_projects
 from superannotate.lib.app.interface.sdk_interface import search_team_contributors
@@ -172,7 +174,9 @@ __all__ = [
     "search_folders",
     "assign_folder",
     "unassign_folder",
-    # Entities Section
+    # Items Section
+    "get_item_metadata",
+    "search_items",
     "query",
     # Image Section
     "copy_images",

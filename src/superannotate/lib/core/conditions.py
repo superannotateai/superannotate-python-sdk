@@ -44,7 +44,12 @@ class Condition:
         return self
 
     def __and__(self, other):
-        if not isinstance(other, Condition):
+        if isinstance(other, tuple) or isinstance(other, list):
+            for elem in other:
+                if not isinstance(other, Condition):
+                    raise Exception("Support the only Condition types")
+            return self.__and__(elem)
+        elif not isinstance(other, Condition):
             raise Exception("Support the only Condition types")
         QueryCondition = namedtuple("QueryCondition", ("condition", "query"))
         self._condition_set.append(QueryCondition(CONDITION_AND, other.build_query()))
