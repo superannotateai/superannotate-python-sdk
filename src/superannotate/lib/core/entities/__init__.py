@@ -2,6 +2,7 @@ from lib.core.entities.integrations import IntegrationEntity
 from lib.core.entities.project_entities import AnnotationClassEntity
 from lib.core.entities.project_entities import BaseEntity
 from lib.core.entities.project_entities import ConfigEntity
+from lib.core.entities.project_entities import Entity
 from lib.core.entities.project_entities import FolderEntity
 from lib.core.entities.project_entities import ImageEntity
 from lib.core.entities.project_entities import ImageInfoEntity
@@ -10,6 +11,7 @@ from lib.core.entities.project_entities import ProjectEntity
 from lib.core.entities.project_entities import ProjectSettingEntity
 from lib.core.entities.project_entities import S3FileEntity
 from lib.core.entities.project_entities import TeamEntity
+from lib.core.entities.project_entities import TmpBaseEntity
 from lib.core.entities.project_entities import UserEntity
 from lib.core.entities.project_entities import WorkflowEntity
 from superannotate_schemas.schemas.internal.document import DocumentAnnotation
@@ -22,6 +24,8 @@ from superannotate_schemas.schemas.internal.video import (
 
 __all__ = [
     "BaseEntity",
+    "TmpBaseEntity",
+    "Entity",
     "ProjectEntity",
     "ProjectSettingEntity",
     "ConfigEntity",

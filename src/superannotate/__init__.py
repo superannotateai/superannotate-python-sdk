@@ -58,6 +58,7 @@ from superannotate.lib.app.interface.sdk_interface import get_folder_metadata
 from superannotate.lib.app.interface.sdk_interface import get_image_annotations
 from superannotate.lib.app.interface.sdk_interface import get_image_metadata
 from superannotate.lib.app.interface.sdk_interface import get_integrations
+from superannotate.lib.app.interface.sdk_interface import get_item_metadata
 from superannotate.lib.app.interface.sdk_interface import (
     get_project_and_folder_metadata,
 )
@@ -78,6 +79,7 @@ from superannotate.lib.app.interface.sdk_interface import search_annotation_clas
 from superannotate.lib.app.interface.sdk_interface import search_folders
 from superannotate.lib.app.interface.sdk_interface import search_images
 from superannotate.lib.app.interface.sdk_interface import search_images_all_folders
+from superannotate.lib.app.interface.sdk_interface import search_items
 from superannotate.lib.app.interface.sdk_interface import search_models
 from superannotate.lib.app.interface.sdk_interface import search_projects
 from superannotate.lib.app.interface.sdk_interface import search_team_contributors
@@ -98,9 +100,6 @@ from superannotate.lib.app.interface.sdk_interface import upload_image_annotatio
 from superannotate.lib.app.interface.sdk_interface import upload_image_to_project
 from superannotate.lib.app.interface.sdk_interface import (
     upload_images_from_folder_to_project,
-)
-from superannotate.lib.app.interface.sdk_interface import (
-    upload_images_from_public_urls_to_project,
 )
 from superannotate.lib.app.interface.sdk_interface import upload_images_to_project
 from superannotate.lib.app.interface.sdk_interface import (
@@ -172,7 +171,9 @@ __all__ = [
     "search_folders",
     "assign_folder",
     "unassign_folder",
-    # Entities Section
+    # Items Section
+    "get_item_metadata",
+    "search_items",
     "query",
     # Image Section
     "copy_images",
@@ -189,7 +190,6 @@ __all__ = [
     "delete_annotations",
     "upload_image_to_project",
     "upload_image_annotations",
-    "upload_images_from_public_urls_to_project",
     "upload_images_from_folder_to_project",
     "attach_image_urls_to_project",
     "attach_video_urls_to_project",

@@ -3,26 +3,28 @@ from abc import abstractmethod
 from typing import Any
 from typing import List
 from typing import Optional
+from typing import Union
 
 import boto3
 from lib.core.conditions import Condition
 from lib.core.entities import BaseEntity
 from lib.core.entities import ProjectEntity
+from lib.core.entities import TmpBaseEntity
 from lib.core.serviceproviders import SuperannotateServiceProvider
 
 
 class BaseReadOnlyRepository(ABC):
     @abstractmethod
-    def get_one(self, uuid: Any) -> Optional[BaseEntity]:
+    def get_one(self, uuid: Union[Condition, int]) -> Optional[Union[BaseEntity, TmpBaseEntity]]:
         raise NotImplementedError
 
     @abstractmethod
-    def get_all(self, condition: Optional[Condition] = None) -> List[BaseEntity]:
+    def get_all(self, condition: Optional[Condition] = None) -> List[Union[BaseEntity, TmpBaseEntity]]:
         raise NotImplementedError
 
     @staticmethod
     def dict2entity(data: dict) -> BaseEntity:
-        raise NotImplementedError
+        return BaseEntity(**data)
 
 
 class BaseManageableRepository(BaseReadOnlyRepository):
@@ -35,7 +37,7 @@ class BaseManageableRepository(BaseReadOnlyRepository):
         raise NotImplementedError
 
     @abstractmethod
-    def delete(self, uuid: Any):
+    def delete(self, uuid: Any, *args):
         raise NotImplementedError
 
     def bulk_delete(self, entities: List[BaseEntity]) -> bool:

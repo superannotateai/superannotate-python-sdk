@@ -173,26 +173,6 @@ def upload_image_to_project(*args, **kwargs):
     }
 
 
-def upload_images_from_public_urls_to_project(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
-    img_urls = kwargs.get("img_urls", [])
-    if not img_urls:
-        img_urls += args[1]
-    return {
-        "event_name": "upload_images_from_public_urls_to_project",
-        "properties": {
-            "Image Count": len(img_urls),
-            "Image Name": bool(args[2:3] or kwargs.get("img_names", None)),
-            "Annotation Status": bool(
-                args[3:4] or kwargs.get("annotation_status", None)
-            ),
-            "project_name": get_project_name(project),
-        },
-    }
-
-
 def upload_video_to_project(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:
@@ -1069,7 +1049,6 @@ def search_folders(*args, **kwargs):
 
 
 def aggregate_annotations_as_df(*args, **kwargs):
-
     folder_names = kwargs.get("folder_names", "empty")
     if folder_names == "empty":
         folder_names = args[5:6]
@@ -1263,5 +1242,56 @@ def attach_items_from_integrated_storage(*args, **kwargs):
             "project_type": ProjectType.get_name(project.project_type),
             "integration_name": integration.name,
             "folder_path": bool(folder_path)
+        },
+    }
+
+
+def query(**kwargs):
+    project = kwargs["project"]
+    query_str = kwargs["project"]
+    project_name, folder_name = extract_project_folder(project)
+    Controller.get_default().get_project_metadata(project_name)
+    return {
+        "event_name": "attach_items_from_integrated_storage",
+        "properties": {
+            "project_type": ProjectType.get_name(project.project_type),
+            "query": query_str
+
+        },
+    }
+
+
+def get_item_metadata(**kwargs):
+    project = kwargs["project"]
+    project_name, _ = extract_project_folder(project)
+    Controller.get_default().get_project_metadata(project_name)
+    return {
+        "event_name": "attach_items_from_integrated_storage",
+        "properties": {
+            "project_type": ProjectType.get_name(project.project_type),
+        },
+    }
+
+
+def search_items(**kwargs):
+    project = kwargs["project"]
+    name_contains = kwargs["name_contains"]
+    annotation_status = kwargs["annotation_status"]
+    annotator_email = kwargs["annotator_email"]
+    qa_email = kwargs["qa_email"]
+    recursive = kwargs["recursive"]
+    project_name, folder_name = extract_project_folder(project)
+    Controller.get_default().get_project_metadata(project_name)
+    return {
+        "event_name": "attach_items_from_integrated_storage",
+        "properties": {
+            "project_type": ProjectType.get_name(project.project_type),
+            "query": query,
+            "name_contains": len(name_contains) if name_contains else False,
+            "annotation_status": annotation_status if annotation_status else False,
+            "annotator_email": bool(annotator_email),
+            "qa_email": bool(qa_email),
+            "recursive": bool(recursive),
+
         },
     }

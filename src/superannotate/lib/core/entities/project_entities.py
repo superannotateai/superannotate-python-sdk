@@ -10,6 +10,7 @@ from lib.core.enums import AnnotationStatus
 from lib.core.enums import ClassTypeEnum
 from lib.core.enums import SegmentationStatus
 from pydantic import BaseModel
+from pydantic import Extra
 from pydantic import Field
 from superannotate_schemas.schemas.classes import AnnotationClass
 
@@ -92,6 +93,7 @@ class ProjectEntity(BaseTimedEntity):
         sharing_status: int = None,
         status: int = None,
         folder_id: int = None,
+        sync_status: int = None,
         upload_state: int = None,
         users: Iterable = (),
         unverified_users: Iterable = (),
@@ -113,6 +115,7 @@ class ProjectEntity(BaseTimedEntity):
         self.entropy_status = entropy_status
         self.sharing_status = sharing_status
         self.status = status
+        self.sync_status = sync_status
         self.folder_id = folder_id
         self.upload_state = upload_state
         self.users = users
@@ -483,7 +486,7 @@ class MLModelEntity(BaseTimedEntity):
         }
 
 
-class Entity(BaseModel):
+class TmpBaseEntity(BaseModel):
     id: int
     name: str
     path: Optional[str] = Field(None, description="Item’s path in SuperAnnotate project")
@@ -492,11 +495,21 @@ class Entity(BaseModel):
     annotator_name: Optional[str] = Field(description="Annotator email")
     qa_name: Optional[str] = Field(description="QA email")
     entropy_value: Optional[str] = Field(description="Priority score of given item")
-    created_at: str = Field(alias="createdAt", description="Date of creation")
-    updated_at: str = Field(alias="updatedAt", description="Update date")
+    createdAt: str = Field(description="Date of creation")
+    updatedAt: str = Field(description="Update date")
 
     class Config:
-        ignore_extra = True
+        extra = Extra.allow
+
+    def add_path(self, project_name: str, folder_name: str):
+        path = f"{project_name}{f'/{folder_name}' if folder_name != 'root' else ''}/{self.name}"
+        self.path = path
+        return self
+
+
+class Entity(TmpBaseEntity):
+    class Config:
+        extra = Extra.allow
 
 
 class TmpImageEntity(Entity):
@@ -504,10 +517,15 @@ class TmpImageEntity(Entity):
     segmentation_status: Optional[SegmentationStatus] = Field(SegmentationStatus.NOT_STARTED)
     approval_status: bool = None
 
+    class Config:
+        extra = Extra.ignore
+
 
 class VideoEntity(Entity):
-    pass
+    class Config:
+        ignore_extra = True
 
 
 class DocumentEntity(Entity):
-    pass
+    class Config:
+        ignore_extra = True

@@ -28,7 +28,7 @@ from lib.app.interface.types import NotEmptyStr
 from lib.app.interface.types import ProjectTypes
 from lib.app.interface.types import validate_arguments
 from lib.app.mixp.decorators import Trackable
-from lib.app.serializers import BaseSerializers
+from lib.app.serializers import BaseSerializer
 from lib.app.serializers import ImageSerializer
 from lib.app.serializers import ProjectSerializer
 from lib.app.serializers import SettingsSerializer
@@ -435,7 +435,7 @@ def search_folders(
         raise AppException(response.errors)
     data = response.data
     if return_metadata:
-        return [BaseSerializers(folder).serialize() for folder in data]
+        return [BaseSerializer(folder).serialize() for folder in data]
     return [folder.name for folder in data]
 
 
@@ -518,60 +518,6 @@ def copy_image(
         f"Copied image {source_project}/{image_name}"
         f" to {destination_project}/{destination_folder}."
     )
-
-
-@Trackable
-@validate_arguments
-def upload_images_from_public_urls_to_project(
-    project: Union[NotEmptyStr, dict],
-    img_urls: List[NotEmptyStr],
-    img_names: Optional[List[NotEmptyStr]] = None,
-    annotation_status: Optional[AnnotationStatuses] = "NotStarted",
-    image_quality_in_editor: Optional[NotEmptyStr] = None,
-):
-    """Uploads all images given in the list of URL strings in img_urls to the project.
-    Sets status of all the uploaded images to annotation_status if it is not None.
-
-    :param project: project name or folder path (e.g., "project1/folder1")
-    :type project: str
-    :param img_urls: list of str objects to upload
-    :type img_urls: list
-    :param img_names: list of str names for each urls in img_url list
-    :type img_names: list
-    :param annotation_status: value to set the annotation statuses of the uploaded images
-     NotStarted InProgress QualityCheck Returned Completed Skipped
-    :type annotation_status: str
-    :param image_quality_in_editor: image quality be seen in SuperAnnotate web annotation editor.
-           Can be either "compressed" or "original".  If None then the default value in project settings will be used.
-    :type image_quality_in_editor: str
-
-    :return: uploaded images' urls, uploaded images' filenames, duplicate images' filenames
-     and not-uploaded images' urls
-    :rtype: tuple of list of strs
-    """
-    warning_msg = (
-        "The upload_images_from_public_urls function is deprecated and will be removed with the coming release, "
-        "please use attach_image_urls_to_project instead."
-    )
-    logger.warning(warning_msg)
-    warnings.warn(warning_msg, DeprecationWarning)
-
-    project_name, folder_name = extract_project_folder(project)
-
-    use_case = Controller.get_default().upload_images_from_public_urls_to_project(
-        project_name=project_name,
-        folder_name=folder_name,
-        image_urls=img_urls,
-        image_names=img_names,
-        annotation_status=annotation_status,
-        image_quality_in_editor=image_quality_in_editor,
-    )
-    if use_case.is_valid():
-        with tqdm(total=len(img_urls), desc="Uploading images") as progress_bar:
-            for _ in use_case.execute():
-                progress_bar.update(1)
-        return use_case.data
-    raise AppException(use_case.response.errors)
 
 
 @Trackable
@@ -763,7 +709,7 @@ def get_project_metadata(
     for elem in "classes", "workflows", "contributors":
         if response.get(elem):
             metadata[elem] = [
-                BaseSerializers(attribute).serialize() for attribute in response[elem]
+                BaseSerializer(attribute).serialize() for attribute in response[elem]
             ]
         else:
             metadata[elem] = []
@@ -829,7 +775,7 @@ def search_annotation_classes(
     """
     project_name, folder_name = extract_project_folder(project)
     classes = Controller.get_default().search_annotation_classes(project_name, name_prefix)
-    classes = [BaseSerializers(attribute).serialize() for attribute in classes.data]
+    classes = [BaseSerializer(attribute).serialize() for attribute in classes.data]
     return classes
 
 
@@ -895,6 +841,11 @@ def get_image_metadata(
     :return: metadata of image
     :rtype: dict
     """
+    warning_msg = (
+        # TODO add link
+        "We're deprecating the get_image_metadata function. Please use get_item_metadata instead. Learn more. <link>."
+    )
+    logger.warning(warning_msg)
     project_name, folder_name = extract_project_folder(project)
     project = Controller.get_default()._get_project(project_name)
     response = Controller.get_default().get_image_metadata(project_name, folder_name, image_name)
@@ -1576,7 +1527,7 @@ def create_annotation_class(
     )
     if response.errors:
         raise AppException(response.errors)
-    return BaseSerializers(response.data).serialize()
+    return BaseSerializer(response.data).serialize()
 
 
 @Trackable
@@ -1659,7 +1610,7 @@ def create_annotation_classes_from_classes_json(
     )
     if response.errors:
         raise AppException(response.errors)
-    return [BaseSerializers(i).serialize() for i in response.data]
+    return [BaseSerializer(i).serialize() for i in response.data]
 
 
 @Trackable
@@ -2157,7 +2108,7 @@ def download_model(model: MLModel, output_dir: Union[str, Path]):
     if res.errors:
         logger.error("\n".join([str(error) for error in res.errors]))
     else:
-        return BaseSerializers(res.data).serialize()
+        return BaseSerializer(res.data).serialize()
 
 
 @Trackable
@@ -2940,7 +2891,7 @@ def get_integrations():
     if response.errors:
         raise AppException(response.errors)
     integrations = response.data
-    return BaseSerializers.serialize_iterable(integrations, ("name", "type", "root"))
+    return BaseSerializer.serialize_iterable(integrations, ("name", "type", "root"))
 
 
 @Trackable
@@ -2989,4 +2940,90 @@ def query(project: NotEmptyStr, query: Optional[NotEmptyStr]):
     response = Controller.get_default().query_entities(project_name, folder_name, query)
     if response.errors:
         raise AppException(response.errors)
-    return BaseSerializers.serialize_iterable(response.data)
+    return BaseSerializer.serialize_iterable(response.data)
+
+
+@Trackable
+@validate_arguments
+def get_item_metadata(
+        project: NotEmptyStr,
+        item_name: NotEmptyStr,
+):
+    """Returns item metadata
+
+    :param project: project name or folder path (e.g., “project1/folder1”)
+    :type project: str
+
+    :param item_name: item name
+    :type item_name: str
+
+    :return: metadata of item
+    :rtype: dict
+    """
+    project_name, folder_name = extract_project_folder(project)
+    response = Controller.get_default().get_item(project_name, folder_name, item_name)
+    if response.errors:
+        raise AppException(response.errors)
+    return BaseSerializer(response.data).serialize()
+
+
+@Trackable
+@validate_arguments
+def search_items(
+        project: NotEmptyStr,
+        name_contains: NotEmptyStr = None,
+        annotation_status: Optional[AnnotationStatuses] = None,
+        annotator_email: Optional[NotEmptyStr] = None,
+        qa_email: Optional[NotEmptyStr] = None,
+        recursive: bool = False
+
+):
+    """Search items by filtering criteria.
+
+
+    :param project: project name or folder path (e.g., “project1/folder1”).
+     If recursive=False=True, then only the project name is required.
+    :type project: str
+
+    :param name_contains:  Returns those items, where the given string is found anywhere within an item’s name.
+     If None, all items returned, in accordance with the recursive=False parameter.
+    :type name_contains: str
+
+    :param annotation_status: if not None, filters items by annotation status.
+                            Values are:
+                                “NotStarted”
+                                “InProgress”
+                                “QualityCheck”
+                                “Returned”
+                                “Completed”
+                                “Skipped”
+    :type annotation_status: str
+
+
+    :param annotator_email: returns those items’ names that are assigned to the specified annotator.
+     If None, all items are returned. Strict equal.
+    :type annotator_email: str
+
+    :param qa_email:  returns those items’ names that are assigned to the specified QA.
+     If None, all items are returned. Strict equal.
+    :type qa_email: str
+
+    :param recursive: search in the project’s root and all of its folders.
+     If False search only in the project’s root or given directory.
+    :type recursive: bool
+
+    :return: items metadata
+    :rtype: list of dicts
+    """
+    project_name, folder_name = extract_project_folder(project)
+    response = Controller.get_default().list_items(
+        project_name, folder_name,
+        name_contains=name_contains,
+        annotation_status=annotation_status,
+        annotator_email=annotator_email,
+        qa_email=qa_email,
+        recursive=recursive
+    )
+    if response.errors:
+        raise AppException(response.errors)
+    return BaseSerializer.serialize_iterable(response.data)

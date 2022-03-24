@@ -18,6 +18,7 @@ from lib.core.entities import ProjectEntity
 from lib.core.entities import ProjectSettingEntity
 from lib.core.entities import S3FileEntity
 from lib.core.entities import TeamEntity
+from lib.core.entities import TmpBaseEntity
 from lib.core.entities import UserEntity
 from lib.core.entities import WorkflowEntity
 from lib.core.enums import ClassTypeEnum
@@ -28,6 +29,7 @@ from lib.core.repositories import BaseProjectRelatedManageableRepository
 from lib.core.repositories import BaseReadOnlyRepository
 from lib.core.repositories import BaseS3Repository
 from lib.infrastructure.services import SuperannotateBackendService
+from pydantic import parse_obj_as
 
 
 class ConfigRepository(BaseManageableRepository):
@@ -135,6 +137,7 @@ class ProjectRepository(BaseManageableRepository):
                 creator_id=data["creator_id"],
                 upload_state=data["upload_state"],
                 description=data.get("description"),
+                sync_status=data.get("sync_status"),
                 folder_id=data.get("folder_id"),
                 users=data.get("users", ()),
                 unverified_users=data.get("unverified_users", ()),
@@ -513,3 +516,17 @@ class IntegrationRepository(BaseReadOnlyRepository):
     @staticmethod
     def dict2entity(data: dict) -> IntegrationEntity:
         return IntegrationEntity(**data)
+
+
+class ItemRepository(BaseReadOnlyRepository):
+    def __init__(self, service: SuperannotateBackendService):
+        self._service = service
+
+    def get_one(self, uuid: Condition) -> TmpBaseEntity:
+        items = self._service.list_images(uuid.build_query())
+        if len(items) >= 1:
+            return TmpBaseEntity(**items[0])
+
+    def get_all(self, condition: Optional[Condition] = None) -> List[TmpBaseEntity]:
+        images = self._service.list_images(condition.build_query())
+        return parse_obj_as(List[TmpBaseEntity], images)
