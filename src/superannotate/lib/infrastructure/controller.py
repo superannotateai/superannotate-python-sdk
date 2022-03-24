@@ -28,6 +28,7 @@ from lib.infrastructure.repositories import ConfigRepository
 from lib.infrastructure.repositories import FolderRepository
 from lib.infrastructure.repositories import ImageRepository
 from lib.infrastructure.repositories import IntegrationRepository
+from lib.infrastructure.repositories import ItemRepository
 from lib.infrastructure.repositories import MLModelRepository
 from lib.infrastructure.repositories import ProjectRepository
 from lib.infrastructure.repositories import ProjectSettingsRepository
@@ -54,6 +55,7 @@ class BaseController(metaclass=ABCMeta):
         self._folders = None
         self._teams = None
         self._images = None
+        self._items = None
         self._integrations = None
         self._ml_models = None
         self._user_id = None
@@ -184,6 +186,12 @@ class BaseController(metaclass=ABCMeta):
         if not self._images:
             self._images = ImageRepository(self._backend_client)
         return self._images
+
+    @property
+    def items(self):
+        if not self._items:
+            self._items = ItemRepository(self._backend_client)
+        return self._items
 
     def get_integrations_repo(self, team_id: int):
         if not self._integrations:
@@ -1705,4 +1713,49 @@ class Controller(BaseController):
             query=query,
             backend_service_provider=self.backend_client
         )
+        return use_case.execute()
+
+    def get_item(self, project_name: str, folder_name: str, item_name: str):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+        use_case = usecases.GetItem(
+            reporter=self.default_reporter,
+            project=project,
+            folder=folder,
+            item_name=item_name,
+            items=self.items
+        )
+        return use_case.execute()
+
+    def list_items(
+            self,
+            project_name: str,
+            folder_name: str,
+            name_contains: str = None,
+            annotation_status: str = None,
+            annotator_email: str = None,
+            qa_email: str = None,
+            recursive: bool = False
+    ):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+        search_condition = Condition.get_empty_condition()
+        if name_contains:
+            search_condition &= Condition("name", name_contains, EQ)
+        if annotation_status:
+            search_condition &= Condition(
+                "annotation_status", constances.AnnotationStatus.get_value(annotation_status), EQ
+            )
+        if annotator_email:
+            search_condition &= Condition("qa_email", qa_email, EQ)
+        use_case = usecases.ListItems(
+            reporter=self.default_reporter,
+            project=project,
+            folder=folder,
+            recursive=recursive,
+            items=self.items,
+            folders=self.folders,
+            search_condition=search_condition
+        )
+
         return use_case.execute()

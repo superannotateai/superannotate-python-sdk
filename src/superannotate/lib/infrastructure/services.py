@@ -37,7 +37,7 @@ class BaseBackendService(SuperannotateServiceProvider):
     AUTH_TYPE = "sdk"
     PAGINATE_BY = 100
     LIMIT = 100
-    MAX_ITEMS_COUNT = 500 * 1000
+    MAX_ITEMS_COUNT = 50 * 1000
 
     """
     Base service class
@@ -57,7 +57,7 @@ class BaseBackendService(SuperannotateServiceProvider):
 
     @property
     def assets_provider_url(self):
-        if self._testing:
+        if self.api_url != constance.BACKEND_URL:
             return "https://assets-provider.devsuperannotate.com/api/v1/"
         return "https://assets-provider.superannotate.com/api/v1/"
 
@@ -1097,14 +1097,15 @@ class SuperannotateBackendService(BaseBackendService):
         )
         return response.ok
 
-    def saqul_query(self, team_id: int, project_id: int, folder_id: int, query: str) -> ServiceResponse:
+    def saqul_query(self, team_id: int, project_id: int, query: str, folder_id: int) -> ServiceResponse:
         CHUNK_SIZE = 50
         query_url = urljoin(self.api_url, self.URL_SAQUL_QUERY)
         params = {
             "team_id": team_id,
             "project_id": project_id,
-            "folder_id": folder_id,
         }
+        if folder_id:
+            params["folder_id"] = folder_id
         data = {
             "query": query,
             "image_index": 0

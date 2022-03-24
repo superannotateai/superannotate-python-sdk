@@ -70,6 +70,15 @@ _______
 
 ----------
 
+Items
+______
+
+.. autofunction:: superannotate.query
+.. autofunction:: superannotate.search_items
+.. autofunction:: superannotate.get_item_metadata
+
+----------
+
 Images
 ______
 
@@ -77,7 +86,6 @@ ______
 .. _ref_search_images:
 .. autofunction:: superannotate.search_images
 .. autofunction:: superannotate.search_images_all_folders
-.. autofunction:: superannotate.query
 .. autofunction:: superannotate.get_image_metadata
 .. autofunction:: superannotate.download_image
 .. autofunction:: superannotate.set_image_annotation_status
@@ -178,6 +186,28 @@ Export metadata example:
 
 ----------
 
+Item metadata
+_______________
+
+Item metadata example:
+
+.. code-block:: python
+
+  {
+   "name": "example.jpeg",
+   "path": "project/folder_1/meow.jpeg", // <proj>/<folder>/<item name>
+   "url": "https://sa-public-files.s3.../text_file_example_1.jpeg",
+   "annotation_status": "NotStarted",
+   "annotator_name": None,
+   "qa_name": None,
+   "entropy_value": None,
+   "createdAt": "2022-02-15T20:46:44.000Z",
+   "updatedAt": "2022-02-15T20:46:44.000Z"
+}
+
+
+----------
+
 Image metadata
 _______________
 
@@ -189,8 +219,8 @@ Image metadata example:
    {
       "name": "000000000001.jpg",
       "annotation_status": "Completed",
-      "prediction_status": 1,
-      "segmentation_status": 1,
+      "prediction_status": "NotStarted",
+      "segmentation_status": "NotStarted",
       "annotator_id": None,
       "annotator_name": None,
       "qa_id": None,
