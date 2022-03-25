@@ -2,23 +2,20 @@ import functools
 import sys
 from inspect import signature
 
-from lib import get_default_controller
 from mixpanel import Mixpanel
+
+from lib import get_default_controller
 from superannotate.logger import get_default_logger
 from version import __version__
-
 from .utils import parsers
-
 
 logger = get_default_logger()
 
 
 def get_mp_instance() -> Mixpanel:
-    try:
-        if "api.annotate.online" in get_default_controller()._backend_client.api_url:
-            return Mixpanel("ca95ed96f80e8ec3be791e2d3097cf51")
-    finally:
-        return Mixpanel("e741d4863e7e05b1a45833d01865ef0d")
+    if "api.annotate.online" in get_default_controller()._backend_url:
+        return Mixpanel("ca95ed96f80e8ec3be791e2d3097cf51")
+    return Mixpanel("e741d4863e7e05b1a45833d01865ef0d")
 
 
 def get_default(team_name, user_id, project_name=None):
