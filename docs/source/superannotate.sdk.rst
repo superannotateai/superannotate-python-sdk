@@ -36,7 +36,6 @@ ________
 .. autofunction:: superannotate.delete_folders
 .. autofunction:: superannotate.upload_images_to_project
 .. autofunction:: superannotate.attach_image_urls_to_project
-.. autofunction:: superannotate.upload_images_from_public_urls_to_project
 .. autofunction:: superannotate.attach_document_urls_to_project
 .. autofunction:: superannotate.attach_items_from_integrated_storage
 .. autofunction:: superannotate.upload_image_to_project

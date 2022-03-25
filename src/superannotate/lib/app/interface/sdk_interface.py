@@ -522,60 +522,6 @@ def copy_image(
 
 @Trackable
 @validate_arguments
-def upload_images_from_public_urls_to_project(
-    project: Union[NotEmptyStr, dict],
-    img_urls: List[NotEmptyStr],
-    img_names: Optional[List[NotEmptyStr]] = None,
-    annotation_status: Optional[AnnotationStatuses] = "NotStarted",
-    image_quality_in_editor: Optional[NotEmptyStr] = None,
-):
-    """Uploads all images given in the list of URL strings in img_urls to the project.
-    Sets status of all the uploaded images to annotation_status if it is not None.
-
-    :param project: project name or folder path (e.g., "project1/folder1")
-    :type project: str
-    :param img_urls: list of str objects to upload
-    :type img_urls: list
-    :param img_names: list of str names for each urls in img_url list
-    :type img_names: list
-    :param annotation_status: value to set the annotation statuses of the uploaded images
-     NotStarted InProgress QualityCheck Returned Completed Skipped
-    :type annotation_status: str
-    :param image_quality_in_editor: image quality be seen in SuperAnnotate web annotation editor.
-           Can be either "compressed" or "original".  If None then the default value in project settings will be used.
-    :type image_quality_in_editor: str
-
-    :return: uploaded images' urls, uploaded images' filenames, duplicate images' filenames
-     and not-uploaded images' urls
-    :rtype: tuple of list of strs
-    """
-    warning_msg = (
-        "The upload_images_from_public_urls function is deprecated and will be removed with the coming release, "
-        "please use attach_image_urls_to_project instead."
-    )
-    logger.warning(warning_msg)
-    warnings.warn(warning_msg, DeprecationWarning)
-
-    project_name, folder_name = extract_project_folder(project)
-
-    use_case = Controller.get_default().upload_images_from_public_urls_to_project(
-        project_name=project_name,
-        folder_name=folder_name,
-        image_urls=img_urls,
-        image_names=img_names,
-        annotation_status=annotation_status,
-        image_quality_in_editor=image_quality_in_editor,
-    )
-    if use_case.is_valid():
-        with tqdm(total=len(img_urls), desc="Uploading images") as progress_bar:
-            for _ in use_case.execute():
-                progress_bar.update(1)
-        return use_case.data
-    raise AppException(use_case.response.errors)
-
-
-@Trackable
-@validate_arguments
 def copy_images(
     source_project: Union[NotEmptyStr, dict],
     image_names: Optional[List[NotEmptyStr]],

@@ -1,8 +1,12 @@
 from lib.core.entities.integrations import IntegrationEntity
+from lib.core.entities.items import DocumentEntity
+from lib.core.entities.items import Entity
+from lib.core.entities.items import TmpBaseEntity
+from lib.core.entities.items import TmpImageEntity
+from lib.core.entities.items import VideoEntity
 from lib.core.entities.project_entities import AnnotationClassEntity
 from lib.core.entities.project_entities import BaseEntity
 from lib.core.entities.project_entities import ConfigEntity
-from lib.core.entities.project_entities import Entity
 from lib.core.entities.project_entities import FolderEntity
 from lib.core.entities.project_entities import ImageEntity
 from lib.core.entities.project_entities import ImageInfoEntity
@@ -22,8 +26,13 @@ from superannotate_schemas.schemas.internal.video import (
 )
 
 __all__ = [
+    # items
     "BaseEntity",
+    "TmpBaseEntity",
     "Entity",
+    "VideoEntity",
+    "DocumentEntity",
+    # project
     "ProjectEntity",
     "ProjectSettingEntity",
     "ConfigEntity",

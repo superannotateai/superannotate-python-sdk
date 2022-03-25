@@ -173,26 +173,6 @@ def upload_image_to_project(*args, **kwargs):
     }
 
 
-def upload_images_from_public_urls_to_project(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
-    img_urls = kwargs.get("img_urls", [])
-    if not img_urls:
-        img_urls += args[1]
-    return {
-        "event_name": "upload_images_from_public_urls_to_project",
-        "properties": {
-            "Image Count": len(img_urls),
-            "Image Name": bool(args[2:3] or kwargs.get("img_names", None)),
-            "Annotation Status": bool(
-                args[3:4] or kwargs.get("annotation_status", None)
-            ),
-            "project_name": get_project_name(project),
-        },
-    }
-
-
 def upload_video_to_project(*args, **kwargs):
     project = kwargs.get("project", None)
     if not project:

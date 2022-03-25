@@ -101,9 +101,6 @@ from superannotate.lib.app.interface.sdk_interface import upload_image_to_projec
 from superannotate.lib.app.interface.sdk_interface import (
     upload_images_from_folder_to_project,
 )
-from superannotate.lib.app.interface.sdk_interface import (
-    upload_images_from_public_urls_to_project,
-)
 from superannotate.lib.app.interface.sdk_interface import upload_images_to_project
 from superannotate.lib.app.interface.sdk_interface import (
     upload_preannotations_from_folder_to_project,
@@ -193,7 +190,6 @@ __all__ = [
     "delete_annotations",
     "upload_image_to_project",
     "upload_image_annotations",
-    "upload_images_from_public_urls_to_project",
     "upload_images_from_folder_to_project",
     "attach_image_urls_to_project",
     "attach_video_urls_to_project",

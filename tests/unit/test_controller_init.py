@@ -104,3 +104,8 @@ class SKDInitTest(TestCase):
             import src.superannotate as sa
             sa.init(path)
             self.assertEqual(sa.get_default_controller().team_id, 1234)
+
+    def test_(self):
+        import src.superannotate as sa
+        sa.init("~/.superannotate/prod_config.json")
+        sa.search_projects()

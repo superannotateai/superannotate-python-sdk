@@ -3,12 +3,13 @@ from typing import List
 import superannotate.lib.core as constances
 from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
-from lib.core.entities.project_entities import DocumentEntity
-from lib.core.entities.project_entities import Entity
-from lib.core.entities.project_entities import FolderEntity
-from lib.core.entities.project_entities import ProjectEntity
-from lib.core.entities.project_entities import TmpImageEntity
-from lib.core.entities.project_entities import VideoEntity
+from lib.core.entities import DocumentEntity
+from lib.core.entities import Entity
+from lib.core.entities import FolderEntity
+from lib.core.entities import ProjectEntity
+from lib.core.entities import TmpBaseEntity
+from lib.core.entities import TmpImageEntity
+from lib.core.entities import VideoEntity
 from lib.core.exceptions import AppException
 from lib.core.reporter import Reporter
 from lib.core.repositories import BaseReadOnlyRepository
@@ -16,6 +17,49 @@ from lib.core.response import Response
 from lib.core.serviceproviders import SuperannotateServiceProvider
 from lib.core.usecases.base import BaseReportableUseCae
 from pydantic import parse_obj_as
+
+
+class GetItem(BaseReportableUseCae):
+    def __init__(
+            self,
+            reporter: Reporter,
+            project: ProjectEntity,
+            folder: FolderEntity,
+            items: BaseReadOnlyRepository,
+            item_name: str
+
+    ):
+        super().__init__(reporter)
+        self._project = project
+        self._folder = folder
+        self._items = items
+        self._item_name = item_name
+
+    @staticmethod
+    def serialize_entity(entity: Entity, project: ProjectEntity):
+        if project.project_type in (constances.ProjectType.VECTOR.value, constances.ProjectType.PIXEL.value):
+            return TmpImageEntity(**entity.dict(by_alias=True))
+        elif project.project_type == constances.ProjectType.VIDEO.value:
+            return VideoEntity(**entity.dict(by_alias=True))
+        elif project.project_type == constances.ProjectType.DOCUMENT.value:
+            return DocumentEntity(**entity.dict(by_alias=True))
+        return entity
+
+    def execute(self) -> Response:
+        if self.is_valid():
+            condition = (
+                    Condition("name", self._item_name, EQ)
+                    & Condition("team_id", self._project.team_id, EQ)
+                    & Condition("project_id", self._project.uuid, EQ)
+                    & Condition("folder_id", self._folder.uuid, EQ)
+            )
+            entity = self._items.get_one(condition)
+            if entity:
+                entity.add_path(self._project.name, self._folder.name)
+                self._response.data = self.serialize_entity(entity, self._project)
+            else:
+                self._response.errors = AppException("Item not found.")
+        return self._response
 
 
 class QueryEntities(BaseReportableUseCae):
@@ -61,54 +105,14 @@ class QueryEntities(BaseReportableUseCae):
             )
             if service_response.ok:
                 if self._project.project_type == constances.ProjectType.VECTOR.value:
-                    self._response.data = self._drop_paths(parse_obj_as(List[TmpImageEntity], service_response.data))
+                    data = self._drop_paths(parse_obj_as(List[TmpBaseEntity], service_response.data))
                 else:
-                    self._response.data = self._drop_paths(parse_obj_as(List[Entity], service_response.data))
+                    data = self._drop_paths(parse_obj_as(List[TmpBaseEntity], service_response.data))
+                for i, item in enumerate(data):
+                    data[i] = GetItem.serialize_entity(item, self._project)
+                self._response.data = data
             else:
                 self._response.errors = service_response.data
-        return self._response
-
-
-class GetItem(BaseReportableUseCae):
-    def __init__(
-            self,
-            reporter: Reporter,
-            project: ProjectEntity,
-            folder: FolderEntity,
-            items: BaseReadOnlyRepository,
-            item_name: str
-
-    ):
-        super().__init__(reporter)
-        self._project = project
-        self._folder = folder
-        self._items = items
-        self._item_name = item_name
-
-    @staticmethod
-    def serialize_entity(entity: Entity, project: ProjectEntity):
-        if project.project_type in (constances.ProjectType.VECTOR.value, constances.ProjectType.PIXEL.value):
-            return TmpImageEntity(**entity.dict(by_alias=True))
-        elif project.project_type == constances.ProjectType.VIDEO.value:
-            return VideoEntity(**entity.dict(by_alias=True))
-        elif project.project_type == constances.ProjectType.DOCUMENT.value:
-            return DocumentEntity(**entity.dict(by_alias=True))
-        return entity
-
-    def execute(self) -> Response:
-        if self.is_valid():
-            condition = (
-                    Condition("name", self._item_name, EQ)
-                    & Condition("team_id", self._project.team_id, EQ)
-                    & Condition("project_id", self._project.uuid, EQ)
-                    & Condition("folder_id", self._folder.uuid, EQ)
-            )
-            entity = self._items.get_one(condition)
-            if entity:
-                entity.add_path(self._project.name, self._folder.name)
-                self._response.data = self.serialize_entity(entity, self._project)
-            else:
-                self._response.errors = AppException("Item not found.")
         return self._response
 
 

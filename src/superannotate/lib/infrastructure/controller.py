@@ -449,31 +449,6 @@ class Controller(BaseController):
             image_quality_in_editor=image_quality_in_editor,
         )
 
-    def upload_images_from_public_urls_to_project(
-            self,
-            project_name: str,
-            folder_name: str,
-            image_urls: List[str],
-            image_names: List[str] = None,
-            annotation_status: str = None,
-            image_quality_in_editor: str = None,
-    ):
-        project = self._get_project(project_name)
-        folder = self._get_folder(project, folder_name)
-        return usecases.UploadImagesFromPublicUrls(
-            project=project,
-            folder=folder,
-            image_urls=image_urls,
-            image_names=image_names,
-            backend_service=self._backend_client,
-            settings=ProjectSettingsRepository(
-                service=self._backend_client, project=project
-            ).get_all(),
-            s3_repo=self.s3_repo,
-            image_quality_in_editor=image_quality_in_editor,
-            annotation_status=annotation_status,
-        )
-
     def clone_project(
             self,
             name: str,

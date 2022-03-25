@@ -7,6 +7,8 @@ from os.path import dirname
 import src.superannotate as sa
 from tests.integration.base import BaseTestCase
 
+import pytest
+
 
 class TestFolders(BaseTestCase):
     PROJECT_NAME = "test folders"
@@ -444,6 +446,7 @@ class TestFolders(BaseTestCase):
             )
             self.assertEqual(len(list((temp_dir).glob("*.*"))), 4)
 
+    @pytest.mark.flaky(reruns=2)
     def test_project_completed_count(self):
         sa.upload_images_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path, annotation_status="Completed"

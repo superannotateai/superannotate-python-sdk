@@ -10,7 +10,6 @@ from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.entities import AnnotationClassEntity
 from lib.core.entities import ConfigEntity
-from lib.core.entities import Entity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
 from lib.core.entities import IntegrationEntity
@@ -19,6 +18,7 @@ from lib.core.entities import ProjectEntity
 from lib.core.entities import ProjectSettingEntity
 from lib.core.entities import S3FileEntity
 from lib.core.entities import TeamEntity
+from lib.core.entities import TmpBaseEntity
 from lib.core.entities import UserEntity
 from lib.core.entities import WorkflowEntity
 from lib.core.enums import ClassTypeEnum
@@ -511,22 +511,18 @@ class IntegrationRepository(BaseReadOnlyRepository):
         raise NotImplementedError
 
     def get_all(self, condition: Optional[Condition] = None) -> List[IntegrationEntity]:
-        return [self.dict2entity(integration) for integration in self._service.get_integrations(self._team_id)]
-
-    @staticmethod
-    def dict2entity(data: dict) -> IntegrationEntity:
-        return IntegrationEntity(**data)
+        return parse_obj_as(List[IntegrationEntity], self._service.get_integrations(self._team_id))
 
 
 class ItemRepository(BaseReadOnlyRepository):
     def __init__(self, service: SuperannotateBackendService):
         self._service = service
 
-    def get_one(self, uuid: Condition) -> Entity:
+    def get_one(self, uuid: Condition) -> TmpBaseEntity:
         items = self._service.list_images(uuid.build_query())
         if len(items) >= 1:
-            return Entity(**items[0])
+            return TmpBaseEntity(**items[0])
 
-    def get_all(self, condition: Optional[Condition] = None) -> List[Entity]:
+    def get_all(self, condition: Optional[Condition] = None) -> List[TmpBaseEntity]:
         images = self._service.list_images(condition.build_query())
-        return parse_obj_as(List[Entity], images)
+        return parse_obj_as(List[TmpBaseEntity], images)
