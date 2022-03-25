@@ -1,0 +1,53 @@
+from typing import Optional
+
+from lib.core.enums import AnnotationStatus
+from lib.core.enums import SegmentationStatus
+
+from pydantic import BaseModel
+from pydantic import Extra
+from pydantic import Field
+
+
+class TmpBaseEntity(BaseModel):
+    id: int
+    name: str
+    path: Optional[str] = Field(None, description="Item’s path in SuperAnnotate project")
+    url: Optional[str] = Field(None, description="Publicly available HTTP address")
+    annotation_status: AnnotationStatus = Field(description="Item annotation status")
+    annotator_name: Optional[str] = Field(description="Annotator email")
+    qa_name: Optional[str] = Field(description="QA email")
+    entropy_value: Optional[str] = Field(description="Priority score of given item")
+    createdAt: str = Field(description="Date of creation")
+    updatedAt: str = Field(description="Update date")
+
+    class Config:
+        extra = Extra.allow
+
+    def add_path(self, project_name: str, folder_name: str):
+        path = f"{project_name}{f'/{folder_name}' if folder_name != 'root' else ''}/{self.name}"
+        self.path = path
+        return self
+
+
+class Entity(TmpBaseEntity):
+    class Config:
+        extra = Extra.allow
+
+
+class TmpImageEntity(Entity):
+    prediction_status: Optional[SegmentationStatus] = Field(SegmentationStatus.NOT_STARTED)
+    segmentation_status: Optional[SegmentationStatus] = Field(SegmentationStatus.NOT_STARTED)
+    approval_status: bool = None
+
+    class Config:
+        extra = Extra.ignore
+
+
+class VideoEntity(Entity):
+    class Config:
+        ignore_extra = True
+
+
+class DocumentEntity(Entity):
+    class Config:
+        ignore_extra = True

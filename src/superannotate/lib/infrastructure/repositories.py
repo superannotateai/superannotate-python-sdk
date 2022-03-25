@@ -511,11 +511,7 @@ class IntegrationRepository(BaseReadOnlyRepository):
         raise NotImplementedError
 
     def get_all(self, condition: Optional[Condition] = None) -> List[IntegrationEntity]:
-        return [self.dict2entity(integration) for integration in self._service.get_integrations(self._team_id)]
-
-    @staticmethod
-    def dict2entity(data: dict) -> IntegrationEntity:
-        return IntegrationEntity(**data)
+        return parse_obj_as(List[IntegrationEntity], self._service.get_integrations(self._team_id))
 
 
 class ItemRepository(BaseReadOnlyRepository):

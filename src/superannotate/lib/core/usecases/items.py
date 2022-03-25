@@ -3,13 +3,13 @@ from typing import List
 import superannotate.lib.core as constances
 from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
-from lib.core.entities.project_entities import DocumentEntity
-from lib.core.entities.project_entities import Entity
-from lib.core.entities.project_entities import FolderEntity
-from lib.core.entities.project_entities import ProjectEntity
-from lib.core.entities.project_entities import TmpBaseEntity
-from lib.core.entities.project_entities import TmpImageEntity
-from lib.core.entities.project_entities import VideoEntity
+from lib.core.entities import DocumentEntity
+from lib.core.entities import Entity
+from lib.core.entities import FolderEntity
+from lib.core.entities import ProjectEntity
+from lib.core.entities import TmpBaseEntity
+from lib.core.entities import TmpImageEntity
+from lib.core.entities import VideoEntity
 from lib.core.exceptions import AppException
 from lib.core.reporter import Reporter
 from lib.core.repositories import BaseReadOnlyRepository

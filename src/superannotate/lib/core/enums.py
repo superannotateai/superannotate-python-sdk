@@ -104,6 +104,12 @@ class ClassTypeEnum(BaseTitledEnum):
         return cls.OBJECT.value
 
 
+class IntegrationTypeEnum(BaseTitledEnum):
+    AWS = "aws", 1
+    GCP = "gcp", 2
+    AZURE = "azure", 3
+
+
 class TrainingStatus(BaseTitledEnum):
     NOT_STARTED = "NotStarted", 1
     IN_PROGRESS = "InProgress", 2
