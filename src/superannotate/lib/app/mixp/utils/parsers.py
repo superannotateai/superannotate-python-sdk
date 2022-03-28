@@ -873,8 +873,8 @@ def assign_images(*args, **kwargs):
 
     contributors = (
         Controller.get_default()
-        .get_project_metadata(project_name=project, include_contributors=True)
-        .data["contributors"]
+            .get_project_metadata(project_name=project, include_contributors=True)
+            .data["contributors"]
     )
     contributor = None
     for c in contributors:
@@ -1229,15 +1229,15 @@ def get_integrations(*args, **kwargs):
     }
 
 
-def attach_items_from_integrated_storage(*args, **kwargs):
-    project = kwargs.get("project", args[0])
-    integration = kwargs.get("integration", args[1])
-    folder_path = kwargs.get("folder_path", args[2])
+def attach_items_from_integrated_storage(**kwargs):
+    project = kwargs.get("project")
+    integration = kwargs.get("integration")
+    folder_path = kwargs.get("folder_path")
 
     project_name, _ = extract_project_folder(project)
     if isinstance(integration, str):
         integration = IntegrationEntity(name=integration)
-    project = Controller.get_default().get_project_metadata(project_name)
+    project = Controller.get_default().get_project_metadata(project_name).data["project"]
     return {
         "event_name": "attach_items_from_integrated_storage",
         "properties": {
