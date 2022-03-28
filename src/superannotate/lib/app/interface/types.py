@@ -3,6 +3,7 @@ from typing import Union
 
 from lib.core.enums import AnnotationStatus
 from lib.core.enums import ClassTypeEnum
+from lib.core.enums import ProjectStatus
 from lib.core.enums import ProjectType
 from lib.core.enums import UserRole
 from lib.core.exceptions import AppException
@@ -12,7 +13,6 @@ from pydantic import StrictStr
 from pydantic import validate_arguments as pydantic_validate_arguments
 from pydantic import ValidationError
 from pydantic.errors import StrRegexError
-
 
 NotEmptyStr = constr(strict=True, min_length=1)
 
@@ -37,6 +37,18 @@ class Status(StrictStr):
         if value.lower() not in AnnotationStatus.values():
             raise TypeError(
                 f"Available statuses is {', '.join(AnnotationStatus.titles())}. "
+            )
+        return value
+
+
+class ProjectStatusEnum(StrictStr):
+    @classmethod
+    def validate(cls, value: Union[str]) -> Union[str]:
+        if cls.curtail_length and len(value) > cls.curtail_length:
+            value = value[: cls.curtail_length]
+        if value.lower() not in ProjectStatus.values():
+            raise TypeError(
+                f"Available statuses is {', '.join(ProjectStatus.titles())}. "
             )
         return value
 
@@ -95,7 +107,9 @@ class ClassType(StrictStr):
     def validate(cls, value: Union[str]) -> Union[str]:
         enum_values = [e.name.lower() for e in ClassTypeEnum]
         if value.lower() not in enum_values:
-            raise TypeError(f"Invalid type provided. Please specify one of the {', '.join(enum_values)}. ")
+            raise TypeError(
+                f"Invalid type provided. Please specify one of the {', '.join(enum_values)}. "
+            )
         return value.lower()
 
 

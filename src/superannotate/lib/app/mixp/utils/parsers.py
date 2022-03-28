@@ -871,9 +871,11 @@ def assign_images(*args, **kwargs):
     if not user:
         user = args[2]
 
-    contributors = Controller.get_default().get_project_metadata(
-        project_name=project, include_contributors=True
-    ).data["contributors"]
+    contributors = (
+        Controller.get_default()
+        .get_project_metadata(project_name=project, include_contributors=True)
+        .data["contributors"]
+    )
     contributor = None
     for c in contributors:
         if c["user_id"] == user:
@@ -965,7 +967,7 @@ def create_annotation_class(*args, **kwargs):
         "properties": {
             "project_name": get_project_name(project),
             "Attributes": bool(args[3:4] or ("attribute_groups" in kwargs)),
-            "class_type": class_type if class_type else "object"
+            "class_type": class_type if class_type else "object",
         },
     }
 
@@ -1241,7 +1243,7 @@ def attach_items_from_integrated_storage(*args, **kwargs):
         "properties": {
             "project_type": ProjectType.get_name(project.project_type),
             "integration_name": integration.name,
-            "folder_path": bool(folder_path)
+            "folder_path": bool(folder_path),
         },
     }
 
@@ -1255,8 +1257,7 @@ def query(**kwargs):
         "event_name": "attach_items_from_integrated_storage",
         "properties": {
             "project_type": ProjectType.get_name(project.project_type),
-            "query": query_str
-
+            "query": query_str,
         },
     }
 
@@ -1267,9 +1268,7 @@ def get_item_metadata(**kwargs):
     Controller.get_default().get_project_metadata(project_name)
     return {
         "event_name": "attach_items_from_integrated_storage",
-        "properties": {
-            "project_type": ProjectType.get_name(project.project_type),
-        },
+        "properties": {"project_type": ProjectType.get_name(project.project_type)},
     }
 
 
@@ -1292,6 +1291,5 @@ def search_items(**kwargs):
             "annotator_email": bool(annotator_email),
             "qa_email": bool(qa_email),
             "recursive": bool(recursive),
-
         },
     }

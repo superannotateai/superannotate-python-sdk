@@ -101,8 +101,6 @@ class ProjectRepository(BaseManageableRepository):
 
     def insert(self, entity: ProjectEntity) -> ProjectEntity:
         project_data = self._drop_nones(entity.to_dict())
-        # new projects can only have the status of NotStarted
-        project_data["status"] = constance.ProjectStatus.NotStarted.value
         result = self._service.create_project(project_data)
         return self.dict2entity(result)
 
@@ -145,15 +143,14 @@ class ProjectRepository(BaseManageableRepository):
                 root_folder_completed_images_count=data.get(
                     "rootFolderCompletedImagesCount"
                 ),
-                createdAt=data["createdAt"],
-                updatedAt=data["updatedAt"],
+                createdAt=data.get("createdAt"),
+                updatedAt=data.get("updatedAt"),
             )
         except KeyError:
             raise AppException("Cant serialize project data")
 
 
 class S3Repository(BaseS3Repository):
-
     def get_one(self, uuid: str) -> S3FileEntity:
         file = io.BytesIO()
         self._resource.Object(self._bucket, uuid).download_fileobj(file)
@@ -511,7 +508,9 @@ class IntegrationRepository(BaseReadOnlyRepository):
         raise NotImplementedError
 
     def get_all(self, condition: Optional[Condition] = None) -> List[IntegrationEntity]:
-        return parse_obj_as(List[IntegrationEntity], self._service.get_integrations(self._team_id))
+        return parse_obj_as(
+            List[IntegrationEntity], self._service.get_integrations(self._team_id)
+        )
 
 
 class ItemRepository(BaseReadOnlyRepository):

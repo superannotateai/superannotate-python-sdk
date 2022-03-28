@@ -21,13 +21,12 @@ from pydantic import parse_obj_as
 
 class GetItem(BaseReportableUseCae):
     def __init__(
-            self,
-            reporter: Reporter,
-            project: ProjectEntity,
-            folder: FolderEntity,
-            items: BaseReadOnlyRepository,
-            item_name: str
-
+        self,
+        reporter: Reporter,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        items: BaseReadOnlyRepository,
+        item_name: str,
     ):
         super().__init__(reporter)
         self._project = project
@@ -37,7 +36,10 @@ class GetItem(BaseReportableUseCae):
 
     @staticmethod
     def serialize_entity(entity: Entity, project: ProjectEntity):
-        if project.project_type in (constances.ProjectType.VECTOR.value, constances.ProjectType.PIXEL.value):
+        if project.project_type in (
+            constances.ProjectType.VECTOR.value,
+            constances.ProjectType.PIXEL.value,
+        ):
             return TmpImageEntity(**entity.dict(by_alias=True))
         elif project.project_type == constances.ProjectType.VIDEO.value:
             return VideoEntity(**entity.dict(by_alias=True))
@@ -48,10 +50,10 @@ class GetItem(BaseReportableUseCae):
     def execute(self) -> Response:
         if self.is_valid():
             condition = (
-                    Condition("name", self._item_name, EQ)
-                    & Condition("team_id", self._project.team_id, EQ)
-                    & Condition("project_id", self._project.uuid, EQ)
-                    & Condition("folder_id", self._folder.uuid, EQ)
+                Condition("name", self._item_name, EQ)
+                & Condition("team_id", self._project.team_id, EQ)
+                & Condition("project_id", self._project.uuid, EQ)
+                & Condition("folder_id", self._folder.uuid, EQ)
             )
             entity = self._items.get_one(condition)
             if entity:
@@ -64,13 +66,12 @@ class GetItem(BaseReportableUseCae):
 
 class QueryEntities(BaseReportableUseCae):
     def __init__(
-            self,
-            reporter: Reporter,
-            project: ProjectEntity,
-            folder: FolderEntity,
-            backend_service_provider: SuperannotateServiceProvider,
-            query: str
-
+        self,
+        reporter: Reporter,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        backend_service_provider: SuperannotateServiceProvider,
+        query: str,
     ):
         super().__init__(reporter)
         self._project = project
@@ -83,7 +84,9 @@ class QueryEntities(BaseReportableUseCae):
             raise AppException("Data is not synced.")
 
     def validate_query(self):
-        response = self._backend_client.validate_saqul_query(self._project.team_id, self._project.uuid, self._query)
+        response = self._backend_client.validate_saqul_query(
+            self._project.team_id, self._project.uuid, self._query
+        )
         if response.get("error"):
             raise AppException(response["error"])
         if not response.get("isValidQuery", False):
@@ -101,13 +104,17 @@ class QueryEntities(BaseReportableUseCae):
                 self._project.team_id,
                 self._project.uuid,
                 self._query,
-                folder_id=None if self._folder.name == "root" else self._folder.uuid
+                folder_id=None if self._folder.name == "root" else self._folder.uuid,
             )
             if service_response.ok:
                 if self._project.project_type == constances.ProjectType.VECTOR.value:
-                    data = self._drop_paths(parse_obj_as(List[TmpBaseEntity], service_response.data))
+                    data = self._drop_paths(
+                        parse_obj_as(List[TmpBaseEntity], service_response.data)
+                    )
                 else:
-                    data = self._drop_paths(parse_obj_as(List[TmpBaseEntity], service_response.data))
+                    data = self._drop_paths(
+                        parse_obj_as(List[TmpBaseEntity], service_response.data)
+                    )
                 for i, item in enumerate(data):
                     data[i] = GetItem.serialize_entity(item, self._project)
                 self._response.data = data
@@ -118,15 +125,14 @@ class QueryEntities(BaseReportableUseCae):
 
 class ListItems(BaseReportableUseCae):
     def __init__(
-            self,
-            reporter: Reporter,
-            project: ProjectEntity,
-            folder: FolderEntity,
-            items: BaseReadOnlyRepository,
-            search_condition: Condition,
-            folders: BaseReadOnlyRepository,
-            recursive: bool = False
-
+        self,
+        reporter: Reporter,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        items: BaseReadOnlyRepository,
+        search_condition: Condition,
+        folders: BaseReadOnlyRepository,
+        recursive: bool = False,
     ):
         super().__init__(reporter)
         self._project = project
@@ -148,8 +154,11 @@ class ListItems(BaseReportableUseCae):
             if not self._recursive:
                 self._search_condition &= Condition("folder_id", self._folder.uuid, EQ)
                 items = [
-                    GetItem.serialize_entity(item.add_path(self._project.name, self._folder.name), self._project) for
-                    item in self._items.get_all(self._search_condition)
+                    GetItem.serialize_entity(
+                        item.add_path(self._project.name, self._folder.name),
+                        self._project,
+                    )
+                    for item in self._items.get_all(self._search_condition)
                 ]
             else:
                 items = []
@@ -159,10 +168,15 @@ class ListItems(BaseReportableUseCae):
                 )
                 folders.append(self._folder)
                 for folder in folders:
-                    tmp = self._items.get_all(self._search_condition & Condition("folder_id", folder.uuid, EQ))
+                    tmp = self._items.get_all(
+                        self._search_condition & Condition("folder_id", folder.uuid, EQ)
+                    )
                     items.extend(
                         [
-                            GetItem.serialize_entity(item.add_path(self._project.name, folder.name), self._project)
+                            GetItem.serialize_entity(
+                                item.add_path(self._project.name, folder.name),
+                                self._project,
+                            )
                             for item in tmp
                         ]
                     )

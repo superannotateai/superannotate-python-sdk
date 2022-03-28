@@ -14,10 +14,10 @@ from lib.core.usecases import BaseReportableUseCae
 
 class GetIntegrations(BaseReportableUseCae):
     def __init__(
-            self,
-            reporter: Reporter,
-            team: TeamEntity,
-            integrations: BaseReadOnlyRepository,
+        self,
+        reporter: Reporter,
+        team: TeamEntity,
+        integrations: BaseReadOnlyRepository,
     ):
 
         super().__init__(reporter)
@@ -34,15 +34,15 @@ class GetIntegrations(BaseReportableUseCae):
 
 class AttachIntegrations(BaseReportableUseCae):
     def __init__(
-            self,
-            reporter: Reporter,
-            team: TeamEntity,
-            project: ProjectEntity,
-            folder: FolderEntity,
-            integrations: BaseReadOnlyRepository,
-            backend_service: SuperannotateServiceProvider,
-            integration: IntegrationEntity,
-            folder_path: str = None
+        self,
+        reporter: Reporter,
+        team: TeamEntity,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        integrations: BaseReadOnlyRepository,
+        backend_service: SuperannotateServiceProvider,
+        integration: IntegrationEntity,
+        folder_path: str = None,
     ):
 
         super().__init__(reporter)
@@ -61,7 +61,9 @@ class AttachIntegrations(BaseReportableUseCae):
     def execute(self) -> Response:
         integrations: List[IntegrationEntity] = self._integrations.get_all()
         integration_name_lower = self._integration.name.lower()
-        integration = next((i for i in integrations if i.name.lower() == integration_name_lower), None)
+        integration = next(
+            (i for i in integrations if i.name.lower() == integration_name_lower), None
+        )
         if integration:
             self.reporter.log_info(
                 "Attaching file(s) from "
@@ -73,7 +75,7 @@ class AttachIntegrations(BaseReportableUseCae):
                 self._project.uuid,
                 integration.id,
                 self._folder.uuid,
-                self._folder_path
+                self._folder_path,
             )
             if not attached:
                 self._response.errors = AppException(
