@@ -26,7 +26,7 @@ class GetIntegrations(BaseReportableUseCae):
 
     def execute(self) -> Response:
         integrations = self._integrations.get_all()
-        integrations = list(sorted(integrations, key=lambda x: x.created_at))
+        integrations = list(sorted(integrations, key=lambda x: x.createdAt))
         integrations.reverse()
         self._response.data = integrations
         return self._response
