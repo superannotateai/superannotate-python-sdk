@@ -23,20 +23,29 @@ class BaseSerializer(ABC):
                     data[key] = value.__doc__
         return data
 
-    def serialize(self, fields: List[str] = None, by_alias: bool = True, flat: bool = False):
-        return self._fill_enum_values(self._serialize(self._entity, fields, by_alias, flat))
+    def serialize(
+        self, fields: List[str] = None, by_alias: bool = True, flat: bool = False
+    ):
+        return self._fill_enum_values(
+            self._serialize(self._entity, fields, by_alias, flat)
+        )
 
     def serialize_item(
-            self,
-            data: Any,
-            fields: Union[List[str], Set[str]] = None,
-            by_alias: bool = False,
-            flat: bool = False
+        self,
+        data: Any,
+        fields: Union[List[str], Set[str]] = None,
+        by_alias: bool = False,
+        flat: bool = False,
     ):
         return self._fill_enum_values(self._serialize(data, fields, by_alias, flat))
 
     @staticmethod
-    def _serialize(entity: Any, fields: List[str] = None, by_alias: bool = False, flat: bool = False):
+    def _serialize(
+        entity: Any,
+        fields: List[str] = None,
+        by_alias: bool = False,
+        flat: bool = False,
+    ):
         if isinstance(entity, dict):
             return entity
         if isinstance(entity, BaseModel):
@@ -44,7 +53,9 @@ class BaseSerializer(ABC):
                 fields = set(fields)
                 if len(fields) == 1:
                     if flat:
-                        return entity.dict(include=fields, by_alias=by_alias)[next(iter(fields))]
+                        return entity.dict(include=fields, by_alias=by_alias)[
+                            next(iter(fields))
+                        ]
                     return entity.dict(include=fields, by_alias=by_alias)
                 return entity.dict(include=fields, by_alias=by_alias)
             return entity.dict(by_alias=by_alias)
@@ -52,11 +63,11 @@ class BaseSerializer(ABC):
 
     @classmethod
     def serialize_iterable(
-            cls,
-            data: List[Any],
-            fields: Union[List[str], Set[str]] = None,
-            by_alias: bool = False,
-            flat: bool = False
+        cls,
+        data: List[Any],
+        fields: Union[List[str], Set[str]] = None,
+        by_alias: bool = False,
+        flat: bool = False,
     ) -> List[Any]:
         serialized_data = []
         for i in data:

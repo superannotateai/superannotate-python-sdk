@@ -70,6 +70,7 @@ class ImageQuality(BaseTitledEnum):
 
 
 class ProjectStatus(BaseTitledEnum):
+    Undefined = "Undefined", 0
     NotStarted = "NotStarted", 1
     InProgress = "InProgress", 2
     Completed = "Completed", 3

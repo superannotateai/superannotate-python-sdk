@@ -56,15 +56,18 @@ def add_annotation_comment_to_json(
 ):
     """Add a comment to SuperAnnotate format annotation JSON
 
-
     :param annotation_json: annotations in SuperAnnotate format JSON or filepath to JSON
     :type annotation_json: dict or Pathlike (str or Path)
+
     :param comment_text: comment text
     :type comment_text: str
+
     :param comment_coords: [x, y] coords
     :type comment_coords: list
+
     :param comment_author: comment author email
     :type comment_author: str
+
     :param resolved: comment resolve status
     :type resolved: bool
     """
@@ -106,12 +109,16 @@ def add_annotation_bbox_to_json(
 
     :param annotation_json: annotations in SuperAnnotate format JSON or filepath to JSON
     :type annotation_json: dict or Pathlike (str or Path)
+
     :param bbox: 4 element list of top-left x,y and bottom-right x, y coordinates
     :type bbox: list of floats
+
     :param annotation_class_name: annotation class name
     :type annotation_class_name: str
+
     :param annotation_class_attributes: list of annotation class attributes
     :type annotation_class_attributes: list of 2 element dicts
+
     :param error: if not None, marks annotation as error (True) or no-error (False)
     :type error: bool
     """

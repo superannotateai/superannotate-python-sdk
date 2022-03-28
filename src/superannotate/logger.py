@@ -8,7 +8,6 @@ from superannotate import constances
 
 default_logger = None
 
-log_path = "/Users/vaghinak.basentsyan/private/log.log"
 logging.config.dictConfig(
     {
         "version": 1,
