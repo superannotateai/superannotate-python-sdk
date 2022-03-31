@@ -321,6 +321,7 @@ class Controller(BaseController):
         settings: Iterable = tuple(),
         annotation_classes: Iterable = tuple(),
         workflows: Iterable = tuple(),
+        **extra_kwargs
     ) -> Response:
 
         try:
@@ -334,6 +335,7 @@ class Controller(BaseController):
             description=description,
             project_type=project_type,
             team_id=self.team_id,
+            **extra_kwargs
         )
         use_case = usecases.CreateProjectUseCase(
             project=entity,
@@ -821,7 +823,9 @@ class Controller(BaseController):
 
     def search_annotation_classes(self, project_name: str, name_prefix: str = None):
         project_entity = self._get_project(project_name)
-        condition = Condition("name", name_prefix, EQ) if name_prefix else None
+        condition = None
+        if name_prefix:
+            condition = Condition("name", name_prefix, EQ) & Condition("pattern", True, EQ)
         use_case = usecases.GetAnnotationClassesUseCase(
             classes=AnnotationClassRepository(
                 service=self._backend_client, project=project_entity
@@ -952,22 +956,6 @@ class Controller(BaseController):
             service=self._backend_client,
             project_entity=project_entity,
             user_id=user_id,
-        )
-        return use_case.execute()
-
-    def get_image_annotations(
-        self, project_name: str, folder_name: str, image_name: str
-    ):
-        project = self._get_project(project_name)
-        folder = self._get_folder(project=project, name=folder_name)
-
-        use_case = usecases.GetImageAnnotationsUseCase(
-            service=self._backend_client,
-            project=project,
-            folder=folder,
-            image_name=image_name,
-            images=ImageRepository(service=self._backend_client),
-            reporter=Reporter(log_info=False, log_warning=False),
         )
         return use_case.execute()
 
@@ -1487,13 +1475,12 @@ class Controller(BaseController):
         return use_case.execute()
 
     def get_annotations(
-        self, project_name: str, folder_name: str, item_names: List[str]
+        self, project_name: str, folder_name: str, item_names: List[str], logging=True
     ):
         project = self._get_project(project_name)
         folder = self._get_folder(project, folder_name)
-
         use_case = usecases.GetAnnotations(
-            reporter=self.default_reporter,
+            reporter=Reporter(log_info=logging, log_debug=logging),
             project=project,
             folder=folder,
             images=self.images,

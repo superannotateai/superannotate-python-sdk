@@ -89,7 +89,6 @@ ______
 .. autofunction:: superannotate.download_image
 .. autofunction:: superannotate.set_image_annotation_status
 .. autofunction:: superannotate.set_images_annotation_statuses
-.. autofunction:: superannotate.get_image_annotations
 .. autofunction:: superannotate.download_image_annotations
 .. autofunction:: superannotate.upload_image_annotations
 .. autofunction:: superannotate.copy_image

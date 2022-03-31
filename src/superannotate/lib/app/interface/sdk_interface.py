@@ -215,6 +215,8 @@ def create_project_from_metadata(project_metadata: Project):
         settings=project_metadata.get("settings", []),
         annotation_classes=project_metadata.get("classes", []),
         workflows=project_metadata.get("workflows", []),
+        attachment_path=project_metadata.get("attachment_path"),
+        attachment_name=project_metadata.get("attachment_name"),
     )
     if response.errors:
         raise AppException(response.errors)
@@ -973,8 +975,6 @@ def assign_images(project: Union[NotEmptyStr, dict], image_names: List[str], use
     ]:
         raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
 
-    if not folder_name:
-        folder_name = "root"
     contributors = (
         Controller.get_default()
         .get_project_metadata(project_name=project_name, include_contributors=True)
@@ -1115,38 +1115,6 @@ def share_project(
     )
     if response.errors:
         raise AppException(response.errors)
-
-
-@Trackable
-@validate_arguments
-def get_image_annotations(project: Union[NotEmptyStr, dict], image_name: NotEmptyStr):
-    """Get annotations of the image.
-
-    :param project: project name or folder path (e.g., "project1/folder1")
-    :type project: str
-    :param image_name: image name
-    :type image_name: str
-
-    :return: dict object with following keys:
-        "annotation_json": dict object of the annotation,
-        "annotation_json_filename": filename on server,
-        "annotation_mask": mask (for pixel),
-        "annotation_mask_filename": mask filename on server
-    :rtype: dict
-    """
-    warning_msg = (
-        "The get_image_annotations function is deprecated and will be removed with the coming releases, "
-        "please use get_annotations instead."
-    )
-    logger.warning(warning_msg)
-    warnings.warn(warning_msg, DeprecationWarning)
-    project_name, folder_name = extract_project_folder(project)
-    res = Controller.get_default().get_image_annotations(
-        project_name=project_name, folder_name=folder_name, image_name=image_name
-    )
-    if res.errors:
-        raise AppException(res.errors)
-    return res.data
 
 
 @validate_arguments
@@ -2349,8 +2317,14 @@ def add_annotation_bbox_to_image(
     :type error: bool
     """
     project_name, folder_name = extract_project_folder(project)
+    project = Controller.get_default().get_project_metadata(project_name).data
+    if project["project"].project_type in [
+        constances.ProjectType.VIDEO.value,
+        constances.ProjectType.DOCUMENT.value,
+    ]:
+        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
     response = Controller.get_default().get_annotations(
-        project_name=project_name, folder_name=folder_name, item_names=[image_name]
+        project_name=project_name, folder_name=folder_name, item_names=[image_name], logging=False
     )
     if response.errors:
         raise AppException(response.errors)
@@ -2368,7 +2342,7 @@ def add_annotation_bbox_to_image(
     )
 
     Controller.get_default().upload_image_annotations(
-        *extract_project_folder(project), image_name, annotations
+        project_name, folder_name, image_name, annotations
     )
 
 
@@ -2400,8 +2374,14 @@ def add_annotation_point_to_image(
     :type error: bool
     """
     project_name, folder_name = extract_project_folder(project)
+    project = Controller.get_default().get_project_metadata(project_name).data
+    if project["project"].project_type in [
+        constances.ProjectType.VIDEO.value,
+        constances.ProjectType.DOCUMENT.value,
+    ]:
+        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
     response = Controller.get_default().get_annotations(
-        project_name=project_name, folder_name=folder_name, item_names=[image_name]
+        project_name=project_name, folder_name=folder_name, item_names=[image_name], logging=False
     )
     if response.errors:
         raise AppException(response.errors)
@@ -2418,7 +2398,7 @@ def add_annotation_point_to_image(
         error,
     )
     Controller.get_default().upload_image_annotations(
-        *extract_project_folder(project), image_name, annotations
+        project_name, folder_name, image_name, annotations
     )
 
 
@@ -2448,8 +2428,14 @@ def add_annotation_comment_to_image(
     :type resolved: bool
     """
     project_name, folder_name = extract_project_folder(project)
+    project = Controller.get_default().get_project_metadata(project_name).data
+    if project["project"].project_type in [
+        constances.ProjectType.VIDEO.value,
+        constances.ProjectType.DOCUMENT.value,
+    ]:
+        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
     response = Controller.get_default().get_annotations(
-        project_name=project_name, folder_name=folder_name, item_names=[image_name]
+        project_name=project_name, folder_name=folder_name, item_names=[image_name], logging=False
     )
     if response.errors:
         raise AppException(response.errors)
@@ -2466,7 +2452,7 @@ def add_annotation_comment_to_image(
         image_name=image_name,
     )
     Controller.get_default().upload_image_annotations(
-        *extract_project_folder(project), image_name, annotations
+        project_name, folder_name, image_name, annotations
     )
 
 

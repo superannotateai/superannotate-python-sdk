@@ -192,6 +192,7 @@ class SuperannotateBackendService(BaseBackendService):
     URL_UPDATE_FOLDER = "folder/{}"
     URL_GET_IMAGE = "image/{}"
     URL_GET_IMAGES = "images"
+    URL_GET_ITEMS = "items"
     URL_BULK_GET_IMAGES = "images/getBulk"
     URL_DELETE_FOLDERS = "image/delete/images"
     URL_CREATE_IMAGE = "image/ext-create"
@@ -233,7 +234,7 @@ class SuperannotateBackendService(BaseBackendService):
     URL_GET_INTEGRATIONS = "integrations"
     URL_ATTACH_INTEGRATIONS = "image/integration/create"
     URL_SAQUL_QUERY = "/images/search/advanced"
-    URL_VALIDATE_SAQUL_QUERY = "/images/validate/advanced"
+    URL_VALIDATE_SAQUL_QUERY = "/images/parse/query/advanced"
 
     def upload_priority_scores(
         self, team_id: int, project_id: int, folder_id: int, priorities: list
@@ -507,6 +508,12 @@ class SuperannotateBackendService(BaseBackendService):
 
     def list_images(self, query_string):
         url = urljoin(self.api_url, self.URL_GET_IMAGES)
+        if query_string:
+            url = f"{url}?{query_string}"
+        return self._get_all_pages(url)
+
+    def list_items(self, query_string):
+        url = urljoin(self.api_url, self.URL_GET_ITEMS)
         if query_string:
             url = f"{url}?{query_string}"
         return self._get_all_pages(url)

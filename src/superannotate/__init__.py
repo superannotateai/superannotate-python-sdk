@@ -57,7 +57,6 @@ from superannotate.lib.app.interface.sdk_interface import get_annotations
 from superannotate.lib.app.interface.sdk_interface import get_annotations_per_frame
 from superannotate.lib.app.interface.sdk_interface import get_exports
 from superannotate.lib.app.interface.sdk_interface import get_folder_metadata
-from superannotate.lib.app.interface.sdk_interface import get_image_annotations
 from superannotate.lib.app.interface.sdk_interface import get_image_metadata
 from superannotate.lib.app.interface.sdk_interface import get_integrations
 from superannotate.lib.app.interface.sdk_interface import get_item_metadata
@@ -206,7 +205,6 @@ __all__ = [
     "add_annotation_bbox_to_image",
     "add_annotation_point_to_image",
     "add_annotation_comment_to_image",
-    "get_image_annotations",
     "search_annotation_classes",
     "create_annotation_classes_from_classes_json",
     "upload_annotations_from_folder_to_project",

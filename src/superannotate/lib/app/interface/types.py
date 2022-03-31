@@ -97,7 +97,7 @@ class ProjectTypes(StrictStr):
     def validate(cls, value: Union[str]) -> Union[str]:
         if value.lower() not in ProjectType.values():
             raise TypeError(
-                f"Available annotation_statuses are {', '.join(ProjectType.titles())}. "
+                f" Available project types are {', '.join(ProjectType.titles())}. "
             )
         return value
 

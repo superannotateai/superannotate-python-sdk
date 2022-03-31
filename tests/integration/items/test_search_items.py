@@ -4,6 +4,7 @@ from pathlib import Path
 import src.superannotate as sa
 import src.superannotate.lib.core as constances
 from tests.integration.base import BaseTestCase
+from tests.integration.items import IMAGE_EXPECTED_KEYS
 
 
 class TestSearchItems(BaseTestCase):
@@ -23,9 +24,10 @@ class TestSearchItems(BaseTestCase):
             self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
         )
         items = sa.search_items(self.PROJECT_NAME)
+        assert list(items[0].keys()).sort() == IMAGE_EXPECTED_KEYS.sort()
         assert len(items) == 4
-        # assert len(sa.search_items(self.PROJECT_NAME, qa_email="justaemail@google.com")) == 0
-        # assert len(sa.search_items(self.PROJECT_NAME, annotator_email="justaemail@google.com")) == 0
+        assert len(sa.search_items(self.PROJECT_NAME, qa_email="justaemail@google.com")) == 0
+        assert len(sa.search_items(self.PROJECT_NAME, annotator_email="justaemail@google.com")) == 0
         assert len(sa.search_items(self.PROJECT_NAME, name_contains="1.jp")) == 1
         assert len(sa.search_items(self.PROJECT_NAME, name_contains=".jpg")) == 4
         assert len(sa.search_items(self.PROJECT_NAME, recursive=True)) == 4

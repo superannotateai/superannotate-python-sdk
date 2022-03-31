@@ -259,5 +259,5 @@ class TestCocoSplit(TestCase):
                 "keypoint_detection",
             )
             sa.upload_annotations_from_folder_to_project(project, out_path)
-            image_metadata = sa.get_image_annotations(project_name, "t.png")
-            self.assertEqual(image_metadata["annotation_json"]["instances"][0]["templateId"], -1)
+            annotations = sa.get_annotations(project_name, "t.png")[0]
+            assert annotations[0]["instances"][0]["templateId"] == -1

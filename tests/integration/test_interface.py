@@ -39,19 +39,13 @@ class TestInterface(BaseTestCase):
     def folder_path_with_multiple_images(self):
         return os.path.join(dirname(dirname(__file__)), self.TEST_FOLDER_PATH_WITH_MULTIPLE_IMAGERS)
 
-    # def test_set_auth_token(self):
-    #     try:
-    #         sa.set_auth_token("1234=12")
-    #         sa.get_team_metadata()
-    #     except Exception as err:
-    #         self.assertEqual(str(err), "Can't get team data.")
-
-    @pytest.mark.flaky(reruns=2)
+    @pytest.mark.flaky(reruns=4)
     def test_delete_images(self):
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME)
 
+        path = f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME}"
         sa.upload_images_from_folder_to_project(
-            f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME}",
+            path,
             self.folder_path,
             annotation_status="InProgress",
         )
@@ -59,7 +53,7 @@ class TestInterface(BaseTestCase):
             self.PROJECT_NAME, with_all_subfolders=True
         )
         self.assertEqual(num_images, 4)
-        sa.delete_images(f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME}")
+        sa.delete_images(path)
 
         num_images = sa.get_project_image_count(
             self.PROJECT_NAME, with_all_subfolders=True

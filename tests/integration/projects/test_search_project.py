@@ -47,6 +47,7 @@ class TestSearchProject(TestCase):
 
     def test_search_by_multiple_status(self):
         controller = sa.get_default_controller()
+
         project_1 = ProjectEntity(
             name=self.PROJECT_1, description="desc", project_type=sa.constances.ProjectType.VECTOR.value,
             status=sa.constances.ProjectStatus.OnHold.value, team_id=controller.team_id

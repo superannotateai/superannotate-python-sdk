@@ -76,6 +76,10 @@ class SuperannotateServiceProvider:
         raise NotImplementedError
 
     @abstractmethod
+    def list_images(self, query_string):
+        raise NotImplementedError
+
+    @abstractmethod
     def get_project(self, uuid: int, team_id: int):
         raise NotImplementedError
 

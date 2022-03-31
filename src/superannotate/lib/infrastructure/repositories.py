@@ -5,9 +5,11 @@ from os.path import expanduser
 from typing import List
 from typing import Optional
 
+from pydantic import parse_obj_as
+
 import lib.core as constance
-from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
+from lib.core.conditions import Condition
 from lib.core.entities import AnnotationClassEntity
 from lib.core.entities import ConfigEntity
 from lib.core.entities import FolderEntity
@@ -29,7 +31,6 @@ from lib.core.repositories import BaseProjectRelatedManageableRepository
 from lib.core.repositories import BaseReadOnlyRepository
 from lib.core.repositories import BaseS3Repository
 from lib.infrastructure.services import SuperannotateBackendService
-from pydantic import parse_obj_as
 
 
 class ConfigRepository(BaseManageableRepository):
@@ -181,7 +182,7 @@ class ProjectSettingsRepository(BaseProjectRelatedManageableRepository):
         raise NotImplementedError
 
     def get_all(
-        self, condition: Optional[Condition] = None
+            self, condition: Optional[Condition] = None
     ) -> List[ProjectSettingEntity]:
         data = self._service.get_project_settings(
             self._project.uuid, self._project.team_id
@@ -319,7 +320,7 @@ class AnnotationClassRepository(BaseManageableRepository):
         raise NotImplementedError
 
     def get_all(
-        self, condition: Optional[Condition] = None
+            self, condition: Optional[Condition] = None
     ) -> List[AnnotationClassEntity]:
         query = condition.build_query() if condition else None
         data = self._service.get_annotation_classes(
@@ -518,10 +519,10 @@ class ItemRepository(BaseReadOnlyRepository):
         self._service = service
 
     def get_one(self, uuid: Condition) -> TmpBaseEntity:
-        items = self._service.list_images(uuid.build_query())
+        items = self._service.list_items(uuid.build_query())
         if len(items) >= 1:
             return TmpBaseEntity(**items[0])
 
     def get_all(self, condition: Optional[Condition] = None) -> List[TmpBaseEntity]:
-        images = self._service.list_images(condition.build_query())
+        images = self._service.list_items(condition.build_query())
         return parse_obj_as(List[TmpBaseEntity], images)

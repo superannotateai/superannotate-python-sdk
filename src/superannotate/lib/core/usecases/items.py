@@ -79,18 +79,18 @@ class QueryEntities(BaseReportableUseCae):
         self._backend_client = backend_service_provider
         self._query = query
 
-    def validate_project_state(self):
-        if self._project.sync_status != constances.ProjectState.SYNCED.value:
-            raise AppException("Data is not synced.")
-
     def validate_query(self):
         response = self._backend_client.validate_saqul_query(
             self._project.team_id, self._project.uuid, self._query
         )
         if response.get("error"):
             raise AppException(response["error"])
-        if not response.get("isValidQuery", False):
+        if response["isValidQuery"]:
+            self._query = response["parsedQuery"]
+        else:
             raise AppException("Incorrect query.")
+        if self._project.sync_status != constances.ProjectState.SYNCED.value:
+            raise AppException("Data is not synced.")
 
     @staticmethod
     def _drop_paths(items: List[Entity]):

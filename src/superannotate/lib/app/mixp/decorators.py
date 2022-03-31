@@ -53,17 +53,44 @@ class Trackable:
     def team(self):
         return get_default_controller().get_team()
 
+    @staticmethod
+    def default_parser(function_name: str, kwargs: dict):
+        properties = {}
+        for key, value in kwargs:
+            if isinstance(value, (str, int, float, bool, str)):
+                properties[key] = value
+            elif isinstance(value, (list, set, tuple)):
+                properties[key] = len(value)
+            elif isinstance(value, dict):
+                properties[key] = value.keys()
+            elif hasattr(value, "__len__"):
+                properties[key] = len(value)
+            else:
+                properties[key] = str(value)
+        return {
+            "event_name": function_name,
+            "properties": properties
+        }
+
     def track(self, *args, **kwargs):
         try:
+            function_name = self.function.__name__ if self.function else ""
             if self._initial:
                 data = self.INITIAL_EVENT
                 Trackable.INITIAL_LOGGED = True
                 self._success = True
             else:
+                data = {}
                 arguments = self.extract_arguments(self.function, *args, **kwargs)
-                data = getattr(parsers, self.function.__name__)(**arguments)
-            event_name = data["event_name"]
-            properties = data["properties"]
+                if hasattr(parsers, function_name):
+                    try:
+                        data = getattr(parsers, function_name)(**arguments)
+                    except Exception:
+                        pass
+                else:
+                    data = self.default_parser(function_name, arguments)
+            event_name = data.get("event_name", )
+            properties = data.get("properties", {})
             team_data = self.team.data
             user_id = team_data.creator_id
             team_name = team_data.name
@@ -78,7 +105,7 @@ class Trackable:
 
             if "pytest" not in sys.modules:
                 get_mp_instance().track(user_id, event_name, properties)
-        except Exception as _:
+        except Exception:
             pass
 
     def __call__(self, *args, **kwargs):
