@@ -18,9 +18,7 @@ class TestProjectRename(BaseTestCase):
     def test_create_project_from_metadata(self):
         project = sa.get_project_metadata(self.PROJECT_NAME, include_settings=True, include_contributors=True)
         project["name"] = self.NEW_PROJECT_NAME
-        project["attachment_name"] = "attachment_name"
-        project["attachment_path"] = "attachment_path"
+        project["instructions_link"] = "instructions_link"
         new_project = sa.create_project_from_metadata(project)
-        assert new_project["attachment_name"] == "attachment_name"
-        assert new_project["attachment_path"] == "attachment_path"
+        assert new_project["instructions_link"] == "instructions_link"
 

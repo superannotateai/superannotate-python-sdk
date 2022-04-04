@@ -61,5 +61,3 @@ class TestGetEntityMetadataPixel(BaseTestCase):
         assert item_metadata["prediction_status"] == "NotStarted"
         assert item_metadata["segmentation_status"] == "NotStarted"
         assert item_metadata["annotation_status"] == "InProgress"
-
-

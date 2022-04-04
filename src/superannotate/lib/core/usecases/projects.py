@@ -218,9 +218,9 @@ class CreateProjectUseCase(BaseUseCase):
             self._project.status = constances.ProjectStatus.NotStarted.value
             entity = self._projects.insert(self._project)
             # create project doesn't store attachment data so need to update
-            attachment_path, attachment_name = self._project.attachment_path, self._project.attachment_name
-            if attachment_path or attachment_name:
-                entity.attachment_path, entity.attachment_name = attachment_path, attachment_name
+            instructions_link = self._project.instructions_link
+            if instructions_link:
+                entity.instructions_link = instructions_link
                 self._projects.update(entity)
             self._response.data = entity
             data = {}

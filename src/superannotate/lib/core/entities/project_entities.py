@@ -81,8 +81,7 @@ class ProjectEntity(BaseTimedEntity):
         name: str = None,
         project_type: int = None,
         description: Union[str, None] = None,
-        attachment_name: str = None,
-        attachment_path: str = None,
+        instructions_link: str = None,
         creator_id: str = None,
         entropy_status: int = None,
         sharing_status: int = None,
@@ -104,8 +103,7 @@ class ProjectEntity(BaseTimedEntity):
         self.name = name
         self.project_type = project_type
         self.description = description
-        self.attachment_name = attachment_name
-        self.attachment_path = attachment_path
+        self.instructions_link = instructions_link
         self.creator_id = creator_id
         self.entropy_status = entropy_status
         self.sharing_status = sharing_status
@@ -127,7 +125,8 @@ class ProjectEntity(BaseTimedEntity):
             team_id=self.team_id,
             name=self.name,
             project_type=self.project_type,
-            description=self.description
+            description=self.description,
+            instructions_link=self.instructions_link
             if self.description
             else f"Copy of {self.name}.",
             status=self.status,
@@ -144,8 +143,7 @@ class ProjectEntity(BaseTimedEntity):
             "type": self.project_type,
             "description": self.description,
             "status": self.status,
-            "attachment_path": self.attachment_path,
-            "attachment_name": self.attachment_name,
+            "instructions_link": self.instructions_link,
             "entropy_status": self.entropy_status,
             "sharing_status": self.sharing_status,
             "creator_id": self.creator_id,

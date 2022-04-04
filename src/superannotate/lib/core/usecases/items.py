@@ -43,7 +43,13 @@ class GetItem(BaseReportableUseCae):
             constances.ProjectType.VECTOR.value,
             constances.ProjectType.PIXEL.value,
         ):
-            return TmpImageEntity(**entity.dict(by_alias=True))
+            tmp_entity = entity
+            if project.project_type == constances.ProjectType.VECTOR.value:
+                entity.segmentation_status = None
+            if project.upload_state == constances.UploadState.EXTERNAL.value:
+                tmp_entity.prediction_status = None
+                tmp_entity.segmentation_status = None
+            return TmpImageEntity(**tmp_entity.dict(by_alias=True))
         elif project.project_type == constances.ProjectType.VIDEO.value:
             return VideoEntity(**entity.dict(by_alias=True))
         elif project.project_type == constances.ProjectType.DOCUMENT.value:
