@@ -128,8 +128,7 @@ class ProjectRepository(BaseManageableRepository):
                 name=data["name"],
                 project_type=data["type"],
                 status=data.get("status"),
-                attachment_name=data.get("attachment_name"),
-                attachment_path=data.get("attachment_path"),
+                instructions_link=data.get("instructions_link"),
                 entropy_status=data.get("entropy_status"),
                 sharing_status=data.get("sharing_status"),
                 creator_id=data["creator_id"],
@@ -521,16 +520,8 @@ class ItemRepository(BaseReadOnlyRepository):
     def get_one(self, uuid: Condition) -> Entity:
         items = self._service.list_items(uuid.build_query())
         if len(items) >= 1:
-            return Entity(**self._map_fields(items[0]))
+            return Entity(**Entity.map_fields(items[0]))
 
     def get_all(self, condition: Optional[Condition] = None) -> List[Entity]:
         items = self._service.list_items(condition.build_query())
-        return [Entity(**self._map_fields(item)) for item in items]
-
-    @staticmethod
-    def _map_fields(entity: dict) -> dict:
-        entity["url"] = entity.get("path")
-        entity["path"] = None
-        entity["annotator_email"] = entity.get("annotator_id")
-        entity["qa_email"] = entity.get("qa_id")
-        return entity
+        return [Entity(**Entity.map_fields(item)) for item in items]

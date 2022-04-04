@@ -15,6 +15,14 @@ class Entity(BaseEntity):
         self.path = f"{project_name}{f'/{folder_name}' if folder_name != 'root' else ''}/{self.name}"
         return self
 
+    @staticmethod
+    def map_fields(entity: dict) -> dict:
+        entity["url"] = entity.get("path")
+        entity["path"] = None
+        entity["annotator_email"] = entity.get("annotator_id")
+        entity["qa_email"] = entity.get("qa_id")
+        return entity
+
 
 class TmpImageEntity(Entity):
     prediction_status: Optional[SegmentationStatus] = Field(

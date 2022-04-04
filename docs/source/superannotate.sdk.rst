@@ -184,6 +184,22 @@ Export metadata example:
 
 ----------
 
+Integration metadata
+_______________
+
+Integration metadata example:
+
+.. code-block:: python
+
+   {
+   "name": "My S3 Bucket",
+   "type": "aws",
+   "root": "test-openseadragon-1212"
+    }
+
+
+----------
+
 Item metadata
 _______________
 
@@ -193,7 +209,7 @@ Item metadata example:
 
   {
    "name": "example.jpeg",
-   "path": "project/folder_1/meow.jpeg", // <proj>/<folder>/<item name>
+   "path": "project/folder_1/meow.jpeg",
    "url": "https://sa-public-files.s3.../text_file_example_1.jpeg",
    "annotation_status": "NotStarted",
    "annotator_name": None,

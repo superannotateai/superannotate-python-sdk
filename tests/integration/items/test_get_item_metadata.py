@@ -29,7 +29,7 @@ class TestGetEntityMetadataVector(BaseTestCase):
         item_metadata = sa.get_item_metadata(self.PROJECT_NAME, self.IMAGE_NAME)
         assert item_metadata["path"] == f"{self.PROJECT_NAME}/{self.IMAGE_NAME}"
         assert item_metadata["prediction_status"] == "NotStarted"
-        assert item_metadata["segmentation_status"] == "NotStarted"
+        assert item_metadata["segmentation_status"] == None
         assert item_metadata["annotation_status"] == "InProgress"
 
     def test_attached_items_paths(self):
@@ -61,5 +61,3 @@ class TestGetEntityMetadataPixel(BaseTestCase):
         assert item_metadata["prediction_status"] == "NotStarted"
         assert item_metadata["segmentation_status"] == "NotStarted"
         assert item_metadata["annotation_status"] == "InProgress"
-
-
