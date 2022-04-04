@@ -143,7 +143,7 @@ class DataAggregator:
             raw_data.videoStatus = annotation_data["metadata"].get("status")
             raw_data.videoUrl = annotation_data["metadata"].get("url")
             raw_data.videoDuration = annotation_data["metadata"].get("duration")
-            # todo check
+
             raw_data.videoError = annotation_data["metadata"].get("error")
             raw_data.videoAnnotator = annotation_data["metadata"].get("annotatorEmail")
             raw_data.videoQA = annotation_data["metadata"].get("qaEmail")

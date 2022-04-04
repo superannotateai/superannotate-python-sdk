@@ -986,11 +986,11 @@ def attach_items_from_integrated_storage(**kwargs):
 
 def query(**kwargs):
     project = kwargs["project"]
-    query_str = kwargs["project"]
+    query_str = kwargs["query"]
     project_name, folder_name = extract_project_folder(project)
     project = Controller.get_default().get_project_metadata(project_name).data["project"]
     return {
-        "event_name": "attach_items_from_integrated_storage",
+        "event_name": "query_saqul",
         "properties": {
             "project_type": ProjectType.get_name(project.project_type),
             "query": query_str,
@@ -1003,7 +1003,7 @@ def get_item_metadata(**kwargs):
     project_name, _ = extract_project_folder(project)
     project = Controller.get_default().get_project_metadata(project_name).data["project"]
     return {
-        "event_name": "attach_items_from_integrated_storage",
+        "event_name": "get_item_metadata",
         "properties": {"project_type": ProjectType.get_name(project.project_type)},
     }
 
@@ -1018,7 +1018,7 @@ def search_items(**kwargs):
     project_name, folder_name = extract_project_folder(project)
     project = Controller.get_default().get_project_metadata(project_name).data["project"]
     return {
-        "event_name": "attach_items_from_integrated_storage",
+        "event_name": "search_items",
         "properties": {
             "project_type": ProjectType.get_name(project.project_type),
             "query": query,

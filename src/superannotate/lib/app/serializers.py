@@ -115,6 +115,13 @@ class ProjectSerializer(BaseSerializer):
         return data
 
 
+class FolderSerializer(BaseSerializer):
+    def serialize(self):
+        data = super().serialize()
+        del data["is_root"]
+        return data
+
+
 class ImageSerializer(BaseSerializer):
     def serialize(self):
         data = super().serialize()

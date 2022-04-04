@@ -43,7 +43,13 @@ class GetItem(BaseReportableUseCae):
             constances.ProjectType.VECTOR.value,
             constances.ProjectType.PIXEL.value,
         ):
-            return TmpImageEntity(**entity.dict(by_alias=True))
+            tmp_entity = entity
+            if project.project_type == constances.ProjectType.VECTOR.value:
+                entity.segmentation_status = None
+            if project.upload_state == constances.UploadState.EXTERNAL.value:
+                tmp_entity.prediction_status = None
+                tmp_entity.segmentation_status = None
+            return TmpImageEntity(**tmp_entity.dict(by_alias=True))
         elif project.project_type == constances.ProjectType.VIDEO.value:
             return VideoEntity(**entity.dict(by_alias=True))
         elif project.project_type == constances.ProjectType.DOCUMENT.value:
@@ -104,7 +110,7 @@ class QueryEntities(BaseReportableUseCae):
                 folder_id=None if self._folder.name == "root" else self._folder.uuid,
             )
             if service_response.ok:
-                data = parse_obj_as(List[TmpBaseEntity], service_response.data)
+                data = parse_obj_as(List[TmpBaseEntity], [Entity.map_fields(i) for i in service_response.data])
                 for i, item in enumerate(data):
                     data[i] = GetItem.serialize_entity(item, self._project)
                 self._response.data = data

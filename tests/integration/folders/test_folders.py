@@ -33,6 +33,17 @@ class TestFolders(BaseTestCase):
     def classes_json(self):
         return f"{self.folder_path}/classes/classes.json"
 
+    def test_get_folder_metadata(self):
+        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1)
+        folder_metadata = sa.get_folder_metadata(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1)
+        assert "is_root" not in folder_metadata
+
+    def test_search_folders(self):
+        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1)
+        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_2)
+        folders = sa.search_folders(self.PROJECT_NAME, return_metadata=True)
+        assert all(["is_root" not in folder for folder in folders])
+
     def test_basic_folders(self):
         sa.upload_images_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
@@ -351,7 +362,6 @@ class TestFolders(BaseTestCase):
 
         num_images = sa.get_project_image_count(project)
         self.assertEqual(num_images, 0)
-
 
     def test_folder_export(self):
 
