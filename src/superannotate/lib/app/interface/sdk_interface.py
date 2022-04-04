@@ -799,14 +799,14 @@ def get_project_workflow(project: Union[str, dict]):
 @Trackable
 @validate_arguments
 def search_annotation_classes(
-    project: Union[NotEmptyStr, dict], name_prefix: Optional[str] = None
+    project: Union[NotEmptyStr, dict], name_contains: Optional[str] = None
 ):
     """Searches annotation classes by name_prefix (case-insensitive)
 
     :param project: project name
     :type project: str
-    :param name_prefix: name prefix for search. If None all annotation classes
-     will be returned
+    :param name_contains:  search string. Returns those classes,
+     where the given string is found anywhere within its name. If None, all annotation classes will be returned.
     :type name_prefix: str
 
     :return: annotation classes of the project
@@ -814,7 +814,7 @@ def search_annotation_classes(
     """
     project_name, folder_name = extract_project_folder(project)
     classes = Controller.get_default().search_annotation_classes(
-        project_name, name_prefix
+        project_name, name_contains
     )
     classes = [BaseSerializer(attribute).serialize() for attribute in classes.data]
     return classes

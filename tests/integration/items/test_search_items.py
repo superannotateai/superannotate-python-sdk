@@ -19,7 +19,7 @@ class TestSearchItems(BaseTestCase):
     def folder_path(self):
         return os.path.join(Path(__file__).parent.parent.parent, self.TEST_FOLDER_PATH)
 
-    def test_get_item_metadata(self):
+    def test_search_items_metadata(self):
         sa.upload_images_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
         )
@@ -36,3 +36,26 @@ class TestSearchItems(BaseTestCase):
         assert len(
             sa.search_items(self.PROJECT_NAME, annotation_status=constances.AnnotationStatus.COMPLETED.name)
         ) == 2
+
+    def test_search_items_recursive(self):
+        sa.create_folder(self.PROJECT_NAME, "test")
+        sa.upload_images_from_folder_to_project(
+            self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
+        )
+        sa.upload_images_from_folder_to_project(
+            self.PROJECT_NAME + "/test", self.folder_path, annotation_status="InProgress"
+        )
+
+        items = sa.search_items(self.PROJECT_NAME, recursive=True)
+        assert len(items) == 8
+
+    def test_search_items_by_annotator_email(self):
+        test_email = "shab.prog@gmail.com"
+        sa.add_contributors_to_project(self.PROJECT_NAME, ["shab.prog@gmail.com"], "Annotator")
+        sa.upload_images_from_folder_to_project(
+            self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
+        )
+        sa.assign_images(self.PROJECT_NAME, [self.IMAGE1_NAME, self.IMAGE2_NAME], test_email)
+
+        items = sa.search_items(self.PROJECT_NAME, annotator_email=test_email, recursive=True)
+        assert len(items) == 2

@@ -512,7 +512,7 @@ class SuperannotateBackendService(BaseBackendService):
             url = f"{url}?{query_string}"
         return self._get_all_pages(url)
 
-    def list_items(self, query_string):
+    def list_items(self, query_string) -> List[dict]:
         url = urljoin(self.api_url, self.URL_GET_ITEMS)
         if query_string:
             url = f"{url}?{query_string}"

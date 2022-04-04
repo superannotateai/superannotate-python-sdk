@@ -2,11 +2,11 @@ import functools
 import sys
 from inspect import signature
 
-from mixpanel import Mixpanel
-
 from lib import get_default_controller
+from mixpanel import Mixpanel
 from superannotate.logger import get_default_logger
 from version import __version__
+
 from .utils import parsers
 
 logger = get_default_logger()

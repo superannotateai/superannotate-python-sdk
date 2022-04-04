@@ -222,6 +222,7 @@ class FolderEntity(BaseTimedEntity):
         project_id: int = None,
         parent_id: int = None,
         team_id: int = None,
+        is_root: bool = False,
         name: str = None,
         folder_users: List[dict] = None,
     ):
@@ -230,6 +231,7 @@ class FolderEntity(BaseTimedEntity):
         self.project_id = project_id
         self.name = name
         self.parent_id = parent_id
+        self.is_root = is_root
         self.folder_users = folder_users
 
     def to_dict(self):
@@ -237,6 +239,7 @@ class FolderEntity(BaseTimedEntity):
             **super().to_dict(),
             "id": self.uuid,
             "team_id": self.team_id,
+            "is_root": self.is_root,
             "name": self.name,
             "parent_id": self.parent_id,
             "project_id": self.project_id,

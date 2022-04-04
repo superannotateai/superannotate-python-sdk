@@ -5,13 +5,12 @@ from os.path import expanduser
 from typing import List
 from typing import Optional
 
-from pydantic import parse_obj_as
-
 import lib.core as constance
-from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.conditions import Condition
+from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.entities import AnnotationClassEntity
 from lib.core.entities import ConfigEntity
+from lib.core.entities import Entity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
 from lib.core.entities import IntegrationEntity
@@ -20,7 +19,6 @@ from lib.core.entities import ProjectEntity
 from lib.core.entities import ProjectSettingEntity
 from lib.core.entities import S3FileEntity
 from lib.core.entities import TeamEntity
-from lib.core.entities import TmpBaseEntity
 from lib.core.entities import UserEntity
 from lib.core.entities import WorkflowEntity
 from lib.core.enums import ClassTypeEnum
@@ -31,6 +29,7 @@ from lib.core.repositories import BaseProjectRelatedManageableRepository
 from lib.core.repositories import BaseReadOnlyRepository
 from lib.core.repositories import BaseS3Repository
 from lib.infrastructure.services import SuperannotateBackendService
+from pydantic import parse_obj_as
 
 
 class ConfigRepository(BaseManageableRepository):
@@ -302,6 +301,7 @@ class FolderRepository(BaseManageableRepository):
         try:
             return FolderEntity(
                 uuid=data["id"],
+                is_root=bool(data["is_root"]),
                 team_id=data["team_id"],
                 project_id=data["project_id"],
                 name=data["name"],
@@ -518,11 +518,19 @@ class ItemRepository(BaseReadOnlyRepository):
     def __init__(self, service: SuperannotateBackendService):
         self._service = service
 
-    def get_one(self, uuid: Condition) -> TmpBaseEntity:
+    def get_one(self, uuid: Condition) -> Entity:
         items = self._service.list_items(uuid.build_query())
         if len(items) >= 1:
-            return TmpBaseEntity(**items[0])
+            return Entity(**self._map_fields(items[0]))
 
-    def get_all(self, condition: Optional[Condition] = None) -> List[TmpBaseEntity]:
-        images = self._service.list_items(condition.build_query())
-        return parse_obj_as(List[TmpBaseEntity], images)
+    def get_all(self, condition: Optional[Condition] = None) -> List[Entity]:
+        items = self._service.list_items(condition.build_query())
+        return [Entity(**self._map_fields(item)) for item in items]
+
+    @staticmethod
+    def _map_fields(entity: dict) -> dict:
+        entity["url"] = entity.get("path")
+        entity["path"] = None
+        entity["annotator_email"] = entity.get("annotator_id")
+        entity["qa_email"] = entity.get("qa_id")
+        return entity

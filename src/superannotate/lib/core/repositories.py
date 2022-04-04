@@ -8,6 +8,7 @@ from typing import Union
 import boto3
 from lib.core.conditions import Condition
 from lib.core.entities import BaseEntity
+from lib.core.entities import Entity
 from lib.core.entities import ProjectEntity
 from lib.core.entities import TmpBaseEntity
 from lib.core.serviceproviders import SuperannotateServiceProvider
@@ -17,18 +18,18 @@ class BaseReadOnlyRepository(ABC):
     @abstractmethod
     def get_one(
         self, uuid: Union[Condition, int]
-    ) -> Optional[Union[BaseEntity, TmpBaseEntity]]:
+    ) -> Optional[Union[BaseEntity, Entity]]:
         raise NotImplementedError
 
     @abstractmethod
     def get_all(
         self, condition: Optional[Condition] = None
-    ) -> List[Union[BaseEntity, TmpBaseEntity]]:
+    ) -> List[Union[BaseEntity, Entity]]:
         raise NotImplementedError
 
     @staticmethod
-    def dict2entity(data: dict) -> BaseEntity:
-        return BaseEntity(**data)
+    def dict2entity(data: dict) -> Entity:
+        return Entity(**TmpBaseEntity(**data).dict())
 
 
 class BaseManageableRepository(BaseReadOnlyRepository):

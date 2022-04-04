@@ -821,11 +821,11 @@ class Controller(BaseController):
         )
         return use_case.execute()
 
-    def search_annotation_classes(self, project_name: str, name_prefix: str = None):
+    def search_annotation_classes(self, project_name: str, name_contains: str = None):
         project_entity = self._get_project(project_name)
         condition = None
-        if name_prefix:
-            condition = Condition("name", name_prefix, EQ) & Condition("pattern", True, EQ)
+        if name_contains:
+            condition = Condition("name", name_contains, EQ) & Condition("pattern", True, EQ)
         use_case = usecases.GetAnnotationClassesUseCase(
             classes=AnnotationClassRepository(
                 service=self._backend_client, project=project_entity
@@ -1602,7 +1602,7 @@ class Controller(BaseController):
         if qa_email:
             search_condition &= Condition("qa_id", qa_email, EQ)
         if annotator_email:
-            search_condition &= Condition("annotator_id", qa_email, EQ)
+            search_condition &= Condition("annotator_id", annotator_email, EQ)
         for key, value in kwargs.items():
             search_condition &= Condition(key, value, EQ)
         use_case = usecases.ListItems(

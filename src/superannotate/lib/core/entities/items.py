@@ -7,8 +7,13 @@ from pydantic import Field
 
 
 class Entity(BaseEntity):
+
     class Config:
         extra = Extra.allow
+
+    def add_path(self, project_name: str, folder_name: str):
+        self.path = f"{project_name}{f'/{folder_name}' if folder_name != 'root' else ''}/{self.name}"
+        return self
 
 
 class TmpImageEntity(Entity):

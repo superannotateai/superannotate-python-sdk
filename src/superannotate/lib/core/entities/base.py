@@ -13,23 +13,15 @@ class TimedBaseModel(BaseModel):
 
 
 class BaseEntity(TimedBaseModel):
-    id: int
     name: str
-    path: Optional[str] = Field(
-        None, description="Item’s path in SuperAnnotate project"
-    )
-    url: Optional[str] = Field(None, description="Publicly available HTTP address")
+    path: Optional[str] = Field(None, description="Item’s path in SuperAnnotate project")
+    url: Optional[str] = Field(description="Publicly available HTTP address")
+    annotator_email: Optional[str] = Field(description="Annotator email")
+    qa_email: Optional[str] = Field(description="QA email")
     annotation_status: AnnotationStatus = Field(description="Item annotation status")
-    annotator_name: Optional[str] = Field(description="Annotator email")
-    qa_name: Optional[str] = Field(description="QA email")
-    entropy_value: Optional[str] = Field(description="Priority score of given item")
+    entropy_value: Optional[float] = Field(description="Priority score of given item")
     createdAt: str = Field(description="Date of creation")
     updatedAt: str = Field(description="Update date")
 
     class Config:
         extra = Extra.allow
-
-    def add_path(self, project_name: str, folder_name: str):
-        path = f"{project_name}{f'/{folder_name}' if folder_name != 'root' else ''}/{self.name}"
-        self.path = path
-        return self

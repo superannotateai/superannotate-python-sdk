@@ -372,7 +372,7 @@ def upload_image_annotations(**kwargs):
         "event_name": "upload_image_annotations",
         "properties": {
             "project_name": get_project_name(project),
-            "Pixel": bool(("mask" in kwargs)),
+            "Pixel": bool("mask" in kwargs),
         },
     }
 
@@ -478,7 +478,7 @@ def move_images(**kwargs):
         "properties": {
             "project_name": project_name,
             "Image Count": len(image_names),
-            "Copy Annotations": bool(("include_annotations" in kwargs)),
+            "Copy Annotations": bool("include_annotations" in kwargs),
             "Copy Annotation Status": bool("copy_annotation_status" in kwargs),
             "Copy Pin": bool("copy_pin" in kwargs),
         },

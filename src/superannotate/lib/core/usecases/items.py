@@ -1,3 +1,4 @@
+import copy
 from typing import List
 
 import superannotate.lib.core as constances
@@ -36,6 +37,8 @@ class GetItem(BaseReportableUseCae):
 
     @staticmethod
     def serialize_entity(entity: Entity, project: ProjectEntity):
+        if project.upload_state != constances.UploadState.EXTERNAL.value:
+            entity.url = None
         if project.project_type in (
             constances.ProjectType.VECTOR.value,
             constances.ProjectType.PIXEL.value,
@@ -92,12 +95,6 @@ class QueryEntities(BaseReportableUseCae):
         if self._project.sync_status != constances.ProjectState.SYNCED.value:
             raise AppException("Data is not synced.")
 
-    @staticmethod
-    def _drop_paths(items: List[Entity]):
-        for item in items:
-            item.path = None
-        return items
-
     def execute(self) -> Response:
         if self.is_valid():
             service_response = self._backend_client.saqul_query(
@@ -107,14 +104,7 @@ class QueryEntities(BaseReportableUseCae):
                 folder_id=None if self._folder.name == "root" else self._folder.uuid,
             )
             if service_response.ok:
-                if self._project.project_type == constances.ProjectType.VECTOR.value:
-                    data = self._drop_paths(
-                        parse_obj_as(List[TmpBaseEntity], service_response.data)
-                    )
-                else:
-                    data = self._drop_paths(
-                        parse_obj_as(List[TmpBaseEntity], service_response.data)
-                    )
+                data = parse_obj_as(List[TmpBaseEntity], service_response.data)
                 for i, item in enumerate(data):
                     data[i] = GetItem.serialize_entity(item, self._project)
                 self._response.data = data
@@ -143,7 +133,7 @@ class ListItems(BaseReportableUseCae):
         self._recursive = recursive
 
     def validate_recursive_case(self):
-        if self._folder.name != "root" and self._recursive:
+        if not self._folder.is_root and self._recursive:
             self._recursive = False
 
     def execute(self) -> Response:
@@ -169,7 +159,7 @@ class ListItems(BaseReportableUseCae):
                 folders.append(self._folder)
                 for folder in folders:
                     tmp = self._items.get_all(
-                        self._search_condition & Condition("folder_id", folder.uuid, EQ)
+                        copy.deepcopy(self._search_condition) & Condition("folder_id", folder.uuid, EQ)
                     )
                     items.extend(
                         [

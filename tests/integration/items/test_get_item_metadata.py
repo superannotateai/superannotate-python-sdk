@@ -10,11 +10,17 @@ class TestGetEntityMetadataVector(BaseTestCase):
     PROJECT_DESCRIPTION = "TestGetEntityMetadataVector"
     PROJECT_TYPE = "Vector"
     TEST_FOLDER_PATH = "data_set/sample_project_vector"
+    CSV_PATH = "data_set/attach_urls.csv"
     IMAGE_NAME = "example_image_1.jpg"
+    ATTACHED_IMAGE_NAME = "6022a74d5384c50017c366b3"
 
     @property
     def folder_path(self):
         return os.path.join(Path(__file__).parent.parent.parent, self.TEST_FOLDER_PATH)
+
+    @property
+    def scv_path(self):
+        return os.path.join(Path(__file__).parent.parent.parent, self.CSV_PATH)
 
     def test_get_item_metadata(self):
         sa.upload_images_from_folder_to_project(
@@ -25,6 +31,14 @@ class TestGetEntityMetadataVector(BaseTestCase):
         assert item_metadata["prediction_status"] == "NotStarted"
         assert item_metadata["segmentation_status"] == "NotStarted"
         assert item_metadata["annotation_status"] == "InProgress"
+
+    def test_attached_items_paths(self):
+        sa.attach_image_urls_to_project(self.PROJECT_NAME, self.scv_path)
+        sa.add_contributors_to_project(self.PROJECT_NAME, ["shab.prog@gmail.com"], "QA")
+        sa.assign_images(self.PROJECT_NAME, [self.ATTACHED_IMAGE_NAME], "shab.prog@gmail.com")
+        item = sa.get_item_metadata(self.PROJECT_NAME, self.ATTACHED_IMAGE_NAME)
+        assert item["url"] == 'https://drive.google.com/uc?export=download&id=1vwfCpTzcjxoEA4hhDxqapPOVvLVeS7ZS'
+        assert item["path"] == f"{self.PROJECT_NAME}/{self.ATTACHED_IMAGE_NAME}"
 
 
 class TestGetEntityMetadataPixel(BaseTestCase):
