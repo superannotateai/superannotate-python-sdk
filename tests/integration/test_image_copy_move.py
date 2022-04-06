@@ -118,10 +118,10 @@ class TestImageCopy(BaseTestCase):
         self.assertEqual(
             len(sa.search_images(f"{self.PROJECT_NAME}/{self.TEST_FOLDER}")), 1
         )
-        annotations = sa.get_image_annotations(
-            f"{self.PROJECT_NAME}/{self.TEST_FOLDER}", "example_image_1.jpg"
+        annotations = sa.get_annotations(
+            f"{self.PROJECT_NAME}/{self.TEST_FOLDER}", ["example_image_1.jpg"]
         )
-        self.assertTrue(annotations["annotation_json"] is not None)
+        self.assertTrue(annotations[0] is not None)
 
         metadata = sa.get_image_metadata(
             f"{self.PROJECT_NAME}/{self.TEST_FOLDER}", "example_image_1.jpg"

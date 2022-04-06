@@ -27,6 +27,11 @@ class TestCreateAnnotationClass(BaseTestCase):
         classes = sa.create_annotation_classes_from_classes_json(self.PROJECT_NAME, self.large_json_path)
         self.assertEqual(len(classes), 1500)
 
+    def test_hex_color_adding(self):
+        sa.create_annotation_class(self.PROJECT_NAME, "test_add", color="#0000FF")
+        classes = sa.search_annotation_classes(self.PROJECT_NAME, "test_add")
+        assert classes[0]["color"] == "#0000FF"
+
 
 class TestCreateAnnotationClassNonVectorWithError(BaseTestCase):
     PROJECT_NAME = "TestCreateAnnotationClassNonVectorWithError"

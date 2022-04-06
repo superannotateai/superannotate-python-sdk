@@ -1,5 +1,4 @@
 import os
-from os.path import dirname
 from unittest import TestCase
 import pytest
 import src.superannotate as sa
@@ -107,7 +106,7 @@ class TestCloneProject(TestCase):
             new_workflow[0]["attribute"][1]["attribute"]["attribute_group"]["name"],
             "tall",
         )
-        self.assertEqual(ann_classes[0]["color"], "#faf")
+        self.assertEqual(ann_classes[0]["color"], "#FFAAFF")
 
 
 class TestCloneProjectAttachedUrls(TestCase):
@@ -134,7 +133,7 @@ class TestCloneProjectAttachedUrls(TestCase):
         sa.create_annotation_class(
             self.PROJECT_NAME_1,
             "rrr",
-            "#faf",
+            "#FFAAFF",
             [
                 {
                     "name": "tall",
@@ -159,6 +158,6 @@ class TestCloneProjectAttachedUrls(TestCase):
         ann_classes = sa.search_annotation_classes(self.PROJECT_NAME_2)
         self.assertEqual(len(ann_classes), 1)
         self.assertEqual(ann_classes[0]["name"], "rrr")
-        self.assertEqual(ann_classes[0]["color"], "#faf")
+        self.assertEqual(ann_classes[0]["color"], "#FFAAFF")
         self.assertEqual(ann_classes[0]["type"], "object")
         self.assertIn("Workflow copy is deprecated for Document projects.", self._caplog.text)

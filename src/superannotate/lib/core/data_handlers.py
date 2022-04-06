@@ -39,16 +39,14 @@ class BaseAnnotationDateHandler(BaseDataHandler, metaclass=ABCMeta):
         self._annotation_classes: List[AnnotationClass] = annotation_classes
 
     @lru_cache()
-    def get_annotation_class(
-            self, name: str
-    ) -> AnnotationClass:
+    def get_annotation_class(self, name: str) -> AnnotationClass:
         for annotation_class in self._annotation_classes:
             if annotation_class.name == name:
                 return annotation_class
 
     @lru_cache()
     def get_attribute_group(
-            self, annotation_class: AnnotationClass, attr_group_name: str
+        self, annotation_class: AnnotationClass, attr_group_name: str
     ) -> AttributeGroup:
         for attr_group in annotation_class.attribute_groups:
             if attr_group.name == attr_group_name:
@@ -115,10 +113,10 @@ class DocumentTagHandler(BaseAnnotationDateHandler):
 
 class MissingIDsHandler(BaseAnnotationDateHandler):
     def __init__(
-            self,
-            annotation_classes: List[AnnotationClass],
-            templates: List[dict],
-            reporter: Reporter,
+        self,
+        annotation_classes: List[AnnotationClass],
+        templates: List[dict],
+        reporter: Reporter,
     ):
         super().__init__(annotation_classes)
         self.validate_existing_classes(annotation_classes)
@@ -193,7 +191,7 @@ class MissingIDsHandler(BaseAnnotationDateHandler):
             template["name"]: template["id"] for template in self._templates
         }
         for annotation_instance in (
-                i for i in annotation["instances"] if i.get("type", None) == "template"
+            i for i in annotation["instances"] if i.get("type", None) == "template"
         ):
             annotation_instance["templateId"] = template_name_id_map.get(
                 annotation_instance.get("templateName", ""), -1
@@ -350,10 +348,10 @@ class VideoFormatHandler(BaseAnnotationDateHandler):
                                 (group_name, attr_name)
                             )
                     attributes_to_add = (
-                            existing_attributes_in_current_instance - active_attributes
+                        existing_attributes_in_current_instance - active_attributes
                     )
                     attributes_to_delete = (
-                            active_attributes - existing_attributes_in_current_instance
+                        active_attributes - existing_attributes_in_current_instance
                     )
                     if attributes_to_add or attributes_to_delete:
                         editor_instance["timeline"][timestamp][

@@ -36,7 +36,6 @@ ________
 .. autofunction:: superannotate.delete_folders
 .. autofunction:: superannotate.upload_images_to_project
 .. autofunction:: superannotate.attach_image_urls_to_project
-.. autofunction:: superannotate.upload_images_from_public_urls_to_project
 .. autofunction:: superannotate.attach_document_urls_to_project
 .. autofunction:: superannotate.attach_items_from_integrated_storage
 .. autofunction:: superannotate.upload_image_to_project
@@ -70,6 +69,15 @@ _______
 
 ----------
 
+Items
+______
+
+.. autofunction:: superannotate.query
+.. autofunction:: superannotate.search_items
+.. autofunction:: superannotate.get_item_metadata
+
+----------
+
 Images
 ______
 
@@ -81,7 +89,6 @@ ______
 .. autofunction:: superannotate.download_image
 .. autofunction:: superannotate.set_image_annotation_status
 .. autofunction:: superannotate.set_images_annotation_statuses
-.. autofunction:: superannotate.get_image_annotations
 .. autofunction:: superannotate.download_image_annotations
 .. autofunction:: superannotate.upload_image_annotations
 .. autofunction:: superannotate.copy_image
@@ -177,6 +184,44 @@ Export metadata example:
 
 ----------
 
+Integration metadata
+_______________
+
+Integration metadata example:
+
+.. code-block:: python
+
+   {
+   "name": "My S3 Bucket",
+   "type": "aws",
+   "root": "test-openseadragon-1212"
+    }
+
+
+----------
+
+Item metadata
+_______________
+
+Item metadata example:
+
+.. code-block:: python
+
+  {
+   "name": "example.jpeg",
+   "path": "project/folder_1/meow.jpeg",
+   "url": "https://sa-public-files.s3.../text_file_example_1.jpeg",
+   "annotation_status": "NotStarted",
+   "annotator_name": None,
+   "qa_name": None,
+   "entropy_value": None,
+   "createdAt": "2022-02-15T20:46:44.000Z",
+   "updatedAt": "2022-02-15T20:46:44.000Z"
+}
+
+
+----------
+
 Image metadata
 _______________
 
@@ -188,8 +233,8 @@ Image metadata example:
    {
       "name": "000000000001.jpg",
       "annotation_status": "Completed",
-      "prediction_status": 1,
-      "segmentation_status": 1,
+      "prediction_status": "NotStarted",
+      "segmentation_status": "NotStarted",
       "annotator_id": None,
       "annotator_name": None,
       "qa_id": None,

@@ -37,13 +37,20 @@ class BaseBackendService(SuperannotateServiceProvider):
     AUTH_TYPE = "sdk"
     PAGINATE_BY = 100
     LIMIT = 100
+    MAX_ITEMS_COUNT = 50 * 1000
 
     """
     Base service class
     """
 
     def __init__(
-        self, api_url: str, auth_token: str, logger, paginate_by=None, verify_ssl=False, testing: bool = False
+        self,
+        api_url: str,
+        auth_token: str,
+        logger,
+        paginate_by=None,
+        verify_ssl=False,
+        testing: bool = False,
     ):
         self.api_url = api_url
         self._auth_token = auth_token
@@ -56,7 +63,7 @@ class BaseBackendService(SuperannotateServiceProvider):
 
     @property
     def assets_provider_url(self):
-        if self._testing:
+        if self.api_url != constance.BACKEND_URL:
             return "https://assets-provider.devsuperannotate.com/api/v1/"
         return "https://assets-provider.superannotate.com/api/v1/"
 
@@ -172,10 +179,10 @@ class SuperannotateBackendService(BaseBackendService):
     """
     Manage projects, images and team in the Superannotate
     """
+
     DEFAULT_CHUNK_SIZE = 1000
 
     URL_USERS = "users"
-    URL_LIST_ALL_IMAGES = "/images/getImagesWithAnnotationPaths"
     URL_LIST_PROJECTS = "projects"
     URL_FOLDERS_IMAGES = "images-folders"
     URL_CREATE_PROJECT = "project"
@@ -185,6 +192,7 @@ class SuperannotateBackendService(BaseBackendService):
     URL_UPDATE_FOLDER = "folder/{}"
     URL_GET_IMAGE = "image/{}"
     URL_GET_IMAGES = "images"
+    URL_GET_ITEMS = "items"
     URL_BULK_GET_IMAGES = "images/getBulk"
     URL_DELETE_FOLDERS = "image/delete/images"
     URL_CREATE_IMAGE = "image/ext-create"
@@ -216,7 +224,6 @@ class SuperannotateBackendService(BaseBackendService):
     URL_BULK_GET_FOLDERS = "foldersByTeam"
     URL_GET_EXPORT = "export/{}"
     URL_GET_ML_MODEL_DOWNLOAD_TOKEN = "ml_model/getMyModelDownloadToken/{}"
-    URL_SEGMENTATION = "images/segmentation"
     URL_PREDICTION = "images/prediction"
     URL_SET_IMAGES_STATUSES_BULK = "image/updateAnnotationStatusBulk"
     URL_DELETE_ANNOTATIONS = "annotations/remove"
@@ -226,16 +233,24 @@ class SuperannotateBackendService(BaseBackendService):
     URL_UPLOAD_PRIORITY_SCORES = "images/updateEntropy"
     URL_GET_INTEGRATIONS = "integrations"
     URL_ATTACH_INTEGRATIONS = "image/integration/create"
+    URL_SAQUL_QUERY = "/images/search/advanced"
+    URL_VALIDATE_SAQUL_QUERY = "/images/parse/query/advanced"
 
     def upload_priority_scores(
-            self, team_id: int, project_id: int, folder_id: int, priorities: list
+        self, team_id: int, project_id: int, folder_id: int, priorities: list
     ) -> dict:
-        upload_priority_score_url = urljoin(self.api_url, self.URL_UPLOAD_PRIORITY_SCORES)
+        upload_priority_score_url = urljoin(
+            self.api_url, self.URL_UPLOAD_PRIORITY_SCORES
+        )
         res = self._request(
             upload_priority_score_url,
             "post",
-            params={"team_id": team_id, "project_id": project_id, "folder_id": folder_id},
-            data={"image_entropies": priorities}
+            params={
+                "team_id": team_id,
+                "project_id": project_id,
+                "folder_id": folder_id,
+            },
+            data={"image_entropies": priorities},
         )
         return res.json()
 
@@ -493,6 +508,12 @@ class SuperannotateBackendService(BaseBackendService):
 
     def list_images(self, query_string):
         url = urljoin(self.api_url, self.URL_GET_IMAGES)
+        if query_string:
+            url = f"{url}?{query_string}"
+        return self._get_all_pages(url)
+
+    def list_items(self, query_string) -> List[dict]:
+        url = urljoin(self.api_url, self.URL_GET_ITEMS)
         if query_string:
             url = f"{url}?{query_string}"
         return self._get_all_pages(url)
@@ -1031,14 +1052,15 @@ class SuperannotateBackendService(BaseBackendService):
         )
 
     def get_annotations(
-            self,
-            project_id: int,
-            team_id: int,
-            folder_id: int,
-            items: List[str],
-            reporter: Reporter
+        self,
+        project_id: int,
+        team_id: int,
+        folder_id: int,
+        items: List[str],
+        reporter: Reporter,
     ) -> List[dict]:
         import nest_asyncio
+
         nest_asyncio.apply()
 
         query_params = {
@@ -1051,45 +1073,84 @@ class SuperannotateBackendService(BaseBackendService):
         handler = StreamedAnnotations(self.default_headers, reporter)
         loop = asyncio.new_event_loop()
 
-        return loop.run_until_complete(handler.get_data(
-            url=urljoin(self.assets_provider_url, self.URL_GET_ANNOTATIONS),
-            data=items,
-            params=query_params,
-            chunk_size=self.DEFAULT_CHUNK_SIZE,
-            map_function=lambda x: {"image_names": x}
-        ))
+        return loop.run_until_complete(
+            handler.get_data(
+                url=urljoin(self.assets_provider_url, self.URL_GET_ANNOTATIONS),
+                data=items,
+                params=query_params,
+                chunk_size=self.DEFAULT_CHUNK_SIZE,
+                map_function=lambda x: {"image_names": x},
+            )
+        )
 
     def get_integrations(self, team_id: int) -> List[dict]:
-        get_integrations_url = urljoin(self.api_url, self.URL_GET_INTEGRATIONS.format(team_id))
+        get_integrations_url = urljoin(
+            self.api_url, self.URL_GET_INTEGRATIONS.format(team_id)
+        )
 
         response = self._request(
-            get_integrations_url,
-            "get",
-            params={"team_id": team_id}
+            get_integrations_url, "get", params={"team_id": team_id}
         )
         if response.ok:
             return response.json().get("integrations", [])
         return []
 
     def attach_integrations(
-            self,
-            team_id: int,
-            project_id: int,
-            integration_id: int,
-            folder_id: int,
-            folder_name: str = None) -> bool:
-        attach_integrations_url = urljoin(self.api_url, self.URL_ATTACH_INTEGRATIONS.format(team_id))
+        self,
+        team_id: int,
+        project_id: int,
+        integration_id: int,
+        folder_id: int,
+        folder_name: str = None,
+    ) -> bool:
+        attach_integrations_url = urljoin(
+            self.api_url, self.URL_ATTACH_INTEGRATIONS.format(team_id)
+        )
         data = {
             "team_id": team_id,
             "project_id": project_id,
             "folder_id": folder_id,
-            "integration_id": integration_id
+            "integration_id": integration_id,
         }
         if folder_name:
             data["customer_folder_name"] = folder_name
-        response = self._request(
-            attach_integrations_url,
-            "post",
-            data=data
-        )
+        response = self._request(attach_integrations_url, "post", data=data)
         return response.ok
+
+    def saqul_query(
+        self, team_id: int, project_id: int, query: str, folder_id: int
+    ) -> ServiceResponse:
+        CHUNK_SIZE = 50
+        query_url = urljoin(self.api_url, self.URL_SAQUL_QUERY)
+        params = {
+            "team_id": team_id,
+            "project_id": project_id,
+        }
+        if folder_id:
+            params["folder_id"] = folder_id
+        data = {"query": query, "image_index": 0}
+        items = []
+        for _ in range(self.MAX_ITEMS_COUNT):
+            response = self._request(query_url, "post", params=params, data=data)
+            if response.ok:
+                response_items = response.json()
+                items.extend(response_items)
+                if len(response_items) < CHUNK_SIZE:
+                    service_response = ServiceResponse(response)
+                    service_response.data = items
+                    return service_response
+                data["image_index"] += CHUNK_SIZE
+            return ServiceResponse(response)
+
+    def validate_saqul_query(self, team_id: int, project_id: int, query: str) -> dict:
+        validate_query_url = urljoin(self.api_url, self.URL_VALIDATE_SAQUL_QUERY)
+        params = {
+            "team_id": team_id,
+            "project_id": project_id,
+        }
+        data = {
+            "query": query,
+        }
+        return self._request(
+            validate_query_url, "post", params=params, data=data
+        ).json()

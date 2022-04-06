@@ -1,6 +1,7 @@
 import os
-from os.path import dirname
 import tempfile
+from os.path import dirname
+
 import pytest
 
 import src.superannotate as sa
@@ -38,19 +39,13 @@ class TestInterface(BaseTestCase):
     def folder_path_with_multiple_images(self):
         return os.path.join(dirname(dirname(__file__)), self.TEST_FOLDER_PATH_WITH_MULTIPLE_IMAGERS)
 
-    # def test_set_auth_token(self):
-    #     try:
-    #         sa.set_auth_token("1234=12")
-    #         sa.get_team_metadata()
-    #     except Exception as err:
-    #         self.assertEqual(str(err), "Can't get team data.")
-
-    @pytest.mark.flaky(reruns=2)
+    @pytest.mark.flaky(reruns=4)
     def test_delete_images(self):
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME)
 
+        path = f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME}"
         sa.upload_images_from_folder_to_project(
-            f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME}",
+            path,
             self.folder_path,
             annotation_status="InProgress",
         )
@@ -58,7 +53,7 @@ class TestInterface(BaseTestCase):
             self.PROJECT_NAME, with_all_subfolders=True
         )
         self.assertEqual(num_images, 4)
-        sa.delete_images(f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME}")
+        sa.delete_images(path)
 
         num_images = sa.get_project_image_count(
             self.PROJECT_NAME, with_all_subfolders=True
@@ -74,7 +69,8 @@ class TestInterface(BaseTestCase):
         self.assertIsNotNone(metadata["id"])
         self.assertListEqual(metadata.get("contributors", []), [])
         sa.create_annotation_class(self.PROJECT_NAME, "tt", "#FFFFFF", class_type="tag")
-        metadata_with_users = sa.get_project_metadata(self.PROJECT_NAME, include_annotation_classes=True, include_contributors=True)
+        metadata_with_users = sa.get_project_metadata(self.PROJECT_NAME, include_annotation_classes=True,
+                                                      include_contributors=True)
         self.assertEqual(metadata_with_users['classes'][0]['type'], 'tag')
         self.assertIsNotNone(metadata_with_users.get("contributors"))
 
@@ -166,7 +162,6 @@ class TestInterface(BaseTestCase):
                 self.EXAMPLE_IMAGE_1,
                 tmp_dir,
                 include_annotations=True,
-                include_fuse=True
             )
             self.assertIsNotNone(result)
 
@@ -245,11 +240,8 @@ class TestInterface(BaseTestCase):
                                            '''
                     )
                 sa.upload_image_annotations(self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, path)
-                self.assertEqual(len(logs[1][-1]),86)
-                self.assertEqual(len(logs[1][-2].split('from')[0]),30)
-
-
-
+                self.assertEqual(len(logs[1][-1]), 86)
+                self.assertEqual(len(logs[1][-2].split('from')[0]), 30)
 
 
 class TestPixelInterface(BaseTestCase):

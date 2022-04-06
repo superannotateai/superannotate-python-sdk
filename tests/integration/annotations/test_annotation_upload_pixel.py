@@ -53,18 +53,10 @@ class TestRecursiveFolderPixel(BaseTestCase):
         )
         self.assertEqual(len(s3_bucket.method_calls), 8)
 
-    @pytest.mark.flaky(reruns=2)
-    def test_annotation_upload_pixel(self):
-        sa.upload_images_from_folder_to_project(self.PROJECT_NAME, self.folder_path)
-        sa.upload_annotations_from_folder_to_project(self.PROJECT_NAME, self.folder_path)
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            sa.download_image_annotations(self.PROJECT_NAME, self.IMAGE_NAME, tmp_dir)
-            origin_annotation = json.load(open(f"{self.folder_path}/{self.IMAGE_NAME}___pixel.json"))
-            annotation = json.load(open(join(tmp_dir, f"{self.IMAGE_NAME}___pixel.json")))
-            self.assertEqual(
-                [i["attributes"] for i in annotation["instances"]],
-                [i["attributes"] for i in origin_annotation["instances"]]
-            )
+    def test_hex_color_adding(self):
+        sa.create_annotation_class(self.PROJECT_NAME, "test_add", color="#0000FF")
+        classes = sa.search_annotation_classes(self.PROJECT_NAME, "test_add")
+        assert classes[0]["color"] == "#0000FF"
 
 
 class TestAnnotationUploadPixelSingle(BaseTestCase):

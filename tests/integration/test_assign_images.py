@@ -42,7 +42,7 @@ class TestAnnotationClasses(BaseTestCase):
         sa.share_project(self.PROJECT_NAME, email, "QA")
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME)
 
-        project_folder = self._project["name"] + "/" + self.TEST_FOLDER_NAME
+        project_folder = f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME}"
 
         sa.upload_images_from_folder_to_project(project_folder, self.folder_path)
 
@@ -56,7 +56,7 @@ class TestAnnotationClasses(BaseTestCase):
         self.assertIsNotNone(im1_metadata["qa_name"])
         self.assertIsNotNone(im2_metadata["qa_name"])
 
-    @pytest.mark.flaky(reruns=2)
+    @pytest.mark.flaky(reruns=4)
     def test_un_assign_images(self):
 
         email = sa.get_team_metadata()["users"][0]["email"]

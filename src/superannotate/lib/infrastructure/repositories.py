@@ -10,6 +10,7 @@ from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.entities import AnnotationClassEntity
 from lib.core.entities import ConfigEntity
+from lib.core.entities import Entity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
 from lib.core.entities import IntegrationEntity
@@ -28,6 +29,7 @@ from lib.core.repositories import BaseProjectRelatedManageableRepository
 from lib.core.repositories import BaseReadOnlyRepository
 from lib.core.repositories import BaseS3Repository
 from lib.infrastructure.services import SuperannotateBackendService
+from pydantic import parse_obj_as
 
 
 class ConfigRepository(BaseManageableRepository):
@@ -99,8 +101,6 @@ class ProjectRepository(BaseManageableRepository):
 
     def insert(self, entity: ProjectEntity) -> ProjectEntity:
         project_data = self._drop_nones(entity.to_dict())
-        # new projects can only have the status of NotStarted
-        project_data["status"] = constance.ProjectStatus.NotStarted.value
         result = self._service.create_project(project_data)
         return self.dict2entity(result)
 
@@ -128,13 +128,13 @@ class ProjectRepository(BaseManageableRepository):
                 name=data["name"],
                 project_type=data["type"],
                 status=data.get("status"),
-                attachment_name=data.get("attachment_name"),
-                attachment_path=data.get("attachment_path"),
+                instructions_link=data.get("instructions_link"),
                 entropy_status=data.get("entropy_status"),
                 sharing_status=data.get("sharing_status"),
                 creator_id=data["creator_id"],
                 upload_state=data["upload_state"],
                 description=data.get("description"),
+                sync_status=data.get("sync_status"),
                 folder_id=data.get("folder_id"),
                 users=data.get("users", ()),
                 unverified_users=data.get("unverified_users", ()),
@@ -142,15 +142,14 @@ class ProjectRepository(BaseManageableRepository):
                 root_folder_completed_images_count=data.get(
                     "rootFolderCompletedImagesCount"
                 ),
-                createdAt=data["createdAt"],
-                updatedAt=data["updatedAt"],
+                createdAt=data.get("createdAt"),
+                updatedAt=data.get("updatedAt"),
             )
         except KeyError:
             raise AppException("Cant serialize project data")
 
 
 class S3Repository(BaseS3Repository):
-
     def get_one(self, uuid: str) -> S3FileEntity:
         file = io.BytesIO()
         self._resource.Object(self._bucket, uuid).download_fileobj(file)
@@ -181,7 +180,7 @@ class ProjectSettingsRepository(BaseProjectRelatedManageableRepository):
         raise NotImplementedError
 
     def get_all(
-        self, condition: Optional[Condition] = None
+            self, condition: Optional[Condition] = None
     ) -> List[ProjectSettingEntity]:
         data = self._service.get_project_settings(
             self._project.uuid, self._project.team_id
@@ -301,6 +300,7 @@ class FolderRepository(BaseManageableRepository):
         try:
             return FolderEntity(
                 uuid=data["id"],
+                is_root=bool(data["is_root"]),
                 team_id=data["team_id"],
                 project_id=data["project_id"],
                 name=data["name"],
@@ -319,7 +319,7 @@ class AnnotationClassRepository(BaseManageableRepository):
         raise NotImplementedError
 
     def get_all(
-        self, condition: Optional[Condition] = None
+            self, condition: Optional[Condition] = None
     ) -> List[AnnotationClassEntity]:
         query = condition.build_query() if condition else None
         data = self._service.get_annotation_classes(
@@ -508,8 +508,20 @@ class IntegrationRepository(BaseReadOnlyRepository):
         raise NotImplementedError
 
     def get_all(self, condition: Optional[Condition] = None) -> List[IntegrationEntity]:
-        return [self.dict2entity(integration) for integration in self._service.get_integrations(self._team_id)]
+        return parse_obj_as(
+            List[IntegrationEntity], self._service.get_integrations(self._team_id)
+        )
 
-    @staticmethod
-    def dict2entity(data: dict) -> IntegrationEntity:
-        return IntegrationEntity(**data)
+
+class ItemRepository(BaseReadOnlyRepository):
+    def __init__(self, service: SuperannotateBackendService):
+        self._service = service
+
+    def get_one(self, uuid: Condition) -> Entity:
+        items = self._service.list_items(uuid.build_query())
+        if len(items) >= 1:
+            return Entity(**Entity.map_fields(items[0]))
+
+    def get_all(self, condition: Optional[Condition] = None) -> List[Entity]:
+        items = self._service.list_items(condition.build_query())
+        return [Entity(**Entity.map_fields(item)) for item in items]

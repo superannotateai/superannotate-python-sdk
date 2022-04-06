@@ -7,6 +7,8 @@ from os.path import dirname
 import src.superannotate as sa
 from tests.integration.base import BaseTestCase
 
+import pytest
+
 
 class TestFolders(BaseTestCase):
     PROJECT_NAME = "test folders"
@@ -30,6 +32,17 @@ class TestFolders(BaseTestCase):
     @property
     def classes_json(self):
         return f"{self.folder_path}/classes/classes.json"
+
+    def test_get_folder_metadata(self):
+        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1)
+        folder_metadata = sa.get_folder_metadata(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1)
+        assert "is_root" not in folder_metadata
+
+    def test_search_folders(self):
+        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1)
+        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_2)
+        folders = sa.search_folders(self.PROJECT_NAME, return_metadata=True)
+        assert all(["is_root" not in folder for folder in folders])
 
     def test_basic_folders(self):
         sa.upload_images_from_folder_to_project(
@@ -131,10 +144,8 @@ class TestFolders(BaseTestCase):
         sa.upload_annotations_from_folder_to_project(
             self.PROJECT_NAME + "/" + folders[0]["name"], self.folder_path
         )
-        annotations = sa.get_image_annotations(
-            f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_1}", self.EXAMPLE_IMAGE_1,
-        )
-        self.assertGreater(len(annotations["annotation_json"]["instances"]), 0)
+        annotations = sa.get_annotations(f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_1}", [self.EXAMPLE_IMAGE_1],)
+        self.assertGreater(len(annotations[0]["instances"]), 0)
 
     def test_delete_folders(self):
 
@@ -352,47 +363,6 @@ class TestFolders(BaseTestCase):
         num_images = sa.get_project_image_count(project)
         self.assertEqual(num_images, 0)
 
-    def test_copy_images2(self):
-        sa.create_annotation_classes_from_classes_json(
-            self.PROJECT_NAME, self.classes_json
-        )
-        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_1)
-        project = f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_1}"
-        sa.upload_images_from_folder_to_project(
-            project, self.folder_path, annotation_status="InProgress"
-        )
-        sa.upload_annotations_from_folder_to_project(project, self.folder_path)
-        num_images = sa.get_project_image_count(project)
-        self.assertEqual(num_images, 4)
-
-        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME_2)
-        project2 = f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_2}"
-        num_images = sa.get_project_image_count(project2)
-        self.assertEqual(num_images, 0)
-
-        sa.pin_image(project, self.EXAMPLE_IMAGE_2)
-
-        im1 = sa.get_image_metadata(project, self.EXAMPLE_IMAGE_2)
-        self.assertTrue(im1["is_pinned"])
-        self.assertEqual(im1["annotation_status"], "InProgress")
-
-        sa.copy_images(project, [self.EXAMPLE_IMAGE_2, self.EXAMPLE_IMAGE_3], project2)
-
-        num_images = sa.get_project_image_count(project2)
-        self.assertEqual(num_images, 2)
-
-        ann1 = sa.get_image_annotations(project, self.EXAMPLE_IMAGE_2)
-        ann2 = sa.get_image_annotations(project2, self.EXAMPLE_IMAGE_2)
-        self.assertEqual(ann1, ann2)
-
-        im1_copied = sa.get_image_metadata(project2, self.EXAMPLE_IMAGE_2)
-        self.assertTrue(im1_copied["is_pinned"])
-        self.assertEqual(im1_copied["annotation_status"], "InProgress")
-
-        im2_copied = sa.get_image_metadata(project2, self.EXAMPLE_IMAGE_3)
-        self.assertFalse(im2_copied["is_pinned"])
-        self.assertEqual(im2_copied["annotation_status"], "InProgress")
-
     def test_folder_export(self):
 
         sa.create_annotation_classes_from_classes_json(
@@ -444,6 +414,7 @@ class TestFolders(BaseTestCase):
             )
             self.assertEqual(len(list((temp_dir).glob("*.*"))), 4)
 
+    @pytest.mark.flaky(reruns=2)
     def test_project_completed_count(self):
         sa.upload_images_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path, annotation_status="Completed"

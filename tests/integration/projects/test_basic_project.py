@@ -4,6 +4,7 @@ import tempfile
 from pathlib import Path
 
 import pytest
+
 import src.superannotate as sa
 from tests import DATA_SET_PATH
 from tests.integration.base import BaseTestCase
@@ -174,11 +175,11 @@ class TestProjectCreateMetadata(BaseTestCase):
         meta["name"] = self.OTHER_PROJECT_NAME
         sa.create_project_from_metadata(meta)
         created = sa.get_project_metadata(self.OTHER_PROJECT_NAME,
-                                include_workflow=True,
-                                include_settings=True,
-                                include_contributors=True,
-                                include_annotation_classes=True
-                                )
+                                          include_workflow=True,
+                                          include_settings=True,
+                                          include_contributors=True,
+                                          include_annotation_classes=True
+                                          )
         self.assertEqual(len(created["classes"]), 1)
         self.assertEqual([f"{i['attribute']}_{i['value']}" for i in meta["settings"]],
                          [f"{i['attribute']}_{i['value']}" for i in created["settings"]])
@@ -194,7 +195,6 @@ class TestProject(BaseTestCase):
     TEST_ANNOTATION_PATH = "sample_annotation_no_class"
     PNG_POSTFIX = "*___save.png"
     FUSE_PNG_POSTFIX = "*___fuse.png"
-
 
     @property
     def folder_path(self):
@@ -284,7 +284,7 @@ class TestProject(BaseTestCase):
         sa.upload_annotations_from_folder_to_project(
             self.PROJECT_NAME, str(self.folder_path)
         )
-        annotations = sa.get_image_annotations(self.PROJECT_NAME, self.TEST_IMAGE_NAME)
+        annotations = sa.get_annotations(self.PROJECT_NAME, [self.TEST_IMAGE_NAME])[0]
         truth_path = self.annotations_path / "truth.json"
         with open(truth_path) as f:
             data = json.loads(f.read())

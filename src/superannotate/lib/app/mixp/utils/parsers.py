@@ -1,3 +1,6 @@
+import os
+from pathlib import Path
+
 import lib.core as constances
 from lib.app.helpers import extract_project_folder
 from lib.core.entities import IntegrationEntity
@@ -17,18 +20,14 @@ def get_project_name(project):
     return project_name
 
 
-def get_team_metadata(*args, **kwargs):
+def get_team_metadata(**kwargs):
     return {"event_name": "get_team_metadata", "properties": {}}
 
 
-def invite_contributors_to_team(*args, **kwargs):
-    admin = kwargs.get("admin", None)
-    if admin is None:
-        admin = args[1:2]
-        if not admin:
-            admin_value = False
-        if admin:
-            admin_value = admin[0]
+def invite_contributors_to_team(**kwargs):
+    admin = kwargs.get("admin")
+    if not admin:
+        admin_value = False
     else:
         admin_value = admin
     return {
@@ -37,42 +36,31 @@ def invite_contributors_to_team(*args, **kwargs):
     }
 
 
-def search_team_contributors(*args, **kwargs):
+def search_team_contributors(**kwargs):
     return {
         "event_name": "search_team_contributors",
         "properties": {
-            "Email": bool(args[0:1] or kwargs.get("email", None)),
-            "Name": bool(args[1:2] or kwargs.get("first_name", None)),
-            "Surname": bool(args[2:3] or kwargs.get("last_name", None)),
+            "Email": bool(kwargs.get("email")),
+            "Name": bool(kwargs.get("first_name")),
+            "Surname": bool(kwargs.get("last_name")),
         },
     }
 
 
-def search_projects(*args, **kwargs):
-    project = kwargs.get("name", None)
-    if not project:
-        project_name = None
-        project = args[0:1]
-        if project:
-            project_name = get_project_name(project[0])
-    else:
-        project_name = get_project_name(project)
+def search_projects(**kwargs):
+    project = kwargs.get("name")
     return {
         "event_name": "search_projects",
         "properties": {
-            "Metadata": bool(args[2:3] or kwargs.get("return_metadata", None)),
-            "project_name": project_name,
+            "Metadata": bool(kwargs.get("return_metadata")),
+            "project_name": get_project_name(project[0]) if project else None,
         },
     }
 
 
-def create_project(*args, **kwargs):
-    project = kwargs.get("project_name", None)
-    if not project:
-        project = args[0]
-    project_type = kwargs.get("project_type", None)
-    if not project_type:
-        project_type = args[2]
+def create_project(**kwargs):
+    project = kwargs["project_name"]
+    project_type = kwargs["project_type"]
     return {
         "event_name": "create_project",
         "properties": {
@@ -82,23 +70,19 @@ def create_project(*args, **kwargs):
     }
 
 
-def create_project_from_metadata(*args, **kwargs):
-    project = kwargs.get("project_metadata", None)
-    if not project:
-        project = args[0]
+def create_project_from_metadata(**kwargs):
+    project = kwargs.get("project_metadata")
+
     return {
         "event_name": "create_project_from_metadata",
         "properties": {"project_name": get_project_name(project)},
     }
 
 
-def clone_project(*args, **kwargs):
-    project = kwargs.get("project_name", None)
-    if not project:
-        project = args[0]
+def clone_project(**kwargs):
+    project = kwargs.get("project_name")
 
-    result = Controller.get_default().get_project_metadata(project)
-    project_metadata = result.data["project"]
+    project_metadata = Controller.get_default().get_project_metadata(project).data["project"]
     project_type = ProjectType.get_name(project_metadata.project_type)
 
     return {
@@ -108,211 +92,150 @@ def clone_project(*args, **kwargs):
                 project_metadata.upload_state == constances.UploadState.EXTERNAL.value
             ),
             "Project Type": project_type,
-            "Copy Classes": bool(
-                args[3:4] or kwargs.get("copy_annotation_classes", None)
-            ),
-            "Copy Settings": bool(args[4:5] or kwargs.get("copy_settings", None)),
-            "Copy Workflow": bool(args[5:6] or kwargs.get("copy_workflow", None)),
-            "Copy Contributors": bool(
-                args[6:7] or kwargs.get("copy_contributors", None)
-            ),
+            "Copy Classes": bool(kwargs.get("copy_annotation_classes")
+                                 ),
+            "Copy Settings": bool(kwargs.get("copy_settings")),
+            "Copy Workflow": bool(kwargs.get("copy_workflow")),
+            "Copy Contributors": bool(kwargs.get("copy_contributors")
+                                      ),
             "project_name": get_project_name(project),
         },
     }
 
 
-def search_images(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
+def search_images(**kwargs):
+    project = kwargs["project"]
+
     return {
         "event_name": "search_images",
         "properties": {
-            "Annotation Status": bool(
-                args[2:3] or kwargs.get("annotation_status", None)
-            ),
-            "Metadata": bool(args[3:4] or kwargs.get("return_metadata", None)),
+            "Annotation Status": bool(kwargs.get("annotation_status")
+                                      ),
+            "Metadata": bool(kwargs.get("return_metadata")),
             "project_name": get_project_name(project),
         },
     }
 
 
-def upload_images_to_project(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
-    img_paths = kwargs.get("img_paths", [])
-    if not img_paths:
-        img_paths += args[1]
+def upload_images_to_project(**kwargs):
+    project = kwargs["project"]
+
+    img_paths = kwargs.get("img_paths")
     return {
         "event_name": "upload_images_to_project",
         "properties": {
-            "Image Count": len(img_paths),
-            "Annotation Status": bool(
-                args[2:3] or kwargs.get("annotation_status", None)
-            ),
-            "From S3": bool(args[3:4] or kwargs.get("from_s3", None)),
+            "Image Count": len(img_paths) if img_paths else None,
+            "Annotation Status": bool(kwargs.get("annotation_status")),
+            "From S3": bool(kwargs.get("from_s3")),
             "project_name": get_project_name(project),
         },
     }
 
 
-def upload_image_to_project(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
+def upload_image_to_project(**kwargs):
+    project = kwargs["project"]
+
     return {
         "event_name": "upload_image_to_project",
         "properties": {
-            "Image Name": bool(args[2:3] or kwargs.get("image_name", None)),
-            "Annotation Status": bool(
-                args[3:4] or kwargs.get("annotation_status", None)
-            ),
+            "Image Name": bool(kwargs.get("image_name")),
+            "Annotation Status": bool(kwargs.get("annotation_status")
+                                      ),
             "project_name": get_project_name(project),
         },
     }
 
 
-def upload_images_from_public_urls_to_project(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
-    img_urls = kwargs.get("img_urls", [])
-    if not img_urls:
-        img_urls += args[1]
-    return {
-        "event_name": "upload_images_from_public_urls_to_project",
-        "properties": {
-            "Image Count": len(img_urls),
-            "Image Name": bool(args[2:3] or kwargs.get("img_names", None)),
-            "Annotation Status": bool(
-                args[3:4] or kwargs.get("annotation_status", None)
-            ),
-            "project_name": get_project_name(project),
-        },
-    }
-
-
-def upload_video_to_project(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
+def upload_video_to_project(**kwargs):
+    project = kwargs["project"]
 
     return {
         "event_name": "upload_video_to_project",
         "properties": {
             "project_name": get_project_name(project),
-            "FPS": bool(args[2:3] or kwargs.get("target_fps", None)),
-            "Start": bool(args[3:4] or kwargs.get("start_time", None)),
-            "End": bool(args[4:5] or kwargs.get("end_time", None)),
+            "FPS": bool(kwargs.get("target_fps")),
+            "Start": bool(kwargs.get("start_time")),
+            "End": bool(kwargs.get("end_time")),
         },
     }
 
 
-def attach_image_urls_to_project(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
+def attach_image_urls_to_project(**kwargs):
+    project = kwargs["project"]
+
     return {
         "event_name": "attach_image_urls_to_project",
         "properties": {
             "project_name": get_project_name(project),
-            "Annotation Status": bool(
-                args[2:3] or kwargs.get("annotation_status", None)
-            ),
+            "Annotation Status": bool(kwargs.get("annotation_status")
+                                      ),
         },
     }
 
 
-def set_images_annotation_statuses(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
-    annotation_status = kwargs.get("annotation_status", None)
-    if not annotation_status:
-        annotation_status = args[2]
-    image_names = kwargs.get("image_names", [])
-    if not image_names:
-        image_names = args[1]
+def set_images_annotation_statuses(**kwargs):
+    project = kwargs["project"]
+    annotation_status = kwargs.get("annotation_status")
+    image_names = kwargs["image_names"]
     return {
         "event_name": "set_images_annotation_statuses",
         "properties": {
             "project_name": get_project_name(project),
-            "Image Count": len(image_names),
+            "Image Count": len(image_names) if image_names else None,
             "Annotation Status": annotation_status,
         },
     }
 
 
-def get_image_annotations(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
-    return {
-        "event_name": "get_image_annotations",
-        "properties": {"project_name": get_project_name(project)},
-    }
+def download_image_annotations(**kwargs):
+    project = kwargs["project"]
 
-
-def download_image_annotations(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
     return {
         "event_name": "download_image_annotations",
         "properties": {"project_name": get_project_name(project)},
     }
 
 
-def get_image_metadata(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
+def get_image_metadata(**kwargs):
+    project = kwargs["project"]
+
     return {
         "event_name": "get_image_metadata",
         "properties": {"project_name": get_project_name(project)},
     }
 
 
-def add_annotation_comment_to_image(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
+def add_annotation_comment_to_image(**kwargs):
+    project = kwargs["project"]
+
     return {
         "event_name": "add_annotation_comment_to_image",
         "properties": {"project_name": get_project_name(project)},
     }
 
 
-def delete_annotation_class(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
+def delete_annotation_class(**kwargs):
+    project = kwargs["project"]
+
     return {
         "event_name": "delete_annotation_class",
         "properties": {"project_name": get_project_name(project)},
     }
 
 
-def download_annotation_classes_json(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
+def download_annotation_classes_json(**kwargs):
+    project = kwargs["project"]
+
     return {
         "event_name": "download_annotation_classes_json",
         "properties": {"project_name": get_project_name(project)},
     }
 
 
-def search_annotation_classes(*args, **kwargs):
-    project = kwargs.get("project", None)
-    name_prefix = kwargs.get("name_prefix", None)
-    if not name_prefix:
-        name_prefix = args[1:2]
-        if not name_prefix:
-            name_prefix = None
-    if not project:
-        project = args[0]
+def search_annotation_classes(**kwargs):
+    project = kwargs["project"]
+    name_prefix = kwargs.get("name_prefix")
+
     return {
         "event_name": "search_annotation_classes",
         "properties": {
@@ -322,60 +245,52 @@ def search_annotation_classes(*args, **kwargs):
     }
 
 
-def get_project_image_count(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
+def get_project_image_count(**kwargs):
+    project = kwargs["project"]
+
     return {
         "event_name": "get_project_image_count",
         "properties": {"project_name": get_project_name(project)},
     }
 
 
-def get_project_settings(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
+def get_project_settings(**kwargs):
+    project = kwargs["project"]
+
     return {
         "event_name": "get_project_settings",
         "properties": {"project_name": get_project_name(project)},
     }
 
 
-def get_project_metadata(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
+def get_project_metadata(**kwargs):
+    project = kwargs["project"]
+
     return {
         "event_name": "get_project_metadata",
         "properties": {"project_name": get_project_name(project)},
     }
 
 
-def delete_project(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
+def delete_project(**kwargs):
+    project = kwargs["project"]
+
     return {
         "event_name": "delete_project",
         "properties": {"project_name": get_project_name(project)},
     }
 
 
-def rename_project(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
+def rename_project(**kwargs):
+    project = kwargs["project"]
     return {
         "event_name": "rename_project",
         "properties": {"project_name": get_project_name(project)},
     }
 
 
-def get_project_workflow(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
+def get_project_workflow(**kwargs):
+    project = kwargs["project"]
 
     return {
         "event_name": "get_project_workflow",
@@ -383,162 +298,129 @@ def get_project_workflow(*args, **kwargs):
     }
 
 
-def set_project_workflow(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
+def set_project_workflow(**kwargs):
+    project = kwargs["project"]
     return {
         "event_name": "set_project_workflow",
         "properties": {"project_name": get_project_name(project)},
     }
 
 
-def create_folder(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
+def create_folder(**kwargs):
+    project = kwargs["project"]
     return {
         "event_name": "create_folder",
         "properties": {"project_name": get_project_name(project)},
     }
 
 
-def get_folder_metadata(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
+def get_folder_metadata(**kwargs):
+    project = kwargs["project"]
     return {
         "event_name": "get_folder_metadata",
         "properties": {"project_name": get_project_name(project)},
     }
 
 
-def get_project_and_folder_metadata(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
+def get_project_and_folder_metadata(**kwargs):
+    project = kwargs["project"]
     return {
         "event_name": "get_project_and_folder_metadata",
         "properties": {"project_name": get_project_name(project)},
     }
 
 
-def search_images_all_folders(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
+def search_images_all_folders(**kwargs):
+    project = kwargs["project"]
+
     return {
         "event_name": "search_images_all_folders",
         "properties": {
-            "Annotation Status": bool(
-                args[2:3] or kwargs.get("annotation_status", None)
-            ),
-            "Metadata": bool(args[3:4] or kwargs.get("return_metadata", None)),
+            "Annotation Status": bool(kwargs.get("annotation_status")
+                                      ),
+            "Metadata": bool(kwargs.get("return_metadata")),
             "project_name": get_project_name(project),
         },
     }
 
 
-def download_model(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
+def download_model(**kwargs):
+    model = kwargs["model"]
     return {
         "event_name": "download_model",
-        "properties": {"project_name": get_project_name(project)},
+        "properties": {"model": model},
     }
 
 
-def convert_project_type(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
+def convert_project_type(**kwargs):
     return {
         "event_name": "convert_project_type",
-        "properties": {"project_name": get_project_name(project)},
+        "properties": {},
     }
 
 
-def convert_json_version(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
+def convert_json_version(**kwargs):
     return {
         "event_name": "convert_json_version",
-        "properties": {"project_name": get_project_name(project)},
+        "properties": {},
     }
 
 
-def upload_image_annotations(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
+def upload_image_annotations(**kwargs):
+    project = kwargs["project"]
     return {
         "event_name": "upload_image_annotations",
         "properties": {
             "project_name": get_project_name(project),
-            "Pixel": bool(args[3:4] or ("mask" in kwargs)),
+            "Pixel": bool("mask" in kwargs),
         },
     }
 
 
-def download_image(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
+def download_image(**kwargs):
+    project = kwargs["project"]
     return {
         "event_name": "download_image",
         "properties": {
             "project_name": get_project_name(project),
-            "Download Annotations": bool(
-                args[3:4] or ("include_annotations" in kwargs)
-            ),
-            "Download Fuse": bool(args[4:5] or ("include_fuse" in kwargs)),
-            "Download Overlay": bool(args[5:6] or ("include_overlay" in kwargs)),
+            "Download Annotations": bool("include_annotations" in kwargs),
+            "Download Fuse": bool("include_fuse" in kwargs),
+            "Download Overlay": bool("include_overlay" in kwargs),
         },
     }
 
 
-def copy_image(*args, **kwargs):
-    project = kwargs.get("source_project", None)
-    if not project:
-        project = args[0]
+def copy_image(**kwargs):
+    project = kwargs["source_project"]
     return {
         "event_name": "copy_image",
         "properties": {
             "project_name": get_project_name(project),
-            "Copy Annotations": bool(args[3:4] or ("include_annotations" in kwargs)),
-            "Copy Annotation Status": bool(
-                args[4:5] or ("copy_annotation_status" in kwargs)
-            ),
-            "Copy Pin": bool(args[5:6] or ("copy_pin" in kwargs)),
+            "Copy Annotations": bool("include_annotations" in kwargs),
+            "Copy Annotation Status": bool("copy_annotation_status" in kwargs),
+            "Copy Pin": bool("copy_pin" in kwargs),
         },
     }
 
 
-def run_prediction(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
+def run_prediction(**kwargs):
+    project = kwargs["project"]
     project_name = get_project_name(project)
     res = Controller.get_default().get_project_metadata(project_name)
     project_metadata = res.data["project"]
     project_type = ProjectType.get_name(project_metadata.project_type)
-    image_list = kwargs.get("images_list", None)
-    if not image_list:
-        image_list = args[1]
+    image_list = kwargs["images_list"]
     return {
         "event_name": "run_prediction",
-        "properties": {"Project Type": project_type, "Image Count": len(image_list)},
+        "properties": {
+            "Project Type": project_type,
+            "Image Count": len(image_list) if image_list else None
+        },
     }
 
 
-def upload_videos_from_folder_to_project(*args, **kwargs):
-    folder_path = kwargs.get("folder_path", None)
-    if not folder_path:
-        folder_path = args[1]
-    from pathlib import Path
-
+def upload_videos_from_folder_to_project(**kwargs):
+    folder_path = kwargs["folder_path"]
     glob_iterator = Path(folder_path).glob("*")
     return {
         "event_name": "upload_videos_from_folder_to_project",
@@ -546,24 +428,15 @@ def upload_videos_from_folder_to_project(*args, **kwargs):
     }
 
 
-def export_annotation(*args, **kwargs):
-    dataset_format = kwargs.get("dataset_format", None)
-    if not dataset_format:
-        dataset_format = args[2]
-    project_type = kwargs.get("project_type", None)
+def export_annotation(**kwargs):
+    dataset_format = kwargs["dataset_format"]
+    project_type = kwargs["project_type"]
     if not project_type:
-        project_type = args[4:5]
-        if not project_type:
-            project_type = "Vector"
-        else:
-            project_type = args[4]
-    task = kwargs.get("task", None)
+        project_type = "Vector"
+
+    task = kwargs.get("task")
     if not task:
-        task = args[5:6]
-        if not task:
-            task = "object_detection"
-        else:
-            task = args[5]
+        task = "object_detection"
     return {
         "event_name": "export_annotation",
         "properties": {
@@ -574,24 +447,14 @@ def export_annotation(*args, **kwargs):
     }
 
 
-def import_annotation(*args, **kwargs):
-    dataset_format = kwargs.get("dataset_format", None)
-    if not dataset_format:
-        dataset_format = args[2]
-    project_type = kwargs.get("project_type", None)
+def import_annotation(**kwargs):
+    dataset_format = kwargs["dataset_format"]
+    project_type = kwargs["project_type"]
     if not project_type:
-        project_type = args[4:5]
-        if not project_type:
-            project_type = "Vector"
-        else:
-            project_type = args[4]
-    task = kwargs.get("task", None)
+        project_type = "Vector"
+    task = kwargs.get("task")
     if not task:
-        task = args[5:6]
-        if not task:
-            task = "object_detection"
-        else:
-            task = args[5]
+        task = "object_detection"
     return {
         "event_name": "import_annotation",
         "properties": {
@@ -602,219 +465,132 @@ def import_annotation(*args, **kwargs):
     }
 
 
-def move_images(*args, **kwargs):
-    project = kwargs.get("source_project", None)
-    if not project:
-        project = args[0]
+def move_images(**kwargs):
+    project = kwargs["source_project"]
+    project_name, folder_name = extract_project_folder(project)
     image_names = kwargs.get("image_names", False)
-    if image_names == False:
-        image_names = args[1]
-        if image_names is None:
-            res = Controller.get_default().search_images(project)
-            image_names = res.data
+    if image_names is None:
+        res = Controller.get_default().search_images(project_name, folder_name)
+        image_names = res.data
 
     return {
         "event_name": "move_images",
         "properties": {
-            "project_name": get_project_name(project),
+            "project_name": project_name,
             "Image Count": len(image_names),
-            "Copy Annotations": bool(args[3:4] or ("include_annotations" in kwargs)),
-            "Copy Annotation Status": bool(
-                args[4:5] or ("copy_annotation_status" in kwargs)
-            ),
-            "Copy Pin": bool(args[5:6] or ("copy_pin" in kwargs)),
+            "Copy Annotations": bool("include_annotations" in kwargs),
+            "Copy Annotation Status": bool("copy_annotation_status" in kwargs),
+            "Copy Pin": bool("copy_pin" in kwargs),
         },
     }
 
 
-def copy_images(*args, **kwargs):
-    project = kwargs.get("source_project", None)
-    if not project:
-        project = args[0]
+def copy_images(**kwargs):
+    project = kwargs["source_project"]
+    project_name, folder_name = extract_project_folder(project)
     image_names = kwargs.get("image_names", False)
-    if image_names == False:
-        image_names = args[1]
-        if image_names is None:
-            res = Controller.get_default().search_images(project)
-            image_names = res.data
+    if not image_names:
+        res = Controller.get_default().search_images(project_name, folder_name)
+        image_names = res.data
     return {
         "event_name": "copy_images",
         "properties": {
-            "project_name": get_project_name(project),
+            "project_name": project_name,
             "Image Count": len(image_names),
-            "Copy Annotations": bool(args[3:4] or ("include_annotations" in kwargs)),
-            "Copy Annotation Status": bool(
-                args[4:5] or ("copy_annotation_status" in kwargs)
-            ),
-            "Copy Pin": bool(args[5:6] or ("copy_pin" in kwargs)),
+            "Copy Annotations": bool("include_annotations" in kwargs),
+            "Copy Annotation Status": bool("copy_annotation_status" in kwargs),
         },
     }
 
 
-def consensus(*args, **kwargs):
-    project = kwargs.get("source_project", None)
-    if not project:
-        project = args[0]
-    folder_names = kwargs.get("folder_names", None)
-    if not folder_names:
-        folder_names = args[1]
-    image_list = kwargs.get("image_list", "empty")
-    if image_list == "empty":
-        image_list = args[4:5]
-        if image_list:
-            if image_list[0] is None:
-                res = Controller.get_default().search_images(project)
-                image_list = res.data
-            else:
-                image_list = image_list[0]
-    annot_type = kwargs.get("annot_type", "empty")
-    if annot_type == "empty":
-        annot_type = args[4:5]
-        if not annot_type:
-            annot_type = "bbox"
-        else:
-            annot_type = args[4]
-
-    show_plots = kwargs.get("show_plots", "empty")
-    if show_plots == "empty":
-        show_plots = args[5:6]
-        if not show_plots:
-            show_plots = False
-        else:
-            show_plots = args[5]
+def consensus(**kwargs):
+    folder_names = kwargs["folder_names"]
+    image_list = kwargs["image_list"]
+    annot_type = kwargs.get("annot_type")
+    if not annot_type:
+        annot_type = "bbox"
+    show_plots = kwargs.get("show_plots")
+    if not show_plots:
+        show_plots = False
     return {
         "event_name": "consensus",
         "properties": {
             "Folder Count": len(folder_names),
-            "Image Count": len(image_list),
+            "Image Count": len(image_list) if image_list else None,
             "Annotation Type": annot_type,
             "Plot": show_plots,
         },
     }
 
 
-def benchmark(*args, **kwargs):
-    project = kwargs.get("source_project", None)
-    if not project:
-        project = args[0]
-    folder_names = kwargs.get("folder_names", None)
-    if not folder_names:
-        folder_names = args[2]
-    image_list = kwargs.get("image_list", "empty")
-    if image_list == "empty":
-        image_list = args[4:5]
-        if image_list:
-            if image_list[0] is None:
-                res = Controller.get_default().search_images(project)
-                image_list = res.data
-            else:
-                image_list = image_list[0]
-    annot_type = kwargs.get("annot_type", "empty")
-    if annot_type == "empty":
-        annot_type = args[5:6]
-        if not annot_type:
-            annot_type = "bbox"
-        else:
-            annot_type = args[5]
+def benchmark(**kwargs):
+    folder_names = kwargs.get("folder_names")
+    image_list = kwargs.get("image_list")
+    annot_type = kwargs.get("annot_type")
+    if not annot_type:
+        annot_type = "bbox"
+    show_plots = kwargs.get("show_plots")
+    if not show_plots:
+        show_plots = False
 
-    show_plots = kwargs.get("show_plots", "empty")
-    if show_plots == "empty":
-        show_plots = args[6:7]
-        if not show_plots:
-            show_plots = False
-        else:
-            show_plots = args[6]
     return {
         "event_name": "benchmark",
         "properties": {
-            "Folder Count": len(folder_names),
-            "Image Count": len(image_list),
+            "Folder Count": len(folder_names) if folder_names else None,
+            "Image Count": len(image_list) if image_list else None,
             "Annotation Type": annot_type,
             "Plot": show_plots,
         },
     }
 
 
-def upload_annotations_from_folder_to_project(*args, **kwargs):
-    project = kwargs.get("source_project", None)
-    if not project:
-        project = args[0]
+def upload_annotations_from_folder_to_project(**kwargs):
+    project = kwargs["project"]
     project_name = get_project_name(project)
     res = Controller.get_default().get_project_metadata(project_name)
     project_metadata = res.data["project"]
     project_type = ProjectType.get_name(project_metadata.project_type)
 
-    folder_path = kwargs.get("folder_path", None)
-    if not folder_path:
-        folder_path = args[1]
-    from pathlib import Path
-
+    folder_path = kwargs["folder_path"]
     glob_iterator = Path(folder_path).glob("*.json")
     return {
         "event_name": "upload_annotations_from_folder_to_project",
         "properties": {
             "Annotation Count": sum(1 for _ in glob_iterator),
             "Project Type": project_type,
-            "From S3": bool(args[2:3] or ("from_s3_bucket" in kwargs)),
+            "From S3": bool("from_s3_bucket" in kwargs),
         },
     }
 
 
-def upload_preannotations_from_folder_to_project(*args, **kwargs):
-    project = kwargs.get("source_project", None)
-    if not project:
-        project = args[0]
+def upload_preannotations_from_folder_to_project(**kwargs):
+    project = kwargs["project"]
+
     project_name = get_project_name(project)
     res = Controller.get_default().get_project_metadata(project_name)
     project_metadata = res.data["project"]
     project_type = ProjectType.get_name(project_metadata.project_type)
-    folder_path = kwargs.get("folder_path", None)
-    if not folder_path:
-        folder_path = args[1]
-    from pathlib import Path
-
+    folder_path = kwargs["folder_path"]
     glob_iterator = Path(folder_path).glob("*.json")
     return {
         "event_name": "upload_preannotations_from_folder_to_project",
         "properties": {
             "Annotation Count": sum(1 for _ in glob_iterator),
             "Project Type": project_type,
-            "From S3": bool(args[2:3] or ("from_s3_bucket" in kwargs)),
+            "From S3": bool("from_s3_bucket" in kwargs),
         },
     }
 
 
-def upload_images_from_folder_to_project(*args, **kwargs):
-    folder_path = kwargs.get("folder_path", None)
-    if not folder_path:
-        folder_path = args[1]
-
-    recursive_subfolders = kwargs.get("recursive_subfolders", None)
-    if not recursive_subfolders:
-        recursive_subfolders = args[6:7]
-        if recursive_subfolders:
-            recursive_subfolders = recursive_subfolders[0]
-        else:
-            recursive_subfolders = False
-
-    extensions = kwargs.get("extensions", None)
+def upload_images_from_folder_to_project(**kwargs):
+    folder_path = kwargs["folder_path"]
+    recursive_subfolders = kwargs["recursive_subfolders"]
+    extensions = kwargs["extensions"]
     if not extensions:
-        extensions = args[2:3]
-        if extensions:
-            extensions = extensions[0]
-        else:
-            extensions = constances.DEFAULT_IMAGE_EXTENSIONS
-
-    exclude_file_patterns = kwargs.get("exclude_file_patterns", None)
+        extensions = constances.DEFAULT_IMAGE_EXTENSIONS
+    exclude_file_patterns = kwargs["exclude_file_patterns"]
     if not exclude_file_patterns:
-        exclude_file_patterns = args[5:6]
-        if exclude_file_patterns:
-            exclude_file_patterns = exclude_file_patterns[0]
-        else:
-            exclude_file_patterns = constances.DEFAULT_FILE_EXCLUDE_PATTERNS
-
-    import os
-    from pathlib import Path
+        exclude_file_patterns = constances.DEFAULT_FILE_EXCLUDE_PATTERNS
 
     paths = []
     for extension in extensions:
@@ -837,63 +613,52 @@ def upload_images_from_folder_to_project(*args, **kwargs):
         "event_name": "upload_images_from_folder_to_project",
         "properties": {
             "Image Count": len(filtered_paths),
-            "Custom Extentions": bool(args[2:3] or kwargs.get("extensions", None)),
-            "Annotation Status": bool(
-                args[3:4] or kwargs.get("annotation_status", None)
-            ),
-            "From S3": bool(args[4:5] or kwargs.get("from_s3_bucket", None)),
-            "Custom Exclude Patters": bool(
-                args[5:6] or kwargs.get("exclude_file_patterns", None)
-            ),
+            "Custom Extentions": bool(kwargs["extensions"]),
+            "Annotation Status": bool(kwargs.get("annotation_status")
+                                      ),
+            "From S3": bool(kwargs.get("from_s3_bucket")),
+            "Custom Exclude Patters": bool(kwargs["exclude_file_patterns"]),
         },
     }
 
 
-def prepare_export(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
+def prepare_export(**kwargs):
+    project = kwargs["project"]
     return {
         "event_name": "prepare_export",
         "properties": {
             "project_name": get_project_name(project),
-            "Folder Count": bool(args[1:2] or kwargs.get("folder_names", None)),
-            "Annotation Statuses": bool(
-                args[2:3] or kwargs.get("annotation_statuses", None)
-            ),
-            "Include Fuse": bool(args[3:4] or kwargs.get("include_fuse", None)),
-            "Only Pinned": bool(args[4:5] or kwargs.get("only_pinned", None)),
+            "Folder Count": bool(kwargs.get("folder_names")),
+            "Annotation Statuses": bool(kwargs.get("annotation_statuses")
+                                        ),
+            "Include Fuse": bool(kwargs.get("include_fuse")),
+            "Only Pinned": bool(kwargs.get("only_pinned")),
         },
     }
 
 
-def download_export(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
+def download_export(**kwargs):
+    project = kwargs["project"]
+
     return {
         "event_name": "download_export",
         "properties": {
             "project_name": get_project_name(project),
-            "to_s3_bucket": bool(args[4:5] or kwargs.get("to_s3_bucket", None)),
+            "to_s3_bucket": bool(kwargs.get("to_s3_bucket")),
         },
     }
 
 
-def assign_images(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
-    image_names = kwargs.get("image_names", None)
-    if not image_names:
-        image_names = args[1]
-    user = kwargs.get("user", None)
-    if not user:
-        user = args[2]
+def assign_images(**kwargs):
+    project = kwargs["project"]
+    project_name, folder_name = extract_project_folder(project)
+    image_names = kwargs.get("image_names")
+    user = kwargs.get("user")
 
-    contributors = Controller.get_default().get_project_metadata(
-        project_name=project, include_contributors=True
-    ).data["contributors"]
+    contributors = (
+        Controller.get_default().get_project_metadata(project_name=project_name, include_contributors=True)
+            .data["contributors"]
+    )
     contributor = None
     for c in contributors:
         if c["user_id"] == user:
@@ -903,7 +668,6 @@ def assign_images(*args, **kwargs):
         user_role = "ANNOTATOR"
     if contributor["user_role"] == 4:
         user_role = "QA"
-    _, folder_name = extract_project_folder(project)
     is_root = True
     if folder_name:
         is_root = False
@@ -911,112 +675,100 @@ def assign_images(*args, **kwargs):
     return {
         "event_name": "assign_images",
         "properties": {
-            "project_name": get_project_name(project),
+            "project_name": project_name,
             "Assign Folder": is_root,
-            "Image Count": len(image_names),
+            "Image Count": len(image_names) if image_names else None,
             "User Role": user_role,
         },
     }
 
 
-def pin_image(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
+def pin_image(**kwargs):
+    project = kwargs["project"]
+
     return {
         "event_name": "pin_image",
         "properties": {
             "project_name": get_project_name(project),
-            "Pin": bool(args[2:3] or ("pin" in kwargs)),
+            "Pin": bool("pin" in kwargs),
         },
     }
 
 
-def set_image_annotation_status(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
+def set_image_annotation_status(**kwargs):
+    project = kwargs["project"]
+
     return {
         "event_name": "set_image_annotation_status",
         "properties": {
             "project_name": get_project_name(project),
-            "Annotation Status": bool(args[2:3] or ("annotation_status" in kwargs)),
+            "Annotation Status": bool("annotation_status" in kwargs),
         },
     }
 
 
-def add_annotation_bbox_to_image(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
+def add_annotation_bbox_to_image(**kwargs):
+    project = kwargs["project"]
+
     return {
         "event_name": "add_annotation_bbox_to_image",
         "properties": {
             "project_name": get_project_name(project),
-            "Attributes": bool(args[4:5] or ("annotation_class_attributes" in kwargs)),
-            "Error": bool(args[5:6] or ("error" in kwargs)),
+            "Attributes": bool("annotation_class_attributes" in kwargs),
+            "Error": bool("error" in kwargs),
         },
     }
 
 
-def add_annotation_point_to_image(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
+def add_annotation_point_to_image(**kwargs):
+    project = kwargs["project"]
+
     return {
         "event_name": "add_annotation_point_to_image",
         "properties": {
             "project_name": get_project_name(project),
-            "Attributes": bool(args[4:5] or ("annotation_class_attributes" in kwargs)),
-            "Error": bool(args[5:6] or ("error" in kwargs)),
+            "Attributes": bool("annotation_class_attributes" in kwargs),
+            "Error": bool("error" in kwargs),
         },
     }
 
 
-def create_annotation_class(*args, **kwargs):
-    project = kwargs.get("project", None)
+def create_annotation_class(**kwargs):
+    project = kwargs["project"]
     class_type = kwargs.get("class_type")
-    if not project:
-        project = args[0]
-    if not class_type and len(args) == 5:
-        class_type = args[4]
+
     return {
         "event_name": "create_annotation_class",
         "properties": {
             "project_name": get_project_name(project),
-            "Attributes": bool(args[3:4] or ("attribute_groups" in kwargs)),
-            "class_type": class_type if class_type else "object"
+            "Attributes": bool("attribute_groups" in kwargs),
+            "class_type": class_type if class_type else "object",
         },
     }
 
 
-def create_annotation_classes_from_classes_json(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
+def create_annotation_classes_from_classes_json(**kwargs):
+    project = kwargs["project"]
     return {
         "event_name": "create_annotation_classes_from_classes_json",
         "properties": {
             "project_name": get_project_name(project),
-            "From S3": bool(args[2:3] or ("from_s3_bucket" in kwargs)),
+            "From S3": bool("from_s3_bucket" in kwargs),
         },
     }
 
 
-def class_distribution(*args, **kwargs):
+def class_distribution(**kwargs):
     return {
         "event_name": "class_distribution",
-        "properties": {"Plot": bool(args[2:3] or ("visualize" in kwargs))},
+        "properties": {"Plot": bool("visualize" in kwargs)},
     }
 
 
-def share_project(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
-    user_role = kwargs.get("user_role", None)
-    if not user_role:
-        user_role = args[2]
+def share_project(**kwargs):
+    project = kwargs["project_name"]
+
+    user_role = kwargs.get("user_role")
     return {
         "event_name": "share_project",
         "properties": {
@@ -1026,13 +778,10 @@ def share_project(*args, **kwargs):
     }
 
 
-def set_project_default_image_quality_in_editor(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
-    image_quality_in_editor = kwargs.get("image_quality_in_editor", None)
-    if not image_quality_in_editor:
-        image_quality_in_editor = args[1]
+def set_project_default_image_quality_in_editor(**kwargs):
+    project = kwargs["project"]
+
+    image_quality_in_editor = kwargs.get("image_quality_in_editor")
     return {
         "event_name": "set_project_default_image_quality_in_editor",
         "properties": {
@@ -1042,45 +791,36 @@ def set_project_default_image_quality_in_editor(*args, **kwargs):
     }
 
 
-def get_exports(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
+def get_exports(**kwargs):
+    project = kwargs["project"]
+
     return {
         "event_name": "get_exports",
         "properties": {
             "project_name": get_project_name(project),
-            "Metadata": bool(args[1:2] or ("return_metadata" in kwargs)),
+            "Metadata": bool("return_metadata" in kwargs),
         },
     }
 
 
-def search_folders(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
+def search_folders(**kwargs):
+    project = kwargs["project"]
+
     return {
         "event_name": "search_folders",
         "properties": {
             "project_name": get_project_name(project),
-            "Metadata": bool(args[2:3] or ("return_metadata" in kwargs)),
+            "Metadata": bool("return_metadata" in kwargs),
         },
     }
 
 
-def aggregate_annotations_as_df(*args, **kwargs):
+def aggregate_annotations_as_df(**kwargs):
+    folder_names = kwargs.get("folder_names")
+    if not folder_names:
+        folder_names = []
 
-    folder_names = kwargs.get("folder_names", "empty")
-    if folder_names == "empty":
-        folder_names = args[5:6]
-        if folder_names:
-            folder_names = folder_names[0]
-            if folder_names is None:
-                folder_names = []
-
-    project_type = kwargs.get("project_type", None)
-    if not project_type:
-        project_type = args[1]
+    project_type = kwargs["project_type"]
 
     return {
         "event_name": "aggregate_annotations_as_df",
@@ -1088,13 +828,11 @@ def aggregate_annotations_as_df(*args, **kwargs):
     }
 
 
-def delete_folders(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
-    folder_names = kwargs.get("folder_names", None)
+def delete_folders(**kwargs):
+    project = kwargs["project"]
+    folder_names = kwargs.get("folder_names")
     if not folder_names:
-        folder_names = args[1]
+        folder_names = []
     return {
         "event_name": "delete_folders",
         "properties": {
@@ -1104,44 +842,36 @@ def delete_folders(*args, **kwargs):
     }
 
 
-def delete_images(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
+def delete_images(**kwargs):
+    project = kwargs["project"]
+    project_name, folder_name = extract_project_folder(project)
+
     image_names = kwargs.get("image_names", False)
     if not image_names:
-        image_names = args[1]
-        if image_names is None:
-            res = Controller.get_default().search_images(project)
-            image_names = res.data
+        res = Controller.get_default().search_images(project_name, folder_name)
+        image_names = res.data
     return {
         "event_name": "delete_images",
         "properties": {
-            "project_name": get_project_name(project),
+            "project_name": project_name,
             "Image Count": len(image_names),
         },
     }
 
 
-def unassign_folder(*args, **kwargs):
+def unassign_folder(**kwargs):
     return {"event_name": "unassign_folder", "properties": {}}
 
 
-def assign_folder(*args, **kwargs):
-    users = kwargs.get("users", None)
-    if not users:
-        users = args[2]
+def assign_folder(**kwargs):
+    users = kwargs.get("users")
     return {"event_name": "assign_folder", "properties": {"User Count": len(users)}}
 
 
-def unassign_images(*args, **kwargs):
-    image_names = kwargs.get("image_names", None)
-    if not image_names:
-        image_names = args[1]
+def unassign_images(**kwargs):
+    image_names = kwargs.get("image_names")
 
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
+    project = kwargs["project"]
 
     _, folder_name = extract_project_folder(project)
     is_root = True
@@ -1154,54 +884,44 @@ def unassign_images(*args, **kwargs):
     }
 
 
-def attach_video_urls_to_project(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
+def attach_video_urls_to_project(**kwargs):
+    project = kwargs["project"]
+    project_name, _ = extract_project_folder(project)
     return {
         "event_name": "attach_video_urls_to_project",
         "properties": {
-            "project_name": get_project_name(project),
-            "Annotation Status": bool(
-                args[2:3] or kwargs.get("annotation_status", None)
-            ),
+            "project_name": project_name,
+            "Annotation Status": bool(kwargs.get("annotation_status")),
         },
     }
 
 
-def attach_document_urls_to_project(*args, **kwargs):
-    project = kwargs.get("project", None)
-    if not project:
-        project = args[0]
+def attach_document_urls_to_project(**kwargs):
+    project = kwargs["project"]
+    project_name, _ = extract_project_folder(project)
     return {
         "event_name": "attach_document_urls_to_project",
         "properties": {
-            "project_name": get_project_name(project),
-            "Annotation Status": bool(
-                args[2:3] or kwargs.get("annotation_status", None)
-            ),
+            "project_name": project_name,
+            "Annotation Status": bool(kwargs.get("annotation_status")),
         },
     }
 
 
-def delete_annotations(*args, **kwargs):
+def delete_annotations(**kwargs):
     return {"event_name": "delete_annotations", "properties": {}}
 
 
-def validate_annotations(*args, **kwargs):
-    project_type = kwargs.get("project_type", None)
-    if not project_type:
-        project_type = args[0]
+def validate_annotations(**kwargs):
+    project_type = kwargs["project_type"]
     return {
         "event_name": "validate_annotations",
         "properties": {"Project Type": project_type},
     }
 
 
-def add_contributors_to_project(*args, **kwargs):
-    user_role = kwargs.get("role", None)
-    if not user_role:
-        user_role = args[2:3][0]
+def add_contributors_to_project(**kwargs):
+    user_role = kwargs.get("role")
 
     return {
         "event_name": "add_contributors_to_project",
@@ -1209,59 +929,103 @@ def add_contributors_to_project(*args, **kwargs):
     }
 
 
-def get_annotations(*args, **kwargs):
-    project = kwargs.get("project", args[0])
-    items = kwargs.get("items", args[1])
+def get_annotations(**kwargs):
+    project = kwargs["project"]
+    items = kwargs["items"]
 
     return {
         "event_name": "get_annotations",
-        "properties": {"Project": project, "items_count": len(items)},
+        "properties": {"Project": project, "items_count": len(items) if items else None},
     }
 
 
-def get_annotations_per_frame(*args, **kwargs):
-    project = kwargs.get("project", args[0])
-    fps = kwargs.get("fps")
+def get_annotations_per_frame(**kwargs):
+    project = kwargs["project"]
+    fps = kwargs["fps"]
     if not fps:
-        try:
-            fps = args[2]
-        except IndexError:
-            fps = 1
+        fps = 1
     return {
         "event_name": "get_annotations_per_frame",
         "properties": {"Project": project, "fps": fps},
     }
 
 
-def upload_priority_scores(*args, **kwargs):
-    scores = kwargs.get("scores", args[1])
+def upload_priority_scores(**kwargs):
+    scores = kwargs["scores"]
     return {
         "event_name": "upload_priority_scores",
-        "properties": {"Score Count": len(scores)},
+        "properties": {"Score Count": len(scores) if scores else None},
     }
 
 
-def get_integrations(*args, **kwargs):
+def get_integrations(**kwargs):
     return {
         "event_name": "get_integrations",
         "properties": {},
     }
 
 
-def attach_items_from_integrated_storage(*args, **kwargs):
-    project = kwargs.get("project", args[0])
-    integration = kwargs.get("integration", args[1])
-    folder_path = kwargs.get("folder_path", args[2])
-
+def attach_items_from_integrated_storage(**kwargs):
+    project = kwargs.get("project")
     project_name, _ = extract_project_folder(project)
+    integration = kwargs.get("integration")
+    folder_path = kwargs.get("folder_path")
+
     if isinstance(integration, str):
         integration = IntegrationEntity(name=integration)
-    project = Controller.get_default().get_project_metadata(project_name)
+    project = Controller.get_default().get_project_metadata(project_name).data["project"]
     return {
         "event_name": "attach_items_from_integrated_storage",
         "properties": {
             "project_type": ProjectType.get_name(project.project_type),
             "integration_name": integration.name,
-            "folder_path": bool(folder_path)
+            "folder_path": bool(folder_path),
+        },
+    }
+
+
+def query(**kwargs):
+    project = kwargs["project"]
+    query_str = kwargs["query"]
+    project_name, folder_name = extract_project_folder(project)
+    project = Controller.get_default().get_project_metadata(project_name).data["project"]
+    return {
+        "event_name": "query_saqul",
+        "properties": {
+            "project_type": ProjectType.get_name(project.project_type),
+            "query": query_str,
+        },
+    }
+
+
+def get_item_metadata(**kwargs):
+    project = kwargs["project"]
+    project_name, _ = extract_project_folder(project)
+    project = Controller.get_default().get_project_metadata(project_name).data["project"]
+    return {
+        "event_name": "get_item_metadata",
+        "properties": {"project_type": ProjectType.get_name(project.project_type)},
+    }
+
+
+def search_items(**kwargs):
+    project = kwargs["project"]
+    name_contains = kwargs["name_contains"]
+    annotation_status = kwargs["annotation_status"]
+    annotator_email = kwargs["annotator_email"]
+    qa_email = kwargs["qa_email"]
+    recursive = kwargs["recursive"]
+    project_name, folder_name = extract_project_folder(project)
+    project = Controller.get_default().get_project_metadata(project_name).data["project"]
+    return {
+        "event_name": "search_items",
+        "properties": {
+            "project_type": ProjectType.get_name(project.project_type),
+            "query": query,
+            "name_contains": len(name_contains) if name_contains else False,
+            "annotation_status": annotation_status if annotation_status else False,
+            "annotator_email": bool(annotator_email),
+            "qa_email": bool(qa_email),
+            "recursive": bool(recursive),
         },
     }
