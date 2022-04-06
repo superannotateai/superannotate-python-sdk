@@ -1,5 +1,30 @@
 # Changelog 
 All release higlighths of this project will be documented in this file.
+## 4.3.0 - Feb 27 2022
+### Added
+- `get_annotations` to load annotations for the list of items.
+- `get_annotations_per_frame` to generate frame by frame annotations for the given video.
+### Updated
+- `get_image_annotations()` to reference `get_annotations()`.
+- `create_annotation_class()` to add `class_type` in parameters to specify class type on creation.
+- `create_annotation_classes_from_classes_json()` to handle class type in classes JSON. 
+- `search_annotation_classes()` to return class type in metadata. 
+- `upload_annotations_from_folder_to_project()` to handle tag annotations.
+- `upload_preannotations_from_folder_to_project()` to handle tag annotations.
+- `upload_image_annotations()` to handle tag annotations.
+- `validate_annotations()` to validate vector annotation schema with tag instances.
+- `aggregate_annotations_as_df()` to handle tag annotations in annotations df.
+- `class_distribution()` to handle class distribution of tag instances.
+- `upload_images_from_public_urls()` for deprecation log.
+### Fixed
+- `upload_images_from_folder_to_project()` to upload images without invalid rotation.
+- `upload-annotations` CLI to upload annotations to specified folder.
+- `create_project_from_metadata()` to setup image quality and workflow from given metadata.
+- `get_project_metadata()` to return information on project contributors.
+- `get_project_metadata()` to return number of completed images in project root.
+- `get_project_workflow()` to return `className` in project workflow.
+-  file handler permissions in GColab at `import` stage of the package.
+###
 ## 4.2.9 - Jan 30 2022
 ### Added
 - `superannotate_schemas` as a stand alone package on annotation schemas.
