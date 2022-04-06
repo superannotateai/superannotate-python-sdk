@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Iterable
 from typing import List
 from typing import Optional
+from typing import Tuple
 from typing import Union
 
 import lib.core as constances
@@ -291,7 +292,7 @@ class Controller(BaseController):
         self,
         name: str = None,
         include_complete_image_count=False,
-        statuses: List[str] = None,
+        statuses: Union[List[str], Tuple[str]] = (),
         **kwargs,
     ) -> Response:
         condition = Condition.get_empty_condition()

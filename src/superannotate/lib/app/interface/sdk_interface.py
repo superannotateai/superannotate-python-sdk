@@ -297,6 +297,7 @@ def search_images(
         "We're deprecating the search_images function. Please use search_items instead. Learn more."
         "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.search_items"
     )
+    warnings.warn(warning_msg, DeprecationWarning)
     project_name, folder_name = extract_project_folder(project)
     project = Controller.get_default()._get_project(project_name)
 
@@ -432,6 +433,12 @@ def get_project_and_folder_metadata(project: Union[NotEmptyStr, dict]):
     :return: tuple of project and folder
     :rtype: tuple
     """
+    warning_msg = (
+        "The get_project_and_folder_metadata function is deprecated and will be removed with the coming release, "
+        "please use get_folder_metadata instead."
+    )
+    logger.warning(warning_msg)
+    warnings.warn(warning_msg, DeprecationWarning)
     project_name, folder_name = extract_project_folder(project)
     project = ProjectSerializer(
         Controller.get_default().search_project(project_name).data[0]
@@ -890,6 +897,7 @@ def get_image_metadata(
         "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.get_item_metadata"
     )
     logger.warning(warning_msg)
+    warnings.warn(warning_msg, DeprecationWarning)
     project_name, folder_name = extract_project_folder(project)
     project = Controller.get_default()._get_project(project_name)
     response = Controller.get_default().get_image_metadata(
