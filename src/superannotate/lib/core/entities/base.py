@@ -25,3 +25,6 @@ class BaseEntity(TimedBaseModel):
 
     class Config:
         extra = Extra.allow
+
+
+class AttachmentEntity(BaseModel):

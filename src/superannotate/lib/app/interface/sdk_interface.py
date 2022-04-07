@@ -11,6 +11,12 @@ from typing import Tuple
 from typing import Union
 
 import boto3
+from pydantic import StrictBool
+from pydantic import conlist
+from pydantic import parse_obj_as
+from pydantic.error_wrappers import ValidationError
+from tqdm import tqdm
+
 import lib.core as constances
 from lib.app.annotation_helpers import add_annotation_bbox_to_json
 from lib.app.annotation_helpers import add_annotation_comment_to_json
@@ -45,12 +51,7 @@ from lib.core.types import MLModel
 from lib.core.types import PriorityScore
 from lib.core.types import Project
 from lib.infrastructure.controller import Controller
-from pydantic import conlist
-from pydantic import parse_obj_as
-from pydantic import StrictBool
-from pydantic.error_wrappers import ValidationError
 from superannotate.logger import get_default_logger
-from tqdm import tqdm
 
 logger = get_default_logger()
 
@@ -297,6 +298,7 @@ def search_images(
         "We're deprecating the search_images function. Please use search_items instead. Learn more."
         "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.search_items"
     )
+    logger.warning(warning_msg)
     warnings.warn(warning_msg, DeprecationWarning)
     project_name, folder_name = extract_project_folder(project)
     project = Controller.get_default()._get_project(project_name)
@@ -2479,8 +2481,10 @@ def search_images_all_folders(
 
     :param project: project name
     :type project: str
+
     :param image_name_prefix: image name prefix for search
     :type image_name_prefix: str
+
     :param annotation_status: if not None, annotation statuses of images to filter,
                               should be one of NotStarted InProgress QualityCheck Returned Completed Skipped
     :type annotation_status: str
@@ -3087,3 +3091,72 @@ def search_items(
     if response.errors:
         raise AppException(response.errors)
     return BaseSerializer.serialize_iterable(response.data)
+
+
+@Trackable
+@validate_arguments
+def attach_items(
+        project: Union[NotEmptyStr, dict],
+        attachments,
+        annotation_status="NotStarted"
+):
+    """Link items from external storage to SuperAnnotate using URLs.
+
+    :param project: project name or folder path (e.g., “project1/folder1”)
+    :type project: str
+
+    :param attachments: path to CSV file or list of dicts containing attachments URLs.
+    :type attachments: path-like (str or Path) or list of dicts
+
+    :param annotation_status: value to set the annotation statuses of the
+                            linked items:
+                                “NotStarted”
+                                “InProgress”
+                                “QualityCheck”
+                                “Returned”
+                                “Completed”
+                                “Skipped”
+    :type annotation_status: str
+
+    :return: list of attached item names, list of not attached item names, list of duplicate item names
+     that are already in SuperAnnotate.
+    :rtype: tuple
+    """
+    project_name, folder_name = extract_project_folder(project)
+
+    images_to_upload, duplicate_images = get_paths_and_duplicated_from_csv(attachments)
+
+    attachments_data
+
+    use_case = Controller.get_default().attach_items(
+        project_name=project_name,
+        folder_name=folder_name,
+        files=ImageSerializer.deserialize(images_to_upload),  # noqa: E203
+        annotation_status=annotation_status,
+    )
+    if len(duplicate_images):
+        logger.warning(
+            constances.ALREADY_EXISTING_FILES_WARNING.format(len(duplicate_images))
+        )
+
+    if use_case.is_valid():
+        logger.info(
+            constances.ATTACHING_FILES_MESSAGE.format(
+                len(images_to_upload), project
+            )
+        )
+        with tqdm(
+                total=use_case.attachments_count, desc="Attaching urls"
+        ) as progress_bar:
+            for attached in use_case.execute():
+                progress_bar.update(attached)
+        uploaded, duplications = use_case.data
+        uploaded = [i["name"] for i in uploaded]
+        duplications.extend(duplicate_images)
+        failed_images = [
+            image["name"]
+            for image in images_to_upload
+            if image["name"] not in uploaded + duplications
+        ]
+        return uploaded, failed_images, duplications
+    raise AppException(use_case.response.errors)
