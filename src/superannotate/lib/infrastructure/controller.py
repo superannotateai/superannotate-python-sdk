@@ -15,6 +15,7 @@ from lib.core import usecases
 from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.entities import AnnotationClassEntity
+from lib.core.entities import AttachmentEntity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
 from lib.core.entities import MLModelEntity
@@ -978,14 +979,6 @@ class Controller(BaseController):
         )
         return use_case.execute()
 
-    @staticmethod
-    def get_image_from_s3(s3_bucket, image_path: str):
-        use_case = usecases.GetS3ImageUseCase(
-            s3_bucket=s3_bucket, image_path=image_path
-        )
-        use_case.execute()
-        return use_case.execute()
-
     def get_exports(self, project_name: str, return_metadata: bool):
         project = self._get_project(project_name)
 
@@ -1616,4 +1609,24 @@ class Controller(BaseController):
             search_condition=search_condition,
         )
 
+        return use_case.execute()
+
+    def attach_items(
+            self,
+            project_name: str,
+            folder_name: str,
+            attachments: List[AttachmentEntity],
+            annotation_status: str
+    ):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+
+        use_case = usecases.AttachItems(
+            reporter=self.default_reporter,
+            project=project,
+            folder=folder,
+            attachments=attachments,
+            annotation_status=annotation_status,
+            backend_service_provider=self.backend_client
+        )
         return use_case.execute()
