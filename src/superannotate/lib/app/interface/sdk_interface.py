@@ -2975,8 +2975,7 @@ def attach_items_from_integrated_storage(
     :type integration: str or dict
 
     :param folder_path: Points to an exact folder/directory within given storage.
-    If None, items are fetched from the root directory.
-
+     If None, items are fetched from the root directory.
     :type folder_path: str
     """
     project_name, folder_name = extract_project_folder(project)
