@@ -6,13 +6,14 @@ from os.path import dirname
 
 import src.superannotate as sa
 from tests.integration.base import BaseTestCase
+from tests import DATA_SET_PATH
 
 import pytest
 
 
 class TestFolders(BaseTestCase):
     PROJECT_NAME = "test folders"
-    TEST_FOLDER_PATH = "data_set/sample_project_vector"
+    TEST_FOLDER_PATH = "sample_project_vector"
     PROJECT_DESCRIPTION = "desc"
     PROJECT_TYPE = "Vector"
     SPECIAL_CHARS = "/\:*?“<>|"
@@ -27,7 +28,7 @@ class TestFolders(BaseTestCase):
 
     @property
     def folder_path(self):
-        return os.path.join(dirname(dirname(__file__)), self.TEST_FOLDER_PATH)
+        return os.path.join(DATA_SET_PATH, self.TEST_FOLDER_PATH)
 
     @property
     def classes_json(self):

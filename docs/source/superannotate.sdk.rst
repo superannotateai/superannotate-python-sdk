@@ -152,7 +152,7 @@ Project metadata example:
    {
      "name": "Example Project test",
      "description": "test vector",
-     "creator_id": "hovnatan@superannotate.com",
+     "creator_id": "admin@superannotate.com",
      "updatedAt": "2020-08-31T05:43:43.118Z",
      "createdAt": "2020-08-31T05:43:43.118Z"
      "type": "Vector",
@@ -174,8 +174,8 @@ Export metadata example:
 .. code-block:: python
 
    {
-     "name": "Aug 17 2020 15:44 Hovnatan.zip",
-     "user_id": "hovnatan@gmail.com",
+     "name": "Aug 17 2020 15:44 First Name.zip",
+     "user_id": "user@gmail.com",
      "status": 2,
      "createdAt": "2020-08-17T11:44:26.000Z",
      "...": "..."
@@ -183,6 +183,7 @@ Export metadata example:
 
 
 ----------
+
 
 Integration metadata
 _______________
@@ -199,6 +200,7 @@ Integration metadata example:
 
 
 ----------
+
 
 Item metadata
 _______________
@@ -217,10 +219,10 @@ Item metadata example:
    "entropy_value": None,
    "createdAt": "2022-02-15T20:46:44.000Z",
    "updatedAt": "2022-02-15T20:46:44.000Z"
-}
-
+    }
 
 ----------
+
 
 Image metadata
 _______________
@@ -304,10 +306,10 @@ Team contributor metadata example:
 .. code-block:: python
 
   {
-    "id": "hovnatan@superannotate.com",
-    "first_name": "Hovnatan",
-    "last_name": "Karapetyan",
-    "email": "hovnatan@superannotate.com",
+    "id": "admin@superannotate.com",
+    "first_name": "First Name",
+    "last_name": "Last Name",
+    "email": "admin@superannotate.com",
     "user_role": 6
     "...": "...",
   }

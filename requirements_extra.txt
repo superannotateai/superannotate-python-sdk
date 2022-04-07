@@ -1,4 +1,4 @@
-Sphinx==3.1.2
+Sphinx==3.5.4
 tox==3.24.2
 pytest==6.2.4
 pytest-xdist==2.3.0
