@@ -1,1 +1,2 @@
-superannotate_schemas>=1.0.41dev1
+superannotate_schemas>=1.0.41b1
+
