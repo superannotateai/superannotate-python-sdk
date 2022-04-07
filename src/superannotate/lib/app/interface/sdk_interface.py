@@ -294,9 +294,10 @@ def search_images(
     :rtype: list of dicts or strs
     """
     warning_msg = (
-        "We're deprecating the search_images function. Please use search_items instead. Learn more."
+        "We're deprecating the search_images function. Please use search_items instead. Learn more. \n"
         "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.search_items"
     )
+    logger.warning(warning_msg)
     warnings.warn(warning_msg, DeprecationWarning)
     project_name, folder_name = extract_project_folder(project)
     project = Controller.get_default()._get_project(project_name)
@@ -893,7 +894,7 @@ def get_image_metadata(
     :rtype: dict
     """
     warning_msg = (
-        "We're deprecating the get_image_metadata function. Please use get_item_metadata instead. Learn more."
+        "We're deprecating the get_image_metadata function. Please use get_item_metadata instead. Learn more. \n"
         "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.get_item_metadata"
     )
     logger.warning(warning_msg)
@@ -2491,7 +2492,12 @@ def search_images_all_folders(
     :return: metadata of found images or image names
     :rtype: list of dicts or strs
     """
-
+    warning_msg = (
+        "We're deprecating the search_images function. Please use search_items instead. Learn more. \n"
+        "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.search_items"
+    )
+    logger.warning(warning_msg)
+    warnings.warn(warning_msg, DeprecationWarning)
     project_entity = Controller.get_default()._get_project(project)
     res = Controller.get_default().list_images(
         project_name=project,
