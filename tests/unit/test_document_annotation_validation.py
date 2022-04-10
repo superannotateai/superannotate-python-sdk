@@ -21,6 +21,7 @@ class TestDocumentValidators(TestCase):
                 },
                 "instances": [
                     {
+                        "type": "entity",
                         "start": 253,
                         "end": 593,
                         "classId": 873208,

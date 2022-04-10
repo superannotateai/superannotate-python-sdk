@@ -12,14 +12,14 @@ from src.superannotate.lib.core import DEPRICATED_DOCUMENT_VIDEO_MESSAGE
 
 
 class TestDeprecatedFunctionsDocument(TestCase):
-    PROJECT_NAME = "TestDeprecatedFunctionsDocument"
+    PROJECT_NAME = "TestDeprecatedFunctionsDocument first froject"
     PROJECT_DESCRIPTION = "desc"
     PROJECT_TYPE = "Document"
     PATH_TO_URLS = "data_set/attach_urls.csv"
     TEST_FOLDER_PATH = "data_set/sample_project_vector"
     TEST_FOLDER_VIDEO_EXPORT_PATH = "data_set/sample_video_text_export"
     UPLOAD_IMAGE_NAME = "6022a74b5384c50017c366cv"
-    PROJECT_NAME_2 = "second project"
+    PROJECT_NAME_2 = "TestDeprecatedFunctionsDocument second project"
     PROJECT_DESCRIPTION_2 = "second project"
     PROJECT_TYPE_2 = "Vector"
     EXCEPTION_MESSAGE = LIMITED_FUNCTIONS[ProjectType.DOCUMENT.value]
@@ -94,10 +94,6 @@ class TestDeprecatedFunctionsDocument(TestCase):
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
-            sa.get_image_annotations(self.PROJECT_NAME, self.UPLOAD_IMAGE_NAME)
-        except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE, str(e))
-        try:
             sa.set_image_annotation_status(self.PROJECT_NAME, self.UPLOAD_IMAGE_NAME, "Completed")
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
@@ -121,10 +117,6 @@ class TestDeprecatedFunctionsDocument(TestCase):
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
-            sa.add_annotation_bbox_to_image(self.PROJECT_NAME, self.UPLOAD_IMAGE_NAME, [1, 2, 3, 4], "some class")
-        except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE, str(e))
-        try:
             sa.delete_images(self.PROJECT_NAME, [self.UPLOAD_IMAGE_NAME])
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
@@ -138,11 +130,6 @@ class TestDeprecatedFunctionsDocument(TestCase):
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
             sa.upload_preannotations_from_folder_to_project(self.PROJECT_NAME, self.folder_path)
-        except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE, str(e))
-        try:
-            sa.add_annotation_comment_to_image(self.PROJECT_NAME, self.UPLOAD_IMAGE_NAME, "some comment", [1, 2],
-                                               "some@user.com")
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:

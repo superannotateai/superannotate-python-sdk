@@ -89,10 +89,6 @@ class TestDeprecatedFunctionsVideo(TestCase):
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
-            sa.get_image_annotations(self.PROJECT_NAME, self.UPLOAD_IMAGE_NAME)
-        except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE, str(e))
-        try:
             sa.set_image_annotation_status(self.PROJECT_NAME, self.UPLOAD_IMAGE_NAME, "Completed")
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
@@ -116,10 +112,6 @@ class TestDeprecatedFunctionsVideo(TestCase):
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
-            sa.add_annotation_bbox_to_image(self.PROJECT_NAME, self.UPLOAD_IMAGE_NAME, [1, 2, 3, 4], "some class")
-        except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE, str(e))
-        try:
             sa.delete_images(self.PROJECT_NAME, [self.UPLOAD_IMAGE_NAME])
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
@@ -133,15 +125,6 @@ class TestDeprecatedFunctionsVideo(TestCase):
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
             sa.upload_preannotations_from_folder_to_project(self.PROJECT_NAME, self.folder_path)
-        except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE, str(e))
-        try:
-            sa.add_annotation_comment_to_image(self.PROJECT_NAME, self.UPLOAD_IMAGE_NAME, "some comment", [1, 2],
-                                               "some@user.com")
-        except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE, str(e))
-        try:
-            sa.add_annotation_point_to_image(self.PROJECT_NAME, self.UPLOAD_IMAGE_NAME, [1, 2], "some class")
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:

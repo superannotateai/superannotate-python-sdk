@@ -55,9 +55,7 @@ class TestAnnotationAdding(BaseTestCase):
         sa.add_annotation_point_to_image(
             self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, [250, 250], "test_add"
         )
-        annotations_new = sa.get_image_annotations(
-            self.PROJECT_NAME, self.EXAMPLE_IMAGE_1
-        )["annotation_json"]
+        annotations_new = sa.get_annotations(self.PROJECT_NAME, [self.EXAMPLE_IMAGE_1])[0]
 
         del annotations_new["instances"][0]['createdAt']
         del annotations_new["instances"][0]['updatedAt']
@@ -67,7 +65,6 @@ class TestAnnotationAdding(BaseTestCase):
                 'x': 250.0,
                 'y': 250.0,
                 'creationType': 'Preannotation',
-                'className': 'test_add',
                 'visible': True,
                 'locked': False,
                 'probability': 100,
@@ -88,16 +85,13 @@ class TestAnnotationAdding(BaseTestCase):
             self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, [10, 10, 500, 100], "test_add"
         )
 
-        annotations_new = sa.get_image_annotations(
-            self.PROJECT_NAME, self.EXAMPLE_IMAGE_1
-        )["annotation_json"]
+        annotations_new = sa.get_annotations(self.PROJECT_NAME, [self.EXAMPLE_IMAGE_1])[0]
 
         del annotations_new["instances"][0]['createdAt']
         del annotations_new["instances"][0]['updatedAt']
 
         self.assertEqual(annotations_new['instances'][0], {
             'creationType': 'Preannotation',
-            'className': 'test_add',
             'visible': True,
             'locked': False,
             'probability': 100,
@@ -117,9 +111,7 @@ class TestAnnotationAdding(BaseTestCase):
         sa.add_annotation_comment_to_image(self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, "some comment", [1, 2],
                                            "abc@abc.com")
 
-        annotations_new = sa.get_image_annotations(
-            self.PROJECT_NAME, self.EXAMPLE_IMAGE_1
-        )["annotation_json"]
+        annotations_new = sa.get_annotations(self.PROJECT_NAME, [self.EXAMPLE_IMAGE_1])[0]
 
         annotations_new['comments'][0]['createdAt'] = ""
         annotations_new['comments'][0]['updatedAt'] = ""
@@ -152,9 +144,7 @@ class TestAnnotationAdding(BaseTestCase):
             self.PROJECT_NAME, self.folder_path
         )
 
-        annotations = sa.get_image_annotations(self.PROJECT_NAME, self.EXAMPLE_IMAGE_1)[
-            "annotation_json"
-        ]
+        annotations = sa.get_annotations(self.PROJECT_NAME, [self.EXAMPLE_IMAGE_1])[0]
 
         sa.add_annotation_bbox_to_image(
             self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, [10, 10, 500, 100], "test_add"
@@ -170,9 +160,7 @@ class TestAnnotationAdding(BaseTestCase):
             "super@annotate.com",
             True,
         )
-        annotations_new = sa.get_image_annotations(
-            self.PROJECT_NAME, self.EXAMPLE_IMAGE_1
-        )["annotation_json"]
+        annotations_new = sa.get_annotations(self.PROJECT_NAME, [self.EXAMPLE_IMAGE_1])[0]
         with tempfile.TemporaryDirectory() as tmpdir_name:
             json.dump(annotations_new, open(f"{tmpdir_name}/new_anns.json", "w"))
             self.assertEqual(
@@ -191,9 +179,7 @@ class TestAnnotationAdding(BaseTestCase):
         sa.add_annotation_bbox_to_image(
             self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, [10, 10, 500, 100], "test_add"
         )
-        annotations_new = sa.get_image_annotations(
-            self.PROJECT_NAME, self.EXAMPLE_IMAGE_1
-        )["annotation_json"]
+        annotations_new = sa.get_annotations(self.PROJECT_NAME, [self.EXAMPLE_IMAGE_1])[0]
 
         self.assertEqual(len(annotations_new["instances"]), 1)
 
@@ -242,8 +228,8 @@ class TestAnnotationAdding(BaseTestCase):
             annotation_class_name="test_add",
             annotation_class_attributes=[{'name': 'yes', 'groupName': 'test'}]
         )
-        annotation = sa.get_image_annotations(self.PROJECT_NAME, self.EXAMPLE_IMAGE_1)
+        annotation = sa.get_annotations(self.PROJECT_NAME, [self.EXAMPLE_IMAGE_1])[0]
         self.assertTrue(
-            all([annotation["annotation_json"]["instances"][0]["attributes"][0][key] == val for key, val in
-             {'name': 'yes', 'groupName': 'test'}.items()])
+            all([annotation["instances"][0]["attributes"][0][key] == val for key, val in
+                 {'name': 'yes', 'groupName': 'test'}.items()])
         )

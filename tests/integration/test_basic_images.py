@@ -1,4 +1,3 @@
-import json
 import os
 import tempfile
 from os.path import dirname
@@ -23,7 +22,6 @@ class TestVectorAnnotationsWithTag(BaseTestCase):
     def classes_json_path(self):
         return f"{self.folder_path}/classes/classes.json"
 
-
     def test_vector_annotations_with_tag(self):
         sa.upload_images_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
@@ -36,10 +34,10 @@ class TestVectorAnnotationsWithTag(BaseTestCase):
             image_name=self.EXAMPLE_IMAGE_1,
             annotation_json=f"{self.folder_path}/{self.EXAMPLE_IMAGE_1}___objects.json",
         )
-        annotations = sa.get_image_annotations(self.PROJECT_NAME,self.EXAMPLE_IMAGE_1)
-        self.assertEqual(annotations['annotation_json']['instances'][0]['type'], 'tag')
-        self.assertEqual(annotations['annotation_json']['instances'][0]['attributes'][0]['name'], '1')
-        self.assertEqual(annotations['annotation_json']['instances'][0]['attributes'][0]['groupName'], 'g1')
+        annotations = sa.get_annotations(self.PROJECT_NAME, [self.EXAMPLE_IMAGE_1])[0]
+        self.assertEqual(annotations['instances'][0]['type'], 'tag')
+        self.assertEqual(annotations['instances'][0]['attributes'][0]['name'], '1')
+        self.assertEqual(annotations['instances'][0]['attributes'][0]['groupName'], 'g1')
 
 
 class TestVectorAnnotationsWithTagFolderUpload(BaseTestCase):
@@ -65,12 +63,12 @@ class TestVectorAnnotationsWithTagFolderUpload(BaseTestCase):
             self.PROJECT_NAME, self.classes_json_path
         )
         sa.upload_annotations_from_folder_to_project(
-            self.PROJECT_NAME,self.folder_path
+            self.PROJECT_NAME, self.folder_path
         )
-        annotations = sa.get_image_annotations(self.PROJECT_NAME, self.EXAMPLE_IMAGE_1)
-        self.assertEqual(annotations['annotation_json']['instances'][0]['type'], 'tag')
-        self.assertEqual(annotations['annotation_json']['instances'][0]['attributes'][0]['name'], '1')
-        self.assertEqual(annotations['annotation_json']['instances'][0]['attributes'][0]['groupName'], 'g1')
+        annotations = sa.get_annotations(self.PROJECT_NAME, [self.EXAMPLE_IMAGE_1])[0]
+        self.assertEqual(annotations['instances'][0]['type'], 'tag')
+        self.assertEqual(annotations['instances'][0]['attributes'][0]['name'], '1')
+        self.assertEqual(annotations['instances'][0]['attributes'][0]['groupName'], 'g1')
 
 
 class TestVectorAnnotationsWithTagFolderUploadPreannotation(BaseTestCase):
@@ -100,6 +98,7 @@ class TestVectorAnnotationsWithTagFolderUploadPreannotation(BaseTestCase):
         )
         self.assertEqual(len(uploaded_annotations), 1)
 
+
 class TestPixelImages(BaseTestCase):
     PROJECT_NAME = "sample_project_pixel"
     PROJECT_TYPE = "Pixel"
@@ -123,12 +122,15 @@ class TestPixelImages(BaseTestCase):
             sa.create_annotation_classes_from_classes_json(
                 self.PROJECT_NAME, self.classes_json_path
             )
-            image = sa.get_image_metadata(self.PROJECT_NAME,image_name="example_image_1.jpg" )
+            image = sa.get_image_metadata(self.PROJECT_NAME, image_name="example_image_1.jpg")
             image['createdAt'] = ''
             image['updatedAt'] = ''
-            truth ={'name': 'example_image_1.jpg', 'path': None, 'annotation_status': 'InProgress', 'prediction_status':'NotStarted', 'segmentation_status': 'NotStarted', 'approval_status': None, 'is_pinned': 0, 'annotator_name': None, 'qa_name': None, 'entropy_value': None, 'createdAt': '', 'updatedAt': ''}
+            truth = {'name': 'example_image_1.jpg', 'path': None, 'annotation_status': 'InProgress',
+                     'prediction_status': 'NotStarted', 'segmentation_status': 'NotStarted', 'approval_status': None,
+                     'is_pinned': 0, 'annotator_name': None, 'qa_name': None, 'entropy_value': None, 'createdAt': '',
+                     'updatedAt': ''}
 
-            self.assertEqual(image,truth)
+            self.assertEqual(image, truth)
 
             sa.upload_image_annotations(
                 project=self.PROJECT_NAME,
@@ -181,16 +183,17 @@ class TestVectorImages(BaseTestCase):
 
             image_name = images[0]
 
-            image = sa.get_image_metadata(self.PROJECT_NAME,image_name="example_image_1.jpg" )
+            image = sa.get_image_metadata(self.PROJECT_NAME, image_name="example_image_1.jpg")
             image['createdAt'] = ''
             image['updatedAt'] = ''
-            truth = {'name': 'example_image_1.jpg', 'path': None, 'annotation_status': 'InProgress', 'prediction_status':'NotStarted', 'segmentation_status': None, 'approval_status': None, 'is_pinned': 0, 'annotator_name': None, 'qa_name': None, 'entropy_value': None, 'createdAt': '', 'updatedAt': ''}
+            truth = {'name': 'example_image_1.jpg', 'path': None, 'annotation_status': 'InProgress',
+                     'prediction_status': 'NotStarted', 'segmentation_status': None, 'approval_status': None,
+                     'is_pinned': 0, 'annotator_name': None, 'qa_name': None, 'entropy_value': None, 'createdAt': '',
+                     'updatedAt': ''}
             self.assertEqual(image, truth)
 
             sa.download_image(self.PROJECT_NAME, image_name, temp_dir, True)
             self.assertEqual(
-                sa.get_image_annotations(self.PROJECT_NAME, image_name)[
-                    "annotation_json"
-                ],
-                None,
+                sa.get_annotations(self.PROJECT_NAME, [image_name])[0],
+                {'metadata': {'name': 'example_image_1.jpg'}, 'instances': []}
             )

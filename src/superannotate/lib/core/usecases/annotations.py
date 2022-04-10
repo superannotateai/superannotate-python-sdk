@@ -44,20 +44,20 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
     ImageInfo = namedtuple("ImageInfo", ["path", "name", "id"])
 
     def __init__(
-            self,
-            reporter: Reporter,
-            project: ProjectEntity,
-            folder: FolderEntity,
-            team: TeamEntity,
-            images: BaseManageableRepository,
-            annotation_classes: List[AnnotationClassEntity],
-            annotation_paths: List[str],
-            backend_service_provider: SuperannotateServiceProvider,
-            templates: List[dict],
-            validators: AnnotationValidators,
-            pre_annotation: bool = False,
-            client_s3_bucket=None,
-            folder_path: str = None,
+        self,
+        reporter: Reporter,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        team: TeamEntity,
+        images: BaseManageableRepository,
+        annotation_classes: List[AnnotationClassEntity],
+        annotation_paths: List[str],
+        backend_service_provider: SuperannotateServiceProvider,
+        templates: List[dict],
+        validators: AnnotationValidators,
+        pre_annotation: bool = False,
+        client_s3_bucket=None,
+        folder_path: str = None,
     ):
         super().__init__(reporter)
         self._project = project
@@ -81,8 +81,8 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
     @property
     def annotation_postfix(self):
         if self._project.project_type in (
-                constances.ProjectType.VIDEO.value,
-                constances.ProjectType.DOCUMENT.value,
+            constances.ProjectType.VIDEO.value,
+            constances.ProjectType.DOCUMENT.value,
         ):
             return constances.ATTACHED_VIDEO_ANNOTATION_POSTFIX
         elif self._project.project_type == constances.ProjectType.VECTOR.value:
@@ -94,8 +94,8 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
     def extract_name(value: str):
         return os.path.basename(
             value.replace(constances.PIXEL_ANNOTATION_POSTFIX, "")
-                .replace(constances.VECTOR_ANNOTATION_POSTFIX, "")
-                .replace(constances.ATTACHED_VIDEO_ANNOTATION_POSTFIX, ""),
+            .replace(constances.VECTOR_ANNOTATION_POSTFIX, "")
+            .replace(constances.ATTACHED_VIDEO_ANNOTATION_POSTFIX, ""),
         )
 
     @property
@@ -119,8 +119,8 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
                     folder_id=self._folder.uuid,
                     images=[image.name for image in images_detail],
                 )
-                    .execute()
-                    .data
+                .execute()
+                .data
             )
             for image_data in images_data:
                 for idx, detail in enumerate(images_detail):
@@ -150,7 +150,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
         return self._missing_annotations
 
     def get_annotation_upload_data(
-            self, image_ids: List[int]
+        self, image_ids: List[int]
     ) -> UploadAnnotationAuthData:
         if self._pre_annotation:
             function = self._backend_service.get_pre_annotation_upload_data
@@ -166,12 +166,12 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
             return response.data
 
     def _upload_annotation(
-            self,
-            image_id: int,
-            image_name: str,
-            upload_data: UploadAnnotationAuthData,
-            path: str,
-            bucket,
+        self,
+        image_id: int,
+        image_name: str,
+        upload_data: UploadAnnotationAuthData,
+        path: str,
+        bucket,
     ):
         try:
             self.reporter.disable_warnings()
@@ -255,8 +255,8 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
             )
             for step in iterations_range:
                 annotations_to_upload = self.annotations_to_upload[
-                                        step: step + self.AUTH_DATA_CHUNK_SIZE  # noqa: E203
-                                        ]
+                    step : step + self.AUTH_DATA_CHUNK_SIZE  # noqa: E203
+                ]
                 upload_data = self.get_annotation_upload_data(
                     [int(image.id) for image in annotations_to_upload]
                 )
@@ -269,11 +269,11 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
                     }
                     # dummy progress
                     for _ in range(
-                            len(annotations_to_upload) - len(upload_data.images)
+                        len(annotations_to_upload) - len(upload_data.images)
                     ):
                         self.reporter.update_progress()
                     with concurrent.futures.ThreadPoolExecutor(
-                            max_workers=self.MAX_WORKERS
+                        max_workers=self.MAX_WORKERS
                     ) as executor:
                         results = [
                             executor.submit(
@@ -305,25 +305,25 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
 
 class UploadAnnotationUseCase(BaseReportableUseCae):
     def __init__(
-            self,
-            project: ProjectEntity,
-            folder: FolderEntity,
-            image: ImageEntity,
-            images: BaseManageableRepository,
-            team: TeamEntity,
-            annotation_classes: List[AnnotationClassEntity],
-            backend_service_provider: SuperannotateServiceProvider,
-            reporter: Reporter,
-            templates: List[dict],
-            validators: AnnotationValidators,
-            annotation_upload_data: UploadAnnotationAuthData = None,
-            annotations: dict = None,
-            s3_bucket=None,
-            client_s3_bucket=None,
-            mask=None,
-            verbose: bool = True,
-            annotation_path: str = None,
-            pass_validation: bool = False,
+        self,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        image: ImageEntity,
+        images: BaseManageableRepository,
+        team: TeamEntity,
+        annotation_classes: List[AnnotationClassEntity],
+        backend_service_provider: SuperannotateServiceProvider,
+        reporter: Reporter,
+        templates: List[dict],
+        validators: AnnotationValidators,
+        annotation_upload_data: UploadAnnotationAuthData = None,
+        annotations: dict = None,
+        s3_bucket=None,
+        client_s3_bucket=None,
+        mask=None,
+        verbose: bool = True,
+        annotation_path: str = None,
+        pass_validation: bool = False,
     ):
         super().__init__(reporter)
         self._project = project
@@ -412,18 +412,18 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
 
     @staticmethod
     def prepare_annotations(
-            project_type: int,
-            annotations: dict,
-            annotation_classes: List[AnnotationClassEntity],
-            templates: List[dict],
-            reporter: Reporter,
-            team: TeamEntity,
+        project_type: int,
+        annotations: dict,
+        annotation_classes: List[AnnotationClassEntity],
+        templates: List[dict],
+        reporter: Reporter,
+        team: TeamEntity,
     ) -> dict:
         handlers_chain = ChainedAnnotationHandlers()
         if project_type in (
-                constances.ProjectType.VECTOR.value,
-                constances.ProjectType.PIXEL.value,
-                constances.ProjectType.DOCUMENT.value,
+            constances.ProjectType.VECTOR.value,
+            constances.ProjectType.PIXEL.value,
+            constances.ProjectType.DOCUMENT.value,
         ):
             handlers_chain.attach(
                 MissingIDsHandler(annotation_classes, templates, reporter)
@@ -435,7 +435,7 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
         handlers_chain.attach(LastActionHandler(team.creator_id))
         return handlers_chain.handle(annotations)
 
-    def clean_json(self, json_data: dict, ) -> Tuple[bool, dict]:
+    def clean_json(self, json_data: dict,) -> Tuple[bool, dict]:
         use_case = ValidateAnnotationUseCase(
             constances.ProjectType.get_name(self._project.project_type),
             annotation=json_data,
@@ -465,8 +465,8 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
                     Body=json.dumps(annotation_json),
                 )
                 if (
-                        self._project.project_type == constances.ProjectType.PIXEL.value
-                        and self._mask
+                    self._project.project_type == constances.ProjectType.PIXEL.value
+                    and self._mask
                 ):
                     bucket.put_object(
                         Key=self.annotation_upload_data.images[self._image.uuid][
@@ -493,14 +493,14 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
 
 class GetAnnotations(BaseReportableUseCae):
     def __init__(
-            self,
-            reporter: Reporter,
-            project: ProjectEntity,
-            folder: FolderEntity,
-            images: BaseManageableRepository,
-            item_names: Optional[List[str]],
-            backend_service_provider: SuperannotateServiceProvider,
-            show_process: bool = True
+        self,
+        reporter: Reporter,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        images: BaseManageableRepository,
+        item_names: Optional[List[str]],
+        backend_service_provider: SuperannotateServiceProvider,
+        show_process: bool = True,
     ):
         super().__init__(reporter)
         self._project = project
@@ -527,9 +527,9 @@ class GetAnnotations(BaseReportableUseCae):
         else:
             self._item_names_provided = False
             condition = (
-                    Condition("team_id", self._project.team_id, EQ)
-                    & Condition("project_id", self._project.uuid, EQ)
-                    & Condition("folder_id", self._folder.uuid, EQ)
+                Condition("team_id", self._project.team_id, EQ)
+                & Condition("project_id", self._project.uuid, EQ)
+                & Condition("folder_id", self._folder.uuid, EQ)
             )
 
             self._item_names = [item.name for item in self._images.get_all(condition)]
@@ -539,7 +539,12 @@ class GetAnnotations(BaseReportableUseCae):
             try:
                 data = []
                 for annotation in annotations:
-                    data.append((self._item_names.index(annotation["metadata"]["name"]), annotation))
+                    data.append(
+                        (
+                            self._item_names.index(annotation["metadata"]["name"]),
+                            annotation,
+                        )
+                    )
                 return [i[1] for i in sorted(data, key=lambda x: x[0])]
             except KeyError:
                 raise AppException("Broken data.")
@@ -558,7 +563,7 @@ class GetAnnotations(BaseReportableUseCae):
                 project_id=self._project.uuid,
                 folder_id=self._folder.uuid,
                 items=self._item_names,
-                reporter=self.reporter
+                reporter=self.reporter,
             )
             received_items_count = len(annotations)
             self.reporter.finish_progress()
@@ -572,14 +577,14 @@ class GetAnnotations(BaseReportableUseCae):
 
 class GetVideoAnnotationsPerFrame(BaseReportableUseCae):
     def __init__(
-            self,
-            reporter: Reporter,
-            project: ProjectEntity,
-            folder: FolderEntity,
-            images: BaseManageableRepository,
-            video_name: str,
-            fps: int,
-            backend_service_provider: SuperannotateServiceProvider
+        self,
+        reporter: Reporter,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        images: BaseManageableRepository,
+        video_name: str,
+        fps: int,
+        backend_service_provider: SuperannotateServiceProvider,
     ):
         super().__init__(reporter)
         self._project = project
@@ -606,18 +611,22 @@ class GetVideoAnnotationsPerFrame(BaseReportableUseCae):
                 images=self._images,
                 item_names=[self._video_name],
                 backend_service_provider=self._client,
-                show_process=False
+                show_process=False,
             ).execute()
             self.reporter.enable_info()
             if response.data:
                 generator = VideoFrameGenerator(response.data[0], fps=self._fps)
 
-                self.reporter.log_info(f"Getting annotations for {generator.frames_count} frames from {self._video_name}.")
+                self.reporter.log_info(
+                    f"Getting annotations for {generator.frames_count} frames from {self._video_name}."
+                )
                 if response.errors:
                     self._response.errors = response.errors
                     return self._response
                 if not response.data:
-                    self._response.errors = AppException(f"Video {self._video_name} not found.")
+                    self._response.errors = AppException(
+                        f"Video {self._video_name} not found."
+                    )
                 annotations = response.data
                 if annotations:
                     self._response.data = list(generator)
@@ -632,13 +641,13 @@ class UploadPriorityScoresUseCase(BaseReportableUseCae):
     CHUNK_SIZE = 100
 
     def __init__(
-            self,
-            reporter,
-            project: ProjectEntity,
-            folder: FolderEntity,
-            scores: List[PriorityScore],
-            project_folder_name: str,
-            backend_service_provider: SuperannotateServiceProvider
+        self,
+        reporter,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        scores: List[PriorityScore],
+        project_folder_name: str,
+        backend_service_provider: SuperannotateServiceProvider,
     ):
         super().__init__(reporter)
         self._project = project
@@ -655,9 +664,13 @@ class UploadPriorityScoresUseCase(BaseReportableUseCae):
             priority = 1000000
         if priority < 0:
             priority = 0
-        if str(float(priority)).split('.')[1:2]:
-            if len(str(float(priority)).split('.')[1]) > 5:
-                priority = float(str(float(priority)).split('.')[0] + '.' + str(float(priority)).split('.')[1][:5])
+        if str(float(priority)).split(".")[1:2]:
+            if len(str(float(priority)).split(".")[1]) > 5:
+                priority = float(
+                    str(float(priority)).split(".")[0]
+                    + "."
+                    + str(float(priority)).split(".")[1][:5]
+                )
         return priority
 
     @property
@@ -667,17 +680,21 @@ class UploadPriorityScoresUseCase(BaseReportableUseCae):
     @property
     def uploading_info(self):
         data_len: int = len(self._scores)
-        return f"Uploading  priority scores for {data_len} item(s) to {self.folder_path}."
+        return (
+            f"Uploading  priority scores for {data_len} item(s) to {self.folder_path}."
+        )
 
     def execute(self):
         if self.is_valid():
             priorities = []
             initial_scores = []
             for i in self._scores:
-                priorities.append({
-                    "name": i.name,
-                    "entropy_value": self.get_clean_priority(i.priority)
-                })
+                priorities.append(
+                    {
+                        "name": i.name,
+                        "entropy_value": self.get_clean_priority(i.priority),
+                    }
+                )
                 initial_scores.append(i.name)
             uploaded_score_names = []
             self.reporter.log_info(self.uploading_info)
@@ -685,17 +702,23 @@ class UploadPriorityScoresUseCase(BaseReportableUseCae):
             self.reporter.start_progress(iterations, "Uploading priority scores")
             if iterations:
                 for i in iterations:
-                    priorities_to_upload = priorities[i: i + self.CHUNK_SIZE]  # noqa: E203
+                    priorities_to_upload = priorities[
+                        i : i + self.CHUNK_SIZE
+                    ]  # noqa: E203
                     res = self._client.upload_priority_scores(
                         team_id=self._project.team_id,
                         project_id=self._project.uuid,
                         folder_id=self._folder.uuid,
-                        priorities=priorities_to_upload
+                        priorities=priorities_to_upload,
                     )
                     self.reporter.update_progress(len(priorities_to_upload))
-                    uploaded_score_names.extend(list(map(lambda x: x["name"], res.get("data", []))))
+                    uploaded_score_names.extend(
+                        list(map(lambda x: x["name"], res.get("data", [])))
+                    )
                 self.reporter.finish_progress()
-                skipped_score_names = list(set(initial_scores) - set(uploaded_score_names))
+                skipped_score_names = list(
+                    set(initial_scores) - set(uploaded_score_names)
+                )
                 self._response.data = (uploaded_score_names, skipped_score_names)
             else:
                 self.reporter.warning_messages("Empty scores.")

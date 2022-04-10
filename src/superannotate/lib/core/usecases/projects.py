@@ -129,10 +129,10 @@ class GetProjectMetaDataUseCase(BaseUseCase):
             )
             root_completed_count = 0
             total_completed_count = 0
-            for i in completed_images_data['data']:
-                total_completed_count += i['completedCount']
-                if i['is_root']:
-                    root_completed_count = i['completedCount']
+            for i in completed_images_data["data"]:
+                total_completed_count += i["completedCount"]
+                if i["is_root"]:
+                    root_completed_count = i["completedCount"]
 
             project.root_folder_completed_images_count = root_completed_count
             project.completed_images_count = total_completed_count
@@ -214,8 +214,14 @@ class CreateProjectUseCase(BaseUseCase):
 
     def execute(self):
         if self.is_valid():
+            # new projects can only have the status of NotStarted
             self._project.status = constances.ProjectStatus.NotStarted.value
             entity = self._projects.insert(self._project)
+            # create project doesn't store attachment data so need to update
+            instructions_link = self._project.instructions_link
+            if instructions_link:
+                entity.instructions_link = instructions_link
+                self._projects.update(entity)
             self._response.data = entity
             data = {}
             if self._settings:

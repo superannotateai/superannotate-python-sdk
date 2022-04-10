@@ -30,7 +30,7 @@ setup(
     description='Python SDK to SuperAnnotate platform',
     license='MIT',
     author='SuperAnnotate AI',
-    author_email='hovnatan@superannotate.com',
+    author_email='vaghinak@superannotate.com',
     url='https://github.com/superannotateai/superannotate-python-sdk',
     long_description=readme,
     long_description_content_type='text/markdown',

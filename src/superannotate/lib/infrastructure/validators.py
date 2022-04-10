@@ -1,8 +1,6 @@
 import os
 from collections import defaultdict
 
-from lib.core.entities import PixelAnnotation
-from lib.core.validators import BaseValidator
 from pydantic import ValidationError
 
 
@@ -36,17 +34,3 @@ def wrap_error(e: ValidationError) -> str:
             )
         )
     return "\n".join(texts)
-
-
-class BaseSchemaValidator(BaseValidator):
-    MODEL = PixelAnnotation
-
-    def is_valid(self) -> bool:
-        try:
-            self._validate()
-        except ValidationError as e:
-            self._validation_output = e
-        return not bool(self._validation_output)
-
-    def generate_report(self) -> str:
-        return wrap_error(self._validation_output)

@@ -38,10 +38,8 @@ class TestAnnotationDelete(BaseTestCase):
         )
 
         sa.delete_annotations(self.PROJECT_NAME)
-        data = sa.get_image_annotations(self.PROJECT_NAME, self.EXAMPLE_IMAGE_1)
-        self.assertIsNone(data["annotation_json"])
-        self.assertIsNotNone(data["annotation_json_filename"])
-        self.assertIsNone(data["annotation_mask"])
+        annotations = sa.get_annotations(self.PROJECT_NAME, [self.EXAMPLE_IMAGE_1])
+        assert annotations == [{'metadata': {'name': 'example_image_1.jpg'}, 'instances': []}]
 
     def test_delete_annotations_by_name(self):
         sa.upload_images_from_folder_to_project(
@@ -54,10 +52,8 @@ class TestAnnotationDelete(BaseTestCase):
             self.PROJECT_NAME, f"{self.folder_path}"
         )
         sa.delete_annotations(self.PROJECT_NAME, [self.EXAMPLE_IMAGE_1])
-        data = sa.get_image_annotations(self.PROJECT_NAME, self.EXAMPLE_IMAGE_1)
-        self.assertIsNone(data["annotation_json"])
-        self.assertIsNotNone(data["annotation_json_filename"])
-        self.assertIsNone(data["annotation_mask"])
+        annotations = sa.get_annotations(self.PROJECT_NAME, [self.EXAMPLE_IMAGE_1])
+        assert annotations == [{'metadata': {'name': 'example_image_1.jpg'}, 'instances': []}]
 
     def test_delete_annotations_by_not_existing_name(self):
         sa.upload_images_from_folder_to_project(
@@ -98,7 +94,5 @@ class TestAnnotationDelete(BaseTestCase):
             f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME}", f"{self.folder_path}"
         )
         sa.delete_annotations(f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME}", [self.EXAMPLE_IMAGE_1])
-        data = sa.get_image_annotations(f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME}", self.EXAMPLE_IMAGE_1)
-        self.assertIsNone(data["annotation_json"])
-        self.assertIsNotNone(data["annotation_json_filename"])
-        self.assertIsNone(data["annotation_mask"])
+        annotations = sa.get_annotations(self.PROJECT_NAME, [self.EXAMPLE_IMAGE_1])
+        assert len(annotations) == 0

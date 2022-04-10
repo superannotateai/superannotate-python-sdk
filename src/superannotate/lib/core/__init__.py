@@ -2,6 +2,7 @@ from pathlib import Path
 
 from superannotate.lib.core.enums import AnnotationStatus
 from superannotate.lib.core.enums import ImageQuality
+from superannotate.lib.core.enums import ProjectState
 from superannotate.lib.core.enums import ProjectStatus
 from superannotate.lib.core.enums import ProjectType
 from superannotate.lib.core.enums import SegmentationStatus
@@ -128,6 +129,7 @@ USE_VALIDATE_MESSAGE = (
 INVALID_JSON_MESSAGE = "Invalid json"
 
 __alL__ = (
+    ProjectState,
     ProjectStatus,
     ProjectType,
     UserRole,

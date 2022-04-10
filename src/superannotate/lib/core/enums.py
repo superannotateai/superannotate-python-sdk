@@ -2,37 +2,44 @@ from enum import Enum
 from types import DynamicClassAttribute
 
 
-class BaseTitledEnum(Enum):
+class BaseTitledEnum(int, Enum):
+    def __new__(cls, title, value):
+        obj = int.__new__(cls, value)
+        obj._value_ = value
+        obj.__doc__ = title
+        obj._type = "titled_enum"
+        return obj
+
     @DynamicClassAttribute
     def name(self) -> str:
-        return super().value[0]
+        return self.__doc__
 
     @DynamicClassAttribute
     def value(self):
-        return super().value[1]
+        return super().value
 
     @classmethod
     def get_name(cls, value):
         for enum in list(cls):
             if enum.value == value:
-                return enum.name
+                return enum.__doc__
 
     @classmethod
     def get_value(cls, name):
         for enum in list(cls):
-            if enum.name.lower() == name.lower():
+            if enum.__doc__.lower() == name.lower():
                 return enum.value
 
     @classmethod
     def values(cls):
-        return [enum.name.lower() for enum in list(cls)]
+        return [enum.__doc__.lower() for enum in list(cls)]
 
     @classmethod
     def titles(cls):
-        return [enum.name for enum in list(cls)]
+        return [enum.__doc__ for enum in list(cls)]
 
     def equals(self, other: Enum):
-        return self.name.lower() == other.lower()
+        return self.__doc__.lower() == other.__doc__.lower()
 
 
 class ProjectType(BaseTitledEnum):
@@ -63,6 +70,7 @@ class ImageQuality(BaseTitledEnum):
 
 
 class ProjectStatus(BaseTitledEnum):
+    Undefined = "Undefined", 0
     NotStarted = "NotStarted", 1
     InProgress = "InProgress", 2
     Completed = "Completed", 3
@@ -92,9 +100,15 @@ class ClassTypeEnum(BaseTitledEnum):
     @classmethod
     def get_value(cls, name):
         for enum in list(cls):
-            if enum.name.lower() == name.lower():
+            if enum.__doc__.lower() == name.lower():
                 return enum.value
-        return "object"
+        return cls.OBJECT.value
+
+
+class IntegrationTypeEnum(BaseTitledEnum):
+    AWS = "aws", 1
+    GCP = "gcp", 2
+    AZURE = "azure", 3
 
 
 class TrainingStatus(BaseTitledEnum):
@@ -113,7 +127,12 @@ class SegmentationStatus(BaseTitledEnum):
     FAILED = "Failed", 4
 
 
-class TrainingTask(BaseTitledEnum):
+class ProjectState(BaseTitledEnum):
+    NOT_SYNCED = "Not synced", 1
+    SYNCED = "Synced", 2
+
+
+class TrainingTask:
     INSTANCE_SEGMENTATION_PIXEL = (
         "Instance Segmentation for Pixel Projects",
         "instance_segmentation_pixel",

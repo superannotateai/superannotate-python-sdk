@@ -23,7 +23,6 @@ from lib.infrastructure.controller import Controller
 from lib.infrastructure.repositories import ConfigRepository
 
 
-
 class CLIFacade(BaseInterfaceFacade):
     """
     With SuperAnnotate CLI, basic tasks can be accomplished using shell commands:
@@ -186,7 +185,11 @@ class CLIFacade(BaseInterfaceFacade):
     ):
         project_folder_name = project
         project_name, folder_name = split_project_path(project)
-        project = Controller.get_default().get_project_metadata(project_name=project_name).data
+        project = (
+            Controller.get_default()
+            .get_project_metadata(project_name=project_name)
+            .data
+        )
         if not format:
             format = "SuperAnnotate"
         if not dataset_name and format == "COCO":

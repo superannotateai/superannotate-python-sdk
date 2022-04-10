@@ -25,7 +25,9 @@ from superannotate.lib.app.interface.sdk_interface import (
     attach_document_urls_to_project,
 )
 from superannotate.lib.app.interface.sdk_interface import attach_image_urls_to_project
-from superannotate.lib.app.interface.sdk_interface import attach_items_from_integrated_storage
+from superannotate.lib.app.interface.sdk_interface import (
+    attach_items_from_integrated_storage,
+)
 from superannotate.lib.app.interface.sdk_interface import attach_video_urls_to_project
 from superannotate.lib.app.interface.sdk_interface import benchmark
 from superannotate.lib.app.interface.sdk_interface import clone_project
@@ -55,9 +57,9 @@ from superannotate.lib.app.interface.sdk_interface import get_annotations
 from superannotate.lib.app.interface.sdk_interface import get_annotations_per_frame
 from superannotate.lib.app.interface.sdk_interface import get_exports
 from superannotate.lib.app.interface.sdk_interface import get_folder_metadata
-from superannotate.lib.app.interface.sdk_interface import get_image_annotations
 from superannotate.lib.app.interface.sdk_interface import get_image_metadata
 from superannotate.lib.app.interface.sdk_interface import get_integrations
+from superannotate.lib.app.interface.sdk_interface import get_item_metadata
 from superannotate.lib.app.interface.sdk_interface import (
     get_project_and_folder_metadata,
 )
@@ -71,12 +73,14 @@ from superannotate.lib.app.interface.sdk_interface import invite_contributors_to
 from superannotate.lib.app.interface.sdk_interface import move_images
 from superannotate.lib.app.interface.sdk_interface import pin_image
 from superannotate.lib.app.interface.sdk_interface import prepare_export
+from superannotate.lib.app.interface.sdk_interface import query
 from superannotate.lib.app.interface.sdk_interface import rename_project
 from superannotate.lib.app.interface.sdk_interface import run_prediction
 from superannotate.lib.app.interface.sdk_interface import search_annotation_classes
 from superannotate.lib.app.interface.sdk_interface import search_folders
 from superannotate.lib.app.interface.sdk_interface import search_images
 from superannotate.lib.app.interface.sdk_interface import search_images_all_folders
+from superannotate.lib.app.interface.sdk_interface import search_items
 from superannotate.lib.app.interface.sdk_interface import search_models
 from superannotate.lib.app.interface.sdk_interface import search_projects
 from superannotate.lib.app.interface.sdk_interface import search_team_contributors
@@ -98,16 +102,11 @@ from superannotate.lib.app.interface.sdk_interface import upload_image_to_projec
 from superannotate.lib.app.interface.sdk_interface import (
     upload_images_from_folder_to_project,
 )
-from superannotate.lib.app.interface.sdk_interface import (
-    upload_images_from_public_urls_to_project,
-)
 from superannotate.lib.app.interface.sdk_interface import upload_images_to_project
 from superannotate.lib.app.interface.sdk_interface import (
     upload_preannotations_from_folder_to_project,
 )
-from superannotate.lib.app.interface.sdk_interface import (
-    upload_priority_scores,
-)
+from superannotate.lib.app.interface.sdk_interface import upload_priority_scores
 from superannotate.lib.app.interface.sdk_interface import upload_video_to_project
 from superannotate.lib.app.interface.sdk_interface import (
     upload_videos_from_folder_to_project,
@@ -159,6 +158,7 @@ __all__ = [
     "clone_project",
     "share_project",
     "delete_project",
+    "rename_project",
     "upload_priority_scores",
     # Images Section
     "search_images",
@@ -171,6 +171,10 @@ __all__ = [
     "search_folders",
     "assign_folder",
     "unassign_folder",
+    # Items Section
+    "get_item_metadata",
+    "search_items",
+    "query",
     # Image Section
     "copy_images",
     "move_images",
@@ -186,7 +190,6 @@ __all__ = [
     "delete_annotations",
     "upload_image_to_project",
     "upload_image_annotations",
-    "upload_images_from_public_urls_to_project",
     "upload_images_from_folder_to_project",
     "attach_image_urls_to_project",
     "attach_video_urls_to_project",
@@ -202,7 +205,6 @@ __all__ = [
     "add_annotation_bbox_to_image",
     "add_annotation_point_to_image",
     "add_annotation_comment_to_image",
-    "get_image_annotations",
     "search_annotation_classes",
     "create_annotation_classes_from_classes_json",
     "upload_annotations_from_folder_to_project",
@@ -212,7 +214,6 @@ __all__ = [
     "run_prediction",
     "search_models",
     "download_model",
-    "rename_project",
     "set_image_annotation_status",
     "benchmark",
     "consensus",
