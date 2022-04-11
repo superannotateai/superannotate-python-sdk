@@ -12,6 +12,12 @@ from typing import Tuple
 from typing import Union
 
 import boto3
+from pydantic import StrictBool
+from pydantic import conlist
+from pydantic import parse_obj_as
+from pydantic.error_wrappers import ValidationError
+from tqdm import tqdm
+
 import lib.core as constances
 from lib.app.annotation_helpers import add_annotation_bbox_to_json
 from lib.app.annotation_helpers import add_annotation_comment_to_json
@@ -50,12 +56,7 @@ from lib.core.types import MLModel
 from lib.core.types import PriorityScore
 from lib.core.types import Project
 from lib.infrastructure.controller import Controller
-from pydantic import conlist
-from pydantic import parse_obj_as
-from pydantic import StrictBool
-from pydantic.error_wrappers import ValidationError
 from superannotate.logger import get_default_logger
-from tqdm import tqdm
 
 logger = get_default_logger()
 
@@ -1816,12 +1817,6 @@ def attach_image_urls_to_project(
     :return: list of linked image names, list of failed image names, list of duplicate image names
     :rtype: tuple
     """
-    warning_msg = (
-        "We're deprecating the attach_image_urls_to_project function. Please use attach_items instead. Learn more."
-        "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.attach_items"
-    )
-    logger.warning(warning_msg)
-    warnings.warn(warning_msg, DeprecationWarning)
     project_name, folder_name = extract_project_folder(project)
     project = Controller.get_default().get_project_metadata(project_name).data
     project_folder_name = project_name + (f"/{folder_name}" if folder_name else "")
@@ -1889,12 +1884,6 @@ def attach_video_urls_to_project(
     :return: attached videos, failed videos, skipped videos
     :rtype: (list, list, list)
     """
-    warning_msg = (
-        "We're deprecating the attach_video_urls_to_project function. Please use attach_items instead. Learn more."
-        "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.attach_items"
-    )
-    logger.warning(warning_msg)
-    warnings.warn(warning_msg, DeprecationWarning)
     project_name, folder_name = extract_project_folder(project)
     project = Controller.get_default().get_project_metadata(project_name).data
     project_folder_name = project_name + (f"/{folder_name}" if folder_name else "")
@@ -2755,12 +2744,6 @@ def attach_document_urls_to_project(
     :return: list of attached documents, list of not attached documents, list of skipped documents
     :rtype: tuple
     """
-    warning_msg = (
-        "We're deprecating the attach_document_urls_to_project function. Please use attach_items instead. Learn more."
-        "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.attach_items"
-    )
-    logger.warning(warning_msg)
-    warnings.warn(warning_msg, DeprecationWarning)
     project_name, folder_name = extract_project_folder(project)
     project = Controller.get_default().get_project_metadata(project_name).data
     project_folder_name = project_name + (f"/{folder_name}" if folder_name else "")
@@ -3119,8 +3102,8 @@ def search_items(
 @validate_arguments
 def attach_items(
         project: Union[NotEmptyStr, dict],
-        attachments: AttachmentArg,
-        annotation_status: Optional[AnnotationStatuses] = "NotStarted"
+        attachments,
+        annotation_status="NotStarted"
 ):
     """Link items from external storage to SuperAnnotate using URLs.
 
@@ -3144,33 +3127,41 @@ def attach_items(
      that are already in SuperAnnotate.
     :rtype: tuple
     """
-    attachments = attachments.__root__
     project_name, folder_name = extract_project_folder(project)
-    if attachments and isinstance(attachments[0], AttachmentDict):
-        unique_attachments = set(attachments)
-        duplicate_attachments = [item for item, count in collections.Counter(attachments).items() if count > 1]
-    else:
-        unique_attachments, duplicate_attachments = get_name_url_duplicated_from_csv(attachments)
 
-    if duplicate_attachments:
-        logger.info("Dropping duplicates.")
-    unique_attachments = parse_obj_as(List[AttachmentEntity], unique_attachments)
-    if unique_attachments:
-        logger.info(f"Attaching  {len(unique_attachments)} file(s) to project {project}.")
-        response = Controller.get_default().attach_items(
-            project_name=project_name,
-            folder_name=folder_name,
-            attachments=unique_attachments,
-            annotation_status=annotation_status,
+    images_to_upload, duplicate_images = get_paths_and_duplicated_from_csv(attachments)
+
+    attachments_data
+
+    use_case = Controller.get_default().attach_items(
+        project_name=project_name,
+        folder_name=folder_name,
+        files=ImageSerializer.deserialize(images_to_upload),  # noqa: E203
+        annotation_status=annotation_status,
+    )
+    if len(duplicate_images):
+        logger.warning(
+            constances.ALREADY_EXISTING_FILES_WARNING.format(len(duplicate_images))
         )
-        if response.errors:
-            raise AppException(response.errors)
 
-        uploaded, duplicated = response.data
+    if use_case.is_valid():
+        logger.info(
+            constances.ATTACHING_FILES_MESSAGE.format(
+                len(images_to_upload), project
+            )
+        )
+        with tqdm(
+                total=use_case.attachments_count, desc="Attaching urls"
+        ) as progress_bar:
+            for attached in use_case.execute():
+                progress_bar.update(attached)
+        uploaded, duplications = use_case.data
         uploaded = [i["name"] for i in uploaded]
-        fails = [
-            attachment.name
-            for attachment in unique_attachments
-            if attachment.name not in uploaded and attachment.name not in duplicated
+        duplications.extend(duplicate_images)
+        failed_images = [
+            image["name"]
+            for image in images_to_upload
+            if image["name"] not in uploaded + duplications
         ]
-        return uploaded, fails, duplicated
+        return uploaded, failed_images, duplications
+    raise AppException(use_case.response.errors)
