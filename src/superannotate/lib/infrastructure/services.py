@@ -1,5 +1,6 @@
 import asyncio
 import json
+import time
 from contextlib import contextmanager
 from datetime import datetime
 from typing import Dict
@@ -12,6 +13,7 @@ from urllib.parse import urljoin
 import lib.core as constance
 import requests.packages.urllib3
 from lib.core.exceptions import AppException
+from lib.core.exceptions import BackendError
 from lib.core.reporter import Reporter
 from lib.core.service_types import DownloadMLModelAuthData
 from lib.core.service_types import ServiceResponse
@@ -589,13 +591,13 @@ class SuperannotateBackendService(BaseBackendService):
         )
         return res.ok
 
-    def copy_images_between_folders_transaction(
+    def copy_items_between_folders_transaction(
         self,
         team_id: int,
         project_id: int,
         from_folder_id: int,
         to_folder_id: int,
-        images: List[str],
+        items: List[str],
         include_annotations: bool = False,
         include_pin: bool = False,
     ) -> int:
@@ -609,7 +611,7 @@ class SuperannotateBackendService(BaseBackendService):
             params={"team_id": team_id, "project_id": project_id},
             data={
                 "is_folder_copy": False,
-                "image_names": images,
+                "image_names": items,
                 "destination_folder_id": to_folder_id,
                 "source_folder_id": from_folder_id,
                 "include_annotations": include_annotations,
@@ -653,6 +655,18 @@ class SuperannotateBackendService(BaseBackendService):
             params={"team_id": team_id, "project_id": project_id, "poll_id": poll_id},
         ).json()
         return res["done"], res["skipped"]
+
+    def await_progress(self, project_id: int, team_id: int, poll_id: int, items_count):
+        try:
+            await_time = items_count * 0.3
+            timeout_start = time.time()
+            while time.time() < timeout_start + await_time:
+                done_count, skipped_count = self.get_progress(project_id, team_id, poll_id)
+                if done_count + skipped_count == items_count:
+                    break
+                time.sleep(4)
+        except (AppException, Exception) as e:
+            raise BackendError(e)
 
     def get_duplicated_images(
         self, project_id: int, team_id: int, folder_id: int, images: List[str]

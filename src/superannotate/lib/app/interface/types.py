@@ -113,6 +113,10 @@ class AttachmentArg(BaseModel):
     def __getitem__(self, index):
         return self.__root__[index]
 
+    @property
+    def data(self):
+        return self.__root__
+
     @root_validator(pre=True)
     def validate_root(cls, values):
         try:

@@ -1029,3 +1029,47 @@ def search_items(**kwargs):
             "recursive": bool(recursive),
         },
     }
+
+
+def move_items(**kwargs):
+    project = kwargs["project"]
+    project_name, _ = extract_project_folder(project)
+    project = Controller.get_default().get_project_metadata(project_name).data["project"]
+    items = kwargs["items"]
+    return {
+        "event_name": "move_items",
+        "properties": {
+            "project_type": ProjectType.get_name(project.project_type),
+            "items_count": len(items) if items else None
+        },
+    }
+
+
+def copy_items(**kwargs):
+    project = kwargs["project"]
+    project_name, _ = extract_project_folder(project)
+    project = Controller.get_default().get_project_metadata(project_name).data["project"]
+    items = kwargs["items"]
+    return {
+        "event_name": "copy_items",
+        "properties": {
+            "project_type": ProjectType.get_name(project.project_type),
+            "items_count": len(items) if items else None,
+            "include_annotations": kwargs["include_annotations"]
+        },
+    }
+
+
+def attach_items(**kwargs):
+    project = kwargs["project"]
+    project_name, _ = extract_project_folder(project)
+    project = Controller.get_default().get_project_metadata(project_name).data["project"]
+    attachments = kwargs["attachments"]
+    return {
+        "event_name": "copy_items",
+        "properties": {
+            "project_type": ProjectType.get_name(project.project_type),
+            "attachments": "scv" if isinstance(attachments, (str, Path)) else "dict",
+            "annotation_status": kwargs["annotation_status"]
+        },
+    }

@@ -74,6 +74,9 @@ ______
 
 .. autofunction:: superannotate.query
 .. autofunction:: superannotate.search_items
+.. autofunction:: superannotate.attach_items
+.. autofunction:: superannotate.copy_items
+.. autofunction:: superannotate.move_items
 .. autofunction:: superannotate.get_item_metadata
 
 ----------
