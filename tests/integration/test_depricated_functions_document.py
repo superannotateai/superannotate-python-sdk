@@ -69,10 +69,6 @@ class TestDeprecatedFunctionsDocument(TestCase):
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
-            sa.get_image_metadata(self.PROJECT_NAME, "some")
-        except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE, str(e))
-        try:
             sa.search_images(self.PROJECT_NAME)
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))

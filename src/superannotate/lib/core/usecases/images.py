@@ -584,7 +584,7 @@ class ImagesBulkCopyUseCase(BaseUseCase):
                     project_id=self._project.uuid,
                     from_folder_id=self._from_folder.uuid,
                     to_folder_id=self._to_folder.uuid,
-                    images=self._image_names[i : i + self.CHUNK_SIZE],
+                    items=self._image_names[i : i + self.CHUNK_SIZE],
                     include_annotations=self._include_annotations,
                     include_pin=self._include_pin,
                 )

@@ -103,7 +103,6 @@ class TestImageCopy(BaseTestCase):
             f"{self.folder_path}/example_image_2.jpg",
             annotation_status="InProgress",
         )
-        sa.pin_image(self.PROJECT_NAME, "example_image_1.jpg")
         images = sa.search_images(self.PROJECT_NAME)
         self.assertEqual(len(images), 2)
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER)
@@ -113,7 +112,6 @@ class TestImageCopy(BaseTestCase):
             f"{self.PROJECT_NAME}/{self.TEST_FOLDER}",
             include_annotations=True,
             copy_annotation_status=True,
-            copy_pin=True,
         )
         self.assertEqual(
             len(sa.search_images(f"{self.PROJECT_NAME}/{self.TEST_FOLDER}")), 1
@@ -123,10 +121,6 @@ class TestImageCopy(BaseTestCase):
         )
         self.assertTrue(annotations[0] is not None)
 
-        metadata = sa.get_image_metadata(
-            f"{self.PROJECT_NAME}/{self.TEST_FOLDER}", "example_image_1.jpg"
-        )
-        self.assertEqual(metadata["is_pinned"], 1)
 
     @pytest.mark.flaky(reruns=2)
     def test_copy_image_with_arguments(self):

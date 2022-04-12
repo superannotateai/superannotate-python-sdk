@@ -40,5 +40,5 @@ setup(
     entry_points={
         'console_scripts': ['superannotatecli = superannotate.lib.app.bin.superannotate:main']
     },
-    python_requires='>=3.6'
+    python_requires='>=3.7'
 )

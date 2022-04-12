@@ -753,7 +753,7 @@ class UpdateSettingsUseCase(BaseUseCase):
             old_settings = self._settings.get_all()
             attr_id_mapping = {}
             for setting in old_settings:
-                attr_id_mapping[setting.attribute] = setting.uuid
+                attr_id_mapping[setting.attribute] = setting.id
 
             new_settings_to_update = []
             for new_setting in self._to_update:

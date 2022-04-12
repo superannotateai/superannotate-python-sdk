@@ -122,15 +122,14 @@ class TestPixelImages(BaseTestCase):
             sa.create_annotation_classes_from_classes_json(
                 self.PROJECT_NAME, self.classes_json_path
             )
-            image = sa.get_image_metadata(self.PROJECT_NAME, image_name="example_image_1.jpg")
-            image['createdAt'] = ''
-            image['updatedAt'] = ''
-            truth = {'name': 'example_image_1.jpg', 'path': None, 'annotation_status': 'InProgress',
+            image = sa.get_item_metadata(self.PROJECT_NAME, "example_image_1.jpg")
+            del image['createdAt']
+            del image['updatedAt']
+            truth = {'name': 'example_image_1.jpg',  'annotation_status': 'InProgress',
                      'prediction_status': 'NotStarted', 'segmentation_status': 'NotStarted', 'approval_status': None,
-                     'is_pinned': 0, 'annotator_name': None, 'qa_name': None, 'entropy_value': None, 'createdAt': '',
-                     'updatedAt': ''}
+                     'annotator_email': None, 'qa_email': None, 'entropy_value': None}
 
-            self.assertEqual(image, truth)
+            assert all([truth[i] == image[i] for i in truth])
 
             sa.upload_image_annotations(
                 project=self.PROJECT_NAME,
@@ -183,14 +182,13 @@ class TestVectorImages(BaseTestCase):
 
             image_name = images[0]
 
-            image = sa.get_image_metadata(self.PROJECT_NAME, image_name="example_image_1.jpg")
-            image['createdAt'] = ''
-            image['updatedAt'] = ''
-            truth = {'name': 'example_image_1.jpg', 'path': None, 'annotation_status': 'InProgress',
+            image = sa.get_item_metadata(self.PROJECT_NAME, "example_image_1.jpg")
+            del image['createdAt']
+            del image['updatedAt']
+            truth = {'name': 'example_image_1.jpg', 'annotation_status': 'InProgress',
                      'prediction_status': 'NotStarted', 'segmentation_status': None, 'approval_status': None,
-                     'is_pinned': 0, 'annotator_name': None, 'qa_name': None, 'entropy_value': None, 'createdAt': '',
-                     'updatedAt': ''}
-            self.assertEqual(image, truth)
+                      'annotator_email': None, 'qa_email': None, 'entropy_value': None}
+            assert all([truth[i] == image[i] for i in truth])
 
             sa.download_image(self.PROJECT_NAME, image_name, temp_dir, True)
             self.assertEqual(

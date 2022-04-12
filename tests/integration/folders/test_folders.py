@@ -269,7 +269,7 @@ class TestFolders(BaseTestCase):
         num_images = sa.get_project_image_count(project)
         self.assertEqual(num_images, 4)
 
-        im1 = sa.get_image_metadata(project, self.EXAMPLE_IMAGE_2)
+        im1 = sa.get_item_metadata(project, self.EXAMPLE_IMAGE_2)
         self.assertEqual(im1["annotation_status"], "InProgress")
 
         sa.create_folder(self.PROJECT_NAME, "folder2")
@@ -285,7 +285,7 @@ class TestFolders(BaseTestCase):
             copy_pin=False,
         )
 
-        im1_copied = sa.get_image_metadata(project2, self.EXAMPLE_IMAGE_2)
+        im1_copied = sa.get_item_metadata(project2, self.EXAMPLE_IMAGE_2)
         self.assertEqual(im1_copied["annotation_status"], "NotStarted")
 
         num_images = sa.get_project_image_count(project2)
@@ -442,17 +442,17 @@ class TestFolders(BaseTestCase):
             project, "QualityCheck", [self.EXAMPLE_IMAGE_1, self.EXAMPLE_IMAGE_2],
         )
         for image in [self.EXAMPLE_IMAGE_1, self.EXAMPLE_IMAGE_2]:
-            metadata = sa.get_image_metadata(project, image)
+            metadata = sa.get_item_metadata(project, image)
             self.assertEqual(metadata["annotation_status"], "QualityCheck")
 
         for image in [self.EXAMPLE_IMAGE_3]:
-            metadata = sa.get_image_metadata(project, image)
+            metadata = sa.get_item_metadata(project, image)
             self.assertEqual(metadata["annotation_status"], "InProgress")
 
         sa.set_images_annotation_statuses(self.PROJECT_NAME, "QualityCheck",  None,)
 
         for image in sa.search_images(self.PROJECT_NAME):
-            metadata = sa.get_image_metadata(self.PROJECT_NAME, image)
+            metadata = sa.get_item_metadata(self.PROJECT_NAME, image)
             self.assertEqual(metadata["annotation_status"], "QualityCheck")
 
     def test_folder_misnamed(self):

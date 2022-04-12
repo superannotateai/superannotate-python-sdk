@@ -31,7 +31,7 @@ class TestAnnotationUploadStatusChangeVector(BaseTestCase):
         sa.upload_annotations_from_folder_to_project(self.PROJECT_NAME, self.folder_path)
         self.assertEqual(
             constances.AnnotationStatus.IN_PROGRESS.name,
-            sa.get_image_metadata(self.PROJECT_NAME, self.IMAGE_NAME)["annotation_status"]
+            sa.get_item_metadata(self.PROJECT_NAME, self.IMAGE_NAME)["annotation_status"]
         )
 
     @pytest.mark.flaky(reruns=2)
@@ -43,7 +43,7 @@ class TestAnnotationUploadStatusChangeVector(BaseTestCase):
         sa.upload_preannotations_from_folder_to_project(self.PROJECT_NAME, self.folder_path)
         self.assertEqual(
             constances.AnnotationStatus.IN_PROGRESS.name,
-            sa.get_image_metadata(self.PROJECT_NAME, self.IMAGE_NAME)["annotation_status"]
+            sa.get_item_metadata(self.PROJECT_NAME, self.IMAGE_NAME)["annotation_status"]
         )
 
     @pytest.mark.flaky(reruns=2)
@@ -56,7 +56,7 @@ class TestAnnotationUploadStatusChangeVector(BaseTestCase):
         sa.upload_image_annotations(self.PROJECT_NAME, self.IMAGE_NAME, annotation_path)
         self.assertEqual(
             constances.AnnotationStatus.IN_PROGRESS.name,
-            sa.get_image_metadata(self.PROJECT_NAME, self.IMAGE_NAME)["annotation_status"]
+            sa.get_item_metadata(self.PROJECT_NAME, self.IMAGE_NAME)["annotation_status"]
         )
 
     @pytest.mark.flaky(reruns=2)
@@ -68,7 +68,7 @@ class TestAnnotationUploadStatusChangeVector(BaseTestCase):
         sa.add_annotation_bbox_to_image(self.PROJECT_NAME, self.IMAGE_NAME, [1, 2, 3, 4], "bbox")
         self.assertEqual(
             constances.AnnotationStatus.IN_PROGRESS.name,
-            sa.get_image_metadata(self.PROJECT_NAME, self.IMAGE_NAME)["annotation_status"]
+            sa.get_item_metadata(self.PROJECT_NAME, self.IMAGE_NAME)["annotation_status"]
         )
 
     @pytest.mark.flaky(reruns=2)
@@ -85,5 +85,5 @@ class TestAnnotationUploadStatusChangeVector(BaseTestCase):
             "user@superannoate.com")
         self.assertEqual(
             constances.AnnotationStatus.IN_PROGRESS.name,
-            sa.get_image_metadata(self.PROJECT_NAME, self.IMAGE_NAME)["annotation_status"]
+            sa.get_item_metadata(self.PROJECT_NAME, self.IMAGE_NAME)["annotation_status"]
         )

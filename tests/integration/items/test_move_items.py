@@ -6,7 +6,7 @@ from tests.integration.base import BaseTestCase
 
 
 class TestMoveItems(BaseTestCase):
-    PROJECT_NAME = "TestCopyItemsVector"
+    PROJECT_NAME = "TestMoveItemsVector"
     PROJECT_DESCRIPTION = "TestCopyItemsVector"
     PROJECT_TYPE = "Vector"
     IMAGE_NAME = "test_image"

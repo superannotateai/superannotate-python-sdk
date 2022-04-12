@@ -35,6 +35,13 @@ class TestCopyItems(BaseTestCase):
         assert len(skipped_items) == 0
         assert len(sa.search_items(f"{self.PROJECT_NAME}/{self.FOLDER_2}")) == 7
 
+    def test_skipped_count(self):
+        sa.create_folder(self.PROJECT_NAME, self.FOLDER_1)
+        uploaded, _, _ = sa.attach_items(f"{self.PROJECT_NAME}", self.scv_path)
+        _ = sa.copy_items(f"{self.PROJECT_NAME}", f"{self.PROJECT_NAME}/{self.FOLDER_1}")
+        skipped_items = sa.copy_items(f"{self.PROJECT_NAME}", f"{self.PROJECT_NAME}/{self.FOLDER_1}")
+        assert len(skipped_items) == 7
+
     def test_copy_item_with_annotations(self):
         uploaded, _, _ = sa.attach_items(
             self.PROJECT_NAME, [

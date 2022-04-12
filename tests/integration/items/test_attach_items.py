@@ -13,6 +13,7 @@ class TestAttachItemsVector(BaseTestCase):
     PROJECT_TYPE = "Vector"
     FOLDER_NAME = "test_folder"
     CSV_PATH = "data_set/attach_urls.csv"
+    PATH_TO_50K_URLS = "data_set/501_urls.csv"
     ATTACHED_IMAGE_NAME = "6022a74d5384c50017c366b3"
     ATTACHMENT_LIST = [
         {
@@ -37,6 +38,10 @@ class TestAttachItemsVector(BaseTestCase):
     def scv_path(self):
         return os.path.join(Path(__file__).parent.parent.parent, self.CSV_PATH)
 
+    @property
+    def scv_path_50k(self):
+        return os.path.join(Path(__file__).parent.parent.parent, self.PATH_TO_50K_URLS)
+
     def test_attached_items_csv(self):
         uploaded, _, _ = sa.attach_items(self.PROJECT_NAME, self.scv_path)
         assert len(uploaded) == 7
@@ -58,3 +63,11 @@ class TestAttachItemsVector(BaseTestCase):
         uploaded, _, duplicated = sa.attach_items(f"{self.PROJECT_NAME}/{self.FOLDER_NAME}", self.ATTACHMENT_LIST)
         assert len(uploaded) == 1
         assert len(duplicated) == 2
+
+    def test_limitation(self):
+        self.assertRaises(
+            Exception,
+            sa.attach_items,
+            self.PROJECT_NAME,
+            self.scv_path_50k
+        )

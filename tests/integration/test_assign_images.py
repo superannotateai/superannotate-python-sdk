@@ -30,10 +30,10 @@ class TestAnnotationClasses(BaseTestCase):
         sa.assign_images(
             self._project["name"], [self.EXAMPLE_IMAGE_1, self.EXAMPLE_IMAGE_2], email
         )
-        image_metadata = sa.get_image_metadata(
+        image_metadata = sa.get_item_metadata(
             self._project["name"], self.EXAMPLE_IMAGE_1
         )
-        self.assertIsNotNone(image_metadata["qa_name"])
+        self.assertIsNotNone(image_metadata["qa_email"])
 
     def test_assign_images_folder(self):
 
@@ -50,11 +50,11 @@ class TestAnnotationClasses(BaseTestCase):
             project_folder, [self.EXAMPLE_IMAGE_1, self.EXAMPLE_IMAGE_2], email
         )
 
-        im1_metadata = sa.get_image_metadata(project_folder, self.EXAMPLE_IMAGE_1)
-        im2_metadata = sa.get_image_metadata(project_folder, self.EXAMPLE_IMAGE_2)
+        im1_metadata = sa.get_item_metadata(project_folder, self.EXAMPLE_IMAGE_1)
+        im2_metadata = sa.get_item_metadata(project_folder, self.EXAMPLE_IMAGE_2)
 
-        self.assertIsNotNone(im1_metadata["qa_name"])
-        self.assertIsNotNone(im2_metadata["qa_name"])
+        self.assertIsNotNone(im1_metadata["qa_email"])
+        self.assertIsNotNone(im2_metadata["qa_email"])
 
     @pytest.mark.flaky(reruns=4)
     def test_un_assign_images(self):
@@ -69,11 +69,11 @@ class TestAnnotationClasses(BaseTestCase):
             self.PROJECT_NAME, [self.EXAMPLE_IMAGE_1, self.EXAMPLE_IMAGE_2],
         )
 
-        im1_metadata = sa.get_image_metadata(self.PROJECT_NAME, self.EXAMPLE_IMAGE_1)
-        im2_metadata = sa.get_image_metadata(self.PROJECT_NAME, self.EXAMPLE_IMAGE_2)
+        im1_metadata = sa.get_item_metadata(self.PROJECT_NAME, self.EXAMPLE_IMAGE_1)
+        im2_metadata = sa.get_item_metadata(self.PROJECT_NAME, self.EXAMPLE_IMAGE_2)
 
-        self.assertIsNone(im1_metadata["qa_name"])
-        self.assertIsNone(im2_metadata["qa_name"])
+        self.assertIsNone(im1_metadata["qa_email"])
+        self.assertIsNone(im2_metadata["qa_email"])
 
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME)
         project = self.PROJECT_NAME + "/" + self.TEST_FOLDER_NAME
@@ -87,12 +87,12 @@ class TestAnnotationClasses(BaseTestCase):
         )
 
         sa.search_images(project)
-        im1_metadata = sa.get_image_metadata(project, self.EXAMPLE_IMAGE_1)
+        im1_metadata = sa.get_item_metadata(project, self.EXAMPLE_IMAGE_1)
 
-        im2_metadata = sa.get_image_metadata(project, self.EXAMPLE_IMAGE_2)
+        im2_metadata = sa.get_item_metadata(project, self.EXAMPLE_IMAGE_2)
 
-        self.assertIsNone(im1_metadata["qa_name"])
-        self.assertIsNone(im2_metadata["qa_name"])
+        self.assertIsNone(im1_metadata["qa_email"])
+        self.assertIsNone(im2_metadata["qa_email"])
 
     def test_assign_folder(self):
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME)

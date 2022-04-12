@@ -3212,7 +3212,7 @@ def copy_items(
     to_project_name, destination_folder = extract_project_folder(destination)
     if project_name != to_project_name:
         raise AppException(
-            "Source and destination projects should be the same for copy_images"
+            "Source and destination projects should be the same"
         )
 
     response = Controller.get_default().copy_items(

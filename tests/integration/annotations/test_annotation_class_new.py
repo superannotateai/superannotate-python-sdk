@@ -8,7 +8,6 @@ from tests.integration.base import BaseTestCase
 
 class TestAnnotationClasses(BaseTestCase):
     PROJECT_NAME = "test_annotation_class_new"
-    PROJECT_NAME_JSON = "test_annotation_class_json"
     PROJECT_DESCRIPTION = "desc"
     PROJECT_TYPE = "Vector"
 
@@ -34,11 +33,11 @@ class TestAnnotationClasses(BaseTestCase):
 
     def test_create_annotation_class_from_json(self):
         sa.create_annotation_classes_from_classes_json(
-            self.PROJECT_NAME_JSON, self.classes_json
+            self.PROJECT_NAME, self.classes_json
         )
-        self.assertEqual(len(sa.search_annotation_classes(self.PROJECT_NAME_JSON)), 4)
+        self.assertEqual(len(sa.search_annotation_classes(self.PROJECT_NAME)), 4)
 
         sa.create_annotation_classes_from_classes_json(
-            self.PROJECT_NAME_JSON, self.classes_json
+            self.PROJECT_NAME, self.classes_json
         )
-        self.assertEqual(len(sa.search_annotation_classes(self.PROJECT_NAME_JSON)), 4)
+        self.assertEqual(len(sa.search_annotation_classes(self.PROJECT_NAME)), 4)

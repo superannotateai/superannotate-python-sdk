@@ -108,7 +108,7 @@ AttachmentArgType = Union[NotEmptyStr, Path, conlist(AttachmentDict, min_items=1
 
 
 class Setting(BaseModel):
-    attribute:  NotEmptyStr
+    attribute: NotEmptyStr
     value: Union[NotEmptyStr, float, int]
 
     class Config:

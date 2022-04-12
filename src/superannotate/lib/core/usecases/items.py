@@ -321,37 +321,31 @@ class CopyItems(BaseReportableUseCae):
         if items_count > response.data.project_limit.remaining_image_count:
             raise AppValidationException(constances.COPY_PROJECT_LIMIT_ERROR_MESSAGE)
 
-    def validate_project_type(self):
-        if self._project.project_type in constances.LIMITED_FUNCTIONS:
-            raise AppValidationException(
-                constances.LIMITED_FUNCTIONS[self._project.project_type]
-            )
-
     def validate_item_names(self):
         if self._item_names:
             self._item_names = list(set(self._item_names))
 
     def execute(self):
         if self.is_valid():
-            skipped_images, duplications = [], []
-            if not self._item_names:
+            if self._item_names:
+                items = self._items
+            else:
                 condition = (
                         Condition("team_id", self._project.team_id, EQ)
                         & Condition("project_id", self._project.uuid, EQ)
                         & Condition("folder_id", self._from_folder.uuid, EQ)
                 )
-                items = self._items.get_all(condition)
-                items_to_copy = [item.name for item in items]
-            else:
-                items = self._backend_service.get_bulk_images(
-                    project_id=self._project.uuid,
-                    team_id=self._project.team_id,
-                    folder_id=self._to_folder.uuid,
-                    images=self._item_names,
-                )
-                duplications = [item["name"] for item in items]
-                items_to_copy = set(self._item_names) - set(duplications)
-                skipped_images = duplications
+                items = [item.name for item in self._items.get_all(condition)]
+
+            existing_items = self._backend_service.get_bulk_images(
+                project_id=self._project.uuid,
+                team_id=self._project.team_id,
+                folder_id=self._to_folder.uuid,
+                images=items,
+            )
+            duplications = [item["name"] for item in existing_items]
+            items_to_copy = list(set(items) - set(duplications))
+            skipped_images = duplications
             try:
                 self._validate_limitations(len(items_to_copy))
             except AppValidationException as e:
@@ -382,7 +376,7 @@ class CopyItems(BaseReportableUseCae):
                         self._response.errors = AppException(e)
                         return self._response
                 self.reporter.log_info(
-                    f"Copied {len(items_to_copy)}/{len(items)} items(s) from "
+                    f"Copied {len(items_to_copy)}/{len(items)} item(s) from "
                     f"{self._project.name}{'' if self._from_folder.is_root else f'/{self._from_folder.name}'} to "
                     f"{self._project.name}{'' if self._to_folder.is_root else f'/{self._to_folder.name}'}"
                 )
@@ -394,14 +388,14 @@ class MoveItems(BaseReportableUseCae):
     CHUNK_SIZE = 1000
 
     def __init__(
-        self,
-        reporter: Reporter,
-        project: ProjectEntity,
-        from_folder: FolderEntity,
-        to_folder: FolderEntity,
-        item_names: List[str],
-        items: BaseReadOnlyRepository,
-        backend_service_provider: SuperannotateServiceProvider,
+            self,
+            reporter: Reporter,
+            project: ProjectEntity,
+            from_folder: FolderEntity,
+            to_folder: FolderEntity,
+            item_names: List[str],
+            items: BaseReadOnlyRepository,
+            backend_service_provider: SuperannotateServiceProvider,
     ):
         super().__init__(reporter)
         self._project = project
@@ -452,11 +446,11 @@ class MoveItems(BaseReportableUseCae):
                         project_id=self._project.uuid,
                         from_folder_id=self._from_folder.uuid,
                         to_folder_id=self._to_folder.uuid,
-                        images=items[i : i + self.CHUNK_SIZE],  # noqa: E203
+                        images=items[i: i + self.CHUNK_SIZE],  # noqa: E203
                     )
                 )
             self.reporter.log_info(
-                f"Moved {len(moved_images)}/{len(items)} items(s) from "
+                f"Moved {len(moved_images)}/{len(items)} item(s) from "
                 f"{self._project.name}{'' if self._from_folder.is_root else f'/{self._from_folder.name}'} to "
                 f"{self._project.name}{'' if self._to_folder.is_root else f'/{self._to_folder.name}'}"
             )
