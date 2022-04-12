@@ -1,5 +1,6 @@
 import copy
 from collections import defaultdict
+from typing import Iterable
 from typing import List
 from typing import Type
 
@@ -9,13 +10,14 @@ from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.entities import AnnotationClassEntity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ProjectEntity
-from lib.core.entities import ProjectSettingEntity
+from lib.core.entities import SettingEntity
 from lib.core.entities import TeamEntity
 from lib.core.entities import WorkflowEntity
 from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
 from lib.core.reporter import Reporter
 from lib.core.repositories import BaseManageableRepository
+from lib.core.repositories import BaseProjectRelatedManageableRepository
 from lib.core.repositories import BaseReadOnlyRepository
 from lib.core.serviceproviders import SuperannotateServiceProvider
 from lib.core.usecases.base import BaseReportableUseCae
@@ -29,7 +31,7 @@ logger = get_default_logger()
 
 class GetProjectsUseCase(BaseUseCase):
     def __init__(
-        self, condition: Condition, team_id: int, projects: BaseManageableRepository,
+            self, condition: Condition, team_id: int, projects: BaseManageableRepository,
     ):
         super().__init__()
         self._condition = condition
@@ -45,7 +47,7 @@ class GetProjectsUseCase(BaseUseCase):
 
 class GetProjectByNameUseCase(BaseUseCase):
     def __init__(
-        self, name: str, team_id: int, projects: BaseManageableRepository,
+            self, name: str, team_id: int, projects: BaseManageableRepository,
     ):
         super().__init__()
         self._name = name
@@ -73,18 +75,18 @@ class GetProjectByNameUseCase(BaseUseCase):
 
 class GetProjectMetaDataUseCase(BaseUseCase):
     def __init__(
-        self,
-        project: ProjectEntity,
-        service: SuperannotateServiceProvider,
-        annotation_classes: BaseManageableRepository,
-        settings: BaseManageableRepository,
-        workflows: BaseManageableRepository,
-        projects: BaseManageableRepository,
-        include_annotation_classes: bool,
-        include_settings: bool,
-        include_workflow: bool,
-        include_contributors: bool,
-        include_complete_image_count: bool,
+            self,
+            project: ProjectEntity,
+            service: SuperannotateServiceProvider,
+            annotation_classes: BaseManageableRepository,
+            settings: BaseManageableRepository,
+            workflows: BaseManageableRepository,
+            projects: BaseManageableRepository,
+            include_annotation_classes: bool,
+            include_settings: bool,
+            include_workflow: bool,
+            include_contributors: bool,
+            include_complete_image_count: bool,
     ):
         super().__init__()
         self._project = project
@@ -160,16 +162,16 @@ class GetProjectMetaDataUseCase(BaseUseCase):
 
 class CreateProjectUseCase(BaseUseCase):
     def __init__(
-        self,
-        project: ProjectEntity,
-        projects: BaseManageableRepository,
-        backend_service_provider: SuperannotateServiceProvider,
-        settings_repo: Type[BaseManageableRepository],
-        annotation_classes_repo: Type[BaseManageableRepository],
-        workflows_repo: Type[BaseManageableRepository],
-        settings: List[ProjectSettingEntity] = None,
-        workflows: List[WorkflowEntity] = None,
-        annotation_classes: List[AnnotationClassEntity] = None,
+            self,
+            project: ProjectEntity,
+            projects: BaseManageableRepository,
+            backend_service_provider: SuperannotateServiceProvider,
+            settings_repo: Type[BaseProjectRelatedManageableRepository],
+            annotation_classes_repo: Type[BaseManageableRepository],
+            workflows_repo: Type[BaseManageableRepository],
+            settings: Iterable[SettingEntity] = None,
+            workflows: Iterable[WorkflowEntity] = None,
+            annotation_classes: List[AnnotationClassEntity] = None,
     ):
 
         super().__init__()
@@ -185,12 +187,12 @@ class CreateProjectUseCase(BaseUseCase):
 
     def validate_project_name(self):
         if (
-            len(
-                set(self._project.name).intersection(
-                    constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
+                len(
+                    set(self._project.name).intersection(
+                        constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
+                    )
                 )
-            )
-            > 0
+                > 0
         ):
             self._project.name = "".join(
                 "_"
@@ -230,7 +232,7 @@ class CreateProjectUseCase(BaseUseCase):
                     for new_setting in settings_repo.get_all():
                         if new_setting.attribute == setting.attribute:
                             setting_copy = copy.copy(setting)
-                            setting_copy.uuid = new_setting.uuid
+                            setting_copy.id = new_setting.id
                             setting_copy.project_id = entity.uuid
                             settings_repo.update(setting_copy)
                 data["settings"] = self._settings
@@ -270,7 +272,7 @@ class CreateProjectUseCase(BaseUseCase):
 
 class DeleteProjectUseCase(BaseUseCase):
     def __init__(
-        self, project_name: str, team_id: int, projects: BaseManageableRepository,
+            self, project_name: str, team_id: int, projects: BaseManageableRepository,
     ):
 
         super().__init__()
@@ -293,10 +295,10 @@ class DeleteProjectUseCase(BaseUseCase):
 
 class UpdateProjectUseCase(BaseUseCase):
     def __init__(
-        self,
-        project: ProjectEntity,
-        project_data: dict,
-        projects: BaseManageableRepository,
+            self,
+            project: ProjectEntity,
+            project_data: dict,
+            projects: BaseManageableRepository,
     ):
 
         super().__init__()
@@ -307,12 +309,12 @@ class UpdateProjectUseCase(BaseUseCase):
     def validate_project_name(self):
         if self._project_data.get("name"):
             if (
-                len(
-                    set(self._project_data["name"]).intersection(
-                        constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
+                    len(
+                        set(self._project_data["name"]).intersection(
+                            constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
+                        )
                     )
-                )
-                > 0
+                    > 0
             ):
                 self._project_data["name"] = "".join(
                     "_"
@@ -345,19 +347,19 @@ class UpdateProjectUseCase(BaseUseCase):
 
 class CloneProjectUseCase(BaseReportableUseCae):
     def __init__(
-        self,
-        reporter: Reporter,
-        project: ProjectEntity,
-        project_to_create: ProjectEntity,
-        projects: BaseManageableRepository,
-        settings_repo: Type[BaseManageableRepository],
-        workflows_repo: Type[BaseManageableRepository],
-        annotation_classes_repo: Type[BaseManageableRepository],
-        backend_service_provider: SuperannotateServiceProvider,
-        include_annotation_classes: bool = True,
-        include_settings: bool = True,
-        include_workflow: bool = True,
-        include_contributors: bool = False,
+            self,
+            reporter: Reporter,
+            project: ProjectEntity,
+            project_to_create: ProjectEntity,
+            projects: BaseManageableRepository,
+            settings_repo: Type[BaseManageableRepository],
+            workflows_repo: Type[BaseManageableRepository],
+            annotation_classes_repo: Type[BaseManageableRepository],
+            backend_service_provider: SuperannotateServiceProvider,
+            include_annotation_classes: bool = True,
+            include_settings: bool = True,
+            include_workflow: bool = True,
+            include_contributors: bool = False,
     ):
         super().__init__(reporter)
         self._project = project
@@ -387,12 +389,12 @@ class CloneProjectUseCase(BaseReportableUseCae):
     def validate_project_name(self):
         if self._project_to_create.name:
             if (
-                len(
-                    set(self._project_to_create.name).intersection(
-                        constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
+                    len(
+                        set(self._project_to_create.name).intersection(
+                            constances.SPECIAL_CHARACTERS_IN_PROJECT_FOLDER_NAMES
+                        )
                     )
-                )
-                > 0
+                    > 0
             ):
                 self._project_to_create.name = "".join(
                     "_"
@@ -418,7 +420,7 @@ class CloneProjectUseCase(BaseReportableUseCae):
         return self._annotation_classes_repo(self._backend_service, project)
 
     def _copy_annotation_classes(
-        self, annotation_classes_entity_mapping: dict, project: ProjectEntity
+            self, annotation_classes_entity_mapping: dict, project: ProjectEntity
     ):
         annotation_classes = self.annotation_classes.get_all()
         for annotation_class in annotation_classes:
@@ -452,12 +454,12 @@ class CloneProjectUseCase(BaseReportableUseCae):
             for new_setting in new_settings.get_all():
                 if new_setting.attribute == setting.attribute:
                     setting_copy = copy.copy(setting)
-                    setting_copy.uuid = new_setting.uuid
+                    setting_copy.id = new_setting.id
                     setting_copy.project_id = to_project.uuid
                     new_settings.update(setting_copy)
 
     def _copy_workflow(
-        self, annotation_classes_entity_mapping: dict, to_project: ProjectEntity
+            self, annotation_classes_entity_mapping: dict, to_project: ProjectEntity
     ):
         new_workflows = self._workflows_repo(self._backend_service, to_project)
         for workflow in self.workflows.get_all():
@@ -483,15 +485,15 @@ class CloneProjectUseCase(BaseReportableUseCae):
                     workflow.class_id
                 ].attribute_groups:
                     if (
-                        attribute["attribute"]["attribute_group"]["name"]
-                        == annotation_attribute.name
+                            attribute["attribute"]["attribute_group"]["name"]
+                            == annotation_attribute.name
                     ):
                         for (
-                            annotation_attribute_value
+                                annotation_attribute_value
                         ) in annotation_attribute.attributes:
                             if (
-                                annotation_attribute_value.name
-                                == attribute["attribute"]["name"]
+                                    annotation_attribute_value.name
+                                    == attribute["attribute"]["name"]
                             ):
                                 workflow_attributes.append(
                                     {
@@ -510,8 +512,8 @@ class CloneProjectUseCase(BaseReportableUseCae):
     def execute(self):
         if self.is_valid():
             if self._project_to_create.project_type in (
-                constances.ProjectType.PIXEL.value,
-                constances.ProjectType.VECTOR.value,
+                    constances.ProjectType.PIXEL.value,
+                    constances.ProjectType.VECTOR.value,
             ):
                 self._project_to_create.upload_state = (
                     constances.UploadState.INITIAL.value
@@ -552,8 +554,8 @@ class CloneProjectUseCase(BaseReportableUseCae):
 
             if self._include_workflow:
                 if self._project.project_type in (
-                    constances.ProjectType.DOCUMENT.value,
-                    constances.ProjectType.VIDEO.value,
+                        constances.ProjectType.DOCUMENT.value,
+                        constances.ProjectType.VIDEO.value,
                 ):
                     self.reporter.log_warning(
                         "Workflow copy is deprecated for "
@@ -594,11 +596,11 @@ class CloneProjectUseCase(BaseReportableUseCae):
 
 class ShareProjectUseCase(BaseUseCase):
     def __init__(
-        self,
-        service: SuperannotateServiceProvider,
-        project_entity: ProjectEntity,
-        user_id: str,
-        user_role: str,
+            self,
+            service: SuperannotateServiceProvider,
+            project_entity: ProjectEntity,
+            user_id: str,
+            user_role: str,
     ):
         super().__init__()
         self._service = service
@@ -625,10 +627,10 @@ class ShareProjectUseCase(BaseUseCase):
 
 class UnShareProjectUseCase(BaseUseCase):
     def __init__(
-        self,
-        service: SuperannotateServiceProvider,
-        project_entity: ProjectEntity,
-        user_id: str,
+            self,
+            service: SuperannotateServiceProvider,
+            project_entity: ProjectEntity,
+            user_id: str,
     ):
         super().__init__()
         self._service = service
@@ -659,11 +661,11 @@ class GetSettingsUseCase(BaseUseCase):
 
 class GetWorkflowsUseCase(BaseUseCase):
     def __init__(
-        self,
-        project: ProjectEntity,
-        annotation_classes: BaseReadOnlyRepository,
-        workflows: BaseManageableRepository,
-        fill_classes=True,
+            self,
+            project: ProjectEntity,
+            annotation_classes: BaseReadOnlyRepository,
+            workflows: BaseManageableRepository,
+            fill_classes=True,
     ):
         super().__init__()
         self._project = project
@@ -696,7 +698,7 @@ class GetWorkflowsUseCase(BaseUseCase):
 
 class GetAnnotationClassesUseCase(BaseUseCase):
     def __init__(
-        self, classes: BaseManageableRepository, condition: Condition = None,
+            self, classes: BaseManageableRepository, condition: Condition = None,
     ):
         super().__init__()
         self._classes = classes
@@ -709,13 +711,13 @@ class GetAnnotationClassesUseCase(BaseUseCase):
 
 class UpdateSettingsUseCase(BaseUseCase):
     def __init__(
-        self,
-        projects: BaseReadOnlyRepository,
-        settings: BaseManageableRepository,
-        to_update: List,
-        backend_service_provider: SuperannotateServiceProvider,
-        project_id: int,
-        team_id: int,
+            self,
+            projects: BaseReadOnlyRepository,
+            settings: BaseManageableRepository,
+            to_update: List,
+            backend_service_provider: SuperannotateServiceProvider,
+            project_id: int,
+            team_id: int,
     ):
         super().__init__()
         self._projects = projects
@@ -728,7 +730,7 @@ class UpdateSettingsUseCase(BaseUseCase):
     def validate_image_quality(self):
         for setting in self._to_update:
             if setting["attribute"].lower() == "imagequality" and isinstance(
-                setting["value"], str
+                    setting["value"], str
             ):
                 setting["value"] = constances.ImageQuality.get_value(setting["value"])
                 return
@@ -737,7 +739,7 @@ class UpdateSettingsUseCase(BaseUseCase):
         project = self._projects.get_one(uuid=self._project_id, team_id=self._team_id)
         for attribute in self._to_update:
             if attribute.get(
-                "attribute", ""
+                    "attribute", ""
             ) == "ImageQuality" and project.project_type in [
                 constances.ProjectType.VIDEO.value,
                 constances.ProjectType.DOCUMENT.value,
@@ -773,11 +775,11 @@ class UpdateSettingsUseCase(BaseUseCase):
 
 class GetProjectImageCountUseCase(BaseUseCase):
     def __init__(
-        self,
-        service: SuperannotateServiceProvider,
-        project: ProjectEntity,
-        folder: FolderEntity,
-        with_all_sub_folders: bool = False,
+            self,
+            service: SuperannotateServiceProvider,
+            project: ProjectEntity,
+            folder: FolderEntity,
+            with_all_sub_folders: bool = False,
     ):
         super().__init__()
         self._service = service
@@ -817,12 +819,12 @@ class GetProjectImageCountUseCase(BaseUseCase):
 
 class SetWorkflowUseCase(BaseUseCase):
     def __init__(
-        self,
-        service: SuperannotateServiceProvider,
-        annotation_classes_repo: BaseManageableRepository,
-        workflow_repo: BaseManageableRepository,
-        steps: list,
-        project: ProjectEntity,
+            self,
+            service: SuperannotateServiceProvider,
+            annotation_classes_repo: BaseManageableRepository,
+            workflow_repo: BaseManageableRepository,
+            steps: list,
+            project: ProjectEntity,
     ):
         super().__init__()
         self._service = service
@@ -878,8 +880,8 @@ class SetWorkflowUseCase(BaseUseCase):
                         "name"
                     ]
                     if not annotations_classes_attributes_map.get(
-                        f"{annotation_class_name}__{attribute_group_name}__{attribute_name}",
-                        None,
+                            f"{annotation_class_name}__{attribute_group_name}__{attribute_name}",
+                            None,
                     ):
                         raise AppException(
                             "Attribute group name or attribute name not found in set_project_workflow."
@@ -921,10 +923,10 @@ class GetTeamUseCase(BaseUseCase):
 
 class SearchContributorsUseCase(BaseUseCase):
     def __init__(
-        self,
-        backend_service_provider: SuperannotateServiceProvider,
-        team_id: int,
-        condition: Condition = None,
+            self,
+            backend_service_provider: SuperannotateServiceProvider,
+            team_id: int,
+            condition: Condition = None,
     ):
         super().__init__()
         self._backend_service = backend_service_provider
@@ -950,13 +952,13 @@ class AddContributorsToProject(BaseUserBasedUseCase):
     """
 
     def __init__(
-        self,
-        reporter: Reporter,
-        team: TeamEntity,
-        project: ProjectEntity,
-        emails: list,
-        role: str,
-        service: SuperannotateServiceProvider,
+            self,
+            reporter: Reporter,
+            team: TeamEntity,
+            project: ProjectEntity,
+            emails: list,
+            role: str,
+            service: SuperannotateServiceProvider,
     ):
         super().__init__(reporter, emails)
         self._team = team
@@ -1016,12 +1018,12 @@ class InviteContributorsToTeam(BaseUserBasedUseCase):
     """
 
     def __init__(
-        self,
-        reporter: Reporter,
-        team: TeamEntity,
-        emails: list,
-        set_admin: bool,
-        service: SuperannotateServiceProvider,
+            self,
+            reporter: Reporter,
+            team: TeamEntity,
+            emails: list,
+            set_admin: bool,
+            service: SuperannotateServiceProvider,
     ):
         super().__init__(reporter, emails)
         self._team = team

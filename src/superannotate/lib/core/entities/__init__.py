@@ -1,5 +1,6 @@
 from lib.core.entities.base import AttachmentEntity
 from lib.core.entities.base import BaseEntity as TmpBaseEntity
+from lib.core.entities.base import SettingEntity
 from lib.core.entities.integrations import IntegrationEntity
 from lib.core.entities.items import DocumentEntity
 from lib.core.entities.items import Entity
@@ -13,7 +14,6 @@ from lib.core.entities.project_entities import ImageEntity
 from lib.core.entities.project_entities import ImageInfoEntity
 from lib.core.entities.project_entities import MLModelEntity
 from lib.core.entities.project_entities import ProjectEntity
-from lib.core.entities.project_entities import ProjectSettingEntity
 from lib.core.entities.project_entities import S3FileEntity
 from lib.core.entities.project_entities import TeamEntity
 from lib.core.entities.project_entities import UserEntity
@@ -27,6 +27,8 @@ from superannotate_schemas.schemas.internal.video import (
 )
 
 __all__ = [
+    # base
+    "SettingEntity",
     # items
     "TmpImageEntity",
     "BaseEntity",
@@ -38,7 +40,6 @@ __all__ = [
     "AttachmentEntity",
     # project
     "ProjectEntity",
-    "ProjectSettingEntity",
     "ConfigEntity",
     "WorkflowEntity",
     "FolderEntity",

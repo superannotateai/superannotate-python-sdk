@@ -1,4 +1,5 @@
 from abc import ABC
+from abc import ABCMeta
 from abc import abstractmethod
 from typing import Any
 from typing import List
@@ -42,7 +43,7 @@ class BaseManageableRepository(BaseReadOnlyRepository):
         raise NotImplementedError
 
     @abstractmethod
-    def delete(self, uuid: Any, *args):
+    def delete(self, uuid: Any):
         raise NotImplementedError
 
     def bulk_delete(self, entities: List[BaseEntity]) -> bool:
@@ -56,7 +57,7 @@ class BaseManageableRepository(BaseReadOnlyRepository):
         return data
 
 
-class BaseProjectRelatedManageableRepository(BaseManageableRepository):
+class BaseProjectRelatedManageableRepository(BaseManageableRepository, metaclass=ABCMeta):
     def __init__(self, service: SuperannotateServiceProvider, project: ProjectEntity):
         self._service = service
         self._project = project

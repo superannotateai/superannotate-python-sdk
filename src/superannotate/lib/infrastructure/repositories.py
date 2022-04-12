@@ -16,8 +16,8 @@ from lib.core.entities import ImageEntity
 from lib.core.entities import IntegrationEntity
 from lib.core.entities import MLModelEntity
 from lib.core.entities import ProjectEntity
-from lib.core.entities import ProjectSettingEntity
 from lib.core.entities import S3FileEntity
+from lib.core.entities import SettingEntity
 from lib.core.entities import TeamEntity
 from lib.core.entities import UserEntity
 from lib.core.entities import WorkflowEntity
@@ -176,46 +176,36 @@ class S3Repository(BaseS3Repository):
 
 
 class ProjectSettingsRepository(BaseProjectRelatedManageableRepository):
-    def get_one(self, uuid: int) -> ProjectEntity:
+    def get_one(self, uuid: int) -> SettingEntity:
         raise NotImplementedError
-
-    def get_all(
-            self, condition: Optional[Condition] = None
-    ) -> List[ProjectSettingEntity]:
-        data = self._service.get_project_settings(
-            self._project.uuid, self._project.team_id
-        )
-        if data:
-            return [self.dict2entity(setting) for setting in data]
-        return []
-
-    def insert(self, entity: ProjectSettingEntity) -> ProjectSettingEntity:
-        entity = entity.to_dict()
-        entity.pop("key", None)
-        res = self._service.set_project_settings(
-            self._project.uuid, self._project.team_id, [entity]
-        )
-        return self.dict2entity(res[0])
 
     def delete(self, uuid: int):
         raise NotImplementedError
 
-    def update(self, entity: ProjectSettingEntity):
+    def get_all(
+            self, condition: Optional[Condition] = None
+    ) -> List[SettingEntity]:
+        data = self._service.get_project_settings(
+            self._project.uuid, self._project.team_id
+        )
+        if data:
+            return parse_obj_as(List[SettingEntity], data)
+        return []
+
+    def insert(self, entity: SettingEntity) -> SettingEntity:
+        entity = entity.dict()
+        res = self._service.set_project_settings(
+            self._project.uuid, self._project.team_id, [entity]
+        )
+        return SettingEntity(**res[0])
+
+    def update(self, entity: SettingEntity):
         if entity.attribute == "ImageQuality" and isinstance(entity.value, str):
             entity.value = ImageQuality.get_value(entity.value)
         self._service.set_project_settings(
-            self._project.uuid, self._project.team_id, [entity.to_dict()]
+            self._project.uuid, self._project.team_id, [entity.dict()]
         )
         return entity
-
-    @staticmethod
-    def dict2entity(data: dict) -> ProjectSettingEntity:
-        return ProjectSettingEntity(
-            uuid=data["id"],
-            project_id=data["project_id"],
-            attribute=data["attribute"],
-            value=data["value"],
-        )
 
 
 class WorkflowRepository(BaseProjectRelatedManageableRepository):

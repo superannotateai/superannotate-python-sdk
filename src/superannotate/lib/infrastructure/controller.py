@@ -20,6 +20,7 @@ from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
 from lib.core.entities import MLModelEntity
 from lib.core.entities import ProjectEntity
+from lib.core.entities import SettingEntity
 from lib.core.entities.integrations import IntegrationEntity
 from lib.core.exceptions import AppException
 from lib.core.reporter import Reporter
@@ -320,7 +321,7 @@ class Controller(BaseController):
             name: str,
             description: str,
             project_type: str,
-            settings: Iterable = tuple(),
+            settings: Iterable[SettingEntity] = tuple(),
             annotation_classes: Iterable = tuple(),
             workflows: Iterable = tuple(),
             **extra_kwargs
@@ -346,9 +347,7 @@ class Controller(BaseController):
             settings_repo=ProjectSettingsRepository,
             workflows_repo=WorkflowRepository,
             annotation_classes_repo=AnnotationClassRepository,
-            settings=[
-                ProjectSettingsRepository.dict2entity(setting) for setting in settings
-            ],
+            settings=settings,
             workflows=workflows,
             annotation_classes=[
                 AnnotationClassEntity(**annotation_class)

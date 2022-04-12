@@ -1,11 +1,15 @@
 import uuid
 from datetime import datetime
 from typing import Optional
+from typing import Union
 
 from lib.core.enums import AnnotationStatus
 from pydantic import BaseModel
 from pydantic import Extra
 from pydantic import Field
+from pydantic import StrictFloat
+from pydantic import StrictInt
+from pydantic import StrictStr
 
 
 class TimedBaseModel(BaseModel):
@@ -34,3 +38,16 @@ class AttachmentEntity(BaseModel):
 
     class Config:
         extra = Extra.ignore
+
+
+class SettingEntity(BaseModel):
+    id: Optional[int]
+    project_id: Optional[int]
+    attribute: str
+    value: Union[StrictStr, StrictInt, StrictFloat]
+
+    class Config:
+        extra = Extra.ignore
+
+    def __copy__(self):
+        return SettingEntity(attribute=self.attribute, value=self.value)

@@ -107,6 +107,14 @@ class AttachmentDict(BaseModel):
 AttachmentArgType = Union[NotEmptyStr, Path, conlist(AttachmentDict, min_items=1)]
 
 
+class Setting(BaseModel):
+    attribute:  NotEmptyStr
+    value: Union[NotEmptyStr, float, int]
+
+    class Config:
+        extra = Extra.ignore
+
+
 class AttachmentArg(BaseModel):
     __root__: AttachmentArgType
 

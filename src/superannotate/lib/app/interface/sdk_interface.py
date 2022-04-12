@@ -31,6 +31,7 @@ from lib.app.interface.types import ImageQualityChoices
 from lib.app.interface.types import NotEmptyStr
 from lib.app.interface.types import ProjectStatusEnum
 from lib.app.interface.types import ProjectTypes
+from lib.app.interface.types import Setting
 from lib.app.interface.types import validate_arguments
 from lib.app.mixp.decorators import Trackable
 from lib.app.serializers import BaseSerializer
@@ -41,6 +42,7 @@ from lib.app.serializers import SettingsSerializer
 from lib.app.serializers import TeamSerializer
 from lib.core import LIMITED_FUNCTIONS
 from lib.core.entities import AttachmentEntity
+from lib.core.entities import SettingEntity
 from lib.core.entities.integrations import IntegrationEntity
 from lib.core.entities.project_entities import AnnotationClassEntity
 from lib.core.enums import ImageQuality
@@ -181,21 +183,31 @@ def create_project(
         project_name: NotEmptyStr,
         project_description: NotEmptyStr,
         project_type: NotEmptyStr,
+        settings: List[Setting] = None
 ):
     """Create a new project in the team.
 
     :param project_name: the new project's name
     :type project_name: str
+
     :param project_description: the new project's description
     :type project_description: str
+
     :param project_type: the new project type, Vector or Pixel.
     :type project_type: str
+
+    :param settings: list of settings objects
+    :type settings: list of dicts
 
     :return: dict object metadata the new project
     :rtype: dict
     """
+    if settings:
+        settings = parse_obj_as(List[SettingEntity], settings)
+    else:
+        settings = []
     response = Controller.get_default().create_project(
-        name=project_name, description=project_description, project_type=project_type
+        name=project_name, description=project_description, project_type=project_type, settings=settings
     )
     if response.errors:
         raise AppException(response.errors)
@@ -218,7 +230,7 @@ def create_project_from_metadata(project_metadata: Project):
         name=project_metadata["name"],
         description=project_metadata.get("description"),
         project_type=project_metadata["type"],
-        settings=project_metadata.get("settings", []),
+        settings=parse_obj_as(List[SettingEntity], project_metadata.get("settings", [])),
         annotation_classes=project_metadata.get("classes", []),
         workflows=project_metadata.get("workflows", []),
         instructions_link=project_metadata.get("instructions_link"),

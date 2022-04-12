@@ -155,31 +155,6 @@ class ProjectEntity(BaseTimedEntity):
         }
 
 
-class ProjectSettingEntity(BaseEntity):
-    def __init__(
-        self,
-        uuid: int = None,
-        project_id: int = None,
-        attribute: str = None,
-        value: Any = None,
-    ):
-        super().__init__(uuid)
-        self.project_id = project_id
-        self.attribute = attribute
-        self.value = value
-
-    def __copy__(self):
-        return ProjectSettingEntity(attribute=self.attribute, value=self.value)
-
-    def to_dict(self):
-        return {
-            "id": self.uuid,
-            "project_id": self.project_id,
-            "attribute": self.attribute,
-            "value": self.value,
-        }
-
-
 class WorkflowEntity(BaseEntity):
     def __init__(
         self,

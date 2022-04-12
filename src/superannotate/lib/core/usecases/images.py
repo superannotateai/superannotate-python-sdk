@@ -26,8 +26,8 @@ from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
 from lib.core.entities import ImageInfoEntity
 from lib.core.entities import ProjectEntity
-from lib.core.entities import ProjectSettingEntity
 from lib.core.entities import S3FileEntity
+from lib.core.entities import SettingEntity
 from lib.core.enums import ImageQuality
 from lib.core.enums import ProjectType
 from lib.core.exceptions import AppException
@@ -1514,7 +1514,7 @@ class UploadImageS3UseCase(BaseUseCase):
     def __init__(
         self,
         project: ProjectEntity,
-        project_settings: List[ProjectSettingEntity],
+        project_settings: List[SettingEntity],
         image_path: str,
         image: io.BytesIO,
         s3_repo: BaseManageableRepository,
@@ -1714,7 +1714,7 @@ class CopyImageUseCase(BaseUseCase):
         backend_service: SuperannotateServiceProvider,
         images: BaseManageableRepository,
         s3_repo,
-        project_settings: List[ProjectSettingEntity],
+        project_settings: List[SettingEntity],
         include_annotations: Optional[bool] = True,
         copy_annotation_status: Optional[bool] = True,
         copy_pin: Optional[bool] = True,
