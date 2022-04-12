@@ -1,4 +1,7 @@
+import uuid
 from functools import wraps
+from pathlib import Path
+from typing import Optional
 from typing import Union
 
 from lib.core.enums import AnnotationStatus
@@ -8,7 +11,13 @@ from lib.core.enums import ProjectType
 from lib.core.enums import UserRole
 from lib.core.exceptions import AppException
 from lib.infrastructure.validators import wrap_error
+from pydantic import BaseModel
+from pydantic import conlist
 from pydantic import constr
+from pydantic import Extra
+from pydantic import Field
+from pydantic import parse_obj_as
+from pydantic import root_validator
 from pydantic import StrictStr
 from pydantic import validate_arguments as pydantic_validate_arguments
 from pydantic import ValidationError
@@ -22,7 +31,9 @@ class EmailStr(StrictStr):
     def validate(cls, value: Union[str]) -> Union[str]:
         try:
             constr(
-                regex=r"^(?=.{1,254}$)(?=.{1,64}@)[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)*@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"
+                regex=r"^(?=.{1,254}$)(?=.{1,64}@)[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)"
+                      r"*@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}"
+                      r"[a-zA-Z0-9])?)*$"
             ).validate(value)
         except StrRegexError:
             raise ValueError("Invalid email")
@@ -77,6 +88,44 @@ class AnnotationType(StrictStr):
                 f"Available annotation_types are {', '.join(cls.VALID_TYPES)}. "
             )
         return value
+
+
+class AttachmentDict(BaseModel):
+    url: StrictStr
+    name: Optional[StrictStr] = Field(default_factory=lambda: str(uuid.uuid4()))
+
+    class Config:
+        extra = Extra.ignore
+
+    def __hash__(self):
+        return hash(self.name)
+
+    def __eq__(self, other):
+        return self.url == other.url and self.name.strip() == other.name.strip()
+
+
+AttachmentArgType = Union[NotEmptyStr, Path, conlist(AttachmentDict, min_items=1)]
+
+
+class AttachmentArg(BaseModel):
+    __root__: AttachmentArgType
+
+    def __getitem__(self, index):
+        return self.__root__[index]
+
+    @property
+    def data(self):
+        return self.__root__
+
+    @root_validator(pre=True)
+    def validate_root(cls, values):
+        try:
+            parse_obj_as(AttachmentArgType, values["__root__"])
+        except ValidationError:
+            raise ValueError(
+                "The value must be str, path, or list of dicts with the required 'url' and optional 'name' keys"
+            )
+        return values
 
 
 class ImageQualityChoices(StrictStr):

@@ -7,10 +7,16 @@ class AppException(Exception):
     def __init__(self, message):
         super().__init__(message)
 
-        self.message = message
+        self.message = str(message)
 
     def __str__(self):
         return self.message
+
+
+class BackendError(AppException):
+    """
+    Backend Error
+    """
 
 
 class AppValidationException(AppException):

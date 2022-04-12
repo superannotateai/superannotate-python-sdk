@@ -8,6 +8,7 @@ from typing import Union
 
 import boto3
 import pandas as pd
+from superannotate.lib.app.exceptions import AppException
 from superannotate.lib.app.exceptions import PathError
 from superannotate.lib.core import ATTACHED_VIDEO_ANNOTATION_POSTFIX
 from superannotate.lib.core import PIXEL_ANNOTATION_POSTFIX
@@ -156,6 +157,36 @@ def get_paths_and_duplicated_from_csv(csv_path):
     img_names_urls = image_data.rename(columns={"url": "path"}).to_dict(
         orient="records"
     )
+    duplicate_images = []
+    seen = []
+    images_to_upload = []
+    for i in img_names_urls:
+        temp = i["name"]
+        i["name"] = i["name"].strip()
+        if i["name"] not in seen:
+            seen.append(i["name"])
+            images_to_upload.append(i)
+        else:
+            duplicate_images.append(temp)
+    return images_to_upload, duplicate_images
+
+
+def get_name_url_duplicated_from_csv(csv_path):
+    image_data = pd.read_csv(csv_path, dtype=str)
+    if "url" not in image_data.columns:
+        raise AppException("Column 'url' is required")
+    image_data = image_data[~image_data["url"].isnull()]
+    if "name" in image_data.columns:
+        image_data["name"] = (
+            image_data["name"]
+            .fillna("")
+            .apply(lambda cell: cell if str(cell).strip() else str(uuid.uuid4()))
+        )
+    else:
+        image_data["name"] = [str(uuid.uuid4()) for _ in range(len(image_data.index))]
+
+    image_data = pd.DataFrame(image_data, columns=["name", "url"])
+    img_names_urls = image_data.to_dict(orient="records")
     duplicate_images = []
     seen = []
     images_to_upload = []

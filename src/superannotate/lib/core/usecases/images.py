@@ -579,7 +579,7 @@ class ImagesBulkCopyUseCase(BaseUseCase):
                 return self._response
 
             for i in range(0, len(images_to_copy), self.CHUNK_SIZE):
-                poll_id = self._backend_service.copy_images_between_folders_transaction(
+                poll_id = self._backend_service.copy_items_between_folders_transaction(
                     team_id=self._project.team_id,
                     project_id=self._project.uuid,
                     from_folder_id=self._from_folder.uuid,

@@ -1,3 +1,4 @@
+import collections
 import io
 import json
 import os
@@ -17,10 +18,13 @@ from lib.app.annotation_helpers import add_annotation_comment_to_json
 from lib.app.annotation_helpers import add_annotation_point_to_json
 from lib.app.helpers import extract_project_folder
 from lib.app.helpers import get_annotation_paths
+from lib.app.helpers import get_name_url_duplicated_from_csv
 from lib.app.helpers import get_paths_and_duplicated_from_csv
 from lib.app.interface.types import AnnotationStatuses
 from lib.app.interface.types import AnnotationType
 from lib.app.interface.types import AnnotatorRole
+from lib.app.interface.types import AttachmentArg
+from lib.app.interface.types import AttachmentDict
 from lib.app.interface.types import ClassType
 from lib.app.interface.types import EmailStr
 from lib.app.interface.types import ImageQualityChoices
@@ -36,6 +40,7 @@ from lib.app.serializers import ProjectSerializer
 from lib.app.serializers import SettingsSerializer
 from lib.app.serializers import TeamSerializer
 from lib.core import LIMITED_FUNCTIONS
+from lib.core.entities import AttachmentEntity
 from lib.core.entities.integrations import IntegrationEntity
 from lib.core.entities.project_entities import AnnotationClassEntity
 from lib.core.enums import ImageQuality
@@ -588,7 +593,12 @@ def copy_images(
     :return: list of skipped image names
     :rtype: list of strs
     """
-
+    warning_msg = (
+        "We're deprecating the copy_images function. Please use copy_items instead. Learn more. \n"
+        "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.copy_items"
+    )
+    logger.warning(warning_msg)
+    warnings.warn(warning_msg, DeprecationWarning)
     project_name, source_folder_name = extract_project_folder(source_project)
 
     to_project_name, destination_folder_name = extract_project_folder(
@@ -596,7 +606,7 @@ def copy_images(
     )
     if project_name != to_project_name:
         raise AppException(
-            "Source and destination projects should be the same for copy_images"
+            "Source and destination projects should be the same"
         )
     if not image_names:
         images = (
@@ -652,6 +662,12 @@ def move_images(
     :return: list of skipped image names
     :rtype: list of strs
     """
+    warning_msg = (
+        "We're deprecating the move_images function. Please use move_items instead. Learn more."
+        "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.move_items"
+    )
+    logger.warning(warning_msg)
+    warnings.warn(warning_msg, DeprecationWarning)
     project_name, source_folder_name = extract_project_folder(source_project)
 
     project = Controller.get_default().get_project_metadata(project_name).data
@@ -1811,6 +1827,12 @@ def attach_image_urls_to_project(
     :return: list of linked image names, list of failed image names, list of duplicate image names
     :rtype: tuple
     """
+    warning_msg = (
+        "We're deprecating the attach_image_urls_to_project function. Please use attach_items instead. Learn more."
+        "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.attach_items"
+    )
+    logger.warning(warning_msg)
+    warnings.warn(warning_msg, DeprecationWarning)
     project_name, folder_name = extract_project_folder(project)
     project = Controller.get_default().get_project_metadata(project_name).data
     project_folder_name = project_name + (f"/{folder_name}" if folder_name else "")
@@ -1878,6 +1900,12 @@ def attach_video_urls_to_project(
     :return: attached videos, failed videos, skipped videos
     :rtype: (list, list, list)
     """
+    warning_msg = (
+        "We're deprecating the attach_video_urls_to_project function. Please use attach_items instead. Learn more."
+        "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.attach_items"
+    )
+    logger.warning(warning_msg)
+    warnings.warn(warning_msg, DeprecationWarning)
     project_name, folder_name = extract_project_folder(project)
     project = Controller.get_default().get_project_metadata(project_name).data
     project_folder_name = project_name + (f"/{folder_name}" if folder_name else "")
@@ -2480,8 +2508,10 @@ def search_images_all_folders(
 
     :param project: project name
     :type project: str
+
     :param image_name_prefix: image name prefix for search
     :type image_name_prefix: str
+
     :param annotation_status: if not None, annotation statuses of images to filter,
                               should be one of NotStarted InProgress QualityCheck Returned Completed Skipped
     :type annotation_status: str
@@ -2741,6 +2771,12 @@ def attach_document_urls_to_project(
     :return: list of attached documents, list of not attached documents, list of skipped documents
     :rtype: tuple
     """
+    warning_msg = (
+        "We're deprecating the attach_document_urls_to_project function. Please use attach_items instead. Learn more."
+        "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.attach_items"
+    )
+    logger.warning(warning_msg)
+    warnings.warn(warning_msg, DeprecationWarning)
     project_name, folder_name = extract_project_folder(project)
     project = Controller.get_default().get_project_metadata(project_name).data
     project_folder_name = project_name + (f"/{folder_name}" if folder_name else "")
@@ -3093,3 +3129,127 @@ def search_items(
     if response.errors:
         raise AppException(response.errors)
     return BaseSerializer.serialize_iterable(response.data)
+
+
+@Trackable
+@validate_arguments
+def attach_items(
+        project: Union[NotEmptyStr, dict],
+        attachments: AttachmentArg,
+        annotation_status: Optional[AnnotationStatuses] = "NotStarted"
+):
+    attachments = attachments.data
+    project_name, folder_name = extract_project_folder(project)
+    if attachments and isinstance(attachments[0], AttachmentDict):
+        unique_attachments = set(attachments)
+        duplicate_attachments = [item for item, count in collections.Counter(attachments).items() if count > 1]
+    else:
+        unique_attachments, duplicate_attachments = get_name_url_duplicated_from_csv(attachments)
+    if duplicate_attachments:
+        logger.info("Dropping duplicates.")
+    unique_attachments = parse_obj_as(List[AttachmentEntity], unique_attachments)
+    uploaded, fails, duplicated = [], [], []
+    if unique_attachments:
+        logger.info(f"Attaching  {len(unique_attachments)} file(s) to project {project}.")
+        response = Controller.get_default().attach_items(
+            project_name=project_name,
+            folder_name=folder_name,
+            attachments=unique_attachments,
+            annotation_status=annotation_status,
+        )
+        if response.errors:
+            raise AppException(response.errors)
+        uploaded, duplicated = response.data
+        uploaded = [i["name"] for i in uploaded]
+        fails = [
+            attachment.name
+            for attachment in unique_attachments
+            if attachment.name not in uploaded and attachment.name not in duplicated
+        ]
+    return uploaded, fails, duplicated
+
+
+@Trackable
+@validate_arguments
+def copy_items(
+        source: Union[NotEmptyStr, dict],
+        destination: Union[NotEmptyStr, dict],
+        items: Optional[List[NotEmptyStr]] = None,
+        include_annotations: Optional[StrictBool] = True,
+):
+    """Copy images in bulk between folders in a project
+
+    :param source: project name or folder path to select items from (e.g., “project1/folder1”).
+    :type source: str
+
+    :param destination: project name (root) or folder path to place copied items.
+    :type destination: str
+
+    :param items: names of items to copy. If None, all items from the source directory will be copied.
+    :type itmes: list of str
+
+    :param include_annotations: enables annotations copy
+    :type include_annotations: bool
+
+    :return: list of skipped item names
+    :rtype: list of strs
+    """
+
+    project_name, source_folder = extract_project_folder(source)
+
+    to_project_name, destination_folder = extract_project_folder(destination)
+    if project_name != to_project_name:
+        raise AppException(
+            "Source and destination projects should be the same for copy_images"
+        )
+
+    response = Controller.get_default().copy_items(
+        project_name=project_name,
+        from_folder=source_folder,
+        to_folder=destination_folder,
+        items=items,
+        include_annotations=include_annotations,
+    )
+    if response.errors:
+        raise AppException(response.errors)
+
+    return response.data
+
+
+@Trackable
+@validate_arguments
+def move_items(
+        source: Union[NotEmptyStr, dict],
+        destination: Union[NotEmptyStr, dict],
+        items: Optional[List[NotEmptyStr]] = None,
+):
+    """Copy images in bulk between folders in a project
+
+    :param source: project name or folder path to pick items from (e.g., “project1/folder1”).
+    :type source: str
+
+    :param destination: project name (root) or folder path to move items to.
+    :type destination: str
+
+    :param items: names of items to move. If None, all items from the source directory will be moved.
+    :type items: list of str
+
+    :return: list of skipped item names
+    :rtype: list of strs
+    """
+
+    project_name, source_folder = extract_project_folder(source)
+    to_project_name, destination_folder = extract_project_folder(destination)
+    if project_name != to_project_name:
+        raise AppException(
+            "Source and destination projects should be the same"
+        )
+    response = Controller.get_default().move_items(
+        project_name=project_name,
+        from_folder=source_folder,
+        to_folder=destination_folder,
+        items=items,
+    )
+    if response.errors:
+        raise AppException(response.errors)
+    return response.data

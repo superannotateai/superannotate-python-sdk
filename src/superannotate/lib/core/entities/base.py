@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime
 from typing import Optional
 
@@ -25,3 +26,11 @@ class BaseEntity(TimedBaseModel):
 
     class Config:
         extra = Extra.allow
+
+
+class AttachmentEntity(BaseModel):
+    name: Optional[str] = Field(default_factory=lambda: str(uuid.uuid4()))
+    url: str
+
+    class Config:
+        extra = Extra.ignore

@@ -25,6 +25,7 @@ from superannotate.lib.app.interface.sdk_interface import (
     attach_document_urls_to_project,
 )
 from superannotate.lib.app.interface.sdk_interface import attach_image_urls_to_project
+from superannotate.lib.app.interface.sdk_interface import attach_items
 from superannotate.lib.app.interface.sdk_interface import (
     attach_items_from_integrated_storage,
 )
@@ -34,6 +35,7 @@ from superannotate.lib.app.interface.sdk_interface import clone_project
 from superannotate.lib.app.interface.sdk_interface import consensus
 from superannotate.lib.app.interface.sdk_interface import copy_image
 from superannotate.lib.app.interface.sdk_interface import copy_images
+from superannotate.lib.app.interface.sdk_interface import copy_items
 from superannotate.lib.app.interface.sdk_interface import create_annotation_class
 from superannotate.lib.app.interface.sdk_interface import (
     create_annotation_classes_from_classes_json,
@@ -71,6 +73,7 @@ from superannotate.lib.app.interface.sdk_interface import get_team_metadata
 from superannotate.lib.app.interface.sdk_interface import init
 from superannotate.lib.app.interface.sdk_interface import invite_contributors_to_team
 from superannotate.lib.app.interface.sdk_interface import move_images
+from superannotate.lib.app.interface.sdk_interface import move_items
 from superannotate.lib.app.interface.sdk_interface import pin_image
 from superannotate.lib.app.interface.sdk_interface import prepare_export
 from superannotate.lib.app.interface.sdk_interface import query
@@ -175,6 +178,9 @@ __all__ = [
     "get_item_metadata",
     "search_items",
     "query",
+    "attach_items",
+    "copy_items",
+    "move_items",
     # Image Section
     "copy_images",
     "move_images",

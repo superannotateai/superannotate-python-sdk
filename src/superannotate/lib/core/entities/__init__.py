@@ -1,3 +1,4 @@
+from lib.core.entities.base import AttachmentEntity
 from lib.core.entities.base import BaseEntity as TmpBaseEntity
 from lib.core.entities.integrations import IntegrationEntity
 from lib.core.entities.items import DocumentEntity
@@ -33,6 +34,8 @@ __all__ = [
     "Entity",
     "VideoEntity",
     "DocumentEntity",
+    # Utils
+    "AttachmentEntity",
     # project
     "ProjectEntity",
     "ProjectSettingEntity",
