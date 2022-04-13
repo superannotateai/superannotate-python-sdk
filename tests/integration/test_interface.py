@@ -165,7 +165,7 @@ class TestInterface(BaseTestCase):
             )
             self.assertIsNotNone(result)
 
-    def test_validate_log_for_single_uplaod(self):
+    def test_validate_log_for_single_upload(self):
         with self.assertLogs() as logs:
             sa.upload_image_to_project(self.PROJECT_NAME, f"{self.folder_path}/{self.EXAMPLE_IMAGE_1}")
             sa.upload_image_annotations(

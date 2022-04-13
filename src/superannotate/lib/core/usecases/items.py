@@ -260,7 +260,7 @@ class AttachItems(BaseReportableUseCae):
                 to_upload_meta = {}
                 for attachment in attachments:
                     if attachment.name not in duplications:
-                        to_upload.append({"name": attachment.name, "url": attachment.url})
+                        to_upload.append({"name": attachment.name, "path": attachment.url})
                         to_upload_meta[attachment.name] = self.generate_meta()
                 if to_upload:
                     backend_response = self._backend_service.attach_files(

@@ -1,6 +1,5 @@
 import os
 import tempfile
-import time
 from os.path import dirname
 
 import pytest

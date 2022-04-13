@@ -80,11 +80,6 @@ class TestDeprecatedFunctionsDocument(TestCase):
             sa.upload_image_annotations(self.PROJECT_NAME, "some", self.annotation_path)
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
-        # TODO:
-        # try:
-        #     sa.download_image(self.PROJECT_NAME, self.UPLOAD_IMAGE_NAME, './')
-        # except AppException as e:
-        #     self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
             sa.download_image_annotations(self.PROJECT_NAME, self.UPLOAD_IMAGE_NAME, "./")
         except AppException as e:

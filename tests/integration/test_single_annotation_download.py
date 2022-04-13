@@ -27,7 +27,6 @@ class TestSingleAnnotationDownloadUpload(BaseTestCase):
             dirname(dirname(__file__)), self.TEST_FOLDER_PATH, "classes/classes.json"
         )
 
-
     # TODO: template name validation error
     def test_annotation_download_upload_vector(self):
         sa.upload_images_from_folder_to_project(
