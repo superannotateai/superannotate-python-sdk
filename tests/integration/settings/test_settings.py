@@ -8,6 +8,9 @@ class TestSettings(TestCase):
     PROJECT_DESCRIPTION = "TestSettings"
     PROJECT_TYPE = "Vector"
 
+    def setUp(self) -> None:
+        self.tearDown()
+
     def tearDown(self) -> None:
         try:
             projects = sa.search_projects(self.PROJECT_NAME, return_metadata=True)
@@ -55,7 +58,8 @@ class TestSettings(TestCase):
             self.PROJECT_NAME,
             self.PROJECT_DESCRIPTION,
             self.PROJECT_TYPE,
-            [{"attribute": "ImageQuality", "value": "original"}])
+            [{"attribute": "ImageQuality", "value": "original"}]
+        )
         project_metadata = sa.get_project_metadata(self.PROJECT_NAME, include_settings=True)
         project_metadata["name"] = self.SECOND_PROJECT_NAME
         sa.create_project_from_metadata(project_metadata)

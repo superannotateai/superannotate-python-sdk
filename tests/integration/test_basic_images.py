@@ -72,7 +72,7 @@ class TestVectorAnnotationsWithTagFolderUpload(BaseTestCase):
 
 
 class TestVectorAnnotationsWithTagFolderUploadPreannotation(BaseTestCase):
-    PROJECT_NAME = "TestVectorAnnotationsWithTagFolderUploadPreannotation"
+    PROJECT_NAME = "PreTestVectorAnnotationsWithTagFolderUpload"
     PROJECT_TYPE = "Vector"
     PROJECT_DESCRIPTION = "TestVectorAnnotationsWithTag"
     TEST_FOLDER_PTH = "data_set/sample_project_vector_with_tag"

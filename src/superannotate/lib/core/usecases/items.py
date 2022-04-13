@@ -42,20 +42,20 @@ class GetItem(BaseReportableUseCae):
     def serialize_entity(entity: Entity, project: ProjectEntity):
         if project.upload_state != constances.UploadState.EXTERNAL.value:
             entity.url = None
-        if project.project_type in (
+        if project.type in (
                 constances.ProjectType.VECTOR.value,
                 constances.ProjectType.PIXEL.value,
         ):
             tmp_entity = entity
-            if project.project_type == constances.ProjectType.VECTOR.value:
+            if project.type == constances.ProjectType.VECTOR.value:
                 entity.segmentation_status = None
             if project.upload_state == constances.UploadState.EXTERNAL.value:
                 tmp_entity.prediction_status = None
                 tmp_entity.segmentation_status = None
             return TmpImageEntity(**tmp_entity.dict(by_alias=True))
-        elif project.project_type == constances.ProjectType.VIDEO.value:
+        elif project.type == constances.ProjectType.VIDEO.value:
             return VideoEntity(**entity.dict(by_alias=True))
-        elif project.project_type == constances.ProjectType.DOCUMENT.value:
+        elif project.type == constances.ProjectType.DOCUMENT.value:
             return DocumentEntity(**entity.dict(by_alias=True))
         return entity
 
@@ -64,7 +64,7 @@ class GetItem(BaseReportableUseCae):
             condition = (
                     Condition("name", self._item_name, EQ)
                     & Condition("team_id", self._project.team_id, EQ)
-                    & Condition("project_id", self._project.uuid, EQ)
+                    & Condition("project_id", self._project.id, EQ)
                     & Condition("folder_id", self._folder.uuid, EQ)
             )
             entity = self._items.get_one(condition)
@@ -93,7 +93,7 @@ class QueryEntities(BaseReportableUseCae):
 
     def validate_query(self):
         response = self._backend_client.validate_saqul_query(
-            self._project.team_id, self._project.uuid, self._query
+            self._project.team_id, self._project.id, self._query
         )
         if response.get("error"):
             raise AppException(response["error"])
@@ -108,7 +108,7 @@ class QueryEntities(BaseReportableUseCae):
         if self.is_valid():
             service_response = self._backend_client.saqul_query(
                 self._project.team_id,
-                self._project.uuid,
+                self._project.id,
                 self._query,
                 folder_id=None if self._folder.name == "root" else self._folder.uuid,
             )
@@ -148,7 +148,7 @@ class ListItems(BaseReportableUseCae):
     def execute(self) -> Response:
         if self.is_valid():
             self._search_condition &= Condition("team_id", self._project.team_id, EQ)
-            self._search_condition &= Condition("project_id", self._project.uuid, EQ)
+            self._search_condition &= Condition("project_id", self._project.id, EQ)
 
             if not self._recursive:
                 self._search_condition &= Condition("folder_id", self._folder.uuid, EQ)
@@ -163,7 +163,7 @@ class ListItems(BaseReportableUseCae):
                 items = []
                 folders = self._folders.get_all(
                     Condition("team_id", self._project.team_id, EQ)
-                    & Condition("project_id", self._project.uuid, EQ),
+                    & Condition("project_id", self._project.id, EQ),
                 )
                 folders.append(self._folder)
                 for folder in folders:
@@ -215,7 +215,7 @@ class AttachItems(BaseReportableUseCae):
         attachments_count = self.attachments_count
         response = self._backend_service.get_limitations(
             team_id=self._project.team_id,
-            project_id=self._project.uuid,
+            project_id=self._project.id,
             folder_id=self._folder.uuid,
         )
         if not response.ok:
@@ -248,7 +248,7 @@ class AttachItems(BaseReportableUseCae):
             for i in range(0, self.attachments_count, self.CHUNK_SIZE):
                 attachments = self._attachments[i: i + self.CHUNK_SIZE]  # noqa: E203
                 response = self._backend_service.get_bulk_images(
-                    project_id=self._project.uuid,
+                    project_id=self._project.id,
                     team_id=self._project.team_id,
                     folder_id=self._folder.uuid,
                     images=[attachment.name for attachment in attachments],
@@ -264,7 +264,7 @@ class AttachItems(BaseReportableUseCae):
                         to_upload_meta[attachment.name] = self.generate_meta()
                 if to_upload:
                     backend_response = self._backend_service.attach_files(
-                        project_id=self._project.uuid,
+                        project_id=self._project.id,
                         folder_id=self._folder.uuid,
                         team_id=self._project.team_id,
                         files=to_upload,
@@ -311,7 +311,7 @@ class CopyItems(BaseReportableUseCae):
     def _validate_limitations(self, items_count):
         response = self._backend_service.get_limitations(
             team_id=self._project.team_id,
-            project_id=self._project.uuid,
+            project_id=self._project.id,
             folder_id=self._to_folder.uuid,
         )
         if not response.ok:
@@ -328,24 +328,24 @@ class CopyItems(BaseReportableUseCae):
     def execute(self):
         if self.is_valid():
             if self._item_names:
-                items = self._items
+                items = self._item_names
             else:
                 condition = (
                         Condition("team_id", self._project.team_id, EQ)
-                        & Condition("project_id", self._project.uuid, EQ)
+                        & Condition("project_id", self._project.id, EQ)
                         & Condition("folder_id", self._from_folder.uuid, EQ)
                 )
                 items = [item.name for item in self._items.get_all(condition)]
 
             existing_items = self._backend_service.get_bulk_images(
-                project_id=self._project.uuid,
+                project_id=self._project.id,
                 team_id=self._project.team_id,
                 folder_id=self._to_folder.uuid,
                 images=items,
             )
             duplications = [item["name"] for item in existing_items]
             items_to_copy = list(set(items) - set(duplications))
-            skipped_images = duplications
+            skipped_items = duplications
             try:
                 self._validate_limitations(len(items_to_copy))
             except AppValidationException as e:
@@ -356,7 +356,7 @@ class CopyItems(BaseReportableUseCae):
                     chunk_to_copy = items_to_copy[i: i + self.CHUNK_SIZE]  # noqa: E203
                     poll_id = self._backend_service.copy_items_between_folders_transaction(
                         team_id=self._project.team_id,
-                        project_id=self._project.uuid,
+                        project_id=self._project.id,
                         from_folder_id=self._from_folder.uuid,
                         to_folder_id=self._to_folder.uuid,
                         items=chunk_to_copy,
@@ -367,7 +367,7 @@ class CopyItems(BaseReportableUseCae):
                         continue
                     try:
                         self._backend_service.await_progress(
-                            self._project.uuid,
+                            self._project.id,
                             self._project.team_id,
                             poll_id=poll_id,
                             items_count=len(chunk_to_copy)
@@ -375,12 +375,22 @@ class CopyItems(BaseReportableUseCae):
                     except BackendError as e:
                         self._response.errors = AppException(e)
                         return self._response
+                existing_items = self._backend_service.get_bulk_images(
+                    project_id=self._project.id,
+                    team_id=self._project.team_id,
+                    folder_id=self._to_folder.uuid,
+                    images=items,
+                )
+                existing_item_names_set = {item["name"] for item in existing_items}
+                items_to_copy_names_set = set(items_to_copy)
+                copied_items = existing_item_names_set.intersection(items_to_copy_names_set)
+                skipped_items.extend(list(items_to_copy_names_set - copied_items))
                 self.reporter.log_info(
-                    f"Copied {len(items_to_copy)}/{len(items)} item(s) from "
+                    f"Copied {len(copied_items)}/{len(items)} item(s) from "
                     f"{self._project.name}{'' if self._from_folder.is_root else f'/{self._from_folder.name}'} to "
                     f"{self._project.name}{'' if self._to_folder.is_root else f'/{self._to_folder.name}'}"
                 )
-            self._response.data = skipped_images
+            self._response.data = skipped_items
         return self._response
 
 
@@ -412,7 +422,7 @@ class MoveItems(BaseReportableUseCae):
     def _validate_limitations(self, items_count):
         response = self._backend_service.get_limitations(
             team_id=self._project.team_id,
-            project_id=self._project.uuid,
+            project_id=self._project.id,
             folder_id=self._to_folder.uuid,
         )
         if not response.ok:
@@ -427,7 +437,7 @@ class MoveItems(BaseReportableUseCae):
             if not self._item_names:
                 condition = (
                         Condition("team_id", self._project.team_id, EQ)
-                        & Condition("project_id", self._project.uuid, EQ)
+                        & Condition("project_id", self._project.id, EQ)
                         & Condition("folder_id", self._from_folder.uuid, EQ)
                 )
                 items = [item.name for item in self._items.get_all(condition)]
@@ -443,7 +453,7 @@ class MoveItems(BaseReportableUseCae):
                 moved_images.extend(
                     self._backend_service.move_images_between_folders(
                         team_id=self._project.team_id,
-                        project_id=self._project.uuid,
+                        project_id=self._project.id,
                         from_folder_id=self._from_folder.uuid,
                         to_folder_id=self._to_folder.uuid,
                         images=items[i: i + self.CHUNK_SIZE],  # noqa: E203
@@ -457,3 +467,4 @@ class MoveItems(BaseReportableUseCae):
 
             self._response.data = list(set(items) - set(moved_images))
         return self._response
+

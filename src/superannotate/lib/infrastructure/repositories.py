@@ -90,63 +90,32 @@ class ProjectRepository(BaseManageableRepository):
         self._service = service
 
     def get_one(self, uuid: int, team_id: int) -> ProjectEntity:
-        return self.dict2entity(self._service.get_project(uuid, team_id))
+        return ProjectEntity(**self._service.get_project(uuid, team_id))
 
     def get_all(self, condition: Condition = None) -> List[ProjectEntity]:
         condition = condition.build_query() if condition else None
-        return [
-            self.dict2entity(project_data)
-            for project_data in self._service.get_projects(condition)
-        ]
+        return parse_obj_as(List[ProjectEntity], self._service.get_projects(condition))
 
     def insert(self, entity: ProjectEntity) -> ProjectEntity:
-        project_data = self._drop_nones(entity.to_dict())
-        result = self._service.create_project(project_data)
-        return self.dict2entity(result)
+        result = self._service.create_project(entity.dict(exclude_none=True))
+        if "error" in result:
+            raise AppException(result["error"])
+        return ProjectEntity(**result)
 
     def update(self, entity: ProjectEntity):
         condition = Condition("team_id", entity.team_id, EQ)
         result = self._service.update_project(
-            entity.to_dict(), query_string=condition.build_query()
+            entity.dict(exclude_none=True), query_string=condition.build_query()
         )
-        return self.dict2entity(result)
+        return ProjectEntity(**result)
 
     def delete(self, entity: ProjectEntity):
         team_id = entity.team_id
-        uuid = entity.uuid
+        uuid = entity.id
         condition = Condition("team_id", team_id, EQ)
         return self._service.delete_project(
             uuid=uuid, query_string=condition.build_query()
         )
-
-    @staticmethod
-    def dict2entity(data: dict) -> ProjectEntity:
-        try:
-            return ProjectEntity(
-                uuid=data["id"],
-                team_id=data["team_id"],
-                name=data["name"],
-                project_type=data["type"],
-                status=data.get("status"),
-                instructions_link=data.get("instructions_link"),
-                entropy_status=data.get("entropy_status"),
-                sharing_status=data.get("sharing_status"),
-                creator_id=data["creator_id"],
-                upload_state=data["upload_state"],
-                description=data.get("description"),
-                sync_status=data.get("sync_status"),
-                folder_id=data.get("folder_id"),
-                users=data.get("users", ()),
-                unverified_users=data.get("unverified_users", ()),
-                completed_images_count=data.get("completedImagesCount"),
-                root_folder_completed_images_count=data.get(
-                    "rootFolderCompletedImagesCount"
-                ),
-                createdAt=data.get("createdAt"),
-                updatedAt=data.get("updatedAt"),
-            )
-        except KeyError:
-            raise AppException("Cant serialize project data")
 
 
 class S3Repository(BaseS3Repository):
@@ -186,7 +155,7 @@ class ProjectSettingsRepository(BaseProjectRelatedManageableRepository):
             self, condition: Optional[Condition] = None
     ) -> List[SettingEntity]:
         data = self._service.get_project_settings(
-            self._project.uuid, self._project.team_id
+            self._project.id, self._project.team_id
         )
         if data:
             return parse_obj_as(List[SettingEntity], data)
@@ -195,7 +164,7 @@ class ProjectSettingsRepository(BaseProjectRelatedManageableRepository):
     def insert(self, entity: SettingEntity) -> SettingEntity:
         entity = entity.dict()
         res = self._service.set_project_settings(
-            self._project.uuid, self._project.team_id, [entity]
+            self._project.id, self._project.team_id, [entity]
         )
         return SettingEntity(**res[0])
 
@@ -203,7 +172,7 @@ class ProjectSettingsRepository(BaseProjectRelatedManageableRepository):
         if entity.attribute == "ImageQuality" and isinstance(entity.value, str):
             entity.value = ImageQuality.get_value(entity.value)
         self._service.set_project_settings(
-            self._project.uuid, self._project.team_id, [entity.dict()]
+            self._project.id, self._project.team_id, [entity.dict()]
         )
         return entity
 
@@ -214,7 +183,7 @@ class WorkflowRepository(BaseProjectRelatedManageableRepository):
 
     def get_all(self, condition: Optional[Condition] = None) -> List[WorkflowEntity]:
         data = self._service.get_project_workflows(
-            self._project.uuid, self._project.team_id
+            self._project.id, self._project.team_id
         )
         return [self.dict2entity(setting) for setting in data]
 
@@ -313,7 +282,7 @@ class AnnotationClassRepository(BaseManageableRepository):
     ) -> List[AnnotationClassEntity]:
         query = condition.build_query() if condition else None
         data = self._service.get_annotation_classes(
-            self.project.uuid, self.project.team_id, query
+            self.project.id, self.project.team_id, query
         )
         if data:
             return [self.dict2entity(data) for data in data]
@@ -321,7 +290,7 @@ class AnnotationClassRepository(BaseManageableRepository):
 
     def insert(self, entity: AnnotationClassEntity):
         res = self._service.set_annotation_classes(
-            self.project.uuid, self.project.team_id, [entity]
+            self.project.id, self.project.team_id, [entity]
         )
         if "error" in res:
             raise AppException(res["error"])
@@ -330,13 +299,13 @@ class AnnotationClassRepository(BaseManageableRepository):
     def delete(self, uuid: int):
         self._service.delete_annotation_class(
             team_id=self.project.team_id,
-            project_id=self.project.uuid,
+            project_id=self.project.id,
             annotation_class_id=uuid,
         )
 
     def bulk_insert(self, entities: List[AnnotationClassEntity]):
         res = self._service.set_annotation_classes(
-            self.project.uuid, self.project.team_id, entities
+            self.project.id, self.project.team_id, entities
         )
         if "error" in res:
             raise AppException(res["error"])

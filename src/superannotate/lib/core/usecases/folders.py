@@ -52,7 +52,7 @@ class CreateFolderUseCase(BaseUseCase):
 
     def execute(self):
         if self.is_valid():
-            self._folder.project_id = self._project.uuid
+            self._folder.project_id = self._project.id
             self._response.data = self._folders.insert(self._folder)
             if self._response.data.name not in (self._origin_name, self._folder.name):
                 logger.warning(
@@ -80,7 +80,7 @@ class GetFolderUseCase(BaseUseCase):
         condition = (
             Condition("name", self._folder_name, EQ)
             & Condition("team_id", self._team_id, EQ)
-            & Condition("project_id", self._project.uuid, EQ)
+            & Condition("project_id", self._project.id, EQ)
         )
         try:
             self._response.data = self._folders.get_one(condition)
@@ -108,7 +108,7 @@ class SearchFoldersUseCase(BaseUseCase):
     def execute(self):
         condition = (
             self._condition
-            & Condition("project_id", self._project.uuid, EQ)
+            & Condition("project_id", self._project.id, EQ)
             & Condition("team_id", self._project.team_id, EQ)
             & Condition("includeUsers", self._include_users, EQ)
         )
@@ -195,7 +195,7 @@ class AssignFolderUseCase(BaseUseCase):
     def execute(self):
         is_assigned = self._service.assign_folder(
             team_id=self._project_entity.team_id,
-            project_id=self._project_entity.uuid,
+            project_id=self._project_entity.id,
             folder_name=self._folder.name,
             users=self._users,
         )

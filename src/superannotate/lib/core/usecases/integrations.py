@@ -72,7 +72,7 @@ class AttachIntegrations(BaseReportableUseCae):
             )
             attached = self._client.attach_integrations(
                 self._team.uuid,
-                self._project.uuid,
+                self._project.id,
                 integration.id,
                 self._folder.uuid,
                 self._folder_path,

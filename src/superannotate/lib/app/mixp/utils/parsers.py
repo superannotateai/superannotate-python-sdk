@@ -83,7 +83,7 @@ def clone_project(**kwargs):
     project = kwargs.get("project_name")
 
     project_metadata = Controller.get_default().get_project_metadata(project).data["project"]
-    project_type = ProjectType.get_name(project_metadata.project_type)
+    project_type = ProjectType.get_name(project_metadata.type)
 
     return {
         "event_name": "clone_project",
@@ -322,14 +322,6 @@ def get_folder_metadata(**kwargs):
     }
 
 
-def get_project_and_folder_metadata(**kwargs):
-    project = kwargs["project"]
-    return {
-        "event_name": "get_project_and_folder_metadata",
-        "properties": {"project_name": get_project_name(project)},
-    }
-
-
 def search_images_all_folders(**kwargs):
     project = kwargs["project"]
 
@@ -408,7 +400,7 @@ def run_prediction(**kwargs):
     project_name = get_project_name(project)
     res = Controller.get_default().get_project_metadata(project_name)
     project_metadata = res.data["project"]
-    project_type = ProjectType.get_name(project_metadata.project_type)
+    project_type = ProjectType.get_name(project_metadata.typy)
     image_list = kwargs["images_list"]
     return {
         "event_name": "run_prediction",
@@ -549,7 +541,7 @@ def upload_annotations_from_folder_to_project(**kwargs):
     project_name = get_project_name(project)
     res = Controller.get_default().get_project_metadata(project_name)
     project_metadata = res.data["project"]
-    project_type = ProjectType.get_name(project_metadata.project_type)
+    project_type = ProjectType.get_name(project_metadata.type)
 
     folder_path = kwargs["folder_path"]
     glob_iterator = Path(folder_path).glob("*.json")
@@ -569,7 +561,7 @@ def upload_preannotations_from_folder_to_project(**kwargs):
     project_name = get_project_name(project)
     res = Controller.get_default().get_project_metadata(project_name)
     project_metadata = res.data["project"]
-    project_type = ProjectType.get_name(project_metadata.project_type)
+    project_type = ProjectType.get_name(project_metadata.type)
     folder_path = kwargs["folder_path"]
     glob_iterator = Path(folder_path).glob("*.json")
     return {
@@ -977,7 +969,7 @@ def attach_items_from_integrated_storage(**kwargs):
     return {
         "event_name": "attach_items_from_integrated_storage",
         "properties": {
-            "project_type": ProjectType.get_name(project.project_type),
+            "project_type": ProjectType.get_name(project.type),
             "integration_name": integration.name,
             "folder_path": bool(folder_path),
         },
@@ -992,7 +984,7 @@ def query(**kwargs):
     return {
         "event_name": "query_saqul",
         "properties": {
-            "project_type": ProjectType.get_name(project.project_type),
+            "project_type": ProjectType.get_name(project.type),
             "query": query_str,
         },
     }
@@ -1004,7 +996,7 @@ def get_item_metadata(**kwargs):
     project = Controller.get_default().get_project_metadata(project_name).data["project"]
     return {
         "event_name": "get_item_metadata",
-        "properties": {"project_type": ProjectType.get_name(project.project_type)},
+        "properties": {"project_type": ProjectType.get_name(project.type)},
     }
 
 
@@ -1020,7 +1012,7 @@ def search_items(**kwargs):
     return {
         "event_name": "search_items",
         "properties": {
-            "project_type": ProjectType.get_name(project.project_type),
+            "project_type": ProjectType.get_name(project.type),
             "query": query,
             "name_contains": len(name_contains) if name_contains else False,
             "annotation_status": annotation_status if annotation_status else False,
@@ -1039,7 +1031,7 @@ def move_items(**kwargs):
     return {
         "event_name": "move_items",
         "properties": {
-            "project_type": ProjectType.get_name(project.project_type),
+            "project_type": ProjectType.get_name(project.type),
             "items_count": len(items) if items else None
         },
     }
@@ -1053,7 +1045,7 @@ def copy_items(**kwargs):
     return {
         "event_name": "copy_items",
         "properties": {
-            "project_type": ProjectType.get_name(project.project_type),
+            "project_type": ProjectType.get_name(project.type),
             "items_count": len(items) if items else None,
             "include_annotations": kwargs["include_annotations"]
         },
@@ -1068,7 +1060,7 @@ def attach_items(**kwargs):
     return {
         "event_name": "copy_items",
         "properties": {
-            "project_type": ProjectType.get_name(project.project_type),
+            "project_type": ProjectType.get_name(project.type),
             "attachments": "scv" if isinstance(attachments, (str, Path)) else "dict",
             "annotation_status": kwargs["annotation_status"]
         },

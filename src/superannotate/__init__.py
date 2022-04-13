@@ -62,9 +62,6 @@ from superannotate.lib.app.interface.sdk_interface import get_folder_metadata
 from superannotate.lib.app.interface.sdk_interface import get_image_metadata
 from superannotate.lib.app.interface.sdk_interface import get_integrations
 from superannotate.lib.app.interface.sdk_interface import get_item_metadata
-from superannotate.lib.app.interface.sdk_interface import (
-    get_project_and_folder_metadata,
-)
 from superannotate.lib.app.interface.sdk_interface import get_project_image_count
 from superannotate.lib.app.interface.sdk_interface import get_project_metadata
 from superannotate.lib.app.interface.sdk_interface import get_project_settings
@@ -170,7 +167,6 @@ __all__ = [
     "create_folder",
     "get_folder_metadata",
     "delete_folders",
-    "get_project_and_folder_metadata",
     "search_folders",
     "assign_folder",
     "unassign_folder",

@@ -80,14 +80,14 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
 
     @property
     def annotation_postfix(self):
-        if self._project.project_type in (
+        if self._project.type in (
             constances.ProjectType.VIDEO.value,
             constances.ProjectType.DOCUMENT.value,
         ):
             return constances.ATTACHED_VIDEO_ANNOTATION_POSTFIX
-        elif self._project.project_type == constances.ProjectType.VECTOR.value:
+        elif self._project.type == constances.ProjectType.VECTOR.value:
             return constances.VECTOR_ANNOTATION_POSTFIX
-        elif self._project.project_type == constances.ProjectType.PIXEL.value:
+        elif self._project.type == constances.ProjectType.PIXEL.value:
             return constances.PIXEL_ANNOTATION_POSTFIX
 
     @staticmethod
@@ -114,7 +114,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
             images_data = (
                 GetBulkImages(
                     service=self._backend_service,
-                    project_id=self._project.uuid,
+                    project_id=self._project.id,
                     team_id=self._project.team_id,
                     folder_id=self._folder.uuid,
                     images=[image.name for image in images_detail],
@@ -157,7 +157,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
         else:
             function = self._backend_service.get_annotation_upload_data
         response = function(
-            project_id=self._project.uuid,
+            project_id=self._project.id,
             team_id=self._project.team_id,
             folder_id=self._folder.uuid,
             image_ids=image_ids,
@@ -183,7 +183,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
                     uuid=image_id,
                     name=image_name,
                     team_id=self._project.team_id,
-                    project_id=self._project.uuid,
+                    project_id=self._project.id,
                 ),
                 images=self._images,
                 annotation_classes=self._annotation_classes,
@@ -348,7 +348,7 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
     def annotation_upload_data(self) -> UploadAnnotationAuthData:
         if not self._annotation_upload_data:
             response = self._backend_service.get_annotation_upload_data(
-                project_id=self._project.uuid,
+                project_id=self._project.id,
                 team_id=self._project.team_id,
                 folder_id=self._folder.uuid,
                 image_ids=[self._image.uuid],
@@ -391,7 +391,7 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
                 self._annotation_json = json.load(
                     self.get_s3_file(self.from_s3, self._annotation_path)
                 )
-                if self._project.project_type == constances.ProjectType.PIXEL.value:
+                if self._project.type == constances.ProjectType.PIXEL.value:
                     self._mask = self.get_s3_file(
                         self.from_s3,
                         self._annotation_path.replace(
@@ -401,7 +401,7 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
                     )
             else:
                 self._annotation_json = json.load(open(self._annotation_path))
-                if self._project.project_type == constances.ProjectType.PIXEL.value:
+                if self._project.type == constances.ProjectType.PIXEL.value:
                     self._mask = open(
                         self._annotation_path.replace(
                             constances.PIXEL_ANNOTATION_POSTFIX,
@@ -437,7 +437,7 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
 
     def clean_json(self, json_data: dict,) -> Tuple[bool, dict]:
         use_case = ValidateAnnotationUseCase(
-            constances.ProjectType.get_name(self._project.project_type),
+            constances.ProjectType.get_name(self._project.type),
             annotation=json_data,
             validators=self._validators,
         )
@@ -451,7 +451,7 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
                 self._annotation_json = clean_json
                 bucket = self.s3_bucket
                 annotation_json = self.prepare_annotations(
-                    project_type=self._project.project_type,
+                    project_type=self._project.type,
                     annotations=self._annotation_json,
                     annotation_classes=self._annotation_classes,
                     templates=self._templates,
@@ -465,7 +465,7 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
                     Body=json.dumps(annotation_json),
                 )
                 if (
-                    self._project.project_type == constances.ProjectType.PIXEL.value
+                    self._project.type == constances.ProjectType.PIXEL.value
                     and self._mask
                 ):
                     bucket.put_object(
@@ -512,7 +512,7 @@ class GetAnnotations(BaseReportableUseCae):
         self._item_names_provided = True
 
     def validate_project_type(self):
-        if self._project.project_type == constances.ProjectType.PIXEL.value:
+        if self._project.type == constances.ProjectType.PIXEL.value:
             raise AppException("The function is not supported for Pixel projects.")
 
     def validate_item_names(self):
@@ -528,7 +528,7 @@ class GetAnnotations(BaseReportableUseCae):
             self._item_names_provided = False
             condition = (
                 Condition("team_id", self._project.team_id, EQ)
-                & Condition("project_id", self._project.uuid, EQ)
+                & Condition("project_id", self._project.id, EQ)
                 & Condition("folder_id", self._folder.uuid, EQ)
             )
 
@@ -560,7 +560,7 @@ class GetAnnotations(BaseReportableUseCae):
             self.reporter.start_progress(items_count, disable=not self._show_process)
             annotations = self._client.get_annotations(
                 team_id=self._project.team_id,
-                project_id=self._project.uuid,
+                project_id=self._project.id,
                 folder_id=self._folder.uuid,
                 items=self._item_names,
                 reporter=self.reporter,
@@ -595,10 +595,10 @@ class GetVideoAnnotationsPerFrame(BaseReportableUseCae):
         self._client = backend_service_provider
 
     def validate_project_type(self):
-        if self._project.project_type != constances.ProjectType.VIDEO.value:
+        if self._project.type != constances.ProjectType.VIDEO.value:
             raise AppException(
                 "The function is not supported for"
-                f" {constances.ProjectType.get_name(self._project.project_type)} projects."
+                f" {constances.ProjectType.get_name(self._project.type)} projects."
             )
 
     def execute(self):
@@ -707,7 +707,7 @@ class UploadPriorityScoresUseCase(BaseReportableUseCae):
                     ]  # noqa: E203
                     res = self._client.upload_priority_scores(
                         team_id=self._project.team_id,
-                        project_id=self._project.uuid,
+                        project_id=self._project.id,
                         folder_id=self._folder.uuid,
                         priorities=priorities_to_upload,
                     )

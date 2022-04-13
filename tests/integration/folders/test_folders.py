@@ -427,7 +427,7 @@ class TestFolders(BaseTestCase):
         )
         project_metadata = sa.get_project_metadata(self.PROJECT_NAME, include_complete_image_count=True)
         self.assertEqual(project_metadata['completed_images_count'], 8)
-        self.assertEqual(project_metadata['rootFolderCompletedImagesCount'], 4)
+        self.assertEqual(project_metadata['root_folder_completed_images_count'], 4)
 
     def test_folder_image_annotation_status(self):
         sa.upload_images_from_folder_to_project(

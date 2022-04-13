@@ -29,7 +29,6 @@ ________
 .. _ref_get_project_metadata:
 .. autofunction:: superannotate.get_project_metadata
 .. autofunction:: superannotate.get_project_image_count
-.. autofunction:: superannotate.get_project_and_folder_metadata
 .. autofunction:: superannotate.search_folders
 .. autofunction:: superannotate.get_folder_metadata
 .. autofunction:: superannotate.create_folder

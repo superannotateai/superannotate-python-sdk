@@ -321,8 +321,8 @@ class Controller(BaseController):
             name: str,
             description: str,
             project_type: str,
-            settings: Iterable[SettingEntity] = tuple(),
-            annotation_classes: Iterable = tuple(),
+            settings: Iterable[SettingEntity] = None,
+            classes: Iterable = tuple(),
             workflows: Iterable = tuple(),
             **extra_kwargs
     ) -> Response:
@@ -336,22 +336,21 @@ class Controller(BaseController):
         entity = ProjectEntity(
             name=name,
             description=description,
-            project_type=project_type,
+            type=project_type,
             team_id=self.team_id,
+            settings=settings if settings else [],
             **extra_kwargs
         )
         use_case = usecases.CreateProjectUseCase(
             project=entity,
             projects=self.projects,
             backend_service_provider=self._backend_client,
-            settings_repo=ProjectSettingsRepository,
             workflows_repo=WorkflowRepository,
             annotation_classes_repo=AnnotationClassRepository,
-            settings=settings,
             workflows=workflows,
-            annotation_classes=[
+            classes=[
                 AnnotationClassEntity(**annotation_class)
-                for annotation_class in annotation_classes
+                for annotation_class in classes
             ],
         )
         return use_case.execute()
@@ -515,7 +514,7 @@ class Controller(BaseController):
     def create_folder(self, project: str, folder_name: str):
         project = self._get_project(project)
         folder = FolderEntity(
-            name=folder_name, project_id=project.uuid, team_id=project.team_id
+            name=folder_name, project_id=project.id, team_id=project.team_id
         )
         use_case = usecases.CreateFolderUseCase(
             project=project, folder=folder, folders=self.folders,
@@ -844,7 +843,7 @@ class Controller(BaseController):
             ),
             to_update=new_settings,
             backend_service_provider=self._backend_client,
-            project_id=project_entity.uuid,
+            project_id=project_entity.id,
             team_id=project_entity.team_id,
         )
         return use_case.execute()
@@ -875,7 +874,7 @@ class Controller(BaseController):
             projects=self.projects,
             image_names=image_names,
             team_id=project_entity.team_id,
-            project_id=project_entity.uuid,
+            project_id=project_entity.id,
             folder_id=folder_entity.uuid,
             images_repo=images_repo,
             annotation_status=constances.AnnotationStatus.get_value(annotation_status),
@@ -1324,7 +1323,7 @@ class Controller(BaseController):
         project = self._get_project(project_name)
         folder = self._get_folder(project, folder_name)
         ml_model_repo = MLModelRepository(
-            team_id=project.uuid, service=self._backend_client
+            team_id=project.id, service=self._backend_client
         )
         use_case = usecases.RunPredictionUseCase(
             project=project,

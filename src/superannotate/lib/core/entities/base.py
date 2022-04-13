@@ -1,6 +1,8 @@
 import uuid
 from datetime import datetime
 from typing import Optional
+from typing import List
+from typing import Any
 from typing import Union
 
 from lib.core.enums import AnnotationStatus
@@ -51,3 +53,45 @@ class SettingEntity(BaseModel):
 
     def __copy__(self):
         return SettingEntity(attribute=self.attribute, value=self.value)
+
+
+class ProjectEntity(TimedBaseModel):
+    id: Optional[int]
+    team_id: Optional[int]
+    name: Optional[str]
+    type: Optional[int]
+    description: Optional[str]
+    instructions_link: Optional[str]
+    creator_id: Optional[str]
+    entropy_status: Optional[int]
+    sharing_status: Optional[int]
+    status: Optional[int]
+    folder_id: Optional[int]
+    sync_status: Optional[int]
+    upload_state: Optional[int]
+    users: Optional[List[Any]] = []
+    unverified_users: Optional[List[Any]] = []
+    contributors: Optional[List[Any]] = []
+    settings: Optional[List[SettingEntity]] = []
+    classes: Optional[List[Any]] = []
+    workflows: Optional[List[Any]] = []
+    completed_images_count: Optional[int] = Field(None, alias="completedImagesCount")
+    root_folder_completed_images_count: Optional[int] = Field(None, alias="rootFolderCompletedImagesCount")
+
+    class Config:
+        extra = Extra.ignore
+
+    def __copy__(self):
+        return ProjectEntity(
+            team_id=self.team_id,
+            name=self.name,
+            type=self.type,
+            description=self.description,
+            instructions_link=self.instructions_link
+            if self.description
+            else f"Copy of {self.name}.",
+            status=self.status,
+            folder_id=self.folder_id,
+            users=self.users,
+            upload_state=self.upload_state,
+        )

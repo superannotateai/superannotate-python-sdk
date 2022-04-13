@@ -1,4 +1,5 @@
 from lib.core.entities.base import AttachmentEntity
+from lib.core.entities.base import ProjectEntity
 from lib.core.entities.base import BaseEntity as TmpBaseEntity
 from lib.core.entities.base import SettingEntity
 from lib.core.entities.integrations import IntegrationEntity
@@ -13,7 +14,7 @@ from lib.core.entities.project_entities import FolderEntity
 from lib.core.entities.project_entities import ImageEntity
 from lib.core.entities.project_entities import ImageInfoEntity
 from lib.core.entities.project_entities import MLModelEntity
-from lib.core.entities.project_entities import ProjectEntity
+# from lib.core.entities.project_entities import ProjectEntity
 from lib.core.entities.project_entities import S3FileEntity
 from lib.core.entities.project_entities import TeamEntity
 from lib.core.entities.project_entities import UserEntity

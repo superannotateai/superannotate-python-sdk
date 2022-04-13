@@ -60,3 +60,15 @@ class TestCopyItems(BaseTestCase):
         assert len(annotations) == 1
         assert len(skipped_items) == 0
         assert len(sa.search_items(f"{self.PROJECT_NAME}/{self.FOLDER_1}")) == 1
+
+    def test_copy_items_wrong_items_list(self):
+        uploaded, _, _ = sa.attach_items(
+            self.PROJECT_NAME, [
+                {"url": "https://drive.google.com/uc?export=download&id=1vwfCpTzcjxoEA4hhDxqapPOVvLVeS7ZS",
+                 "name": self.IMAGE_NAME}
+            ]
+        )
+        sa.create_folder(self.PROJECT_NAME, self.FOLDER_1)
+        skipped_items = sa.copy_items(self.PROJECT_NAME, f"{self.PROJECT_NAME}/{self.FOLDER_1}", items=["as", "asd"])
+        assert skipped_items == ["as", "asd"]
+        assert len(sa.search_items(f"{self.PROJECT_NAME}/{self.FOLDER_1}")) == 0

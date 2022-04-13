@@ -12,6 +12,12 @@ from typing import Tuple
 from typing import Union
 
 import boto3
+from pydantic import StrictBool
+from pydantic import conlist
+from pydantic import parse_obj_as
+from pydantic.error_wrappers import ValidationError
+from tqdm import tqdm
+
 import lib.core as constances
 from lib.app.annotation_helpers import add_annotation_bbox_to_json
 from lib.app.annotation_helpers import add_annotation_comment_to_json
@@ -52,12 +58,7 @@ from lib.core.types import MLModel
 from lib.core.types import PriorityScore
 from lib.core.types import Project
 from lib.infrastructure.controller import Controller
-from pydantic import conlist
-from pydantic import parse_obj_as
-from pydantic import StrictBool
-from pydantic.error_wrappers import ValidationError
 from superannotate.logger import get_default_logger
-from tqdm import tqdm
 
 logger = get_default_logger()
 
@@ -171,8 +172,13 @@ def search_projects(
         )
             .data
     )
+
     if return_metadata:
-        return [ProjectSerializer(project).serialize() for project in result]
+        return [
+            ProjectSerializer(project).serialize(
+                exclude={"annotation_classes", "workflows", "settings", "contributors", "classes"}
+            ) for project in result
+        ]
     else:
         return [project.name for project in result]
 
@@ -231,7 +237,7 @@ def create_project_from_metadata(project_metadata: Project):
         description=project_metadata.get("description"),
         project_type=project_metadata["type"],
         settings=parse_obj_as(List[SettingEntity], project_metadata.get("settings", [])),
-        annotation_classes=project_metadata.get("classes", []),
+        classes=project_metadata.get("classes", []),
         workflows=project_metadata.get("workflows", []),
         instructions_link=project_metadata.get("instructions_link"),
     )
@@ -391,7 +397,7 @@ def rename_project(project: NotEmptyStr, new_name: NotEmptyStr):
     )
     if response.errors:
         raise AppException(response.errors)
-
+    return ProjectSerializer(response.data).serialize()
     logger.info(
         "Successfully renamed project %s to %s.", project, response.data["name"]
     )
@@ -437,34 +443,6 @@ def delete_folders(project: NotEmptyStr, folder_names: List[NotEmptyStr]):
     if res.errors:
         raise AppException(res.errors)
     logger.info(f"Folders {folder_names} deleted in project {project}")
-
-
-@Trackable
-@validate_arguments
-def get_project_and_folder_metadata(project: Union[NotEmptyStr, dict]):
-    """Returns project and folder metadata tuple. If folder part is empty,
-    than returned folder part is set to None.
-
-    :param project: project name or folder path (e.g., "project1/folder1")
-    :type project: str
-
-    :return: tuple of project and folder
-    :rtype: tuple
-    """
-    warning_msg = (
-        "The get_project_and_folder_metadata function is deprecated and will be removed with the coming release, "
-        "please use get_folder_metadata instead."
-    )
-    logger.warning(warning_msg)
-    warnings.warn(warning_msg, DeprecationWarning)
-    project_name, folder_name = extract_project_folder(project)
-    project = ProjectSerializer(
-        Controller.get_default().search_project(project_name).data[0]
-    ).serialize()
-    folder = None
-    if folder_name:
-        folder = get_folder_metadata(project_name, folder_name)
-    return project, folder
 
 
 @Trackable
@@ -538,15 +516,15 @@ def copy_image(
         Controller.get_default().get_project_metadata(destination_project).data
     )
 
-    if destination_project_metadata["project"].project_type in [
+    if destination_project_metadata["project"].type in [
         constances.ProjectType.VIDEO.value,
         constances.ProjectType.DOCUMENT.value,
-    ] or source_project_metadata["project"].project_type in [
+    ] or source_project_metadata["project"].type in [
         constances.ProjectType.VIDEO.value,
         constances.ProjectType.DOCUMENT.value,
     ]:
         raise AppException(
-            LIMITED_FUNCTIONS[source_project_metadata["project"].project_type]
+            LIMITED_FUNCTIONS[source_project_metadata["project"].type]
         )
 
     response = Controller.get_default().copy_image(
@@ -683,11 +661,11 @@ def move_images(
     project_name, source_folder_name = extract_project_folder(source_project)
 
     project = Controller.get_default().get_project_metadata(project_name).data
-    if project["project"].project_type in [
+    if project["project"].type in [
         constances.ProjectType.VIDEO.value,
         constances.ProjectType.DOCUMENT.value,
     ]:
-        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
+        raise AppException(LIMITED_FUNCTIONS[project["project"].type])
 
     to_project_name, destination_folder_name = extract_project_folder(
         destination_project
@@ -779,18 +757,13 @@ def get_project_metadata(
     )
 
     metadata = ProjectSerializer(response["project"]).serialize()
-    metadata["settings"] = [
-        SettingsSerializer(setting).serialize()
-        for setting in response.get("settings", [])
-    ]
 
     for elem in "classes", "workflows", "contributors":
         if response.get(elem):
             metadata[elem] = [
-                BaseSerializer(attribute).serialize() for attribute in response[elem]
+                BaseSerializer(attribute).serialize() for attribute in
+                response[elem]
             ]
-        else:
-            metadata[elem] = []
     return metadata
 
 
@@ -1008,11 +981,11 @@ def assign_images(project: Union[NotEmptyStr, dict], image_names: List[str], use
     project_name, folder_name = extract_project_folder(project)
     project = Controller.get_default().get_project_metadata(project_name).data
 
-    if project["project"].project_type in [
+    if project["project"].type in [
         constances.ProjectType.VIDEO.value,
         constances.ProjectType.DOCUMENT.value,
     ]:
-        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
+        raise AppException(LIMITED_FUNCTIONS[project["project"].type])
 
     contributors = (
         Controller.get_default()
@@ -1849,13 +1822,13 @@ def attach_image_urls_to_project(
     project = Controller.get_default().get_project_metadata(project_name).data
     project_folder_name = project_name + (f"/{folder_name}" if folder_name else "")
 
-    if project["project"].project_type in [
+    if project["project"].type in [
         constances.ProjectType.VIDEO.value,
         constances.ProjectType.DOCUMENT.value,
     ]:
         raise AppException(
             constances.INVALID_PROJECT_TYPE_TO_PROCESS.format(
-                constances.ProjectType.get_name(project["project"].project_type)
+                constances.ProjectType.get_name(project["project"].type)
             )
         )
     images_to_upload, duplicate_images = get_paths_and_duplicated_from_csv(attachments)
@@ -1922,10 +1895,10 @@ def attach_video_urls_to_project(
     project = Controller.get_default().get_project_metadata(project_name).data
     project_folder_name = project_name + (f"/{folder_name}" if folder_name else "")
 
-    if project["project"].project_type != constances.ProjectType.VIDEO.value:
+    if project["project"].type != constances.ProjectType.VIDEO.value:
         raise AppException(
             constances.INVALID_PROJECT_TYPE_TO_PROCESS.format(
-                constances.ProjectType.get_name(project["project"].project_type)
+                constances.ProjectType.get_name(project["project"].type)
             )
         )
 
@@ -2062,11 +2035,11 @@ def upload_preannotations_from_folder_to_project(
     project_name, folder_name = extract_project_folder(project)
     project_folder_name = project_name + (f"/{folder_name}" if folder_name else "")
     project = Controller.get_default().get_project_metadata(project_name).data
-    if project["project"].project_type in [
+    if project["project"].type in [
         constances.ProjectType.VIDEO.value,
         constances.ProjectType.DOCUMENT.value,
     ]:
-        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
+        raise AppException(LIMITED_FUNCTIONS[project["project"].type])
     if recursive_subfolders:
         logger.info(
             "When using recursive subfolder parsing same name annotations in different "
@@ -2120,11 +2093,11 @@ def upload_image_annotations(
     project_name, folder_name = extract_project_folder(project)
 
     project = Controller.get_default().get_project_metadata(project_name).data
-    if project["project"].project_type in [
+    if project["project"].type in [
         constances.ProjectType.VIDEO.value,
         constances.ProjectType.DOCUMENT.value,
     ]:
-        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
+        raise AppException(LIMITED_FUNCTIONS[project["project"].type])
 
     if not mask:
         if not isinstance(annotation_json, dict):
@@ -2211,11 +2184,11 @@ def benchmark(
         project_name = project["name"]
 
     project = Controller.get_default().get_project_metadata(project_name).data
-    if project["project"].project_type in [
+    if project["project"].type in [
         constances.ProjectType.VIDEO.value,
         constances.ProjectType.DOCUMENT.value,
     ]:
-        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
+        raise AppException(LIMITED_FUNCTIONS[project["project"].type])
 
     if not export_root:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -2369,11 +2342,11 @@ def add_annotation_bbox_to_image(
     """
     project_name, folder_name = extract_project_folder(project)
     project = Controller.get_default().get_project_metadata(project_name).data
-    if project["project"].project_type in [
+    if project["project"].type in [
         constances.ProjectType.VIDEO.value,
         constances.ProjectType.DOCUMENT.value,
     ]:
-        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
+        raise AppException(LIMITED_FUNCTIONS[project["project"].type])
     response = Controller.get_default().get_annotations(
         project_name=project_name, folder_name=folder_name, item_names=[image_name], logging=False
     )
@@ -2426,11 +2399,11 @@ def add_annotation_point_to_image(
     """
     project_name, folder_name = extract_project_folder(project)
     project = Controller.get_default().get_project_metadata(project_name).data
-    if project["project"].project_type in [
+    if project["project"].type in [
         constances.ProjectType.VIDEO.value,
         constances.ProjectType.DOCUMENT.value,
     ]:
-        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
+        raise AppException(LIMITED_FUNCTIONS[project["project"].type])
     response = Controller.get_default().get_annotations(
         project_name=project_name, folder_name=folder_name, item_names=[image_name], logging=False
     )
@@ -2480,11 +2453,11 @@ def add_annotation_comment_to_image(
     """
     project_name, folder_name = extract_project_folder(project)
     project = Controller.get_default().get_project_metadata(project_name).data
-    if project["project"].project_type in [
+    if project["project"].type in [
         constances.ProjectType.VIDEO.value,
         constances.ProjectType.DOCUMENT.value,
     ]:
-        raise AppException(LIMITED_FUNCTIONS[project["project"].project_type])
+        raise AppException(LIMITED_FUNCTIONS[project["project"].type])
     response = Controller.get_default().get_annotations(
         project_name=project_name, folder_name=folder_name, item_names=[image_name], logging=False
     )
@@ -2793,10 +2766,10 @@ def attach_document_urls_to_project(
     project = Controller.get_default().get_project_metadata(project_name).data
     project_folder_name = project_name + (f"/{folder_name}" if folder_name else "")
 
-    if project["project"].project_type != constances.ProjectType.DOCUMENT.value:
+    if project["project"].type != constances.ProjectType.DOCUMENT.value:
         raise AppException(
             constances.INVALID_PROJECT_TYPE_TO_PROCESS.format(
-                constances.ProjectType.get_name(project["project"].project_type)
+                constances.ProjectType.get_name(project["project"].type)
             )
         )
 
