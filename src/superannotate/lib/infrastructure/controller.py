@@ -43,6 +43,18 @@ from superannotate.logger import get_default_logger
 from superannotate_schemas.validators import AnnotationValidators
 
 
+def build_condition(**kwargs) -> Condition:
+    condition = Condition.get_empty_condition()
+    if any(kwargs.values()):
+        conditions_iter = iter(kwargs.items())
+        key, value = next(conditions_iter)
+        if value:
+            condition = Condition(key, value, EQ)
+            for key, value in conditions_iter:
+                condition = condition & Condition(key, value, EQ)
+    return condition
+
+
 class BaseController(metaclass=ABCMeta):
     def __init__(self, config_path: str = None, token: str = None):
         self._team_data = None
@@ -308,9 +320,8 @@ class Controller(BaseController):
             condition &= Condition(
                 "status", constances.ProjectStatus.get_value(status), EQ
             )
-        for key, value in kwargs.items():
-            if value:
-                condition &= Condition(key, value, EQ)
+
+        condition &= build_condition(**kwargs)
         use_case = usecases.GetProjectsUseCase(
             condition=condition, projects=self.projects, team_id=self.team_id,
         )
@@ -534,10 +545,7 @@ class Controller(BaseController):
     def search_folders(
             self, project_name: str, folder_name: str = None, include_users=False, **kwargs
     ):
-        condition = Condition.get_empty_condition()
-        if kwargs:
-            for key, val in kwargs:
-                condition = condition & Condition(key, val, EQ)
+        condition = build_condition(**kwargs)
         project = self._get_project(project_name)
         use_case = usecases.SearchFoldersUseCase(
             project=project,
@@ -582,15 +590,7 @@ class Controller(BaseController):
         return use_case.execute()
 
     def search_team_contributors(self, **kwargs):
-        condition = None
-        if any(kwargs.values()):
-            conditions_iter = iter(kwargs)
-            key = next(conditions_iter)
-            if kwargs[key]:
-                condition = Condition(key, kwargs[key], EQ)
-                for key, val in conditions_iter:
-                    condition = condition & Condition(key, val, EQ)
-
+        condition = build_condition(**kwargs)
         use_case = usecases.SearchContributorsUseCase(
             backend_service_provider=self._backend_client,
             team_id=self.team_id,
@@ -1595,8 +1595,8 @@ class Controller(BaseController):
             search_condition &= Condition("qa_id", qa_email, EQ)
         if annotator_email:
             search_condition &= Condition("annotator_id", annotator_email, EQ)
-        for key, value in kwargs.items():
-            search_condition &= Condition(key, value, EQ)
+        search_condition &= build_condition(**kwargs)
+
         use_case = usecases.ListItems(
             reporter=self.default_reporter,
             project=project,

@@ -4,9 +4,8 @@ from typing import List
 from typing import Set
 from typing import Union
 
-from pydantic import BaseModel
-
 import superannotate.lib.core as constance
+from pydantic import BaseModel
 from superannotate.lib.core.entities import BaseEntity
 from superannotate.lib.core.entities import ImageEntity
 from superannotate.lib.core.entities import ProjectEntity

@@ -77,3 +77,6 @@ class TestProject(BaseTestCase):
         added, skipped = sa.invite_contributors_to_team(to_add_emails, False)
         self.assertEqual(len(added), 3)
         self.assertEqual(len(skipped), 5)
+
+    def test_(self):
+        sa.search_team_contributors("shab@mai.com")

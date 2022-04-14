@@ -1,7 +1,7 @@
 import asyncio
+import datetime
 import json
 import time
-import datetime
 from contextlib import contextmanager
 from typing import Dict
 from typing import Iterable
@@ -10,10 +10,8 @@ from typing import Tuple
 from typing import Union
 from urllib.parse import urljoin
 
-import requests.packages.urllib3
-from requests.exceptions import HTTPError
-
 import lib.core as constance
+import requests.packages.urllib3
 from lib.core.exceptions import AppException
 from lib.core.exceptions import BackendError
 from lib.core.reporter import Reporter
@@ -24,6 +22,7 @@ from lib.core.service_types import UserLimits
 from lib.core.serviceproviders import SuperannotateServiceProvider
 from lib.infrastructure.helpers import timed_lru_cache
 from lib.infrastructure.stream_data_handler import StreamedAnnotations
+from requests.exceptions import HTTPError
 
 requests.packages.urllib3.disable_warnings()
 

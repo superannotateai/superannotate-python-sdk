@@ -5,11 +5,9 @@ from typing import Iterable
 from typing import List
 from typing import Type
 
-from requests.exceptions import RequestException
-
 import lib.core as constances
-from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.conditions import Condition
+from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.entities import AnnotationClassEntity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ProjectEntity
@@ -24,6 +22,7 @@ from lib.core.serviceproviders import SuperannotateServiceProvider
 from lib.core.usecases.base import BaseReportableUseCae
 from lib.core.usecases.base import BaseUseCase
 from lib.core.usecases.base import BaseUserBasedUseCase
+from requests.exceptions import RequestException
 from superannotate.logger import get_default_logger
 
 logger = get_default_logger()

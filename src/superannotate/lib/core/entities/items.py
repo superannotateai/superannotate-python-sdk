@@ -31,7 +31,7 @@ class TmpImageEntity(Entity):
     segmentation_status: Optional[SegmentationStatus] = Field(
         SegmentationStatus.NOT_STARTED
     )
-    approval_status: Optional[bool] = Field(None)
+    approval_status: Optional[int] = Field(None)
 
     class Config:
         extra = Extra.ignore

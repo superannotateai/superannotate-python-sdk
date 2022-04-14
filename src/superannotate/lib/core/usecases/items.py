@@ -11,7 +11,6 @@ from lib.core.entities import FolderEntity
 from lib.core.entities import ProjectEntity
 from lib.core.entities import TmpBaseEntity
 from lib.core.entities import TmpImageEntity
-from lib.core.entities import VideoEntity
 from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
 from lib.core.exceptions import BackendError
@@ -54,7 +53,8 @@ class GetItem(BaseReportableUseCae):
                 tmp_entity.segmentation_status = None
             return TmpImageEntity(**tmp_entity.dict(by_alias=True))
         elif project.type == constances.ProjectType.VIDEO.value:
-            return VideoEntity(**entity.dict(by_alias=True))
+            return
+
         elif project.type == constances.ProjectType.DOCUMENT.value:
             return DocumentEntity(**entity.dict(by_alias=True))
         return entity
@@ -245,6 +245,7 @@ class AttachItems(BaseReportableUseCae):
         if self.is_valid():
             duplications = []
             attached = []
+            self.reporter.start_progress(self.attachments_count, "Attaching URLs")
             for i in range(0, self.attachments_count, self.CHUNK_SIZE):
                 attachments = self._attachments[i: i + self.CHUNK_SIZE]  # noqa: E203
                 response = self._backend_service.get_bulk_images(
@@ -276,6 +277,8 @@ class AttachItems(BaseReportableUseCae):
                         self._response.errors = AppException(backend_response["error"])
                     else:
                         attached.extend(backend_response)
+                self.reporter.update_progress(len(attachments))
+            self.reporter.finish_progress()
             self._response.data = attached, duplications
         return self._response
 
@@ -363,7 +366,7 @@ class CopyItems(BaseReportableUseCae):
                         include_annotations=self._include_annotations,
                     )
                     if not poll_id:
-                        skipped_images.append(chunk_to_copy)
+                        skipped_items.extend(chunk_to_copy)
                         continue
                     try:
                         self._backend_service.await_progress(
@@ -467,4 +470,3 @@ class MoveItems(BaseReportableUseCae):
 
             self._response.data = list(set(items) - set(moved_images))
         return self._response
-

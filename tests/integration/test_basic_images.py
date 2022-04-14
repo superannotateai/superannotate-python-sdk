@@ -6,6 +6,8 @@ from pathlib import Path
 import src.superannotate as sa
 from tests.integration.base import BaseTestCase
 
+import pytest
+
 
 class TestVectorAnnotationsWithTag(BaseTestCase):
     PROJECT_NAME = "TestVectorAnnotationsWithTag"
@@ -55,6 +57,7 @@ class TestVectorAnnotationsWithTagFolderUpload(BaseTestCase):
     def classes_json_path(self):
         return f"{self.folder_path}/classes/classes.json"
 
+    @pytest.mark.flaky(reruns=2)
     def test_vector_annotations_with_tag_folder_upload(self):
         sa.upload_images_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"

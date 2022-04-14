@@ -1,4 +1,5 @@
 import os
+from collections import Counter
 from pathlib import Path
 
 import src.superannotate as sa
@@ -70,5 +71,5 @@ class TestCopyItems(BaseTestCase):
         )
         sa.create_folder(self.PROJECT_NAME, self.FOLDER_1)
         skipped_items = sa.copy_items(self.PROJECT_NAME, f"{self.PROJECT_NAME}/{self.FOLDER_1}", items=["as", "asd"])
-        assert skipped_items == ["as", "asd"]
+        assert Counter(skipped_items) == Counter(["as", "asd"])
         assert len(sa.search_items(f"{self.PROJECT_NAME}/{self.FOLDER_1}")) == 0

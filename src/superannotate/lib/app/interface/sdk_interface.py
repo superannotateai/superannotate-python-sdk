@@ -12,12 +12,6 @@ from typing import Tuple
 from typing import Union
 
 import boto3
-from pydantic import StrictBool
-from pydantic import conlist
-from pydantic import parse_obj_as
-from pydantic.error_wrappers import ValidationError
-from tqdm import tqdm
-
 import lib.core as constances
 from lib.app.annotation_helpers import add_annotation_bbox_to_json
 from lib.app.annotation_helpers import add_annotation_comment_to_json
@@ -58,7 +52,12 @@ from lib.core.types import MLModel
 from lib.core.types import PriorityScore
 from lib.core.types import Project
 from lib.infrastructure.controller import Controller
+from pydantic import conlist
+from pydantic import parse_obj_as
+from pydantic import StrictBool
+from pydantic.error_wrappers import ValidationError
 from superannotate.logger import get_default_logger
+from tqdm import tqdm
 
 logger = get_default_logger()
 
@@ -397,10 +396,10 @@ def rename_project(project: NotEmptyStr, new_name: NotEmptyStr):
     )
     if response.errors:
         raise AppException(response.errors)
-    return ProjectSerializer(response.data).serialize()
     logger.info(
-        "Successfully renamed project %s to %s.", project, response.data["name"]
+        "Successfully renamed project %s to %s.", project, response.data.name
     )
+    return ProjectSerializer(response.data).serialize()
 
 
 @Trackable
@@ -3135,7 +3134,7 @@ def attach_items(
     unique_attachments = parse_obj_as(List[AttachmentEntity], unique_attachments)
     uploaded, fails, duplicated = [], [], []
     if unique_attachments:
-        logger.info(f"Attaching  {len(unique_attachments)} file(s) to project {project}.")
+        logger.info(f"Attaching {len(unique_attachments)} file(s) to project {project}.")
         response = Controller.get_default().attach_items(
             project_name=project_name,
             folder_name=folder_name,
