@@ -1,12 +1,13 @@
-import src.superannotate as sa
 from unittest import TestCase
 
+import src.superannotate as sa
+from src.superannotate import AppException
 
-class TestSettings(TestCase):
+
+class BaseTestCase(TestCase):
     PROJECT_NAME = "TestSettings"
     SECOND_PROJECT_NAME = "SecondTestSettings"
     PROJECT_DESCRIPTION = "TestSettings"
-    PROJECT_TYPE = "Vector"
 
     def setUp(self) -> None:
         self.tearDown()
@@ -22,6 +23,12 @@ class TestSettings(TestCase):
                     pass
         except Exception as e:
             print(str(e))
+
+
+class TestSettings(BaseTestCase):
+    PROJECT_NAME = "TestSettings"
+    SECOND_PROJECT_NAME = "SecondTestSettings"
+    PROJECT_TYPE = "Vector"
 
     def test_create_project_with_empty_settings(self):
         sa.create_project(
@@ -85,3 +92,61 @@ class TestSettings(TestCase):
                 break
         else:
             raise Exception("Test failed")
+
+    def test_frame_rate_invalid_range_value(self):
+        with self.assertRaisesRegexp(AppException, "FrameRate is available only for Video projects"):
+            sa.create_project(
+                self.PROJECT_NAME,
+                self.PROJECT_DESCRIPTION,
+                self.PROJECT_TYPE,
+                [{"attribute": "FrameRate", "value": 1.0}])
+
+
+class TestVideoSettings(BaseTestCase):
+    PROJECT_NAME = "TestVideoSettings"
+    SECOND_PROJECT_NAME = "TestVideoSettings"
+    PROJECT_TYPE = "Video"
+
+    def test_frame_rate(self):
+        sa.create_project(
+            self.PROJECT_NAME,
+            self.PROJECT_DESCRIPTION,
+            self.PROJECT_TYPE,
+            [{"attribute": "FrameRate", "value": 1}])
+        settings = sa.get_project_settings(self.SECOND_PROJECT_NAME)
+        for setting in settings:
+            if setting["attribute"] == "FrameRate":
+                assert setting["value"] == 1
+                break
+        else:
+            raise Exception("Test failed")
+
+    def test_frame_rate_float(self):
+        sa.create_project(
+            self.PROJECT_NAME,
+            self.PROJECT_DESCRIPTION,
+            self.PROJECT_TYPE,
+            [{"attribute": "FrameRate", "value": 1.3}])
+        settings = sa.get_project_settings(self.SECOND_PROJECT_NAME)
+        for setting in settings:
+            if setting["attribute"] == "FrameRate":
+                assert setting["value"] == 1.3
+                break
+        else:
+            raise Exception("Test failed")
+
+    def test_frame_rate_invalid_range_value(self):
+        with self.assertRaisesRegexp(AppException, "The FrameRate value range is between 0.001 - 120"):
+            sa.create_project(
+                self.PROJECT_NAME,
+                self.PROJECT_DESCRIPTION,
+                self.PROJECT_TYPE,
+                [{"attribute": "FrameRate", "value": 1.00003}])
+
+    def test_frame_rate_invalid_str_value(self):
+        with self.assertRaisesRegexp(AppException, "The FrameRate value should be float"):
+            sa.create_project(
+                self.PROJECT_NAME,
+                self.PROJECT_DESCRIPTION,
+                self.PROJECT_TYPE,
+                [{"attribute": "FrameRate", "value": "1"}])

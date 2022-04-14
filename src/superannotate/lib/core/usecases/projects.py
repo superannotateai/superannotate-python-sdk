@@ -185,13 +185,13 @@ class CreateProjectUseCase(BaseUseCase):
                 setting.value = constances.ImageQuality.get_value(setting.value)
             elif setting.attribute == "FrameRate":
                 if not self._project.type == constances.ProjectType.VIDEO.value:
-                    raise AppValidationException("FrameMode is available only for Video projects")
+                    raise AppValidationException("FrameRate is available only for Video projects")
                 if isinstance(setting.value, (float, int)):
                     if not (0.0001 < setting.value < 120) or decimal.Decimal(
                             str(setting.value)).as_tuple().exponent < -3:
-                        raise AppValidationException("The FrameMode value range is between 0.001 - 120")
+                        raise AppValidationException("The FrameRate value range is between 0.001 - 120")
                 else:
-                    raise AppValidationException("The FrameMode value should be float")
+                    raise AppValidationException("The FrameRate value should be float")
 
     def validate_project_name(self):
         if (

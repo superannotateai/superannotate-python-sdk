@@ -61,3 +61,29 @@ class TestGetEntityMetadataPixel(BaseTestCase):
         assert item_metadata["prediction_status"] == "NotStarted"
         assert item_metadata["segmentation_status"] == "NotStarted"
         assert item_metadata["annotation_status"] == "InProgress"
+
+
+class TestGetEntityMetadataVideo(BaseTestCase):
+    PROJECT_NAME = "TestGetEntityMetadataVideo"
+    PROJECT_DESCRIPTION = "TestGetEntityMetadataVideo"
+    PROJECT_TYPE = "Video"
+    TEST_FOLDER_PATH = "data_set/sample_project_vector"
+    ITEM_NAME = "example_image_1.jpg"
+
+    @property
+    def folder_path(self):
+        return os.path.join(Path(__file__).parent.parent.parent, self.TEST_FOLDER_PATH)
+
+    def test_get_item_metadata(self):
+        sa.attach_items(
+            self.PROJECT_NAME, [
+                {
+                    "url": "https://drive.google.com/uc?export=download&id=1vwfCpTzcjxoEA4hhDxqapPOVvLVeS7ZS",
+                    "name": self.ITEM_NAME
+                }
+            ]
+        )
+        item_metadata = sa.get_item_metadata(self.PROJECT_NAME, self.ITEM_NAME)
+        assert item_metadata["path"] == f"{self.PROJECT_NAME}/{self.ITEM_NAME}"
+        assert "prediction_status" not in item_metadata
+        assert "segmentation_status" not in item_metadata

@@ -4,8 +4,6 @@ from pathlib import Path
 import src.superannotate as sa
 from tests.integration.base import BaseTestCase
 
-import pytest
-
 
 class TestAttachItemsVector(BaseTestCase):
     PROJECT_NAME = "TestAttachItemsVector"
