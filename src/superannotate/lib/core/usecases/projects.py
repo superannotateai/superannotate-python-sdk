@@ -11,6 +11,7 @@ from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.entities import AnnotationClassEntity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ProjectEntity
+from lib.core.entities import SettingEntity
 from lib.core.entities import TeamEntity
 from lib.core.entities import WorkflowEntity
 from lib.core.exceptions import AppException
@@ -190,6 +191,11 @@ class CreateProjectUseCase(BaseUseCase):
                     if not (0.0001 < setting.value < 120) or decimal.Decimal(
                             str(setting.value)).as_tuple().exponent < -3:
                         raise AppValidationException("The FrameRate value range is between 0.001 - 120")
+                    frame_mode = next(filter(lambda x: x.attribute == "FrameMode", self._project.settings), None)
+                    if not frame_mode:
+                        self._project.settings.append(SettingEntity(attribute="FrameMode", value=1))
+                    else:
+                        frame_mode.value = 1
                 else:
                     raise AppValidationException("The FrameRate value should be float")
 

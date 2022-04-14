@@ -103,8 +103,8 @@ class TestSettings(BaseTestCase):
 
 
 class TestVideoSettings(BaseTestCase):
-    PROJECT_NAME = "TestVideoSettings"
-    SECOND_PROJECT_NAME = "TestVideoSettings"
+    PROJECT_NAME = "TestVideoSettings12"
+    SECOND_PROJECT_NAME = "TestVideoSettings2"
     PROJECT_TYPE = "Video"
 
     def test_frame_rate(self):
@@ -113,10 +113,13 @@ class TestVideoSettings(BaseTestCase):
             self.PROJECT_DESCRIPTION,
             self.PROJECT_TYPE,
             [{"attribute": "FrameRate", "value": 1}])
-        settings = sa.get_project_settings(self.SECOND_PROJECT_NAME)
+        settings = sa.get_project_settings(self.PROJECT_NAME)
         for setting in settings:
             if setting["attribute"] == "FrameRate":
                 assert setting["value"] == 1
+                break
+            elif setting["attribute"] == "FrameMode":
+                assert setting["value"]
                 break
         else:
             raise Exception("Test failed")
@@ -127,10 +130,13 @@ class TestVideoSettings(BaseTestCase):
             self.PROJECT_DESCRIPTION,
             self.PROJECT_TYPE,
             [{"attribute": "FrameRate", "value": 1.3}])
-        settings = sa.get_project_settings(self.SECOND_PROJECT_NAME)
+        settings = sa.get_project_settings(self.PROJECT_NAME)
         for setting in settings:
             if setting["attribute"] == "FrameRate":
                 assert setting["value"] == 1.3
+                break
+            elif setting["attribute"] == "FrameMode":
+                assert setting["value"]
                 break
         else:
             raise Exception("Test failed")
@@ -150,3 +156,21 @@ class TestVideoSettings(BaseTestCase):
                 self.PROJECT_DESCRIPTION,
                 self.PROJECT_TYPE,
                 [{"attribute": "FrameRate", "value": "1"}])
+
+    def test_frames_reset(self):
+        sa.create_project(
+            self.PROJECT_NAME,
+            self.PROJECT_DESCRIPTION,
+            self.PROJECT_TYPE,
+            [{"attribute": "FrameRate", "value": 1.3}])
+        sa.rename_project(self.PROJECT_NAME, self.SECOND_PROJECT_NAME)
+        settings = sa.get_project_settings(self.SECOND_PROJECT_NAME)
+        for setting in settings:
+            if setting["attribute"] == "FrameRate":
+                assert setting["value"] == 1.3
+                break
+            elif setting["attribute"] == "FrameMode":
+                assert setting["value"]
+                break
+        else:
+            raise Exception("Test failed")

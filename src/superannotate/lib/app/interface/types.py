@@ -175,7 +175,7 @@ class AnnotationStatuses(StrictStr):
     def validate(cls, value: Union[str]) -> Union[str]:
         if value.lower() not in AnnotationStatus.values():
             raise TypeError(
-                f"Available an``notation_statuses are {', '.join(AnnotationStatus.titles())}. "
+                f"Available an notation_statuses are {', '.join(AnnotationStatus.titles())}. "
             )
         return value
 

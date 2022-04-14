@@ -9,6 +9,7 @@ from lib.core.enums import AnnotationStatus
 from pydantic import BaseModel
 from pydantic import Extra
 from pydantic import Field
+from pydantic import StrictBool
 from pydantic import StrictFloat
 from pydantic import StrictInt
 from pydantic import StrictStr
@@ -46,7 +47,7 @@ class SettingEntity(BaseModel):
     id: Optional[int]
     project_id: Optional[int]
     attribute: str
-    value: Union[StrictStr, StrictInt, StrictFloat]
+    value: Union[StrictStr, StrictInt, StrictFloat, StrictBool]
 
     class Config:
         extra = Extra.ignore
