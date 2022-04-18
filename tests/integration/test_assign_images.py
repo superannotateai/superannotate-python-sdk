@@ -86,7 +86,7 @@ class TestAnnotationClasses(BaseTestCase):
             project, [self.EXAMPLE_IMAGE_1, self.EXAMPLE_IMAGE_2],
         )
 
-        sa.search_images(project)
+        sa.search_items(project)
         im1_metadata = sa.get_item_metadata(project, self.EXAMPLE_IMAGE_1)
 
         im2_metadata = sa.get_item_metadata(project, self.EXAMPLE_IMAGE_2)

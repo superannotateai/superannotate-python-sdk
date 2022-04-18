@@ -151,9 +151,7 @@ class ProjectSettingsRepository(BaseProjectRelatedManageableRepository):
     def delete(self, uuid: int):
         raise NotImplementedError
 
-    def get_all(
-            self, condition: Optional[Condition] = None
-    ) -> List[SettingEntity]:
+    def get_all(self, condition: Optional[Condition] = None) -> List[SettingEntity]:
         data = self._service.get_project_settings(
             self._project.id, self._project.team_id
         )
@@ -278,7 +276,7 @@ class AnnotationClassRepository(BaseManageableRepository):
         raise NotImplementedError
 
     def get_all(
-            self, condition: Optional[Condition] = None
+        self, condition: Optional[Condition] = None
     ) -> List[AnnotationClassEntity]:
         query = condition.build_query() if condition else None
         data = self._service.get_annotation_classes(

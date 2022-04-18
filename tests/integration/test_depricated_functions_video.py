@@ -64,10 +64,6 @@ class TestDeprecatedFunctionsVideo(TestCase):
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
-            sa.search_images(self.PROJECT_NAME)
-        except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE, str(e))
-        try:
             sa.upload_images_to_project(self.PROJECT_NAME, ["some"])
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
@@ -138,10 +134,6 @@ class TestDeprecatedFunctionsVideo(TestCase):
             sa.set_project_default_image_quality_in_editor(self.PROJECT_NAME, "original")
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE_DOCUMENT_VIDEO, str(e))
-        try:
-            sa.set_images_annotation_statuses(self.PROJECT_NAME, "Completed", [self.UPLOAD_IMAGE_NAME])
-        except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
             sa.class_distribution(self.video_export_path, [self.PROJECT_NAME])
         except AppException as e:

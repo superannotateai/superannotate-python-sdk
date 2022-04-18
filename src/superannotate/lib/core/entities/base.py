@@ -13,16 +13,30 @@ from pydantic import StrictBool
 from pydantic import StrictFloat
 from pydantic import StrictInt
 from pydantic import StrictStr
+from pydantic.datetime_parse import parse_datetime
+
+
+class StringDate(datetime):
+    @classmethod
+    def __get_validators__(cls):
+        yield parse_datetime
+        yield cls.validate
+
+    @classmethod
+    def validate(cls, v: datetime):
+        return v.isoformat()
 
 
 class TimedBaseModel(BaseModel):
-    createdAt: datetime = Field(None, alias="createdAt")
-    updatedAt: datetime = Field(None, alias="updatedAt")
+    createdAt: StringDate = Field(None, alias="createdAt")
+    updatedAt: StringDate = Field(None, alias="updatedAt")
 
 
 class BaseEntity(TimedBaseModel):
     name: str
-    path: Optional[str] = Field(None, description="Item’s path in SuperAnnotate project")
+    path: Optional[str] = Field(
+        None, description="Item’s path in SuperAnnotate project"
+    )
     url: Optional[str] = Field(description="Publicly available HTTP address")
     annotator_email: Optional[str] = Field(description="Annotator email")
     qa_email: Optional[str] = Field(description="QA email")
@@ -77,7 +91,9 @@ class ProjectEntity(TimedBaseModel):
     classes: Optional[List[Any]] = []
     workflows: Optional[List[Any]] = []
     completed_images_count: Optional[int] = Field(None, alias="completedImagesCount")
-    root_folder_completed_images_count: Optional[int] = Field(None, alias="rootFolderCompletedImagesCount")
+    root_folder_completed_images_count: Optional[int] = Field(
+        None, alias="rootFolderCompletedImagesCount"
+    )
 
     class Config:
         extra = Extra.ignore

@@ -82,7 +82,9 @@ def create_project_from_metadata(**kwargs):
 def clone_project(**kwargs):
     project = kwargs.get("project_name")
 
-    project_metadata = Controller.get_default().get_project_metadata(project).data["project"]
+    project_metadata = (
+        Controller.get_default().get_project_metadata(project).data["project"]
+    )
     project_type = ProjectType.get_name(project_metadata.type)
 
     return {
@@ -92,26 +94,10 @@ def clone_project(**kwargs):
                 project_metadata.upload_state == constances.UploadState.EXTERNAL.value
             ),
             "Project Type": project_type,
-            "Copy Classes": bool(kwargs.get("copy_annotation_classes")
-                                 ),
+            "Copy Classes": bool(kwargs.get("copy_annotation_classes")),
             "Copy Settings": bool(kwargs.get("copy_settings")),
             "Copy Workflow": bool(kwargs.get("copy_workflow")),
-            "Copy Contributors": bool(kwargs.get("copy_contributors")
-                                      ),
-            "project_name": get_project_name(project),
-        },
-    }
-
-
-def search_images(**kwargs):
-    project = kwargs["project"]
-
-    return {
-        "event_name": "search_images",
-        "properties": {
-            "Annotation Status": bool(kwargs.get("annotation_status")
-                                      ),
-            "Metadata": bool(kwargs.get("return_metadata")),
+            "Copy Contributors": bool(kwargs.get("copy_contributors")),
             "project_name": get_project_name(project),
         },
     }
@@ -139,8 +125,7 @@ def upload_image_to_project(**kwargs):
         "event_name": "upload_image_to_project",
         "properties": {
             "Image Name": bool(kwargs.get("image_name")),
-            "Annotation Status": bool(kwargs.get("annotation_status")
-                                      ),
+            "Annotation Status": bool(kwargs.get("annotation_status")),
             "project_name": get_project_name(project),
         },
     }
@@ -167,8 +152,7 @@ def attach_image_urls_to_project(**kwargs):
         "event_name": "attach_image_urls_to_project",
         "properties": {
             "project_name": get_project_name(project),
-            "Annotation Status": bool(kwargs.get("annotation_status")
-                                      ),
+            "Annotation Status": bool(kwargs.get("annotation_status")),
         },
     }
 
@@ -192,15 +176,6 @@ def download_image_annotations(**kwargs):
 
     return {
         "event_name": "download_image_annotations",
-        "properties": {"project_name": get_project_name(project)},
-    }
-
-
-def get_image_metadata(**kwargs):
-    project = kwargs["project"]
-
-    return {
-        "event_name": "get_image_metadata",
         "properties": {"project_name": get_project_name(project)},
     }
 
@@ -322,20 +297,6 @@ def get_folder_metadata(**kwargs):
     }
 
 
-def search_images_all_folders(**kwargs):
-    project = kwargs["project"]
-
-    return {
-        "event_name": "search_images_all_folders",
-        "properties": {
-            "Annotation Status": bool(kwargs.get("annotation_status")
-                                      ),
-            "Metadata": bool(kwargs.get("return_metadata")),
-            "project_name": get_project_name(project),
-        },
-    }
-
-
 def download_model(**kwargs):
     model = kwargs["model"]
     return {
@@ -406,7 +367,7 @@ def run_prediction(**kwargs):
         "event_name": "run_prediction",
         "properties": {
             "Project Type": project_type,
-            "Image Count": len(image_list) if image_list else None
+            "Image Count": len(image_list) if image_list else None,
         },
     }
 
@@ -606,8 +567,7 @@ def upload_images_from_folder_to_project(**kwargs):
         "properties": {
             "Image Count": len(filtered_paths),
             "Custom Extentions": bool(kwargs["extensions"]),
-            "Annotation Status": bool(kwargs.get("annotation_status")
-                                      ),
+            "Annotation Status": bool(kwargs.get("annotation_status")),
             "From S3": bool(kwargs.get("from_s3_bucket")),
             "Custom Exclude Patters": bool(kwargs["exclude_file_patterns"]),
         },
@@ -621,8 +581,7 @@ def prepare_export(**kwargs):
         "properties": {
             "project_name": get_project_name(project),
             "Folder Count": bool(kwargs.get("folder_names")),
-            "Annotation Statuses": bool(kwargs.get("annotation_statuses")
-                                        ),
+            "Annotation Statuses": bool(kwargs.get("annotation_statuses")),
             "Include Fuse": bool(kwargs.get("include_fuse")),
             "Only Pinned": bool(kwargs.get("only_pinned")),
         },
@@ -648,8 +607,9 @@ def assign_images(**kwargs):
     user = kwargs.get("user")
 
     contributors = (
-        Controller.get_default().get_project_metadata(project_name=project_name, include_contributors=True)
-            .data["contributors"]
+        Controller.get_default()
+        .get_project_metadata(project_name=project_name, include_contributors=True)
+        .data["contributors"]
     )
     contributor = None
     for c in contributors:
@@ -844,10 +804,7 @@ def delete_images(**kwargs):
         image_names = res.data
     return {
         "event_name": "delete_images",
-        "properties": {
-            "project_name": project_name,
-            "Image Count": len(image_names),
-        },
+        "properties": {"project_name": project_name, "Image Count": len(image_names)},
     }
 
 
@@ -927,7 +884,10 @@ def get_annotations(**kwargs):
 
     return {
         "event_name": "get_annotations",
-        "properties": {"Project": project, "items_count": len(items) if items else None},
+        "properties": {
+            "Project": project,
+            "items_count": len(items) if items else None,
+        },
     }
 
 
@@ -965,7 +925,9 @@ def attach_items_from_integrated_storage(**kwargs):
 
     if isinstance(integration, str):
         integration = IntegrationEntity(name=integration)
-    project = Controller.get_default().get_project_metadata(project_name).data["project"]
+    project = (
+        Controller.get_default().get_project_metadata(project_name).data["project"]
+    )
     return {
         "event_name": "attach_items_from_integrated_storage",
         "properties": {
@@ -980,7 +942,9 @@ def query(**kwargs):
     project = kwargs["project"]
     query_str = kwargs["query"]
     project_name, folder_name = extract_project_folder(project)
-    project = Controller.get_default().get_project_metadata(project_name).data["project"]
+    project = (
+        Controller.get_default().get_project_metadata(project_name).data["project"]
+    )
     return {
         "event_name": "query_saqul",
         "properties": {
@@ -993,7 +957,9 @@ def query(**kwargs):
 def get_item_metadata(**kwargs):
     project = kwargs["project"]
     project_name, _ = extract_project_folder(project)
-    project = Controller.get_default().get_project_metadata(project_name).data["project"]
+    project = (
+        Controller.get_default().get_project_metadata(project_name).data["project"]
+    )
     return {
         "event_name": "get_item_metadata",
         "properties": {"project_type": ProjectType.get_name(project.type)},
@@ -1008,7 +974,9 @@ def search_items(**kwargs):
     qa_email = kwargs["qa_email"]
     recursive = kwargs["recursive"]
     project_name, folder_name = extract_project_folder(project)
-    project = Controller.get_default().get_project_metadata(project_name).data["project"]
+    project = (
+        Controller.get_default().get_project_metadata(project_name).data["project"]
+    )
     return {
         "event_name": "search_items",
         "properties": {
@@ -1026,13 +994,15 @@ def search_items(**kwargs):
 def move_items(**kwargs):
     project = kwargs["project"]
     project_name, _ = extract_project_folder(project)
-    project = Controller.get_default().get_project_metadata(project_name).data["project"]
+    project = (
+        Controller.get_default().get_project_metadata(project_name).data["project"]
+    )
     items = kwargs["items"]
     return {
         "event_name": "move_items",
         "properties": {
             "project_type": ProjectType.get_name(project.type),
-            "items_count": len(items) if items else None
+            "items_count": len(items) if items else None,
         },
     }
 
@@ -1040,14 +1010,16 @@ def move_items(**kwargs):
 def copy_items(**kwargs):
     project = kwargs["project"]
     project_name, _ = extract_project_folder(project)
-    project = Controller.get_default().get_project_metadata(project_name).data["project"]
+    project = (
+        Controller.get_default().get_project_metadata(project_name).data["project"]
+    )
     items = kwargs["items"]
     return {
         "event_name": "copy_items",
         "properties": {
             "project_type": ProjectType.get_name(project.type),
             "items_count": len(items) if items else None,
-            "include_annotations": kwargs["include_annotations"]
+            "include_annotations": kwargs["include_annotations"],
         },
     }
 
@@ -1055,13 +1027,28 @@ def copy_items(**kwargs):
 def attach_items(**kwargs):
     project = kwargs["project"]
     project_name, _ = extract_project_folder(project)
-    project = Controller.get_default().get_project_metadata(project_name).data["project"]
+    project = (
+        Controller.get_default().get_project_metadata(project_name).data["project"]
+    )
     attachments = kwargs["attachments"]
     return {
         "event_name": "copy_items",
         "properties": {
             "project_type": ProjectType.get_name(project.type),
             "attachments": "scv" if isinstance(attachments, (str, Path)) else "dict",
-            "annotation_status": kwargs["annotation_status"]
+            "annotation_status": kwargs["annotation_status"],
+        },
+    }
+
+
+def set_annotation_statuses(**kwargs):
+    project = kwargs["project"]
+    project_name, folder_name = extract_project_folder(project)
+    return {
+        "event_name": "set_annotation_statuses",
+        "properties": {
+            "item_count": len(kwargs.get("item_names", [])),
+            "annotation_status": kwargs["annotation_status"],
+            "root": folder_name == "root",
         },
     }

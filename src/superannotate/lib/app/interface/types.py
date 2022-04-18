@@ -32,8 +32,8 @@ class EmailStr(StrictStr):
         try:
             constr(
                 regex=r"^(?=.{1,254}$)(?=.{1,64}@)[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)"
-                      r"*@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}"
-                      r"[a-zA-Z0-9])?)*$"
+                r"*@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}"
+                r"[a-zA-Z0-9])?)*$"
             ).validate(value)
         except StrRegexError:
             raise ValueError("Invalid email")

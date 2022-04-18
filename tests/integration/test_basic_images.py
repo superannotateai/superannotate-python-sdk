@@ -180,7 +180,7 @@ class TestVectorImages(BaseTestCase):
             sa.create_annotation_classes_from_classes_json(
                 self.PROJECT_NAME, self.classes_json_path
             )
-            images = sa.search_images(self.PROJECT_NAME, "example_image_1")
+            images = sa.search_items(self.PROJECT_NAME, "example_image_1")
             self.assertEqual(len(images), 1)
 
             image_name = images[0]
@@ -192,9 +192,8 @@ class TestVectorImages(BaseTestCase):
                      'prediction_status': 'NotStarted', 'segmentation_status': None, 'approval_status': None,
                       'annotator_email': None, 'qa_email': None, 'entropy_value': None}
             assert all([truth[i] == image[i] for i in truth])
-
-            sa.download_image(self.PROJECT_NAME, image_name, temp_dir, True)
+            sa.download_image(self.PROJECT_NAME, image_name["name"], temp_dir, True)
             self.assertEqual(
-                sa.get_annotations(self.PROJECT_NAME, [image_name])[0],
+                sa.get_annotations(self.PROJECT_NAME, [image_name["name"]])[0],
                 {'metadata': {'name': 'example_image_1.jpg'}, 'instances': []}
             )

@@ -151,7 +151,9 @@ class SuperannotateServiceProvider:
     ) -> Tuple[int, int]:
         raise NotImplementedError
 
-    def await_progress(self, project_id: int, team_id: int, poll_id: int, items_count) -> Tuple[int, int]:
+    def await_progress(
+        self, project_id: int, team_id: int, poll_id: int, items_count
+    ) -> Tuple[int, int]:
         raise NotImplementedError
 
     def set_images_statuses_bulk(

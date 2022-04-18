@@ -25,6 +25,7 @@ from superannotate_schemas.schemas.internal.video import VideoAnnotation
 from superannotate_schemas.schemas.internal.video import (
     VideoAnnotation as VideoExportAnnotation,
 )
+
 # from lib.core.entities.project_entities import ProjectEntity
 
 __all__ = [

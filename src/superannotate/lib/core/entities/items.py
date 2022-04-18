@@ -7,7 +7,6 @@ from pydantic import Field
 
 
 class Entity(BaseEntity):
-
     class Config:
         extra = Extra.allow
 

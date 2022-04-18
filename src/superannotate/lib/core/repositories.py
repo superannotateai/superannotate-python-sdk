@@ -57,7 +57,9 @@ class BaseManageableRepository(BaseReadOnlyRepository):
         return data
 
 
-class BaseProjectRelatedManageableRepository(BaseManageableRepository, metaclass=ABCMeta):
+class BaseProjectRelatedManageableRepository(
+    BaseManageableRepository, metaclass=ABCMeta
+):
     def __init__(self, service: SuperannotateServiceProvider, project: ProjectEntity):
         self._service = service
         self._project = project

@@ -606,42 +606,6 @@ class ImagesBulkCopyUseCase(BaseUseCase):
         return self._response
 
 
-class GetImageMetadataUseCase(BaseUseCase):
-    def __init__(
-        self,
-        image_name: str,
-        project: ProjectEntity,
-        folder: FolderEntity,
-        service: SuperannotateServiceProvider,
-    ):
-        super().__init__()
-        self._image_name = image_name
-        self._project = project
-        self._service = service
-        self._folder = folder
-
-    def validate_project_type(self):
-        if self._project.type in constances.LIMITED_FUNCTIONS:
-            raise AppValidationException(
-                constances.LIMITED_FUNCTIONS[self._project.type]
-            )
-
-    def execute(self):
-        if self.is_valid():
-            data = self._service.get_bulk_images(
-                images=[self._image_name],
-                team_id=self._project.team_id,
-                project_id=self._project.id,
-                folder_id=self._folder.uuid,
-            )
-            if data:
-                image_entity = ImageEntity.from_dict(**data[0])
-                self._response.data = image_entity
-            else:
-                self._response.errors = AppException("Image not found.")
-        return self._response
-
-
 class ImagesBulkMoveUseCase(BaseUseCase):
     """
     Copy images in bulk between folders in a project.
@@ -2355,9 +2319,7 @@ class SetImageAnnotationStatuses(BaseUseCase):
     def validate_project_type(self):
         project = self._projects.get_one(uuid=self._project_id, team_id=self._team_id)
         if project.type in constances.LIMITED_FUNCTIONS:
-            raise AppValidationException(
-                constances.LIMITED_FUNCTIONS[project.type]
-            )
+            raise AppValidationException(constances.LIMITED_FUNCTIONS[project.type])
 
     def execute(self):
         if self.is_valid():
@@ -2412,8 +2374,7 @@ class CreateAnnotationClassUseCase(BaseUseCase):
 
     def validate_project_type(self):
         if (
-            self._project.type
-            in (ProjectType.PIXEL.value, ProjectType.VIDEO.value)
+            self._project.type in (ProjectType.PIXEL.value, ProjectType.VIDEO.value)
             and self._annotation_class.type == "tag"
         ):
             raise AppException(

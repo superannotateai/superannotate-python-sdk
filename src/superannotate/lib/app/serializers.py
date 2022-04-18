@@ -24,28 +24,32 @@ class BaseSerializer(ABC):
         return data
 
     def serialize(
-            self, fields: List[str] = None, by_alias: bool = True, flat: bool = False, exclude: Set[str] = None
+        self,
+        fields: List[str] = None,
+        by_alias: bool = True,
+        flat: bool = False,
+        exclude: Set[str] = None,
     ):
         return self._fill_enum_values(
             self._serialize(self._entity, fields, by_alias, flat, exclude=exclude)
         )
 
     def serialize_item(
-            self,
-            data: Any,
-            fields: Union[List[str], Set[str]] = None,
-            by_alias: bool = False,
-            flat: bool = False,
+        self,
+        data: Any,
+        fields: Union[List[str], Set[str]] = None,
+        by_alias: bool = False,
+        flat: bool = False,
     ):
         return self._fill_enum_values(self._serialize(data, fields, by_alias, flat))
 
     @staticmethod
     def _serialize(
-            entity: Any,
-            fields: List[str] = None,
-            by_alias: bool = False,
-            flat: bool = False,
-            exclude: Set[str] = None
+        entity: Any,
+        fields: List[str] = None,
+        by_alias: bool = False,
+        flat: bool = False,
+        exclude: Set[str] = None,
     ):
         if isinstance(entity, dict):
             return entity
@@ -54,21 +58,23 @@ class BaseSerializer(ABC):
                 fields = set(fields)
                 if len(fields) == 1:
                     if flat:
-                        return entity.dict(include=fields, by_alias=by_alias, exclude=exclude)[
-                            next(iter(fields))
-                        ]
-                    return entity.dict(include=fields, by_alias=by_alias, exclude=exclude)
+                        return entity.dict(
+                            include=fields, by_alias=by_alias, exclude=exclude
+                        )[next(iter(fields))]
+                    return entity.dict(
+                        include=fields, by_alias=by_alias, exclude=exclude
+                    )
                 return entity.dict(include=fields, by_alias=by_alias, exclude=exclude)
             return entity.dict(by_alias=by_alias, exclude=exclude)
         return entity.to_dict()
 
     @classmethod
     def serialize_iterable(
-            cls,
-            data: List[Any],
-            fields: Union[List[str], Set[str]] = None,
-            by_alias: bool = False,
-            flat: bool = False,
+        cls,
+        data: List[Any],
+        fields: Union[List[str], Set[str]] = None,
+        by_alias: bool = False,
+        flat: bool = False,
     ) -> List[Any]:
         serialized_data = []
         for i in data:
@@ -101,12 +107,21 @@ class TeamSerializer(BaseSerializer):
 class ProjectSerializer(BaseSerializer):
     DEFAULT_EXCLUDE_SET = {"sync_status", "unverified_users"}
 
-    def serialize(self, fields: List[str] = None, by_alias: bool = False, flat: bool = False, exclude: Set[str] = None):
+    def serialize(
+        self,
+        fields: List[str] = None,
+        by_alias: bool = False,
+        flat: bool = False,
+        exclude: Set[str] = None,
+    ):
+        to_exclude = self.DEFAULT_EXCLUDE_SET
         if exclude:
-            exclude = exclude.union(self.DEFAULT_EXCLUDE_SET)
-        data = super().serialize(fields, by_alias, flat, exclude)
+            to_exclude = exclude.union(self.DEFAULT_EXCLUDE_SET)
+        data = super().serialize(fields, by_alias, flat, to_exclude)
         if data.get("settings"):
-            data["settings"] = [SettingsSerializer(setting).serialize() for setting in data["settings"]]
+            data["settings"] = [
+                SettingsSerializer(setting).serialize() for setting in data["settings"]
+            ]
         data["type"] = constance.ProjectType.get_name(data["type"])
         if data.get("status"):
             data["status"] = constance.ProjectStatus.get_name(data["status"])
@@ -185,7 +200,13 @@ class ImageSerializer(BaseSerializer):
 
 
 class SettingsSerializer(BaseSerializer):
-    def serialize(self, fields: List[str] = None, by_alias: bool = True, flat: bool = False, exclude=None):
+    def serialize(
+        self,
+        fields: List[str] = None,
+        by_alias: bool = True,
+        flat: bool = False,
+        exclude=None,
+    ):
         data = super().serialize(fields, by_alias, flat, exclude)
         if data["attribute"] == "ImageQuality":
             data["value"] = constance.ImageQuality.get_name(data["value"])

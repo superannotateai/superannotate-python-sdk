@@ -38,7 +38,7 @@ class TestSingleAnnotationDownloadUpload(BaseTestCase):
         sa.upload_annotations_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path
         )
-        image = sa.search_images(self.PROJECT_NAME)[0]
+        image = sa.search_items(self.PROJECT_NAME)[0]["name"]
 
         tempdir = tempfile.TemporaryDirectory()
         paths = sa.download_image_annotations(self.PROJECT_NAME, image, tempdir.name)
@@ -98,7 +98,7 @@ class TestSingleAnnotationDownloadUploadPixel(BaseTestCase):
         sa.upload_annotations_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path
         )
-        image = sa.search_images(self.PROJECT_NAME)[0]
+        image = sa.search_items(self.PROJECT_NAME)[0]["name"]
 
         with tempfile.TemporaryDirectory() as tempdir:
             paths = sa.download_image_annotations(self.PROJECT_NAME, image, tempdir)

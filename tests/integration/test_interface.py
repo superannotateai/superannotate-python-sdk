@@ -149,7 +149,7 @@ class TestInterface(BaseTestCase):
             self.IMAGE_PATH_IN_S3,
             self.NEW_IMAGE_NAME, from_s3_bucket=self.TEST_S3_BUCKET_NAME
         )
-        self.assertIn(sa.search_images(self.PROJECT_NAME)[0], self.NEW_IMAGE_NAME)
+        assert self.NEW_IMAGE_NAME in [i["name"] for i in sa.search_items(self.PROJECT_NAME)]
 
     def test_download_fuse_without_classes(self):
         sa.upload_image_to_project(self.PROJECT_NAME, f"{self.folder_path}/{self.EXAMPLE_IMAGE_1}")
