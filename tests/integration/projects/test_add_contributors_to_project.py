@@ -79,4 +79,4 @@ class TestProject(BaseTestCase):
         self.assertEqual(len(skipped), 5)
 
     def test_(self):
-        sa.search_team_contributors("shab@mai.com")
+        sa.search_team_contributors(email="vaghinak@superannotate.com", first_name="Vaghinak")

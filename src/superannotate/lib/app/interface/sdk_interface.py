@@ -2558,9 +2558,9 @@ def aggregate_annotations_as_df(
     """Aggregate annotations as pandas dataframe from project root.
 
     :param project_root: the export path of the project
-    :type project_root: Pathlike (str or Path)
+    :type project_root: Path-like (str or Path)
 
-    :param project_type: the project type, Vector/Pixel or Video
+    :param project_type: the project type, Vector/Pixel, Video or Document
     :type project_type: str
 
     :param folder_names: Aggregate the specified folders from project_root.
@@ -2585,7 +2585,10 @@ def aggregate_annotations_as_df(
             include_tags=True,
             folder_names=folder_names,
         )
-    elif project_type == constances.ProjectType.VIDEO.name:
+    elif project_type in (
+        constances.ProjectType.VIDEO.name,
+        constances.ProjectType.DOCUMENT.name,
+    ):
         from superannotate.lib.app.analytics.aggregators import DataAggregator
 
         return DataAggregator(
@@ -2593,8 +2596,6 @@ def aggregate_annotations_as_df(
             project_root=project_root,
             folder_names=folder_names,
         ).aggregate_annotations_as_df()
-    else:
-        raise AppException(constances.DEPRECATED_DOCUMENT_PROJECTS_MESSAGE)
 
 
 @Trackable

@@ -46,12 +46,8 @@ from superannotate_schemas.validators import AnnotationValidators
 def build_condition(**kwargs) -> Condition:
     condition = Condition.get_empty_condition()
     if any(kwargs.values()):
-        conditions_iter = iter(kwargs.items())
-        key, value = next(conditions_iter)
-        if value:
-            condition = Condition(key, value, EQ)
-            for key, value in conditions_iter:
-                condition = condition & Condition(key, value, EQ)
+        for key, value in ((key, value) for key, value in kwargs.items() if value):
+            condition = condition & Condition(key, value, EQ)
     return condition
 
 

@@ -3,10 +3,10 @@ import tempfile
 from os.path import dirname
 from pathlib import Path
 
+import pytest
+
 import src.superannotate as sa
 from tests.integration.base import BaseTestCase
-
-import pytest
 
 
 class TestVectorAnnotationsWithTag(BaseTestCase):
@@ -128,7 +128,7 @@ class TestPixelImages(BaseTestCase):
             image = sa.get_item_metadata(self.PROJECT_NAME, "example_image_1.jpg")
             del image['createdAt']
             del image['updatedAt']
-            truth = {'name': 'example_image_1.jpg',  'annotation_status': 'InProgress',
+            truth = {'name': 'example_image_1.jpg', 'annotation_status': 'InProgress',
                      'prediction_status': 'NotStarted', 'segmentation_status': 'NotStarted', 'approval_status': None,
                      'annotator_email': None, 'qa_email': None, 'entropy_value': None}
 
@@ -152,48 +152,3 @@ class TestPixelImages(BaseTestCase):
                 self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, temp_dir
             )
             self.assertEqual(len(list(Path(temp_dir).glob("*"))), 3)
-
-
-class TestVectorImages(BaseTestCase):
-    PROJECT_NAME = "sample_project_vector"
-    PROJECT_TYPE = "Vector"
-    PROJECT_DESCRIPTION = "Example Project test vector basic images"
-    TEST_FOLDER_PTH = "data_set/sample_project_vector"
-
-    @property
-    def folder_path(self):
-        return os.path.join(dirname(dirname(__file__)), self.TEST_FOLDER_PTH)
-
-    @folder_path.setter
-    def folder_path(self, value):
-        self._folder_path = value
-
-    @property
-    def classes_json_path(self):
-        return f"{self.folder_path}/classes/classes.json"
-
-    def test_basic_images(self):
-        with tempfile.TemporaryDirectory() as temp_dir:
-            sa.upload_images_from_folder_to_project(
-                self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
-            )
-            sa.create_annotation_classes_from_classes_json(
-                self.PROJECT_NAME, self.classes_json_path
-            )
-            images = sa.search_items(self.PROJECT_NAME, "example_image_1")
-            self.assertEqual(len(images), 1)
-
-            image_name = images[0]
-
-            image = sa.get_item_metadata(self.PROJECT_NAME, "example_image_1.jpg")
-            del image['createdAt']
-            del image['updatedAt']
-            truth = {'name': 'example_image_1.jpg', 'annotation_status': 'InProgress',
-                     'prediction_status': 'NotStarted', 'segmentation_status': None, 'approval_status': None,
-                      'annotator_email': None, 'qa_email': None, 'entropy_value': None}
-            assert all([truth[i] == image[i] for i in truth])
-            sa.download_image(self.PROJECT_NAME, image_name["name"], temp_dir, True)
-            self.assertEqual(
-                sa.get_annotations(self.PROJECT_NAME, [image_name["name"]])[0],
-                {'metadata': {'name': 'example_image_1.jpg'}, 'instances': []}
-            )

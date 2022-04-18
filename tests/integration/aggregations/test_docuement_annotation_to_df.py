@@ -9,9 +9,9 @@ import src.superannotate as sa
 from src.superannotate.logger import get_default_logger
 
 
-class TestAggregateVideoAnnotation(TestCase):
-    PROJECT_TYPE = "Video"
-    FOLDER_PATH = "data_set/video_df_data"
+class TestAggregateDocumentAnnotation(TestCase):
+    PROJECT_TYPE = "Document"
+    FOLDER_PATH = "data_set/document_df_data"
 
     @property
     def folder_path(self):
@@ -21,11 +21,9 @@ class TestAggregateVideoAnnotation(TestCase):
         df = sa.aggregate_annotations_as_df(self.folder_path, self.PROJECT_TYPE, None)
         instance_ids = {i for i in df.instanceId if i is not None}
         tag_ids = {i for i in df.tagId if i is not None}
-        timestamp_ids = {i for i in df.timestampId if i is not None}
 
-        self.assertEqual(instance_ids, {0, 1, 2, 3, 4})
-        self.assertEqual(tag_ids, {0, 1, 2, 3})
-        self.assertEqual(timestamp_ids, {0, 1, 2, 3, 4, 5, 6})
+        self.assertEqual(instance_ids, {0, 1})
+        self.assertEqual(tag_ids, {0, 1})
 
     def test_nested_folders_data_filling(self):
         df = sa.aggregate_annotations_as_df(self.folder_path, self.PROJECT_TYPE)
