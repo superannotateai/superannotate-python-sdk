@@ -2896,12 +2896,13 @@ def attach_items_from_integrated_storage(
 @Trackable
 @validate_arguments
 def query(project: NotEmptyStr, query: Optional[NotEmptyStr]):
-    """Return items
+    """Return items that satisfy the given query.
+    Query syntax should be in SuperAnnotate query language(https://doc.superannotate.com/docs/query-search-1).
 
     :param project: project name or folder path (e.g., “project1/folder1”)
     :type project: str
 
-    :param query: SAQuL(https://doc.superannotate.com/docs/query-search-1) query string.
+    :param query: SAQuL query string.
     :type query: str
 
     :return: queried items’ metadata list
