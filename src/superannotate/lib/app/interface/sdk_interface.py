@@ -1630,7 +1630,6 @@ def set_image_annotation_status(
     :rtype: dict
     """
     project_name, folder_name = extract_project_folder(project)
-    project_entity = Controller.get_default()._get_project(project_name)
     response = Controller.get_default().set_images_annotation_statuses(
         project_name, folder_name, [image_name], annotation_status
     )
@@ -1639,7 +1638,7 @@ def set_image_annotation_status(
     image = (
         Controller.get_default().get_item(project_name, folder_name, image_name).data
     )
-    return ImageSerializer(image).serialize_by_project(project=project_entity)
+    return BaseSerializer(image).serialize()
 
 
 @Trackable
@@ -2902,7 +2901,7 @@ def query(project: NotEmptyStr, query: Optional[NotEmptyStr]):
     :param project: project name or folder path (e.g., “project1/folder1”)
     :type project: str
 
-    :param query: SAQuL query string.
+    :param query: SAQuL(https://doc.superannotate.com/docs/query-search-1) query string.
     :type query: str
 
     :return: queried items’ metadata list

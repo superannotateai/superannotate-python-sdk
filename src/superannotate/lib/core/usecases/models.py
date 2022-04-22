@@ -39,6 +39,7 @@ class PrepareExportUseCase(BaseUseCase):
         project: ProjectEntity,
         folder_names: List[str],
         backend_service_provider: SuperannotateServiceProvider,
+        folders: BaseManageableRepository,
         include_fuse: bool,
         only_pinned: bool,
         annotation_statuses: List[str] = None,
@@ -50,6 +51,7 @@ class PrepareExportUseCase(BaseUseCase):
         self._annotation_statuses = annotation_statuses
         self._include_fuse = include_fuse
         self._only_pinned = only_pinned
+        self._folders = folders
 
     def validate_only_pinned(self):
         if (
@@ -68,6 +70,19 @@ class PrepareExportUseCase(BaseUseCase):
             raise AppValidationException(
                 f"Include fuse functionality is not supported for  projects containing {self._project.type} attached with URLs"
             )
+
+    def validate_folder_names(self):
+        if self._folder_names:
+            condition = (
+                    Condition("team_id", self._project.team_id, EQ) &
+                    Condition("project_id", self._project.id, EQ)
+            )
+            existing_folders = {folder.name for folder in self._folders.get_all(condition)}
+            folder_names_set = set(self._folder_names)
+            if not folder_names_set.issubset(existing_folders):
+                raise AppException(
+                    f"Folder(s) {', '.join(folder_names_set - existing_folders)} does not exist"
+                )
 
     def execute(self):
         if self.is_valid():

@@ -578,6 +578,7 @@ class Controller(BaseController):
         use_case = usecases.PrepareExportUseCase(
             project=project,
             folder_names=folder_names,
+            folders=self.folders,
             backend_service_provider=self._backend_client,
             include_fuse=include_fuse,
             only_pinned=only_pinned,
