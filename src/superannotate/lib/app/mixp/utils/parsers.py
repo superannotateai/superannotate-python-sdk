@@ -49,11 +49,13 @@ def search_team_contributors(**kwargs):
 
 def search_projects(**kwargs):
     project = kwargs.get("name")
+    status = kwargs.get("status")
     return {
         "event_name": "search_projects",
         "properties": {
             "Metadata": bool(kwargs.get("return_metadata")),
             "project_name": get_project_name(project[0]) if project else None,
+            "status": status
         },
     }
 
@@ -209,13 +211,13 @@ def download_annotation_classes_json(**kwargs):
 
 def search_annotation_classes(**kwargs):
     project = kwargs["project"]
-    name_prefix = kwargs.get("name_prefix")
+    name_contains = kwargs.get("name_contains")
 
     return {
         "event_name": "search_annotation_classes",
         "properties": {
             "project_name": get_project_name(project),
-            "Prefix": bool(name_prefix),
+            "name_contains": bool(name_contains),
         },
     }
 
@@ -946,7 +948,7 @@ def query(**kwargs):
         Controller.get_default().get_project_metadata(project_name).data["project"]
     )
     return {
-        "event_name": "query_saqul",
+        "event_name": "query",
         "properties": {
             "project_type": ProjectType.get_name(project.type),
             "query": query_str,

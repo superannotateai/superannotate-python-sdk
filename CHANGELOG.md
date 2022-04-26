@@ -1,5 +1,24 @@
 # Changelog 
 All release higlighths of this project will be documented in this file.
+## 4.3.1 - March 20 2022
+### Added
+- `get_integrations()` to list all existing integrations with cloud storages.
+- `attach_items_from_integrated_storage()` to attach items from an integrated cloud storage.
+- `upload_priority_scores()` to set priority scores for a given list of items.
+### Updated
+- `JSON Schema` to version `1.0.40` to add instance type differentiation for text annotations and `"exclude"` key for subtracted polygon instances for image annotations. 
+- `validate_annotations()` to validate text and image annotations based on JSON schema version `1.0.40`.
+- `get_annotations()` to get annotation instances based on JSON schema version `1.0.40`.
+- `prepare_export()` to prepare for the download annotations with based on JSON schema version `1.0.40`.
+- `upload_annotations_from_folder_to_project()` & `upload_preannotations_from_folder_to_project()` to handle upload based on JSON schema version `1.0.40`.
+- `create_project()` to add `"status"` key in returned metadata.
+- `get_project_metadata()` to add `"status"` key.
+- `create_project_from_project_metadata()` to make `"description"` key not required.
+- `clone_project()` to add generic `"description"`.
+### Fixed
+- `sa.get_annotations_per_frame()` to take correct attributes.
+- `sa.get_annotations_per_frame()` & `get_annotations()` to eliminate duplicate instances.
+###
 ## 4.3.0 - Feb 27 2022
 ### Added
 - `get_annotations` to load annotations for the list of items.
