@@ -992,7 +992,7 @@ def search_items(**kwargs):
 
 
 def move_items(**kwargs):
-    project = kwargs["project"]
+    project = kwargs["source"]
     project_name, _ = extract_project_folder(project)
     project = (
         Controller.get_default().get_project_metadata(project_name).data["project"]
@@ -1032,10 +1032,10 @@ def attach_items(**kwargs):
     )
     attachments = kwargs["attachments"]
     return {
-        "event_name": "copy_items",
+        "event_name": "attach_items",
         "properties": {
             "project_type": ProjectType.get_name(project.type),
-            "attachments": "scv" if isinstance(attachments, (str, Path)) else "dict",
+            "attachments": "csv" if isinstance(attachments, (str, Path)) else "dict",
             "annotation_status": kwargs["annotation_status"],
         },
     }
