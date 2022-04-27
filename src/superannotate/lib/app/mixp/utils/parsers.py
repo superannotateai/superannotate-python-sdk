@@ -1010,7 +1010,7 @@ def move_items(**kwargs):
 
 
 def copy_items(**kwargs):
-    project = kwargs["project"]
+    project = kwargs["source"]
     project_name, _ = extract_project_folder(project)
     project = (
         Controller.get_default().get_project_metadata(project_name).data["project"]
