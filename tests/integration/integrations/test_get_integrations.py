@@ -12,7 +12,7 @@ class TestGetIntegrations(BaseTestCase):
     TEST_FOLDER_NAME = "test_folder"
     PROJECT_DESCRIPTION = "desc"
     PROJECT_TYPE = "Vector"
-    EXAMPLE_IMAGE = "example_image_1.jpg"
+    EXAMPLE_IMAGE = "egit xample_image_1.jpg"
 
     @property
     def folder_path(self):

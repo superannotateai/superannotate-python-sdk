@@ -9,7 +9,7 @@ class TestProjectRename(BaseTestCase):
     PROJECT_TYPE = "Vector"
     NEW_PROJECT_NAME = "new"
     REPLACED_PROJECT_NAME = "_ _ _ _ _ _ _ _ _ _"
-    BAD_PROJECT_NAME = '/ \ : * ? " “ < > |'
+    BAD_PROJECT_NAME = '/ \ : * ? " “ < > |'  # noqa: w605
 
     def setUp(self, *args, **kwargs):
         self.tearDown()

@@ -12,13 +12,11 @@ class TestDF(BaseTestCase):
     PROJECT_NAME = "test df processing"
     PROJECT_DESCRIPTION = "Desc"
     PROJECT_TYPE = "Vector"
-    TEST_FOLDER_PATH = "data_set/sample_project_vector"
+    FOLDER_PATH = "data_set/sample_project_vector"
 
     @property
     def folder_path(self):
-        return Path(
-            Path(os.path.join(dirname(dirname(__file__)), self.TEST_FOLDER_PATH))
-        )
+        return os.path.join(Path(__file__).parent.parent.parent, self.FOLDER_PATH)
 
     def test_filter_instances(self):
         df = sa.aggregate_annotations_as_df(self.folder_path, self.PROJECT_TYPE)
@@ -33,13 +31,11 @@ class TestDF(BaseTestCase):
 
 class TestDFWithTagInstance(BaseTestCase):
     PROJECT_TYPE = "Vector"
-    TEST_FOLDER_PATH = "data_set/sample_project_vector_with_tag"
+    FOLDER_PATH = "data_set/sample_project_vector_with_tag"
 
     @property
     def folder_path(self):
-        return Path(
-            Path(os.path.join(dirname(dirname(__file__)), self.TEST_FOLDER_PATH))
-        )
+        return os.path.join(Path(__file__).parent.parent.parent, self.FOLDER_PATH)
 
     def test_filter_instances(self):
         df = sa.aggregate_annotations_as_df(self.folder_path, self.PROJECT_TYPE)
@@ -48,17 +44,15 @@ class TestDFWithTagInstance(BaseTestCase):
 
 class TestClassDistributionWithTagInstance(BaseTestCase):
     PROJECT_TYPE = "Vector"
-    EXPORT_ROOT_PATH = "data_set"
+    FOLDER_PATH = "data_set"
     PROJECT_NAME = "sample_project_vector_with_tag"
 
     @property
-    def root_path(self):
-        return Path(
-            Path(os.path.join(dirname(dirname(__file__)), self.EXPORT_ROOT_PATH))
-        )
+    def folder_path(self):
+        return os.path.join(Path(__file__).parent.parent.parent, self.FOLDER_PATH)
 
     @pytest.mark.skip(reason="Need to adjust")
     def test_filter_instances(self):
-        df = sa.class_distribution(export_root=self.root_path, project_names=[self.PROJECT_NAME])
+        df = sa.class_distribution(export_root=self.folder_path, project_names=[self.PROJECT_NAME])
         self.assertEqual(df.iloc[0]['count'], 1)
         self.assertEqual(df.iloc[0]['className'], "Weather")

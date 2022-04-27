@@ -29,7 +29,6 @@ ________
 .. _ref_get_project_metadata:
 .. autofunction:: superannotate.get_project_metadata
 .. autofunction:: superannotate.get_project_image_count
-.. autofunction:: superannotate.get_project_and_folder_metadata
 .. autofunction:: superannotate.search_folders
 .. autofunction:: superannotate.get_folder_metadata
 .. autofunction:: superannotate.create_folder
@@ -74,7 +73,11 @@ ______
 
 .. autofunction:: superannotate.query
 .. autofunction:: superannotate.search_items
+.. autofunction:: superannotate.attach_items
+.. autofunction:: superannotate.copy_items
+.. autofunction:: superannotate.move_items
 .. autofunction:: superannotate.get_item_metadata
+.. autofunction:: superannotate.set_annotation_statuses
 
 ----------
 
@@ -83,9 +86,6 @@ ______
 
 
 .. _ref_search_images:
-.. autofunction:: superannotate.search_images
-.. autofunction:: superannotate.search_images_all_folders
-.. autofunction:: superannotate.get_image_metadata
 .. autofunction:: superannotate.download_image
 .. autofunction:: superannotate.set_image_annotation_status
 .. autofunction:: superannotate.set_images_annotation_statuses

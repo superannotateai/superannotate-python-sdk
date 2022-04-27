@@ -122,7 +122,7 @@ class CLITest(TestCase):
             check=True,
             shell=True,
         )
-        self.assertEqual(1, len(sa.search_images(self.PROJECT_NAME)))
+        self.assertEqual(1, len(sa.search_items(self.PROJECT_NAME)))
 
     # @pytest.mark.skipif(CLI_VERSION and CLI_VERSION != sa.__version__,
     #                     reason=f"Updated package version from {CLI_VERSION} to {sa.__version__}")
@@ -196,7 +196,8 @@ class CLITest(TestCase):
         )
         count_in = len(list(self.vector_folder_path.glob("*.json")))
         with tempfile.TemporaryDirectory() as temp_dir:
-            for image_name in sa.search_images(self.PROJECT_NAME):
+            for image in sa.search_items(self.PROJECT_NAME):
+                image_name = image["name"]
                 sa.download_image_annotations(self.PROJECT_NAME, image_name, temp_dir)
             count_out = len(list(Path(temp_dir).glob("*.json")))
             self.assertEqual(count_in, count_out)
@@ -213,7 +214,7 @@ class CLITest(TestCase):
             shell=True,
         )
 
-        self.assertEqual(3, len(sa.search_images(self.PROJECT_NAME)))
+        self.assertEqual(3, len(sa.search_items(self.PROJECT_NAME)))
 
     # @pytest.mark.skipif(CLI_VERSION and CLI_VERSION != sa.__version__,
     #                     reason=f"Updated package version from {CLI_VERSION} to {sa.__version__}")
@@ -226,7 +227,7 @@ class CLITest(TestCase):
             check=True,
             shell=True,
         )
-        # self.assertEqual(3, len(sa.search_images(self.PROJECT_NAME)))
+        # self.assertEqual(3, len(sa.search_items(self.PROJECT_NAME)))
 
     # @pytest.mark.skipif(CLI_VERSION and CLI_VERSION != sa.__version__,
     #                     reason=f"Updated package version from {CLI_VERSION} to {sa.__version__}")
@@ -240,7 +241,7 @@ class CLITest(TestCase):
             check=True,
             shell=True,
         )
-        self.assertEqual(5, len(sa.search_images(self.PROJECT_NAME)))
+        self.assertEqual(5, len(sa.search_items(self.PROJECT_NAME)))
 
     @pytest.mark.skipif(CLI_VERSION and CLI_VERSION != sa.__version__,
                         reason=f"Updated package version from {CLI_VERSION} to {sa.__version__}")

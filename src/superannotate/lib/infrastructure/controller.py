@@ -15,10 +15,12 @@ from lib.core import usecases
 from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.entities import AnnotationClassEntity
+from lib.core.entities import AttachmentEntity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
 from lib.core.entities import MLModelEntity
 from lib.core.entities import ProjectEntity
+from lib.core.entities import SettingEntity
 from lib.core.entities.integrations import IntegrationEntity
 from lib.core.exceptions import AppException
 from lib.core.reporter import Reporter
@@ -39,6 +41,14 @@ from lib.infrastructure.repositories import WorkflowRepository
 from lib.infrastructure.services import SuperannotateBackendService
 from superannotate.logger import get_default_logger
 from superannotate_schemas.validators import AnnotationValidators
+
+
+def build_condition(**kwargs) -> Condition:
+    condition = Condition.get_empty_condition()
+    if any(kwargs.values()):
+        for key, value in ((key, value) for key, value in kwargs.items() if value):
+            condition = condition & Condition(key, value, EQ)
+    return condition
 
 
 class BaseController(metaclass=ABCMeta):
@@ -306,9 +316,8 @@ class Controller(BaseController):
             condition &= Condition(
                 "status", constances.ProjectStatus.get_value(status), EQ
             )
-        for key, value in kwargs.items():
-            if value:
-                condition &= Condition(key, value, EQ)
+
+        condition &= build_condition(**kwargs)
         use_case = usecases.GetProjectsUseCase(
             condition=condition, projects=self.projects, team_id=self.team_id,
         )
@@ -319,10 +328,10 @@ class Controller(BaseController):
         name: str,
         description: str,
         project_type: str,
-        settings: Iterable = tuple(),
-        annotation_classes: Iterable = tuple(),
+        settings: Iterable[SettingEntity] = None,
+        classes: Iterable = tuple(),
         workflows: Iterable = tuple(),
-        **extra_kwargs
+        **extra_kwargs,
     ) -> Response:
 
         try:
@@ -334,24 +343,21 @@ class Controller(BaseController):
         entity = ProjectEntity(
             name=name,
             description=description,
-            project_type=project_type,
+            type=project_type,
             team_id=self.team_id,
-            **extra_kwargs
+            settings=settings if settings else [],
+            **extra_kwargs,
         )
         use_case = usecases.CreateProjectUseCase(
             project=entity,
             projects=self.projects,
             backend_service_provider=self._backend_client,
-            settings_repo=ProjectSettingsRepository,
             workflows_repo=WorkflowRepository,
             annotation_classes_repo=AnnotationClassRepository,
-            settings=[
-                ProjectSettingsRepository.dict2entity(setting) for setting in settings
-            ],
             workflows=workflows,
-            annotation_classes=[
+            classes=[
                 AnnotationClassEntity(**annotation_class)
-                for annotation_class in annotation_classes
+                for annotation_class in classes
             ],
         )
         return use_case.execute()
@@ -515,7 +521,7 @@ class Controller(BaseController):
     def create_folder(self, project: str, folder_name: str):
         project = self._get_project(project)
         folder = FolderEntity(
-            name=folder_name, project_id=project.uuid, team_id=project.team_id
+            name=folder_name, project_id=project.id, team_id=project.team_id
         )
         use_case = usecases.CreateFolderUseCase(
             project=project, folder=folder, folders=self.folders,
@@ -535,10 +541,7 @@ class Controller(BaseController):
     def search_folders(
         self, project_name: str, folder_name: str = None, include_users=False, **kwargs
     ):
-        condition = Condition.get_empty_condition()
-        if kwargs:
-            for key, val in kwargs:
-                condition = condition & Condition(key, val, EQ)
+        condition = build_condition(**kwargs)
         project = self._get_project(project_name)
         use_case = usecases.SearchFoldersUseCase(
             project=project,
@@ -575,6 +578,7 @@ class Controller(BaseController):
         use_case = usecases.PrepareExportUseCase(
             project=project,
             folder_names=folder_names,
+            folders=self.folders,
             backend_service_provider=self._backend_client,
             include_fuse=include_fuse,
             only_pinned=only_pinned,
@@ -583,15 +587,7 @@ class Controller(BaseController):
         return use_case.execute()
 
     def search_team_contributors(self, **kwargs):
-        condition = None
-        if any(kwargs.values()):
-            conditions_iter = iter(kwargs)
-            key = next(conditions_iter)
-            if kwargs[key]:
-                condition = Condition(key, kwargs[key], EQ)
-                for key, val in conditions_iter:
-                    condition = condition & Condition(key, val, EQ)
-
+        condition = build_condition(**kwargs)
         use_case = usecases.SearchContributorsUseCase(
             backend_service_provider=self._backend_client,
             team_id=self.team_id,
@@ -826,7 +822,9 @@ class Controller(BaseController):
         project_entity = self._get_project(project_name)
         condition = None
         if name_contains:
-            condition = Condition("name", name_contains, EQ) & Condition("pattern", True, EQ)
+            condition = Condition("name", name_contains, EQ) & Condition(
+                "pattern", True, EQ
+            )
         use_case = usecases.GetAnnotationClassesUseCase(
             classes=AnnotationClassRepository(
                 service=self._backend_client, project=project_entity
@@ -844,19 +842,8 @@ class Controller(BaseController):
             ),
             to_update=new_settings,
             backend_service_provider=self._backend_client,
-            project_id=project_entity.uuid,
+            project_id=project_entity.id,
             team_id=project_entity.team_id,
-        )
-        return use_case.execute()
-
-    def get_image_metadata(self, project_name: str, folder_name: str, image_name: str):
-        project = self._get_project(project_name)
-        folder = self._get_folder(project, folder_name)
-        use_case = usecases.GetImageMetadataUseCase(
-            image_name=image_name,
-            project=project,
-            folder=folder,
-            service=self._backend_client,
         )
         return use_case.execute()
 
@@ -875,7 +862,7 @@ class Controller(BaseController):
             projects=self.projects,
             image_names=image_names,
             team_id=project_entity.team_id,
-            project_id=project_entity.uuid,
+            project_id=project_entity.id,
             folder_id=folder_entity.uuid,
             images_repo=images_repo,
             annotation_status=constances.AnnotationStatus.get_value(annotation_status),
@@ -976,14 +963,6 @@ class Controller(BaseController):
                 service=self._backend_client, project=project
             ),
         )
-        return use_case.execute()
-
-    @staticmethod
-    def get_image_from_s3(s3_bucket, image_path: str):
-        use_case = usecases.GetS3ImageUseCase(
-            s3_bucket=s3_bucket, image_path=image_path
-        )
-        use_case.execute()
         return use_case.execute()
 
     def get_exports(self, project_name: str, return_metadata: bool):
@@ -1332,7 +1311,7 @@ class Controller(BaseController):
         project = self._get_project(project_name)
         folder = self._get_folder(project, folder_name)
         ml_model_repo = MLModelRepository(
-            team_id=project.uuid, service=self._backend_client
+            team_id=project.id, service=self._backend_client
         )
         use_case = usecases.RunPredictionUseCase(
             project=project,
@@ -1604,8 +1583,8 @@ class Controller(BaseController):
             search_condition &= Condition("qa_id", qa_email, EQ)
         if annotator_email:
             search_condition &= Condition("annotator_id", annotator_email, EQ)
-        for key, value in kwargs.items():
-            search_condition &= Condition(key, value, EQ)
+        search_condition &= build_condition(**kwargs)
+
         use_case = usecases.ListItems(
             reporter=self.default_reporter,
             project=project,
@@ -1616,4 +1595,91 @@ class Controller(BaseController):
             search_condition=search_condition,
         )
 
+        return use_case.execute()
+
+    def attach_items(
+        self,
+        project_name: str,
+        folder_name: str,
+        attachments: List[AttachmentEntity],
+        annotation_status: str,
+    ):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+
+        use_case = usecases.AttachItems(
+            reporter=self.default_reporter,
+            project=project,
+            folder=folder,
+            attachments=attachments,
+            annotation_status=annotation_status,
+            backend_service_provider=self.backend_client,
+        )
+        return use_case.execute()
+
+    def copy_items(
+        self,
+        project_name: str,
+        from_folder: str,
+        to_folder: str,
+        items: List[str] = None,
+        include_annotations: bool = False,
+    ):
+        project = self._get_project(project_name)
+        from_folder = self._get_folder(project, from_folder)
+        to_folder = self._get_folder(project, to_folder)
+
+        use_case = usecases.CopyItems(
+            self.default_reporter,
+            project=project,
+            from_folder=from_folder,
+            to_folder=to_folder,
+            item_names=items,
+            items=self.items,
+            backend_service_provider=self.backend_client,
+            include_annotations=include_annotations,
+        )
+        return use_case.execute()
+
+    def move_items(
+        self,
+        project_name: str,
+        from_folder: str,
+        to_folder: str,
+        items: List[str] = None,
+    ):
+        project = self._get_project(project_name)
+        from_folder = self._get_folder(project, from_folder)
+        to_folder = self._get_folder(project, to_folder)
+
+        use_case = usecases.MoveItems(
+            self.default_reporter,
+            project=project,
+            from_folder=from_folder,
+            to_folder=to_folder,
+            item_names=items,
+            items=self.items,
+            backend_service_provider=self.backend_client,
+        )
+        return use_case.execute()
+
+    def set_annotation_statuses(
+        self,
+        project_name: str,
+        folder_name: str,
+        annotation_status: str,
+        item_names: List[str] = None,
+    ):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+
+        use_case = usecases.SetAnnotationStatues(
+            self.default_reporter,
+            project=project,
+            folder=folder,
+            annotation_status=annotation_status,
+            item_names=item_names,
+            items=self.items,
+            backend_service_provider=self.backend_client,
+        )
         return use_case.execute()

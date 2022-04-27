@@ -101,7 +101,7 @@ class ProjectEntity(BaseTimedEntity):
         super().__init__(uuid, createdAt, updatedAt)
         self.team_id = team_id
         self.name = name
-        self.project_type = project_type
+        self.type = project_type
         self.description = description
         self.instructions_link = instructions_link
         self.creator_id = creator_id
@@ -124,7 +124,7 @@ class ProjectEntity(BaseTimedEntity):
         return ProjectEntity(
             team_id=self.team_id,
             name=self.name,
-            project_type=self.project_type,
+            project_type=self.type,
             description=self.description,
             instructions_link=self.instructions_link
             if self.description
@@ -140,7 +140,7 @@ class ProjectEntity(BaseTimedEntity):
             **super().to_dict(),
             "team_id": self.team_id,
             "name": self.name,
-            "type": self.project_type,
+            "type": self.type,
             "description": self.description,
             "status": self.status,
             "instructions_link": self.instructions_link,
@@ -152,31 +152,6 @@ class ProjectEntity(BaseTimedEntity):
             "users": self.users,
             "completed_images_count": self.completed_images_count,
             "rootFolderCompletedImagesCount": self.root_folder_completed_images_count,
-        }
-
-
-class ProjectSettingEntity(BaseEntity):
-    def __init__(
-        self,
-        uuid: int = None,
-        project_id: int = None,
-        attribute: str = None,
-        value: Any = None,
-    ):
-        super().__init__(uuid)
-        self.project_id = project_id
-        self.attribute = attribute
-        self.value = value
-
-    def __copy__(self):
-        return ProjectSettingEntity(attribute=self.attribute, value=self.value)
-
-    def to_dict(self):
-        return {
-            "id": self.uuid,
-            "project_id": self.project_id,
-            "attribute": self.attribute,
-            "value": self.value,
         }
 
 

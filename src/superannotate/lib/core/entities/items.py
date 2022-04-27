@@ -7,7 +7,6 @@ from pydantic import Field
 
 
 class Entity(BaseEntity):
-
     class Config:
         extra = Extra.allow
 
@@ -31,7 +30,7 @@ class TmpImageEntity(Entity):
     segmentation_status: Optional[SegmentationStatus] = Field(
         SegmentationStatus.NOT_STARTED
     )
-    approval_status: bool = None
+    approval_status: Optional[int] = Field(None)
 
     class Config:
         extra = Extra.ignore

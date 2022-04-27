@@ -67,10 +67,7 @@ class Trackable:
                 properties[key] = len(value)
             else:
                 properties[key] = str(value)
-        return {
-            "event_name": function_name,
-            "properties": properties
-        }
+        return {"event_name": function_name, "properties": properties}
 
     def track(self, *args, **kwargs):
         try:
@@ -89,7 +86,7 @@ class Trackable:
                         pass
                 else:
                     data = self.default_parser(function_name, arguments)
-            event_name = data.get("event_name", )
+            event_name = data.get("event_name",)
             properties = data.get("properties", {})
             team_data = self.team.data
             user_id = team_data.creator_id

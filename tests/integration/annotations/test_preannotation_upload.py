@@ -27,9 +27,10 @@ class TestVectorAnnotationImage(BaseTestCase):
             self.PROJECT_NAME, self.folder_path
         )
         count_in = len(list(Path(self.folder_path).glob("*.json")))
-        images = sa.search_images(self.PROJECT_NAME)
+        images = sa.search_items(self.PROJECT_NAME)
         with tempfile.TemporaryDirectory() as tmp_dir:
-            for image_name in images:
+            for image in images:
+                image_name = image["name"]
                 sa.download_image_annotations(self.PROJECT_NAME, image_name, tmp_dir)
 
             count_out = len(list(Path(tmp_dir).glob("*.json")))

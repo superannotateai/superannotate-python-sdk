@@ -59,9 +59,10 @@ class TestAnnotationUploadVector(BaseTestCase):
         _, _, _ = sa.upload_annotations_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path
         )
-        images = sa.search_images(self.PROJECT_NAME)
+        images = sa.search_items(self.PROJECT_NAME)
         with tempfile.TemporaryDirectory() as tmp_dir:
-            for image_name in images:
+            for image in images:
+                image_name = image["name"]
                 annotation_path = join(self.folder_path, f"{image_name}___objects.json")
                 sa.download_image_annotations(self.PROJECT_NAME, image_name, tmp_dir)
                 origin_annotation = json.load(open(annotation_path))

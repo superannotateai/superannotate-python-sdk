@@ -2,9 +2,6 @@ import os
 from os.path import dirname
 
 import src.superannotate as sa
-from src.superannotate import AppException
-from src.superannotate.lib.core import ATTACHING_UPLOAD_STATE_ERROR
-from src.superannotate.lib.core import UPLOADING_UPLOAD_STATE_ERROR
 from tests.integration.base import BaseTestCase
 
 

@@ -119,6 +119,7 @@ class TestProjectCreateMetadata(BaseTestCase):
         except:
             pass
 
+    @pytest.mark.flaky(reruns=2)
     def test_create_project_from_metadata(self):
         sa.create_annotation_class(
             self.PROJECT_NAME,
@@ -223,7 +224,7 @@ class TestProject(BaseTestCase):
         )
         count_in_folder -= len(list(self.folder_path.glob(self.FUSE_PNG_POSTFIX)))
         count_in_folder -= len(list(self.folder_path.glob(self.PNG_POSTFIX)))
-        images = sa.search_images(self.PROJECT_NAME)
+        images = sa.search_items(self.PROJECT_NAME)
         assert count_in_folder == len(images)
 
         sa.create_annotation_classes_from_classes_json(

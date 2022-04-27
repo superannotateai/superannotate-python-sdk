@@ -61,6 +61,7 @@ TOKEN_UUID = "token"
 ALREADY_EXISTING_FILES_WARNING = (
     "{} already existing file(s) found that won't be uploaded."
 )
+
 ATTACHING_FILES_MESSAGE = "Attaching {} file(s) to project {}."
 
 ATTACHING_UPLOAD_STATE_ERROR = "You cannot attach URLs in this type of project. Please attach it in an external storage project."
