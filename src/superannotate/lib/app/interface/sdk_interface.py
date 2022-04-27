@@ -3006,7 +3006,25 @@ def attach_items(
     attachments: AttachmentArg,
     annotation_status: Optional[AnnotationStatuses] = "NotStarted",
 ):
+    """Link items from external storage to SuperAnnotate using URLs.
 
+   :param project: project name or folder path (e.g., “project1/folder1”)
+   :type project: str
+
+   :param attachments: path to CSV file or list of dicts containing attachments URLs.
+   :type project: path-like (str or Path) or list of dicts
+
+   :param annotation_status: value to set the annotation statuses of the linked items
+                               “NotStarted”
+                               “InProgress”
+                               “QualityCheck”
+                               “Returned”
+                               “Completed”
+                               “Skipped”
+   :type annotation_status: str
+
+   :return: None
+   """
     attachments = attachments.data
     project_name, folder_name = extract_project_folder(project)
     if attachments and isinstance(attachments[0], AttachmentDict):
