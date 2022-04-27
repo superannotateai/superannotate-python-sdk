@@ -3012,7 +3012,7 @@ def attach_items(
    :type project: str
 
    :param attachments: path to CSV file or list of dicts containing attachments URLs.
-   :type project: path-like (str or Path) or list of dicts
+   :type attachments: path-like (str or Path) or list of dicts
 
    :param annotation_status: value to set the annotation statuses of the linked items
                                “NotStarted”
@@ -3022,8 +3022,6 @@ def attach_items(
                                “Completed”
                                “Skipped”
    :type annotation_status: str
-
-   :return: None
    """
     attachments = attachments.data
     project_name, folder_name = extract_project_folder(project)
@@ -3151,7 +3149,7 @@ def move_items(
 def set_annotation_statuses(
     project: Union[NotEmptyStr, dict],
     annotation_status: AnnotationStatuses,
-    item_names: Optional[List[NotEmptyStr]] = None,
+    items: Optional[List[NotEmptyStr]] = None,
 ):
     """Sets annotation statuses of items
 
@@ -3167,10 +3165,8 @@ def set_annotation_statuses(
                                 “Skipped”
     :type annotation_status: str
 
-    :param item_names:  item names to set the mentioned status for. If None, all the items in the project will be used.
-    :type item_names: str
-
-    :return: None
+    :param items:  item names to set the mentioned status for. If None, all the items in the project will be used.
+    :type items: str
     """
 
     project_name, folder_name = extract_project_folder(project)
@@ -3178,7 +3174,7 @@ def set_annotation_statuses(
         project_name=project_name,
         folder_name=folder_name,
         annotation_status=annotation_status,
-        item_names=item_names,
+        item_names=items,
     )
     if response.errors:
         raise AppException(response.errors)
