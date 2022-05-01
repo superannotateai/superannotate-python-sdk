@@ -1,13 +1,11 @@
 import os
 from os.path import join
 from pathlib import Path
-import json
 from unittest.mock import patch
 
 import src.superannotate as sa
 from tests.integration.base import BaseTestCase
 
-import tempfile
 import pytest
 
 
@@ -28,7 +26,7 @@ class TestRecursiveFolderPixel(BaseTestCase):
     def folder_path(self):
         return os.path.join(Path(__file__).parent.parent.parent, self.TEST_FOLDER_PATH)
 
-    @pytest.mark.flaky(reruns=2)
+    @pytest.mark.flaky(reruns=4)
     @patch("lib.core.usecases.annotations.UploadAnnotationUseCase.s3_bucket")
     def test_recursive_annotation_upload_pixel(self, s3_bucket):
         sa.create_folder(self.PROJECT_NAME, self.FOLDER)

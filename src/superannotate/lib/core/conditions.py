@@ -12,6 +12,17 @@ CONDITION_LT = "<"
 CONDITION_LE = "<="
 
 
+class EmptyCondition:
+    def __or__(self, other):
+        return other
+
+    def __and__(self, other):
+        return other
+
+    def build_query(self):
+        return ""
+
+
 class Condition:
     def __init__(self, key: str, value: Any, condition_type: str):
         self._key = key
@@ -21,16 +32,6 @@ class Condition:
 
     @staticmethod
     def get_empty_condition():
-        class EmptyCondition:
-            def __or__(self, other):
-                return other
-
-            def __and__(self, other):
-                return other
-
-            def build_query(self):
-                return ""
-
         return EmptyCondition()
 
     def __str__(self):
@@ -46,10 +47,12 @@ class Condition:
     def __and__(self, other):
         if isinstance(other, tuple) or isinstance(other, list):
             for elem in other:
+                if isinstance(other, EmptyCondition):
+                    continue
                 if not isinstance(other, Condition):
                     raise Exception("Support the only Condition types")
-            return self.__and__(elem)
-        elif not isinstance(other, Condition):
+                return self.__and__(elem)
+        elif not isinstance(other, (Condition, EmptyCondition)):
             raise Exception("Support the only Condition types")
         QueryCondition = namedtuple("QueryCondition", ("condition", "query"))
         self._condition_set.append(QueryCondition(CONDITION_AND, other.build_query()))

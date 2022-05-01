@@ -39,6 +39,7 @@ class PrepareExportUseCase(BaseUseCase):
         project: ProjectEntity,
         folder_names: List[str],
         backend_service_provider: SuperannotateServiceProvider,
+        folders: BaseManageableRepository,
         include_fuse: bool,
         only_pinned: bool,
         annotation_statuses: List[str] = None,
@@ -50,6 +51,7 @@ class PrepareExportUseCase(BaseUseCase):
         self._annotation_statuses = annotation_statuses
         self._include_fuse = include_fuse
         self._only_pinned = only_pinned
+        self._folders = folders
 
     def validate_only_pinned(self):
         if (
@@ -57,7 +59,7 @@ class PrepareExportUseCase(BaseUseCase):
             and self._only_pinned
         ):
             raise AppValidationException(
-                f"Pin functionality is not supported for  projects containing {self._project.project_type} attached with URLs"
+                f"Pin functionality is not supported for  projects containing {self._project.type} attached with URLs"
             )
 
     def validate_fuse(self):
@@ -66,8 +68,21 @@ class PrepareExportUseCase(BaseUseCase):
             and self._include_fuse
         ):
             raise AppValidationException(
-                f"Include fuse functionality is not supported for  projects containing {self._project.project_type} attached with URLs"
+                f"Include fuse functionality is not supported for  projects containing {self._project.type} attached with URLs"
             )
+
+    def validate_folder_names(self):
+        if self._folder_names:
+            condition = (
+                    Condition("team_id", self._project.team_id, EQ) &
+                    Condition("project_id", self._project.id, EQ)
+            )
+            existing_folders = {folder.name for folder in self._folders.get_all(condition)}
+            folder_names_set = set(self._folder_names)
+            if not folder_names_set.issubset(existing_folders):
+                raise AppException(
+                    f"Folder(s) {', '.join(folder_names_set - existing_folders)} does not exist"
+                )
 
     def execute(self):
         if self.is_valid():
@@ -85,7 +100,7 @@ class PrepareExportUseCase(BaseUseCase):
                 )
 
             response = self._backend_service.prepare_export(
-                project_id=self._project.uuid,
+                project_id=self._project.id,
                 team_id=self._project.team_id,
                 folders=self._folder_names,
                 annotation_statuses=self._annotation_statuses,
@@ -100,7 +115,7 @@ class PrepareExportUseCase(BaseUseCase):
                 report_message = f"[{', '.join(self._folder_names)}] "
             logger.info(
                 f"Prepared export {response['name']} for project {self._project.name} "
-                f"{report_message}(project ID {self._project.uuid})."
+                f"{report_message}(project ID {self._project.id})."
             )
             self._response.data = response
 
@@ -122,7 +137,7 @@ class GetExportsUseCase(BaseUseCase):
     def execute(self):
         if self.is_valid():
             data = self._service.get_exports(
-                team_id=self._project.team_id, project_id=self._project.uuid
+                team_id=self._project.team_id, project_id=self._project.id
             )
             self._response.data = data
             if not self._return_metadata:
@@ -198,12 +213,12 @@ class DownloadExportUseCase(BaseInteractiveUseCase):
 
     def download_to_local_storage(self, destination: str):
         exports = self._service.get_exports(
-            team_id=self._project.team_id, project_id=self._project.uuid
+            team_id=self._project.team_id, project_id=self._project.id
         )
         export = next(filter(lambda i: i["name"] == self._export_name, exports), None)
         export = self._service.get_export(
             team_id=self._project.team_id,
-            project_id=self._project.uuid,
+            project_id=self._project.id,
             export_id=export["id"],
         )
         if not export:
@@ -216,7 +231,7 @@ class DownloadExportUseCase(BaseInteractiveUseCase):
 
             export = self._service.get_export(
                 team_id=self._project.team_id,
-                project_id=self._project.uuid,
+                project_id=self._project.id,
                 export_id=export["id"],
             )
             if "error" in export:
@@ -529,9 +544,9 @@ class RunPredictionUseCase(BaseUseCase):
         self._folder = folder
 
     def validate_project_type(self):
-        if self._project.project_type in constances.LIMITED_FUNCTIONS:
+        if self._project.type in constances.LIMITED_FUNCTIONS:
             raise AppValidationException(
-                constances.LIMITED_FUNCTIONS[self._project.project_type]
+                constances.LIMITED_FUNCTIONS[self._project.type]
             )
 
     def execute(self):
@@ -539,7 +554,7 @@ class RunPredictionUseCase(BaseUseCase):
             images = (
                 GetBulkImages(
                     service=self._service,
-                    project_id=self._project.uuid,
+                    project_id=self._project.id,
                     team_id=self._project.team_id,
                     folder_id=self._folder.uuid,
                     images=self._images_list,
@@ -569,7 +584,7 @@ class RunPredictionUseCase(BaseUseCase):
 
             res = self._service.run_prediction(
                 team_id=self._project.team_id,
-                project_id=self._project.uuid,
+                project_id=self._project.id,
                 ml_model_id=ml_model.uuid,
                 image_ids=image_ids,
             )
@@ -582,7 +597,7 @@ class RunPredictionUseCase(BaseUseCase):
                 images_metadata = (
                     GetBulkImages(
                         service=self._service,
-                        project_id=self._project.uuid,
+                        project_id=self._project.id,
                         team_id=self._project.team_id,
                         folder_id=self._folder.uuid,
                         images=self._images_list,

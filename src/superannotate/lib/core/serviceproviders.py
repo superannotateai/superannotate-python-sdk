@@ -116,13 +116,13 @@ class SuperannotateServiceProvider:
     def update_image(self, image_id: int, team_id: int, project_id: int, data: dict):
         raise NotImplementedError
 
-    def copy_images_between_folders_transaction(
+    def copy_items_between_folders_transaction(
         self,
         team_id: int,
         project_id: int,
         from_folder_id: int,
         to_folder_id: int,
-        images: List[str],
+        items: List[str],
         include_annotations: bool = False,
         include_pin: bool = False,
     ) -> int:
@@ -148,6 +148,11 @@ class SuperannotateServiceProvider:
 
     def get_progress(
         self, project_id: int, team_id: int, poll_id: int
+    ) -> Tuple[int, int]:
+        raise NotImplementedError
+
+    def await_progress(
+        self, project_id: int, team_id: int, poll_id: int, items_count
     ) -> Tuple[int, int]:
         raise NotImplementedError
 

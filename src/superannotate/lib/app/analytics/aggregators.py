@@ -56,6 +56,34 @@ class VideoRawData:
     attributeName: str = None
 
 
+class DocumentRawData:
+    docName: str = None
+    folderName: str = None
+    docStatus: str = None
+    docUrl: str = None
+    docAnnotator: str = None
+    docQA: str = None
+    # tag
+    tagId: int = None
+    tag: str = None
+    # instance
+    instanceId: int = None
+    instanceStart: int = None
+    instanceEnd: int = None
+    type: str = None
+    className: str = None
+    createdAt: str = None
+    createdBy: str = None
+    creatorRole: str = None
+    updatedAt: str = None
+    updatedBy: str = None
+    updatorRole: str = None
+    # attribute
+    attributeId: int = None
+    attributeGroupName: str = None
+    attributeName: str = None
+
+
 class DataAggregator:
     def __init__(
         self,
@@ -124,6 +152,8 @@ class DataAggregator:
             return self.aggregate_image_annotations_as_df(annotation_paths)
         elif self.project_type == constances.ProjectType.VIDEO.name:
             return self.aggregate_video_annotations_as_df(annotation_paths)
+        elif self.project_type == constances.ProjectType.DOCUMENT.name:
+            return self.aggregate_document_annotations_as_df(annotation_paths)
 
     def aggregate_video_annotations_as_df(self, annotation_paths: List[str]):
         raws = []
@@ -205,7 +235,61 @@ class DataAggregator:
                     raws.append(instance_raw)
             if not instances:
                 raws.append(raw_data)
-        return pd.DataFrame([raw.__dict__ for raw in raws], dtype=object)
+        df = pd.DataFrame([raw.__dict__ for raw in raws], dtype=object)
+        return df.where(pd.notnull(df), None)
+
+    def aggregate_document_annotations_as_df(self, annotation_paths: List[str]):
+        raws = []
+        for annotation_path in annotation_paths:
+            annotation_path = Path(annotation_path)
+            annotation_data = json.load(open(annotation_path))
+            raw_data = DocumentRawData()
+            # metadata
+            raw_data.docName = annotation_data["metadata"]["name"]
+            raw_data.folderName = (
+                annotation_path.parent.name
+                if annotation_path.parent != self.project_root
+                else None
+            )
+            raw_data.docStatus = annotation_data["metadata"].get("status")
+            raw_data.docUrl = annotation_data["metadata"].get("url")
+            raw_data.docAnnotator = annotation_data["metadata"].get("annotatorEmail")
+            raw_data.docQA = annotation_data["metadata"].get("qaEmail")
+            # append tags
+            for idx, tag in enumerate(annotation_data.get("tags", [])):
+                tag_row = copy.copy(raw_data)
+                tag_row.tagId = idx
+                tag_row.tag = tag
+                raws.append(tag_row)
+            # append instances
+            instances = annotation_data.get("instances", [])
+            for idx, instance in enumerate(instances):
+                instance_raw = copy.copy(raw_data)
+                instance_raw.instanceId = int(idx)
+                instance_raw.instanceStart = instance.get("start")
+                instance_raw.instanceEnd = instance.get("end")
+                instance_raw.type = instance.get("type")
+                instance_raw.className = instance.get("className")
+                instance_raw.createdAt = instance.get("createdAt")
+                instance_raw.createdBy = instance.get("createdBy", {}).get("email")
+                instance_raw.creatorRole = instance.get("createdBy", {}).get("role")
+                instance_raw.updatedAt = instance.get("updatedAt")
+                instance_raw.updatedBy = instance.get("updatedBy", {}).get("email")
+                instance_raw.updatorRole = instance.get("updatedBy", {}).get("role")
+                attributes = instance.get("attributes", [])
+                # append attributes
+                for attribute_id, attribute in enumerate(attributes):
+                    attribute_raw = copy.copy(instance_raw)
+                    attribute_raw.attributeId = attribute_id
+                    attribute_raw.attributeGroupName = attribute.get("groupName")
+                    attribute_raw.attributeName = attribute.get("name")
+                    raws.append(attribute_raw)
+                if not attributes:
+                    raws.append(instance_raw)
+            if not instances:
+                raws.append(raw_data)
+        df = pd.DataFrame([raw.__dict__ for raw in raws], dtype=object)
+        return df.where(pd.notnull(df), None)
 
     def aggregate_image_annotations_as_df(self, annotations_paths: List[str]):
         annotation_data = {

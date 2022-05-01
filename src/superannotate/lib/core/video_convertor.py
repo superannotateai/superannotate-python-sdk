@@ -44,14 +44,14 @@ class VideoFrameGenerator:
             return self.annotations[frame_no]
 
     def interpolate_annotations(
-            self,
-            class_name: str,
-            from_frame: int,
-            to_frame: int,
-            data: dict,
-            instance_id: int,
-            steps: dict = None,
-            annotation_type: str = "bbox",
+        self,
+        class_name: str,
+        from_frame: int,
+        to_frame: int,
+        data: dict,
+        instance_id: int,
+        steps: dict = None,
+        annotation_type: str = "bbox",
     ) -> dict:
         annotations = {}
         for idx, frame_idx in enumerate(range(from_frame + 1, to_frame), 1):
@@ -133,39 +133,39 @@ class VideoFrameGenerator:
                     if frames_diff > 1:
                         steps = None
                         if (
-                                annotation_type == "bbox"
-                                and from_frame.get("points")
-                                and to_frame.get("points")
+                            annotation_type == "bbox"
+                            and from_frame.get("points")
+                            and to_frame.get("points")
                         ):
                             steps = {
                                 "y1": round(
                                     (
-                                            to_frame["points"]["y1"]
-                                            - from_frame["points"]["y1"]
+                                        to_frame["points"]["y1"]
+                                        - from_frame["points"]["y1"]
                                     )
                                     / frames_diff,
                                     2,
                                 ),
                                 "x2": round(
                                     (
-                                            to_frame["points"]["x2"]
-                                            - from_frame["points"]["x2"]
+                                        to_frame["points"]["x2"]
+                                        - from_frame["points"]["x2"]
                                     )
                                     / frames_diff,
                                     2,
                                 ),
                                 "x1": round(
                                     (
-                                            to_frame["points"]["x1"]
-                                            - from_frame["points"]["x1"]
+                                        to_frame["points"]["x1"]
+                                        - from_frame["points"]["x1"]
                                     )
                                     / frames_diff,
                                     2,
                                 ),
                                 "y2": round(
                                     (
-                                            to_frame["points"]["y2"]
-                                            - from_frame["points"]["y2"]
+                                        to_frame["points"]["y2"]
+                                        - from_frame["points"]["y2"]
                                     )
                                     / frames_diff,
                                     2,

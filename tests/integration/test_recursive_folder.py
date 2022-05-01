@@ -39,7 +39,7 @@ class TestRecursiveFolder(BaseTestCase):
             annotation_status="QualityCheck",
             recursive_subfolders=True,
         )
-        self.assertEqual(len(sa.search_images(self.PROJECT_NAME)), 2)
+        self.assertEqual(len(sa.search_items(self.PROJECT_NAME)), 2)
 
         sa.create_annotation_classes_from_classes_json(
             self.PROJECT_NAME, f"{self.folder_path}/classes/classes.json"
@@ -70,7 +70,7 @@ class TestRecursiveFolder(BaseTestCase):
             recursive_subfolders=True,
         )
 
-        self.assertEqual(len(sa.search_images(self.PROJECT_NAME)), 2)
+        self.assertEqual(len(sa.search_items(self.PROJECT_NAME)), 2)
 
         sa.create_annotation_classes_from_classes_json(
             self.PROJECT_NAME, f"{self.folder_path}/classes/classes.json"
@@ -92,7 +92,7 @@ class TestRecursiveFolder(BaseTestCase):
             recursive_subfolders=True,
         )
 
-        self.assertEqual(len(sa.search_images(self.PROJECT_NAME)), 2)
+        self.assertEqual(len(sa.search_items(self.PROJECT_NAME)), 2)
 
     def test_annotations_recursive_s3_folder(self):
 
@@ -103,7 +103,7 @@ class TestRecursiveFolder(BaseTestCase):
             from_s3_bucket="superannotate-python-sdk-test",
             recursive_subfolders=True,
         )
-        self.assertEqual(len(sa.search_images(self.PROJECT_NAME)), 2)
+        self.assertEqual(len(sa.search_items(self.PROJECT_NAME)), 2)
 
         sa.create_annotation_classes_from_classes_json(
             self.PROJECT_NAME,
@@ -135,7 +135,7 @@ class TestRecursiveFolder(BaseTestCase):
             recursive_subfolders=False,
         )
 
-        self.assertEqual(len(sa.search_images(self.PROJECT_NAME)), 1)
+        self.assertEqual(len(sa.search_items(self.PROJECT_NAME)), 1)
 
         sa.create_annotation_classes_from_classes_json(
             self.PROJECT_NAME,
@@ -171,14 +171,14 @@ class TestRecursiveFolder(BaseTestCase):
             recursive_subfolders=False,
         )
 
-        self.assertEqual(len(sa.search_images(self.PROJECT_NAME)), 1)
+        self.assertEqual(len(sa.search_items(self.PROJECT_NAME)), 1)
 
     @pytest.mark.skip(reason="Taking long time.")
     def test_images_recursive_s3_122(self):
         sa.upload_images_from_folder_to_project(self.PROJECT_NAME, '8sep',
                                                 from_s3_bucket="superannotate-python-sdk-test",
                                                 recursive_subfolders=True)
-        self.assertEqual(len(sa.search_images(self.PROJECT_NAME)), 122)
+        self.assertEqual(len(sa.search_items(self.PROJECT_NAME)), 122)
 
     @pytest.mark.skip(reason="Taking long time.")
     def test_annotations_recursive_s3_122(self):
@@ -203,4 +203,4 @@ class TestRecursiveFolder(BaseTestCase):
         sa.upload_images_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path, recursive_subfolders=False
         )
-        self.assertEqual(len(sa.search_images(self.PROJECT_NAME)), 1)
+        self.assertEqual(len(sa.search_items(self.PROJECT_NAME)), 1)

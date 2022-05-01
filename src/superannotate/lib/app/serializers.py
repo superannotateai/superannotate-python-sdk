@@ -24,10 +24,14 @@ class BaseSerializer(ABC):
         return data
 
     def serialize(
-        self, fields: List[str] = None, by_alias: bool = True, flat: bool = False
+        self,
+        fields: List[str] = None,
+        by_alias: bool = True,
+        flat: bool = False,
+        exclude: Set[str] = None,
     ):
         return self._fill_enum_values(
-            self._serialize(self._entity, fields, by_alias, flat)
+            self._serialize(self._entity, fields, by_alias, flat, exclude=exclude)
         )
 
     def serialize_item(
@@ -45,6 +49,7 @@ class BaseSerializer(ABC):
         fields: List[str] = None,
         by_alias: bool = False,
         flat: bool = False,
+        exclude: Set[str] = None,
     ):
         if isinstance(entity, dict):
             return entity
@@ -53,12 +58,14 @@ class BaseSerializer(ABC):
                 fields = set(fields)
                 if len(fields) == 1:
                     if flat:
-                        return entity.dict(include=fields, by_alias=by_alias)[
-                            next(iter(fields))
-                        ]
-                    return entity.dict(include=fields, by_alias=by_alias)
-                return entity.dict(include=fields, by_alias=by_alias)
-            return entity.dict(by_alias=by_alias)
+                        return entity.dict(
+                            include=fields, by_alias=by_alias, exclude=exclude
+                        )[next(iter(fields))]
+                    return entity.dict(
+                        include=fields, by_alias=by_alias, exclude=exclude
+                    )
+                return entity.dict(include=fields, by_alias=by_alias, exclude=exclude)
+            return entity.dict(by_alias=by_alias, exclude=exclude)
         return entity.to_dict()
 
     @classmethod
@@ -98,8 +105,23 @@ class TeamSerializer(BaseSerializer):
 
 
 class ProjectSerializer(BaseSerializer):
-    def serialize(self):
-        data = super().serialize()
+    DEFAULT_EXCLUDE_SET = {"sync_status", "unverified_users"}
+
+    def serialize(
+        self,
+        fields: List[str] = None,
+        by_alias: bool = False,
+        flat: bool = False,
+        exclude: Set[str] = None,
+    ):
+        to_exclude = self.DEFAULT_EXCLUDE_SET
+        if exclude:
+            to_exclude = exclude.union(self.DEFAULT_EXCLUDE_SET)
+        data = super().serialize(fields, by_alias, flat, to_exclude)
+        if data.get("settings"):
+            data["settings"] = [
+                SettingsSerializer(setting).serialize() for setting in data["settings"]
+            ]
         data["type"] = constance.ProjectType.get_name(data["type"])
         if data.get("status"):
             data["status"] = constance.ProjectStatus.get_name(data["status"])
@@ -155,12 +177,12 @@ class ImageSerializer(BaseSerializer):
             data["prediction_status"] = None
             data["segmentation_status"] = None
         else:
-            if project.project_type == constance.ProjectType.VECTOR.value:
+            if project.type == constance.ProjectType.VECTOR.value:
                 data["prediction_status"] = constance.SegmentationStatus.get_name(
                     data["prediction_status"]
                 )
                 data["segmentation_status"] = None
-            if project.project_type == constance.ProjectType.PIXEL.value:
+            if project.type == constance.ProjectType.PIXEL.value:
                 data["prediction_status"] = constance.SegmentationStatus.get_name(
                     data["prediction_status"]
                 )
@@ -178,8 +200,14 @@ class ImageSerializer(BaseSerializer):
 
 
 class SettingsSerializer(BaseSerializer):
-    def serialize(self):
-        data = super().serialize()
+    def serialize(
+        self,
+        fields: List[str] = None,
+        by_alias: bool = True,
+        flat: bool = False,
+        exclude=None,
+    ):
+        data = super().serialize(fields, by_alias, flat, exclude)
         if data["attribute"] == "ImageQuality":
             data["value"] = constance.ImageQuality.get_name(data["value"])
         return data

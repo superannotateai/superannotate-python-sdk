@@ -52,10 +52,10 @@ class TestVideo(BaseTestCase):
             self.folder_path,
             target_fps=1,
         )
-        self.assertEqual(len(sa.search_images(self.PROJECT_NAME)), 5)
+        self.assertEqual(len(sa.search_items(self.PROJECT_NAME)), 5)
         self.assertEqual(
-            len(sa.search_images(f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME}")),
-            len(sa.search_images(self.PROJECT_NAME)),
+            len(sa.search_items(f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME}")),
+            len(sa.search_items(self.PROJECT_NAME)),
         )
 
     def test_single_video_upload(self):
@@ -64,7 +64,7 @@ class TestVideo(BaseTestCase):
             f"{self.folder_path}/{self.TEST_VIDEO_NAME}",
             target_fps=1,
         )
-        self.assertEqual(len(sa.search_images(self.PROJECT_NAME)), 5)
+        self.assertEqual(len(sa.search_items(self.PROJECT_NAME)), 5)
 
     @pytest.fixture(autouse=True)
     def inject_fixtures(self, caplog):
@@ -77,7 +77,7 @@ class TestVideo(BaseTestCase):
             f"{self.folder_path_big}/earth.mov",
             target_fps=1,
         )
-        self.assertEqual(len(sa.search_images(f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_BIG_VIDEO}")), 31)
+        self.assertEqual(len(sa.search_items(f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_BIG_VIDEO}")), 31)
         sa.upload_video_to_project(
             f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME_BIG_VIDEO}",
             f"{self.folder_path_big}/earth.mov",

@@ -27,7 +27,6 @@ class TestSingleAnnotationDownloadUpload(BaseTestCase):
             dirname(dirname(__file__)), self.TEST_FOLDER_PATH, "classes/classes.json"
         )
 
-
     # TODO: template name validation error
     def test_annotation_download_upload_vector(self):
         sa.upload_images_from_folder_to_project(
@@ -39,7 +38,7 @@ class TestSingleAnnotationDownloadUpload(BaseTestCase):
         sa.upload_annotations_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path
         )
-        image = sa.search_images(self.PROJECT_NAME)[0]
+        image = sa.search_items(self.PROJECT_NAME)[0]["name"]
 
         tempdir = tempfile.TemporaryDirectory()
         paths = sa.download_image_annotations(self.PROJECT_NAME, image, tempdir.name)
@@ -99,7 +98,7 @@ class TestSingleAnnotationDownloadUploadPixel(BaseTestCase):
         sa.upload_annotations_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path
         )
-        image = sa.search_images(self.PROJECT_NAME)[0]
+        image = sa.search_items(self.PROJECT_NAME)[0]["name"]
 
         with tempfile.TemporaryDirectory() as tempdir:
             paths = sa.download_image_annotations(self.PROJECT_NAME, image, tempdir)
@@ -107,20 +106,26 @@ class TestSingleAnnotationDownloadUploadPixel(BaseTestCase):
             uploaded_json = json.load(
                 open(self.folder_path + "/example_image_1.jpg___pixel.json")
             )
-            downloaded_json['metadata']['lastAction'] = None
             uploaded_json['metadata']['lastAction'] = None
-            for i in downloaded_json["instances"]:
-                i.pop("classId", None)
-                for j in i["attributes"]:
-                    j.pop("groupId", None)
-                    j.pop("id", None)
-            for i in uploaded_json["instances"]:
-                i.pop("classId", None)
-                for j in i["attributes"]:
-                    j.pop("groupId", None)
-                    j.pop("id", None)
+            self._clean_dict(downloaded_json, ["lastAction", "groupId", "classId", "id", "createdAt", "updatedAt"])
+            self._clean_dict(uploaded_json, ["lastAction", "groupId", "classId", "id", "createdAt", "updatedAt"])
             assert downloaded_json == uploaded_json
 
             uploaded_mask = self.folder_path + "/example_image_1.jpg___save.png"
             download_mask = paths[1]
             assert filecmp.cmp(download_mask, uploaded_mask, shallow=False)
+
+    @classmethod
+    def _clean_dict(cls, obj, keys_to_delete: list):
+        if isinstance(obj, dict):
+            for key in list(obj.keys()):
+                if key in keys_to_delete:
+                    del obj[key]
+                else:
+                    cls._clean_dict(obj[key], keys_to_delete)
+        elif isinstance(obj, list):
+            for i in reversed(range(len(obj))):
+                if obj[i] in keys_to_delete:
+                    del obj[i]
+                else:
+                    cls._clean_dict(obj[i], keys_to_delete)

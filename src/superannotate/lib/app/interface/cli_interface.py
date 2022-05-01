@@ -207,7 +207,7 @@ class CLIFacade(BaseInterfaceFacade):
                     dataset_format=format,
                     dataset_name=dataset_name,
                     project_type=constances.ProjectType.get_name(
-                        project["project"].project_type
+                        project["project"].type
                     ),
                     task=task,
                 )

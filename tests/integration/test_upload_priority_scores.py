@@ -42,5 +42,5 @@ class TestUploadPriorityScores(BaseTestCase):
             "name": "example_image_4.jpg",
             "priority": 100000000
         }])
-        self.assertEqual(sa.get_image_metadata(self.PROJECT_NAME, "example_image_4.jpg")['entropy_value'], 1000000)
-        self.assertEqual(sa.get_image_metadata(self.PROJECT_NAME, "example_image_3.jpg")['entropy_value'], 1.12345)
+        self.assertEqual(sa.get_item_metadata(self.PROJECT_NAME, "example_image_4.jpg")['entropy_value'], 1000000)
+        self.assertEqual(sa.get_item_metadata(self.PROJECT_NAME, "example_image_3.jpg")['entropy_value'], 1.12345)

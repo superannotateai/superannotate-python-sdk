@@ -1,6 +1,3 @@
-import os
-from os.path import dirname
-
 import src.superannotate as sa
 from tests.integration.base import BaseTestCase
 

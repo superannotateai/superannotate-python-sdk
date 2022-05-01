@@ -2,7 +2,6 @@ import os
 from pathlib import Path
 from distutils.dir_util import copy_tree
 import tempfile
-import logging
 from unittest import mock
 from unittest import TestCase
 
@@ -12,7 +11,7 @@ from src.superannotate.logger import get_default_logger
 
 class TestAggregateVideoAnnotation(TestCase):
     PROJECT_TYPE = "Video"
-    FOLDER_PATH = "data_set/df_data"
+    FOLDER_PATH = "data_set/video_df_data"
 
     @property
     def folder_path(self):

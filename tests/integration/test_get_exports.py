@@ -4,6 +4,7 @@ import tempfile
 from os.path import dirname
 
 import src.superannotate as sa
+from src.superannotate import AppException
 from tests.integration.base import BaseTestCase
 
 

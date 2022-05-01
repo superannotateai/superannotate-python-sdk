@@ -26,8 +26,8 @@ from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
 from lib.core.entities import ImageInfoEntity
 from lib.core.entities import ProjectEntity
-from lib.core.entities import ProjectSettingEntity
 from lib.core.entities import S3FileEntity
+from lib.core.entities import SettingEntity
 from lib.core.enums import ImageQuality
 from lib.core.enums import ProjectType
 from lib.core.exceptions import AppException
@@ -69,9 +69,9 @@ class GetImagesUseCase(BaseUseCase):
         self._image_name_prefix = image_name_prefix
 
     def validate_project_type(self):
-        if self._project.project_type in constances.LIMITED_FUNCTIONS:
+        if self._project.type in constances.LIMITED_FUNCTIONS:
             raise AppValidationException(
-                constances.LIMITED_FUNCTIONS[self._project.project_type]
+                constances.LIMITED_FUNCTIONS[self._project.type]
             )
 
     def validate_annotation_status(self):
@@ -86,7 +86,7 @@ class GetImagesUseCase(BaseUseCase):
         if self.is_valid():
             condition = (
                 Condition("team_id", self._project.team_id, EQ)
-                & Condition("project_id", self._project.uuid, EQ)
+                & Condition("project_id", self._project.id, EQ)
                 & Condition("folder_id", self._folder.uuid, EQ)
             )
             if self._image_name_prefix:
@@ -121,7 +121,7 @@ class GetImageUseCase(BaseUseCase):
         images = (
             GetBulkImages(
                 service=self._service,
-                project_id=self._project.uuid,
+                project_id=self._project.id,
                 team_id=self._project.team_id,
                 folder_id=self._folder.uuid,
                 images=[self._image_name],
@@ -157,7 +157,7 @@ class GetAllImagesUseCase(BaseUseCase):
     def execute(self):
         condition = (
             Condition("team_id", self._project.team_id, EQ)
-            & Condition("project_id", self._project.uuid, EQ)
+            & Condition("project_id", self._project.id, EQ)
             & Condition("folder_id", 0, EQ)
         )
         if self._annotation_status:
@@ -225,7 +225,7 @@ class AttachFileUrlsUseCase(BaseUseCase):
     def _validate_limitations(self, to_upload_count):
         response = self._backend_service.get_limitations(
             team_id=self._project.team_id,
-            project_id=self._project.uuid,
+            project_id=self._project.id,
             folder_id=self._folder.uuid,
         )
         if not response.ok:
@@ -256,7 +256,7 @@ class AttachFileUrlsUseCase(BaseUseCase):
 
     def execute(self):
         response = self._backend_service.get_bulk_images(
-            project_id=self._project.uuid,
+            project_id=self._project.id,
             team_id=self._project.team_id,
             folder_id=self._folder.uuid,
             images=[image.name for image in self._attachments],
@@ -282,7 +282,7 @@ class AttachFileUrlsUseCase(BaseUseCase):
             return self._response
         if to_upload:
             backend_response = self._backend_service.attach_files(
-                project_id=self._project.uuid,
+                project_id=self._project.id,
                 folder_id=self._folder.uuid,
                 team_id=self._project.team_id,
                 files=to_upload,
@@ -367,9 +367,9 @@ class CopyImageAnnotationClasses(BaseUseCase):
 
     @property
     def annotation_json_name(self):
-        if self._project.project_type == constances.ProjectType.VECTOR.value:
+        if self._project.type == constances.ProjectType.VECTOR.value:
             return f"{self._image.name}___objects.json"
-        elif self._project.project_type == constances.ProjectType.PIXEL.value:
+        elif self._project.type == constances.ProjectType.PIXEL.value:
             return f"{self._image.name}___pixel.json"
 
     @property
@@ -392,7 +392,7 @@ class CopyImageAnnotationClasses(BaseUseCase):
         )
 
     def validate_project_type(self):
-        if self._from_project.project_type != self._to_project.project_type:
+        if self._from_project.type != self._to_project.type:
             raise AppValidationException("Projects are different.")
 
     def execute(self):
@@ -487,7 +487,7 @@ class CopyImageAnnotationClasses(BaseUseCase):
         self.to_project_s3_repo.insert(file)
 
         if (
-            self._to_project.project_type == constances.ProjectType.PIXEL.value
+            self._to_project.type == constances.ProjectType.PIXEL.value
             and annotations.get("annotation_bluemap_path")
             and annotations["annotation_bluemap_path"]["exist"]
         ):
@@ -545,7 +545,7 @@ class ImagesBulkCopyUseCase(BaseUseCase):
     def _validate_limitations(self, images_to_copy_count):
         response = self._backend_service.get_limitations(
             team_id=self._project.team_id,
-            project_id=self._project.uuid,
+            project_id=self._project.id,
             folder_id=self._to_folder.uuid,
         )
         if not response.ok:
@@ -556,15 +556,15 @@ class ImagesBulkCopyUseCase(BaseUseCase):
             raise AppValidationException(constances.COPY_PROJECT_LIMIT_ERROR_MESSAGE)
 
     def validate_project_type(self):
-        if self._project.project_type in constances.LIMITED_FUNCTIONS:
+        if self._project.type in constances.LIMITED_FUNCTIONS:
             raise AppValidationException(
-                constances.LIMITED_FUNCTIONS[self._project.project_type]
+                constances.LIMITED_FUNCTIONS[self._project.type]
             )
 
     def execute(self):
         if self.is_valid():
             images = self._backend_service.get_bulk_images(
-                project_id=self._project.uuid,
+                project_id=self._project.id,
                 team_id=self._project.team_id,
                 folder_id=self._to_folder.uuid,
                 images=self._image_names,
@@ -579,12 +579,12 @@ class ImagesBulkCopyUseCase(BaseUseCase):
                 return self._response
 
             for i in range(0, len(images_to_copy), self.CHUNK_SIZE):
-                poll_id = self._backend_service.copy_images_between_folders_transaction(
+                poll_id = self._backend_service.copy_items_between_folders_transaction(
                     team_id=self._project.team_id,
-                    project_id=self._project.uuid,
+                    project_id=self._project.id,
                     from_folder_id=self._from_folder.uuid,
                     to_folder_id=self._to_folder.uuid,
-                    images=self._image_names[i : i + self.CHUNK_SIZE],
+                    items=self._image_names[i : i + self.CHUNK_SIZE],
                     include_annotations=self._include_annotations,
                     include_pin=self._include_pin,
                 )
@@ -596,49 +596,13 @@ class ImagesBulkCopyUseCase(BaseUseCase):
                 timeout_start = time.time()
                 while time.time() < timeout_start + await_time:
                     done_count, skipped_count = self._backend_service.get_progress(
-                        self._project.uuid, self._project.team_id, poll_id
+                        self._project.id, self._project.team_id, poll_id
                     )
                     if done_count + skipped_count == len(images_to_copy):
                         break
                     time.sleep(4)
 
             self._response.data = skipped_images
-        return self._response
-
-
-class GetImageMetadataUseCase(BaseUseCase):
-    def __init__(
-        self,
-        image_name: str,
-        project: ProjectEntity,
-        folder: FolderEntity,
-        service: SuperannotateServiceProvider,
-    ):
-        super().__init__()
-        self._image_name = image_name
-        self._project = project
-        self._service = service
-        self._folder = folder
-
-    def validate_project_type(self):
-        if self._project.project_type in constances.LIMITED_FUNCTIONS:
-            raise AppValidationException(
-                constances.LIMITED_FUNCTIONS[self._project.project_type]
-            )
-
-    def execute(self):
-        if self.is_valid():
-            data = self._service.get_bulk_images(
-                images=[self._image_name],
-                team_id=self._project.team_id,
-                project_id=self._project.uuid,
-                folder_id=self._folder.uuid,
-            )
-            if data:
-                image_entity = ImageEntity.from_dict(**data[0])
-                self._response.data = image_entity
-            else:
-                self._response.errors = AppException("Image not found.")
         return self._response
 
 
@@ -668,7 +632,7 @@ class ImagesBulkMoveUseCase(BaseUseCase):
     def validate_limitations(self):
         response = self._backend_service.get_limitations(
             team_id=self._project.team_id,
-            project_id=self._project.uuid,
+            project_id=self._project.id,
             folder_id=self._to_folder.uuid,
         )
         to_upload_count = len(self._image_names)
@@ -686,7 +650,7 @@ class ImagesBulkMoveUseCase(BaseUseCase):
                 moved_images.extend(
                     self._backend_service.move_images_between_folders(
                         team_id=self._project.team_id,
-                        project_id=self._project.uuid,
+                        project_id=self._project.id,
                         from_folder_id=self._from_folder.uuid,
                         to_folder_id=self._to_folder.uuid,
                         images=self._image_names[i : i + self.CHUNK_SIZE],  # noqa: E203
@@ -958,9 +922,9 @@ class DownloadImageUseCase(BaseUseCase):
         )
 
     def validate_project_type(self):
-        if self._project.project_type in constances.LIMITED_FUNCTIONS:
+        if self._project.type in constances.LIMITED_FUNCTIONS:
             raise AppValidationException(
-                constances.LIMITED_FUNCTIONS[self._project.project_type]
+                constances.LIMITED_FUNCTIONS[self._project.type]
             )
 
     def validate_variant_type(self):
@@ -1005,7 +969,7 @@ class DownloadImageUseCase(BaseUseCase):
                 fuse_image = (
                     CreateFuseImageUseCase(
                         project_type=constances.ProjectType.get_name(
-                            self._project.project_type
+                            self._project.type
                         ),
                         image_path=download_path,
                         classes=[
@@ -1059,7 +1023,7 @@ class UploadImageToProject(BaseUseCase):
     @property
     def s3_repo(self):
         self._auth_data = self._backend_client.get_s3_upload_auth_token(
-            self._project.team_id, self._folder.uuid, self._project.uuid
+            self._project.team_id, self._folder.uuid, self._project.id
         )
         if "error" in self._auth_data:
             raise AppException(self._auth_data.get("error"))
@@ -1075,16 +1039,16 @@ class UploadImageToProject(BaseUseCase):
             raise AppValidationException(constances.UPLOADING_UPLOAD_STATE_ERROR)
 
     def validate_deprecation(self):
-        if self._project.project_type in [
+        if self._project.type in [
             constances.ProjectType.VIDEO.value,
             constances.ProjectType.DOCUMENT.value,
         ]:
-            raise AppException(constances.LIMITED_FUNCTIONS[self._project.project_type])
+            raise AppException(constances.LIMITED_FUNCTIONS[self._project.type])
 
     def validate_limitations(self):
         response = self._backend_client.get_limitations(
             team_id=self._project.team_id,
-            project_id=self._project.uuid,
+            project_id=self._project.id,
             folder_id=self._folder.uuid,
         )
         if response.data.folder_limit.remaining_image_count < 1:
@@ -1109,7 +1073,7 @@ class UploadImageToProject(BaseUseCase):
         image_entities = (
             GetBulkImages(
                 service=self._backend_client,
-                project_id=self._project.uuid,
+                project_id=self._project.id,
                 team_id=self._project.team_id,
                 folder_id=self._folder.uuid,
                 images=[
@@ -1219,7 +1183,7 @@ class UploadImagesToProject(BaseInteractiveUseCase):
     def validate_limitations(self):
         response = self._backend_client.get_limitations(
             team_id=self._project.team_id,
-            project_id=self._project.uuid,
+            project_id=self._project.id,
             folder_id=self._folder.uuid,
         )
         if not response.ok:
@@ -1257,9 +1221,9 @@ class UploadImagesToProject(BaseInteractiveUseCase):
             raise AppValidationException(constances.UPLOADING_UPLOAD_STATE_ERROR)
 
     def validate_deprecation(self):
-        if self._project.project_type in constances.LIMITED_FUNCTIONS:
+        if self._project.type in constances.LIMITED_FUNCTIONS:
             raise AppValidationException(
-                constances.LIMITED_FUNCTIONS[self._project.project_type]
+                constances.LIMITED_FUNCTIONS[self._project.type]
             )
 
     @property
@@ -1268,7 +1232,7 @@ class UploadImagesToProject(BaseInteractiveUseCase):
             response = self._backend_client.get_s3_upload_auth_token(
                 team_id=self._project.team_id,
                 folder_id=self._folder.uuid,
-                project_id=self._project.uuid,
+                project_id=self._project.id,
             )
             if "error" in response:
                 raise AppException(response.get("error"))
@@ -1358,7 +1322,7 @@ class UploadImagesToProject(BaseInteractiveUseCase):
         image_entities = (
             GetBulkImages(
                 service=self._backend_client,
-                project_id=self._project.uuid,
+                project_id=self._project.id,
                 team_id=self._project.team_id,
                 folder_id=self._folder.uuid,
                 images=[image.split("/")[-1] for image in filtered_paths],
@@ -1514,7 +1478,7 @@ class UploadImageS3UseCase(BaseUseCase):
     def __init__(
         self,
         project: ProjectEntity,
-        project_settings: List[ProjectSettingEntity],
+        project_settings: List[SettingEntity],
         image_path: str,
         image: io.BytesIO,
         s3_repo: BaseManageableRepository,
@@ -1532,7 +1496,7 @@ class UploadImageS3UseCase(BaseUseCase):
 
     @property
     def max_resolution(self) -> int:
-        if self._project.project_type == ProjectType.PIXEL.value:
+        if self._project.type == ProjectType.PIXEL.value:
             return constances.MAX_PIXEL_RESOLUTION
         return constances.MAX_VECTOR_RESOLUTION
 
@@ -1644,7 +1608,7 @@ class InteractiveAttachFileUrlsUseCase(BaseInteractiveUseCase):
         attachments_count = self.attachments_count
         response = self._backend_service.get_limitations(
             team_id=self._project.team_id,
-            project_id=self._project.uuid,
+            project_id=self._project.id,
             folder_id=self._folder.uuid,
         )
         if not response.ok:
@@ -1714,7 +1678,7 @@ class CopyImageUseCase(BaseUseCase):
         backend_service: SuperannotateServiceProvider,
         images: BaseManageableRepository,
         s3_repo,
-        project_settings: List[ProjectSettingEntity],
+        project_settings: List[SettingEntity],
         include_annotations: Optional[bool] = True,
         copy_annotation_status: Optional[bool] = True,
         copy_pin: Optional[bool] = True,
@@ -1745,24 +1709,24 @@ class CopyImageUseCase(BaseUseCase):
             )
 
     def validate_project_type(self):
-        if self._from_project.project_type in (
+        if self._from_project.type in (
             constances.ProjectType.VIDEO.value,
             constances.ProjectType.DOCUMENT.value,
         ):
             raise AppValidationException(
-                constances.LIMITED_FUNCTIONS[self._from_project.project_type]
+                constances.LIMITED_FUNCTIONS[self._from_project.type]
             )
 
     def validate_limitations(self):
         response = self._backend_service.get_limitations(
             team_id=self._to_project.team_id,
-            project_id=self._to_project.uuid,
+            project_id=self._to_project.id,
             folder_id=self._to_folder.uuid,
         )
         if not response.ok:
             raise AppValidationException(response.error)
 
-        if self._move and self._from_project.uuid == self._to_project.uuid:
+        if self._move and self._from_project.id == self._to_project.id:
             if self._from_folder.uuid == self._to_folder.uuid:
                 raise AppValidationException(
                     "Cannot move image if source_project == destination_project."
@@ -1781,7 +1745,7 @@ class CopyImageUseCase(BaseUseCase):
     @property
     def s3_repo(self):
         self._auth_data = self._backend_service.get_s3_upload_auth_token(
-            self._to_project.team_id, self._to_folder.uuid, self._to_project.uuid
+            self._to_project.team_id, self._to_folder.uuid, self._to_project.id
         )
         if "error" in self._auth_data:
             raise AppException(self._auth_data.get("error"))
@@ -1818,7 +1782,7 @@ class CopyImageUseCase(BaseUseCase):
             auth_data = self._backend_service.get_s3_upload_auth_token(
                 team_id=self._to_project.team_id,
                 folder_id=self._to_folder.uuid,
-                project_id=self._to_project.uuid,
+                project_id=self._to_project.id,
             )
             if "error" in auth_data:
                 raise AppException(auth_data["error"])
@@ -1873,7 +1837,7 @@ class DeleteAnnotations(BaseUseCase):
         if self._image_names:
             for idx in range(0, len(self._image_names), self.CHUNK_SIZE):
                 response = self._backend_service.delete_image_annotations(
-                    project_id=self._project.uuid,
+                    project_id=self._project.id,
                     team_id=self._project.team_id,
                     folder_id=self._folder.uuid,
                     image_names=self._image_names[
@@ -1884,7 +1848,7 @@ class DeleteAnnotations(BaseUseCase):
                     polling_states[response.get("poll_id")] = False
         else:
             response = self._backend_service.delete_image_annotations(
-                project_id=self._project.uuid,
+                project_id=self._project.id,
                 team_id=self._project.team_id,
                 folder_id=self._folder.uuid,
             )
@@ -1899,7 +1863,7 @@ class DeleteAnnotations(BaseUseCase):
                 while time.time() < timeout_start + self.POLL_AWAIT_TIME:
                     progress = int(
                         self._backend_service.get_annotations_delete_progress(
-                            project_id=self._project.uuid,
+                            project_id=self._project.id,
                             team_id=self._project.team_id,
                             poll_id=poll_id,
                         ).get("process", -1)
@@ -1949,9 +1913,9 @@ class DeleteImagesUseCase(BaseUseCase):
         self._image_names = image_names
 
     def validate_project_type(self):
-        if self._project.project_type in constances.LIMITED_FUNCTIONS:
+        if self._project.type in constances.LIMITED_FUNCTIONS:
             raise AppValidationException(
-                constances.LIMITED_FUNCTIONS[self._project.project_type]
+                constances.LIMITED_FUNCTIONS[self._project.type]
             )
 
     def execute(self):
@@ -1961,7 +1925,7 @@ class DeleteImagesUseCase(BaseUseCase):
                     image.uuid
                     for image in GetBulkImages(
                         service=self._backend_service,
-                        project_id=self._project.uuid,
+                        project_id=self._project.id,
                         team_id=self._project.team_id,
                         folder_id=self._folder.uuid,
                         images=self._image_names,
@@ -1972,14 +1936,14 @@ class DeleteImagesUseCase(BaseUseCase):
             else:
                 condition = (
                     Condition("team_id", self._project.team_id, EQ)
-                    & Condition("project_id", self._project.uuid, EQ)
+                    & Condition("project_id", self._project.id, EQ)
                     & Condition("folder_id", self._folder.uuid, EQ)
                 )
                 image_ids = [image.uuid for image in self._images.get_all(condition)]
 
             for i in range(0, len(image_ids), self.CHUNK_SIZE):
                 self._backend_service.delete_images(
-                    project_id=self._project.uuid,
+                    project_id=self._project.id,
                     team_id=self._project.team_id,
                     image_ids=image_ids[i : i + self.CHUNK_SIZE],  # noqa: E203
                 )
@@ -2017,9 +1981,9 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
         )
 
     def validate_project_type(self):
-        if self._project.project_type in constances.LIMITED_FUNCTIONS:
+        if self._project.type in constances.LIMITED_FUNCTIONS:
             raise AppValidationException(
-                constances.LIMITED_FUNCTIONS[self._project.project_type]
+                constances.LIMITED_FUNCTIONS[self._project.type]
             )
 
     @property
@@ -2098,7 +2062,7 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
             }
             image_response = self.image_use_case.execute()
             token = self._service.get_download_token(
-                project_id=self._project.uuid,
+                project_id=self._project.id,
                 team_id=self._project.team_id,
                 folder_id=self._folder.uuid,
                 image_id=image_response.data.uuid,
@@ -2106,7 +2070,7 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
             credentials = token["annotations"]["MAIN"][0]
 
             annotation_json_creds = credentials["annotation_json_path"]
-            if self._project.project_type == constances.ProjectType.VECTOR.value:
+            if self._project.type == constances.ProjectType.VECTOR.value:
                 file_postfix = "___objects.json"
             else:
                 file_postfix = "___pixel.json"
@@ -2122,7 +2086,7 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
             data["annotation_json"] = response.json()
             data["annotation_json_filename"] = f"{self._image_name}{file_postfix}"
             mask_path = None
-            if self._project.project_type == constances.ProjectType.PIXEL.value:
+            if self._project.type == constances.ProjectType.PIXEL.value:
                 annotation_blue_map_creds = credentials["annotation_bluemap_path"]
                 response = requests.get(
                     url=annotation_blue_map_creds["url"],
@@ -2177,9 +2141,9 @@ class GetImageAnnotationsUseCase(BaseReportableUseCae):
         return use_case
 
     def validate_project_type(self):
-        if self._project.project_type in constances.LIMITED_FUNCTIONS:
+        if self._project.type in constances.LIMITED_FUNCTIONS:
             raise AppValidationException(
-                constances.LIMITED_FUNCTIONS[self._project.project_type]
+                constances.LIMITED_FUNCTIONS[self._project.type]
             )
 
     def execute(self):
@@ -2192,13 +2156,13 @@ class GetImageAnnotationsUseCase(BaseReportableUseCae):
             }
             image_response = self.image_use_case.execute()
             token = self._service.get_download_token(
-                project_id=self._project.uuid,
+                project_id=self._project.id,
                 team_id=self._project.team_id,
                 folder_id=self._folder.uuid,
                 image_id=image_response.data.uuid,
             )
             credentials = token["annotations"]["MAIN"][0]
-            if self._project.project_type == constances.ProjectType.VECTOR.value:
+            if self._project.type == constances.ProjectType.VECTOR.value:
                 file_postfix = "___objects.json"
             else:
                 file_postfix = "___pixel.json"
@@ -2215,7 +2179,7 @@ class GetImageAnnotationsUseCase(BaseReportableUseCae):
                 return self._response
             data["annotation_json"] = response.json()
             data["annotation_json_filename"] = f"{self._image_name}{file_postfix}"
-            if self._project.project_type == constances.ProjectType.PIXEL.value:
+            if self._project.type == constances.ProjectType.PIXEL.value:
                 annotation_blue_map_creds = credentials["annotation_bluemap_path"]
                 response = requests.get(
                     url=annotation_blue_map_creds["url"],
@@ -2247,9 +2211,9 @@ class AssignImagesUseCase(BaseUseCase):
         self._service = service
 
     def validate_project_type(self):
-        if self._project.project_type in constances.LIMITED_FUNCTIONS:
+        if self._project.type in constances.LIMITED_FUNCTIONS:
             raise AppValidationException(
-                constances.LIMITED_FUNCTIONS[self._project.project_type]
+                constances.LIMITED_FUNCTIONS[self._project.type]
             )
 
     def execute(self):
@@ -2257,7 +2221,7 @@ class AssignImagesUseCase(BaseUseCase):
             for i in range(0, len(self._image_names), self.CHUNK_SIZE):
                 is_assigned = self._service.assign_images(
                     team_id=self._project.team_id,
-                    project_id=self._project.uuid,
+                    project_id=self._project.id,
                     folder_name=self._folder.name,
                     user=self._user,
                     image_names=self._image_names[
@@ -2293,7 +2257,7 @@ class UnAssignImagesUseCase(BaseUseCase):
         for i in range(0, len(self._image_names), self.CHUNK_SIZE):
             is_un_assigned = self._service.un_assign_images(
                 team_id=self._project_entity.team_id,
-                project_id=self._project_entity.uuid,
+                project_id=self._project_entity.id,
                 folder_name=self._folder.name,
                 image_names=self._image_names[i : i + self.CHUNK_SIZE],  # noqa: E203
             )
@@ -2320,7 +2284,7 @@ class UnAssignFolderUseCase(BaseUseCase):
     def execute(self):
         is_un_assigned = self._service.un_assign_folder(
             team_id=self._project_entity.team_id,
-            project_id=self._project_entity.uuid,
+            project_id=self._project_entity.id,
             folder_name=self._folder.name,
         )
         if not is_un_assigned:
@@ -2354,10 +2318,8 @@ class SetImageAnnotationStatuses(BaseUseCase):
 
     def validate_project_type(self):
         project = self._projects.get_one(uuid=self._project_id, team_id=self._team_id)
-        if project.project_type in constances.LIMITED_FUNCTIONS:
-            raise AppValidationException(
-                constances.LIMITED_FUNCTIONS[project.project_type]
-            )
+        if project.type in constances.LIMITED_FUNCTIONS:
+            raise AppValidationException(constances.LIMITED_FUNCTIONS[project.type])
 
     def execute(self):
         if self.is_valid():
@@ -2412,12 +2374,11 @@ class CreateAnnotationClassUseCase(BaseUseCase):
 
     def validate_project_type(self):
         if (
-            self._project.project_type
-            in (ProjectType.PIXEL.value, ProjectType.VIDEO.value)
+            self._project.type in (ProjectType.PIXEL.value, ProjectType.VIDEO.value)
             and self._annotation_class.type == "tag"
         ):
             raise AppException(
-                f"Predefined tagging functionality is not supported for projects of type {ProjectType.get_name(self._project.project_type)}."
+                f"Predefined tagging functionality is not supported for projects of type {ProjectType.get_name(self._project.type)}."
             )
 
     def execute(self):
@@ -2527,12 +2488,12 @@ class CreateAnnotationClassesUseCase(BaseUseCase):
         self._project = project
 
     def validate_project_type(self):
-        if self._project.project_type in (
+        if self._project.type in (
             ProjectType.PIXEL.value,
             ProjectType.VIDEO.value,
         ) and any([True for i in self._annotation_classes if i.type == "tag"]):
             raise AppException(
-                f"Predefined tagging functionality is not supported for projects of type {ProjectType.get_name(self._project.project_type)}."
+                f"Predefined tagging functionality is not supported for projects of type {ProjectType.get_name(self._project.type)}."
             )
 
     def execute(self):
@@ -2630,7 +2591,7 @@ class ExtractFramesUseCase(BaseInteractiveUseCase):
         if not self._limitation_response:
             self._limitation_response = self._backend_service.get_limitations(
                 team_id=self._project.team_id,
-                project_id=self._project.uuid,
+                project_id=self._project.id,
                 folder_id=self._folder.uuid,
             )
             if not self._limitation_response.ok:
@@ -2664,9 +2625,9 @@ class ExtractFramesUseCase(BaseInteractiveUseCase):
         return min(limits)
 
     def validate_project_type(self):
-        if self._project.project_type in constances.LIMITED_FUNCTIONS:
+        if self._project.type in constances.LIMITED_FUNCTIONS:
             raise AppValidationException(
-                constances.LIMITED_FUNCTIONS[self._project.project_type]
+                constances.LIMITED_FUNCTIONS[self._project.type]
             )
 
     def execute(self):
@@ -2771,9 +2732,9 @@ class UploadVideosAsImages(BaseReportableUseCae):
         return self._extensions
 
     def validate_project_type(self):
-        if self._project.project_type in constances.LIMITED_FUNCTIONS:
+        if self._project.type in constances.LIMITED_FUNCTIONS:
             raise AppValidationException(
-                constances.LIMITED_FUNCTIONS[self._project.project_type]
+                constances.LIMITED_FUNCTIONS[self._project.type]
             )
 
     def validate_paths(self):
@@ -2802,7 +2763,7 @@ class UploadVideosAsImages(BaseReportableUseCae):
                     duplicate_images = (
                         GetBulkImages(
                             service=self._service,
-                            project_id=self._project.uuid,
+                            project_id=self._project.id,
                             team_id=self._project.team_id,
                             folder_id=self._folder.uuid,
                             images=frame_names,

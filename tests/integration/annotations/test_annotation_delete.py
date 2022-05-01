@@ -1,7 +1,7 @@
 import os
-from os.path import dirname
-import pytest
 from pathlib import Path
+
+import pytest
 
 import src.superannotate as sa
 from tests.integration.base import BaseTestCase
@@ -23,8 +23,8 @@ class TestAnnotationDelete(BaseTestCase):
     @property
     def classes_json(self):
         return os.path.join(Path(__file__).parent.parent.parent,
-            "data_set/sample_project_vector/classes/classes.json",
-        )
+                            "data_set/sample_project_vector/classes/classes.json",
+                            )
 
     def test_delete_annotations(self):
         sa.upload_images_from_folder_to_project(
@@ -39,7 +39,12 @@ class TestAnnotationDelete(BaseTestCase):
 
         sa.delete_annotations(self.PROJECT_NAME)
         annotations = sa.get_annotations(self.PROJECT_NAME, [self.EXAMPLE_IMAGE_1])
-        assert annotations == [{'metadata': {'name': 'example_image_1.jpg'}, 'instances': []}]
+        del annotations[0]["metadata"]["projectId"]
+        assert annotations == [
+            {'metadata': {'name': 'example_image_1.jpg', 'height': 683, 'width': 1024,
+                          'isPredicted': False, 'status': 'NotStarted', 'pinned': False, 'annotatorEmail': None,
+                          'qaEmail': None}, 'instances': [], 'tags': [], 'comments': []}
+        ]
 
     def test_delete_annotations_by_name(self):
         sa.upload_images_from_folder_to_project(
@@ -53,7 +58,12 @@ class TestAnnotationDelete(BaseTestCase):
         )
         sa.delete_annotations(self.PROJECT_NAME, [self.EXAMPLE_IMAGE_1])
         annotations = sa.get_annotations(self.PROJECT_NAME, [self.EXAMPLE_IMAGE_1])
-        assert annotations == [{'metadata': {'name': 'example_image_1.jpg'}, 'instances': []}]
+        del annotations[0]["metadata"]["projectId"]
+        assert annotations == [
+            {'metadata': {'name': 'example_image_1.jpg', 'height': 683, 'width': 1024,
+                          'isPredicted': False, 'status': 'NotStarted', 'pinned': False, 'annotatorEmail': None,
+                          'qaEmail': None}, 'instances': [], 'tags': [], 'comments': []}
+        ]
 
     def test_delete_annotations_by_not_existing_name(self):
         sa.upload_images_from_folder_to_project(

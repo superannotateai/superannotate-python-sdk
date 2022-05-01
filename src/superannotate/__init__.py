@@ -25,6 +25,7 @@ from superannotate.lib.app.interface.sdk_interface import (
     attach_document_urls_to_project,
 )
 from superannotate.lib.app.interface.sdk_interface import attach_image_urls_to_project
+from superannotate.lib.app.interface.sdk_interface import attach_items
 from superannotate.lib.app.interface.sdk_interface import (
     attach_items_from_integrated_storage,
 )
@@ -34,6 +35,7 @@ from superannotate.lib.app.interface.sdk_interface import clone_project
 from superannotate.lib.app.interface.sdk_interface import consensus
 from superannotate.lib.app.interface.sdk_interface import copy_image
 from superannotate.lib.app.interface.sdk_interface import copy_images
+from superannotate.lib.app.interface.sdk_interface import copy_items
 from superannotate.lib.app.interface.sdk_interface import create_annotation_class
 from superannotate.lib.app.interface.sdk_interface import (
     create_annotation_classes_from_classes_json,
@@ -57,12 +59,8 @@ from superannotate.lib.app.interface.sdk_interface import get_annotations
 from superannotate.lib.app.interface.sdk_interface import get_annotations_per_frame
 from superannotate.lib.app.interface.sdk_interface import get_exports
 from superannotate.lib.app.interface.sdk_interface import get_folder_metadata
-from superannotate.lib.app.interface.sdk_interface import get_image_metadata
 from superannotate.lib.app.interface.sdk_interface import get_integrations
 from superannotate.lib.app.interface.sdk_interface import get_item_metadata
-from superannotate.lib.app.interface.sdk_interface import (
-    get_project_and_folder_metadata,
-)
 from superannotate.lib.app.interface.sdk_interface import get_project_image_count
 from superannotate.lib.app.interface.sdk_interface import get_project_metadata
 from superannotate.lib.app.interface.sdk_interface import get_project_settings
@@ -71,6 +69,7 @@ from superannotate.lib.app.interface.sdk_interface import get_team_metadata
 from superannotate.lib.app.interface.sdk_interface import init
 from superannotate.lib.app.interface.sdk_interface import invite_contributors_to_team
 from superannotate.lib.app.interface.sdk_interface import move_images
+from superannotate.lib.app.interface.sdk_interface import move_items
 from superannotate.lib.app.interface.sdk_interface import pin_image
 from superannotate.lib.app.interface.sdk_interface import prepare_export
 from superannotate.lib.app.interface.sdk_interface import query
@@ -78,12 +77,11 @@ from superannotate.lib.app.interface.sdk_interface import rename_project
 from superannotate.lib.app.interface.sdk_interface import run_prediction
 from superannotate.lib.app.interface.sdk_interface import search_annotation_classes
 from superannotate.lib.app.interface.sdk_interface import search_folders
-from superannotate.lib.app.interface.sdk_interface import search_images
-from superannotate.lib.app.interface.sdk_interface import search_images_all_folders
 from superannotate.lib.app.interface.sdk_interface import search_items
 from superannotate.lib.app.interface.sdk_interface import search_models
 from superannotate.lib.app.interface.sdk_interface import search_projects
 from superannotate.lib.app.interface.sdk_interface import search_team_contributors
+from superannotate.lib.app.interface.sdk_interface import set_annotation_statuses
 from superannotate.lib.app.interface.sdk_interface import set_auth_token
 from superannotate.lib.app.interface.sdk_interface import set_image_annotation_status
 from superannotate.lib.app.interface.sdk_interface import set_images_annotation_statuses
@@ -161,13 +159,11 @@ __all__ = [
     "rename_project",
     "upload_priority_scores",
     # Images Section
-    "search_images",
     "copy_image",
     # Folders Section
     "create_folder",
     "get_folder_metadata",
     "delete_folders",
-    "get_project_and_folder_metadata",
     "search_folders",
     "assign_folder",
     "unassign_folder",
@@ -175,15 +171,17 @@ __all__ = [
     "get_item_metadata",
     "search_items",
     "query",
+    "attach_items",
+    "copy_items",
+    "move_items",
+    "set_annotation_statuses",
     # Image Section
     "copy_images",
     "move_images",
     "delete_images",
     "download_image",
     "pin_image",
-    "get_image_metadata",
     "get_project_image_count",
-    "search_images_all_folders",
     "assign_images",
     "unassign_images",
     "download_image_annotations",
