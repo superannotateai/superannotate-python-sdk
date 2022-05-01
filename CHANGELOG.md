@@ -1,5 +1,24 @@
 # Changelog 
 All release higlighths of this project will be documented in this file.
+## 4.3.3 - May 01 2022
+### Added
+- `attach_items()` function to link items (images, videos, and documents) from external storages to SuperAnnotate using URLs.
+- `copy_items()` function to copy items (images, videos, and documents) in bulk between folders in a project.
+- `move_items()` function to move items (images, videos, and documents) in bulk between folders in a project.
+- `set_annotation_statuses()` function to change the annotation status of items (images, videos, and documents) in bulk.
+### Updated
+- `aggregate_annotations_as_df()` function now supports Text Projects.
+### Fixed
+- `validate_annotations()` function to accept only numeric type values for the `points` field.
+- `prepare_export()` function to address the issue when the entire project is prepared when a wrong folder name is provided.
+- `search_team_contributors()` function to address the error message when `email` parameter is used.
+- `get_item_metadata()` to address the issue with approved/disapproved items.
+### Removed
+- `get_project_and_folder_metadata()` function.
+- `get_image_metadata()` function. Please use `get_item_metadata()` instead.
+- `search_images()` function. Please use `search_items()` instead.
+- `search images_all_folders()` function. Please use `search_items()` instead.
+###
 ## 4.3.2 - April 10 2022
 ### Added
 - `query()` function to run SAQuL queries via SDK.
