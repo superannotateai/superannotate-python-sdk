@@ -2826,7 +2826,7 @@ def get_annotations_per_frame(project: NotEmptyStr, video: NotEmptyStr, fps: int
 @Trackable
 @validate_arguments
 def upload_priority_scores(project: NotEmptyStr, scores: List[PriorityScore]):
-    """Returns per frame annotations for the given video.
+    """Upload priority scores for the given list of items.
 
     :param project: project name or folder path (e.g., “project1/folder1”)
     :type project: str
