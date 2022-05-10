@@ -127,6 +127,12 @@ class SegmentationStatus(BaseTitledEnum):
     FAILED = "Failed", 4
 
 
+class ApprovalStatus(BaseTitledEnum):
+    NONE = None, 0
+    DISAPPROVED = "disapproved", 1
+    APPROVED = "approved", 2
+
+
 class ProjectState(BaseTitledEnum):
     NOT_SYNCED = "Not synced", 1
     SYNCED = "Synced", 2

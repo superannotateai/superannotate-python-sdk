@@ -1075,6 +1075,10 @@ class SuperannotateBackendService(BaseBackendService):
         reporter: Reporter,
     ) -> List[dict]:
         import nest_asyncio
+        import platform
+
+        if platform.system().lower() == 'windows':
+            asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
         nest_asyncio.apply()
 
@@ -1140,6 +1144,7 @@ class SuperannotateBackendService(BaseBackendService):
         params = {
             "team_id": team_id,
             "project_id": project_id,
+            "includeFolderNames": True
         }
         if folder_id:
             params["folder_id"] = folder_id

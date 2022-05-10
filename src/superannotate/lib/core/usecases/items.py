@@ -9,7 +9,6 @@ from lib.core.entities import DocumentEntity
 from lib.core.entities import Entity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ProjectEntity
-from lib.core.entities import TmpBaseEntity
 from lib.core.entities import TmpImageEntity
 from lib.core.entities import VideoEntity
 from lib.core.exceptions import AppException
@@ -20,7 +19,6 @@ from lib.core.repositories import BaseReadOnlyRepository
 from lib.core.response import Response
 from lib.core.serviceproviders import SuperannotateServiceProvider
 from lib.core.usecases.base import BaseReportableUseCae
-from pydantic import parse_obj_as
 
 
 class GetItem(BaseReportableUseCae):
@@ -113,12 +111,12 @@ class QueryEntities(BaseReportableUseCae):
                 folder_id=None if self._folder.name == "root" else self._folder.uuid,
             )
             if service_response.ok:
-                data = parse_obj_as(
-                    List[TmpBaseEntity],
-                    [Entity.map_fields(i) for i in service_response.data],
-                )
-                for i, item in enumerate(data):
-                    data[i] = GetItem.serialize_entity(item, self._project)
+                data = []
+                for i, item in enumerate(service_response.data):
+                    tmp_item = GetItem.serialize_entity(Entity(**Entity.map_fields(item)), self._project)
+                    folder_path = f"{'/' + item['folder_name'] if not item['is_root_folder'] else ''}"
+                    tmp_item.path = f"{self._project.name}" + folder_path
+                    data.append(tmp_item)
                 self._response.data = data
             else:
                 self._response.errors = service_response.data

@@ -107,6 +107,7 @@ class TestCloneProject(TestCase):
             "tall",
         )
         self.assertEqual(ann_classes[0]["color"], "#FFAAFF")
+        assert new_project["status"], constances.ProjectStatus.NotStarted.name
 
 
 class TestCloneProjectAttachedUrls(TestCase):
@@ -161,3 +162,4 @@ class TestCloneProjectAttachedUrls(TestCase):
         self.assertEqual(ann_classes[0]["color"], "#FFAAFF")
         self.assertEqual(ann_classes[0]["type"], "object")
         self.assertIn("Workflow copy is deprecated for Document projects.", self._caplog.text)
+        assert new_project["status"], constances.ProjectStatus.NotStarted.name

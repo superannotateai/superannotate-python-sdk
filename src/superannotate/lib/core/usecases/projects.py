@@ -546,6 +546,7 @@ class CloneProjectUseCase(BaseReportableUseCae):
                 self._project_to_create.upload_state = (
                     constances.UploadState.INITIAL.value
                 )
+            self._project_to_create.status = constances.ProjectStatus.NotStarted.value
             project = self._projects.insert(self._project_to_create)
             self.reporter.log_info(
                 f"Created project {self._project_to_create.name} with type"
