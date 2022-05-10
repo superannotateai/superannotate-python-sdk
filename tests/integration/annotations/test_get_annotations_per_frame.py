@@ -3,8 +3,10 @@ import os
 from os.path import dirname
 from pathlib import Path
 
-import src.superannotate as sa
+from src.superannotate import SAClient
 from tests.integration.base import BaseTestCase
+
+sa = SAClient()
 
 
 class TestGetAnnotations(BaseTestCase):
@@ -35,7 +37,6 @@ class TestGetAnnotations(BaseTestCase):
         return os.path.join(self.folder_path, self.ANNOTATIONS_PATH)
 
     def test_video_annotation_upload(self):
-        sa.init()
         sa.create_annotation_classes_from_classes_json(self.PROJECT_NAME, self.classes_path)
 
         _, _, _ = sa.attach_video_urls_to_project(

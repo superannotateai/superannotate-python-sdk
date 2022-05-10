@@ -3,7 +3,8 @@ from os.path import dirname
 import pytest
 from unittest import TestCase
 
-import src.superannotate as sa
+from src.superannotate import SAClient
+sa = SAClient()
 from src.superannotate import AppException
 from src.superannotate.lib.core import LIMITED_FUNCTIONS
 from src.superannotate.lib.core import INVALID_PROJECT_TYPE_TO_PROCESS
@@ -136,14 +137,6 @@ class TestDeprecatedFunctionsDocument(TestCase):
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
-            sa.class_distribution(self.video_export_path, [self.PROJECT_NAME])
-        except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE_DOCUMENT_VIDEO, str(e))
-        try:
-            sa.convert_project_type(self.video_export_path, "./")
-        except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE_DOCUMENT_VIDEO, str(e))
-        try:
             sa.prepare_export(self.PROJECT_NAME, include_fuse=True, only_pinned=True)
         except AppException as e:
             self.assertIn("Include fuse functionality is not supported", str(e))
@@ -166,14 +159,6 @@ class TestDeprecatedFunctionsDocument(TestCase):
             sa.assign_images(self.PROJECT_NAME, [self.UPLOAD_IMAGE_NAME], "some user")
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
-        try:
-            sa.export_annotation(
-                "input_dir", "fromSuperAnnotate/panoptic_test", "COCO", "panoptic_test", self.PROJECT_TYPE,
-                "panoptic_segmentation"
-            )
-        except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE, str(e))
-
         try:
             sa.set_project_default_image_quality_in_editor(self.PROJECT_NAME,"original")
         except AppException as e:

@@ -7,7 +7,8 @@ from unittest.mock import patch
 
 from pydantic import ValidationError
 
-import src.superannotate as sa
+from src.superannotate import SAClient
+sa = SAClient()
 from superannotate_schemas.validators import AnnotationValidators
 
 

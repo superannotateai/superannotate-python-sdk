@@ -1,16 +1,16 @@
 import random
 import string
-from unittest.mock import patch
 from unittest.mock import MagicMock
 from unittest.mock import PropertyMock
+from unittest.mock import patch
 
-import src.superannotate as sa
-from src.superannotate import controller
-from src.superannotate.lib.core.entities import TeamEntity
+from src.superannotate import SAClient
 from src.superannotate.lib.core.entities import ProjectEntity
+from src.superannotate.lib.core.entities import TeamEntity
 from src.superannotate.lib.core.entities import UserEntity
-
 from tests.integration.base import BaseTestCase
+
+sa = SAClient()
 
 
 class TestProject(BaseTestCase):
@@ -41,14 +41,14 @@ class TestProject(BaseTestCase):
         project_data = MagicMock()
         get_team_mock.return_value = team_data
         team_data.data = TeamEntity(
-            uuid=controller.team_id,
+            uuid=sa.controller.team_id,
             users=team_users,
             pending_invitations=pending_users
         )
         get_project_metadata_mock.return_value = project_data
         project_data.data = dict(
             project=ProjectEntity(
-                uuid=controller.team_id,
+                uuid=sa.controller.team_id,
                 users=project_users,
                 unverified_users=unverified_users,
             )
@@ -69,7 +69,7 @@ class TestProject(BaseTestCase):
         team_data = MagicMock()
         get_team_mock.return_value = team_data
         team_data.data = TeamEntity(
-            uuid=controller.team_id,
+            uuid=sa.controller.team_id,
             users=team_users,
             pending_invitations=pending_users
         )

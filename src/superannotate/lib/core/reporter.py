@@ -1,8 +1,42 @@
+import uuid
 from collections import defaultdict
 from typing import Union
 
 import tqdm
 from superannotate.logger import get_default_logger
+
+
+class Session:
+    def __init__(self, pk: str):
+        self.pk = pk
+        self._uuid = str(uuid.uuid4())
+        self._data_dict = {}
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        if type is not None:
+            return False
+
+    @property
+    def data(self):
+        return self._data_dict
+
+    def __setitem__(self, key, item):
+        self._data_dict[key] = item
+
+    def __getitem__(self, key):
+        return self._data_dict[key]
+
+    def __repr__(self):
+        return repr(self._data_dict)
+
+    def __delitem__(self, key):
+        del self._data_dict[key]
+
+    def clear(self):
+        return self._data_dict.clear()
 
 
 class Reporter:
@@ -12,6 +46,7 @@ class Reporter:
         log_warning: bool = True,
         disable_progress_bar: bool = False,
         log_debug: bool = True,
+        session: Session = None
     ):
         self.logger = get_default_logger()
         self._log_info = log_info
@@ -23,6 +58,7 @@ class Reporter:
         self.debug_messages = []
         self.custom_messages = defaultdict(set)
         self.progress_bar = None
+        self.session = session
 
     def disable_warnings(self):
         self._log_warning = False
@@ -90,6 +126,10 @@ class Reporter:
     def messages(self):
         for key, values in self.custom_messages.items():
             yield f"{key} [{', '.join(values)}]"
+
+    def track(self, key, value):
+        if self.session:
+            self.session[key] = value
 
 
 class Progress:

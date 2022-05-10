@@ -4,7 +4,8 @@ import json
 from pathlib import Path
 
 import pytest
-import src.superannotate as sa
+from src.superannotate import SAClient
+sa = SAClient()
 from tests.integration.base import BaseTestCase
 from src.superannotate.lib.core.data_handlers import VideoFormatHandler
 from lib.core.reporter import Reporter

@@ -1,7 +1,8 @@
 import os
 from pathlib import Path
 
-import src.superannotate as sa
+from src.superannotate import SAClient
+sa = SAClient()
 from src.superannotate import AppException
 from src.superannotate.lib.core.usecases import SetAnnotationStatues
 from tests.integration.base import BaseTestCase

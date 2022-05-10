@@ -1,7 +1,8 @@
 import os
 from unittest import TestCase
 import pytest
-import src.superannotate as sa
+from src.superannotate import SAClient
+sa = SAClient()
 from tests import DATA_SET_PATH
 from src.superannotate import constances
 

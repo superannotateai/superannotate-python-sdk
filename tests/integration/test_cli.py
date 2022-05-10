@@ -7,7 +7,10 @@ from os.path import dirname
 from pathlib import Path
 from unittest import TestCase
 
-import src.superannotate as sa
+from src.superannotate import SAClient
+from src.superannotate import __version__
+
+sa = SAClient()
 
 try:
     CLI_VERSION = pkg_resources.get_distribution("superannotate").version
@@ -96,8 +99,8 @@ class CLITest(TestCase):
             shell=True,
         )
 
-    # @pytest.mark.skipif(CLI_VERSION and CLI_VERSION != sa.__version__,
-    #                     reason=f"Updated package version from {CLI_VERSION} to {sa.__version__}")
+    # @pytest.mark.skipif(CLI_VERSION and CLI_VERSION != __version__,
+    #                     reason=f"Updated package version from {CLI_VERSION} to {__version__}")
     def test_create_folder(self):
         self._create_project()
         subprocess.run(
@@ -110,8 +113,8 @@ class CLITest(TestCase):
         )
         self.assertEqual(self.FOLDER_NAME, folder["name"])
 
-    # @pytest.mark.skipif(CLI_VERSION and CLI_VERSION != sa.__version__,
-    #                     reason=f"Updated package version from {CLI_VERSION} to {sa.__version__}")
+    # @pytest.mark.skipif(CLI_VERSION and CLI_VERSION != __version__,
+    #                     reason=f"Updated package version from {CLI_VERSION} to {__version__}")
     def test_upload_images(self):
         self._create_project()
         subprocess.run(
@@ -124,8 +127,8 @@ class CLITest(TestCase):
         )
         self.assertEqual(1, len(sa.search_items(self.PROJECT_NAME)))
 
-    # @pytest.mark.skipif(CLI_VERSION and CLI_VERSION != sa.__version__,
-    #                     reason=f"Updated package version from {CLI_VERSION} to {sa.__version__}")
+    # @pytest.mark.skipif(CLI_VERSION and CLI_VERSION != __version__,
+    #                     reason=f"Updated package version from {CLI_VERSION} to {__version__}")
     def test_upload_export(self):
         self._create_project()
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -140,8 +143,8 @@ class CLITest(TestCase):
             self.assertEqual(len(list(test_dir.glob("*.jpg"))), 0)
             self.assertEqual(len(list(test_dir.glob("*.png"))), 0)
 
-    # @pytest.mark.skipif(CLI_VERSION and CLI_VERSION != sa.__version__,
-    #                     reason=f"Updated package version from {CLI_VERSION} to {sa.__version__}")
+    # @pytest.mark.skipif(CLI_VERSION and CLI_VERSION != __version__,
+    #                     reason=f"Updated package version from {CLI_VERSION} to {__version__}")
     def test_vector_pre_annotation_folder_upload_download_cli(self):
         self._create_project()
 
@@ -169,8 +172,8 @@ class CLITest(TestCase):
         )
         # tod add test
 
-    @pytest.mark.skipif(CLI_VERSION and CLI_VERSION != sa.__version__,
-                        reason=f"Updated package version from {CLI_VERSION} to {sa.__version__}")
+    @pytest.mark.skipif(CLI_VERSION and CLI_VERSION != __version__,
+                        reason=f"Updated package version from {CLI_VERSION} to {__version__}")
     def test_vector_annotation_folder_upload_download_cli(self):
         self._create_project()
         sa.create_annotation_classes_from_classes_json(
@@ -202,8 +205,8 @@ class CLITest(TestCase):
             count_out = len(list(Path(temp_dir).glob("*.json")))
             self.assertEqual(count_in, count_out)
 
-    @pytest.mark.skipif(CLI_VERSION and CLI_VERSION != sa.__version__,
-                        reason=f"Updated package version from {CLI_VERSION} to {sa.__version__}")
+    @pytest.mark.skipif(CLI_VERSION and CLI_VERSION != __version__,
+                        reason=f"Updated package version from {CLI_VERSION} to {__version__}")
     def test_attach_image_urls(self):
         self._create_project()
         subprocess.run(
@@ -216,8 +219,8 @@ class CLITest(TestCase):
 
         self.assertEqual(3, len(sa.search_items(self.PROJECT_NAME)))
 
-    # @pytest.mark.skipif(CLI_VERSION and CLI_VERSION != sa.__version__,
-    #                     reason=f"Updated package version from {CLI_VERSION} to {sa.__version__}")
+    # @pytest.mark.skipif(CLI_VERSION and CLI_VERSION != __version__,
+    #                     reason=f"Updated package version from {CLI_VERSION} to {__version__}")
     def test_attach_video_urls(self):
         self._create_project("Video")
         subprocess.run(
@@ -229,8 +232,8 @@ class CLITest(TestCase):
         )
         # self.assertEqual(3, len(sa.search_items(self.PROJECT_NAME)))
 
-    # @pytest.mark.skipif(CLI_VERSION and CLI_VERSION != sa.__version__,
-    #                     reason=f"Updated package version from {CLI_VERSION} to {sa.__version__}")
+    # @pytest.mark.skipif(CLI_VERSION and CLI_VERSION != __version__,
+    #                     reason=f"Updated package version from {CLI_VERSION} to {__version__}")
     def test_upload_videos(self):
         self._create_project()
         subprocess.run(
@@ -243,8 +246,8 @@ class CLITest(TestCase):
         )
         self.assertEqual(5, len(sa.search_items(self.PROJECT_NAME)))
 
-    @pytest.mark.skipif(CLI_VERSION and CLI_VERSION != sa.__version__,
-                        reason=f"Updated package version from {CLI_VERSION} to {sa.__version__}")
+    @pytest.mark.skipif(CLI_VERSION and CLI_VERSION != __version__,
+                        reason=f"Updated package version from {CLI_VERSION} to {__version__}")
     def test_attach_document_urls(self):
             self._create_project("Document")
             subprocess.run(

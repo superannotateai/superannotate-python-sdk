@@ -74,8 +74,7 @@ class PrepareExportUseCase(BaseUseCase):
     def validate_folder_names(self):
         if self._folder_names:
             condition = (
-                    Condition("team_id", self._project.team_id, EQ) &
-                    Condition("project_id", self._project.id, EQ)
+                    Condition("team_id", self._project.team_id, EQ) & Condition("project_id", self._project.id, EQ)
             )
             existing_folders = {folder.name for folder in self._folders.get_all(condition)}
             folder_names_set = set(self._folder_names)

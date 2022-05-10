@@ -9,17 +9,8 @@ from lib import __file__ as lib_path
 from lib.app.helpers import split_project_path
 from lib.app.input_converters.conversion import import_annotation
 from lib.app.interface.base_interface import BaseInterfaceFacade
-from lib.app.interface.sdk_interface import attach_document_urls_to_project
-from lib.app.interface.sdk_interface import attach_image_urls_to_project
-from lib.app.interface.sdk_interface import attach_video_urls_to_project
-from lib.app.interface.sdk_interface import create_folder
-from lib.app.interface.sdk_interface import create_project
-from lib.app.interface.sdk_interface import upload_annotations_from_folder_to_project
-from lib.app.interface.sdk_interface import upload_images_from_folder_to_project
-from lib.app.interface.sdk_interface import upload_preannotations_from_folder_to_project
-from lib.app.interface.sdk_interface import upload_videos_from_folder_to_project
+from lib.app.interface.sdk_interface import SAClient
 from lib.core.entities import ConfigEntity
-from lib.infrastructure.controller import Controller
 from lib.infrastructure.repositories import ConfigRepository
 
 
@@ -68,13 +59,13 @@ class CLIFacade(BaseInterfaceFacade):
         """
         To create a new project
         """
-        create_project(name, description, type)
+        SAClient().create_project(name, description, type)
 
     def create_folder(self, project: str, name: str):
         """
         To create a new folder
         """
-        create_folder(project, name)
+        SAClient().create_folder(project, name)
         sys.exit(0)
 
     def upload_images(
@@ -97,7 +88,7 @@ class CLIFacade(BaseInterfaceFacade):
         """
         if not isinstance(extensions, list):
             extensions = extensions.split(",")
-        upload_images_from_folder_to_project(
+        SAClient().upload_images_from_folder_to_project(
             project,
             folder_path=folder,
             extensions=extensions,
@@ -120,12 +111,12 @@ class CLIFacade(BaseInterfaceFacade):
         folders = None
         if folder_name:
             folders = [folder_name]
-        export_res = Controller.get_default().prepare_export(
+        export_res = SAClient().prepare_export(
             project_name, folders, include_fuse, False, annotation_statuses
         )
         export_name = export_res.data["name"]
 
-        use_case = Controller.get_default().download_export(
+        use_case = SAClient().download_export(
             project_name=project_name,
             export_name=export_name,
             folder_path=folder,
@@ -186,7 +177,7 @@ class CLIFacade(BaseInterfaceFacade):
         project_folder_name = project
         project_name, folder_name = split_project_path(project)
         project = (
-            Controller.get_default()
+            SAClient()
             .get_project_metadata(project_name=project_name)
             .data
         )
@@ -213,11 +204,11 @@ class CLIFacade(BaseInterfaceFacade):
                 )
                 annotations_path = temp_dir
             if pre:
-                upload_preannotations_from_folder_to_project(
+                SAClient().upload_preannotations_from_folder_to_project(
                     project_folder_name, annotations_path
                 )
             else:
-                upload_annotations_from_folder_to_project(
+                SAClient().upload_annotations_from_folder_to_project(
                     project_folder_name, annotations_path
                 )
         sys.exit(0)
@@ -229,7 +220,7 @@ class CLIFacade(BaseInterfaceFacade):
         To attach image URLs to project use:
         """
 
-        attach_image_urls_to_project(
+        SAClient().attach_image_urls_to_project(
             project=project,
             attachments=attachments,
             annotation_status=annotation_status,
@@ -239,7 +230,7 @@ class CLIFacade(BaseInterfaceFacade):
     def attach_video_urls(
         self, project: str, attachments: str, annotation_status: Optional[Any] = None
     ):
-        attach_video_urls_to_project(
+        SAClient().attach_video_urls_to_project(
             project=project,
             attachments=attachments,
             annotation_status=annotation_status,
@@ -250,7 +241,7 @@ class CLIFacade(BaseInterfaceFacade):
     def attach_document_urls(
         project: str, attachments: str, annotation_status: Optional[Any] = None
     ):
-        attach_document_urls_to_project(
+        SAClient().attach_document_urls_to_project(
             project=project,
             attachments=attachments,
             annotation_status=annotation_status,
@@ -279,7 +270,7 @@ class CLIFacade(BaseInterfaceFacade):
         end-time specifies time (in seconds) up to which to extract frames. If it is not specified, then up to end is assumed.
         """
 
-        upload_videos_from_folder_to_project(
+        SAClient().upload_videos_from_folder_to_project(
             project=project,
             folder_path=folder,
             extensions=extensions,

@@ -4,7 +4,8 @@ from os.path import dirname
 
 import pytest
 
-import src.superannotate as sa
+from src.superannotate import SAClient
+sa = SAClient()
 from src.superannotate import AppException
 from tests.integration.base import BaseTestCase
 

@@ -8,7 +8,8 @@ import pytest
 from pydantic import parse_obj_as
 from superannotate_schemas.schemas.internal import VectorAnnotation
 
-import src.superannotate as sa
+from src.superannotate import SAClient
+sa = SAClient()
 from tests.integration.base import BaseTestCase
 
 
@@ -26,7 +27,6 @@ class TestGetAnnotations(BaseTestCase):
 
     @pytest.mark.flaky(reruns=3)
     def test_get_annotations(self):
-        sa.init()
         sa.upload_images_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
         )
@@ -46,7 +46,6 @@ class TestGetAnnotations(BaseTestCase):
 
     @pytest.mark.flaky(reruns=3)
     def test_get_annotations_order(self):
-        sa.init()
         sa.upload_images_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
         )
@@ -65,7 +64,6 @@ class TestGetAnnotations(BaseTestCase):
 
     @pytest.mark.flaky(reruns=3)
     def test_get_annotations_from_folder(self):
-        sa.init()
         sa.create_folder(self.PROJECT_NAME, self.FOLDER_NAME)
 
         sa.upload_images_from_folder_to_project(
@@ -87,7 +85,6 @@ class TestGetAnnotations(BaseTestCase):
 
     @pytest.mark.flaky(reruns=3)
     def test_get_annotations_all(self):
-        sa.init()
         sa.upload_images_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
         )
@@ -129,7 +126,6 @@ class TestGetAnnotationsVideo(BaseTestCase):
         return os.path.join(self.folder_path, self.ANNOTATIONS_PATH)
 
     def test_video_annotation_upload_root(self):
-        sa.init()
         sa.create_annotation_classes_from_classes_json(self.PROJECT_NAME, self.classes_path)
 
         _, _, _ = sa.attach_video_urls_to_project(
@@ -141,7 +137,6 @@ class TestGetAnnotationsVideo(BaseTestCase):
         self.assertEqual(len(annotations), 2)
 
     def test_video_annotation_upload_folder(self):
-        sa.init()
         sa.create_annotation_classes_from_classes_json(self.PROJECT_NAME, self.classes_path)
         sa.create_folder(self.PROJECT_NAME, "folder")
         path = f"{self.PROJECT_NAME}/folder"

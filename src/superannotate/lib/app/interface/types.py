@@ -182,9 +182,9 @@ class AnnotationStatuses(StrictStr):
 
 def validate_arguments(func):
     @wraps(func)
-    def wrapped(*args, **kwargs):
+    def wrapped(self, *args, **kwargs):
         try:
-            return pydantic_validate_arguments(func)(*args, **kwargs)
+            return pydantic_validate_arguments(func)(self, *args, **kwargs)
         except ValidationError as e:
             raise AppException(wrap_error(e))
 

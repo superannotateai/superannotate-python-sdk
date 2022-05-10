@@ -8,7 +8,8 @@ import pytest
 from unittest.mock import patch
 from unittest.mock import MagicMock
 
-import src.superannotate as sa
+from src.superannotate import SAClient
+sa = SAClient()
 from superannotate_schemas.schemas.base import CreationTypeEnum
 from tests.integration.base import BaseTestCase
 
@@ -45,7 +46,7 @@ class TestAnnotationUploadVector(BaseTestCase):
                 self.assertEqual(instance["creationType"], CreationTypeEnum.PRE_ANNOTATION.value)
             self.assertEqual(
                 type(annotation["metadata"]["lastAction"]["email"]),
-                type(sa.get_default_controller().team_data.data.creator_id)
+                type(sa.controller.team_data.data.creator_id)
             )
             self.assertEqual(
                 type(annotation["metadata"]["lastAction"]["timestamp"]),

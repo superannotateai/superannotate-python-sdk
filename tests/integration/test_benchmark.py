@@ -3,7 +3,8 @@ import tempfile
 from os.path import dirname
 
 import pytest
-import src.superannotate as sa
+from src.superannotate import SAClient
+sa = SAClient()
 from tests.integration.base import BaseTestCase
 
 
