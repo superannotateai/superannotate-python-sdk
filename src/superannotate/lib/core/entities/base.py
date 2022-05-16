@@ -44,7 +44,6 @@ class BaseEntity(TimedBaseModel):
     entropy_value: Optional[float] = Field(description="Priority score of given item")
     createdAt: str = Field(description="Date of creation")
     updatedAt: str = Field(description="Update date")
-    is_pinned: Optional[bool]
 
     class Config:
         extra = Extra.allow

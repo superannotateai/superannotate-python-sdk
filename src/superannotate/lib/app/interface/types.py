@@ -40,18 +40,6 @@ class EmailStr(StrictStr):
         return value
 
 
-class Status(StrictStr):
-    @classmethod
-    def validate(cls, value: Union[str]) -> Union[str]:
-        if cls.curtail_length and len(value) > cls.curtail_length:
-            value = value[: cls.curtail_length]
-        if value.lower() not in AnnotationStatus.values():
-            raise TypeError(
-                f"Available statuses is {', '.join(AnnotationStatus.titles())}. "
-            )
-        return value
-
-
 class ProjectStatusEnum(StrictStr):
     @classmethod
     def validate(cls, value: Union[str]) -> Union[str]:

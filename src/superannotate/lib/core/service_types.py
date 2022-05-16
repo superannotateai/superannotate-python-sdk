@@ -8,10 +8,6 @@ from pydantic import BaseModel
 from pydantic import Extra
 
 
-class ErrorMessage(BaseModel):
-    error: str
-
-
 class Limit(BaseModel):
     max_image_count: Optional[int]
     remaining_image_count: int

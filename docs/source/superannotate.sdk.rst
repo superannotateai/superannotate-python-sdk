@@ -34,8 +34,6 @@ ________
 .. autofunction:: superannotate.create_folder
 .. autofunction:: superannotate.delete_folders
 .. autofunction:: superannotate.upload_images_to_project
-.. autofunction:: superannotate.attach_image_urls_to_project
-.. autofunction:: superannotate.attach_document_urls_to_project
 .. autofunction:: superannotate.attach_items_from_integrated_storage
 .. autofunction:: superannotate.upload_image_to_project
 .. autofunction:: superannotate.delete_annotations
@@ -43,11 +41,9 @@ ________
 .. autofunction:: superannotate.upload_images_from_folder_to_project
 .. autofunction:: superannotate.upload_video_to_project
 .. autofunction:: superannotate.upload_videos_from_folder_to_project
-.. autofunction:: superannotate.attach_video_urls_to_project
 .. _ref_upload_annotations_from_folder_to_project:
 .. autofunction:: superannotate.upload_annotations_from_folder_to_project
 .. autofunction:: superannotate.upload_preannotations_from_folder_to_project
-.. autofunction:: superannotate.share_project
 .. autofunction:: superannotate.add_contributors_to_project
 .. autofunction:: superannotate.get_project_settings
 .. autofunction:: superannotate.set_project_default_image_quality_in_editor
@@ -73,6 +69,7 @@ ______
 
 .. autofunction:: superannotate.query
 .. autofunction:: superannotate.search_items
+.. autofunction:: superannotate.download_annotations
 .. autofunction:: superannotate.attach_items
 .. autofunction:: superannotate.copy_items
 .. autofunction:: superannotate.move_items
@@ -92,8 +89,6 @@ ______
 .. autofunction:: superannotate.download_image_annotations
 .. autofunction:: superannotate.upload_image_annotations
 .. autofunction:: superannotate.copy_image
-.. autofunction:: superannotate.copy_images
-.. autofunction:: superannotate.move_images
 .. autofunction:: superannotate.pin_image
 .. autofunction:: superannotate.assign_images
 .. autofunction:: superannotate.delete_images
@@ -159,8 +154,23 @@ Project metadata example:
      "attachment_name": None,
      "attachment_path": None,
      "entropy_status": 1,
-     "status": 0,
+     "status": "NotStarted",
      "...": "..."
+   }
+
+
+----------
+
+Setting metadata
+_________________
+
+Setting metadata example:
+
+.. code-block:: python
+
+   {
+    "attribute": "FrameRate",
+    "value": 3
    }
 
 
@@ -247,6 +257,38 @@ Image metadata example:
       "updatedAt": "2020-08-18T07:30:06.000Z"
       "is_pinned": 0,
       "...": "...",
+   }
+
+
+----------
+
+Priority score
+_______________
+
+
+Priority score example:
+
+.. code-block:: python
+
+   {
+        "name" : "image1.png",
+        "priority": 0.567
+    }
+
+
+----------
+
+Attachment
+_______________
+
+
+Attachment example:
+
+.. code-block:: python
+
+   {
+      "url": "https://sa-public-files.s3.../text_file_example_1.jpeg",
+      "name": "example.jpeg"
    }
 
 

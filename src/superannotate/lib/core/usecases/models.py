@@ -22,13 +22,13 @@ from lib.core.entities import ProjectEntity
 from lib.core.enums import ExportStatus
 from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
+from lib.core.reporter import Reporter
 from lib.core.repositories import BaseManageableRepository
 from lib.core.serviceproviders import SuperannotateServiceProvider
-from lib.core.usecases.base import BaseInteractiveUseCase
+from lib.core.usecases.base import BaseReportableUseCae
 from lib.core.usecases.base import BaseUseCase
 from lib.core.usecases.images import GetBulkImages
 from superannotate.logger import get_default_logger
-
 
 logger = get_default_logger()
 
@@ -73,11 +73,12 @@ class PrepareExportUseCase(BaseUseCase):
 
     def validate_folder_names(self):
         if self._folder_names:
-            condition = (
-                    Condition("team_id", self._project.team_id, EQ)
-                    & Condition("project_id", self._project.id, EQ)
+            condition = Condition("team_id", self._project.team_id, EQ) & Condition(
+                "project_id", self._project.id, EQ
             )
-            existing_folders = {folder.name for folder in self._folders.get_all(condition)}
+            existing_folders = {
+                folder.name for folder in self._folders.get_all(condition)
+            }
             folder_names_set = set(self._folder_names)
             if not folder_names_set.issubset(existing_folders):
                 raise AppException(
@@ -176,7 +177,7 @@ class DeleteMLModel(BaseUseCase):
         return self._response
 
 
-class DownloadExportUseCase(BaseInteractiveUseCase):
+class DownloadExportUseCase(BaseReportableUseCae):
     def __init__(
         self,
         service: SuperannotateServiceProvider,
@@ -185,33 +186,35 @@ class DownloadExportUseCase(BaseInteractiveUseCase):
         folder_path: str,
         extract_zip_contents: bool,
         to_s3_bucket: bool,
+        reporter: Reporter,
     ):
-        super().__init__()
+        super().__init__(reporter)
         self._service = service
         self._project = project
         self._export_name = export_name
-        self._folder_path = folder_path
+        self._folder_path = folder_path if folder_path else ""
         self._extract_zip_contents = extract_zip_contents
         self._to_s3_bucket = to_s3_bucket
-        self._temp_dir = None
 
-    def upload_to_s3_from_folder(self, folder_path: str):
+    def upload_to_s3_from_folder(self, source: str, folder_path: str):
         to_s3_bucket = boto3.Session().resource("s3").Bucket(self._to_s3_bucket)
-        files_to_upload = list(Path(folder_path).rglob("*.*"))
+        files_to_upload = list(Path(source).rglob("*.*"))
 
         def _upload_file_to_s3(_to_s3_bucket, _path, _s3_key) -> None:
-            _to_s3_bucket.upload_file(_path, _s3_key)
+            _to_s3_bucket.upload_file(str(_path), _s3_key)
+            self.reporter.update_progress()
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
             results = []
+            self.reporter.start_progress(len(files_to_upload), "Uploading")
             for path in files_to_upload:
-                s3_key = f"{self._folder_path}/{path.name}"
+                s3_key = f"{folder_path + '/' if folder_path else ''}{str(Path(path).relative_to(Path(source)))}"
                 results.append(
-                    executor.submit(_upload_file_to_s3, to_s3_bucket, str(path), s3_key)
+                    executor.submit(_upload_file_to_s3, to_s3_bucket, path, s3_key)
                 )
-                yield
+            self.reporter.finish_progress()
 
-    def download_to_local_storage(self, destination: str):
+    def download_to_local_storage(self, destination: str, extract_zip=False):
         exports = self._service.get_exports(
             team_id=self._project.team_id, project_id=self._project.id
         )
@@ -247,38 +250,35 @@ class DownloadExportUseCase(BaseInteractiveUseCase):
             with open(filepath, "wb") as f:
                 for chunk in response.iter_content(chunk_size=8192):
                     f.write(chunk)
-        if self._extract_zip_contents:
+        if extract_zip:
             with zipfile.ZipFile(filepath, "r") as f:
                 f.extractall(destination)
             Path.unlink(filepath)
         return export["id"], filepath, destination
 
-    def get_upload_files_count(self):
-        if not self._temp_dir:
-            self._temp_dir = tempfile.TemporaryDirectory()
-            self.download_to_local_storage(self._temp_dir.name)
-        return len(list(Path(self._temp_dir.name).rglob("*.*")))
-
     def execute(self):
         if self.is_valid():
-            report = []
             if self._to_s3_bucket:
-                self.get_upload_files_count()
-                yield from self.upload_to_s3_from_folder(self._temp_dir.name)
-                report.append(
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    self.download_to_local_storage(
+                        temp_dir, extract_zip=self._extract_zip_contents
+                    )
+                    self.upload_to_s3_from_folder(temp_dir, self._folder_path)
+                self.reporter.log_info(
                     f"Exported to AWS {self._to_s3_bucket}/{self._folder_path}"
                 )
-                self._temp_dir.cleanup()
             else:
                 export_id, filepath, destination = self.download_to_local_storage(
-                    self._folder_path
+                    self._folder_path, self._extract_zip_contents
                 )
                 if self._extract_zip_contents:
-                    report.append(f"Extracted {filepath} to folder {destination}")
+                    self.reporter.log_info(
+                        f"Extracted {filepath} to folder {destination}"
+                    )
                 else:
-                    report.append(f"Downloaded export ID {export_id} to {filepath}")
-                yield
-            self._response.data = "\n".join(report)
+                    self.reporter.log_info(
+                        f"Downloaded export ID {export_id} to {filepath}"
+                    )
         return self._response
 
 

@@ -42,6 +42,14 @@ class BaseTitledEnum(int, Enum):
         return self.__doc__.lower() == other.__doc__.lower()
 
 
+class AnnotationTypes(str, Enum):
+    BBOX = "bbox"
+    EVENT = "event"
+    POINT = "point"
+    POLYGON = "polygon"
+    POLYLINE = "polyline"
+
+
 class ProjectType(BaseTitledEnum):
     VECTOR = "Vector", 1
     PIXEL = "Pixel", 2

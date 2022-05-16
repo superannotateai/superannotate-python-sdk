@@ -1,8 +1,13 @@
+import asyncio
 import concurrent.futures
 import io
 import json
 import os
+import platform
 from collections import namedtuple
+from datetime import datetime
+from pathlib import Path
+from typing import Callable
 from typing import List
 from typing import Optional
 from typing import Tuple
@@ -24,6 +29,7 @@ from lib.core.entities import TeamEntity
 from lib.core.exceptions import AppException
 from lib.core.reporter import Reporter
 from lib.core.repositories import BaseManageableRepository
+from lib.core.repositories import BaseReadOnlyRepository
 from lib.core.service_types import UploadAnnotationAuthData
 from lib.core.serviceproviders import SuperannotateServiceProvider
 from lib.core.types import PriorityScore
@@ -35,6 +41,9 @@ from superannotate.logger import get_default_logger
 from superannotate_schemas.validators import AnnotationValidators
 
 logger = get_default_logger()
+
+if platform.system().lower() == "windows":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 
 class UploadAnnotationsUseCase(BaseReportableUseCae):
@@ -616,7 +625,6 @@ class GetVideoAnnotationsPerFrame(BaseReportableUseCae):
             self.reporter.enable_info()
             if response.data:
                 generator = VideoFrameGenerator(response.data[0], fps=self._fps)
-
                 self.reporter.log_info(
                     f"Getting annotations for {generator.frames_count} frames from {self._video_name}."
                 )
@@ -722,4 +730,147 @@ class UploadPriorityScoresUseCase(BaseReportableUseCae):
                 self._response.data = (uploaded_score_names, skipped_score_names)
             else:
                 self.reporter.warning_messages("Empty scores.")
+        return self._response
+
+
+class DownloadAnnotations(BaseReportableUseCae):
+    def __init__(
+        self,
+        reporter: Reporter,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        destination: str,
+        recursive: bool,
+        item_names: List[str],
+        backend_service_provider: SuperannotateServiceProvider,
+        items: BaseReadOnlyRepository,
+        folders: BaseReadOnlyRepository,
+        classes: BaseReadOnlyRepository,
+        callback: Callable = None,
+    ):
+        super().__init__(reporter)
+        self._project = project
+        self._folder = folder
+        self._destination = destination
+        self._recursive = recursive
+        self._item_names = item_names
+        self._backend_client = backend_service_provider
+        self._items = items
+        self._folders = folders
+        self._classes = classes
+        self._callback = callback
+
+    def validate_item_names(self):
+        if self._item_names:
+            item_names = list(dict.fromkeys(self._item_names))
+            len_unique_items, len_items = len(item_names), len(self._item_names)
+            if len_unique_items < len_items:
+                self.reporter.log_info(
+                    f"Dropping duplicates. Found {len_unique_items}/{len_items} unique items."
+                )
+                self._item_names = item_names
+
+    def validate_destination(self):
+        if self._destination:
+            destination = str(self._destination)
+            if not os.path.exists(destination) or not os.access(
+                destination, os.X_OK | os.W_OK
+            ):
+                raise AppException(
+                    f"Local path {destination} is not an existing directory or access denied."
+                )
+
+    @property
+    def destination(self) -> Path:
+        return Path(self._destination if self._destination else "")
+
+    def get_postfix(self):
+        if self._project.type == constances.ProjectType.VECTOR:
+            return "___objects.json"
+        elif self._project.type == constances.ProjectType.PIXEL.value:
+            return "___pixel.json"
+        return ".json"
+
+    def download_annotation_classes(self, path: str):
+        classes = self._classes.get_all()
+        os.mkdir(f"{path}/classes")
+        with open(f"{path}/classes/classes.json", "w+") as file:
+            json.dump([i.dict() for i in classes], file, indent=4)
+
+    @staticmethod
+    def get_items_count(path: str):
+        return sum([len(files) for r, d, files in os.walk(path)])
+
+    @staticmethod
+    def coroutine_wrapper(coroutine):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(coroutine)
+        loop.close()
+
+    def execute(self):
+        if self.is_valid():
+            export_prefix = f"{self._project.name}{f'/{self._folder.name}' if not self._folder.is_root else ''}"
+            export_path = str(
+                self.destination
+                / Path(f"{export_prefix} {datetime.now().strftime('%B %d %Y %H_%M')}")
+            )
+            self.reporter.log_info(
+                f"Downloading the annotations of the requested items to {export_path} \nThis might take a while…"
+            )
+            self.reporter.start_spinner()
+            folders = []
+            if self._folder.is_root and self._recursive:
+                folders = self._folders.get_all(
+                    Condition("team_id", self._project.team_id, EQ)
+                    & Condition("project_id", self._project.id, EQ),
+                )
+                folders.append(self._folder)
+            postfix = self.get_postfix()
+            import nest_asyncio
+            import platform
+
+            if platform.system().lower() == "windows":
+                asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
+            nest_asyncio.apply()
+
+            if not folders:
+                loop = asyncio.new_event_loop()
+                loop.run_until_complete(
+                    self._backend_client.download_annotations(
+                        team_id=self._project.team_id,
+                        project_id=self._project.id,
+                        folder_id=self._folder.uuid,
+                        items=self._item_names,
+                        reporter=self.reporter,
+                        download_path=f"{export_path}{'/' + self._folder.name if not self._folder.is_root else ''}",
+                        postfix=postfix,
+                        callback=self._callback,
+                    )
+                )
+            else:
+                with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+                    coroutines = []
+                    for folder in folders:
+                        coroutines.append(
+                            self._backend_client.download_annotations(
+                                team_id=self._project.team_id,
+                                project_id=self._project.id,
+                                folder_id=folder.uuid,
+                                items=self._item_names,
+                                reporter=self.reporter,
+                                download_path=f"{export_path}{'/' + folder.name if not folder.is_root else ''}",
+                                postfix=postfix,
+                                callback=self._callback,
+                            )
+                        )
+                    _ = [_ for _ in executor.map(self.coroutine_wrapper, coroutines)]
+
+            self.reporter.stop_spinner()
+            self.reporter.log_info(
+                f"SA-PYTHON-SDK - INFO - Downloaded annotations for {self.get_items_count(export_path)} items."
+            )
+            self.download_annotation_classes(export_path)
+            self._response.data = os.path.abspath(export_path)
         return self._response

@@ -38,7 +38,7 @@ class TestGetAnnotations(BaseTestCase):
         sa.init()
         sa.create_annotation_classes_from_classes_json(self.PROJECT_NAME, self.classes_path)
 
-        _, _, _ = sa.attach_video_urls_to_project(
+        _, _, _ = sa.attach_items(
             self.PROJECT_NAME,
             self.csv_path,
         )

@@ -25,7 +25,7 @@ class TestCloneProject(TestCase):
         sa.delete_project(self.PROJECT_NAME_2)
 
     def test_create_like_project(self):
-        _, _, _ = sa.attach_image_urls_to_project(
+        _, _, _ = sa.attach_items(
             self.PROJECT_NAME_1,
             os.path.join(DATA_SET_PATH, self.PATH_TO_URLS),
         )

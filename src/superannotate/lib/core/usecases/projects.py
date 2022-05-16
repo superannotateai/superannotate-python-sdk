@@ -623,37 +623,6 @@ class CloneProjectUseCase(BaseReportableUseCae):
         return self._response
 
 
-class ShareProjectUseCase(BaseUseCase):
-    def __init__(
-        self,
-        service: SuperannotateServiceProvider,
-        project_entity: ProjectEntity,
-        user_id: str,
-        user_role: str,
-    ):
-        super().__init__()
-        self._service = service
-        self._project_entity = project_entity
-        self._user_id = user_id
-        self._user_role = user_role
-
-    @property
-    def user_role(self):
-        return constances.UserRole.get_value(self._user_role)
-
-    def execute(self):
-        self._response.data = self._service.share_project_bulk(
-            team_id=self._project_entity.team_id,
-            project_id=self._project_entity.id,
-            users=[{"user_id": self._user_id, "user_role": self.user_role}],
-        )
-        if not self._response.errors:
-            logger.info(
-                f"Shared project {self._project_entity.name} with user {self._user_id} and role {constances.UserRole.get_name(self.user_role)}"
-            )
-        return self._response
-
-
 class UnShareProjectUseCase(BaseUseCase):
     def __init__(
         self,

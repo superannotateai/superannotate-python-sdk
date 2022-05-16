@@ -33,14 +33,6 @@ class TestGetEntityMetadataVector(BaseTestCase):
         assert item_metadata["annotation_status"] == "InProgress"
         assert item_metadata["approval_status"] == None
 
-    def test_attached_items_paths(self):
-        sa.attach_image_urls_to_project(self.PROJECT_NAME, self.scv_path)
-        sa.add_contributors_to_project(self.PROJECT_NAME, ["shab.prog@gmail.com"], "QA")
-        sa.assign_images(self.PROJECT_NAME, [self.ATTACHED_IMAGE_NAME], "shab.prog@gmail.com")
-        item = sa.get_item_metadata(self.PROJECT_NAME, self.ATTACHED_IMAGE_NAME)
-        assert item["url"] == 'https://drive.google.com/uc?export=download&id=1vwfCpTzcjxoEA4hhDxqapPOVvLVeS7ZS'
-        assert item["path"] == f"{self.PROJECT_NAME}"
-
 
 class TestGetEntityMetadataPixel(BaseTestCase):
     PROJECT_NAME = "TestGetEntityMetadataPixel"

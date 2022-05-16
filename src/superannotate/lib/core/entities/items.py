@@ -12,7 +12,9 @@ class Entity(BaseEntity):
         extra = Extra.allow
 
     def add_path(self, project_name: str, folder_name: str):
-        self.path = f"{project_name}{f'/{folder_name}' if folder_name != 'root' else ''}"
+        self.path = (
+            f"{project_name}{f'/{folder_name}' if folder_name != 'root' else ''}"
+        )
         return self
 
     @staticmethod
@@ -32,6 +34,7 @@ class TmpImageEntity(Entity):
         SegmentationStatus.NOT_STARTED
     )
     approval_status: Optional[ApprovalStatus] = Field(None)
+    is_pinned: Optional[bool]
 
     class Config:
         extra = Extra.ignore

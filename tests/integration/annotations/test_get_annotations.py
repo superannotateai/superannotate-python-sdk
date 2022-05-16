@@ -100,6 +100,24 @@ class TestGetAnnotations(BaseTestCase):
         annotations = sa.get_annotations(f"{self.PROJECT_NAME}")
         self.assertEqual(len(annotations), 4)
 
+    @pytest.mark.flaky(reruns=3)
+    def test_get_annotations_all_plus_folder(self):
+        sa.create_folder(self.PROJECT_NAME, self.FOLDER_NAME)
+        sa.upload_images_from_folder_to_project(
+            self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
+        )
+        sa.upload_images_from_folder_to_project(
+            f"{self.PROJECT_NAME}/{self.FOLDER_NAME}", self.folder_path, annotation_status="InProgress"
+        )
+        sa.create_annotation_classes_from_classes_json(
+            self.PROJECT_NAME, f"{self.folder_path}/classes/classes.json"
+        )
+        _, _, _ = sa.upload_annotations_from_folder_to_project(
+            self.PROJECT_NAME, self.folder_path
+        )
+        annotations = sa.get_annotations(f"{self.PROJECT_NAME}")
+        self.assertEqual(len(annotations), 4)
+
 
 class TestGetAnnotationsVideo(BaseTestCase):
     PROJECT_NAME = "test attach multiple video urls"
@@ -132,7 +150,7 @@ class TestGetAnnotationsVideo(BaseTestCase):
         sa.init()
         sa.create_annotation_classes_from_classes_json(self.PROJECT_NAME, self.classes_path)
 
-        _, _, _ = sa.attach_video_urls_to_project(
+        _, _, _ = sa.attach_items(
             self.PROJECT_NAME,
             self.csv_path,
         )
@@ -145,7 +163,7 @@ class TestGetAnnotationsVideo(BaseTestCase):
         sa.create_annotation_classes_from_classes_json(self.PROJECT_NAME, self.classes_path)
         sa.create_folder(self.PROJECT_NAME, "folder")
         path = f"{self.PROJECT_NAME}/folder"
-        _, _, _ = sa.attach_video_urls_to_project(
+        _, _, _ = sa.attach_items(
             path,
             self.csv_path,
         )

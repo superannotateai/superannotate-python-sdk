@@ -1,5 +1,6 @@
 from abc import abstractmethod
 from typing import Any
+from typing import Callable
 from typing import Dict
 from typing import Iterable
 from typing import List
@@ -49,10 +50,6 @@ class SuperannotateServiceProvider:
         include_fuse: bool,
         only_pinned: bool,
     ):
-        raise NotImplementedError
-
-    @abstractmethod
-    def delete_team_invitation(self, team_id: int, token: str, email: str):
         raise NotImplementedError
 
     @abstractmethod
@@ -141,11 +138,6 @@ class SuperannotateServiceProvider:
         """
         raise NotImplementedError
 
-    def get_duplicated_images(
-        self, project_id: int, team_id: int, folder_id: int, images: List[str]
-    ):
-        raise NotImplementedError
-
     def get_progress(
         self, project_id: int, team_id: int, poll_id: int
     ) -> Tuple[int, int]:
@@ -204,21 +196,6 @@ class SuperannotateServiceProvider:
     ):
         raise NotImplementedError
 
-    def upload_form_s3(
-        self,
-        project_id: int,
-        team_id: int,
-        access_key: str,
-        secret_key: str,
-        bucket_name: str,
-        from_folder_name: str,
-        to_folder_id: int,
-    ):
-        raise NotImplementedError
-
-    def get_upload_status(self, project_id: int, team_id: int, folder_id: int):
-        raise NotImplementedError
-
     def get_exports(self, team_id: int, project_id: int):
         raise NotImplementedError
 
@@ -264,11 +241,6 @@ class SuperannotateServiceProvider:
         raise NotImplementedError
 
     def get_model_metrics(self, team_id: int, model_id: int) -> dict:
-        raise NotImplementedError
-
-    def get_models(
-        self, name: str, team_id: int, project_id: int, model_type: str
-    ) -> List:
         raise NotImplementedError
 
     def bulk_get_folders(self, team_id: int, project_ids: List[int]):
@@ -317,6 +289,21 @@ class SuperannotateServiceProvider:
         folder_id: int,
         items: List[str],
         reporter: Reporter,
+        callback: Callable = None,
+    ) -> List[dict]:
+        raise NotImplementedError
+
+    @abstractmethod
+    async def download_annotations(
+        self,
+        project_id: int,
+        team_id: int,
+        folder_id: int,
+        reporter: Reporter,
+        download_path: str,
+        postfix: str,
+        items: List[str] = None,
+        callback: Callable = None,
     ) -> List[dict]:
         raise NotImplementedError
 

@@ -4,6 +4,7 @@ import os
 from abc import ABCMeta
 from os.path import expanduser
 from pathlib import Path
+from typing import Callable
 from typing import Iterable
 from typing import List
 from typing import Optional
@@ -498,26 +499,6 @@ class Controller(BaseController):
         )
         return use_case.execute()
 
-    def interactive_attach_urls(
-        self,
-        project_name: str,
-        files: List[ImageEntity],
-        folder_name: str = None,
-        annotation_status: str = None,
-        upload_state_code: int = None,
-    ):
-        project = self._get_project(project_name)
-        folder = self._get_folder(project, folder_name)
-
-        return usecases.InteractiveAttachFileUrlsUseCase(
-            project=project,
-            folder=folder,
-            attachments=files,
-            backend_service_provider=self._backend_client,
-            annotation_status=annotation_status,
-            upload_state_code=upload_state_code,
-        )
-
     def create_folder(self, project: str, folder_name: str):
         project = self._get_project(project)
         folder = FolderEntity(
@@ -724,48 +705,6 @@ class Controller(BaseController):
         use_case = usecases.UpdateImageUseCase(image=image, images=self.images)
         return use_case.execute()
 
-    def bulk_copy_images(
-        self,
-        project_name: str,
-        from_folder_name: str,
-        to_folder_name: str,
-        image_names: List[str],
-        include_annotations: bool,
-        include_pin: bool,
-    ):
-        project = self._get_project(project_name)
-        from_folder = self._get_folder(project, from_folder_name)
-        to_folder = self._get_folder(project, to_folder_name)
-        use_case = usecases.ImagesBulkCopyUseCase(
-            project=project,
-            from_folder=from_folder,
-            to_folder=to_folder,
-            image_names=image_names,
-            backend_service_provider=self._backend_client,
-            include_annotations=include_annotations,
-            include_pin=include_pin,
-        )
-        return use_case.execute()
-
-    def bulk_move_images(
-        self,
-        project_name: str,
-        from_folder_name: str,
-        to_folder_name: str,
-        image_names: List[str],
-    ):
-        project = self._get_project(project_name)
-        from_folder = self._get_folder(project, from_folder_name)
-        to_folder = self._get_folder(project, to_folder_name)
-        use_case = usecases.ImagesBulkMoveUseCase(
-            project=project,
-            from_folder=from_folder,
-            to_folder=to_folder,
-            image_names=image_names,
-            backend_service_provider=self._backend_client,
-        )
-        return use_case.execute()
-
     def get_project_metadata(
         self,
         project_name: str,
@@ -925,16 +864,6 @@ class Controller(BaseController):
             project_entity=project_entity,
             folder=folder,
             users=users,
-        )
-        return use_case.execute()
-
-    def share_project(self, project_name: str, user_id: str, user_role: str):
-        project_entity = self._get_project(project_name)
-        use_case = usecases.ShareProjectUseCase(
-            service=self._backend_client,
-            project_entity=project_entity,
-            user_id=user_id,
-            user_role=user_role,
         )
         return use_case.execute()
 
@@ -1195,14 +1124,16 @@ class Controller(BaseController):
         to_s3_bucket: bool,
     ):
         project = self._get_project(project_name)
-        return usecases.DownloadExportUseCase(
+        use_case = usecases.DownloadExportUseCase(
             service=self._backend_client,
             project=project,
             export_name=export_name,
             folder_path=folder_path,
             extract_zip_contents=extract_zip_contents,
             to_s3_bucket=to_s3_bucket,
+            reporter=self.default_reporter,
         )
+        return use_case.execute()
 
     def download_ml_model(self, model_data: dict, download_path: str):
         model = MLModelEntity(
@@ -1243,12 +1174,14 @@ class Controller(BaseController):
         if export_response.errors:
             return export_response
 
-        download_use_case = self.download_export(
-            project_name=project.name,
+        download_use_case = usecases.DownloadExportUseCase(
+            service=self._backend_client,
+            project=project,
             export_name=export_response.data["name"],
             folder_path=export_root,
             extract_zip_contents=True,
             to_s3_bucket=False,
+            reporter=self.default_reporter,
         )
         if download_use_case.is_valid():
             for _ in download_use_case.execute():
@@ -1368,7 +1301,7 @@ class Controller(BaseController):
         self,
         project_name: str,
         folder_name: str,
-        image_names: Optional[List[str]] = None,
+        item_names: Optional[List[str]] = None,
     ):
         project = self._get_project(project_name)
         folder = self._get_folder(project, folder_name)
@@ -1376,7 +1309,7 @@ class Controller(BaseController):
             project=project,
             folder=folder,
             backend_service=self._backend_client,
-            image_names=image_names,
+            image_names=item_names,
         )
         return use_case.execute()
 
@@ -1681,5 +1614,34 @@ class Controller(BaseController):
             item_names=item_names,
             items=self.items,
             backend_service_provider=self.backend_client,
+        )
+        return use_case.execute()
+
+    def download_annotations(
+        self,
+        project_name: str,
+        folder_name: str,
+        destination: str,
+        recursive: bool,
+        item_names: Optional[List[str]],
+        callback: Optional[Callable],
+    ):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+
+        use_case = usecases.DownloadAnnotations(
+            reporter=self.default_reporter,
+            project=project,
+            folder=folder,
+            destination=destination,
+            recursive=recursive,
+            item_names=item_names,
+            items=self.items,
+            folders=self.folders,
+            classes=AnnotationClassRepository(
+                service=self._backend_client, project=project
+            ),
+            backend_service_provider=self.backend_client,
+            callback=callback,
         )
         return use_case.execute()
