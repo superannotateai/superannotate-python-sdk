@@ -1620,7 +1620,7 @@ class DeleteAnnotations(BaseUseCase):
                 polling_states[response.get("poll_id")] = False
 
         if not polling_states:
-            self._response.errors = AppException("Invalid image names or empty folder.")
+            self._response.errors = AppException("Invalid item names or empty folder.")
         else:
             for poll_id in polling_states:
                 timeout_start = time.time()
