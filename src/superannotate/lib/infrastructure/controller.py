@@ -1174,7 +1174,7 @@ class Controller(BaseController):
         if export_response.errors:
             return export_response
 
-        download_use_case = usecases.DownloadExportUseCase(
+        usecases.DownloadExportUseCase(
             service=self._backend_client,
             project=project,
             export_name=export_response.data["name"],
@@ -1182,10 +1182,7 @@ class Controller(BaseController):
             extract_zip_contents=True,
             to_s3_bucket=False,
             reporter=self.default_reporter,
-        )
-        if download_use_case.is_valid():
-            for _ in download_use_case.execute():
-                pass
+        ).execute()
 
         use_case = usecases.BenchmarkUseCase(
             project=project,

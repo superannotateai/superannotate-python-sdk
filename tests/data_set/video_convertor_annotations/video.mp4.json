@@ -1,0 +1,161 @@
+{
+    "metadata": {
+        "name": "video.mp4",
+        "width": 480,
+        "height": 270,
+        "status": "NotStarted",
+        "url": "https://file-examples-com.github.io/uploads/2017/04/file_example_MP4_480_1_5MG.mp4",
+        "duration": 30526667,
+        "projectId": 152038,
+        "error": null,
+        "annotatorEmail": null,
+        "qaEmail": null
+    },
+    "instances": [
+        {
+            "meta": {
+                "type": "point",
+                "classId": 859496,
+                "className": "vid",
+                "start": 29713736,
+                "end": 30526667
+            },
+            "parameters": [
+                {
+                    "start": 29713736,
+                    "end": 30526667,
+                    "timestamps": [
+                        {
+                            "x": 100.82,
+                            "y": 50.12,
+                            "timestamp": 17271058,
+                            "attributes": []
+                        },
+                        {
+                            "points": {
+                                "x1": 132.82,
+                                "y1": 129.12,
+                                "x2": 175.16,
+                                "y2": 188
+                            },
+                            "x": 200.82,
+                            "y": 100.12,
+                            "timestamp": 30526667,
+                            "attributes": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "meta": {
+                "type": "bbox",
+                "classId": 859496,
+                "className": "vid",
+                "pointLabels": {
+                    "3": "point label bro"
+                },
+                "start": 0,
+                "end": 30526667
+            },
+            "parameters": [
+                {
+                    "start": 0,
+                    "end": 30526667,
+                    "timestamps": [
+                        {
+                            "points": {
+                                "x1": 223.32,
+                                "y1": 78.45,
+                                "x2": 312.31,
+                                "y2": 176.66
+                            },
+                            "timestamp": 0,
+                            "attributes": []
+                        },
+                        {
+                            "points": {
+                                "x1": 182.08,
+                                "y1": 33.18,
+                                "x2": 283.45,
+                                "y2": 131.39
+                            },
+                            "timestamp": 17271058,
+                            "attributes": [
+                                {
+                                    "id": 1175876,
+                                    "groupId": 338357,
+                                    "name": "attr",
+                                    "groupName": "attr g"
+                                }
+                            ]
+                        },
+                        {
+                            "points": {
+                                "x1": 182.42,
+                                "y1": 97.19,
+                                "x2": 284.11,
+                                "y2": 195.4
+                            },
+                            "timestamp": 30526667,
+                            "attributes": [
+                                {
+                                    "id": 1175876,
+                                    "groupId": 338357,
+                                    "name": "attr",
+                                    "groupName": "attr g"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "meta": {
+                "type": "event",
+                "classId": 859496,
+                "className": "vid",
+                "start": 5528212,
+                "end": 7083022
+            },
+            "parameters": [
+                {
+                    "start": 5528212,
+                    "end": 7083022,
+                    "timestamps": [
+                        {
+                            "timestamp": 5528212,
+                            "attributes": []
+                        },
+                        {
+                            "timestamp": 6702957,
+                            "attributes": [
+                                {
+                                    "id": 1175876,
+                                    "groupId": 338357,
+                                    "name": "attr",
+                                    "groupName": "attr g"
+                                }
+                            ]
+                        },
+                        {
+                            "timestamp": 7083022,
+                            "attributes": [
+                                {
+                                    "id": 1175876,
+                                    "groupId": 338357,
+                                    "name": "attr",
+                                    "groupName": "attr g"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "tags": [
+        "some tag"
+    ]
+}

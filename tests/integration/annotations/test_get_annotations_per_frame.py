@@ -13,7 +13,7 @@ class TestGetAnnotations(BaseTestCase):
     PATH_TO_URLS_WITHOUT_NAMES = "data_set/attach_urls_with_no_name.csv"
     PATH_TO_50K_URLS = "data_set/501_urls.csv"
     PROJECT_DESCRIPTION = "desc"
-    ANNOTATIONS_PATH = "data_set/video_annotation"
+    ANNOTATIONS_PATH = "data_set/video_convertor_annotations"
     VIDEO_NAME = "video.mp4"
     CLASSES_PATH = "data_set/video_annotation/classes/classes.json"
     PROJECT_TYPE = "Video"

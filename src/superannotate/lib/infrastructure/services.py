@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 import json
+import platform
 import time
 from contextlib import contextmanager
 from typing import Callable
@@ -24,6 +25,7 @@ from lib.core.serviceproviders import SuperannotateServiceProvider
 from lib.infrastructure.helpers import timed_lru_cache
 from lib.infrastructure.stream_data_handler import StreamedAnnotations
 from requests.exceptions import HTTPError
+from superannotate.version import __version__
 
 requests.packages.urllib3.disable_warnings()
 
@@ -83,7 +85,8 @@ class BaseBackendService(SuperannotateServiceProvider):
             "Authorization": self._auth_token,
             "authtype": self.AUTH_TYPE,
             "Content-Type": "application/json",
-            # "User-Agent": constance.__version__,
+            "User-Agent": f"Python-SDK-Version: {__version__}; Python: {platform.python_version()}; "
+                          f"OS: {platform.system()}; Team: {self.team_id}",
         }
 
     @property

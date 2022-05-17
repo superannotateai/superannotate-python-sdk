@@ -1,7 +1,10 @@
+import os
+from os.path import dirname
 from pathlib import Path
 
 import pytest
 import superannotate as sa
+from tests import DATA_SET_PATH
 
 
 @pytest.mark.skip(reason="Need to adjust")
@@ -10,7 +13,7 @@ def test_voc_vector_instance(tmpdir):
 
     input_dir = (
         Path("tests")
-        / "converter_test"
+        / f"{DATA_SET_PATH}/converter_test"
         / "VOC"
         / "input"
         / "fromPascalVOCToSuperAnnotate"

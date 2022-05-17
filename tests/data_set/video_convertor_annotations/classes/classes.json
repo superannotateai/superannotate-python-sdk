@@ -1,0 +1,32 @@
+[
+    {
+        "id": 857627,
+        "project_id": 150845,
+        "name": "vid",
+        "color": "#0fc1c9",
+        "count": 0,
+        "createdAt": "2021-10-01T13:03:51.000Z",
+        "updatedAt": "2021-10-01T13:03:51.000Z",
+        "attribute_groups": [
+            {
+                "id": 337487,
+                "class_id": 857627,
+                "name": "attr g",
+                "is_multiselect": 0,
+                "createdAt": "2021-10-04T07:01:29.000Z",
+                "updatedAt": "2021-10-04T07:01:29.000Z",
+                "attributes": [
+                    {
+                        "id": 1174520,
+                        "group_id": 337487,
+                        "project_id": 150845,
+                        "name": "attr",
+                        "count": 0,
+                        "createdAt": "2021-10-04T07:01:31.000Z",
+                        "updatedAt": "2021-10-04T07:01:31.000Z"
+                    }
+                ]
+            }
+        ]
+    }
+]
