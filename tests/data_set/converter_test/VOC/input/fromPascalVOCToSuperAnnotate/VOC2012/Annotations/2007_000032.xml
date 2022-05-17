@@ -1,6 +1,6 @@
 <annotation>
 	<folder>VOC2012</folder>
-	<filename>2007_000032.jpg</filename>
+	<filename>2007_000032.jpeg</filename>
 	<source>
 		<database>The VOC2007 Database</database>
 		<annotation>PASCAL VOC2007</annotation>

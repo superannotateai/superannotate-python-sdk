@@ -1,6 +1,7 @@
 from typing import Optional
 
 from lib.core.entities.base import BaseEntity
+from lib.core.enums import ApprovalStatus
 from lib.core.enums import SegmentationStatus
 from pydantic import Extra
 from pydantic import Field
@@ -11,7 +12,9 @@ class Entity(BaseEntity):
         extra = Extra.allow
 
     def add_path(self, project_name: str, folder_name: str):
-        self.path = f"{project_name}{f'/{folder_name}' if folder_name != 'root' else ''}/{self.name}"
+        self.path = (
+            f"{project_name}{f'/{folder_name}' if folder_name != 'root' else ''}"
+        )
         return self
 
     @staticmethod
@@ -30,13 +33,16 @@ class TmpImageEntity(Entity):
     segmentation_status: Optional[SegmentationStatus] = Field(
         SegmentationStatus.NOT_STARTED
     )
-    approval_status: Optional[int] = Field(None)
+    approval_status: Optional[ApprovalStatus] = Field(None)
+    is_pinned: Optional[bool]
 
     class Config:
         extra = Extra.ignore
 
 
 class VideoEntity(Entity):
+    approval_status: Optional[ApprovalStatus] = Field(None)
+
     class Config:
         extra = Extra.ignore
 

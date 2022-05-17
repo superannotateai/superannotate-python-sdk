@@ -9,9 +9,7 @@ from lib import __file__ as lib_path
 from lib.app.helpers import split_project_path
 from lib.app.input_converters.conversion import import_annotation
 from lib.app.interface.base_interface import BaseInterfaceFacade
-from lib.app.interface.sdk_interface import attach_document_urls_to_project
-from lib.app.interface.sdk_interface import attach_image_urls_to_project
-from lib.app.interface.sdk_interface import attach_video_urls_to_project
+from lib.app.interface.sdk_interface import attach_items
 from lib.app.interface.sdk_interface import create_folder
 from lib.app.interface.sdk_interface import create_project
 from lib.app.interface.sdk_interface import upload_annotations_from_folder_to_project
@@ -125,17 +123,13 @@ class CLIFacade(BaseInterfaceFacade):
         )
         export_name = export_res.data["name"]
 
-        use_case = Controller.get_default().download_export(
+        Controller.get_default().download_export(
             project_name=project_name,
             export_name=export_name,
             folder_path=folder,
             extract_zip_contents=not disable_extract_zip_contents,
             to_s3_bucket=False,
         )
-        if use_case.is_valid():
-            for _ in use_case.execute():
-                continue
-
         sys.exit(0)
 
     def upload_preannotations(
@@ -223,13 +217,16 @@ class CLIFacade(BaseInterfaceFacade):
         sys.exit(0)
 
     def attach_image_urls(
-        self, project: str, attachments: str, annotation_status: Optional[Any] = None
+        self,
+        project: str,
+        attachments: str,
+        annotation_status: Optional[Any] = "NotStarted",
     ):
         """
         To attach image URLs to project use:
         """
 
-        attach_image_urls_to_project(
+        attach_items(
             project=project,
             attachments=attachments,
             annotation_status=annotation_status,
@@ -237,9 +234,12 @@ class CLIFacade(BaseInterfaceFacade):
         sys.exit(0)
 
     def attach_video_urls(
-        self, project: str, attachments: str, annotation_status: Optional[Any] = None
+        self,
+        project: str,
+        attachments: str,
+        annotation_status: Optional[Any] = "NotStarted",
     ):
-        attach_video_urls_to_project(
+        attach_items(
             project=project,
             attachments=attachments,
             annotation_status=annotation_status,
@@ -248,9 +248,9 @@ class CLIFacade(BaseInterfaceFacade):
 
     @staticmethod
     def attach_document_urls(
-        project: str, attachments: str, annotation_status: Optional[Any] = None
+        project: str, attachments: str, annotation_status: Optional[Any] = "NotStarted"
     ):
-        attach_document_urls_to_project(
+        attach_items(
             project=project,
             attachments=attachments,
             annotation_status=annotation_status,

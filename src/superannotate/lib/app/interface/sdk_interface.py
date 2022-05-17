@@ -5,6 +5,7 @@ import os
 import tempfile
 import warnings
 from pathlib import Path
+from typing import Callable
 from typing import Iterable
 from typing import List
 from typing import Optional
@@ -19,7 +20,6 @@ from lib.app.annotation_helpers import add_annotation_point_to_json
 from lib.app.helpers import extract_project_folder
 from lib.app.helpers import get_annotation_paths
 from lib.app.helpers import get_name_url_duplicated_from_csv
-from lib.app.helpers import get_paths_and_duplicated_from_csv
 from lib.app.interface.types import AnnotationStatuses
 from lib.app.interface.types import AnnotationType
 from lib.app.interface.types import AnnotatorRole
@@ -36,7 +36,6 @@ from lib.app.interface.types import validate_arguments
 from lib.app.mixp.decorators import Trackable
 from lib.app.serializers import BaseSerializer
 from lib.app.serializers import FolderSerializer
-from lib.app.serializers import ImageSerializer
 from lib.app.serializers import ProjectSerializer
 from lib.app.serializers import SettingsSerializer
 from lib.app.serializers import TeamSerializer
@@ -233,9 +232,13 @@ def create_project(
 @Trackable
 @validate_arguments
 def create_project_from_metadata(project_metadata: Project):
-    """Create a new project in the team using project metadata object dict.
+    """
+    Create a new project in the team using project metadata object dict.
     Mandatory keys in project_metadata are "name", "description" and "type" (Vector or Pixel)
     Non-mandatory keys: "workflow", "settings" and "annotation_classes".
+
+    :param project_metadata: project metadata
+    :type project_metadata: dict
 
     :return: dict object metadata the new project
     :rtype: dict
@@ -518,153 +521,6 @@ def copy_image(
 
 @Trackable
 @validate_arguments
-def copy_images(
-    source_project: Union[NotEmptyStr, dict],
-    image_names: Optional[List[NotEmptyStr]],
-    destination_project: Union[NotEmptyStr, dict],
-    include_annotations: Optional[StrictBool] = True,
-    copy_pin: Optional[StrictBool] = True,
-):
-    """Copy images in bulk between folders in a project
-
-    :param source_project: project name or folder path (e.g., "project1/folder1")
-    :type source_project: str`
-    :param image_names: image names. If None, all images from source project will be copied
-    :type image_names: list of str
-    :param destination_project: project name or folder path (e.g., "project1/folder2")
-    :type destination_project: str
-    :param include_annotations: enables annotations copy
-    :type include_annotations: bool
-    :param copy_pin: enables image pin status copy
-    :type copy_pin: bool
-    :return: list of skipped image names
-    :rtype: list of strs
-    """
-    warning_msg = (
-        "We're deprecating the copy_images function. Please use copy_items instead. Learn more. \n"
-        "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.copy_items"
-    )
-    logger.warning(warning_msg)
-    warnings.warn(warning_msg, DeprecationWarning)
-    project_name, source_folder_name = extract_project_folder(source_project)
-
-    to_project_name, destination_folder_name = extract_project_folder(
-        destination_project
-    )
-    if project_name != to_project_name:
-        raise AppException("Source and destination projects should be the same")
-    if not image_names:
-        images = (
-            Controller.get_default()
-            .search_images(project_name=project_name, folder_path=source_folder_name)
-            .data
-        )
-        image_names = [image.name for image in images]
-
-    res = Controller.get_default().bulk_copy_images(
-        project_name=project_name,
-        from_folder_name=source_folder_name,
-        to_folder_name=destination_folder_name,
-        image_names=image_names,
-        include_annotations=include_annotations,
-        include_pin=copy_pin,
-    )
-    if res.errors:
-        raise AppException(res.errors)
-    skipped_images = res.data
-    done_count = len(image_names) - len(skipped_images)
-    message_postfix = "{from_path} to {to_path}."
-    message_prefix = "Copied images from "
-    if done_count > 1 or done_count == 0:
-        message_prefix = f"Copied {done_count}/{len(image_names)} images from "
-    elif done_count == 1:
-        message_prefix = "Copied an image from "
-    logger.info(
-        message_prefix
-        + message_postfix.format(from_path=source_project, to_path=destination_project)
-    )
-
-    return skipped_images
-
-
-@Trackable
-@validate_arguments
-def move_images(
-    source_project: Union[NotEmptyStr, dict],
-    image_names: Optional[List[NotEmptyStr]],
-    destination_project: Union[NotEmptyStr, dict],
-    *args,
-    **kwargs,
-):
-    """Move images in bulk between folders in a project
-
-    :param source_project: project name or folder path (e.g., "project1/folder1")
-    :type source_project: str
-    :param image_names: image names. If None, all images from source project will be moved
-    :type image_names: list of str
-    :param destination_project: project name or folder path (e.g., "project1/folder2")
-    :type destination_project: str
-    :return: list of skipped image names
-    :rtype: list of strs
-    """
-    warning_msg = (
-        "We're deprecating the move_images function. Please use move_items instead. Learn more."
-        "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.move_items"
-    )
-    logger.warning(warning_msg)
-    warnings.warn(warning_msg, DeprecationWarning)
-    project_name, source_folder_name = extract_project_folder(source_project)
-
-    project = Controller.get_default().get_project_metadata(project_name).data
-    if project["project"].type in [
-        constances.ProjectType.VIDEO.value,
-        constances.ProjectType.DOCUMENT.value,
-    ]:
-        raise AppException(LIMITED_FUNCTIONS[project["project"].type])
-
-    to_project_name, destination_folder_name = extract_project_folder(
-        destination_project
-    )
-
-    if project_name != to_project_name:
-        raise AppException(
-            "Source and destination projects should be the same for move_images"
-        )
-
-    if not image_names:
-        images = Controller.get_default().search_images(
-            project_name=project_name, folder_path=source_folder_name
-        )
-        images = images.data
-        image_names = [image.name for image in images]
-
-    response = Controller.get_default().bulk_move_images(
-        project_name=project_name,
-        from_folder_name=source_folder_name,
-        to_folder_name=destination_folder_name,
-        image_names=image_names,
-    )
-    if response.errors:
-        raise AppException(response.errors)
-    moved_images = response.data
-    moved_count = len(moved_images)
-    message_postfix = "{from_path} to {to_path}."
-    message_prefix = "Moved images from "
-    if moved_count > 1 or moved_count == 0:
-        message_prefix = f"Moved {moved_count}/{len(image_names)} images from "
-    elif moved_count == 1:
-        message_prefix = "Moved an image from"
-
-    logger.info(
-        message_prefix
-        + message_postfix.format(from_path=source_project, to_path=destination_project)
-    )
-
-    return list(set(image_names) - set(moved_images))
-
-
-@Trackable
-@validate_arguments
 def get_project_metadata(
     project: Union[NotEmptyStr, dict],
     include_annotation_classes: Optional[StrictBool] = False,
@@ -767,13 +623,15 @@ def get_project_workflow(project: Union[str, dict]):
 def search_annotation_classes(
     project: Union[NotEmptyStr, dict], name_contains: Optional[str] = None
 ):
-    """Searches annotation classes by name_prefix (case-insensitive)
+    """
+    Searches annotation classes by name_prefix (case-insensitive)
 
     :param project: project name
     :type project: str
+
     :param name_contains:  search string. Returns those classes,
      where the given string is found anywhere within its name. If None, all annotation classes will be returned.
-    :type name_prefix: str
+    :type name_contains: str
 
     :return: annotation classes of the project
     :rtype: list of dicts
@@ -850,6 +708,13 @@ def set_images_annotation_statuses(
            should be one of NotStarted InProgress QualityCheck Returned Completed Skipped
     :type annotation_status: str
     """
+    warning_msg = (
+        "We're deprecating the set_images_annotation_statuses function. Please use set_annotation_statuses instead. "
+        "Learn more. \n"
+        "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.set_annotation_statuses"
+    )
+    logger.warning(warning_msg)
+    warnings.warn(warning_msg, DeprecationWarning)
     project_name, folder_name = extract_project_folder(project)
     response = Controller.get_default().set_images_annotation_statuses(
         project_name, folder_name, image_names, annotation_status
@@ -1018,40 +883,6 @@ def assign_folder(
         raise AppException(response.errors)
 
 
-@Trackable
-@validate_arguments
-def share_project(
-    project_name: NotEmptyStr, user: Union[str, dict], user_role: NotEmptyStr
-):
-    """Share project with user.
-
-    :param project_name: project name
-    :type project_name: str
-    :param user: user email or metadata of the user to share project with
-    :type user: str or dict
-    :param user_role: user role to apply, one of Admin , Annotator , QA , Customer , Viewer
-    :type user_role: str
-    """
-    warning_msg = (
-        "The share_project function is deprecated and will be removed with the coming release, "
-        "please use add_contributors_to_project instead."
-    )
-    logger.warning(warning_msg)
-    warnings.warn(warning_msg, DeprecationWarning)
-    if isinstance(user, dict):
-        user_id = user["id"]
-    else:
-        response = Controller.get_default().search_team_contributors(email=user)
-        if not response.data:
-            raise AppException(f"User {user} not found.")
-        user_id = response.data[0]["id"]
-    response = Controller.get_default().share_project(
-        project_name=project_name, user_id=user_id, user_role=user_role
-    )
-    if response.errors:
-        raise AppException(response.errors)
-
-
 @validate_arguments
 def upload_images_from_folder_to_project(
     project: Union[NotEmptyStr, dict],
@@ -1067,9 +898,9 @@ def upload_images_from_folder_to_project(
     recursive_subfolders: Optional[StrictBool] = False,
     image_quality_in_editor: Optional[str] = None,
 ):
-    """Uploads all images with given extensions from folder_path to the project.
+    """
+    Uploads all images with given extensions from folder_path to the project.
     Sets status of all the uploaded images to set_status if it is not None.
-
     If an image with existing name already exists in the project it won't be uploaded,
     and its path will be appended to the third member of return value of this
     function.
@@ -1084,7 +915,7 @@ def upload_images_from_folder_to_project(
     :type extensions: tuple or list of strs
 
     :param annotation_status: value to set the annotation statuses of the uploaded images
-    NotStarted InProgress QualityCheck Returned Completed Skipped
+        NotStarted InProgress QualityCheck Returned Completed Skipped
     :type annotation_status: str
 
     :param from_s3_bucket: AWS S3 bucket to use. If None then folder_path is in local filesystem
@@ -1101,7 +932,7 @@ def upload_images_from_folder_to_project(
            Can be either "compressed" or "original".  If None then the default value in project settings will be used.
     :type image_quality_in_editor: str
 
-    :return: uploaded, could-not-upload, existing-images filepaths
+    :return: uploaded, could-not-upload, existing-images file-paths
     :rtype: tuple (3 members) of list of strs
     """
 
@@ -1562,7 +1393,7 @@ def create_annotation_classes_from_classes_json(
 def download_export(
     project: Union[NotEmptyStr, dict],
     export: Union[NotEmptyStr, dict],
-    folder_path: Union[str, Path],
+    folder_path: Union[str, Path] = None,
     extract_zip_contents: Optional[StrictBool] = True,
     to_s3_bucket=None,
 ):
@@ -1573,40 +1404,32 @@ def download_export(
 
     :param project: project name
     :type project: str
+
     :param export: export name
     :type export: str, dict
+
     :param folder_path: where to download the export
     :type folder_path: Path-like (str or Path)
+
     :param extract_zip_contents: if False then a zip file will be downloaded,
      if True the zip file will be extracted at folder_path
     :type extract_zip_contents: bool
+
     :param to_s3_bucket: AWS S3 bucket to use for download. If None then folder_path is in local filesystem.
     :type to_s3_bucket: Bucket object
     """
     project_name, folder_name = extract_project_folder(project)
     export_name = export["name"] if isinstance(export, dict) else export
 
-    use_case = Controller.get_default().download_export(
+    response = Controller.get_default().download_export(
         project_name=project_name,
         export_name=export_name,
         folder_path=folder_path,
         extract_zip_contents=extract_zip_contents,
         to_s3_bucket=to_s3_bucket,
     )
-    if use_case.is_valid():
-        if to_s3_bucket:
-            with tqdm(
-                total=use_case.get_upload_files_count(), desc="Uploading"
-            ) as progress_bar:
-                for _ in use_case.execute():
-                    progress_bar.update()
-            progress_bar.close()
-        else:
-            for _ in use_case.execute():
-                continue
-        logger.info(use_case.response.data)
-    else:
-        raise AppException(use_case.response.errors)
+    if response.errors:
+        raise AppException(response.errors)
 
 
 @Trackable
@@ -1629,6 +1452,13 @@ def set_image_annotation_status(
     :return: metadata of the updated image
     :rtype: dict
     """
+    warning_msg = (
+        "We're deprecating the set_image_annotation_status function. Please use set_annotation_statuses instead. "
+        "Learn more. \n"
+        "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.set_annotation_statuses"
+    )
+    logger.warning(warning_msg)
+    warnings.warn(warning_msg, DeprecationWarning)
     project_name, folder_name = extract_project_folder(project)
     response = Controller.get_default().set_images_annotation_statuses(
         project_name, folder_name, [image_name], annotation_status
@@ -1711,150 +1541,6 @@ def download_image(
         raise AppException(response.errors)
     logger.info(f"Downloaded image {image_name} to {local_dir_path} ")
     return response.data
-
-
-@Trackable
-@validate_arguments
-def attach_image_urls_to_project(
-    project: Union[NotEmptyStr, dict],
-    attachments: Union[str, Path],
-    annotation_status: Optional[AnnotationStatuses] = "NotStarted",
-):
-    """Link images on external storage to SuperAnnotate.
-
-    :param project: project name or project folder path
-    :type project: str or dict
-    :param attachments: path to csv file on attachments metadata
-    :type attachments: Path-like (str or Path)
-    :param annotation_status: value to set the annotation statuses of the linked images: NotStarted InProgress QualityCheck Returned Completed Skipped
-    :type annotation_status: str
-
-    :return: list of linked image names, list of failed image names, list of duplicate image names
-    :rtype: tuple
-    """
-    warning_msg = (
-        "We're deprecating the attach_image_urls_to_project function. Please use attach_items instead. Learn more."
-        "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.attach_items"
-    )
-    logger.warning(warning_msg)
-    warnings.warn(warning_msg, DeprecationWarning)
-    project_name, folder_name = extract_project_folder(project)
-    project = Controller.get_default().get_project_metadata(project_name).data
-    project_folder_name = project_name + (f"/{folder_name}" if folder_name else "")
-
-    if project["project"].type in [
-        constances.ProjectType.VIDEO.value,
-        constances.ProjectType.DOCUMENT.value,
-    ]:
-        raise AppException(
-            constances.INVALID_PROJECT_TYPE_TO_PROCESS.format(
-                constances.ProjectType.get_name(project["project"].type)
-            )
-        )
-    images_to_upload, duplicate_images = get_paths_and_duplicated_from_csv(attachments)
-    use_case = Controller.get_default().interactive_attach_urls(
-        project_name=project_name,
-        folder_name=folder_name,
-        files=ImageSerializer.deserialize(images_to_upload),  # noqa: E203
-        annotation_status=annotation_status,
-    )
-    if len(duplicate_images):
-        logger.warning(
-            constances.ALREADY_EXISTING_FILES_WARNING.format(len(duplicate_images))
-        )
-
-    if use_case.is_valid():
-        logger.info(
-            constances.ATTACHING_FILES_MESSAGE.format(
-                len(images_to_upload), project_folder_name
-            )
-        )
-        with tqdm(
-            total=use_case.attachments_count, desc="Attaching urls"
-        ) as progress_bar:
-            for attached in use_case.execute():
-                progress_bar.update(attached)
-        uploaded, duplications = use_case.data
-        uploaded = [i["name"] for i in uploaded]
-        duplications.extend(duplicate_images)
-        failed_images = [
-            image["name"]
-            for image in images_to_upload
-            if image["name"] not in uploaded + duplications
-        ]
-        return uploaded, failed_images, duplications
-    raise AppException(use_case.response.errors)
-
-
-@Trackable
-@validate_arguments
-def attach_video_urls_to_project(
-    project: Union[NotEmptyStr, dict],
-    attachments: Union[str, Path],
-    annotation_status: Optional[AnnotationStatuses] = "NotStarted",
-):
-    """Link videos on external storage to SuperAnnotate.
-
-    :param project: project name or project folder path
-    :type project: str or dict
-    :param attachments: path to csv file on attachments metadata
-    :type attachments: Path-like (str or Path)
-    :param annotation_status: value to set the annotation statuses of the linked videos: NotStarted InProgress QualityCheck Returned Completed Skipped
-    :type annotation_status: str
-
-    :return: attached videos, failed videos, skipped videos
-    :rtype: (list, list, list)
-    """
-    warning_msg = (
-        "We're deprecating the attach_video_urls_to_project function. Please use attach_items instead. Learn more."
-        "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.attach_items"
-    )
-    logger.warning(warning_msg)
-    warnings.warn(warning_msg, DeprecationWarning)
-    project_name, folder_name = extract_project_folder(project)
-    project = Controller.get_default().get_project_metadata(project_name).data
-    project_folder_name = project_name + (f"/{folder_name}" if folder_name else "")
-
-    if project["project"].type != constances.ProjectType.VIDEO.value:
-        raise AppException(
-            constances.INVALID_PROJECT_TYPE_TO_PROCESS.format(
-                constances.ProjectType.get_name(project["project"].type)
-            )
-        )
-
-    images_to_upload, duplicate_images = get_paths_and_duplicated_from_csv(attachments)
-    use_case = Controller.get_default().interactive_attach_urls(
-        project_name=project_name,
-        folder_name=folder_name,
-        files=ImageSerializer.deserialize(images_to_upload),  # noqa: E203
-        annotation_status=annotation_status,
-    )
-    if len(duplicate_images):
-        logger.warning(
-            constances.ALREADY_EXISTING_FILES_WARNING.format(len(duplicate_images))
-        )
-
-    if use_case.is_valid():
-        logger.info(
-            constances.ATTACHING_FILES_MESSAGE.format(
-                len(images_to_upload), project_folder_name
-            )
-        )
-        with tqdm(
-            total=use_case.attachments_count, desc="Attaching urls"
-        ) as progress_bar:
-            for attached in use_case.execute():
-                progress_bar.update(attached)
-        uploaded, duplications = use_case.data
-        uploaded = [i["name"] for i in uploaded]
-        duplications.extend(duplicate_images)
-        failed_images = [
-            image["name"]
-            for image in images_to_upload
-            if image["name"] not in uploaded + duplications
-        ]
-        return uploaded, failed_images, duplications
-    raise AppException(use_case.response.errors)
 
 
 @Trackable
@@ -1997,15 +1683,21 @@ def upload_image_annotations(
     mask: Optional[Union[str, Path, bytes]] = None,
     verbose: Optional[StrictBool] = True,
 ):
-    """Upload annotations from JSON (also mask for pixel annotations)
-    to the image.
+    """
+    Upload annotations from JSON (also mask for pixel annotations) to the image.
 
     :param project: project name or folder path (e.g., "project1/folder1")
     :type project: str
+
     :param image_name: image name
     :type image_name: str
+
     :param annotation_json: annotations in SuperAnnotate format JSON dict or path to JSON file
     :type annotation_json: dict or Path-like (str or Path)
+
+    :param verbose: provide detailed log
+    :type verbose: bool
+
     :param mask: BytesIO object or filepath to mask annotation for pixel projects in SuperAnnotate format
     :type mask: BytesIO or Path-like (str or Path)
     """
@@ -2463,12 +2155,16 @@ def search_models(
 
     :param name: search string
     :type name: str
+
     :param type_: ml model type string
     :type type_: str
+
     :param project_id: project id
     :type project_id: int
+
     :param task: training task
     :type task: str
+
     :param include_global: include global ml models
     :type include_global: bool
 
@@ -2600,95 +2296,24 @@ def aggregate_annotations_as_df(
 @Trackable
 @validate_arguments
 def delete_annotations(
-    project: NotEmptyStr, image_names: Optional[List[NotEmptyStr]] = None
+    project: NotEmptyStr, item_names: Optional[List[NotEmptyStr]] = None
 ):
     """
     Delete image annotations from a given list of images.
 
     :param project: project name or folder path (e.g., "project1/folder1")
     :type project: str
-    :param image_names:  image names. If None, all image annotations from a given project/folder will be deleted.
-    :type image_names: list of strs
+    :param item_names:  image names. If None, all image annotations from a given project/folder will be deleted.
+    :type item_names: list of strs
     """
 
     project_name, folder_name = extract_project_folder(project)
 
     response = Controller.get_default().delete_annotations(
-        project_name=project_name, folder_name=folder_name, image_names=image_names
+        project_name=project_name, folder_name=folder_name, item_names=item_names
     )
     if response.errors:
         raise AppException(response.errors)
-
-
-@Trackable
-@validate_arguments
-def attach_document_urls_to_project(
-    project: Union[NotEmptyStr, dict],
-    attachments: Union[Path, NotEmptyStr],
-    annotation_status: Optional[AnnotationStatuses] = "NotStarted",
-):
-    """Link documents on external storage to SuperAnnotate.
-
-    :param project: project name or project folder path
-    :type project: str or dict
-    :param attachments: path to csv file on attachments metadata
-    :type attachments: Path-like (str or Path)
-    :param annotation_status: value to set the annotation statuses of the linked documents: NotStarted InProgress QualityCheck Returned Completed Skipped
-    :type annotation_status: str
-
-    :return: list of attached documents, list of not attached documents, list of skipped documents
-    :rtype: tuple
-    """
-    warning_msg = (
-        "We're deprecating the attach_document_urls_to_project function. Please use attach_items instead. Learn more."
-        "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.attach_items"
-    )
-    logger.warning(warning_msg)
-    warnings.warn(warning_msg, DeprecationWarning)
-    project_name, folder_name = extract_project_folder(project)
-    project = Controller.get_default().get_project_metadata(project_name).data
-    project_folder_name = project_name + (f"/{folder_name}" if folder_name else "")
-
-    if project["project"].type != constances.ProjectType.DOCUMENT.value:
-        raise AppException(
-            constances.INVALID_PROJECT_TYPE_TO_PROCESS.format(
-                constances.ProjectType.get_name(project["project"].type)
-            )
-        )
-
-    images_to_upload, duplicate_images = get_paths_and_duplicated_from_csv(attachments)
-
-    use_case = Controller.get_default().interactive_attach_urls(
-        project_name=project_name,
-        folder_name=folder_name,
-        files=ImageSerializer.deserialize(images_to_upload),  # noqa: E203
-        annotation_status=annotation_status,
-    )
-    if len(duplicate_images):
-        logger.warning(
-            constances.ALREADY_EXISTING_FILES_WARNING.format(len(duplicate_images))
-        )
-    if use_case.is_valid():
-        logger.info(
-            constances.ATTACHING_FILES_MESSAGE.format(
-                len(images_to_upload), project_folder_name
-            )
-        )
-        with tqdm(
-            total=use_case.attachments_count, desc="Attaching urls"
-        ) as progress_bar:
-            for attached in use_case.execute():
-                progress_bar.update(attached)
-        uploaded, duplications = use_case.data
-        uploaded = [i["name"] for i in uploaded]
-        duplications.extend(duplicate_images)
-        failed_images = [
-            image["name"]
-            for image in images_to_upload
-            if image["name"] not in uploaded + duplications
-        ]
-        return uploaded, failed_images, duplications
-    raise AppException(use_case.response.errors)
 
 
 @Trackable
@@ -2809,7 +2434,7 @@ def get_annotations_per_frame(project: NotEmptyStr, video: NotEmptyStr, fps: int
 
     :param fps: how many frames per second needs to be extracted from the video.
      Will extract 1 frame per second by default.
-    :type fps: str
+    :type fps: int
 
     :return: list of annotation objects
     :rtype: list of dicts
@@ -2951,7 +2576,6 @@ def search_items(
 
 
     :param project: project name or folder path (e.g., “project1/folder1”).
-     If recursive=False=True, then only the project name is required.
     :type project: str
 
     :param name_contains:  Returns those items, where the given string is found anywhere within an item’s name.
@@ -2960,12 +2584,12 @@ def search_items(
 
     :param annotation_status: if not None, filters items by annotation status.
                             Values are:
-                                “NotStarted”
-                                “InProgress”
-                                “QualityCheck”
-                                “Returned”
-                                “Completed”
-                                “Skipped”
+                                ♦ “NotStarted” \n
+                                ♦ “InProgress” \n
+                                ♦ “QualityCheck” \n
+                                ♦ “Returned” \n
+                                ♦ “Completed” \n
+                                ♦ “Skipped” \n
     :type annotation_status: str
 
 
@@ -3004,7 +2628,7 @@ def search_items(
 def attach_items(
     project: Union[NotEmptyStr, dict],
     attachments: AttachmentArg,
-    annotation_status: Optional[AnnotationStatuses] = "NotStarted",
+    annotation_status: AnnotationStatuses = "NotStarted",
 ):
     """Link items from external storage to SuperAnnotate using URLs.
 
@@ -3079,7 +2703,7 @@ def copy_items(
     :type destination: str
 
     :param items: names of items to copy. If None, all items from the source directory will be copied.
-    :type itmes: list of str
+    :type items: list of str
 
     :param include_annotations: enables annotations copy
     :type include_annotations: bool
@@ -3114,7 +2738,7 @@ def move_items(
     destination: Union[NotEmptyStr, dict],
     items: Optional[List[NotEmptyStr]] = None,
 ):
-    """Copy images in bulk between folders in a project
+    """Move images in bulk between folders in a project
 
     :param source: project name or folder path to pick items from (e.g., “project1/folder1”).
     :type source: str
@@ -3175,6 +2799,51 @@ def set_annotation_statuses(
         folder_name=folder_name,
         annotation_status=annotation_status,
         item_names=items,
+    )
+    if response.errors:
+        raise AppException(response.errors)
+    return response.data
+
+
+@Trackable
+@validate_arguments
+def download_annotations(
+    project: Union[NotEmptyStr, dict],
+    path: Union[str, Path] = None,
+    items: Optional[List[NotEmptyStr]] = None,
+    recursive: bool = False,
+    callback: Callable = None,
+):
+    """Downloads annotation JSON files of the selected items to the local directory.
+
+    :param project: project name or folder path (e.g., “project1/folder1”).
+    :type project: str
+
+    :param path:  local directory path where the annotations will be downloaded. If none, the current directory is used.
+    :type path: Path-like (str or Path)
+
+    :param items: project name (root) or folder path to move items to.
+    :type items: list of str
+
+    :param recursive: download annotations from the project’s root and all of its folders with the preserved structure.
+     If False download only from the project’s root or given directory.
+    :type recursive: bool
+
+    :param callback: a function that allows you to modify each annotation’s dict before downloading.
+     The function receives each annotation as an argument and the returned value will be applied to the download.
+    :type callback: callable
+
+    :return: local path of the downloaded annotations folder.
+    :rtype: str
+    """
+    project_name, folder_name = extract_project_folder(project)
+    response = Controller.get_default().download_annotations(
+        project_name=project_name,
+        folder_name=folder_name,
+        destination=path,
+        recursive=recursive,
+        item_names=items,
+        callback=callback,
     )
     if response.errors:
         raise AppException(response.errors)
