@@ -2144,6 +2144,8 @@ def upload_image_to_project(
         raise AppException(response.errors)
 
 
+@Trackable
+@validate_arguments
 def search_models(
     name: Optional[NotEmptyStr] = None,
     type_: Optional[NotEmptyStr] = None,

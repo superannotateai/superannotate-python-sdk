@@ -238,7 +238,10 @@ class DownloadExportUseCase(BaseReportableUseCae):
                 if "error" in export:
                     raise AppException(export["error"])
                 export_status = export["status"]
-                if export_status in (ExportStatus.ERROR.value, ExportStatus.CANCELED.value):
+                if export_status in (
+                    ExportStatus.ERROR.value,
+                    ExportStatus.CANCELED.value,
+                ):
                     self.reporter.stop_spinner()
                     raise AppException("Couldn't download export.")
             self.reporter.stop_spinner()
