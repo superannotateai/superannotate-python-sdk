@@ -1,2 +1,2 @@
-superannotate_schemas>=v1.0.43dev3
+superannotate_schemas>=v1.0.43dev5
 

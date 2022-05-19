@@ -36,16 +36,15 @@ class VideoFrameGenerator:
         self.fps = fps
         self.ratio = 1000 * 1000 / fps
         self._frame_id = 1
-        self.frames_count = int(self.duration * fps)
+        self.frames_count = int(math.ceil(self.duration * fps))
         self.annotations: dict = {}
         self._mapping = {}
         self._process()
 
     @staticmethod
     def validate_annotations(annotation_data: dict):
-        try:
-            annotation_data["metadata"]["duration"]
-        except KeyError:
+        duration = annotation_data["metadata"].get("duration")
+        if duration is None:
             raise AppException("Video not annotated yet")
 
     def get_frame(self, frame_no: int):
@@ -56,14 +55,14 @@ class VideoFrameGenerator:
             return self.annotations[frame_no]
 
     def _interpolate(
-            self,
-            class_name: str,
-            from_frame: int,
-            to_frame: int,
-            data: dict,
-            instance_id: int,
-            steps: dict = None,
-            annotation_type: str = "bbox",
+        self,
+        class_name: str,
+        from_frame: int,
+        to_frame: int,
+        data: dict,
+        instance_id: int,
+        steps: dict = None,
+        annotation_type: str = "bbox",
     ) -> dict:
         annotations = {}
         for idx, frame_idx in enumerate(range(from_frame + 1, to_frame), 1):
@@ -78,10 +77,12 @@ class VideoFrameGenerator:
             elif annotation_type == AnnotationTypes.POINT:
                 tmp_data = {
                     "x": round(data["x"] + steps["x"] * idx, 2),
-                    "y": round(data["y"] + steps["y"] * idx, 2)
+                    "y": round(data["y"] + steps["y"] * idx, 2),
                 }
             elif annotation_type in (AnnotationTypes.POLYGON, AnnotationTypes.POLYLINE):
-                tmp_data["points"] = [point + steps[idx] * 2 for idx, point in enumerate(data["points"])]
+                tmp_data["points"] = [
+                    point + steps[idx] * 2 for idx, point in enumerate(data["points"])
+                ]
             annotations[frame_idx] = Annotation(
                 instanceId=instance_id,
                 type=annotation_type,
@@ -107,7 +108,9 @@ class VideoFrameGenerator:
         if len(annotations) == 1:
             return annotations[0]
         first_annotations = annotations[:1][0]
-        median = (first_annotations["timestamp"] // self.ratio) + (self.ratio / 2)
+        median = (
+            first_annotations["timestamp"] // self.ratio
+        ) * self.ratio + self.ratio / 2
         median_annotation = first_annotations
         distance = abs(median - first_annotations["timestamp"])
         for annotation in annotations[1:]:
@@ -131,29 +134,49 @@ class VideoFrameGenerator:
             return frames_mapping
 
     def _interpolate_frames(
-            self, from_frame, from_frame_no, to_frame, to_frame_no, annotation_type, class_name, instance_id
+        self,
+        from_frame,
+        from_frame_no,
+        to_frame,
+        to_frame_no,
+        annotation_type,
+        class_name,
+        instance_id,
     ):
         steps = None
         frames_diff = to_frame_no - from_frame_no
-        if annotation_type == AnnotationTypes.BBOX and from_frame.get("points") and to_frame.get("points"):
+        if (
+            annotation_type == AnnotationTypes.BBOX
+            and from_frame.get("points")
+            and to_frame.get("points")
+        ):
             steps = {}
             for point in "x1", "x2", "y1", "y2":
                 steps[point] = round(
-                    (to_frame["points"][point] - from_frame["points"][point]) / frames_diff, 2
+                    (to_frame["points"][point] - from_frame["points"][point])
+                    / frames_diff,
+                    2,
                 )
         elif annotation_type == AnnotationTypes.POINT:
             steps = {
                 "x": (to_frame["x"] - from_frame["x"]) / frames_diff,
-                "y": (to_frame["y"] - from_frame["y"]) / frames_diff
+                "y": (to_frame["y"] - from_frame["y"]) / frames_diff,
             }
         elif annotation_type in (AnnotationTypes.POLYGON, AnnotationTypes.POLYLINE):
             steps = [
                 (to_point - from_point) / frames_diff
-                for from_point, to_point in zip(from_frame["points"], to_frame["points"])
+                for from_point, to_point in zip(
+                    from_frame["points"], to_frame["points"]
+                )
             ]
         return self._interpolate(
-            class_name=class_name, from_frame=from_frame_no, to_frame=to_frame_no, data=from_frame,
-            instance_id=instance_id, steps=steps, annotation_type=annotation_type
+            class_name=class_name,
+            from_frame=from_frame_no,
+            to_frame=to_frame_no,
+            data=from_frame,
+            instance_id=instance_id,
+            steps=steps,
+            annotation_type=annotation_type,
         )
 
     def _process(self):
@@ -163,8 +186,6 @@ class VideoFrameGenerator:
             class_name = instance["meta"].get("className")
             for parameter in instance["parameters"]:
                 frames_mapping = defaultdict(list)
-                last_frame_no = None
-                last_annotation = None
                 interpolated_frames = {}
                 for timestamp in parameter["timestamps"]:
                     frames_mapping[
@@ -187,36 +208,41 @@ class VideoFrameGenerator:
                                 to_frame_no=to_frame_no,
                                 class_name=class_name,
                                 annotation_type=annotation_type,
-                                instance_id=instance_id
+                                instance_id=instance_id,
                             )
                         )
+
                     start_median_frame = self.get_median(frames_mapping[from_frame_no])
                     end_median_frame = self.get_median(frames_mapping[to_frame_no])
-                    interpolated_frames[from_frame_no] = Annotation(
+                    for frame_no, frame in (
+                        (from_frame_no, start_median_frame),
+                        (last_frame_no, end_median_frame),
+                    ):
+                        interpolated_frames[frame_no] = Annotation(
+                            instanceId=instance_id,
+                            type=annotation_type,
+                            className=class_name,
+                            x=frame.get("x"),
+                            y=frame.get("y"),
+                            points=frame.get("points"),
+                            attributes=frame["attributes"],
+                            keyframe=True,
+                        )
+                if frames_mapping and not interpolated_frames:
+                    median = self.get_median(frames_mapping[1])
+                    interpolated_frames[1] = Annotation(
                         instanceId=instance_id,
                         type=annotation_type,
                         className=class_name,
-                        x=start_median_frame.get("x"),
-                        y=start_median_frame.get("y"),
-                        points=start_median_frame.get("points"),
-                        attributes=start_median_frame["attributes"],
+                        x=median.get("x"),
+                        y=median.get("y"),
+                        points=median.get("points"),
+                        attributes=median["attributes"],
                         keyframe=True,
                     )
-                    last_annotation = Annotation(
-                        instanceId=instance_id,
-                        type=annotation_type,
-                        className=class_name,
-                        x=start_median_frame.get("x"),
-                        y=start_median_frame.get("y"),
-                        points=end_median_frame.get("points"),
-                        attributes=end_median_frame["attributes"],
-                        keyframe=True,
-                    )
-                self._add_annotation(last_frame_no, last_annotation)
-                [
+
+                for frame_no, annotation in interpolated_frames.items():
                     self._add_annotation(frame_no, annotation)
-                    for frame_no, annotation in interpolated_frames.items()
-                ]
 
     def __iter__(self):
         for frame_no in range(1, int(self.frames_count) + 1):

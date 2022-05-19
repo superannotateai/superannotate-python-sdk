@@ -211,8 +211,7 @@ __all__ = [
 
 __author__ = "Superannotate"
 
-WORKING_DIR = os.path.split(os.path.realpath(__file__))[0]
-sys.path.append(WORKING_DIR)
+sys.path.append(os.path.split(os.path.realpath(__file__))[0])
 logging.getLogger("botocore").setLevel(logging.CRITICAL)
 logger = get_default_logger()
 

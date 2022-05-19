@@ -2144,6 +2144,8 @@ def upload_image_to_project(
         raise AppException(response.errors)
 
 
+@Trackable
+@validate_arguments
 def search_models(
     name: Optional[NotEmptyStr] = None,
     type_: Optional[NotEmptyStr] = None,
@@ -2303,7 +2305,7 @@ def delete_annotations(
 
     :param project: project name or folder path (e.g., "project1/folder1")
     :type project: str
-    :param item_names:  image names. If None, all image annotations from a given project/folder will be deleted.
+    :param item_names:  item names. If None, all item annotations from a given project/folder will be deleted.
     :type item_names: list of strs
     """
 

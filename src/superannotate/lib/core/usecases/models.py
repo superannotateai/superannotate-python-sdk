@@ -8,6 +8,7 @@ from typing import List
 
 import boto3
 import lib.core as constances
+from lib.core.enums import ProjectType
 import pandas as pd
 import requests
 from botocore.exceptions import ClientError
@@ -68,7 +69,8 @@ class PrepareExportUseCase(BaseUseCase):
             and self._include_fuse
         ):
             raise AppValidationException(
-                f"Include fuse functionality is not supported for  projects containing {self._project.type} attached with URLs"
+                "Include fuse functionality is not supported for  projects containing "
+                f"{ProjectType.get_name(self._project.type)} attached with URLs"
             )
 
     def validate_folder_names(self):
@@ -202,17 +204,16 @@ class DownloadExportUseCase(BaseReportableUseCae):
 
         def _upload_file_to_s3(_to_s3_bucket, _path, _s3_key) -> None:
             _to_s3_bucket.upload_file(str(_path), _s3_key)
-            self.reporter.update_progress()
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
             results = []
-            self.reporter.start_progress(len(files_to_upload), "Uploading")
+            self.reporter.start_spinner()
             for path in files_to_upload:
                 s3_key = f"{folder_path + '/' if folder_path else ''}{str(Path(path).relative_to(Path(source)))}"
                 results.append(
                     executor.submit(_upload_file_to_s3, to_s3_bucket, path, s3_key)
                 )
-            self.reporter.finish_progress()
+            self.reporter.stop_spinner()
 
     def download_to_local_storage(self, destination: str, extract_zip=False):
         exports = self._service.get_exports(
@@ -227,22 +228,25 @@ class DownloadExportUseCase(BaseReportableUseCae):
         if not export:
             raise AppException("Export not found.")
         export_status = export["status"]
-
-        while export_status != ExportStatus.COMPLETE.value:
-            logger.info("Waiting 5 seconds for export to finish on server.")
-            time.sleep(5)
-
-            export = self._service.get_export(
-                team_id=self._project.team_id,
-                project_id=self._project.id,
-                export_id=export["id"],
-            )
-            if "error" in export:
-                raise AppException(export["error"])
-            export_status = export["status"]
-            if export_status in (ExportStatus.ERROR.value, ExportStatus.CANCELED.value):
-                raise AppException("Couldn't download export.")
-
+        if export_status != ExportStatus.COMPLETE.value:
+            logger.info("Waiting for export to finish on server.")
+            self.reporter.start_spinner()
+            while export_status != ExportStatus.COMPLETE.value:
+                export = self._service.get_export(
+                    team_id=self._project.team_id,
+                    project_id=self._project.id,
+                    export_id=export["id"],
+                )
+                if "error" in export:
+                    raise AppException(export["error"])
+                export_status = export["status"]
+                if export_status in (
+                    ExportStatus.ERROR.value,
+                    ExportStatus.CANCELED.value,
+                ):
+                    self.reporter.stop_spinner()
+                    raise AppException("Couldn't download export.")
+            self.reporter.stop_spinner()
         filename = Path(export["path"]).name
         filepath = Path(destination) / filename
         with requests.get(export["download"], stream=True) as response:

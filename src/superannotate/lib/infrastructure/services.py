@@ -86,7 +86,7 @@ class BaseBackendService(SuperannotateServiceProvider):
             "authtype": self.AUTH_TYPE,
             "Content-Type": "application/json",
             "User-Agent": f"Python-SDK-Version: {__version__}; Python: {platform.python_version()}; "
-                          f"OS: {platform.system()}; Team: {self.team_id}",
+            f"OS: {platform.system()}; Team: {self.team_id}",
         }
 
     @property
