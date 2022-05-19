@@ -43,9 +43,8 @@ class VideoFrameGenerator:
 
     @staticmethod
     def validate_annotations(annotation_data: dict):
-        try:
-            annotation_data["metadata"]["duration"]
-        except KeyError:
+        duration = annotation_data["metadata"].get("duration")
+        if duration is None:
             raise AppException("Video not annotated yet")
 
     def get_frame(self, frame_no: int):

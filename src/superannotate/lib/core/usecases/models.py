@@ -8,6 +8,7 @@ from typing import List
 
 import boto3
 import lib.core as constances
+from lib.core.enums import ProjectType
 import pandas as pd
 import requests
 from botocore.exceptions import ClientError
@@ -68,7 +69,8 @@ class PrepareExportUseCase(BaseUseCase):
             and self._include_fuse
         ):
             raise AppValidationException(
-                f"Include fuse functionality is not supported for  projects containing {self._project.type} attached with URLs"
+                "Include fuse functionality is not supported for  projects containing "
+                f"{ProjectType.get_name(self._project.type)} attached with URLs"
             )
 
     def validate_folder_names(self):
