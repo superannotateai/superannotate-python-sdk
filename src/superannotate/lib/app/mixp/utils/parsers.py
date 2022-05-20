@@ -962,7 +962,7 @@ def set_annotation_statuses(**kwargs):
     return {
         "event_name": "set_annotation_statuses",
         "properties": {
-            "item_count": len(kwargs.get("item_names", [])),
+            "item_count": len(kwargs.get("items", [])),
             "annotation_status": kwargs["annotation_status"],
             "root": folder_name == "root",
         },
