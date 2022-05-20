@@ -45,7 +45,6 @@ from superannotate.lib.app.interface.sdk_interface import delete_project
 from superannotate.lib.app.interface.sdk_interface import (
     download_annotation_classes_json,
 )
-from superannotate.lib.app.interface.sdk_interface import download_annotations
 from superannotate.lib.app.interface.sdk_interface import download_export
 from superannotate.lib.app.interface.sdk_interface import download_image
 from superannotate.lib.app.interface.sdk_interface import download_image_annotations
@@ -126,7 +125,6 @@ __all__ = [
     "get_exports",
     # annotations
     "get_annotations",
-    "download_annotations",
     "get_annotations_per_frame",
     # integrations
     "get_integrations",
