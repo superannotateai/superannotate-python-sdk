@@ -1,5 +1,27 @@
 # Changelog 
 All release higlighths of this project will be documented in this file.
+## 4.3.4 - May 22, 2022
+### Updated
+- `JSON Schema` for video annotations to version x to reflect point annotations.
+- `download_export()` function to preserve SA folder structure while downloading to S3 bucket.
+- `get_item_metadata()` function to have string type values instead of int type for the approval_status key.
+- `get_item_metadata()` function to change the value for the path key in the item metadata from project/folder/item format to project/folder.
+- `get_item_metadata()` function to add the is_pinned key in the returned metadata.
+- `clone_project()` function to have NotStarted project status for the newly created project.
+### Fixed
+- `query()` function to address the missing value for the path key.
+- `import_annotation()` function to address the extension issue with JPEG files while converting from VOC to SA.
+- `import_annotation()` function to address int type pointlabels in the converted JSON from COCO to SA.
+- `superannotate_get_annotations()` `add_annotation_comment_to_image()` to address the issue with asyncio occuring on Windows.
+- `set_image_annotation_status()` function add a deprecation warning.
+- `set_images_annotation_statuses()` function add a deprecation warning.
+### Removed
+- `share_projects()` function.
+- `attach_image_urls_to_project()` function. Please use the `attach_items()` function instead.
+- `attach_document_urls_to_project()` function. Please use the `attach_items()` function instead.
+- `attach_video_urls_to_project()` function. Please use the `attach_items()` function instead.
+- `copy_images()` function. Please use the `copy_items()` function instead.
+- `move_images()` function. Please use the `move_items()` function instead.
 ## 4.3.3 - May 01 2022
 ### Added
 - `attach_items()` function to link items (images, videos, and documents) from external storages to SuperAnnotate using URLs.
