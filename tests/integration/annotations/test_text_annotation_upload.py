@@ -48,7 +48,7 @@ class TestUploadTextAnnotation(BaseTestCase):
     def test_document_annotation_upload_invalid_json(self):
         sa.create_annotation_classes_from_classes_json(self.PROJECT_NAME, self.classes_path)
 
-        _, _, _ = sa.attach_document_urls_to_project(
+        _, _, _ = sa.attach_items(
             self.PROJECT_NAME,
             self.csv_path,
         )
@@ -63,7 +63,7 @@ class TestUploadTextAnnotation(BaseTestCase):
     def test_text_annotation_upload(self):
         sa.create_annotation_classes_from_classes_json(self.PROJECT_NAME, self.classes_path)
 
-        _, _, _ = sa.attach_document_urls_to_project(
+        _, _, _ = sa.attach_items(
             self.PROJECT_NAME,
             self.csv_path,
         )
@@ -81,7 +81,7 @@ class TestUploadTextAnnotation(BaseTestCase):
 
     def test_document_annotation_without_class_data(self):
         sa.create_annotation_classes_from_classes_json(self.PROJECT_NAME, self.classes_path)
-        _, _, _ = sa.attach_document_urls_to_project(
+        _, _, _ = sa.attach_items(
             self.PROJECT_NAME,
             self.csv_path,
         )

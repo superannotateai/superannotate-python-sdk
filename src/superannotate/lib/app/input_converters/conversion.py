@@ -145,7 +145,7 @@ def export_annotation(
     task="object_detection",
 ):
     """
-       Converts SuperAnnotate annotation formate to the other annotation formats. Currently available (project_type, task) combinations for converter
+       Converts SuperAnnotate annotation format to the other annotation formats. Currently available (project_type, task) combinations for converter
        presented below:
 
        ==============  ======================

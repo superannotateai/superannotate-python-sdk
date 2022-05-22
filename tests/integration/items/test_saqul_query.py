@@ -9,6 +9,7 @@ class TestEntitiesSearchVector(BaseTestCase):
     PROJECT_NAME = "TestEntitiesSearchVector"
     PROJECT_DESCRIPTION = "TestEntitiesSearchVector"
     PROJECT_TYPE = "Vector"
+    FOLDER_NAME = "test_folder"
     TEST_FOLDER_PATH = "data_set/sample_project_vector"
     TEST_QUERY = "instance(type =bbox )"
     TEST_INVALID_QUERY = "!instance(type =bbox )!"
@@ -18,19 +19,20 @@ class TestEntitiesSearchVector(BaseTestCase):
         return os.path.join(Path(__file__).parent.parent.parent, self.TEST_FOLDER_PATH)
 
     def test_query(self):
+        sa.create_folder(self.PROJECT_NAME, self.FOLDER_NAME)
         sa.upload_images_from_folder_to_project(
-            self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
+            f"{self.PROJECT_NAME}/{self.FOLDER_NAME}", self.folder_path, annotation_status="InProgress"
         )
         sa.create_annotation_classes_from_classes_json(
             self.PROJECT_NAME, f"{self.folder_path}/classes/classes.json"
         )
         _, _, _ = sa.upload_annotations_from_folder_to_project(
-            self.PROJECT_NAME, self.folder_path
+            f"{self.PROJECT_NAME}/{self.FOLDER_NAME}", self.folder_path
         )
 
-        entities = sa.query(self.PROJECT_NAME, self.TEST_QUERY)
+        entities = sa.query(f"{self.PROJECT_NAME}/{self.FOLDER_NAME}", self.TEST_QUERY)
         self.assertEqual(len(entities), 1)
-        assert all([entity["path"] is None for entity in entities])
+        assert all([entity["path"] == f"{self.PROJECT_NAME}/{self.FOLDER_NAME}" for entity in entities])
 
     def test_validate_saqul_query(self):
         try:

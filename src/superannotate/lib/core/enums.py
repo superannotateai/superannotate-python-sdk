@@ -42,6 +42,14 @@ class BaseTitledEnum(int, Enum):
         return self.__doc__.lower() == other.__doc__.lower()
 
 
+class AnnotationTypes(str, Enum):
+    BBOX = "bbox"
+    EVENT = "event"
+    POINT = "point"
+    POLYGON = "polygon"
+    POLYLINE = "polyline"
+
+
 class ProjectType(BaseTitledEnum):
     VECTOR = "Vector", 1
     PIXEL = "Pixel", 2
@@ -125,6 +133,12 @@ class SegmentationStatus(BaseTitledEnum):
     IN_PROGRESS = "InProgress", 2
     COMPLETED = "Completed", 3
     FAILED = "Failed", 4
+
+
+class ApprovalStatus(BaseTitledEnum):
+    NONE = None, 0
+    DISAPPROVED = "disapproved", 1
+    APPROVED = "approved", 2
 
 
 class ProjectState(BaseTitledEnum):

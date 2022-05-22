@@ -11,7 +11,7 @@ from ....common import tqdm_converter
 from ....common import write_to_json
 from ..sa_json_helper import _create_sa_json
 from ..sa_json_helper import _create_vector_instance
-from .voc_helper import _get_image_shape_from_xml
+from .voc_helper import _get_image_metadata
 from .voc_helper import _get_voc_instances_from_xml
 from .voc_helper import _iou
 
@@ -118,11 +118,11 @@ def voc_instance_segmentation_to_sa_vector(voc_root, output_dir):
             sa_instances.append(sa_obj)
 
         images_converted.append(filename)
-        file_name = "%s.jpg___objects.json" % filename.stem
-        height, width = _get_image_shape_from_xml(annotation_dir / filename.name)
-        sa_metadata = {"name": filename.stem, "height": height, "width": width}
+        file_name, height, width = _get_image_metadata(annotation_dir / filename.name)
+        file_path = f"{file_name}___objects.json"
+        sa_metadata = {"name": str(filename), "height": height, "width": width}
         sa_json = _create_sa_json(sa_instances, sa_metadata)
-        write_to_json(output_dir / file_name, sa_json)
+        write_to_json(output_dir / file_path, sa_json)
 
     finish_event.set()
     tqdm_thread.join()
@@ -161,11 +161,11 @@ def voc_object_detection_to_sa_vector(voc_root, output_dir):
             sa_instances.append(sa_obj)
 
         images_converted.append(filename)
-        file_name = "%s.jpg___objects.json" % filename.stem
-        height, width = _get_image_shape_from_xml(annotation_dir / filename.name)
-        sa_metadata = {"name": filename.stem, "height": height, "width": width}
+        file_name, height, width = _get_image_metadata(annotation_dir / filename.name)
+        file_path = f"{file_name}___objects.json"
+        sa_metadata = {"name": str(filename), "height": height, "width": width}
         sa_json = _create_sa_json(sa_instances, sa_metadata)
-        write_to_json(output_dir / file_name, sa_json)
+        write_to_json(output_dir / file_path, sa_json)
 
     finish_event.set()
     tqdm_thread.join()

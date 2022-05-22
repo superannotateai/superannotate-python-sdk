@@ -3,8 +3,8 @@ import os
 import sys
 
 import requests
-import superannotate.lib.core as constances
 from packaging.version import parse
+from superannotate.lib import core as constances
 from superannotate.lib import get_default_controller
 from superannotate.lib.app.analytics.class_analytics import class_distribution
 from superannotate.lib.app.exceptions import AppException
@@ -21,20 +21,14 @@ from superannotate.lib.app.interface.sdk_interface import add_contributors_to_pr
 from superannotate.lib.app.interface.sdk_interface import aggregate_annotations_as_df
 from superannotate.lib.app.interface.sdk_interface import assign_folder
 from superannotate.lib.app.interface.sdk_interface import assign_images
-from superannotate.lib.app.interface.sdk_interface import (
-    attach_document_urls_to_project,
-)
-from superannotate.lib.app.interface.sdk_interface import attach_image_urls_to_project
 from superannotate.lib.app.interface.sdk_interface import attach_items
 from superannotate.lib.app.interface.sdk_interface import (
     attach_items_from_integrated_storage,
 )
-from superannotate.lib.app.interface.sdk_interface import attach_video_urls_to_project
 from superannotate.lib.app.interface.sdk_interface import benchmark
 from superannotate.lib.app.interface.sdk_interface import clone_project
 from superannotate.lib.app.interface.sdk_interface import consensus
 from superannotate.lib.app.interface.sdk_interface import copy_image
-from superannotate.lib.app.interface.sdk_interface import copy_images
 from superannotate.lib.app.interface.sdk_interface import copy_items
 from superannotate.lib.app.interface.sdk_interface import create_annotation_class
 from superannotate.lib.app.interface.sdk_interface import (
@@ -68,7 +62,6 @@ from superannotate.lib.app.interface.sdk_interface import get_project_workflow
 from superannotate.lib.app.interface.sdk_interface import get_team_metadata
 from superannotate.lib.app.interface.sdk_interface import init
 from superannotate.lib.app.interface.sdk_interface import invite_contributors_to_team
-from superannotate.lib.app.interface.sdk_interface import move_images
 from superannotate.lib.app.interface.sdk_interface import move_items
 from superannotate.lib.app.interface.sdk_interface import pin_image
 from superannotate.lib.app.interface.sdk_interface import prepare_export
@@ -89,7 +82,6 @@ from superannotate.lib.app.interface.sdk_interface import (
     set_project_default_image_quality_in_editor,
 )
 from superannotate.lib.app.interface.sdk_interface import set_project_workflow
-from superannotate.lib.app.interface.sdk_interface import share_project
 from superannotate.lib.app.interface.sdk_interface import unassign_folder
 from superannotate.lib.app.interface.sdk_interface import unassign_images
 from superannotate.lib.app.interface.sdk_interface import (
@@ -154,7 +146,6 @@ __all__ = [
     "search_projects",
     "create_project",
     "clone_project",
-    "share_project",
     "delete_project",
     "rename_project",
     "upload_priority_scores",
@@ -176,8 +167,6 @@ __all__ = [
     "move_items",
     "set_annotation_statuses",
     # Image Section
-    "copy_images",
-    "move_images",
     "delete_images",
     "download_image",
     "pin_image",
@@ -189,9 +178,6 @@ __all__ = [
     "upload_image_to_project",
     "upload_image_annotations",
     "upload_images_from_folder_to_project",
-    "attach_image_urls_to_project",
-    "attach_video_urls_to_project",
-    "attach_document_urls_to_project",
     # Video Section
     "upload_videos_from_folder_to_project",
     # Annotation Section
@@ -223,8 +209,7 @@ __all__ = [
 
 __author__ = "Superannotate"
 
-WORKING_DIR = os.path.split(os.path.realpath(__file__))[0]
-sys.path.append(WORKING_DIR)
+sys.path.append(os.path.split(os.path.realpath(__file__))[0])
 logging.getLogger("botocore").setLevel(logging.CRITICAL)
 logger = get_default_logger()
 
