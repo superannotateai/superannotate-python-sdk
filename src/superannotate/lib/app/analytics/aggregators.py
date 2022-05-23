@@ -85,6 +85,22 @@ class DocumentRawData:
 
 
 class DataAggregator:
+    MAPPERS = {
+        "event": lambda annotation: None,
+        "bbox": lambda annotation: annotation["points"],
+        "polygon": lambda annotation: annotation["points"],
+        "polyline": lambda annotation: annotation["points"],
+        "cuboid": lambda annotation: annotation["points"],
+        "point": lambda annotation: {"x": annotation["x"], "y": annotation["y"]},
+        "annotation_type": lambda annotation: dict(
+            cx=annotation["cx"],
+            cy=annotation["cy"],
+            rx=annotation["rx"],
+            ry=annotation["ry"],
+            angle=annotation["angle"],
+        ),
+    }
+
     def __init__(
         self,
         project_type: str,
@@ -186,11 +202,12 @@ class DataAggregator:
             # append instances
             instances = annotation_data.get("instances", [])
             for idx, instance in enumerate(instances):
+                instance_type = instance["meta"].get("type", "event")
                 instance_raw = copy.copy(raw_data)
                 instance_raw.instanceId = int(idx)
                 instance_raw.instanceStart = instance["meta"].get("start")
                 instance_raw.instanceEnd = instance["meta"].get("end")
-                instance_raw.type = instance["meta"].get("type")
+                instance_raw.type = instance_type
                 instance_raw.className = instance["meta"].get("className")
                 instance_raw.createdAt = instance["meta"].get("createdAt")
                 instance_raw.createdBy = (
@@ -217,7 +234,7 @@ class DataAggregator:
                     for timestamp_id, timestamp in enumerate(timestamps):
                         timestamp_raw = copy.copy(parameter_raw)
                         timestamp_raw.timestampId = timestamp_id
-                        timestamp_raw.meta = timestamp.get("points")
+                        timestamp_raw.meta = self.MAPPERS[instance_type](timestamp)
                         attributes = timestamp.get("attributes", [])
                         for attribute_id, attribute in enumerate(attributes):
                             attribute_raw = copy.copy(timestamp_raw)
@@ -467,8 +484,7 @@ class DataAggregator:
                             ]
                         ):
                             logger.warning(
-                                "Annotation class group value %s not in classes json. Skipping.",
-                                attribute_name,
+                                f"Annotation class group value {attribute_name} not in classes json. Skipping."
                             )
                             continue
                         annotation_dict = {

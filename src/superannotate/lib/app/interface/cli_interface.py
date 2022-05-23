@@ -59,13 +59,13 @@ class CLIFacade(BaseInterfaceFacade):
         """
         To create a new project
         """
-        SAClient().create_project(name, description, type)
+        create_project(name, description, type)
 
     def create_folder(self, project: str, name: str):
         """
         To create a new folder
         """
-        SAClient().create_folder(project, name)
+        create_folder(project, name)
         sys.exit(0)
 
     def upload_images(
@@ -123,10 +123,6 @@ class CLIFacade(BaseInterfaceFacade):
             extract_zip_contents=not disable_extract_zip_contents,
             to_s3_bucket=False,
         )
-        if use_case.is_valid():
-            for _ in use_case.execute():
-                continue
-
         sys.exit(0)
 
     def upload_preannotations(
@@ -214,7 +210,10 @@ class CLIFacade(BaseInterfaceFacade):
         sys.exit(0)
 
     def attach_image_urls(
-        self, project: str, attachments: str, annotation_status: Optional[Any] = None
+        self,
+        project: str,
+        attachments: str,
+        annotation_status: Optional[Any] = "NotStarted",
     ):
         """
         To attach image URLs to project use:
@@ -228,7 +227,10 @@ class CLIFacade(BaseInterfaceFacade):
         sys.exit(0)
 
     def attach_video_urls(
-        self, project: str, attachments: str, annotation_status: Optional[Any] = None
+        self,
+        project: str,
+        attachments: str,
+        annotation_status: Optional[Any] = "NotStarted",
     ):
         SAClient().attach_video_urls_to_project(
             project=project,
@@ -241,7 +243,7 @@ class CLIFacade(BaseInterfaceFacade):
     def attach_document_urls(
         project: str, attachments: str, annotation_status: Optional[Any] = None
     ):
-        SAClient().attach_document_urls_to_project(
+        SAClient().attach_items(
             project=project,
             attachments=attachments,
             annotation_status=annotation_status,

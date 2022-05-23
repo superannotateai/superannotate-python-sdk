@@ -81,13 +81,6 @@ class TestDeprecatedFunctionsVideo(TestCase):
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
-            sa.attach_image_urls_to_project(
-                self.PROJECT_NAME,
-                os.path.join(dirname(dirname(__file__)), self.PATH_TO_URLS),
-            )
-        except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE_2.format(self.PROJECT_TYPE), str(e))
-        try:
             sa.copy_image(self.PROJECT_NAME, self.UPLOAD_IMAGE_NAME, self.PROJECT_NAME_2)
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
@@ -116,15 +109,7 @@ class TestDeprecatedFunctionsVideo(TestCase):
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
-            sa.copy_images(self.PROJECT_NAME, [self.UPLOAD_IMAGE_NAME], self.PROJECT_NAME)
-        except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE, str(e))
-        try:
             sa.get_project_workflow(self.PROJECT_NAME)
-        except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE, str(e))
-        try:
-            sa.move_images(self.PROJECT_NAME, [self.UPLOAD_IMAGE_NAME], self.PROJECT_NAME_2)
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
@@ -135,13 +120,6 @@ class TestDeprecatedFunctionsVideo(TestCase):
             sa.prepare_export(self.PROJECT_NAME, include_fuse=True, only_pinned=True)
         except AppException as e:
             self.assertIn("Include fuse functionality is not supported", str(e))
-        try:
-            sa.attach_document_urls_to_project(
-                self.PROJECT_NAME,
-                os.path.join(dirname(dirname(__file__)), self.PATH_TO_URLS),
-            )
-        except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE_2.format(self.PROJECT_TYPE), str(e))
         try:
             sa.benchmark(self.PROJECT_NAME, "some", ["some folder1"])
         except AppException as e:

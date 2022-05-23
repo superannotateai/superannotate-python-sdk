@@ -1,5 +1,21 @@
 # Changelog 
 All release higlighths of this project will be documented in this file.
+## 4.3.2 - April 10 2022
+### Added
+- `query()` function to run SAQuL queries via SDK.
+- `search_items()` function to search items by various filtering criteria for all supported project types. `search_images()` and `search_images_all_folders()` functions will be deprecated.
+- `get_item_metadata()` function to get item metadata for all supported project types. `get_image_metadata()` will be deprecated.
+### Updated
+- `search_projects()` function to add new parameter that gives an option to filter projects by project `status`.
+- `get_annotation_per_frame()` function to add a unique identifier for each annotation instance.
+### Fixed
+- pixel annotations to address the issue with the hex code.
+- `sa.validate_annotations()` function to address the incorrect error message.
+- `create_project_from_metadata()` function to address the issue with instructions.
+### Removed
+- `get_image_annotations()` function. Please use `get_annotations()`
+- `upload_images_from_public_urls()` function.
+###
 ## 4.3.1 - March 20 2022
 ### Added
 - `get_integrations()` to list all existing integrations with cloud storages.

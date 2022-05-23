@@ -28,18 +28,11 @@ class TestGetEntityMetadataVector(BaseTestCase):
             self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
         )
         item_metadata = sa.get_item_metadata(self.PROJECT_NAME, self.IMAGE_NAME)
-        assert item_metadata["path"] == f"{self.PROJECT_NAME}/{self.IMAGE_NAME}"
+        assert item_metadata["path"] == f"{self.PROJECT_NAME}"
         assert item_metadata["prediction_status"] == "NotStarted"
         assert item_metadata["segmentation_status"] == None
         assert item_metadata["annotation_status"] == "InProgress"
-
-    def test_attached_items_paths(self):
-        sa.attach_image_urls_to_project(self.PROJECT_NAME, self.scv_path)
-        sa.add_contributors_to_project(self.PROJECT_NAME, ["shab.prog@gmail.com"], "QA")
-        sa.assign_images(self.PROJECT_NAME, [self.ATTACHED_IMAGE_NAME], "shab.prog@gmail.com")
-        item = sa.get_item_metadata(self.PROJECT_NAME, self.ATTACHED_IMAGE_NAME)
-        assert item["url"] == 'https://drive.google.com/uc?export=download&id=1vwfCpTzcjxoEA4hhDxqapPOVvLVeS7ZS'
-        assert item["path"] == f"{self.PROJECT_NAME}/{self.ATTACHED_IMAGE_NAME}"
+        assert item_metadata["approval_status"] == None
 
 
 class TestGetEntityMetadataPixel(BaseTestCase):
@@ -58,7 +51,7 @@ class TestGetEntityMetadataPixel(BaseTestCase):
             self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
         )
         item_metadata = sa.get_item_metadata(self.PROJECT_NAME, self.IMAGE_NAME)
-        assert item_metadata["path"] == f"{self.PROJECT_NAME}/{self.IMAGE_NAME}"
+        assert item_metadata["path"] == f"{self.PROJECT_NAME}"
         assert item_metadata["prediction_status"] == "NotStarted"
         assert item_metadata["segmentation_status"] == "NotStarted"
         assert item_metadata["annotation_status"] == "InProgress"
@@ -85,6 +78,6 @@ class TestGetEntityMetadataVideo(BaseTestCase):
             ]
         )
         item_metadata = sa.get_item_metadata(self.PROJECT_NAME, self.ITEM_NAME)
-        assert item_metadata["path"] == f"{self.PROJECT_NAME}/{self.ITEM_NAME}"
+        assert item_metadata["path"] == f"{self.PROJECT_NAME}"
         assert "prediction_status" not in item_metadata
         assert "segmentation_status" not in item_metadata

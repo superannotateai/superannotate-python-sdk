@@ -1,7 +1,4 @@
 import os
-import subprocess
-import pytest
-import pkg_resources
 import tempfile
 from os.path import dirname
 from pathlib import Path
@@ -9,6 +6,11 @@ from unittest import TestCase
 
 from src.superannotate import SAClient
 from src.superannotate import __version__
+
+import pkg_resources
+
+import src.superannotate as sa
+from src.superannotate.lib.app.interface.cli_interface import CLIFacade
 
 sa = SAClient()
 
@@ -33,6 +35,7 @@ class CLITest(TestCase):
     TEST_VIDEO_CSV_PATH = "data_set/csv_files/image_urls.csv"
 
     def setUp(self, *args, **kwargs):
+        self._cli = CLIFacade()
         self.tearDown()
 
     def tearDown(self) -> None:
@@ -92,111 +95,65 @@ class CLITest(TestCase):
             Path(os.path.join(dirname(dirname(__file__)), self.TEST_VIDEO_CSV_PATH))
         )
 
-    def _create_project(self, project_type="Vector"):
-        subprocess.run(
-            f'superannotatecli create-project --name "{self.PROJECT_NAME}" --description gg --type {project_type}',
-            check=True,
-            shell=True,
-        )
+    @staticmethod
+    def safe_run(method, *args, **kwargs):
+        try:
+            method(*args, **kwargs)
+        except SystemExit:
+            pass
 
-    # @pytest.mark.skipif(CLI_VERSION and CLI_VERSION != __version__,
-    #                     reason=f"Updated package version from {CLI_VERSION} to {__version__}")
+    def _create_project(self, project_type="Vector"):
+        self.safe_run(self._cli.create_project, name=self.PROJECT_NAME, description="gg", type=project_type)
+
     def test_create_folder(self):
         self._create_project()
-        subprocess.run(
-            f'superannotatecli create-folder --project "{self.PROJECT_NAME}" --name {self.FOLDER_NAME}',
-            check=True,
-            shell=True,
-        )
+        self.safe_run(self._cli.create_folder, project=self.PROJECT_NAME, name=self.FOLDER_NAME)
         folder = sa.get_folder_metadata(
             project=self.PROJECT_NAME, folder_name=self.FOLDER_NAME
         )
         self.assertEqual(self.FOLDER_NAME, folder["name"])
 
-    # @pytest.mark.skipif(CLI_VERSION and CLI_VERSION != __version__,
-    #                     reason=f"Updated package version from {CLI_VERSION} to {__version__}")
     def test_upload_images(self):
         self._create_project()
-        subprocess.run(
-            f'superannotatecli upload-images --project "{self.PROJECT_NAME}"'
-            f" --folder {self.recursive_folder_path} "
-            "--extensions=jpg "
-            "--set-annotation-status QualityCheck",
-            check=True,
-            shell=True,
-        )
+        self.safe_run(self._cli.upload_images, project=self.PROJECT_NAME, folder=str(self.recursive_folder_path),
+                      extensions="jpg",
+                      set_annotation_status="QualityCheck")
         self.assertEqual(1, len(sa.search_items(self.PROJECT_NAME)))
 
-    # @pytest.mark.skipif(CLI_VERSION and CLI_VERSION != __version__,
-    #                     reason=f"Updated package version from {CLI_VERSION} to {__version__}")
     def test_upload_export(self):
         self._create_project()
         with tempfile.TemporaryDirectory() as temp_dir:
             test_dir = Path(temp_dir) / "test1"
             test_dir.mkdir()
-            subprocess.run(
-                f'superannotatecli export-project --project "{self.PROJECT_NAME}" --folder {test_dir}',
-                check=True,
-                shell=True,
-            )
+            self.safe_run(self._cli.export_project, project=self.PROJECT_NAME, folder=test_dir)
             self.assertEqual(len(list(test_dir.rglob("*.json"))), 1)
             self.assertEqual(len(list(test_dir.glob("*.jpg"))), 0)
             self.assertEqual(len(list(test_dir.glob("*.png"))), 0)
 
-    # @pytest.mark.skipif(CLI_VERSION and CLI_VERSION != __version__,
-    #                     reason=f"Updated package version from {CLI_VERSION} to {__version__}")
     def test_vector_pre_annotation_folder_upload_download_cli(self):
         self._create_project()
 
         sa.create_annotation_classes_from_classes_json(
             self.PROJECT_NAME, f"{self.vector_folder_path}/classes/classes.json"
         )
-        subprocess.run(
-            f'superannotatecli upload-images --project "{self.PROJECT_NAME}"'
-            f" --folder {self.convertor_data_path} "
-            "--extensions=jpg "
-            "--set-annotation-status QualityCheck",
-            check=True,
-            shell=True,
-        )
-
-        subprocess.run(
-            f"superannotatecli upload-preannotations "
-            f'--project "{self.PROJECT_NAME}" '
-            f'--folder "{self.convertor_data_path}" '
-            f'--format COCO '
-            f'--data-set-name "instances_test"',
-            shell=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
+        self.safe_run(self._cli.upload_images, self.PROJECT_NAME, folder=str(self.convertor_data_path),
+                      extensions="jpg",
+                      set_annotation_status="QualityCheck")
+        self.safe_run(self._cli.upload_preannotations, self.PROJECT_NAME, folder=str(self.convertor_data_path),
+                      format="COCO",
+                      dataset_name="instances_test")
         # tod add test
 
-    @pytest.mark.skipif(CLI_VERSION and CLI_VERSION != __version__,
-                        reason=f"Updated package version from {CLI_VERSION} to {__version__}")
     def test_vector_annotation_folder_upload_download_cli(self):
         self._create_project()
         sa.create_annotation_classes_from_classes_json(
             self.PROJECT_NAME, f"{self.vector_folder_path}/classes/classes.json"
         )
-        subprocess.run(
-            f"superannotatecli upload-images"
-            f' --project "{self.PROJECT_NAME}"'
-            f" --folder {self.convertor_data_path} "
-            "--extensions=jpg "
-            "--set-annotation-status QualityCheck",
-            check=True,
-            shell=True,
-        )
-        subprocess.run(
-            f"superannotatecli upload-annotations "
-            f'--project "{self.PROJECT_NAME}" '
-            f'--folder "{self.convertor_data_path}" '
-            f'--format COCO '
-            f'--dataset-name "instances_test"',
-            check=True,
-            shell=True,
-        )
+        self.safe_run(self._cli.upload_images, self.PROJECT_NAME, str(self.convertor_data_path), extensions="jpg",
+                      set_annotation_status="QualityCheck")
+        self.safe_run(self._cli.upload_annotations, self.PROJECT_NAME, str(self.convertor_data_path), format="COCO",
+                      dataset_name="instances_test")
+
         count_in = len(list(self.vector_folder_path.glob("*.json")))
         with tempfile.TemporaryDirectory() as temp_dir:
             for image in sa.search_items(self.PROJECT_NAME):
@@ -205,55 +162,22 @@ class CLITest(TestCase):
             count_out = len(list(Path(temp_dir).glob("*.json")))
             self.assertEqual(count_in, count_out)
 
-    @pytest.mark.skipif(CLI_VERSION and CLI_VERSION != __version__,
-                        reason=f"Updated package version from {CLI_VERSION} to {__version__}")
     def test_attach_image_urls(self):
         self._create_project()
-        subprocess.run(
-            f"superannotatecli attach-image-urls "
-            f'--project "{self.PROJECT_NAME}" '
-            f"--attachments {self.image_csv_path}",
-            check=True,
-            shell=True,
-        )
-
+        self.safe_run(self._cli.attach_image_urls, self.PROJECT_NAME, str(self.video_csv_path))
         self.assertEqual(3, len(sa.search_items(self.PROJECT_NAME)))
 
-    # @pytest.mark.skipif(CLI_VERSION and CLI_VERSION != __version__,
-    #                     reason=f"Updated package version from {CLI_VERSION} to {__version__}")
     def test_attach_video_urls(self):
         self._create_project("Video")
-        subprocess.run(
-            f"superannotatecli attach-video-urls "
-            f'--project "{self.PROJECT_NAME}" '
-            f"--attachments {self.video_csv_path}",
-            check=True,
-            shell=True,
-        )
-        # self.assertEqual(3, len(sa.search_items(self.PROJECT_NAME)))
+        self.safe_run(self._cli.attach_video_urls, self.PROJECT_NAME, str(self.video_csv_path))
+        self.assertEqual(3, len(sa.search_items(self.PROJECT_NAME)))
 
-    # @pytest.mark.skipif(CLI_VERSION and CLI_VERSION != __version__,
-    #                     reason=f"Updated package version from {CLI_VERSION} to {__version__}")
     def test_upload_videos(self):
         self._create_project()
-        subprocess.run(
-            f"superannotatecli upload-videos "
-            f'--project "{self.PROJECT_NAME}" '
-            f"--folder '{self.video_folder_path}' "
-            f"--target-fps 1",
-            check=True,
-            shell=True,
-        )
+        self.safe_run(self._cli.upload_videos, self.PROJECT_NAME, str(self.video_folder_path))
         self.assertEqual(5, len(sa.search_items(self.PROJECT_NAME)))
 
-    @pytest.mark.skipif(CLI_VERSION and CLI_VERSION != __version__,
-                        reason=f"Updated package version from {CLI_VERSION} to {__version__}")
     def test_attach_document_urls(self):
-            self._create_project("Document")
-            subprocess.run(
-                f"superannotatecli attach-document-urls "
-                f'--project "{self.PROJECT_NAME}" '
-                f"--attachments {self.image_csv_path}",
-                check=True,
-                shell=True,
-            )
+        self._create_project("Document")
+        self.safe_run(self._cli.attach_document_urls, self.PROJECT_NAME, str(self.video_csv_path))
+        self.assertEqual(3, len(sa.search_items(self.PROJECT_NAME)))

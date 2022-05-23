@@ -1,9 +1,35 @@
+import itertools
+import sys
+import threading
+import time
 import uuid
 from collections import defaultdict
 from typing import Union
 
 import tqdm
 from superannotate.logger import get_default_logger
+
+
+class Spinner:
+    spinner_cycle = iter(itertools.cycle(["⣾", "⣽", "⣻", "⢿", "⡿", "⣟", "⣯", "⣷"]))
+
+    def __init__(self):
+        self.stop_running = threading.Event()
+        self.spin_thread = threading.Thread(target=self.init_spin)
+
+    def start(self):
+        self.spin_thread.start()
+
+    def stop(self):
+        self.stop_running.set()
+        self.spin_thread.join()
+
+    def init_spin(self):
+        while not self.stop_running.is_set():
+            sys.stdout.write(next(self.spinner_cycle))
+            sys.stdout.flush()
+            time.sleep(0.25)
+            sys.stdout.write("\b")
 
 
 class Session:
@@ -59,6 +85,16 @@ class Reporter:
         self.custom_messages = defaultdict(set)
         self.progress_bar = None
         self.session = session
+        self._spinner = None
+
+    def start_spinner(self):
+        if self._log_info:
+            self._spinner = Spinner()
+            self._spinner.start()
+
+    def stop_spinner(self):
+        if self._spinner:
+            self._spinner.stop()
 
     def disable_warnings(self):
         self._log_warning = False

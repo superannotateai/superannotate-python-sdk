@@ -1,25 +1,10 @@
 import json
-import os
-import sys
-import time
 
 import numpy as np
-from PIL import Image
 from superannotate.logger import get_default_logger
 from tqdm import tqdm
 
 logger = get_default_logger()
-
-_PROJECT_TYPES = {"Vector": 1, "Pixel": 2}
-
-_ANNOTATION_STATUSES = {
-    "NotStarted": 1,
-    "InProgress": 2,
-    "QualityCheck": 3,
-    "Returned": 4,
-    "Completed": 5,
-    "Skipped": 6,
-}
 
 
 def hex_to_rgb(hex_string):
@@ -66,73 +51,6 @@ def id2rgb(id_map):
         color.append(id_map % 256)
         id_map //= 256
     return color
-
-
-def save_desktop_format(output_dir, classes, files_dict):
-    cat_id_map = {}
-    new_classes = []
-    for idx, class_ in enumerate(classes):
-        cat_id_map[class_["name"]] = idx + 2
-        class_["id"] = idx + 2
-        new_classes.append(class_)
-    with open(output_dir.joinpath("classes.json"), "w") as fw:
-        json.dump(new_classes, fw)
-
-    meta = {
-        "type": "meta",
-        "name": "lastAction",
-        "timestamp": int(round(time.time() * 1000)),
-    }
-    new_json = {}
-    files_path = []
-    (output_dir / "images" / "thumb").mkdir()
-    for file_name, json_data in files_dict.items():
-        file_name = file_name.replace("___objects.json", "")
-        if not (output_dir / "images" / file_name).exists():
-            continue
-
-        for js_data in json_data:
-            if "className" in js_data:
-                js_data["classId"] = cat_id_map[js_data["className"]]
-        json_data.append(meta)
-        new_json[file_name] = json_data
-
-        files_path.append(
-            {
-                "srcPath": str(output_dir.resolve() / file_name),
-                "name": file_name,
-                "imagePath": str(output_dir.resolve() / file_name),
-                "thumbPath": str(
-                    output_dir.resolve()
-                    / "images"
-                    / "thumb"
-                    / ("thmb_" + file_name + ".jpg")
-                ),
-                "valid": True,
-            }
-        )
-
-        img = Image.open(output_dir / "images" / file_name)
-        img.thumbnail((168, 120), Image.ANTIALIAS)
-        img.save(output_dir / "images" / "thumb" / ("thmb_" + file_name + ".jpg"))
-
-    with open(output_dir / "images" / "images.sa", "w") as fw:
-        fw.write(json.dumps(files_path))
-
-    with open(output_dir.joinpath("annotations.json"), "w") as fw:
-        json.dump(new_json, fw)
-
-    with open(output_dir / "config.json", "w") as fw:
-        json.dump({"pathSeparator": os.sep, "os": sys.platform}, fw)
-
-
-def save_web_format(output_dir, classes, files_dict):
-    for key, value in files_dict.items():
-        with open(output_dir.joinpath(key), "w") as fw:
-            json.dump(value, fw, indent=2)
-
-    with open(output_dir.joinpath("classes", "classes.json"), "w") as fw:
-        json.dump(classes, fw)
 
 
 def write_to_json(output_path, json_data):

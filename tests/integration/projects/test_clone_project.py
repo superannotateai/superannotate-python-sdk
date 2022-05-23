@@ -26,7 +26,7 @@ class TestCloneProject(TestCase):
         sa.delete_project(self.PROJECT_NAME_2)
 
     def test_create_like_project(self):
-        _, _, _ = sa.attach_image_urls_to_project(
+        _, _, _ = sa.attach_items(
             self.PROJECT_NAME_1,
             os.path.join(DATA_SET_PATH, self.PATH_TO_URLS),
         )
@@ -108,6 +108,7 @@ class TestCloneProject(TestCase):
             "tall",
         )
         self.assertEqual(ann_classes[0]["color"], "#FFAAFF")
+        assert new_project["status"], constances.ProjectStatus.NotStarted.name
 
 
 class TestCloneProjectAttachedUrls(TestCase):
@@ -162,3 +163,4 @@ class TestCloneProjectAttachedUrls(TestCase):
         self.assertEqual(ann_classes[0]["color"], "#FFAAFF")
         self.assertEqual(ann_classes[0]["type"], "object")
         self.assertIn("Workflow copy is deprecated for Document projects.", self._caplog.text)
+        assert new_project["status"], constances.ProjectStatus.NotStarted.name

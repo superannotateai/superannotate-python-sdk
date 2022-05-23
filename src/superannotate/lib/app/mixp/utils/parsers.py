@@ -55,7 +55,7 @@ def search_projects(**kwargs):
         "properties": {
             "Metadata": bool(kwargs.get("return_metadata")),
             "project_name": get_project_name(project[0]) if project else None,
-            "status": status
+            "status": status,
         },
     }
 
@@ -143,18 +143,6 @@ def upload_video_to_project(**kwargs):
             "FPS": bool(kwargs.get("target_fps")),
             "Start": bool(kwargs.get("start_time")),
             "End": bool(kwargs.get("end_time")),
-        },
-    }
-
-
-def attach_image_urls_to_project(**kwargs):
-    project = kwargs["project"]
-
-    return {
-        "event_name": "attach_image_urls_to_project",
-        "properties": {
-            "project_name": get_project_name(project),
-            "Annotation Status": bool(kwargs.get("annotation_status")),
         },
     }
 
@@ -420,44 +408,6 @@ def import_annotation(**kwargs):
     }
 
 
-def move_images(**kwargs):
-    project = kwargs["source_project"]
-    project_name, folder_name = extract_project_folder(project)
-    image_names = kwargs.get("image_names", False)
-    if image_names is None:
-        res = Controller.get_default().search_images(project_name, folder_name)
-        image_names = res.data
-
-    return {
-        "event_name": "move_images",
-        "properties": {
-            "project_name": project_name,
-            "Image Count": len(image_names),
-            "Copy Annotations": bool("include_annotations" in kwargs),
-            "Copy Annotation Status": bool("copy_annotation_status" in kwargs),
-            "Copy Pin": bool("copy_pin" in kwargs),
-        },
-    }
-
-
-def copy_images(**kwargs):
-    project = kwargs["source_project"]
-    project_name, folder_name = extract_project_folder(project)
-    image_names = kwargs.get("image_names", False)
-    if not image_names:
-        res = Controller.get_default().search_images(project_name, folder_name)
-        image_names = res.data
-    return {
-        "event_name": "copy_images",
-        "properties": {
-            "project_name": project_name,
-            "Image Count": len(image_names),
-            "Copy Annotations": bool("include_annotations" in kwargs),
-            "Copy Annotation Status": bool("copy_annotation_status" in kwargs),
-        },
-    }
-
-
 def consensus(**kwargs):
     folder_names = kwargs["folder_names"]
     image_list = kwargs["image_list"]
@@ -719,19 +669,6 @@ def class_distribution(**kwargs):
     }
 
 
-def share_project(**kwargs):
-    project = kwargs["project_name"]
-
-    user_role = kwargs.get("user_role")
-    return {
-        "event_name": "share_project",
-        "properties": {
-            "project_name": get_project_name(project),
-            "User Role": user_role,
-        },
-    }
-
-
 def set_project_default_image_quality_in_editor(**kwargs):
     project = kwargs["project"]
 
@@ -832,30 +769,6 @@ def unassign_images(**kwargs):
     return {
         "event_name": "unassign_images",
         "properties": {"Assign Folder": is_root, "Image Count": len(image_names)},
-    }
-
-
-def attach_video_urls_to_project(**kwargs):
-    project = kwargs["project"]
-    project_name, _ = extract_project_folder(project)
-    return {
-        "event_name": "attach_video_urls_to_project",
-        "properties": {
-            "project_name": project_name,
-            "Annotation Status": bool(kwargs.get("annotation_status")),
-        },
-    }
-
-
-def attach_document_urls_to_project(**kwargs):
-    project = kwargs["project"]
-    project_name, _ = extract_project_folder(project)
-    return {
-        "event_name": "attach_document_urls_to_project",
-        "properties": {
-            "project_name": project_name,
-            "Annotation Status": bool(kwargs.get("annotation_status")),
-        },
     }
 
 
@@ -1052,5 +965,24 @@ def set_annotation_statuses(**kwargs):
             "item_count": len(kwargs.get("item_names", [])),
             "annotation_status": kwargs["annotation_status"],
             "root": folder_name == "root",
+        },
+    }
+
+
+def download_annotations(**kwargs):
+    project = kwargs["project"]
+    project_name, folder_name = extract_project_folder(project)
+    project = (
+        Controller.get_default().get_project_metadata(project_name).data["project"]
+    )
+    return {
+        "event_name": "download_annotations",
+        "properties": {
+            "project_name": project_name,
+            "project_type": ProjectType.get_name(project.type),
+            "root": bool(folder_name),
+            "recursive": kwargs["recursive"],
+            "path": bool(kwargs["path"]),
+            "callback": bool(kwargs["callback"]),
         },
     }

@@ -4,12 +4,14 @@ import pytest
 from unittest import TestCase
 
 from src.superannotate import SAClient
-sa = SAClient()
 from src.superannotate import AppException
 from src.superannotate.lib.core import LIMITED_FUNCTIONS
 from src.superannotate.lib.core import INVALID_PROJECT_TYPE_TO_PROCESS
 from src.superannotate.lib.core import ProjectType
 from src.superannotate.lib.core import DEPRICATED_DOCUMENT_VIDEO_MESSAGE
+
+
+sa = SAClient()
 
 
 class TestDeprecatedFunctionsDocument(TestCase):
@@ -86,13 +88,6 @@ class TestDeprecatedFunctionsDocument(TestCase):
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
-            sa.attach_image_urls_to_project(
-                self.PROJECT_NAME,
-                os.path.join(dirname(dirname(__file__)), self.PATH_TO_URLS),
-            )
-        except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE_2.format(self.PROJECT_TYPE), str(e))
-        try:
             sa.copy_image(self.PROJECT_NAME, self.UPLOAD_IMAGE_NAME, self.PROJECT_NAME_2)
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
@@ -125,14 +120,17 @@ class TestDeprecatedFunctionsDocument(TestCase):
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
-            sa.copy_images(self.PROJECT_NAME, [self.UPLOAD_IMAGE_NAME], self.PROJECT_NAME)
-        except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE, str(e))
-        try:
             sa.get_project_workflow(self.PROJECT_NAME)
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
+            sa.class_distribution(self.video_export_path, [self.PROJECT_NAME])
+        except AppException as e:
+            self.assertIn(self.EXCEPTION_MESSAGE_DOCUMENT_VIDEO, str(e))
+        try:
+            sa.convert_project_type(self.video_export_path, "./")
+        except AppException as e:
+            self.assertIn(self.EXCEPTION_MESSAGE_DOCUMENT_VIDEO, str(e))
             sa.move_images(self.PROJECT_NAME, [self.UPLOAD_IMAGE_NAME], self.PROJECT_NAME_2)
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
@@ -140,13 +138,6 @@ class TestDeprecatedFunctionsDocument(TestCase):
             sa.prepare_export(self.PROJECT_NAME, include_fuse=True, only_pinned=True)
         except AppException as e:
             self.assertIn("Include fuse functionality is not supported", str(e))
-        try:
-            sa.attach_video_urls_to_project(
-                self.PROJECT_NAME,
-                os.path.join(dirname(dirname(__file__)), self.PATH_TO_URLS),
-            )
-        except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE_2.format(self.PROJECT_TYPE), str(e))
         try:
             sa.benchmark(self.PROJECT_NAME, "some", ["some folder1"])
         except AppException as e:

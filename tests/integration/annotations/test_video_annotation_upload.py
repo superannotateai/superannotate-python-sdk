@@ -1,6 +1,6 @@
+import json
 import os
 import tempfile
-import json
 from pathlib import Path
 
 import pytest
@@ -8,7 +8,7 @@ from src.superannotate import SAClient
 sa = SAClient()
 from tests.integration.base import BaseTestCase
 from src.superannotate.lib.core.data_handlers import VideoFormatHandler
-from lib.core.reporter import Reporter
+from tests.integration.base import BaseTestCase
 
 
 class TestUploadVideoAnnotation(BaseTestCase):
@@ -64,7 +64,7 @@ class TestUploadVideoAnnotation(BaseTestCase):
     def test_video_annotation_upload_invalid_json(self):
         sa.create_annotation_classes_from_classes_json(self.PROJECT_NAME, self.classes_path)
 
-        _, _, _ = sa.attach_video_urls_to_project(
+        _, _, _ = sa.attach_items(
             self.PROJECT_NAME,
             self.csv_path,
         )
@@ -78,7 +78,7 @@ class TestUploadVideoAnnotation(BaseTestCase):
     def test_video_annotation_upload(self):
         sa.create_annotation_classes_from_classes_json(self.PROJECT_NAME, self.classes_path)
 
-        _, _, _ = sa.attach_video_urls_to_project(
+        _, _, _ = sa.attach_items(
             self.PROJECT_NAME,
             self.csv_path,
         )
@@ -115,7 +115,7 @@ class TestUploadVideoAnnotation(BaseTestCase):
     def test_upload_annotations_without_class_name(self):
         sa.create_annotation_classes_from_classes_json(self.PROJECT_NAME, self.classes_path)
 
-        _, _, _ = sa.attach_video_urls_to_project(
+        _, _, _ = sa.attach_items(
             self.PROJECT_NAME,
             self.csv_path,
         )
@@ -124,7 +124,7 @@ class TestUploadVideoAnnotation(BaseTestCase):
     def test_upload_annotations_empty_json(self):
         sa.create_annotation_classes_from_classes_json(self.PROJECT_NAME, self.classes_path)
 
-        _, _, _ = sa.attach_video_urls_to_project(
+        _, _, _ = sa.attach_items(
             self.PROJECT_NAME,
             self.csv_path,
         )
@@ -142,28 +142,24 @@ class TestUploadVideoAnnotation(BaseTestCase):
             json.loads(open(f'{self.minimal_annotations_path}/video.mp4.json', 'r').read())
         )
 
-        data = {'instances': [{'attributes': [], 'timeline': {
-            '0': {'active': True, 'points': {'x1': 223.32, 'y1': 78.45, 'x2': 312.31, 'y2': 176.66}},
-            17.271058: {'points': {'x1': 182.08, 'y1': 33.18, 'x2': 283.45, 'y2': 131.39}},
-            18.271058: {'points': {'x1': 182.32, 'y1': 36.33, 'x2': 284.01, 'y2': 134.54}},
-            19.271058: {'points': {'x1': 181.49, 'y1': 45.09, 'x2': 283.18, 'y2': 143.3}},
-            19.725864: {'points': {'x1': 181.9, 'y1': 48.35, 'x2': 283.59, 'y2': 146.56}},
-            20.271058: {'points': {'x1': 181.49, 'y1': 52.46, 'x2': 283.18, 'y2': 150.67}},
-            21.271058: {'points': {'x1': 181.49, 'y1': 63.7, 'x2': 283.18, 'y2': 161.91}},
-            22.271058: {'points': {'x1': 182.07, 'y1': 72.76, 'x2': 283.76, 'y2': 170.97}},
-            23.271058: {'points': {'x1': 182.07, 'y1': 81.51, 'x2': 283.76, 'y2': 179.72}},
-            24.271058: {'points': {'x1': 182.42, 'y1': 97.19, 'x2': 284.11, 'y2': 195.4}},
-            30.526667: {'active': False, 'points': {'x1': 182.42, 'y1': 97.19, 'x2': 284.11, 'y2': 195.4}}},
-                               'type': 'bbox', 'locked': False, 'classId': -1, 'pointLabels': {'3': 'point label bro'}},
-                              {'attributes': [], 'timeline': {29.713736: {'active': True,
-                                                                          'points': {'x1': 132.82, 'y1': 129.12,
-                                                                                     'x2': 175.16, 'y2': 188}},
-                                                              30.526667: {'active': False,
-                                                                          'points': {'x1': 132.82, 'y1': 129.12,
-                                                                                     'x2': 175.16, 'y2': 188}}},
-                               'type': 'bbox', 'locked': False, 'classId': -1}, {'attributes': [], 'timeline': {
-                5.528212: {'active': True}, 6.702957: {}, 7.083022: {'active': False}}, 'type': 'event',
-                                                                                 'locked': False, 'classId': -1}],
-                'tags': ['some tag'], 'name': 'video.mp4',
-                'metadata': {'name': 'video.mp4', 'width': None, 'height': None}}
+        data = {'instances': [
+            {
+                'attributes': [], 'timeline': {
+                '0': {'active': True, 'points': {'x1': 223.32, 'y1': 78.45, 'x2': 312.31, 'y2': 176.66}},
+                17.271058: {'points': {'x1': 182.08, 'y1': 33.18, 'x2': 283.45, 'y2': 131.39}},
+                30.526667: {'active': False, 'points': {'x1': 182.42, 'y1': 97.19, 'x2': 284.11, 'y2': 195.4}}},
+                'type': 'bbox', 'locked': False, 'classId': -1, 'pointLabels': {'3': 'point label bro'}
+            },
+            {
+                'attributes': [],
+                'timeline': {29.713736: {'active': True, 'x': 1, 'y': 2}, 30.526667: {'active': False, 'x': 2, 'y': 3}},
+                'type': 'point', 'locked': False, 'classId': -1
+            },
+            {
+                'attributes': [], 'timeline': {5.528212: {'active': True}, 6.702957: {}, 7.083022: {'active': False}},
+                'type': 'event', 'locked': False, 'classId': -1
+            }
+        ],
+            'tags': ['some tag'], 'name': 'video.mp4',
+            'metadata': {'name': 'video.mp4', 'width': None, 'height': None}}
         self.assertEqual(data, converted_video)

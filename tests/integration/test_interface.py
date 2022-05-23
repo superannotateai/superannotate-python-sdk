@@ -91,14 +91,6 @@ class TestInterface(BaseTestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             sa.download_image_annotations(self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, temp_dir)
 
-    def test_search_folder(self):
-        team_users = sa.search_team_contributors()
-        sa.share_project(self.PROJECT_NAME, team_users[0], "QA")
-        sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME)
-        data = sa.search_folders(self.PROJECT_NAME, return_metadata=True)
-        folder_data = sa.search_folders(self.PROJECT_NAME, self.TEST_FOLDER_NAME, return_metadata=True)
-        self.assertEqual(data, folder_data)
-
     def test_search_project(self):
         sa.upload_images_from_folder_to_project(self.PROJECT_NAME, self.folder_path)
         sa.set_image_annotation_status(self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, "Completed")

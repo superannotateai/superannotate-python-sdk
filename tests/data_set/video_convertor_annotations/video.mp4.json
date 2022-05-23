@@ -1,8 +1,52 @@
 {
     "metadata": {
-        "name": "video.mp4"
+        "name": "video.mp4",
+        "width": 480,
+        "height": 270,
+        "status": "NotStarted",
+        "url": "https://file-examples-com.github.io/uploads/2017/04/file_example_MP4_480_1_5MG.mp4",
+        "duration": 30526667,
+        "projectId": 152038,
+        "error": null,
+        "annotatorEmail": null,
+        "qaEmail": null
     },
     "instances": [
+        {
+            "meta": {
+                "type": "point",
+                "classId": 859496,
+                "className": "vid",
+                "start": 29713736,
+                "end": 30526667
+            },
+            "parameters": [
+                {
+                    "start": 29713736,
+                    "end": 30526667,
+                    "timestamps": [
+                        {
+                            "x": 100.82,
+                            "y": 50.12,
+                            "timestamp": 17271058,
+                            "attributes": []
+                        },
+                        {
+                            "points": {
+                                "x1": 132.82,
+                                "y1": 129.12,
+                                "x2": 175.16,
+                                "y2": 188
+                            },
+                            "x": 200.82,
+                            "y": 100.12,
+                            "timestamp": 30526667,
+                            "attributes": []
+                        }
+                    ]
+                }
+            ]
+        },
         {
             "meta": {
                 "type": "bbox",
@@ -62,35 +106,6 @@
                                     "groupName": "attr g"
                                 }
                             ]
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "meta": {
-                "type": "point",
-                "classId": 859496,
-                "className": "vid",
-                "start": 29713736,
-                "end": 30526667
-            },
-            "parameters": [
-                {
-                    "start": 29713736,
-                    "end": 30526667,
-                    "timestamps": [
-                        {
-                            "x": 1,
-                            "y": 2,
-                            "timestamp": 29713736,
-                            "attributes": []
-                        },
-                        {
-                            "x": 2,
-                            "y": 3,
-                            "timestamp": 30526667,
-                            "attributes": []
                         }
                     ]
                 }

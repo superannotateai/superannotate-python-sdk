@@ -5,11 +5,12 @@ from abc import abstractmethod
 from collections import defaultdict
 from functools import lru_cache
 from typing import Any
+from typing import Callable
 from typing import Dict
 from typing import List
 
 import lib.core as constances
-from lib.core.enums import ClassTypeEnum
+from lib.core.enums import AnnotationTypes
 from lib.core.reporter import Reporter
 from superannotate_schemas.schemas.classes import AnnotationClass
 from superannotate_schemas.schemas.classes import Attribute
@@ -156,11 +157,6 @@ class MissingIDsHandler(BaseAnnotationDateHandler):
                     " This will result in errors in annotation upload.",
                 )
 
-    def _get_class_type(self, annotation_type: str):
-        if annotation_type == ClassTypeEnum.TAG.name:
-            return ClassTypeEnum.TAG
-        return ClassTypeEnum.OBJECT
-
     def handle(self, annotation: dict):
         if "instances" not in annotation:
             return annotation
@@ -241,6 +237,24 @@ class MissingIDsHandler(BaseAnnotationDateHandler):
 
 
 class VideoFormatHandler(BaseAnnotationDateHandler):
+    @staticmethod
+    def _point_handler(time_stamp):
+        pass
+
+    HANDLERS: Dict[str, Callable] = {
+        AnnotationTypes.EVENT: lambda timestamp: {},
+        AnnotationTypes.BBOX: lambda timestamp: {"points": timestamp["points"]},
+        AnnotationTypes.POINT: lambda timestamp: {
+            "x": timestamp["x"],
+            "y": timestamp["y"],
+        },
+        AnnotationTypes.POLYLINE: lambda timestamp: {"points": timestamp["points"]},
+        AnnotationTypes.POLYGON: lambda timestamp: {
+            "points": timestamp["points"],
+            "exclude": timestamp.get("exclude", []),
+        },
+    }
+
     def __init__(self, annotation_classes: List[AnnotationClass], reporter: Reporter):
         super().__init__(annotation_classes)
         self.reporter = reporter
@@ -288,13 +302,10 @@ class VideoFormatHandler(BaseAnnotationDateHandler):
 
             if meta.get("pointLabels", None):
                 editor_instance["pointLabels"] = meta["pointLabels"]
-
             active_attributes = set()
             for parameter in instance["parameters"]:
-
                 start_time = safe_time(convert_timestamp(parameter["start"]))
                 end_time = safe_time(convert_timestamp(parameter["end"]))
-
                 for timestamp_data in parameter["timestamps"]:
                     timestamp = safe_time(
                         convert_timestamp(timestamp_data["timestamp"])
@@ -306,11 +317,15 @@ class VideoFormatHandler(BaseAnnotationDateHandler):
 
                     if timestamp == end_time:
                         editor_instance["timeline"][timestamp]["active"] = False
-
-                    if timestamp_data.get("points", None):
-                        editor_instance["timeline"][timestamp][
-                            "points"
-                        ] = timestamp_data["points"]
+                    handler: Callable = self.HANDLERS.get(meta["type"])
+                    if handler:
+                        editor_instance["timeline"][timestamp].update(
+                            handler(timestamp_data)
+                        )
+                    # if timestamp_data.get("points", None):
+                    #     editor_instance["timeline"][timestamp][
+                    #         "points"
+                    #     ] = timestamp_data["points"]
                     if not class_name:
                         continue
                     annotation_class = self.get_annotation_class(class_name)

@@ -3,7 +3,6 @@ import os
 import sys
 
 import requests
-import superannotate.lib.core as constances
 from packaging.version import parse
 from superannotate.lib.app.analytics.class_analytics import class_distribution
 from superannotate.lib.app.exceptions import AppException
@@ -19,7 +18,6 @@ from superannotate.version import __version__
 __all__ = [
     "__version__",
     "SAClient",
-    "constances",
     # Utils
     "AppException",
     # analytics
@@ -33,8 +31,7 @@ __all__ = [
 
 __author__ = "Superannotate"
 
-WORKING_DIR = os.path.split(os.path.realpath(__file__))[0]
-sys.path.append(WORKING_DIR)
+sys.path.append(os.path.split(os.path.realpath(__file__))[0])
 logging.getLogger("botocore").setLevel(logging.CRITICAL)
 logger = get_default_logger()
 
