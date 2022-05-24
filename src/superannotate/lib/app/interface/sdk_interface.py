@@ -5,6 +5,7 @@ import os
 import tempfile
 import warnings
 from pathlib import Path
+from typing import Callable
 from typing import Iterable
 from typing import List
 from typing import Optional
@@ -12,12 +13,6 @@ from typing import Tuple
 from typing import Union
 
 import boto3
-from pydantic import StrictBool
-from pydantic import conlist
-from pydantic import parse_obj_as
-from pydantic.error_wrappers import ValidationError
-from tqdm import tqdm
-
 import lib.core as constances
 from lib.app.annotation_helpers import add_annotation_bbox_to_json
 from lib.app.annotation_helpers import add_annotation_comment_to_json
@@ -25,9 +20,7 @@ from lib.app.annotation_helpers import add_annotation_point_to_json
 from lib.app.helpers import extract_project_folder
 from lib.app.helpers import get_annotation_paths
 from lib.app.helpers import get_name_url_duplicated_from_csv
-from lib.app.helpers import get_paths_and_duplicated_from_csv
 from lib.app.interface.base_interface import BaseInterfaceFacade
-from lib.app.interface.base_interface import Tracker
 from lib.app.interface.types import AnnotationStatuses
 from lib.app.interface.types import AnnotationType
 from lib.app.interface.types import AnnotatorRole
@@ -59,7 +52,12 @@ from lib.core.types import PriorityScore
 from lib.core.types import Project
 from lib.infrastructure.controller import Controller
 from lib.infrastructure.repositories import ConfigRepository
+from pydantic import conlist
+from pydantic import parse_obj_as
+from pydantic import StrictBool
+from pydantic.error_wrappers import ValidationError
 from superannotate.logger import get_default_logger
+from tqdm import tqdm
 
 logger = get_default_logger()
 
@@ -119,7 +117,6 @@ class SAClient(BaseInterfaceFacade):
         response = self.controller.get_team()
         return TeamSerializer(response.data).serialize()
 
-    @Tracker
     @validate_arguments
     def search_team_contributors(
             self,
@@ -151,7 +148,6 @@ class SAClient(BaseInterfaceFacade):
             return [contributor["email"] for contributor in contributors]
         return contributors
 
-    @Tracker
     @validate_arguments
     def search_projects(
             self,
@@ -207,7 +203,6 @@ class SAClient(BaseInterfaceFacade):
         else:
             return [project.name for project in result]
 
-    @Tracker
     @validate_arguments
     def create_project(
             self,
@@ -248,7 +243,6 @@ class SAClient(BaseInterfaceFacade):
 
         return ProjectSerializer(response.data).serialize()
 
-    @Tracker
     @validate_arguments
     def create_project_from_metadata(
             self, project_metadata: Project):
@@ -275,7 +269,6 @@ class SAClient(BaseInterfaceFacade):
             raise AppException(response.errors)
         return ProjectSerializer(response.data).serialize()
 
-    @Tracker
     @validate_arguments
     def clone_project(
             self,
@@ -321,7 +314,6 @@ class SAClient(BaseInterfaceFacade):
             raise AppException(response.errors)
         return ProjectSerializer(response.data).serialize()
 
-    @Tracker
     @validate_arguments
     def create_folder(
             self, project: NotEmptyStr, folder_name: NotEmptyStr):
@@ -346,7 +338,6 @@ class SAClient(BaseInterfaceFacade):
         if res.errors:
             raise AppException(res.errors)
 
-    @Tracker
     @validate_arguments
     def delete_project(
             self, project: Union[NotEmptyStr, dict]):
@@ -360,7 +351,6 @@ class SAClient(BaseInterfaceFacade):
             name = project["name"]
         self.controller.delete_project(name=name)
 
-    @Tracker
     @validate_arguments
     def rename_project(
             self, project: NotEmptyStr, new_name: NotEmptyStr):
@@ -380,7 +370,6 @@ class SAClient(BaseInterfaceFacade):
         logger.info("Successfully renamed project %s to %s.", project, response.data.name)
         return ProjectSerializer(response.data).serialize()
 
-    @Tracker
     @validate_arguments
     def get_folder_metadata(
             self, project: NotEmptyStr, folder_name: NotEmptyStr):
@@ -403,7 +392,6 @@ class SAClient(BaseInterfaceFacade):
             raise AppException("Folder not found.")
         return FolderSerializer(result).serialize()
 
-    @Tracker
     @validate_arguments
     def delete_folders(
             self, project: NotEmptyStr, folder_names: List[NotEmptyStr]):
@@ -422,7 +410,6 @@ class SAClient(BaseInterfaceFacade):
             raise AppException(res.errors)
         logger.info(f"Folders {folder_names} deleted in project {project}")
 
-    @Tracker
     @validate_arguments
     def search_folders(
             self,
@@ -453,7 +440,6 @@ class SAClient(BaseInterfaceFacade):
             return [FolderSerializer(folder).serialize() for folder in data]
         return [folder.name for folder in data]
 
-    @Tracker
     @validate_arguments
     def copy_image(
             self,
@@ -534,154 +520,6 @@ class SAClient(BaseInterfaceFacade):
             f" to {destination_project}/{destination_folder}."
         )
 
-    @Tracker
-    @validate_arguments
-    def copy_images(
-            self,
-            source_project: Union[NotEmptyStr, dict],
-            image_names: Optional[List[NotEmptyStr]],
-            destination_project: Union[NotEmptyStr, dict],
-            include_annotations: Optional[StrictBool] = True,
-            copy_pin: Optional[StrictBool] = True,
-    ):
-        """Copy images in bulk between folders in a project
-
-        :param source_project: project name or folder path (e.g., "project1/folder1")
-        :type source_project: str`
-        :param image_names: image names. If None, all images from source project will be copied
-        :type image_names: list of str
-        :param destination_project: project name or folder path (e.g., "project1/folder2")
-        :type destination_project: str
-        :param include_annotations: enables annotations copy
-        :type include_annotations: bool
-        :param copy_pin: enables image pin status copy
-        :type copy_pin: bool
-        :return: list of skipped image names
-        :rtype: list of strs
-        """
-        warning_msg = (
-            "We're deprecating the copy_images function. Please use copy_items instead. Learn more. \n"
-            "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.copy_items"
-        )
-        logger.warning(warning_msg)
-        warnings.warn(warning_msg, DeprecationWarning)
-        project_name, source_folder_name = extract_project_folder(source_project)
-
-        to_project_name, destination_folder_name = extract_project_folder(
-            destination_project
-        )
-        if project_name != to_project_name:
-            raise AppException("Source and destination projects should be the same")
-        if not image_names:
-            images = (
-                self.controller
-                    .search_images(project_name=project_name, folder_path=source_folder_name)
-                    .data
-            )
-            image_names = [image.name for image in images]
-
-        res = self.controller.bulk_copy_images(
-            project_name=project_name,
-            from_folder_name=source_folder_name,
-            to_folder_name=destination_folder_name,
-            image_names=image_names,
-            include_annotations=include_annotations,
-            include_pin=copy_pin,
-        )
-        if res.errors:
-            raise AppException(res.errors)
-        skipped_images = res.data
-        done_count = len(image_names) - len(skipped_images)
-        message_postfix = "{from_path} to {to_path}."
-        message_prefix = "Copied images from "
-        if done_count > 1 or done_count == 0:
-            message_prefix = f"Copied {done_count}/{len(image_names)} images from "
-        elif done_count == 1:
-            message_prefix = "Copied an image from "
-        logger.info(
-            message_prefix
-            + message_postfix.format(from_path=source_project, to_path=destination_project)
-        )
-
-        return skipped_images
-
-    @Tracker
-    @validate_arguments
-    def move_images(
-            self,
-            source_project: Union[NotEmptyStr, dict],
-            image_names: Optional[List[NotEmptyStr]],
-            destination_project: Union[NotEmptyStr, dict],
-            *args,
-            **kwargs,
-    ):
-        """Move images in bulk between folders in a project
-
-        :param source_project: project name or folder path (e.g., "project1/folder1")
-        :type source_project: str
-        :param image_names: image names. If None, all images from source project will be moved
-        :type image_names: list of str
-        :param destination_project: project name or folder path (e.g., "project1/folder2")
-        :type destination_project: str
-        :return: list of skipped image names
-        :rtype: list of strs
-        """
-        warning_msg = (
-            "We're deprecating the move_images function. Please use move_items instead. Learn more."
-            "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.move_items"
-        )
-        logger.warning(warning_msg)
-        warnings.warn(warning_msg, DeprecationWarning)
-        project_name, source_folder_name = extract_project_folder(source_project)
-
-        project = self.controller.get_project_metadata(project_name).data
-        if project["project"].type in [
-            constances.ProjectType.VIDEO.value,
-            constances.ProjectType.DOCUMENT.value,
-        ]:
-            raise AppException(LIMITED_FUNCTIONS[project["project"].type])
-
-        to_project_name, destination_folder_name = extract_project_folder(
-            destination_project
-        )
-
-        if project_name != to_project_name:
-            raise AppException(
-                "Source and destination projects should be the same for move_images"
-            )
-
-        if not image_names:
-            images = self.controller.search_images(
-                project_name=project_name, folder_path=source_folder_name
-            )
-            images = images.data
-            image_names = [image.name for image in images]
-
-        response = self.controller.bulk_move_images(
-            project_name=project_name,
-            from_folder_name=source_folder_name,
-            to_folder_name=destination_folder_name,
-            image_names=image_names,
-        )
-        if response.errors:
-            raise AppException(response.errors)
-        moved_images = response.data
-        moved_count = len(moved_images)
-        message_postfix = "{from_path} to {to_path}."
-        message_prefix = "Moved images from "
-        if moved_count > 1 or moved_count == 0:
-            message_prefix = f"Moved {moved_count}/{len(image_names)} images from "
-        elif moved_count == 1:
-            message_prefix = "Moved an image from"
-
-        logger.info(
-            message_prefix
-            + message_postfix.format(from_path=source_project, to_path=destination_project)
-        )
-
-        return list(set(image_names) - set(moved_images))
-
-    @Tracker
     @validate_arguments
     def get_project_metadata(
             self,
@@ -738,7 +576,6 @@ class SAClient(BaseInterfaceFacade):
                 ]
         return metadata
 
-    @Tracker
     @validate_arguments
     def get_project_settings(
             self, project: Union[NotEmptyStr, dict]):
@@ -759,7 +596,6 @@ class SAClient(BaseInterfaceFacade):
         ]
         return settings
 
-    @Tracker
     @validate_arguments
     def get_project_workflow(
             self, project: Union[str, dict]):
@@ -779,7 +615,6 @@ class SAClient(BaseInterfaceFacade):
             raise AppException(workflow.errors)
         return workflow.data
 
-    @Tracker
     @validate_arguments
     def search_annotation_classes(
             self,
@@ -803,7 +638,6 @@ class SAClient(BaseInterfaceFacade):
         classes = [BaseSerializer(attribute).serialize() for attribute in classes.data]
         return classes
 
-    @Tracker
     @validate_arguments
     def set_project_default_image_quality_in_editor(
             self,
@@ -828,7 +662,6 @@ class SAClient(BaseInterfaceFacade):
             raise AppException(response.errors)
         return response.data
 
-    @Tracker
     @validate_arguments
     def pin_image(
             self,
@@ -851,7 +684,6 @@ class SAClient(BaseInterfaceFacade):
             is_pinned=int(pin),
         )
 
-    @Tracker
     @validate_arguments
     def set_images_annotation_statuses(
             self,
@@ -869,6 +701,13 @@ class SAClient(BaseInterfaceFacade):
                should be one of NotStarted InProgress QualityCheck Returned Completed Skipped
         :type annotation_status: str
         """
+        warning_msg = (
+            "We're deprecating the set_images_annotation_statuses function. Please use set_annotation_statuses instead. "
+            "Learn more. \n"
+            "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.set_annotation_statuses"
+        )
+        logger.warning(warning_msg)
+        warnings.warn(warning_msg, DeprecationWarning)
         project_name, folder_name = extract_project_folder(project)
         response = self.controller.set_images_annotation_statuses(
             project_name, folder_name, image_names, annotation_status
@@ -877,7 +716,6 @@ class SAClient(BaseInterfaceFacade):
             raise AppException(response.errors)
         logger.info("Annotations status of images changed")
 
-    @Tracker
     @validate_arguments
     def delete_images(
             self,
@@ -905,7 +743,6 @@ class SAClient(BaseInterfaceFacade):
             f"Images deleted in project {project_name}{'/' + folder_name if folder_name else ''}"
         )
 
-    @Tracker
     @validate_arguments
     def assign_images(
             self, project: Union[NotEmptyStr, dict], image_names: List[str], user: str):
@@ -954,7 +791,6 @@ class SAClient(BaseInterfaceFacade):
         else:
             raise AppException(response.errors)
 
-    @Tracker
     @validate_arguments
     def unassign_images(
             self, project: Union[NotEmptyStr, dict], image_names: List[NotEmptyStr]):
@@ -975,7 +811,6 @@ class SAClient(BaseInterfaceFacade):
         if response.errors:
             raise AppException(response.errors)
 
-    @Tracker
     @validate_arguments
     def unassign_folder(
             self, project_name: NotEmptyStr, folder_name: NotEmptyStr):
@@ -994,7 +829,6 @@ class SAClient(BaseInterfaceFacade):
         if response.errors:
             raise AppException(response.errors)
 
-    @Tracker
     @validate_arguments
     def assign_folder(
             self,
@@ -1036,41 +870,6 @@ class SAClient(BaseInterfaceFacade):
         if response.errors:
             raise AppException(response.errors)
 
-    @Tracker
-    @validate_arguments
-    def share_project(
-            self,
-            project_name: NotEmptyStr, user: Union[str, dict], user_role: NotEmptyStr
-    ):
-        """Share project with user.
-
-        :param project_name: project name
-        :type project_name: str
-        :param user: user email or metadata of the user to share project with
-        :type user: str or dict
-        :param user_role: user role to apply, one of Admin , Annotator , QA , Customer , Viewer
-        :type user_role: str
-        """
-        warning_msg = (
-            "The share_project function is deprecated and will be removed with the coming release, "
-            "please use add_contributors_to_project instead."
-        )
-        logger.warning(warning_msg)
-        warnings.warn(warning_msg, DeprecationWarning)
-        if isinstance(user, dict):
-            user_id = user["id"]
-        else:
-            response = self.controller.search_team_contributors(email=user)
-            if not response.data:
-                raise AppException(f"User {user} not found.")
-            user_id = response.data[0]["id"]
-        response = self.controller.share_project(
-            project_name=project_name, user_id=user_id, user_role=user_role
-        )
-        if response.errors:
-            raise AppException(response.errors)
-
-    @Tracker
     @validate_arguments
     def upload_images_from_folder_to_project(
             self,
@@ -1182,7 +981,6 @@ class SAClient(BaseInterfaceFacade):
             return use_case.data
         raise AppException(use_case.response.errors)
 
-    @Tracker
     @validate_arguments
     def get_project_image_count(
             self,
@@ -1210,7 +1008,6 @@ class SAClient(BaseInterfaceFacade):
             raise AppException(response.errors)
         return response.data
 
-    @Tracker
     @validate_arguments
     def download_image_annotations(
             self,
@@ -1242,7 +1039,6 @@ class SAClient(BaseInterfaceFacade):
             raise AppException(res.errors)
         return res.data
 
-    @Tracker
     @validate_arguments
     def get_exports(
             self, project: NotEmptyStr, return_metadata: Optional[StrictBool] = False):
@@ -1261,7 +1057,6 @@ class SAClient(BaseInterfaceFacade):
         )
         return response.data
 
-    @Tracker
     @validate_arguments
     def prepare_export(
             self,
@@ -1315,7 +1110,6 @@ class SAClient(BaseInterfaceFacade):
             raise AppException(response.errors)
         return response.data
 
-    @Tracker
     @validate_arguments
     def upload_videos_from_folder_to_project(
             self,
@@ -1396,7 +1190,6 @@ class SAClient(BaseInterfaceFacade):
             raise AppException(response.errors)
         return response.data
 
-    @Tracker
     @validate_arguments
     def upload_video_to_project(
             self,
@@ -1449,7 +1242,6 @@ class SAClient(BaseInterfaceFacade):
             raise AppException(response.errors)
         return response.data
 
-    @Tracker
     @validate_arguments
     def create_annotation_class(
             self,
@@ -1493,7 +1285,6 @@ class SAClient(BaseInterfaceFacade):
             raise AppException(response.errors)
         return BaseSerializer(response.data).serialize()
 
-    @Tracker
     @validate_arguments
     def delete_annotation_class(
             self,
@@ -1510,7 +1301,6 @@ class SAClient(BaseInterfaceFacade):
             project_name=project, annotation_class_name=annotation_class
         )
 
-    @Tracker
     @validate_arguments
     def download_annotation_classes_json(
             self, project: NotEmptyStr, folder: Union[str, Path]):
@@ -1531,7 +1321,6 @@ class SAClient(BaseInterfaceFacade):
             raise AppException(response.errors)
         return response.data
 
-    @Tracker
     @validate_arguments
     def create_annotation_classes_from_classes_json(
             self,
@@ -1576,7 +1365,6 @@ class SAClient(BaseInterfaceFacade):
             raise AppException(response.errors)
         return [BaseSerializer(i).serialize() for i in response.data]
 
-    @Tracker
     @validate_arguments
     def download_export(
             self,
@@ -1606,29 +1394,17 @@ class SAClient(BaseInterfaceFacade):
         project_name, folder_name = extract_project_folder(project)
         export_name = export["name"] if isinstance(export, dict) else export
 
-        use_case = self.controller.download_export(
+        response = self.controller.download_export(
             project_name=project_name,
             export_name=export_name,
             folder_path=folder_path,
             extract_zip_contents=extract_zip_contents,
             to_s3_bucket=to_s3_bucket,
         )
-        if use_case.is_valid():
-            if to_s3_bucket:
-                with tqdm(
-                        total=use_case.get_upload_files_count(), desc="Uploading"
-                ) as progress_bar:
-                    for _ in use_case.execute():
-                        progress_bar.update()
-                progress_bar.close()
-            else:
-                for _ in use_case.execute():
-                    continue
-            logger.info(use_case.response.data)
-        else:
-            raise AppException(use_case.response.errors)
+        if response.errors:
+            raise AppException(response.errors)
+        logger.info(response.data)
 
-    @Tracker
     @validate_arguments
     def set_image_annotation_status(
             self,
@@ -1649,6 +1425,13 @@ class SAClient(BaseInterfaceFacade):
         :return: metadata of the updated image
         :rtype: dict
         """
+        warning_msg = (
+            "We're deprecating the set_image_annotation_status function. Please use set_annotation_statuses instead. "
+            "Learn more. \n"
+            "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.set_annotation_statuses"
+        )
+        logger.warning(warning_msg)
+        warnings.warn(warning_msg, DeprecationWarning)
         project_name, folder_name = extract_project_folder(project)
         response = self.controller.set_images_annotation_statuses(
             project_name, folder_name, [image_name], annotation_status
@@ -1660,7 +1443,6 @@ class SAClient(BaseInterfaceFacade):
         )
         return BaseSerializer(image).serialize()
 
-    @Tracker
     @validate_arguments
     def set_project_workflow(
             self, project: Union[NotEmptyStr, dict], new_workflow: List[dict]):
@@ -1683,7 +1465,6 @@ class SAClient(BaseInterfaceFacade):
         if response.errors:
             raise AppException(response.errors)
 
-    @Tracker
     @validate_arguments
     def download_image(
             self,
@@ -1732,8 +1513,6 @@ class SAClient(BaseInterfaceFacade):
         logger.info(f"Downloaded image {image_name} to {local_dir_path} ")
         return response.data
 
-
-    @Tracker
     @validate_arguments
     def upload_annotations_from_folder_to_project(
             self,
@@ -1797,7 +1576,6 @@ class SAClient(BaseInterfaceFacade):
             raise AppException(response.errors)
         return response.data
 
-    @Tracker
     @validate_arguments
     def upload_preannotations_from_folder_to_project(
             self,
@@ -1864,7 +1642,6 @@ class SAClient(BaseInterfaceFacade):
             raise AppException(response.errors)
         return response.data
 
-    @Tracker
     @validate_arguments
     def upload_image_annotations(
             self,
@@ -1922,7 +1699,6 @@ class SAClient(BaseInterfaceFacade):
         if response.errors and not response.errors == constances.INVALID_JSON_MESSAGE:
             raise AppException(response.errors)
 
-    @Tracker
     @validate_arguments
     def download_model(
             self, model: MLModel, output_dir: Union[str, Path]):
@@ -1944,7 +1720,6 @@ class SAClient(BaseInterfaceFacade):
         else:
             return BaseSerializer(res.data).serialize()
 
-    @Tracker
     @validate_arguments
     def benchmark(
             self,
@@ -2013,7 +1788,6 @@ class SAClient(BaseInterfaceFacade):
                 raise AppException(response.errors)
         return response.data
 
-    @Tracker
     @validate_arguments
     def consensus(
             self,
@@ -2068,7 +1842,6 @@ class SAClient(BaseInterfaceFacade):
                 raise AppException(response.errors)
         return response.data
 
-    @Tracker
     @validate_arguments
     def run_prediction(
             self,
@@ -2108,7 +1881,6 @@ class SAClient(BaseInterfaceFacade):
             raise AppException(response.errors)
         return response.data
 
-    @Tracker
     @validate_arguments
     def add_annotation_bbox_to_image(
             self,
@@ -2169,7 +1941,6 @@ class SAClient(BaseInterfaceFacade):
             project_name, folder_name, image_name, annotations
         )
 
-    @Tracker
     @validate_arguments
     def add_annotation_point_to_image(
             self,
@@ -2228,7 +1999,6 @@ class SAClient(BaseInterfaceFacade):
             project_name, folder_name, image_name, annotations
         )
 
-    @Tracker
     @validate_arguments
     def add_annotation_comment_to_image(
             self,
@@ -2285,7 +2055,6 @@ class SAClient(BaseInterfaceFacade):
             project_name, folder_name, image_name, annotations
         )
 
-    @Tracker
     @validate_arguments
     def upload_image_to_project(
             self,
@@ -2328,7 +2097,6 @@ class SAClient(BaseInterfaceFacade):
         if response.errors:
             raise AppException(response.errors)
 
-    @Trackable
     @validate_arguments
     def search_models(
             self,
@@ -2363,7 +2131,6 @@ class SAClient(BaseInterfaceFacade):
         )
         return res.data
 
-    @Tracker
     @validate_arguments
     def upload_images_to_project(
             self,
@@ -2425,7 +2192,6 @@ class SAClient(BaseInterfaceFacade):
             return uploaded, failed_images, duplications
         raise AppException(use_case.response.errors)
 
-    @Tracker
     @validate_arguments
     def aggregate_annotations_as_df(
             self,
@@ -2475,7 +2241,6 @@ class SAClient(BaseInterfaceFacade):
                 folder_names=folder_names,
             ).aggregate_annotations_as_df()
 
-    @Tracker
     @validate_arguments
     def delete_annotations(
             self,
@@ -2493,83 +2258,11 @@ class SAClient(BaseInterfaceFacade):
         project_name, folder_name = extract_project_folder(project)
 
         response = self.controller.delete_annotations(
-            project_name=project_name, folder_name=folder_name, image_names=image_names
+            project_name=project_name, folder_name=folder_name, item_names=image_names
         )
         if response.errors:
             raise AppException(response.errors)
 
-    @Tracker
-    @validate_arguments
-    def attach_document_urls_to_project(
-            self,
-            project: Union[NotEmptyStr, dict],
-            attachments: Union[Path, NotEmptyStr],
-            annotation_status: Optional[AnnotationStatuses] = "NotStarted",
-    ):
-        """Link documents on external storage to SuperAnnotate.
-
-        :param project: project name or project folder path
-        :type project: str or dict
-        :param attachments: path to csv file on attachments metadata
-        :type attachments: Path-like (str or Path)
-        :param annotation_status: value to set the annotation statuses of the linked documents: NotStarted InProgress QualityCheck Returned Completed Skipped
-        :type annotation_status: str
-
-        :return: list of attached documents, list of not attached documents, list of skipped documents
-        :rtype: tuple
-        """
-        warning_msg = (
-            "We're deprecating the attach_document_urls_to_project function. Please use attach_items instead. Learn more."
-            "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.attach_items"
-        )
-        logger.warning(warning_msg)
-        warnings.warn(warning_msg, DeprecationWarning)
-        project_name, folder_name = extract_project_folder(project)
-        project = self.controller.get_project_metadata(project_name).data
-        project_folder_name = project_name + (f"/{folder_name}" if folder_name else "")
-
-        if project["project"].type != constances.ProjectType.DOCUMENT.value:
-            raise AppException(
-                constances.INVALID_PROJECT_TYPE_TO_PROCESS.format(
-                    constances.ProjectType.get_name(project["project"].type)
-                )
-            )
-
-        images_to_upload, duplicate_images = get_paths_and_duplicated_from_csv(attachments)
-
-        use_case = self.controller.interactive_attach_urls(
-            project_name=project_name,
-            folder_name=folder_name,
-            files=ImageSerializer.deserialize(images_to_upload),  # noqa: E203
-            annotation_status=annotation_status,
-        )
-        if len(duplicate_images):
-            logger.warning(
-                constances.ALREADY_EXISTING_FILES_WARNING.format(len(duplicate_images))
-            )
-        if use_case.is_valid():
-            logger.info(
-                constances.ATTACHING_FILES_MESSAGE.format(
-                    len(images_to_upload), project_folder_name
-                )
-            )
-            with tqdm(
-                    total=use_case.attachments_count, desc="Attaching urls"
-            ) as progress_bar:
-                for attached in use_case.execute():
-                    progress_bar.update(attached)
-            uploaded, duplications = use_case.data
-            uploaded = [i["name"] for i in uploaded]
-            duplications.extend(duplicate_images)
-            failed_images = [
-                image["name"]
-                for image in images_to_upload
-                if image["name"] not in uploaded + duplications
-            ]
-            return uploaded, failed_images, duplications
-        raise AppException(use_case.response.errors)
-
-    @Tracker
     @validate_arguments
     def validate_annotations(
             self,
@@ -2599,7 +2292,6 @@ class SAClient(BaseInterfaceFacade):
             print(response.report)
             return False
 
-    @Tracker
     @validate_arguments
     def add_contributors_to_project(
             self,
@@ -2626,7 +2318,6 @@ class SAClient(BaseInterfaceFacade):
             raise AppException(response.errors)
         return response.data
 
-    @Tracker
     @validate_arguments
     def invite_contributors_to_team(
             self,
@@ -2650,7 +2341,6 @@ class SAClient(BaseInterfaceFacade):
             raise AppException(response.errors)
         return response.data
 
-    @Tracker
     @validate_arguments
     def get_annotations(
             self, project: NotEmptyStr, items: Optional[List[NotEmptyStr]] = None):
@@ -2673,7 +2363,6 @@ class SAClient(BaseInterfaceFacade):
             raise AppException(response.errors)
         return response.data
 
-    @Tracker
     @validate_arguments
     def get_annotations_per_frame(
             self, project: NotEmptyStr, video: NotEmptyStr, fps: int = 1):
@@ -2701,7 +2390,6 @@ class SAClient(BaseInterfaceFacade):
             raise AppException(response.errors)
         return response.data
 
-    @Tracker
     @validate_arguments
     def upload_priority_scores(
             self, project: NotEmptyStr, scores: List[PriorityScore]):
@@ -2725,7 +2413,6 @@ class SAClient(BaseInterfaceFacade):
             raise AppException(response.errors)
         return response.data
 
-    @Tracker
     @validate_arguments
     def get_integrations(
             self):
@@ -2740,7 +2427,6 @@ class SAClient(BaseInterfaceFacade):
         integrations = response.data
         return BaseSerializer.serialize_iterable(integrations, ("name", "type", "root"))
 
-    @Tracker
     @validate_arguments
     def attach_items_from_integrated_storage(
             self,
@@ -2770,7 +2456,6 @@ class SAClient(BaseInterfaceFacade):
         if response.errors:
             raise AppException(response.errors)
 
-    @Tracker
     @validate_arguments
     def query(
             self, project: NotEmptyStr, query: Optional[NotEmptyStr]):
@@ -2792,7 +2477,6 @@ class SAClient(BaseInterfaceFacade):
             raise AppException(response.errors)
         return BaseSerializer.serialize_iterable(response.data)
 
-    @Tracker
     @validate_arguments
     def get_item_metadata(
             self,
@@ -2815,7 +2499,6 @@ class SAClient(BaseInterfaceFacade):
             raise AppException(response.errors)
         return BaseSerializer(response.data).serialize()
 
-    @Tracker
     @validate_arguments
     def search_items(
             self,
@@ -2878,7 +2561,6 @@ class SAClient(BaseInterfaceFacade):
             raise AppException(response.errors)
         return BaseSerializer.serialize_iterable(response.data)
 
-    @Tracker
     @validate_arguments
     def attach_items(
             self,
@@ -2943,7 +2625,6 @@ class SAClient(BaseInterfaceFacade):
             ]
         return uploaded, fails, duplicated
 
-    @Tracker
     @validate_arguments
     def copy_items(
             self,
@@ -2988,7 +2669,6 @@ class SAClient(BaseInterfaceFacade):
 
         return response.data
 
-    @Tracker
     @validate_arguments
     def move_items(
             self,
@@ -3025,7 +2705,6 @@ class SAClient(BaseInterfaceFacade):
             raise AppException(response.errors)
         return response.data
 
-    @Tracker
     @validate_arguments
     def set_annotation_statuses(
             self,
@@ -3062,7 +2741,6 @@ class SAClient(BaseInterfaceFacade):
             raise AppException(response.errors)
         return response.data
 
-    @Trackable
     @validate_arguments
     def download_annotations(
             self,
@@ -3095,7 +2773,7 @@ class SAClient(BaseInterfaceFacade):
         :rtype: str
         """
         project_name, folder_name = extract_project_folder(project)
-        response = Controller.get_default().download_annotations(
+        response = self.controller.download_annotations(
             project_name=project_name,
             folder_name=folder_name,
             destination=path,

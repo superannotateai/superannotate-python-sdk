@@ -124,17 +124,6 @@ class TestDeprecatedFunctionsDocument(TestCase):
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
-            sa.class_distribution(self.video_export_path, [self.PROJECT_NAME])
-        except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE_DOCUMENT_VIDEO, str(e))
-        try:
-            sa.convert_project_type(self.video_export_path, "./")
-        except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE_DOCUMENT_VIDEO, str(e))
-            sa.move_images(self.PROJECT_NAME, [self.UPLOAD_IMAGE_NAME], self.PROJECT_NAME_2)
-        except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE, str(e))
-        try:
             sa.prepare_export(self.PROJECT_NAME, include_fuse=True, only_pinned=True)
         except AppException as e:
             self.assertIn("Include fuse functionality is not supported", str(e))

@@ -5,6 +5,7 @@ from argparse import Namespace
 from pathlib import Path
 
 from lib.app.exceptions import AppException
+from lib.app.interface.base_interface import Tracker
 from lib.app.mixp.decorators import Trackable
 from lib.core import DEPRICATED_DOCUMENT_VIDEO_MESSAGE
 from lib.core import LIMITED_FUNCTIONS
@@ -135,7 +136,7 @@ def _passes_converter_sanity(args, direction):
         )
 
 
-@Trackable
+@Tracker
 def export_annotation(
     input_dir,
     output_dir,

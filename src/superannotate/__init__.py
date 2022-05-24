@@ -11,6 +11,9 @@ from superannotate.lib.app.input_converters.conversion import convert_project_ty
 from superannotate.lib.app.input_converters.conversion import export_annotation
 from superannotate.lib.app.input_converters.conversion import import_annotation
 from superannotate.lib.app.interface.sdk_interface import SAClient
+from superannotate.lib.core import PACKAGE_VERSION_INFO_MESSAGE
+from superannotate.lib.core import PACKAGE_VERSION_MAJOR_UPGRADE
+from superannotate.lib.core import PACKAGE_VERSION_UPGRADE
 from superannotate.logger import get_default_logger
 from superannotate.version import __version__
 
@@ -39,7 +42,7 @@ logger = get_default_logger()
 def log_version_info():
     local_version = parse(__version__)
     if local_version.is_prerelease:
-        logger.info(constances.PACKAGE_VERSION_INFO_MESSAGE.format(__version__))
+        logger.info(PACKAGE_VERSION_INFO_MESSAGE.format(__version__))
     req = requests.get("https://pypi.python.org/pypi/superannotate/json")
     if req.ok:
         releases = req.json().get("releases", [])
@@ -50,13 +53,13 @@ def log_version_info():
                 pip_version = max(pip_version, ver)
         if pip_version.major > local_version.major:
             logger.warning(
-                constances.PACKAGE_VERSION_MAJOR_UPGRADE.format(
+                PACKAGE_VERSION_MAJOR_UPGRADE.format(
                     local_version, pip_version
                 )
             )
         elif pip_version > local_version:
             logger.warning(
-                constances.PACKAGE_VERSION_UPGRADE.format(local_version, pip_version)
+                PACKAGE_VERSION_UPGRADE.format(local_version, pip_version)
             )
 
 

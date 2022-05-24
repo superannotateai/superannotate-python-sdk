@@ -1,6 +1,7 @@
 import copy
 import io
 import os
+import threading
 from abc import ABCMeta
 from pathlib import Path
 from typing import Callable
@@ -10,12 +11,10 @@ from typing import Optional
 from typing import Tuple
 from typing import Union
 
-from superannotate_schemas.validators import AnnotationValidators
-
 import lib.core as constances
 from lib.core import usecases
-from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.conditions import Condition
+from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.entities import AnnotationClassEntity
 from lib.core.entities import AttachmentEntity
 from lib.core.entities import FolderEntity
@@ -42,6 +41,7 @@ from lib.infrastructure.repositories import TeamRepository
 from lib.infrastructure.repositories import WorkflowRepository
 from lib.infrastructure.services import SuperannotateBackendService
 from superannotate.logger import get_default_logger
+from superannotate_schemas.validators import AnnotationValidators
 
 
 def build_condition(**kwargs) -> Condition:
@@ -80,11 +80,12 @@ class BaseController(metaclass=ABCMeta):
         self._team_name = None
         self._reporter = None
 
-    def get_session(self, pk: str):
+    def get_session(self):
+        pk = threading.get_ident()
         try:
             return self.SESSIONS[pk]
         except KeyError:
-            self.SESSIONS[pk] = Session(pk)
+            self.SESSIONS[threading.get_ident()] = Session(pk)
             return self.SESSIONS[pk]
 
     @staticmethod
@@ -1149,7 +1150,7 @@ class Controller(BaseController):
             folder_path=folder_path,
             extract_zip_contents=extract_zip_contents,
             to_s3_bucket=to_s3_bucket,
-            reporter=self.default_reporter,
+            reporter=self.get_default_reporter(),
         )
         return use_case.execute()
 
@@ -1198,7 +1199,7 @@ class Controller(BaseController):
             folder_path=export_root,
             extract_zip_contents=True,
             to_s3_bucket=False,
-            reporter=self.default_reporter,
+            reporter=self.get_default_reporter(),
         ).execute()
         if response.errors:
             raise AppException(response.errors)
@@ -1644,7 +1645,7 @@ class Controller(BaseController):
         folder = self._get_folder(project, folder_name)
 
         use_case = usecases.DownloadAnnotations(
-            reporter=self.default_reporter,
+            reporter=self.get_default_reporter(),
             project=project,
             folder=folder,
             destination=destination,

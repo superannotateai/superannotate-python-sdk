@@ -4,10 +4,12 @@ from os.path import dirname
 
 import pytest
 
-from src.superannotate import SAClient
-sa = SAClient()
 from src.superannotate import AppException
+from src.superannotate import SAClient
+from src.superannotate import export_annotation
 from tests.integration.base import BaseTestCase
+
+sa = SAClient()
 
 
 class TestInterface(BaseTestCase):
@@ -266,7 +268,7 @@ class TestPixelInterface(BaseTestCase):
             )
             sa.download_export(self.PROJECT_NAME, result, export_dir, True)
             with tempfile.TemporaryDirectory() as convert_path:
-                sa.export_annotation(
+                export_annotation(
                     export_dir, convert_path, "COCO", "data_set_name", "Pixel", "panoptic_segmentation"
                 )
                 pass

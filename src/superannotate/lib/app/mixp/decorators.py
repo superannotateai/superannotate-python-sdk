@@ -2,7 +2,6 @@ import functools
 import sys
 from inspect import signature
 
-
 from mixpanel import Mixpanel
 from superannotate.logger import get_default_logger
 from version import __version__

@@ -4,7 +4,7 @@ import pytest
 from src.superannotate import SAClient
 sa = SAClient()
 from tests import DATA_SET_PATH
-from src.superannotate import constances
+import src.superannotate.lib.core as constances
 
 
 class TestCloneProject(TestCase):

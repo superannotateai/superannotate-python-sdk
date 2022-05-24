@@ -3,13 +3,13 @@ import sys
 from abc import ABC
 from abc import abstractmethod
 from inspect import signature
+from types import FunctionType
 from typing import Iterable
 from typing import Sized
 
-from mixpanel import Mixpanel
-
 from lib.app.helpers import extract_project_folder
 from lib.core.reporter import Session
+from mixpanel import Mixpanel
 from version import __version__
 
 
@@ -126,3 +126,15 @@ class Tracker:
             return result
         finally:
             self.track(args=args, kwargs=kwargs, success=success, session=session)
+
+
+class TrackableMeta(type):
+    def __new__(mcs, name, bases, attrs):
+        for attr_name, attr_value in attrs.iteritems():
+            if isinstance(attr_value, FunctionType):
+                attrs[attr_name] = mcs.decorate(attr_value)
+        return super().__new__(mcs, name, bases, attrs)
+
+    @staticmethod
+    def decorate(func):
+        return Tracker(func)

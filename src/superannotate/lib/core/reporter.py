@@ -33,7 +33,7 @@ class Spinner:
 
 
 class Session:
-    def __init__(self, pk: str):
+    def __init__(self, pk: int):
         self.pk = pk
         self._uuid = str(uuid.uuid4())
         self._data_dict = {}

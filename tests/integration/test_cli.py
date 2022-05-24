@@ -4,12 +4,9 @@ from os.path import dirname
 from pathlib import Path
 from unittest import TestCase
 
-from src.superannotate import SAClient
-from src.superannotate import __version__
-
 import pkg_resources
 
-import src.superannotate as sa
+from src.superannotate import SAClient
 from src.superannotate.lib.app.interface.cli_interface import CLIFacade
 
 sa = SAClient()
@@ -136,22 +133,23 @@ class CLITest(TestCase):
         sa.create_annotation_classes_from_classes_json(
             self.PROJECT_NAME, f"{self.vector_folder_path}/classes/classes.json"
         )
-        self.safe_run(self._cli.upload_images, self.PROJECT_NAME, folder=str(self.convertor_data_path),
+        self.safe_run(self._cli.upload_images, project=self.PROJECT_NAME, folder=str(self.convertor_data_path),
                       extensions="jpg",
                       set_annotation_status="QualityCheck")
-        self.safe_run(self._cli.upload_preannotations, self.PROJECT_NAME, folder=str(self.convertor_data_path),
+        self.safe_run(self._cli.upload_preannotations, project=self.PROJECT_NAME, folder=str(self.convertor_data_path),
                       format="COCO",
                       dataset_name="instances_test")
-        # tod add test
 
     def test_vector_annotation_folder_upload_download_cli(self):
         self._create_project()
         sa.create_annotation_classes_from_classes_json(
             self.PROJECT_NAME, f"{self.vector_folder_path}/classes/classes.json"
         )
-        self.safe_run(self._cli.upload_images, self.PROJECT_NAME, str(self.convertor_data_path), extensions="jpg",
+        self.safe_run(self._cli.upload_images, project=self.PROJECT_NAME, folder=str(self.convertor_data_path),
+                      extensions="jpg",
                       set_annotation_status="QualityCheck")
-        self.safe_run(self._cli.upload_annotations, self.PROJECT_NAME, str(self.convertor_data_path), format="COCO",
+        self.safe_run(self._cli.upload_annotations, project=self.PROJECT_NAME, folder=str(self.convertor_data_path),
+                      format="COCO",
                       dataset_name="instances_test")
 
         count_in = len(list(self.vector_folder_path.glob("*.json")))
@@ -175,7 +173,7 @@ class CLITest(TestCase):
     def test_upload_videos(self):
         self._create_project()
         self.safe_run(self._cli.upload_videos, self.PROJECT_NAME, str(self.video_folder_path))
-        self.assertEqual(5, len(sa.search_items(self.PROJECT_NAME)))
+        self.assertEqual(121, len(sa.search_items(self.PROJECT_NAME)))
 
     def test_attach_document_urls(self):
         self._create_project("Document")
