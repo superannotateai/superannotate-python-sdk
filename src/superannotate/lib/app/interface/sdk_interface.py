@@ -66,16 +66,16 @@ class SAClient(BaseInterfaceFacade):
     def __init__(
             self,
             token: str = None,
-            host=constances.BACKEND_URL,
             config_path: str = constances.CONFIG_FILE_LOCATION,
     ):
+        host = constances.BACKEND_URL
         env_token = os.environ.get("SA_TOKEN")
         version = os.environ.get("SA_VERSION", "v1")
         ssl_verify = bool(os.environ.get("SA_SSL", True))
         if token:
             token = Controller.validate_token(token=token)
         elif env_token:
-            host = os.environ.get("SA_UTR", constances.BACKEND_URL)
+            host = os.environ.get("SA_URL", constances.BACKEND_URL)
 
             token = Controller.validate_token(env_token)
         else:

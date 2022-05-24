@@ -122,7 +122,7 @@ class CLIFacade:
             export_name=export_name,
             folder_path=folder,
             extract_zip_contents=not disable_extract_zip_contents,
-            to_s3_bucket=   False,
+            to_s3_bucket=False,
         )
         sys.exit(0)
 

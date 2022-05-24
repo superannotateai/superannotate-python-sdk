@@ -1,22 +1,22 @@
-import logging.config
 import os
 import sys
+sys.path.append(os.path.split(os.path.realpath(__file__))[0])
 
-import requests
-from packaging.version import parse
-from superannotate.lib.app.analytics.class_analytics import class_distribution
-from superannotate.lib.app.exceptions import AppException
-from superannotate.lib.app.input_converters.conversion import convert_json_version
-from superannotate.lib.app.input_converters.conversion import convert_project_type
-from superannotate.lib.app.input_converters.conversion import export_annotation
-from superannotate.lib.app.input_converters.conversion import import_annotation
-from superannotate.lib.app.interface.sdk_interface import SAClient
-from superannotate.lib.core import PACKAGE_VERSION_INFO_MESSAGE
-from superannotate.lib.core import PACKAGE_VERSION_MAJOR_UPGRADE
-from superannotate.lib.core import PACKAGE_VERSION_UPGRADE
-from superannotate.logger import get_default_logger
-from superannotate.version import __version__
-
+import logging.config  # noqa
+import requests  # noqa
+from packaging.version import parse  # noqa
+from superannotate.lib.app.analytics.class_analytics import class_distribution  # noqa
+from superannotate.lib.app.exceptions import AppException  # noqa
+from superannotate.lib.app.input_converters.conversion import convert_json_version  # noqa
+from superannotate.lib.app.input_converters.conversion import convert_project_type  # noqa
+from superannotate.lib.app.input_converters.conversion import export_annotation  # noqa
+from superannotate.lib.app.input_converters.conversion import import_annotation  # noqa
+from superannotate.lib.app.interface.sdk_interface import SAClient  # noqa
+from superannotate.lib.core import PACKAGE_VERSION_INFO_MESSAGE  # noqa
+from superannotate.lib.core import PACKAGE_VERSION_MAJOR_UPGRADE  # noqa
+from superannotate.lib.core import PACKAGE_VERSION_UPGRADE  # noqa
+from superannotate.logger import get_default_logger  # noqa
+from superannotate.version import __version__  # noqa
 
 __all__ = [
     "__version__",
@@ -34,7 +34,6 @@ __all__ = [
 
 __author__ = "Superannotate"
 
-sys.path.append(os.path.split(os.path.realpath(__file__))[0])
 logging.getLogger("botocore").setLevel(logging.CRITICAL)
 logger = get_default_logger()
 
