@@ -71,9 +71,7 @@ class Tracker:
                 continue
             elif key == "project":
                 properties["project_name"], properties["folder_name"] = extract_project_folder(value)
-            elif isinstance(value, str) and key == "project":
-                properties["project_name"] = value.split()
-            if isinstance(value, (str, int, float, bool, str)):
+            elif isinstance(value, (str, int, float, bool, str)):
                 properties[key] = value
             elif isinstance(value, dict):
                 properties[key] = value.keys()
