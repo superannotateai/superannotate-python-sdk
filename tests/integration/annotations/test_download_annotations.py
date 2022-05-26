@@ -5,8 +5,11 @@ from pathlib import Path
 
 import pytest
 
-import src.superannotate as sa
+from src.superannotate import SAClient
 from tests.integration.base import BaseTestCase
+
+
+sa = SAClient()
 
 
 class TestDownloadAnnotations(BaseTestCase):
@@ -24,7 +27,6 @@ class TestDownloadAnnotations(BaseTestCase):
 
     @pytest.mark.flaky(reruns=3)
     def test_download_annotations(self):
-        sa.init()
         sa.upload_images_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
         )
@@ -45,7 +47,6 @@ class TestDownloadAnnotations(BaseTestCase):
 
     @pytest.mark.flaky(reruns=3)
     def test_download_annotations_from_folders(self):
-        sa.init()
         sa.create_folder(self.PROJECT_NAME, self.FOLDER_NAME)
         sa.create_folder(self.PROJECT_NAME, self.FOLDER_NAME_2)
         sa.create_annotation_classes_from_classes_json(

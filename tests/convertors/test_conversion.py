@@ -6,7 +6,8 @@ from pathlib import Path
 from unittest import TestCase
 import pytest
 
-import src.superannotate as sa
+from src.superannotate import SAClient
+sa = SAClient()
 
 
 class TestCocoSplit(TestCase):

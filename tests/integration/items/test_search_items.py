@@ -1,7 +1,8 @@
 import os
 from pathlib import Path
 
-import src.superannotate as sa
+from src.superannotate import SAClient
+sa = SAClient()
 import src.superannotate.lib.core as constances
 from tests.integration.base import BaseTestCase
 from tests.integration.items import IMAGE_EXPECTED_KEYS

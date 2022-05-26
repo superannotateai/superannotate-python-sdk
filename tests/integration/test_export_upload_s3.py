@@ -5,7 +5,11 @@ from os.path import dirname
 import boto3
 
 import src.superannotate as sa
+from src.superannotate import SAClient
 from tests.integration.base import BaseTestCase
+
+
+sa = SAClient()
 
 s3_client = boto3.client("s3")
 

@@ -8,7 +8,6 @@ from typing import List
 
 import boto3
 import lib.core as constances
-from lib.core.enums import ProjectType
 import pandas as pd
 import requests
 from botocore.exceptions import ClientError
@@ -21,6 +20,7 @@ from lib.core.entities import FolderEntity
 from lib.core.entities import MLModelEntity
 from lib.core.entities import ProjectEntity
 from lib.core.enums import ExportStatus
+from lib.core.enums import ProjectType
 from lib.core.exceptions import AppException
 from lib.core.exceptions import AppValidationException
 from lib.core.reporter import Reporter

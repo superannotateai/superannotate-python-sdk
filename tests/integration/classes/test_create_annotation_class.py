@@ -2,7 +2,8 @@ import os
 from os.path import dirname
 import tempfile
 
-import src.superannotate as sa
+from src.superannotate import SAClient
+sa = SAClient()
 from tests.integration.base import BaseTestCase
 from tests import DATA_SET_PATH
 
