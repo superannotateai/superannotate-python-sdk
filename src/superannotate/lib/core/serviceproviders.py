@@ -171,6 +171,16 @@ class SuperannotateServiceProvider:
     ):
         raise NotImplementedError
 
+    def assign_items(
+        self,
+        team_id: int,
+        project_id: int,
+        folder_name: str,
+        user: str,
+        item_names: list,
+    ):
+        raise NotImplementedError
+
     def get_bulk_images(
         self, project_id: int, team_id: int, folder_id: int, images: List[str]
     ) -> List[dict]:
@@ -188,6 +198,11 @@ class SuperannotateServiceProvider:
 
     def un_assign_images(
         self, team_id: int, project_id: int, folder_name: str, image_names: list,
+    ):
+        raise NotImplementedError
+
+    def un_assign_items(
+        self, team_id: int, project_id: int, folder_name: str, item_names: list,
     ):
         raise NotImplementedError
 

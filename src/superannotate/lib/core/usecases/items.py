@@ -187,6 +187,76 @@ class ListItems(BaseReportableUseCae):
         return self._response
 
 
+class AssignItemsUseCase(BaseUseCase):
+    CHUNK_SIZE = 500
+
+    def __init__(
+        self,
+        service: SuperannotateServiceProvider,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        item_names: list,
+        user: str,
+    ):
+        super().__init__()
+        self._project = project
+        self._folder = folder
+        self._item_names = item_names
+        self._user = user
+        self._service = service
+
+    def execute(self):
+        if self.is_valid():
+            for i in range(0, len(self._image_names), self.CHUNK_SIZE):
+                is_assigned = self._service.assign_items(
+                    team_id=self._project.team_id,
+                    project_id=self._project.id,
+                    folder_name=self._folder.name,
+                    user=self._user,
+                    item_names=self._item_names[
+                        i : i + self.CHUNK_SIZE  # noqa: E203
+                    ],
+                )
+                if not is_assigned:
+                    self._response.errors = AppException(
+                        f"Cant assign {', '.join(self._item_names[i: i + self.CHUNK_SIZE])}"
+                    )
+                    continue
+        return self._response
+
+
+class UnAssignItemsUseCase(BaseUseCase):
+    CHUNK_SIZE = 500
+
+    def __init__(
+        self,a
+        service: SuperannotateServiceProvider,
+        project_entity: ProjectEntity,
+        folder: FolderEntity,
+        item_names: list,
+    ):
+        super().__init__()
+        self._project_entity = project_entity
+        self._folder = folder
+        self._item_names = item_names
+        self._service = service
+
+    def execute(self):
+        # todo handling to backend side
+        for i in range(0, len(self._item_names, self.CHUNK_SIZE):
+            is_un_assigned = self._service.un_assign_items(
+                team_id=self._project_entity.team_id,
+                project_id=self._project_entity.id,
+                folder_name=self._folder.name,
+                item_names=self._item_names[i : i + self.CHUNK_SIZE],  # noqa: E203
+            )
+            if not is_un_assigned:
+                self._response.errors = AppException(
+                    f"Cant un assign {', '.join(self._item_names[i: i + self.CHUNK_SIZE])}"
+                )
+
+        return self._response
+
 class AttachItems(BaseReportableUseCae):
     CHUNK_SIZE = 500
 
