@@ -254,7 +254,10 @@ class VideoPlugin:
 
     @staticmethod
     def get_extractable_frames(
-        video_path: str, start_time, end_time, target_fps: float,
+        video_path: str,
+        start_time,
+        end_time,
+        target_fps: float,
     ):
         total = VideoPlugin.get_frames_count(video_path)
         total_with_fps = sum(
