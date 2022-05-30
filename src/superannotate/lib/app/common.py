@@ -8,15 +8,13 @@ logger = get_default_logger()
 
 
 def hex_to_rgb(hex_string):
-    """Converts HEX values to RGB values
-    """
+    """Converts HEX values to RGB values"""
     h = hex_string.lstrip("#")
     return tuple(int(h[i : i + 2], 16) for i in (0, 2, 4))
 
 
 def blue_color_generator(n, hex_values=True):
-    """ Blue colors generator for SuperAnnotate blue mask.
-    """
+    """Blue colors generator for SuperAnnotate blue mask."""
     hex_colors = []
     for i in range(n + 1):
         int_color = i * 15
@@ -27,7 +25,9 @@ def blue_color_generator(n, hex_values=True):
         hex_color = (
             "#"
             + "{:02x}".format(bgr_color[2])
-            + "{:02x}".format(bgr_color[1],)
+            + "{:02x}".format(
+                bgr_color[1],
+            )
             + "{:02x}".format(bgr_color[0])
         )
         if hex_values:

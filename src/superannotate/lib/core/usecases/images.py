@@ -42,7 +42,7 @@ from lib.core.repositories import BaseReadOnlyRepository
 from lib.core.response import Response
 from lib.core.serviceproviders import SuperannotateServiceProvider
 from lib.core.usecases.base import BaseInteractiveUseCase
-from lib.core.usecases.base import BaseReportableUseCae
+from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.usecases.base import BaseUseCase
 from lib.core.usecases.projects import GetAnnotationClassesUseCase
 from PIL import UnidentifiedImageError
@@ -581,7 +581,11 @@ class CreateFuseImageUseCase(BaseUseCase):
                 image = ImagePlugin(io.BytesIO(file.read()))
 
                 images = [
-                    Image("fuse", f"{self._image_path}___fuse.png", image.get_empty(),)
+                    Image(
+                        "fuse",
+                        f"{self._image_path}___fuse.png",
+                        image.get_empty(),
+                    )
                 ]
                 if self._generate_overlay:
                     images.append(
@@ -711,7 +715,9 @@ class CreateFuseImageUseCase(BaseUseCase):
 
 class GetS3ImageUseCase(BaseUseCase):
     def __init__(
-        self, s3_bucket, image_path: str,
+        self,
+        s3_bucket,
+        image_path: str,
     ):
         super().__init__()
         self._s3_bucket = s3_bucket
@@ -1536,7 +1542,8 @@ class CopyImageUseCase(BaseUseCase):
 
             image_bytes = (
                 GetImageBytesUseCase(
-                    image=image, backend_service_provider=self._backend_service,
+                    image=image,
+                    backend_service_provider=self._backend_service,
                 )
                 .execute()
                 .data
@@ -1876,7 +1883,7 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
         return self._response
 
 
-class GetImageAnnotationsUseCase(BaseReportableUseCae):
+class GetImageAnnotationsUseCase(BaseReportableUseCase):
     def __init__(
         self,
         reporter: Reporter,
@@ -2438,7 +2445,7 @@ class ValidateAnnotationUseCase(BaseUseCase):
         return self._response
 
 
-class UploadVideosAsImages(BaseReportableUseCae):
+class UploadVideosAsImages(BaseReportableUseCase):
     def __init__(
         self,
         reporter: Reporter,

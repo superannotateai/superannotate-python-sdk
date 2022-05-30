@@ -46,7 +46,7 @@ class TestAnnotationUploadVector(BaseTestCase):
                 self.assertEqual(instance["creationType"], CreationTypeEnum.PRE_ANNOTATION.value)
             self.assertEqual(
                 type(annotation["metadata"]["lastAction"]["email"]),
-                type(sa.controller.team_data.data.creator_id)
+                type(sa.controller.team_data.creator_id)
             )
             self.assertEqual(
                 type(annotation["metadata"]["lastAction"]["timestamp"]),

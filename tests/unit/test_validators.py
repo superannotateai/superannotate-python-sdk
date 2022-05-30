@@ -3,8 +3,8 @@ import os
 import tempfile
 from os.path import dirname
 from unittest import TestCase
-from unittest.mock import patch
-
+`from unittest.mock import patch
+`
 from pydantic import ValidationError
 
 from src.superannotate import SAClient
