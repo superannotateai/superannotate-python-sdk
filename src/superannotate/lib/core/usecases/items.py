@@ -19,7 +19,10 @@ from lib.core.repositories import BaseReadOnlyRepository
 from lib.core.response import Response
 from lib.core.serviceproviders import SuperannotateServiceProvider
 from lib.core.usecases.base import BaseReportableUseCae
+from lib.core.usecases.base import BaseUseCase
+from superannotate.logger import get_default_logger
 
+logger = get_default_logger()
 
 class GetItem(BaseReportableUseCae):
     def __init__(
@@ -205,23 +208,37 @@ class AssignItemsUseCase(BaseUseCase):
         self._user = user
         self._service = service
 
+    def is_valid(self, ):
+
+        if not super().is_valid():
+            return False
+
+        for c in self._project.users:
+            if c["user_id"] == self._user:
+                return True
+
+        logger.warning(
+            f"Skipping {self._user}. {self._user} is not a verified contributor for the {self._project.name}"
+        )
+        return False
+
     def execute(self):
         if self.is_valid():
-            for i in range(0, len(self._image_names), self.CHUNK_SIZE):
+            for i in range(0, len(self._item_names), self.CHUNK_SIZE):
                 is_assigned = self._service.assign_items(
                     team_id=self._project.team_id,
                     project_id=self._project.id,
                     folder_name=self._folder.name,
                     user=self._user,
-                    item_names=self._item_names[
-                        i : i + self.CHUNK_SIZE  # noqa: E203
-                    ],
+                    item_names=self._item_names[i : i + self.CHUNK_SIZE],  # noqa: E203
                 )
                 if not is_assigned:
                     self._response.errors = AppException(
                         f"Cant assign {', '.join(self._item_names[i: i + self.CHUNK_SIZE])}"
                     )
                     continue
+                else:
+                    self._response.status = 'Ok'
         return self._response
 
 
@@ -229,7 +246,7 @@ class UnAssignItemsUseCase(BaseUseCase):
     CHUNK_SIZE = 500
 
     def __init__(
-        self,a
+        self,
         service: SuperannotateServiceProvider,
         project_entity: ProjectEntity,
         folder: FolderEntity,
@@ -243,7 +260,7 @@ class UnAssignItemsUseCase(BaseUseCase):
 
     def execute(self):
         # todo handling to backend side
-        for i in range(0, len(self._item_names, self.CHUNK_SIZE):
+        for i in range(0, len(self._item_names), self.CHUNK_SIZE):
             is_un_assigned = self._service.un_assign_items(
                 team_id=self._project_entity.team_id,
                 project_id=self._project_entity.id,
@@ -256,6 +273,7 @@ class UnAssignItemsUseCase(BaseUseCase):
                 )
 
         return self._response
+
 
 class AttachItems(BaseReportableUseCae):
     CHUNK_SIZE = 500
@@ -432,13 +450,15 @@ class CopyItems(BaseReportableUseCae):
             if items_to_copy:
                 for i in range(0, len(items_to_copy), self.CHUNK_SIZE):
                     chunk_to_copy = items_to_copy[i : i + self.CHUNK_SIZE]  # noqa: E203
-                    poll_id = self._backend_service.copy_items_between_folders_transaction(
-                        team_id=self._project.team_id,
-                        project_id=self._project.id,
-                        from_folder_id=self._from_folder.uuid,
-                        to_folder_id=self._to_folder.uuid,
-                        items=chunk_to_copy,
-                        include_annotations=self._include_annotations,
+                    poll_id = (
+                        self._backend_service.copy_items_between_folders_transaction(
+                            team_id=self._project.team_id,
+                            project_id=self._project.id,
+                            from_folder_id=self._from_folder.uuid,
+                            to_folder_id=self._to_folder.uuid,
+                            items=chunk_to_copy,
+                            include_annotations=self._include_annotations,
+                        )
                     )
                     if not poll_id:
                         skipped_items.extend(chunk_to_copy)

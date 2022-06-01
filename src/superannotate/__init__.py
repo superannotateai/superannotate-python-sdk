@@ -1,14 +1,20 @@
 import os
 import sys
+
 sys.path.append(os.path.split(os.path.realpath(__file__))[0])
+from superannotate.lib.app.input_converters.conversion import (
+    convert_json_version,
+)  # noqa
+from superannotate.lib.app.input_converters.conversion import (
+    convert_project_type,
+)  # noqa
+
 
 import logging.config  # noqa
 import requests  # noqa
 from packaging.version import parse  # noqa
 from superannotate.lib.app.analytics.class_analytics import class_distribution  # noqa
 from superannotate.lib.app.exceptions import AppException  # noqa
-from superannotate.lib.app.input_converters.conversion import convert_json_version  # noqa
-from superannotate.lib.app.input_converters.conversion import convert_project_type  # noqa
 from superannotate.lib.app.input_converters.conversion import export_annotation  # noqa
 from superannotate.lib.app.input_converters.conversion import import_annotation  # noqa
 from superannotate.lib.app.interface.sdk_interface import SAClient  # noqa
@@ -52,14 +58,10 @@ def log_version_info():
                 pip_version = max(pip_version, ver)
         if pip_version.major > local_version.major:
             logger.warning(
-                PACKAGE_VERSION_MAJOR_UPGRADE.format(
-                    local_version, pip_version
-                )
+                PACKAGE_VERSION_MAJOR_UPGRADE.format(local_version, pip_version)
             )
         elif pip_version > local_version:
-            logger.warning(
-                PACKAGE_VERSION_UPGRADE.format(local_version, pip_version)
-            )
+            logger.warning(PACKAGE_VERSION_UPGRADE.format(local_version, pip_version))
 
 
 if not os.environ.get("SA_VERSION_CHECK", "True").lower() == "false":

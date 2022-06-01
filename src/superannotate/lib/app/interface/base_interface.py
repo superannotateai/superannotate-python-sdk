@@ -70,7 +70,10 @@ class Tracker:
             if key == "self":
                 continue
             elif key == "project":
-                properties["project_name"], properties["folder_name"] = extract_project_folder(value)
+                (
+                    properties["project_name"],
+                    properties["folder_name"],
+                ) = extract_project_folder(value)
             elif isinstance(value, (str, int, float, bool, str)):
                 properties[key] = value
             elif isinstance(value, dict):
@@ -99,7 +102,9 @@ class Tracker:
                 project_name=properties.pop("project_name", None),
             )
             if "pytest" not in sys.modules:
-                self.get_mp_instance().track(user_id, event_name, {**default, **properties, **session.data})
+                self.get_mp_instance().track(
+                    user_id, event_name, {**default, **properties, **session.data}
+                )
         except Exception:
             raise
 

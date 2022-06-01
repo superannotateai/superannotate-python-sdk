@@ -142,7 +142,9 @@ class DeleteFolderUseCase(BaseUseCase):
 
 class UpdateFolderUseCase(BaseUseCase):
     def __init__(
-        self, folders: BaseManageableRepository, folder: FolderEntity,
+        self,
+        folders: BaseManageableRepository,
+        folder: FolderEntity,
     ):
         super().__init__()
         self._folders = folders

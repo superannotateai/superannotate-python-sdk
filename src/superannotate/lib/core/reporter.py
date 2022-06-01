@@ -72,7 +72,7 @@ class Reporter:
         log_warning: bool = True,
         disable_progress_bar: bool = False,
         log_debug: bool = True,
-        session: Session = None
+        session: Session = None,
     ):
         self.logger = get_default_logger()
         self._log_info = log_info

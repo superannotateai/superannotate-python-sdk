@@ -60,7 +60,11 @@ def class_distribution(export_root, project_names, visualize=False):
     df = df.sort_values(["count"], ascending=False)
 
     if visualize:
-        fig = px.bar(df, x="className", y="count",)
+        fig = px.bar(
+            df,
+            x="className",
+            y="count",
+        )
         fig.update_traces(hovertemplate="%{x}: %{y}")
         fig.update_yaxes(title_text="Instance Count")
         fig.update_xaxes(title_text="")

@@ -635,7 +635,9 @@ class RunPredictionUseCase(BaseUseCase):
 
 class SearchMLModels(BaseUseCase):
     def __init__(
-        self, ml_models_repo: BaseManageableRepository, condition: Condition,
+        self,
+        ml_models_repo: BaseManageableRepository,
+        condition: Condition,
     ):
         super().__init__()
         self._ml_models = ml_models_repo

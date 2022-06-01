@@ -863,7 +863,7 @@ class Controller(BaseController):
     def assign_items(
         self, project_name: str, folder_name: str, item_names: list, user: str
     ):
-        project_entity = self._get_project(project_name)
+        project_entity = self.get_project_metadata(project_name, include_contributors = True).data['project']
         folder = self._get_folder(project_entity, folder_name)
         use_case = usecases.AssignItemsUseCase(
             project=project_entity,

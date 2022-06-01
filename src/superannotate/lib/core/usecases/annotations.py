@@ -444,7 +444,10 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
         handlers_chain.attach(LastActionHandler(team.creator_id))
         return handlers_chain.handle(annotations)
 
-    def clean_json(self, json_data: dict,) -> Tuple[bool, dict]:
+    def clean_json(
+        self,
+        json_data: dict,
+    ) -> Tuple[bool, dict]:
         use_case = ValidateAnnotationUseCase(
             constances.ProjectType.get_name(self._project.type),
             annotation=json_data,

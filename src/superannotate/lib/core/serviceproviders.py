@@ -106,7 +106,11 @@ class SuperannotateServiceProvider:
         raise NotImplementedError
 
     def get_upload_token(
-        self, project_id: int, team_id: int, folder_id: int, image_id: int,
+        self,
+        project_id: int,
+        team_id: int,
+        folder_id: int,
+        image_id: int,
     ) -> dict:
         raise NotImplementedError
 
@@ -187,7 +191,10 @@ class SuperannotateServiceProvider:
         raise NotImplementedError
 
     def un_assign_folder(
-        self, team_id: int, project_id: int, folder_name: str,
+        self,
+        team_id: int,
+        project_id: int,
+        folder_name: str,
     ):
         raise NotImplementedError
 
@@ -197,17 +204,28 @@ class SuperannotateServiceProvider:
         raise NotImplementedError
 
     def un_assign_images(
-        self, team_id: int, project_id: int, folder_name: str, image_names: list,
+        self,
+        team_id: int,
+        project_id: int,
+        folder_name: str,
+        image_names: list,
     ):
         raise NotImplementedError
 
     def un_assign_items(
-        self, team_id: int, project_id: int, folder_name: str, item_names: list,
+        self,
+        team_id: int,
+        project_id: int,
+        folder_name: str,
+        item_names: list,
     ):
         raise NotImplementedError
 
     def un_share_project(
-        self, team_id: int, project_id: int, user_id: str,
+        self,
+        team_id: int,
+        project_id: int,
+        user_id: str,
     ):
         raise NotImplementedError
 

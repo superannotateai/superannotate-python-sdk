@@ -31,7 +31,10 @@ logger = get_default_logger()
 
 class GetProjectsUseCase(BaseUseCase):
     def __init__(
-        self, condition: Condition, team_id: int, projects: BaseManageableRepository,
+        self,
+        condition: Condition,
+        team_id: int,
+        projects: BaseManageableRepository,
     ):
         super().__init__()
         self._condition = condition
@@ -47,7 +50,10 @@ class GetProjectsUseCase(BaseUseCase):
 
 class GetProjectByNameUseCase(BaseUseCase):
     def __init__(
-        self, name: str, team_id: int, projects: BaseManageableRepository,
+        self,
+        name: str,
+        team_id: int,
+        projects: BaseManageableRepository,
     ):
         super().__init__()
         self._name = name
@@ -300,7 +306,10 @@ class CreateProjectUseCase(BaseUseCase):
 
 class DeleteProjectUseCase(BaseUseCase):
     def __init__(
-        self, project_name: str, team_id: int, projects: BaseManageableRepository,
+        self,
+        project_name: str,
+        team_id: int,
+        projects: BaseManageableRepository,
     ):
 
         super().__init__()
@@ -310,7 +319,9 @@ class DeleteProjectUseCase(BaseUseCase):
 
     def execute(self):
         use_case = GetProjectByNameUseCase(
-            name=self._project_name, team_id=self._team_id, projects=self._projects,
+            name=self._project_name,
+            team_id=self._team_id,
+            projects=self._projects,
         )
         project_response = use_case.execute()
         if project_response.data:
@@ -696,7 +707,9 @@ class GetWorkflowsUseCase(BaseUseCase):
 
 class GetAnnotationClassesUseCase(BaseUseCase):
     def __init__(
-        self, classes: BaseManageableRepository, condition: Condition = None,
+        self,
+        classes: BaseManageableRepository,
+        condition: Condition = None,
     ):
         super().__init__()
         self._classes = classes

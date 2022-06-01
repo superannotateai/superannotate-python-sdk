@@ -751,30 +751,12 @@ class SAClient(BaseInterfaceFacade):
         """
 
         project_name, folder_name = extract_project_folder(project)
-        project = self.controller.get_project_metadata(project_name).data
-
-        contributors = (
-            self.controller.get_project_metadata(
-                project_name=project_name, include_contributors=True
-            )
-            .data["project"]
-            .users
-        )
-        contributor = None
-        for c in contributors:
-            if c["user_id"] == user:
-                contributor = user
-
-        if not contributor:
-            logger.warning(
-                f"Skipping {user}. {user} is not a verified contributor for the {project_name}"
-            )
-            return
 
         response = self.controller.assign_items(
-            project_name, folder_name, item_names, user
+            project, folder_name, item_names, user
         )
-        if not response.errors:
+
+        if not response.errors and response.status == 'Ok':
             logger.info(f"Assign items to user {user}")
         else:
             raise AppException(response.errors)

@@ -25,7 +25,7 @@ class CLIFacade:
         To show the version of the current SDK installation
         """
         with open(
-                f"{os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(lib_path))))}/version.py"
+            f"{os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(lib_path))))}/version.py"
         ) as f:
             version = f.read().rstrip()[15:-1]
             print(version)
@@ -40,7 +40,7 @@ class CLIFacade:
         config = repo.get_one(uuid=constances.TOKEN_UUID)
         if config:
             if not input(
-                    f"File {repo.config_path} exists. Do you want to overwrite? [y/n] : "
+                f"File {repo.config_path} exists. Do you want to overwrite? [y/n] : "
             ).lower() in ("y", "yes"):
                 return
         token = input(
@@ -68,14 +68,14 @@ class CLIFacade:
         sys.exit(0)
 
     def upload_images(
-            self,
-            project: str,
-            folder: str,
-            extensions: str = constances.DEFAULT_IMAGE_EXTENSIONS,
-            set_annotation_status: str = constances.AnnotationStatus.NOT_STARTED.name,
-            exclude_file_patterns=constances.DEFAULT_FILE_EXCLUDE_PATTERNS,
-            recursive_subfolders=False,
-            image_quality_in_editor=None,
+        self,
+        project: str,
+        folder: str,
+        extensions: str = constances.DEFAULT_IMAGE_EXTENSIONS,
+        set_annotation_status: str = constances.AnnotationStatus.NOT_STARTED.name,
+        exclude_file_patterns=constances.DEFAULT_FILE_EXCLUDE_PATTERNS,
+        recursive_subfolders=False,
+        image_quality_in_editor=None,
     ):
         """
         To upload images from folder to project use:
@@ -99,12 +99,12 @@ class CLIFacade:
         sys.exit(0)
 
     def export_project(
-            self,
-            project,
-            folder,
-            include_fuse=False,
-            disable_extract_zip_contents=False,
-            annotation_statuses=None,
+        self,
+        project,
+        folder,
+        include_fuse=False,
+        disable_extract_zip_contents=False,
+        annotation_statuses=None,
     ):
         project_name, folder_name = split_project_path(project)
         folders = None
@@ -127,7 +127,7 @@ class CLIFacade:
         sys.exit(0)
 
     def upload_preannotations(
-            self, project, folder, dataset_name=None, task=None, format=None
+        self, project, folder, dataset_name=None, task=None, format=None
     ):
         """
         To upload preannotations from folder to project use
@@ -148,7 +148,7 @@ class CLIFacade:
         sys.exit(0)
 
     def upload_annotations(
-            self, project, folder, dataset_name=None, task=None, format=None
+        self, project, folder, dataset_name=None, task=None, format=None
     ):
         """
         To upload annotations from folder to project use
@@ -169,11 +169,13 @@ class CLIFacade:
         sys.exit(0)
 
     def _upload_annotations(
-            self, project, folder, format, dataset_name, task, pre=True
+        self, project, folder, format, dataset_name, task, pre=True
     ):
         project_folder_name = project
         project_name, folder_name = split_project_path(project)
-        project = SAClient().controller.get_project_metadata(project_name=project_name).data
+        project = (
+            SAClient().controller.get_project_metadata(project_name=project_name).data
+        )
         if not format:
             format = "SuperAnnotate"
         if not dataset_name and format == "COCO":
@@ -207,10 +209,10 @@ class CLIFacade:
         sys.exit(0)
 
     def attach_image_urls(
-            self,
-            project: str,
-            attachments: str,
-            annotation_status: Optional[Any] = "NotStarted",
+        self,
+        project: str,
+        attachments: str,
+        annotation_status: Optional[Any] = "NotStarted",
     ):
         """
         To attach image URLs to project use:
@@ -224,10 +226,10 @@ class CLIFacade:
         sys.exit(0)
 
     def attach_video_urls(
-            self,
-            project: str,
-            attachments: str,
-            annotation_status: Optional[Any] = "NotStarted",
+        self,
+        project: str,
+        attachments: str,
+        annotation_status: Optional[Any] = "NotStarted",
     ):
         SAClient().attach_items(
             project=project,
@@ -238,7 +240,7 @@ class CLIFacade:
 
     @staticmethod
     def attach_document_urls(
-            project: str, attachments: str, annotation_status: Optional[Any] = "NotStarted"
+        project: str, attachments: str, annotation_status: Optional[Any] = "NotStarted"
     ):
         SAClient().attach_items(
             project=project,
@@ -248,15 +250,15 @@ class CLIFacade:
         sys.exit(0)
 
     def upload_videos(
-            self,
-            project,
-            folder,
-            target_fps=None,
-            recursive=False,
-            extensions=constances.DEFAULT_VIDEO_EXTENSIONS,
-            set_annotation_status=constances.AnnotationStatus.NOT_STARTED.name,
-            start_time=0.0,
-            end_time=None,
+        self,
+        project,
+        folder,
+        target_fps=None,
+        recursive=False,
+        extensions=constances.DEFAULT_VIDEO_EXTENSIONS,
+        set_annotation_status=constances.AnnotationStatus.NOT_STARTED.name,
+        start_time=0.0,
+        end_time=None,
     ):
         """
         To upload videos from folder to project use
