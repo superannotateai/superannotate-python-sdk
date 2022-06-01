@@ -62,3 +62,14 @@ class TestDownloadAnnotations(BaseTestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             annotations_path = sa.download_annotations(f"{self.PROJECT_NAME}", temp_dir)
             self.assertEqual(len(os.listdir(annotations_path)), 5)
+
+    @pytest.mark.flaky(reruns=3)
+    def test_download_annotations_from_folders(self):
+        sa.create_folder(self.PROJECT_NAME, self.FOLDER_NAME)
+        sa.create_folder(self.PROJECT_NAME, self.FOLDER_NAME_2)
+        sa.create_annotation_classes_from_classes_json(
+            self.PROJECT_NAME, f"{self.folder_path}/classes/classes.json"
+        )
+        with tempfile.TemporaryDirectory() as temp_dir:
+            annotations_path = sa.download_annotations(f"{self.PROJECT_NAME}", temp_dir)
+            self.assertEqual(len(os.listdir(annotations_path)), 1)

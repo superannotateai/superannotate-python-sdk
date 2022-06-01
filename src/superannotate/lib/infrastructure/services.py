@@ -70,7 +70,7 @@ class BaseBackendService(SuperannotateServiceProvider):
     @property
     def assets_provider_url(self):
         if self.api_url != constance.BACKEND_URL:
-            return "https://assets-provider.devsuperannotate.com/api/v1/"
+            return "https://sa-assets-provider.us-west-2.elasticbeanstalk.com/api/v1/"
         return "https://assets-provider.superannotate.com/api/v1/"
 
     @timed_lru_cache(seconds=360)
@@ -233,7 +233,7 @@ class SuperannotateBackendService(BaseBackendService):
     URL_DELETE_ANNOTATIONS = "annotations/remove"
     URL_DELETE_ANNOTATIONS_PROGRESS = "annotations/getRemoveStatus"
     URL_GET_LIMITS = "project/{}/limitationDetails"
-    URL_GET_ANNOTATIONS = "images/annotations/stream"
+    URL_GET_ANNOTATIONS = "annotations/stream"
     URL_UPLOAD_PRIORITY_SCORES = "images/updateEntropy"
     URL_GET_INTEGRATIONS = "integrations"
     URL_ATTACH_INTEGRATIONS = "image/integration/create"
@@ -299,7 +299,11 @@ class SuperannotateBackendService(BaseBackendService):
         return response.json()
 
     def get_upload_token(
-        self, project_id: int, team_id: int, folder_id: int, image_id: int,
+        self,
+        project_id: int,
+        team_id: int,
+        folder_id: int,
+        image_id: int,
     ):
         download_token_url = urljoin(
             self.api_url,
@@ -733,7 +737,11 @@ class SuperannotateBackendService(BaseBackendService):
         return res.ok
 
     def un_assign_images(
-        self, team_id: int, project_id: int, folder_name: str, image_names: List[str],
+        self,
+        team_id: int,
+        project_id: int,
+        folder_name: str,
+        image_names: List[str],
     ):
         un_assign_images_url = urljoin(self.api_url, self.URL_ASSIGN_IMAGES)
         res = self._request(
@@ -749,7 +757,10 @@ class SuperannotateBackendService(BaseBackendService):
         return res.ok
 
     def un_assign_folder(
-        self, team_id: int, project_id: int, folder_name: str,
+        self,
+        team_id: int,
+        project_id: int,
+        folder_name: str,
     ):
         un_assign_folder_url = urljoin(self.api_url, self.URL_ASSIGN_FOLDER)
         res = self._request(

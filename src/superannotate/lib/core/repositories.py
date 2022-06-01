@@ -67,7 +67,11 @@ class BaseProjectRelatedManageableRepository(
 
 class BaseS3Repository(BaseManageableRepository):
     def __init__(
-        self, access_key: str, secret_key: str, session_token: str, bucket: str,
+        self,
+        access_key: str,
+        secret_key: str,
+        session_token: str,
+        bucket: str,
     ):
         self._session = boto3.Session(
             aws_access_key_id=access_key,

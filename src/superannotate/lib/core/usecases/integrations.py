@@ -9,10 +9,10 @@ from lib.core.reporter import Reporter
 from lib.core.repositories import BaseReadOnlyRepository
 from lib.core.response import Response
 from lib.core.serviceproviders import SuperannotateServiceProvider
-from lib.core.usecases import BaseReportableUseCae
+from lib.core.usecases import BaseReportableUseCase
 
 
-class GetIntegrations(BaseReportableUseCae):
+class GetIntegrations(BaseReportableUseCase):
     def __init__(
         self,
         reporter: Reporter,
@@ -32,7 +32,7 @@ class GetIntegrations(BaseReportableUseCae):
         return self._response
 
 
-class AttachIntegrations(BaseReportableUseCae):
+class AttachIntegrations(BaseReportableUseCase):
     def __init__(
         self,
         reporter: Reporter,

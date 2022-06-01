@@ -18,10 +18,10 @@ from lib.core.reporter import Reporter
 from lib.core.repositories import BaseReadOnlyRepository
 from lib.core.response import Response
 from lib.core.serviceproviders import SuperannotateServiceProvider
-from lib.core.usecases.base import BaseReportableUseCae
+from lib.core.usecases.base import BaseReportableUseCase
 
 
-class GetItem(BaseReportableUseCae):
+class GetItem(BaseReportableUseCase):
     def __init__(
         self,
         reporter: Reporter,
@@ -74,7 +74,7 @@ class GetItem(BaseReportableUseCae):
         return self._response
 
 
-class QueryEntities(BaseReportableUseCae):
+class QueryEntities(BaseReportableUseCase):
     def __init__(
         self,
         reporter: Reporter,
@@ -125,7 +125,7 @@ class QueryEntities(BaseReportableUseCae):
         return self._response
 
 
-class ListItems(BaseReportableUseCae):
+class ListItems(BaseReportableUseCase):
     def __init__(
         self,
         reporter: Reporter,
@@ -187,7 +187,7 @@ class ListItems(BaseReportableUseCae):
         return self._response
 
 
-class AttachItems(BaseReportableUseCae):
+class AttachItems(BaseReportableUseCase):
     CHUNK_SIZE = 500
 
     def __init__(
@@ -288,7 +288,7 @@ class AttachItems(BaseReportableUseCae):
         return self._response
 
 
-class CopyItems(BaseReportableUseCae):
+class CopyItems(BaseReportableUseCase):
     """
     Copy items in bulk between folders in a project.
     Return skipped item names.
@@ -362,13 +362,15 @@ class CopyItems(BaseReportableUseCae):
             if items_to_copy:
                 for i in range(0, len(items_to_copy), self.CHUNK_SIZE):
                     chunk_to_copy = items_to_copy[i : i + self.CHUNK_SIZE]  # noqa: E203
-                    poll_id = self._backend_service.copy_items_between_folders_transaction(
-                        team_id=self._project.team_id,
-                        project_id=self._project.id,
-                        from_folder_id=self._from_folder.uuid,
-                        to_folder_id=self._to_folder.uuid,
-                        items=chunk_to_copy,
-                        include_annotations=self._include_annotations,
+                    poll_id = (
+                        self._backend_service.copy_items_between_folders_transaction(
+                            team_id=self._project.team_id,
+                            project_id=self._project.id,
+                            from_folder_id=self._from_folder.uuid,
+                            to_folder_id=self._to_folder.uuid,
+                            items=chunk_to_copy,
+                            include_annotations=self._include_annotations,
+                        )
                     )
                     if not poll_id:
                         skipped_items.extend(chunk_to_copy)
@@ -404,7 +406,7 @@ class CopyItems(BaseReportableUseCae):
         return self._response
 
 
-class MoveItems(BaseReportableUseCae):
+class MoveItems(BaseReportableUseCase):
     CHUNK_SIZE = 1000
 
     def __init__(
@@ -479,7 +481,7 @@ class MoveItems(BaseReportableUseCae):
         return self._response
 
 
-class SetAnnotationStatues(BaseReportableUseCae):
+class SetAnnotationStatues(BaseReportableUseCase):
     CHUNK_SIZE = 500
     ERROR_MESSAGE = "Failed to change status"
 
