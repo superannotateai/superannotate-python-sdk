@@ -42,7 +42,7 @@ from lib.core.repositories import BaseReadOnlyRepository
 from lib.core.response import Response
 from lib.core.serviceproviders import SuperannotateServiceProvider
 from lib.core.usecases.base import BaseInteractiveUseCase
-from lib.core.usecases.base import BaseReportableUseCae
+from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.usecases.base import BaseUseCase
 from lib.core.usecases.projects import GetAnnotationClassesUseCase
 from PIL import UnidentifiedImageError
@@ -1883,7 +1883,7 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
         return self._response
 
 
-class GetImageAnnotationsUseCase(BaseReportableUseCae):
+class GetImageAnnotationsUseCase(BaseReportableUseCase):
     def __init__(
         self,
         reporter: Reporter,
@@ -2445,7 +2445,7 @@ class ValidateAnnotationUseCase(BaseUseCase):
         return self._response
 
 
-class UploadVideosAsImages(BaseReportableUseCae):
+class UploadVideosAsImages(BaseReportableUseCase):
     def __init__(
         self,
         reporter: Reporter,

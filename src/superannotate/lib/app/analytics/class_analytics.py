@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pandas as pd
 import plotly.express as px
-from lib.app.mixp.decorators import Trackable
+from lib.app.interface.base_interface import Tracker
 from superannotate.lib.app.exceptions import AppException
 from superannotate.lib.core import DEPRICATED_DOCUMENT_VIDEO_MESSAGE
 from superannotate.logger import get_default_logger
@@ -12,7 +12,7 @@ from .common import aggregate_image_annotations_as_df
 logger = get_default_logger()
 
 
-@Trackable
+@Tracker
 def class_distribution(export_root, project_names, visualize=False):
     """Aggregate distribution of classes across multiple projects.
 

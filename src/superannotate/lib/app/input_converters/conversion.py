@@ -6,7 +6,6 @@ from pathlib import Path
 
 from lib.app.exceptions import AppException
 from lib.app.interface.base_interface import Tracker
-from lib.app.mixp.decorators import Trackable
 from lib.core import DEPRICATED_DOCUMENT_VIDEO_MESSAGE
 from lib.core import LIMITED_FUNCTIONS
 from lib.core.enums import ProjectType
@@ -224,7 +223,7 @@ def export_annotation(
     export_from_sa(args)
 
 
-@Trackable
+@Tracker
 def import_annotation(
     input_dir,
     output_dir,
@@ -408,7 +407,7 @@ def import_annotation(
     import_to_sa(args)
 
 
-@Trackable
+@Tracker
 def convert_project_type(input_dir, output_dir):
     """Converts SuperAnnotate 'Vector' project type to 'Pixel' or reverse.
 
@@ -436,7 +435,7 @@ def convert_project_type(input_dir, output_dir):
     sa_convert_project_type(input_dir, output_dir)
 
 
-@Trackable
+@Tracker
 def convert_json_version(input_dir, output_dir, version=2):
     """
     Converts SuperAnnotate JSON versions. Newest JSON version is 2.

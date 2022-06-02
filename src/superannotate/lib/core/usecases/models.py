@@ -26,7 +26,7 @@ from lib.core.exceptions import AppValidationException
 from lib.core.reporter import Reporter
 from lib.core.repositories import BaseManageableRepository
 from lib.core.serviceproviders import SuperannotateServiceProvider
-from lib.core.usecases.base import BaseReportableUseCae
+from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.usecases.base import BaseUseCase
 from lib.core.usecases.images import GetBulkImages
 from superannotate.logger import get_default_logger
@@ -179,7 +179,7 @@ class DeleteMLModel(BaseUseCase):
         return self._response
 
 
-class DownloadExportUseCase(BaseReportableUseCae):
+class DownloadExportUseCase(BaseReportableUseCase):
     def __init__(
         self,
         service: SuperannotateServiceProvider,

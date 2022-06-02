@@ -20,7 +20,7 @@ from lib.core.reporter import Reporter
 from lib.core.repositories import BaseManageableRepository
 from lib.core.repositories import BaseReadOnlyRepository
 from lib.core.serviceproviders import SuperannotateServiceProvider
-from lib.core.usecases.base import BaseReportableUseCae
+from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.usecases.base import BaseUseCase
 from lib.core.usecases.base import BaseUserBasedUseCase
 from requests.exceptions import RequestException
@@ -384,7 +384,7 @@ class UpdateProjectUseCase(BaseUseCase):
         return self._response
 
 
-class CloneProjectUseCase(BaseReportableUseCae):
+class CloneProjectUseCase(BaseReportableUseCase):
     def __init__(
         self,
         reporter: Reporter,

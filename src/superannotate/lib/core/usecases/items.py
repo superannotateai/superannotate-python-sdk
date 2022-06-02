@@ -18,13 +18,14 @@ from lib.core.reporter import Reporter
 from lib.core.repositories import BaseReadOnlyRepository
 from lib.core.response import Response
 from lib.core.serviceproviders import SuperannotateServiceProvider
-from lib.core.usecases.base import BaseReportableUseCae
 from lib.core.usecases.base import BaseUseCase
 from superannotate.logger import get_default_logger
+from lib.core.usecases.base import BaseReportableUseCase
+
 
 logger = get_default_logger()
 
-class GetItem(BaseReportableUseCae):
+class GetItem(BaseReportableUseCase):
     def __init__(
         self,
         reporter: Reporter,
@@ -77,7 +78,7 @@ class GetItem(BaseReportableUseCae):
         return self._response
 
 
-class QueryEntities(BaseReportableUseCae):
+class QueryEntities(BaseReportableUseCase):
     def __init__(
         self,
         reporter: Reporter,
@@ -128,7 +129,7 @@ class QueryEntities(BaseReportableUseCae):
         return self._response
 
 
-class ListItems(BaseReportableUseCae):
+class ListItems(BaseReportableUseCase):
     def __init__(
         self,
         reporter: Reporter,
@@ -272,7 +273,8 @@ class UnAssignItemsUseCase(BaseUseCase):
         return self._response
 
 
-class AttachItems(BaseReportableUseCae):
+
+class AttachItems(BaseReportableUseCase):
     CHUNK_SIZE = 500
 
     def __init__(
@@ -373,7 +375,7 @@ class AttachItems(BaseReportableUseCae):
         return self._response
 
 
-class CopyItems(BaseReportableUseCae):
+class CopyItems(BaseReportableUseCase):
     """
     Copy items in bulk between folders in a project.
     Return skipped item names.
@@ -491,7 +493,7 @@ class CopyItems(BaseReportableUseCae):
         return self._response
 
 
-class MoveItems(BaseReportableUseCae):
+class MoveItems(BaseReportableUseCase):
     CHUNK_SIZE = 1000
 
     def __init__(
@@ -566,7 +568,7 @@ class MoveItems(BaseReportableUseCae):
         return self._response
 
 
-class SetAnnotationStatues(BaseReportableUseCae):
+class SetAnnotationStatues(BaseReportableUseCase):
     CHUNK_SIZE = 500
     ERROR_MESSAGE = "Failed to change status"
 

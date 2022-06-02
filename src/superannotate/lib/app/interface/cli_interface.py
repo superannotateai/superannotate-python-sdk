@@ -113,13 +113,16 @@ class CLIFacade:
         if folder_name:
             folders = [folder_name]
         export_res = SAClient().prepare_export(
-            project_name, folders, include_fuse, False, annotation_statuses
+            project=project_name,
+            folder_names=folders,
+            include_fuse=include_fuse,
+            annotation_statuses=annotation_statuses,
         )
-        export_name = export_res.data["name"]
+        export_name = export_res["name"]
 
         SAClient().download_export(
-            project_name=project_name,
-            export_name=export_name,
+            project=project_name,
+            export=export_name,
             folder_path=folder,
             extract_zip_contents=not disable_extract_zip_contents,
             to_s3_bucket=False,

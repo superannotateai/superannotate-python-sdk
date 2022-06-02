@@ -61,13 +61,13 @@ class BaseInteractiveUseCase(BaseUseCase):
         raise NotImplementedError
 
 
-class BaseReportableUseCae(BaseUseCase, metaclass=ABCMeta):
+class BaseReportableUseCase(BaseUseCase, metaclass=ABCMeta):
     def __init__(self, reporter: Reporter):
         super().__init__()
         self.reporter = reporter
 
 
-class BaseUserBasedUseCase(BaseReportableUseCae, metaclass=ABCMeta):
+class BaseUserBasedUseCase(BaseReportableUseCase, metaclass=ABCMeta):
     """
     class contain validation of unique emails
     """

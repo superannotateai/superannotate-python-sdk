@@ -1,19 +1,65 @@
 import functools
+import os
 import sys
-from abc import ABC
 from abc import abstractmethod
 from inspect import signature
+from pathlib import Path
 from types import FunctionType
 from typing import Iterable
 from typing import Sized
 
+import lib.core as constants
 from lib.app.helpers import extract_project_folder
+from lib.app.interface.types import validate_arguments
+from lib.core.exceptions import AppException
 from lib.core.reporter import Session
+from lib.infrastructure.controller import Controller
+from lib.infrastructure.repositories import ConfigRepository
 from mixpanel import Mixpanel
 from version import __version__
 
 
-class BaseInterfaceFacade(ABC):
+class BaseInterfaceFacade:
+    REGISTRY = []
+
+    def __init__(
+        self,
+        token: str = None,
+        config_path: str = constants.CONFIG_PATH,
+    ):
+        host = constants.BACKEND_URL
+        env_token = os.environ.get("SA_TOKEN")
+        version = os.environ.get("SA_VERSION", "v1")
+        ssl_verify = bool(os.environ.get("SA_SSL", True))
+        if token:
+            token = Controller.validate_token(token=token)
+        elif env_token:
+            host = os.environ.get("SA_URL", constants.BACKEND_URL)
+
+            token = Controller.validate_token(env_token)
+        else:
+            config_path = os.path.expanduser(str(config_path))
+            if not Path(config_path).is_file() or not os.access(config_path, os.R_OK):
+                raise AppException(
+                    f"SuperAnnotate config file {str(config_path)} not found."
+                    f" Please provide correct config file location to sa.init(<path>) or use "
+                    f"CLI's superannotate init to generate default location config file."
+                )
+            config_repo = ConfigRepository(config_path)
+            token, host, ssl_verify = (
+                Controller.validate_token(config_repo.get_one("token").value),
+                config_repo.get_one("main_endpoint").value,
+                config_repo.get_one("ssl_verify").value,
+            )
+        self._host = host
+        self._token = token
+        self.controller = Controller(token, host, ssl_verify, version)
+
+    def __new__(cls, *args, **kwargs):
+        obj = super().__new__(cls, *args, **kwargs)
+        cls.REGISTRY.append(obj)
+        return obj
+
     @property
     @abstractmethod
     def host(self):
@@ -31,31 +77,37 @@ class BaseInterfaceFacade(ABC):
 
 
 class Tracker:
-    TEAM_DATA = None
-    INITIAL_EVENT = {"event_name": "SDK init", "properties": {}}
-    INITIAL_LOGGED = False
+    def get_mp_instance(self) -> Mixpanel:
+        if self.client:
+            if self.client.host == constants.BACKEND_URL:
+                return Mixpanel("ca95ed96f80e8ec3be791e2d3097cf51")
+            else:
+                return Mixpanel("e741d4863e7e05b1a45833d01865ef0d")
 
     @staticmethod
-    def get_mp_instance() -> Mixpanel:
-        # if "api.annotate.online" in get_default_controller()._backend_url:
-        #     return Mixpanel("ca95ed96f80e8ec3be791e2d3097cf51")
-        return Mixpanel("e741d4863e7e05b1a45833d01865ef0d")
-
-    @staticmethod
-    def get_default_payload(team_name, user_id, project_name=None):
+    def get_default_payload(team_name, user_id):
         return {
             "SDK": True,
-            "Paid": True,
             "Team": team_name,
             "Team Owner": user_id,
-            "Project Name": project_name,
-            "Project Role": "Admin",
             "Version": __version__,
         }
 
     def __init__(self, function):
         self.function = function
+        self._client = None
         functools.update_wrapper(self, function)
+
+    @property
+    def client(self):
+        if not self._client:
+            if BaseInterfaceFacade.REGISTRY:
+                self._client = BaseInterfaceFacade.REGISTRY[-1]
+            else:
+                from lib.app.interface.sdk_interface import SAClient
+
+                self._client = SAClient()
+        return self._client
 
     @staticmethod
     def extract_arguments(function, *args, **kwargs) -> dict:
@@ -69,15 +121,16 @@ class Tracker:
         for key, value in kwargs.items():
             if key == "self":
                 continue
+            elif value is None:
+                properties[key] = value
             elif key == "project":
-                (
-                    properties["project_name"],
-                    properties["folder_name"],
-                ) = extract_project_folder(value)
-            elif isinstance(value, (str, int, float, bool, str)):
+                properties["project_name"], folder_name = extract_project_folder(value)
+                if folder_name:
+                    properties["folder_name"] = folder_name
+            elif isinstance(value, (str, int, float, bool)):
                 properties[key] = value
             elif isinstance(value, dict):
-                properties[key] = value.keys()
+                properties[key] = list(value.keys())
             elif isinstance(value, Sized):
                 properties[key] = len(value)
             elif isinstance(value, Iterable):
@@ -86,58 +139,51 @@ class Tracker:
                 properties[key] = str(value)
         return function_name, properties
 
-    def track(self, args, kwargs, success: bool, session):
-        try:
-            function_name = self.function.__name__ if self.function else ""
-            arguments = self.extract_arguments(self.function, *args, **kwargs)
-            event_name, properties = self.default_parser(function_name, arguments)
+    def _track(self, user_id: str, event_name: str, data: dict):
+        if "pytest" not in sys.modules:
+            self.get_mp_instance().track(user_id, event_name, data)
 
-            user_id = self.team_data.creator_id
-            team_name = self.team_data.name
-            properties["Success"] = success
+    def _track_method(self, args, kwargs, success: bool):
+        function_name = self.function.__name__ if self.function else ""
+        arguments = self.extract_arguments(self.function, *args, **kwargs)
+        event_name, properties = self.default_parser(function_name, arguments)
 
-            default = self.get_default_payload(
-                team_name=team_name,
-                user_id=user_id,
-                project_name=properties.pop("project_name", None),
-            )
-            if "pytest" not in sys.modules:
-                self.get_mp_instance().track(
-                    user_id, event_name, {**default, **properties, **session.data}
-                )
-        except Exception:
-            raise
+        user_id = self.client.controller.team_data.creator_id
+        team_name = self.client.controller.team_data.name
 
-    def __get__(self, instance, owner):
-        if instance is None:
-            return self
-        d = self
-        mfactory = lambda self, *args, **kw: d(self, *args, **kw)
-        mfactory.__name__ = self.function.__name__
-        self.team_data = instance.controller.team_data.data
-        return mfactory.__get__(instance, owner)
+        properties["Success"] = success
+        default = self.get_default_payload(team_name=team_name, user_id=user_id)
+        self._track(
+            user_id,
+            event_name,
+            {**default, **properties, **Session.get_current_session().data},
+        )
+
+    def __get__(self, obj, owner=None):
+        if obj is not None:
+            self._client = obj
+            tmp = functools.partial(self.__call__, obj)
+            functools.update_wrapper(tmp, self.function)
+            return tmp
+        return self
 
     def __call__(self, *args, **kwargs):
         success = True
         try:
-            with Session(self.function.__name__) as session:
-                result = self.function(*args, **kwargs)
+            result = self.function(*args, **kwargs)
         except Exception as e:
             success = False
             raise e
         else:
             return result
         finally:
-            self.track(args=args, kwargs=kwargs, success=success, session=session)
+            self._track_method(args=args, kwargs=kwargs, success=success)
 
 
 class TrackableMeta(type):
     def __new__(mcs, name, bases, attrs):
-        for attr_name, attr_value in attrs.iteritems():
+        for attr_name, attr_value in attrs.items():
             if isinstance(attr_value, FunctionType):
-                attrs[attr_name] = mcs.decorate(attr_value)
-        return super().__new__(mcs, name, bases, attrs)
-
-    @staticmethod
-    def decorate(func):
-        return Tracker(func)
+                attrs[attr_name] = Tracker(validate_arguments(attr_value))
+        tmp = super().__new__(mcs, name, bases, attrs)
+        return tmp

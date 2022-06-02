@@ -1,7 +1,6 @@
 import copy
 import io
 import os
-import threading
 from abc import ABCMeta
 from pathlib import Path
 from typing import Callable
@@ -25,7 +24,6 @@ from lib.core.entities import SettingEntity
 from lib.core.entities.integrations import IntegrationEntity
 from lib.core.exceptions import AppException
 from lib.core.reporter import Reporter
-from lib.core.reporter import Session
 from lib.core.response import Response
 from lib.infrastructure.helpers import timed_lru_cache
 from lib.infrastructure.repositories import AnnotationClassRepository
@@ -80,14 +78,6 @@ class BaseController(metaclass=ABCMeta):
         self._team_name = None
         self._reporter = None
 
-    def get_session(self):
-        pk = threading.get_ident()
-        try:
-            return self.SESSIONS[pk]
-        except KeyError:
-            self.SESSIONS[threading.get_ident()] = Session(pk)
-            return self.SESSIONS[pk]
-
     @staticmethod
     def validate_token(token: str):
         try:
@@ -140,7 +130,7 @@ class BaseController(metaclass=ABCMeta):
     @property
     def team_data(self):
         if not self._team_data:
-            self._team_data = self.get_team()
+            self._team_data = self.get_team().data
         return self._team_data
 
     @property
@@ -173,21 +163,6 @@ class BaseController(metaclass=ABCMeta):
         disable_progress_bar: bool = False,
         log_debug: bool = True,
     ) -> Reporter:
-        import inspect
-
-        # session = None
-        # loop_limit = 16
-        # current_frame = inspect.currentframe()
-        # while loop_limit:
-        #     loop_limit -= 1
-        #     try:
-        #         session = current_frame.f_locals["session"]
-        #         if session:
-        #             break
-        #     except KeyError:
-        #         pass
-        #     finally:
-        #         current_frame = current_frame.f_back
         return Reporter(log_info, log_warning, disable_progress_bar, log_debug)
 
     @timed_lru_cache(seconds=3600)
@@ -1118,7 +1093,7 @@ class Controller(BaseController):
             project=project,
             folder=folder,
             images=self.images,
-            team=self.team_data.data,
+            team=self.team_data,
             annotation_paths=annotation_paths,
             backend_service_provider=self._backend_client,
             annotation_classes=AnnotationClassRepository(
@@ -1154,7 +1129,7 @@ class Controller(BaseController):
             project=project,
             folder=folder,
             images=self.images,
-            team=self.team_data.data,
+            team=self.team_data,
             annotation_classes=AnnotationClassRepository(
                 service=self._backend_client, project=project
             ).get_all(),
@@ -1502,10 +1477,10 @@ class Controller(BaseController):
         return use_case.execute()
 
     def get_integrations(self):
-        team = self.team_data.data
+        team = self.team_data
         use_cae = usecases.GetIntegrations(
             reporter=self.get_default_reporter(),
-            team=self.team_data.data,
+            team=self.team_data,
             integrations=self.get_integrations_repo(team_id=team.uuid),
         )
         return use_cae.execute()
@@ -1517,12 +1492,12 @@ class Controller(BaseController):
         integration: IntegrationEntity,
         folder_path: str,
     ):
-        team = self.team_data.data
+        team = self.team_data
         project = self._get_project(project_name)
         folder = self._get_folder(project, folder_name)
         use_case = usecases.AttachIntegrations(
             reporter=self.get_default_reporter(),
-            team=self.team_data.data,
+            team=self.team_data,
             backend_service=self.backend_client,
             project=project,
             folder=folder,

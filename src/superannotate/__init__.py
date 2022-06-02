@@ -15,14 +15,19 @@ import requests  # noqa
 from packaging.version import parse  # noqa
 from superannotate.lib.app.analytics.class_analytics import class_distribution  # noqa
 from superannotate.lib.app.exceptions import AppException  # noqa
-from superannotate.lib.app.input_converters.conversion import export_annotation  # noqa
-from superannotate.lib.app.input_converters.conversion import import_annotation  # noqa
+from superannotate.lib.app.input_converters import convert_json_version
+from superannotate.lib.app.input_converters import convert_project_type  # noqa
+from superannotate.lib.app.input_converters import export_annotation  # noqa
+from superannotate.lib.app.input_converters import import_annotation  # noqa
 from superannotate.lib.app.interface.sdk_interface import SAClient  # noqa
 from superannotate.lib.core import PACKAGE_VERSION_INFO_MESSAGE  # noqa
 from superannotate.lib.core import PACKAGE_VERSION_MAJOR_UPGRADE  # noqa
 from superannotate.lib.core import PACKAGE_VERSION_UPGRADE  # noqa
 from superannotate.logger import get_default_logger  # noqa
 from superannotate.version import __version__  # noqa
+
+
+SESSIONS = {}
 
 __all__ = [
     "__version__",
