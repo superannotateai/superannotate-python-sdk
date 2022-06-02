@@ -54,11 +54,7 @@ class BaseInterfaceFacade:
         self._host = host
         self._token = token
         self.controller = Controller(token, host, ssl_verify, version)
-
-    def __new__(cls, *args, **kwargs):
-        obj = super().__new__(cls, *args, **kwargs)
-        cls.REGISTRY.append(obj)
-        return obj
+        BaseInterfaceFacade.REGISTRY.append(self)
 
     @property
     @abstractmethod
