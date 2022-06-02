@@ -12,7 +12,7 @@ from lib.core.entities import ProjectEntity
 from lib.core.entities import TmpImageEntity
 from lib.core.entities import VideoEntity
 from lib.core.exceptions import AppException
-from lib.core.exceptions import AppValidationException
+from lib.core.exceptions import AppValidationException, SkippableAppValidationException
 from lib.core.exceptions import BackendError
 from lib.core.reporter import Reporter
 from lib.core.repositories import BaseReadOnlyRepository
@@ -208,10 +208,7 @@ class AssignItemsUseCase(BaseUseCase):
         self._user = user
         self._service = service
 
-    def is_valid(self, ):
-
-        if not super().is_valid():
-            return False
+    def validate_user(self, ):
 
         for c in self._project.users:
             if c["user_id"] == self._user:
@@ -220,7 +217,8 @@ class AssignItemsUseCase(BaseUseCase):
         logger.warning(
             f"Skipping {self._user}. {self._user} is not a verified contributor for the {self._project.name}"
         )
-        return False
+
+        raise SkippableAppValidationException(f"{self._user} is not a verified contributor for the {self._project.name}")
 
     def execute(self):
         if self.is_valid():
@@ -244,7 +242,6 @@ class AssignItemsUseCase(BaseUseCase):
 
 class UnAssignItemsUseCase(BaseUseCase):
     CHUNK_SIZE = 500
-
     def __init__(
         self,
         service: SuperannotateServiceProvider,

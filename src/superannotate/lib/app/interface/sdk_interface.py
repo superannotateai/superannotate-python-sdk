@@ -756,9 +756,9 @@ class SAClient(BaseInterfaceFacade):
             project, folder_name, item_names, user
         )
 
-        if not response.errors and response.status == 'Ok':
+        if not response.errors:
             logger.info(f"Assign items to user {user}")
-        else:
+        elif response.status != "Skip":
             raise AppException(response.errors)
 
     @validate_arguments
