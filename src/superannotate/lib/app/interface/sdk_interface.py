@@ -693,10 +693,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         if not response.errors:
             logger.info(f"Assign items to user {user}")
-        elif response.status != "Skip":
+        else:
             raise AppException(response.errors)
 
-    @validate_arguments
     def unassign_items(
         self, project: Union[NotEmptyStr, dict], item_names: List[NotEmptyStr]
     ):
@@ -731,6 +730,14 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param user: user email
         :type user: str
         """
+
+        warning_msg = (
+            "We're deprecating the assign_images function. Please use assign_items instead."
+             "Learn more. \n"
+             "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.assign_items"
+        )
+        logger.warning(warning_msg)
+        warnings.warn(warning_msg, DeprecationWarning)
         project_name, folder_name = extract_project_folder(project)
         project = self.controller.get_project_metadata(project_name).data
 
@@ -778,6 +785,14 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param image_names: list of images to unassign
         :type image_names: list of str
         """
+
+        warning_msg = (
+            "We're deprecating the unassign_images function. Please use unassign_items instead."
+             "Learn more. \n"
+             "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.unassign_items"
+        )
+        logger.warning(warning_msg)
+        warnings.warn(warning_msg, DeprecationWarning)
         project_name, folder_name = extract_project_folder(project)
 
         response = self.controller.un_assign_items(

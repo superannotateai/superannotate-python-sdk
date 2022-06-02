@@ -45,8 +45,8 @@ class Session:
 
     def __del__(self):
         globs = globals()
-        if "SESSIONS" in globs and globs["SESSIONS"].get(self.pk):
-            del globs["SESSIONS"][self.pk]
+        # if "SESSIONS" in globs and globs.get("SESSIONS", {}).get(self.pk):
+        #     del globs["SESSIONS"][self.pk]
 
     @property
     def data(self):

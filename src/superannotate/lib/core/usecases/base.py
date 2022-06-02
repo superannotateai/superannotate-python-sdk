@@ -4,7 +4,7 @@ from abc import abstractmethod
 from typing import Iterable
 from typing import List
 
-from lib.core.exceptions import AppValidationException, SkippableAppValidationException
+from lib.core.exceptions import AppValidationException
 from lib.core.reporter import Reporter
 from lib.core.response import Response
 
@@ -24,9 +24,6 @@ class BaseUseCase(ABC):
                 if name.startswith("validate_"):
                     method = getattr(self, name)
                     method()
-            except SkippableAppValidationException as e:
-                self._response.errors = e
-                self._response.status = 'Skip'
             except AppValidationException as e:
                 self._response.errors = e
 

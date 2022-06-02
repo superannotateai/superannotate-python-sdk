@@ -12,7 +12,7 @@ from lib.core.entities import ProjectEntity
 from lib.core.entities import TmpImageEntity
 from lib.core.entities import VideoEntity
 from lib.core.exceptions import AppException
-from lib.core.exceptions import AppValidationException, SkippableAppValidationException
+from lib.core.exceptions import AppValidationException
 from lib.core.exceptions import BackendError
 from lib.core.reporter import Reporter
 from lib.core.repositories import BaseReadOnlyRepository
@@ -215,11 +215,7 @@ class AssignItemsUseCase(BaseUseCase):
             if c["user_id"] == self._user:
                 return True
 
-        logger.warning(
-            f"Skipping {self._user}. {self._user} is not a verified contributor for the {self._project.name}"
-        )
-
-        raise SkippableAppValidationException(f"{self._user} is not a verified contributor for the {self._project.name}")
+        raise AppValidationException(f"{self._user} is not a verified contributor for the {self._project.name}")
 
     def execute(self):
         if self.is_valid():
@@ -236,8 +232,6 @@ class AssignItemsUseCase(BaseUseCase):
                         f"Cant assign {', '.join(self._item_names[i: i + self.CHUNK_SIZE])}"
                     )
                     continue
-                else:
-                    self._response.status = 'Ok'
         return self._response
 
 

@@ -25,11 +25,6 @@ class AppValidationException(AppException):
     """
 
 
-class SkippableAppValidationException(AppValidationException):
-    """
-    App validation exception
-    """
-
 class ImageProcessingException(AppException):
     """
     App validation exception

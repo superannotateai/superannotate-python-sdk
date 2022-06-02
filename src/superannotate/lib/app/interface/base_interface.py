@@ -46,9 +46,12 @@ class BaseInterfaceFacade:
                     f"CLI's superannotate init to generate default location config file."
                 )
             config_repo = ConfigRepository(config_path)
+            main_endpoint = config_repo.get_one("main_endpoint").value
+            if not main_endpoint:
+                main_endpoint = constants.BACKEND_URL
             token, host, ssl_verify = (
                 Controller.validate_token(config_repo.get_one("token").value),
-                config_repo.get_one("main_endpoint").value,
+                main_endpoint,
                 config_repo.get_one("ssl_verify").value,
             )
         self._host = host
@@ -57,19 +60,13 @@ class BaseInterfaceFacade:
         BaseInterfaceFacade.REGISTRY.append(self)
 
     @property
-    @abstractmethod
     def host(self):
-        raise NotImplementedError
+        return self._host
 
     @property
-    @abstractmethod
     def token(self):
-        raise NotImplementedError
+        return self._token
 
-    @property
-    @abstractmethod
-    def logger(self):
-        raise NotImplementedError
 
 
 class Tracker:
