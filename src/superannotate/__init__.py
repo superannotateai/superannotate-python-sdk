@@ -18,6 +18,7 @@ from superannotate.lib.core import PACKAGE_VERSION_MAJOR_UPGRADE  # noqa
 from superannotate.lib.core import PACKAGE_VERSION_UPGRADE  # noqa
 from superannotate.logger import get_default_logger  # noqa
 from superannotate.version import __version__  # noqa
+import superannotate.lib.core.enums as enums
 
 
 SESSIONS = {}
@@ -26,6 +27,7 @@ __all__ = [
     "__version__",
     "SAClient",
     # Utils
+    "enums",
     "AppException",
     # analytics
     "class_distribution",

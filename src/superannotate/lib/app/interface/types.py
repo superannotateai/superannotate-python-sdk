@@ -22,8 +22,21 @@ from pydantic import StrictStr
 from pydantic import validate_arguments as pydantic_validate_arguments
 from pydantic import ValidationError
 from pydantic.errors import StrRegexError
+from pydantic import errors
+from pydantic.errors import PydanticTypeError
 
 NotEmptyStr = constr(strict=True, min_length=1)
+
+
+class EnumMemberError(PydanticTypeError):
+    code = 'enum'
+
+    def __str__(self) -> str:
+        permitted = ', '.join(str(v.name) for v in self.enum_values)  # type: ignore
+        return f'Available values are: {permitted}'
+
+
+errors.EnumMemberError = EnumMemberError
 
 
 class EmailStr(StrictStr):
