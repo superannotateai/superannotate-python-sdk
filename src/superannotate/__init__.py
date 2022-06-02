@@ -2,6 +2,13 @@ import os
 import sys
 
 sys.path.append(os.path.split(os.path.realpath(__file__))[0])
+from superannotate.lib.app.input_converters.conversion import (
+    convert_json_version,
+)  # noqa
+from superannotate.lib.app.input_converters.conversion import (
+    convert_project_type,
+)  # noqa
+
 
 import logging.config  # noqa
 import requests  # noqa

@@ -8,6 +8,8 @@ class Response:
         self._report = []
         self._errors = []
 
+    def __str__(self):
+        return f"Response object with status:{self.status}, data : {self.data}, errors: {self.errors} "
     @property
     def data(self):
         return self._data
@@ -30,7 +32,7 @@ class Response:
 
     @property
     def status(self):
-        return self.data
+        return self._status
 
     @status.setter
     def status(self, value):

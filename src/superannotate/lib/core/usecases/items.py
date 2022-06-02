@@ -12,14 +12,18 @@ from lib.core.entities import ProjectEntity
 from lib.core.entities import TmpImageEntity
 from lib.core.entities import VideoEntity
 from lib.core.exceptions import AppException
-from lib.core.exceptions import AppValidationException
+from lib.core.exceptions import AppValidationException, SkippableAppValidationException
 from lib.core.exceptions import BackendError
 from lib.core.reporter import Reporter
 from lib.core.repositories import BaseReadOnlyRepository
 from lib.core.response import Response
 from lib.core.serviceproviders import SuperannotateServiceProvider
+from lib.core.usecases.base import BaseUseCase
+from superannotate.logger import get_default_logger
 from lib.core.usecases.base import BaseReportableUseCase
 
+
+logger = get_default_logger()
 
 class GetItem(BaseReportableUseCase):
     def __init__(
@@ -185,6 +189,89 @@ class ListItems(BaseReportableUseCase):
                     )
             self._response.data = items
         return self._response
+
+
+class AssignItemsUseCase(BaseUseCase):
+    CHUNK_SIZE = 500
+
+    def __init__(
+        self,
+        service: SuperannotateServiceProvider,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        item_names: list,
+        user: str,
+    ):
+        super().__init__()
+        self._project = project
+        self._folder = folder
+        self._item_names = item_names
+        self._user = user
+        self._service = service
+
+    def validate_user(self, ):
+
+        for c in self._project.users:
+            if c["user_id"] == self._user:
+                return True
+
+        logger.warning(
+            f"Skipping {self._user}. {self._user} is not a verified contributor for the {self._project.name}"
+        )
+
+        raise SkippableAppValidationException(f"{self._user} is not a verified contributor for the {self._project.name}")
+
+    def execute(self):
+        if self.is_valid():
+            for i in range(0, len(self._item_names), self.CHUNK_SIZE):
+                is_assigned = self._service.assign_items(
+                    team_id=self._project.team_id,
+                    project_id=self._project.id,
+                    folder_name=self._folder.name,
+                    user=self._user,
+                    item_names=self._item_names[i : i + self.CHUNK_SIZE],  # noqa: E203
+                )
+                if not is_assigned:
+                    self._response.errors = AppException(
+                        f"Cant assign {', '.join(self._item_names[i: i + self.CHUNK_SIZE])}"
+                    )
+                    continue
+                else:
+                    self._response.status = 'Ok'
+        return self._response
+
+
+class UnAssignItemsUseCase(BaseUseCase):
+    CHUNK_SIZE = 500
+    def __init__(
+        self,
+        service: SuperannotateServiceProvider,
+        project_entity: ProjectEntity,
+        folder: FolderEntity,
+        item_names: list,
+    ):
+        super().__init__()
+        self._project_entity = project_entity
+        self._folder = folder
+        self._item_names = item_names
+        self._service = service
+
+    def execute(self):
+        # todo handling to backend side
+        for i in range(0, len(self._item_names), self.CHUNK_SIZE):
+            is_un_assigned = self._service.un_assign_items(
+                team_id=self._project_entity.team_id,
+                project_id=self._project_entity.id,
+                folder_name=self._folder.name,
+                item_names=self._item_names[i : i + self.CHUNK_SIZE],  # noqa: E203
+            )
+            if not is_un_assigned:
+                self._response.errors = AppException(
+                    f"Cant un assign {', '.join(self._item_names[i: i + self.CHUNK_SIZE])}"
+                )
+
+        return self._response
+
 
 
 class AttachItems(BaseReportableUseCase):
