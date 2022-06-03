@@ -61,6 +61,7 @@ from tqdm import tqdm
 logger = get_default_logger()
 
 
+
 class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def get_team_metadata(self):
         """Returns team metadata
@@ -311,6 +312,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             "Successfully renamed project %s to %s.", project, response.data.name
         )
         return ProjectSerializer(response.data).serialize()
+
 
     def get_folder_metadata(self, project: NotEmptyStr, folder_name: NotEmptyStr):
         """Returns folder metadata
@@ -667,6 +669,53 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             f"Images deleted in project {project_name}{'/' + folder_name if folder_name else ''}"
         )
 
+    def assign_items(
+        self, project: Union[NotEmptyStr, dict], item_names: List[str], user: str
+    ):
+        """Assigns items  to a user. The assignment role, QA or Annotator, will
+        be deduced from the user's role in the project. The type of the objects` image, video or text
+        will be deduced from the project type. With SDK, the user can be
+        assigned to a role in the project with the share_project function.
+
+        :param project: project name or folder path (e.g., "project1/folder1")
+        :type project: str
+        :param item_names: list of item names to assign
+        :type item_names: list of str
+        :param user: user email
+        :type user: str
+        """
+
+        project_name, folder_name = extract_project_folder(project)
+
+        response = self.controller.assign_items(
+            project, folder_name, item_names, user
+        )
+
+        if not response.errors:
+            logger.info(f"Assign items to user {user}")
+        else:
+            raise AppException(response.errors)
+
+    def unassign_items(
+        self, project: Union[NotEmptyStr, dict], item_names: List[NotEmptyStr]
+    ):
+        """Removes assignment of given items for all assignees. With SDK,
+        the user can be assigned to a role in the project with the share_project
+        function.
+
+        :param project: project name or folder path (e.g., "project1/folder1")
+        :type project: str
+        :param item_names: list of items to unassign
+        :type item_names: list of str
+        """
+        project_name, folder_name = extract_project_folder(project)
+
+        response = self.controller.un_assign_items(
+            project_name=project_name, folder_name=folder_name, item_names=item_names
+        )
+        if response.errors:
+            raise AppException(response.errors)
+
     def assign_images(
         self, project: Union[NotEmptyStr, dict], image_names: List[str], user: str
     ):
@@ -681,6 +730,14 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param user: user email
         :type user: str
         """
+
+        warning_msg = (
+            "We're deprecating the assign_images function. Please use assign_items instead."
+             "Learn more. \n"
+             "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.assign_items"
+        )
+        logger.warning(warning_msg)
+        warnings.warn(warning_msg, DeprecationWarning)
         project_name, folder_name = extract_project_folder(project)
         project = self.controller.get_project_metadata(project_name).data
 
@@ -719,18 +776,26 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def unassign_images(
         self, project: Union[NotEmptyStr, dict], image_names: List[NotEmptyStr]
     ):
-        """Removes assignment of given images for all assignees.With SDK,
+        """Removes assignment of given images for all assignees. With SDK,
         the user can be assigned to a role in the project with the share_project
         function.
 
         :param project: project name or folder path (e.g., "project1/folder1")
         :type project: str
-        :param image_names: list of image unassign
+        :param image_names: list of images to unassign
         :type image_names: list of str
         """
+
+        warning_msg = (
+            "We're deprecating the unassign_images function. Please use unassign_items instead."
+             "Learn more. \n"
+             "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.unassign_items"
+        )
+        logger.warning(warning_msg)
+        warnings.warn(warning_msg, DeprecationWarning)
         project_name, folder_name = extract_project_folder(project)
 
-        response = self.controller.un_assign_images(
+        response = self.controller.un_assign_items(
             project_name=project_name, folder_name=folder_name, image_names=image_names
         )
         if response.errors:

@@ -215,6 +215,7 @@ class SuperannotateBackendService(BaseBackendService):
     URL_MOVE_IMAGES_FROM_FOLDER = "image/move"
     URL_GET_COPY_PROGRESS = "images/copy-image-progress"
     URL_ASSIGN_IMAGES = "images/editAssignment/"
+    URL_ASSIGN_ITEMS = "images/editAssignment/"
     URL_ASSIGN_FOLDER = "folder/editAssignment"
     URL_GET_EXPORTS = "exports"
     URL_GET_CLASS = "class/{}"
@@ -750,6 +751,47 @@ class SuperannotateBackendService(BaseBackendService):
             params={"team_id": team_id, "project_id": project_id},
             data={
                 "image_names": image_names,
+                "remove_user_ids": ["all"],
+                "folder_name": folder_name,
+            },
+        )
+        return res.ok
+
+    def assign_items(
+        self,
+        team_id: int,
+        project_id: int,
+        folder_name: str,
+        user: str,
+        item_names: list,
+    ):
+        assign_items_url = urljoin(self.api_url, self.URL_ASSIGN_ITEMS)
+        res = self._request(
+            assign_items_url,
+            "put",
+            params={"team_id": team_id, "project_id": project_id},
+            data={
+                "image_names": item_names,
+                "assign_user_id": user,
+                "folder_name": folder_name,
+            },
+        )
+        return res.ok
+
+    def un_assign_items(
+        self,
+        team_id: int,
+        project_id: int,
+        folder_name: str,
+        item_names: List[str],
+    ):
+        un_assign_items_url = urljoin(self.api_url, self.URL_ASSIGN_ITEMS)
+        res = self._request(
+            un_assign_items_url,
+            "put",
+            params={"team_id": team_id, "project_id": project_id},
+            data={
+                "image_names": item_names,
                 "remove_user_ids": ["all"],
                 "folder_name": folder_name,
             },
