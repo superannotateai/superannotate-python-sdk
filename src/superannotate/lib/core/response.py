@@ -10,6 +10,7 @@ class Response:
 
     def __str__(self):
         return f"Response object with status:{self.status}, data : {self.data}, errors: {self.errors} "
+
     @property
     def data(self):
         return self._data

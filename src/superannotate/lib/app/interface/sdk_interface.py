@@ -61,7 +61,6 @@ from tqdm import tqdm
 logger = get_default_logger()
 
 
-
 class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def get_team_metadata(self):
         """Returns team metadata
@@ -312,7 +311,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             "Successfully renamed project %s to %s.", project, response.data.name
         )
         return ProjectSerializer(response.data).serialize()
-
 
     def get_folder_metadata(self, project: NotEmptyStr, folder_name: NotEmptyStr):
         """Returns folder metadata
@@ -687,9 +685,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         project_name, folder_name = extract_project_folder(project)
 
-        response = self.controller.assign_items(
-            project, folder_name, item_names, user
-        )
+        response = self.controller.assign_items(project, folder_name, item_names, user)
 
         if not response.errors:
             logger.info(f"Assign items to user {user}")
@@ -733,8 +729,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         warning_msg = (
             "We're deprecating the assign_images function. Please use assign_items instead."
-             "Learn more. \n"
-             "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.assign_items"
+            "Learn more. \n"
+            "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.assign_items"
         )
         logger.warning(warning_msg)
         warnings.warn(warning_msg, DeprecationWarning)
@@ -788,8 +784,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         warning_msg = (
             "We're deprecating the unassign_images function. Please use unassign_items instead."
-             "Learn more. \n"
-             "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.unassign_items"
+            "Learn more. \n"
+            "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.unassign_items"
         )
         logger.warning(warning_msg)
         warnings.warn(warning_msg, DeprecationWarning)

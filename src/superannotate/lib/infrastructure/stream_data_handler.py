@@ -131,8 +131,5 @@ class StreamedAnnotations:
                 method, session, url, self._process_data(data), params=params
             ):
                 self._store_annotation(
-                    download_path,
-                    postfix,
-                    annotation,
-                    self._callback
+                    download_path, postfix, annotation, self._callback
                 )

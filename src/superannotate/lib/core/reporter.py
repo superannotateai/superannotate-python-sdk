@@ -6,6 +6,7 @@ from collections import defaultdict
 from typing import Union
 
 import tqdm
+from lib.core import CONFIG
 from superannotate.logger import get_default_logger
 
 
@@ -31,51 +32,6 @@ class Spinner:
             sys.stdout.write("\b")
 
 
-class Session:
-    def __init__(self):
-        self.pk = threading.get_ident()
-        self._data_dict = {}
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, type, value, traceback):
-        if type is not None:
-            return False
-
-    def __del__(self):
-        globs = globals()
-        # if "SESSIONS" in globs and globs.get("SESSIONS", {}).get(self.pk):
-        #     del globs["SESSIONS"][self.pk]
-
-    @property
-    def data(self):
-        return self._data_dict
-
-    @staticmethod
-    def get_current_session():
-        globs = globals()
-        if not globs.get("SESSIONS") or not globs["SESSIONS"].get(
-            threading.get_ident()
-        ):
-            session = Session()
-            globals().update({"SESSIONS": {session.pk: session}})
-            return session
-        return globs["SESSIONS"][threading.get_ident()]
-
-    def __setitem__(self, key, item):
-        self._data_dict[key] = item
-
-    def __getitem__(self, key):
-        return self._data_dict[key]
-
-    def __repr__(self):
-        return repr(self._data_dict)
-
-    def clear(self):
-        return self._data_dict.clear()
-
-
 class Reporter:
     def __init__(
         self,
@@ -83,7 +39,6 @@ class Reporter:
         log_warning: bool = True,
         disable_progress_bar: bool = False,
         log_debug: bool = True,
-        session: Session = None,
     ):
         self.logger = get_default_logger()
         self._log_info = log_info
@@ -95,7 +50,7 @@ class Reporter:
         self.debug_messages = []
         self.custom_messages = defaultdict(set)
         self.progress_bar = None
-        self.session = session
+        self.session = CONFIG.get_current_session()
         self._spinner = None
 
     def start_spinner(self):

@@ -1,7 +1,6 @@
 import functools
 import os
 import sys
-from abc import abstractmethod
 from inspect import signature
 from pathlib import Path
 from types import FunctionType
@@ -11,8 +10,8 @@ from typing import Sized
 import lib.core as constants
 from lib.app.helpers import extract_project_folder
 from lib.app.interface.types import validate_arguments
+from lib.core import CONFIG
 from lib.core.exceptions import AppException
-from lib.core.reporter import Session
 from lib.infrastructure.controller import Controller
 from lib.infrastructure.repositories import ConfigRepository
 from mixpanel import Mixpanel
@@ -27,15 +26,14 @@ class BaseInterfaceFacade:
         token: str = None,
         config_path: str = constants.CONFIG_PATH,
     ):
-        host = constants.BACKEND_URL
         env_token = os.environ.get("SA_TOKEN")
+        host = os.environ.get("SA_URL", constants.BACKEND_URL)
         version = os.environ.get("SA_VERSION", "v1")
         ssl_verify = bool(os.environ.get("SA_SSL", True))
         if token:
             token = Controller.validate_token(token=token)
         elif env_token:
             host = os.environ.get("SA_URL", constants.BACKEND_URL)
-
             token = Controller.validate_token(env_token)
         else:
             config_path = os.path.expanduser(str(config_path))
@@ -66,7 +64,6 @@ class BaseInterfaceFacade:
     @property
     def token(self):
         return self._token
-
 
 
 class Tracker:
@@ -149,7 +146,7 @@ class Tracker:
         self._track(
             user_id,
             event_name,
-            {**default, **properties, **Session.get_current_session().data},
+            {**default, **properties, **CONFIG.get_current_session().data},
         )
 
     def __get__(self, obj, owner=None):
