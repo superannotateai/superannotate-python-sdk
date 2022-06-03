@@ -36,7 +36,7 @@ class BaseInterfaceFacade:
         elif env_token:
             host = os.environ.get("SA_URL", constants.BACKEND_URL)
 
-            token = Controller.validate_token(env_token)
+            token = Controller.valdate_token(env_token)
         else:
             config_path = os.path.expanduser(str(config_path))
             if not Path(config_path).is_file() or not os.access(config_path, os.R_OK):

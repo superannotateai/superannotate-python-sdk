@@ -67,6 +67,16 @@ class DownloadMLModelAuthData(BaseModel):
         super().__init__(**data)
 
 
+class UploadAnnotationsResponse(BaseModel):
+    class Resource(BaseModel):
+        classes: Optional[List[str]]
+        templates: Optional[List[str]]
+        attributes: Optional[List[str]]
+        attribute_groups: Optional[List[str]]
+    failedItems: List[str] = []
+    missingResources: Optional[Resource]
+
+
 class ServiceResponse(BaseModel):
     status: int
     reason: str

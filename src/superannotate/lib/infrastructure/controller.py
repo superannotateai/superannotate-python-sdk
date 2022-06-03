@@ -1073,6 +1073,7 @@ class Controller(BaseController):
         project_name: str,
         folder_name: str,
         annotation_paths: List[str],
+        root_annotation_paths: str,
         client_s3_bucket=None,
         is_pre_annotations: bool = False,
         folder_path: str = None,
@@ -1083,8 +1084,10 @@ class Controller(BaseController):
             project=project,
             folder=folder,
             images=self.images,
+            folders=self.folders,
             team=self.team_data,
             annotation_paths=annotation_paths,
+            root_annotation_paths=root_annotation_paths,
             backend_service_provider=self._backend_client,
             annotation_classes=AnnotationClassRepository(
                 service=self._backend_client, project=project
