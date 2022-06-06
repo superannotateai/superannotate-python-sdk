@@ -18,12 +18,13 @@ from lib.core.reporter import Reporter
 from lib.core.repositories import BaseReadOnlyRepository
 from lib.core.response import Response
 from lib.core.serviceproviders import SuperannotateServiceProvider
+from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.usecases.base import BaseUseCase
 from superannotate.logger import get_default_logger
-from lib.core.usecases.base import BaseReportableUseCase
 
 
 logger = get_default_logger()
+
 
 class GetItem(BaseReportableUseCase):
     def __init__(
@@ -209,13 +210,17 @@ class AssignItemsUseCase(BaseUseCase):
         self._user = user
         self._service = service
 
-    def validate_user(self, ):
+    def validate_user(
+        self,
+    ):
 
         for c in self._project.users:
             if c["user_id"] == self._user:
                 return True
 
-        raise AppValidationException(f"{self._user} is not a verified contributor for the {self._project.name}")
+        raise AppValidationException(
+            f"{self._user} is not a verified contributor for the {self._project.name}"
+        )
 
     def execute(self):
         if self.is_valid():
@@ -237,6 +242,7 @@ class AssignItemsUseCase(BaseUseCase):
 
 class UnAssignItemsUseCase(BaseUseCase):
     CHUNK_SIZE = 500
+
     def __init__(
         self,
         service: SuperannotateServiceProvider,
@@ -265,7 +271,6 @@ class UnAssignItemsUseCase(BaseUseCase):
                 )
 
         return self._response
-
 
 
 class AttachItems(BaseReportableUseCase):

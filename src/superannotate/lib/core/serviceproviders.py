@@ -218,7 +218,6 @@ class SuperannotateServiceProvider:
         project_id: int,
         folder_name: str,
         item_names: list,
-
     ):
         raise NotImplementedError
 

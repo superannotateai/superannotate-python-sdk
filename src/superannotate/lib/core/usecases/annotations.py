@@ -816,7 +816,9 @@ class DownloadAnnotations(BaseReportableUseCase):
         if self.is_valid():
             export_path = str(
                 self.destination
-                / Path(f"{self._project.name} {datetime.now().strftime('%B %d %Y %H_%M')}")
+                / Path(
+                    f"{self._project.name} {datetime.now().strftime('%B %d %Y %H_%M')}"
+                )
             )
             self.reporter.log_info(
                 f"Downloading the annotations of the requested items to {export_path}\nThis might take a while…"

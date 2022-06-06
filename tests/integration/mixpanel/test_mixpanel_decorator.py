@@ -8,7 +8,7 @@ from src.superannotate import AppException
 from src.superannotate import __version__
 
 
-class TestDocumentUrls(TestCase):
+class TestMixpanel(TestCase):
     CLIENT = SAClient()
     TEAM_DATA = CLIENT.get_team_metadata()
     BLANK_PAYLOAD = {
