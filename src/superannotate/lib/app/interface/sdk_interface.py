@@ -668,7 +668,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         )
 
     def assign_items(
-        self, project: Union[NotEmptyStr, dict], item_names: List[str], user: str
+        self, project: Union[NotEmptyStr, dict], items: List[str], user: str
     ):
         """Assigns items  to a user. The assignment role, QA or Annotator, will
         be deduced from the user's role in the project. The type of the objects` image, video or text
@@ -685,7 +685,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         project_name, folder_name = extract_project_folder(project)
 
-        response = self.controller.assign_items(project, folder_name, item_names, user)
+        response = self.controller.assign_items(project_name, folder_name, items, user)
 
         if not response.errors:
             logger.info(f"Assign items to user {user}")
@@ -693,7 +693,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(response.errors)
 
     def unassign_items(
-        self, project: Union[NotEmptyStr, dict], item_names: List[NotEmptyStr]
+        self, project: Union[NotEmptyStr, dict], items: List[NotEmptyStr]
     ):
         """Removes assignment of given items for all assignees. With SDK,
         the user can be assigned to a role in the project with the share_project
@@ -707,7 +707,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project_name, folder_name = extract_project_folder(project)
 
         response = self.controller.un_assign_items(
-            project_name=project_name, folder_name=folder_name, item_names=item_names
+            project_name=project_name, folder_name=folder_name, item_names=items
         )
         if response.errors:
             raise AppException(response.errors)
