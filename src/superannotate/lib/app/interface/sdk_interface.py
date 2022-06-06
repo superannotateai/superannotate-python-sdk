@@ -677,7 +677,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param project: project name or folder path (e.g., "project1/folder1")
         :type project: str
-        :param item_names: list of item names to assign
+        :param items: list of items to assign
         :type item_names: list of str
         :param user: user email
         :type user: str
@@ -701,7 +701,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param project: project name or folder path (e.g., "project1/folder1")
         :type project: str
-        :param item_names: list of items to unassign
+        :param items: list of items to unassign
         :type item_names: list of str
         """
         project_name, folder_name = extract_project_folder(project)
