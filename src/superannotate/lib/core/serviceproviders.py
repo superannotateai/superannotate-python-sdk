@@ -318,7 +318,10 @@ class SuperannotateServiceProvider:
         postfix: str,
         items: List[str] = None,
         callback: Callable = None,
-    ) -> List[dict]:
+    ) -> int:
+        """
+        Returns the number of items downloaded
+        """
         raise NotImplementedError
 
     def upload_priority_scores(

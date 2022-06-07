@@ -1044,7 +1044,7 @@ class SuperannotateBackendService(BaseBackendService):
         postfix: str,
         items: List[str] = None,
         callback: Callable = None,
-    ) -> List[dict]:
+    ) -> int:
         import aiohttp
 
         async with aiohttp.ClientSession(

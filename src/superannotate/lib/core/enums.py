@@ -47,7 +47,7 @@ class BaseTitledEnum(int, Enum):
         return self.__doc__.lower() == other.__doc__.lower()
 
     def __eq__(self, other):
-        return super(BaseTitledEnum, self).__eq__(other)
+        return super().__eq__(other)
 
 
 class AnnotationTypes(str, Enum):

@@ -1,5 +1,4 @@
 from os.path import expanduser
-from pathlib import Path
 
 from superannotate.lib.core.enums import AnnotationStatus
 from superannotate.lib.core.enums import ImageQuality

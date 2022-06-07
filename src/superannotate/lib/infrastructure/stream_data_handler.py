@@ -109,7 +109,11 @@ class StreamedAnnotations:
         method: str = "post",
         params=None,
         chunk_size: int = 100,
-    ):
+    ) -> int:
+        """
+        Returns the number of items downloaded
+        """
+        items_downloaded: int = 0
         if chunk_size and data:
             for i in range(0, len(data), chunk_size):
                 data_to_process = data[i : i + chunk_size]
@@ -126,13 +130,13 @@ class StreamedAnnotations:
                         annotation,
                         self._callback,
                     )
+                    items_downloaded += 1
         else:
             async for annotation in self.fetch(
                 method, session, url, self._process_data(data), params=params
             ):
                 self._store_annotation(
-                    download_path,
-                    postfix,
-                    annotation,
-                    self._callback
+                    download_path, postfix, annotation, self._callback
                 )
+                items_downloaded += 1
+        return items_downloaded
