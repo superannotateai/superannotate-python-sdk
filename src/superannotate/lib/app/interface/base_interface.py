@@ -6,6 +6,7 @@ from pathlib import Path
 from types import FunctionType
 from typing import Iterable
 from typing import Sized
+from typing import Tuple
 
 import lib.core as constants
 from lib.app.helpers import extract_project_folder
@@ -21,41 +22,44 @@ from version import __version__
 class BaseInterfaceFacade:
     REGISTRY = []
 
-    def __init__(
-        self,
-        token: str = None,
-        config_path: str = constants.CONFIG_PATH,
-    ):
-        env_token = os.environ.get("SA_TOKEN")
-        host = os.environ.get("SA_URL", constants.BACKEND_URL)
+    def __init__(self, token: str = None, config_path: str = None):
         version = os.environ.get("SA_VERSION", "v1")
-        ssl_verify = bool(os.environ.get("SA_SSL", True))
+        _token, _config_path = None, None
+        _host = os.environ.get("SA_URL", constants.BACKEND_URL)
+        _ssl_verify = bool(os.environ.get("SA_SSL", True))
         if token:
-            token = Controller.validate_token(token=token)
-        elif env_token:
-            host = os.environ.get("SA_URL", constants.BACKEND_URL)
-            token = Controller.validate_token(env_token)
+            _token = Controller.validate_token(token=token)
+        elif config_path:
+            _token, _host, _ssl_verify = self._retrieve_configs(config_path)
         else:
-            config_path = os.path.expanduser(str(config_path))
-            if not Path(config_path).is_file() or not os.access(config_path, os.R_OK):
-                raise AppException(
-                    f"SuperAnnotate config file {str(config_path)} not found."
-                    f" Please provide correct config file location to sa.init(<path>) or use "
-                    f"CLI's superannotate init to generate default location config file."
+            _token = os.environ.get("SA_TOKEN")
+            if not _token:
+                _toke, _host, _ssl_verify = self._retrieve_configs(
+                    constants.CONFIG_PATH
                 )
-            config_repo = ConfigRepository(config_path)
-            main_endpoint = config_repo.get_one("main_endpoint").value
-            if not main_endpoint:
-                main_endpoint = constants.BACKEND_URL
-            token, host, ssl_verify = (
-                Controller.validate_token(config_repo.get_one("token").value),
-                main_endpoint,
-                config_repo.get_one("ssl_verify").value,
+        self._token, self._host = _host, _token
+        self.controller = Controller(_token, _host, _ssl_verify, version)
+
+    def __new__(cls, *args, **kwargs):
+        obj = super().__new__(cls, *args, **kwargs)
+        cls.REGISTRY.append(obj)
+        return obj
+
+    @staticmethod
+    def _retrieve_configs(path) -> Tuple[str, str, str]:
+        config_path = os.path.expanduser(str(path))
+        if not Path(config_path).is_file() or not os.access(config_path, os.R_OK):
+            raise AppException(
+                f"SuperAnnotate config file {str(config_path)} not found."
+                f" Please provide correct config file location to sa.init(<path>) or use "
+                f"CLI's superannotate init to generate default location config file."
             )
-        self._host = host
-        self._token = token
-        self.controller = Controller(token, host, ssl_verify, version)
-        BaseInterfaceFacade.REGISTRY.append(self)
+        config_repo = ConfigRepository(config_path)
+        return (
+            Controller.validate_token(config_repo.get_one("token").value),
+            config_repo.get_one("main_endpoint").value,
+            config_repo.get_one("ssl_verify").value,
+        )
 
     @property
     def host(self):
