@@ -163,22 +163,7 @@ class BaseController(metaclass=ABCMeta):
         disable_progress_bar: bool = False,
         log_debug: bool = True,
     ) -> Reporter:
-        import inspect
-
-        session = None
-        loop_limit = 16
-        current_frame = inspect.currentframe()
-        while loop_limit:
-            loop_limit -= 1
-            try:
-                session = current_frame.f_locals["session"]
-                if session:
-                    break
-            except KeyError:
-                pass
-            finally:
-                current_frame = current_frame.f_back
-        return Reporter(log_info, log_warning, disable_progress_bar, log_debug, session)
+        return Reporter(log_info, log_warning, disable_progress_bar, log_debug)
 
     @timed_lru_cache(seconds=3600)
     def get_auth_data(self, project_id: int, team_id: int, folder_id: int):
@@ -847,6 +832,33 @@ class Controller(BaseController):
             images=self.images,
             image_names=image_names,
             backend_service_provider=self._backend_client,
+        )
+        return use_case.execute()
+
+    def assign_items(
+        self, project_name: str, folder_name: str, item_names: list, user: str
+    ):
+        project_entity = self.get_project_metadata(
+            project_name, include_contributors=True
+        ).data["project"]
+        folder = self._get_folder(project_entity, folder_name)
+        use_case = usecases.AssignItemsUseCase(
+            project=project_entity,
+            service=self._backend_client,
+            folder=folder,
+            item_names=item_names,
+            user=user,
+        )
+        return use_case.execute()
+
+    def un_assign_items(self, project_name, folder_name, item_names):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+        use_case = usecases.UnAssignItemsUseCase(
+            project_entity=project,
+            service=self._backend_client,
+            folder=folder,
+            item_names=item_names,
         )
         return use_case.execute()
 

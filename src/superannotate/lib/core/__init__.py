@@ -1,5 +1,6 @@
 from os.path import expanduser
 
+from superannotate.lib.core.config import Config
 from superannotate.lib.core.enums import AnnotationStatus
 from superannotate.lib.core.enums import ImageQuality
 from superannotate.lib.core.enums import ProjectState
@@ -10,6 +11,9 @@ from superannotate.lib.core.enums import TrainingStatus
 from superannotate.lib.core.enums import TrainingTask
 from superannotate.lib.core.enums import UploadState
 from superannotate.lib.core.enums import UserRole
+
+
+CONFIG = Config()
 
 
 CONFIG_PATH = "~/.superannotate/config.json"

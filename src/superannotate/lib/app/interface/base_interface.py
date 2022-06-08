@@ -1,7 +1,6 @@
 import functools
 import os
 import sys
-from abc import abstractmethod
 from inspect import signature
 from pathlib import Path
 from types import FunctionType
@@ -12,8 +11,8 @@ from typing import Tuple
 import lib.core as constants
 from lib.app.helpers import extract_project_folder
 from lib.app.interface.types import validate_arguments
+from lib.core import CONFIG
 from lib.core.exceptions import AppException
-from lib.core.reporter import Session
 from lib.infrastructure.controller import Controller
 from lib.infrastructure.repositories import ConfigRepository
 from mixpanel import Mixpanel
@@ -63,19 +62,12 @@ class BaseInterfaceFacade:
         )
 
     @property
-    @abstractmethod
     def host(self):
-        raise NotImplementedError
+        return self._host
 
     @property
-    @abstractmethod
     def token(self):
-        raise NotImplementedError
-
-    @property
-    @abstractmethod
-    def logger(self):
-        raise NotImplementedError
+        return self._token
 
 
 class Tracker:
@@ -158,7 +150,7 @@ class Tracker:
         self._track(
             user_id,
             event_name,
-            {**default, **properties, **Session.get_current_session().data},
+            {**default, **properties, **CONFIG.get_current_session().data},
         )
 
     def __get__(self, obj, owner=None):
