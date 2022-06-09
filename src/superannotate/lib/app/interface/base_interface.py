@@ -41,7 +41,7 @@ class BaseInterfaceFacade:
         self.controller = Controller(_token, _host, _ssl_verify, version)
 
     def __new__(cls, *args, **kwargs):
-        obj = super().__new__(cls, *args, **kwargs)
+        obj = super().__new__(cls)
         cls.REGISTRY.append(obj)
         return obj
 
