@@ -37,13 +37,9 @@ class BaseInterfaceFacade:
                 _toke, _host, _ssl_verify = self._retrieve_configs(
                     constants.CONFIG_PATH
                 )
-        self._token, self._host = _host, _token
+        self._token, self._host = _token, _host
         self.controller = Controller(_token, _host, _ssl_verify, version)
-
-    def __new__(cls, *args, **kwargs):
-        obj = super().__new__(cls)
-        cls.REGISTRY.append(obj)
-        return obj
+        BaseInterfaceFacade.REGISTRY.append(self)
 
     @staticmethod
     def _retrieve_configs(path) -> Tuple[str, str, str]:
@@ -51,8 +47,6 @@ class BaseInterfaceFacade:
         if not Path(config_path).is_file() or not os.access(config_path, os.R_OK):
             raise AppException(
                 f"SuperAnnotate config file {str(config_path)} not found."
-                f" Please provide correct config file location to sa.init(<path>) or use "
-                f"CLI's superannotate init to generate default location config file."
             )
         config_repo = ConfigRepository(config_path)
         return (
@@ -72,11 +66,12 @@ class BaseInterfaceFacade:
 
 class Tracker:
     def get_mp_instance(self) -> Mixpanel:
-        if self.client:
-            if self.client.host == constants.BACKEND_URL:
-                return Mixpanel("ca95ed96f80e8ec3be791e2d3097cf51")
-            else:
-                return Mixpanel("e741d4863e7e05b1a45833d01865ef0d")
+        client = self.get_client()
+        mp_token = "ca95ed96f80e8ec3be791e2d3097cf51"
+        if client:
+            if client.host != constants.BACKEND_URL:
+                mp_token = "e741d4863e7e05b1a45833d01865ef0d"
+        return Mixpanel(mp_token)
 
     @staticmethod
     def get_default_payload(team_name, user_id):
@@ -92,8 +87,7 @@ class Tracker:
         self._client = None
         functools.update_wrapper(self, function)
 
-    @property
-    def client(self):
+    def get_client(self):
         if not self._client:
             if BaseInterfaceFacade.REGISTRY:
                 self._client = BaseInterfaceFacade.REGISTRY[-1]
@@ -101,7 +95,8 @@ class Tracker:
                 from lib.app.interface.sdk_interface import SAClient
 
                 self._client = SAClient()
-        return self._client
+        elif hasattr(self._client, "controller"):
+            return self._client
 
     @staticmethod
     def extract_arguments(function, *args, **kwargs) -> dict:
@@ -138,12 +133,14 @@ class Tracker:
             self.get_mp_instance().track(user_id, event_name, data)
 
     def _track_method(self, args, kwargs, success: bool):
+        client = self.get_client()
+        if not client:
+            return
         function_name = self.function.__name__ if self.function else ""
         arguments = self.extract_arguments(self.function, *args, **kwargs)
         event_name, properties = self.default_parser(function_name, arguments)
-
-        user_id = self.client.controller.team_data.creator_id
-        team_name = self.client.controller.team_data.name
+        user_id = client.controller.team_data.creator_id
+        team_name = client.controller.team_data.name
 
         properties["Success"] = success
         default = self.get_default_payload(team_name=team_name, user_id=user_id)
@@ -177,7 +174,9 @@ class Tracker:
 class TrackableMeta(type):
     def __new__(mcs, name, bases, attrs):
         for attr_name, attr_value in attrs.items():
-            if isinstance(attr_value, FunctionType):
+            if isinstance(
+                attr_value, FunctionType
+            ) and not attr_value.__name__.startswith("_"):
                 attrs[attr_name] = Tracker(validate_arguments(attr_value))
         tmp = super().__new__(mcs, name, bases, attrs)
         return tmp

@@ -187,7 +187,7 @@ class SuperannotateBackendService(BaseBackendService):
     Manage projects, images and team in the Superannotate
     """
 
-    DEFAULT_CHUNK_SIZE = 1000
+    DEFAULT_CHUNK_SIZE = 5000
 
     URL_USERS = "users"
     URL_LIST_PROJECTS = "projects"

@@ -61,7 +61,6 @@ class StreamedAnnotations:
         verify_ssl: bool = False,
     ):
         async with aiohttp.ClientSession(
-            raise_for_status=True,
             headers=self._headers,
             connector=aiohttp.TCPConnector(ssl=verify_ssl),
         ) as session:
@@ -108,7 +107,7 @@ class StreamedAnnotations:
         session,
         method: str = "post",
         params=None,
-        chunk_size: int = 100,
+        chunk_size: int = 5000,
     ) -> int:
         """
         Returns the number of items downloaded
