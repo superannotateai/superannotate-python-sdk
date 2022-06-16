@@ -600,12 +600,17 @@ class SetAnnotationStatues(BaseReportableUseCase):
             )
             self._item_names = [item.name for item in self._items.get_all(condition)]
             return
-        existing_items = self._backend_service.get_bulk_images(
-            project_id=self._project.id,
-            team_id=self._project.team_id,
-            folder_id=self._folder.uuid,
-            images=self._item_names,
-        )
+        existing_items = []
+        for i in range(0, len(self._item_names), self.CHUNK_SIZE):
+
+            search_names = self._item_names[i:i+self.CHUNK_SIZE]
+            existing_items += self._backend_service.get_bulk_images(
+                project_id=self._project.id,
+                team_id=self._project.team_id,
+                folder_id=self._folder.uuid,
+                images=search_names,
+            )
+
         if not existing_items:
             raise AppValidationException(self.ERROR_MESSAGE)
         if existing_items:
