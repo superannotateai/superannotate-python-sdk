@@ -798,7 +798,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         warnings.warn(warning_msg, DeprecationWarning)
         project_name, folder_name = extract_project_folder(project)
 
-        response = self.controller.un_assign_items(
+        response = self.controller.un_assign_images(
             project_name=project_name, folder_name=folder_name, image_names=image_names
         )
         if response.errors:
@@ -2698,6 +2698,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         )
         if response.errors:
             raise AppException(response.errors)
+        else:
+            logger.info("Annotation statuses of items changed")
         return response.data
 
     def download_annotations(

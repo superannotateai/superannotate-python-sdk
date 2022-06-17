@@ -380,7 +380,7 @@ class CopyItems(BaseReportableUseCase):
     Return skipped item names.
     """
 
-    CHUNK_SIZE = 1000
+    CHUNK_SIZE = 500
 
     def __init__(
         self,
@@ -431,12 +431,18 @@ class CopyItems(BaseReportableUseCase):
                 )
                 items = [item.name for item in self._items.get_all(condition)]
 
-            existing_items = self._backend_service.get_bulk_images(
-                project_id=self._project.id,
-                team_id=self._project.team_id,
-                folder_id=self._to_folder.uuid,
-                images=items,
-            )
+            existing_items = []
+            for i in range(0, len(items), self.CHUNK_SIZE):
+                cand_items = self._backend_service.get_bulk_images(
+                    project_id=self._project.id,
+                    team_id=self._project.team_id,
+                    folder_id=self._to_folder.uuid,
+                    images=items[i : i + self.CHUNK_SIZE],
+                )
+                if isinstance(cand_items, dict):
+                    continue
+                existing_items += cand_items
+
             duplications = [item["name"] for item in existing_items]
             items_to_copy = list(set(items) - set(duplications))
             skipped_items = duplications
@@ -471,12 +477,19 @@ class CopyItems(BaseReportableUseCase):
                     except BackendError as e:
                         self._response.errors = AppException(e)
                         return self._response
-                existing_items = self._backend_service.get_bulk_images(
-                    project_id=self._project.id,
-                    team_id=self._project.team_id,
-                    folder_id=self._to_folder.uuid,
-                    images=items,
-                )
+
+                existing_items = []
+                for i in range(0, len(items), self.CHUNK_SIZE):
+                    cand_items = self._backend_service.get_bulk_images(
+                        project_id=self._project.id,
+                        team_id=self._project.team_id,
+                        folder_id=self._to_folder.uuid,
+                        images=items[i : i + self.CHUNK_SIZE],
+                    )
+                    if isinstance(cand_items, dict):
+                        continue
+                    existing_items += cand_items
+
                 existing_item_names_set = {item["name"] for item in existing_items}
                 items_to_copy_names_set = set(items_to_copy)
                 copied_items = existing_item_names_set.intersection(
@@ -600,12 +613,21 @@ class SetAnnotationStatues(BaseReportableUseCase):
             )
             self._item_names = [item.name for item in self._items.get_all(condition)]
             return
-        existing_items = self._backend_service.get_bulk_images(
-            project_id=self._project.id,
-            team_id=self._project.team_id,
-            folder_id=self._folder.uuid,
-            images=self._item_names,
-        )
+        existing_items = []
+        for i in range(0, len(self._item_names), self.CHUNK_SIZE):
+
+            search_names = self._item_names[i : i + self.CHUNK_SIZE]
+            cand_items = self._backend_service.get_bulk_images(
+                project_id=self._project.id,
+                team_id=self._project.team_id,
+                folder_id=self._folder.uuid,
+                images=search_names,
+            )
+
+            if isinstance(cand_items, dict):
+                continue
+            existing_items += cand_items
+
         if not existing_items:
             raise AppValidationException(self.ERROR_MESSAGE)
         if existing_items:

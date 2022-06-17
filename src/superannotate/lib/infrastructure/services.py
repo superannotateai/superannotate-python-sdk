@@ -693,6 +693,7 @@ class SuperannotateBackendService(BaseBackendService):
     def get_bulk_images(
         self, project_id: int, team_id: int, folder_id: int, images: List[str]
     ) -> List[dict]:
+
         bulk_get_images_url = urljoin(self.api_url, self.URL_BULK_GET_IMAGES)
         res = self._request(
             bulk_get_images_url,
