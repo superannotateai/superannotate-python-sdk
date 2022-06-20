@@ -2669,7 +2669,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         self,
         project: Union[NotEmptyStr, dict],
         annotation_status: AnnotationStatuses,
-        item_names: Optional[List[NotEmptyStr]] = None,
+        items: Optional[List[NotEmptyStr]] = None,
     ):
         """Sets annotation statuses of items
 
@@ -2686,7 +2686,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :type annotation_status: str
 
         :param items:  item names to set the mentioned status for. If None, all the items in the project will be used.
-        :type items: str
+        :type items: list of strs
         """
 
         project_name, folder_name = extract_project_folder(project)
@@ -2694,7 +2694,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             project_name=project_name,
             folder_name=folder_name,
             annotation_status=annotation_status,
-            item_names=item_names,
+            item_names=items,
         )
         if response.errors:
             raise AppException(response.errors)
