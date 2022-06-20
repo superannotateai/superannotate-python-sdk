@@ -80,7 +80,7 @@ class ServiceResponse(BaseModel):
             "content": response.content,
         }
         if response.ok:
-            if content_type and content_type not is self.__class__:
+            if content_type and not content_type is self.__class__:
                 data["data"] = content_type(**response.json())
             else:
                 data["data"] = response.json()
