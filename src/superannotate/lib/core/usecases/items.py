@@ -210,34 +210,29 @@ class AssignItemsUseCase(BaseUseCase):
         self._user = user
         self._service = service
 
-    def validate_user(
-        self,
-    ):
 
-        for c in self._project.users:
-            if c["user_id"] == self._user:
-                return True
-
-        raise AppValidationException(
-            f"{self._user} is not a verified contributor for the {self._project.name}"
-        )
+    def validate_item_names(self, ):
+        self._item_names = list(set(self._item_names))
 
     def execute(self):
+        cnt_assigned = 0
         if self.is_valid():
             for i in range(0, len(self._item_names), self.CHUNK_SIZE):
-                is_assigned = self._service.assign_items(
+                status, response = self._service.assign_items(
                     team_id=self._project.team_id,
                     project_id=self._project.id,
                     folder_name=self._folder.name,
                     user=self._user,
                     item_names=self._item_names[i : i + self.CHUNK_SIZE],  # noqa: E203
                 )
-                if not is_assigned:
-                    self._response.errors = AppException(
-                        f"Cant assign {', '.join(self._item_names[i: i + self.CHUNK_SIZE])}"
-                    )
-                    continue
-        return self._response
+                if status == 406 and 'error' in response: # User not found
+                    self._response.errors+=response['error']
+                    return self._response, 0
+                elif 'error' in response:
+                    response['successCount'] = 0
+
+                cnt_assigned+=response['successCount']
+        return self._response, cnt_assigned
 
 
 class UnAssignItemsUseCase(BaseUseCase):
