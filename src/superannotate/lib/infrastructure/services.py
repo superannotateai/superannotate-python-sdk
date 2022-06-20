@@ -134,10 +134,10 @@ class BaseBackendService(SuperannotateServiceProvider):
         if response.status_code == 404 and retried < 3:
             return self._request(
                 url,
-                method="get",
-                data=None,
-                headers=None,
-                params=None,
+                method=method,
+                data=data,
+                headers=headers,
+                params=params,
                 retried=retried + 1,
                 content_type=content_type,
             )
@@ -777,7 +777,7 @@ class SuperannotateBackendService(BaseBackendService):
                 "folder_name": folder_name,
             },
         )
-        return res.ok
+        return res.status_code, res.json()
 
     def un_assign_items(
         self,

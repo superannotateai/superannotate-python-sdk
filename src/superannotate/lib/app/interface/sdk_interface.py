@@ -692,10 +692,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         project_name, folder_name = extract_project_folder(project)
 
-        response = self.controller.assign_items(project_name, folder_name, items, user)
+        response, cnt_assigned = self.controller.assign_items(project_name, folder_name, items, user)
 
         if not response.errors:
-            logger.info(f"Assign items to user {user}")
+            logger.info(f"Assigned {cnt_assigned}/{len(items)} items to user {user}")
         else:
             raise AppException(response.errors)
 
