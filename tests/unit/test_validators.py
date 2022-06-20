@@ -3,63 +3,33 @@ import os
 import tempfile
 from os.path import dirname
 from unittest import TestCase
-`from unittest.mock import patch
-`
-from pydantic import ValidationError
+from unittest.mock import patch
 
 from src.superannotate import SAClient
+
 sa = SAClient()
-from superannotate_schemas.validators import AnnotationValidators
 
-
-VECTOR_ANNOTATION_JSON_WITH_BBOX = """
-{
-  "metadata": {
-    "name": "example_image_1.jpg",
-    "width": 1024,
-    "height": 683,
-    "status": "Completed",
-    "pinned": false,
-    "isPredicted": null,
-    "projectId": null,
-    "annotatorEmail": null,
-    "qaEmail": null
-  },
-  "instances": [
-    {
-      "type": "bbox",
-      "classId": 72274,
-      "probability": 100,
-      "points": {
-        
-        "x2": 465.23,
-        "y1": 341.5,
-        "y2": 357.09
-      },
-      "groupId": 0,
-      "pointLabels": {},
-      "locked": false,
-      "visible": false,
-      "attributes": [
+VECTOR_ANNOTATION_JSON_WITH_BBOX = {
+    'metadata': {
+        'name': 'example_image_1.jpg', 'width': 1024, 'height': 683, 'status': 'Completed', 'pinned': False,
+        'isPredicted': None, 'projectId': None, 'annotatorEmail': None, 'qaEmail': None
+    }, 'instances': [
         {
-          "id": 117845,
-          "groupId": 28230,
-          "name": "2",
-          "groupName": "Num doors"
+            'type': 'bbox', 'classId': 72274, 'probability': 100, 'points': {
+            'x2': 465.23, 'y1': 341.5, 'y2': 357.09
+        },
+            'groupId': 0, 'pointLabels': {}, 'locked': False, 'visible': False,
+            'attributes': [
+                {
+                    'id': 117845, 'groupId': 28230, 'name': '2', 'groupName': 'Num doors'
+                }
+            ],
+            'trackingId': 'aaa97f80c9e54a5f2dc2e920fc92e5033d9af45b',
+            # 'createdBy': None, 'creationType': None, 'updatedAt': None, 'updatedBy': None, 'error': None, 'createdAt': None,
+            'className': 'Personal vehicle'
         }
-      ],
-      "trackingId": "aaa97f80c9e54a5f2dc2e920fc92e5033d9af45b",
-      "error": null,
-      "createdAt": null,
-      "createdBy": null,
-      "creationType": null,
-      "updatedAt": null,
-      "updatedBy": null,
-      "className": "Personal vehicle"
-    }
-  ]
+    ]
 }
-"""
 
 
 class TestValidators(TestCase):
@@ -71,26 +41,17 @@ class TestValidators(TestCase):
         return os.path.join(dirname(dirname(__file__)), self.TEST_VECTOR_FOLDER_PATH)
 
     def test_validate_annotations_should_note_raise_errors(self):
-        sa.validate_annotations("Vector", os.path.join(self.vector_folder_path, self.VECTOR_JSON))
+        with open(os.path.join(self.vector_folder_path, self.VECTOR_JSON), "r") as f:
+            report = sa.controller.validate_annotations("vector", json.load(f)).data
+        assert not report
 
-    @patch('builtins.print')
-    def test_validate_annotation_with_wrong_bbox(self, mock_print):
-        with tempfile.TemporaryDirectory() as tmpdir_name:
-            with open(f"{tmpdir_name}/vector.json", "w") as vector_json:
-                vector_json.write(VECTOR_ANNOTATION_JSON_WITH_BBOX)
+    def test_validate_annotation_with_wrong_bbox(self):
+        report = sa.controller.validate_annotations("vector", VECTOR_ANNOTATION_JSON_WITH_BBOX).data
+        assert ("instances[0].points", "'x1' is a required property") == report[0]
 
-            sa.validate_annotations("Vector", os.path.join(self.vector_folder_path, f"{tmpdir_name}/vector.json"))
-            mock_print.assert_any_call("instances[0].points.x1                           field required")
-
-    @patch('builtins.print')
-    def test_validate_annotation_without_metadata(self, mock_print):
-        with tempfile.TemporaryDirectory() as tmpdir_name:
-            with open(f"{tmpdir_name}/vector.json", "w") as vector_json:
-                vector_json.write(
-                    json.dumps({"instances": []})
-                )
-            sa.validate_annotations("Vector", os.path.join(self.vector_folder_path, f"{tmpdir_name}/vector.json"))
-            mock_print.assert_any_call("metadata                                         field required")
+    def test_validate_annotation_without_metadata(self):
+        report = sa.controller.validate_annotations("vector", {"instances": []}).data
+        assert ("", "'metadata' is a required property") == report[0]
 
 
 class TestTypeHandling(TestCase):
@@ -193,19 +154,15 @@ class TestTypeHandling(TestCase):
                     '''
                 )
 
-            self.assertTrue(sa.validate_annotations("Document", os.path.join(self.vector_folder_path,
-                                                                             f"{tmpdir_name}/test_validate_document_annotation_without_classname.json")))
+            self.assertTrue(sa.validate_annotations("Document", os.path.join(self.vector_folder_path, f"{tmpdir_name}/test_validate_document_annotation_without_classname.json")))
 
     @patch('builtins.print')
     def test_validate_annotation_with_wrong_bbox(self, mock_print):
         with tempfile.TemporaryDirectory() as tmpdir_name:
             with open(f"{tmpdir_name}/vector.json", "w") as vector_json:
                 vector_json.write(self.ANNOTATION)
-            sa.validate_annotations("Vector", os.path.join(self.vector_folder_path, f"{tmpdir_name}/vector.json"))
-            mock_print.assert_any_call(
-                "instances[0].type                                invalid type, valid types are bbox, "
-                "template, cuboid, polygon, point, polyline, ellipse, rbbox, tag"
-            )
+            sa.validate_annotations("vector", os.path.join(self.vector_folder_path, f"{tmpdir_name}/vector.json"))
+            mock_print.assert_any_call('instances[0]                                invalid instance')
 
     def test_validate_document_annotation(self):
         with tempfile.TemporaryDirectory() as tmpdir_name:
@@ -340,7 +297,7 @@ class TestTypeHandling(TestCase):
 
             sa.validate_annotations("Vector", os.path.join(self.vector_folder_path,
                                                            f"{tmpdir_name}/test_validate_error_message_format.json"))
-            mock_print.assert_any_call("metadata.name                                    field required")
+            mock_print.assert_any_call('metadata                   \'name\' is a required property')
 
     @patch('builtins.print')
     def test_validate_document_annotation_wrong_class_id(self, mock_print):
@@ -389,7 +346,7 @@ class TestTypeHandling(TestCase):
 
             sa.validate_annotations("Document", os.path.join(self.vector_folder_path,
                                                              f"{tmpdir_name}/test_validate_document_annotation_wrong_class_id.json"))
-            mock_print.assert_any_call("instances[0].classId                             integer type expected")
+            mock_print.assert_any_call('instances[0].classId               \'string\' is not of type \'integer\'')
 
     def test_validate_document_annotation_with_null_created_at(self):
         with tempfile.TemporaryDirectory() as tmpdir_name:
@@ -498,7 +455,7 @@ class TestTypeHandling(TestCase):
                 )
 
             sa.validate_annotations("Vector", os.path.join(self.vector_folder_path, f"{tmpdir_name}/{json_name}"))
-            mock_print.assert_any_call("instances[0].type                                field required")
+            mock_print.assert_any_call('instances[0]                                   type required')
 
     @patch('builtins.print')
     def test_validate_vector_invalid_instance_type_and_attr_annotation(self, mock_print):
@@ -566,10 +523,7 @@ class TestTypeHandling(TestCase):
                 os.path.join(self.vector_folder_path,
                              f"{tmpdir_name}/test_validate_vector_invalid_instace_type_and_attr_annotation.json")
             )
-            mock_print.assert_any_call(
-                "instances[0].type                                invalid type, valid types are bbox, "
-                "template, cuboid, polygon, point, polyline, ellipse, rbbox, tag"
-            )
+            mock_print.assert_any_call('instances[0]                                invalid instance')
 
     @patch('builtins.print')
     def test_validate_video_invalid_instance_type_and_attr_annotation(self, mock_print):
@@ -1668,363 +1622,3 @@ class TestTypeHandling(TestCase):
                 "instances[0].meta.pointLabels                    value is not a valid dict",
             )
 
-
-    def test_validate_video_point_labels_bad_keys(self):
-        with tempfile.TemporaryDirectory() as tmpdir_name:
-            with open(f"{tmpdir_name}/test_validate_video_point_labels_bad_keys.json",
-                      "w") as test_validate_video_point_labels_bad_keys:
-                test_validate_video_point_labels_bad_keys.write(
-                    '''
-                    {
-                    "metadata": {
-                        "name": "video.mp4",
-                        "width": 480,
-                        "height": 270,
-                        "status": "NotStarted",
-                        "url": "https://file-examples-com.github.io/uploads/2017/04/file_example_MP4_480_1_5MG.mp4",
-                        "duration": 30526667,
-                        "projectId": 152038,
-                        "error": null,
-                        "annotatorEmail": null,
-                        "qaEmail": null
-                    },
-                    "instances": [
-                        {
-                            "meta": {
-                                "type": "bbox",
-                                "classId": 859496,
-                                "className": "vid",
-                                "pointLabels": {
-                                        "bad_key_1" : "a",
-                                        "bad_key_2" : "b",
-                                        "  " : "afsd",
-                                        "1" : ["fasdf","sdfsdf"]
-                                },
-                                "start": 0,
-                                "end": 30526667
-                            },
-                            "parameters": [
-                                {
-                                    "start": 0,
-                                    "end": 30526667,
-                                    "timestamps": [
-                                        {
-                                            "points": {
-                                                "x1": 223.32,
-                                                "y1": 78.45,
-                                                "x2": 312.31,
-                                                "y2": 176.66
-                                            },
-                                            "timestamp": 0,
-                                            "attributes": []
-                                        },
-                                        {
-                                            "points": {
-                                                "x1": 182.08,
-                                                "y1": 33.18,
-                                                "x2": 283.45,
-                                                "y2": 131.39
-                                            },
-                                            "timestamp": 17271058,
-                                            "attributes": [
-                                                {
-                                                    "id": 1175876,
-                                                    "groupId": 338357,
-                                                    "name": "attr",
-                                                    "groupName": "attr g"
-                                                }
-                                            ]
-                                        },
-                                        {
-                                            "points": {
-                                                "x1": 182.32,
-                                                "y1": 36.33,
-                                                "x2": 284.01,
-                                                "y2": 134.54
-                                            },
-                                            "timestamp": 18271058,
-                                            "attributes": [
-                                                {
-                                                    "id": 1175876,
-                                                    "groupId": 338357,
-                                                    "name": "attr",
-                                                    "groupName": "attr g"
-                                                }
-                                            ]
-                                        },
-                                        {
-                                            "points": {
-                                                "x1": 181.49,
-                                                "y1": 45.09,
-                                                "x2": 283.18,
-                                                "y2": 143.3
-                                            },
-                                            "timestamp": 19271058,
-                                            "attributes": [
-                                                {
-                                                    "id": 1175876,
-                                                    "groupId": 338357,
-                                                    "name": "attr",
-                                                    "groupName": "attr g"
-                                                }
-                                            ]
-                                        },
-                                        {
-                                            "points": {
-                                                "x1": 181.9,
-                                                "y1": 48.35,
-                                                "x2": 283.59,
-                                                "y2": 146.56
-                                            },
-                                            "timestamp": 19725864,
-                                            "attributes": [
-                                                {
-                                                    "id": 1175876,
-                                                    "groupId": 338357,
-                                                    "name": "attr",
-                                                    "groupName": "attr g"
-                                                }
-                                            ]
-                                        },
-                                        {
-                                            "points": {
-                                                "x1": 181.49,
-                                                "y1": 52.46,
-                                                "x2": 283.18,
-                                                "y2": 150.67
-                                            },
-                                            "timestamp": 20271058,
-                                            "attributes": [
-                                                {
-                                                    "id": 1175876,
-                                                    "groupId": 338357,
-                                                    "name": "attr",
-                                                    "groupName": "attr g"
-                                                }
-                                            ]
-                                        },
-                                        {
-                                            "points": {
-                                                "x1": 181.49,
-                                                "y1": 63.7,
-                                                "x2": 283.18,
-                                                "y2": 161.91
-                                            },
-                                            "timestamp": 21271058,
-                                            "attributes": [
-                                                {
-                                                    "id": 1175876,
-                                                    "groupId": 338357,
-                                                    "name": "attr",
-                                                    "groupName": "attr g"
-                                                }
-                                            ]
-                                        },
-                                        {
-                                            "points": {
-                                                "x1": 182.07,
-                                                "y1": 72.76,
-                                                "x2": 283.76,
-                                                "y2": 170.97
-                                            },
-                                            "timestamp": 22271058,
-                                            "attributes": [
-                                                {
-                                                    "id": 1175876,
-                                                    "groupId": 338357,
-                                                    "name": "attr",
-                                                    "groupName": "attr g"
-                                                }
-                                            ]
-                                        },
-                                        {
-                                            "points": {
-                                                "x1": 182.07,
-                                                "y1": 81.51,
-                                                "x2": 283.76,
-                                                "y2": 179.72
-                                            },
-                                            "timestamp": 23271058,
-                                            "attributes": [
-                                                {
-                                                    "id": 1175876,
-                                                    "groupId": 338357,
-                                                    "name": "attr",
-                                                    "groupName": "attr g"
-                                                }
-                                            ]
-                                        },
-                                        {
-                                            "points": {
-                                                "x1": 182.42,
-                                                "y1": 97.19,
-                                                "x2": 284.11,
-                                                "y2": 195.4
-                                            },
-                                            "timestamp": 24271058,
-                                            "attributes": [
-                                                {
-                                                    "id": 1175876,
-                                                    "groupId": 338357,
-                                                    "name": "attr",
-                                                    "groupName": "attr g"
-                                                }
-                                            ]
-                                        },
-                                        {
-                                            "points": {
-                                                "x1": 182.42,
-                                                "y1": 97.19,
-                                                "x2": 284.11,
-                                                "y2": 195.4
-                                            },
-                                            "timestamp": 30526667,
-                                            "attributes": [
-                                                {
-                                                    "id": 1175876,
-                                                    "groupId": 338357,
-                                                    "name": "attr",
-                                                    "groupName": "attr g"
-                                                }
-                                            ]
-                                        }
-                                    ]
-                                }
-                            ]
-                        },
-                        {
-                            "meta": {
-                                "type": "bbox",
-                                "classId": 859496,
-                                "className": "vid",
-                                "start": 29713736,
-                                "end": 30526667
-                            },
-                            "parameters": [
-                                {
-                                    "start": 29713736,
-                                    "end": 30526667,
-                                    "timestamps": [
-                                        {
-                                            "points": {
-                                                "x1": 132.82,
-                                                "y1": 129.12,
-                                                "x2": 175.16,
-                                                "y2": 188
-                                            },
-                                            "timestamp": 29713736,
-                                            "attributes": []
-                                        },
-                                        {
-                                            "points": {
-                                                "x1": 132.82,
-                                                "y1": 129.12,
-                                                "x2": 175.16,
-                                                "y2": 188
-                                            },
-                                            "timestamp": 30526667,
-                                            "attributes": []
-                                        }
-                                    ]
-                                }
-                            ]
-                        },
-                        {
-                            "meta": {
-                                "type": "event",
-                                "classId": 859496,
-                                "className": "vid",
-                                "start": 5528212,
-                                "end": 7083022,
-                                "pointLabels": {}
-                            },
-                            "parameters": [
-                                {
-                                    "start": 5528212,
-                                    "end": 7083022,
-                                    "timestamps": [
-                                        {
-                                            "timestamp": 5528212,
-                                            "attributes": []
-                                        },
-                                        {
-                                            "timestamp": 6702957,
-                                            "attributes": [
-                                                {
-                                                    "id": 1175876,
-                                                    "groupId": 338357,
-                                                    "name": "attr",
-                                                    "groupName": "attr g"
-                                                }
-                                            ]
-                                        },
-                                        {
-                                            "timestamp": "7083022",
-                                            "attributes": [
-                                                {
-                                                    "id": 1175876,
-                                                    "groupId": 338357,
-                                                    "name": "attr",
-                                                    "groupName": "attr g"
-                                                }
-                                            ]
-                                        }
-                                    ]
-                                }
-                            ]
-                        },
-                        {
-                            "parameters": [
-                                {
-                                    "start": 5528212,
-                                    "end": 7083022,
-                                    "timestamps": [
-                                        {
-                                            "timestamp": 5528212,
-                                            "attributes": []
-                                        },
-                                        {
-                                            "timestamp": 6702957,
-                                            "attributes": [
-                                                {
-                                                    "id": 1175876,
-                                                    "groupId": 338357,
-                                                    "name": "attr",
-                                                    "groupName": "attr g"
-                                                }
-                                            ]
-                                        },
-                                        {
-                                            "timestamp": "7083022",
-                                            "attributes": [
-                                                {
-                                                    "id": 1175876,
-                                                    "groupId": 338357,
-                                                    "name": "attr",
-                                                    "groupName": "attr g"
-                                                }
-                                            ]
-                                        }
-                                    ]
-                                }
-                            ]
-                        },
-                        {
-                        "meta": "afsdfadsf"
-                        },
-                        {
-                        "meta" : []
-                        }
-                    ],
-                    "tags": [
-                        123
-                    ]
-                }
-                '''
-                )
-
-            with open(f"{tmpdir_name}/test_validate_video_point_labels_bad_keys.json", "r") as f:
-                data = json.loads(f.read())
-            validator = AnnotationValidators.get_validator("video")(data)
-            self.assertFalse(validator.is_valid())
-            self.assertEqual(len(validator.generate_report()), 409)

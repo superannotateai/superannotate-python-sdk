@@ -6,6 +6,7 @@ from typing import Union
 
 from pydantic import BaseModel
 from pydantic import Extra
+from pydantic import Field
 
 
 class Limit(BaseModel):
@@ -69,12 +70,13 @@ class DownloadMLModelAuthData(BaseModel):
 
 class UploadAnnotationsResponse(BaseModel):
     class Resource(BaseModel):
-        classes: Optional[List[str]]
-        templates: Optional[List[str]]
-        attributes: Optional[List[str]]
-        attribute_groups: Optional[List[str]]
-    failedItems: List[str] = []
-    missingResources: Optional[Resource]
+        classes: List[str] = Field([], alias="class")
+        templates: List[str] = Field([], alias="template")
+        attributes: List[str] = Field([], alias="attribute")
+        attribute_groups: Optional[List[str]] = Field([], alias="attributeGroup")
+
+    failed_items: List[str] = Field([], alias="failedItems")
+    missing_resources: Resource = Field({}, alias="missingResources")
 
 
 class ServiceResponse(BaseModel):

@@ -1,3 +1,4 @@
+import os
 import uuid
 from pathlib import Path
 from typing import List
@@ -128,3 +129,18 @@ def get_name_url_duplicated_from_csv(csv_path):
         else:
             duplicate_images.append(temp)
     return images_to_upload, duplicate_images
+
+
+def get_tabulation() -> int:
+    try:
+        return int(os.get_terminal_size().columns / 2)
+    except OSError:
+        return 48
+
+
+def wrap_error(errors_list: List[Tuple[str, str]]) -> str:
+    tabulation = get_tabulation()
+    msgs = []
+    for key, value in errors_list:
+        msgs.append("{}{}{}".format(key, " " * (tabulation - len(key)), value))
+    return "\n".join(msgs)
