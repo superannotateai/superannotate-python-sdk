@@ -684,19 +684,19 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param project: project name or folder path (e.g., "project1/folder1")
         :type project: str
+
         :param items: list of items to assign
-        :type item_names: list of str
+        :type items: list of str
+
         :param user: user email
         :type user: str
         """
 
         project_name, folder_name = extract_project_folder(project)
 
-        response, cnt_assigned = self.controller.assign_items(project_name, folder_name, items, user)
+        response = self.controller.assign_items(project_name, folder_name, items, user)
 
-        if not response.errors:
-            logger.info(f"Assigned {cnt_assigned}/{len(items)} items to user {user}")
-        else:
+        if response.errors:
             raise AppException(response.errors)
 
     def unassign_items(
@@ -709,7 +709,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param project: project name or folder path (e.g., "project1/folder1")
         :type project: str
         :param items: list of items to unassign
-        :type item_names: list of str
+        :type items: list of str
         """
         project_name, folder_name = extract_project_folder(project)
 
