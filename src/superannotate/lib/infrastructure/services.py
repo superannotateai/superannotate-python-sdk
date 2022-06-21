@@ -202,6 +202,7 @@ class SuperannotateBackendService(BaseBackendService):
     URL_GET_ITEMS = "items"
     URL_BULK_GET_IMAGES = "images/getBulk"
     URL_DELETE_FOLDERS = "image/delete/images"
+    URL_DELETE_ITEMS = "image/delete/images"
     URL_CREATE_IMAGE = "image/ext-create"
     URL_PROJECT_SETTINGS = "project/{}/settings"
     URL_PROJECT_WORKFLOW = "project/{}/workflow"
@@ -716,6 +717,17 @@ class SuperannotateBackendService(BaseBackendService):
             data={"image_ids": image_ids},
         )
         return res.json()
+
+    def delete_items(self, project_id: int, team_id: int, item_ids: List[int]):
+        delete_items_url = urljoin(self.api_url, self.URL_DELETE_ITEMS)
+        res = self._request(
+            delete_items_url,
+            "put",
+            params={"team_id": team_id, "project_id": project_id},
+            data={"image_ids": item_ids},
+        )
+
+        return ServiceResponse(res, ServiceResponse)
 
     def assign_images(
         self,

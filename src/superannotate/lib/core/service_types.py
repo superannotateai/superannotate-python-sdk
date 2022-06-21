@@ -80,7 +80,7 @@ class ServiceResponse(BaseModel):
             "content": response.content,
         }
         if response.ok:
-            if content_type:
+            if content_type and content_type is not self.__class__:
                 data["data"] = content_type(**response.json())
             else:
                 data["data"] = response.json()
@@ -92,4 +92,5 @@ class ServiceResponse(BaseModel):
 
     @property
     def error(self):
-        return getattr(self.data, "error", "Unknown error.")
+        default_message = self.data["reason"] if self.data["reason"] else "Unknown error"
+        return getattr(self.data, "error", default_message)

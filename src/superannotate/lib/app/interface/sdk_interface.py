@@ -650,28 +650,62 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         logger.info("Annotations status of images changed")
 
     def delete_images(
-        self, project: Union[NotEmptyStr, dict], image_names: Optional[List[str]] = None
+        self, project: Union[NotEmptyStr, dict], image_names: Optional[list[str]] = None
     ):
-        """Delete images in project.
+        """delete images in project.
 
         :param project: project name or folder path (e.g., "project1/folder1")
         :type project: str
-        :param image_names: to be deleted images' names. If None, all the images will be deleted
+        :param image_names: to be deleted images' names. if none, all the images will be deleted
         :type image_names: list of strs
         """
+
+        warning_msg = (
+            "We're deprecating the delete_images function. Please use delete_items instead."
+            "Learn more. \n"
+            "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.assign_items"
+        )
+        logger.warning(warning_msg)
+        warnings.warn(warning_msg, DeprecationWarning)
         project_name, folder_name = extract_project_folder(project)
 
-        if not isinstance(image_names, list) and image_names is not None:
-            raise AppException("Image_names should be a list of str or None.")
+        if not isinstance(image_names, list) and image_names is not none:
+            raise appexception("image_names should be a list of str or none.")
 
         response = self.controller.delete_images(
             project_name=project_name, folder_name=folder_name, image_names=image_names
         )
         if response.errors:
+            raise appexception(response.errors)
+
+        logger.info(
+            f"images deleted in project {project_name}{'/' + folder_name if folder_name else ''}"
+        )
+
+    def delete_items(
+        self, project: str, items: Optional[List[str]] = None
+    ):
+        """Delete items in a given project.
+
+        :param project: project name or folder path (e.g., "project1/folder1")
+        :type project: str
+        :param items: to be deleted items' names. If None, all the items will be deleted
+        :type items: list of str
+        """
+        project_name, folder_name = extract_project_folder(project)
+
+        ## Type checking should be done in controller or by PyDantic?
+        # if not isinstance(image_names, list) and image_names is not None:
+        #     raise AppException("Image_names should be a list of str or None.")
+
+        response = self.controller.delete_items(
+            project_name=project_name, folder_name=folder_name, items=items
+        )
+        if response.errors:
             raise AppException(response.errors)
 
         logger.info(
-            f"Images deleted in project {project_name}{'/' + folder_name if folder_name else ''}"
+            f"Items deleted in project {project_name}{'/' + folder_name if folder_name else ''}"
         )
 
     def assign_items(
