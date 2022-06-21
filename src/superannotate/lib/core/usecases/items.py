@@ -227,7 +227,6 @@ class AssignItemsUseCase(BaseUseCase):
                     item_names=self._item_names[i : i + self.CHUNK_SIZE],  # noqa: E203
                 )
                 if not response.ok and response.error:  # User not found
-                    print(response.error)
                     self._response.errors += response.error
                     return self._response
 
