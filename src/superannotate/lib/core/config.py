@@ -1,7 +1,8 @@
 import threading
+from typing import Dict
+
 from dataclasses import dataclass
 from dataclasses import field
-from typing import Dict
 
 
 class Session:

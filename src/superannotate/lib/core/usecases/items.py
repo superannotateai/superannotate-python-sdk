@@ -22,7 +22,6 @@ from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.usecases.base import BaseUseCase
 from superannotate.logger import get_default_logger
 
-
 logger = get_default_logger()
 
 
@@ -210,28 +209,30 @@ class AssignItemsUseCase(BaseUseCase):
         self._user = user
         self._service = service
 
-
-    def validate_item_names(self, ):
+    def validate_item_names(
+        self,
+    ):
         self._item_names = list(set(self._item_names))
 
     def execute(self):
         cnt_assigned = 0
         if self.is_valid():
             for i in range(0, len(self._item_names), self.CHUNK_SIZE):
-                status, response = self._service.assign_items(
+                response = self._service.assign_items(
                     team_id=self._project.team_id,
                     project_id=self._project.id,
                     folder_name=self._folder.name,
                     user=self._user,
                     item_names=self._item_names[i : i + self.CHUNK_SIZE],  # noqa: E203
                 )
-                if status == 406 and 'error' in response: # User not found
-                    self._response.errors+=response['error']
-                    return self._response, 0
-                elif 'error' in response:
-                    response['successCount'] = 0
+                if not response.ok and "error" in response:  # User not found
+                    self._response.errors += response.error
+                    break
 
-                cnt_assigned+=response['successCount']
+                cnt_assigned += response.data["successCount"]
+            logger.info(
+                f"Assigned {cnt_assigned}/{len(self._item_names)} items to user {self._user}"
+            )
         return self._response, cnt_assigned
 
 

@@ -684,19 +684,19 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param project: project name or folder path (e.g., "project1/folder1")
         :type project: str
+
         :param items: list of items to assign
-        :type item_names: list of str
+        :type items: list of str
+
         :param user: user email
         :type user: str
         """
 
         project_name, folder_name = extract_project_folder(project)
 
-        response, cnt_assigned = self.controller.assign_items(project_name, folder_name, items, user)
+        response = self.controller.assign_items(project_name, folder_name, items, user)
 
-        if not response.errors:
-            logger.info(f"Assigned {cnt_assigned}/{len(items)} items to user {user}")
-        else:
+        if response.errors:
             raise AppException(response.errors)
 
     def unassign_items(
@@ -709,7 +709,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param project: project name or folder path (e.g., "project1/folder1")
         :type project: str
         :param items: list of items to unassign
-        :type item_names: list of str
+        :type items: list of str
         """
         project_name, folder_name = extract_project_folder(project)
 
@@ -2669,7 +2669,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         self,
         project: Union[NotEmptyStr, dict],
         annotation_status: AnnotationStatuses,
-        item_names: Optional[List[NotEmptyStr]] = None,
+        items: Optional[List[NotEmptyStr]] = None,
     ):
         """Sets annotation statuses of items
 
@@ -2686,7 +2686,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :type annotation_status: str
 
         :param items:  item names to set the mentioned status for. If None, all the items in the project will be used.
-        :type items: str
+        :type items: list of strs
         """
 
         project_name, folder_name = extract_project_folder(project)
@@ -2694,7 +2694,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             project_name=project_name,
             folder_name=folder_name,
             annotation_status=annotation_status,
-            item_names=item_names,
+            item_names=items,
         )
         if response.errors:
             raise AppException(response.errors)

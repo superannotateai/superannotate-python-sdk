@@ -765,9 +765,9 @@ class SuperannotateBackendService(BaseBackendService):
         folder_name: str,
         user: str,
         item_names: list,
-    ):
+    ) -> ServiceResponse:
         assign_items_url = urljoin(self.api_url, self.URL_ASSIGN_ITEMS)
-        res = self._request(
+        return self._request(
             assign_items_url,
             "put",
             params={"team_id": team_id, "project_id": project_id},
@@ -776,8 +776,8 @@ class SuperannotateBackendService(BaseBackendService):
                 "assign_user_id": user,
                 "folder_name": folder_name,
             },
+            content_type=ServiceResponse,
         )
-        return res.status_code, res.json()
 
     def un_assign_items(
         self,
