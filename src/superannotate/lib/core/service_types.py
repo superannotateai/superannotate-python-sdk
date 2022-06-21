@@ -79,11 +79,13 @@ class ServiceResponse(BaseModel):
             "reason": response.reason,
             "content": response.content,
         }
-        if response.ok:
-            if content_type and not content_type is not self.__class__:
+        try:
+            if content_type and content_type is not self.__class__:
                 data["data"] = content_type(**response.json())
             else:
                 data["data"] = response.json()
+        except Exception as e:
+            data["data"] = {}
         super().__init__(**data)
 
     @property
@@ -93,4 +95,7 @@ class ServiceResponse(BaseModel):
     @property
     def error(self):
         default_message = self.reason if self.reason else "Unknown Error"
-        return getattr(self.data, "error", default_message)
+        if isinstance(self.data, dict):
+            return self.data.get("error", default_message)
+        else:
+            return getattr(self.data, "error", default_message)

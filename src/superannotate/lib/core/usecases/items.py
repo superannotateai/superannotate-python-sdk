@@ -216,6 +216,7 @@ class AssignItemsUseCase(BaseUseCase):
 
     def execute(self):
         cnt_assigned = 0
+        total_count = len(self._item_names)
         if self.is_valid():
             for i in range(0, len(self._item_names), self.CHUNK_SIZE):
                 response = self._service.assign_items(
@@ -225,15 +226,16 @@ class AssignItemsUseCase(BaseUseCase):
                     user=self._user,
                     item_names=self._item_names[i : i + self.CHUNK_SIZE],  # noqa: E203
                 )
-                if not response.ok and "error" in response:  # User not found
+                if not response.ok and response.error:  # User not found
+                    print(response.error)
                     self._response.errors += response.error
-                    break
+                    return self._response
 
                 cnt_assigned += response.data["successCount"]
             logger.info(
-                f"Assigned {cnt_assigned}/{len(self._item_names)} items to user {self._user}"
+                f"Assigned {cnt_assigned}/{total_count} items to user {self._user}"
             )
-        return self._response, cnt_assigned
+        return self._response
 
 
 class UnAssignItemsUseCase(BaseUseCase):
