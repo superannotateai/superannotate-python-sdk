@@ -12,6 +12,7 @@ from typing import Callable
 from typing import Dict
 from typing import List
 from typing import Optional
+from typing import Set
 from typing import Tuple
 
 import boto3
@@ -36,6 +37,7 @@ from lib.core.service_types import UploadAnnotationAuthData
 from lib.core.serviceproviders import SuperannotateServiceProvider
 from lib.core.types import PriorityScore
 from lib.core.usecases.base import BaseReportableUseCase
+from lib.core.usecases.images import GetBulkImages
 from lib.core.video_convertor import VideoFrameGenerator
 from superannotate.logger import get_default_logger
 
@@ -94,14 +96,10 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
         name_path_mappings: Dict[str, str] = {}
 
         for item_path in annotation_paths:
-            name_path_mappings[Path(item_path).name] = item_path
+            name_path_mappings[
+                UploadAnnotationsUseCase.extract_name(Path(item_path).name)
+            ] = item_path
         return name_path_mappings
-
-    @property
-    def missing_annotations(self):
-        if not self._missing_annotations:
-            self._missing_annotations = []
-        return self._missing_annotations
 
     def _log_report(
         self, missing_classes: list, missing_attr_groups: list, missing_attrs: list
@@ -183,34 +181,73 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
         for i in range(0, len(data), size):
             yield {k: data[k] for k in islice(it, size)}
 
+    @staticmethod
+    def extract_name(value: str):
+        return os.path.basename(
+            value.replace(constances.PIXEL_ANNOTATION_POSTFIX, "")
+            .replace(constances.VECTOR_ANNOTATION_POSTFIX, "")
+            .replace(constances.ATTACHED_VIDEO_ANNOTATION_POSTFIX, ""),
+        )
+
+    def get_existing_item_names(self, name_path_mappings: Dict[str, str]) -> Set[str]:
+        item_names = list(name_path_mappings.keys())
+        existing_items = set()
+        for i in range(0, len(item_names), self.CHUNK_SIZE):
+            items_to_check = item_names[i : i + self.CHUNK_SIZE]  # noqa: E203
+            response = GetBulkImages(
+                service=self._backend_service,
+                project_id=self._project.id,
+                team_id=self._project.team_id,
+                folder_id=self._folder.uuid,
+                images=items_to_check,
+            ).execute()
+            if not response.errors:
+                existing_items.update({item.name for item in response.data})
+        return existing_items
+
     def execute(self):
         uploaded_annotations = []
         failed_annotations = []
+        missing_annotations = []
         self.reporter.start_progress(
             len(self._annotation_paths), description="Uploading Annotations"
         )
+        name_path_mappings = self.get_name_path_mappings(self._annotation_paths)
+        existing_item_names = self.get_existing_item_names(name_path_mappings)
+        name_path_mappings_to_upload = {}
+        for name, path in name_path_mappings.items():
+            try:
+                existing_item_names.remove(name)
+                name_path_mappings_to_upload[name] = path
+            except KeyError:
+                missing_annotations.append(path)
+
         with concurrent.futures.ThreadPoolExecutor(
             max_workers=self.MAX_WORKERS
         ) as executor:
             results = {}
-            path_name_mappings = self.get_name_path_mappings(self._annotation_paths)
-            for name_path_mapping in self.chunks(path_name_mappings, self.CHUNK_SIZE):
+
+            for name_path_mapping in self.chunks(
+                name_path_mappings_to_upload, self.CHUNK_SIZE
+            ):
                 items_name_file_map = {}
                 for name, path in name_path_mapping.items():
                     annotation, mask = self.get_annotation(path)
                     if not annotation:
+                        failed_annotations.append(path)
                         self.reporter.update_progress()
                         continue
                     items_name_file_map[name] = annotation
-                results[
-                    executor.submit(
-                        self._backend_service.upload_annotations,
-                        team_id=self._project.team_id,
-                        project_id=self._project.id,
-                        folder_id=self._folder.id,
-                        items_name_file_map=items_name_file_map,
-                    )
-                ] = (len(items_name_file_map), name_path_mapping)
+                if items_name_file_map:
+                    results[
+                        executor.submit(
+                            self._backend_service.upload_annotations,
+                            team_id=self._project.team_id,
+                            project_id=self._project.id,
+                            folder_id=self._folder.id,
+                            items_name_file_map=items_name_file_map,
+                        )
+                    ] = (len(items_name_file_map), name_path_mapping)
             missing_classes, missing_attr_groups, missing_attrs = [], [], []
             for future in concurrent.futures.as_completed(results.keys()):
                 response: ServiceResponse = future.result()
@@ -236,7 +273,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCase):
         self._response.data = (
             uploaded_annotations,
             failed_annotations,
-            [annotation.path for annotation in self.missing_annotations],
+            missing_annotations,
         )
         return self._response
 
@@ -796,15 +833,23 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
         self._backend_client = backend_service_provider
 
     @staticmethod
-    def _get_const(items):
-        return next(
-            (
-                (key, value)
-                for key, value in items
-                if isinstance(value, dict) and value.get("const")
-            ),
-            (None, None),
-        )
+    def _get_const(items, path=()):
+        properties = items.get("properties", {})
+        _type, _meta = properties.get("type"), properties.get("meta")
+        if _meta and _meta.get("type"):
+            path = path + ("meta",)
+            path, _type = ValidateAnnotationUseCase._get_const(_meta, path)
+        if _type and properties.get("type", {}).get("const"):
+            path = path + ("type",)
+            path, _type = path, properties["type"]["const"]
+        return path, _type
+
+    @staticmethod
+    def _get_by_path(path: tuple, data: dict):
+        tmp = data
+        for i in path:
+            tmp = tmp.get(i, {})
+        return tmp
 
     @staticmethod
     def oneOf(validator, oneOf, instance, schema):  # noqa
@@ -812,27 +857,28 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
         const_found = False
 
         for index, sub_schema in sub_schemas:
-            key, _type = ValidateAnnotationUseCase._get_const(
-                sub_schema["properties"].items()
-            )
-            if key and _type:
+
+            key, _type = ValidateAnnotationUseCase._get_const(sub_schema)
+            if key:
+                instance_type = ValidateAnnotationUseCase._get_by_path(key, instance)
                 const_found = True
-                if not instance.get(key):
+                if not instance_type:
                     yield ValidationError("type required")
                     raise StopIteration
-
-            if const_found and instance[key] == _type["const"]:
-                errs = list(validator.descend(instance, sub_schema, schema_path=index))
-                if not errs:
-                    return
-                yield ValidationError("invalid instance", context=errs)
-                raise StopIteration
-            elif not const_found:
+                if const_found and instance_type == _type:
+                    errs = list(
+                        validator.descend(instance, sub_schema, schema_path=index)
+                    )
+                    if not errs:
+                        return
+                    yield ValidationError("invalid instance", context=errs)
+                    raise StopIteration
+            else:
                 yield from jsonschema._validators.oneOf(  # noqa
                     validator, oneOf, instance, schema
                 )
-
-        yield ValidationError("invalid instance")
+        if const_found:
+            yield ValidationError("invalid instance")
 
     @staticmethod
     def iter_errors(self, instance, _schema=None):
@@ -884,16 +930,36 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
 
     @staticmethod
     def extract_path(path):
+        path = copy.copy(path)
         real_path = []
-        for item in path:
-            if isinstance(item, str):
-                if real_path:
-                    real_path.append(".")
-                real_path.append(item)
-            elif isinstance(item, int):
+        for _ in range(len(path)):
+            item = path.popleft()
+            if isinstance(item, int):
                 real_path.append(f"[{item}]")
+            else:
+                if real_path and not real_path[-1].endswith("]"):
+                    real_path.extend([".", item])
+                else:
+                    real_path.append(item)
+            # if isinstance(real_path, str):
+            #     if real_path:
+            #         real_path.append(".")
+            #     real_path.append(item)
+            # elif isinstance(item, int):
+            #     real_path.append(f"[{item}]")
         return real_path
 
+    # @staticmethod
+    # def extract_path(path):
+    #     real_path = []
+    #     for item in path:
+    #         if isinstance(item, str):
+    #             if real_path:
+    #                 real_path.append(".")
+    #             real_path.append(item)
+    #         elif isinstance(item, int):
+    #             real_path.append(f"[{item}]")
+    #     return real_path
     def _get_validator(self, version: str) -> Draft7Validator:
         key = f"{self._project_type}__{version}"
         validator = ValidateAnnotationUseCase.SCHEMAS.get(key)
@@ -913,7 +979,10 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
         return validator
 
     def execute(self) -> Response:
-        version = self._annotation.get("version", self.DEFAULT_VERSION)
+        try:
+            version = self._annotation.get("version", self.DEFAULT_VERSION)
+        except Exception as e:
+            print()
 
         extract_path = ValidateAnnotationUseCase.extract_path
         validator = self._get_validator(version)
@@ -925,7 +994,7 @@ class ValidateAnnotationUseCase(BaseReportableUseCase):
                 if not error.context:
                     errors_report.append(("".join(real_path), error.message))
                 for sub_error in sorted(error.context, key=lambda e: e.schema_path):
-                    tmp_path = sub_error.path if sub_error.path else real_path
+                    tmp_path = sub_error.path  # if sub_error.path else real_path
                     errors_report.append(
                         (
                             f"{''.join(real_path)}." + "".join(extract_path(tmp_path)),

@@ -42,7 +42,7 @@ class TestRecursiveFolderPixel(BaseTestCase):
             recursive_subfolders=False
         )
         self.assertEqual(len(uploaded_annotations), 2)
-        self.assertEqual(len(s3_bucket.method_calls), 4)
+        self.assertEqual(len(s3_bucket.method_calls), 2)
 
         uploaded_annotations, _, _ = sa.upload_preannotations_from_folder_to_project(
             destination,
@@ -77,4 +77,4 @@ class TestAnnotationUploadPixelSingle(BaseTestCase):
         annotation_path = join(self.folder_path_pixel, f"{self.IMAGE_NAME}___pixel.json")
         sa.upload_image_to_project(self.PROJECT_NAME, join(self.folder_path_pixel, self.IMAGE_NAME))
         sa.upload_image_annotations(self.PROJECT_NAME, self.IMAGE_NAME, annotation_path)
-        self.assertEqual(len(s3_bucket.method_calls), 2)
+        self.assertEqual(len(s3_bucket.method_calls), 1)

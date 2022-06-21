@@ -1912,7 +1912,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             annotations = response.data[0]
         else:
             annotations = {}
-        annotations = (
+        annotations = add_annotation_bbox_to_json(
             annotations,
             bbox,
             annotation_class_name,
@@ -1978,9 +1978,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             annotation_class_attributes,
             error,
         )
-        self.controller.upload_image_annotations(
+        response = self.controller.upload_image_annotations(
             project_name, folder_name, image_name, annotations
         )
+        if response.errors:
+            raise AppException(response.errors)
 
     def add_annotation_comment_to_image(
         self,

@@ -74,14 +74,3 @@ class TestAnnotationUploadVector(BaseTestCase):
                     len([i["attributes"] for i in annotation["instances"]]),
                     len([i["attributes"] for i in origin_annotation["instances"]])
                 )
-
-
-def test_testo():
-    f_p = os.path.join(Path(__file__).parent.parent.parent, TestAnnotationUploadVector.TEST_FOLDER_PATH)
-    # sa.upload_images_from_folder_to_project(
-    #     "testo", f_p, annotation_status="InProgress"
-    # )
-    _, _, _ = sa.upload_annotations_from_folder_to_project(
-        "testo", f_p
-    )
-
