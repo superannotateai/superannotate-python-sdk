@@ -65,7 +65,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def __init__(
         self,
         token: str = None,
-        config_path: str = constants.CONFIG_PATH,
+        config_path: str = None,
     ):
         super().__init__(token, config_path)
 

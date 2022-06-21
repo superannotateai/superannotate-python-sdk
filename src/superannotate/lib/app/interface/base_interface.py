@@ -34,7 +34,7 @@ class BaseInterfaceFacade:
         else:
             _token = os.environ.get("SA_TOKEN")
             if not _token:
-                _toke, _host, _ssl_verify = self._retrieve_configs(
+                _token, _host, _ssl_verify = self._retrieve_configs(
                     constants.CONFIG_PATH
                 )
         self._token, self._host = _token, _host
@@ -90,11 +90,14 @@ class Tracker:
     def get_client(self):
         if not self._client:
             if BaseInterfaceFacade.REGISTRY:
-                self._client = BaseInterfaceFacade.REGISTRY[-1]
+                return BaseInterfaceFacade.REGISTRY[-1]
             else:
                 from lib.app.interface.sdk_interface import SAClient
 
-                self._client = SAClient()
+                try:
+                    return SAClient()
+                except Exception:
+                    pass
         elif hasattr(self._client, "controller"):
             return self._client
 
