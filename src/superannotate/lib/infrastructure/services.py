@@ -134,10 +134,10 @@ class BaseBackendService(SuperannotateServiceProvider):
         if response.status_code == 404 and retried < 3:
             return self._request(
                 url,
-                method="get",
-                data=None,
-                headers=None,
-                params=None,
+                method=method,
+                data=data,
+                headers=headers,
+                params=params,
                 retried=retried + 1,
                 content_type=content_type,
             )
@@ -765,9 +765,9 @@ class SuperannotateBackendService(BaseBackendService):
         folder_name: str,
         user: str,
         item_names: list,
-    ):
+    ) -> ServiceResponse:
         assign_items_url = urljoin(self.api_url, self.URL_ASSIGN_ITEMS)
-        res = self._request(
+        return self._request(
             assign_items_url,
             "put",
             params={"team_id": team_id, "project_id": project_id},
@@ -776,8 +776,8 @@ class SuperannotateBackendService(BaseBackendService):
                 "assign_user_id": user,
                 "folder_name": folder_name,
             },
+            content_type=ServiceResponse,
         )
-        return res.ok
 
     def un_assign_items(
         self,

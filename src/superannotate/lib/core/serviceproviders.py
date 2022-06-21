@@ -182,7 +182,7 @@ class SuperannotateServiceProvider:
         folder_name: str,
         user: str,
         item_names: list,
-    ):
+    ) -> ServiceResponse:
         raise NotImplementedError
 
     def get_bulk_images(

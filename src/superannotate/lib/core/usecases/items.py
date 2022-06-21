@@ -22,7 +22,6 @@ from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.usecases.base import BaseUseCase
 from superannotate.logger import get_default_logger
 
-
 logger = get_default_logger()
 
 
@@ -210,33 +209,31 @@ class AssignItemsUseCase(BaseUseCase):
         self._user = user
         self._service = service
 
-    def validate_user(
+    def validate_item_names(
         self,
     ):
-
-        for c in self._project.users:
-            if c["user_id"] == self._user:
-                return True
-
-        raise AppValidationException(
-            f"{self._user} is not a verified contributor for the {self._project.name}"
-        )
+        self._item_names = list(set(self._item_names))
 
     def execute(self):
+        cnt_assigned = 0
+        total_count = len(self._item_names)
         if self.is_valid():
             for i in range(0, len(self._item_names), self.CHUNK_SIZE):
-                is_assigned = self._service.assign_items(
+                response = self._service.assign_items(
                     team_id=self._project.team_id,
                     project_id=self._project.id,
                     folder_name=self._folder.name,
                     user=self._user,
                     item_names=self._item_names[i : i + self.CHUNK_SIZE],  # noqa: E203
                 )
-                if not is_assigned:
-                    self._response.errors = AppException(
-                        f"Cant assign {', '.join(self._item_names[i: i + self.CHUNK_SIZE])}"
-                    )
-                    continue
+                if not response.ok and response.error:  # User not found
+                    self._response.errors += response.error
+                    return self._response
+
+                cnt_assigned += response.data["successCount"]
+            logger.info(
+                f"Assigned {cnt_assigned}/{total_count} items to user {self._user}"
+            )
         return self._response
 
 
