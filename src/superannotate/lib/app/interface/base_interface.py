@@ -1,18 +1,18 @@
 import functools
 import os
 import sys
-from abc import abstractmethod
 from inspect import signature
 from pathlib import Path
 from types import FunctionType
 from typing import Iterable
 from typing import Sized
+from typing import Tuple
 
 import lib.core as constants
 from lib.app.helpers import extract_project_folder
 from lib.app.interface.types import validate_arguments
+from lib.core import CONFIG
 from lib.core.exceptions import AppException
-from lib.core.reporter import Session
 from lib.infrastructure.controller import Controller
 from lib.infrastructure.repositories import ConfigRepository
 from mixpanel import Mixpanel
@@ -22,67 +22,56 @@ from version import __version__
 class BaseInterfaceFacade:
     REGISTRY = []
 
-    def __init__(
-        self,
-        token: str = None,
-        config_path: str = constants.CONFIG_PATH,
-    ):
-        host = constants.BACKEND_URL
-        env_token = os.environ.get("SA_TOKEN")
+    def __init__(self, token: str = None, config_path: str = None):
         version = os.environ.get("SA_VERSION", "v1")
-        ssl_verify = bool(os.environ.get("SA_SSL", True))
+        _token, _config_path = None, None
+        _host = os.environ.get("SA_URL", constants.BACKEND_URL)
+        _ssl_verify = bool(os.environ.get("SA_SSL", True))
         if token:
-            token = Controller.validate_token(token=token)
-        elif env_token:
-            host = os.environ.get("SA_URL", constants.BACKEND_URL)
-
-            token = Controller.valdate_token(env_token)
+            _token = Controller.validate_token(token=token)
+        elif config_path:
+            _token, _host, _ssl_verify = self._retrieve_configs(config_path)
         else:
-            config_path = os.path.expanduser(str(config_path))
-            if not Path(config_path).is_file() or not os.access(config_path, os.R_OK):
-                raise AppException(
-                    f"SuperAnnotate config file {str(config_path)} not found."
-                    f" Please provide correct config file location to sa.init(<path>) or use "
-                    f"CLI's superannotate init to generate default location config file."
+            _token = os.environ.get("SA_TOKEN")
+            if not _token:
+                _token, _host, _ssl_verify = self._retrieve_configs(
+                    constants.CONFIG_PATH
                 )
-            config_repo = ConfigRepository(config_path)
-            token, host, ssl_verify = (
-                Controller.validate_token(config_repo.get_one("token").value),
-                config_repo.get_one("main_endpoint").value,
-                config_repo.get_one("ssl_verify").value,
+        self._token, self._host = _token, _host
+        self.controller = Controller(_token, _host, _ssl_verify, version)
+        BaseInterfaceFacade.REGISTRY.append(self)
+
+    @staticmethod
+    def _retrieve_configs(path) -> Tuple[str, str, str]:
+        config_path = os.path.expanduser(str(path))
+        if not Path(config_path).is_file() or not os.access(config_path, os.R_OK):
+            raise AppException(
+                f"SuperAnnotate config file {str(config_path)} not found."
             )
-        self._host = host
-        self._token = token
-        self.controller = Controller(token, host, ssl_verify, version)
-
-    def __new__(cls, *args, **kwargs):
-        obj = super().__new__(cls, *args, **kwargs)
-        cls.REGISTRY.append(obj)
-        return obj
+        config_repo = ConfigRepository(config_path)
+        return (
+            Controller.validate_token(config_repo.get_one("token").value),
+            config_repo.get_one("main_endpoint").value,
+            config_repo.get_one("ssl_verify").value,
+        )
 
     @property
-    @abstractmethod
     def host(self):
-        raise NotImplementedError
+        return self._host
 
     @property
-    @abstractmethod
     def token(self):
-        raise NotImplementedError
-
-    @property
-    @abstractmethod
-    def logger(self):
-        raise NotImplementedError
+        return self._token
 
 
 class Tracker:
     def get_mp_instance(self) -> Mixpanel:
-        if self.client:
-            if self.client.host == constants.BACKEND_URL:
-                return Mixpanel("ca95ed96f80e8ec3be791e2d3097cf51")
-            else:
-                return Mixpanel("e741d4863e7e05b1a45833d01865ef0d")
+        client = self.get_client()
+        mp_token = "ca95ed96f80e8ec3be791e2d3097cf51"
+        if client:
+            if client.host != constants.BACKEND_URL:
+                mp_token = "e741d4863e7e05b1a45833d01865ef0d"
+        return Mixpanel(mp_token)
 
     @staticmethod
     def get_default_payload(team_name, user_id):
@@ -98,16 +87,19 @@ class Tracker:
         self._client = None
         functools.update_wrapper(self, function)
 
-    @property
-    def client(self):
+    def get_client(self):
         if not self._client:
             if BaseInterfaceFacade.REGISTRY:
-                self._client = BaseInterfaceFacade.REGISTRY[-1]
+                return BaseInterfaceFacade.REGISTRY[-1]
             else:
                 from lib.app.interface.sdk_interface import SAClient
 
-                self._client = SAClient()
-        return self._client
+                try:
+                    return SAClient()
+                except Exception:
+                    pass
+        elif hasattr(self._client, "controller"):
+            return self._client
 
     @staticmethod
     def extract_arguments(function, *args, **kwargs) -> dict:
@@ -144,19 +136,21 @@ class Tracker:
             self.get_mp_instance().track(user_id, event_name, data)
 
     def _track_method(self, args, kwargs, success: bool):
+        client = self.get_client()
+        if not client:
+            return
         function_name = self.function.__name__ if self.function else ""
         arguments = self.extract_arguments(self.function, *args, **kwargs)
         event_name, properties = self.default_parser(function_name, arguments)
-
-        user_id = self.client.controller.team_data.creator_id
-        team_name = self.client.controller.team_data.name
+        user_id = client.controller.team_data.creator_id
+        team_name = client.controller.team_data.name
 
         properties["Success"] = success
         default = self.get_default_payload(team_name=team_name, user_id=user_id)
         self._track(
             user_id,
             event_name,
-            {**default, **properties, **Session.get_current_session().data},
+            {**default, **properties, **CONFIG.get_current_session().data},
         )
 
     def __get__(self, obj, owner=None):
@@ -183,7 +177,9 @@ class Tracker:
 class TrackableMeta(type):
     def __new__(mcs, name, bases, attrs):
         for attr_name, attr_value in attrs.items():
-            if isinstance(attr_value, FunctionType):
+            if isinstance(
+                attr_value, FunctionType
+            ) and not attr_value.__name__.startswith("_"):
                 attrs[attr_name] = Tracker(validate_arguments(attr_value))
         tmp = super().__new__(mcs, name, bases, attrs)
         return tmp

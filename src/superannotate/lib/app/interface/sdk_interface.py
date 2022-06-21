@@ -13,7 +13,8 @@ from typing import Tuple
 from typing import Union
 
 import boto3
-import lib.core as constances
+import lib.core as constants
+from lib.app.annotation_helpers import add_annotation_bbox_to_json
 from lib.app.annotation_helpers import add_annotation_comment_to_json
 from lib.app.annotation_helpers import add_annotation_point_to_json
 from lib.app.helpers import extract_project_folder
@@ -61,6 +62,13 @@ logger = get_default_logger()
 
 
 class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
+    def __init__(
+        self,
+        token: str = None,
+        config_path: str = None,
+    ):
+        super().__init__(token, config_path)
+
     def get_team_metadata(self):
         """Returns team metadata
 
@@ -414,11 +422,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         ).data
 
         if destination_project_metadata["project"].type in [
-            constances.ProjectType.VIDEO.value,
-            constances.ProjectType.DOCUMENT.value,
+            constants.ProjectType.VIDEO.value,
+            constants.ProjectType.DOCUMENT.value,
         ] or source_project_metadata["project"].type in [
-            constances.ProjectType.VIDEO.value,
-            constances.ProjectType.DOCUMENT.value,
+            constants.ProjectType.VIDEO.value,
+            constants.ProjectType.DOCUMENT.value,
         ]:
             raise AppException(
                 LIMITED_FUNCTIONS[source_project_metadata["project"].type]
@@ -666,6 +674,51 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             f"Images deleted in project {project_name}{'/' + folder_name if folder_name else ''}"
         )
 
+    def assign_items(
+        self, project: Union[NotEmptyStr, dict], items: List[str], user: str
+    ):
+        """Assigns items  to a user. The assignment role, QA or Annotator, will
+        be deduced from the user's role in the project. The type of the objects` image, video or text
+        will be deduced from the project type. With SDK, the user can be
+        assigned to a role in the project with the share_project function.
+
+        :param project: project name or folder path (e.g., "project1/folder1")
+        :type project: str
+        :param items: list of items to assign
+        :type item_names: list of str
+        :param user: user email
+        :type user: str
+        """
+
+        project_name, folder_name = extract_project_folder(project)
+
+        response = self.controller.assign_items(project_name, folder_name, items, user)
+
+        if not response.errors:
+            logger.info(f"Assign items to user {user}")
+        else:
+            raise AppException(response.errors)
+
+    def unassign_items(
+        self, project: Union[NotEmptyStr, dict], items: List[NotEmptyStr]
+    ):
+        """Removes assignment of given items for all assignees. With SDK,
+        the user can be assigned to a role in the project with the share_project
+        function.
+
+        :param project: project name or folder path (e.g., "project1/folder1")
+        :type project: str
+        :param items: list of items to unassign
+        :type item_names: list of str
+        """
+        project_name, folder_name = extract_project_folder(project)
+
+        response = self.controller.un_assign_items(
+            project_name=project_name, folder_name=folder_name, item_names=items
+        )
+        if response.errors:
+            raise AppException(response.errors)
+
     def assign_images(
         self, project: Union[NotEmptyStr, dict], image_names: List[str], user: str
     ):
@@ -680,12 +733,20 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param user: user email
         :type user: str
         """
+
+        warning_msg = (
+            "We're deprecating the assign_images function. Please use assign_items instead."
+            "Learn more. \n"
+            "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.assign_items"
+        )
+        logger.warning(warning_msg)
+        warnings.warn(warning_msg, DeprecationWarning)
         project_name, folder_name = extract_project_folder(project)
         project = self.controller.get_project_metadata(project_name).data
 
         if project["project"].type in [
-            constances.ProjectType.VIDEO.value,
-            constances.ProjectType.DOCUMENT.value,
+            constants.ProjectType.VIDEO.value,
+            constants.ProjectType.DOCUMENT.value,
         ]:
             raise AppException(LIMITED_FUNCTIONS[project["project"].type])
 
@@ -718,15 +779,23 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def unassign_images(
         self, project: Union[NotEmptyStr, dict], image_names: List[NotEmptyStr]
     ):
-        """Removes assignment of given images for all assignees.With SDK,
+        """Removes assignment of given images for all assignees. With SDK,
         the user can be assigned to a role in the project with the share_project
         function.
 
         :param project: project name or folder path (e.g., "project1/folder1")
         :type project: str
-        :param image_names: list of image unassign
+        :param image_names: list of images to unassign
         :type image_names: list of str
         """
+
+        warning_msg = (
+            "We're deprecating the unassign_images function. Please use unassign_items instead."
+            "Learn more. \n"
+            "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.unassign_items"
+        )
+        logger.warning(warning_msg)
+        warnings.warn(warning_msg, DeprecationWarning)
         project_name, folder_name = extract_project_folder(project)
 
         response = self.controller.un_assign_images(
@@ -802,12 +871,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         folder_path: Union[NotEmptyStr, Path],
         extensions: Optional[
             Union[List[NotEmptyStr], Tuple[NotEmptyStr]]
-        ] = constances.DEFAULT_IMAGE_EXTENSIONS,
+        ] = constants.DEFAULT_IMAGE_EXTENSIONS,
         annotation_status="NotStarted",
         from_s3_bucket=None,
         exclude_file_patterns: Optional[
             Iterable[NotEmptyStr]
-        ] = constances.DEFAULT_FILE_EXCLUDE_PATTERNS,
+        ] = constants.DEFAULT_FILE_EXCLUDE_PATTERNS,
         recursive_subfolders: Optional[StrictBool] = False,
         image_quality_in_editor: Optional[str] = None,
     ):
@@ -864,7 +933,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         if exclude_file_patterns:
             exclude_file_patterns = list(exclude_file_patterns) + list(
-                constances.DEFAULT_FILE_EXCLUDE_PATTERNS
+                constants.DEFAULT_FILE_EXCLUDE_PATTERNS
             )
             exclude_file_patterns = list(set(exclude_file_patterns))
 
@@ -1020,12 +1089,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             folders = folder_names
         if not annotation_statuses:
             annotation_statuses = [
-                constances.AnnotationStatus.NOT_STARTED.name,
-                constances.AnnotationStatus.IN_PROGRESS.name,
-                constances.AnnotationStatus.QUALITY_CHECK.name,
-                constances.AnnotationStatus.RETURNED.name,
-                constances.AnnotationStatus.COMPLETED.name,
-                constances.AnnotationStatus.SKIPPED.name,
+                constants.AnnotationStatus.NOT_STARTED.name,
+                constants.AnnotationStatus.IN_PROGRESS.name,
+                constants.AnnotationStatus.QUALITY_CHECK.name,
+                constants.AnnotationStatus.RETURNED.name,
+                constants.AnnotationStatus.COMPLETED.name,
+                constants.AnnotationStatus.SKIPPED.name,
             ]
         response = self.controller.prepare_export(
             project_name=project_name,
@@ -1044,7 +1113,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         folder_path: Union[NotEmptyStr, Path],
         extensions: Optional[
             Union[Tuple[NotEmptyStr], List[NotEmptyStr]]
-        ] = constances.DEFAULT_VIDEO_EXTENSIONS,
+        ] = constants.DEFAULT_VIDEO_EXTENSIONS,
         exclude_file_patterns: Optional[List[NotEmptyStr]] = (),
         recursive_subfolders: Optional[StrictBool] = False,
         target_fps: Optional[int] = None,
@@ -1532,8 +1601,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project_folder_name = project_name + (f"/{folder_name}" if folder_name else "")
         project = self.controller.get_project_metadata(project_name).data
         if project["project"].type in [
-            constances.ProjectType.VIDEO.value,
-            constances.ProjectType.DOCUMENT.value,
+            constants.ProjectType.VIDEO.value,
+            constants.ProjectType.DOCUMENT.value,
         ]:
             raise AppException(LIMITED_FUNCTIONS[project["project"].type])
         if recursive_subfolders:
@@ -1589,8 +1658,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         project = self.controller.get_project_metadata(project_name).data
         if project["project"].type in [
-            constances.ProjectType.VIDEO.value,
-            constances.ProjectType.DOCUMENT.value,
+            constants.ProjectType.VIDEO.value,
+            constants.ProjectType.DOCUMENT.value,
         ]:
             raise AppException(LIMITED_FUNCTIONS[project["project"].type])
 
@@ -1617,7 +1686,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             mask=mask,
             verbose=verbose,
         )
-        if response.errors and not response.errors == constances.INVALID_JSON_MESSAGE:
+        if response.errors and not response.errors == constants.INVALID_JSON_MESSAGE:
             raise AppException(response.errors)
 
     def download_model(self, model: MLModel, output_dir: Union[str, Path]):
@@ -1675,8 +1744,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         project = self.controller.get_project_metadata(project_name).data
         if project["project"].type in [
-            constances.ProjectType.VIDEO.value,
-            constances.ProjectType.DOCUMENT.value,
+            constants.ProjectType.VIDEO.value,
+            constants.ProjectType.DOCUMENT.value,
         ]:
             raise AppException(LIMITED_FUNCTIONS[project["project"].type])
 
@@ -1827,8 +1896,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project_name, folder_name = extract_project_folder(project)
         project = self.controller.get_project_metadata(project_name).data
         if project["project"].type in [
-            constances.ProjectType.VIDEO.value,
-            constances.ProjectType.DOCUMENT.value,
+            constants.ProjectType.VIDEO.value,
+            constants.ProjectType.DOCUMENT.value,
         ]:
             raise AppException(LIMITED_FUNCTIONS[project["project"].type])
         response = self.controller.get_annotations(
@@ -1885,8 +1954,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project_name, folder_name = extract_project_folder(project)
         project = self.controller.get_project_metadata(project_name).data
         if project["project"].type in [
-            constances.ProjectType.VIDEO.value,
-            constances.ProjectType.DOCUMENT.value,
+            constants.ProjectType.VIDEO.value,
+            constants.ProjectType.DOCUMENT.value,
         ]:
             raise AppException(LIMITED_FUNCTIONS[project["project"].type])
         response = self.controller.get_annotations(
@@ -1940,8 +2009,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project_name, folder_name = extract_project_folder(project)
         project = self.controller.get_project_metadata(project_name).data
         if project["project"].type in [
-            constances.ProjectType.VIDEO.value,
-            constances.ProjectType.DOCUMENT.value,
+            constants.ProjectType.VIDEO.value,
+            constants.ProjectType.DOCUMENT.value,
         ]:
             raise AppException(LIMITED_FUNCTIONS[project["project"].type])
         response = self.controller.get_annotations(
@@ -2127,8 +2196,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :rtype: pandas DataFrame
         """
         if project_type in (
-            constances.ProjectType.VECTOR.name,
-            constances.ProjectType.PIXEL.name,
+            constants.ProjectType.VECTOR.name,
+            constants.ProjectType.PIXEL.name,
         ):
             from superannotate.lib.app.analytics.common import (
                 aggregate_image_annotations_as_df,
@@ -2142,8 +2211,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                 folder_names=folder_names,
             )
         elif project_type in (
-            constances.ProjectType.VIDEO.name,
-            constances.ProjectType.DOCUMENT.name,
+            constants.ProjectType.VIDEO.name,
+            constants.ProjectType.DOCUMENT.name,
         ):
             from superannotate.lib.app.analytics.aggregators import DataAggregator
 
@@ -2154,21 +2223,21 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             ).aggregate_annotations_as_df()
 
     def delete_annotations(
-        self, project: NotEmptyStr, image_names: Optional[List[NotEmptyStr]] = None
+        self, project: NotEmptyStr, item_names: Optional[List[NotEmptyStr]] = None
     ):
         """
-        Delete image annotations from a given list of images.
+        Delete item annotations from a given list of items.
 
         :param project: project name or folder path (e.g., "project1/folder1")
         :type project: str
-        :param image_names:  image names. If None, all image annotations from a given project/folder will be deleted.
-        :type image_names: list of strs
+        :param item_names:  image names. If None, all image annotations from a given project/folder will be deleted.
+        :type item_names: list of strs
         """
 
         project_name, folder_name = extract_project_folder(project)
 
         response = self.controller.delete_annotations(
-            project_name=project_name, folder_name=folder_name, item_names=image_names
+            project_name=project_name, folder_name=folder_name, item_names=item_names
         )
         if response.errors:
             raise AppException(response.errors)
@@ -2602,7 +2671,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         self,
         project: Union[NotEmptyStr, dict],
         annotation_status: AnnotationStatuses,
-        item_names: Optional[List[NotEmptyStr]] = None,
+        items: Optional[List[NotEmptyStr]] = None,
     ):
         """Sets annotation statuses of items
 
@@ -2619,7 +2688,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :type annotation_status: str
 
         :param items:  item names to set the mentioned status for. If None, all the items in the project will be used.
-        :type items: str
+        :type items: list of strs
         """
 
         project_name, folder_name = extract_project_folder(project)
@@ -2627,10 +2696,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             project_name=project_name,
             folder_name=folder_name,
             annotation_status=annotation_status,
-            item_names=item_names,
+            item_names=items,
         )
         if response.errors:
             raise AppException(response.errors)
+        else:
+            logger.info("Annotation statuses of items changed")
         return response.data
 
     def download_annotations(

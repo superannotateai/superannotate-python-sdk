@@ -1,14 +1,15 @@
-
 import filecmp
 import json
 import os
 import tempfile
 from os.path import dirname
+
 import pytest
 
 from src.superannotate import SAClient
-sa = SAClient()
 from tests.integration.base import BaseTestCase
+
+sa = SAClient()
 
 
 class TestSingleAnnotationDownloadUpload(BaseTestCase):
@@ -68,7 +69,7 @@ class TestSingleAnnotationDownloadUpload(BaseTestCase):
             )
         )
         # TODO:
-        #assert downloaded_json == uploaded_json
+        # assert downloaded_json == uploaded_json
 
 
 class TestSingleAnnotationDownloadUploadPixel(BaseTestCase):

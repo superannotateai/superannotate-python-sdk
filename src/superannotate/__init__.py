@@ -6,6 +6,8 @@ sys.path.append(os.path.split(os.path.realpath(__file__))[0])
 import logging.config  # noqa
 import requests  # noqa
 from packaging.version import parse  # noqa
+from superannotate.lib.app.input_converters import convert_json_version  # noqa
+from superannotate.lib.app.input_converters import convert_project_type  # noqa
 from superannotate.lib.app.analytics.class_analytics import class_distribution  # noqa
 from superannotate.lib.app.exceptions import AppException  # noqa
 from superannotate.lib.app.input_converters import convert_json_version  # noqa
@@ -18,7 +20,7 @@ from superannotate.lib.core import PACKAGE_VERSION_MAJOR_UPGRADE  # noqa
 from superannotate.lib.core import PACKAGE_VERSION_UPGRADE  # noqa
 from superannotate.logger import get_default_logger  # noqa
 from superannotate.version import __version__  # noqa
-
+import superannotate.lib.core.enums as enums  # noqa
 
 SESSIONS = {}
 
@@ -26,6 +28,7 @@ __all__ = [
     "__version__",
     "SAClient",
     # Utils
+    "enums",
     "AppException",
     # analytics
     "class_distribution",

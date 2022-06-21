@@ -61,7 +61,6 @@ class StreamedAnnotations:
         verify_ssl: bool = False,
     ):
         async with aiohttp.ClientSession(
-            raise_for_status=True,
             headers=self._headers,
             connector=aiohttp.TCPConnector(ssl=verify_ssl),
         ) as session:
@@ -108,8 +107,12 @@ class StreamedAnnotations:
         session,
         method: str = "post",
         params=None,
-        chunk_size: int = 100,
-    ):
+        chunk_size: int = 5000,
+    ) -> int:
+        """
+        Returns the number of items downloaded
+        """
+        items_downloaded: int = 0
         if chunk_size and data:
             for i in range(0, len(data), chunk_size):
                 data_to_process = data[i : i + chunk_size]
@@ -126,6 +129,7 @@ class StreamedAnnotations:
                         annotation,
                         self._callback,
                     )
+                    items_downloaded += 1
         else:
             async for annotation in self.fetch(
                 method, session, url, self._process_data(data), params=params
@@ -133,3 +137,5 @@ class StreamedAnnotations:
                 self._store_annotation(
                     download_path, postfix, annotation, self._callback
                 )
+                items_downloaded += 1
+        return items_downloaded

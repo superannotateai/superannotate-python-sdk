@@ -14,6 +14,7 @@ from lib.infrastructure.validators import wrap_error
 from pydantic import BaseModel
 from pydantic import conlist
 from pydantic import constr
+from pydantic import errors
 from pydantic import Extra
 from pydantic import Field
 from pydantic import parse_obj_as
@@ -21,9 +22,21 @@ from pydantic import root_validator
 from pydantic import StrictStr
 from pydantic import validate_arguments as pydantic_validate_arguments
 from pydantic import ValidationError
+from pydantic.errors import PydanticTypeError
 from pydantic.errors import StrRegexError
 
 NotEmptyStr = constr(strict=True, min_length=1)
+
+
+class EnumMemberError(PydanticTypeError):
+    code = "enum"
+
+    def __str__(self) -> str:
+        permitted = ", ".join(str(v.name) for v in self.enum_values)  # type: ignore
+        return f"Available values are: {permitted}"
+
+
+errors.EnumMemberError = EnumMemberError
 
 
 class EmailStr(StrictStr):

@@ -704,8 +704,9 @@ class DownloadAnnotations(BaseReportableUseCase):
     def coroutine_wrapper(coroutine):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        loop.run_until_complete(coroutine)
+        count = loop.run_until_complete(coroutine)
         loop.close()
+        return count
 
     def execute(self):
         if self.is_valid():
@@ -737,7 +738,7 @@ class DownloadAnnotations(BaseReportableUseCase):
 
             if not folders:
                 loop = asyncio.new_event_loop()
-                loop.run_until_complete(
+                count = loop.run_until_complete(
                     self._backend_client.download_annotations(
                         team_id=self._project.team_id,
                         project_id=self._project.id,
@@ -765,12 +766,12 @@ class DownloadAnnotations(BaseReportableUseCase):
                                 callback=self._callback,
                             )
                         )
-                    _ = [_ for _ in executor.map(self.coroutine_wrapper, coroutines)]
+                    count = sum(
+                        [i for i in executor.map(self.coroutine_wrapper, coroutines)]
+                    )
 
             self.reporter.stop_spinner()
-            self.reporter.log_info(
-                f"Downloaded annotations for {self.get_items_count(export_path)} items."
-            )
+            self.reporter.log_info(f"Downloaded annotations for {count} items.")
             self.download_annotation_classes(export_path)
             self._response.data = os.path.abspath(export_path)
         return self._response

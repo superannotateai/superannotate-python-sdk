@@ -19,6 +19,11 @@ from lib.core.repositories import BaseReadOnlyRepository
 from lib.core.response import Response
 from lib.core.serviceproviders import SuperannotateServiceProvider
 from lib.core.usecases.base import BaseReportableUseCase
+from lib.core.usecases.base import BaseUseCase
+from superannotate.logger import get_default_logger
+
+
+logger = get_default_logger()
 
 
 class GetItem(BaseReportableUseCase):
@@ -187,6 +192,87 @@ class ListItems(BaseReportableUseCase):
         return self._response
 
 
+class AssignItemsUseCase(BaseUseCase):
+    CHUNK_SIZE = 500
+
+    def __init__(
+        self,
+        service: SuperannotateServiceProvider,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        item_names: list,
+        user: str,
+    ):
+        super().__init__()
+        self._project = project
+        self._folder = folder
+        self._item_names = item_names
+        self._user = user
+        self._service = service
+
+    def validate_user(
+        self,
+    ):
+
+        for c in self._project.users:
+            if c["user_id"] == self._user:
+                return True
+
+        raise AppValidationException(
+            f"{self._user} is not a verified contributor for the {self._project.name}"
+        )
+
+    def execute(self):
+        if self.is_valid():
+            for i in range(0, len(self._item_names), self.CHUNK_SIZE):
+                is_assigned = self._service.assign_items(
+                    team_id=self._project.team_id,
+                    project_id=self._project.id,
+                    folder_name=self._folder.name,
+                    user=self._user,
+                    item_names=self._item_names[i : i + self.CHUNK_SIZE],  # noqa: E203
+                )
+                if not is_assigned:
+                    self._response.errors = AppException(
+                        f"Cant assign {', '.join(self._item_names[i: i + self.CHUNK_SIZE])}"
+                    )
+                    continue
+        return self._response
+
+
+class UnAssignItemsUseCase(BaseUseCase):
+    CHUNK_SIZE = 500
+
+    def __init__(
+        self,
+        service: SuperannotateServiceProvider,
+        project_entity: ProjectEntity,
+        folder: FolderEntity,
+        item_names: list,
+    ):
+        super().__init__()
+        self._project_entity = project_entity
+        self._folder = folder
+        self._item_names = item_names
+        self._service = service
+
+    def execute(self):
+        # todo handling to backend side
+        for i in range(0, len(self._item_names), self.CHUNK_SIZE):
+            is_un_assigned = self._service.un_assign_items(
+                team_id=self._project_entity.team_id,
+                project_id=self._project_entity.id,
+                folder_name=self._folder.name,
+                item_names=self._item_names[i : i + self.CHUNK_SIZE],  # noqa: E203
+            )
+            if not is_un_assigned:
+                self._response.errors = AppException(
+                    f"Cant un assign {', '.join(self._item_names[i: i + self.CHUNK_SIZE])}"
+                )
+
+        return self._response
+
+
 class AttachItems(BaseReportableUseCase):
     CHUNK_SIZE = 500
 
@@ -294,7 +380,7 @@ class CopyItems(BaseReportableUseCase):
     Return skipped item names.
     """
 
-    CHUNK_SIZE = 1000
+    CHUNK_SIZE = 500
 
     def __init__(
         self,
@@ -345,12 +431,18 @@ class CopyItems(BaseReportableUseCase):
                 )
                 items = [item.name for item in self._items.get_all(condition)]
 
-            existing_items = self._backend_service.get_bulk_images(
-                project_id=self._project.id,
-                team_id=self._project.team_id,
-                folder_id=self._to_folder.uuid,
-                images=items,
-            )
+            existing_items = []
+            for i in range(0, len(items), self.CHUNK_SIZE):
+                cand_items = self._backend_service.get_bulk_images(
+                    project_id=self._project.id,
+                    team_id=self._project.team_id,
+                    folder_id=self._to_folder.uuid,
+                    images=items[i : i + self.CHUNK_SIZE],
+                )
+                if isinstance(cand_items, dict):
+                    continue
+                existing_items += cand_items
+
             duplications = [item["name"] for item in existing_items]
             items_to_copy = list(set(items) - set(duplications))
             skipped_items = duplications
@@ -385,12 +477,19 @@ class CopyItems(BaseReportableUseCase):
                     except BackendError as e:
                         self._response.errors = AppException(e)
                         return self._response
-                existing_items = self._backend_service.get_bulk_images(
-                    project_id=self._project.id,
-                    team_id=self._project.team_id,
-                    folder_id=self._to_folder.uuid,
-                    images=items,
-                )
+
+                existing_items = []
+                for i in range(0, len(items), self.CHUNK_SIZE):
+                    cand_items = self._backend_service.get_bulk_images(
+                        project_id=self._project.id,
+                        team_id=self._project.team_id,
+                        folder_id=self._to_folder.uuid,
+                        images=items[i : i + self.CHUNK_SIZE],
+                    )
+                    if isinstance(cand_items, dict):
+                        continue
+                    existing_items += cand_items
+
                 existing_item_names_set = {item["name"] for item in existing_items}
                 items_to_copy_names_set = set(items_to_copy)
                 copied_items = existing_item_names_set.intersection(
@@ -514,12 +613,21 @@ class SetAnnotationStatues(BaseReportableUseCase):
             )
             self._item_names = [item.name for item in self._items.get_all(condition)]
             return
-        existing_items = self._backend_service.get_bulk_images(
-            project_id=self._project.id,
-            team_id=self._project.team_id,
-            folder_id=self._folder.uuid,
-            images=self._item_names,
-        )
+        existing_items = []
+        for i in range(0, len(self._item_names), self.CHUNK_SIZE):
+
+            search_names = self._item_names[i : i + self.CHUNK_SIZE]
+            cand_items = self._backend_service.get_bulk_images(
+                project_id=self._project.id,
+                team_id=self._project.team_id,
+                folder_id=self._folder.uuid,
+                images=search_names,
+            )
+
+            if isinstance(cand_items, dict):
+                continue
+            existing_items += cand_items
+
         if not existing_items:
             raise AppValidationException(self.ERROR_MESSAGE)
         if existing_items:
