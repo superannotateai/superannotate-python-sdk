@@ -1110,7 +1110,7 @@ class ListSubsetsUseCase(BaseReportableUseCase):
                 team_id=self._project.team_id, project_id=self._project.id
             )
             if sub_sets_response.ok:
-                self._response.data = []
+                self._response.data = sub_sets_response.data
             else:
                 self._response.data = []
 

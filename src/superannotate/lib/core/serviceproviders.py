@@ -362,7 +362,12 @@ class SuperannotateServiceProvider:
         raise NotImplementedError
 
     def saqul_query(
-        self, team_id: int, project_id: int, query: str, folder_id: int
+        self,
+        team_id: int,
+        project_id: int,
+        folder_id: int,
+        query: str = None,
+        subset_id: int = None,
     ) -> ServiceResponse:
         raise NotImplementedError
 

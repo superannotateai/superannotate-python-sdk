@@ -2423,7 +2423,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         if response.errors:
             raise AppException(response.errors)
 
-    def query(self, project: NotEmptyStr, query: Optional[NotEmptyStr]):
+    def query(
+        self,
+        project: NotEmptyStr,
+        query: Optional[NotEmptyStr] = None,
+        subset: Optional[NotEmptyStr] = None,
+    ):
         """Return items that satisfy the given query.
         Query syntax should be in SuperAnnotate query language(https://doc.superannotate.com/docs/query-search-1).
 
@@ -2433,11 +2438,17 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param query: SAQuL query string.
         :type query: str
 
+        :param subset:  subset name. Allows you to query items in a specific subset.
+        To return all the items in the specified subset, set the value of query param to None.
+        :type subset: str
+
         :return: queried items’ metadata list
         :rtype: list of dicts
         """
         project_name, folder_name = extract_project_folder(project)
-        response = self.controller.query_entities(project_name, folder_name, query)
+        response = self.controller.query_entities(
+            project_name, folder_name, query, subset
+        )
         if response.errors:
             raise AppException(response.errors)
         return BaseSerializer.serialize_iterable(response.data)
@@ -2759,4 +2770,4 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         response = self.controller.list_subsets(project_name)
         if response.errors:
             raise AppException(response.errors)
-        return BaseSerializer.serialize_iterable(response.data)
+        return BaseSerializer.serialize_iterable(response.data, ["name"])
