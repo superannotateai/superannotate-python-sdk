@@ -669,7 +669,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         warnings.warn(warning_msg, DeprecationWarning)
         project_name, folder_name = extract_project_folder(project)
 
-        if not isinstance(image_names, list) and image_names is not none:
+        if not isinstance(image_names, list) and image_names is not None:
             raise AppException("image_names should be a list of str or None.")
 
         response = self.controller.delete_images(
