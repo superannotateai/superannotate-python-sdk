@@ -19,6 +19,7 @@ from lib.core.exceptions import AppValidationException
 from lib.core.reporter import Reporter
 from lib.core.repositories import BaseManageableRepository
 from lib.core.repositories import BaseReadOnlyRepository
+from lib.core.response import Response
 from lib.core.serviceproviders import SuperannotateServiceProvider
 from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.usecases.base import BaseUseCase
@@ -1079,3 +1080,38 @@ class InviteContributorsToTeam(BaseUserBasedUseCase):
                     )
             self._response.data = invited, list(to_skip)
             return self._response
+
+
+class ListSubsetsUseCase(BaseReportableUseCase):
+    def __init__(
+        self,
+        reporter: Reporter,
+        project: ProjectEntity,
+        backend_client: SuperannotateServiceProvider,
+    ):
+        super().__init__(reporter)
+        self._project = project
+        self._backend_client = backend_client
+
+    def validate_project(self):
+        if self._project.sync_status != constances.ProjectState.SYNCED.value:
+            raise AppException("Data is not synced.")
+
+        response = self._backend_client.validate_saqul_query(
+            self._project.team_id, self._project.id, "_"
+        )
+        error = response.get("error")
+        if error:
+            raise AppException(response["error"])
+
+    def execute(self) -> Response:
+        if self.is_valid():
+            sub_sets_response = self._backend_client.list_sub_sets(
+                team_id=self._project.team_id, project_id=self._project.id
+            )
+            if sub_sets_response.ok:
+                self._response.data = []
+            else:
+                self._response.data = []
+
+        return self._response
