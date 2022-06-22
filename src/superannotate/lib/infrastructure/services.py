@@ -134,10 +134,10 @@ class BaseBackendService(SuperannotateServiceProvider):
         if response.status_code == 404 and retried < 3:
             return self._request(
                 url,
-                method="get",
-                data=None,
-                headers=None,
-                params=None,
+                method=method,
+                data=data,
+                headers=headers,
+                params=params,
                 retried=retried + 1,
                 content_type=content_type,
             )
@@ -201,6 +201,7 @@ class SuperannotateBackendService(BaseBackendService):
     URL_GET_IMAGES = "images"
     URL_GET_ITEMS = "items"
     URL_BULK_GET_IMAGES = "images/getBulk"
+    URL_BULK_GET_ITEMS = "images/getBulk"
     URL_DELETE_FOLDERS = "image/delete/images"
     URL_DELETE_ITEMS = "image/delete/images"
     URL_CREATE_IMAGE = "image/ext-create"
@@ -708,6 +709,23 @@ class SuperannotateBackendService(BaseBackendService):
         )
         return res.json()
 
+    def get_bulk_items(
+        self, project_id: int, team_id: int, folder_id: int, items: List[str]
+    ) -> List[dict]:
+
+        bulk_get_items_url = urljoin(self.api_url, self.URL_BULK_GET_ITEMS)
+        res = self._request(
+            bulk_get_items_url,
+            "post",
+            data={
+                "project_id": project_id,
+                "team_id": team_id,
+                "folder_id": folder_id,
+                "names": items,
+            },
+        )
+        return ServiceResponse(res, ServiceResponse)
+
     def delete_images(self, project_id: int, team_id: int, image_ids: List[int]):
         delete_images_url = urljoin(self.api_url, self.URL_DELETE_FOLDERS)
         res = self._request(
@@ -720,6 +738,7 @@ class SuperannotateBackendService(BaseBackendService):
 
     def delete_items(self, project_id: int, team_id: int, item_ids: List[int]):
         delete_items_url = urljoin(self.api_url, self.URL_DELETE_ITEMS)
+
         res = self._request(
             delete_items_url,
             "put",
@@ -777,9 +796,9 @@ class SuperannotateBackendService(BaseBackendService):
         folder_name: str,
         user: str,
         item_names: list,
-    ):
+    ) -> ServiceResponse:
         assign_items_url = urljoin(self.api_url, self.URL_ASSIGN_ITEMS)
-        res = self._request(
+        return self._request(
             assign_items_url,
             "put",
             params={"team_id": team_id, "project_id": project_id},
@@ -788,8 +807,8 @@ class SuperannotateBackendService(BaseBackendService):
                 "assign_user_id": user,
                 "folder_name": folder_name,
             },
+            content_type=ServiceResponse,
         )
-        return res.ok
 
     def un_assign_items(
         self,

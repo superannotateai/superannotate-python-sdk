@@ -650,7 +650,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         logger.info("Annotations status of images changed")
 
     def delete_images(
-        self, project: Union[NotEmptyStr, dict], image_names: Optional[list[str]] = None
+        self, project: Union[NotEmptyStr, dict], image_names: Optional[List[str]] = None
     ):
         """delete images in project.
 
@@ -694,19 +694,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
         project_name, folder_name = extract_project_folder(project)
 
-        ## Type checking should be done in controller or by PyDantic?
-        # if not isinstance(image_names, list) and image_names is not None:
-        #     raise AppException("Image_names should be a list of str or None.")
-
         response = self.controller.delete_items(
             project_name=project_name, folder_name=folder_name, items=items
         )
         if response.errors:
             raise AppException(response.errors)
 
-        logger.info(
-            f"Items deleted in project {project_name}{'/' + folder_name if folder_name else ''}"
-        )
 
     def assign_items(
         self, project: Union[NotEmptyStr, dict], items: List[str], user: str
@@ -718,8 +711,10 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param project: project name or folder path (e.g., "project1/folder1")
         :type project: str
+
         :param items: list of items to assign
-        :type item_names: list of str
+        :type items: list of str
+
         :param user: user email
         :type user: str
         """
@@ -728,9 +723,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         response = self.controller.assign_items(project_name, folder_name, items, user)
 
-        if not response.errors:
-            logger.info(f"Assign items to user {user}")
-        else:
+        if response.errors:
             raise AppException(response.errors)
 
     def unassign_items(
@@ -743,7 +736,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param project: project name or folder path (e.g., "project1/folder1")
         :type project: str
         :param items: list of items to unassign
-        :type item_names: list of str
+        :type items: list of str
         """
         project_name, folder_name = extract_project_folder(project)
 

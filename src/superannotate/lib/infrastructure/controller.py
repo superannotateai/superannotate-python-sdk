@@ -847,7 +847,8 @@ class Controller(BaseController):
         use_case = usecases.DeleteItemsUseCase(
             project=project,
             folder=folder,
-            items=items,
+            items=self.items,
+            item_names=items,
             backend_service_provider=self._backend_client,
         )
         return use_case.execute()
