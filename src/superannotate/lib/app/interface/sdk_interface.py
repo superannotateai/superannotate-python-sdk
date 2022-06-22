@@ -652,11 +652,11 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def delete_images(
         self, project: Union[NotEmptyStr, dict], image_names: Optional[List[str]] = None
     ):
-        """delete images in project.
+        """Delete Images in project.
 
         :param project: project name or folder path (e.g., "project1/folder1")
         :type project: str
-        :param image_names: to be deleted images' names. if none, all the images will be deleted
+        :param image_names: to be deleted images' names. If None, all the images will be deleted
         :type image_names: list of strs
         """
 
@@ -670,13 +670,13 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         project_name, folder_name = extract_project_folder(project)
 
         if not isinstance(image_names, list) and image_names is not none:
-            raise appexception("image_names should be a list of str or none.")
+            raise AppException("image_names should be a list of str or None.")
 
         response = self.controller.delete_images(
             project_name=project_name, folder_name=folder_name, image_names=image_names
         )
         if response.errors:
-            raise appexception(response.errors)
+            raise AppException(response.errors)
 
         logger.info(
             f"images deleted in project {project_name}{'/' + folder_name if folder_name else ''}"
