@@ -663,7 +663,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         warning_msg = (
             "We're deprecating the delete_images function. Please use delete_items instead."
             "Learn more. \n"
-            "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.assign_items"
+            "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.delete_items"
         )
         logger.warning(warning_msg)
         warnings.warn(warning_msg, DeprecationWarning)
