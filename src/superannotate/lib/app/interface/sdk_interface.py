@@ -679,7 +679,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(response.errors)
 
         logger.info(
-            f"images deleted in project {project_name}{'/' + folder_name if folder_name else ''}"
+            f"Images deleted in project {project_name}{'/' + folder_name if folder_name else ''}"
         )
 
     def delete_items(
