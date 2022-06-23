@@ -1509,15 +1509,18 @@ class Controller(BaseController):
         )
         return use_case.execute()
 
-    def query_entities(self, project_name: str, folder_name: str, query: str = None):
+    def query_entities(
+        self, project_name: str, folder_name: str, query: str = None, subset: str = None
+    ):
         project = self._get_project(project_name)
         folder = self._get_folder(project, folder_name)
 
-        use_case = usecases.QueryEntities(
+        use_case = usecases.QueryEntitiesUseCase(
             reporter=self.get_default_reporter(),
             project=project,
             folder=folder,
             query=query,
+            subset=subset,
             backend_service_provider=self.backend_client,
         )
         return use_case.execute()

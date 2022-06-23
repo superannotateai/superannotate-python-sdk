@@ -28,6 +28,7 @@ class StringDate(datetime):
 
 
 class SubSetEntity(BaseModel):
+    id: Optional[int]
     name: str
 
     class Config:

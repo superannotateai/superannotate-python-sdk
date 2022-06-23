@@ -189,6 +189,7 @@ class SuperannotateBackendService(BaseBackendService):
     """
 
     DEFAULT_CHUNK_SIZE = 5000
+    SAQUL_CHUNK_SIZE = 50
 
     URL_USERS = "users"
     URL_LIST_PROJECTS = "projects"
@@ -1155,9 +1156,14 @@ class SuperannotateBackendService(BaseBackendService):
         return response.ok
 
     def saqul_query(
-        self, team_id: int, project_id: int, query: str, folder_id: int
+        self,
+        team_id: int,
+        project_id: int,
+        folder_id: int,
+        query: str = None,
+        subset_id: int = None,
     ) -> ServiceResponse:
-        CHUNK_SIZE = 50
+
         query_url = urljoin(self.api_url, self.URL_SAQUL_QUERY)
         params = {
             "team_id": team_id,
@@ -1166,18 +1172,22 @@ class SuperannotateBackendService(BaseBackendService):
         }
         if folder_id:
             params["folder_id"] = folder_id
-        data = {"query": query, "image_index": 0}
+        if subset_id:
+            params["subset_id"] = subset_id
+        data = {"image_index": 0}
+        if query:
+            data["query"] = query
         items = []
         for _ in range(self.MAX_ITEMS_COUNT):
             response = self._request(query_url, "post", params=params, data=data)
             if response.ok:
                 response_items = response.json()
                 items.extend(response_items)
-                if len(response_items) < CHUNK_SIZE:
+                if len(response_items) < self.SAQUL_CHUNK_SIZE:
                     service_response = ServiceResponse(response)
                     service_response.data = items
                     return service_response
-                data["image_index"] += CHUNK_SIZE
+                data["image_index"] += self.SAQUL_CHUNK_SIZE
             return ServiceResponse(response)
 
     def validate_saqul_query(self, team_id: int, project_id: int, query: str) -> dict:
