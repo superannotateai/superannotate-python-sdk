@@ -132,7 +132,7 @@ class QueryEntitiesUseCase(BaseReportableUseCase):
         self._subset = subset
 
     def validate_query(self):
-        if self._project.sync_status != constances.ProjectState.SYNCED.value:
+        if self._project.sync_status != constants.ProjectState.SYNCED.value:
             raise AppException("Data is not synced.")
         if self._query:
             response = self._backend_client.validate_saqul_query(
