@@ -6,6 +6,7 @@ from typing import Union
 
 from pydantic import BaseModel
 from pydantic import Extra
+from pydantic import parse_obj_as
 
 
 class Limit(BaseModel):
@@ -81,7 +82,7 @@ class ServiceResponse(BaseModel):
         }
         try:
             if content_type and content_type is not self.__class__:
-                data["data"] = content_type(**response.json())
+                data["data"] = parse_obj_as(content_type, response.json())
             else:
                 data["data"] = response.json()
         except Exception as e:

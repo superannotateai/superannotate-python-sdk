@@ -1689,3 +1689,12 @@ class Controller(BaseController):
             callback=callback,
         )
         return use_case.execute()
+
+    def list_subsets(self, project_name: str):
+        project = self._get_project(project_name)
+        use_case = usecases.ListSubsetsUseCase(
+            reporter=self.get_default_reporter(),
+            project=project,
+            backend_client=self.backend_client,
+        )
+        return use_case.execute()

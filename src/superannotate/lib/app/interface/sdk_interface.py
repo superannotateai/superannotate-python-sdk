@@ -2744,3 +2744,19 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         if response.errors:
             raise AppException(response.errors)
         return response.data
+
+    def get_subsets(self, project: Union[NotEmptyStr, dict]):
+        """Get Subsets
+
+        :param project: project name (e.g., “project1”)
+        :type project: str
+
+        :return: subsets’ metadata
+        :rtype: list of dicts
+        """
+        project_name, _ = extract_project_folder(project)
+
+        response = self.controller.list_subsets(project_name)
+        if response.errors:
+            raise AppException(response.errors)
+        return BaseSerializer.serialize_iterable(response.data)

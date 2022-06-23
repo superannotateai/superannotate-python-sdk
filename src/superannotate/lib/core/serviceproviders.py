@@ -368,3 +368,6 @@ class SuperannotateServiceProvider:
 
     def validate_saqul_query(self, team_id: int, project_id: int, query: str) -> dict:
         raise NotImplementedError
+
+    def list_sub_sets(self, team_id: int, project_id: int) -> ServiceResponse:
+        raise NotImplementedError

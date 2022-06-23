@@ -73,8 +73,17 @@ ______
 .. automethod:: superannotate.SAClient.attach_items
 .. automethod:: superannotate.SAClient.copy_items
 .. automethod:: superannotate.SAClient.move_items
+.. automethod:: superannotate.SAClient.assign_items
+.. automethod:: superannotate.SAClient.unassign_items
 .. automethod:: superannotate.SAClient.get_item_metadata
 .. automethod:: superannotate.SAClient.set_annotation_statuses
+
+----------
+
+Subsets
+______
+
+.. automethod:: superannotate.SAClient.get_subsets
 
 ----------
 

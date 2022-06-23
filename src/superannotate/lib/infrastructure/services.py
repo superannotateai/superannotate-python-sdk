@@ -14,6 +14,7 @@ from urllib.parse import urljoin
 
 import lib.core as constance
 import requests.packages.urllib3
+from lib.core import entities
 from lib.core.exceptions import AppException
 from lib.core.exceptions import BackendError
 from lib.core.reporter import Reporter
@@ -240,6 +241,7 @@ class SuperannotateBackendService(BaseBackendService):
     URL_ATTACH_INTEGRATIONS = "image/integration/create"
     URL_SAQUL_QUERY = "/images/search/advanced"
     URL_VALIDATE_SAQUL_QUERY = "/images/parse/query/advanced"
+    URL_LIST_SUBSETS = "/project/{project_id}/subset"
 
     def upload_priority_scores(
         self, team_id: int, project_id: int, folder_id: int, priorities: list
@@ -1190,3 +1192,11 @@ class SuperannotateBackendService(BaseBackendService):
         return self._request(
             validate_query_url, "post", params=params, data=data
         ).json()
+
+    def list_sub_sets(self, team_id: int, project_id: int) -> ServiceResponse:
+        return self._request(
+            urljoin(self.api_url, self.URL_LIST_SUBSETS.format(project_id=project_id)),
+            "get",
+            params=dict(team_id=team_id),
+            content_type=List[entities.SubSetEntity],
+        )

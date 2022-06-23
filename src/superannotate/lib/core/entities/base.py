@@ -27,6 +27,13 @@ class StringDate(datetime):
         return v.isoformat()
 
 
+class SubSetEntity(BaseModel):
+    name: str
+
+    class Config:
+        extra = Extra.ignore
+
+
 class TimedBaseModel(BaseModel):
     createdAt: StringDate = Field(None, alias="createdAt")
     updatedAt: StringDate = Field(None, alias="updatedAt")
