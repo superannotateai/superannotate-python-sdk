@@ -1,5 +1,6 @@
 import copy
 from typing import List
+from typing import Optional
 
 import superannotate.lib.core as constants
 from lib.core.conditions import Condition
@@ -9,6 +10,7 @@ from lib.core.entities import DocumentEntity
 from lib.core.entities import Entity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ProjectEntity
+from lib.core.entities import SubSetEntity
 from lib.core.entities import TmpImageEntity
 from lib.core.entities import VideoEntity
 from lib.core.exceptions import AppException
@@ -112,7 +114,7 @@ class GetItem(BaseReportableUseCase):
         return self._response
 
 
-class QueryEntities(BaseReportableUseCase):
+class QueryEntitiesUseCase(BaseReportableUseCase):
     def __init__(
         self,
         reporter: Reporter,
@@ -120,33 +122,70 @@ class QueryEntities(BaseReportableUseCase):
         folder: FolderEntity,
         backend_service_provider: SuperannotateServiceProvider,
         query: str,
+        subset: str,
     ):
         super().__init__(reporter)
         self._project = project
         self._folder = folder
         self._backend_client = backend_service_provider
         self._query = query
+        self._subset = subset
 
     def validate_query(self):
-        response = self._backend_client.validate_saqul_query(
-            self._project.team_id, self._project.id, self._query
-        )
-        if response.get("error"):
-            raise AppException(response["error"])
-        if response["isValidQuery"]:
-            self._query = response["parsedQuery"]
-        else:
-            raise AppException("Incorrect query.")
-        if self._project.sync_status != constants.ProjectState.SYNCED.value:
+        if self._project.sync_status != constances.ProjectState.SYNCED.value:
             raise AppException("Data is not synced.")
+        if self._query:
+            response = self._backend_client.validate_saqul_query(
+                self._project.team_id, self._project.id, self._query
+            )
+            if response.get("error"):
+                raise AppException(response["error"])
+            if response["isValidQuery"]:
+                self._query = response["parsedQuery"]
+            else:
+                raise AppException("Incorrect query.")
+        else:
+            response = self._backend_client.validate_saqul_query(
+                self._project.team_id, self._project.id, "-"
+            )
+            if response.get("error"):
+                raise AppException(response["error"])
 
     def execute(self) -> Response:
+        if not any([self._query, self._subset]):
+            self._response.errors = AppException(
+                "AppException: The query and subset params cannot have the value None at the same time."
+            )
+            return self._response
+
         if self.is_valid():
+            query_kwargs = {}
+            if self._subset:
+                subset: Optional[SubSetEntity] = None
+                response = self._backend_client.list_sub_sets(
+                    team_id=self._project.team_id, project_id=self._project.id
+                )
+                if response.ok:
+                    subset = next(
+                        (_sub for _sub in response.data if _sub.name == self._subset),
+                        None,
+                    )
+                if not subset:
+                    self._response.errors = AppException(
+                        "Subset not found. Use the superannotate."
+                        "get_subsets() function to get a list of the available subsets."
+                    )
+                    return self._response
+                query_kwargs["subset_id"] = subset.id
+            if self._query:
+                query_kwargs["query"] = self._query
+            query_kwargs["folder_id"] = (
+                None if self._folder.name == "root" else self._folder.uuid
+            )
             service_response = self._backend_client.saqul_query(
                 self._project.team_id,
                 self._project.id,
-                self._query,
-                folder_id=None if self._folder.name == "root" else self._folder.uuid,
+                **query_kwargs,
             )
             if service_response.ok:
                 data = []

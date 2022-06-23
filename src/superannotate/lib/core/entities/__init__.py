@@ -2,6 +2,7 @@ from lib.core.entities.base import AttachmentEntity
 from lib.core.entities.base import BaseEntity as TmpBaseEntity
 from lib.core.entities.base import ProjectEntity
 from lib.core.entities.base import SettingEntity
+from lib.core.entities.base import SubSetEntity
 from lib.core.entities.integrations import IntegrationEntity
 from lib.core.entities.items import DocumentEntity
 from lib.core.entities.items import Entity
@@ -31,6 +32,7 @@ from superannotate_schemas.schemas.internal.video import (
 __all__ = [
     # base
     "SettingEntity",
+    "SubSetEntity",
     # items
     "TmpImageEntity",
     "BaseEntity",
