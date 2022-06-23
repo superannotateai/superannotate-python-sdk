@@ -1095,7 +1095,7 @@ class ListSubsetsUseCase(BaseReportableUseCase):
 
     def validate_project(self):
         if self._project.sync_status != constances.ProjectState.SYNCED.value:
-            raise AppException("Data is not synced.")
+            raise AppException("Project data is not synced.")
 
         response = self._backend_client.validate_saqul_query(
             self._project.team_id, self._project.id, "_"

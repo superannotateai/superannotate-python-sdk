@@ -95,7 +95,7 @@ class TestInterface(BaseTestCase):
 
     def test_search_project(self):
         sa.upload_images_from_folder_to_project(self.PROJECT_NAME, self.folder_path)
-        sa.set_image_annotation_status(self.PROJECT_NAME, self.EXAMPLE_IMAGE_1, "Completed")
+        sa.set_annotation_statuses(self.PROJECT_NAME,  "Completed", [self.EXAMPLE_IMAGE_1])
         data = sa.search_projects(self.PROJECT_NAME, return_metadata=True, include_complete_image_count=True)
         self.assertIsNotNone(data[0]['completed_images_count'])
 

@@ -62,6 +62,18 @@ logger = get_default_logger()
 
 
 class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
+    """Create SAClient instance to authorize SDK in a team scope.
+    In case of no argument has been provided, SA_TOKEN environmental variable
+    will be checked or $HOME/.superannotate/config.json will be used.
+
+    :param token: team token
+    :type token: str
+
+    :param config_path: path to config file
+    :type config_path: path-like (str or Path)
+
+    """
+
     def __init__(
         self,
         token: str = None,
@@ -618,37 +630,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             is_pinned=int(pin),
         )
 
-    def set_images_annotation_statuses(
-        self,
-        project: Union[NotEmptyStr, dict],
-        annotation_status: NotEmptyStr,
-        image_names: Optional[List[NotEmptyStr]] = None,
-    ):
-        """Sets annotation statuses of images
-
-        :param project: project name or folder path (e.g., "project1/folder1")
-        :type project: str
-        :param image_names: image names. If None, all the images in the project will be used
-        :type image_names: list of str
-        :param annotation_status: annotation status to set,
-               should be one of NotStarted InProgress QualityCheck Returned Completed Skipped
-        :type annotation_status: str
-        """
-        warning_msg = (
-            "We're deprecating the set_images_annotation_statuses function. Please use set_annotation_statuses instead. "
-            "Learn more. \n"
-            "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.set_annotation_statuses"
-        )
-        logger.warning(warning_msg)
-        warnings.warn(warning_msg, DeprecationWarning)
-        project_name, folder_name = extract_project_folder(project)
-        response = self.controller.set_images_annotation_statuses(
-            project_name, folder_name, image_names, annotation_status
-        )
-        if response.errors:
-            raise AppException(response.errors)
-        logger.info("Annotations status of images changed")
-
     def delete_images(
         self, project: Union[NotEmptyStr, dict], image_names: Optional[List[str]] = None
     ):
@@ -682,9 +663,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             f"Images deleted in project {project_name}{'/' + folder_name if folder_name else ''}"
         )
 
-    def delete_items(
-        self, project: str, items: Optional[List[str]] = None
-    ):
+    def delete_items(self, project: str, items: Optional[List[str]] = None):
         """Delete items in a given project.
 
         :param project: project name or folder path (e.g., "project1/folder1")
@@ -699,7 +678,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         )
         if response.errors:
             raise AppException(response.errors)
-
 
     def assign_items(
         self, project: Union[NotEmptyStr, dict], items: List[str], user: str
@@ -1427,41 +1405,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(response.errors)
         logger.info(response.data)
 
-    def set_image_annotation_status(
-        self,
-        project: Union[NotEmptyStr, dict],
-        image_name: NotEmptyStr,
-        annotation_status: NotEmptyStr,
-    ):
-        """Sets the image annotation status
-
-        :param project: project name or folder path (e.g., "project1/folder1")
-        :type project: str
-        :param image_name: image name
-        :type image_name: str
-        :param annotation_status: annotation status to set,
-               should be one of NotStarted InProgress QualityCheck Returned Completed Skipped
-        :type annotation_status: str
-
-        :return: metadata of the updated image
-        :rtype: dict
-        """
-        warning_msg = (
-            "We're deprecating the set_image_annotation_status function. Please use set_annotation_statuses instead. "
-            "Learn more. \n"
-            "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.set_annotation_statuses"
-        )
-        logger.warning(warning_msg)
-        warnings.warn(warning_msg, DeprecationWarning)
-        project_name, folder_name = extract_project_folder(project)
-        response = self.controller.set_images_annotation_statuses(
-            project_name, folder_name, [image_name], annotation_status
-        )
-        if response.errors:
-            raise AppException(response.errors)
-        image = self.controller.get_item(project_name, folder_name, image_name).data
-        return BaseSerializer(image).serialize()
-
     def set_project_workflow(
         self, project: Union[NotEmptyStr, dict], new_workflow: List[dict]
     ):
@@ -1720,7 +1663,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param model: the model that needs to be downloaded
         :type  model: dict
-        :param output_dir: the directiory in which the files will be saved
+        :param output_dir: the directory in which the files will be saved
         :type output_dir: str
         :return: the metadata of the model
         :rtype: dict
