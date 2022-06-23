@@ -652,17 +652,25 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def delete_images(
         self, project: Union[NotEmptyStr, dict], image_names: Optional[List[str]] = None
     ):
-        """Delete images in project.
+        """Delete Images in project.
 
         :param project: project name or folder path (e.g., "project1/folder1")
         :type project: str
         :param image_names: to be deleted images' names. If None, all the images will be deleted
         :type image_names: list of strs
         """
+
+        warning_msg = (
+            "We're deprecating the delete_images function. Please use delete_items instead."
+            "Learn more. \n"
+            "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.delete_items"
+        )
+        logger.warning(warning_msg)
+        warnings.warn(warning_msg, DeprecationWarning)
         project_name, folder_name = extract_project_folder(project)
 
         if not isinstance(image_names, list) and image_names is not None:
-            raise AppException("Image_names should be a list of str or None.")
+            raise AppException("image_names should be a list of str or None.")
 
         response = self.controller.delete_images(
             project_name=project_name, folder_name=folder_name, image_names=image_names
@@ -673,6 +681,25 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         logger.info(
             f"Images deleted in project {project_name}{'/' + folder_name if folder_name else ''}"
         )
+
+    def delete_items(
+        self, project: str, items: Optional[List[str]] = None
+    ):
+        """Delete items in a given project.
+
+        :param project: project name or folder path (e.g., "project1/folder1")
+        :type project: str
+        :param items: to be deleted items' names. If None, all the items will be deleted
+        :type items: list of str
+        """
+        project_name, folder_name = extract_project_folder(project)
+
+        response = self.controller.delete_items(
+            project_name=project_name, folder_name=folder_name, items=items
+        )
+        if response.errors:
+            raise AppException(response.errors)
+
 
     def assign_items(
         self, project: Union[NotEmptyStr, dict], items: List[str], user: str

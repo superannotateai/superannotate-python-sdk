@@ -835,6 +835,24 @@ class Controller(BaseController):
         )
         return use_case.execute()
 
+    def delete_items(
+        self,
+        project_name: str,
+        folder_name: str,
+        items: List[str] = None,
+    ):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+
+        use_case = usecases.DeleteItemsUseCase(
+            project=project,
+            folder=folder,
+            items=self.items,
+            item_names=items,
+            backend_service_provider=self._backend_client,
+        )
+        return use_case.execute()
+
     def assign_items(
         self, project_name: str, folder_name: str, item_names: list, user: str
     ):

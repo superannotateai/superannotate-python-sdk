@@ -2,7 +2,7 @@ import copy
 from typing import List
 from typing import Optional
 
-import superannotate.lib.core as constances
+import superannotate.lib.core as constants
 from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.entities import AttachmentEntity
@@ -22,10 +22,44 @@ from lib.core.response import Response
 from lib.core.serviceproviders import SuperannotateServiceProvider
 from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.usecases.base import BaseUseCase
+from lib.core.entities import ImageEntity
 from superannotate.logger import get_default_logger
 
 logger = get_default_logger()
 
+class GetBulkItems(BaseUseCase):
+    def __init__(
+        self,
+        service: SuperannotateServiceProvider,
+        project_id: int,
+        team_id: int,
+        folder_id: int,
+        items: List[str],
+    ):
+        super().__init__()
+        self._service = service
+        self._project_id = project_id
+        self._team_id = team_id
+        self._folder_id = folder_id
+        self._items = items
+        self._chunk_size = 500
+
+    def execute(self):
+        res = []
+        for i in range(0, len(self._items), self._chunk_size):
+            response = self._service.get_bulk_items(
+                project_id=self._project_id,
+                team_id=self._team_id,
+                folder_id=self._folder_id,
+                items=self._items[i : i + self._chunk_size],  # noqa: E203
+            )
+
+            if not response.ok:
+                raise AppException(response.error)
+            #TODO stop using Image Entity when it gets deprecated and from_dict gets implemented for items
+            res += [ImageEntity.from_dict(**item) for item in response.data]
+        self._response.data = res
+        return self._response
 
 class GetItem(BaseReportableUseCase):
     def __init__(
@@ -44,22 +78,22 @@ class GetItem(BaseReportableUseCase):
 
     @staticmethod
     def serialize_entity(entity: Entity, project: ProjectEntity):
-        if project.upload_state != constances.UploadState.EXTERNAL.value:
+        if project.upload_state != constants.UploadState.EXTERNAL.value:
             entity.url = None
         if project.type in (
-            constances.ProjectType.VECTOR.value,
-            constances.ProjectType.PIXEL.value,
+            constants.ProjectType.VECTOR.value,
+            constants.ProjectType.PIXEL.value,
         ):
             tmp_entity = entity
-            if project.type == constances.ProjectType.VECTOR.value:
+            if project.type == constants.ProjectType.VECTOR.value:
                 entity.segmentation_status = None
-            if project.upload_state == constances.UploadState.EXTERNAL.value:
+            if project.upload_state == constants.UploadState.EXTERNAL.value:
                 tmp_entity.prediction_status = None
                 tmp_entity.segmentation_status = None
             return TmpImageEntity(**tmp_entity.dict(by_alias=True))
-        elif project.type == constances.ProjectType.VIDEO.value:
+        elif project.type == constants.ProjectType.VIDEO.value:
             return VideoEntity(**entity.dict(by_alias=True))
-        elif project.type == constances.ProjectType.DOCUMENT.value:
+        elif project.type == constants.ProjectType.DOCUMENT.value:
             return DocumentEntity(**entity.dict(by_alias=True))
         return entity
 
@@ -320,13 +354,13 @@ class AttachItems(BaseReportableUseCase):
         attachments: List[AttachmentEntity],
         annotation_status: str,
         backend_service_provider: SuperannotateServiceProvider,
-        upload_state_code: int = constances.UploadState.EXTERNAL.value,
+        upload_state_code: int = constants.UploadState.EXTERNAL.value,
     ):
         super().__init__(reporter)
         self._project = project
         self._folder = folder
         self._attachments = attachments
-        self._annotation_status_code = constances.AnnotationStatus.get_value(
+        self._annotation_status_code = constants.AnnotationStatus.get_value(
             annotation_status
         )
         self._upload_state_code = upload_state_code
@@ -349,18 +383,18 @@ class AttachItems(BaseReportableUseCase):
         if not response.ok:
             raise AppValidationException(response.error)
         if attachments_count > response.data.folder_limit.remaining_image_count:
-            raise AppValidationException(constances.ATTACH_FOLDER_LIMIT_ERROR_MESSAGE)
+            raise AppValidationException(constants.ATTACH_FOLDER_LIMIT_ERROR_MESSAGE)
         elif attachments_count > response.data.project_limit.remaining_image_count:
-            raise AppValidationException(constances.ATTACH_PROJECT_LIMIT_ERROR_MESSAGE)
+            raise AppValidationException(constants.ATTACH_PROJECT_LIMIT_ERROR_MESSAGE)
         elif (
             response.data.user_limit
             and attachments_count > response.data.user_limit.remaining_image_count
         ):
-            raise AppValidationException(constances.ATTACH_USER_LIMIT_ERROR_MESSAGE)
+            raise AppValidationException(constants.ATTACH_USER_LIMIT_ERROR_MESSAGE)
 
     def validate_upload_state(self):
-        if self._project.upload_state == constances.UploadState.BASIC.value:
-            raise AppValidationException(constances.ATTACHING_UPLOAD_STATE_ERROR)
+        if self._project.upload_state == constants.UploadState.BASIC.value:
+            raise AppValidationException(constants.ATTACHING_UPLOAD_STATE_ERROR)
 
     @staticmethod
     def generate_meta():
@@ -447,9 +481,9 @@ class CopyItems(BaseReportableUseCase):
         if not response.ok:
             raise AppValidationException(response.error)
         if items_count > response.data.folder_limit.remaining_image_count:
-            raise AppValidationException(constances.COPY_FOLDER_LIMIT_ERROR_MESSAGE)
+            raise AppValidationException(constants.COPY_FOLDER_LIMIT_ERROR_MESSAGE)
         if items_count > response.data.project_limit.remaining_image_count:
-            raise AppValidationException(constances.COPY_PROJECT_LIMIT_ERROR_MESSAGE)
+            raise AppValidationException(constants.COPY_PROJECT_LIMIT_ERROR_MESSAGE)
 
     def validate_item_names(self):
         if self._item_names:
@@ -575,9 +609,9 @@ class MoveItems(BaseReportableUseCase):
         if not response.ok:
             raise AppValidationException(response.error)
         if items_count > response.data.folder_limit.remaining_image_count:
-            raise AppValidationException(constances.MOVE_FOLDER_LIMIT_ERROR_MESSAGE)
+            raise AppValidationException(constants.MOVE_FOLDER_LIMIT_ERROR_MESSAGE)
         if items_count > response.data.project_limit.remaining_image_count:
-            raise AppValidationException(constances.MOVE_PROJECT_LIMIT_ERROR_MESSAGE)
+            raise AppValidationException(constants.MOVE_PROJECT_LIMIT_ERROR_MESSAGE)
 
     def execute(self):
         if self.is_valid():
@@ -635,7 +669,7 @@ class SetAnnotationStatues(BaseReportableUseCase):
         self._folder = folder
         self._item_names = item_names
         self._items = items
-        self._annotation_status_code = constances.AnnotationStatus.get_value(
+        self._annotation_status_code = constants.AnnotationStatus.get_value(
             annotation_status
         )
         self._backend_service = backend_service_provider
@@ -686,4 +720,58 @@ class SetAnnotationStatues(BaseReportableUseCase):
                 if not status_changed:
                     self._response.errors = AppException(self.ERROR_MESSAGE)
                     break
+        return self._response
+
+class DeleteItemsUseCase(BaseUseCase):
+    CHUNK_SIZE = 1000
+
+    def __init__(
+        self,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        backend_service_provider: SuperannotateServiceProvider,
+        items: BaseReadOnlyRepository,
+        item_names: List[str] = None,
+    ):
+        super().__init__()
+        self._project = project
+        self._folder = folder
+        self._items = items
+        self._backend_service = backend_service_provider
+        self._item_names = item_names
+
+    def execute(self):
+        if self.is_valid():
+            if self._item_names:
+                item_ids = [
+                    item.uuid
+                    for item in GetBulkItems(
+                        service=self._backend_service,
+                        project_id=self._project.id,
+                        team_id=self._project.team_id,
+                        folder_id=self._folder.uuid,
+                        items=self._item_names,
+                    )
+                    .execute()
+                    .data
+                ]
+            else:
+                condition = (
+                    Condition("team_id", self._project.team_id, EQ)
+                    & Condition("project_id", self._project.id, EQ)
+                    & Condition("folder_id", self._folder.uuid, EQ)
+                )
+                item_ids = [item.id for item in self._items.get_all(condition)]
+
+            for i in range(0, len(item_ids), self.CHUNK_SIZE):
+                response = self._backend_service.delete_items(
+                    project_id=self._project.id,
+                    team_id=self._project.team_id,
+                    item_ids=item_ids[i : i + self.CHUNK_SIZE],  # noqa: E203
+                )
+
+            logger.info(
+                f"Items deleted in project {self._project.name}{'/' + self._folder.name if not self._folder.is_root else ''}"
+            )
+
         return self._response

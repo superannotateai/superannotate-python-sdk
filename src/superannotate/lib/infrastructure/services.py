@@ -203,7 +203,9 @@ class SuperannotateBackendService(BaseBackendService):
     URL_GET_IMAGES = "images"
     URL_GET_ITEMS = "items"
     URL_BULK_GET_IMAGES = "images/getBulk"
+    URL_BULK_GET_ITEMS = "images/getBulk"
     URL_DELETE_FOLDERS = "image/delete/images"
+    URL_DELETE_ITEMS = "image/delete/images"
     URL_CREATE_IMAGE = "image/ext-create"
     URL_PROJECT_SETTINGS = "project/{}/settings"
     URL_PROJECT_WORKFLOW = "project/{}/workflow"
@@ -710,6 +712,23 @@ class SuperannotateBackendService(BaseBackendService):
         )
         return res.json()
 
+    def get_bulk_items(
+        self, project_id: int, team_id: int, folder_id: int, items: List[str]
+    ) -> List[dict]:
+
+        bulk_get_items_url = urljoin(self.api_url, self.URL_BULK_GET_ITEMS)
+        res = self._request(
+            bulk_get_items_url,
+            "post",
+            data={
+                "project_id": project_id,
+                "team_id": team_id,
+                "folder_id": folder_id,
+                "names": items,
+            },
+        )
+        return ServiceResponse(res, ServiceResponse)
+
     def delete_images(self, project_id: int, team_id: int, image_ids: List[int]):
         delete_images_url = urljoin(self.api_url, self.URL_DELETE_FOLDERS)
         res = self._request(
@@ -719,6 +738,18 @@ class SuperannotateBackendService(BaseBackendService):
             data={"image_ids": image_ids},
         )
         return res.json()
+
+    def delete_items(self, project_id: int, team_id: int, item_ids: List[int]):
+        delete_items_url = urljoin(self.api_url, self.URL_DELETE_ITEMS)
+
+        res = self._request(
+            delete_items_url,
+            "put",
+            params={"team_id": team_id, "project_id": project_id},
+            data={"image_ids": item_ids},
+        )
+
+        return ServiceResponse(res, ServiceResponse)
 
     def assign_images(
         self,
