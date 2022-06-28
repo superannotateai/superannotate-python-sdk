@@ -3,9 +3,11 @@ import os
 import tempfile
 from os.path import dirname
 
-import src.superannotate as sa
-from src.superannotate import AppException
+from src.superannotate import SAClient
+from src.superannotate import export_annotation
 from tests.integration.base import BaseTestCase
+
+sa = SAClient()
 
 
 class TestGetExports(BaseTestCase):
@@ -60,7 +62,7 @@ class TestPixelExportConvert(BaseTestCase):
         with tempfile.TemporaryDirectory() as tmp_dir:
             sa.download_export(self.PROJECT_NAME, export["name"], tmp_dir)
             with tempfile.TemporaryDirectory() as converted_data_tmp_dir:
-                sa.export_annotation(
+                export_annotation(
                     tmp_dir, converted_data_tmp_dir, "COCO", "export", "Pixel", "panoptic_segmentation"
                 )
                 self.assertEqual(1, len(list(glob.glob(converted_data_tmp_dir + "/*.json"))))

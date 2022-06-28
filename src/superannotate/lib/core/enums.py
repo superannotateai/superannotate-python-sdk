@@ -8,7 +8,12 @@ class BaseTitledEnum(int, Enum):
         obj._value_ = value
         obj.__doc__ = title
         obj._type = "titled_enum"
+        cls._value2member_map_[title] = obj
         return obj
+
+    @classmethod
+    def choices(cls):
+        return tuple(cls._value2member_map_.keys())
 
     @DynamicClassAttribute
     def name(self) -> str:
@@ -40,6 +45,9 @@ class BaseTitledEnum(int, Enum):
 
     def equals(self, other: Enum):
         return self.__doc__.lower() == other.__doc__.lower()
+
+    def __eq__(self, other):
+        return super().__eq__(other)
 
 
 class AnnotationTypes(str, Enum):

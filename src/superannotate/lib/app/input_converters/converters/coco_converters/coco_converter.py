@@ -137,9 +137,9 @@ class CocoBaseStrategy(baseStrategy):
 
     def _parse_json_into_common_format(self, sa_annotation_json, fpath):
         """
-           If the annotation format ever changes this function will handle it and
-           return something optimal for the converters. Additionally, if anything
-           important is absent from the current json, this function fills it.
+        If the annotation format ever changes this function will handle it and
+        return something optimal for the converters. Additionally, if anything
+        important is absent from the current json, this function fills it.
         """
         if isinstance(sa_annotation_json, list):
             sa_annotation_json = self.convert_from_old_sa_to_new(

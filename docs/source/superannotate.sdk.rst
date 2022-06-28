@@ -8,73 +8,80 @@ API Reference
 Remote functions
 ----------------
 
-Initialization and authentication
+Instantiation and authentication
 _________________________________
 
-.. autofunction:: superannotate.init
+.. autoclass:: superannotate.SAClient
 
-
-.. _ref_projects:
 
 Projects
 ________
 
 .. _ref_search_projects:
-.. autofunction:: superannotate.search_projects
-.. autofunction:: superannotate.create_project
-.. autofunction:: superannotate.create_project_from_metadata
-.. autofunction:: superannotate.clone_project
-.. autofunction:: superannotate.delete_project
-.. autofunction:: superannotate.rename_project
+.. automethod:: superannotate.SAClient.search_projects
+.. automethod:: superannotate.SAClient.create_project
+.. automethod:: superannotate.SAClient.create_project_from_metadata
+.. automethod:: superannotate.SAClient.clone_project
+.. automethod:: superannotate.SAClient.delete_project
+.. automethod:: superannotate.SAClient.rename_project
 .. _ref_get_project_metadata:
-.. autofunction:: superannotate.get_project_metadata
-.. autofunction:: superannotate.get_project_image_count
-.. autofunction:: superannotate.search_folders
-.. autofunction:: superannotate.get_folder_metadata
-.. autofunction:: superannotate.create_folder
-.. autofunction:: superannotate.delete_folders
-.. autofunction:: superannotate.upload_images_to_project
-.. autofunction:: superannotate.attach_items_from_integrated_storage
-.. autofunction:: superannotate.upload_image_to_project
-.. autofunction:: superannotate.delete_annotations
+.. automethod:: superannotate.SAClient.get_project_metadata
+.. automethod:: superannotate.SAClient.get_project_image_count
+.. automethod:: superannotate.SAClient.search_folders
+.. automethod:: superannotate.SAClient.get_folder_metadata
+.. automethod:: superannotate.SAClient.create_folder
+.. automethod:: superannotate.SAClient.delete_folders
+.. automethod:: superannotate.SAClient.upload_images_to_project
+.. automethod:: superannotate.SAClient.attach_items_from_integrated_storage
+.. automethod:: superannotate.SAClient.upload_image_to_project
+.. automethod:: superannotate.SAClient.delete_annotations
 .. _ref_upload_images_from_folder_to_project:
-.. autofunction:: superannotate.upload_images_from_folder_to_project
-.. autofunction:: superannotate.upload_video_to_project
-.. autofunction:: superannotate.upload_videos_from_folder_to_project
+.. automethod:: superannotate.SAClient.upload_images_from_folder_to_project
+.. automethod:: superannotate.SAClient.upload_video_to_project
+.. automethod:: superannotate.SAClient.upload_videos_from_folder_to_project
 .. _ref_upload_annotations_from_folder_to_project:
-.. autofunction:: superannotate.upload_annotations_from_folder_to_project
-.. autofunction:: superannotate.upload_preannotations_from_folder_to_project
-.. autofunction:: superannotate.add_contributors_to_project
-.. autofunction:: superannotate.get_project_settings
-.. autofunction:: superannotate.set_project_default_image_quality_in_editor
-.. autofunction:: superannotate.get_project_workflow
-.. autofunction:: superannotate.set_project_workflow
+.. automethod:: superannotate.SAClient.upload_annotations_from_folder_to_project
+.. automethod:: superannotate.SAClient.upload_preannotations_from_folder_to_project
+.. automethod:: superannotate.SAClient.add_contributors_to_project
+.. automethod:: superannotate.SAClient.get_project_settings
+.. automethod:: superannotate.SAClient.set_project_default_image_quality_in_editor
+.. automethod:: superannotate.SAClient.get_project_workflow
+.. automethod:: superannotate.SAClient.set_project_workflow
 
 ----------
 
 Exports
 _______
 
-.. autofunction:: superannotate.prepare_export
-.. autofunction:: superannotate.get_annotations
-.. autofunction:: superannotate.get_annotations_per_frame
+.. automethod:: superannotate.SAClient.prepare_export
+.. automethod:: superannotate.SAClient.get_annotations
+.. automethod:: superannotate.SAClient.get_annotations_per_frame
 .. _ref_download_export:
-.. autofunction:: superannotate.download_export
-.. autofunction:: superannotate.get_exports
+.. automethod:: superannotate.SAClient.download_export
+.. automethod:: superannotate.SAClient.get_exports
 
 ----------
 
 Items
 ______
 
-.. autofunction:: superannotate.query
-.. autofunction:: superannotate.search_items
-.. autofunction:: superannotate.download_annotations
-.. autofunction:: superannotate.attach_items
-.. autofunction:: superannotate.copy_items
-.. autofunction:: superannotate.move_items
-.. autofunction:: superannotate.get_item_metadata
-.. autofunction:: superannotate.set_annotation_statuses
+.. automethod:: superannotate.SAClient.query
+.. automethod:: superannotate.SAClient.search_items
+.. automethod:: superannotate.SAClient.download_annotations
+.. automethod:: superannotate.SAClient.attach_items
+.. automethod:: superannotate.SAClient.copy_items
+.. automethod:: superannotate.SAClient.move_items
+.. automethod:: superannotate.SAClient.assign_items
+.. automethod:: superannotate.SAClient.unassign_items
+.. automethod:: superannotate.SAClient.get_item_metadata
+.. automethod:: superannotate.SAClient.set_annotation_statuses
+
+----------
+
+Subsets
+______
+
+.. automethod:: superannotate.SAClient.get_subsets
 
 ----------
 
@@ -83,50 +90,48 @@ ______
 
 
 .. _ref_search_images:
-.. autofunction:: superannotate.download_image
-.. autofunction:: superannotate.set_image_annotation_status
-.. autofunction:: superannotate.set_images_annotation_statuses
-.. autofunction:: superannotate.download_image_annotations
-.. autofunction:: superannotate.upload_image_annotations
-.. autofunction:: superannotate.copy_image
-.. autofunction:: superannotate.pin_image
-.. autofunction:: superannotate.assign_images
-.. autofunction:: superannotate.delete_images
-.. autofunction:: superannotate.add_annotation_bbox_to_image
-.. autofunction:: superannotate.add_annotation_point_to_image
-.. autofunction:: superannotate.add_annotation_comment_to_image
-.. autofunction:: superannotate.upload_priority_scores
+.. automethod:: superannotate.SAClient.download_image
+.. automethod:: superannotate.SAClient.download_image_annotations
+.. automethod:: superannotate.SAClient.upload_image_annotations
+.. automethod:: superannotate.SAClient.copy_image
+.. automethod:: superannotate.SAClient.pin_image
+.. automethod:: superannotate.SAClient.assign_images
+.. automethod:: superannotate.SAClient.delete_images
+.. automethod:: superannotate.SAClient.add_annotation_bbox_to_image
+.. automethod:: superannotate.SAClient.add_annotation_point_to_image
+.. automethod:: superannotate.SAClient.add_annotation_comment_to_image
+.. automethod:: superannotate.SAClient.upload_priority_scores
 
 ----------
 
 Annotation Classes
 __________________
 
-.. autofunction:: superannotate.create_annotation_class
+.. automethod:: superannotate.SAClient.create_annotation_class
 .. _ref_create_annotation_classes_from_classes_json:
-.. autofunction:: superannotate.create_annotation_classes_from_classes_json
-.. autofunction:: superannotate.search_annotation_classes
-.. autofunction:: superannotate.download_annotation_classes_json
-.. autofunction:: superannotate.delete_annotation_class
+.. automethod:: superannotate.SAClient.create_annotation_classes_from_classes_json
+.. automethod:: superannotate.SAClient.search_annotation_classes
+.. automethod:: superannotate.SAClient.download_annotation_classes_json
+.. automethod:: superannotate.SAClient.delete_annotation_class
 
 ----------
 
 Team
 _________________
 
-.. autofunction:: superannotate.get_team_metadata
-.. autofunction:: superannotate.get_integrations
-.. autofunction:: superannotate.invite_contributors_to_team
-.. autofunction:: superannotate.search_team_contributors
+.. automethod:: superannotate.SAClient.get_team_metadata
+.. automethod:: superannotate.SAClient.get_integrations
+.. automethod:: superannotate.SAClient.invite_contributors_to_team
+.. automethod:: superannotate.SAClient.search_team_contributors
 
 ----------
 
 Neural Network
 _______________
 
-.. autofunction:: superannotate.download_model
-.. autofunction:: superannotate.run_prediction
-.. autofunction:: superannotate.search_models
+.. automethod:: superannotate.SAClient.download_model
+.. automethod:: superannotate.SAClient.run_prediction
+.. automethod:: superannotate.SAClient.search_models
 
 ----------
 
@@ -196,7 +201,7 @@ Export metadata example:
 
 
 Integration metadata
-_______________
+______________________
 
 Integration metadata example:
 
@@ -383,8 +388,8 @@ Working with annotations
 ________________________
 
 .. _ref_aggregate_annotations_as_df:
-.. autofunction:: superannotate.validate_annotations
-.. autofunction:: superannotate.aggregate_annotations_as_df
+.. automethod:: superannotate.SAClient.validate_annotations
+.. automethod:: superannotate.SAClient.aggregate_annotations_as_df
 
 ----------
 
@@ -398,5 +403,5 @@ _____________________________________________________________
 Utility functions
 --------------------------------
 
-.. autofunction:: superannotate.consensus
-.. autofunction:: superannotate.benchmark
+.. autofunction:: superannotate.SAClient.consensus
+.. autofunction:: superannotate.SAClient.benchmark

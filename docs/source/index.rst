@@ -29,7 +29,9 @@ SuperAnnotate Python SDK allows access to the platform without web browser:
 
 .. code-block:: python
 
-   import superannotate as sa
+   from superannotate import SAClient
+
+   sa = SAClient()
 
    sa.create_project("Example Project 1", "example", "Vector")
 

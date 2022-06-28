@@ -3,7 +3,8 @@ from os.path import dirname
 from unittest import TestCase
 import pytest
 
-import src.superannotate as sa
+from src.superannotate import SAClient
+sa = SAClient()
 from src.superannotate import AppException
 from src.superannotate.lib.core import LIMITED_FUNCTIONS
 from src.superannotate.lib.core import INVALID_PROJECT_TYPE_TO_PROCESS
@@ -76,10 +77,6 @@ class TestDeprecatedFunctionsVideo(TestCase):
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
-            sa.set_image_annotation_status(self.PROJECT_NAME, self.UPLOAD_IMAGE_NAME, "Completed")
-        except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE, str(e))
-        try:
             sa.copy_image(self.PROJECT_NAME, self.UPLOAD_IMAGE_NAME, self.PROJECT_NAME_2)
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
@@ -116,14 +113,6 @@ class TestDeprecatedFunctionsVideo(TestCase):
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE_DOCUMENT_VIDEO, str(e))
         try:
-            sa.class_distribution(self.video_export_path, [self.PROJECT_NAME])
-        except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE_DOCUMENT_VIDEO, str(e))
-        try:
-            sa.convert_project_type(self.video_export_path, "./")
-        except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE_DOCUMENT_VIDEO, str(e))
-        try:
             sa.prepare_export(self.PROJECT_NAME, include_fuse=True, only_pinned=True)
         except AppException as e:
             self.assertIn("Include fuse functionality is not supported", str(e))
@@ -137,12 +126,5 @@ class TestDeprecatedFunctionsVideo(TestCase):
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
             sa.assign_images(self.PROJECT_NAME, [self.UPLOAD_IMAGE_NAME], "some@user.com")
-        except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE, str(e))
-        try:
-            sa.export_annotation(
-                "input_dir", "fromSuperAnnotate/panoptic_test", "COCO", "panoptic_test", self.PROJECT_TYPE,
-                "panoptic_segmentation"
-            )
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))

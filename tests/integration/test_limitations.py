@@ -2,7 +2,8 @@ import os
 from unittest.mock import patch
 from os.path import dirname
 
-import src.superannotate as sa
+from src.superannotate import SAClient
+sa = SAClient()
 from src.superannotate import AppException
 from src.superannotate.lib.core import UPLOAD_FOLDER_LIMIT_ERROR_MESSAGE
 from src.superannotate.lib.core import UPLOAD_PROJECT_LIMIT_ERROR_MESSAGE

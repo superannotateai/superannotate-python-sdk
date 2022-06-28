@@ -2,7 +2,8 @@ import os
 from collections import Counter
 from pathlib import Path
 
-import src.superannotate as sa
+from src.superannotate import SAClient
+sa = SAClient()
 from tests.integration.base import BaseTestCase
 
 

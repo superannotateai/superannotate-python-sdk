@@ -19,8 +19,9 @@ from lib.core.exceptions import AppValidationException
 from lib.core.reporter import Reporter
 from lib.core.repositories import BaseManageableRepository
 from lib.core.repositories import BaseReadOnlyRepository
+from lib.core.response import Response
 from lib.core.serviceproviders import SuperannotateServiceProvider
-from lib.core.usecases.base import BaseReportableUseCae
+from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.usecases.base import BaseUseCase
 from lib.core.usecases.base import BaseUserBasedUseCase
 from requests.exceptions import RequestException
@@ -31,7 +32,10 @@ logger = get_default_logger()
 
 class GetProjectsUseCase(BaseUseCase):
     def __init__(
-        self, condition: Condition, team_id: int, projects: BaseManageableRepository,
+        self,
+        condition: Condition,
+        team_id: int,
+        projects: BaseManageableRepository,
     ):
         super().__init__()
         self._condition = condition
@@ -47,7 +51,10 @@ class GetProjectsUseCase(BaseUseCase):
 
 class GetProjectByNameUseCase(BaseUseCase):
     def __init__(
-        self, name: str, team_id: int, projects: BaseManageableRepository,
+        self,
+        name: str,
+        team_id: int,
+        projects: BaseManageableRepository,
     ):
         super().__init__()
         self._name = name
@@ -300,7 +307,10 @@ class CreateProjectUseCase(BaseUseCase):
 
 class DeleteProjectUseCase(BaseUseCase):
     def __init__(
-        self, project_name: str, team_id: int, projects: BaseManageableRepository,
+        self,
+        project_name: str,
+        team_id: int,
+        projects: BaseManageableRepository,
     ):
 
         super().__init__()
@@ -310,7 +320,9 @@ class DeleteProjectUseCase(BaseUseCase):
 
     def execute(self):
         use_case = GetProjectByNameUseCase(
-            name=self._project_name, team_id=self._team_id, projects=self._projects,
+            name=self._project_name,
+            team_id=self._team_id,
+            projects=self._projects,
         )
         project_response = use_case.execute()
         if project_response.data:
@@ -373,7 +385,7 @@ class UpdateProjectUseCase(BaseUseCase):
         return self._response
 
 
-class CloneProjectUseCase(BaseReportableUseCae):
+class CloneProjectUseCase(BaseReportableUseCase):
     def __init__(
         self,
         reporter: Reporter,
@@ -696,7 +708,9 @@ class GetWorkflowsUseCase(BaseUseCase):
 
 class GetAnnotationClassesUseCase(BaseUseCase):
     def __init__(
-        self, classes: BaseManageableRepository, condition: Condition = None,
+        self,
+        classes: BaseManageableRepository,
+        condition: Condition = None,
     ):
         super().__init__()
         self._classes = classes
@@ -1066,3 +1080,35 @@ class InviteContributorsToTeam(BaseUserBasedUseCase):
                     )
             self._response.data = invited, list(to_skip)
             return self._response
+
+
+class ListSubsetsUseCase(BaseReportableUseCase):
+    def __init__(
+        self,
+        reporter: Reporter,
+        project: ProjectEntity,
+        backend_client: SuperannotateServiceProvider,
+    ):
+        super().__init__(reporter)
+        self._project = project
+        self._backend_client = backend_client
+
+    def validate_arguments(self):
+        response = self._backend_client.validate_saqul_query(
+            self._project.team_id, self._project.id, "_"
+        )
+        error = response.get("error")
+        if error:
+            raise AppException(response["error"])
+
+    def execute(self) -> Response:
+        if self.is_valid():
+            sub_sets_response = self._backend_client.list_sub_sets(
+                team_id=self._project.team_id, project_id=self._project.id
+            )
+            if sub_sets_response.ok:
+                self._response.data = sub_sets_response.data
+            else:
+                self._response.data = []
+
+        return self._response

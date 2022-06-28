@@ -266,7 +266,7 @@ class VideoFormatHandler(BaseAnnotationDateHandler):
             return "0" if str(timestamp) == "0.0" else timestamp
 
         def convert_timestamp(timestamp):
-            return timestamp / 10 ** 6 if timestamp else "0"
+            return timestamp / 10**6 if timestamp else "0"
 
         editor_data = {
             "instances": [],

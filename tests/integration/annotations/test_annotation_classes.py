@@ -1,7 +1,8 @@
 from urllib.parse import urlparse
 import os
 from pathlib import Path
-import src.superannotate as sa
+from src.superannotate import SAClient
+sa = SAClient()
 from tests.integration.base import BaseTestCase
 
 

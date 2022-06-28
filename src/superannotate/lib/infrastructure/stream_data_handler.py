@@ -19,7 +19,7 @@ class StreamedAnnotations:
         self._headers = headers
         self._annotations = []
         self._reporter = reporter
-        self._callback = callback
+        self._callback: Callable = callback
         self._map_function = map_function
 
     async def fetch(
@@ -61,7 +61,6 @@ class StreamedAnnotations:
         verify_ssl: bool = False,
     ):
         async with aiohttp.ClientSession(
-            raise_for_status=True,
             headers=self._headers,
             connector=aiohttp.TCPConnector(ssl=verify_ssl),
         ) as session:
@@ -88,9 +87,10 @@ class StreamedAnnotations:
         return self._annotations
 
     @staticmethod
-    def _store_annotation(path, postfix, annotation: dict):
+    def _store_annotation(path, postfix, annotation: dict, callback: Callable = None):
         os.makedirs(path, exist_ok=True)
         with open(f"{path}/{annotation['metadata']['name']}{postfix}", "w") as file:
+            annotation = callback(annotation) if callback else annotation
             json.dump(annotation, file)
 
     def _process_data(self, data):
@@ -107,8 +107,12 @@ class StreamedAnnotations:
         session,
         method: str = "post",
         params=None,
-        chunk_size: int = 100,
-    ):
+        chunk_size: int = 5000,
+    ) -> int:
+        """
+        Returns the number of items downloaded
+        """
+        items_downloaded: int = 0
         if chunk_size and data:
             for i in range(0, len(data), chunk_size):
                 data_to_process = data[i : i + chunk_size]
@@ -122,14 +126,16 @@ class StreamedAnnotations:
                     self._store_annotation(
                         download_path,
                         postfix,
-                        self._callback(annotation) if self._callback else annotation,
+                        annotation,
+                        self._callback,
                     )
+                    items_downloaded += 1
         else:
             async for annotation in self.fetch(
                 method, session, url, self._process_data(data), params=params
             ):
                 self._store_annotation(
-                    download_path,
-                    postfix,
-                    self._callback(annotation) if self._callback else annotation,
+                    download_path, postfix, annotation, self._callback
                 )
+                items_downloaded += 1
+        return items_downloaded

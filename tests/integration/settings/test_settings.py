@@ -1,6 +1,7 @@
 from unittest import TestCase
 
-import src.superannotate as sa
+from src.superannotate import SAClient
+sa = SAClient()
 from src.superannotate import AppException
 
 

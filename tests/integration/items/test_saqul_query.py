@@ -1,8 +1,10 @@
 import os
 from pathlib import Path
 
-import src.superannotate as sa
+from src.superannotate import SAClient
 from tests.integration.base import BaseTestCase
+
+sa = SAClient()
 
 
 class TestEntitiesSearchVector(BaseTestCase):
@@ -33,6 +35,16 @@ class TestEntitiesSearchVector(BaseTestCase):
         entities = sa.query(f"{self.PROJECT_NAME}/{self.FOLDER_NAME}", self.TEST_QUERY)
         self.assertEqual(len(entities), 1)
         assert all([entity["path"] == f"{self.PROJECT_NAME}/{self.FOLDER_NAME}" for entity in entities])
+
+        try:
+            self.assertRaises(
+                Exception, sa.query(f"{self.PROJECT_NAME}/{self.FOLDER_NAME}", self.TEST_QUERY, subset="something")
+            )
+        except Exception as e:
+            self.assertEqual(
+                str(e),
+                "Subset not found. Use the superannotate.get_subsets() function to get a list of the available subsets."
+            )
 
     def test_validate_saqul_query(self):
         try:

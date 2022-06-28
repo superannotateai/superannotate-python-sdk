@@ -42,7 +42,7 @@ from lib.core.repositories import BaseReadOnlyRepository
 from lib.core.response import Response
 from lib.core.serviceproviders import SuperannotateServiceProvider
 from lib.core.usecases.base import BaseInteractiveUseCase
-from lib.core.usecases.base import BaseReportableUseCae
+from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.usecases.base import BaseUseCase
 from lib.core.usecases.projects import GetAnnotationClassesUseCase
 from PIL import UnidentifiedImageError
@@ -581,7 +581,11 @@ class CreateFuseImageUseCase(BaseUseCase):
                 image = ImagePlugin(io.BytesIO(file.read()))
 
                 images = [
-                    Image("fuse", f"{self._image_path}___fuse.png", image.get_empty(),)
+                    Image(
+                        "fuse",
+                        f"{self._image_path}___fuse.png",
+                        image.get_empty(),
+                    )
                 ]
                 if self._generate_overlay:
                     images.append(
@@ -711,7 +715,9 @@ class CreateFuseImageUseCase(BaseUseCase):
 
 class GetS3ImageUseCase(BaseUseCase):
     def __init__(
-        self, s3_bucket, image_path: str,
+        self,
+        s3_bucket,
+        image_path: str,
     ):
         super().__init__()
         self._s3_bucket = s3_bucket
@@ -1536,7 +1542,8 @@ class CopyImageUseCase(BaseUseCase):
 
             image_bytes = (
                 GetImageBytesUseCase(
-                    image=image, backend_service_provider=self._backend_service,
+                    image=image,
+                    backend_service_provider=self._backend_service,
                 )
                 .execute()
                 .data
@@ -1876,7 +1883,7 @@ class DownloadImageAnnotationsUseCase(BaseUseCase):
         return self._response
 
 
-class GetImageAnnotationsUseCase(BaseReportableUseCae):
+class GetImageAnnotationsUseCase(BaseReportableUseCase):
     def __init__(
         self,
         reporter: Reporter,
@@ -2053,61 +2060,6 @@ class UnAssignFolderUseCase(BaseUseCase):
         )
         if not is_un_assigned:
             self._response.errors = AppException(f"Cant un assign {self._folder.name}")
-        return self._response
-
-
-class SetImageAnnotationStatuses(BaseUseCase):
-    CHUNK_SIZE = 500
-
-    def __init__(
-        self,
-        service: SuperannotateServiceProvider,
-        projects: BaseReadOnlyRepository,
-        image_names: list,
-        team_id: int,
-        project_id: int,
-        folder_id: int,
-        images_repo: BaseManageableRepository,
-        annotation_status: int,
-    ):
-        super().__init__()
-        self._service = service
-        self._projects = projects
-        self._image_names = image_names
-        self._team_id = team_id
-        self._project_id = project_id
-        self._folder_id = folder_id
-        self._annotation_status = annotation_status
-        self._images_repo = images_repo
-
-    def validate_project_type(self):
-        project = self._projects.get_one(uuid=self._project_id, team_id=self._team_id)
-        if project.type in constances.LIMITED_FUNCTIONS:
-            raise AppValidationException(constances.LIMITED_FUNCTIONS[project.type])
-
-    def execute(self):
-        if self.is_valid():
-            if self._image_names is None:
-                condition = (
-                    Condition("team_id", self._team_id, EQ)
-                    & Condition("project_id", self._project_id, EQ)
-                    & Condition("folder_id", self._folder_id, EQ)
-                )
-                self._image_names = [
-                    image.name for image in self._images_repo.get_all(condition)
-                ]
-            for i in range(0, len(self._image_names), self.CHUNK_SIZE):
-                status_changed = self._service.set_images_statuses_bulk(
-                    image_names=self._image_names[
-                        i : i + self.CHUNK_SIZE  # noqa: E203
-                    ],
-                    team_id=self._team_id,
-                    project_id=self._project_id,
-                    folder_id=self._folder_id,
-                    annotation_status=self._annotation_status,
-                )
-                if not status_changed:
-                    self._response.errors = AppException("Failed to change status.")
         return self._response
 
 
@@ -2438,7 +2390,7 @@ class ValidateAnnotationUseCase(BaseUseCase):
         return self._response
 
 
-class UploadVideosAsImages(BaseReportableUseCae):
+class UploadVideosAsImages(BaseReportableUseCase):
     def __init__(
         self,
         reporter: Reporter,

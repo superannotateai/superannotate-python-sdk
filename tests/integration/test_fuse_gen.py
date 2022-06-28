@@ -5,7 +5,8 @@ from os.path import dirname
 from unittest import TestCase
 import pytest
 import numpy as np
-import src.superannotate as sa
+from src.superannotate import SAClient
+sa = SAClient()
 from PIL import Image
 
 

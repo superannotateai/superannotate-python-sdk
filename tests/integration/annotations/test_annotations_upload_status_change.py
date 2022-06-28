@@ -5,7 +5,8 @@ import pytest
 from unittest.mock import patch
 from unittest.mock import MagicMock
 
-import src.superannotate as sa
+from src.superannotate import SAClient
+sa = SAClient()
 import src.superannotate.lib.core as constances
 from tests.integration.base import BaseTestCase
 

@@ -3,8 +3,10 @@ import os
 import tempfile
 from pathlib import Path
 
-import src.superannotate as sa
+from src.superannotate import SAClient
 from tests.integration.base import BaseTestCase
+
+sa = SAClient()
 
 
 class TestAnnotationAdding(BaseTestCase):
