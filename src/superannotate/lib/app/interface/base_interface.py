@@ -136,22 +136,25 @@ class Tracker:
             self.get_mp_instance().track(user_id, event_name, data)
 
     def _track_method(self, args, kwargs, success: bool):
-        client = self.get_client()
-        if not client:
-            return
-        function_name = self.function.__name__ if self.function else ""
-        arguments = self.extract_arguments(self.function, *args, **kwargs)
-        event_name, properties = self.default_parser(function_name, arguments)
-        user_id = client.controller.team_data.creator_id
-        team_name = client.controller.team_data.name
+        try:
+            client = self.get_client()
+            if not client:
+                return
+            function_name = self.function.__name__ if self.function else ""
+            arguments = self.extract_arguments(self.function, *args, **kwargs)
+            event_name, properties = self.default_parser(function_name, arguments)
+            user_id = client.controller.team_data.creator_id
+            team_name = client.controller.team_data.name
 
-        properties["Success"] = success
-        default = self.get_default_payload(team_name=team_name, user_id=user_id)
-        self._track(
-            user_id,
-            event_name,
-            {**default, **properties, **CONFIG.get_current_session().data},
-        )
+            properties["Success"] = success
+            default = self.get_default_payload(team_name=team_name, user_id=user_id)
+            self._track(
+                user_id,
+                event_name,
+                {**default, **properties, **CONFIG.get_current_session().data},
+            )
+        except BaseException:
+            pass
 
     def __get__(self, obj, owner=None):
         if obj is not None:

@@ -110,7 +110,7 @@ class VideoFrameGenerator:
     def get_median(self, annotations: List[dict]) -> dict:
         if len(annotations) >= 1:
             return annotations[0]
-        ## Let's just leave the code for reference.
+        # Let's just leave the code for reference.
         # first_annotations = annotations[:1][0]
         # median = (
         #     first_annotations["timestamp"] // self.ratio

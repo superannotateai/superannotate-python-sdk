@@ -133,9 +133,7 @@ class QueryEntitiesUseCase(BaseReportableUseCase):
         self._query = query
         self._subset = subset
 
-    def validate_query(self):
-        if self._project.sync_status != constants.ProjectState.SYNCED.value:
-            raise AppException("Project data is not synced.")
+    def validate_arguments(self):
         if self._query:
             response = self._backend_client.validate_saqul_query(
                 self._project.team_id, self._project.id, self._query
@@ -153,13 +151,16 @@ class QueryEntitiesUseCase(BaseReportableUseCase):
             if response.get("error"):
                 raise AppException(response["error"])
 
-    def execute(self) -> Response:
         if not any([self._query, self._subset]):
-            self._response.errors = AppException(
-                "AppException: The query and subset params cannot have the value None at the same time."
+            raise AppException(
+                "The query and subset params cannot have the value None at the same time."
             )
-            return self._response
+        if all([self._query, self._subset]) and not self._folder.is_root:
+            raise AppException(
+                "The folder name should be specified in the query string."
+            )
 
+    def execute(self) -> Response:
         if self.is_valid():
             query_kwargs = {}
             if self._subset:
