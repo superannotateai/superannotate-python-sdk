@@ -77,10 +77,6 @@ class TestDeprecatedFunctionsVideo(TestCase):
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
-            sa.set_image_annotation_status(self.PROJECT_NAME, self.UPLOAD_IMAGE_NAME, "Completed")
-        except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE, str(e))
-        try:
             sa.copy_image(self.PROJECT_NAME, self.UPLOAD_IMAGE_NAME, self.PROJECT_NAME_2)
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))

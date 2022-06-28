@@ -72,11 +72,11 @@ class TestSetAnnotationStatuses(BaseTestCase):
                 self.PROJECT_NAME, "QualityCheck", ["self.EXAMPLE_IMAGE_1", "self.EXAMPLE_IMAGE_2"]
             )
 
-    def test_set_image_annotation_status(self):
+    def test_set_annotation_statuses(self):
         sa.attach_items(
             self.PROJECT_NAME, [self.ATTACHMENT_LIST[0]]
         )
-        data = sa.set_image_annotation_status(
-            self.PROJECT_NAME, self.ATTACHMENT_LIST[0]["name"], annotation_status="Completed"
+        data = sa.set_annotation_statuses(
+            self.PROJECT_NAME, annotation_status="Completed", items=[self.ATTACHMENT_LIST[0]["name"]]
         )
         assert data["annotation_status"] == "Completed"

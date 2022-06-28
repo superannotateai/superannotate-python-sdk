@@ -9,6 +9,7 @@ from lib.core.entities import AttachmentEntity
 from lib.core.entities import DocumentEntity
 from lib.core.entities import Entity
 from lib.core.entities import FolderEntity
+from lib.core.entities import ImageEntity
 from lib.core.entities import ProjectEntity
 from lib.core.entities import SubSetEntity
 from lib.core.entities import TmpImageEntity
@@ -22,10 +23,10 @@ from lib.core.response import Response
 from lib.core.serviceproviders import SuperannotateServiceProvider
 from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.usecases.base import BaseUseCase
-from lib.core.entities import ImageEntity
 from superannotate.logger import get_default_logger
 
 logger = get_default_logger()
+
 
 class GetBulkItems(BaseUseCase):
     def __init__(
@@ -56,10 +57,11 @@ class GetBulkItems(BaseUseCase):
 
             if not response.ok:
                 raise AppException(response.error)
-            #TODO stop using Image Entity when it gets deprecated and from_dict gets implemented for items
+            # TODO stop using Image Entity when it gets deprecated and from_dict gets implemented for items
             res += [ImageEntity.from_dict(**item) for item in response.data]
         self._response.data = res
         return self._response
+
 
 class GetItem(BaseReportableUseCase):
     def __init__(
@@ -133,7 +135,7 @@ class QueryEntitiesUseCase(BaseReportableUseCase):
 
     def validate_query(self):
         if self._project.sync_status != constants.ProjectState.SYNCED.value:
-            raise AppException("Data is not synced.")
+            raise AppException("Project data is not synced.")
         if self._query:
             response = self._backend_client.validate_saqul_query(
                 self._project.team_id, self._project.id, self._query
@@ -721,6 +723,7 @@ class SetAnnotationStatues(BaseReportableUseCase):
                     self._response.errors = AppException(self.ERROR_MESSAGE)
                     break
         return self._response
+
 
 class DeleteItemsUseCase(BaseUseCase):
     CHUNK_SIZE = 1000

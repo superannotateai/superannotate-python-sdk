@@ -77,14 +77,14 @@ Include the package in your Python code:
 
 .. code-block:: python
 
-   import superannotate as sa
+   from superannotate import SAClient
 
 SDK is ready to be used if default location config file was created using 
 the :ref:`CLI init <ref_cli_init>`. Otherwise to authenticate SDK with the :ref:`custom config file <ref_custom_config_file>`:
 
 .. code-block:: python
 
-   sa.init("<path_to_config_json>")
+   sa = SAClient(config_path="<path_to_config_json>")
 
 Creating a project
 ____________________________
@@ -273,80 +273,81 @@ You can find more information annotation format conversion :ref:`here <ref_conve
 
 .. code-block:: python
 
-   import superannotate as sa
+   from superannotate import export_annotation
+   from superannotate import import_annotation
 
     # From SA format to COCO panoptic format
-    sa.export_annotation(
+    export_annotation(
        "tests/converter_test/COCO/input/fromSuperAnnotate/cats_dogs_panoptic_segm",
        "tests/converter_test/COCO/output/panoptic",
        "COCO", "panoptic_test", "Pixel","panoptic_segmentation"
     )
 
     # From COCO keypoints detection format to SA annotation format
-    sa.import_annotation(
+    import_annotation(
        "tests/converter_test/COCO/input/toSuperAnnotate/keypoint_detection",
        "tests/converter_test/COCO/output/keypoints",
        "COCO", "person_keypoints_test", "Vector", "keypoint_detection"
     )
 
     # Pascal VOC annotation format to SA annotation format
-    sa.import_annotation(
+    import_annotation(
        "tests/converter_test/VOC/input/fromPascalVOCToSuperAnnotate/VOC2012",
        "tests/converter_test/VOC/output/instances",
        "VOC", "instances_test", "Pixel", "instance_segmentation"
     )
 
     # YOLO annotation format to SA annotation format
-    sa.import_annotation(
+    import_annotation(
       'tests/converter_test/YOLO/input/toSuperAnnotate',
       'tests/converter_test/YOLO/output',
       'YOLO', '', 'Vector', 'object_detection'
       )
 
     # LabelBox annotation format to SA annotation format
-    sa.import_annotation(
+    import_annotation(
        "tests/converter_test/LabelBox/input/toSuperAnnotate/",
        "tests/converter_test/LabelBox/output/objects/",
        "LabelBox", "labelbox_example", "Vector", "object_detection"
     )
 
     # Supervisely annotation format to SA annotation format
-    sa.import_annotation(
+    import_annotation(
        "tests/converter_test/Supervisely/input/toSuperAnnotate",
        "tests/converter_test/Supervisely/output",
        "Supervisely", "", "Vector", "vector_annotation"
     )
 
     # DataLoop annotation format to SA annotation format
-    sa.import_annotation(
+    import_annotation(
        "tests/converter_test/DataLoop/input/toSuperAnnotate",
        "tests/converter_test/DataLoop/output",
        "DataLoop", "", "Vector", "vector_annotation"
     )
 
     # VGG annotation format to SA annotation format
-    sa.import_annotation(
+    import_annotation(
        "tests/converter_test/VGG/input/toSuperAnnotate",
        "tests/converter_test/VGG/output",
        "VGG", "vgg_test", "Vector", "instance_segmentation"
     )
 
     # VoTT annotation format to SA annotation format
-    sa.import_annotation(
+    import_annotation(
        "tests/converter_test/VoTT/input/toSuperAnnotate",
        "tests/converter_test/VoTT/output",
        "VoTT", "", "Vector", "vector_annotation"
     )
 
     # GoogleCloud annotation format to SA annotation format
-    sa.import_annotation(
+    import_annotation(
        "tests/converter_test/GoogleCloud/input/toSuperAnnotate",
        "tests/converter_test/GoogleCloud/output",
        "GoogleCloud", "image_object_detection", "Vector", "object_detection"
     )
 
     # GoogleCloud annotation format to SA annotation format
-    sa.import_annotation(
+    import_annotation(
        "tests/converter_test/SageMaker/input/toSuperAnnotate",
        "tests/converter_test/SageMaker/output",
        "SageMaker", "test-obj-detect", "Vector", "object_detection"

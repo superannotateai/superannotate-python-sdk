@@ -8,13 +8,11 @@ API Reference
 Remote functions
 ----------------
 
-Initialization and authentication
+Instantiation and authentication
 _________________________________
 
-.. automethod:: superannotate.SAClient.__init__
+.. autoclass:: superannotate.SAClient
 
-
-.. _ref_projects:
 
 Projects
 ________
@@ -93,8 +91,6 @@ ______
 
 .. _ref_search_images:
 .. automethod:: superannotate.SAClient.download_image
-.. automethod:: superannotate.SAClient.set_image_annotation_status
-.. automethod:: superannotate.SAClient.set_images_annotation_statuses
 .. automethod:: superannotate.SAClient.download_image_annotations
 .. automethod:: superannotate.SAClient.upload_image_annotations
 .. automethod:: superannotate.SAClient.copy_image
