@@ -155,7 +155,7 @@ class QueryEntitiesUseCase(BaseReportableUseCase):
             raise AppException(
                 "The query and subset params cannot have the value None at the same time."
             )
-        if all([self._query, self._subset]) and not self._folder.is_root:
+        if  self._subset and not self._folder.is_root:
             raise AppException(
                 "The folder name should be specified in the query string."
             )
