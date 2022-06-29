@@ -3,15 +3,13 @@ import os
 import tempfile
 from os.path import dirname
 from unittest import TestCase
-`from unittest.mock import patch
-`
-from pydantic import ValidationError
+from unittest.mock import patch
 
-from src.superannotate import SAClient
-sa = SAClient()
 from superannotate_schemas.validators import AnnotationValidators
 
+from src.superannotate import SAClient
 
+sa = SAClient()
 VECTOR_ANNOTATION_JSON_WITH_BBOX = """
 {
   "metadata": {
@@ -1667,7 +1665,6 @@ class TestTypeHandling(TestCase):
             mock_print.assert_any_call(
                 "instances[0].meta.pointLabels                    value is not a valid dict",
             )
-
 
     def test_validate_video_point_labels_bad_keys(self):
         with tempfile.TemporaryDirectory() as tmpdir_name:
