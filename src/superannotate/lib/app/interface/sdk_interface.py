@@ -2231,7 +2231,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         with open(annotations_json) as file:
             annotation_data = json.loads(file.read())
             response = Controller.validate_annotations(
-                project_type, annotation_data, allow_extra=False
+                project_type, annotation_data
             )
             if response.errors:
                 raise AppException(response.errors)

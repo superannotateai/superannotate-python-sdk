@@ -32,7 +32,9 @@ class VideoFrameGenerator:
     def __init__(self, annotation_data: dict, fps: int):
         self.id_generator = iter(itertools.count(0))
         self._annotation_data = annotation_data
-        self.duration = annotation_data["metadata"]["duration"] / (1000 * 1000)
+        duration = annotation_data["metadata"]["duration"]
+        duration = 0 if not duration else duration
+        self.duration = duration / (1000 * 1000)
         self.fps = fps
         self.ratio = 1000 * 1000 / fps
         self._frame_id = 1
