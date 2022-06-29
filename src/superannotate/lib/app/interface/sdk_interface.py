@@ -2049,7 +2049,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
     def search_models(
         self,
         name: Optional[NotEmptyStr] = None,
-        type_: Optional[NotEmptyStr] = None,
+        type_: Optional[NotEmptyStr] = None,  # noqa
         project_id: Optional[int] = None,
         task: Optional[NotEmptyStr] = None,
         include_global: Optional[StrictBool] = True,
@@ -2058,17 +2058,21 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param name: search string
         :type name: str
-        :param type_: ml model type string
-        :type type_: str
+
+        :param type\_: ml model type string
+        :type type\_: str
+
         :param project_id: project id
         :type project_id: int
+
         :param task: training task
         :type task: str
+
         :param include_global: include global ml models
         :type include_global: bool
 
-            :return: ml model metadata
-            :rtype: list of dicts
+        :return: ml model metadata
+        :rtype: list of dicts
         """
         res = self.controller.search_models(
             name=name,
