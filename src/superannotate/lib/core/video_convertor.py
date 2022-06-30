@@ -76,7 +76,7 @@ class VideoFrameGenerator:
                     "x": round(data["x"] + steps["x"] * idx, 2),
                     "y": round(data["y"] + steps["y"] * idx, 2),
                 }
-            else:
+            elif annotation_type != AnnotationTypes.EVENT:
                 tmp_data["points"] = data["points"]
 
             annotations[frame_idx] = Annotation(
