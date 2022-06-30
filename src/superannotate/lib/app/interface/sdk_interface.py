@@ -2413,7 +2413,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :type query: str
 
         :param subset:  subset name. Allows you to query items in a specific subset.
-        To return all the items in the specified subset, set the value of query param to None.
+            To return all the items in the specified subset, set the value of query param to None.
         :type subset: str
 
         :return: queried items’ metadata list
