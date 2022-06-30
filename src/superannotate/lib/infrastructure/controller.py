@@ -1355,7 +1355,7 @@ class Controller(BaseController):
 
     @staticmethod
     def validate_annotations(
-        project_type: str, annotation: dict, allow_extra: bool = False
+        project_type: str, annotation: dict, allow_extra: bool = True
     ):
         use_case = usecases.ValidateAnnotationUseCase(
             project_type,

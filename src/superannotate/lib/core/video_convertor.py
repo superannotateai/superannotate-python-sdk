@@ -18,7 +18,7 @@ class Annotation(BaseModel):
     classId: Optional[int]
     x: Optional[Any]
     y: Optional[Any]
-    points: Optional[Dict]
+    points: Any
     attributes: Optional[List[Any]] = []
     keyframe: bool = False
 
@@ -30,10 +30,11 @@ class FrameAnnotation(BaseModel):
 
 class VideoFrameGenerator:
     def __init__(self, annotation_data: dict, fps: int):
-        self.validate_annotations(annotation_data)
         self.id_generator = iter(itertools.count(0))
         self._annotation_data = annotation_data
-        self.duration = annotation_data["metadata"]["duration"] / (1000 * 1000)
+        duration = annotation_data["metadata"]["duration"]
+        duration = 0 if not duration else duration
+        self.duration = duration / (1000 * 1000)
         self.fps = fps
         self.ratio = 1000 * 1000 / fps
         self._frame_id = 1
@@ -41,12 +42,6 @@ class VideoFrameGenerator:
         self.annotations: dict = {}
         self._mapping = {}
         self._process()
-
-    @staticmethod
-    def validate_annotations(annotation_data: dict):
-        duration = annotation_data["metadata"].get("duration")
-        if duration is None:
-            raise AppException("Video not annotated yet")
 
     def get_frame(self, frame_no: int):
         try:
@@ -81,10 +76,9 @@ class VideoFrameGenerator:
                     "x": round(data["x"] + steps["x"] * idx, 2),
                     "y": round(data["y"] + steps["y"] * idx, 2),
                 }
-            elif annotation_type in (AnnotationTypes.POLYGON, AnnotationTypes.POLYLINE):
-                tmp_data["points"] = [
-                    point + steps[idx] * 2 for idx, point in enumerate(data["points"])
-                ]
+            else:
+                tmp_data["points"] = data["points"]
+
             annotations[frame_idx] = Annotation(
                 instanceId=instance_id,
                 type=annotation_type,
