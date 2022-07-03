@@ -1,5 +1,29 @@
 # Changelog 
-All release higlighths of this project will be documented in this file.
+All release highlights of this project will be documented in this file.
+## 4.4.0 - July 03, 2022
+### Added
+- `superannotate.SAClient()` _class_ to instantiate team-level authentication and inheriting methods to access the back-end.
+- `SAClient.download_annotations()` _method_ to download annotations without preparing an Export object.
+- `SAClient.get_subsets()` _method_ to get the existing subsets for a given project.
+- `SAClient.assign_items()` _method_ to assign items in a given project to annotators or quality specialists.
+- `SAClient.unassign_items()` _method_ to remove assignments from items.
+- `SAClient.delete_items()` _method_ to delete items in a given project.
+### Updated
+- `JSON Schema` for video annotations to version `1.0.45` to show **polygon** and **polyline** annotations.
+- `SAClient.get_annotations_per_frame()` _method_ to show **polygon** and **polyline** annotations.
+- `SAClient.get_annotations_per_frame()` _method_ to pick instances closer to a given **frame start** instead of the **median**.
+- `SAClient.query()` _method_ to add the `subset` argument to support querying in a subset.
+### Fixed
+- `SAClient.set_annotation_statuses()` _method_ to address the issue occurring with more than 500 items.
+- `SAClient.get_annotations()` _method_ to address the `PayloadError` occurring with more than 20000 items.
+- `SAClient.get_annotations()` _method_ to address the missing `'duration'` and `'tags'` keys for newly uploaded and unannotated videos.
+- `SAClient.get_annotations_per_frame()` _method_ to address missing `'duration'` and `'tags'` keys for newly uploaded and unannotated videos.
+- `SAClient.get_annotations_per_frame()` _method_ to address the wrong `classId` value for unclassified instances.
+### Removed
+- `superannotate.init()` _function_. Please instantiate `superannotate.SAClient()` _class_ to authenticate.
+- `superannotate.set_image_annotation_status()` _function_. Please use the `SAClient.set_annotation_statuses()` _method_ instead.
+- `superannotate.set_images_annotations_statuses()` _function_. Please use the `SAClient.set_annotation_statuses()` _method_ instead.
+###
 ## 4.3.2 - April 10 2022
 ### Added
 - `query()` function to run SAQuL queries via SDK.
