@@ -6,6 +6,7 @@ from collections import defaultdict
 from typing import Union
 
 import tqdm
+from lib.core import CONFIG
 from superannotate.logger import get_default_logger
 
 
@@ -49,6 +50,7 @@ class Reporter:
         self.debug_messages = []
         self.custom_messages = defaultdict(set)
         self.progress_bar = None
+        self.session = CONFIG.get_current_session()
         self._spinner = None
 
     def start_spinner(self):
@@ -126,6 +128,10 @@ class Reporter:
     def messages(self):
         for key, values in self.custom_messages.items():
             yield f"{key} [{', '.join(values)}]"
+
+    def track(self, key, value):
+        if self.session:
+            self.session[key] = value
 
 
 class Progress:

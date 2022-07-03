@@ -5,8 +5,11 @@ from pathlib import Path
 
 import pytest
 
-import src.superannotate as sa
-from lib.core.reporter import Reporter
+from src.superannotate import SAClient
+from src.superannotate.lib.core.reporter import Reporter
+
+sa = SAClient()
+
 from src.superannotate.lib.core.data_handlers import VideoFormatHandler
 from tests.integration.base import BaseTestCase
 

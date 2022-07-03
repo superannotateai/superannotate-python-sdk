@@ -106,7 +106,11 @@ class SuperannotateServiceProvider:
         raise NotImplementedError
 
     def get_upload_token(
-        self, project_id: int, team_id: int, folder_id: int, image_id: int,
+        self,
+        project_id: int,
+        team_id: int,
+        folder_id: int,
+        image_id: int,
     ) -> dict:
         raise NotImplementedError
 
@@ -161,6 +165,9 @@ class SuperannotateServiceProvider:
     def delete_images(self, project_id: int, team_id: int, image_ids: List[int]):
         raise NotImplementedError
 
+    def delete_items(self, project_id: int, team_id: int, item_ids: List[int]):
+        raise NotImplementedError
+
     def assign_images(
         self,
         team_id: int,
@@ -171,13 +178,26 @@ class SuperannotateServiceProvider:
     ):
         raise NotImplementedError
 
+    def assign_items(
+        self,
+        team_id: int,
+        project_id: int,
+        folder_name: str,
+        user: str,
+        item_names: list,
+    ) -> ServiceResponse:
+        raise NotImplementedError
+
     def get_bulk_images(
         self, project_id: int, team_id: int, folder_id: int, images: List[str]
     ) -> List[dict]:
         raise NotImplementedError
 
     def un_assign_folder(
-        self, team_id: int, project_id: int, folder_name: str,
+        self,
+        team_id: int,
+        project_id: int,
+        folder_name: str,
     ):
         raise NotImplementedError
 
@@ -187,12 +207,28 @@ class SuperannotateServiceProvider:
         raise NotImplementedError
 
     def un_assign_images(
-        self, team_id: int, project_id: int, folder_name: str, image_names: list,
+        self,
+        team_id: int,
+        project_id: int,
+        folder_name: str,
+        image_names: list,
+    ):
+        raise NotImplementedError
+
+    def un_assign_items(
+        self,
+        team_id: int,
+        project_id: int,
+        folder_name: str,
+        item_names: list,
     ):
         raise NotImplementedError
 
     def un_share_project(
-        self, team_id: int, project_id: int, user_id: str,
+        self,
+        team_id: int,
+        project_id: int,
+        user_id: str,
     ):
         raise NotImplementedError
 
@@ -304,7 +340,10 @@ class SuperannotateServiceProvider:
         postfix: str,
         items: List[str] = None,
         callback: Callable = None,
-    ) -> List[dict]:
+    ) -> int:
+        """
+        Returns the number of items downloaded
+        """
         raise NotImplementedError
 
     def upload_priority_scores(
@@ -326,9 +365,17 @@ class SuperannotateServiceProvider:
         raise NotImplementedError
 
     def saqul_query(
-        self, team_id: int, project_id: int, query: str, folder_id: int
+        self,
+        team_id: int,
+        project_id: int,
+        folder_id: int,
+        query: str = None,
+        subset_id: int = None,
     ) -> ServiceResponse:
         raise NotImplementedError
 
     def validate_saqul_query(self, team_id: int, project_id: int, query: str) -> dict:
+        raise NotImplementedError
+
+    def list_sub_sets(self, team_id: int, project_id: int) -> ServiceResponse:
         raise NotImplementedError

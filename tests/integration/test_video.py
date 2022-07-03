@@ -1,7 +1,8 @@
 import os
 from os.path import dirname
 
-import src.superannotate as sa
+from src.superannotate import SAClient
+sa = SAClient()
 from src.superannotate.lib.core.plugin import VideoPlugin
 from tests.integration.base import BaseTestCase
 import pytest

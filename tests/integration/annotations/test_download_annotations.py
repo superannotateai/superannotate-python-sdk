@@ -5,8 +5,11 @@ from pathlib import Path
 
 import pytest
 
-import src.superannotate as sa
+from src.superannotate import SAClient
 from tests.integration.base import BaseTestCase
+
+
+sa = SAClient()
 
 
 class TestDownloadAnnotations(BaseTestCase):
@@ -24,7 +27,6 @@ class TestDownloadAnnotations(BaseTestCase):
 
     @pytest.mark.flaky(reruns=3)
     def test_download_annotations(self):
-        sa.init()
         sa.upload_images_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
         )
@@ -45,7 +47,6 @@ class TestDownloadAnnotations(BaseTestCase):
 
     @pytest.mark.flaky(reruns=3)
     def test_download_annotations_from_folders(self):
-        sa.init()
         sa.create_folder(self.PROJECT_NAME, self.FOLDER_NAME)
         sa.create_folder(self.PROJECT_NAME, self.FOLDER_NAME_2)
         sa.create_annotation_classes_from_classes_json(
@@ -59,5 +60,16 @@ class TestDownloadAnnotations(BaseTestCase):
                 f"{self.PROJECT_NAME}{'/' + folder if folder else ''}", self.folder_path
             )
         with tempfile.TemporaryDirectory() as temp_dir:
+            annotations_path = sa.download_annotations(f"{self.PROJECT_NAME}", temp_dir, recursive=True)
+            self.assertEqual(len(os.listdir(annotations_path)), 7)
+
+    @pytest.mark.flaky(reruns=3)
+    def test_download_empty_annotations_from_folders(self):
+        sa.create_folder(self.PROJECT_NAME, self.FOLDER_NAME)
+        sa.create_folder(self.PROJECT_NAME, self.FOLDER_NAME_2)
+        sa.create_annotation_classes_from_classes_json(
+            self.PROJECT_NAME, f"{self.folder_path}/classes/classes.json"
+        )
+        with tempfile.TemporaryDirectory() as temp_dir:
             annotations_path = sa.download_annotations(f"{self.PROJECT_NAME}", temp_dir)
-            self.assertEqual(len(os.listdir(annotations_path)), 5)
+            self.assertEqual(len(os.listdir(annotations_path)), 1)

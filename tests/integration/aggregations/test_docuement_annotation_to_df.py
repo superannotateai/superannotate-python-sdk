@@ -5,7 +5,8 @@ import tempfile
 from unittest import mock
 from unittest import TestCase
 
-import src.superannotate as sa
+from src.superannotate import SAClient
+sa = SAClient()
 from src.superannotate.logger import get_default_logger
 
 

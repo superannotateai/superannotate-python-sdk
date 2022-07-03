@@ -33,7 +33,7 @@ from lib.core.repositories import BaseReadOnlyRepository
 from lib.core.service_types import UploadAnnotationAuthData
 from lib.core.serviceproviders import SuperannotateServiceProvider
 from lib.core.types import PriorityScore
-from lib.core.usecases.base import BaseReportableUseCae
+from lib.core.usecases.base import BaseReportableUseCase
 from lib.core.usecases.images import GetBulkImages
 from lib.core.usecases.images import ValidateAnnotationUseCase
 from lib.core.video_convertor import VideoFrameGenerator
@@ -46,7 +46,7 @@ if platform.system().lower() == "windows":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 
-class UploadAnnotationsUseCase(BaseReportableUseCae):
+class UploadAnnotationsUseCase(BaseReportableUseCase):
     MAX_WORKERS = 10
     CHUNK_SIZE = 100
     AUTH_DATA_CHUNK_SIZE = 500
@@ -312,7 +312,7 @@ class UploadAnnotationsUseCase(BaseReportableUseCae):
         return self._response
 
 
-class UploadAnnotationUseCase(BaseReportableUseCae):
+class UploadAnnotationUseCase(BaseReportableUseCase):
     def __init__(
         self,
         project: ProjectEntity,
@@ -444,7 +444,10 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
         handlers_chain.attach(LastActionHandler(team.creator_id))
         return handlers_chain.handle(annotations)
 
-    def clean_json(self, json_data: dict,) -> Tuple[bool, dict]:
+    def clean_json(
+        self,
+        json_data: dict,
+    ) -> Tuple[bool, dict]:
         use_case = ValidateAnnotationUseCase(
             constances.ProjectType.get_name(self._project.type),
             annotation=json_data,
@@ -500,7 +503,7 @@ class UploadAnnotationUseCase(BaseReportableUseCae):
         return self._response
 
 
-class GetAnnotations(BaseReportableUseCae):
+class GetAnnotations(BaseReportableUseCase):
     def __init__(
         self,
         reporter: Reporter,
@@ -584,7 +587,7 @@ class GetAnnotations(BaseReportableUseCae):
         return self._response
 
 
-class GetVideoAnnotationsPerFrame(BaseReportableUseCae):
+class GetVideoAnnotationsPerFrame(BaseReportableUseCase):
     def __init__(
         self,
         reporter: Reporter,
@@ -645,7 +648,7 @@ class GetVideoAnnotationsPerFrame(BaseReportableUseCae):
         return self._response
 
 
-class UploadPriorityScoresUseCase(BaseReportableUseCae):
+class UploadPriorityScoresUseCase(BaseReportableUseCase):
     CHUNK_SIZE = 100
 
     def __init__(
@@ -733,7 +736,7 @@ class UploadPriorityScoresUseCase(BaseReportableUseCae):
         return self._response
 
 
-class DownloadAnnotations(BaseReportableUseCae):
+class DownloadAnnotations(BaseReportableUseCase):
     def __init__(
         self,
         reporter: Reporter,
@@ -793,8 +796,9 @@ class DownloadAnnotations(BaseReportableUseCae):
 
     def download_annotation_classes(self, path: str):
         classes = self._classes.get_all()
-        os.mkdir(f"{path}/classes")
-        with open(f"{path}/classes/classes.json", "w+") as file:
+        classes_path = Path(path) / "classes"
+        classes_path.mkdir(parents=True, exist_ok=True)
+        with open(classes_path / "classes.json", "w+") as file:
             json.dump([i.dict() for i in classes], file, indent=4)
 
     @staticmethod
@@ -805,18 +809,20 @@ class DownloadAnnotations(BaseReportableUseCae):
     def coroutine_wrapper(coroutine):
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        loop.run_until_complete(coroutine)
+        count = loop.run_until_complete(coroutine)
         loop.close()
+        return count
 
     def execute(self):
         if self.is_valid():
-            export_prefix = f"{self._project.name}{f'/{self._folder.name}' if not self._folder.is_root else ''}"
             export_path = str(
                 self.destination
-                / Path(f"{export_prefix} {datetime.now().strftime('%B %d %Y %H_%M')}")
+                / Path(
+                    f"{self._project.name} {datetime.now().strftime('%B %d %Y %H_%M')}"
+                )
             )
             self.reporter.log_info(
-                f"Downloading the annotations of the requested items to {export_path} \nThis might take a while…"
+                f"Downloading the annotations of the requested items to {export_path}\nThis might take a while…"
             )
             self.reporter.start_spinner()
             folders = []
@@ -837,7 +843,7 @@ class DownloadAnnotations(BaseReportableUseCae):
 
             if not folders:
                 loop = asyncio.new_event_loop()
-                loop.run_until_complete(
+                count = loop.run_until_complete(
                     self._backend_client.download_annotations(
                         team_id=self._project.team_id,
                         project_id=self._project.id,
@@ -865,12 +871,12 @@ class DownloadAnnotations(BaseReportableUseCae):
                                 callback=self._callback,
                             )
                         )
-                    _ = [_ for _ in executor.map(self.coroutine_wrapper, coroutines)]
+                    count = sum(
+                        [i for i in executor.map(self.coroutine_wrapper, coroutines)]
+                    )
 
             self.reporter.stop_spinner()
-            self.reporter.log_info(
-                f"SA-PYTHON-SDK - INFO - Downloaded annotations for {self.get_items_count(export_path)} items."
-            )
+            self.reporter.log_info(f"Downloaded annotations for {count} items.")
             self.download_annotation_classes(export_path)
             self._response.data = os.path.abspath(export_path)
         return self._response

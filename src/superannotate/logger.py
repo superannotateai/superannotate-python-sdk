@@ -4,7 +4,7 @@ from logging import Formatter
 from logging.handlers import RotatingFileHandler
 from os.path import expanduser
 
-from superannotate import constances
+import superannotate.lib.core as constances
 
 default_logger = None
 

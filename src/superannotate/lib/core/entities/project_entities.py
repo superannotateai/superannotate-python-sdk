@@ -40,7 +40,10 @@ class BaseEntity(ABC):
 
 class BaseTimedEntity(BaseEntity):
     def __init__(
-        self, uuid: Any = None, createdAt: str = None, updatedAt: str = None,
+        self,
+        uuid: Any = None,
+        createdAt: str = None,
+        updatedAt: str = None,
     ):
         super().__init__(uuid)
         self.createdAt = createdAt
@@ -222,7 +225,10 @@ class FolderEntity(BaseTimedEntity):
 
 class ImageInfoEntity(BaseEntity):
     def __init__(
-        self, uuid=None, width: float = None, height: float = None,
+        self,
+        uuid=None,
+        width: float = None,
+        height: float = None,
     ):
         super().__init__(uuid),
         self.width = width
