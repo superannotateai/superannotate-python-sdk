@@ -2703,7 +2703,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param path:  local directory path where the annotations will be downloaded. If none, the current directory is used.
         :type path: Path-like (str or Path)
 
-        :param items: project name (root) or folder path to move items to.
+        :param items: list of item names whose annotations will be downloaded 
+            (e.g., ["Image_1.jpeg", "Image_2.jpeg"]). If the value is None, then all the annotations of the given directory will be downloaded.
+
         :type items: list of str
 
         :param recursive: download annotations from the project’s root and all of its folders with the preserved structure.
