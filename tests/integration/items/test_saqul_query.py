@@ -3,6 +3,7 @@ from pathlib import Path
 
 from src.superannotate import SAClient
 from tests.integration.base import BaseTestCase
+from tests import DATA_SET_PATH
 
 sa = SAClient()
 
@@ -16,9 +17,10 @@ class TestEntitiesSearchVector(BaseTestCase):
     TEST_QUERY = "instance(type =bbox )"
     TEST_INVALID_QUERY = "!instance(type =bbox )!"
 
+
     @property
     def folder_path(self):
-        return os.path.join(Path(__file__).parent.parent.parent, self.TEST_FOLDER_PATH)
+        return os.path.join(Path(__file__).parent.parent, self.TEST_FOLDER_PATH)
 
     def test_query(self):
         sa.create_folder(self.PROJECT_NAME, self.FOLDER_NAME)
@@ -45,6 +47,11 @@ class TestEntitiesSearchVector(BaseTestCase):
                 str(e),
                 "Subset not found. Use the superannotate.get_subsets() function to get a list of the available subsets."
             )
+
+    def test_query_on_100(self):
+        sa.attach_items(self.PROJECT_NAME, os.path.join(DATA_SET_PATH, "100_urls.csv"))
+        entities = sa.query(self.PROJECT_NAME, "metadata(status = NotStarted)")
+        print(len(entities))
 
     def test_validate_saqul_query(self):
         try:

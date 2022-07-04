@@ -1209,17 +1209,19 @@ class SuperannotateBackendService(BaseBackendService):
         if query:
             data["query"] = query
         items = []
-        for _ in range(self.MAX_ITEMS_COUNT):
+        response = requests.Response()
+        for _ in range(0, self.MAX_ITEMS_COUNT, self.SAQUL_CHUNK_SIZE):
             response = self._request(query_url, "post", params=params, data=data)
-            if response.ok:
-                response_items = response.json()
-                items.extend(response_items)
-                if len(response_items) < self.SAQUL_CHUNK_SIZE:
-                    service_response = ServiceResponse(response)
-                    service_response.data = items
-                    return service_response
-                data["image_index"] += self.SAQUL_CHUNK_SIZE
-            return ServiceResponse(response)
+            if not response.ok:
+                break
+            response_items = response.json()
+            items.extend(response_items)
+            if len(response_items) < self.SAQUL_CHUNK_SIZE:
+                service_response = ServiceResponse(response)
+                service_response.data = items
+                return service_response
+            data["image_index"] += self.SAQUL_CHUNK_SIZE
+        return ServiceResponse(response)
 
     def validate_saqul_query(self, team_id: int, project_id: int, query: str) -> dict:
         validate_query_url = urljoin(self.api_url, self.URL_VALIDATE_SAQUL_QUERY)
