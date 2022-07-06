@@ -89,10 +89,6 @@ class TestDeprecatedFunctionsVideo(TestCase):
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
-            sa.delete_images(self.PROJECT_NAME, [self.UPLOAD_IMAGE_NAME])
-        except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE, str(e))
-        try:
             sa.get_project_image_count(self.PROJECT_NAME)
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
@@ -122,9 +118,5 @@ class TestDeprecatedFunctionsVideo(TestCase):
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))
         try:
             sa.upload_videos_from_folder_to_project(self.PROJECT_NAME, self.folder_path)
-        except AppException as e:
-            self.assertIn(self.EXCEPTION_MESSAGE, str(e))
-        try:
-            sa.assign_images(self.PROJECT_NAME, [self.UPLOAD_IMAGE_NAME], "some@user.com")
         except AppException as e:
             self.assertIn(self.EXCEPTION_MESSAGE, str(e))

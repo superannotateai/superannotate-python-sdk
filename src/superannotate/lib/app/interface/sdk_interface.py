@@ -630,39 +630,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             is_pinned=int(pin),
         )
 
-    def delete_images(
-        self, project: Union[NotEmptyStr, dict], image_names: Optional[List[str]] = None
-    ):
-        """Delete Images in project.
-
-        :param project: project name or folder path (e.g., "project1/folder1")
-        :type project: str
-        :param image_names: to be deleted images' names. If None, all the images will be deleted
-        :type image_names: list of strs
-        """
-
-        warning_msg = (
-            "We're deprecating the delete_images function. Please use delete_items instead."
-            "Learn more. \n"
-            "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.delete_items"
-        )
-        logger.warning(warning_msg)
-        warnings.warn(warning_msg, DeprecationWarning)
-        project_name, folder_name = extract_project_folder(project)
-
-        if not isinstance(image_names, list) and image_names is not None:
-            raise AppException("image_names should be a list of str or None.")
-
-        response = self.controller.delete_images(
-            project_name=project_name, folder_name=folder_name, image_names=image_names
-        )
-        if response.errors:
-            raise AppException(response.errors)
-
-        logger.info(
-            f"Images deleted in project {project_name}{'/' + folder_name if folder_name else ''}"
-        )
-
     def delete_items(self, project: str, items: Optional[List[str]] = None):
         """Delete items in a given project.
 
@@ -720,91 +687,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         response = self.controller.un_assign_items(
             project_name=project_name, folder_name=folder_name, item_names=items
-        )
-        if response.errors:
-            raise AppException(response.errors)
-
-    def assign_images(
-        self, project: Union[NotEmptyStr, dict], image_names: List[str], user: str
-    ):
-        """Assigns images to a user. The assignment role, QA or Annotator, will
-        be deduced from the user's role in the project. With SDK, the user can be
-        assigned to a role in the project with the share_project function.
-
-        :param project: project name or folder path (e.g., "project1/folder1")
-        :type project: str
-        :param image_names: list of image names to assign
-        :type image_names: list of str
-        :param user: user email
-        :type user: str
-        """
-
-        warning_msg = (
-            "We're deprecating the assign_images function. Please use assign_items instead."
-            "Learn more. \n"
-            "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.assign_items"
-        )
-        logger.warning(warning_msg)
-        warnings.warn(warning_msg, DeprecationWarning)
-        project_name, folder_name = extract_project_folder(project)
-        project = self.controller.get_project_metadata(project_name).data
-
-        if project["project"].type in [
-            constants.ProjectType.VIDEO.value,
-            constants.ProjectType.DOCUMENT.value,
-        ]:
-            raise AppException(LIMITED_FUNCTIONS[project["project"].type])
-
-        contributors = (
-            self.controller.get_project_metadata(
-                project_name=project_name, include_contributors=True
-            )
-            .data["project"]
-            .users
-        )
-        contributor = None
-        for c in contributors:
-            if c["user_id"] == user:
-                contributor = user
-
-        if not contributor:
-            logger.warning(
-                f"Skipping {user}. {user} is not a verified contributor for the {project_name}"
-            )
-            return
-
-        response = self.controller.assign_images(
-            project_name, folder_name, image_names, user
-        )
-        if not response.errors:
-            logger.info(f"Assign images to user {user}")
-        else:
-            raise AppException(response.errors)
-
-    def unassign_images(
-        self, project: Union[NotEmptyStr, dict], image_names: List[NotEmptyStr]
-    ):
-        """Removes assignment of given images for all assignees. With SDK,
-        the user can be assigned to a role in the project with the share_project
-        function.
-
-        :param project: project name or folder path (e.g., "project1/folder1")
-        :type project: str
-        :param image_names: list of images to unassign
-        :type image_names: list of str
-        """
-
-        warning_msg = (
-            "We're deprecating the unassign_images function. Please use unassign_items instead."
-            "Learn more. \n"
-            "https://superannotate.readthedocs.io/en/stable/superannotate.sdk.html#superannotate.unassign_items"
-        )
-        logger.warning(warning_msg)
-        warnings.warn(warning_msg, DeprecationWarning)
-        project_name, folder_name = extract_project_folder(project)
-
-        response = self.controller.un_assign_images(
-            project_name=project_name, folder_name=folder_name, image_names=image_names
         )
         if response.errors:
             raise AppException(response.errors)

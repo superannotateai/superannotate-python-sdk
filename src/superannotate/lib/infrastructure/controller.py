@@ -795,24 +795,6 @@ class Controller(BaseController):
         )
         return use_case.execute()
 
-    def delete_images(
-        self,
-        project_name: str,
-        folder_name: str,
-        image_names: List[str] = None,
-    ):
-        project = self._get_project(project_name)
-        folder = self._get_folder(project, folder_name)
-
-        use_case = usecases.DeleteImagesUseCase(
-            project=project,
-            folder=folder,
-            images=self.images,
-            image_names=image_names,
-            backend_service_provider=self._backend_client,
-        )
-        return use_case.execute()
-
     def delete_items(
         self,
         project_name: str,
@@ -855,31 +837,6 @@ class Controller(BaseController):
             service=self._backend_client,
             folder=folder,
             item_names=item_names,
-        )
-        return use_case.execute()
-
-    def assign_images(
-        self, project_name: str, folder_name: str, image_names: list, user: str
-    ):
-        project_entity = self._get_project(project_name)
-        folder = self._get_folder(project_entity, folder_name)
-        use_case = usecases.AssignImagesUseCase(
-            project=project_entity,
-            service=self._backend_client,
-            folder=folder,
-            image_names=image_names,
-            user=user,
-        )
-        return use_case.execute()
-
-    def un_assign_images(self, project_name, folder_name, image_names):
-        project = self._get_project(project_name)
-        folder = self._get_folder(project, folder_name)
-        use_case = usecases.UnAssignImagesUseCase(
-            project_entity=project,
-            service=self._backend_client,
-            folder=folder,
-            image_names=image_names,
         )
         return use_case.execute()
 

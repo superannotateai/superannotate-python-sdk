@@ -162,20 +162,7 @@ class SuperannotateServiceProvider:
     ):
         raise NotImplementedError
 
-    def delete_images(self, project_id: int, team_id: int, image_ids: List[int]):
-        raise NotImplementedError
-
     def delete_items(self, project_id: int, team_id: int, item_ids: List[int]):
-        raise NotImplementedError
-
-    def assign_images(
-        self,
-        team_id: int,
-        project_id: int,
-        folder_name: str,
-        user: str,
-        image_names: list,
-    ):
         raise NotImplementedError
 
     def assign_items(
@@ -203,15 +190,6 @@ class SuperannotateServiceProvider:
 
     def assign_folder(
         self, team_id: int, project_id: int, folder_name: str, users: list
-    ):
-        raise NotImplementedError
-
-    def un_assign_images(
-        self,
-        team_id: int,
-        project_id: int,
-        folder_name: str,
-        image_names: list,
     ):
         raise NotImplementedError
 

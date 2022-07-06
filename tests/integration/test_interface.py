@@ -43,7 +43,7 @@ class TestInterface(BaseTestCase):
         return os.path.join(dirname(dirname(__file__)), self.TEST_FOLDER_PATH_WITH_MULTIPLE_IMAGERS)
 
     @pytest.mark.flaky(reruns=4)
-    def test_delete_images(self):
+    def test_delete_items(self):
         sa.create_folder(self.PROJECT_NAME, self.TEST_FOLDER_NAME)
 
         path = f"{self.PROJECT_NAME}/{self.TEST_FOLDER_NAME}"
@@ -56,7 +56,7 @@ class TestInterface(BaseTestCase):
             self.PROJECT_NAME, with_all_subfolders=True
         )
         self.assertEqual(num_images, 4)
-        sa.delete_images(path)
+        sa.delete_items(path)
 
         num_images = sa.get_project_image_count(
             self.PROJECT_NAME, with_all_subfolders=True
