@@ -2230,9 +2230,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
         with open(annotations_json) as file:
             annotation_data = json.loads(file.read())
-            response = Controller.validate_annotations(
-                project_type, annotation_data
-            )
+            response = Controller.validate_annotations(project_type, annotation_data)
             if response.errors:
                 raise AppException(response.errors)
             is_valid, _ = response.data
@@ -2703,7 +2701,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :param path:  local directory path where the annotations will be downloaded. If none, the current directory is used.
         :type path: Path-like (str or Path)
 
-        :param items: list of item names whose annotations will be downloaded 
+        :param items: list of item names whose annotations will be downloaded
             (e.g., ["Image_1.jpeg", "Image_2.jpeg"]). If the value is None, then all the annotations of the given directory will be downloaded.
 
         :type items: list of str

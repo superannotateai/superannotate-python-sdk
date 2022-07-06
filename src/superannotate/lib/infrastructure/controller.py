@@ -75,8 +75,8 @@ class BaseController(metaclass=ABCMeta):
         self._integrations = None
         self._ml_models = None
         self._user_id = None
-        self._team_name = None
         self._reporter = None
+        self._team = self._get_team()
 
     @staticmethod
     def validate_token(token: str):
@@ -97,12 +97,6 @@ class BaseController(metaclass=ABCMeta):
         return self._user_id
 
     @property
-    def team_name(self):
-        if not self._team_name:
-            _, self._team_name = self.get_team()
-        return self._team_name
-
-    @property
     def projects(self):
         if not self._projects:
             self._projects = ProjectRepository(self._backend_client)
@@ -113,6 +107,18 @@ class BaseController(metaclass=ABCMeta):
         if not self._folders:
             self._folders = FolderRepository(self._backend_client)
         return self._folders
+
+    @property
+    def team(self):
+        return self._team
+
+    def _get_team(self):
+        response = usecases.GetTeamUseCase(
+            teams=self.teams, team_id=self.team_id
+        ).execute()
+        if response.errors:
+            raise AppException(response.errors)
+        return response.data
 
     def get_team(self):
         return usecases.GetTeamUseCase(teams=self.teams, team_id=self.team_id).execute()
@@ -130,7 +136,7 @@ class BaseController(metaclass=ABCMeta):
     @property
     def team_data(self):
         if not self._team_data:
-            self._team_data = self.get_team().data
+            self._team_data = self.team
         return self._team_data
 
     @property
@@ -1366,13 +1372,12 @@ class Controller(BaseController):
         return use_case.execute()
 
     def add_contributors_to_project(self, project_name: str, emails: list, role: str):
-        team = self.get_team()
         project = self.get_project_metadata(
             project_name=project_name, include_contributors=True
         )
         use_case = usecases.AddContributorsToProject(
             reporter=self.get_default_reporter(),
-            team=team.data,
+            team=self.team,
             project=project.data["project"],
             emails=emails,
             role=role,
@@ -1381,10 +1386,9 @@ class Controller(BaseController):
         return use_case.execute()
 
     def invite_contributors_to_team(self, emails: list, set_admin: bool):
-        team = self.get_team()
         use_case = usecases.InviteContributorsToTeam(
             reporter=self.get_default_reporter(),
-            team=team.data,
+            team=self.team,
             emails=emails,
             set_admin=set_admin,
             service=self.backend_client,
