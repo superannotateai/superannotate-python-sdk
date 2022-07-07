@@ -1,5 +1,70 @@
 # Changelog 
-All release higlighths of this project will be documented in this file.
+All release highlights of this project will be documented in this file.
+## 4.4.0 - July 03, 2022
+### Added
+- `superannotate.SAClient()` _class_ to instantiate team-level authentication and inheriting methods to access the back-end.
+- `SAClient.download_annotations()` _method_ to download annotations without preparing an Export object.
+- `SAClient.get_subsets()` _method_ to get the existing subsets for a given project.
+- `SAClient.assign_items()` _method_ to assign items in a given project to annotators or quality specialists.
+- `SAClient.unassign_items()` _method_ to remove assignments from items.
+- `SAClient.delete_items()` _method_ to delete items in a given project.
+### Updated
+- `JSON Schema` for video annotations to version `1.0.45` to show **polygon** and **polyline** annotations.
+- `SAClient.get_annotations_per_frame()` _method_ to show **polygon** and **polyline** annotations.
+- `SAClient.get_annotations_per_frame()` _method_ to pick instances closer to a given **frame start** instead of the **median**.
+- `SAClient.query()` _method_ to add the `subset` argument to support querying in a subset.
+### Fixed
+- `SAClient.set_annotation_statuses()` _method_ to address the issue occurring with more than 500 items.
+- `SAClient.get_annotations()` _method_ to address the `PayloadError` occurring with more than 20000 items.
+- `SAClient.get_annotations()` _method_ to address the missing `'duration'` and `'tags'` keys for newly uploaded and unannotated videos.
+- `SAClient.get_annotations_per_frame()` _method_ to address missing `'duration'` and `'tags'` keys for newly uploaded and unannotated videos.
+- `SAClient.get_annotations_per_frame()` _method_ to address the wrong `classId` value for unclassified instances.
+### Removed
+- `superannotate.init()` _function_. Please instantiate `superannotate.SAClient()` _class_ to authenticate.
+- `superannotate.set_image_annotation_status()` _function_. Please use the `SAClient.set_annotation_statuses()` _method_ instead.
+- `superannotate.set_images_annotations_statuses()` _function_. Please use the `SAClient.set_annotation_statuses()` _method_ instead.
+## 4.3.4 - May 22, 2022
+### Updated
+- `JSON Schema` for video annotations to version `x` to reflect point annotations.
+- `superannotate.download_export()` function to preserve SA folder structure while downloading to S3 bucket.
+- `superannotate.get_item_metadata()` function to have string type values instead of int type for the `approval_status` key.
+- `superannotate.get_item_metadata()` function to change the value for the `path` key in the item metadata from `project/folder/item` format to `project/folder`.
+- `superannotate.get_item_metadata()` function to add the `is_pinned` key in the returned metadata.
+- `superannotate.clone_project()` function to have `NotStarted` project status for the newly created project.
+### Fixed
+- `superannotate.query()` function to address the missing value for the `path` key.
+- `superannotate.import_annotation()` function to address the extension issue with JPEG files while converting from `VOC` to SA.
+- `superannotate.import_annotation()` function to address int type pointlabels in the converted `JSON` from `COCO` to SA.
+- `superannotate_get_annotations()` & `superannotate.add_annotation_comment_to_image()` to address the issue with `asyncio` occuring on Windows.
+- `superannotate.set_image_annotation_status()` function add a deprecation warning.
+- `superannotate.set_images_annotation_statuses()` function add a deprecation warning.
+### Removed
+- `share_projects()` function.
+- `superannotate.attach_image_urls_to_project()` function. Please use the `superannotate.attach_items()` function instead.
+- `superannotate.attach_document_urls_to_project()` function. Please use the `superannotate.attach_items()` function instead.
+- `superannotate.attach_video_urls_to_project()` function. Please use the `superannotate.attach_items()` function instead.
+- `superannotate.copy_images()` function. Please use the `superannotate.copy_items()` function instead.
+- `superannotate.move_images()` function. Please use the `superannotate.move_items()` function instead.
+###
+## 4.3.3 - May 01 2022
+### Added
+- `attach_items()` function to link items (images, videos, and documents) from external storages to SuperAnnotate using URLs.
+- `copy_items()` function to copy items (images, videos, and documents) in bulk between folders in a project.
+- `move_items()` function to move items (images, videos, and documents) in bulk between folders in a project.
+- `set_annotation_statuses()` function to change the annotation status of items (images, videos, and documents) in bulk.
+### Updated
+- `aggregate_annotations_as_df()` function now supports Text Projects.
+### Fixed
+- `validate_annotations()` function to accept only numeric type values for the `points` field.
+- `prepare_export()` function to address the issue when the entire project is prepared when a wrong folder name is provided.
+- `search_team_contributors()` function to address the error message when `email` parameter is used.
+- `get_item_metadata()` to address the issue with approved/disapproved items.
+### Removed
+- `get_project_and_folder_metadata()` function.
+- `get_image_metadata()` function. Please use `get_item_metadata()` instead.
+- `search_images()` function. Please use `search_items()` instead.
+- `search images_all_folders()` function. Please use `search_items()` instead.
+###
 ## 4.3.2 - April 10 2022
 ### Added
 - `query()` function to run SAQuL queries via SDK.

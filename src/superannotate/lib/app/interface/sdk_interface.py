@@ -572,7 +572,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :type project: str
         :param name_contains:  search string. Returns those classes,
          where the given string is found anywhere within its name. If None, all annotation classes will be returned.
-        :type name_prefix: str
+        :type name_contains: str
 
         :return: annotation classes of the project
         :rtype: list of dicts
@@ -1614,12 +1614,19 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         :param project: project name or folder path (e.g., "project1/folder1")
         :type project: str
+
         :param image_name: image name
         :type image_name: str
+
         :param annotation_json: annotations in SuperAnnotate format JSON dict or path to JSON file
         :type annotation_json: dict or Path-like (str or Path)
+
         :param mask: BytesIO object or filepath to mask annotation for pixel projects in SuperAnnotate format
         :type mask: BytesIO or Path-like (str or Path)
+
+        :param verbose: Turns on verbose output logging during the proces.
+        :type verbose: bool
+
         """
 
         project_name, folder_name = extract_project_folder(project)
@@ -2413,7 +2420,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         :type query: str
 
         :param subset:  subset name. Allows you to query items in a specific subset.
-        To return all the items in the specified subset, set the value of query param to None.
+            To return all the items in the specified subset, set the value of query param to None.
         :type subset: str
 
         :return: queried items’ metadata list
