@@ -8,13 +8,15 @@ from typing import Any
 from typing import Callable
 from typing import Dict
 from typing import List
+from operator import itemgetter
+
+from superannotate_schemas.schemas.classes import AnnotationClass
+from superannotate_schemas.schemas.classes import Attribute
+from superannotate_schemas.schemas.classes import AttributeGroup
 
 import lib.core as constances
 from lib.core.enums import AnnotationTypes
 from lib.core.reporter import Reporter
-from superannotate_schemas.schemas.classes import AnnotationClass
-from superannotate_schemas.schemas.classes import Attribute
-from superannotate_schemas.schemas.classes import AttributeGroup
 
 
 class BaseDataHandler(metaclass=ABCMeta):
@@ -47,7 +49,7 @@ class BaseAnnotationDateHandler(BaseDataHandler, metaclass=ABCMeta):
 
     @lru_cache()
     def get_attribute_group(
-        self, annotation_class: AnnotationClass, attr_group_name: str
+            self, annotation_class: AnnotationClass, attr_group_name: str
     ) -> AttributeGroup:
         for attr_group in annotation_class.attribute_groups:
             if attr_group.name == attr_group_name:
@@ -114,10 +116,10 @@ class DocumentTagHandler(BaseAnnotationDateHandler):
 
 class MissingIDsHandler(BaseAnnotationDateHandler):
     def __init__(
-        self,
-        annotation_classes: List[AnnotationClass],
-        templates: List[dict],
-        reporter: Reporter,
+            self,
+            annotation_classes: List[AnnotationClass],
+            templates: List[dict],
+            reporter: Reporter,
     ):
         super().__init__(annotation_classes)
         self.validate_existing_classes(annotation_classes)
@@ -187,7 +189,7 @@ class MissingIDsHandler(BaseAnnotationDateHandler):
             template["name"]: template["id"] for template in self._templates
         }
         for annotation_instance in (
-            i for i in annotation["instances"] if i.get("type", None) == "template"
+                i for i in annotation["instances"] if i.get("type", None) == "template"
         ):
             annotation_instance["templateId"] = template_name_id_map.get(
                 annotation_instance.get("templateName", ""), -1
@@ -237,6 +239,8 @@ class MissingIDsHandler(BaseAnnotationDateHandler):
 
 
 class VideoFormatHandler(BaseAnnotationDateHandler):
+    INSTANCE_FIELDS = {"className", "pointLabels", "createdBy", "createdAt", "updatedBy", "updatedAt"}
+
     @staticmethod
     def _point_handler(time_stamp):
         pass
@@ -266,7 +270,7 @@ class VideoFormatHandler(BaseAnnotationDateHandler):
             return "0" if str(timestamp) == "0.0" else timestamp
 
         def convert_timestamp(timestamp):
-            return timestamp / 10**6 if timestamp else "0"
+            return timestamp / 10 ** 6 if timestamp else "0"
 
         editor_data = {
             "instances": [],
@@ -300,8 +304,9 @@ class VideoFormatHandler(BaseAnnotationDateHandler):
             else:
                 editor_instance["classId"] = id_generator.send("unknown_class")
 
-            if meta.get("pointLabels", None):
-                editor_instance["pointLabels"] = meta["pointLabels"]
+            matched_fields = self.INSTANCE_FIELDS & meta.keys()
+            for matched_field in matched_fields:
+                editor_instance[matched_field] = meta[matched_field]
             active_attributes = set()
             for parameter in instance["parameters"]:
                 start_time = safe_time(convert_timestamp(parameter["start"]))
@@ -363,10 +368,10 @@ class VideoFormatHandler(BaseAnnotationDateHandler):
                                 (group_name, attr_name)
                             )
                     attributes_to_add = (
-                        existing_attributes_in_current_instance - active_attributes
+                            existing_attributes_in_current_instance - active_attributes
                     )
                     attributes_to_delete = (
-                        active_attributes - existing_attributes_in_current_instance
+                            active_attributes - existing_attributes_in_current_instance
                     )
                     if attributes_to_add or attributes_to_delete:
                         editor_instance["timeline"][timestamp][
