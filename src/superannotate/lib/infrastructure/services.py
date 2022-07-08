@@ -378,8 +378,13 @@ class SuperannotateBackendService(BaseBackendService):
     def get_folder(self, query_string: str):
         get_folder_url = urljoin(self.api_url, self.URL_GET_FOLDER_BY_NAME)
         if query_string:
-            get_folder_url = f"{get_folder_url}?{query_string}"
-        response = self._request(get_folder_url, "get")
+            query_items = query_string.split("&")
+            params = {}
+            for item in query_items:
+                tmp = item.split('=')
+                params[tmp[0]] = tmp[1]
+
+        response = self._request(get_folder_url, "get", params=params)
         if response.ok:
             return response.json()
 
