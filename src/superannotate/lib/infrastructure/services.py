@@ -56,7 +56,7 @@ class BaseBackendService(SuperannotateServiceProvider):
         auth_token: str,
         logger,
         paginate_by=None,
-        verify_ssl=False,
+        verify_ssl: bool = False,
         testing: bool = False,
     ):
         self.api_url = api_url
