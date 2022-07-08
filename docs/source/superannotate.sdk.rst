@@ -96,8 +96,6 @@ ______
 .. automethod:: superannotate.SAClient.upload_image_annotations
 .. automethod:: superannotate.SAClient.copy_image
 .. automethod:: superannotate.SAClient.pin_image
-.. automethod:: superannotate.SAClient.assign_images
-.. automethod:: superannotate.SAClient.delete_images
 .. automethod:: superannotate.SAClient.add_annotation_bbox_to_image
 .. automethod:: superannotate.SAClient.add_annotation_point_to_image
 .. automethod:: superannotate.SAClient.add_annotation_comment_to_image

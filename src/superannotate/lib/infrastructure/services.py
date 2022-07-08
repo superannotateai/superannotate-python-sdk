@@ -218,7 +218,6 @@ class SuperannotateBackendService(BaseBackendService):
     URL_COPY_IMAGES_FROM_FOLDER = "images/copy-image-or-folders"
     URL_MOVE_IMAGES_FROM_FOLDER = "image/move"
     URL_GET_COPY_PROGRESS = "images/copy-image-progress"
-    URL_ASSIGN_IMAGES = "images/editAssignment/"
     URL_ASSIGN_ITEMS = "images/editAssignment/"
     URL_ASSIGN_FOLDER = "folder/editAssignment"
     URL_GET_EXPORTS = "exports"
@@ -729,16 +728,6 @@ class SuperannotateBackendService(BaseBackendService):
         )
         return ServiceResponse(res, ServiceResponse)
 
-    def delete_images(self, project_id: int, team_id: int, image_ids: List[int]):
-        delete_images_url = urljoin(self.api_url, self.URL_DELETE_FOLDERS)
-        res = self._request(
-            delete_images_url,
-            "put",
-            params={"team_id": team_id, "project_id": project_id},
-            data={"image_ids": image_ids},
-        )
-        return res.json()
-
     def delete_items(self, project_id: int, team_id: int, item_ids: List[int]):
         delete_items_url = urljoin(self.api_url, self.URL_DELETE_ITEMS)
 
@@ -750,47 +739,6 @@ class SuperannotateBackendService(BaseBackendService):
         )
 
         return ServiceResponse(res, ServiceResponse)
-
-    def assign_images(
-        self,
-        team_id: int,
-        project_id: int,
-        folder_name: str,
-        user: str,
-        image_names: list,
-    ):
-        assign_images_url = urljoin(self.api_url, self.URL_ASSIGN_IMAGES)
-        res = self._request(
-            assign_images_url,
-            "put",
-            params={"team_id": team_id, "project_id": project_id},
-            data={
-                "image_names": image_names,
-                "assign_user_id": user,
-                "folder_name": folder_name,
-            },
-        )
-        return res.ok
-
-    def un_assign_images(
-        self,
-        team_id: int,
-        project_id: int,
-        folder_name: str,
-        image_names: List[str],
-    ):
-        un_assign_images_url = urljoin(self.api_url, self.URL_ASSIGN_IMAGES)
-        res = self._request(
-            un_assign_images_url,
-            "put",
-            params={"team_id": team_id, "project_id": project_id},
-            data={
-                "image_names": image_names,
-                "remove_user_ids": ["all"],
-                "folder_name": folder_name,
-            },
-        )
-        return res.ok
 
     def assign_items(
         self,

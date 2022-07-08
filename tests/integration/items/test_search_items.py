@@ -57,7 +57,7 @@ class TestSearchItems(BaseTestCase):
         sa.upload_images_from_folder_to_project(
             self.PROJECT_NAME, self.folder_path, annotation_status="InProgress"
         )
-        sa.assign_images(self.PROJECT_NAME, [self.IMAGE1_NAME, self.IMAGE2_NAME], test_email)
+        sa.assign_items(self.PROJECT_NAME, [self.IMAGE1_NAME, self.IMAGE2_NAME], test_email)
 
         items = sa.search_items(self.PROJECT_NAME, annotator_email=test_email, recursive=True)
         assert len(items) == 2
