@@ -357,3 +357,16 @@ class SuperannotateServiceProvider:
 
     def list_sub_sets(self, team_id: int, project_id: int) -> ServiceResponse:
         raise NotImplementedError
+
+    def create_custom_schema(
+        self, team_id: int, project_id: int, schema: dict
+    ) -> ServiceResponse:
+        raise NotImplementedError
+
+    def get_custom_schema(self, team_id: int, project_id: int) -> ServiceResponse:
+        raise NotImplementedError
+
+    def delete_custom_schema(
+        self, team_id: int, project_id: int, fields: List[str]
+    ) -> ServiceResponse:
+        raise NotImplementedError

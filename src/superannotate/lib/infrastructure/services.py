@@ -244,6 +244,8 @@ class SuperannotateBackendService(BaseBackendService):
     URL_SAQUL_QUERY = "/images/search/advanced"
     URL_VALIDATE_SAQUL_QUERY = "/images/parse/query/advanced"
     URL_LIST_SUBSETS = "/project/{project_id}/subset"
+    URL_CREATE_CUSTOM_SCHEMA = "/project/{project_id}/custom/metadata/schema"
+    URL_GET_CUSTOM_SCHEMA = "/project/{project_id}/custom/metadata/schema"
 
     def upload_priority_scores(
         self, team_id: int, project_id: int, folder_id: int, priorities: list
@@ -1190,4 +1192,43 @@ class SuperannotateBackendService(BaseBackendService):
             "get",
             params=dict(team_id=team_id),
             content_type=List[entities.SubSetEntity],
+        )
+
+    def create_custom_schema(
+        self, team_id: int, project_id: int, schema: dict
+    ) -> ServiceResponse:
+        return self._request(
+            urljoin(
+                self.api_url,
+                self.URL_CREATE_CUSTOM_SCHEMA.format(project_id=project_id),
+            ),
+            "post",
+            params=dict(team_id=team_id),
+            data=dict(data=schema),
+            content_type=ServiceResponse,
+        )
+
+    def get_custom_schema(self, team_id: int, project_id: int) -> ServiceResponse:
+        return self._request(
+            urljoin(
+                self.api_url,
+                self.URL_CREATE_CUSTOM_SCHEMA.format(project_id=project_id),
+            ),
+            "get",
+            params=dict(team_id=team_id),
+            content_type=ServiceResponse,
+        )
+
+    def delete_custom_schema(
+        self, team_id: int, project_id: int, fields: List[str]
+    ) -> ServiceResponse:
+        return self._request(
+            urljoin(
+                self.api_url,
+                self.URL_CREATE_CUSTOM_SCHEMA.format(project_id=project_id),
+            ),
+            "delete",
+            params=dict(team_id=team_id),
+            data=dict(custom_fields=fields),
+            content_type=ServiceResponse,
         )
