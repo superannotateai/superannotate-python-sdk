@@ -68,6 +68,11 @@ class DownloadMLModelAuthData(BaseModel):
         super().__init__(**data)
 
 
+class UploadCustomFieldValues(BaseModel):
+    succeeded_items: List[Any]
+    failed_items: List[str]
+
+
 class ServiceResponse(BaseModel):
     status: int
     reason: str

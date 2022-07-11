@@ -9,28 +9,23 @@ from typing import Union
 import boto3
 from lib.core.conditions import Condition
 from lib.core.entities import BaseEntity
-from lib.core.entities import Entity
 from lib.core.entities import ProjectEntity
-from lib.core.entities import TmpBaseEntity
 from lib.core.serviceproviders import SuperannotateServiceProvider
+from pydantic import BaseModel
 
 
 class BaseReadOnlyRepository(ABC):
     @abstractmethod
-    def get_one(
-        self, uuid: Union[Condition, int]
-    ) -> Optional[Union[BaseEntity, Entity]]:
+    def get_one(self, uuid: Union[Condition, int]) -> Optional[Union[BaseModel]]:
         raise NotImplementedError
 
     @abstractmethod
-    def get_all(
-        self, condition: Optional[Condition] = None
-    ) -> List[Union[BaseEntity, Entity]]:
+    def get_all(self, condition: Optional[Condition] = None) -> List[Union[BaseModel]]:
         raise NotImplementedError
 
     @staticmethod
-    def dict2entity(data: dict) -> Entity:
-        return Entity(**TmpBaseEntity(**data).dict())
+    def dict2entity(data: dict) -> BaseModel:
+        raise NotImplementedError
 
 
 class BaseManageableRepository(BaseReadOnlyRepository):

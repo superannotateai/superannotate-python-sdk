@@ -23,6 +23,16 @@ class TestCustomSchema(BaseTestCase):
         data = sa.create_custom_fields(self.PROJECT_NAME, self.PAYLOAD)
         self.assertEqual(self.PAYLOAD, data)
 
+    def test_(self):
+        data = sa.create_custom_fields(self.PROJECT_NAME, {
+        "test": {
+            "type": "numbaaer"
+        },
+        "tester": {
+            "type": "numbsser"
+        }}
+                                       )
+
     def test_create_limit_25(self):
         payload = {i: {"type": "number"} for i in range(26)}
         with self.assertRaisesRegexp(
@@ -49,3 +59,15 @@ class TestCustomSchema(BaseTestCase):
         sa.delete_custom_fields(self.PROJECT_NAME, [to_delete_field])
         del payload[to_delete_field]
         self.assertEqual(sa.get_custom_fields(self.PROJECT_NAME), payload)
+
+    def test_upload_delete_custom_values(self):
+        sa.create_custom_fields(self.PROJECT_NAME, self.PAYLOAD)
+        item_name = "test"
+        payload = {"test": 12}
+        sa.attach_items(self.PROJECT_NAME, [{"name": item_name, "url": item_name}])
+        sa.upload_custom_values(self.PROJECT_NAME, [{item_name: payload}] * 10000)
+        data = sa.query(self.PROJECT_NAME, "metadata(status = NotStarted)")
+        assert data[0]["custom_metadata"] == payload
+        sa.delete_custom_values(self.PROJECT_NAME, [{item_name: ["test"]}])
+        data = sa.query(self.PROJECT_NAME, "metadata(status = NotStarted)")
+        assert data[0]["custom_metadata"] == {}

@@ -26,7 +26,7 @@ class BaseInterfaceFacade:
         version = os.environ.get("SA_VERSION", "v1")
         _token, _config_path = None, None
         _host = os.environ.get("SA_URL", constants.BACKEND_URL)
-        _ssl_verify = os.environ.get("SA_SSL", "True") in ("false", "f", "0")
+        _ssl_verify = not os.environ.get("SA_SSL", "True").lower() in ("false", "f", "0")
         if token:
             _token = Controller.validate_token(token=token)
         elif config_path:

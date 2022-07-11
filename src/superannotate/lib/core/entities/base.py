@@ -40,7 +40,7 @@ class TimedBaseModel(BaseModel):
     updatedAt: StringDate = Field(None, alias="updatedAt")
 
 
-class BaseEntity(TimedBaseModel):
+class BaseItemEntity(TimedBaseModel):
     name: str
     path: Optional[str] = Field(
         None, description="Item’s path in SuperAnnotate project"
@@ -52,9 +52,24 @@ class BaseEntity(TimedBaseModel):
     entropy_value: Optional[float] = Field(description="Priority score of given item")
     createdAt: str = Field(description="Date of creation")
     updatedAt: str = Field(description="Update date")
+    custom_metadata: Optional[dict]
 
     class Config:
         extra = Extra.allow
+
+    def add_path(self, project_name: str, folder_name: str):
+        self.path = (
+            f"{project_name}{f'/{folder_name}' if folder_name != 'root' else ''}"
+        )
+        return self
+
+    @staticmethod
+    def map_fields(entity: dict) -> dict:
+        entity["url"] = entity.get("path")
+        entity["path"] = None
+        entity["annotator_email"] = entity.get("annotator_id")
+        entity["qa_email"] = entity.get("qa_id")
+        return entity
 
 
 class AttachmentEntity(BaseModel):

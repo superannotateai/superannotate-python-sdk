@@ -1688,3 +1688,33 @@ class Controller(BaseController):
             backend_client=self.backend_client,
         )
         return use_case.execute()
+
+    def upload_custom_values(
+        self, project_name: str, folder_name: str, items: List[dict]
+    ):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+
+        use_case = usecases.UploadCustomValuesUseCase(
+            reporter=self.get_default_reporter(),
+            project=project,
+            folder=folder,
+            items=items,
+            backend_client=self.backend_client,
+        )
+        return use_case.execute()
+
+    def delete_custom_values(
+        self, project_name: str, folder_name: str, items: List[dict]
+    ):
+        project = self._get_project(project_name)
+        folder = self._get_folder(project, folder_name)
+
+        use_case = usecases.DeleteCustomValuesUseCase(
+            reporter=self.get_default_reporter(),
+            project=project,
+            folder=folder,
+            items=items,
+            backend_client=self.backend_client,
+        )
+        return use_case.execute()

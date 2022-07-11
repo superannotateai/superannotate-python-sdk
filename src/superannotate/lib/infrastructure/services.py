@@ -21,6 +21,7 @@ from lib.core.reporter import Reporter
 from lib.core.service_types import DownloadMLModelAuthData
 from lib.core.service_types import ServiceResponse
 from lib.core.service_types import UploadAnnotationAuthData
+from lib.core.service_types import UploadCustomFieldValues
 from lib.core.service_types import UserLimits
 from lib.core.serviceproviders import SuperannotateServiceProvider
 from lib.infrastructure.helpers import timed_lru_cache
@@ -246,6 +247,7 @@ class SuperannotateBackendService(BaseBackendService):
     URL_LIST_SUBSETS = "/project/{project_id}/subset"
     URL_CREATE_CUSTOM_SCHEMA = "/project/{project_id}/custom/metadata/schema"
     URL_GET_CUSTOM_SCHEMA = "/project/{project_id}/custom/metadata/schema"
+    URL_UPLOAD_CUSTOM_VALUE = "/project/{project_id}/custom/metadata/item"
 
     def upload_priority_scores(
         self, team_id: int, project_id: int, folder_id: int, priorities: list
@@ -1230,5 +1232,39 @@ class SuperannotateBackendService(BaseBackendService):
             "delete",
             params=dict(team_id=team_id),
             data=dict(custom_fields=fields),
+            content_type=ServiceResponse,
+        )
+
+    def upload_custom_fields(
+        self, team_id: int, project_id: int, folder_id: int, items: List[dict]
+    ):
+        from collections import ChainMap
+
+        return self._request(
+            urljoin(
+                self.api_url, self.URL_UPLOAD_CUSTOM_VALUE.format(project_id=project_id)
+            ),
+            "post",
+            params=dict(team_id=team_id, fodler_id=folder_id),
+            data=dict(data=dict(ChainMap(*items))),
+            content_type=UploadCustomFieldValues,
+        )
+
+    def delete_custom_fields(
+        self,
+        team_id: int,
+        project_id: int,
+        folder_id: int,
+        items: List[Dict[str, List[str]]],
+    ):
+        from collections import ChainMap
+
+        return self._request(
+            urljoin(
+                self.api_url, self.URL_UPLOAD_CUSTOM_VALUE.format(project_id=project_id)
+            ),
+            "delete",
+            params=dict(team_id=team_id, fodler_id=folder_id),
+            data=dict(data=dict(ChainMap(*items))),
             content_type=ServiceResponse,
         )

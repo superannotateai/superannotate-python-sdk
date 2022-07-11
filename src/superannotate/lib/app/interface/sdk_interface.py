@@ -5,6 +5,7 @@ import os
 import tempfile
 from pathlib import Path
 from typing import Callable
+from typing import Dict
 from typing import Iterable
 from typing import List
 from typing import Optional
@@ -2571,7 +2572,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(response.errors)
         else:
             logger.info("Annotation statuses of items changed")
-        return response.data
 
     def download_annotations(
         self,
@@ -2666,7 +2666,8 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         --------------------------------------
          field spec           spec value
         ==============  ======================
-        format          “email” or “date”
+        format          “email” (user@example.com) or “date” (YYYY-MM-DD)
+
         enum            list of strings
         ==============  ======================
         ::
@@ -2724,32 +2725,32 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         Response Example:
         ::
-        {
-           "study_date": {
-               "type": "string",
-               "format": "date"
-           },
-           "patient_id": {
-               "type": "string"
-           },
-           "patient_sex": {
-               "type": "string",
-               "enum": [
-                   "male", "female"
-               ]
-           },
-           "patient_age": {
-               "type": "number"
-           },
-           "medical_specialist": {
-               "type": "string",
-               "format": "email"
-           },
-           "duration": {
-               "type": "number",
-               "minimum": 10
-           }
-        }
+            {
+               "study_date": {
+                   "type": "string",
+                   "format": "date"
+               },
+               "patient_id": {
+                   "type": "string"
+               },
+               "patient_sex": {
+                   "type": "string",
+                   "enum": [
+                       "male", "female"
+                   ]
+               },
+               "patient_age": {
+                   "type": "number"
+               },
+               "medical_specialist": {
+                   "type": "string",
+                   "format": "email"
+               },
+               "duration": {
+                   "type": "number",
+                   "minimum": 10
+               }
+            }
         """
         project_name, _ = extract_project_folder(project)
         response = self.controller.get_custom_schema(project_name=project)
@@ -2757,7 +2758,9 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             raise AppException(response.errors)
         return response.data
 
-    def delete_custom_fields(self, project: NotEmptyStr, fields: list):
+    def delete_custom_fields(
+        self, project: NotEmptyStr, fields: conlist(NotEmptyStr, min_items=1)
+    ):
         """Remove custom fields from a project’s custom metadata schema.
 
         :param project: project name  (e.g., “project1”)
@@ -2771,39 +2774,143 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
 
         Request Example:
         ::
-        client = SAClient()
-        client.delete_custom_fields(
-           project = "Medical Annotations",
-           fields = ["duration", patient_age]
-        )
+            client = SAClient()
+            client.delete_custom_fields(
+               project = "Medical Annotations",
+               fields = ["duration", patient_age]
+            )
 
         Response Example:
         ::
-        {
-            "study_date": {
-               "type": "string",
-               "format": "date"
-            },
-            "patient_id": {
-               "type": "string"
-            },
-            "patient_sex": {
-               "type": "string",
-               "enum": [
-                   "male", "female"
-               ]
-            },
-            "medical_specialist": {
-               "type": "string",
-               "format": "email"
+            {
+                "study_date": {
+                   "type": "string",
+                   "format": "date"
+                },
+                "patient_id": {
+                   "type": "string"
+                },
+                "patient_sex": {
+                   "type": "string",
+                   "enum": [
+                       "male", "female"
+                   ]
+                },
+                "medical_specialist": {
+                   "type": "string",
+                   "format": "email"
+                }
             }
-        }
 
         """
         project_name, _ = extract_project_folder(project)
         response = self.controller.delete_custom_schema(
-            project_name=project, fields=fields
+            project_name=project_name, fields=fields
         )
         if response.errors:
             raise AppException(response.errors)
         return response.data
+
+    def upload_custom_values(
+        self, project: NotEmptyStr, items: conlist(Dict[str, dict], min_items=1)
+    ):
+        """
+        Attach custom metadata to items.
+        SAClient.get_item_metadata(), SAClient.search_items(), SAClient.query() methods
+        will return the item metadata and custom metadata.
+
+        :param project: project name or folder path (e.g., “project1/folder1”)
+        :type project: str
+
+        :param items:  list of name-data pairs.
+            The key of each dict indicates an existing item name and the value represents the custom metadata dict.
+             The values for the corresponding keys will be added to an item or will be overridden.
+        :type items: list of dicts
+
+        :return: the count of succeeded items and the list of failed item names.
+        :rtype: dict
+
+        Request Example:
+        ::
+            client = SAClient()
+
+            items_values = [
+               {
+                   "image_1.png": {
+                       "study_date": "2021-12-31",
+                       "patient_id": "62078f8a756ddb2ca9fc9660",
+                       "patient_sex": "female",
+                       "medical_specialist": "robertboxer@ms.com"
+                   }
+               },
+               {
+                   "image_2.png": {
+                       "study_date": "2021-12-31",
+                       "patient_id": "62078f8a756ddb2ca9fc9661",
+                       "patient_sex": "female",
+                       "medical_specialist": "robertboxer@ms.com"
+                   }
+               },
+               {
+                   "image_3.png": {
+                       "study_date": "2011-10-05T14:48:00.000Z",
+                       "patient_": "62078f8a756ddb2ca9fc9660",
+                       "patient_sex": "female",
+                       "medical_specialist": "robertboxer"
+                   }
+               }
+            ]
+
+            client.upload_custom_values(
+               project = "Medical Annotations",
+               items = items_values
+            )
+        Response Example:
+        ::
+            {
+               "successful_items_count": 2,
+               "failed_items_names": ["image_3.png"]
+            }
+        """
+
+        project_name, folder_name = extract_project_folder(project)
+        response = self.controller.upload_custom_values(
+            project_name=project_name, folder_name=folder_name, items=items
+        )
+        if response.errors:
+            raise AppException(response.errors)
+        return response.data
+
+    def delete_custom_values(
+        self, project: NotEmptyStr, items: conlist(Dict[str, List[str]], min_items=1)
+    ):
+        """
+        Remove custom data from items
+
+        :param project: project name or folder path (e.g., “project1/folder1”)
+        :type project: str
+
+        :param items:   list of name-custom data dicts.
+         The key of each dict element indicates an existing item in the project root or folder.
+          The value should be the list of fields to be removed from the given item.
+          Please note, that the function removes pointed metadata from a given item.
+          To delete metadata for all items you should delete it from the custom metadata schema.
+          To override values for existing fields, use SAClient.upload_custom_values()
+        :type items: list of dicts
+
+        Request Example:
+        ::
+            client.delete_custom_values(
+                project = "Medical Annotations",
+                items = [
+                   {"image_1.png": ["study_date", "patient_sex"]},
+                   {"image_2.png": ["study_date", "patient_sex"]}
+                ]
+            )
+        """
+        project_name, folder_name = extract_project_folder(project)
+        response = self.controller.delete_custom_values(
+            project_name=project_name, folder_name=folder_name, items=items
+        )
+        if response.errors:
+            raise AppException(response.errors)
