@@ -1943,7 +1943,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         task: Optional[NotEmptyStr] = None,
         include_global: Optional[StrictBool] = True,
     ):
-        """Search for ML models.
+        r"""Search for ML models.
 
         :param name: search string
         :type name: str
@@ -2708,7 +2708,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         """
         project_name, _ = extract_project_folder(project)
         response = self.controller.create_custom_schema(
-            project_name=project, schema=fields
+            project_name=project_name, schema=fields
         )
         if response.errors:
             raise AppException(response.errors)
@@ -2753,7 +2753,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             }
         """
         project_name, _ = extract_project_folder(project)
-        response = self.controller.get_custom_schema(project_name=project)
+        response = self.controller.get_custom_schema(project_name=project_name)
         if response.errors:
             raise AppException(response.errors)
         return response.data
@@ -2827,7 +2827,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
              The values for the corresponding keys will be added to an item or will be overridden.
         :type items: list of dicts
 
-        :return: the count of succeeded items and the list of failed item names.
+        :return: dictionary with succeeded and failed item names.
         :rtype: dict
 
         Request Example:

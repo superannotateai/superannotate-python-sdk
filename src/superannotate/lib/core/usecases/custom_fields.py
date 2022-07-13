@@ -11,11 +11,11 @@ from lib.core.usecases import BaseReportableUseCase
 
 class CreateCustomSchemaUseCase(BaseReportableUseCase):
     def __init__(
-            self,
-            reporter: Reporter,
-            project: ProjectEntity,
-            schema: dict,
-            backend_client: SuperannotateServiceProvider,
+        self,
+        reporter: Reporter,
+        project: ProjectEntity,
+        schema: dict,
+        backend_client: SuperannotateServiceProvider,
     ):
         super().__init__(reporter)
         self._project = project
@@ -43,10 +43,10 @@ class CreateCustomSchemaUseCase(BaseReportableUseCase):
 
 class GetCustomSchemaUseCase(BaseReportableUseCase):
     def __init__(
-            self,
-            reporter: Reporter,
-            project: ProjectEntity,
-            backend_client: SuperannotateServiceProvider,
+        self,
+        reporter: Reporter,
+        project: ProjectEntity,
+        backend_client: SuperannotateServiceProvider,
     ):
         super().__init__(reporter)
         self._project = project
@@ -66,11 +66,11 @@ class GetCustomSchemaUseCase(BaseReportableUseCase):
 
 class DeleteCustomSchemaUseCase(BaseReportableUseCase):
     def __init__(
-            self,
-            reporter: Reporter,
-            project: ProjectEntity,
-            fields: List[str],
-            backend_client: SuperannotateServiceProvider,
+        self,
+        reporter: Reporter,
+        project: ProjectEntity,
+        fields: List[str],
+        backend_client: SuperannotateServiceProvider,
     ):
         super().__init__(reporter)
         self._project = project
@@ -78,13 +78,23 @@ class DeleteCustomSchemaUseCase(BaseReportableUseCase):
         self._backend_client = backend_client
 
     def execute(self) -> Response:
+        if self._fields:
+            self.reporter.log_info("Matched fields deleted from schema.")
         response = self._backend_client.delete_custom_schema(
             team_id=self._project.team_id,
             project_id=self._project.id,
             fields=self._fields,
         )
         if response.ok:
-            self._response.data = response.data
+            use_case_response = GetCustomSchemaUseCase(
+                reporter=self.reporter,
+                project=self._project,
+                backend_client=self._backend_client,
+            ).execute()
+            if use_case_response.errors:
+                self._response.errors = use_case_response.errors
+            else:
+                self._response.data = use_case_response.data
         else:
             self._response.errors = response.error
         return self._response
@@ -94,12 +104,12 @@ class UploadCustomValuesUseCase(BaseReportableUseCase):
     CHUNK_SIZE = 5000
 
     def __init__(
-            self,
-            reporter: Reporter,
-            project: ProjectEntity,
-            folder: FolderEntity,
-            items: List[Dict[str, str]],
-            backend_client: SuperannotateServiceProvider,
+        self,
+        reporter: Reporter,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        items: List[Dict[str, str]],
+        backend_client: SuperannotateServiceProvider,
     ):
         super().__init__(reporter)
         self._project = project
@@ -119,7 +129,7 @@ class UploadCustomValuesUseCase(BaseReportableUseCase):
                     project_id=self._project.id,
                     team_id=self._project.team_id,
                     folder_id=self._folder.uuid,
-                    items=self._items[idx: idx + self.CHUNK_SIZE],  # noqa: E203
+                    items=self._items[idx : idx + self.CHUNK_SIZE],  # noqa: E203
                 )
                 if not response.ok:
                     self._response.errors = response.error
@@ -132,7 +142,7 @@ class UploadCustomValuesUseCase(BaseReportableUseCase):
                  the schema of the custom fields defined for the "{self._project.name}" project."""
             )
         self._response.data = {
-            "succeeded": {list(item)[0] for item in self._items} ^ set(failed_items),
+            "succeeded": list({list(item)[0] for item in self._items} ^ set(failed_items)),
             "failed": failed_items,
         }
         return self._response
@@ -142,12 +152,12 @@ class DeleteCustomValuesUseCase(BaseReportableUseCase):
     CHUNK_SIZE = 5000
 
     def __init__(
-            self,
-            reporter: Reporter,
-            project: ProjectEntity,
-            folder: FolderEntity,
-            items: List[Dict[str, List[str]]],
-            backend_client: SuperannotateServiceProvider,
+        self,
+        reporter: Reporter,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        items: List[Dict[str, List[str]]],
+        backend_client: SuperannotateServiceProvider,
     ):
         super().__init__(reporter)
         self._project = project
@@ -161,7 +171,7 @@ class DeleteCustomValuesUseCase(BaseReportableUseCase):
                 project_id=self._project.id,
                 team_id=self._project.team_id,
                 folder_id=self._folder.uuid,
-                items=self._items[idx: idx + self.CHUNK_SIZE],  # noqa: E203
+                items=self._items[idx : idx + self.CHUNK_SIZE],  # noqa: E203
             )
             if not response.ok:
                 self._response.errors = response.error

@@ -385,7 +385,7 @@ class SuperannotateBackendService(BaseBackendService):
             query_items = query_string.split("&")
             params = {}
             for item in query_items:
-                tmp = item.split('=')
+                tmp = item.split("=")
                 params[tmp[0]] = tmp[1]
 
         response = self._request(get_folder_url, "get", params=params)
