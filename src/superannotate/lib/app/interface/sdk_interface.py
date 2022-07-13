@@ -3,7 +3,6 @@ import io
 import json
 import os
 import tempfile
-import warnings
 from pathlib import Path
 from typing import Callable
 from typing import Iterable
@@ -2634,3 +2633,177 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         if response.errors:
             raise AppException(response.errors)
         return BaseSerializer.serialize_iterable(response.data, ["name"])
+
+    def create_custom_fields(self, project: NotEmptyStr, fields: dict):
+        """Create custom fields for items in a project in addition to built-in metadata.
+        Using this function again with a different schema won't override the existing fields, but add new ones.
+        Use the upload_custom_values() function to fill them with values for each item.
+
+        :param project: project name  (e.g., “project1”)
+        :type project: str
+
+        :param fields:  dictionary describing the fields and their specifications added to the project.
+         You can see the schema structure <here>.
+        :type fields: dict
+
+        :return: custom fields actual schema of the project
+        :rtype: dict
+
+        Supported Types:
+
+        ==============  ======================
+                    number
+        --------------------------------------
+         field spec           spec value
+        ==============  ======================
+        minimum         any number (int or float)
+        maximum         any number (int or float)
+        enum            list of numbers (int or float)
+        ==============  ======================
+
+        ==============  ======================
+                    string
+        --------------------------------------
+         field spec           spec value
+        ==============  ======================
+        format          “email” or “date”
+        enum            list of strings
+        ==============  ======================
+        ::
+
+            custom_fields = {
+               "study_date": {
+                   "type": "string",
+                   "format": "date"
+               },
+               "patient_id": {
+                   "type": "string"
+               },
+               "patient_sex": {
+                   "type": "string",
+                   "enum": [
+                       "male", "female"
+                   ]
+               },
+               "patient_age": {
+                   "type": "number"
+               },
+               "medical_specialist": {
+                   "type": "string",
+                   "format": "email"
+               },
+               "duration": {
+                   "type": "number",
+                   "minimum": 10
+               }
+            }
+
+            client = SAClient()
+            client.create_custom_fields(
+               project="Medical Annotations",
+               fields=custom_fields
+            )
+
+        """
+        project_name, _ = extract_project_folder(project)
+        response = self.controller.create_custom_schema(
+            project_name=project, schema=fields
+        )
+        if response.errors:
+            raise AppException(response.errors)
+        return response.data
+
+    def get_custom_fields(self, project: NotEmptyStr):
+        """Get the schema of the custom fields defined for the project
+
+        :param project: project name  (e.g., “project1”)
+        :type project: str
+
+        :return: custom fields actual schema of the project
+        :rtype: dict
+
+        Response Example:
+        ::
+        {
+           "study_date": {
+               "type": "string",
+               "format": "date"
+           },
+           "patient_id": {
+               "type": "string"
+           },
+           "patient_sex": {
+               "type": "string",
+               "enum": [
+                   "male", "female"
+               ]
+           },
+           "patient_age": {
+               "type": "number"
+           },
+           "medical_specialist": {
+               "type": "string",
+               "format": "email"
+           },
+           "duration": {
+               "type": "number",
+               "minimum": 10
+           }
+        }
+        """
+        project_name, _ = extract_project_folder(project)
+        response = self.controller.get_custom_schema(project_name=project)
+        if response.errors:
+            raise AppException(response.errors)
+        return response.data
+
+    def delete_custom_fields(self, project: NotEmptyStr, fields: list):
+        """Remove custom fields from a project’s custom metadata schema.
+
+        :param project: project name  (e.g., “project1”)
+        :type project: str
+
+        :param fields: list of field names to remove
+        :type fields: list of strs
+
+        :return: custom fields actual schema of the project
+        :rtype: dict
+
+        Request Example:
+        ::
+        client = SAClient()
+        client.delete_custom_fields(
+           project = "Medical Annotations",
+           fields = ["duration", patient_age]
+        )
+
+        Response Example:
+        ::
+        {
+            "study_date": {
+               "type": "string",
+               "format": "date"
+            },
+            "patient_id": {
+               "type": "string"
+            },
+            "patient_sex": {
+               "type": "string",
+               "enum": [
+                   "male", "female"
+               ]
+            },
+            "medical_specialist": {
+               "type": "string",
+               "format": "email"
+            }
+        }
+
+        """
+        project_name, _ = extract_project_folder(project)
+        response = self.controller.delete_custom_schema(
+            project_name=project, fields=fields
+        )
+        if response.errors:
+            raise AppException(response.errors)
+        return response.data

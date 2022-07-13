@@ -1658,3 +1658,33 @@ class Controller(BaseController):
             backend_client=self.backend_client,
         )
         return use_case.execute()
+
+    def create_custom_schema(self, project_name: str, schema: dict):
+        project = self._get_project(project_name)
+
+        use_case = usecases.CreateCustomSchemaUseCase(
+            reporter=self.get_default_reporter(),
+            project=project,
+            schema=schema,
+            backend_client=self.backend_client,
+        )
+        return use_case.execute()
+
+    def get_custom_schema(self, project_name: str):
+        project = self._get_project(project_name)
+        use_case = usecases.GetCustomSchemaUseCase(
+            reporter=self.get_default_reporter(),
+            project=project,
+            backend_client=self.backend_client,
+        )
+        return use_case.execute()
+
+    def delete_custom_schema(self, project_name: str, fields: List[str]):
+        project = self._get_project(project_name)
+        use_case = usecases.DeleteCustomSchemaUseCase(
+            reporter=self.get_default_reporter(),
+            project=project,
+            fields=fields,
+            backend_client=self.backend_client,
+        )
+        return use_case.execute()

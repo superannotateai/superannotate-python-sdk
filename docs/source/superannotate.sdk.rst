@@ -79,6 +79,15 @@ ______
 
 ----------
 
+Custom Metadata
+______
+
+.. automethod:: superannotate.SAClient.create_custom_fields
+.. automethod:: superannotate.SAClient.get_custom_fields
+.. automethod:: superannotate.SAClient.delete_custom_fields
+
+----------
+
 Subsets
 ______
 
