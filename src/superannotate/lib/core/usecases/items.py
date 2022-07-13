@@ -6,8 +6,8 @@ import superannotate.lib.core as constants
 from lib.core.conditions import Condition
 from lib.core.conditions import CONDITION_EQ as EQ
 from lib.core.entities import AttachmentEntity
+from lib.core.entities import BaseItemEntity
 from lib.core.entities import DocumentEntity
-from lib.core.entities import Entity
 from lib.core.entities import FolderEntity
 from lib.core.entities import ImageEntity
 from lib.core.entities import ProjectEntity
@@ -79,7 +79,7 @@ class GetItem(BaseReportableUseCase):
         self._item_name = item_name
 
     @staticmethod
-    def serialize_entity(entity: Entity, project: ProjectEntity):
+    def serialize_entity(entity: BaseItemEntity, project: ProjectEntity):
         if project.upload_state != constants.UploadState.EXTERNAL.value:
             entity.url = None
         if project.type in (
@@ -194,7 +194,7 @@ class QueryEntitiesUseCase(BaseReportableUseCase):
                 data = []
                 for i, item in enumerate(service_response.data):
                     tmp_item = GetItem.serialize_entity(
-                        Entity(**Entity.map_fields(item)), self._project
+                        BaseItemEntity(**BaseItemEntity.map_fields(item)), self._project
                     )
                     folder_path = f"{'/' + item['folder_name'] if not item['is_root_folder'] else ''}"
                     tmp_item.path = f"{self._project.name}" + folder_path

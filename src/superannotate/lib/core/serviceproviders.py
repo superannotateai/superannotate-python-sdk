@@ -370,3 +370,17 @@ class SuperannotateServiceProvider:
         self, team_id: int, project_id: int, fields: List[str]
     ) -> ServiceResponse:
         raise NotImplementedError
+
+    def upload_custom_fields(
+        self, team_id: int, project_id: int, folder_id: int, items: List[dict]
+    ) -> ServiceResponse:
+        raise NotImplementedError
+
+    def delete_custom_fields(
+        self,
+        team_id: int,
+        project_id: int,
+        folder_id: int,
+        items: List[Dict[str, List[str]]],
+    ) -> ServiceResponse:
+        raise NotImplementedError

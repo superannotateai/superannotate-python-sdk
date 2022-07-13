@@ -17,6 +17,13 @@ class Spinner:
         self.stop_running = threading.Event()
         self.spin_thread = threading.Thread(target=self.init_spin)
 
+    def __enter__(self):
+        self.spin_thread.start()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.stop()
+
     def start(self):
         self.spin_thread.start()
 
@@ -53,6 +60,10 @@ class Reporter:
         self.session = CONFIG.get_current_session()
         self._spinner = None
 
+    @property
+    def spinner(self):
+        return Spinner()
+
     def start_spinner(self):
         if self._log_info:
             self._spinner = Spinner()
@@ -83,6 +94,9 @@ class Reporter:
         if self._log_warning:
             self.logger.warning(value)
         self.warning_messages.append(value)
+
+    def log_error(self, value: str):
+        self.logger.warning(value)
 
     def log_debug(self, value: str):
         if self._log_debug:
