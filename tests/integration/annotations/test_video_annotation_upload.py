@@ -156,7 +156,7 @@ class TestUploadVideoAnnotation(BaseTestCase):
                 },
                 30.526667: {
                     'active': False, 'points': {'x1': 182.42, 'y1': 97.19, 'x2': 284.11, 'y2': 195.4}}},
-                'type': 'bbox', 'locked': False, 'classId': -1, "className": "vid",
+                'type': 'bbox', 'locked': False, 'classId': -1,
                 "pointLabels": {
                     "3": "point label bro"
                 },
@@ -164,11 +164,11 @@ class TestUploadVideoAnnotation(BaseTestCase):
             {
                 'attributes': [],
                 'timeline': {29.713736: {'active': True, 'x': 1, 'y': 2}, 30.526667: {'active': False, 'x': 2, 'y': 3}},
-                'type': 'point', 'locked': False, 'classId': -1, "className": "vid",
+                'type': 'point', 'locked': False, 'classId': -1,
             },
             {
                 'attributes': [], 'timeline': {5.528212: {'active': True}, 6.702957: {}, 7.083022: {'active': False}},
-                'type': 'event', 'locked': False, 'classId': -1, "className": "vid",
+                'type': 'event', 'locked': False, 'classId': -1,
             }
         ],
             'tags': ['some tag'], 'name': 'video.mp4',

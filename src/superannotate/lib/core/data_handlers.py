@@ -239,7 +239,7 @@ class MissingIDsHandler(BaseAnnotationDateHandler):
 
 
 class VideoFormatHandler(BaseAnnotationDateHandler):
-    INSTANCE_FIELDS = {"className", "pointLabels", "createdBy", "createdAt", "updatedBy", "updatedAt"}
+    INSTANCE_FIELDS = {"pointLabels", "createdBy", "createdAt", "updatedBy", "updatedAt"}
 
     @staticmethod
     def _point_handler(time_stamp):
