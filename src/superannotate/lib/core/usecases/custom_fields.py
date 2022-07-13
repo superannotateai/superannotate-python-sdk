@@ -11,11 +11,11 @@ from lib.core.usecases import BaseReportableUseCase
 
 class CreateCustomSchemaUseCase(BaseReportableUseCase):
     def __init__(
-            self,
-            reporter: Reporter,
-            project: ProjectEntity,
-            schema: dict,
-            backend_client: SuperannotateServiceProvider,
+        self,
+        reporter: Reporter,
+        project: ProjectEntity,
+        schema: dict,
+        backend_client: SuperannotateServiceProvider,
     ):
         super().__init__(reporter)
         self._project = project
@@ -43,10 +43,10 @@ class CreateCustomSchemaUseCase(BaseReportableUseCase):
 
 class GetCustomSchemaUseCase(BaseReportableUseCase):
     def __init__(
-            self,
-            reporter: Reporter,
-            project: ProjectEntity,
-            backend_client: SuperannotateServiceProvider,
+        self,
+        reporter: Reporter,
+        project: ProjectEntity,
+        backend_client: SuperannotateServiceProvider,
     ):
         super().__init__(reporter)
         self._project = project
@@ -66,11 +66,11 @@ class GetCustomSchemaUseCase(BaseReportableUseCase):
 
 class DeleteCustomSchemaUseCase(BaseReportableUseCase):
     def __init__(
-            self,
-            reporter: Reporter,
-            project: ProjectEntity,
-            fields: List[str],
-            backend_client: SuperannotateServiceProvider,
+        self,
+        reporter: Reporter,
+        project: ProjectEntity,
+        fields: List[str],
+        backend_client: SuperannotateServiceProvider,
     ):
         super().__init__(reporter)
         self._project = project
@@ -94,12 +94,12 @@ class UploadCustomValuesUseCase(BaseReportableUseCase):
     CHUNK_SIZE = 5000
 
     def __init__(
-            self,
-            reporter: Reporter,
-            project: ProjectEntity,
-            folder: FolderEntity,
-            items: List[Dict[str, str]],
-            backend_client: SuperannotateServiceProvider,
+        self,
+        reporter: Reporter,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        items: List[Dict[str, str]],
+        backend_client: SuperannotateServiceProvider,
     ):
         super().__init__(reporter)
         self._project = project
@@ -119,7 +119,7 @@ class UploadCustomValuesUseCase(BaseReportableUseCase):
                     project_id=self._project.id,
                     team_id=self._project.team_id,
                     folder_id=self._folder.uuid,
-                    items=self._items[idx: idx + self.CHUNK_SIZE],  # noqa: E203
+                    items=self._items[idx : idx + self.CHUNK_SIZE],  # noqa: E203
                 )
                 if not response.ok:
                     self._response.errors = response.error
@@ -142,12 +142,12 @@ class DeleteCustomValuesUseCase(BaseReportableUseCase):
     CHUNK_SIZE = 5000
 
     def __init__(
-            self,
-            reporter: Reporter,
-            project: ProjectEntity,
-            folder: FolderEntity,
-            items: List[Dict[str, List[str]]],
-            backend_client: SuperannotateServiceProvider,
+        self,
+        reporter: Reporter,
+        project: ProjectEntity,
+        folder: FolderEntity,
+        items: List[Dict[str, List[str]]],
+        backend_client: SuperannotateServiceProvider,
     ):
         super().__init__(reporter)
         self._project = project
@@ -161,7 +161,7 @@ class DeleteCustomValuesUseCase(BaseReportableUseCase):
                 project_id=self._project.id,
                 team_id=self._project.team_id,
                 folder_id=self._folder.uuid,
-                items=self._items[idx: idx + self.CHUNK_SIZE],  # noqa: E203
+                items=self._items[idx : idx + self.CHUNK_SIZE],  # noqa: E203
             )
             if not response.ok:
                 self._response.errors = response.error

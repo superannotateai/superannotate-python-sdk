@@ -1943,7 +1943,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         task: Optional[NotEmptyStr] = None,
         include_global: Optional[StrictBool] = True,
     ):
-        """Search for ML models.
+        r"""Search for ML models.
 
         :param name: search string
         :type name: str

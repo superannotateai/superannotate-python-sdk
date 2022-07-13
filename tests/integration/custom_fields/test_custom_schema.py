@@ -23,16 +23,6 @@ class TestCustomSchema(BaseTestCase):
         data = sa.create_custom_fields(self.PROJECT_NAME, self.PAYLOAD)
         self.assertEqual(self.PAYLOAD, data)
 
-    def test_(self):
-        data = sa.create_custom_fields(self.PROJECT_NAME, {
-        "test": {
-            "type": "numbaaer"
-        },
-        "tester": {
-            "type": "numbsser"
-        }}
-                                       )
-
     def test_create_limit_25(self):
         payload = {i: {"type": "number"} for i in range(26)}
         with self.assertRaisesRegexp(
