@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from src.superannotate import SAClient
-
+from tests import DATA_SET_PATH
 
 sa = SAClient()
 
