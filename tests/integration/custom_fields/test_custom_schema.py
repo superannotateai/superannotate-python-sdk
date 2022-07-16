@@ -46,8 +46,9 @@ class TestCustomSchema(BaseTestCase):
         payload = copy.copy(self.PAYLOAD)
         sa.create_custom_fields(self.PROJECT_NAME, payload)
         to_delete_field = list(payload.keys())[0]
-        sa.delete_custom_fields(self.PROJECT_NAME, [to_delete_field])
+        response = sa.delete_custom_fields(self.PROJECT_NAME, [to_delete_field])
         del payload[to_delete_field]
+        assert response == payload
         self.assertEqual(sa.get_custom_fields(self.PROJECT_NAME), payload)
 
     def test_upload_delete_custom_values(self):
@@ -55,7 +56,8 @@ class TestCustomSchema(BaseTestCase):
         item_name = "test"
         payload = {"test": 12}
         sa.attach_items(self.PROJECT_NAME, [{"name": item_name, "url": item_name}])
-        sa.upload_custom_values(self.PROJECT_NAME, [{item_name: payload}] * 10000)
+        response = sa.upload_custom_values(self.PROJECT_NAME, [{item_name: payload}] * 10000)
+        assert response == {'failed': [], 'succeeded': {item_name}}
         data = sa.query(self.PROJECT_NAME, "metadata(status = NotStarted)")
         assert data[0]["custom_metadata"] == payload
         sa.delete_custom_values(self.PROJECT_NAME, [{item_name: ["test"]}])

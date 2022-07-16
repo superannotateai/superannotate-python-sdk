@@ -78,13 +78,23 @@ class DeleteCustomSchemaUseCase(BaseReportableUseCase):
         self._backend_client = backend_client
 
     def execute(self) -> Response:
+        if self._fields:
+            self.reporter.log_info("Matched fields deleted from schema.")
         response = self._backend_client.delete_custom_schema(
             team_id=self._project.team_id,
             project_id=self._project.id,
             fields=self._fields,
         )
         if response.ok:
-            self._response.data = response.data
+            use_case_response = GetCustomSchemaUseCase(
+                reporter=self.reporter,
+                project=self._project,
+                backend_client=self._backend_client,
+            ).execute()
+            if use_case_response.errors:
+                self._response.errors = use_case_response.errors
+            else:
+                self._response.data = use_case_response.data
         else:
             self._response.errors = response.error
         return self._response
@@ -132,7 +142,7 @@ class UploadCustomValuesUseCase(BaseReportableUseCase):
                  the schema of the custom fields defined for the "{self._project.name}" project."""
             )
         self._response.data = {
-            "succeeded": {list(item)[0] for item in self._items} ^ set(failed_items),
+            "succeeded": list({list(item)[0] for item in self._items} ^ set(failed_items)),
             "failed": failed_items,
         }
         return self._response
