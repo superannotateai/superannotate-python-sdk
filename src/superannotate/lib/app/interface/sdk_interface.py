@@ -2827,7 +2827,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
              The values for the corresponding keys will be added to an item or will be overridden.
         :type items: list of dicts
 
-        :return: the count of succeeded items and the list of failed item names.
+        :return: dictionary with succeeded and failed item names.
         :rtype: dict
 
         Request Example:
