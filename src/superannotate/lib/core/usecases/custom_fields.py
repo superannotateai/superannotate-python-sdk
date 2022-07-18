@@ -120,7 +120,7 @@ class UploadCustomValuesUseCase(BaseReportableUseCase):
     def execute(self) -> Response:
         uploaded_items, failed_items = [], []
         self.reporter.log_info(
-            " Validating metadata against the schema of the custom fields. "
+            "Validating metadata against the schema of the custom fields. "
             "Valid metadata will be attached to the specified item."
         )
         with self.reporter.spinner:
@@ -138,11 +138,13 @@ class UploadCustomValuesUseCase(BaseReportableUseCase):
 
         if failed_items:
             self.reporter.log_error(
-                f"""The metadata dicts of {len(failed_items)} items are invalid because they don't match
-                 the schema of the custom fields defined for the "{self._project.name}" project."""
+                f"The metadata dicts of {len(failed_items)} items are invalid because they don't match"
+                f'the schema of the custom fields defined for the "{self._project.name}" project.'
             )
         self._response.data = {
-            "succeeded": list({list(item)[0] for item in self._items} ^ set(failed_items)),
+            "succeeded": list(
+                {list(item)[0] for item in self._items} ^ set(failed_items)
+            ),
             "failed": failed_items,
         }
         return self._response
