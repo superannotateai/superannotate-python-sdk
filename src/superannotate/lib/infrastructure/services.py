@@ -395,7 +395,13 @@ class SuperannotateBackendService(BaseBackendService):
     def get_folders(self, query_string: str = None, params: dict = None):
         get_folder_url = urljoin(self.api_url, self.URL_FOLDERS_IMAGES)
         if query_string:
-            get_folder_url = f"{get_folder_url}?{query_string}"
+            query_items = query_string.split("&")
+            if not params:
+                params = {}
+            for item in query_items:
+                tmp = item.split("=")
+                params[tmp[0]] = tmp[1]
+
         return self._get_all_pages(get_folder_url, params=params, key_field="folders")
 
     def delete_folders(self, project_id: int, team_id: int, folder_ids: List[int]):
