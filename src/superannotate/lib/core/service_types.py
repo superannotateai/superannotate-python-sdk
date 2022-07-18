@@ -69,8 +69,9 @@ class DownloadMLModelAuthData(BaseModel):
 
 
 class UploadCustomFieldValues(BaseModel):
-    succeeded_items: List[Any]
-    failed_items: List[str]
+    succeeded_items: Optional[List[Any]]
+    failed_items: Optional[List[str]]
+    error: Optional[Any]
 
 
 class ServiceResponse(BaseModel):

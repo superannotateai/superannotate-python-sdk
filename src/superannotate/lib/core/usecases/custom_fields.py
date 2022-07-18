@@ -138,7 +138,7 @@ class UploadCustomValuesUseCase(BaseReportableUseCase):
 
         if failed_items:
             self.reporter.log_error(
-                f"The metadata dicts of {len(failed_items)} items are invalid because they don't match"
+                f"The metadata dicts of {len(failed_items)} items are invalid because they don't match "
                 f'the schema of the custom fields defined for the "{self._project.name}" project.'
             )
         self._response.data = {
