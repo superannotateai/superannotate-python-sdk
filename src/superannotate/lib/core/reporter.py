@@ -96,7 +96,7 @@ class Reporter:
         self.warning_messages.append(value)
 
     def log_error(self, value: str):
-        self.logger.warning(value)
+        self.logger.error(value)
 
     def log_debug(self, value: str):
         if self._log_debug:

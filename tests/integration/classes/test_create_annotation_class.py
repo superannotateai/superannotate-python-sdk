@@ -1,11 +1,12 @@
 import os
-from os.path import dirname
 import tempfile
 
+from src.superannotate import AppException
 from src.superannotate import SAClient
-sa = SAClient()
-from tests.integration.base import BaseTestCase
 from tests import DATA_SET_PATH
+from tests.integration.base import BaseTestCase
+
+sa = SAClient()
 
 
 class TestCreateAnnotationClass(BaseTestCase):
@@ -32,6 +33,46 @@ class TestCreateAnnotationClass(BaseTestCase):
         sa.create_annotation_class(self.PROJECT_NAME, "test_add", color="#0000FF")
         classes = sa.search_annotation_classes(self.PROJECT_NAME, "test_add")
         assert classes[0]["color"] == "#0000FF"
+
+    def test_create_annotation_class_with_default_attribute(self):
+        sa.create_annotation_class(
+            self.PROJECT_NAME,
+            "test_add",
+            "#FF0000",
+            class_type="tag",
+            attribute_groups=[
+                {
+                    "name": "test",
+                    "attributes": [{"name": "Car"}, {"name": "Track"}, {"name": "Bus"}],
+                    "default_value": "Bus"
+                }
+            ]
+        )
+        classes = sa.search_annotation_classes(self.PROJECT_NAME)
+        assert classes[0]['attribute_groups'][0]["default_value"] == "Bus"
+
+    def test_create_annotation_classes_with_default_attribute(self):
+        sa.create_annotation_classes_from_classes_json(
+            self.PROJECT_NAME,
+            classes_json=[
+                {
+                    "name": "Personal vehicle",
+                    "color": "#ecb65f",
+                    "count": 25,
+                    "createdAt": "2020-10-12T11:35:20.000Z",
+                    "updatedAt": "2020-10-12T11:48:19.000Z",
+                    "attribute_groups": [
+                        {
+                            "name": "test",
+                            "attributes": [{"name": "Car"}, {"name": "Track"}, {"name": "Bus"}],
+                            "default_value": "Bus"
+                        }
+                    ]
+                }
+            ]
+        )
+        classes = sa.search_annotation_classes(self.PROJECT_NAME)
+        assert classes[0]['attribute_groups'][0]["default_value"] == "Bus"
 
 
 class TestCreateAnnotationClassNonVectorWithError(BaseTestCase):
@@ -95,3 +136,50 @@ class TestCreateAnnotationClassesNonVectorWithError(BaseTestCase):
                 msg = str(e)
             self.assertEqual(msg, "Predefined tagging functionality is not supported for projects of type Video.")
 
+
+class TestCreateAnnotationClassPixel(BaseTestCase):
+    PROJECT_NAME = "TestCreateAnnotationClassPixel"
+    PROJECT_TYPE = "Pixel"
+    PROJECT_DESCRIPTION = "Example "
+    TEST_LARGE_CLASSES_JSON = "large_classes_json.json"
+
+    @property
+    def large_json_path(self):
+        return os.path.join(DATA_SET_PATH, self.TEST_LARGE_CLASSES_JSON)
+
+    def test_create_annotation_class_with_default_attribute(self):
+        with self.assertRaisesRegexp(AppException, 'The "default_value" key is not supported for project type Pixel.'):
+            sa.create_annotation_class(
+                self.PROJECT_NAME,
+                "test_add",
+                "#FF0000",
+                attribute_groups=[
+                    {
+                        "name": "test",
+                        "attributes": [{"name": "Car"}, {"name": "Track"}, {"name": "Bus"}],
+                        "default_value": "Bus"
+                    }
+                ]
+            )
+
+    def test_create_annotation_classes_with_default_attribute(self):
+        with self.assertRaisesRegexp(AppException, 'The "default_value" key is not supported for project type Pixel.'):
+            sa.create_annotation_classes_from_classes_json(
+                self.PROJECT_NAME,
+                classes_json=[
+                    {
+                        "name": "Personal vehicle",
+                        "color": "#ecb65f",
+                        "count": 25,
+                        "createdAt": "2020-10-12T11:35:20.000Z",
+                        "updatedAt": "2020-10-12T11:48:19.000Z",
+                        "attribute_groups": [
+                            {
+                                "name": "test",
+                                "attributes": [{"name": "Car"}, {"name": "Track"}, {"name": "Bus"}],
+                                "default_value": "Bus"
+                            }
+                        ]
+                    }
+                ]
+            )
