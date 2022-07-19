@@ -473,10 +473,10 @@ class ItemRepository(BaseReadOnlyRepository):
         self._service = service
 
     def get_one(self, uuid: Condition) -> BaseItemEntity:
-        items = self._service.list_items(uuid.build_query())
-        if len(items) >= 1:
-            return BaseItemEntity(**BaseItemEntity.map_fields(items[0]))
+        response = self._service.list_items(uuid.build_query())
+        if len(response.data) >= 1:
+            return response.data[0]
 
     def get_all(self, condition: Optional[Condition] = None) -> List[BaseItemEntity]:
         items = self._service.list_items(condition.build_query())
-        return [BaseItemEntity(**BaseItemEntity.map_fields(item)) for item in items]
+        return items.data

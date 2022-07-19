@@ -2318,23 +2318,59 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         self,
         project: NotEmptyStr,
         item_name: NotEmptyStr,
+        include_custom_metadata: bool = False,
     ):
         """Returns item metadata
 
         :param project: project name or folder path (e.g., “project1/folder1”)
         :type project: str
 
-        :param item_name: item name
+        :param item_name: item name.
         :type item_name: str
+
+        :param include_custom_metadata: include custom metadata that has been attached to an asset.
+        :type include_custom_metadata: bool
 
         :return: metadata of item
         :rtype: dict
+
+        Request Example:
+        ::
+            client.get_item_metadata(
+               project="Medical Annotations",
+               item_name = "image_1.png",
+               include_custom_metadata=True
+            )
+
+
+        Response Example:
+        ::
+            {
+               "name": "image_1.jpeg",
+               "path": "Medical Annotations/Study",
+               "url": "https://sa-public-files.s3.../image_1.png",
+               "annotation_status": "NotStarted",
+               "annotator_email": None,
+               "qa_email": None,
+               "entropy_value": None,
+               "createdAt": "2022-02-15T20:46:44.000Z",
+               "updatedAt": "2022-02-15T20:46:44.000Z",
+               "custom_metadata": {
+                   "study_date": "2021-12-31",
+                   "patient_id": "62078f8a756ddb2ca9fc9660",
+                   "patient_sex": "female",
+                   "medical_specialist": "robertboxer@ms.com",
+               }
+            }
         """
         project_name, folder_name = extract_project_folder(project)
-        response = self.controller.get_item(project_name, folder_name, item_name)
+        response = self.controller.get_item(
+            project_name, folder_name, item_name, include_custom_metadata
+        )
+        exclude = {"custom_metadata"} if not include_custom_metadata else {}
         if response.errors:
             raise AppException(response.errors)
-        return BaseSerializer(response.data).serialize()
+        return BaseSerializer(response.data).serialize(exclude=exclude)
 
     def search_items(
         self,
@@ -2344,6 +2380,7 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
         annotator_email: Optional[NotEmptyStr] = None,
         qa_email: Optional[NotEmptyStr] = None,
         recursive: bool = False,
+        include_custom_metadata: bool = False,
     ):
         """Search items by filtering criteria.
 
@@ -2365,8 +2402,6 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
                                 ♦ “Completed” \n
                                 ♦ “Skippe
         :type annotation_status: str
-        :type annotation_status: str
-
 
         :param annotator_email: returns those items’ names that are assigned to the specified annotator.
          If None, all items are returned. Strict equal.
@@ -2380,8 +2415,41 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
          If False search only in the project’s root or given directory.
         :type recursive: bool
 
-        :return: items' metadata
+        :param include_custom_metadata: include custom metadata that has been attached to an asset.
+        :type include_custom_metadata: bool
+
+        :return: metadata of item
         :rtype: list of dicts
+
+        Request Example:
+        ::
+            client.search_items(
+               project="Medical Annotations",
+               name_contains="image_1",
+               include_custom_metadata=True
+            )
+
+        Response Example:
+        ::
+            [
+               {
+                   "name": "image_1.jpeg",
+                   "path": "Medical Annotations/Study",
+                   "url": "https://sa-public-files.s3.../image_1.png",
+                   "annotation_status": "NotStarted",
+                   "annotator_email": None,
+                   "qa_email": None,
+                   "entropy_value": None,
+                   "createdAt": "2022-02-15T20:46:44.000Z",
+                   "updatedAt": "2022-02-15T20:46:44.000Z",
+                   "custom_metadata": {
+                       "study_date": "2021-12-31",
+                       "patient_id": "62078f8a756ddb2ca9fc9660",
+                       "patient_sex": "female",
+                       "medical_specialist": "robertboxer@ms.com",
+                   }
+               }
+            ]
         """
         project_name, folder_name = extract_project_folder(project)
         response = self.controller.list_items(
@@ -2392,10 +2460,12 @@ class SAClient(BaseInterfaceFacade, metaclass=TrackableMeta):
             annotator_email=annotator_email,
             qa_email=qa_email,
             recursive=recursive,
+            include_custom_metadata=include_custom_metadata,
         )
+        exclude = {"custom_metadata"} if not include_custom_metadata else {}
         if response.errors:
             raise AppException(response.errors)
-        return BaseSerializer.serialize_iterable(response.data)
+        return BaseSerializer.serialize_iterable(response.data, exclude=exclude)
 
     def attach_items(
         self,
