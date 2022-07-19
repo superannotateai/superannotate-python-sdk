@@ -28,7 +28,7 @@ from lib.core.serviceproviders import SuperannotateServiceProvider
 from lib.infrastructure.helpers import timed_lru_cache
 from lib.infrastructure.stream_data_handler import StreamedAnnotations
 from requests.exceptions import HTTPError
-from superannotate.version import __version__
+from superannotate import __version__
 
 requests.packages.urllib3.disable_warnings()
 
@@ -1279,7 +1279,7 @@ class SuperannotateBackendService(BaseBackendService):
                 self.api_url, self.URL_UPLOAD_CUSTOM_VALUE.format(project_id=project_id)
             ),
             "post",
-            params=dict(team_id=team_id, fodler_id=folder_id),
+            params=dict(team_id=team_id, folder_id=folder_id),
             data=dict(data=dict(ChainMap(*items))),
             content_type=UploadCustomFieldValues,
         )
@@ -1298,7 +1298,7 @@ class SuperannotateBackendService(BaseBackendService):
                 self.api_url, self.URL_UPLOAD_CUSTOM_VALUE.format(project_id=project_id)
             ),
             "delete",
-            params=dict(team_id=team_id, fodler_id=folder_id),
+            params=dict(team_id=team_id, folder_id=folder_id),
             data=dict(data=dict(ChainMap(*items))),
             content_type=ServiceResponse,
         )
